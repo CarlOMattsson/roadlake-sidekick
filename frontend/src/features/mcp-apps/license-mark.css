@@ -1,0 +1,146 @@
+/* The license signal (license-mark.tsx; see docs/decisions/log.md D-083): an amber coin with "$", 16 px in a 44 px target, no text, no motion; and
+   one row with the words, built on the update row (update-reminder.css .sk-update-row). Colours follow the host's theme
+   through --sk-accent-amber-line (light-dark(), ≥ 3:1 against --sk-bg and --sk-surface). */
+
+/* The coin: the family's 44 icon button, the glyph at 16 (--sk-glyph) in amber, the face lit a little. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-iconbtn.sk-license-mark,
+.sk-iconbtn.sk-license-mark {
+  flex: none;
+  color: var(--sk-accent-amber-line);
+}
+.sk-iconbtn.sk-license-mark svg {
+  width: var(--sk-glyph);
+  height: var(--sk-glyph);
+}
+.sk-license-mark .sk-license-coin__face {
+  fill: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+/* An inline card's open row with the coin at its end: the same 44 row, so the card is no taller. The open text keeps
+   its own width and wraps inside its box at large text; the coin is never pushed down. The coin's 44 box is pulled
+   14 out, so its glyph ends on the content edge as the card's text does. */
+.sk-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  min-width: 0;
+}
+.sk-card__foot > :first-child {
+  min-width: 0;
+}
+.sk-card__foot > .sk-btn--open,
+.sk-card__foot > :first-child {
+  align-self: center;
+}
+/* The coin takes 40 of the row's height (its target stays 48 through ::after), so a compact open row (40, Arbete's
+   cards) keeps its height: the coin adds none. */
+.sk-card__foot > .sk-license-mark {
+  margin-block: calc((var(--sk-compact) - var(--sk-tap)) / 2);
+  margin-inline-end: calc((var(--sk-tap) - var(--sk-glyph)) / -2);
+}
+.sk-card__foot > .sk-license-mark::after {
+  inset: calc((var(--sk-compact) - 48px) / 2) -2px;
+}
+/* A card that ends on its open row keeps 8 under it, as without the coin (family.css). */
+.sk-card:has(> .sk-card__foot:last-child) {
+  padding-bottom: var(--sk-s2);
+}
+
+/* The full view's foot: the coin last in the room, at the end of the line, before the frame's foot reserve. Its glyph
+   ends on the content edge. A row folded out here (a host with no other place for it) takes the full width. */
+.sk-license-foot {
+  display: grid;
+  justify-items: end;
+  min-width: 0;
+}
+.sk-license-foot > .sk-license-mark {
+  margin-inline-end: calc((var(--sk-tap) - var(--sk-glyph)) / -2);
+}
+/* With its words (the full view): a quiet button in the meta type and muted, the amber coin leading; its text ends on
+   the content edge (the quiet button's side padding is pulled back), and its target stays 48 high. */
+.sk-license-foot > .sk-license-mark--text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  min-height: 48px;
+  margin-inline-end: -0.9rem;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sk-license-mark--text svg {
+  flex: none;
+  width: var(--sk-glyph);
+  height: var(--sk-glyph);
+  color: var(--sk-accent-amber-line);
+}
+.sk-license-foot > .sk-license-row {
+  justify-self: stretch;
+}
+
+/* The row: the update row's hairline, meta type and muted text; its buttons in one wrapping line. */
+.sk-license-row__lead:focus {
+  outline: none;
+}
+.sk-license-row__lead:focus-visible {
+  outline: 2px solid var(--sk-ring, currentColor);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+.sk-license-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s1) var(--sk-s2);
+  /* The quiet buttons pull their side padding (0.9rem, family.css) back, so their text starts on the row's edge. */
+  margin-inline-start: -0.9rem;
+}
+.sk-license-row__actions:empty {
+  display: none;
+}
+.sk-license-row__buy {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--sk-tap);
+  text-decoration: none;
+}
+.sk-license-row__soon {
+  /* Undoes the actions' pull-back (see above): plain text starts on the row's edge. */
+  margin-inline-start: 0.9rem;
+  color: var(--sk-muted);
+}
+.sk-license-row__editor {
+  display: grid;
+  gap: var(--sk-s2);
+  justify-self: stretch;
+  min-width: 0;
+}
+.sk-license-row__editor .sk-license-row__actions {
+  margin-inline-start: 0;
+}
+.sk-license-row__key {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: var(--sk-s2) var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font:
+    400 0.875rem / 1.25rem ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+  resize: vertical;
+}
+.sk-license-row__key:focus-visible {
+  outline: 2px solid var(--sk-ring, currentColor);
+  outline-offset: 1px;
+}
+.sk-license-row__status {
+  color: var(--sk-fg);
+}

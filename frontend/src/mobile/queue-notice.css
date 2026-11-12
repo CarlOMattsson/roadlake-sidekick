@@ -1,0 +1,43 @@
+/* The lines about writes the phone could not send (queue-notice.tsx). Design tokens only; the bottom inset is the one
+   insets.ts publishes, so the last line clears the gesture bar. */
+.mobile-queue-notice {
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--sk-s2) calc(var(--sk-s4) + var(--host-safe-right, 0px))
+    calc(var(--sk-s2) + var(--host-safe-bottom, 0px))
+    calc(var(--sk-s4) + var(--host-safe-left, 0px));
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+}
+
+.mobile-queue-notice__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobile-queue-notice__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--sk-s3);
+}
+
+.mobile-queue-notice__text {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.mobile-queue-notice__why {
+  color: var(--sk-muted);
+}
+
+.mobile-queue-notice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s1);
+}

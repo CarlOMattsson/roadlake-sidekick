@@ -1,0 +1,520 @@
+/* Control app (trash, latest changes, memory): one inline card. Host tokens first via --sk-* (tokens.css);
+   every colour has a light-dark() fallback there. The root is transparent so the host surface shows
+   through; the card draws its own hairline and surface. No inner scroll: a long list is cut with
+   "Show all". Buttons are at least 44 px high. */
+.sidekick-control {
+  background: transparent;
+  padding: var(--host-safe-top, 0px) var(--host-safe-right, 0px)
+    var(--host-safe-bottom, 0px) var(--host-safe-left, 0px);
+  font-family: var(--sk-font);
+  font-size: var(--sk-text-md);
+  line-height: var(--sk-line-height);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+  container-type: inline-size;
+  container-name: sk-control;
+}
+
+/* The three tabs stay under the room strip while the view scrolls, as Arbete's tab row. */
+.sidekick-control .sk-segmented {
+  position: sticky;
+  top: var(--sk-sticky-top);
+  z-index: 2;
+  background: var(--sk-bg);
+}
+
+.sidekick-control .control-view {
+  display: grid;
+  /* minmax(0, 1fr): a wide child (the tab row) scrolls inside the column instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sk-s2);
+}
+
+.sidekick-control .control-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  margin: 0;
+}
+
+.sidekick-control .control-note {
+  margin: 0;
+  font-size: var(--sk-text-sm);
+  color: var(--sk-muted);
+}
+
+.sidekick-control .control-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The row template's action variant: the title and one meta line
+   in the first column, the row's 6 over and under them, at least 48, and the action ("Återställ", "Ångra", a switch) in
+   the second column in place of a ›, centred on the row's height. Rows are told apart by air, never by a hairline
+   (designsystem §2), in the card as in the full view. */
+.sidekick-control .control-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--sk-s3);
+  min-height: var(--sk-row-min);
+  box-sizing: border-box;
+  padding: var(--sk-row-pad) 0;
+}
+
+.sidekick-control .control-row-text {
+  display: contents;
+}
+
+/* The title: at most 3 lines in the full view up to about 133 % text (--sk-row-title-lines, layout.css). */
+.sidekick-control .control-row-primary {
+  grid-area: 1 / 1;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--sk-row-title-lines, none);
+  overflow: hidden;
+  font: var(--sk-type-row);
+}
+
+/* The meta line: exactly one line, cut with an ellipsis at its end. */
+.sidekick-control .control-row-secondary {
+  grid-area: 2 / 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-inline-end: 2px;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+.sidekick-control .control-row-action {
+  grid-area: 1 / 2 / 3;
+  display: flex;
+}
+
+/* Buttons take the family look (family.css). "Show all" has no side padding, so its text starts on the titles' x. */
+.sidekick-control .control-more {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  padding: 0;
+}
+
+/* The action of a row ("Återställ", "Ångra") is tertiary text: the row type at 500, no edge and no
+   surface at rest (held, the surface), in the row's end column centred on the row,
+   48 × 48 to tap, its text ending on the content edge (the 12 of padding hangs into the margin). It is in text-2:
+   in ink at 500 it outweighed the titles at 400, and the titles read first. */
+.sidekick-control .control-row-action > .control-row-btn {
+  box-sizing: border-box;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+  /* Its 48 reaches 2 into the row's 6 above and below (44 in the flow, as the compact button with its edge), so the
+     row keeps its 56 and the 15 between rows' glyphs. */
+  margin-block: -2px;
+  margin-inline-end: calc(-1 * var(--sk-s3));
+  /* One word, never broken ("Återst/äll"): the row's title column gives way. */
+  white-space: nowrap;
+  overflow-wrap: normal;
+  padding: 0 var(--sk-s3);
+  color: var(--sk-muted);
+  font: var(--sk-weight-medium) var(--sk-type-row-size) /
+    var(--sk-type-row-line) var(--sk-font);
+}
+.sidekick-control .control-more {
+  justify-self: start;
+}
+
+.sidekick-control .control-page-more {
+  display: grid;
+  gap: var(--sk-s2);
+}
+
+/* The foot of the whole list ("Show more" for the next page, or the note that the activity is cut) waits until
+   "Show all" is open. In the collapsed list "Show all (N)" already says there is more, and the line kept the trash
+   card over 560 px at 320. */
+.sidekick-control .control-more[aria-expanded="false"] ~ .control-note,
+.sidekick-control .control-more[aria-expanded="false"] ~ .control-page-more {
+  display: none;
+}
+
+/* "Minnet är på" alone on its line; Pausa minnet is the action row under it (memory-view.tsx). */
+.sidekick-control .control-headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  min-height: var(--sk-row-min);
+  box-sizing: border-box;
+  padding-block: var(--sk-row-pad);
+}
+/* "Minnet är på" is the screen's first heading, the section type as «Källor», and its meta line ("3 av
+   4 källor") 4 under it; Pausa minnet follows as the list's action row. */
+.sidekick-control .control-headrow-text {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.sidekick-control .control-headrow .control-heading {
+  font: var(--sk-type-section);
+}
+.sidekick-control .control-headrow-meta {
+  margin: var(--sk-s1) 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-inline-end: 2px;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* Pausa belongs to the head above it: its glyph 12 under the meta's, as a row's first line under a
+   heading (the head row gives back its 6 under, the action row 12 of its 48's own air), and the next heading 32 under
+   its glyph as after any list (the 8 of the action row's air under its text is taken off the heading's air). */
+.sidekick-control .control-headrow:has(+ .control-pause) {
+  padding-bottom: 0;
+}
+.sidekick-control .control-headrow + .control-pause {
+  margin-top: calc(-1 * var(--sk-s3));
+}
+.sidekick-control .control-pause ~ .control-section {
+  margin-top: calc(var(--sk-section-above) - 2 * var(--sk-s2));
+}
+
+/* The memory switch (role="switch", aria-checked): on is a track in the text colour with the knob
+   in the page colour, at the right; off is a 2 px outline in --sk-border with the knob in --sk-muted, at the left. No
+   green and no word beside it: the state leads the row's meta line, and the knob's place and the filled track say it
+   without colour. The button is 48 wide and 40 high around the 44 × 24 track, which ends on the content edge, and its
+   ::after makes the target 48 × 48, so a source row keeps the row template's 54. */
+.sidekick-control .control-switch {
+  position: relative;
+  display: inline-grid;
+  place-items: center end;
+  box-sizing: border-box;
+  min-width: 48px;
+  height: var(--sk-compact);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sk-fg);
+}
+.sidekick-control .control-switch::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--sk-compact) - 48px) / 2) 0;
+}
+
+.sidekick-control .control-switch-track {
+  position: relative;
+  box-sizing: border-box;
+  width: 2.75rem;
+  height: 1.5rem;
+  border: 2px solid var(--sk-border);
+  border-radius: 999px;
+  background: transparent;
+}
+
+.sidekick-control .control-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.5rem - 8px);
+  height: calc(1.5rem - 8px);
+  border-radius: 50%;
+  background: var(--sk-muted);
+}
+
+.sidekick-control .control-switch[data-on="true"] .control-switch-track {
+  border-color: var(--sk-fg);
+  background: var(--sk-fg);
+}
+
+.sidekick-control .control-switch[data-on="true"] .control-switch-knob {
+  background: var(--sk-bg);
+  transform: translateX(1.25rem);
+}
+
+/* A status line sits flush in the card (the card's gap spaces it). Its tone and frame come from sk-notice. */
+.sidekick-control .control-notice {
+  margin: 0;
+}
+
+/* The "Restored" line of the trash (a snackbar for 5 s): the family's success line at the foot of the list. The wrapper
+   is sticky, so in a long list it rests at the foot of the view (above the host's reply field in fullscreen,
+   --sk-notice-bottom), and lifts off the rows with the family's shadow. */
+.sidekick-control .control-snackbar {
+  position: sticky;
+  bottom: var(--sk-notice-bottom, 0px);
+  z-index: 2;
+}
+
+.sidekick-control .control-snackbar .sk-notice {
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
+}
+
+.sidekick-control .control-snackbar:focus-visible {
+  border-radius: var(--sk-radius);
+}
+
+/* Memory with a provider that is off or a test one: the headline is a warning (the note uses sk-notice--warning). */
+.sidekick-control .control-heading-warning {
+  color: var(--sk-warning-fg);
+}
+
+/* Memory paused: the domain rows are quiet; the switches keep their state and stay usable. */
+.sidekick-control .control-list-paused .control-row-primary,
+.sidekick-control .control-list-paused .control-row-secondary {
+  color: var(--sk-muted);
+}
+
+/* The question before a destructive switch. It sits in the flow, under the domain rows. */
+.sidekick-control .control-confirm {
+  display: grid;
+  gap: var(--sk-s2);
+  padding: var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-danger-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
+}
+
+.sidekick-control .control-confirm p {
+  margin: 0;
+}
+
+.sidekick-control .control-confirm-title {
+  font-weight: var(--sk-weight-semibold);
+}
+
+.sidekick-control .control-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+}
+
+/* Cancel is first in the DOM; the red button keeps its place on the left of the row. */
+.sidekick-control .control-confirm-actions .control-confirm-yes {
+  order: -1;
+}
+
+/* The failure notice inside the card leads the body; the card's gap spaces it, so it has no outer margin. */
+.sidekick-control .sk-error {
+  margin: 0;
+}
+
+/* In the full view the room is drawn on the page, as the other rooms are: the card's frame, surface and
+   padding go (no card inside the shell's frame). The shell's page padding (16 px) is the content edge, so the
+   tabs, the heading and the rows all start there; the tabs take no margin of their own. Inline, the card keeps
+   its frame. */
+.sk-rooms__pane .sidekick-control .control-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.sk-rooms__pane .sidekick-control .sk-segmented {
+  margin-inline: 0;
+}
+
+/* The full view (§4 Kontroll): the shell's Back row is "‹ Arbete" (52–100 at 412), where it leads, as in
+   every detail view; the title "Kontroll" stands right under its box as "Anna Andersson" does in 09 (the −4 gives back
+   the pane's gap), the tabs follow 12 under the title and the first content 12 under the tabs. The title scrolls away
+   with the content; the tabs stick under the chrome. Rows follow the row template. The inline
+   card keeps its tight rows so three rows and "Show all" stay within 560 px. */
+.sk-rooms__pane .sidekick-control .control-card {
+  gap: var(--sk-s3);
+}
+.sk-rooms__pane .sidekick-control .control-title {
+  margin: calc(-1 * var(--sk-s1)) 0 0;
+  padding: 0;
+  border: 0;
+  font: var(--sk-type-title);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+/* The three views (Borttaget, Historik, Sidekicks minne) as tabs (designsystem §3, Flikar): 44 px
+   high, no fill, --sk-type-label, a hairline under the whole row. The chosen tab is 600 in --sk-fg with a 3 px line
+   under the whole tab; the others are 500 in --sk-muted. The tabs share the row in equal cells,
+   as Work's, so the weight change moves nothing, never narrower than their label with 12 at each side (6 on a narrow
+   row). They never scroll or clip: at 200 % they wrap. The component stays the shared Segmented (a group of
+   aria-pressed buttons with arrow keys); only its look changes here. */
+.sidekick-control .sk-segmented {
+  flex-wrap: wrap;
+  /* 4 between wrapped rows (200 %), plus the 1 a tab gives back below: a tab's target reaches 4 up, into the gap and
+     not into the row above. */
+  gap: calc(var(--sk-s1) + 1px) 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  border-bottom: var(--sk-hairline) solid var(--sk-line);
+}
+
+/* The tab is 48 px high, the touch target (44 before): it reaches 4 px up into the air
+   under the title "Kontroll" (padding, taken back by the margin), so the line, the text and the underline stay where
+   they were. A pseudo-element would count as overflow and read as a clipped tab. Its 3 px line lies on the row's hairline. */
+.sidekick-control .sk-segmented .sk-segmented__option {
+  flex: 1 0 0;
+  min-width: max-content;
+  height: 48px;
+  min-height: 48px;
+  margin: -4px 0 -1px;
+  padding: 6px var(--sk-s3) 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+}
+
+.sidekick-control .sk-segmented .sk-segmented__option[aria-pressed="true"] {
+  border-bottom-color: var(--sk-fg);
+  background: transparent;
+  box-shadow: none;
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+/* A tab has no tick: the line under it is its mark. */
+.sidekick-control
+  .sk-segmented
+  .sk-segmented__option[aria-pressed="true"]
+  > .sk-segmented__label::before {
+  content: none;
+}
+
+.sidekick-control .sk-segmented .sk-segmented__option:focus-visible {
+  outline-offset: -2px;
+}
+
+.sidekick-control .sk-segmented__label {
+  white-space: nowrap;
+}
+
+/* A 320 px phone (inner width about 286): 6 at the sides, so the three labels keep one row also with a wider
+   fallback font (8 wrapped "Sidekicks minne" to a second row in e2e and pushed the inline card to 575 > 560). */
+@container sk-control (max-width: 20rem) {
+  .sidekick-control .sk-segmented .sk-segmented__option {
+    padding-inline: 6px;
+  }
+}
+
+/* A narrow card (16 rem: 256 px at 100 %, so every phone at 200 %). The row stacks, so the action sits under the
+   title at full width, and a word is never broken in the middle. */
+@container sk-control (max-width: 16rem) {
+  .sidekick-control {
+    overflow-wrap: break-word;
+  }
+
+  .sidekick-control .control-row-action {
+    grid-area: 3 / 1 / 4 / -1;
+  }
+
+  .sidekick-control :is(.control-row-primary, .control-row-secondary) {
+    grid-column: 1 / -1;
+  }
+
+  .sidekick-control .control-row .control-row-action > * {
+    width: 100%;
+    margin: 0;
+  }
+  /* Återställ stays text as wide as its word, its text on the title's x. */
+  .sidekick-control .control-row .control-row-action > .control-row-btn {
+    width: auto;
+    margin-inline-start: calc(-1 * var(--sk-s3));
+  }
+}
+
+/* Borttaget's Återställ is a compact secondary button, as the rows' Ångra elsewhere (family.css sk-btn--compact: 40
+   drawn with a frame in the text colour, 48 to tap through its ::after), not tertiary text that read as disabled
+   (ui-18). Its frame stands on the row's content edge. Placed after the narrow card rule, which it overrides. */
+.sidekick-control
+  .control-row
+  .control-row-action
+  > .control-row-btn.sk-btn--secondary.sk-btn--compact {
+  height: var(--sk-compact);
+  min-height: var(--sk-compact);
+  margin: 0;
+  padding: 0 calc(var(--sk-s4) - var(--sk-hairline));
+  color: var(--sk-fg);
+  font: var(--sk-type-button);
+}
+
+/* A tab's meta line ("3 borttagna · kan återställas", "Det du och Claude har gjort, senaste först"):
+   the view's first content, one line in the meta type and colour, cut with an ellipsis. */
+.sidekick-control .control-meta {
+  margin: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-inline-end: 2px;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* "Källor" over the memory's source rows: the group heading of every room, 24 over and 4 under its box (the view's 8 gap
+   is taken back), so 32 and 12 lie between the glyphs. */
+.sidekick-control .control-section {
+  margin: calc(var(--sk-section-above) - var(--sk-s2)) 0
+    calc(var(--sk-section-below) - var(--sk-s2));
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+
+/* The memory's own sentence on where its text goes: body type in the muted colour, under the heading row. */
+.sidekick-control .control-explain {
+  margin: var(--sk-s2) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* Memory rows and recall results: their meta line breaks onto more lines instead of being cut with an ellipsis
+   ("På · 12 anteckningar i minnet · 2 på väg" must be read whole). */
+.sidekick-control .control-list-wrap .control-row-secondary {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Full-width content under a row's text and action: the recall toggle, its sample and a confirmation. */
+.sidekick-control .control-row-below {
+  grid-area: 4 / 1 / 5 / -1;
+  display: grid;
+  gap: var(--sk-s2);
+  min-width: 0;
+}
+
+/* "Visa vad Sidekick minns" / "Dölj": a compact secondary button under its source, so it reads as an action and not
+   as a heading (uc-5); "Dölj" keeps a 48 wide target. */
+.sidekick-control .control-recall-toggle {
+  justify-self: start;
+  min-width: 3rem;
+  margin-block-start: var(--sk-s1);
+}
+
+.sidekick-control .control-recall {
+  display: grid;
+  gap: var(--sk-s2);
+}
+
+/* A plain line in the recall panel (reading, empty, paused): the meta type in the muted colour. */
+.sidekick-control .control-recall-line {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* The search: the section heading, then the field and its button on one row, then the answer. */
+.sidekick-control .control-search {
+  display: grid;
+  gap: var(--sk-s2);
+}
+.sidekick-control .control-search .control-section {
+  margin-bottom: 0;
+}
+.sidekick-control .control-search-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--sk-s2);
+  align-items: center;
+}

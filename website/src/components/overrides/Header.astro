@@ -1,0 +1,43 @@
+---
+// Replaces Starlight's header: wordmark, primary links, search, and on wide screens language, theme and GitHub.
+// Pages without a sidebar (home, pricing, buy) have no Starlight menu button, so they get a <details> menu below 50rem.
+import Search from './Search.astro';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import SiteNav from '../SiteNav.astro';
+import Icon from '../Icon.astro';
+const { hasSidebar } = Astro.locals.starlightRoute;
+const t = Astro.locals.t;
+---
+<div class="site-header">
+  <div class="site-header__brand"><SiteTitle /></div>
+  <SiteNav class="site-header__nav" />
+  <div class="site-header__tools">
+    <Search />
+    <div class="site-header__prefs print:hidden">
+      <SocialIcons />
+      <ThemeSelect />
+      <LanguageSelect />
+    </div>
+    {
+      !hasSidebar && (
+        <details class="site-menu print:hidden">
+          <summary class="site-menu__button">
+            <Icon name="menu" size={24} />
+            <span class="sr-only">{t('site.nav.menu')}</span>
+          </summary>
+          <div class="site-menu__panel">
+            <SiteNav menu />
+            <div class="site-menu__prefs">
+              <SocialIcons />
+              <ThemeSelect />
+              <LanguageSelect />
+            </div>
+          </div>
+        </details>
+      )
+    }
+  </div>
+</div>

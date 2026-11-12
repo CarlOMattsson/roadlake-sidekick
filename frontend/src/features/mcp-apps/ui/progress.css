@@ -1,0 +1,37 @@
+/* Progress: "done/total" text plus a thin bar (aria-hidden). Host tokens are used first and every token
+   has a fallback; light-dark() follows the host's colour-scheme. The bar is decoration only, the text
+   carries the number, so colour is never the only signal. */
+.sk-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  color: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--font-text-sm-size, 0.875rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+.sk-progress__text {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Thin track: 4 px high, flexible width with a sensible minimum so it stays visible on 320 px. */
+.sk-progress__track {
+  flex: 0 1 5rem;
+  min-width: 3rem;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-border-tertiary, light-dark(#e4e4e7, #3f3f46));
+}
+
+.sk-progress__fill {
+  display: block;
+  height: 100%;
+  max-width: 100%;
+  border-radius: inherit;
+  background: var(--color-text-info, light-dark(#2563eb, #7aa7ff));
+}

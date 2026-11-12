@@ -1,0 +1,193 @@
+contractVersion: 1
+protocolRevision: "2025-11-25"
+endpoint: /mcp
+transport: streamable-http
+errorShape:
+  type: object
+  required: [code, message, correlation_id]
+  properties:
+    code: { type: string, enum: [validation_error, not_found, conflict, idempotency_conflict, unauthorized, forbidden, unavailable, internal_error] }
+    message: { type: string, maxLength: 240 }
+    correlation_id: { type: string, maxLength: 64 }
+tools:
+  - name: list_projects
+    title: List Sidekick projects
+    description: Use this when the user wants a bounded list of their Sidekick projects. Do not use it to list tasks or another user's data.
+    scopes: [projects:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        status: { type: [string, "null"], enum: [active, paused, completed, null] }
+        limit: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        cursor: { type: [string, "null"], maxLength: 512 }
+    outputSchema: { $ref: "#/$defs/projectPageResult" }
+  - name: get_project
+    title: Get one Sidekick project
+    description: Use this when a known Sidekick project ID is needed. It returns current fields and no cross-user existence detail; do not use it for broad search.
+    scopes: [projects:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/projectIdInput" }
+    outputSchema: { $ref: "#/$defs/projectResult" }
+  - name: create_project
+    title: Create a Sidekick project
+    description: Use this when the user has asked to create one project. This writes only inside Sidekick and is safe to retry with the same idempotency key and payload.
+    scopes: [projects:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/createProjectInput" }
+    outputSchema: { $ref: "#/$defs/projectResult" }
+  - name: list_tasks
+    title: List Sidekick tasks
+    description: Use this when the user wants a bounded list of their Sidekick tasks, optionally filtered by project or status. Do not use it to retrieve projects.
+    scopes: [tasks:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema:
+      type: object
+      additionalProperties: false
+      properties:
+        project_id: { type: [string, "null"], format: uuid }
+        status: { type: [string, "null"], enum: [todo, in_progress, blocked, completed, null] }
+        limit: { type: integer, minimum: 1, maximum: 100, default: 25 }
+        cursor: { type: [string, "null"], maxLength: 512 }
+    outputSchema: { $ref: "#/$defs/taskPageResult" }
+  - name: get_task
+    title: Get one Sidekick task
+    description: Use this when a known Sidekick task ID is needed. Do not use it for broad task listing.
+    scopes: [tasks:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/taskIdInput" }
+    outputSchema: { $ref: "#/$defs/taskResult" }
+  - name: create_task
+    title: Create a Sidekick task
+    description: Use this when the user has asked to create one standalone or project task. This writes only inside Sidekick and is safe to retry with the same key and payload.
+    scopes: [tasks:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/createTaskInput" }
+    outputSchema: { $ref: "#/$defs/taskResult" }
+  - name: update_task
+    title: Update a Sidekick task
+    description: Use this when the user has requested specific edits to one known task. Supply the observed version; this does not delete or affect external systems.
+    scopes: [tasks:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/updateTaskInput" }
+    outputSchema: { $ref: "#/$defs/taskResult" }
+  - name: complete_task
+    title: Complete a Sidekick task
+    description: Use this when the user has explicitly asked to mark one known task completed. Repeating the same keyed request has no additional effect.
+    scopes: [tasks:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema:
+      type: object
+      additionalProperties: false
+      required: [task_id, version, idempotency_key]
+      properties:
+        task_id: { type: string, format: uuid }
+        version: { type: integer, minimum: 1 }
+        idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+    outputSchema: { $ref: "#/$defs/taskResult" }
+$defs:
+  projectIdInput:
+    type: object
+    additionalProperties: false
+    required: [project_id]
+    properties: { project_id: { type: string, format: uuid } }
+  taskIdInput:
+    type: object
+    additionalProperties: false
+    required: [task_id]
+    properties: { task_id: { type: string, format: uuid } }
+  project:
+    type: object
+    additionalProperties: false
+    required: [id, title, status, created_at, updated_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      title: { type: string, maxLength: 200 }
+      description: { type: [string, "null"], maxLength: 10000 }
+      status: { type: string, enum: [active, paused, completed] }
+      start_date: { type: [string, "null"], format: date }
+      target_date: { type: [string, "null"], format: date }
+      created_at: { type: string, format: date-time }
+      updated_at: { type: string, format: date-time }
+      version: { type: integer, minimum: 1 }
+  task:
+    type: object
+    additionalProperties: false
+    required: [id, title, status, priority, created_at, updated_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      project_id: { type: [string, "null"], format: uuid }
+      title: { type: string, maxLength: 200 }
+      description: { type: [string, "null"], maxLength: 10000 }
+      status: { type: string, enum: [todo, in_progress, blocked, completed] }
+      priority: { type: string, enum: [low, normal, high, urgent] }
+      due_at: { type: [string, "null"], format: date-time }
+      completed_at: { type: [string, "null"], format: date-time }
+      created_at: { type: string, format: date-time }
+      updated_at: { type: string, format: date-time }
+      version: { type: integer, minimum: 1 }
+  createProjectInput:
+    type: object
+    additionalProperties: false
+    required: [title, idempotency_key]
+    properties:
+      title: { type: string, minLength: 1, maxLength: 200 }
+      description: { type: [string, "null"], maxLength: 10000 }
+      start_date: { type: [string, "null"], format: date }
+      target_date: { type: [string, "null"], format: date }
+      idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+  createTaskInput:
+    type: object
+    additionalProperties: false
+    required: [title, idempotency_key]
+    properties:
+      project_id: { type: [string, "null"], format: uuid }
+      title: { type: string, minLength: 1, maxLength: 200 }
+      description: { type: [string, "null"], maxLength: 10000 }
+      priority: { type: string, enum: [low, normal, high, urgent], default: normal }
+      due_at: { type: [string, "null"], format: date-time }
+      idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+  updateTaskInput:
+    type: object
+    additionalProperties: false
+    required: [task_id, version, idempotency_key, changes]
+    properties:
+      task_id: { type: string, format: uuid }
+      version: { type: integer, minimum: 1 }
+      idempotency_key: { type: string, minLength: 8, maxLength: 128 }
+      changes:
+        type: object
+        additionalProperties: false
+        minProperties: 1
+        properties:
+          title: { type: string, minLength: 1, maxLength: 200 }
+          description: { type: [string, "null"], maxLength: 10000 }
+          project_id: { type: [string, "null"], format: uuid }
+          status: { type: string, enum: [todo, in_progress, blocked, completed] }
+          priority: { type: string, enum: [low, normal, high, urgent] }
+          due_at: { type: [string, "null"], format: date-time }
+  projectResult:
+    type: object
+    additionalProperties: false
+    required: [project]
+    properties: { project: { $ref: "#/$defs/project" } }
+  taskResult:
+    type: object
+    additionalProperties: false
+    required: [task]
+    properties: { task: { $ref: "#/$defs/task" } }
+  projectPageResult:
+    type: object
+    additionalProperties: false
+    required: [projects, next_cursor]
+    properties:
+      projects: { type: array, maxItems: 100, items: { $ref: "#/$defs/project" } }
+      next_cursor: { type: [string, "null"] }
+  taskPageResult:
+    type: object
+    additionalProperties: false
+    required: [tasks, next_cursor]
+    properties:
+      tasks: { type: array, maxItems: 100, items: { $ref: "#/$defs/task" } }
+      next_cursor: { type: [string, "null"] }

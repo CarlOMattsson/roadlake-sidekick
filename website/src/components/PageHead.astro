@@ -1,0 +1,14 @@
+---
+// Heading block of a marketing page other than home (the splash template draws no title of its own).
+interface Props {
+  title: string;
+  lead?: string;
+}
+const { title, lead } = Astro.props;
+---
+<div class="wrap not-content" data-marketing>
+  <div class="page-head">
+    <h1 id="_top">{title}</h1>
+    {lead && <p>{lead}</p>}
+  </div>
+</div>

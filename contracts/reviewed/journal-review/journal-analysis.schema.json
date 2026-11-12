@@ -1,0 +1,37 @@
+{
+  "title": "Sidekick Journal Analysis v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "title", "summary", "key_points", "project_suggestions", "task_suggestions", "contact_suggestions", "task_proposals"],
+      "properties": {
+        "kind": {"const": "entry_draft"},
+        "title": {"type": "string", "minLength": 1, "maxLength": 200},
+        "summary": {"type": ["string", "null"], "maxLength": 10000},
+        "key_points": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["kind", "text"], "properties": {"kind": {"enum": ["fact", "reflection", "decision", "commitment", "question"]}, "text": {"type": "string", "minLength": 1, "maxLength": 2000}}}},
+        "project_suggestions": {"type": "array", "maxItems": 25, "items": {"type": "object", "additionalProperties": false, "required": ["project_id", "rationale"], "properties": {"project_id": {"type": "string", "format": "uuid"}, "rationale": {"type": "string", "minLength": 1, "maxLength": 1000}}}},
+        "task_suggestions": {"type": "array", "maxItems": 25, "items": {"type": "object", "additionalProperties": false, "required": ["task_id", "rationale"], "properties": {"task_id": {"type": "string", "format": "uuid"}, "rationale": {"type": "string", "minLength": 1, "maxLength": 1000}}}},
+        "contact_suggestions": {"type": "array", "maxItems": 25, "items": {"type": "object", "additionalProperties": false, "required": ["contact_id", "rationale"], "properties": {"contact_id": {"type": "string", "format": "uuid"}, "rationale": {"type": "string", "minLength": 1, "maxLength": 1000}}}},
+        "task_proposals": {"type": "array", "maxItems": 20, "items": {"oneOf": [{"type": "object", "additionalProperties": false, "required": ["proposal_id", "type", "title", "description", "project_id", "priority", "due_at", "contact_ids"], "properties": {"proposal_id": {"type": "string", "format": "uuid"}, "type": {"const": "create_task"}, "title": {"type": "string", "minLength": 1, "maxLength": 200}, "description": {"type": ["string", "null"], "maxLength": 10000}, "project_id": {"type": ["string", "null"], "format": "uuid"}, "priority": {"enum": ["low", "normal", "high", "urgent"]}, "due_at": {"type": ["string", "null"], "format": "date-time"}, "contact_ids": {"type": "array", "maxItems": 25, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}, {"type": "object", "additionalProperties": false, "description": "Runtime Pydantic model_validator(mode='after') checks model_fields_set for at least one mutable field; anyOf is the JSON Schema equivalent and preserves omitted versus explicit null.", "required": ["proposal_id", "type", "task_id", "expected_task_version"], "anyOf": [{"required": ["project_id"]}, {"required": ["title"]}, {"required": ["description"]}, {"required": ["status"]}, {"required": ["priority"]}, {"required": ["due_at"]}], "properties": {"proposal_id": {"type": "string", "format": "uuid"}, "type": {"const": "update_task"}, "task_id": {"type": "string", "format": "uuid"}, "expected_task_version": {"type": "integer", "minimum": 1}, "project_id": {"type": ["string", "null"], "format": "uuid"}, "title": {"type": "string", "minLength": 1, "maxLength": 200}, "description": {"type": ["string", "null"], "maxLength": 10000}, "status": {"enum": ["todo", "in_progress", "blocked", "completed"]}, "priority": {"enum": ["low", "normal", "high", "urgent"]}, "due_at": {"type": ["string", "null"], "format": "date-time"}}}]}}
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "overview", "overview_entry_ids", "themes", "important_events", "decisions", "commitments", "open_questions", "unresolved_items", "contradictions"],
+      "properties": {
+        "kind": {"const": "daily_summary"},
+        "overview": {"type": "string", "minLength": 1, "maxLength": 20000},
+        "overview_entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}},
+        "themes": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["title", "summary", "perspective", "entry_ids"], "properties": {"title": {"type": "string", "minLength": 1, "maxLength": 200}, "summary": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "important_events": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["text", "perspective", "entry_ids"], "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "decisions": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["text", "perspective", "entry_ids"], "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "commitments": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["text", "perspective", "entry_ids"], "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "open_questions": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["text", "perspective", "entry_ids"], "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "unresolved_items": {"type": "array", "maxItems": 50, "items": {"type": "object", "additionalProperties": false, "required": ["text", "perspective", "entry_ids"], "properties": {"text": {"type": "string", "minLength": 1, "maxLength": 2000}, "perspective": {"enum": ["fact", "interpretation", "plan"]}, "entry_ids": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}},
+        "contradictions": {"type": "array", "maxItems": 25, "items": {"type": "object", "additionalProperties": false, "required": ["description", "status", "resolution", "entry_ids"], "properties": {"description": {"type": "string", "minLength": 1, "maxLength": 2000}, "status": {"enum": ["resolved", "unresolved", "possibly_superseded"]}, "resolution": {"type": ["string", "null"], "maxLength": 2000}, "entry_ids": {"type": "array", "minItems": 2, "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "format": "uuid"}}}}}
+      }
+    }
+  ]
+}

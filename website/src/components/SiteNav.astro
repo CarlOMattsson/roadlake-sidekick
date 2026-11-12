@@ -1,0 +1,28 @@
+---
+// The three primary links. Pages that do not exist yet are left out, so there is never a dead link.
+import { pageHref, type Locale } from '../lib/site';
+interface Props {
+  class?: string;
+  /** The copy inside the mobile menu gets its own landmark name, so no two navigation landmarks share one. */
+  menu?: boolean;
+}
+const locale = (Astro.locals.starlightRoute.locale ?? 'en') as Locale;
+const t = Astro.locals.t;
+const pathname = Astro.url.pathname;
+const items = (
+  await Promise.all(
+    [
+      { path: 'docs', label: t('site.nav.docs'), prefix: true },
+      { path: 'pricing', label: t('site.nav.pricing'), prefix: false },
+      { path: 'docs/faq', label: t('site.nav.faq'), prefix: false },
+    ].map(async (i) => ({ ...i, href: await pageHref(locale, i.path) })),
+  )
+).filter((i) => i.href);
+// "Documentation" is current on every docs page except the FAQ; the others only on their own page.
+const faq = items.find((i) => i.path === 'docs/faq')?.href;
+const isCurrent = (i: (typeof items)[number]) =>
+  i.path === 'docs' ? pathname.startsWith(i.href!) && !(faq && pathname.startsWith(faq)) : pathname.startsWith(i.href!);
+---
+<nav class:list={['site-nav', Astro.props.class]} aria-label={t(Astro.props.menu ? 'site.nav.menu' : 'site.nav.label')}>
+  {items.map((i) => <a href={i.href} aria-current={isCurrent(i) ? 'page' : undefined}>{i.label}</a>)}
+</nav>

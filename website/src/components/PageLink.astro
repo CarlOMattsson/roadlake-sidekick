@@ -1,0 +1,13 @@
+---
+// A link to a page by its locale-free path. Falls back through the listed paths to the first page that exists,
+// and renders plain text when none does, so the page never shows a dead link.
+import { pageHref, type Locale } from '../lib/site';
+interface Props {
+  page: string | string[];
+  class?: string;
+}
+const { page, class: className } = Astro.props;
+const locale = (Astro.locals.starlightRoute.locale ?? 'en') as Locale;
+const href = await pageHref(locale, page);
+---
+{href ? <a href={href} class={className}><slot /></a> : <span><slot /></span>}

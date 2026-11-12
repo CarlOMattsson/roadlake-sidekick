@@ -1,0 +1,56 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.13.0'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'
+        // Jetpack Glance (the home-screen widget) is written in Compose syntax and needs the Compose compiler.
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.20'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    // Dependency locking: every resolved configuration is pinned to the versions in gradle/locks, so a build resolves
+    // exactly what was reviewed. The Capacitor modules live in node_modules, so the lock files are kept here for all
+    // projects rather than next to each project. Update with the command in tools/android/README.md.
+    dependencyLocking {
+        lockAllConfigurations()
+        lockFile = rootProject.layout.projectDirectory.file("gradle/locks/${project.name}.lockfile")
+    }
+    // org.json is a JVM-test-only dependency, and Capacitor's own modules pin an older release in their test classpaths.
+    // One version everywhere keeps a fixed advisory from lingering in a lockfile that no shipped code resolves.
+    configurations.configureEach {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.json' && details.requested.name == 'json') {
+                details.useVersion rootProject.ext.orgJsonVersion
+            }
+        }
+    }
+}
+
+// Build output next to the Android toolchain (set via the SIDEKICK_ANDROID_ROOT environment variable), not on the small root
+// disk. Without the variable the default build/ directories are used.
+def androidToolRoot = System.getenv("SIDEKICK_ANDROID_ROOT")
+if (androidToolRoot) {
+    allprojects {
+        layout.buildDirectory.set(file("${androidToolRoot}/build/sidekick-app/${project == rootProject ? 'root' : project.name}"))
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete layout.buildDirectory
+}

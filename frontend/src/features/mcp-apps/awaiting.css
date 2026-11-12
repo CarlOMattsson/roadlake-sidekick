@@ -1,0 +1,269 @@
+/*
+ * The waiting placeholder (AwaitingResult, awaiting.tsx; designsystem §3 Tillstånd, §4). The frame is real: the room
+ * strip as the shell draws it (40 px, the surface tone, four cells sharing the row, the active room marked once known)
+ * and the room's own header components (awaiting.tsx). Only the rows are a skeleton,
+ * with the measures of the finished rows: a 36 px leading column with the glyph at the content edge, the text at
+ * x 52, 61 px for two lines and no hairlines. Measured on 412 px with a 24 px top inset: strip at y 32, the next
+ * row 4 px under it. The static placeholder in vite.mcp-app.config.ts is this file
+ * and the unknown-room markup, so the app takes it over in place. Colours come from the host's variables with
+ * light-dark() fallbacks (this file is inlined before tokens.css), so the placeholder follows the theme.
+ */
+.sidekick-wait {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  /* 8 above the strip in px, as the shell's frame (layout.css: half the 16 pad), so the strip and the tabs stand where
+     the loaded view puts them at every text size (0.5rem put them 0.8 and 4.8 lower at 110 %). */
+  /* 16 at the sides in px, as the shell's frame (layout.css), so the strip and the tab row stand on the loaded view's
+     x 16–396 at every text size (1rem put them 1,6 inside at 110 %). */
+  padding: calc(8px + var(--host-safe-top, 0px))
+    calc(16px + var(--host-safe-right, 0px))
+    calc(1rem + var(--host-safe-bottom, 0px))
+    calc(16px + var(--host-safe-left, 0px));
+  --w-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --w-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  --w-radius: var(--border-radius-md, 0.5rem);
+  /* As tokens.css --sk-skeleton, for the placeholder that is drawn before tokens.css applies. */
+  --w-skeleton: color-mix(
+    in srgb,
+    var(--w-fg) 11%,
+    var(--color-background-primary, light-dark(#ffffff, #1c1c1e))
+  );
+  color: var(--w-fg);
+  font-family: var(--sk-font, var(--font-sans, system-ui, sans-serif));
+}
+
+/* A grey block that breathes: a slow, gentle pulse that stops with reduced motion. */
+.sidekick-wait-block {
+  display: block;
+  border-radius: 0.25rem;
+  background: var(--sk-skeleton, var(--w-skeleton));
+  animation: sidekick-wait-pulse 1.8s ease-in-out infinite;
+}
+
+/* The room strip (sidekick-shell.css, .sk-rooms): 40 px high, a 4 px frame in the surface tone and four 32 px cells with
+   the labels in 14/18 at 500, the active one 600. The strip does not pulse: it is navigation, not content. */
+.sidekick-wait-strip {
+  display: flex;
+  gap: 0.25rem;
+  box-sizing: border-box;
+  /* 40 in px, as the shell's strip (4 + a 32 cell + 4). */
+  height: 40px;
+  padding: 0.25rem;
+  border-radius: var(--w-radius);
+  background: var(--color-background-secondary, light-dark(#f4f4f5, #2a2a2d));
+}
+
+/* Cells share the row as the real tabs do (flex 1 1 0, never narrower than the label), so "Kontakter" fits 320 px. */
+.sidekick-wait-room {
+  display: grid;
+  flex: 1 1 0;
+  place-items: center;
+  min-width: min-content;
+  padding-inline: 0.25rem;
+  border-radius: calc(var(--w-radius) - 2px);
+  color: var(--w-muted);
+  font-size: 0.875rem;
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1.125rem;
+  white-space: nowrap;
+}
+
+/* The active room, once the host has named the tool: chosen as in the real strip (--sk-nav-active-*): the page colour and a 2 px outline in the text colour. */
+.sidekick-wait-room[data-current="true"] {
+  background: var(
+    --sk-nav-active-bg,
+    var(--color-background-primary, light-dark(#ffffff, #1c1c1e))
+  );
+  box-shadow: inset 0 0 0 2px var(--sk-nav-active-line, var(--w-fg));
+  color: var(--w-fg);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+/* The room's real header (Arbete's tab row, Kontroll's Back, title and tabs), inert, 8 px under the strip as the
+   shell's gap. It sits in a .sk-rooms__pane, so the rooms' own pane rules place it as in the loaded view. */
+.sidekick-wait-head {
+  margin-block-start: var(--sk-s1);
+}
+/* Kontroll: the strip with no room marked, "‹ Arbete", the title "Kontroll" right under it and the tabs 12 under the
+   title; the first row 12 under the tabs, as control.css. */
+.sidekick-wait-head[data-room="control"] .sidekick-control.sidekick-control {
+  display: grid;
+  gap: var(--sk-s3);
+  margin-block: var(--sk-s1) 0;
+}
+.sidekick-wait-head[data-room="control"] ~ .sidekick-wait-rows {
+  margin-block-start: var(--sk-s3);
+}
+
+/* The rows appear after 300 ms, so a fast answer shows no placeholder; the strip and
+   the header are drawn at once. Opacity only, so the geometry is the same before and after. */
+.sidekick-wait-rows {
+  display: grid;
+  margin-block-start: 0.75rem;
+  animation: sidekick-wait-appear 1ms linear 300ms both;
+}
+@keyframes sidekick-wait-appear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.sidekick-wait-head ~ .sidekick-wait-rows,
+.sidekick-wait[data-frame="inline"] .sidekick-wait-rows,
+.sk-skeleton {
+  margin-block-start: 0;
+}
+
+/* The skeleton follows the row template (§4 Tillstånd): the same geometry as the finished list, so
+   nothing moves when the data comes. Arbete's lists open on a group heading: a bar in its 26,4 line, 8 under the tab row
+   (the agenda's heading padding) and 4 over the first row, as the real heading. */
+.sidekick-wait-section {
+  width: 6rem;
+  height: 0.875rem;
+  margin-block: calc(
+      var(--sk-s2, 8px) + (var(--sk-type-section-line, 1.5rem) - 0.875rem) / 2
+    )
+    calc(
+      var(--sk-section-below, 4px) +
+        (var(--sk-type-section-line, 1.5rem) - 0.875rem) / 2
+    );
+}
+/* A later group's heading: 24 under the last row's box, as every room's. */
+.sidekick-wait-row + .sidekick-wait-section {
+  margin-block-start: calc(
+    var(--sk-section-above, 24px) +
+      (var(--sk-type-section-line, 1.5rem) - 0.875rem) / 2
+  );
+}
+
+/* A row of the template: 6 over and under, at least 48; the ring (26,4 at 110 %) on the content edge and the title at x 56,
+   the title a bar in its 22,9 line and the meta a bar in its 19,3 line. Rows 2 and 4 have two title lines, so the
+   skeleton alternates 54 and 77 as a real list does. No hairlines, no end column. */
+.sidekick-wait-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: start;
+  box-sizing: border-box;
+  min-height: var(--sk-row-min, 48px);
+  padding-block: var(--sk-row-pad, 6px);
+}
+
+/* A ring, as the real one: a 2 px contour in the ring's box (not a filled disc), centred on the first title line. */
+.sidekick-wait-glyph {
+  width: var(--sk-ring-glyph, 1.5rem);
+  height: var(--sk-ring-glyph, 1.5rem);
+  margin-top: calc(
+    (var(--sk-type-row-line, 1.3rem) - var(--sk-ring-glyph, 1.5rem)) / 2
+  );
+  border-radius: 50%;
+  background: transparent;
+  outline: 2px solid var(--sk-skeleton, var(--w-skeleton));
+  outline-offset: -4px;
+}
+
+.sidekick-wait-text {
+  display: grid;
+  min-width: 0;
+}
+
+/* Bars of the text's x-height, centred in their lines. Five title widths, so the skeleton never reads as mechanical. */
+.sidekick-wait-row-title {
+  width: 72%;
+  height: 0.75rem;
+  margin-block: calc((var(--sk-type-row-line, 1.3rem) - 0.75rem) / 2);
+}
+.sidekick-wait-row:nth-of-type(2) .sidekick-wait-row-title {
+  width: 84%;
+}
+.sidekick-wait-row:nth-of-type(3) .sidekick-wait-row-title {
+  width: 56%;
+}
+.sidekick-wait-row:nth-of-type(4) .sidekick-wait-row-title {
+  width: 78%;
+}
+.sidekick-wait-row:nth-of-type(5) .sidekick-wait-row-title {
+  width: 48%;
+}
+.sidekick-wait-row .sidekick-wait-row-title + .sidekick-wait-row-title {
+  width: 40%;
+}
+.sidekick-wait-meta {
+  width: 32%;
+  height: 0.625rem;
+  margin-block: calc((var(--sk-type-meta-line, 1.1rem) - 0.625rem) / 2);
+}
+
+/* Kontakter: a 32 px avatar in the 36 px column and the name alone at x 52, in a 48 px row. */
+.sidekick-wait[data-room="contacts"] .sidekick-wait-row {
+  align-items: center;
+  min-height: 48px;
+  padding-block: 0;
+}
+.sidekick-wait[data-room="contacts"] .sidekick-wait-glyph {
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  outline: 0;
+  background: var(--sk-skeleton, var(--w-skeleton));
+}
+.sidekick-wait[data-room="contacts"] .sidekick-wait-meta {
+  display: none;
+}
+
+/* Rows without a glyph (Dagbok, Kontroll, a room not known yet): the text starts on the content edge. */
+.sidekick-wait:not(
+    [data-room="work"],
+    [data-room="shopping"],
+    [data-room="contacts"]
+  )
+  .sidekick-wait-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sidekick-wait:not(
+    [data-room="work"],
+    [data-room="shopping"],
+    [data-room="contacts"]
+  )
+  .sidekick-wait-glyph {
+  display: none;
+}
+
+/* "Laddar uppgifter…" is read, never drawn (a drawn line moved the geometry); the
+   timeout's sentence is drawn in the note type. */
+.sidekick-wait-note {
+  margin: 1rem 0 0;
+  color: var(--w-muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@keyframes sidekick-wait-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-wait-block {
+    animation: none;
+  }
+}
+
+/* Arbete's search and + are held off until the list has loaded (designsystem §3 Tillstånd). + keeps its form, the
+   ink disc of the loaded view at 40 %, so the head does not change when the list comes. */
+.sidekick-wait [aria-disabled="true"] {
+  color: var(--sk-tertiary);
+}
+.sidekick-wait .sk-iconbtn.sk-iconbtn--primary[aria-disabled="true"] {
+  /* On the content box, as family.css draws the loaded +: a 32 disc in its 44 box, not a 44 one (uc-9). */
+  background: var(--sk-inverse-bg) content-box;
+  color: var(--sk-inverse-fg);
+  opacity: 0.4;
+}

@@ -1,0 +1,7 @@
+frontend/package-lock.json
+frontend/src/lib/api/schema.d.ts
+frontend/dist-mcp-app
+frontend/dist-mobile
+frontend/android
+frontend/playwright-report
+frontend/test-results

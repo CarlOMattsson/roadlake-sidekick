@@ -1,0 +1,42 @@
+---
+import { base, pageHref, pngSize, REPO_URL, type Locale } from '../lib/site';
+interface Link {
+  label: string;
+  /** Locale-free page path(s); the first that exists is used. */
+  page: string | string[];
+}
+interface Props {
+  status: string;
+  title: string;
+  lead: string;
+  primary: Link;
+  secondary: Link;
+  githubLabel: string;
+  /** A room screenshot in docs-images/rooms (name without .png) with its alt text. */
+  shot: { name: string; alt: string };
+  note: string;
+}
+const { status, title, lead, primary, secondary, githubLabel, shot, note } = Astro.props;
+const locale = (Astro.locals.starlightRoute.locale ?? 'en') as Locale;
+const primaryHref = await pageHref(locale, primary.page);
+const secondaryHref = await pageHref(locale, secondary.page);
+const { width, height } = pngSize(`docs-images/rooms/${shot.name}.png`);
+---
+<div class="wrap not-content" data-marketing>
+  <section class="hero" aria-labelledby="_top">
+    <div>
+      <p class="status">{status}</p>
+      <h1 id="_top">{title}</h1>
+      <p class="lead">{lead}</p>
+      <div class="ctas">
+        {primaryHref && <a class="btn btn--primary" href={primaryHref}>{primary.label}</a>}
+        {secondaryHref && <a class="btn btn--secondary" href={secondaryHref}>{secondary.label}</a>}
+        <a class="btn btn--tertiary" href={REPO_URL}>{githubLabel} <span aria-hidden="true">›</span></a>
+      </div>
+    </div>
+    <figure class="hero__shot shot">
+      <img src={`${base}/docs-images/rooms/${shot.name}.png`} width={width} height={height} alt={shot.alt} />
+      <figcaption class="figcap-note">{note}</figcaption>
+    </figure>
+  </section>
+</div>

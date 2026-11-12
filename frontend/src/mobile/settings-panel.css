@@ -1,0 +1,59 @@
+/* The phone's settings (settings-panel.tsx). Design tokens only; the frame (AppFrame, layout.css) gives the 16 px edge
+   and the safe-area insets. Sections follow Kontroll's rhythm: a section heading 24 above and 4 under it. */
+.mobile-settings {
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+
+.mobile-settings:focus {
+  outline: none;
+}
+
+.mobile-settings__section {
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+  font: var(--sk-type-section);
+}
+
+.mobile-settings__block {
+  display: grid;
+  gap: var(--sk-s1);
+}
+
+.mobile-settings__text,
+.mobile-settings__name {
+  margin: 0;
+  font: var(--sk-type-row);
+}
+
+.mobile-settings__meta {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+.mobile-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  margin-top: var(--sk-s2);
+}
+
+/* A text button with no edge: its start padding is taken back, so the words start on the content edge like the lines
+   above them, and it may reach that far past the edge so the label stays on one line at 320 px and 110 % text. A
+   longer label wraps from the start, not centred. The tap target keeps its 44. */
+.mobile-settings__unpair.mobile-settings__unpair {
+  max-width: calc(100% + 0.9rem);
+  margin-inline-start: -0.9rem;
+  text-align: start;
+}
+
+.mobile-settings__confirm {
+  display: grid;
+  gap: var(--sk-s1);
+  margin-top: var(--sk-s2);
+}
+
+.mobile-settings__feedback {
+  margin-top: var(--sk-s2);
+}

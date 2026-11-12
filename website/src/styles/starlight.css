@@ -1,0 +1,180 @@
+/* Starlight mapped onto the Sidekick tokens (tokens.css). Starlight's own rules live in cascade layers,
+   so these unlayered rules win without raising specificity. Variable names checked against
+   @astrojs/starlight 0.42.10 (dist/style/props.css). */
+:root,
+:root[data-theme='light'] {
+  --sl-font: var(--sk-font);
+  --sl-font-mono: var(--site-mono);
+  --sl-color-bg: var(--sk-bg);
+  --sl-color-bg-nav: var(--sk-bg);
+  --sl-color-bg-sidebar: var(--sk-bg);
+  --sl-color-bg-inline-code: var(--site-code-bg);
+  --sl-color-text: var(--sk-fg);
+  --sl-color-white: var(--sk-fg);
+  --sl-color-black: var(--sk-bg);
+  --sl-color-gray-1: var(--sk-fg);
+  --sl-color-gray-2: var(--sk-fg-2);
+  --sl-color-gray-3: var(--sk-muted);
+  --sl-color-gray-4: var(--sk-border);
+  --sl-color-gray-5: var(--sk-line);
+  --sl-color-gray-6: var(--sk-surface);
+  --sl-color-hairline: var(--sk-line);
+  --sl-color-hairline-light: var(--sk-line);
+  --sl-color-hairline-shade: var(--sk-line);
+  --sl-color-accent: var(--site-link);
+  --sl-color-accent-high: var(--sk-fg);
+  --sl-color-accent-low: var(--sk-selected-bg);
+  --sl-color-text-accent: var(--site-link);
+  --sl-color-text-invert: var(--sk-inverse-fg);
+  --sl-color-bg-accent: var(--sk-inverse-bg);
+  --sl-color-orange-low: var(--sk-warning-bg);
+  --sl-color-orange: var(--sk-warning-line);
+  --sl-color-orange-high: var(--sk-warning-fg);
+  --sl-color-green-low: var(--sk-success-bg);
+  --sl-color-green: var(--sk-success-line);
+  --sl-color-green-high: var(--sk-success-fg);
+  --sl-color-red-low: var(--sk-danger-bg);
+  --sl-color-red: var(--sk-danger-line);
+  --sl-color-red-high: var(--sk-danger-fg);
+  --sl-color-blue-low: var(--sk-surface);
+  --sl-color-blue: var(--sk-border);
+  --sl-color-blue-high: var(--sk-fg);
+  --sl-color-purple-low: var(--sk-surface);
+  --sl-color-purple: var(--sk-border);
+  --sl-color-purple-high: var(--sk-fg);
+  --sl-color-backdrop-overlay: color-mix(in srgb, var(--sk-bg) 70%, transparent);
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: 0 8px 24px -8px light-dark(rgb(0 0 0 / 0.25), rgb(0 0 0 / 0.6));
+  --sl-content-width: var(--site-prose-max);
+  --sl-sidebar-width: 16.5rem;
+  --sl-nav-height: var(--site-header-h);
+  --sl-nav-pad-x: var(--site-gutter);
+  --sl-nav-pad-y: 0;
+  --sl-content-pad-x: var(--site-gutter);
+  --sl-menu-button-size: 3rem;
+  --sl-line-height: 1.625;
+  --sl-text-h1: clamp(1.75rem, 1.45rem + 1.2vw, 2.25rem);
+  --sl-text-h2: 1.5rem;
+  --sl-text-h3: 1.25rem;
+  --sl-text-code: 0.875rem;
+  --sl-text-body-sm: 0.875rem;
+}
+
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--site-header-h) + 16px); }
+body { font: var(--site-type-prose); -webkit-font-smoothing: antialiased; }
+
+/* Focus: one ring everywhere. */
+:focus-visible { outline: 2px solid var(--sk-ring); outline-offset: 2px; border-radius: 4px; }
+[data-scroller]:focus-visible { outline-offset: -2px; }
+[data-scroller] { scroll-padding-inline: var(--site-gutter); }
+
+/* Links are always underlined. */
+.sl-markdown-content a:not(.sl-anchor-link),
+.wrap a:not([class]) { text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
+.sl-markdown-content a:not(.sl-anchor-link):hover { text-decoration-thickness: 2px; }
+
+.sl-skip-link:focus { background: var(--sk-inverse-bg); color: var(--sk-inverse-fg); border-radius: var(--sk-radius); font: var(--sk-type-label-strong); }
+
+/* ---------- header ---------- */
+header.header { padding: 0; border-bottom: 1px solid var(--sk-line); background: var(--sk-bg); }
+:root[data-has-sidebar] header.header { padding-inline-end: 0; }
+
+/* ---------- sidebar ---------- */
+.sidebar-content { padding-top: var(--sk-s5); }
+.sidebar-content ul { padding: 0; }
+.sidebar-content .group-label .large,
+.sidebar-content summary .large { font: 600 0.8125rem/1rem var(--sk-font); color: var(--sk-muted); letter-spacing: 0.02em; }
+.sidebar-content summary { min-height: 44px; padding-block: 0; align-items: center; }
+.sidebar-content a { min-height: 40px; display: flex; align-items: center; gap: var(--sk-s2); padding: 0 var(--sk-s3); border-radius: var(--sk-radius); color: var(--sk-fg-2); text-decoration: none; font: var(--sk-type-label); font-size: 0.9375rem; font-weight: 400; position: relative; }
+.sidebar-content a::after { content: ''; position: absolute; inset: -2px 0; }
+.sidebar-content a:hover { background: var(--sk-surface); color: var(--sk-fg); }
+@media (prefers-reduced-motion: no-preference) { .sidebar-content a, .pagination-links a, starlight-toc a { transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; } }
+.sidebar-content a[aria-current='page'] { background: var(--sk-selected-bg); color: var(--sk-fg); font-weight: 600; box-shadow: inset 3px 0 0 var(--sk-fg); }
+.sidebar-content .sl-badge { margin-inline-start: auto; font: var(--sk-type-caption); color: var(--sk-muted); background: none; border: 1px solid var(--sk-line); border-radius: 4px; padding: 1px 5px; }
+.sidebar-content a[aria-current='page'] .sl-badge { color: var(--sk-fg); border-color: var(--sk-fg); }
+
+/* ---------- table of contents ---------- */
+starlight-toc a, mobile-starlight-toc a { display: flex; align-items: center; min-height: 44px; padding-block: 4px; color: var(--sk-muted); text-decoration: none; }
+starlight-toc a:hover, mobile-starlight-toc a:hover { color: var(--sk-fg); }
+starlight-toc a[aria-current='true'], mobile-starlight-toc a[aria-current='true'] { color: var(--sk-fg); font-weight: 600; }
+mobile-starlight-toc summary { min-height: 48px; }
+.right-sidebar h2 { font: 600 0.8125rem/1rem var(--sk-font); color: var(--sk-fg); }
+
+/* ---------- breadcrumbs, fallback notice ---------- */
+.crumbs { margin-bottom: var(--sk-s3); font: var(--sk-type-meta); color: var(--sk-muted); }
+.crumbs ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--sk-s2); }
+.crumbs li + li::before { content: '›'; margin-right: var(--sk-s2); }
+.crumbs a { color: var(--sk-muted); }
+.sl-markdown-content ~ * .crumbs, .content-panel .crumbs { margin-top: 0; }
+.sl-container > p.sl-flex:has(svg) { background: var(--sk-surface); border: 1px solid var(--sk-line); color: var(--sk-fg-2); border-radius: var(--sk-radius); padding: var(--sk-s3) var(--sk-s4); font: var(--sk-type-meta); font-size: 0.9375rem; line-height: 1.375rem; width: auto; margin-bottom: var(--sk-s4); }
+.sl-container > p.sl-flex:has(svg) svg { color: var(--sk-muted) !important; width: 20px; height: 20px; flex: none; }
+
+/* ---------- document typography ---------- */
+.sl-container h1#_top { font: var(--site-type-h1); letter-spacing: -0.02em; text-wrap: balance; margin-top: 0; color: var(--sk-fg); }
+.sl-markdown-content { font: var(--site-type-prose); }
+.sl-markdown-content :is(h2, h3, h4) { color: var(--sk-fg); text-wrap: balance; }
+.sl-markdown-content h2 { font: var(--site-type-h2); margin-top: var(--site-s7); }
+.sl-markdown-content h3 { font: var(--site-type-h3); margin-top: var(--sk-s6); }
+.sl-markdown-content > :is(h2, h3, h4) { scroll-margin-top: calc(var(--site-header-h) + 16px); }
+.sl-markdown-content li { margin: 6px 0; }
+.sl-markdown-content :not(pre) > code { font-size: 0.875em; line-height: 1.2; background: var(--site-code-bg); border: 1px solid var(--sk-line); padding: 0.1em 0.35em; border-radius: 4px; overflow-wrap: anywhere; margin: 0; }
+.sl-markdown-content :is(td, th) code { white-space: nowrap; overflow-wrap: normal; }
+.sl-anchor-link { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 44px; vertical-align: middle; color: var(--sk-muted); opacity: 0; }
+.sl-heading-wrapper:hover .sl-anchor-link, .sl-anchor-link:focus-visible { opacity: 1; }
+@media (hover: none) { .sl-anchor-link { opacity: 0.6; } }
+
+/* Asides: icon + title + text, status colours. */
+.starlight-aside { border-radius: var(--sk-radius-card); border: 1px solid var(--sk-border); background: var(--sk-surface); color: var(--sk-fg); padding: var(--sk-s4); border-inline-start-width: 1px; }
+.starlight-aside--tip { background: var(--sk-success-bg); border-color: var(--sk-success-line); color: var(--sk-success-fg); }
+.starlight-aside--caution { background: var(--sk-warning-bg); border-color: var(--sk-warning-line); color: var(--sk-warning-fg); }
+.starlight-aside--danger { background: var(--sk-danger-bg); border-color: var(--sk-danger-line); color: var(--sk-danger-fg); }
+.starlight-aside__title { font-weight: 600; color: inherit; }
+.starlight-aside__content, .starlight-aside a { color: inherit; }
+
+/* Tables: framed, scroll sideways inside the frame, never the page. */
+.sl-markdown-content table { display: block; overflow-x: auto; border: 1px solid var(--sk-line); border-radius: var(--sk-radius-card); border-collapse: separate; border-spacing: 0; font-size: 0.9375rem; max-width: 100%; }
+.sl-markdown-content :is(th, td) { padding: 10px var(--sk-s3); border-bottom: 1px solid var(--sk-line); border-inline: 0; vertical-align: top; text-align: left; }
+.sl-markdown-content th { font-weight: 600; background: var(--sk-surface); color: var(--sk-fg); }
+.sl-markdown-content tr:last-child td { border-bottom: 0; }
+.sl-markdown-content tr:nth-child(2n) { background: none; }
+
+/* Code blocks (Expressive Code): 44 px title row, 44 x 44 copy button, rolls sideways in the block. */
+.expressive-code { margin-top: var(--sk-s4); }
+.expressive-code .frame { border-radius: var(--sk-radius-card); border: 1px solid var(--sk-line); overflow: hidden; }
+.expressive-code .frame .header { min-height: 44px; }
+.expressive-code .frame .copy button { width: 44px; height: 44px; border-radius: var(--sk-radius); }
+.expressive-code pre { white-space: pre; overflow-x: auto; }
+
+/* Pagination and report link */
+.docfoot { margin-top: var(--site-s7); padding-top: var(--sk-s5); border-top: 1px solid var(--sk-line); display: block; }
+.docfoot .report { display: inline-flex; align-items: center; gap: var(--sk-s2); min-height: 48px; color: var(--sk-fg-2); font: var(--sk-type-label); font-size: 0.9375rem; }
+.pagination-links { margin-top: var(--sk-s4); }
+.pagination-links a { padding: var(--sk-s4); border: 1px solid var(--sk-line); border-radius: var(--sk-radius-card); min-height: 48px; box-shadow: none; color: var(--sk-fg); }
+.pagination-links a:hover { border-color: var(--sk-border); background: var(--sk-surface); }
+.pagination-links .link-title { font: var(--sk-type-label-strong); }
+
+/* Mermaid figures: the SVG that matches the theme. */
+figure.diagram { margin: var(--sk-s5) 0; overflow-x: auto; }
+figure.diagram img { max-width: none; }
+figure.diagram figcaption { font: var(--sk-type-meta); color: var(--sk-muted); margin-top: var(--sk-s2); }
+.diagram-dark { display: none; }
+:root[data-theme='dark'] .diagram-light { display: none; }
+:root[data-theme='dark'] .diagram-dark { display: block; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+/* ---------- hit areas (44 px) for controls Starlight draws small ---------- */
+/* The sidebar's menu button is for narrow screens only; marketing.css sets display:grid, which must not win above 50rem. */
+@media (min-width: 50rem) { .sl-menu-button { display: none; } }
+/* A link that stands alone in a paragraph is a control, not running text: give it a 44 px hit area. The area is an
+   overlay, not a taller box, because CSS cannot tell a lone link from one inside a sentence (:only-child ignores
+   text), and a taller inline box would break the sentence's line spacing. */
+p > a:only-child { position: relative; }
+p > a:only-child::after { content: ''; position: absolute; inset: -12px -4px; }
+.crumbs a { display: inline-flex; align-items: center; min-height: 44px; }
+.mobile-preferences .social-icons a { min-width: 48px; min-height: 48px; display: inline-grid; place-items: center; }
+/* Search results: the whole title is the link, not only its text line. */
+.pagefind-ui__result-link { display: block; min-height: 44px; padding-block: var(--sk-s3); }

@@ -1,0 +1,96 @@
+/* The view switcher of the Work shell as a row of text tabs (view-tabs.tsx), designsystem §3 "Flikar": 44 px high,
+   no background, the label type (14/18). The pressed tab is 600 in the text colour with a 3 px line in the text colour
+   under the whole tab; the others are 500 in --sk-muted. The tabs share the row equally, so the
+   weight change moves nothing, and are never narrower than their label with 4 px on each side. A hairline runs under the
+   whole row, tools included (work-shell.css). The wrap takes the rest of the row beside the tools; its width never
+   depends on what it shows, so the row measures the same whether it is shown or hidden. */
+.work-view-tabs-wrap {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* The 2 of padding above and below (taken back by the margins) keep the tabs' 48 targets inside the clip. */
+.sidekick-work .work-view-tabs {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  margin-block: -2px;
+  padding-block: 2px;
+  overflow: hidden;
+}
+/* The tabs do not fit (view-tabs.tsx): hidden, at the same width, and the picker stands in their place. */
+.sidekick-work .work-view-tabs[data-narrow] {
+  position: absolute;
+  inset: 0 0 auto;
+  visibility: hidden;
+}
+.sidekick-work .work-view-tabs .work-view-tabs__tab {
+  flex: 1 0 0;
+  min-width: max-content;
+  box-sizing: border-box;
+  height: var(--sk-tabs-h);
+  min-height: var(--sk-tabs-h);
+  margin: 0;
+  padding: 0 var(--sk-s1);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+}
+/* The target is 48 (44 before): 2 up into the gap under the room strip, whose target
+   takes the other 2, and 2 down over the hairline into the air before the first heading. The inset is measured from
+   the padding box, so the bottom also takes the 3 px line: −5. */
+.sidekick-work .work-view-tabs .work-view-tabs__tab {
+  position: relative;
+}
+.sidekick-work .work-view-tabs .work-view-tabs__tab::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: -2px 0 -5px;
+}
+.sidekick-work .work-view-tabs .work-view-tabs__tab[aria-pressed="true"] {
+  border-bottom-color: var(--sk-fg);
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-work .work-view-tabs__tab:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The view picker (ui/view-picker.tsx) is never squeezed: at 190 px the tools wrap onto the next line instead. */
+.work-view-tabs-wrap:has(> .sk-pick) {
+  min-width: max-content;
+}
+
+/* The tools at the end of the tab row (designsystem §3 "Rumshuvud"): the shared icon buttons (.sk-iconbtn,
+   family.css), 44 px boxes. Counted from the right: ⋯ outermost, then +, then search, 48 apart (was 44):
+   4 between the boxes. The glyph's box ends on the content edge: the boxes are moved 10 outwards, so the centres
+   are 384, 336 and 288 at 412, the same grid as Dagbok's ‹ › (336, 384) and Kontakter's + ⋯, and ⋯'s box reaches 10
+   into the side margin. Each target is 48 × 48 and reaches 2 into the gap on each side, so neighbours meet and never
+   overlap. */
+.sidekick-work :is(.work-tab-tool, .work-tab-slot) {
+  position: relative;
+  margin-inline-start: var(--sk-s1);
+  /* (44 − 24) / 2 in px tokens: the boxes stay 44 with 24 px glyphs at 200 % text too (work-shell.css). */
+  inset-inline-start: calc((var(--sk-s6) + var(--sk-s3) - var(--sk-s5)) / 2);
+}
+.sidekick-work .sk-shell-tabs-end .work-tab-tool::after {
+  inset-inline: -2px;
+}
+/* An open tool (search, ⋯) is drawn held: the surface, never a grey fill of its own. */
+.sidekick-work .work-tab-tool[aria-expanded="true"] {
+  background: var(--sk-surface);
+}
+/* + and search while the list loads or could not be read: tertiary, and a tap does nothing. */
+.sidekick-work .work-tab-tool[aria-disabled="true"] {
+  background: none;
+  color: var(--sk-tertiary);
+  cursor: default;
+}

@@ -1,0 +1,5158 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this to find a bounded set of the authenticated user's Contacts by preferred name, alias, or exact email/phone metadata. Duplicate candidates are returned separately; do not use names to choose or link a Contact automatically.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "include_archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "q": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_contacts",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contacts": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "title": "Archived",
+                "type": "boolean"
+              },
+              "display_name": {
+                "title": "Display Name",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "title": "Updated At",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "display_name",
+              "archived",
+              "updated_at",
+              "version"
+            ],
+            "title": "ContactSummaryRecord",
+            "type": "object"
+          },
+          "title": "Contacts",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "contacts"
+      ],
+      "title": "ContactPageResult",
+      "type": "object"
+    },
+    "title": "List Sidekick contacts"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this after a Contact UUID is known to retrieve that owned active Contact and bounded current Project/Task context. Do not use it to resolve an ambiguous name, retrieve archived/future-domain data, or read another user's context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "include_completed": {
+          "default": false,
+          "type": "boolean"
+        },
+        "project_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "project_limit": {
+          "default": 10,
+          "maximum": 25,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "task_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_limit": {
+          "default": 10,
+          "maximum": 25,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "contact_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_contact_context",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        },
+        "projects": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "status": {
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  "title": {
+                    "title": "Title",
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "format": "date-time",
+                    "title": "Updated At",
+                    "type": "string"
+                  },
+                  "version": {
+                    "title": "Version",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "status",
+                  "updated_at",
+                  "version"
+                ],
+                "title": "ProjectSummaryRecord",
+                "type": "object"
+              },
+              "title": "Items",
+              "type": "array"
+            },
+            "next_cursor": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Next Cursor"
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "title": "ProjectContextPageRecord",
+          "type": "object"
+        },
+        "tasks": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "due_at": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Due At"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "priority": {
+                    "title": "Priority",
+                    "type": "string"
+                  },
+                  "project_id": {
+                    "anyOf": [
+                      {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Project Id"
+                  },
+                  "status": {
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  "title": {
+                    "title": "Title",
+                    "type": "string"
+                  },
+                  "updated_at": {
+                    "format": "date-time",
+                    "title": "Updated At",
+                    "type": "string"
+                  },
+                  "version": {
+                    "title": "Version",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "project_id",
+                  "title",
+                  "status",
+                  "priority",
+                  "due_at",
+                  "updated_at",
+                  "version"
+                ],
+                "title": "TaskSummaryRecord",
+                "type": "object"
+              },
+              "title": "Items",
+              "type": "array"
+            },
+            "next_cursor": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Next Cursor"
+            }
+          },
+          "required": [
+            "items"
+          ],
+          "title": "TaskContextPageRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact",
+        "projects",
+        "tasks"
+      ],
+      "title": "ContactContextResult",
+      "type": "object"
+    },
+    "title": "Get bounded Contact context"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only when the user has asked to create one Contact. Optional aliases and metadata are stored only in Sidekick; no message or external lookup occurs. Safe to retry with the same key and payload.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "aliases": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "context_note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "phone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "display_name",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "create_contact",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Create a Sidekick contact"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this for explicit edits to one known owned active Contact. Supply the observed version; omitted fields stay unchanged and explicit null clears optional metadata. Do not use this for aliases or work links.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "additionalProperties": false,
+          "properties": {
+            "context_note": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "display_name": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "maxLength": 320,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "type": "object"
+        },
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expected_version": {
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "expected_version",
+        "idempotency_key",
+        "changes"
+      ],
+      "type": "object"
+    },
+    "name": "update_contact",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Update a Sidekick contact"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this when the user explicitly wants to hide one known Contact from active views. Archive is reversible, preserves typed links, and does not delete Contact data.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expected_version": {
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "expected_version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "archive_contact",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Archive a Sidekick contact"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this when the user explicitly wants to return one archived owned Contact to active views. It does not restore or modify related Projects or Tasks.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expected_version": {
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "expected_version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "restore_contact",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Restore a Sidekick contact"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this to add one alternative name to a known active Contact using its current version. Equivalent aliases on the same Contact are not duplicated; the same alias may identify other Contacts.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expected_version": {
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "value",
+        "expected_version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "add_contact_alias",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Add a Contact alias"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only when the user wants to remove one known alias ID from an active Contact. It deletes that alias record but not the Contact or any work link.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "alias_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "expected_version": {
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "alias_id",
+        "expected_version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "remove_contact_alias",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact": {
+          "additionalProperties": false,
+          "properties": {
+            "aliases": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "created_at": {
+                    "format": "date-time",
+                    "title": "Created At",
+                    "type": "string"
+                  },
+                  "id": {
+                    "format": "uuid",
+                    "title": "Id",
+                    "type": "string"
+                  },
+                  "value": {
+                    "title": "Value",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "value",
+                  "created_at"
+                ],
+                "title": "ContactAliasRecord",
+                "type": "object"
+              },
+              "title": "Aliases",
+              "type": "array"
+            },
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "archived_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Archived At"
+            },
+            "context_note": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Context Note"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "display_name": {
+              "title": "Display Name",
+              "type": "string"
+            },
+            "email": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Email"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "phone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phone"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "display_name",
+            "context_note",
+            "email",
+            "phone",
+            "aliases",
+            "archived",
+            "created_at",
+            "updated_at",
+            "archived_at",
+            "version"
+          ],
+          "title": "ContactRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contact"
+      ],
+      "title": "ContactResult",
+      "type": "object"
+    },
+    "title": "Remove a Contact alias"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only after the user-selected Contact and Project UUIDs are known. It records that the Project involves the Contact; it does not alter either record or contact an external system.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "project_id",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "link_contact_to_project",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "title": "Contact Id",
+          "type": "string"
+        },
+        "linked": {
+          "title": "Linked",
+          "type": "boolean"
+        },
+        "project_id": {
+          "format": "uuid",
+          "title": "Project Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "project_id",
+        "linked"
+      ],
+      "title": "ProjectContactResult",
+      "type": "object"
+    },
+    "title": "Link a Contact to a Project"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only when the user wants to remove the known Contact\u2013Project relation. It deletes the semantic link but does not delete or edit the Contact or Project.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "project_id",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "unlink_contact_from_project",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "title": "Contact Id",
+          "type": "string"
+        },
+        "linked": {
+          "title": "Linked",
+          "type": "boolean"
+        },
+        "project_id": {
+          "format": "uuid",
+          "title": "Project Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "project_id",
+        "linked"
+      ],
+      "title": "ProjectContactResult",
+      "type": "object"
+    },
+    "title": "Unlink a Contact from a Project"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only after the user-selected Contact and Task UUIDs are known. It records that the Task concerns the Contact; it does not alter either record or contact an external system.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "task_id",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "link_contact_to_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "title": "Contact Id",
+          "type": "string"
+        },
+        "linked": {
+          "title": "Linked",
+          "type": "boolean"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "task_id",
+        "linked"
+      ],
+      "title": "TaskContactResult",
+      "type": "object"
+    },
+    "title": "Link a Contact to a Task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only when the user wants to remove the known Contact\u2013Task relation. It deletes the semantic link but does not delete or edit the Contact or Task.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "task_id",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "unlink_contact_from_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "title": "Contact Id",
+          "type": "string"
+        },
+        "linked": {
+          "title": "Linked",
+          "type": "boolean"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "task_id",
+        "linked"
+      ],
+      "title": "TaskContactResult",
+      "type": "object"
+    },
+    "title": "Unlink a Contact from a Task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries. Content is omitted unless explicitly requested; do not use it for another user or unbounded history.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "from_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "include_archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "include_content": {
+          "default": false,
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "to_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_journal_entries",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "title": "Archived",
+                "type": "boolean"
+              },
+              "contact_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Contact Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "journal_date": {
+                "format": "date",
+                "title": "Journal Date",
+                "type": "string"
+              },
+              "key_points": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "fact",
+                        "reflection",
+                        "decision",
+                        "commitment",
+                        "question"
+                      ],
+                      "title": "KeyPointKind",
+                      "type": "string"
+                    },
+                    "text": {
+                      "maxLength": 2000,
+                      "minLength": 1,
+                      "title": "Text",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "text"
+                  ],
+                  "title": "JournalKeyPoint",
+                  "type": "object"
+                },
+                "maxItems": 50,
+                "title": "Key Points",
+                "type": "array"
+              },
+              "occurred_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Occurred At"
+              },
+              "project_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Project Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "source_id": {
+                "format": "uuid",
+                "title": "Source Id",
+                "type": "string"
+              },
+              "summary": {
+                "anyOf": [
+                  {
+                    "maxLength": 10000,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Summary"
+              },
+              "task_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Task Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "title": {
+                "maxLength": 200,
+                "minLength": 1,
+                "title": "Title",
+                "type": "string"
+              },
+              "version": {
+                "minimum": 1,
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "source_id",
+              "journal_date",
+              "occurred_at",
+              "title",
+              "summary",
+              "key_points",
+              "project_ids",
+              "task_ids",
+              "contact_ids",
+              "archived",
+              "version"
+            ],
+            "title": "JournalEntryRecord",
+            "type": "object"
+          },
+          "maxItems": 50,
+          "title": "Entries",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "entries",
+        "next_cursor"
+      ],
+      "title": "JournalEntryPageResult",
+      "type": "object"
+    },
+    "title": "List Sidekick journal entries"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this for one known owned entry UUID. Include content only when the user explicitly requested it; inaccessible IDs disclose no existence detail.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "include_content": {
+          "default": false,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "entry_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_journal_entry",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "additionalProperties": false,
+          "properties": {
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "contact_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Contact Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "journal_date": {
+              "format": "date",
+              "title": "Journal Date",
+              "type": "string"
+            },
+            "key_points": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "fact",
+                      "reflection",
+                      "decision",
+                      "commitment",
+                      "question"
+                    ],
+                    "title": "KeyPointKind",
+                    "type": "string"
+                  },
+                  "text": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "title": "Text",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "text"
+                ],
+                "title": "JournalKeyPoint",
+                "type": "object"
+              },
+              "maxItems": 50,
+              "title": "Key Points",
+              "type": "array"
+            },
+            "occurred_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurred At"
+            },
+            "project_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Project Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "source_id": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Summary"
+            },
+            "task_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Task Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "source_id",
+            "journal_date",
+            "occurred_at",
+            "title",
+            "summary",
+            "key_points",
+            "project_ids",
+            "task_ids",
+            "contact_ids",
+            "archived",
+            "version"
+          ],
+          "title": "JournalEntryRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "title": "JournalEntryResult",
+      "type": "object"
+    },
+    "title": "Get one Sidekick journal entry"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this for bounded entries and summary status on one explicit date. Entry content is opt-in and no AI generation occurs.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "include_archived": {
+          "default": false,
+          "type": "boolean"
+        },
+        "include_content": {
+          "default": false,
+          "type": "boolean"
+        },
+        "journal_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "journal_date"
+      ],
+      "type": "object"
+    },
+    "name": "get_journal_day",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "entries": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "title": "Archived",
+                "type": "boolean"
+              },
+              "contact_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Contact Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "journal_date": {
+                "format": "date",
+                "title": "Journal Date",
+                "type": "string"
+              },
+              "key_points": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "fact",
+                        "reflection",
+                        "decision",
+                        "commitment",
+                        "question"
+                      ],
+                      "title": "KeyPointKind",
+                      "type": "string"
+                    },
+                    "text": {
+                      "maxLength": 2000,
+                      "minLength": 1,
+                      "title": "Text",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "text"
+                  ],
+                  "title": "JournalKeyPoint",
+                  "type": "object"
+                },
+                "maxItems": 50,
+                "title": "Key Points",
+                "type": "array"
+              },
+              "occurred_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Occurred At"
+              },
+              "project_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Project Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "source_id": {
+                "format": "uuid",
+                "title": "Source Id",
+                "type": "string"
+              },
+              "summary": {
+                "anyOf": [
+                  {
+                    "maxLength": 10000,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Summary"
+              },
+              "task_ids": {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 25,
+                "title": "Task Ids",
+                "type": "array",
+                "uniqueItems": true
+              },
+              "title": {
+                "maxLength": 200,
+                "minLength": 1,
+                "title": "Title",
+                "type": "string"
+              },
+              "version": {
+                "minimum": 1,
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "source_id",
+              "journal_date",
+              "occurred_at",
+              "title",
+              "summary",
+              "key_points",
+              "project_ids",
+              "task_ids",
+              "contact_ids",
+              "archived",
+              "version"
+            ],
+            "title": "JournalEntryRecord",
+            "type": "object"
+          },
+          "maxItems": 50,
+          "title": "Entries",
+          "type": "array"
+        },
+        "journal_date": {
+          "format": "date",
+          "title": "Journal Date",
+          "type": "string"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Next Cursor"
+        },
+        "summary": {
+          "additionalProperties": false,
+          "properties": {
+            "changed_entry_count": {
+              "minimum": 0,
+              "title": "Changed Entry Count",
+              "type": "integer"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "Closed structured content shared by manual and AI-assisted summaries.",
+                  "properties": {
+                    "commitments": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Commitments",
+                      "type": "array"
+                    },
+                    "contradictions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "description": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Description",
+                            "type": "string"
+                          },
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "minItems": 2,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "resolution": {
+                            "anyOf": [
+                              {
+                                "maxLength": 2000,
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Resolution"
+                          },
+                          "status": {
+                            "enum": [
+                              "resolved",
+                              "unresolved",
+                              "possibly_superseded"
+                            ],
+                            "title": "ContradictionStatus",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "description",
+                          "status",
+                          "resolution",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryContradiction",
+                        "type": "object"
+                      },
+                      "maxItems": 25,
+                      "title": "Contradictions",
+                      "type": "array"
+                    },
+                    "decisions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Decisions",
+                      "type": "array"
+                    },
+                    "important_events": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Important Events",
+                      "type": "array"
+                    },
+                    "open_questions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Open Questions",
+                      "type": "array"
+                    },
+                    "overview": {
+                      "maxLength": 20000,
+                      "minLength": 1,
+                      "title": "Overview",
+                      "type": "string"
+                    },
+                    "overview_entry_ids": {
+                      "items": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "maxItems": 10,
+                      "title": "Overview Entry Ids",
+                      "type": "array",
+                      "uniqueItems": true
+                    },
+                    "themes": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "summary": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Summary",
+                            "type": "string"
+                          },
+                          "title": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "title": "Title",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "summary",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryTheme",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Themes",
+                      "type": "array"
+                    },
+                    "unresolved_items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Unresolved Items",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "overview",
+                    "overview_entry_ids",
+                    "themes",
+                    "important_events",
+                    "decisions",
+                    "commitments",
+                    "open_questions",
+                    "unresolved_items",
+                    "contradictions"
+                  ],
+                  "title": "SummaryContent",
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "entry_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 10000,
+              "title": "Entry Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "exists": {
+              "title": "Exists",
+              "type": "boolean"
+            },
+            "journal_date": {
+              "format": "date",
+              "title": "Journal Date",
+              "type": "string"
+            },
+            "origin": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "manual",
+                    "ai_assisted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin"
+            },
+            "source_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Fingerprint"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "current",
+                    "stale",
+                    "failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          },
+          "required": [
+            "journal_date",
+            "exists",
+            "origin",
+            "status",
+            "content",
+            "entry_ids",
+            "source_fingerprint",
+            "version",
+            "changed_entry_count"
+          ],
+          "title": "JournalSummaryRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "journal_date",
+        "entries",
+        "next_cursor",
+        "summary"
+      ],
+      "title": "JournalDayResult",
+      "type": "object"
+    },
+    "title": "Get one Sidekick journal day"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this to read the owned summary content, entry provenance, and current, stale, or failed status for one explicit date. It never generates or updates a summary.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "journal_date": {
+          "format": "date",
+          "type": "string"
+        }
+      },
+      "required": [
+        "journal_date"
+      ],
+      "type": "object"
+    },
+    "name": "get_daily_journal_summary",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "additionalProperties": false,
+          "properties": {
+            "changed_entry_count": {
+              "minimum": 0,
+              "title": "Changed Entry Count",
+              "type": "integer"
+            },
+            "content": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "Closed structured content shared by manual and AI-assisted summaries.",
+                  "properties": {
+                    "commitments": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Commitments",
+                      "type": "array"
+                    },
+                    "contradictions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "description": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Description",
+                            "type": "string"
+                          },
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "minItems": 2,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "resolution": {
+                            "anyOf": [
+                              {
+                                "maxLength": 2000,
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "title": "Resolution"
+                          },
+                          "status": {
+                            "enum": [
+                              "resolved",
+                              "unresolved",
+                              "possibly_superseded"
+                            ],
+                            "title": "ContradictionStatus",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "description",
+                          "status",
+                          "resolution",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryContradiction",
+                        "type": "object"
+                      },
+                      "maxItems": 25,
+                      "title": "Contradictions",
+                      "type": "array"
+                    },
+                    "decisions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Decisions",
+                      "type": "array"
+                    },
+                    "important_events": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Important Events",
+                      "type": "array"
+                    },
+                    "open_questions": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Open Questions",
+                      "type": "array"
+                    },
+                    "overview": {
+                      "maxLength": 20000,
+                      "minLength": 1,
+                      "title": "Overview",
+                      "type": "string"
+                    },
+                    "overview_entry_ids": {
+                      "items": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "maxItems": 10,
+                      "title": "Overview Entry Ids",
+                      "type": "array",
+                      "uniqueItems": true
+                    },
+                    "themes": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "summary": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Summary",
+                            "type": "string"
+                          },
+                          "title": {
+                            "maxLength": 200,
+                            "minLength": 1,
+                            "title": "Title",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "summary",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryTheme",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Themes",
+                      "type": "array"
+                    },
+                    "unresolved_items": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "entry_ids": {
+                            "items": {
+                              "format": "uuid",
+                              "type": "string"
+                            },
+                            "maxItems": 10,
+                            "title": "Entry Ids",
+                            "type": "array",
+                            "uniqueItems": true
+                          },
+                          "perspective": {
+                            "enum": [
+                              "fact",
+                              "interpretation",
+                              "plan"
+                            ],
+                            "title": "Perspective",
+                            "type": "string"
+                          },
+                          "text": {
+                            "maxLength": 2000,
+                            "minLength": 1,
+                            "title": "Text",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "text",
+                          "perspective",
+                          "entry_ids"
+                        ],
+                        "title": "SummaryStatement",
+                        "type": "object"
+                      },
+                      "maxItems": 50,
+                      "title": "Unresolved Items",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "overview",
+                    "overview_entry_ids",
+                    "themes",
+                    "important_events",
+                    "decisions",
+                    "commitments",
+                    "open_questions",
+                    "unresolved_items",
+                    "contradictions"
+                  ],
+                  "title": "SummaryContent",
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "entry_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 10000,
+              "title": "Entry Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "exists": {
+              "title": "Exists",
+              "type": "boolean"
+            },
+            "journal_date": {
+              "format": "date",
+              "title": "Journal Date",
+              "type": "string"
+            },
+            "origin": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "manual",
+                    "ai_assisted"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Origin"
+            },
+            "source_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Fingerprint"
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "current",
+                    "stale",
+                    "failed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            },
+            "version": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Version"
+            }
+          },
+          "required": [
+            "journal_date",
+            "exists",
+            "origin",
+            "status",
+            "content",
+            "entry_ids",
+            "source_fingerprint",
+            "version",
+            "changed_entry_count"
+          ],
+          "title": "JournalSummaryRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "JournalSummaryResult",
+      "type": "object"
+    },
+    "title": "Get a Sidekick daily journal summary"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this only when the user asks to preserve manual or transcript text for an explicit date. It creates an immutable source or replacement and invokes no AI.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "journal_date": {
+          "format": "date",
+          "type": "string"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 35,
+              "minLength": 2,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "occurred_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "raw_text": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "type": "string"
+        },
+        "replaces_source_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_recorded_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "source_type": {
+          "enum": [
+            "manual_text",
+            "transcript_text"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_type",
+        "journal_date",
+        "raw_text",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "create_journal_source",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "additionalProperties": false,
+          "properties": {
+            "content_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Content Fingerprint",
+              "type": "string"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "journal_date": {
+              "format": "date",
+              "title": "Journal Date",
+              "type": "string"
+            },
+            "language": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Language"
+            },
+            "occurred_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurred At"
+            },
+            "replaces_source_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Replaces Source Id"
+            },
+            "source_recorded_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source Recorded At"
+            },
+            "source_type": {
+              "enum": [
+                "manual_text",
+                "transcript_text"
+              ],
+              "title": "SourceType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "source_type",
+            "journal_date",
+            "occurred_at",
+            "source_recorded_at",
+            "language",
+            "replaces_source_id",
+            "content_fingerprint",
+            "created_at"
+          ],
+          "title": "JournalSourceRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "JournalSourceResult",
+      "type": "object"
+    },
+    "title": "Create an immutable Sidekick journal source"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Use this to finalize one committed owned source with user-authored fields and selected active relations. A source can create at most one entry; an existing entry conflicts. It invokes no AI and cannot create or update Tasks.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 25,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "key_points": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "enum": [
+                  "fact",
+                  "reflection",
+                  "decision",
+                  "commitment",
+                  "question"
+                ],
+                "type": "string"
+              },
+              "text": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "text"
+            ],
+            "type": "object"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "project_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 25,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "source_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "task_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 25,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "title",
+        "summary",
+        "key_points",
+        "project_ids",
+        "task_ids",
+        "contact_ids",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "create_manual_journal_entry",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "entry": {
+          "additionalProperties": false,
+          "properties": {
+            "archived": {
+              "title": "Archived",
+              "type": "boolean"
+            },
+            "contact_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Contact Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "journal_date": {
+              "format": "date",
+              "title": "Journal Date",
+              "type": "string"
+            },
+            "key_points": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "fact",
+                      "reflection",
+                      "decision",
+                      "commitment",
+                      "question"
+                    ],
+                    "title": "KeyPointKind",
+                    "type": "string"
+                  },
+                  "text": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "title": "Text",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "text"
+                ],
+                "title": "JournalKeyPoint",
+                "type": "object"
+              },
+              "maxItems": 50,
+              "title": "Key Points",
+              "type": "array"
+            },
+            "occurred_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Occurred At"
+            },
+            "project_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Project Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "source_id": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Summary"
+            },
+            "task_ids": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 25,
+              "title": "Task Ids",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "version": {
+              "minimum": 1,
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "source_id",
+            "journal_date",
+            "occurred_at",
+            "title",
+            "summary",
+            "key_points",
+            "project_ids",
+            "task_ids",
+            "contact_ids",
+            "archived",
+            "version"
+          ],
+          "title": "JournalEntryRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "entry"
+      ],
+      "title": "JournalEntryResult",
+      "type": "object"
+    },
+    "title": "Create a manual Sidekick journal entry"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Use this when the user wants a bounded list of their Sidekick projects. Do not use it to list tasks or another user's data.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "active",
+                "paused",
+                "completed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_projects",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "projects": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "created_at": {
+                "format": "date-time",
+                "title": "Created At",
+                "type": "string"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Description"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "start_date": {
+                "anyOf": [
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Start Date"
+              },
+              "status": {
+                "title": "Status",
+                "type": "string"
+              },
+              "target_date": {
+                "anyOf": [
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Target Date"
+              },
+              "title": {
+                "title": "Title",
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "title": "Updated At",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "description",
+              "status",
+              "start_date",
+              "target_date",
+              "created_at",
+              "updated_at",
+              "version"
+            ],
+            "title": "ProjectRecord",
+            "type": "object"
+          },
+          "title": "Projects",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projects"
+      ],
+      "title": "ProjectPageOutput",
+      "type": "object"
+    },
+    "title": "List Sidekick projects"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Get one owned project by its Sidekick UUID, including its current fields. Returns no cross-user existence detail.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_project",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "project": {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "start_date": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "target_date": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Date"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "status",
+            "start_date",
+            "target_date",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "ProjectRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "title": "ProjectOutput",
+      "type": "object"
+    },
+    "title": "Get one Sidekick project"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Create one project for the authenticated user. This writes durable state and requires a retry-safe idempotency key.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "start_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "create_project",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "project": {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "start_date": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "target_date": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Date"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "description",
+            "status",
+            "start_date",
+            "target_date",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "ProjectRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "project"
+      ],
+      "title": "ProjectOutput",
+      "type": "object"
+    },
+    "title": "Create a Sidekick project"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "List bounded tasks owned by the authenticated user, optionally filtered by project and status.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "anyOf": [
+            {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_tasks",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "tasks": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "completed_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Completed At"
+              },
+              "created_at": {
+                "format": "date-time",
+                "title": "Created At",
+                "type": "string"
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Description"
+              },
+              "due_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Due At"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "priority": {
+                "title": "Priority",
+                "type": "string"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Project Id"
+              },
+              "status": {
+                "title": "Status",
+                "type": "string"
+              },
+              "title": {
+                "title": "Title",
+                "type": "string"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "title": "Updated At",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "project_id",
+              "title",
+              "description",
+              "status",
+              "priority",
+              "due_at",
+              "completed_at",
+              "created_at",
+              "updated_at",
+              "version"
+            ],
+            "title": "TaskRecord",
+            "type": "object"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks"
+      ],
+      "title": "TaskPageOutput",
+      "type": "object"
+    },
+    "title": "List Sidekick tasks"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": null
+    },
+    "description": "Get one owned task by its Sidekick UUID. Returns no cross-user existence detail.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "additionalProperties": false,
+          "properties": {
+            "completed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Completed At"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due At"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "project_id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "due_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "TaskRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "TaskOutput",
+      "type": "object"
+    },
+    "title": "Get one Sidekick task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Create one standalone or project task. This writes durable state and requires a retry-safe idempotency key.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "priority": {
+          "default": "normal",
+          "enum": [
+            "low",
+            "normal",
+            "high",
+            "urgent"
+          ],
+          "type": "string"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "create_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "additionalProperties": false,
+          "properties": {
+            "completed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Completed At"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due At"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "project_id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "due_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "TaskRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "TaskOutput",
+      "type": "object"
+    },
+    "title": "Create a Sidekick task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Update explicit fields on one owned task using its current version. This writes durable state and is retry-safe.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "additionalProperties": false,
+          "description": "Explicit patch object retaining omitted-versus-null semantics.",
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "priority": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "low",
+                    "normal",
+                    "high",
+                    "urgent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "todo",
+                    "in_progress",
+                    "blocked",
+                    "completed"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "type": "object"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task_id",
+        "version",
+        "idempotency_key",
+        "changes"
+      ],
+      "type": "object"
+    },
+    "name": "update_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "additionalProperties": false,
+          "properties": {
+            "completed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Completed At"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due At"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "project_id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "due_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "TaskRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "TaskOutput",
+      "type": "object"
+    },
+    "title": "Update a Sidekick task"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": null
+    },
+    "description": "Mark one owned task complete using its current version. Repeating the same idempotency key safely returns the committed result.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task_id",
+        "version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "complete_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "additionalProperties": false,
+          "properties": {
+            "completed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Completed At"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Due At"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            },
+            "status": {
+              "title": "Status",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "project_id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "due_at",
+            "completed_at",
+            "created_at",
+            "updated_at",
+            "version"
+          ],
+          "title": "TaskRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "TaskOutput",
+      "type": "object"
+    },
+    "title": "Complete a Sidekick task"
+  }
+]

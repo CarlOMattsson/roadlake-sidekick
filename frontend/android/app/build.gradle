@@ -1,0 +1,126 @@
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+// One release version for the server, the web bundle and this app. backend/pyproject.toml is the source;
+// frontend/package.json mirrors it (backend/tests/policy/test_version_sync.py keeps them equal), and the app
+// reads it from there, so versionName never drifts. versionCode is derived as
+// MAJOR*10000 + MINOR*100 + PATCH, which grows with every SemVer bump while MINOR and PATCH stay below 100.
+def sidekickVersion = new groovy.json.JsonSlurper().parse(rootProject.file('../package.json')).version as String
+def sidekickSemver = sidekickVersion =~ /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+if (!sidekickSemver.matches()) {
+    throw new GradleException("frontend/package.json version '${sidekickVersion}' is not MAJOR.MINOR.PATCH")
+}
+def (sidekickMajor, sidekickMinor, sidekickPatch) = (1..3).collect { sidekickSemver.group(it) as int }
+if (sidekickMinor > 99 || sidekickPatch > 99) {
+    throw new GradleException("version ${sidekickVersion}: MINOR and PATCH must stay below 100 for the derived versionCode")
+}
+def sidekickVersionCode = sidekickMajor * 10000 + sidekickMinor * 100 + sidekickPatch
+// Google Play's ceiling for versionCode; 0 is not a valid code.
+if (sidekickVersionCode < 1 || sidekickVersionCode > 2100000000) {
+    throw new GradleException("version ${sidekickVersion} gives versionCode ${sidekickVersionCode}, outside 1..2100000000")
+}
+
+android {
+    namespace = "com.roadlake.sidekick"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.roadlake.sidekick"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode sidekickVersionCode
+        versionName sidekickVersion
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    bundle {
+        // The widget draws in the app's language (sv/en), not the system's, so both must stay in every install.
+        language {
+            enableSplit = false
+        }
+    }
+    buildFeatures {
+        buildConfig = true
+    }
+    sourceSets {
+        // One fake companion server and one process wiring serve both the JVM tests and the instrumented tests.
+        test.java.srcDir 'src/testShared/kotlin'
+        androidTest.java.srcDir 'src/testShared/kotlin'
+    }
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        }
+    }
+    buildTypes {
+        debug {
+            // Release is com.roadlake.sidekick and debug is com.roadlake.sidekick.debug, so a debug build
+            // installs next to the release app without replacing it or sharing its data (ADR-005).
+            applicationIdSuffix ".debug"
+        }
+        release {
+            // R8 shrinks, optimizes and obfuscates the release; proguard-rules.pro keeps what is reached by reflection.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    // The Today widget (ADR-005): Glance renders a native widget; WorkManager refreshes it and drains its outbox.
+    implementation "androidx.glance:glance-appwidget:$glanceVersion"
+    implementation "androidx.work:work-runtime-ktx:$workVersion"
+    // Push (ADR-005, D-078): UnifiedPush with ntfy as the distributor. No FCM, no Google services.
+    implementation "org.unifiedpush.android:connector:$unifiedPushVersion"
+    testImplementation "junit:junit:$junitVersion"
+    // The JVM unit tests run without the Android framework, whose org.json is a stub there.
+    testImplementation "org.json:json:$orgJsonVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+// Kotlin style: ktlint's command-line jar (Maven Central, version pinned in variables.gradle and locked in
+// gradle/locks) run over every Kotlin source set. `ktlintCheck` fails on violations; `ktlintFormat` rewrites the files.
+// Rules come from .editorconfig in this directory. It is a build tool and is not part of the packaged app.
+configurations {
+    ktlint {
+        canBeConsumed = false
+    }
+}
+
+dependencies {
+    ktlint "com.pinterest.ktlint:ktlint-cli:$ktlintVersion:all@jar"
+}
+
+def ktlintTask = { String name, String description, List<String> extraArgs ->
+    tasks.register(name, JavaExec) {
+        group = 'verification'
+        it.description = description
+        classpath = configurations.ktlint
+        mainClass = 'com.pinterest.ktlint.Main'
+        // Relative to the module directory so the globs match the same files on every machine.
+        workingDir = projectDir
+        args(extraArgs + ['src/**/*.kt'])
+    }
+}
+ktlintTask('ktlintCheck', 'Fails if any Kotlin source breaks the ktlint style rules.', ['--relative'])
+ktlintTask('ktlintFormat', 'Rewrites the Kotlin sources to follow the ktlint style rules.', ['--relative', '--format'])
+
+apply from: 'capacitor.build.gradle'

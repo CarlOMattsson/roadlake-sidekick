@@ -1,0 +1,7 @@
+dist/
+node_modules
+.astro/
+src/content/docs/*/docs/
+public/docs-images/
+test-results/
+playwright-report/

@@ -1,0 +1,55 @@
+---
+title: Pricing
+description: Sidekick is free with every feature. An optional license key removes the reminder that this is the free version. Prices are listed.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import PricingNotice from '../../../components/PricingNotice.astro';
+import PriceTiers from '../../../components/PriceTiers.astro';
+import StatusList from '../../../components/StatusList.astro';
+import BuyButton from '../../../components/BuyButton.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="Pricing"
+  lead="Sidekick is free to use, with every feature. A license key is optional and does one thing: it removes the reminder that this is the free version."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <PricingNotice />
+  <PriceTiers
+    free={{ sub: 'For private use, non-commercial use and your own internal business.', bullets: ['Every feature', 'A small reminder that this is the free version'] }}
+    personal={{ sub: 'Removes the reminder. Valid for a set time and shows your name in the app.' }}
+    org={{ sub: "Optional. Shared inside the organisation and shows the organisation's name." }}
+  />
+  <div class="does">
+    <StatusList
+      level="h2"
+      title="What the key does"
+      items={[
+        { state: 'yes', text: 'Removes the reminder in the rooms and in the Today widget.' },
+        { state: 'yes', text: `Shows "Licensed to", the name on the key and its last valid day in Control and in the Android app's Settings.` },
+        { state: 'yes', text: 'Is checked offline against a public key. Sidekick contacts no server to check it.' },
+      ]}
+    />
+    <StatusList
+      level="h2"
+      title="What the key does not do"
+      items={[
+        { state: 'no', text: 'It unlocks nothing. Every feature is already there without a key.' },
+        { state: 'no', text: 'It changes nothing when it expires. The reminder comes back, and your data and features stay as they were.' },
+        { state: 'no', text: 'It is not needed for any right under the license.' },
+      ]}
+    />
+  </div>
+  <section class="buyhow" id="buy" aria-labelledby="h-buy">
+    <h2 id="h-buy">Buy</h2>
+    <p>License keys will be on sale soon. Payment will happen in Polar's checkout, not here on the website. The key is sent to you by email once the payment is complete. The table above shows which keys exist and what they cost.</p>
+    <BuyButton />
+    <p><PageLink page="buy">Read what happens when you buy</PageLink></p>
+  </section>
+  <div class="legal">
+    <p>The license text governs. This page is a summary, not the license. <PageLink page={['docs/explanation/licensing', 'docs/licensing']}>Read the license in plain words</PageLink> or <PageLink page="docs/license">read the binding license text</PageLink>.</p>
+  </div>
+</div>

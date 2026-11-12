@@ -1,0 +1,40 @@
+.git
+docs
+
+# Operational data and secrets must never reach the build context (and so never an image layer).
+# Real env files: everything named .env, .env.* or *.env, except the checked-in *.example templates.
+**/.env
+**/.env.*
+**/*.env
+!**/.env.example
+!**/.env.*.example
+!**/*.env.example
+# The work package (deploy/work) and the self-hosted profile (deploy/selfhost) write their
+# generated secrets, backups and logs next to their compose files.
+deploy/work/secrets
+deploy/work/backups
+deploy/work/work.env
+deploy/work/*.log
+deploy/selfhost/secrets
+deploy/selfhost/backups
+deploy/selfhost/update-state
+deploy/selfhost/ntfy-secrets
+deploy/selfhost/Caddyfile
+**/secrets
+**/backups
+**/*.pem
+**/*.key
+**/*.log
+
+# Dependencies, build output and caches
+**/.venv
+**/__pycache__
+**/node_modules
+**/dist
+**/.pytest_cache
+**/.ruff_cache
+**/.pyright
+**/.mypy_cache
+**/.hypothesis
+**/.vite
+**/.cache

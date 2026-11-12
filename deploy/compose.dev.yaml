@@ -1,0 +1,80 @@
+# Own project name: the default is the directory name ("deploy"), which two clones would share, volume included.
+name: sidekick-dev
+
+services:
+  db:
+    image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    # Error logs must not carry data: no failing statement text, no DETAIL/CONTEXT lines (they quote row
+    # values), no bound parameters. Enforced by backend/tests/policy/test_postgres_log_hardening.py.
+    command:
+      - "postgres"
+      - "-c"
+      - "log_min_error_statement=panic"
+      - "-c"
+      - "log_error_verbosity=terse"
+      - "-c"
+      - "log_parameter_max_length_on_error=0"
+      - "-c"
+      - "log_parameter_max_length=0"
+      - "-c"
+      - "log_statement=none"
+      - "-c"
+      - "log_min_duration_statement=-1"
+    environment:
+      POSTGRES_DB: ${SIDEKICK_DEV_DATABASE_NAME:-sidekick}
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    ports:
+      - "${SIDEKICK_DEV_DB_BIND:-127.0.0.1:55440}:5432"
+    # Copy as root before the official entrypoint drops privileges. A bind mount from a checkout made with
+    # umask 077 may be 600; never ask the postgres user to read that host file directly.
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        cp /usr/local/share/sidekick/postgres-init.sql /docker-entrypoint-initdb.d/001-roles.sql
+        chmod 644 /docker-entrypoint-initdb.d/001-roles.sql
+        exec docker-entrypoint.sh "$$@"
+      - sidekick-postgres-entrypoint
+    volumes:
+      - sidekick_pgdata:/var/lib/postgresql
+      - ./postgres-init.sql:/usr/local/share/sidekick/postgres-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${SIDEKICK_DEV_DATABASE_NAME:-sidekick}"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      SIDEKICK_MIGRATION_DATABASE_URL: postgresql+psycopg://sidekick_migrator:sidekick_migrator@db:5432/${SIDEKICK_DEV_DATABASE_NAME:-sidekick}
+    command:
+      - sh
+      - -c
+      - |
+        # yoyo reads a bare postgresql:// as psycopg2, which the image does not ship; accept it anyway.
+        url="$$SIDEKICK_MIGRATION_DATABASE_URL"
+        case "$$url" in postgresql://*) url="postgresql+psycopg://$${url#postgresql://}" ;; esac
+        exec yoyo apply --batch --database "$$url" /app/migrations
+    depends_on:
+      db: { condition: service_healthy }
+    profiles: [migration]
+
+  api:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      SIDEKICK_ENVIRONMENT: development
+      SIDEKICK_DATABASE_URL: postgresql+psycopg://sidekick_app:sidekick_app@db:5432/${SIDEKICK_DEV_DATABASE_NAME:-sidekick}
+      SIDEKICK_CURSOR_SIGNING_SECRET: local-session-secret-at-least-32-characters
+      SIDEKICK_TOKEN_PEPPER: local-token-pepper-different-32-characters
+    ports: ["${SIDEKICK_DEV_API_BIND:-127.0.0.1:8000}:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  sidekick_pgdata:

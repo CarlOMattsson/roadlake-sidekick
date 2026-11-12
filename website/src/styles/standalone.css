@@ -1,0 +1,28 @@
+/* The language choice page and the 404 page: outside Starlight, so they set their own base styles. */
+body { margin: 0; background: var(--sk-bg); color: var(--sk-fg); font: var(--site-type-prose); font-family: var(--sk-font); -webkit-text-size-adjust: 100%; }
+a { color: var(--site-link); text-underline-offset: 0.2em; }
+:focus-visible { outline: 3px solid var(--sk-ring); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.bare { max-width: var(--site-page-max); margin: 0 auto; padding: var(--sk-s5) var(--site-gutter) var(--site-s8); min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; }
+.bare > .wordmark { align-self: flex-start; }
+.choose { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; max-width: 40rem; padding-block: var(--site-s7); }
+.choose h1 { font: var(--site-type-display); letter-spacing: -0.025em; margin: 0 0 var(--sk-s5); text-wrap: balance; }
+.choose p { font: var(--site-type-lead); color: var(--sk-fg-2); margin: 0 0 var(--sk-s3); }
+.choose .ctas { margin-top: var(--sk-s5); }
+.choose .ctas .btn { min-width: 11rem; }
+.lost { flex: 1; padding-block: var(--site-s7); display: grid; grid-template-columns: 1fr 1fr; gap: var(--site-s7); align-content: start; }
+.lost__code { grid-column: 1 / -1; font: 600 0.875rem/1 var(--site-mono); color: var(--sk-muted); margin: 0; }
+.lost section { border-top: 1px solid var(--sk-border); padding-top: var(--sk-s4); }
+.lost h1 { font: var(--site-type-h1); letter-spacing: -0.02em; margin: 0 0 var(--sk-s3); text-wrap: balance; }
+.lost p { color: var(--sk-fg-2); margin: 0 0 var(--sk-s4); }
+.lost ul { list-style: none; padding: 0; margin: 0; }
+.lost li a { display: inline-flex; align-items: center; min-height: 48px; }
+@media (max-width: 49.99rem) {
+  .lost { grid-template-columns: 1fr; gap: var(--site-s7); }
+  .choose .ctas .btn { flex: 1 1 100%; }
+}
+.choose h1.choose__name { display: flex; flex-wrap: nowrap; white-space: nowrap; align-items: center; gap: 0 0.3em; font-size: clamp(1.625rem, 8.5vw, 3.25rem); }
+.choose__name .wordmark__mark { width: 1.1em; height: 1.1em; margin-right: 0.15em; }
+.choose__name .wordmark__a { font-size: inherit; line-height: 1; }
+.choose__name .wordmark__b { font-size: inherit; line-height: 1; }
+.lost h2 { font: var(--site-type-h1); letter-spacing: -0.02em; margin: 0 0 var(--sk-s3); text-wrap: balance; }

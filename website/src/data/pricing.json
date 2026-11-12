@@ -1,0 +1,12 @@
+{
+  "currency": "USD",
+  "storeUrl": "",
+  "personal": [
+    { "months": 1, "amount": 5, "buyUrl": "" },
+    { "months": 3, "amount": 10, "buyUrl": "" },
+    { "months": 6, "amount": 18, "buyUrl": "" },
+    { "months": 12, "amount": 32, "buyUrl": "" },
+    { "months": 60, "amount": 100, "buyUrl": "" }
+  ],
+  "org": { "months": 12, "amount": 1000, "perEmployees": 50, "customAbove": 2000 }
+}

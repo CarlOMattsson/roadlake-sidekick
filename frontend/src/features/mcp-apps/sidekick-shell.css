@@ -1,0 +1,237 @@
+/*
+ * The Sidekick shell: a room strip above the rooms, in the full view only (fullscreen or the
+ * expanded inline view). Inline cards have none of this. Tokens come from ui/tokens.css (host
+ * variables first, fixed fallbacks). The strip is 40 high; every tap target is at least 44 px (--sk-tap). When the four
+ * labels do not fit one row (large text) the room picker "Arbete ⌄" takes their place in the same rail.
+ */
+/* 4 px from the strip to the first row under it (a room's header, or the Back row), and from the Back row to the
+   view's title (designsystem §2): those rows are 44 high and carry their own air. */
+.sk-rooms-shell {
+  display: grid;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+
+/* The strip rests under the host's overlaid navigation bar (--sk-sticky-top) and stays in view. The bar has the page's
+   own colour: no band of another shade, and what scrolls under it does not show in the strip's rounded
+   corners. */
+.sk-rooms__bar {
+  position: sticky;
+  top: var(--sk-sticky-top);
+  z-index: 2;
+  background: var(--color-background-primary, Canvas);
+  display: grid;
+  /* 4 from the strip to the Back row, as to a room's own header row (was 8, so detail heads sat 4 lower). */
+  gap: var(--sk-s1);
+  /* The frame's 8 of top pad belongs to the bar (margin −8, padding 8), so the strip stands 8 under the
+     bar's top at rest and when stuck alike: stuck, the bar is y 0–48 with the drawn strip at 8–48 and the rooms' 48
+     targets reach the window's top, and the tab row sticks right under it (48–96,4 at 110 %). The shell's gap is the
+     air below it. At large text (below) the bar keeps the form above: 150/200 % stay 99/104. */
+  margin-top: calc(-1 * var(--sk-s2));
+  padding: var(--sk-s2) 0 0;
+  /* The bar reaches the frame's side edges (layout.css): its page colour then never ends a few px beside the strip,
+     which on a host whose own background is another shade read as a band cut off at the strip's rounded corner. */
+  margin-inline: calc(-1 * var(--sk-frame-pad-left, 0px))
+    calc(-1 * var(--sk-frame-pad-right, 0px));
+  /* Its strip and Back row keep the rooms' reading width (--sk-room-max, layout.css), centred over the room as Work's
+     tab row is (work-shell.css); the band still reaches the frame's edges. 100 % is the shell's width, inside the
+     frame's pads. Below 48rem the inset is 0. */
+  --sk-bar-inset: max(0px, calc((100% - var(--sk-room-max)) / 2));
+  padding-inline: calc(var(--sk-frame-pad-left, 0px) + var(--sk-bar-inset))
+    calc(var(--sk-frame-pad-right, 0px) + var(--sk-bar-inset));
+}
+
+.sk-rooms {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  padding: var(--sk-s1);
+  border-radius: var(--sk-radius);
+  background: var(--sk-surface);
+}
+.sk-rooms__tabs {
+  display: flex;
+  flex: 1 1 0;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+/* A strip alone over a room's tab row: above the tab row (z-index 2), whose targets reach 2 up over its
+   own top, so where both reach when it sticks the rooms keep their 48. A bar that holds a Back row keeps the default stacking order:
+   the tabs under the Back row (Kontroll's) keep the 4 they reach up into the gap. */
+.sk-rooms__bar:not(:has(> .sk-back-header)) {
+  z-index: 3;
+}
+/* The rooms do not fit (sidekick-shell.tsx): hidden at the same width, and the picker stands in their place. */
+.sk-rooms__tabs[data-narrow] {
+  position: absolute;
+  inset: var(--sk-s1);
+  overflow: hidden;
+  visibility: hidden;
+}
+/* The picker fills the rail: the name and ⌄ at the cells' text edge, the target the strip's full height. */
+.sk-rooms .sk-pick {
+  position: relative;
+  flex: 1 1 auto;
+  /* 32 in px, as a cell: at 200 % text the line decides, and the rail stays one row. */
+  min-height: var(--sk-s6);
+  padding-inline: var(--sk-s3);
+}
+.sk-rooms .sk-pick::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--sk-s1) - var(--sk-s2)) 0 calc(-1 * var(--sk-s1));
+}
+
+.sk-rooms .sk-rooms__tab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: min-content;
+  /* 40 in all (designsystem §3): a 32 cell in the 4 px frame. The target is 44 (::after, 2 past the strip). */
+  min-height: var(--sk-s6);
+  box-sizing: border-box;
+  /* Equal cells: every tab takes a quarter of the row. The side padding is small because "Kontakter" in semibold has to
+     fit a quarter of 412 px (90 px) without making its own cell wider than the others. */
+  padding: var(--sk-s1);
+  border: 0;
+  border-radius: calc(var(--sk-radius) - 2px);
+  background: transparent;
+  color: var(--sk-muted);
+  /* 500 for the other rooms, 600 for the active one: only the place you are is bold. The cells are equal, so the
+     weight change moves nothing sideways. */
+  font: var(--sk-type-label);
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+}
+/* The touch target is the bar's top 48: from the bar's top edge, 8 above the strip, to the strip's foot,
+   so it is 48 whether the bar rests or sticks at the window's top, and it ends where the tab row begins when stuck.
+   It does not reach sideways. */
+.sk-rooms .sk-rooms__tab::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--sk-s1) - var(--sk-s2)) 0 calc(-1 * var(--sk-s1));
+}
+
+/* Large text (≥ 150 % on a phone): the rooms' target is 48 high and starts at the strip's top edge,
+   with the rest reaching down over the gap into the tab row (whose own 56 stand firm), instead of 6 above the strip. The
+   strip is the first thing in the window when it sticks (y 0), and what lies above y 0 is the host's: a target that
+   reached up there was cut to 37–46. Where the chrome is not stuck the target is the same 48, only placed lower. */
+@container sk-frame (max-width: 17.25rem) {
+  /* Above the tab row (z-index 2, which reaches 2 up into the strip's foot), so the rooms keep the full 48. */
+  .sk-rooms__bar {
+    z-index: 3;
+    margin-top: 0;
+    padding-top: 0;
+  }
+  .sk-rooms .sk-rooms__tab::after,
+  .sk-rooms .sk-pick::after {
+    inset: calc(-1 * var(--sk-s1)) 0 auto;
+    height: 48px;
+  }
+}
+
+/* The focus ring lies inside the room's cell: 2 outside the box (family.css) would reach the strip's own edge and
+   read as cut off by it. On the active room it takes the place of the 2 px outline. */
+.sk-rooms :is(.sk-rooms__tab, .sk-pick):focus-visible {
+  outline-offset: -2px;
+}
+
+/* The active room (also the parent of a detail view) is drawn as chosen, not inked:
+   the page colour on the strip's surface, a 2 px outline in the text colour and the label at 600. Ink means the primary
+   action only. */
+.sk-rooms .sk-rooms__tab[aria-current="page"] {
+  background: var(--sk-nav-active-bg);
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line);
+  color: var(--sk-nav-active-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+
+/* The Back of the full view is BackHeader (ui/back-header.tsx). Here is only Fäll ihop, for a full view that is
+   our own expansion, and the row that holds it alone when there is no Back. */
+.sk-rooms__row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+.sk-rooms__collapse {
+  min-height: 2.75rem;
+  padding: 0 var(--sk-s2);
+  border: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-button);
+  cursor: pointer;
+}
+/* In the Back row Fäll ihop is a text button among the actions: its 12 px padding is taken back at the content edge,
+   10 of it by the action group (back-header.css). */
+.sk-back-header .sk-back-header__actions .sk-rooms__collapse {
+  padding: 0 var(--sk-s3);
+  margin-inline-end: calc((var(--sk-tap) - var(--sk-icon)) / 2 - var(--sk-s3));
+}
+
+/* The quiet line after the reserve strip asked Claude. Empty, it takes no room. */
+.sk-rooms__note {
+  margin: 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sk-rooms__note:empty {
+  display: none;
+}
+
+/* A pane keeps its place while hidden (the hidden attribute is display: none); a focused pane needs no ring. */
+.sk-rooms__pane {
+  min-width: 0;
+  /* What a room keeps sticky (the board's column switch, group headings) rests below the strip. */
+  --sk-sticky-top: calc(var(--host-safe-top, 0px) + var(--sk-bar-h, 0px));
+}
+/* Arbete's tab row sticks under the strip, so what its list keeps sticky rests under both. */
+.sk-shell-list {
+  --sk-sticky-top: calc(
+    var(--host-safe-top, 0px) + var(--sk-bar-h, 0px) + var(--sk-tabs-h)
+  );
+}
+.sk-rooms__pane:focus {
+  outline: none;
+}
+
+/* The shell full frame already gives the page its padding, safe area and foot reserve, so a room
+   root that pads itself (journal, shopping, control) does not pad twice. */
+.sk-rooms__pane .sidekick-journal.sidekick-journal,
+.sk-rooms__pane .sidekick-shopping.sidekick-shopping,
+.sk-rooms__pane .sidekick-control.sidekick-control,
+.sk-rooms__pane .sidekick-work.sidekick-work {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+/* The room picker's menu lies over the room: opening it moves nothing below, so a scrolled room keeps
+   its scroll through a room change. */
+.sk-rooms__bar > .sk-pick-menu {
+  position: absolute;
+  /* Within the strip's edges: the bar itself reaches the frame's edges. Here 100 % is the bar's width, the shell's
+     and both pads, so the inset is worked out again from it. */
+  --sk-menu-inset: max(
+    0px,
+    calc(
+      (
+          100% - var(--sk-frame-pad-left, 0px) -
+            var(--sk-frame-pad-right, 0px) - var(--sk-room-max)
+        ) /
+        2
+    )
+  );
+  inset-inline: calc(var(--sk-frame-pad-left, 0px) + var(--sk-menu-inset))
+    calc(var(--sk-frame-pad-right, 0px) + var(--sk-menu-inset));
+  top: 100%;
+  margin: 0;
+  box-shadow: 0 0 0 var(--sk-hairline, 1px) var(--sk-line);
+}
+
+/* "Släng ändringarna?" under the Back row (unsaved-guard.tsx): the two answers side by side, wrapping when large text needs it. */
+.sk-unsaved__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+}

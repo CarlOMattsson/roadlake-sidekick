@@ -1,0 +1,25 @@
+/*
+ * The page reset that mobile.html used to carry in an inline <style>. It lives in a stylesheet so the page's
+ * Content-Security-Policy can say `style-src 'self'` without 'unsafe-inline'. Imported before the other stylesheets
+ * in main.tsx, so they still win where they set the same property, as the inline block (first in <head>) always did.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  background: Canvas;
+  color: CanvasText;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  line-height: 1.4;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}

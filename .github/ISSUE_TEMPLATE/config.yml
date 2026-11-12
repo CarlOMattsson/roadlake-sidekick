@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (private)
+    url: https://github.com/CarlOMattsson/roadlake-sidekick/security/advisories/new
+    about: Do not file security problems as issues. Use a private security advisory, as described in SECURITY.md.

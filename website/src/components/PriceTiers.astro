@@ -1,0 +1,76 @@
+---
+// Prices come from src/data/pricing.json only. Nothing on this site hardcodes a price.
+import Icon from './Icon.astro';
+import pricing from '../data/pricing.json';
+interface Tier {
+  sub: string;
+  bullets?: string[];
+}
+interface Props {
+  free?: Tier;
+  personal: Tier;
+  org: Tier;
+  /** Which tiers to show; the buy page leaves out the free tier. */
+  show?: ('free' | 'personal' | 'org')[];
+}
+const { free, personal, org, show = ['free', 'personal', 'org'] } = Astro.props;
+const t = Astro.locals.t;
+const locale = Astro.locals.starlightRoute.locale ?? 'en';
+const n = new Intl.NumberFormat(locale);
+const length = (months: number) =>
+  months >= 24 && months % 12 === 0 ? t('site.length.years', { count: months / 12 }) : t('site.length.months', { count: months });
+const money = (amount: number) => `${n.format(amount)} ${pricing.currency}`;
+const orgLength = pricing.org.months === 12 ? t('site.pricing.perYear') : length(pricing.org.months);
+---
+<div class="tiers not-content" data-marketing data-tiers={show.length}>
+  {
+    show.includes('free') && free && (
+      <section class="tier" aria-labelledby="t-free">
+        <h2 id="t-free">{t('site.pricing.freeName')}</h2>
+        <p class="tier__sub">{free.sub}</p>
+        <p class="price">{n.format(0)} <small>{pricing.currency}</small></p>
+        <ul class="list">{(free.bullets ?? []).map((b) => <li>{b}</li>)}</ul>
+      </section>
+    )
+  }
+  {
+    show.includes('personal') && (
+      <section class="tier tier--main" aria-labelledby="t-pers">
+        <h2 id="t-pers">{t('site.pricing.personalName')}</h2>
+        <p class="tier__sub">{personal.sub}</p>
+        <ul class="rows" aria-label={t('site.pricing.rowsLabel')}>
+          {
+            pricing.personal.map((row) => (
+              <li>
+                <span class="len">{length(row.months)}</span>
+                <span class="amt">{money(row.amount)}</span>
+                {row.buyUrl && (
+                  <a
+                    class="buy"
+                    href={row.buyUrl}
+                    rel="noopener"
+                    aria-label={`${t('site.pricing.buyAria', { length: length(row.months), price: money(row.amount) })} ${t('site.pricing.opensPolar')}`}
+                  >
+                    {t('site.pricing.buy')} <Icon name="external" size={14} />
+                  </a>
+                )}
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    )
+  }
+  {
+    show.includes('org') && (
+      <section class="tier tier--secondary" aria-labelledby="t-org">
+        <h2 id="t-org">{t('site.pricing.orgName')}</h2>
+        <p class="tier__sub">{org.sub}</p>
+        <p class="price">{n.format(pricing.org.amount)} <small>{pricing.currency} {orgLength}</small></p>
+        <p class="tier__sub tier__sub--tight">
+          {t('site.pricing.orgBlock', { count: pricing.org.perEmployees, max: n.format(pricing.org.customAbove) })}
+        </p>
+      </section>
+    )
+  }
+</div>

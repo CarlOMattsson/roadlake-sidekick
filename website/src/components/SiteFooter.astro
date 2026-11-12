@@ -1,0 +1,64 @@
+---
+import { base, pageHref, productVersion, REPO_URL, type Locale } from '../lib/site';
+const route = Astro.locals.starlightRoute;
+const t = Astro.locals.t;
+const locale = (route.locale ?? 'en') as Locale;
+const other = locale === 'sv' ? { code: 'en', label: 'English' } : { code: 'sv', label: 'Svenska' };
+const otherHref = Astro.url.pathname.replace(`${base}/${locale}/`, `${base}/${other.code}/`);
+const link = async (path: string, label: string) => ({ href: await pageHref(locale, path), label });
+const columns = [
+  {
+    heading: t('site.footer.productHeading'),
+    links: [
+      await link('docs/start', t('site.footer.getStarted')),
+      await link('pricing', t('site.footer.pricing')),
+      await link('buy', t('site.footer.buy')),
+      await link('docs/faq', t('site.footer.faq')),
+    ],
+  },
+  {
+    heading: t('site.footer.docsHeading'),
+    links: [
+      await link('docs/guide', t('site.footer.guide')),
+      await link('docs/operate', t('site.footer.operate')),
+      await link('docs/reference', t('site.footer.reference')),
+      await link('docs/changelog', t('site.footer.changelog')),
+    ],
+  },
+  {
+    heading: t('site.footer.projectHeading'),
+    links: [
+      { href: REPO_URL, label: t('site.footer.github') },
+      await link('docs/license', t('site.footer.license')),
+      await link('docs/security-policy', t('site.footer.security')),
+      await link('docs/contribute', t('site.footer.contribute')),
+    ],
+  },
+];
+---
+<footer class="ftr not-content">
+  <div class="wrap">
+    <div class="ftr__cols">
+      <div class="ftr__brand">
+        <a class="wordmark" href={`${base}/${locale}/`} aria-label={t('site.brand.home')}>
+          <img class="wordmark__mark" src={`${base}/brand/sidekick-favicon.svg`} width="32" height="32" alt="" />
+          <span class="wordmark__a" aria-hidden="true">Roadlake</span> <span class="wordmark__b" aria-hidden="true">Sidekick</span>
+        </a>
+        <p>{t('site.footer.licenseNote')}</p>
+      </div>
+      {
+        columns.map((c) => (
+          <div>
+            <h2>{c.heading}</h2>
+            <ul>{c.links.filter((l) => l.href).map((l) => <li><a href={l.href}>{l.label}</a></li>)}</ul>
+          </div>
+        ))
+      }
+    </div>
+    <div class="ftr__fine">
+      <span>{t('site.footer.version', { version: productVersion() })}</span>
+      <span>{t('site.footer.noTracking')}</span>
+      {otherHref && <a href={otherHref} lang={other.code} hreflang={other.code}>{other.label}</a>}
+    </div>
+  </div>
+</footer>

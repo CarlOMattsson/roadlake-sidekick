@@ -1,0 +1,275 @@
+/* The inline agenda card (designsystem §3, inline card). The card frame, kicker, title and Open come from
+   family.css (sk-card, sk-eyebrow, sk-card__title, sk-btn--open); here only the rows. No headings and no status
+   glyphs: at most three rows, each a button that opens its record. 280 px high at 412 px, 320 at 320 px. */
+
+/* The inline row (InlineRow, in the agenda and board cards). One button, at least 44 high, with no hairline:
+   rows are parted by air. The title takes the full width in at most two lines, then an ellipsis (one line cut "kök…"
+   mid-word); the meta line
+   stands under it, always, in --sk-type-meta, muted (red when overdue). Its parts never part from their "·": the dot
+   hangs in the gap before its part, and the button's clipped edge hides it when its part starts a line. */
+.sidekick-work
+  :is(.work-compact-agenda, .work-compact-board)
+  .work-compact-rows {
+  gap: 0;
+}
+.sidekick-work
+  :is(.work-compact-agenda, .work-compact-board)
+  .work-compact-row {
+  display: block;
+  padding: 0;
+}
+.sidekick-work
+  :is(.work-compact-agenda, .work-compact-board)
+  .work-compact-open {
+  /* The row opens, so it ends in the fullscreen row's ›: a 16 glyph in a 16 box on the card's inner
+     edge, in the middle of the first title line (its box is 1lh of the row font, --sk-lead-h); the title takes the width left, 8 before it.
+     The meta line stands under the title. */
+  --sk-chevron: 16px;
+  --sk-chevron-box: 16px;
+  --sk-lead-h: 1lh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--sk-s2);
+  align-content: center;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: var(--sk-s1) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  overflow: hidden;
+  text-align: start;
+}
+.sidekick-work
+  :is(.work-compact-agenda, .work-compact-board)
+  .work-compact-row-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.sidekick-work .work-compact-row-meta {
+  --work-meta-gap: 0.8em;
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--work-meta-gap);
+  overflow: clip;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-compact-row-meta > * {
+  position: relative;
+  white-space: nowrap;
+}
+.sidekick-work .work-compact-row-meta > * + *::before {
+  content: "·" / "";
+  position: absolute;
+  right: 100%;
+  width: var(--work-meta-gap);
+  text-align: center;
+  color: var(--sk-muted);
+}
+.sidekick-work .work-compact-row-meta > [data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+
+/* The empty sentence: --sk-type-body, muted. */
+.sidekick-work .work-compact-agenda > .work-compact-status {
+  font-size: var(--sk-type-body-size);
+  line-height: var(--sk-type-body-line);
+  color: var(--sk-muted);
+}
+
+/* The inline card frame (confirmation, and every inline summary: task, project, contact, agenda, board,
+   hierarchy) is the family's sk-card in the markup: surface, hairline, radius, padding, gap. Here only the
+   space between cards. The open hierarchy detail is a section too, but it is not a card. No inner scroll. */
+.sidekick-work .work-compact-card,
+.sidekick-work > section[aria-label]:not(.hierarchy-detail) {
+  margin: 0;
+}
+
+.sidekick-work .work-compact-card > p,
+.sidekick-work > section[aria-label]:not(.hierarchy-detail) > p {
+  margin: 0;
+}
+
+/* Inline Contact card (ContactSummary): the text on the left, "Open" on the right, about 120 px high.
+   The e-mail and counts share one line and wrap rather than grow the card. */
+.sidekick-work .work-compact-contact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.sidekick-work .work-compact-contact-text {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+.sidekick-work .work-compact-contact-text > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+/* A Contact note takes at most two lines; the card does not grow or scroll for a long note. */
+.sidekick-work .work-compact-note {
+  font-size: 0.9rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sidekick-work .work-compact-rows {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  /* minmax(0, 1fr): a long one-line title is cut with an ellipsis instead of widening the card. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+}
+.sidekick-work .work-compact-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.2rem 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.9rem;
+}
+/* The card type line is the family's sk-eyebrow in the markup (see family.css). */
+/* A title takes at most two lines; the card does not grow or scroll for long titles. Weight 400 as every row. */
+.sidekick-work .work-compact-row-title {
+  flex: 1 1 10rem;
+  min-width: 0;
+  font: var(--sk-type-row);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Fullscreen only: the row title is a button that opens the record. It is frameless and takes the
+   title's place, with the same two-line clamp, so the row looks the same as the inline title. */
+.sidekick-work .work-compact-row > button {
+  flex: 1 1 10rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.25rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: var(--sk-type-row);
+  text-align: left;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sidekick-work .work-compact-row > button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+/* What the card leaves out, after the link's name in the same row: " · 3 fler försenade" in the meta type and colour. */
+.sidekick-work .work-compact-more {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-compact-open-text {
+  min-width: 0;
+  text-align: start;
+}
+/* "Äldst försenade" over the Status card's rows: a meta label, 4 over the first row. */
+.sidekick-work .work-compact-board > .work-compact-group.work-compact-group {
+  margin: 0 0 calc(var(--sk-s1) - var(--sk-s2));
+}
+
+.sidekick-work .work-compact-skeleton {
+  display: block;
+  width: 100%;
+  height: 0.9rem;
+  border-radius: var(--work-radius);
+  background: var(--work-bg);
+}
+.sidekick-work .work-compact-skeleton-short {
+  width: 60%;
+}
+/* An action in a card keeps its own width (not stretched by the grid); the button look is the family's: "Öppna … ›" is
+   the open text button, Done the primary. The 24 between them leaves 12 once Open pulls its padding back, so the
+   hit areas do not overlap; wrapped under Done, Open's text lines up with the card's. */
+.sidekick-work .work-compact-action {
+  justify-self: start;
+  min-height: var(--sk-tap);
+}
+/* After the 44 rows Open stands in their rhythm, the card's 8 taken back: 44 from the last row's centre, so the
+   way on is not set apart by more air than the rows themselves. */
+.sidekick-work .work-compact-rows + .work-compact-action,
+.sidekick-work .work-compact-rows + .sk-card__foot {
+  margin-top: calc(-1 * var(--sk-s2));
+}
+.sidekick-work .work-compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2) var(--sk-s5);
+}
+
+.sidekick-work .work-compact-segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.sidekick-work .work-compact-segments [aria-pressed="true"] {
+  font-weight: 600;
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+/* The notice is the family's error box (sk-error sk-error--card): only its row layout is set here. */
+.sidekick-work .work-compact-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* The card's link row: a compact text row, 2.5rem drawn with a 48 target, so the card ends 4 sooner. */
+.sidekick-work .work-compact-card > .work-compact-action.sk-btn--open,
+.sidekick-work
+  .work-compact-card
+  > .sk-card__foot
+  > .work-compact-action.sk-btn--open {
+  position: relative;
+  min-height: var(--sk-compact);
+}
+.sidekick-work .work-compact-card > .work-compact-action.sk-btn--open::after,
+.sidekick-work
+  .work-compact-card
+  > .sk-card__foot
+  > .work-compact-action.sk-btn--open::after {
+  content: "";
+  position: absolute;
+  inset: calc((var(--sk-compact) - 48px) / 2) 0;
+}
+/* The Status card's bar and its legend 4 apart (8,8 before), so the head reads as one block. */
+.sidekick-work .work-compact-board .sk-counts-bar {
+  gap: var(--sk-s1);
+}
+/* The inline cards' one group label: 15,4/600 in text-2, "Försenade" in the agenda card (01) and
+   "Äldst försenade" / "Närmast i tid" over the Status card's rows (19). In 01 it stands 12 under today's row and close over
+   the row it names, so it belongs to the row under it. */
+.sidekick-work .work-compact-card .work-compact-group {
+  font: var(--sk-weight-semibold) var(--sk-type-meta-size) /
+    var(--sk-type-meta-line) var(--sk-font);
+  color: var(--sk-muted);
+}
+/* In 01 the label belongs to the row under it: the card's 8 gap over it (≈ 13 between the glyphs), and
+   4 of the gap under it taken back (≈ 10), so less lies under the label than over it. Doubled class: the card is a
+   section, whose "> p" rule above is more specific. */
+.sidekick-work .work-compact-agenda > .work-compact-group.work-compact-group {
+  margin: 0 0 calc(-1 * var(--sk-s1));
+}
+
+/* A hierarchy row's status word after the Project's name ("· Avslutat", "· Pausat"): the words carry the meaning,
+   the weight only sets them off from the name. It wraps with the line, never inside a word. */
+.sidekick-work .work-compact-mark {
+  font-weight: var(--sk-weight-semibold);
+}

@@ -1,0 +1,1014 @@
+/* Calm, mobile-first styling inside Claude hosts. Colours, sizes, radii and border widths read the
+   host's variables first and fall back to fixed values. Fallback colours use light-dark(), which
+   follows the host's colour-scheme (set by the host or by the meta tag), so there is no
+   prefers-color-scheme block. The root background is transparent; the host surface shows through. */
+.sidekick-work {
+  --work-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --work-bg: var(--color-background-primary, light-dark(#ffffff, #1c1c1e));
+  --work-surface: var(
+    --color-background-secondary,
+    light-dark(#f4f4f5, #2a2a2d)
+  );
+  --work-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  --work-line: var(--color-border-primary, light-dark(#d4d4d8, #3f3f46));
+  --work-radius: var(--border-radius-md, 0.5rem);
+  --work-border-width: var(--border-width-regular, 1px);
+  --work-danger: var(--color-border-danger, light-dark(#b42318, #ff8a80));
+  --work-danger-fg: var(--color-text-danger, light-dark(#7a1a12, #ffd2cc));
+  --work-warning-fg: var(--color-text-warning, light-dark(#78350f, #fde68a));
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--font-text-md-size, 16px);
+  line-height: 1.5;
+  color: var(--work-fg);
+  background: transparent;
+  /* Safe-area insets from the host are added to the 1rem base padding; they are 0 when absent. */
+  padding-top: calc(1rem + var(--host-safe-top, 0px));
+  padding-right: calc(1rem + var(--host-safe-right, 0px));
+  padding-bottom: calc(1rem + var(--host-safe-bottom, 0px));
+  padding-left: calc(1rem + var(--host-safe-left, 0px));
+  /* The fullscreen shell lifts this cap (work-shell.css); inline keeps 40rem. */
+  max-width: var(--work-max-width, 40rem);
+  margin: auto;
+  /* Words never get hyphens and never break mid-word while a break opportunity exists. Set here so
+     an inherited host `hyphens: auto` cannot reach the text. Only a word too long for its line breaks,
+     and then without a hyphen. */
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+
+/* Title eyebrow of the hierarchy view: the family's sk-eyebrow look (small, normal weight, no capitals). The
+   Work header's h1 ("Arbete") is hidden, see work-visually-hidden. */
+.sidekick-work h1 {
+  font-size: var(--sk-text-sm);
+  font-weight: var(--sk-weight-normal);
+  color: var(--work-muted);
+  margin: 0;
+}
+/* The board summary's heading is an eyebrow too (h2.sk-eyebrow). It takes the same look over the page h2 rule. */
+.sidekick-work h2.sk-eyebrow {
+  margin: 0;
+  font-size: var(--sk-text-sm);
+  font-weight: var(--sk-weight-normal);
+  line-height: 1.3;
+}
+.sidekick-work > header {
+  margin-bottom: 0.25rem;
+}
+/* The type scale of Work: page titles (h2) 20 px weight 600, section headings 13 px weight 600 in the
+   muted colour, row titles 16 px weight 500, metadata 14 px weight 400. Only the page title and the section headings
+   are semibold, so a heading stands out from the rows under it. */
+.sidekick-work h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0.25rem 0 0.5rem;
+  /* A record title (the detail heading) breaks inside one long word rather than widening the frame. */
+  overflow-wrap: anywhere;
+}
+/* Sections (Steg, Kontakter, Uppgifter) get air and a quiet divider. */
+.sidekick-work h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+  padding-top: 0.75rem;
+  border-top: var(--work-border-width) solid var(--work-line);
+}
+.sidekick-work p {
+  margin: 0.4rem 0;
+}
+/* Status and due date as small chips that share one row. The text is always shown: the chip wraps
+   long text and never clips or hides it, so status is never conveyed by colour alone. */
+.sidekick-work .work-chip {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.2rem 0.35rem 0.2rem 0;
+  padding: 0.1rem 0.6rem;
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: 999px;
+  font-size: var(--font-text-sm-size, 0.85rem);
+  line-height: 1.6;
+  color: var(--work-muted);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+/* A chip with a status glyph: the glyph sits on the text's line, with a gap before the label ("◯ Att göra"). */
+.sidekick-work .work-chip:has(> .sk-status-glyph) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Buttons take their look from the family (family.css): secondary, primary (submit), quiet and danger. Only
+   the text wrapping stays here. */
+.sidekick-work button {
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+.sidekick-work .work-back {
+  margin: 0.5rem 0;
+}
+/* Navigation to another entry reads as a full-width row with a chevron, not as a button. The
+   chevron is drawn with borders and empty content so it adds nothing to the accessible name. */
+.sidekick-work
+  .work-list
+  > li
+  > button:first-of-type:not(.sk-iconbtn, .work-visually-hidden),
+.sidekick-work .work-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.25rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+.sidekick-work
+  .work-list
+  > li
+  > button:first-of-type:not(.sk-iconbtn, .work-visually-hidden)::after,
+.sidekick-work .work-nav::after {
+  content: "";
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border-top: 2px solid var(--work-muted);
+  border-right: 2px solid var(--work-muted);
+  transform: rotate(45deg);
+}
+
+.sidekick-work .work-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+/* No hairline between rows (designsystem §3 "Listrad"): the air separates them. */
+.sidekick-work .work-list > li {
+  padding: 0.25rem 0;
+}
+.sidekick-work .work-list > li:not(.work-card) > p {
+  font-size: var(--font-text-sm-size, 0.85rem);
+  color: var(--work-muted);
+  margin: 0 0 0.35rem 0.25rem;
+}
+/* Errors are the family's error box ([role="alert"] in family.css), in the apps and in cards alike. */
+.sidekick-work [role="status"] {
+  color: var(--work-muted);
+  font-size: 0.9rem;
+}
+.sidekick-work .work-banner {
+  margin: 0.5rem 0;
+}
+/* Stays in work.css, not task-detail.css: .work-actions-sticky (later in this file) sets margin-top: 0 on the same
+   element (contact editor), so this rule must come before it. */
+.sidekick-work .work-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.25rem;
+}
+/* Board and agenda: each column is a card with its heading and count. */
+.sidekick-work .work-column {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.75rem 0.75rem;
+  background: var(--work-surface);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+}
+.sidekick-work .work-column > h3 {
+  margin: 0 0 0.5rem;
+  padding: 0;
+  border: 0;
+  font-size: 0.95rem;
+}
+/* The four Task statuses side by side, sharing the row equally. A column is never narrower than 13.25rem, where a
+   card title keeps whole words ("sammanställningen", 158 at 110 %, has 162; the card's lead is 36, see below): the
+   four (884 px with the gaps, 969 at 110 % text) fit a 1024 frame in Claude without a sideways scroll (at 14rem the
+   fourth ran under the fade, ui-7). At 12.5rem a 900 frame broke the word inside itself.
+   Only a narrower frame scrolls the row sideways in its own box (.work-columns); below 640 px the board is one list
+   (BoardView's single layout). The Projekt column, when the board holds Projects, is a row of its own under the
+   statuses, its cards side by side: it is not a status, and as a fifth column it pushed the four out of the frame.
+   Scoped to .sk-shell with no detail open, so the inline board stays stacked and an open detail keeps the narrow
+   layout. */
+.sk-shell[data-detail="closed"] .work-columns {
+  --work-column-min: 13.25rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(var(--work-column-min), 1fr));
+  align-items: start;
+  gap: var(--sk-s3, 12px);
+  min-width: 0;
+  /* The 12 above and below the columns (.work-column's own margin, which the grid's gap replaces between them). */
+  margin-block: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.sk-shell[data-detail="closed"] .work-columns > .work-column {
+  min-width: 0;
+  margin: 0;
+  /* 8 at the sides (12 before): the card's title gets the 8 (ui-7). */
+  padding-inline: 0.5rem;
+  scroll-snap-align: start;
+}
+.sk-shell[data-detail="closed"]
+  .work-columns
+  > .work-column[data-board-column="project"] {
+  grid-column: 1 / -1;
+}
+.sk-shell[data-detail="closed"]
+  .work-columns
+  > .work-column[data-board-column="project"]
+  > .work-list {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(calc(var(--work-column-min) - 2 * var(--sk-s3, 12px)), 1fr)
+  );
+  column-gap: var(--sk-s3, 12px);
+}
+/* While columns lie beyond the right edge (the board sets data-more), that edge fades out so the row
+   reads as scrollable. The mask is on the row's own box, so it stays put while the columns scroll. */
+.sk-shell[data-detail="closed"] .work-columns[data-more="end"] {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    black calc(100% - 2.5rem),
+    transparent
+  );
+  mask-image: linear-gradient(to right, black calc(100% - 2.5rem), transparent);
+}
+/* A column has no scroll of its own: it is as tall as its cards and the page scrolls. A capped column (it was
+   100dvh − 18rem) scrolled inside a page that could grow, and in an inline frame, whose height follows its content,
+   the cap followed the frame and the frame the cap. */
+/* Board card, calm like a Trello or Linear card. Row one is the status glyph (the drag handle) and
+   the title, left-aligned and frameless; there is no ⋯ (a long press opens the quick choices). The meta line
+   (kind or project, and the relative due date as a chip) sits under the title. Every rule is scoped
+   to li.work-card so the agenda rows keep the list styling. The chevron of the list rows is off here. */
+.sidekick-work .work-list > li.work-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 0.25rem;
+  /* Titles wrap at word boundaries. The root's `anywhere` would split words in a narrow column. */
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: manual;
+  background: var(--work-bg);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+  padding: 0.25rem 0.25rem 0.5rem;
+  margin: 0 0 0.5rem;
+}
+.sidekick-work .work-list > li.work-card > .work-card-head {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.sidekick-work .work-list > li.work-card > .work-card-head > .work-drag-handle,
+.sidekick-work .work-list > li.work-card > .work-card-head > .work-card-glyph {
+  flex: 0 0 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button:not(.work-drag-handle),
+.sidekick-work .work-list > li.work-card > .work-card-head > .work-card-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0.25rem 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font: var(--sk-type-row);
+  text-align: left;
+  justify-content: flex-start;
+  overflow-wrap: break-word;
+  word-break: normal;
+  /* No automatic hyphens (see the end of this file). */
+  hyphens: manual;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button:not(.work-drag-handle):hover {
+  text-decoration: underline;
+}
+/* The handle reads as draggable: a grip of dots at its left edge, a grab cursor, and a clear ring
+   when it has focus. The status glyph stays as it is; the grip is drawn with CSS only. */
+.sidekick-work .work-list > li.work-card > .work-card-head > .work-drag-handle {
+  position: relative;
+  cursor: grab;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:active {
+  cursor: grabbing;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:disabled {
+  cursor: default;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 50%;
+  width: 0.45rem;
+  height: 1.2rem;
+  transform: translateY(-50%);
+  background-image: radial-gradient(
+    circle,
+    currentColor 0.9px,
+    transparent 1.3px
+  );
+  background-size: 0.45rem 0.4rem;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:hover,
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:focus-visible {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-radius: var(--work-radius);
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:hover::before,
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:focus-visible::before {
+  opacity: 0.9;
+}
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:focus-visible {
+  outline-offset: 1px;
+}
+/* Board titles get no automatic hyphens (a hyphen split "Berg-ström" and "kalende-revent"). A word breaks at its
+   own spaces, or inside itself as the last resort. */
+.sidekick-work .work-list > li.work-card > .work-card-meta {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  /* The drag handle and its gap: the meta line starts under the title text. */
+  padding-left: calc(2.75rem + 0.25rem);
+  font-size: var(--font-text-sm-size, 0.85rem);
+  color: var(--work-muted);
+}
+/* A date is plain text, never a chip; an overdue date is red ("5 dagar försenad"). */
+.sidekick-work
+  .work-list
+  > li.work-card
+  > .work-card-meta
+  time[data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+/* On the board the kind and the due date pill stay on one line: a narrow column must not split "Idag"
+   mid-word, so the pills never wrap inside. */
+.sidekick-work .work-column .work-card-meta > .work-card-project,
+.sidekick-work .work-column .work-card-meta time {
+  white-space: nowrap;
+  hyphens: none;
+  overflow-wrap: normal;
+}
+/* The meta line on the board: the kind and Project name, then the due date pill. A long kind and Project
+   name is cut with an ellipsis; the wrapper .work-card-head holds the full text as its title. The name keeps
+   at least 6rem, so the kind and the start of the Project stay readable; when the pill does not fit beside
+   it, the pill wraps onto its own row (flex-wrap) instead of squeezing the name down to "U...". */
+.sidekick-work .work-column .work-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 0.125rem;
+  /* Each part after the first starts with its " · " (board-card.tsx), so a wrapped line never ends with a dot;
+     the gap sets the space before each part. */
+  column-gap: 0.25em;
+  min-width: 0;
+  white-space: nowrap;
+}
+.sidekick-work .work-column .work-card-meta > .work-card-project {
+  flex: 1 1 6rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A priority or due part that does not fit is cut with an ellipsis too, as on the agenda line,
+   instead of being clipped hard by the card at 200 % text. */
+.sidekick-work .work-column .work-card-meta > span:not(.work-card-project) {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The expanded move group sits in the card's flow under the title, on both layouts, so it never covers a
+   neighbouring card. The status choices are a 2 x 2 grid; Flytta upp and Flytta ned share one row. */
+.sidekick-work .work-card-actions {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0;
+  padding: 0.5rem;
+  background: var(--work-surface);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+}
+.sidekick-work .work-card-choices,
+.sidekick-work .work-card-order {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidekick-work .work-card-choices [aria-pressed="true"] {
+  font-weight: 600;
+  border-color: var(--work-fg);
+  box-shadow: inset 0 0 0 1px var(--work-fg);
+}
+/* Icon-only buttons (the board refresh and the card move): 44 px touch target, frameless. */
+.sidekick-work .work-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--work-radius);
+  background: transparent;
+  color: var(--work-muted);
+}
+.sidekick-work .work-icon-button:hover:not(:disabled) {
+  background: var(--work-surface);
+  color: var(--work-fg);
+}
+/* The board's refresh is an icon with the word "Uppdatera" beside it (A8): a 44 px text button. */
+.sidekick-work .work-refresh-text {
+  width: auto;
+  gap: var(--sk-s1, 0.25rem);
+  padding: 0 var(--sk-s3, 0.75rem);
+  font: inherit;
+  font-size: 0.875rem;
+}
+/* The status symbol is a 24 px ring in the 44 px done button and the drag grip (A2). The ring of a Task card on the
+   board (its drag handle) is the same size as a Step card's glyph (uc-6); the card's lead and the ring's place on the
+   title's first line are worked out from it. */
+.sidekick-work .work-card-done .sk-status-glyph,
+.sidekick-work .work-drag-handle .sk-status-glyph,
+.sidekick-work .work-card-glyph .sk-status-glyph {
+  width: var(--sk-ring-glyph);
+  height: var(--sk-ring-glyph);
+}
+.sidekick-work .work-card-meta {
+  margin: 0.25rem 0 0;
+  font-size: var(--font-text-sm-size, 0.85rem);
+  color: var(--work-muted);
+}
+/* The high-priority marker: the word carries it; the warning text and weight only make it stand out a little. */
+.sidekick-work .work-card-meta > .work-card-priority,
+.sidekick-work .work-chip > .work-card-priority {
+  white-space: nowrap;
+  color: var(--work-warning-fg);
+  font-weight: 600;
+}
+/* The head (kind and Project name) is one part on one line. */
+/* Every part after the first carries its "·" (the board's columns: inline, cut with its part; the single layout and the
+   Agenda hang it in the gap). One meta line, the time first. */
+.sidekick-work .work-column .work-card-meta > * + *::before {
+  content: "· ";
+}
+.sidekick-work .work-description {
+  white-space: pre-line;
+}
+/* A Task's description: two lines until "Show more" opens the whole text. */
+.sidekick-work .work-description-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* "Show archived": a checkbox and its text on one 44px row. */
+.sidekick-work .work-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 2.75rem;
+}
+.sidekick-work .work-edit .work-toggle {
+  display: flex;
+}
+.sidekick-work .work-toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+/* An inline card sits flush with the host's edge, as the Shopping and Control cards do: the host draws the
+   frame, so only the safe area pads the root (design language 3.2). */
+:is(.sidekick-work, .sidekick-journal):has(> .sk-card) {
+  padding: var(--host-safe-top, 0px) var(--host-safe-right, 0px)
+    var(--host-safe-bottom, 0px) var(--host-safe-left, 0px);
+  max-width: none;
+  margin: 0;
+}
+/* Stays in work.css, not inline-summary.css: the generic [role="status"] rule above must lose to it (equal
+   specificity, later wins), and the inline status line carries role="status". */
+.sidekick-work .work-compact-status {
+  font-size: 0.875rem;
+  color: var(--work-muted);
+}
+
+/* The card's primary action is sk-btn--primary in the markup (Open, Save); the rest are secondary. */
+
+/* Due tones: overdue in the overdue text colour; "Idag" is muted, as there is no third signal colour (designsystem §2).
+   The words carry the meaning; the colour only supports it. */
+.sidekick-work [data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+.sidekick-work [data-tone="today"] {
+  color: var(--sk-muted);
+}
+
+/* Completed task rows are dimmed to the tertiary text colour, not struck through. The glyph keeps
+   its colour. The row has no data-status; the check shape is the marker (data-glyph "ring-check"). */
+.sidekick-work .sk-row:has([data-glyph$="-check"]) > .sk-row-open {
+  color: var(--color-text-tertiary, light-dark(#6b6b72, #8e8e96));
+}
+
+/* Contact views (list and Contact) read as plain text when the host has no fullscreen. The root
+   keeps its left edge instead of centring the 40rem column, the lists lose their bullets and their
+   indent, and the text starts on the left. Phone and e-mail are links in the text colour. */
+.sidekick-work:has(> .work-contacts),
+.sidekick-work:has(> .work-contact) {
+  margin-inline: 0;
+}
+.sidekick-work .work-contacts,
+.sidekick-work .work-contact {
+  text-align: start;
+}
+.sidekick-work .work-contact-list,
+.sidekick-work .work-contact-letter {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidekick-work .work-contacts .sk-empty {
+  text-align: start;
+}
+/* A contact name is never cut (principle 7): it wraps like every row title. */
+
+/* Domain accent (see docs/decisions/log.md D-061). A Work card or agenda row with a valid accent gets a 3 px line on its
+   left edge; a Domain in the hierarchy gets a dot before its name. The colour is support only: the
+   title and the Domain name always carry the meaning, and the status chip never takes the colour.
+   The name is checked by domainAccentOf before it reaches data-accent, so only these eight occur. */
+.sidekick-work [data-accent="slate"] {
+  --row-accent: var(--sk-accent-slate-line);
+}
+.sidekick-work [data-accent="blue"] {
+  --row-accent: var(--sk-accent-blue-line);
+}
+.sidekick-work [data-accent="teal"] {
+  --row-accent: var(--sk-accent-teal-line);
+}
+.sidekick-work [data-accent="green"] {
+  --row-accent: var(--sk-accent-green-line);
+}
+.sidekick-work [data-accent="amber"] {
+  --row-accent: var(--sk-accent-amber-line);
+}
+.sidekick-work [data-accent="orange"] {
+  --row-accent: var(--sk-accent-orange-line);
+}
+.sidekick-work [data-accent="rose"] {
+  --row-accent: var(--sk-accent-rose-line);
+}
+.sidekick-work [data-accent="violet"] {
+  --row-accent: var(--sk-accent-violet-line);
+}
+.sidekick-work .work-card.work-accent,
+.sidekick-work .work-agenda-row.work-accent {
+  box-shadow: inset 3px 0 0 var(--row-accent);
+}
+.sidekick-work .hierarchy-accent {
+  flex: none;
+  color: var(--row-accent);
+  line-height: 1;
+}
+
+/* The columns layout's card (ui-7): the title gets ≥ 75 % of the card. The ring stands on the title's first line,
+   in a 36 wide box (6 of air on each side, a 44 target with its ::after), not centred down a 44 box with the grip
+   beside it; the grip (⋮) only shows while the pointer is over the card or the handle has focus, in the card's own
+   4 of padding. The meta line starts under the title, 36 + 4 in. 36 is px, not rem: at 110 % text the ring box stays
+   36 (≈ 5 of air beside the 26 ring) and the title keeps the 4 a 2.25rem lead took; at large text the box grows
+   with the ring, 4 of air on each side at the rem's scale. */
+.sidekick-work .work-board:not([data-layout="single"]) {
+  --work-card-lead: max(36px, calc(var(--sk-ring-glyph) + 0.5rem));
+}
+/* No column gap beside the title: the columns card has no › (only the single layout has one), so the gap only took 4
+   of the title's width. A Väntar… note, the one other part of the card, stands under the meta line on the title's x. */
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card {
+  column-gap: 0;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .sk-queued {
+  grid-column: 1;
+  padding-left: calc(var(--work-card-lead) + 0.25rem);
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head {
+  align-items: flex-start;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > :is(.work-drag-handle, .work-card-glyph) {
+  flex-basis: var(--work-card-lead);
+  align-items: flex-start;
+  width: var(--work-card-lead);
+  /* The ring's middle on the title's first line: the title's 4 of padding and half its line. */
+  padding-top: calc(
+    0.25rem + var(--sk-type-row-line) / 2 - var(--sk-ring-glyph) / 2
+  );
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle::after {
+  content: "";
+  position: absolute;
+  inset: 0 -4px;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle::before {
+  left: -3px;
+  top: calc(0.25rem + var(--sk-type-row-line) / 2);
+  opacity: 0;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card:hover
+  > .work-card-head
+  > .work-drag-handle:not(:disabled)::before {
+  opacity: 0.4;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle:is(:hover, :focus-visible):not(:disabled)::before {
+  opacity: 0.9;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-meta {
+  padding-left: calc(var(--work-card-lead) + 0.25rem - 0.8em);
+  /* A part that starts a line never starts it with its «·» (ui-13): every part carries a 0.8em dot before it, the meta
+     starts 0.8em early, and the clip hides that first 0.8em, so the dot of a part at a line's start is cut away while
+     the dots between parts on one line stay. The text keeps the title's x. */
+  column-gap: 0;
+  clip-path: inset(-0.5em -0.5em -0.5em calc(var(--work-card-lead) + 0.25rem));
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-column
+  .work-card-meta
+  > *::before {
+  content: "·";
+  display: inline-block;
+  width: 0.8em;
+  text-align: center;
+}
+/* Single-column board (phone). BoardView sets data-layout="single" on .work-board below 640 px. The statuses follow
+   each other as sections of one flat list (designsystem §4 "Statusfilter i Arbete"): a section heading "Att göra (4)"
+   and rows with a status glyph, the title (never cut) and the meta line, with no ⋯. Klar is folded under its
+   heading. These rules override the columns layout above for this layout only; the columns rules are unchanged. */
+.sidekick-work .work-board[data-layout="single"] .work-columns {
+  display: block;
+  /* No 12 of the columns' own above the list: it collapsed through the first section and outweighed the first
+     heading's 8, so «Att göra (9)» stood 14 under the tab row instead of the Agenda's 9 (M10/M12). */
+  margin-top: 0;
+  min-width: 0;
+  overflow: visible;
+  scroll-snap-type: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+.sidekick-work .work-board[data-layout="single"] .work-columns > .work-column {
+  position: relative;
+  flex: none;
+  min-width: 0;
+  max-height: none;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  scroll-snap-align: none;
+}
+/* Section heading: 24 under the last row's box and 4 over the first row's, so
+   32 and 12 lie between the glyphs, as in every room. The first heading sits 16 under the tab row. */
+.sidekick-work .work-board[data-layout="single"] .work-column > h3 {
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+  padding: 0;
+  border: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+/* The first heading rests ≈ 10 under the tab row's edge, glyph to edge, as the agenda's. */
+.sidekick-work .work-board[data-layout="single"] .work-column:first-child > h3 {
+  margin-top: var(--sk-s2);
+}
+.sidekick-work .work-board[data-layout="single"] .work-list > li.work-card {
+  /* The task row, shared with the agenda and a Contact's list (L2): the status ring sits in the 16 px margin and the
+     text starts 36 px in (24 px ring and 12 px of air). There is no right column: the title takes the width. */
+  /* How far the glyph's 44 target hangs into the 16 px margin: 10 at 100 % (so the column is 36), the whole margin at
+     200 % text, so the title keeps ≥ 120 at 320 and the meta line still starts under the title. */
+  --work-lead-hang: var(--sk-lead-hang);
+  /* The third column is empty until a change can be undone: then it holds "Ångra" on the title line. */
+  grid-template-columns:
+    calc(var(--sk-lead-w) + var(--work-lead-hang) + 2px) minmax(0, 1fr)
+    auto;
+  column-gap: 0;
+  /* The row template: no padding of its own; the title's box holds the 6 over its line and the
+     meta line the 6 under its own, at least 48 (the ring's target). The ring's cover spans the card's box, so its column
+     has no gap. */
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head {
+  grid-column: 1 / span 2;
+  grid-row: 1;
+  /* The ring's box already ends 12 px after the ring: no gap before the title. */
+  gap: 0;
+  /* The title ends at the 16 px margin, like every row text. */
+  padding-inline-end: var(--sk-s4);
+  align-items: flex-start;
+}
+/* The title: the row type (16/20.8, 400), the row's 6 above its first line, so the first line's centre is the ring's
+   centre. */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button:not(.work-drag-handle):not(.work-card-done) {
+  min-height: 0;
+  /* A margin, outside the clamped box. */
+  margin: var(--sk-row-pad) 0 0;
+  padding: 0;
+}
+/* Drag is off in the single layout: the glyph is a done button, so it shows no grip and a pointer. */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle {
+  cursor: pointer;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle::before {
+  content: none;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-agenda-undo
+  > p,
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-meta {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  /* Right under the title's line, the row's 6 under its own (agenda.css holds the one-line rule).
+     The 6 is a margin, so the one-line box clips at the line itself. */
+  margin: 0 var(--sk-s4) var(--sk-row-pad) 0;
+  padding: 0;
+  font: var(--sk-type-meta);
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-meta:empty {
+  display: none;
+}
+.sidekick-work .work-board[data-layout="single"] .work-card-actions {
+  grid-column: 2 / -1;
+}
+/* Foot after the list: Visa fler and the refresh icon. */
+.sidekick-work .work-board[data-layout="single"] .work-board-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+/* Contact editor: Save and Cancel stay on screen while the long form scrolls (phone-first, principle 4).
+   The row sticks to the bottom edge with an opaque base like the Undo line. Its bottom padding keeps
+   the buttons above the host's reply field in fullscreen. It is not position: fixed. */
+.sidekick-work .work-actions-sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 0;
+  padding: 0.5rem 0 var(--sk-foot-reserve, 6rem);
+  background-color: light-dark(#ffffff, #1c1c1e);
+  background-image: linear-gradient(var(--work-bg), var(--work-bg));
+  box-shadow: 0 -2px 6px rgb(0 0 0 / 0.12);
+}
+.sidekick-work .work-actions-sticky button {
+  min-height: 2.75rem;
+}
+
+/* A row with quick choices opens them with a long press: the press must not select text or open the host's own
+   callout. A row whose change can still be undone keeps its place with its title muted. */
+.sidekick-work :is(.work-card, .work-agenda-row, .work-steps > li) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sidekick-work
+  .work-card:has(> .work-agenda-undo)
+  .work-card-head
+  > :last-child {
+  color: var(--sk-muted);
+}
+/* The board's Undo in a card in the columns layout: the line under the title, as the meta line. */
+.sidekick-work .work-list > li.work-card > .work-agenda-undo > p {
+  margin: 0;
+  padding-left: 3rem;
+}
+/* Touch targets of the single board: the done glyph and the buttons of the expanded group are at least
+   44 x 44 px. The glyph also opts out of the title rules that match every button of the card head, and
+   it has no touch-action, so a vertical swipe that starts on it still scrolls the page. */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button.work-card-done {
+  flex: 0 0 var(--sk-lead-w);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sk-lead-w);
+  min-width: var(--sk-lead-w);
+  height: var(--sk-lead-h);
+  min-height: 0;
+  /* The ring starts at the page's 16 px margin (its button hangs 10 px into it); the text follows 12 px after the ring,
+     at every text size (tokens.css --sk-lead-w, 88 wide at 200 % before). Its box reaches the row's 6
+     under the title line, which the meta line holds, so it takes that 6 back and does not push the meta down. */
+  margin: 0 2px calc(-1 * var(--sk-row-pad)) var(--work-lead-hang);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+  touch-action: auto;
+  text-decoration: none;
+}
+/* The ring's target is the whole leading column in the card's height (designsystem §3 Listrad), as in the
+   Agenda (measured 44 × 44, so a tap under the ring opened the task). The button stays
+   44 in the head; its ::after takes the column of the card (li.work-card is the containing block) above the title's
+   cover. */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button.work-card-done {
+  position: static;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button.work-card-done::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset-block: 0;
+  /* The button's width and 2 on each side: 2 further into the side margin and 2 over the gap to the title, so it meets
+     the title's target at every text size (a fixed 48 left 40 px under a 88 button, where a
+     tap opened the task at 200 %). */
+  inset-inline-start: calc(var(--work-lead-hang) - 2px);
+  width: calc(var(--sk-lead-w) + 4px);
+}
+.sidekick-work .work-card-choices button,
+.sidekick-work .work-card-order button {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+/* Text that breaks right. Row titles and meta lines get no automatic hyphens:
+   Chromium's Swedish patterns split compounds wrongly ("kalende-revent", "tandlä-karbesöket"). A word moves
+   whole to the next line, and only a word wider than its line alone breaks (break-word, never `anywhere`). The title
+   gains its width from the 16 › on narrow frames and at large text (layout.css). */
+.sidekick-work .work-agenda-body > button,
+.sidekick-work .work-agenda-body > .work-card-title,
+.sidekick-work .work-list > li.work-card > .work-card-meta,
+.sidekick-work .work-agenda-body > .work-card-meta,
+.sidekick-work .work-compact-row-title {
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+/* A Step's meta, "Steg i: <the Task>" when its Task stands elsewhere: one line, cut with an ellipsis (exactly one meta line; the Task's name is the Step's link and the last part). */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card
+  > .work-card-step-of {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-inline-end: 2px;
+}
+/* A Step right after its Task: the square and the title 24 in, 12 on a narrow frame or at large text
+   (contacts.css @container), so it reads as part of the Task above; it has no meta. */
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card[data-nested] {
+  margin-inline-start: var(--work-step-indent, 24px);
+}

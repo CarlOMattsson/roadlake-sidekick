@@ -1,0 +1,22 @@
+---
+import { icons } from './icons';
+interface Props {
+  name: keyof typeof icons;
+  size?: number;
+}
+const { name, size = 20 } = Astro.props;
+const icon = icons[name];
+---
+<svg
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={name === 'check' ? 2.2 : 2}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  aria-hidden="true"
+  focusable="false"
+  set:html={icon.inner}
+/>

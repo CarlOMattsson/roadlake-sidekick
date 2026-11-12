@@ -1,0 +1,27 @@
+---
+// A full-width section of a marketing page. `band` gives the tinted background.
+interface Props {
+  kicker?: string;
+  title?: string;
+  lead?: string;
+  band?: boolean;
+  id?: string;
+  as?: 'h1' | 'h2';
+}
+const { kicker, title, lead, band = false, id, as: Tag = 'h2' } = Astro.props;
+const headingId = id ? `${id}-h` : undefined;
+---
+<section data-marketing class:list={['sec-outer', 'not-content', { band }]} aria-labelledby={title ? headingId : undefined} id={id}>
+  <div class="wrap sec">
+    {
+      (kicker || title || lead) && (
+        <div class="sec__head">
+          {kicker && <p class="kicker">{kicker}</p>}
+          {title && <Tag id={headingId}>{title}</Tag>}
+          {lead && <p class="sec__lead">{lead}</p>}
+        </div>
+      )
+    }
+    <slot />
+  </div>
+</section>

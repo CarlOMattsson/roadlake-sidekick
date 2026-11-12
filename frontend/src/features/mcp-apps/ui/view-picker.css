@@ -1,0 +1,57 @@
+/* The view and room picker (view-picker.tsx; designsystem §3 "Rumshuvud", "Rumsremsan"): the chosen name and
+   ⌄ in label type at 600 and --sk-fg, 44 high, no frame. Its menu is the ⋯ menu's card: full width, radius 12, the
+   surface tone, 44 px items in label type with a hairline between them and ✓ at the end of the chosen one. The doubled
+   classes lift these above the rooms' generic button rule (family.css). */
+.sk-pick.sk-pick {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  min-height: var(--sk-tabs-h);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-label-strong);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sk-pick[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+/* Arbete's ⋯ panel (agenda-toolbar.css) is the same card. */
+.sk-pick-menu,
+.sidekick-work .work-agenda-bar-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: var(--sk-s2) 0 0;
+  padding: var(--sk-s1) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sk-pick-menu .sk-pick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-menu);
+  text-align: start;
+  cursor: pointer;
+}
+.sk-pick-menu .sk-pick-item + .sk-pick-item {
+  border-top: var(--sk-hairline, 1px) solid var(--sk-line);
+}
+/* Inside the room strip the ring sits inside the box; in a room (Arbete's view picker) it is the shared ring. */
+.sk-rooms :is(.sk-pick, .sk-pick-item):focus-visible {
+  outline-offset: -2px;
+}

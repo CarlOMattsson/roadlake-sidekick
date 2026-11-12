@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name" translatable="false">Sidekick</string>
+    <string name="title_activity_main" translatable="false">Sidekick</string>
+    <string name="package_name" translatable="false">com.roadlake.sidekick</string>
+    <string name="custom_url_scheme" translatable="false">com.roadlake.sidekick</string>
+
+    <!-- Today widget (Swedish is the default language of the app; values-en has the English texts). -->
+    <string name="widget_title">Idag</string>
+    <string name="widget_description">Dagens uppgifter från Sidekick. Bocka av direkt från hemskärmen.</string>
+    <string name="widget_open_today">Öppna Idag i Sidekick</string>
+    <string name="widget_refresh">Uppdatera</string>
+    <string name="widget_not_paired">Koppla Sidekick</string>
+    <string name="widget_not_paired_hint">Se dagens uppgifter här.</string>
+    <string name="widget_pair_button">Koppla</string>
+    <string name="widget_loading">Hämtar dagens uppgifter…</string>
+    <string name="widget_empty">Inget kvar att göra idag.</string>
+    <string name="widget_more">+%1$d till</string>
+    <string name="widget_synced">Synkad %1$s</string>
+    <string name="widget_offline_synced">Offline · synkad %1$s</string>
+    <string name="widget_pending">Skickas…</string>
+    <string name="widget_pending_description">Skickas: %1$s</string>
+    <string name="widget_done_undo">Klar · Ångra</string>
+    <string name="widget_undo_description">Ångra: %1$s</string>
+    <string name="widget_overdue">Försenad</string>
+    <string name="widget_complete">Markera som klar: %1$s</string>
+    <string name="widget_notice_conflict">Ändrad på annat håll. Listan är uppdaterad.</string>
+    <string name="widget_notice_rejected">Kunde inte bocka av. Listan är uppdaterad.</string>
+    <string name="widget_notice_expired">En ibockad uppgift skickades aldrig. Kontrollera listan.</string>
+    <string name="widget_open_task">Öppna uppgiften: %1$s</string>
+
+    <!-- Shown instead of a blank page when the installed WebView is too old (WebViewRequirement). %1$d is the required version, %2$d the installed one. -->
+    <string name="webview_too_old_title">Systemets webbvy är för gammal</string>
+    <string name="webview_too_old_body">Sidekick behöver Android System WebView %1$d eller senare, men den här telefonen har version %2$d. Uppdatera Android System WebView (och Google Chrome) i appbutiken och öppna Sidekick igen.</string>
+    <string name="webview_too_old_update">Uppdatera webbvyn</string>
+
+    <!-- Notification channels (D-078). -->
+    <string name="channel_reminders">Påminnelser</string>
+    <string name="channel_sync">Synk</string>
+
+    <!-- Visible reminders (D-078, D-079). The lock screen shows only the plural, never a title. -->
+    <plurals name="reminder_today">
+        <item quantity="one">%1$d idag</item>
+        <item quantity="other">%1$d idag</item>
+    </plurals>
+    <plurals name="reminder_overdue">
+        <item quantity="one">%1$d försenad</item>
+        <item quantity="other">%1$d försenade</item>
+    </plurals>
+    <!-- Joins the non-zero parts of the morning summary ("3 idag · 1 försenad"). -->
+    <string name="reminder_summary_join">%1$s · %2$s</string>
+    <string name="reminder_due_at">förfaller %1$s</string>
+    <string name="reminder_test">Testnotis från Sidekick</string>
+    <plurals name="reminder_public_title">
+        <item quantity="one">Sidekick · %1$d påminnelse</item>
+        <item quantity="other">Sidekick · %1$d påminnelser</item>
+    </plurals>
+
+    <!-- Widget picker preview: made-up tasks. The picker draws in the system language, so these have a values-en variant. -->
+    <string name="widget_preview_title">Idag</string>
+    <string name="widget_preview_task_1">Exempeluppgift</string>
+    <string name="widget_preview_task_2">Exempeluppgift</string>
+    <string name="widget_preview_overdue">Försenad</string>
+</resources>

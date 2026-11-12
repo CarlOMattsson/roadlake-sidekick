@@ -1,0 +1,15 @@
+---
+// The store button. Until pricing.json has a store URL it renders nothing: the page's notice says when buying opens.
+import Icon from './Icon.astro';
+import pricing from '../data/pricing.json';
+const t = Astro.locals.t;
+const url = pricing.storeUrl;
+---
+{
+  url && (
+    <a class="btn btn--primary" href={url} rel="noopener">
+      {t('site.pricing.buyButtonPolar')} <Icon name="external" size={18} />
+      <span class="sr-only">{t('site.pricing.opensPolar')}</span>
+    </a>
+  )
+}

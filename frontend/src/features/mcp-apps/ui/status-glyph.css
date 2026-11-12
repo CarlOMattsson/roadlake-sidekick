@@ -1,0 +1,73 @@
+/* Status glyph: 16 px SVG in currentColor. Shape carries status; colour is support only. */
+
+.sk-status-glyph {
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  overflow: visible;
+  color: currentColor;
+}
+
+.sk-status-glyph__frame {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+}
+
+.sk-status-glyph__frame--solid {
+  fill: currentColor;
+}
+
+.sk-status-glyph__frame--dashed {
+  stroke-dasharray: 2.6 2.5;
+}
+
+/* The tick is a knockout in the page background, so it reads on the filled frame. */
+.sk-status-glyph__check {
+  fill: none;
+  stroke: var(--sk-glyph-knockout, Canvas);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Pressed (shows what the tap hit): while a ring's button or row is held, a 40 disc in the surface (the
+   held tone of every text button) stands behind
+   the 24 ring, so the ring reads as its own control, apart from the row that opens. */
+:is(button, label):active > .sk-status-glyph {
+  border-radius: 50%;
+  background: var(--sk-surface);
+  box-shadow: 0 0 0 8px var(--sk-surface);
+}
+
+/* Done at rest (§4 Tillstånd): the tick in outline in --sk-muted, no fill, on a done
+   Task in Status's "Klar (n)", a done Step and "Klar idag". The ink fill with a knocked-out tick is only Ångra's moment:
+   the row that carries data-undo="on" while its Undo stands (agenda.tsx, board.tsx). */
+:is(.sidekick-work, .sidekick-shopping)
+  .sk-status-glyph:has(.sk-status-glyph__check) {
+  color: var(--sk-muted);
+}
+:is(.sidekick-work, .sidekick-shopping)
+  .sk-status-glyph:has(.sk-status-glyph__check)
+  .sk-status-glyph__frame--solid {
+  fill: none;
+}
+:is(.sidekick-work, .sidekick-shopping)
+  .sk-status-glyph:has(.sk-status-glyph__check)
+  .sk-status-glyph__check {
+  stroke: currentColor;
+}
+[data-undo="on"] .sk-status-glyph:has(.sk-status-glyph__check) {
+  color: var(--sk-fg);
+}
+[data-undo="on"]
+  .sk-status-glyph:has(.sk-status-glyph__check)
+  .sk-status-glyph__frame--solid {
+  fill: currentColor;
+}
+[data-undo="on"]
+  .sk-status-glyph:has(.sk-status-glyph__check)
+  .sk-status-glyph__check {
+  stroke: var(--sk-glyph-knockout, Canvas);
+}

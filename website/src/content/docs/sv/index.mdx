@@ -1,0 +1,74 @@
+---
+title: Roadlake Sidekick
+description: Sköt uppgifter, dagbok, kontakter och inköp genom att prata med Claude. Allt sparas i din egen databas på din egen server.
+template: splash
+---
+
+import Hero from '../../../components/Hero.astro';
+import Section from '../../../components/Section.astro';
+import Steps from '../../../components/Steps.astro';
+import RoomStrip from '../../../components/RoomStrip.astro';
+import Facts from '../../../components/Facts.astro';
+import PageLink from '../../../components/PageLink.astro';
+import { productVersion } from '../../../lib/site';
+
+<Hero
+  status={`Förhandsversion ${productVersion()} · inte släppt än`}
+  title="Din vardag i Claude, sparad på din egen server"
+  lead="Sidekick håller ordning på uppgifter, dagbok, kontakter och inköp. Du pratar med Claude, och allt sparas i din egen databas."
+  primary={{ label: 'Kom igång', page: ['docs/start', 'docs'] }}
+  secondary={{ label: 'Se priser', page: 'pricing' }}
+  githubLabel="Källkoden på GitHub"
+  shot={{ name: 'journal-day', alt: 'Rummet Dagbok med en dag, veckonavigering, en sammanfattning av dagen och ett inlägg.' }}
+  note="Simulerad värd, påhittade data"
+/>
+
+<Section band title="Så fungerar det">
+  <Steps
+    items={[
+      { title: 'Kör servern', text: 'Starta Sidekick med Docker på en server eller hemdator som du själv styr.' },
+      { title: 'Anslut Claude', text: 'Lägg till servern som en anpassad connector, alltså en koppling som låter Claude använda Sidekicks verktyg.' },
+      { title: 'Fråga och arbeta', text: 'Be Claude om dagens läge eller en ny uppgift, och öppna ett rum i samtalet när du vill klicka själv.' },
+    ]}
+  />
+</Section>
+
+<Section title="Fyra rum, en databas">
+  <RoomStrip
+    rooms={[
+      { name: 'work-status-board-dark', title: 'Arbete', text: 'Agenda, statustavla, projekt, uppgifter och steg, med datum och prioritet.', alt: 'Rummet Arbete med statustavlan i mörkt läge och en grupp med påhittade uppgifter att göra.' },
+      { name: 'journal-day', title: 'Dagbok', text: 'Flera inlägg per dag, skrivna av dig eller av Claude, och en sammanfattning av dagen.', alt: 'Rummet Dagbok med en dag, veckonavigering, en sammanfattning av dagen och ett inlägg.' },
+      { name: 'contact', title: 'Kontakter', text: 'Personer och organisationer, kopplade till uppgifter, projekt och dagboksinlägg.', alt: 'Rummet Kontakter med en påhittad leverantör, med roll, organisation och anteckningar.' },
+      { name: 'shopping-list', title: 'Inköp', text: 'Listor med antal och butiksgrupper, där du bockar av det du köpt och kan ångra.', alt: 'Rummet Inköp med en lista grupperad per butik, med antal och hur mycket som är köpt.' },
+    ]}
+    note="Simulerad värd, påhittade data. Bilderna är inte tagna i Claude."
+  />
+  <p class="sec__more">Android-appen visar Arbete, Dagbok och Inköp ur samma databas, och Idag-widgeten visar dagens uppgifter på hemskärmen. Det finns ingen färdig APK. Du bygger appen själv ur källkoden.</p>
+  <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Läs om Android-appen <span aria-hidden="true">›</span></PageLink></p>
+</Section>
+
+<Section band title="Du bestämmer vad som delas">
+  <Facts
+    items={[
+      { title: 'Din egen databas', text: 'Allt sparas i PostgreSQL på din server. Sidekick skickar ingen telemetri och kontaktar bara de tjänster du själv ställer in.' },
+      { title: 'Behörigheter du styr', text: 'Du väljer vilka scopes, alltså behörigheter, som Claude får. Det Claude får läsa delas med Claude, också dagbokstext om du tillåter det.' },
+      { title: 'Minnet är valfritt', text: 'Minnet är avstängt tills du slår på det. Då skickas text ur dina poster till den modellleverantör du själv har valt.' },
+    ]}
+    more={{ label: 'Läs vem som ser vad', page: ['docs/explanation/security-and-privacy', 'docs'] }}
+  />
+</Section>
+
+<Section>
+  <div class="split">
+    <div class="card">
+      <h2>Gratis med alla funktioner</h2>
+      <p>Du kan använda allt utan licensnyckel. Utan nyckel visar Sidekick en liten påminnelse om att det är gratisversionen. En nyckel tar bort påminnelsen och ändrar inget annat.</p>
+      <PageLink page="pricing" class="btn btn--secondary">Se priser</PageLink>
+    </div>
+    <div class="card">
+      <h2>Förhandsversion</h2>
+      <p>Sidekick {productVersion()} är en förhandsversion. Det finns ingen färdig containeravbild och ingen färdig APK. Du bygger båda ur källkoden. Räkna med ojämnheter och ändringar som bryter bakåt tills en version är släppt.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Läs hela statusen för förhandsversionen <span aria-hidden="true">›</span></PageLink></p>
+    </div>
+  </div>
+</Section>

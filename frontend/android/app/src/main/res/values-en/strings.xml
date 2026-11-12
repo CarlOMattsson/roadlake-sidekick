@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_title">Today</string>
+    <string name="widget_description">Today’s tasks from Sidekick. Check them off right from your home screen.</string>
+    <string name="widget_open_today">Open Today in Sidekick</string>
+    <string name="widget_refresh">Refresh</string>
+    <string name="widget_not_paired">Connect Sidekick</string>
+    <string name="widget_not_paired_hint">See today’s tasks here.</string>
+    <string name="widget_pair_button">Connect</string>
+    <string name="widget_loading">Loading today’s tasks…</string>
+    <string name="widget_empty">Nothing left to do today.</string>
+    <string name="widget_more">+%1$d more</string>
+    <string name="widget_synced">Synced %1$s</string>
+    <string name="widget_offline_synced">Offline · synced %1$s</string>
+    <string name="widget_pending">Sending…</string>
+    <string name="widget_pending_description">Sending: %1$s</string>
+    <string name="widget_done_undo">Done · Undo</string>
+    <string name="widget_undo_description">Undo: %1$s</string>
+    <string name="widget_overdue">Overdue</string>
+    <string name="widget_complete">Mark as done: %1$s</string>
+    <string name="widget_notice_conflict">Changed elsewhere. The list has been updated.</string>
+    <string name="widget_notice_rejected">Couldn’t check it off. The list has been updated.</string>
+    <string name="widget_notice_expired">A task you checked off was never sent. Check the list.</string>
+    <string name="widget_open_task">Open task: %1$s</string>
+
+    <string name="webview_too_old_title">The system web view is too old</string>
+    <string name="webview_too_old_body">Sidekick needs Android System WebView %1$d or newer, but this phone has version %2$d. Update Android System WebView (and Google Chrome) in the app store, then open Sidekick again.</string>
+    <string name="webview_too_old_update">Update WebView</string>
+
+    <string name="channel_reminders">Reminders</string>
+    <string name="channel_sync">Sync</string>
+
+    <plurals name="reminder_today">
+        <item quantity="one">%1$d today</item>
+        <item quantity="other">%1$d today</item>
+    </plurals>
+    <plurals name="reminder_overdue">
+        <item quantity="one">%1$d overdue</item>
+        <item quantity="other">%1$d overdue</item>
+    </plurals>
+    <string name="reminder_summary_join">%1$s · %2$s</string>
+    <string name="reminder_due_at">due %1$s</string>
+    <string name="reminder_test">Test notification from Sidekick</string>
+    <plurals name="reminder_public_title">
+        <item quantity="one">Sidekick · %1$d reminder</item>
+        <item quantity="other">Sidekick · %1$d reminders</item>
+    </plurals>
+
+    <string name="widget_preview_title">Today</string>
+    <string name="widget_preview_task_1">Example task</string>
+    <string name="widget_preview_task_2">Example task</string>
+    <string name="widget_preview_overdue">Overdue</string>
+</resources>

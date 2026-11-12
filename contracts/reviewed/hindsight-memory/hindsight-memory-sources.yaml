@@ -1,0 +1,136 @@
+contractVersion: 1
+name: hindsight-memory-sources
+status: reviewed-pin
+decidedOn: 2026-10-28
+purpose: >-
+  Pins the Hindsight image and the settings that Sidekick memory (built from journal, contacts, projects, tasks)
+  depends on. Hindsight is the only memory provider the contract covers.
+release:
+  chosen: v1.1.0
+  fallback: v0.8.4
+  decision: >-
+    1.1.0 chosen. The criterion is that the live probes (OPEN-1) pass; they need an LLM
+    key and are not run here, so the choice is CONDITIONAL until they pass on a test instance. Everything verifiable without an LLM key passed (see verification).
+  license: MIT
+  imageRepository: ghcr.io/vectorize-io/hindsight
+  imageTag: 1.1.0
+  imageVersionLabel: 1.1.0
+  imageRevision: a5a619b5ca59c5c39e0f96be6f7a31fabd136bd5
+  imageCreated: '2026-10-21T16:20:06.315Z'
+  imageDigest: sha256:50311d02b4d5d2b7c5242bd336edf8735df8374eaad496a92f49c83b37d2aa06
+  imageReference: ghcr.io/vectorize-io/hindsight@sha256:50311d02b4d5d2b7c5242bd336edf8735df8374eaad496a92f49c83b37d2aa06
+  digestStatus: VERIFIED_REGISTRY_INDEX_AND_CONFIG_LABELS
+  digestRule: Deployment must use imageReference, never a tag.
+  platformManifests:
+    linux/amd64: sha256:97e5a1b0fab0ebb2c313976f6ec772b8d858b762230766670633872fc438994a
+    linux/arm64: sha256:04675dba6dddbc245b921d5aba90f408f61a2a632d6f1be58dab53eda2d27785
+  attestationManifests:
+    - sha256:0dbad315a5bdf3d33bd64026b0bdcd462b0621d13ac44455e965a2fc9365f344
+    - sha256:248984ed72bfa6aacde6c0ec23500ec12d92c7edef5b5418032c60be9d1e678f
+  fallbackReference: ghcr.io/vectorize-io/hindsight@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
+  provenance:
+    - ghcr.io manifest index for tag 1.1.0 (also tag latest on 2026-10-28) resolves to the digest above.
+    - Config label org.opencontainers.image.revision equals the commit of the annotated tag v1.1.0 (tag object df2bbce, commit a5a619b).
+    - Attestation manifests are present in the index but not verified with cosign (OPEN-2).
+    - Release notes v1.1.0 (2026-10-21) and hindsight.vectorize.io/changelog 0.10.x-1.1.0.
+  runtime:
+    user: hindsight (uid 1000)
+    entrypoint: /app/start-all.sh
+    ports: [8888, 9999]
+adoption:
+  note: >-
+    The two references are in use side by side, on purpose. 1.1.0 (imageReference) runs where it has been
+    exercised. 0.8.4 (fallbackReference) stays in the selfhost memory profile until OPEN-1 passes and
+    OPEN-3 is decided, because moving a persisted pg0 volume from 0.8.4 to 1.1.0 migrates its schema and
+    has not been verified against the delivered digest. `deployments` below lists which file runs which
+    reference. When OPEN-1 passes, move the selfhost entry to `chosen` in one change: compose file and this
+    list.
+  prodDigestChanged: false
+deployments:
+  # role: chosen = release.imageReference, fallback = release.fallbackReference
+  - {file: deploy/selfhost/compose.yaml, service: hindsight, role: fallback}
+fallbackVersion: 0.8.4
+liveVerification:
+  status: NOT_RUN_HERE
+  why: >-
+    Retain, recall and Swedish extraction need a real LLM key and network access to the model provider and to
+    ghcr.io (to pull the image). The development environment has neither, and a placeholder key cannot
+    exercise extraction. Only the offline checks listed under `verification` were run.
+  steps:
+    - On a machine with Docker and a throwaway provider key, start the selfhost stack with the `memory`
+      profile on the reference under test (see README.md, "Private Hindsight deployment"),
+      with the provider settings from deploy/selfhost/hindsight.env.example. Check that
+      `docker compose --env-file selfhost.env --profile memory ps` shows Hindsight healthy, then retain,
+      recall and delete synthetic content through the memory worker and the Memory tools (synthetic content only).
+    - Run the live probes of OPEN-1 against a test instance on the same reference.
+    - Check that `docker image inspect` shows org.opencontainers.image.version equal to release.imageVersionLabel.
+    - Record the result here and close OPEN-1; only then change the `deployments` roles.
+settings:
+  prefix: HINDSIGHT_API_
+  confirmedInBoth_v1_1_0_and_v0_8_4: true
+  source: hindsight_api/config.py at tags v1.1.0 and v0.8.4 (ENV_* constants and DEFAULT_* values)
+  required:
+    RETAIN_MISSION: {status: KNOWN, default: unset, note: "Declarative retain spec; the text says source text is data, not instructions."}
+    LLM_EXTRA_BODY: {status: KNOWN, default: unset, note: "JSON merged into every OpenAI-compatible call. 1.1.0 adds per-operation RETAIN_/REFLECT_/CONSOLIDATION_LLM_EXTRA_BODY; the global one still works."}
+    ENABLE_OBSERVATIONS: {status: KNOWN, default: 'true', required: 'false', note: "Must be set false (design invariant: one document_id per hit)."}
+    RETAIN_CHUNK_SIZE: {status: KNOWN, default: 3000, required: 8000}
+    RETAIN_MAX_COMPLETION_TOKENS: {status: KNOWN, default: 64000, required: 4000}
+    LLM_OUTPUT_LANGUAGE: {status: KNOWN, required: Swedish, note: "Exact name is HINDSIGHT_API_LLM_OUTPUT_LANGUAGE, not OUTPUT_LANGUAGE (design wording corrected)."}
+    EMBEDDINGS_PROVIDER: {status: KNOWN, default: local, required: local}
+    RERANKER_PROVIDER: {status: KNOWN, default: local, required: local}
+    DATABASE_URL: {status: KNOWN, default: pg0, required: pg0}
+    LLM_SEND_BANK_AS_USER: {status: KNOWN, default: 'false', required: 'false'}
+    LLM_MAX_RETRIES: {status: KNOWN, default: 3, required: 1}
+    STORE_DOCUMENT_TEXT: {status: KNOWN, default: 'true', required: 'false', note: "Default is true; must be set explicitly."}
+    LLM_PROVIDER: {status: KNOWN, required: <configured-provider>, note: "Set per instance, as HINDSIGHT_API_LLM_PROVIDER in hindsight.env.example."}
+    LLM_MODEL: {status: KNOWN, required: <configured-model-id>, note: "Set per instance; the model must support structured output."}
+  llmExtraBodyValue:
+    provider: {only: [openai], allow_fallbacks: false, data_collection: deny}
+    reasoning: {effort: medium}
+    note: "Applies when the configured provider is OpenRouter and the model is an OpenAI model: reasoning effort medium, and zero data retention may not be available for it."
+  changedInV1_1_0:
+    RECALL_PREFER_OBSERVATIONS: "New setting, off unless configured. Irrelevant while ENABLE_OBSERVATIONS=false; Sidekick must not send prefer_observations."
+api:
+  unchangedBetween_v0_8_4_and_v1_1_0: true
+  paths:
+    health: GET /health
+    retain: POST /v1/default/banks/{bank_id}/memories
+    recall: POST /v1/default/banks/{bank_id}/memories/recall
+    operation: GET /v1/default/banks/{bank_id}/operations/{operation_id}
+    deleteDocument: DELETE /v1/default/banks/{bank_id}/documents/{document_id:path}
+  retainItemFields: [content, document_id, update_mode, context, metadata]
+  authentication: bearer via ApiKeyTenantExtension (HINDSIGHT_API_TENANT_API_KEY)
+  behaviourNotes:
+    - Recall for an unknown bank returns 404 (since 0.10.1); the adapter must map it to empty, not unavailable.
+    - Delete of a missing document returns 404 (adapter treats 404 as success).
+    - Retain with an empty items list returns 200 without authentication (observed on 1.1.0); non-empty retain, delete and bank list return 401. Sidekick never sends empty batches.
+    - 1.1.0 retain errors on malformed LLM output instead of silently retaining nothing; failed chunks no longer replace an existing document.
+    - Store overload returns 503 with Retry-After (since 1.0.0).
+    - Bank import rejects ids with a reserved underscore prefix (breaking in 1.1.0; Sidekick does not use bank import).
+fixesRelevantToMemory:
+  - 1.1.0 a failed chunk no longer replaces an existing document
+  - 1.1.0 retain stops retrying after the LLM key is rejected
+  - 1.1.0 consolidation no longer deadlocks with retain and delete; 0.10.1 fixes same-bank delete and re-ingest deadlocks
+  - 0.10.3 OpenRouter structured-output requests use only upstream models that support response formats
+verification:
+  date: 2026-10-28
+  method: throwaway container from the pinned digest, bound to 127.0.0.1:18897, placeholder LLM key, no real data, removed afterwards
+  passed:
+    - /health returns status healthy with database connected
+    - startup log shows Database pg0 and Using vector extension pgvector
+    - container started with all required settings above set, and accepted them
+    - 401 without or with a wrong bearer on non-empty retain, delete and bank list; 200 with the right token
+    - delete of a missing document gives 404, recall for an unknown bank gives 404
+    - runs as non-root user hindsight
+  notRun:
+    - retain, recall, extraction quality, Swedish output, OpenRouter provider routing (need an LLM key)
+  startupNote: The placeholder key reached OpenRouter during the startup connection check and got 401; no content was sent.
+open:
+  - id: OPEN-1
+    text: The live probes (live extraction, Swedish, routine tasks give at most 1 fact, delete then recall gives 0 hits, recall p95 under 1.5 s) must pass on 1.1.0 on a test instance. If not, use fallbackReference (0.8.4).
+  - id: OPEN-2
+    text: Attestation manifests (provenance/SBOM) exist in the index but were not verified with cosign or gh attestation.
+  - id: OPEN-3
+    text: Whether and when the self-hosted memory profile moves from 0.8.4 to 1.1.0 (affects the pin tests).
+  - id: OPEN-4
+    text: Retain with empty items passes without authentication, which looks like a minor upstream gap. No exposure while Hindsight stays on a private network; consider reporting upstream.

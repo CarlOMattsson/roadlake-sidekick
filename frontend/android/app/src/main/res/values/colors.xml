@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the sk-bg token of the design system (ui/tokens.css), so the window, the splash and the first paint match. -->
+    <color name="window_background">#ffffff</color>
+    <color name="widget_text">#1f1f1f</color>
+    <color name="widget_muted">#5f6368</color>
+    <color name="widget_line">#8a8a90</color>
+    <color name="widget_overdue">#b42318</color>
+</resources>

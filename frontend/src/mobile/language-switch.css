@@ -1,0 +1,34 @@
+/* Svenska | English (language-switch.tsx): the family's chips, the chosen one with its outline and tick, side by side.
+   Each is drawn 48 high on the phone, so the drawn box is the target. */
+.mobile-language {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+}
+.mobile-language > .sk-chip.mobile-language__option {
+  min-height: 48px;
+}
+/* The pairing screen: at the end of the first line, above the title. There the switch is quiet: two words, no frame
+   and no tick. The chosen one is in the text colour at 600, the other muted; the 48 targets touch, the last word ends
+   on the content edge, and the row reaches up into the screen's top air so the title moves down only a little. */
+.mobile-language--compact {
+  justify-content: flex-end;
+  gap: 0;
+  margin: calc(-1 * var(--sk-s4)) calc(-1 * var(--sk-s3))
+    calc(-1 * var(--sk-s2)) 0;
+}
+.mobile-language--compact > .sk-chip.mobile-language__option {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.mobile-language--compact > .sk-chip.mobile-language__option::before {
+  display: none;
+}
+.mobile-language--compact
+  > .sk-chip.mobile-language__option[aria-pressed="true"] {
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-semibold);
+}

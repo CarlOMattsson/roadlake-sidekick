@@ -1,0 +1,901 @@
+# Manual only. Registry visibility (public or private) is set in the GHCR package settings, not here.
+# The file name is part of the signer identity (see docs/maintainers/release.md), so it stays release-image.yml.
+#
+# Releases are MAJOR.MINOR.PATCH versions (a patch release too). Changes are tested locally before they are pushed,
+# so CI and the drill do not run on every push: the full CI (which includes the dependency audit) and the
+# update/backup/restore drill run here, as gates, for every real release. A patch release must declare the migration
+# class `expand` (a fix never ships a one-way schema step).
+#
+# Nothing is built, signed or published without the owner's approval, given once per release: the job
+# `signing-check` is the only job in the GitHub environment `release`, which has the owner as required reviewer, and
+# every other real-run job needs it (directly or through gates). The signing secrets are secrets of a second
+# environment, `release-signing`, which has no reviewers but is limited to the main branch; the jobs that sign or
+# publish use it. A dry run touches no environment, so it needs no approval and no secret.
+#
+# One run makes one release candidate bundle:
+#   source   -> real run: refuses a malformed version and a commit that is not on main (nothing else has run yet).
+#   signing-check -> real run, environment `release`: the approval gate and nothing else (no secret, no checkout). It
+#               waits for the owner; ci, drill and everything after them wait for this job, so nothing is built before
+#               approval, and no signing or publishing job can run without it.
+#   secrets-check -> real run, environment `release-signing`: the four signing secrets and the pinned certificate
+#               fingerprint exist (no checkout, no repository code).
+#   ci/drill -> ci.yml and release-drill.yml, called as reusable workflows on exactly this commit (real run only).
+#   gates    -> version sync, input checks, migration class and license public key. Nothing is built before
+#               all of these pass.
+#   android  -> builds ONLY an unsigned, R8-minified release APK (npm and Gradle dependencies run here, so nothing
+#               here ever sees a secret) and uploads it.
+#   sign-apk -> real run, environment `release-signing`: aligns and signs that APK with the pinned build-tools of the runner image and the owner's key,
+#               checks the certificate against ANDROID_CERT_SHA256 and exposes the APK's sha256 as a job output.
+#               No checkout, no npm, no Gradle, so no dependency can swap the file between verification and upload.
+#   release  -> real run, environment `release-signing` (build-dry in a dry run: the same build, nothing pushed) builds
+#               backend/Dockerfile for linux/amd64 and linux/arm64, pushes to ghcr.io/<owner>/roadlake-sidekick,
+#               Trivy-scans each platform of the pushed digest (fixable HIGH/CRITICAL fail the run), signs the
+#               digest keylessly with cosign (GitHub OIDC) and attests its build provenance (`gh attestation verify`).
+#   bundle   -> SHA256SUMS, the image SBOM, and release notes taken from CHANGELOG.md, collected without any signing right.
+#   sign-bundle -> real run, environment `release-signing`: checks every file of the bundle against the outputs of sign-apk
+#               (APK sha256) and release (image digest, SBOM) and refuses on any difference, then signs SHA256SUMS with
+#               cosign, attests the build provenance of the APK, the SBOM, SHA256SUMS and the release notes, and
+#               uploads the finished bundle as one workflow artifact.
+# Privilege is split on purpose: a dry run runs code from any branch, so its jobs (build-dry, bundle) have a read-only
+# token and no id-token and no secret; only release, sign-apk and sign-bundle can push or sign, they never run in a
+# dry run, and none of the jobs that hold a secret or an id-token runs repository code. The environment
+# `release-signing` is limited to the main branch, so a workflow edited on another branch cannot reach its secrets.
+# There is deliberately no tag or push trigger, and the workflow never creates a tag or a GitHub release:
+# the owner pushes the signed tag and creates the release from the bundle (docs/maintainers/release.md).
+#
+# `dry_run` builds everything unsigned and unpushed, for any version: it keeps the input, version, changelog and
+# migration, version-order checks, builds both image platforms and the APK, and skips the main check, the approval, CI and the drill,
+# the registry, the Trivy scans, signing, attestations and the secrets (the license key only warns).
+name: release-image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "SemVer tag, for example v0.1.0 (created once, never moved)"
+        required: true
+        type: string
+      migration_class:
+        description: "expand = the previous image works against the new schema; breaking = contract step, one-way"
+        required: true
+        type: choice
+        options:
+          - expand
+          - breaking
+      previous_release:
+        description: "Previous release as a vX.Y.Z git tag, to compare migrations with. Empty = newest vX.Y.Z tag; none = only while no v* tag exists (first release)"
+        required: false
+        default: ""
+        type: string
+      dry_run:
+        description: "Build everything unsigned and push nothing (no registry login, no signing, no secrets needed)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  # The Android build-tools that sign the APK come from the runner image, never from the repository. Pinned here;
+  # the run stops when the image does not have exactly this version (a dry run checks it too).
+  ANDROID_BUILD_TOOLS_VERSION: "36.0.0"
+
+concurrency:
+  group: release-image
+  cancel-in-progress: false
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
+      SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse malformed versions and commits that are not on main
+        # First on purpose: in a real run nothing from the repository (scripts, tools) runs before this commit is
+        # known to be on main, because later jobs hold secrets. A dry run may use any version and any branch.
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "version must look like v1.2.3" >&2
+            exit 1
+          fi
+          [ "$(git rev-parse HEAD)" = "$SHA" ] || { echo "checkout is not $SHA" >&2; exit 1; }
+          # Only commits that are on main are released (fetch-depth 0 already fetched origin/main; no credentials are kept).
+          git merge-base --is-ancestor "$SHA" refs/remotes/origin/main || {
+            echo "${SHA} is not on main; release from a commit that has landed on main" >&2
+            exit 1
+          }
+
+  signing-check:
+    # Real run only, and the approval gate: `environment: release` (required reviewer: the owner) pauses the run here
+    # until the owner approves it. It holds no secret and runs no code but an echo. ci, drill, secrets-check and every
+    # later job need this job, directly or through gates, so nothing is built, signed or published before the approval.
+    needs: source
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - name: Release approved
+        run: echo "The owner approved this release run."
+
+  secrets-check:
+    # Real run only, after the approval. Checked before anything is built or pushed, so a missing secret never leaves
+    # a half release (an image without an app). Reads the signing secrets of the environment `release-signing` and has
+    # no checkout.
+    needs: signing-check
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: release-signing
+    permissions:
+      contents: read
+    steps:
+      - name: Require the Android signing secrets and the pinned certificate
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          set -uo pipefail
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!name}" ] || missing+=("$name")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "refusing to release: the Android signing secrets are missing: ${missing[*]}. Add them as secrets of the GitHub environment release-signing (Settings > Environments > release-signing, docs/maintainers/release.md), or run with dry_run to build unsigned." >&2
+            exit 1
+          fi
+          if ! [[ "${ANDROID_CERT_SHA256,,}" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "refusing to release: the repository variable ANDROID_CERT_SHA256 (SHA-256 of the signing certificate, 64 hex digits) is missing or malformed; it is what the signed APK is checked against (docs/maintainers/release.md)." >&2
+            exit 1
+          fi
+
+  ci:
+    # The whole CI (backend, frontend, Android, deploy, policy checks and the dependency audit) on exactly this commit.
+    needs: [source, signing-check]
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+      pull-requests: read # the change filter job of ci.yml asks for it; a called workflow cannot exceed its caller
+
+  drill:
+    # Install, update, backup, destroy, restore with disposable containers (the repository variables DRILL_* decide
+    # between released images and images built from this commit).
+    needs: [source, signing-check]
+    if: ${{ !inputs.dry_run }}
+    uses: ./.github/workflows/release-drill.yml
+    permissions:
+      contents: read
+      packages: read
+
+  gates:
+    needs: [source, ci, drill, signing-check, secrets-check]
+    # A skipped ci, drill, signing-check or secrets-check (dry run) is fine; a failed one is not.
+    if: ${{ !cancelled() && needs.source.result == 'success' && (inputs.dry_run || (needs.ci.result == 'success' && needs.drill.result == 'success' && needs.signing-check.result == 'success' && needs.secrets-check.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      schema_head: ${{ steps.meta.outputs.schema_head }}
+      min_upgrade_from: ${{ steps.meta.outputs.min_upgrade_from }}
+      image: ${{ steps.meta.outputs.image }}
+      version: ${{ steps.meta.outputs.version }}
+      build_commit: ${{ steps.meta.outputs.build_commit }}
+      build_date: ${{ steps.meta.outputs.build_date }}
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
+      INPUT_MIGRATION_CLASS: ${{ inputs.migration_class }}
+      INPUT_PREVIOUS_RELEASE: ${{ inputs.previous_release }}
+      DRY_RUN: ${{ inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history and tags: the migration class is compared with the previous release.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the version format
+        # SemVer without leading zeros (v1.2.01 would slip past the patch rule and the version order below). First
+        # step of the gates, so every later step can rely on it. Runs in a dry run too.
+        run: |
+          set -euo pipefail
+          if ! [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "version must look like v1.2.3 (numbers without leading zeros)" >&2
+            exit 1
+          fi
+
+      - name: Refuse a breaking migration class for a patch release
+        # A patch fixes without a one-way schema step: it may declare only `expand`. The migration check below
+        # compares the declared class with the migrations themselves, so a patch with no migrations declares `expand`.
+        run: |
+          set -euo pipefail
+          if [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.[1-9][0-9]*$ ]] && [ "$INPUT_MIGRATION_CLASS" != "expand" ]; then
+            echo "${INPUT_VERSION} is a patch release; a patch may only declare migration_class expand. Ship a breaking migration with the next minor or major version." >&2
+            exit 1
+          fi
+
+      - name: Require a version above the highest release tag
+        # Versions only go up: the new version must be strictly higher (SemVer order) than every existing vX.Y.Z tag.
+        # No tag at all is the first release. Runs in a dry run too.
+        run: |
+          set -euo pipefail
+          highest="$(git tag --list 'v*' | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1 || true)"
+          if [ -n "$highest" ] && { [ "$highest" = "$INPUT_VERSION" ] || [ "$(printf '%s\n%s\n' "$highest" "$INPUT_VERSION" | sort -V | tail -n 1)" != "$INPUT_VERSION" ]; }; then
+            echo "${INPUT_VERSION} is not higher than the highest release tag ${highest}; versions only go up" >&2
+            exit 1
+          fi
+
+      - name: Validate inputs and derive metadata
+        id: meta
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "version must look like v1.2.3" >&2
+            exit 1
+          fi
+          case "$INPUT_MIGRATION_CLASS" in
+            expand | breaking) ;;
+            *) echo "migration_class must be expand or breaking" >&2; exit 1 ;;
+          esac
+          if ! [[ "$INPUT_PREVIOUS_RELEASE" =~ ^(|none|v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]; then
+            echo "previous_release must be empty, none or a vX.Y.Z tag" >&2
+            exit 1
+          fi
+          # The tag is v + the release version in backend/pyproject.toml (the single version source).
+          source_version="$(python3 -c 'import tomllib; print(tomllib.load(open("backend/pyproject.toml", "rb"))["project"]["version"])')"
+          if [ "$INPUT_VERSION" != "v${source_version}" ]; then
+            echo "version ${INPUT_VERSION} does not match backend/pyproject.toml (${source_version}); bump the version on main first" >&2
+            exit 1
+          fi
+          # Oldest installed version this release can be updated from (stepping-stone rule, checked by
+          # deploy/selfhost/update.sh against the installed image's version label). Never above this release.
+          min_from="$(tr -d '[:space:]' < deploy/selfhost/min-upgrade-from.txt)"
+          MIN_FROM="$min_from" SOURCE_VERSION="$source_version" python3 - <<'PY'
+          import os, re, sys
+          pattern = r"\d+\.\d+\.\d+"
+          lowest, version = os.environ["MIN_FROM"], os.environ["SOURCE_VERSION"]
+          if not (re.fullmatch(pattern, lowest) and re.fullmatch(pattern, version)):
+              sys.exit("deploy/selfhost/min-upgrade-from.txt must hold a plain X.Y.Z version")
+          if tuple(map(int, lowest.split("."))) > tuple(map(int, version.split("."))):
+              sys.exit("min-upgrade-from " + lowest + " is newer than the release " + version)
+          PY
+          # Newest migration file name without .py; the zero-padded prefix makes a plain sort correct.
+          head_file="$(find migrations -maxdepth 1 -name '[0-9]*.py' -printf '%f\n' | sort | tail -n 1)"
+          if [ -z "$head_file" ]; then
+            echo "no migration files found" >&2
+            exit 1
+          fi
+          {
+            echo "schema_head=${head_file%.py}"
+            echo "min_upgrade_from=${min_from}"
+            echo "image=ghcr.io/${OWNER,,}/roadlake-sidekick"
+            # The OCI version label is the SemVer from the tag, without the leading v.
+            echo "version=${INPUT_VERSION#v}"
+            # Commit hash and commit date (ISO 8601) are baked into the image for the update reminder.
+            echo "build_commit=$(git rev-parse --short=7 HEAD)"
+            echo "build_date=$(git log -1 --format=%cI HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check that every copy of the version agrees
+        # backend, the package, frontend/package*.json and the Android versionName/versionCode (derived from
+        # package.json) must all be this version. A real run also needs a dated CHANGELOG.md section for it.
+        run: |
+          set -euo pipefail
+          if [ "$DRY_RUN" = "true" ]; then
+            python3 tools/check-version-sync.py --tag "$INPUT_VERSION"
+          else
+            python3 tools/check-version-sync.py --tag "$INPUT_VERSION" --release
+          fi
+
+      - name: Check the migration class against the migrations
+        run: |
+          set -euo pipefail
+          echo "::warning title=Protect v* tags::The migration check compares with the previous vX.Y.Z tag and trusts it. Protect v* tags with a tag protection rule (or ruleset) in the repository settings, or a moved tag can make the comparison empty. See CONTRIBUTING.md."
+          args=(--release-class "$INPUT_MIGRATION_CLASS")
+          if [ -n "$INPUT_PREVIOUS_RELEASE" ]; then
+            args+=(--base "$INPUT_PREVIOUS_RELEASE")
+          fi
+          python3 tools/check-release-migration-class.py "${args[@]}"
+
+      - name: Require the licensor's license public key
+        # With the placeholder every license key would be unlicensed in the published image.
+        run: |
+          set -uo pipefail
+          if python3 tools/check-license-public-key.py; then
+            exit 0
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::warning title=License public key::dry run continues, but a real release is refused until the licensor's public key is set"
+            exit 0
+          fi
+          exit 1
+
+  android:
+    # Builds the unsigned APK and nothing else. npm and Gradle run third-party code here, so this job has no secret and
+    # signs nothing; the next job signs the uploaded file in isolation.
+    needs: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check that the pinned Android build-tools exist on this runner image
+        run: |
+          test -x "${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/apksigner" || {
+            echo "Android build-tools ${ANDROID_BUILD_TOOLS_VERSION} are not on this runner image; sign-apk would stop. Change ANDROID_BUILD_TOOLS_VERSION to a version the image has (and review it)." >&2
+            exit 1
+          }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            frontend/android/**/*.gradle*
+            frontend/android/gradle/wrapper/gradle-wrapper.properties
+      - run: npm ci
+        working-directory: frontend
+      # Same build as the CI android job (its tests and lint already passed for this commit): the mobile bundle is
+      # built and synced, then Gradle makes the unsigned, R8-minified release APK. The repository holds no signing
+      # configuration; the key is only ever used by sign-apk.
+      - run: npm run build:mobile
+        working-directory: frontend
+      - run: npx cap sync android
+        working-directory: frontend
+      - run: ./gradlew :app:assembleRelease
+        working-directory: frontend/android
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-apk-unsigned
+          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # The R8 mapping de-obfuscates crash reports of exactly this build; keep it with the release.
+          name: android-r8-mapping
+          path: frontend/android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+          retention-days: 90
+
+  sign-apk:
+    # Real run only (after the owner's approval at signing-check), and isolated: no checkout, no npm, no Gradle, no repository script. It downloads the unsigned APK
+    # the android job built, signs it with the runner image's pinned build-tools, checks the certificate against the
+    # pinned fingerprint and publishes the sha256 of the result as a job output. sign-bundle later refuses any APK
+    # whose sha256 differs, so a file swapped afterwards cannot be signed over.
+    needs: [gates, android]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release-signing # the source of the signing secrets (the owner approved at signing-check)
+    permissions:
+      contents: read
+    outputs:
+      apk_sha256: ${{ steps.sign.outputs.apk_sha256 }}
+    env:
+      VERSION: ${{ needs.gates.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-apk-unsigned
+          path: unsigned
+
+      - name: Align, sign and verify the APK
+        id: sign
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EXPECTED_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          unsigned="unsigned/app-release-unsigned.apk"
+          [ -f "$unsigned" ] || { echo "unsigned APK not found: $unsigned" >&2; exit 1; }
+          build_tools="${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}"
+          [ -x "${build_tools}/apksigner" ] || { echo "pinned build-tools ${ANDROID_BUILD_TOOLS_VERSION} missing on this runner image" >&2; exit 1; }
+          [[ "${EXPECTED_CERT_SHA256,,}" =~ ^[0-9a-f]{64}$ ]] || { echo "ANDROID_CERT_SHA256 is missing or malformed" >&2; exit 1; }
+          mkdir -p out
+          keystore="${RUNNER_TEMP}/release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$keystore"
+          "${build_tools}/zipalign" -f -p 4 "$unsigned" "${RUNNER_TEMP}/aligned.apk"
+          "${build_tools}/zipalign" -c -p 4 "${RUNNER_TEMP}/aligned.apk"
+          KS_PASS="$ANDROID_KEYSTORE_PASSWORD" KEY_PASS="$ANDROID_KEY_PASSWORD" \
+            "${build_tools}/apksigner" sign --ks "$keystore" --ks-key-alias "$ANDROID_KEY_ALIAS" \
+              --ks-pass env:KS_PASS --key-pass env:KEY_PASS \
+              --out "out/sidekick-${VERSION}.apk" "${RUNNER_TEMP}/aligned.apk"
+          # Verify what was signed (v2+ scheme, one signer) and which key signed it; then hash exactly this file.
+          "${build_tools}/apksigner" verify --verbose --print-certs "out/sidekick-${VERSION}.apk" | tee "${RUNNER_TEMP}/apksigner.txt"
+          cert="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' "${RUNNER_TEMP}/apksigner.txt" | head -n 1)"
+          [[ "$cert" =~ ^[0-9a-f]{64}$ ]] || { echo "could not read the signing certificate digest" >&2; exit 1; }
+          if grep -qi 'Android Debug' "${RUNNER_TEMP}/apksigner.txt"; then
+            echo "the APK is signed with a debug certificate; refusing" >&2
+            exit 1
+          fi
+          if [ "${EXPECTED_CERT_SHA256,,}" != "$cert" ]; then
+            echo "signing certificate ${cert} is not the pinned ANDROID_CERT_SHA256" >&2
+            exit 1
+          fi
+          apk_sha256="$(sha256sum "out/sidekick-${VERSION}.apk" | cut -d' ' -f1)"
+          echo "apk_sha256=${apk_sha256}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Android APK ${VERSION}"
+            echo
+            echo "- Signing certificate SHA-256: \`${cert}\` (matches the pinned ANDROID_CERT_SHA256)"
+            echo "- APK sha256: \`${apk_sha256}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the keystore from the runner
+        if: ${{ always() }}
+        run: rm -f "${RUNNER_TEMP}/release.jks" "${RUNNER_TEMP}/aligned.apk"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-apk-signed
+          path: out/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  build-dry:
+    # Dry run only: builds both platforms and throws the result away. Read-only token, no id-token, no registry
+    # login, so whatever runs here (the build runs the Dockerfile of the chosen branch) cannot sign or push.
+    needs: [gates, android]
+    if: ${{ inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build (nothing is pushed)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ needs.gates.outputs.image }}:${{ inputs.version }}
+          build-args: |
+            SIDEKICK_MIGRATION_CLASS=${{ inputs.migration_class }}
+            SIDEKICK_SCHEMA_HEAD=${{ needs.gates.outputs.schema_head }}
+            SIDEKICK_MIN_UPGRADE_FROM=${{ needs.gates.outputs.min_upgrade_from }}
+            SIDEKICK_BUILD_COMMIT=${{ needs.gates.outputs.build_commit }}
+            SIDEKICK_BUILD_DATE=${{ needs.gates.outputs.build_date }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.gates.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            io.sidekick.migration-class=${{ inputs.migration_class }}
+            io.sidekick.schema-head=${{ needs.gates.outputs.schema_head }}
+            io.sidekick.min-upgrade-from=${{ needs.gates.outputs.min_upgrade_from }}
+          push: false
+          outputs: type=cacheonly
+          provenance: false
+          sbom: false
+
+  release:
+    # Real run only (after the owner's approval at signing-check). This is the one job that can write to
+    # the registry and ask for an OIDC token, so a dry run never gets it, and its run steps call no script from the
+    # repository.
+    needs: [gates, android]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: release-signing
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # keyless cosign (Sigstore) and the attestation, via GitHub OIDC
+      attestations: write # build provenance of the image digest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    env:
+      INPUT_VERSION: ${{ inputs.version }}
+      INPUT_MIGRATION_CLASS: ${{ inputs.migration_class }}
+      IMAGE: ${{ needs.gates.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: "v3.1.4"
+
+      # arm64 is built under QEMU emulation: slower than a native runner, but it needs no second runner.
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Refuse to overwrite an existing version tag
+        run: |
+          set -uo pipefail
+          if output="$(docker manifest inspect "${IMAGE}:${INPUT_VERSION}" 2>&1)"; then
+            echo "${IMAGE}:${INPUT_VERSION} already exists in GHCR; a version tag is never moved. Pick a new version." >&2
+            exit 1
+          fi
+          # Only a clear "does not exist" answer lets the build go on; any other failure stops it.
+          if ! grep -qiE 'no such manifest|manifest unknown|not found' <<<"$output"; then
+            echo "could not tell whether ${IMAGE}:${INPUT_VERSION} exists; refusing to push" >&2
+            echo "$output" >&2
+            exit 1
+          fi
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ needs.gates.outputs.image }}:${{ inputs.version }}
+          build-args: |
+            SIDEKICK_MIGRATION_CLASS=${{ inputs.migration_class }}
+            SIDEKICK_SCHEMA_HEAD=${{ needs.gates.outputs.schema_head }}
+            SIDEKICK_MIN_UPGRADE_FROM=${{ needs.gates.outputs.min_upgrade_from }}
+            SIDEKICK_BUILD_COMMIT=${{ needs.gates.outputs.build_commit }}
+            SIDEKICK_BUILD_DATE=${{ needs.gates.outputs.build_date }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.gates.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            io.sidekick.migration-class=${{ inputs.migration_class }}
+            io.sidekick.schema-head=${{ needs.gates.outputs.schema_head }}
+            io.sidekick.min-upgrade-from=${{ needs.gates.outputs.min_upgrade_from }}
+          push: true
+          # BuildKit attaches an SBOM and a max-detail SLSA provenance attestation to the image index. The digest
+          # signed below is the index digest, which is also the digest customers pull and pin.
+          provenance: mode=max
+          sbom: true
+
+      - name: Scan the pushed image for vulnerabilities, linux/amd64 (gate before signing)
+        # Fails on HIGH or CRITICAL findings that have a fix; unfixed ones are ignored. Each platform of the index
+        # is scanned on its own (a scan without a platform only looks at the runner's), and both must pass before
+        # the digest is signed, so an image that fails is never signed and update.sh (cosign, fail closed) refuses it.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_PLATFORM: linux/amd64
+        with:
+          image-ref: ${{ needs.gates.outputs.image }}@${{ steps.build.outputs.digest }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Scan the pushed image for vulnerabilities, linux/arm64 (gate before signing)
+        # Fails on HIGH or CRITICAL findings that have a fix; unfixed ones are ignored. Each platform of the index
+        # is scanned on its own (a scan without a platform only looks at the runner's), and both must pass before
+        # the digest is signed, so an image that fails is never signed and update.sh (cosign, fail closed) refuses it.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          TRIVY_PLATFORM: linux/arm64
+        with:
+          image-ref: ${{ needs.gates.outputs.image }}@${{ steps.build.outputs.digest }}
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Sign the image digest (keyless)
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected digest" >&2; exit 1; }
+          cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Attest the build provenance of the image (gh attestation verify oci://...)
+        # In addition to the cosign signature and the BuildKit SBOM and provenance on the index: a GitHub artifact
+        # attestation for the same digest, stored in the registry and in the repository's attestations.
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ${{ needs.gates.outputs.image }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+          create-storage-record: false # the storage record needs artifact-metadata: write, which is not granted
+
+  bundle:
+    # Collects the files. No id-token: it runs a repository script (the release notes), also in a dry run.
+    needs: [gates, android, sign-apk, release, build-dry]
+    if: ${{ !cancelled() && needs.android.result == 'success' && ((inputs.dry_run && needs.build-dry.result == 'success') || (!inputs.dry_run && needs.release.result == 'success' && needs.sign-apk.result == 'success')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    env:
+      VERSION: ${{ needs.gates.outputs.version }}
+      IMAGE: ${{ needs.gates.outputs.image }}
+      DIGEST: ${{ needs.release.outputs.digest }}
+      INPUT_VERSION: ${{ inputs.version }}
+      INPUT_MIGRATION_CLASS: ${{ inputs.migration_class }}
+      SCHEMA_HEAD: ${{ needs.gates.outputs.schema_head }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      WORKFLOW_REF: ${{ github.workflow_ref }}
+      SERVER_URL: ${{ github.server_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download the signed APK
+        if: ${{ !inputs.dry_run }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-apk-signed
+          path: dist
+
+      - name: Download the unsigned APK (dry run)
+        if: ${{ inputs.dry_run }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-apk-unsigned
+          path: unsigned
+
+      - name: Name the unsigned APK (dry run)
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp unsigned/app-release-unsigned.apk "dist/sidekick-${VERSION}-UNSIGNED-dry-run.apk"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: ${{ !inputs.dry_run }}
+
+      - name: Log in to GHCR
+        if: ${{ !inputs.dry_run }}
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write the release notes (dry run)
+        # A real release gets its notes from sign-bundle, which reads CHANGELOG.md itself at the release commit and
+        # accepts no notes from this job: a file made here would be refused there.
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          python3 tools/check-version-sync.py --notes "${RUNNER_TEMP}/changelog-section.md" > /dev/null
+          {
+            cat "${RUNNER_TEMP}/changelog-section.md"
+            echo
+            echo "> Dry run: nothing was pushed or signed. The APK is unsigned."
+          } > dist/release-notes.md
+
+      - name: Export the image SBOM
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected digest" >&2; exit 1; }
+          docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .SBOM }}' > "dist/sbom-image-${VERSION}.spdx.json"
+          python3 -c 'import json, sys; data = json.load(open(sys.argv[1])); sys.exit(0 if data else "empty SBOM")' "dist/sbom-image-${VERSION}.spdx.json"
+
+      - name: Checksums (dry run; a real run gets them from sign-bundle)
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          cd dist
+          shopt -s nullglob
+          files=(sidekick-* sbom-* release-notes.md)
+          [ "${#files[@]}" -gt 0 ] || { echo "no files to checksum" >&2; exit 1; }
+          sha256sum -- "${files[@]}" > SHA256SUMS
+          cat SHA256SUMS
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # A real run signs the checksums in the next job, which uploads the finished release-bundle-X.Y.Z.
+          name: ${{ inputs.dry_run && format('release-bundle-{0}-dry-run', needs.gates.outputs.version) || format('bundle-unsigned-{0}', needs.gates.outputs.version) }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Job summary
+        run: |
+          {
+            echo "## roadlake-sidekick ${INPUT_VERSION}$([ "$DRY_RUN" = "true" ] && echo ' (dry run, unsigned, nothing pushed)')"
+            echo
+            if [ "$DRY_RUN" != "true" ]; then
+              echo "- Digest: \`${DIGEST}\`"
+              echo "- Pin: \`SIDEKICK_API_IMAGE=${IMAGE}@${DIGEST}\`"
+              echo "- Migration class: \`${INPUT_MIGRATION_CLASS}\`, schema head: \`${SCHEMA_HEAD}\`"
+              echo "- Signer identity: \`${SERVER_URL}/${WORKFLOW_REF}\`"
+              echo "- Supply chain: Trivy scan passed (no fixable HIGH/CRITICAL); SBOM and SLSA provenance attestations are attached to the image index, the image digest has a GitHub build provenance attestation, and the SBOM is in the bundle"
+              echo "- Third-party licenses and source locations: \`/usr/share/doc/sidekick/licenses/SOURCES.md\` in the image, also at https://github.com/CarlOMattsson/roadlake-sidekick/blob/main/licenses/SOURCES.md"
+              echo
+              echo "Verify (cosign v3):"
+              echo
+              echo '```'
+              echo "cosign verify ${IMAGE}@${DIGEST} \\"
+              echo "  --certificate-identity \"${SERVER_URL}/${WORKFLOW_REF}\" \\"
+              echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+              echo "gh attestation verify oci://${IMAGE}@${DIGEST} --repo ${GITHUB_REPOSITORY}"
+              echo '```'
+              echo
+            fi
+            echo "Next: download the bundle artifact, push the annotated tag at this commit, create the GitHub release from the bundle (docs/maintainers/release.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  sign-bundle:
+    # Real run only (after the owner's approval at signing-check). Holds the id-token and runs no repository
+    # code and has no checkout. Before it signs anything it
+    # checks the collected files against what the trusted jobs reported: the APK against the sha256 sign-apk
+    # computed, the image digest and the SBOM against the digest release pushed. Any difference stops the run.
+    needs: [gates, bundle, release, sign-apk]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release-signing
+    permissions:
+      contents: read
+      packages: read # re-reads the SBOM of the pushed digest
+      id-token: write # keyless signature of SHA256SUMS and the attestations
+      attestations: write # build provenance of the APK, the SBOM, SHA256SUMS and the release notes
+    env:
+      VERSION: ${{ needs.gates.outputs.version }}
+      IMAGE: ${{ needs.gates.outputs.image }}
+      DIGEST: ${{ needs.release.outputs.digest }}
+      APK_SHA256: ${{ needs.sign-apk.outputs.apk_sha256 }}
+      MIGRATION_CLASS: ${{ inputs.migration_class }}
+      SCHEMA_HEAD: ${{ needs.gates.outputs.schema_head }}
+      WORKFLOW_REF: ${{ github.workflow_ref }}
+      SERVER_URL: ${{ github.server_url }}
+      REPOSITORY: ${{ github.repository }}
+      SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: bundle-unsigned-${{ needs.gates.outputs.version }}
+          path: dist
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check every file against the outputs of the trusted jobs
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected image digest" >&2; exit 1; }
+          [[ "$APK_SHA256" =~ ^[0-9a-f]{64}$ ]] || { echo "unexpected APK sha256" >&2; exit 1; }
+          cd dist
+          # Only the APK and the SBOM come from the bundle job. Any other file, release-notes.md included, is refused.
+          names=("sbom-image-${VERSION}.spdx.json" "sidekick-${VERSION}.apk")
+          [ "$(ls -1A | sort)" = "$(printf '%s\n' "${names[@]}" | sort)" ] || { echo "the bundle holds other files than expected" >&2; ls -1A >&2; exit 1; }
+          # The APK is the one sign-apk signed and verified.
+          [ "$(sha256sum "sidekick-${VERSION}.apk" | cut -d' ' -f1)" = "$APK_SHA256" ] || { echo "the APK differs from the one sign-apk signed" >&2; exit 1; }
+          # The SBOM is the one registered for the digest that release pushed.
+          docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format '{{ json .SBOM }}' > "${RUNNER_TEMP}/sbom-registry.json"
+          cmp "${RUNNER_TEMP}/sbom-registry.json" "sbom-image-${VERSION}.spdx.json" || { echo "the SBOM differs from the one registered for ${DIGEST}" >&2; exit 1; }
+
+      - name: Write the release notes and the checksums from the commit and the trusted outputs
+        # The notes are built here, never taken from the bundle job: the changelog section of this version is read from
+        # CHANGELOG.md exactly at the release commit through the API (no checkout, no repository code), and the
+        # verification block is written from the outputs of the trusted jobs.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh api -H "Accept: application/vnd.github.raw+json" "repos/${REPOSITORY}/contents/CHANGELOG.md?ref=${SHA}" > "${RUNNER_TEMP}/CHANGELOG.md"
+          awk -v heading="## [${VERSION}] - " '
+            /^## / {
+              if (found) exit
+              if (index($0, heading) == 1 && substr($0, length(heading) + 1) ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9][ \t]*$/) found = 1
+              next
+            }
+            found { print }
+          ' "${RUNNER_TEMP}/CHANGELOG.md" > "${RUNNER_TEMP}/section.md"
+          grep -q '[^[:space:]]' "${RUNNER_TEMP}/section.md" || { echo "CHANGELOG.md at ${SHA} has no dated, non-empty '## [${VERSION}] - YYYY-MM-DD' section; refusing" >&2; exit 1; }
+          cd dist
+          {
+            cat "${RUNNER_TEMP}/section.md"
+            echo
+            echo "## Verify"
+            echo
+            echo "- Image: \`${IMAGE}@${DIGEST}\` (linux/amd64 and linux/arm64)"
+            echo "- Migration class: \`${MIGRATION_CLASS}\`, schema head: \`${SCHEMA_HEAD}\`"
+            echo "- APK sha256: \`${APK_SHA256}\`; the certificate SHA-256 must equal the one published for the app"
+            echo
+            echo "Every file is signed and attested. Verify from a machine you trust (cosign v3 and the GitHub CLI):"
+            echo
+            echo '```'
+            echo "# Image: signature, then build provenance"
+            echo "cosign verify ${IMAGE}@${DIGEST} \\"
+            echo "  --certificate-identity ${SERVER_URL}/${WORKFLOW_REF} \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo "gh attestation verify oci://${IMAGE}@${DIGEST} --repo ${REPOSITORY}"
+            echo "# Files: checksums, the signature of SHA256SUMS, then build provenance of each file"
+            echo "sha256sum -c SHA256SUMS"
+            echo "cosign verify-blob SHA256SUMS --bundle SHA256SUMS.sigstore.json \\"
+            echo "  --certificate-identity ${SERVER_URL}/${WORKFLOW_REF} \\"
+            echo "  --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+            echo "gh attestation verify sidekick-${VERSION}.apk --repo ${REPOSITORY}"
+            echo "gh attestation verify sbom-image-${VERSION}.spdx.json --repo ${REPOSITORY}"
+            echo "gh attestation verify SHA256SUMS --repo ${REPOSITORY}"
+            echo "# APK: the signing certificate (compare with the published SHA-256)"
+            echo "apksigner verify --verbose --print-certs sidekick-${VERSION}.apk"
+            echo '```'
+          } > release-notes.md
+          sha256sum -- release-notes.md "sbom-image-${VERSION}.spdx.json" "sidekick-${VERSION}.apk" > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: "v3.1.4"
+
+      - name: Sign the checksums (keyless)
+        run: |
+          set -euo pipefail
+          cd dist
+          cosign sign-blob --yes --bundle SHA256SUMS.sigstore.json SHA256SUMS
+
+      - name: Attest the build provenance of the release files (gh attestation verify)
+        # The files were just checked against the trusted jobs' outputs and are exactly the ones in SHA256SUMS.
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/sidekick-${{ needs.gates.outputs.version }}.apk
+            dist/sbom-image-${{ needs.gates.outputs.version }}.spdx.json
+            dist/SHA256SUMS
+            dist/release-notes.md
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-bundle-${{ needs.gates.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30

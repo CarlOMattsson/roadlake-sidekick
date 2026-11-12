@@ -1,0 +1,120 @@
+/* The pairing screen (pairing-gate.tsx). Only design tokens (ui/tokens.css) and the family's buttons and error line;
+   the safe-area variables are the ones the room frames read (--host-safe-*, insets.ts). */
+.mobile-pairing {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-s4);
+  width: 100%;
+  max-width: 32rem;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: calc(var(--sk-s5) + var(--host-safe-top, 0px))
+    calc(var(--sk-s4) + var(--host-safe-right, 0px))
+    calc(var(--sk-s5) + var(--host-safe-bottom, 0px))
+    calc(var(--sk-s4) + var(--host-safe-left, 0px));
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+.mobile-pairing__title {
+  margin: 0;
+  font: var(--sk-type-title);
+}
+.mobile-pairing__intro {
+  margin: 0;
+  color: var(--sk-muted);
+}
+.mobile-pairing__form {
+  display: grid;
+  gap: var(--sk-s4);
+}
+.mobile-pairing__field {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.mobile-pairing__label {
+  font: var(--sk-type-label);
+  color: var(--sk-muted);
+}
+.mobile-pairing__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: var(--sk-tap-lg);
+  margin: 0;
+  padding: 0 var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+.mobile-pairing__input::placeholder {
+  color: var(--sk-muted);
+  opacity: 1;
+}
+.mobile-pairing__hint {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.mobile-pairing__form .sk-btn {
+  width: 100%;
+}
+/* A refused field: the line sits by the field, and the field's border says which one it is. */
+.mobile-pairing__input[aria-invalid="true"] {
+  border-color: var(--sk-danger-line);
+}
+.mobile-pairing__error {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-danger-fg);
+}
+.mobile-pairing__help {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.mobile-pairing__help > summary {
+  min-height: var(--sk-tap);
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  color: var(--sk-fg);
+  text-decoration: underline;
+  cursor: pointer;
+  list-style: none;
+}
+.mobile-pairing__help > summary::-webkit-details-marker {
+  display: none;
+}
+.mobile-pairing__help > summary::before {
+  content: "▸";
+  text-decoration: none;
+}
+.mobile-pairing__help[open] > summary::before {
+  content: "▾";
+}
+.mobile-pairing__help > p {
+  margin: 0 0 var(--sk-s2);
+}
+/* The button the keyboard must not cover: scrollIntoView leaves room under it. */
+.mobile-pairing__form > div:last-child {
+  scroll-margin-bottom: var(--sk-s5);
+}
+.mobile-pairing__secret {
+  display: flex;
+  gap: var(--sk-s2);
+  align-items: stretch;
+}
+.mobile-pairing__reveal {
+  flex: none;
+  min-height: var(--sk-tap-lg);
+  padding: 0 var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-label);
+  cursor: pointer;
+}

@@ -1,0 +1,31 @@
+# Hardened ntfy server for the self-hosted push path.
+# Mounted read-only at /etc/ntfy/server.yml by the `ntfy` service in compose.yaml (profile `push`).
+# Users and the publish token are NOT here: they are declared in ntfy.env (NTFY_AUTH_USERS, NTFY_AUTH_TOKENS),
+# written by ntfy-init.sh. Only the access rules, which hold no secret, are listed below.
+
+listen-http: ":8080"            # above 1024: works with cap_drop ALL and a non-root user
+behind-proxy: true              # real client IP for the rate limits; the port is never published, only Caddy reaches it
+auth-file: "/var/lib/ntfy/user.db"  # tmpfs: rebuilt from this file and ntfy.env at every start
+auth-default-access: "deny-all" # nothing without an explicit rule, no anonymous access at all
+auth-access:
+  - "sidekick:up*:wo"          # Sidekick may only write to the UnifiedPush topics, never read
+  - "phone:up*:ro"              # the phone may only read them, never write
+enable-login: false             # no account API
+enable-signup: false
+enable-reservations: false
+web-root: disable               # no web app (several past advisories were in it)
+cache-duration: "2h"            # no cache-file, so memory only: replays a push missed during a dropped connection
+# No cache-file, no attachment-cache-dir: no attachments and nothing on disk. The attachment expiry is set to
+# the cache duration only so that the server does not log a warning about the default (3 h) being longer.
+attachment-expiry-duration: "2h"
+message-size-limit: "1K"        # the wake payload is a few bytes
+visitor-request-limit-burst: 120
+visitor-request-limit-replenish: "2s"
+visitor-message-daily-limit: 2000   # guard against a runaway worker, not a quota
+visitor-subscription-limit: 5
+visitor-topic-creation-limit-burst: 20
+global-topic-limit: 200
+log-level: warn                 # debug and trace log every publish with its topic (checked 2026-11-09); warn logs none
+log-format: json
+# Deliberately absent: upstream-base-url, firebase-key-file, smtp-*, enable-metrics,
+# experimental-listen-admin-unix, visitor-subscriber-rate-limiting.

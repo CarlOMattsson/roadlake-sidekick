@@ -1,0 +1,11 @@
+{
+  "name": "roadlake-sidekick-lighthouse",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "lh": "lhci autorun --config=./lighthouserc.json"
+  },
+  "dependencies": {
+    "@lhci/cli": "0.16.0"
+  }
+}

@@ -1,0 +1,838 @@
+/* Agenda rows (fullscreen Work). A row is flat: the glyph is the quick action, the title opens the
+   record, and the quick choices open with a long press or Shift+F10 (no ⋯). Only the agenda's own
+   classes are styled here; the board, cards and the shared row kit have their own rules. Colours
+   read the host tokens first, so the rules follow the host colour scheme. */
+
+/* Row layout: glyph, then the title with its meta line; the text ends at the 16 px margin. */
+.sidekick-work .work-agenda-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  min-height: 48px;
+}
+.sidekick-work .work-agenda-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  /* The block starts 6 left of the title, in the 12 after the ring, so its focus ring (below) stands clear of the
+     text; the title keeps its x. */
+  margin-inline-start: -6px;
+  padding-inline: 6px var(--sk-s4);
+}
+/* Keyboard focus on a row's title rings the whole text block, title and meta line together: the title's own ring ran
+   through the meta line under it (ui-23). The ring is the family's (2 px --sk-ring), on the block's edge. */
+.sidekick-work .work-agenda-body > button:focus-visible {
+  outline: none;
+}
+.sidekick-work .work-agenda-body:has(> button:focus-visible) {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 0;
+  border-radius: var(--sk-radius);
+}
+
+/* The glyph is a 44 px touch target without a frame. In a task row (L2) its 24 px ring starts at the page's 16 px
+   margin, so the target hangs 10 px into it, and the text follows 12 px after the ring. */
+.sidekick-work .work-agenda-row .work-agenda-glyph {
+  width: var(--sk-lead-w);
+  min-width: var(--sk-lead-w);
+  min-height: var(--sk-lead-h);
+  margin: 0 2px 0 var(--sk-lead-hang);
+}
+/* The ring's target is the whole leading column in the row's height (designsystem §3 Listrad), as on the
+   board: the button stretches down the line and keeps its ring 10 from the top, on the title line's middle
+   (measured 44 × 44, so a tap under the ring of a two-line row opened the task). */
+.sidekick-work .work-agenda-line > button.work-agenda-glyph {
+  align-self: stretch;
+  align-items: flex-start;
+  /* The row's air + half a row line − half the ring: the title line's middle at every text size (the ring is
+     --sk-ring-glyph, the air --sk-row-pad). */
+  padding-top: calc(
+    var(--sk-row-pad) + var(--sk-type-row-line) / 2 - var(--sk-ring-glyph) / 2
+  );
+}
+/* 48 wide: 2 further into the side margin and 2 over the gap to the title. */
+.sidekick-work .work-agenda-line > button.work-agenda-glyph::after {
+  content: "";
+  position: absolute;
+  inset: 0 -2px;
+}
+/* Each list of rows is a stacking context of its own: the ring and Ångra lie over the title's cover (z-index 1) inside
+   it, and the whole list stays under the group heading that sticks over it (stickyHeading, z-index 1). Without it the
+   ring of a row scrolled under «Försenade (5)» was drawn over the heading and took its taps (ui-1). */
+.sidekick-work .work-agenda .work-list {
+  isolation: isolate;
+}
+/* The agenda's rows: no padding of their own. The title's box holds the
+   row's 6 of air over its line and the meta line's the 6 under its own, so the title box is a larger target and a row
+   with a meta line is 54 at 110 % (77 and 100 with two and three title lines); 14 lie between two rows' glyphs. */
+.sidekick-work .work-agenda .work-list > li.work-agenda-row {
+  padding: 0;
+}
+.sidekick-work .work-agenda-glyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+
+/* The title is the open button: plain text with no frame, full width of its column. A title may break
+   inside a long word here, so a narrow column never shows it one letter per line (the 190 px case). */
+.sidekick-work .work-agenda-body > button {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  /* The row's 6 over the title is a margin: the clamped box is the lines themselves, so its clip ends
+     at the last shown line and nothing of a fourth line shows in the air under it. */
+  margin: var(--sk-row-pad) 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  /* The row type (16/20.8, 400): the row's air above it, so the first line's centre is the ring's centre. */
+  font: var(--sk-type-row);
+  text-align: left;
+  /* A word that does not fit moves to the next line whole; `anywhere` split "momsdeklarationen" at the end of a
+     line that still had room for a space (at 320 px). */
+  overflow-wrap: break-word;
+}
+.sidekick-work .work-agenda-body > .work-card-title {
+  margin: var(--sk-row-pad) 0 0;
+  padding: 0;
+  font: var(--sk-type-row);
+  overflow-wrap: break-word;
+}
+
+/* A row title in a full-screen list (Agenda, Status, the detail lists): at most 3 lines up to about 133 % text, never cut
+   above it (--sk-row-title-lines, layout.css). The title's cover (::after) belongs to
+   the row, so the clip does not cut the target. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work
+      .work-board[data-layout="single"]
+      .work-list
+      > li.work-card
+      > .work-card-head
+  )
+  > :is(button:not(.work-card-done):not(.work-drag-handle), .work-card-title) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--sk-row-title-lines, none);
+  overflow: hidden;
+}
+
+/* The meta line, Agenda and Status alike: one line right
+   under the title's line, then the row's 6. Its parts keep the order time/overdue · status · kind · High · Project.
+   The time, the status and the kind always stand whole (a one-line box that wrapped and
+   clipped dropped "Pågår" and the Project at 360 px and 200 %). Only the two last give way: "Hög" stands whole or not
+   at all, the Project is cut with an ellipsis when at least 4em of it fits, else left out whole (no stump; the full
+   name stays in the Task and the part's title). When the time and the status alone do not fit beside each other (at
+   200 %: "11 dagar försenad · Pågår" needs 322 px of a 294 px line at 360 px, "· Blockerad" 372 of 346 at 412 px), the
+   status moves whole to a second meta line rather than vanish, as the title's clamp gives way above about 133 %. The " · " is the part's own ::before, hung in the gap before it. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  /* Every part has the meta's one font and line, so top equals baseline, and the negative margin below (which baseline
+     alignment would move) keeps its place. Lines pack at the top: a 0-high line is never stretched into view. */
+  align-items: flex-start;
+  align-content: flex-start;
+  min-width: 0;
+  /* At least the one line; more only when a part that must stand wraps. */
+  min-height: var(--sk-type-meta-line);
+  /* No row gap (work.css gives Status's column one), so a hidden line adds nothing. */
+  gap: 0 0.8em;
+  /* Clips the Project when it wraps (see below) and the dot of a part that starts a line. */
+  overflow: clip;
+  /* The row's 6 under the meta is a margin, so the clip is the line itself. */
+  margin: 0 0 var(--sk-row-pad);
+  padding: 0;
+  font: var(--sk-type-meta);
+  white-space: nowrap;
+}
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta:empty {
+  display: none;
+}
+/* Not a target: a tap on the meta still reaches the title's cover over the row. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > * {
+  position: relative;
+  flex: none;
+  pointer-events: none;
+}
+/* The dot hangs in the gap before its part (a gap, unlike a margin, is never drawn at a line's start), so a part that
+   starts the second line puts its dot left of the meta's edge, where the clip hides it. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > *
+  + *::before {
+  content: "·";
+  position: absolute;
+  right: 100%;
+  width: 0.8em;
+  text-align: center;
+  font-weight: 400;
+  color: var(--sk-muted);
+}
+/* "Hög" and the Project, after another part: when they do not fit on the line, they wrap to a line of their own. Their
+   negative margin makes that line 0 high at the meta's lower edge, so the meta does not grow and its clip hides them
+   whole. As the first part they keep their height, so the meta's first line is never 0 high. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > *
+  + :is(.work-card-priority, .work-card-project) {
+  margin-block-end: calc(-1 * var(--sk-type-meta-line));
+}
+/* The Project shrinks to 4em with an ellipsis before it wraps. Its dot stays inside its own box (its overflow would
+   clip a hung one), in the gap its negative margin gives back, and goes with it. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > .work-card-project {
+  flex: 1 1 4em;
+  max-width: max-content;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Room for the ink a last "v" or "y" draws past its advance, which the clip would cut ("nov"). */
+  padding-inline-end: 2px;
+}
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > *
+  + .work-card-project {
+  margin-inline-start: -0.8em;
+}
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > .work-card-project::before {
+  position: static;
+  display: inline-block;
+}
+
+/* The row's quick choices (designsystem §3 "Snabbval"): two marked rows under the row, on
+   the title's x. "Status" holds the four statuses, the current one chosen; "Datum" holds Idag, Imorgon, Nästa vecka and
+   Välj datum …, the Task's own date chosen, as a fifth chip first when it is none of the four. Every choice is a chip
+   (family.css .sk-chip: 40 drawn, 48 to tap, the chosen one with the selected tone, a 2 px outline, a tick and 600).
+   The open row is the chosen row: the surface (--sk-surface) with the card radius, 8 wider than the row on each side
+   (x 8–404) and 4 more over the ring, so every glyph stands ≥ 8 inside it while the ring and the title
+   keep their x. × (48 × 48) closes it from the open row's first title line, in the › column. */
+.sidekick-work .work-list > li.work-agenda-row:has(> .work-agenda-menu) {
+  position: relative;
+  margin-inline: calc(-1 * var(--sk-s2));
+  padding: var(--sk-s1) var(--sk-s2) 0;
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+  /* The panel's edge: the secondary button's --sk-border (3,4:1 light, 3,7:1 dark), drawn inside. */
+  box-shadow: inset 0 0 0 var(--sk-hairline) var(--sk-border);
+}
+.sidekick-work .work-agenda-menu {
+  display: grid;
+  /* 8 between the groups and 8 of air inside the panel. */
+  gap: var(--sk-s2);
+  padding: var(--sk-s2) var(--sk-s2) var(--sk-s2)
+    calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px);
+}
+/* What the app shows after an action, the quick choices and the Ångra, scrolls itself 12 above the reply field
+   (`useNearest`): one margin for both. */
+.sidekick-work :is(.work-agenda-menu, .work-agenda-undo > p) {
+  scroll-margin-block-end: calc(var(--sk-foot-reserve, 6rem) + 12px);
+}
+/* Each label stands 3 over its chips. The groups' labels have the label role (15,4/600 text-2
+   at 110 %, as «Försenade» in 01), and scale with the text, so a label stays under the title it serves at every size. */
+.sidekick-work .work-agenda-menu-row {
+  display: grid;
+  gap: 3px;
+}
+.sidekick-work
+  .work-agenda-menu-row
+  > :is(.work-agenda-menu-label, .work-agenda-menu-fold) {
+  font: var(--sk-weight-semibold) var(--sk-type-meta-size) /
+    var(--sk-type-meta-line) var(--sk-font);
+  color: var(--sk-muted);
+}
+/* The fold row's ⌄ follows its label (as in the other fold rows), on the label's line when the value stands under it. */
+.sidekick-work
+  .work-agenda-menu-row
+  > .work-agenda-menu-fold:has(.sk-fold-meta)
+  > svg {
+  margin-top: calc((var(--sk-type-meta-line) - 1em * 24 / 19.8) / 2);
+}
+/* The open row is the panel's head at every text size: its › gives way to × (it
+   replaces "Stäng"), a 24 px glyph in the › column on the content edge and the title's first line, in a 48 × 48 target
+   that ends on the panel's edge. At 110 % the › keeps its box, so the title keeps its width. */
+.sidekick-work li.work-agenda-row:has(> .work-agenda-menu) .work-open-chevron {
+  visibility: hidden;
+}
+.sidekick-work button.work-agenda-menu-close {
+  position: absolute;
+  top: calc(
+    var(--sk-s1) + var(--sk-row-pad) + var(--sk-type-row-line) / 2 - 24px
+  );
+  right: 0;
+  display: grid;
+  place-items: center end;
+  width: 48px;
+  height: 48px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--sk-s2) 0 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+}
+/* × follows the title as the ring does: 24 up to 150 % text and 32 at 200 % (the ring's clamp; the
+   row's › itself is 16 at large text, which left × at half the title's height). */
+.sidekick-work button.work-agenda-menu-close > svg {
+  display: block;
+  width: clamp(var(--sk-s5), var(--sk-type-row-size), var(--sk-s6));
+  height: clamp(var(--sk-s5), var(--sk-type-row-size), var(--sk-s6));
+}
+.sidekick-work .work-agenda-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+}
+/* "Välj datum …" is the date control: the platform's date input lies invisible over the chip's 48
+   target, so a tap opens the platform's picker and nothing of the native field shows. Its picker indicator fills the
+   input where the engine has one (Chromium); elsewhere the input's click handler asks for the picker (agenda.tsx). */
+.sidekick-work .work-agenda-date-input {
+  position: absolute;
+  /* The chip's 48: 4 past its 1 px edge, from its padding box (family.css .sk-chip::after). */
+  inset: calc(-4px - var(--sk-hairline));
+  z-index: 1;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.sidekick-work .work-agenda-date-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+}
+/* The chip is a span around the input, so it takes a button chip's centred text itself. */
+.sidekick-work .work-agenda-date-chip {
+  text-align: center;
+}
+.sidekick-work .work-agenda-date-chip[data-disabled] {
+  opacity: 0.5;
+}
+/* Focus draws the app's ring on the chip, in the text colour: never the platform's blue, and the input
+   under it draws none of its own. */
+.sidekick-work .work-agenda-date-input:focus-visible {
+  outline: none;
+}
+.sidekick-work
+  .work-agenda-date-chip:has(> .work-agenda-date-input:focus-visible) {
+  outline: 2px solid var(--sk-fg);
+  outline-offset: 2px;
+}
+
+/* Large text (≥ 150 % on a phone, 17.25rem is 412 px at 150 %): Status and Datum are fold rows
+   (row.css .sk-fold) with the chosen value in their meta, one open at a time (agenda.tsx), so the menu is one group
+   high (260 at 150 %, 342 at 200 % with Datum open and the Task's own date as a fifth chip: ≤ 400) and
+   ends above the reply field. The panel drops the title's indent, so the chips get the row's width, and both
+   ⌄ stand on the content edge under ×. */
+@container sk-frame (max-width: 17.25rem) {
+  /* The open row's own line: the title on one line with an ellipsis (its whole text is the
+     button's name) and × on the same line, no meta (the chosen chips say status and date), so the panel is 56 + the menu and
+     fits under the sticky heading above the reply field (agenda.tsx puts it there). */
+  .sidekick-work li.work-agenda-row:has(> .work-agenda-menu) {
+    --sk-row-title-lines: 1;
+  }
+  .sidekick-work
+    .work-list
+    > li.work-agenda-row:has(> .work-agenda-menu)
+    > .work-agenda-line
+    > .work-agenda-body
+    > .work-card-meta:not(:has(.sk-queued)) {
+    display: none;
+  }
+  /* Only the ordinary meta goes: Ångra, the receipt, the moved note and a waiting tap stay, so a write
+     that was just made can still be undone while the menu is open. */
+  .sidekick-work
+    li.work-agenda-row:has(> .work-agenda-menu)
+    .work-agenda-body
+    > :first-child:not(:has(~ :is(.work-agenda-undo, .work-agenda-moved))) {
+    margin-bottom: var(--sk-row-pad);
+  }
+  .sidekick-work li.work-agenda-row:has(> .work-agenda-menu) .work-agenda-body {
+    padding-inline-end: 48px;
+  }
+  .sidekick-work .work-agenda-menu {
+    gap: 0;
+    padding-inline-start: var(--sk-s3);
+  }
+  .sidekick-work .work-agenda-menu-row {
+    gap: var(--sk-s1);
+  }
+  .sidekick-work .work-agenda-menu-row > .work-agenda-choices {
+    padding-bottom: var(--sk-s2);
+  }
+  /* Every chip has its label on one line and its own width, and the chips wrap between them (in two
+     columns "Nästa vecka" broke inside its chip). Their air stops growing as the tab row's does (--sk-tabs-h): at most 56 drawn, still a 64 target, while the label follows the text, so three rows of chips stay ≤ 400. */
+  .sidekick-work .work-agenda-choices > .sk-chip {
+    min-height: min(var(--sk-compact), 56px);
+  }
+  /* The last resort for a label longer than the frame (320 px at 200 %): the chip never wider than
+     its row, and only then does the label break. A label that fits keeps its one line, so nothing changes at 360/412. */
+  .sidekick-work .work-agenda-choices > .sk-chip {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* A narrow frame (about 260 px or less; 200 % zoom on a phone). The row stacks instead of shrinking: the glyph
+   keeps its own line, and the title and the meta line take the full width under it. The triage buttons and the status choices use the full row too, with no
+   2.75 rem indent, so their labels do not wrap letter by letter. The DOM order is kept, so the focus order
+   follows the layout. */
+@container sk-frame (max-width: 260px) {
+  .sidekick-work .work-agenda-line {
+    flex-wrap: wrap;
+  }
+  .sidekick-work .work-agenda-body {
+    flex: 1 1 100%;
+  }
+  .sidekick-work .work-agenda-glyph {
+    margin-inline: 0;
+  }
+  .sidekick-work .work-agenda-menu {
+    padding-left: var(--sk-s3);
+  }
+}
+
+/* Done rows are dimmed to the muted text colour, due tone included, not struck through (designsystem "Ångra").
+   The glyph keeps its colour. The check glyph is the marker (data-glyph "ring-check"). */
+.sidekick-work .work-agenda-row:has([data-glyph$="-check"]) .work-agenda-body,
+.sidekick-work
+  .work-agenda-row:has([data-glyph$="-check"])
+  .work-agenda-body
+  > *,
+.sidekick-work .work-agenda-row:has([data-glyph$="-check"]) [data-tone],
+.sidekick-work .work-agenda-row[data-muted] .work-agenda-body > *,
+.sidekick-work .work-agenda-row[data-muted] .work-agenda-glyph {
+  color: var(--sk-muted);
+}
+
+/* A Step's or an action's square in the ring's column: 16 and muted, so the rows that are part of a Task read as such
+   beside the Tasks' 24 rings, and no one takes it for a box to tick. */
+.sidekick-work .work-agenda-glyph-sub {
+  color: var(--sk-muted);
+}
+.sidekick-work .work-agenda-glyph.work-agenda-glyph-sub .sk-status-glyph {
+  width: var(--sk-glyph);
+  height: var(--sk-glyph);
+}
+
+/* "Ingen anslutning · senast hämtad 14:02" over an agenda read from the phone's offline copy: the meta type, muted,
+   on the page's text edge, as Shopping says it. */
+.sidekick-work .work-agenda-offline {
+  margin: var(--sk-s2) 0;
+  font-size: var(--sk-type-meta-size);
+  line-height: var(--sk-type-meta-line);
+  color: var(--sk-muted);
+}
+
+/* A row a triage button changed stays in its group, dimmed to the muted colour, with its new date or "Klar"
+   under the title, until the list is read again. Its triage buttons are off meanwhile. */
+.sidekick-work .work-agenda-row-moved .work-agenda-body > * {
+  color: var(--work-muted);
+}
+.sidekick-work .work-agenda-body > .work-agenda-moved {
+  margin: 0;
+  padding: 0 0 var(--sk-row-pad);
+  font: var(--sk-type-meta);
+}
+
+/* Filter row: the search field and the Refresh icon share one line. The field's label sits visibly above the
+   input (the field is a grid), so the Refresh icon lines up with the input, not with the label. */
+.sidekick-work .work-agenda-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  margin: 0.5rem 0;
+}
+.sidekick-work .work-agenda-filter {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  font: var(--sk-type-menu);
+}
+/* Refresh is a 44 px text button ("Uppdatera") with the same frame as the search field (A8). */
+.sidekick-work .work-agenda-refresh {
+  flex: none;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  padding: 0 0.75rem;
+  background: var(--work-bg);
+  color: inherit;
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1;
+}
+
+/* The heading row of a group: 24 under the last row's box and 4 over the first row's
+   (--sk-section-above/-below), 32 and 12 between the glyphs. The row is the sticky element (the inline style). 8 of the
+   24 are the row's own padding, on the page colour, so a heading that stands fast under the tab row has its glyphs ≈ 10
+   under the row's edge, and the first one rests there too. */
+.sidekick-work .work-agenda-group-head {
+  margin: calc(var(--sk-section-above) - var(--sk-s2))
+    calc(-1 * var(--sk-frame-pad-right, 0px)) var(--sk-section-below)
+    calc(-1 * var(--sk-frame-pad-left, 0px));
+  /* Its page colour reaches the frame's side edges, as the tab row's above it: the ring's target hangs into the side
+     margin, and a stuck heading covers that part too (ui-1). The text keeps the content edge. */
+  padding: var(--sk-s2) var(--sk-frame-pad-right, 0px) 0
+    var(--sk-frame-pad-left, 0px);
+}
+.sidekick-work .work-agenda > section:first-of-type > .work-agenda-group-head,
+.sidekick-work .work-new-task-recent > .work-agenda-group-head {
+  margin-top: 0;
+}
+
+/* The status symbol is a 24 px ring inside the 44 px target: the same in the inline card and the
+   fullscreen agenda, which both use this button (A2). */
+.sidekick-work .work-agenda-glyph .sk-status-glyph {
+  width: var(--sk-ring-glyph);
+  height: var(--sk-ring-glyph);
+}
+
+/* The Undo of a row (designsystem §3 "Tillstånd", Ångra), in the agenda, the board, To sort and the detail rows:
+   the meta line says what was done ("Klar"), in the meta type and muted, and "Ångra" is a compact secondary button in the
+   trailing slot, its middle on the title line's and its right edge on the content edge. The wrapper has
+   display: contents, so the row's grid places the line under the title and the button beside it: the row keeps its
+   height. The button sits above a row's open cover. */
+.sidekick-work .work-agenda {
+  position: relative;
+}
+.sidekick-work .work-agenda-undo {
+  display: contents;
+}
+.sidekick-work .work-agenda-undo > p {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0;
+  padding: 0 0 var(--sk-row-pad);
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* Ångra (40) stands at the row's top beside the title and its meta line ("Klar"), which the row's 48 hold, so
+   the row keeps its height; its 48 target reaches 6 down and never up into the row above. */
+.sidekick-work .work-agenda-undo > button {
+  grid-area: 1 / -2 / 3;
+  z-index: 1;
+  align-self: start;
+}
+.sidekick-work .work-agenda-undo:not([data-low]) > button::after {
+  inset: 0 -4px -6px;
+}
+/* The time left to undo, a 2 px line of the button's text colour along its whole foot, 2 inside the
+   bottom edge and 4 in from the rounded corners, that
+   shrinks to nothing in the same 15 s as the timer (UNDO_MS) and stands still while the timer does (pointer over it,
+   focus in it: data-held). A new change mounts a new button and starts it again. None with reduced motion. */
+.sidekick-work .work-agenda-undo > button::before {
+  content: "";
+  position: absolute;
+  inset: auto var(--sk-s1) 2px;
+  height: 2px;
+  background: currentColor;
+  transform-origin: left;
+  animation: sk-undo-time 15s linear forwards;
+}
+.sidekick-work .work-agenda-undo[data-held] > button::before {
+  animation-play-state: paused;
+}
+@keyframes sk-undo-time {
+  to {
+    scale: 0 1;
+  }
+}
+.sidekick-work
+  :is(.work-agenda-body, .work-unsorted-row):has(> .work-agenda-undo) {
+  display: grid;
+  align-items: start;
+  padding-inline-end: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--sk-s3);
+}
+/* A title that would wrap beside "Ångra" keeps the full width, and "Ångra" moves down beside the meta line (data-low,
+   agenda-undo.tsx), its top 4 under the title's text. The row grows so the whole button and its 48 target fit inside
+   it, 4 under the button (at -12 the button reached into the next row's target). It never touches the
+   title's last line. */
+.sidekick-work :has(> [data-low]) > :first-child {
+  grid-column: 1 / -1 !important;
+}
+.sidekick-work [data-low] > button {
+  grid-row: 2;
+  margin: 0 0 var(--sk-row-pad);
+}
+
+/* A search with no hit: the sentence, then "Rensa sökningen" as a text button (designsystem §3 "Tomt"). */
+.sidekick-work .work-agenda-nomatch > p {
+  margin: var(--sk-s4) 0 0;
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-agenda-clear {
+  margin: var(--sk-s1) 0 0 calc(-1 * var(--sk-s3));
+  padding: 0 var(--sk-s3);
+  border: 0;
+  background: none;
+  font: var(--sk-type-button);
+}
+
+/* The loading indicator is placed over the top right of the agenda, so a status change does not move
+   the rows: it takes no room in the layout. */
+.sidekick-work .work-agenda-loading {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--work-bg);
+  color: var(--work-muted);
+}
+
+/* A group heading reads "Denna vecka · 28 okt–1 nov · 4": it wraps on a narrow column and keeps its digits aligned.
+   Sections are told apart by the 24 px air above the heading (the row's margin), not by a line above it. */
+/* A section heading ("Idag, ons 4 nov", "Denna vecka"): the section type (16/22, 600, --sk-fg; the count
+   "(5)" muted 400), with the head row's margin above it and the rows' 12 under it. "Försenade" is not red: its
+   rows say "5 dagar försenad" in --sk-overdue-fg, so red marks the Task once and not the heading too. */
+.sidekick-work .work-agenda-group {
+  margin: 0;
+  padding-top: 0;
+  border-top: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+/* "Flytta N försenade till imorgon" is the action row (row.css .sk-action-row) after the group's last row,
+   so it belongs to Försenade and is no flag on the heading's line. */
+
+/* The waiting view: each row names who is waited on and for how long, then the Task, then a "Påminn" button.
+   The name and the days share one line that wraps on a 320 px screen; the Task title is the open button; the
+   button is at least 44 px high and wide and sits under the title, so it never pushes the row wider. A wait of
+   seven days or more takes the overdue tone of the days text. */
+.sidekick-work .work-waiting-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  margin: 0.25rem 0 0 0.25rem;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-waiting-name {
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-work .work-waiting-days {
+  color: var(--work-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sidekick-work .work-waiting-days[data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+.sidekick-work .work-waiting-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.5rem 0.25rem;
+}
+.sidekick-work .work-waiting-remind {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  max-width: 100%;
+  padding: 0.35rem 1rem;
+  box-sizing: border-box;
+}
+.sidekick-work .work-waiting-reminded {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--work-muted);
+}
+
+/* The inline agenda card (one screen): each row starts with the status glyph, the same 44 px target as
+   the fullscreen row. The compact row styles a direct button as its title, so the glyph restates its own
+   box and display. The negative vertical margins let the target hang into the row, so a row keeps the
+   height of its text. */
+.sidekick-work .work-compact-row > .work-agenda-glyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin: -0.75rem 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* The long-press tip (designsystem §3 "Listrad"), last in Agenda and Status until the quick choices are first
+   opened: the meta type, muted, 24 under the last group's text (the last row's padding gives 2). No frame. */
+.sidekick-work .work-row-tip {
+  margin: 22px 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+[data-row-menu] .work-row-tip {
+  display: none;
+}
+
+/* Försenade's handled rows (designsystem §3 "Tillstånd"): a row done or moved from the
+   group sinks to the group's end, so the rows above it are the "(n)" of the heading. No line (a lone hairline read as noise): 8 of air above it. */
+.sidekick-work .work-agenda .work-list + .work-list.work-agenda-handled {
+  margin-top: var(--sk-s2);
+}
+
+/* A done row whose Undo ran out folds away in 200 ms and leaves its group; with reduced motion it goes at once
+   (agenda.tsx skips the fold). Only its own height closes: the rows above do not move. */
+.sidekick-work .work-agenda-row[data-leaving] {
+  overflow: hidden;
+  pointer-events: none;
+  animation: work-agenda-leave 200ms ease-in forwards;
+}
+/* It no longer opens, so it shows no ›, as with the Ångra it had. */
+.sidekick-work .work-agenda-row[data-leaving] .work-open-chevron {
+  visibility: hidden;
+}
+@keyframes work-agenda-leave {
+  from {
+    max-height: var(--leave-h);
+    opacity: 1;
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-work .work-agenda-row[data-leaving] {
+    animation: none;
+  }
+  .sidekick-work .work-agenda-undo > button::before {
+    content: none;
+  }
+}
+
+/* "Klar idag (n) ⌄" last in the Agenda: the rows done here whose Undo ran out, folded,
+   in the same form as Status's "Klar (n) ⌄". It reuses the board's column markup, so the column's card is taken back:
+   no surface, no frame, no padding; the heading is a group heading (24 over, 4 under), its button the fold's 48 row. */
+.sidekick-work .work-agenda > section[data-agenda-done] {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.sidekick-work .work-agenda > section[data-agenda-done] > h3 {
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+  padding: 0;
+  border: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+.sidekick-work .work-agenda > section[data-agenda-done] > .work-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A row without a meta line: its title keeps the row's 6 under its last line, as a meta line would,
+   so 12–14 lie between its glyphs and the next row's, as everywhere. A margin, outside the clamped box: a
+   padding lay inside the clip and showed a strip of the fourth line under the ellipsis. */
+.sidekick-work .work-agenda-body:not(:has(> * + :not(:empty))) > :first-child,
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card:not(:has(> .work-card-meta:not(:empty), > .work-agenda-undo))
+  > .work-card-head
+  > button:not(.work-drag-handle):not(.work-card-done) {
+  margin-bottom: var(--sk-row-pad);
+}
+
+/* A Task that repeats: the loop glyph before the rule in the meta line ("↻ varje månad"), on the text's centre line. */
+.sidekick-work .work-card-repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+}
+.sidekick-work .work-card-repeat > .sk-repeat-icon {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
+/* Keyboard focus on a row's ring rings the glyph itself, 3 outside it (a circle for a Task), not the 48 tall leading
+   column, whose box starts in the side margin and was cut at the frame's left edge (uc-15). */
+.sidekick-work .work-agenda-line > button.work-agenda-glyph:focus-visible {
+  outline: none;
+}
+.sidekick-work
+  .work-agenda-line
+  > button.work-agenda-glyph:focus-visible
+  > .sk-status-glyph {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 3px;
+  border-radius: 50%;
+}
+
+/* A group heading that has stuck under the tab row draws a hairline under itself, so the rows scrolling under it end
+   on a line instead of showing half-cut glyphs (uc-18). Where the engine has no scroll-state queries, nothing
+   changes. */
+.sidekick-work .work-agenda-group-head {
+  container-type: scroll-state;
+}
+@container scroll-state(stuck: top) {
+  .sidekick-work .work-agenda-group-head > * {
+    box-shadow: 0 1px 0 0 var(--sk-border);
+  }
+}

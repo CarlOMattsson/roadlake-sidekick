@@ -1,0 +1,150 @@
+/*
+ * The Back row (BackHeader, back-header.tsx; designsystem §3). The row holds "‹ Parent" on the left and the
+ * actions on the right, 44 px high; the title, when there is one, sits 4 px under it in --sk-type-title. The Back
+ * button has no frame and a 44 px tap target, written as a literal so the CSS contract reads it. The chevron starts
+ * exactly on the content edge (16 px in the rooms).
+ */
+.sk-back-header {
+  display: grid;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+
+.sk-back-header__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  min-width: 0;
+  min-height: var(--sk-tap);
+}
+
+/* The doubled class lifts these rules above the families' generic button rule (family.css, `:is(.sidekick-...) button`,
+   one class and one element), which would otherwise give the Back its frame, background and 14 px padding. */
+.sk-back-header .sk-back-header__back.sk-back-header__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  flex: 0 1 auto;
+  box-sizing: border-box;
+  min-width: var(--sk-tap);
+  min-height: var(--sk-tap);
+  max-width: 100%;
+  /* The 12 px side padding is part of the 44 px tap target; it is taken back, so the chevron starts exactly
+     on the content edge (16 px in the rooms). */
+  margin: 0;
+  margin-inline-start: calc(-1 * var(--sk-s3));
+  padding: 0 var(--sk-s3);
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-label-strong);
+  cursor: pointer;
+}
+
+/* The chevron is the 24 px glyph of icons.tsx, whose ink spans x 8–16 of its box: -8 px puts the ink on the content
+   edge (x 16 in the rooms), and -4 px after it leaves 8 px of air before the label. */
+.sk-back-header__back > svg {
+  flex: none;
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+  margin-inline: -8px -4px;
+}
+
+.sk-back-header__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The target is 48 (44 before): 2 up into the gap under the room strip, whose target
+   takes the other 2, and 2 down into the 4 before the title, which is not a control. */
+.sk-back-header .sk-back-header__back.sk-back-header__back {
+  position: relative;
+}
+.sk-back-header__back::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0;
+}
+
+/* Doubled class: it takes the title back from a room's own section-heading rule (an h2 with a top border and margin).
+   Right under the Back row's box (the 12 of the title's own margin is taken, the −4 gives back the gap): 100 at 412.
+   The Back row's own 11 under its line and the title's half-leading leave ≈ 15 between the glyphs. */
+.sk-back-header .sk-back-header__title.sk-back-header__title {
+  margin: calc(-1 * var(--sk-s1)) 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  font: var(--sk-type-title);
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+/* The glyphs' boxes end on the content edge (designsystem §3 Ikonknapp): the group reaches 10 into the side
+   margin, so ⋯ has its centre on x = width − 28 (384 at 412), the same line as the room heads. The doubled class
+   overrides the detail views' older reset (contacts.css). */
+.sk-back-header__actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+.sk-back-header .sk-back-header__actions.sk-back-header__actions {
+  margin-inline-end: calc((var(--sk-icon) - var(--sk-tap)) / 2);
+}
+
+/* The slot the view on top fills (BackHeaderActions) lays its buttons out as items of the action row. */
+.sk-back-header__slot {
+  display: contents;
+}
+
+/* Actions are icon buttons (§3, Ikonknapp): no frame, a 44x44 box with a 48 target (family.css .sk-iconbtn), a 24 px
+   glyph in --sk-fg. Two of them sit side by side without a gap, so pen and ⋯ are 44 apart centre to centre; their
+   targets reach outwards only and never overlap. The doubled class lifts this above the rooms' button rule. */
+.sk-back-header .sk-back-header__actions button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  box-sizing: border-box;
+  min-width: var(--sk-tap);
+  min-height: var(--sk-tap);
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-button);
+  cursor: pointer;
+}
+.sk-back-header .sk-back-header__actions button svg {
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+}
+/* The last glyph reaches 10 px into the side margin, which at 360 and 320 leaves 2 px to the screen edge: its target
+   (family.css, 4 px outwards in a pair) would extend past the viewport and give the page a 2 px sideways scroll.
+   Cut to the 2 px that exist; the rest of the target was off screen and unreachable anyway. */
+.sk-back-header__actions button:last-child::after {
+  inset-inline-end: -2px;
+}
+/* A detail view's + (Inköp's list): the round ink primary of family.css (.sk-iconbtn--primary), 4
+   before ⋯ as in the room heads, so the two targets meet nowhere. Open, it is drawn held. */
+.sk-back-header .sk-back-header__actions button.sk-iconbtn--primary {
+  margin-inline-end: var(--sk-s1);
+  padding: calc((var(--sk-tap) - var(--sk-plus)) / 2);
+  border-radius: 50%;
+  background: var(--sk-inverse-bg) content-box;
+  color: var(--sk-inverse-fg);
+}
+.sk-back-header
+  .sk-back-header__actions
+  button.sk-iconbtn--primary[aria-expanded="true"] {
+  background: var(--sk-surface) content-box;
+  color: var(--sk-fg);
+}
+.sk-back-header .sk-back-header__actions button:focus-visible {
+  outline-offset: -2px;
+}

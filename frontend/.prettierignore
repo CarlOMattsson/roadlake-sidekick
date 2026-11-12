@@ -1,0 +1,7 @@
+package-lock.json
+dist
+dist-mcp-app
+dist-mobile
+android
+playwright-report
+test-results

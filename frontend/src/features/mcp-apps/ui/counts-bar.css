@@ -1,0 +1,98 @@
+/* Counts bar: a thin proportional bar plus a text legend that names every count. Host tokens are used
+   first and every token has a fallback; light-dark() follows the host's colour-scheme. The legend wraps
+   onto a new line instead of scrolling sideways, so four segments fit on a 320 px host. Static, no motion. */
+.sk-counts-bar {
+  --sk-cb-track: var(--color-background-tertiary, light-dark(#e4e4e7, #3f3f46));
+  --sk-cb-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --sk-cb-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  /* One colour, one meaning: Att göra is a neutral mid grey (the ink half into the page, ≥ 3:1 to
+     the page and to the ink in both modes), Pågår is ink, and Blockerad is a diagonal ink hatch (1 of 4 px, so its mean stays
+     ≥ 3:1 from Pågår's ink in dark mode) on the card's surface inside a 1 px ink edge. No red: red means Försenad in the meta. The legend's words and counts say the same. */
+  --sk-cb-neutral: color-mix(in srgb, var(--sk-fg) 50%, var(--sk-bg));
+  --sk-cb-info: var(--sk-fg);
+  --sk-cb-hatch: repeating-linear-gradient(
+      -45deg,
+      var(--sk-fg) 0 1px,
+      transparent 1px 4px
+    )
+    var(--sk-surface);
+
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--sk-cb-fg);
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+.sk-counts-bar__bar {
+  display: flex;
+  gap: 2px;
+  height: 0.5rem;
+  overflow: hidden;
+  /* 2 px, as the swatches: a pill end would cut Blockerad's edge. */
+  border-radius: 2px;
+  background: var(--sk-cb-track);
+}
+
+/* Each segment takes its share through the inline flex-grow set from the count. */
+.sk-counts-bar__segment {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--sk-cb-neutral);
+}
+
+/* One line at 412 and 110 % (3 + 1 left "Klar 2" alone on a line): 12 between the items, 4 inside one,
+   13 px text. It still wraps on a narrower host. */
+.sk-counts-bar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem var(--sk-s3, 12px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.sk-counts-bar__item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* A swatch drawn as its segment: the bar's height, 12 wide, a 2 px radius. Decorative only, the label
+   text names the status. */
+.sk-counts-bar__item::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 0.75rem;
+  height: 0.5rem;
+  border-radius: 2px;
+  background: var(--sk-cb-neutral);
+}
+
+.sk-counts-bar__label {
+  color: var(--sk-cb-muted);
+}
+
+.sk-counts-bar__count {
+  color: var(--sk-cb-fg);
+  font-weight: var(--font-weight-semibold, 600);
+  font-variant-numeric: tabular-nums;
+}
+
+.sk-counts-bar__segment[data-tone="info"],
+.sk-counts-bar__item[data-tone="info"]::before {
+  background: var(--sk-cb-info);
+}
+
+.sk-counts-bar__segment[data-tone="warning"],
+.sk-counts-bar__item[data-tone="warning"]::before {
+  background: var(--sk-cb-hatch);
+  box-shadow: inset 0 0 0 1px var(--sk-fg);
+}

@@ -1,0 +1,537 @@
+# Self-hosted Sidekick. Linux x86_64 + Docker Compose. The short route in is README.md next to this file.
+# There is deliberately no web service: the product UI is MCP Apps inside the chosen LLM client.
+#
+# Files (copy the examples, never commit the real ones):
+#   cp selfhost.env.example selfhost.env
+#   cp db.env.example db.env
+#   cp Caddyfile.example Caddyfile              # VPS profile only
+#
+# VPS with Caddy and automatic TLS:
+#   docker compose --env-file selfhost.env --profile vps up -d
+# Home machine behind a tunnel (Tailscale Funnel or Cloudflare Tunnel points at 127.0.0.1:8000):
+#   docker compose --env-file selfhost.env up -d
+# Optional Hindsight memory (off by default, SIDEKICK_MEMORY_ENABLED=false; needs hindsight.env, see README.md):
+#   docker compose --env-file selfhost.env --profile memory up -d
+# Optional encrypted backups (needs SIDEKICK_BACKUP_ENCRYPTION_KEY in selfhost.env first):
+#   docker compose --env-file selfhost.env --profile backup up -d
+# Optional push worker for the Android companion (needs SIDEKICK_PUSH_ENABLED=true in selfhost.env first):
+#   docker compose --env-file selfhost.env --profile push up -d
+# The push profile also starts the hardened ntfy server, published only through Caddy's /up... path
+# on the same domain (vps profile). One-time setup, which prints no secret: sh ntfy-init.sh
+# ntfy alone is optional: `up -d push` starts just the worker, which then delivers through ntfy.sh.
+
+name: sidekick
+
+# Log rotation for every service: Docker's default json-file driver never rotates, so a long-running
+# container would fill the disk. Three files of 10 MB each per container, the oldest is dropped.
+x-sidekick-logging: &sidekick-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+# Liveness of the background workers (same image as api, no port). Each worker loop writes a heartbeat file in its
+# tmpfs /tmp at the start of every iteration (sidekick.shared.worker_health); `sidekick-worker-health <worker>` fails
+# when the loop has been silent longer than its work budget plus its sleep, so a worker that hangs while its process
+# still runs shows as unhealthy instead of silently doing nothing. The check reads one small file and holds no data.
+#
+# The check is a `python -c` that imports the heartbeat module; a missing or broken module is an error, so an image
+# that cannot report its heartbeat is never judged healthy.
+x-sidekick-worker-health-check: &sidekick-worker-health-check |-
+  import sys
+  import sidekick.shared.worker_health as worker_health
+  worker_health.main([sys.argv[1]])
+
+x-sidekick-worker-health: &sidekick-worker-health
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 120s
+
+# Which variables of selfhost.env each service receives. Only api takes the whole file (env_file): it is the one process
+# that needs the OAuth, rooms and request-limit settings. Every worker lists the names it reads, as `NAME:` with no
+# value, which Compose resolves from the `--env-file selfhost.env` of the command (a name that is not set there is
+# not passed at all, so the setting keeps its default). Result: no worker holds the GitHub OAuth secret or signing
+# key, and only backup holds the backup key and only push the ntfy token. A name added here must be declared in
+# backend/src/sidekick/shared/config/; backend/tests/selfhost/test_selfhost_secret_scope.py keeps both true.
+# Needed by every process that builds Settings: production refuses to start without the database URL and the two
+# secrets (the pepper and the cursor key), and the time budgets and zone apply to every worker's queries and dates.
+x-sidekick-env-common: &sidekick-env-common
+  SIDEKICK_DATABASE_URL:
+  SIDEKICK_CURSOR_SIGNING_SECRET:
+  SIDEKICK_TOKEN_PEPPER:
+  # The removed former name of the cursor secret, passed on only so that a selfhost.env that still has it stops
+  # the process with a message naming SIDEKICK_CURSOR_SIGNING_SECRET instead of the name being dropped silently.
+  SIDEKICK_SESSION_SECRET:
+  SIDEKICK_DB_CONNECT_TIMEOUT_SECONDS:
+  SIDEKICK_DB_STATEMENT_TIMEOUT_MS:
+  SIDEKICK_DB_LOCK_TIMEOUT_MS:
+  SIDEKICK_DB_IDLE_IN_TRANSACTION_TIMEOUT_MS:
+  SIDEKICK_OWNER_TIMEZONE:
+  SIDEKICK_MCP_APP_LOCALE:
+
+x-sidekick-env-memory: &sidekick-env-memory
+  SIDEKICK_MEMORY_ENABLED:
+  SIDEKICK_MEMORY_PROVIDER:
+  SIDEKICK_MEMORY_INGEST_ENABLED:
+  SIDEKICK_MEMORY_ORPHAN_SWEEP_ENABLED:
+  SIDEKICK_MEMORY_HINDSIGHT_BASE_URL:
+  SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN:
+  SIDEKICK_MEMORY_ID_DERIVATION_KEY:
+  SIDEKICK_MEMORY_HINDSIGHT_MAX_RESPONSE_BYTES:
+  SIDEKICK_MEMORY_ALLOW_LOOPBACK:
+  SIDEKICK_MEMORY_QUIET_SECONDS:
+  SIDEKICK_MEMORY_DAILY_RETAIN_CAP:
+  SIDEKICK_MEMORY_BACKFILL_DAILY_CAP:
+  SIDEKICK_MEMORY_DAILY_CHAR_CAP:
+
+x-sidekick-env-backup: &sidekick-env-backup
+  SIDEKICK_BACKUP_ENCRYPTION_KEY:
+  SIDEKICK_BACKUP_RETENTION_COUNT:
+  SIDEKICK_BACKUP_RETENTION_DAYS:
+  SIDEKICK_BACKUP_MIN_KEEP:
+  SIDEKICK_BACKUP_SPACE_MARGIN_PCT:
+  SIDEKICK_BACKUP_INTERVAL_SECONDS:
+
+x-sidekick-env-push: &sidekick-env-push
+  SIDEKICK_PUSH_ENABLED:
+  SIDEKICK_PUSH_ALLOWED_HOSTS:
+  SIDEKICK_PUSH_AUTH_HOST:
+  SIDEKICK_PUSH_AUTH_TOKEN:
+  SIDEKICK_PUSH_POLL_SECONDS:
+  SIDEKICK_PUSH_WAKE_MIN_INTERVAL_SECONDS:
+  SIDEKICK_PUSH_SUMMARY_TIME:
+  SIDEKICK_PUSH_DUE_LEAD_MINUTES:
+  SIDEKICK_PUSH_QUIET_START:
+  SIDEKICK_PUSH_QUIET_END:
+
+x-sidekick-build: &sidekick-build
+  context: ../..
+  dockerfile: backend/Dockerfile
+  # Short hash and ISO 8601 commit date of the checkout being built (the update reminder counts the age
+  # of the code from them; empty means unknown). Set them in the shell that runs the build.
+  args:
+    SIDEKICK_BUILD_COMMIT: ${SIDEKICK_BUILD_COMMIT:-}
+    SIDEKICK_BUILD_DATE: ${SIDEKICK_BUILD_DATE:-}
+
+services:
+  postgres:
+    # Same pinned version as deploy/compose.test.yaml. PostgreSQL 18 images keep their data
+    # under /var/lib/postgresql/18/docker, so the volume is mounted one level higher.
+    # Tag postgres:18.4-alpine, pinned by manifest-list digest (resolved 2026-11-10).
+    image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+    # Error logs must not carry data: no failing statement text, no DETAIL/CONTEXT lines (they quote row
+    # values), no bound parameters. Enforced by backend/tests/policy/test_postgres_log_hardening.py.
+    command:
+      - "postgres"
+      - "-c"
+      - "log_min_error_statement=panic"
+      - "-c"
+      - "log_error_verbosity=terse"
+      - "-c"
+      - "log_parameter_max_length_on_error=0"
+      - "-c"
+      - "log_parameter_max_length=0"
+      - "-c"
+      - "log_statement=none"
+      - "-c"
+      - "log_min_duration_statement=-1"
+    env_file:
+      - path: ./db.env
+        required: false
+    environment:
+      POSTGRES_DB: sidekick
+      POSTGRES_USER: postgres
+    # Copy as root before the official entrypoint drops privileges. A bind mount from a checkout made with
+    # umask 077 may be 600; never ask the postgres user to read that host file directly.
+    # Upstream lifecycle: https://github.com/docker-library/postgres/blob/master/docker-entrypoint.sh
+    entrypoint:
+      - sh
+      - -ec
+      - |
+        cp /usr/local/share/sidekick/postgres-init.sh /docker-entrypoint-initdb.d/10-sidekick-roles.sh
+        chmod 755 /docker-entrypoint-initdb.d/10-sidekick-roles.sh
+        exec docker-entrypoint.sh "$$@"
+      - sidekick-postgres-entrypoint
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgres-init.sh:/usr/local/share/sidekick/postgres-init.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sidekick"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    networks: [data]
+    logging: *sidekick-logging
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    # One process per connection (max_connections 100) plus the background workers, so the process limit is higher than
+    # for the Python services. update.sh runs pg_dump inside this container.
+    mem_limit: ${SELFHOST_POSTGRES_MEM_LIMIT:-1g}
+    pids_limit: ${SELFHOST_POSTGRES_PIDS_LIMIT:-256}
+
+  migrate:
+    # One-shot schema migration with the sidekick_migrator role, the same yoyo command as CI.
+    # Runs on every `up`; yoyo is idempotent. The api never receives this URL.
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    env_file:
+      - path: ./db.env
+        required: false
+    command:
+      - sh
+      - -ec
+      - |
+        : "$${SIDEKICK_MIGRATION_DATABASE_URL:?set SIDEKICK_MIGRATION_DATABASE_URL in db.env}"
+        # yoyo reads a bare postgresql:// as psycopg2, which the image does not ship; accept it anyway.
+        url="$${SIDEKICK_MIGRATION_DATABASE_URL}"
+        case "$$url" in postgresql://*) url="postgresql+psycopg://$${url#postgresql://}" ;; esac
+        yoyo apply --batch --database "$$url" /app/migrations
+        # `yoyo list` marks each migration A (applied) or U; the last applied id is the head.
+        head="$$(yoyo list --database "$$url" /app/migrations | awk '$$1 == "A" { id = $$2 } END { print id }')"
+        echo "migrations applied; head: $${head:-unknown}"
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SELFHOST_MIGRATE_MEM_LIMIT:-512m}
+    pids_limit: ${SELFHOST_MIGRATE_PIDS_LIMIT:-64}
+    logging: *sidekick-logging
+    restart: "no"
+
+  api:
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      # Pinned here, not only in the env file, so a missing or edited file cannot fall back to the
+      # development defaults of Settings.
+      SIDEKICK_ENVIRONMENT: production
+    env_file:
+      - path: ./selfhost.env
+        required: false
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Loopback only, on every profile. Caddy reaches api over the internal edge network; a home
+    # tunnel reaches it on 127.0.0.1. Nothing listens on a public interface.
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks: [data, edge]
+    # api is also the image that update.sh and restore.sh run one-off for the snapshot encryption and the backup import
+    # (`compose run api`), which hold up to 512 MiB of plaintext several times over, so the limit must cover them too.
+    # The limit is a ceiling, not a reservation: normal serving uses a few hundred MiB.
+    mem_limit: ${SELFHOST_API_MEM_LIMIT:-3g}
+    pids_limit: ${SELFHOST_API_PIDS_LIMIT:-256}
+    # Only loopback and the internal edge network reach api, so forwarded headers from Caddy or
+    # a local tunnel are trusted; the access log is off because OAuth callbacks carry codes in
+    # the query string.
+    command:
+      - uvicorn
+      - sidekick.api.app:app
+      - --host=0.0.0.0
+      - --port=8000
+      - --proxy-headers
+      - --forwarded-allow-ips=*
+      - --no-access-log
+    healthcheck:
+      # Readiness, not just "the web server answers": the database connection works with the runtime role and
+      # the schema is at the revision this image expects (migrations/ in the image against the applied ones).
+      # /health/ready is not served on the public-surface allowlist, so the container asks itself with a command
+      # that prints one word and holds no data. update.sh waits for the same check.
+      # Two parts: the running api process answers HTTP (2xx, or the intended 404 of the public surface; 500, 503 or a hang fail), and, when the image has the
+      # readiness module, the database and schema check passes. An older image without the module only gets the HTTP
+      # part, so a rollback to it can be healthy. update.sh runs the same code (READINESS_PY); a test keeps them equal.
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import importlib.util, sys, urllib.error, urllib.request
+          try:
+              urllib.request.urlopen("http://127.0.0.1:8000/health/live", timeout=3)
+          except urllib.error.HTTPError as error:
+              if error.code != 404:
+                  sys.exit(1)
+          except Exception:
+              sys.exit(1)
+          if importlib.util.find_spec("sidekick.shared.readiness") is None:
+              sys.exit(0)
+          from sidekick.shared.readiness import main
+          main()
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - state:/var/lib/sidekick
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  automation-worker:
+    # Scheduled process runs (sidekick-automation-worker): every 30 s it recovers stalled claims and turns due
+    # process runs into tasks, so a scheduled process (a recurring routine) actually runs. Without it nothing is
+    # ever materialized. Default on, no profile, like api: scheduled processes are core functionality, not an
+    # optional add-on, and the worker costs one idle Python process and needs no secret of its own. Same image,
+    # environment as api, but only the settings it reads (see x-sidekick-env-common). It writes to the database (it
+    # creates the tasks), so update.sh stops and restarts it with api (WORKERS there) and tools/work.sh pauses it during
+    # a backup. Beyond the common set it builds the same container as api: the memory settings (the memory provider), the
+    # push flag (task changes queue a wake push) and the license key.
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      <<: [*sidekick-env-common, *sidekick-env-memory]
+      # Pinned as on api, so a missing or edited file cannot fall back to the development defaults.
+      SIDEKICK_ENVIRONMENT: production
+      SIDEKICK_PUSH_ENABLED:
+      SIDEKICK_PUSH_WAKE_MIN_INTERVAL_SECONDS:
+      SIDEKICK_LICENSE_PUBLIC_KEY:
+    command:
+      - sidekick-automation-worker
+    healthcheck:
+      <<: *sidekick-worker-health
+      test: ["CMD", "python", "-c", *sidekick-worker-health-check, "automation"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Database access only, like backup. No port, no edge network, no internet route.
+    networks: [data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SELFHOST_AUTOMATION_MEM_LIMIT:-512m}
+    pids_limit: ${SELFHOST_AUTOMATION_PIDS_LIMIT:-64}
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  backup:
+    # Opt-in encrypted backups: docker compose --env-file selfhost.env --profile backup up -d
+    # Runs the existing sidekick-backup-worker from the api image. Each iteration writes one
+    # encrypted owner export to /var/lib/sidekick/backups (in the state volume) and prunes old
+    # files. The key comes from selfhost.env only, never from the command line or the logs.
+    # Restore: deploy/selfhost/restore.sh (run it without --apply first to see the plan).
+    profiles: [backup]
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      # Pinned here so that the profile alone turns backups on and fixes the target directory.
+      # Retention and interval are in selfhost.env.example. The key must be set in selfhost.env.
+      <<: [*sidekick-env-common, *sidekick-env-backup]
+      SIDEKICK_ENVIRONMENT: production
+      SIDEKICK_BACKUP_ENABLED: "true"
+      SIDEKICK_BACKUP_DIRECTORY: /var/lib/sidekick/backups
+    command:
+      - sidekick-backup-worker
+    healthcheck:
+      <<: *sidekick-worker-health
+      test: ["CMD", "python", "-c", *sidekick-worker-health-check, "backup"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Database access only. No port, no edge network, no internet route.
+    networks: [data]
+    volumes:
+      - state:/var/lib/sidekick
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    # A backup holds a whole owner export in memory: up to 512 MiB of plaintext (MAX_BUNDLE_PLAINTEXT_BYTES), and the
+    # encryption keeps several copies of it alive at once (the JSON text, the bytes, the padded block, the token and its
+    # base64 form, about 1.33 times larger). 3g leaves that headroom; a normal install uses a fraction.
+    mem_limit: ${SELFHOST_BACKUP_MEM_LIMIT:-3g}
+    pids_limit: ${SELFHOST_BACKUP_PIDS_LIMIT:-64}
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  push:
+    # Opt-in push delivery for the companion app: docker compose --env-file selfhost.env
+    # --profile push up -d. Runs sidekick-push-worker from the api image. It sends the content-free wake and
+    # reminder pushes in the outbox to the ntfy host in SIDEKICK_PUSH_ALLOWED_HOSTS (default ntfy.sh), and it runs
+    # the reminder scheduler (morning summary, due times). It must keep running: a morning summary missed while
+    # it was down is not sent later that day. Same image as api, and it reads the same SIDEKICK_PUSH_* settings of
+    # selfhost.env (x-sidekick-env-push); unlike backup it does not pin the flag, because api needs
+    # SIDEKICK_PUSH_ENABLED=true in selfhost.env too (to queue the pushes). It idles while the flag is not true.
+    profiles: [push]
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      <<: [*sidekick-env-common, *sidekick-env-push]
+      SIDEKICK_ENVIRONMENT: production
+    command:
+      - sidekick-push-worker
+    healthcheck:
+      <<: *sidekick-worker-health
+      test: ["CMD", "python", "-c", *sidekick-worker-health-check, "push"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Postgres over data, ntfy over edge (the only network with an internet route). No published port.
+    networks: [data, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SELFHOST_PUSH_MEM_LIMIT:-512m}
+    pids_limit: ${SELFHOST_PUSH_PIDS_LIMIT:-64}
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  ntfy:
+    # Own ntfy server for the push path. Pinned to
+    # v2.37.2 by digest (checked against Docker Hub 2026-11-09); upgrade on purpose after checking the new digest.
+    # No published port: only Caddy reaches it, over the internal `push` network, and only the /up... topic path
+    # (Caddyfile.example). Configuration is ntfy/server.yml; users and the publish token come from ntfy.env,
+    # written by ntfy-init.sh. Nothing is stored on disk (tmpfs) and the container has no route to the internet.
+    profiles: [push]
+    image: binwiederhier/ntfy:v2.37.2@sha256:1875ddcf815c8a3c981d6d78c67a93452d0abba79b1ab9520b1f5f5238902bd7
+    command: [serve]
+    user: "10001:10001"
+    env_file:
+      - path: ./ntfy.env
+        required: false
+    volumes:
+      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
+    networks: [push]
+    read_only: true
+    tmpfs:
+      - /var/lib/ntfy:uid=10001,gid=10001,mode=0700,size=16m
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  caddy:
+    profiles: [vps]
+    # Tag caddy:2-alpine (a floating tag), pinned by manifest-list digest (resolved 2026-11-10). Bump deliberately.
+    image: caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    environment:
+      SIDEKICK_DOMAIN: ${SELFHOST_DOMAIN:?set SELFHOST_DOMAIN in selfhost.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on: [api]
+    # push: the internal network of the ntfy service, so Caddy can forward the /up... topic path to it.
+    networks: [edge, push]
+    security_opt: [no-new-privileges:true]
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  hindsight:
+    # Memory, memory profile only. Hindsight 0.8.4 pinned by digest (the contract's fallbackReference). Version
+    # 1.1.0 is not delivered here yet: it is adopted only after its live retain and recall checks pass and an
+    # upgrade path for an existing memory volume exists (see contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml). Its database is the embedded pg0,
+    # kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
+    # Settings and secrets: hindsight.env (copy of hindsight.env.example), never selfhost.env.
+    profiles: [memory]
+    image: ghcr.io/vectorize-io/hindsight@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
+    env_file:
+      - path: ./hindsight.env
+        required: false
+    environment:
+      HINDSIGHT_ENABLE_API: "true"
+      HINDSIGHT_ENABLE_CP: "false"
+      HINDSIGHT_API_HOST: 0.0.0.0
+      HINDSIGHT_API_PORT: "8888"
+      # Embedded database in the hindsight_pg0 volume. Migrations run on start so a fresh volume works.
+      HINDSIGHT_API_DATABASE_URL: pg0
+      HINDSIGHT_API_RUN_MIGRATIONS_ON_STARTUP: "true"
+      HINDSIGHT_API_TENANT_EXTENSION: hindsight_api.extensions.builtin.tenant:ApiKeyTenantExtension
+      HINDSIGHT_API_MCP_ENABLED: "false"
+      # Locked here, not in the env file: observations merge documents and have no single source version.
+      HINDSIGHT_API_ENABLE_OBSERVATIONS: "false"
+      HINDSIGHT_API_STORE_DOCUMENT_TEXT: "false"
+      HINDSIGHT_API_LLM_TRACE_ENABLED: "false"
+      HINDSIGHT_API_AUDIT_LOG_ENABLED: "false"
+      HINDSIGHT_API_OTEL_TRACES_ENABLED: "false"
+      HINDSIGHT_API_ACCESS_LOG: "false"
+      HINDSIGHT_API_LOG_FORMAT: json
+    volumes:
+      - hindsight_pg0:/home/hindsight/.pg0
+    # No published port. api and memory-worker reach it by service name. Only the edge network has an
+    # internet route, which Hindsight needs for its model provider, so it joins edge and nothing else.
+    networks: [edge]
+    tmpfs: [/tmp]
+    # The local embedding and reranker models run inside this container next to the embedded pg0 database, so this is the
+    # largest service. 4g is an estimate, not a measurement: raise it if the container is killed for memory (docker inspect
+    # shows OOMKilled) during a large retain.
+    mem_limit: ${SELFHOST_HINDSIGHT_MEM_LIMIT:-4g}
+    pids_limit: ${SELFHOST_HINDSIGHT_PIDS_LIMIT:-512}
+    stop_grace_period: 45s
+    healthcheck:
+      # The image has no curl, so the check uses Python.
+      test: ["CMD", "/app/api/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8888/health', timeout=3)"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 60s
+    security_opt: [no-new-privileges:true]
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+  memory-worker:
+    # Memory reconcile loop (sidekick-memory-worker). Same image as api, and it reads the same SIDEKICK_MEMORY_*
+    # settings of selfhost.env (x-sidekick-env-memory). It idles while SIDEKICK_MEMORY_ENABLED is not true.
+    profiles: [memory]
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      <<: [*sidekick-env-common, *sidekick-env-memory]
+      # Pinned as on api, so a missing or edited file cannot fall back to the development defaults.
+      SIDEKICK_ENVIRONMENT: production
+    command:
+      - sidekick-memory-worker
+    healthcheck:
+      <<: *sidekick-worker-health
+      test: ["CMD", "python", "-c", *sidekick-worker-health-check, "memory"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+      hindsight: { condition: service_healthy }
+    # Postgres over data, Hindsight over edge. No published port.
+    networks: [data, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SELFHOST_MEMORY_MEM_LIMIT:-512m}
+    pids_limit: ${SELFHOST_MEMORY_PIDS_LIMIT:-64}
+    logging: *sidekick-logging
+    restart: unless-stopped
+
+networks:
+  # Internal: no route to the internet. Only api, the workers and the one-shot migrator talk to Postgres.
+  data:
+    internal: true
+  edge: {}
+  # Internal: ntfy and Caddy only. ntfy has no route to the internet and nothing else can reach it.
+  push:
+    internal: true
+
+volumes:
+  pgdata: {}
+  state: {}
+  caddy_data: {}
+  caddy_config: {}
+  hindsight_pg0: {}

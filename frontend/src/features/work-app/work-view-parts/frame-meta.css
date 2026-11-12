@@ -1,0 +1,18 @@
+/* The meta line of a Project or Process page: parts side by side, wrapping between parts (never inside a word
+   unless one word alone is wider than the line), each later part led by a "·". */
+.sidekick-work .work-frame-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  margin: var(--sk-s1) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-frame-meta__part {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.sidekick-work .work-frame-meta__part + .work-frame-meta__part::before {
+  content: "\00a0·\00a0";
+}

@@ -1,0 +1,139 @@
+/* The Projects tab (HierarchyView): each Domain's name as a group heading, as the agenda's day headings, and under it
+   the Domain's Projects and Processes as the agenda's rows (agenda.css .work-agenda-line): the symbol in the leading
+   column, the title that opens the page, one meta line, and ›. The completed Projects fold away in the quiet row last,
+   as "Att sortera (N)" after the agenda. Titles wrap between words only: a word moves whole to the next line. */
+
+/* The Domain heading: the section type, the colour dot before the name, a status after it only when it is not active. */
+.sidekick-hierarchy .work-tree-domain + .work-tree-domain,
+.sidekick-hierarchy .work-list + .work-tree-domain {
+  margin-top: var(--sk-section-above);
+}
+.sidekick-hierarchy .work-tree-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--sk-s2);
+  margin: 0 0 var(--sk-s1);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+.sidekick-hierarchy .work-tree-heading .hierarchy-accent {
+  font-size: 0.75em;
+}
+.sidekick-hierarchy .work-tree-heading-status {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* The symbol of a Project (a folder) or a Process (two arrows in a circle): muted, on the title's first line, in the
+   column the agenda's ring takes. It is decoration; the button and the meta line say the kind. */
+.sidekick-hierarchy .work-tree-row .work-agenda-glyph {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  flex: none;
+  width: var(--sk-row-min, 48px);
+  padding-top: calc(
+    var(--sk-row-pad) + var(--sk-type-row-line) / 2 - var(--sk-icon, 24px) / 2
+  );
+  color: var(--sk-muted);
+}
+.sidekick-hierarchy .work-tree-row .work-agenda-glyph svg {
+  width: var(--sk-icon, 24px);
+  height: var(--sk-icon, 24px);
+}
+/* Never a break inside a word: the agenda's title may break anywhere, a Project's name moves whole words. */
+.sidekick-hierarchy .work-tree-open,
+.sidekick-hierarchy .work-tree-title {
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+.sidekick-hierarchy .work-tree-title {
+  margin: 0;
+  padding: var(--sk-row-pad) 0 0;
+  font: var(--sk-type-row);
+}
+/* The meta line may take a second line at large text instead of cutting the counts. */
+.sidekick-hierarchy .work-tree-row .work-card-meta {
+  max-height: none;
+}
+.sidekick-hierarchy .work-tree-overdue {
+  color: var(--sk-overdue-fg);
+}
+
+/* An empty Domain and an empty list: one quiet line. */
+.sidekick-hierarchy .work-tree-none,
+.sidekick-hierarchy .work-tree-empty {
+  margin: 0;
+  padding: var(--sk-s2) 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* "Avslutade (N) ⌄": the whole row is the button (at least 48), the chevron turns when it is open. */
+.sidekick-hierarchy .work-tree-completed {
+  margin-top: var(--sk-section-above);
+}
+.sidekick-hierarchy .work-tree-fold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  width: 100%;
+  min-height: var(--sk-row-min, 48px);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sidekick-hierarchy .work-tree-fold-label {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+.sidekick-hierarchy .work-tree-fold-icon {
+  display: inline-flex;
+  flex: none;
+  margin-inline-end: 10px;
+  color: var(--sk-muted);
+  transition: transform 120ms ease;
+}
+.sidekick-hierarchy .work-tree-fold[aria-expanded="true"] .work-tree-fold-icon {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-hierarchy .work-tree-fold-icon {
+    transition: none;
+  }
+}
+
+.sidekick-hierarchy .hierarchy-more {
+  color: var(--sk-muted);
+}
+/* The title filter above the list when the tab row gives none. The field itself is the agenda's filter (agenda.css). */
+.sidekick-hierarchy .hierarchy-toolbar {
+  margin: 0.5rem 0;
+}
+
+/* Large text on a narrow phone (about 360 px at 200 %): the list is under 14 rem wide. The symbol column and › give
+   their width to the title, so a name such as "Hushållsekonomi" fits whole on its line; the meta line still says
+   "Process", and the whole row stays the button. */
+.sidekick-hierarchy .work-tree {
+  container-type: inline-size;
+  /* Air under the tab row, or under the new-Task field and its receipt, before the first Domain's name. */
+  padding-top: var(--sk-s2);
+}
+@container (max-width: 14rem) {
+  .sidekick-hierarchy .work-tree-row .work-agenda-glyph,
+  .sidekick-hierarchy .work-tree-row .work-open-chevron {
+    display: none;
+  }
+  .sidekick-hierarchy .work-tree-row .work-agenda-body {
+    margin-inline-start: 0;
+    padding-inline: 0;
+  }
+}

@@ -1,0 +1,14 @@
+---
+// A notice box. By default it is the "buying opens soon" note. With `title` and `text` it shows that message instead.
+import Icon from './Icon.astro';
+interface Props {
+  title?: string;
+  text?: string;
+}
+const { title, text } = Astro.props;
+const t = Astro.locals.t;
+---
+<div class="notice not-content" data-marketing role="note">
+  <Icon name="info" />
+  <div><b>{title ?? t('site.pricing.noticeTitle')}</b>{text ?? t('site.pricing.noticeText')} <slot /></div>
+</div>

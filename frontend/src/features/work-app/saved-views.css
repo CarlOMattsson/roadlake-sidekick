@@ -1,0 +1,130 @@
+/* The saved views bar above the Agenda and the Board (fullscreen Work). A visible toggle button unfolds
+   a panel that grows in the page flow, with no inner scroll. Every control is at least 44 px high. */
+.sidekick-work .work-saved-views {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0.25rem 0 0.5rem;
+  box-sizing: border-box;
+}
+.sidekick-work .work-saved-views button,
+.sidekick-work .work-saved-views input[type="text"] {
+  min-height: 2.75rem;
+}
+.sidekick-work .work-saved-views-toggle {
+  padding-inline: var(--sk-s3);
+  font: var(--sk-type-menu);
+}
+.sidekick-work .work-saved-views-status {
+  margin: 0.25rem 0;
+}
+.sidekick-work .work-saved-views-status:empty {
+  display: none;
+}
+.sidekick-work .work-saved-views-status > p {
+  margin: 0.25rem 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-saved-views-body {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.25rem 0 0.25rem 0.75rem;
+  border-left: var(--work-border-width) solid var(--work-line);
+  min-width: 0;
+}
+.sidekick-work .work-saved-views-heading {
+  margin: 0;
+  font-weight: var(--sk-weight-medium);
+}
+.sidekick-work .work-saved-views-save {
+  display: grid;
+  gap: 0.4rem;
+}
+.sidekick-work .work-saved-views-save label,
+.sidekick-work .work-saved-views-archived-toggle {
+  font-size: 0.9rem;
+  font-weight: var(--sk-weight-medium);
+}
+.sidekick-work .work-saved-views-save input[type="text"],
+.sidekick-work .work-saved-view-rename input[type="text"] {
+  font: inherit;
+  color: inherit;
+  background: var(--work-bg);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+  padding: 0.5rem 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sidekick-work .work-saved-views-save input[type="text"][aria-invalid="true"],
+.sidekick-work .work-saved-view-rename input[type="text"][aria-invalid="true"] {
+  border-color: var(--work-danger);
+  border-width: 2px;
+}
+.sidekick-work .work-saved-views-save > button {
+  justify-self: start;
+  padding-inline: 1rem;
+}
+.sidekick-work .work-saved-views-save > p {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-saved-views-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidekick-work .work-saved-view {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.6rem;
+  padding-block: 0.35rem;
+  min-width: 0;
+  border-bottom: var(--work-border-width) solid var(--work-line);
+}
+.sidekick-work .work-saved-view-name {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-saved-view-mark {
+  font-size: 0.85rem;
+  color: var(--work-muted);
+}
+.sidekick-work .work-saved-view .work-manage-controls {
+  margin: 0;
+}
+.sidekick-work .work-saved-view-rename {
+  display: grid;
+  gap: 0.4rem;
+  width: 100%;
+}
+.sidekick-work .work-saved-view-rename > p {
+  margin: 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-saved-views-archived-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+.sidekick-work .work-saved-views-archived-toggle input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+.sidekick-work .work-saved-views-notice:empty {
+  display: none;
+}
+.sidekick-work .work-saved-views-notice {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.sidekick-work .work-saved-views-body > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

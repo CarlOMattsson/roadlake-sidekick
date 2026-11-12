@@ -1,0 +1,46 @@
+# Secret scanning (gitleaks) with the default rules plus one narrow exception for synthetic test fixtures.
+#
+# The generic entropy rule (generic-api-key) trips on test code that merely has "key" or "token" in an
+# identifier: idempotency_key / correlation_id arguments with readable values ("idem-domain-1"), an
+# Ed25519PrivateKey type annotation (test keys are generated at import, never stored), and a handful of
+# named placeholder constants. The exception below applies only to that one rule, only inside the test
+# directories, and only to the exact text the rule matched (the whole match, anchored at both ends, not the
+# line): a real or random-looking value on an `idempotency_key=` line or in a placeholder constant is a
+# different match and is still reported, as is everything outside the test directories (production code,
+# deploy files, docs, env examples). Changing a fixture value or adding one needs its entry here.
+# The path pattern accepts both a relative path (history scan) and an absolute one (`gitleaks dir /repo`).
+title = "Roadlake Sidekick gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic fixtures in test code"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = [
+  '''(^|/)(backend|frontend)/tests/''',
+]
+regexTarget = "match"
+regexes = [
+  '''^IDEM_KEY\ =\ "nyckel\-hemlig\-logg\-0001"$''',
+  '''^KEY\ =\ "idempotency\-key\-0001"$''',
+  '''^KEY\ =\ "key\-0123456789"$''',
+  '''^KEY_SENTINEL\ =\ "signing\-key\-sentinel\-0123456789\-abcdefgh"$''',
+  '''^SECRET_NOTE,\ relationship="$''',
+  '''^SECRET_TOPIC\ =\ "upSecretTopic123abc"$''',
+  '''^TOKEN\ =\ "rsc_0123456789abcdef0123456789abcdef"$''',
+  '''^TOKEN,\ id_derivation_key="$''',
+  '''^TOKEN,\ id_derivation_key=KEY$''',
+  '''^idempotency_key":\ "append\-limits\-1"$''',
+  '''^idempotency_key":\ "append\-limits\-2"$''',
+  '''^idempotency_key":\ "brief\-purchase\-1"$''',
+  '''^idempotency_key":\ "img\-journal\-point\-0001"$''',
+  '''^idempotency_key":\ "journal\-src\-001"$''',
+  '''^idempotency_key":\ "priority\-urgent\-0001"$''',
+  '''^idempotency_key="idem\-trash\-001"$''',
+  '''^idempotency_key="mcp\-pending\-other\-1"$''',
+  '''^key,\ correlation_id="$''',
+  '''^key:\ Ed25519PrivateKey\ $''',
+  '''^secret,\ idempotency_key="$''',
+]

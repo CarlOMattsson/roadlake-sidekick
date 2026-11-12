@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Coastal road, adaptive foreground. Generated from assets/brand/sidekick-forgrund.svg (the SVG dash pattern is expanded into
+     real sub-paths because VectorDrawable has no stroke-dasharray). Regenerate by hand if the SVG changes. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#5eead4"
+        android:pathData="M49,66a19,17 0 1,0 38,0a19,17 0 1,0 -38,0Z" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M36,90C36,60 48,38 88,36"
+        android:strokeColor="#f8f5ee"
+        android:strokeLineCap="round"
+        android:strokeWidth="15" />
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M36.00,90.00C36.00,87.96 36.06,85.96 36.17,83.99 M36.73,78.03C37.00,76.00 37.34,74.03 37.77,72.11 M39.37,66.34C40.03,64.41 40.78,62.56 41.65,60.78 M44.65,55.59C45.78,53.95 47.02,52.39 48.40,50.92 M52.84,46.90C54.38,45.70 56.05,44.60 57.84,43.58 M63.22,40.97C65.01,40.24 66.90,39.58 68.89,38.99 M74.73,37.57C76.62,37.20 78.60,36.88 80.66,36.63 M86.63,36.08C87.08,36.05 87.54,36.02 88.00,36.00"
+        android:strokeColor="#0b5a54"
+        android:strokeWidth="2.6" />
+</vector>

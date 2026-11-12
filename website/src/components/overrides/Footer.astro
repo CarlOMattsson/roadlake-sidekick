@@ -1,0 +1,20 @@
+---
+// Under each docs page: report a problem (a prefilled GitHub issue) and previous/next.
+// The site footer itself is rendered by PageFrame, outside the reading column.
+import Pagination from 'virtual:starlight/components/Pagination';
+import Icon from '../Icon.astro';
+import { reportUrl } from '../../lib/site';
+const route = Astro.locals.starlightRoute;
+const t = Astro.locals.t;
+const isSplash = route.entry.data.template === 'splash';
+const pageUrl = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+const href = reportUrl(pageUrl, route.entry.data.title, t('site.report.titlePrefix'));
+---
+{
+  !isSplash && (
+    <footer class="docfoot">
+      <a class="report" href={href} rel="noopener"><Icon name="edit" size={18} />{t('site.report.link')}</a>
+      <Pagination />
+    </footer>
+  )
+}

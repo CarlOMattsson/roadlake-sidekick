@@ -1,0 +1,133 @@
+name: release-drill
+
+# Proves, before every release, that an installation can be installed, updated, backed up, destroyed and restored with
+# disposable containers: the self-hosted stack (deploy/selfhost/update.sh, its encrypted snapshot, the memory profile
+# with the real Hindsight container) and the work package (tools/work.sh with its encrypted backups and the Hindsight
+# volume). See tools/drill.sh and docs/maintainers/release-drill.md.
+#
+# One job per package (a failure names the package) and, inside the drill, one named step per stage (install,
+# update, backup, restore, ...): a failure becomes an error annotation naming the step, and the job summary lists
+# every step with its duration.
+#
+# Two modes:
+#   * released images: set the repository variables below (Settings > Secrets and variables > Actions > Variables) or
+#     give them when starting the workflow by hand. The drill installs the previous release, updates to the newest one
+#     and verifies the real cosign signature.
+#       DRILL_FROM_IMAGE      the previous release, ghcr.io/<owner>/roadlake-sidekick@sha256:<digest>
+#       DRILL_TO_IMAGE        the release to update to, pinned the same way
+#       DRILL_CERT_IDENTITY   the "Signer identity" line of the release workflow's job summary
+#   * no release yet (or a variable missing): --local-images builds the api image twice from this checkout, serves
+#     both from a throw-away registry on the runner (real digests) and drills with them. The signature is not
+#     verified in this mode, and both images carry the same schema, which the log says.
+# Both modes start with a check of the drill script itself against a fake docker.
+# Everything the drill starts is a compose project named sk-drill-*, removed at the end of the run.
+#
+# There is no schedule: the release workflow calls this one as a gate of every release
+# (workflow_call, with no inputs, so the repository variables above decide the mode), and it can be started by hand.
+on:
+  workflow_call:
+    inputs:
+      from_image:
+        description: "Previous release image, REPO@sha256:<digest> (default: variable DRILL_FROM_IMAGE)"
+        required: false
+        type: string
+      to_image:
+        description: "Image to update to, REPO@sha256:<digest> (default: variable DRILL_TO_IMAGE)"
+        required: false
+        type: string
+      cert_identity:
+        description: "Signer identity of the release workflow (default: variable DRILL_CERT_IDENTITY)"
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      from_image:
+        description: "Previous release image, REPO@sha256:<digest> (default: variable DRILL_FROM_IMAGE)"
+        required: false
+        type: string
+      to_image:
+        description: "Image to update to, REPO@sha256:<digest> (default: variable DRILL_TO_IMAGE)"
+        required: false
+        type: string
+      cert_identity:
+        description: "Signer identity of the release workflow (default: variable DRILL_CERT_IDENTITY)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: read # pulls the two release images from GHCR
+
+concurrency:
+  group: release-drill
+  cancel-in-progress: false
+
+jobs:
+  drill:
+    name: drill (${{ matrix.package }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [selfhost, work]
+    env:
+      # Through the environment, never interpolated into a script.
+      DRILL_FROM_IMAGE: ${{ inputs.from_image || vars.DRILL_FROM_IMAGE }}
+      DRILL_TO_IMAGE: ${{ inputs.to_image || vars.DRILL_TO_IMAGE }}
+      DRILL_CERT_IDENTITY: ${{ inputs.cert_identity || vars.DRILL_CERT_IDENTITY }}
+      PACKAGE: ${{ matrix.package }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+
+      - name: Script check with a fake docker
+        run: bash tools/drill.sh "$PACKAGE" --dry-run --log "$RUNNER_TEMP/drill-dry.log"
+
+      - name: Decide between released images and images built here
+        id: mode
+        run: |
+          if [ -n "$DRILL_FROM_IMAGE" ] && [ -n "$DRILL_TO_IMAGE" ] && [ -n "$DRILL_CERT_IDENTITY" ]; then
+            echo "released=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "released=false" >>"$GITHUB_OUTPUT"
+            echo "::notice::DRILL_FROM_IMAGE, DRILL_TO_IMAGE and DRILL_CERT_IDENTITY are not all set: drilling with images built from this checkout (the signature is not verified)."
+          fi
+
+      - name: Install cosign
+        if: steps.mode.outputs.released == 'true'
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: "v3.1.4"
+
+      - name: Log in to GHCR
+        if: steps.mode.outputs.released == 'true'
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Drill with released images (install, update, backup, restore)
+        if: steps.mode.outputs.released == 'true'
+        run: bash tools/drill.sh "$PACKAGE" --log "$RUNNER_TEMP/drill.log"
+
+      - name: Drill with images built from this checkout (install, update, backup, restore)
+        if: steps.mode.outputs.released != 'true'
+        run: env -u DRILL_FROM_IMAGE -u DRILL_TO_IMAGE -u DRILL_CERT_IDENTITY bash tools/drill.sh "$PACKAGE" --local-images --log "$RUNNER_TEMP/drill.log"
+
+      # Only sk-drill-* projects are ever created; this lists what is left, if anything, so a leak shows in the log.
+      - name: Leftovers
+        if: always()
+        run: |
+          docker ps -a --filter "label=com.docker.compose.project" --format '{{.Names}} {{.Label "com.docker.compose.project"}}' | grep ' sk-drill-' || echo "no sk-drill containers left"
+          docker volume ls -q | grep '^sk-drill-' || echo "no sk-drill volumes left"
+
+      - name: Upload the drill log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: drill-log-${{ matrix.package }}
+          path: ${{ runner.temp }}/drill*.log
+          if-no-files-found: warn
+          retention-days: 14

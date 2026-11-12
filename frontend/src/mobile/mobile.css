@@ -1,0 +1,59 @@
+/*
+ * Mobile shell only (the root carries `sk-mobile`, set in main.tsx; the MCP App bundle never loads this file).
+ * The rooms keep a foot reserve of at least 6 rem for the host's reply field (tokens.css). The phone has no reply field,
+ * so the reserve is only the system gesture bar: the bottom inset that insets.ts publishes as --host-safe-bottom.
+ * Content therefore ends above the gesture bar and leaves no empty band under it.
+ */
+:root.sk-mobile {
+  --sk-foot-reserve: var(--host-safe-bottom, 0px);
+  /* Android's touch target is 48 dp, and what TalkBack and the accessibility scanner measure is the element's own box,
+     not the ::after that reaches past it in Claude (ua-5). So on the phone the controls drawn 44 (icon buttons, tabs,
+     quiet buttons) and 40 (compact buttons such as Ångra, chips) are drawn 48. */
+  --sk-tap: 3rem;
+  --sk-compact: 3rem;
+}
+/* The room strip's cells, drawn 40 in Claude, are 48 here for the same reason; the strip grows by 8. */
+:root.sk-mobile .sk-rooms .sk-rooms__tab {
+  min-height: 48px;
+}
+/* And a row's ring column is 48 wide (44 in Claude), still hanging into the side margin so the ring keeps its x. */
+:root.sk-mobile .sk-frame > .sk-frame__body {
+  --sk-lead-w: 48px;
+  --sk-lead-hang: calc((var(--sk-ring-glyph) - 48px) / 2);
+}
+
+/* The shell is a column the height of the screen, so the notes after the rooms (push-notice.css) stand at the
+   screen's foot under a short room instead of in its middle. */
+.mobile-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+.mobile-shell > * {
+  flex: none;
+}
+.mobile-shell[hidden] {
+  display: none;
+}
+/* Before the rooms are drawn the shell is only its background, so the pairing gate's calm screen does not flash blank. */
+.mobile-shell--loading {
+  min-height: 100dvh;
+  background: var(--sk-bg);
+}
+
+/* The line that says a pairing link was dropped because the phone is already paired (mobile-app.tsx). */
+.mobile-link-notice {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  padding: var(--sk-s2) calc(var(--sk-s4) + var(--host-safe-right, 0px))
+    var(--sk-s2) calc(var(--sk-s4) + var(--host-safe-left, 0px));
+  background: var(--sk-bg);
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.mobile-link-notice__text {
+  flex: 1;
+  margin: 0;
+}

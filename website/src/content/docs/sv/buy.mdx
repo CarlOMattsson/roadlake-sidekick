@@ -1,0 +1,50 @@
+---
+title: Köp en licensnyckel
+description: Licensnycklar till Sidekick säljs snart, via Polars kassa. Så går köpet till, och så anger du nyckeln. Du behöver ingen nyckel för att använda Sidekick.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import PricingNotice from '../../../components/PricingNotice.astro';
+import Steps from '../../../components/Steps.astro';
+import BuyButton from '../../../components/BuyButton.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="Köp en licensnyckel"
+  lead="Licensnycklar säljs snart. Här står vad du köper och vad som händer sedan. Själva betalningen kommer att ske i Polars kassa, inte här på webbplatsen."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <PricingNotice
+    title="Snart till salu"
+    text="Köplänken läggs in här när försäljningen startar. Priserna på prissidan gäller. Köp öppnar när betalningen via Polar är på plats."
+  />
+  <section class="buyhow" aria-labelledby="h-steps">
+    <h2 id="h-steps">Så går det till</h2>
+    <Steps
+      items={[
+        { title: 'Välj nyckel', text: 'Du väljer en personlig nyckel eller en organisationsnyckel och hur länge den ska gälla. Aktuella nycklar och priser står i [pristabellen](pricing).' },
+        { title: 'Betala i Polars kassa', text: 'Polar sköter bara betalningen.' },
+        { title: 'Få nyckeln med e-post', text: 'Nyckeln skickas till dig när betalningen är klar.' },
+        { title: 'Ange nyckeln', text: 'Klistra in den i Kontroll i ett av rummen, i Inställningar i Android-appen eller på servern. Bara instansens ägare kan ange en nyckel.' },
+      ]}
+    />
+    <BuyButton />
+    <p><PageLink page={['docs/operate/license-key', 'docs/licensing']}>Läs hur du anger en licensnyckel</PageLink></p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-what">
+    <h2 id="h-what">Det här köper du</h2>
+    <p>En licensnyckel tar bort påminnelsen om att det är gratisversionen, under den tid nyckeln gäller. Den låser inte upp några funktioner, för allt finns redan utan nyckel. När nyckeln går ut kommer påminnelsen tillbaka och inget annat ändras.</p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-know">
+    <h2 id="h-know">Bra att veta</h2>
+    <p>Nyckeln innehåller namnet på den som fått den, och namnet visas i appen. Dela inte nyckeln och lägg inte ut den öppet. Nyckeln kontrolleras offline, så Sidekick kontaktar ingen server för att kontrollera den.</p>
+  </section>
+  <PricingNotice
+    title="Behöver du ingen nyckel?"
+    text="Allt fungerar utan. En nyckel tar bara bort påminnelsen om gratisversionen."
+  >
+    <PageLink page="pricing">Se vad nyckeln gör och inte gör</PageLink>.
+  </PricingNotice>
+</div>

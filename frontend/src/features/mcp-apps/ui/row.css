@@ -1,0 +1,216 @@
+/* List row (designsystem §3 "Listrad"). Flat rows: no hairline and no card between them, the space
+   separates. Host tokens are read first and every token has a fallback; light-dark() fallbacks follow the host
+   colour-scheme. The row is the row template: at least 48 (--sk-row-min),
+   6 of air over the title line and under the last text line (--sk-row-pad), one meta line, and the two controls are
+   siblings, never nested. */
+.sk-row {
+  display: flex;
+  align-items: stretch;
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  font-family: var(--font-sans, system-ui, sans-serif);
+}
+
+/* Leading slot: a 48 px touch target when it is a button, plain content otherwise. */
+.sk-row-lead {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sk-row-min);
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+
+button.sk-row-lead,
+button.sk-row-open {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Open area: title, metarad, trailing text and chevron. Full width after the leading slot. */
+.sk-row-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3, 12px);
+  margin: 0;
+  /* No right padding: everything trailing ends on the content edge. */
+  padding: var(--sk-row-pad) 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.sk-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+/* Title: the row type (--sk-type-row, 16/20.8 at 400), at most 3 lines in a full-screen list up to about 133 % text
+   (--sk-row-title-lines, layout.css). */
+.sk-row-primary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--sk-row-title-lines, none);
+  overflow: hidden;
+  /* No automatic hyphens (Chromium's Swedish patterns split "kalende-revent"). A word moves whole to the
+     next line and breaks without a hyphen only when it alone is wider than the line; never `anywhere`. */
+  overflow-wrap: break-word;
+  hyphens: manual;
+  font: var(--sk-type-row);
+}
+
+/* Metarad: exactly one line right under the title, cut with an ellipsis at its end. */
+.sk-row-secondary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  /* Room for a last glyph's ink past its advance, which the clip would cut. */
+  padding-inline-end: 2px;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted, light-dark(#5f6368, #a1a1aa));
+}
+
+.sk-row-trailing {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted, light-dark(#5f6368, #a1a1aa));
+}
+
+/* A compact action in the trailing slot: "Ångra", "Återställ". The row keeps its
+   height (56 at one line), and the button's middle sits on the middle of the title line, also when a metarad stands
+   under the title. */
+.sk-row-open:has(> .sk-row-trailing > .sk-btn--compact) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  align-content: center;
+}
+.sk-row-open:has(> .sk-row-trailing > .sk-btn--compact) > .sk-row-text {
+  grid-column: 1;
+  grid-row: 1;
+}
+.sk-row-trailing:has(> .sk-btn--compact) {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  margin-block: calc((var(--sk-type-row-line) - var(--sk-compact)) / 2);
+  margin-inline-start: var(--sk-s3);
+}
+
+/* Shown only when the row navigates (section 3.4). */
+.sk-row-chevron {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-text-tertiary, light-dark(#6b7280, #9ca3af));
+}
+
+.sk-row button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* The fold row: one form for "Klar (n)", "Köpta (n)", "Klara här (n)", "Kontaktvägar" and the row
+   menu's groups at large text. "Text (n)" in the section type and ink (the count muted, .sk-count), an optional meta
+   line under it in 15,4 text-2, ⌄ (--sk-chevron, muted, as a row's ›) on the content edge, the row's 6 over and under
+   and a 48 target over the whole width. No fill and no edge. Where it stands as a heading, its context pulls it into
+   the heading's line (h3 > .sk-fold). */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  width: 100%;
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: var(--sk-row-pad) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-section);
+  text-align: start;
+}
+.sk-fold-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+}
+.sk-fold-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* ⌄ follows the fold row's own text: 24 at 19,8 px (110 %), so 43,6 at 36 px (200 %), the same
+   weight beside the label at every size. With a meta line it stands on the label's line, not between label and meta. */
+.sk-fold > svg {
+  --sk-fold-glyph: calc(1em * 24 / 19.8);
+  flex: none;
+  width: var(--sk-fold-glyph);
+  height: var(--sk-fold-glyph);
+  color: var(--sk-muted);
+}
+.sk-fold:has(.sk-fold-meta) > svg {
+  align-self: flex-start;
+  margin-top: calc((var(--sk-type-section-line) - var(--sk-fold-glyph)) / 2);
+}
+.sk-fold[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+/* As a section heading: the title line stays on the heading's line, so folding moves nothing above it. */
+h3 > .sk-fold {
+  margin-block: calc((var(--sk-type-section-line) - var(--sk-row-min)) / 2);
+}
+h3 > .sk-fold:has(.sk-fold-meta) {
+  margin-block: calc(-1 * var(--sk-row-pad));
+}
+
+/* The action row: the list's own tertiary row, "+ Lägg till steg", "+ Koppla kontakt" and "Flytta N
+   försenade till imorgon". A glyph the ring's size in the ring's column (its middle on the ring's), the text in the row
+   type at 500 and ink on the title's x, 48 high, no surface, no edge and no ›. Held, it takes the surface. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-action-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-weight-medium) var(--sk-type-row-size) /
+    var(--sk-type-row-line) var(--sk-font);
+  text-align: start;
+  white-space: normal;
+}
+.sk-action-row > svg {
+  flex: none;
+  width: var(--sk-ring-glyph);
+  height: var(--sk-ring-glyph);
+  margin-inline-end: calc(
+    var(--sk-lead-w) + var(--sk-lead-hang) + 2px - var(--sk-ring-glyph)
+  );
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-action-row:active:not(:disabled) {
+  background: var(--sk-surface);
+}

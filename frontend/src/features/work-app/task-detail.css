@@ -1,0 +1,334 @@
+/* Task detail (moved from work.css unchanged; loaded directly after it, see work-view.tsx). */
+/* The task detail sits directly on the page: no frame (WorkRoom draws it with chrome off in fullscreen), and the
+   16 px side margin is the page's own. Each section (Steg,
+   Kontakter) starts 24 px below the one before it. */
+.sidekick-work .work-task {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+/* The Task's control row: [date ⌄] [status ⌄] [Markera klar], 8 apart, 8 under the
+   meta line and 12 to the description. The values are chips (family.css .sk-chip) and "Markera klar" is the screen's one primary, compact,
+   last in the row. A panel a chip opens takes a line of its own under the row. At 360 px or large text the row wraps. */
+.sidekick-work .work-task-props {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  /* 8 under the meta line and 12 over the description: with the description's own half-leading ≈ 18 lie between the
+     buttons' edge and its glyphs, so the row reads as a block of its own and not as pressed onto the text (ui-22; 4
+     left ≈ 8, which read as cramped next to the sections' rhythm). */
+  margin: var(--sk-s2) 0 var(--sk-s3);
+}
+/* The property chip shows a value, not a choice, so it is never drawn chosen: the chip's edge, no surface, 500 and a
+   closing ⌄ of 16. A long value wraps inside it. */
+.sidekick-work .work-prop-chip {
+  flex-wrap: wrap;
+  padding-block: calc(var(--sk-s1) - var(--sk-hairline));
+  text-align: start;
+  white-space: normal;
+}
+.sidekick-work .work-prop-chip::after {
+  inset: calc(-4px - var(--sk-hairline)) 0;
+}
+.sidekick-work .work-prop-chip svg {
+  flex: none;
+  color: var(--sk-muted);
+}
+.sidekick-work .work-prop-chip[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+/* The date stays whole: "fre 30 okt" (how late it is stands on the meta line above). */
+.sidekick-work .work-prop-chip time {
+  white-space: nowrap;
+}
+.sidekick-work .work-task-props > [role="group"] {
+  flex: 1 0 100%;
+  margin: 0;
+}
+/* The place row follows the date and status row: 8 apart, the first row's 12 under it taken back. */
+.sidekick-work .work-task-props + .work-task-place {
+  margin-top: calc(-1 * var(--sk-s1));
+}
+/* The place chip may hold a long title: it wraps at word breaks inside the line, never past it. */
+.sidekick-work .work-task-place .work-prop-chip {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* A read-only chip (a place the host cannot change, the repeat rule) is a value, not a control: no edge, muted. */
+.sidekick-work .work-prop-static {
+  border-color: transparent;
+  padding-inline: 0;
+  color: var(--sk-muted);
+  pointer-events: none;
+}
+/* The place panel: the picker over the link to the Project or Process page. */
+.sidekick-work .work-place-panel {
+  display: grid;
+  justify-items: start;
+  gap: var(--sk-s2);
+}
+.sidekick-work .work-place-panel > .work-group-select {
+  justify-self: stretch;
+}
+/* After "Ta bort uppgift": the line "Uppgiften är borttagen." with Ångra beside it, and where the trash is under it. */
+.sidekick-work .work-trashed-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s1) var(--sk-s2);
+}
+.sidekick-work .work-trashed-line > p,
+.sidekick-work .work-trashed-where {
+  margin: 0;
+}
+.sidekick-work .work-trashed-where {
+  margin-top: var(--sk-s2);
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The status menu: the shared ⋯ panel, one 44 row per status, ✓ at the right of the current one. */
+.sidekick-work .work-status-menu > .work-contact-menu-item {
+  justify-content: space-between;
+}
+/* "Visa mer" (without ›): a tertiary compact text button right after the text it
+   opens, its text on the content edge (the 12 of padding hangs into the margin). */
+.sidekick-work .work-task button.work-more-link {
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  margin-inline-start: calc(-1 * var(--sk-s3));
+  /* Its 44 box holds ≈ 10 over and 12 under the text. Over it, the row's 6 come back, so it reads as the
+     description's last line (≈ 9 between the glyphs) and the step tip below can keep a row's 6 under it. Under it, the
+     next section's 24 takes 10 back, so ≈ 30 lie between the glyphs. */
+  margin-top: calc(-1 * var(--sk-row-pad));
+  /* 10 back (2 more than before, for the 6,6 the step tip now stands lower): ≈ 30 to the next heading. */
+  margin-bottom: calc(-1 * (var(--sk-s2) + 2px));
+  padding-inline: var(--sk-s3);
+}
+.sidekick-work .work-task button.work-more-link::after {
+  inset: -4px 0;
+}
+.sidekick-work .work-task .work-description {
+  margin: 0;
+  font: var(--sk-type-body);
+}
+/* The Task's meta line, 4 under the title (§4 Detaljvy): "5 dagar försenad", one line, in red while the Task is late. */
+.sidekick-work .work-task-meta {
+  display: flex;
+  min-width: 0;
+  margin: var(--sk-s1) 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-task-late {
+  flex: none;
+  color: var(--sk-overdue-fg);
+}
+/* A tap on the title edits (§3, Tillbakarad); the ⋯ entry "Redigera" is the keyboard way. */
+.sidekick-work .work-detail-title[tabindex] {
+  cursor: text;
+}
+.sidekick-work .work-edit {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+}
+/* Labels sit above their fields, which take the full width. */
+.sidekick-work .work-edit label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+.sidekick-work .work-edit input,
+.sidekick-work .work-agenda-filter input,
+.sidekick-work .work-edit select,
+.sidekick-work .work-edit textarea {
+  font: inherit;
+  color: inherit;
+  background: var(--work-bg);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sidekick-work .work-edit textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+.sidekick-work .work-edit input[aria-invalid="true"],
+.sidekick-work .work-edit textarea[aria-invalid="true"] {
+  border-color: var(--work-danger);
+  border-width: 2px;
+}
+.sidekick-work .work-edit .work-due-row {
+  display: grid;
+  gap: 0.5rem;
+}
+/* The date shortcuts above the due date field: one row that wraps at 320 px, 44px tall targets. */
+.sidekick-work .work-edit .work-due-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.sidekick-work .work-edit .work-due-chips button {
+  min-height: 2.75rem;
+}
+
+/* A one-line Step stands in the middle of its 48, so the list takes that extra air off the heading's 4 (--sk-row-air-extra): heading → first step is 12 between the glyphs, as in every list. */
+.sidekick-work .work-steps {
+  list-style: none;
+  padding: 0;
+  margin: calc(-1 * var(--sk-row-air-extra)) 0 0;
+}
+/* A Step is a row of the row template (§3, Listrad): no divider, at least 48, 6 over and under
+   its text. The whole label is the check's target, the box drawn by the glyph. */
+.sidekick-work .work-steps :is(label, .work-step-read) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: var(--sk-row-min);
+  padding-block: var(--sk-row-pad);
+  font: var(--sk-type-row);
+}
+/* The step title is a flex item of the label. Its automatic minimum width is the longest word, so an
+   unbroken word (a long file name, a URL) pushed the row and the page past the screen (190 px case).
+   min-width 0 lets the title shrink; anywhere lets it break inside that one word. */
+.sidekick-work .work-steps :is(label, .work-step-read) > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* The Step's square (StatusGlyph, 22 at 24, text colour) in the leading column, and the title on the x of "+ Lägg till
+   steg": the + is --sk-icon wide (1.5rem), so the square's 24 takes the rest of that column as air (52 vs
+   55 at 110 %). The native box lies over the label, unseen: a tap anywhere on it checks, and its focus is drawn on the
+   square. */
+.sidekick-work .work-steps :is(label, .work-step-read) > .sk-status-glyph {
+  width: var(--sk-s5);
+  height: var(--sk-s5);
+  margin: 0 calc(var(--sk-icon) - var(--sk-s5) + var(--sk-s3)) 0 0;
+}
+/* A Step the host cannot tick (the Android app): no box. A neutral dot, or a bare tick in the muted colour of a done ring. */
+.sidekick-work .work-steps .work-step-mark {
+  color: var(--sk-muted);
+}
+.sidekick-work .work-steps .work-step-mark circle {
+  fill: currentColor;
+}
+.sidekick-work .work-steps .work-step-mark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sidekick-work .work-steps .work-step-check:focus-visible + .sk-status-glyph {
+  border-radius: 4px;
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 2px;
+}
+.sidekick-work .work-steps .work-step-check:disabled + .sk-status-glyph {
+  opacity: 0.38;
+}
+/* A Step row is the label alone, the whole width (no ⋯ and no line around the label; a long press, a right click or
+   Shift+F10 opens the row's menu of Up, Down and Archive under the title). */
+/* The menu sits under the title, indented past the checkbox. */
+.sidekick-work .work-step-menu {
+  padding: 0 0 0.4rem 1.85rem;
+}
+/* A checked Step is drawn in the muted colour (AA on both schemes), so the open Steps read first; no strike-through and
+   no black box (§4 Tillstånd "Klar"): its square is a tick in outline (status-glyph.css). */
+.sidekick-work
+  .work-steps
+  > li.work-step-done
+  > :is(label, .work-step-read)
+  > span {
+  color: var(--work-muted);
+}
+/* Row actions (unlink, alias remove, archive). The remove trigger is discreet; the confirming
+   step shows the destructive action in red next to a plain Cancel. */
+.sidekick-work .work-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.1rem 0 0.4rem 0.25rem;
+}
+/* The step tip right under "+ Lägg till steg": on the add row's text, under the
+   add row's whole 48, so it covers none of its target (laying it 6,6 into the row left 41 to tap). 4 under it, so ≈ 30 lie
+   between it and the next heading and Anna's row still ends above the reply field. */
+.sidekick-work div:has(> .work-add-row) + .work-row-tip {
+  margin: 0;
+  padding-bottom: var(--sk-s1);
+  padding-inline-start: calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px);
+}
+.sidekick-work
+  article
+  section:has(> .work-row-tip):has(> div > .work-add-row)
+  + h3 {
+  margin-top: var(--sk-section-above);
+}
+/* The add row lies over the tip that follows it: where the two boxes meet on a half pixel, a tap goes to
+   the row, so its whole 48 reaches it. */
+.sidekick-work .work-add-row.sk-action-row {
+  position: relative;
+  z-index: 1;
+}
+/* In the Task the add rows follow the steps' 24 square, so their glyph is 24 with its middle on the square's; the text keeps the title's x. */
+.sidekick-work .work-add-row.sk-action-row > svg {
+  width: 24px;
+  height: 24px;
+  margin-inline-end: calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px - 24px);
+}
+
+/* "Klar · nästa: fre 27 nov · Ångra" right under "Markera klar" on a recurring Task (uc-1): the line in the meta's
+   type, Ångra beside it on the same 44 px row. */
+.sidekick-work .work-task-cycle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+  min-height: var(--sk-tap, 44px);
+  margin: 0.25rem 0 0;
+}
+.sidekick-work .work-task-cycle > p {
+  margin: 0;
+  font: var(--sk-type-meta);
+  font-weight: var(--sk-weight-semibold, 600);
+  color: var(--sk-fg);
+}
+
+/* A Step just checked or unchecked keeps its place and says so in the agenda's way (agenda.css, "The Undo of a row"):
+   its meta line ("Klar", "Öppen igen") stands under the title, on the title's x, and "Ångra" is a compact button in the
+   trailing slot. The row becomes the grid those rules place their line and button in. */
+.sidekick-work .work-steps > li.work-step-undoing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--sk-s3);
+  align-items: start;
+}
+.sidekick-work
+  .work-steps
+  > li.work-step-undoing
+  > :is(label, .work-step-read) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.sidekick-work .work-steps > li.work-step-undoing > .work-agenda-undo > p {
+  padding-inline-start: calc(var(--sk-icon) + var(--sk-s3));
+}
+
+/* The repeat rules as chips under the place row, the current one ticked (uc-4), as the row menu's Status and Datum.
+   A row of their own across the whole width, so they wrap together and never beside the chips above. */
+.sidekick-work .work-repeat-choices {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+}

@@ -1,0 +1,63 @@
+repos:
+  - repo: local
+    hooks:
+      - id: backend-ruff-format
+        name: Backend Ruff Format Check
+        entry: bash -c 'cd backend && uv run ruff format --check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: backend-ruff-lint
+        name: Backend Ruff Lint Check
+        entry: bash -c 'cd backend && uv run ruff check .'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: backend-pyright
+        name: Backend Pyright Typecheck
+        entry: bash -c 'cd backend && uv run pyright'
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: export-openapi-and-mcp-contracts
+        name: Export OpenAPI, MCP and Companion Contracts Snapshot
+        entry: bash -c 'uv run --project backend python -m sidekick.api.export_openapi --output contracts/openapi.generated.json && uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json && uv run --project backend python -m sidekick.api.export_companion_contract --output contracts/companion-api.generated.json && git diff --exit-code -- contracts && uv run --project backend python -m sidekick.mcp.export_tool_reference --check && uv run --project backend python -m sidekick.export_reference --check'
+        language: system
+        pass_filenames: false
+
+
+      - id: frontend-prettier-format
+        name: Frontend Prettier Format Check
+        entry: bash -c 'cd frontend && npm run format:check'
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css]
+        pass_filenames: false
+
+      - id: frontend-lint
+        name: Frontend ESLint Check
+        entry: bash -c 'cd frontend && npm run lint'
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        pass_filenames: false
+
+      - id: frontend-typecheck
+        name: Frontend TypeScript Check
+        entry: bash -c 'cd frontend && npm run typecheck'
+        language: system
+        types_or: [ts, tsx]
+        pass_filenames: false
+
+      - id: frontend-tests
+        name: Frontend Vitest Suite
+        entry: bash -c 'cd frontend && npm test'
+        language: system
+        pass_filenames: false
+
+      - id: backend-pytest
+        name: Backend Pytest Suite (Unit & Contract)
+        entry: bash -c 'cd backend && uv run pytest -q tests/unit tests/policy tests/contract'
+        language: system
+        pass_filenames: false

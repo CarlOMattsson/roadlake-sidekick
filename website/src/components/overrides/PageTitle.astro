@@ -1,0 +1,36 @@
+---
+// Docs pages: breadcrumbs above the H1. Marketing pages (splash template) draw their own H1.
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import { pageHref, type Locale } from '../../lib/site';
+const route = Astro.locals.starlightRoute;
+const t = Astro.locals.t;
+const isSplash = route.entry.data.template === 'splash';
+type Item = { type: string; label: string; isCurrent?: boolean; entries?: Item[] };
+const trail = (entries: Item[]): string[] | null => {
+  for (const e of entries) {
+    if (e.type === 'link' && e.isCurrent) return [];
+    if (e.type === 'group') {
+      const inner = trail(e.entries ?? []);
+      if (inner) return [e.label, ...inner];
+    }
+  }
+  return null;
+};
+const groups = isSplash ? [] : (trail(route.sidebar as unknown as Item[]) ?? []);
+const docsHref = await pageHref((route.locale ?? 'en') as Locale, 'docs');
+---
+{
+  !isSplash && (
+    <>
+      {docsHref && (
+        <nav class="crumbs" aria-label={t('site.crumbs.label')}>
+          <ol>
+            <li><a href={docsHref}>{t('site.nav.docs')}</a></li>
+            {groups.map((g) => <li>{g}</li>)}
+          </ol>
+        </nav>
+      )}
+      <Default><slot /></Default>
+    </>
+  )
+}

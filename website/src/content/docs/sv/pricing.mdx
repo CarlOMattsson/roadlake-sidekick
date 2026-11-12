@@ -1,0 +1,55 @@
+---
+title: Pris
+description: Sidekick är gratis med alla funktioner. En frivillig licensnyckel tar bort påminnelsen om gratisversionen. Priserna finns här.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import PricingNotice from '../../../components/PricingNotice.astro';
+import PriceTiers from '../../../components/PriceTiers.astro';
+import StatusList from '../../../components/StatusList.astro';
+import BuyButton from '../../../components/BuyButton.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="Pris"
+  lead="Sidekick är gratis att använda, med alla funktioner. En licensnyckel är frivillig och gör en enda sak: den tar bort påminnelsen om att det är gratisversionen."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <PricingNotice />
+  <PriceTiers
+    free={{ sub: 'För privat bruk, ideellt bruk och din egen interna verksamhet.', bullets: ['Alla funktioner', 'En liten påminnelse om gratisversionen'] }}
+    personal={{ sub: 'Tar bort påminnelsen. Gäller en viss tid och visar ditt namn i appen.' }}
+    org={{ sub: 'Frivillig. Delas inom organisationen och visar organisationens namn.' }}
+  />
+  <div class="does">
+    <StatusList
+      level="h2"
+      title="Det här gör nyckeln"
+      items={[
+        { state: 'yes', text: 'Tar bort påminnelsen i rummen och i Idag-widgeten.' },
+        { state: 'yes', text: 'Visar "Licensierad till", namnet på nyckeln och sista giltighetsdagen i Kontroll och i Android-appens Inställningar.' },
+        { state: 'yes', text: 'Kontrolleras offline mot en publik nyckel. Sidekick kontaktar ingen server för att kontrollera den.' },
+      ]}
+    />
+    <StatusList
+      level="h2"
+      title="Det här gör nyckeln inte"
+      items={[
+        { state: 'no', text: 'Den låser inte upp något. Alla funktioner finns redan utan nyckel.' },
+        { state: 'no', text: 'Den ändrar inget när den går ut. Påminnelsen kommer tillbaka, och dina data och funktioner är som förut.' },
+        { state: 'no', text: 'Den behövs inte för någon rättighet enligt licensen.' },
+      ]}
+    />
+  </div>
+  <section class="buyhow" id="buy" aria-labelledby="h-buy">
+    <h2 id="h-buy">Köp</h2>
+    <p>Licensnycklar säljs snart. Betalningen kommer att ske i Polars kassa, inte här på webbplatsen. Nyckeln skickas till dig med e-post när betalningen är klar. Vilka nycklar som finns och vad de kostar står i tabellen ovan.</p>
+    <BuyButton />
+    <p><PageLink page="buy">Läs vad som händer när du köper</PageLink></p>
+  </section>
+  <div class="legal">
+    <p>Licenstexten gäller. Den här sidan är en sammanfattning, inte licensen. <PageLink page={['docs/explanation/licensing', 'docs/licensing']}>Läs licensen i klartext</PageLink> eller <PageLink page="docs/license">läs den bindande licenstexten</PageLink>, som är på engelska.</p>
+  </div>
+</div>

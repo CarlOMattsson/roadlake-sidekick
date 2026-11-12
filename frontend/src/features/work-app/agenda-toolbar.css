@@ -1,0 +1,110 @@
+/* The tools of the Work tab row (agenda-toolbar.tsx): the search icon, the "⋯" menu and the search field.
+   The buttons are the row's icon buttons (.work-tab-tool, view-tabs.css). The shell lays out the row; see
+   work-shell.css for how the menu wraps onto its own line under it. */
+.sidekick-work .work-agenda-more {
+  min-width: 0;
+}
+.sidekick-work .work-agenda-more[hidden],
+.sidekick-work .work-agenda-bar-panel[hidden],
+.sidekick-work .work-search[hidden] {
+  display: none;
+}
+
+/* The "⋯" menu: a card under the tab row at full width (radius 12, the surface colour), in the page flow so it
+   never covers a row and never scrolls inside. Its items are 44 px rows of label text in --sk-fg with a hairline
+   between them; each starts at the card's 16 px padding. */
+.sidekick-work .work-agenda-bar-panel .work-saved-views {
+  margin: 0;
+}
+.sidekick-work .work-agenda-bar-refresh,
+.sidekick-work .work-agenda-bar-panel .work-saved-views-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-menu);
+  text-align: start;
+}
+/* "Sparade vyer" unfolds in place, so it carries ⌄ right after its label, turned while open (designsystem §3). */
+.sidekick-work .work-agenda-bar-panel .work-saved-views-toggle::after {
+  content: "⌄";
+  margin-inline-start: var(--sk-s2);
+  line-height: 1;
+  transform: translateY(-0.2em);
+}
+.sidekick-work
+  .work-agenda-bar-panel
+  .work-saved-views-toggle[aria-expanded="true"]::after {
+  transform: translateY(0.2em) rotate(180deg);
+}
+.sidekick-work .work-agenda-bar-panel .work-saved-views-body {
+  margin: 0 0 var(--sk-s3);
+}
+/* A hairline between two items of the menu, never above the first. */
+.sidekick-work
+  .work-agenda-bar-panel
+  > .work-agenda-bar-refresh:not(:first-child) {
+  border-top: var(--sk-hairline, 1px) solid var(--sk-line);
+}
+
+/* The search field, unfolded by the search icon: 48 px high, 8 px under the tab row's rule, the place of the new-Task
+   field, which closes meanwhile (designsystem §3 "Skapa"). What follows keeps its own air under it. The × is a
+   44 px icon button inside the field's right end. */
+.sidekick-work .work-search {
+  position: relative;
+  min-width: 0;
+  margin: var(--sk-s2) 0 0;
+}
+.sidekick-work .work-search-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: var(--sk-tap-lg);
+  min-height: var(--sk-tap-lg);
+  margin: 0;
+  padding: 0 calc(var(--sk-tap) + var(--sk-s1)) 0 var(--sk-s3);
+  color: var(--sk-fg);
+  background: var(--sk-bg);
+  border: var(--sk-hairline, 1px) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  /* 16 px keeps iOS from zooming the page when the field takes focus. */
+  font: var(--sk-type-body);
+  text-overflow: ellipsis;
+  appearance: none;
+}
+/* The browser's own clear button would be a second ×. */
+.sidekick-work .work-search-field::-webkit-search-cancel-button {
+  appearance: none;
+}
+.sidekick-work .work-search-field::placeholder {
+  color: var(--sk-muted);
+  opacity: 1;
+}
+.sidekick-work .work-search-close {
+  position: absolute;
+  inset-block-start: calc((var(--sk-tap-lg) - var(--sk-tap)) / 2);
+  inset-inline-end: var(--sk-s1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sk-tap);
+  height: var(--sk-tap);
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: transparent;
+  color: var(--sk-muted);
+}
+.sidekick-work .work-search-close svg {
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+}

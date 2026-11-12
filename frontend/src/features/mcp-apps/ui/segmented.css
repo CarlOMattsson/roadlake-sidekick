@@ -1,0 +1,108 @@
+/* Segmented control (designsystem §3): it sets a value in a detail view. A 1 px frame in --sk-border with
+   radius 8, equal segments 44 px high, no fill. The pressed option (aria-pressed) has the toned fill, a 2 px outline in
+   the text colour, a tick and 600. Host tokens first, each with a fallback. Each option
+   reaches 1 px over the frame (margin -1px), so the pressed contour replaces the frame line where it lies and the
+   control stays 44 px high. A label never ends in an ellipsis: it wraps inside its option, centred. An option is
+   never narrower than its longest word (min-content); when the options do not fit, they wrap onto more lines. The
+   option rules use two classes, so an app button rule (for example `.sidekick-work button`) cannot override them. */
+.sk-segmented {
+  --sk-seg-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --sk-seg-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: 0;
+  max-width: 100%;
+  border: 1px solid var(--sk-border, light-dark(#d4d4d8, #3f3f46));
+  border-radius: var(--border-radius-md, 0.5rem);
+  background: transparent;
+}
+
+.sk-segmented .sk-segmented__option {
+  flex: 1 1 0;
+  min-width: min-content;
+  min-height: 2.75rem;
+  box-sizing: border-box;
+  margin: -1px;
+  padding: 0.25rem 0.75rem;
+  border: 0;
+  border-radius: var(--border-radius-md, 0.5rem);
+  background: transparent;
+  color: var(--sk-seg-muted);
+  font: inherit;
+  font-size: var(--font-text-md-size, 1rem);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* The label wraps inside its option. Only whole words break, so a label is never cut and never ends in an ellipsis. */
+.sk-segmented__label {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: normal;
+}
+
+/* With a badge the label is on row one and the count on row two. Without a badge nothing changes. */
+.sk-segmented__option--badged {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.sk-segmented__badge {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-text-sm-size, 0.875rem);
+  line-height: 1.2;
+}
+
+/* The pressed option (designsystem §3 Valda lägen): the selected tone, a 2 px outline in the text
+   colour, a 16 px tick before the label and 600, the form of a chosen chip (family.css .sk-chip). The fill alone gives
+   only 1.2:1 / 1.6:1 against the page; the outline and the tick carry the choice. */
+.sk-segmented .sk-segmented__option[aria-pressed="true"] {
+  background: var(--sk-selected-bg, light-dark(#e8e8e8, #3a3a3a));
+  box-shadow: inset 0 0 0 var(--sk-selected-width, 2px)
+    var(--sk-selected-line, var(--sk-seg-fg));
+  color: var(--sk-seg-fg);
+  font-weight: var(--font-weight-semibold, 600);
+}
+.sk-segmented__option[aria-pressed="true"] > .sk-segmented__label::before {
+  content: "";
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-inline-end: 4px;
+  vertical-align: -2px;
+  background: currentColor;
+  -webkit-mask: var(--sk-check) center / 100% no-repeat;
+  mask: var(--sk-check) center / 100% no-repeat;
+}
+
+.sk-segmented__option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Narrow: the nearest container is 360 px or less (a 320 px Kontroll card, or a 320 px app frame). The unnamed query
+   matches any container, because Kontroll is not an app frame (.sk-frame). Only the label gets smaller, 0.875rem (the
+   smallest size allowed). The option keeps its 12 px, so the pressed option keeps its inner space at every width; at
+   320 px the options may wrap onto a second row. The option keeps its 44 px minimum height.
+   A one-word label ("Blockerad") is never narrower than its word, so it is never cut. */
+@container (max-width: 360px) {
+  .sk-segmented .sk-segmented__option {
+    font-size: 0.875rem;
+  }
+
+  .sk-segmented__option--badged {
+    gap: 0;
+  }
+
+  .sk-segmented__badge {
+    line-height: 1.1;
+  }
+}

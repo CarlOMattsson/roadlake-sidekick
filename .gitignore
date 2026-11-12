@@ -1,0 +1,70 @@
+# Secrets and local environment: never commit populated files.
+.env
+.env.*
+!.env.example
+!.env.*.example
+.env.seed
+.env.bak-*
+deploy/.*.env.*
+*.pem
+*.key
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.hypothesis/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+htmlcov/
+.coverage
+
+# Node and frontend build output
+node_modules/
+dist/
+playwright-report/
+test-results/
+.vite/
+*.tsbuildinfo
+frontend/dist-mcp-app/
+frontend/dist-mobile/
+frontend/coverage/
+
+# Logs, scratch and generated documentation
+*.log
+tmp/
+.tmp/
+site/
+
+# Self-hosted profile: real env files with secrets and the operator's own domain Caddyfile.
+deploy/selfhost/selfhost.env
+deploy/selfhost/db.env
+deploy/selfhost/Caddyfile
+deploy/selfhost/release.env
+deploy/selfhost/hindsight.env
+deploy/selfhost/update-state/
+# Own ntfy: accounts, hashes and the publish token written by ntfy-init.sh.
+deploy/selfhost/ntfy.env
+deploy/selfhost/ntfy-secrets/
+
+# Work laptop package (tools/work.sh): settings and generated secrets stay on the machine.
+deploy/work/work.env
+deploy/work/secrets/
+deploy/work/backups/
+deploy/work/generated/
+deploy/work/.work.lock
+deploy/work/.work.lock.d/
+
+# Env preparation and key-rename tools leave these next to the real env files: they hold secrets.
+*.env.new
+*.env.new.report
+*.env.report
+*.env.pre-sidekick
+*.env.bak
+
+# License signing keys: the licensor generates the pair outside the repository.
+# These entries are a second safety net.
+.roadlake-license/
+roadlake-license.key

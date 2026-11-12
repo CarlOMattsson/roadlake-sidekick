@@ -1,0 +1,13 @@
+{
+  "name": "roadlake-sidekick-diagrams",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "mermaid-isomorphic": "3.1.0",
+    "playwright": "1.61.1"
+  }
+}

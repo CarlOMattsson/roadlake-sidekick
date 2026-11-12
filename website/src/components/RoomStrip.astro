@@ -1,0 +1,21 @@
+---
+import { base, pngSize } from '../lib/site';
+interface Props {
+  rooms: { name: string; title: string; text: string; alt: string }[];
+  note: string;
+}
+---
+<div class="rooms">
+  {
+    Astro.props.rooms.map((r) => {
+      const { width, height } = pngSize(`docs-images/rooms/${r.name}.png`);
+      return (
+        <figure class="room">
+          <div class="room__shot"><img src={`${base}/docs-images/rooms/${r.name}.png`} width={width} height={height} alt={r.alt} loading="lazy" /></div>
+          <figcaption><b>{r.title}</b><span>{r.text}</span></figcaption>
+        </figure>
+      );
+    })
+  }
+</div>
+<p class="figcap-note">{Astro.props.note}</p>

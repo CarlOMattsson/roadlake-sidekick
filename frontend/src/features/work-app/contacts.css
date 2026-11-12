@@ -1,0 +1,515 @@
+/* Flat rows (ui/row.css: 56 high, no divider). work.css gives every button in the view a border, a radius and
+   centred text; the reset here wins by specificity, so the name starts on the left (children inherit the alignment).
+   The avatar fills the 36 leading column, so the name starts on 52 like every row with a leading glyph (§3, Listrad). */
+.sidekick-work .work-contact-list .sk-row-open {
+  /* The row template's 48 floor, not work.css's 2.75rem for every button (48.4 at 110 %). */
+  min-height: var(--sk-row-min);
+  justify-content: flex-start;
+  /* The template's 6 over and under: work.css's 8 for every button made a row with its meta 58. */
+  padding: var(--sk-row-pad) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: start;
+}
+.sidekick-work .work-contact-list .sk-row-lead {
+  min-width: 0;
+}
+.sidekick-work .work-contact-list .sk-row-primary {
+  font: var(--sk-type-row);
+}
+/* The › is the glyph of every opening row, its box ending on the content edge (396 at 412), --sk-chevron as the
+   Work rows'. */
+.sidekick-work .work-contact-list .sk-row-chevron {
+  width: var(--sk-chevron);
+  height: var(--sk-chevron);
+  /* 12 of the row's gap, or none on a narrow frame or at large text, the glyph hanging 4 into the margin. */
+  margin-inline: calc(var(--sk-chevron-gap, 12px) - 12px)
+    calc(-1 * var(--sk-chevron-hang, 0px));
+  color: var(--sk-muted);
+}
+/* The room head (design system §3, Rumshuvud): the search field is a surface (radius 8, 40 high, no
+   line) from 16 to the + box, 8 under the strip (was 4, two surfaces read as one block), the magnifier (24) at
+   24–48 and the placeholder on 52, then + and ⋯ as 44 glyph buttons on the field's middle. The field itself is 48: clear 4 px borders hold the gap to the strip and to the hairline, and the surface is the padding
+   box, its corners 8 round (8/12 less the border). The hairline runs in full width 8 under the field; an open create field wraps onto
+   the line below. */
+.sidekick-work .work-contacts-head {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  margin: 0;
+  background: linear-gradient(var(--sk-line), var(--sk-line)) 0
+    calc(var(--sk-tap) + var(--sk-s2) - var(--sk-hairline)) / 100%
+    var(--sk-hairline) no-repeat;
+}
+.sidekick-work .work-contacts-head > svg {
+  position: absolute;
+  inset-block-start: 12px;
+  inset-inline-start: var(--sk-s2);
+  color: var(--sk-muted);
+  pointer-events: none;
+}
+.sidekick-work .work-contacts-head > .work-contacts-search {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  height: var(--sk-tap-lg);
+  /* It ends 4 before the + box, whose target reaches 2 to the left of it (the target
+     reached 4 px into the field's surface). A clear 4 px border above and under the 40 surface makes the target 48
+     (it was 45), and the hairline stays 7 under the surface. */
+  margin: 0 var(--sk-s1) var(--sk-s1) 0;
+  padding: 0 0 0 36px;
+  border: var(--sk-s1) solid transparent;
+  border-inline: 0;
+  border-radius: var(--sk-radius) / calc(var(--sk-radius) + var(--sk-s1));
+  background: var(--sk-surface) padding-box;
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+.sidekick-work .work-contacts-head > .work-contacts-search::placeholder {
+  color: var(--sk-muted);
+  opacity: 1;
+}
+/* Focus: a 2 px ring inside the visible 40 surface (the inset shadow follows it; an outline would follow the 44 box
+   with its clear top). Forced colours drop the shadow, so there the ring is a system-colour outline. */
+.sidekick-work .work-contacts-head > .work-contacts-search:focus-visible {
+  outline: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px var(--sk-ring);
+}
+@media (forced-colors: active) {
+  .sidekick-work .work-contacts-head > .work-contacts-search:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+/* + and ⋯ are frameless icon buttons, 44 boxes 4 apart; ⋯'s glyph ends on the content edge (centres 336 and 384 at
+   412, the room heads' 48 grid; 340 and 384 before), so its box reaches 10 into the margin. Each target
+   is 48 × 48, 2 past every edge of its box, so the two meet in the gap and never overlap. */
+.sidekick-work .work-contacts-head > .sk-iconbtn {
+  width: var(--sk-tap);
+  margin: 2px 0 0;
+}
+.sidekick-work .work-contacts-head > .work-contacts-add {
+  margin-inline-end: var(--sk-s1);
+}
+.sidekick-work .work-contacts-head > .work-contacts-more {
+  margin-inline-end: calc((var(--sk-icon) - var(--sk-tap)) / 2);
+}
+.sidekick-work
+  .work-contacts-head
+  > :is(.work-contacts-add, .work-contacts-more)::after {
+  inset: -2px;
+}
+.sidekick-work
+  .work-contacts-head
+  > .sk-iconbtn[aria-expanded="true"]:not(.sk-iconbtn--primary) {
+  background: var(--sk-surface);
+}
+/* The create field folds out 8 under the head, on a line of its own. */
+.sidekick-work .work-contacts-create {
+  order: 1;
+  flex: 1 0 100%;
+}
+.sidekick-work .work-contacts-create > p {
+  margin: var(--sk-s2) 0 0;
+}
+.sidekick-work .work-contacts-panel.work-contact-menu {
+  margin: 0 0 var(--sk-s3);
+}
+.sidekick-work .work-contacts-panel[hidden] {
+  display: none;
+}
+.sidekick-work .work-contact-menu > .work-contact-menu-item:last-child {
+  border-bottom: 0;
+}
+
+/* Detail views (Task, Contact, Project; design system §3, Tillbakarad). The Back row holds "‹ Parent" and the view's
+   icon buttons (pen, ⋯): frameless, 44 high, a 24 px glyph in the text colour. The title stands alone under the
+   row in --sk-type-title; there is no kind kicker above it. A root frame's row shows the kind as a muted kicker. */
+/* The icon buttons themselves are sk-icon-btn (family.css) and the Back row's action rule (back-header.css); in
+   fullscreen they are portalled into the shell's Back row, outside .sidekick-work, so these extras are unscoped. */
+.work-detail-action[aria-expanded="true"],
+.sk-back-header
+  .sk-back-header__actions
+  .work-detail-action[aria-expanded="true"] {
+  background: var(--sk-surface);
+}
+.work-detail-action:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+/* Glyph buttons (§3, Ikonknapp): a 44 box whose last one ends on the content edge, so ⋯ is centred 38 in
+   from it (374 at 412) and the pen 44 further in (330). Pen and ⋯ share no target: each 48 px target grows only away
+   from the other. */
+.sk-back-header__actions:has(.work-detail-action) {
+  margin-inline-end: 0;
+}
+.sk-back-header .sk-back-header__actions .work-detail-action {
+  width: var(--sk-tap);
+  padding: 0;
+}
+.work-detail-action:has(+ .work-detail-action)::after {
+  inset: -2px 0 -2px -4px;
+}
+.work-detail-action + .work-detail-action::after {
+  inset: -2px -4px -2px 0;
+}
+.sidekick-work .work-detail-bar .sk-eyebrow {
+  margin: 0;
+}
+/* The detail view's title (Task, Contact): right under the Back row's box in fullscreen (not 12),
+   so the head reads Back · title · 4 · meta · 8 · controls · 4 · description, as Inköp's list head. */
+.sidekick-work h2.work-detail-title.work-detail-title {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: var(--sk-type-title);
+  overflow-wrap: anywhere;
+}
+.sk-rooms__pane .sidekick-work h2.work-detail-title.work-detail-title {
+  margin-top: calc(-1 * var(--sk-s1));
+}
+
+/* The Contact's ⋯ panel, under the title and its meta line: a surface box with one 44 px text button per entry,
+   "Lägg till smeknamn" in the text colour and Archive (Restore) in the danger text colour. */
+.sidekick-work .work-contact-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin: var(--sk-s3) 0 0;
+  padding: var(--sk-s1) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sidekick-work .work-contact-menu .work-row-actions {
+  margin: 0;
+}
+.sidekick-work .work-contact-menu > .work-contact-menu-item,
+.sidekick-work
+  .work-contact-menu
+  .work-row-actions
+  > .sk-btn--quiet:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sk-type-menu);
+  text-align: start;
+  cursor: pointer;
+}
+.sidekick-work .work-contact-menu > .work-contact-menu-item {
+  color: var(--sk-fg);
+  border-bottom: 1px solid var(--sk-line);
+  border-radius: 0;
+}
+.sidekick-work .work-contact-menu > .work-contact-menu-item[data-danger],
+.sidekick-work
+  .work-contact-menu
+  .work-row-actions
+  > .sk-btn--quiet:first-child {
+  color: var(--sk-danger-fg);
+}
+
+/* The profile line under the Contact's name: the list row's meta, 4 under the title as the Task's meta
+   line (04), one line cut at the end with an ellipsis. */
+.sidekick-work .work-contact .work-contact-profile {
+  margin: var(--sk-s1) 0 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The nicknames under the Contact's name (and its profile line): one meta line, "Även kallad X, Y", 4 px under it. The nicknames are
+   edited in the Contact editor: each one with "Ta bort" at its right, then the add field and button. */
+.sidekick-work .work-contact .work-alias-line {
+  margin: var(--sk-s1) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow-wrap: break-word;
+}
+.sidekick-work .work-edit [role="group"] > .work-list > li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  min-height: var(--sk-tap);
+  padding: 0;
+  font: var(--sk-type-row);
+}
+.sidekick-work .work-edit [role="group"] > .work-list .work-row-actions {
+  margin: 0;
+}
+
+/* The round avatar of a Contact row (the list, and a linked Contact in the Task): 32 at 16–48 (the contact's lead), 8 to the name on 56 as every lead's title, 8 over and under
+   it so a one-line row is the 48 floor; initials 12 at 600 on the selected grey, never a colour per Contact (§3, Listrad). */
+.sidekick-work .work-contact-avatar,
+.sidekick-work .work-link-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: var(--sk-s2) var(--sk-s2) var(--sk-s2) 0;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-selected-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-caption);
+  font-weight: var(--sk-weight-semibold);
+  user-select: none;
+}
+
+/* At large text the initials outgrow 32: a Task's avatar (a linked Contact, a hit in the link sheet) grows with them,
+   never under 32, so "AW" stays inside its circle at 200 % (54 there, 32 up to about 140 %). */
+.sidekick-work .work-link-avatar {
+  width: max(32px, 2.25em);
+  height: max(32px, 2.25em);
+}
+
+/* A linked Contact in the Task is a one-line row: its name stands in the middle of the line's 48, beside the avatar,
+   with the row's 6 over and under it. A list that starts with one takes the extra air of the
+   middle off the heading's 4 (--sk-row-air-extra), so 12 lie between the glyphs as over any list. */
+.sidekick-work .work-agenda-line:has(> .work-link-avatar) {
+  align-items: center;
+}
+.sidekick-work
+  .work-agenda-line:has(> .work-link-avatar)
+  > .work-agenda-body
+  > button {
+  padding-block: var(--sk-row-pad);
+}
+.sidekick-work article h3 + .work-list:has(> li:first-child .work-link-avatar) {
+  margin-top: calc(-1 * var(--sk-row-air-extra));
+}
+
+/* Detail rows (a Task's Contacts; a Contact's Tasks, notes and Projects), the shared row of the lists (§3, Listrad): no dividers and no padding, as the task rows: 54 with a meta line, 48 without. A glyph (ring,
+   FolderIcon) fills the leading column, so its title starts on 56; a note has no icon and starts on the content edge. */
+.sidekick-work :is(.work-task, .work-contact) .work-list > li {
+  border-bottom: 0;
+}
+.sidekick-work :is(.work-task, .work-contact) .work-list > li.work-agenda-row {
+  padding: 0;
+}
+.sidekick-work .work-agenda-glyph > svg:not(.sk-status-glyph) {
+  color: var(--sk-muted);
+}
+.sidekick-work .work-agenda-row[data-gone] .work-agenda-body > button {
+  color: var(--sk-muted);
+}
+/* A detail row's ring is the quick action, and its Ångra a compact secondary button in the trailing slot, on the
+   content edge with its middle on the title line's (6 + 16 = 22): both sit above the row's open cover (§3, Listrad). */
+.sidekick-work .work-open-row .sk-btn--compact {
+  z-index: 1;
+  flex: none;
+  margin-top: calc((var(--sk-tap) - var(--sk-compact)) / 2);
+}
+
+/* Rows that open something end in the shared chevron (›, task-detail-controls.tsx OpenChevron): a 24 wide box (not 44, so a title keeps 20 more) on the content edge, 44 high on the title line, the glyph's centre 12 from the
+   edge as every trailing icon's. The whole row is the button: the title button's ::after covers the line (Agenda, a
+   detail list) or the card (Status), so the meta line and the chevron open it too; the ring, Ångra and the quick
+   choices sit above the cover. The › stays at every width and text size (rows at 360
+   and 200 % text read as not opening when it fell away under 17rem of frame). Its box is the ring's (--sk-lead-h), so
+   the › stands on the first title line at every text size (at 200 % it once stood between the first two lines). */
+.sidekick-work .work-open-chevron {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--sk-chevron-box, 24px);
+  height: var(--sk-lead-h);
+  margin-inline-end: calc(-1 * var(--sk-chevron-hang, 0px));
+  color: var(--sk-muted);
+}
+.sidekick-work .work-agenda-line,
+.sidekick-work .work-board[data-layout="single"] li.work-card {
+  position: relative;
+}
+.sidekick-work .work-agenda-line > .work-agenda-body > button::after,
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-card-head
+  > button:not(.work-card-done)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.sidekick-work
+  :is(
+    .work-agenda-row button.work-agenda-glyph,
+    .work-board .work-card-done,
+    .work-card-actions
+  ) {
+  position: relative;
+  z-index: 1;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  li.work-card
+  > .work-open-chevron {
+  grid-area: 1 / 3;
+  /* Its box is the ring's (title line + the row's 6 over and under); the 6 under belongs to the meta line, so it gives
+     them back and a one-line title keeps its meta right under it. */
+  margin-bottom: calc(-1 * var(--sk-row-pad));
+}
+/* The › glyph is --sk-chevron (24 at every size) in the 24 box: its ink is a third of the glyph, so a 32
+   glyph hangs its empty sides 4 out of the box and the title keeps its column (360 px at 200 %: "Boka möte med" broke a
+   word earlier with a 32 box). */
+.sidekick-work .work-open-chevron svg {
+  width: var(--sk-chevron);
+  height: var(--sk-chevron);
+  margin-inline: calc((var(--sk-chevron-box, 24px) - var(--sk-chevron)) / 2);
+}
+/* The title meets a 16 › on a narrow frame or at large text (the @container at the end of this file), else
+   ends 16 before the 24 box. */
+.sidekick-work .work-agenda-line:has(> .work-open-chevron) > .work-agenda-body,
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-list
+  > li.work-card:has(> .work-open-chevron)
+  > .work-card-head {
+  padding-inline-end: var(--sk-chevron-gap, var(--sk-s4));
+}
+/* The date choices under the due row: 44 px buttons that wrap, and the date input on its own line when shown. */
+.sidekick-work .work-task-due-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+  margin: calc(-1 * var(--sk-s2)) 0 var(--sk-s4);
+}
+.sidekick-work .work-task-due-choices > input[type="date"] {
+  flex: 1 0 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  font: inherit;
+}
+.sidekick-work .work-task-due-choices > .sk-chip:focus-visible {
+  outline-offset: 1px;
+}
+
+/* Section headings in the Task and the Contact (Steg, Kontakter, Anteckningar, Uppgifter, Projekt): --sk-type-section,
+   24 under the box above and 4 over the first row's, so 32 and 12 lie between the glyphs, and no
+   hairline above (docs/reference/design-system.md, section headings). The element selector lifts the rule over work.css's
+   `.sidekick-work .work-task h3`. */
+.sidekick-work article.work-task h3,
+.sidekick-work article.work-contact h3 {
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+  padding: 0;
+  border: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+
+/* "+ Koppla kontakt" follows the last linked Contact directly. */
+.sidekick-work .work-task .work-list + div {
+  margin-top: 0;
+}
+
+/* "Om Anna": the note as a paragraph, 8 under its heading (§3, Kontaktvyn). */
+.sidekick-work .work-contact .work-contact-about {
+  margin: var(--sk-s2) 0 0;
+  font: var(--sk-type-body);
+}
+/* After a list or the "Kontaktvägar" row, whose padding already holds 12: 36 between text boxes, so a section break
+   reads as one. The first section under the head keeps 24. A Task with no Steps has only "+ Lägg till steg"
+   there, 8 under "Markera klar". */
+.sidekick-work article.work-task section:has(> h3.work-visually-hidden) {
+  margin-top: var(--sk-s2);
+}
+.sidekick-work article :is(.work-list, section) + h3 {
+  margin-top: var(--sk-section-above);
+}
+/* After a one-line 48 row ("+ Lägg till steg", "+ Koppla kontakt"), whose line stands in its middle, the heading takes the
+   extra air off its 24, so 32 lie between the glyphs as after any row (--sk-row-air-extra). */
+.sidekick-work
+  article
+  :is(section, div):has(> .work-add-row, > div > .work-add-row)
+  + h3,
+.sidekick-work article .work-add-row + h3 {
+  margin-top: calc(var(--sk-section-above) - var(--sk-row-air-extra));
+}
+/* "Kontaktvägar ⌄": the fold row (row.css .sk-fold) with "E-post och telefon"
+   as its meta line, 12 under the alias, right after the head. Open, the values are rows with no labels. The section
+   after it has the group heading's 24. */
+.sidekick-work .work-contact-ways > .sk-fold {
+  margin-top: var(--sk-s3);
+}
+.sidekick-work article .work-contact-ways + h3 {
+  margin-top: var(--sk-section-above);
+}
+.sidekick-work .work-contact-ways .work-list > li {
+  display: flex;
+  align-items: center;
+  min-height: var(--sk-tap);
+  padding: 0;
+  font: var(--sk-type-row);
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-contact-ways a {
+  color: var(--sk-fg);
+}
+
+/* A row's › on a narrow frame or at large text: below 400 px or at
+   150 % text and more, the › is a 16 glyph (as "Öppna … ›"). Its ink is the middle third of the glyph, so the box
+   meets the title (≈ 5 of air to the ink) and hangs 4 into the side margin with the ink still inside the content
+   edge: the title gains 28 px ("sammanställningen" keeps its line at 360 and 200 %). Never hidden. 17.25rem
+   is 412 px at 150 % text. */
+@container sk-frame (max-width: 399.98px) or (max-width: 17.25rem) {
+  .sidekick-work > * {
+    --sk-chevron: 16px;
+    --sk-chevron-box: 16px;
+    --sk-chevron-gap: 0px;
+    --sk-chevron-hang: 4px;
+    --work-step-indent: 12px;
+  }
+}
+/* At large text the › of a full-screen row is gone: 17.25rem is 412 px
+   at 150 % text. The whole row still opens, and the title takes the 24 the › held. Inline cards keep theirs. */
+@container sk-frame (max-width: 17.25rem) {
+  .sk-frame[data-mode="full"]
+    .sidekick-work
+    :is(.work-open-chevron, .sk-row-chevron) {
+    display: none;
+  }
+}
+
+/* A Contact's relationship ("Leverantör") on a card is a word about the person, not a control: muted text in the meta
+   type with no frame, so it never reads as a button beside "Öppna ›". The inline
+   summary draws it as a .work-chip; inside the contact card's text column it takes the same form. */
+.sidekick-work .work-contact-relation,
+.sidekick-work .work-compact-contact-text > p > .work-chip {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-fg-2, var(--sk-muted));
+}
+
+/* A Contact with only its name: its first steps, the family's empty state with "+ Telefon",
+   "+ E-post" and "+ Relation" as compact secondaries that open the editor on that field. */
+.sidekick-work .work-contact-first > .sk-empty {
+  padding-top: var(--sk-s2);
+}
+.sidekick-work .work-contact-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+}
+.sidekick-work .work-contact-step svg {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+
+/* The Contact editor's fields take the body type in rem, not the room's host size in px, so their text grows with the
+   user's text size as the labels do. */
+.sidekick-work .work-contact .work-edit :is(input, select, textarea) {
+  font: var(--sk-type-body);
+}

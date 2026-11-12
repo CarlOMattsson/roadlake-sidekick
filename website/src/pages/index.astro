@@ -1,0 +1,18 @@
+---
+import Bare from '../layouts/Bare.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Bare title="Roadlake Sidekick" alternates brand={false}>
+  <div class="choose">
+    <h1 class="choose__name" translate="no">
+      <img class="wordmark__mark" src={`${base}/brand/sidekick-favicon.svg`} width="48" height="48" alt="" />
+      <span class="wordmark__a">Roadlake</span> <span class="wordmark__b">Sidekick</span>
+    </h1>
+    <p lang="sv">Din vardag i Claude, sparad på din egen server.</p>
+    <p lang="en">Your day in Claude, stored on your own server.</p>
+    <div class="ctas">
+      <a class="btn btn--primary" href={`${base}/sv/`} hreflang="sv" lang="sv">Svenska</a>
+      <a class="btn btn--secondary" href={`${base}/en/`} hreflang="en" lang="en">English</a>
+    </div>
+  </div>
+</Bare>

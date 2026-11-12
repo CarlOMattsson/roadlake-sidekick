@@ -1,0 +1,183 @@
+# "Sidekick Work": an isolated Sidekick for a work laptop, used from Claude Desktop through a local MCP server.
+# Platforms: written for Ubuntu with Docker Engine and for macOS with Docker Desktop. Linux has been drilled on real
+# containers; macOS has never been run. See "Verification" in docs/start/work-laptop.md. This is an OVERLAY on
+# deploy/selfhost/compose.yaml, never a copy: always start it through
+# tools/work.sh, which passes both files, the project name sidekick-work and the derived SIDEKICK_WORK_* values.
+#
+#   docker compose -p sidekick-work --project-directory deploy/selfhost \
+#     -f deploy/selfhost/compose.yaml -f deploy/work/compose.yaml --env-file deploy/work/work.env --profile memory ...
+#
+# Paths below are relative to deploy/selfhost (the project directory), hence ../work/.
+#
+# Egress, in one sentence: every Sidekick container sits on an internal Docker network with no route out, and the
+# only container that has one is `gateway`, a pinned HAProxy whose configuration can reach exactly one upstream
+# (the model server, host:port from work.env) and nothing else. Why this and not host firewall rules: it is the
+# same on any Docker host, needs no root and no iptables edits, survives Docker restarts, and a bug or a typo in
+# Sidekick's own settings cannot widen it, because the other containers have no interface to the outside at all.
+# The same container is the only published port (127.0.0.1 only), because Docker does not publish ports of
+# containers that are on internal networks only.
+name: sidekick-work
+
+# The same rotation as deploy/selfhost/compose.yaml, which the other services here inherit through the merge;
+# only the gateway is new in this file.
+x-sidekick-work-logging: &sidekick-work-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-sidekick-work-env: &sidekick-work-env
+  # Non-secret settings of the api and the workers. Secrets (database URL, session secret, token pepper,
+  # Hindsight token, model key) come from deploy/work/secrets/sidekick.env, written by `tools/work.sh init`.
+  SIDEKICK_ENVIRONMENT: production
+  SIDEKICK_MCP_AUTH_MODE: pat
+  SIDEKICK_MCP_SERVER_NAME: ${SIDEKICK_WORK_INSTANCE_LABEL:-Sidekick Work}
+  SIDEKICK_MCP_APP_LOCALE: ${SIDEKICK_WORK_LOCALE:-sv}
+  SIDEKICK_OWNER_TIMEZONE: ${SIDEKICK_WORK_TIMEZONE:-Europe/Stockholm}
+  # Sidekick itself calls no language model. Only Hindsight does (see the hindsight service), and it reaches the
+  # model server through the gateway.
+  # Off on purpose: companion and push need a phone.
+  SIDEKICK_COMPANION_ENABLED: "false"
+  SIDEKICK_PUSH_ENABLED: "false"
+  SIDEKICK_BACKUP_ENABLED: "false"
+  # Memory: memory-worker + Hindsight, configured by the SIDEKICK_MEMORY_* settings below.
+  SIDEKICK_MEMORY_ENABLED: "true"
+  SIDEKICK_MEMORY_PROVIDER: hindsight
+  SIDEKICK_MEMORY_HINDSIGHT_BASE_URL: http://hindsight:8888
+
+services:
+  postgres:
+    # `!override` replaces the self-hosted env_file lists, so a deploy/selfhost/*.env that happens to exist on the
+    # machine is never read by this instance.
+    env_file: !override
+      - path: ../work/secrets/db.env
+        required: true
+
+  migrate:
+    image: ${SIDEKICK_WORK_API_IMAGE:-roadlake-sidekick:work}
+    env_file: !override
+      - path: ../work/secrets/db.env
+        required: true
+
+  api:
+    image: ${SIDEKICK_WORK_API_IMAGE:-roadlake-sidekick:work}
+    # rooms.env is written by tools/work.sh only when SIDEKICK_ENABLED_ROOMS is set in work.env. It lands in the
+    # container environment, which Claude Desktop's stdio process (docker exec ... python -m sidekick.mcp.stdio)
+    # inherits, so the HTTP surface and the stdio one show the same rooms.
+    env_file: !override
+      - path: ../work/secrets/sidekick.env
+        required: true
+      - path: ../work/secrets/rooms.env
+        required: false
+    environment:
+      <<: *sidekick-work-env
+      # The offline update reminder reads the commit and dates from this file (mounted below).
+      SIDEKICK_BUILD_INFO_FILE: /etc/sidekick/build-info.json
+    volumes:
+      # Which commit this is, when it was built and last updated (written by tools/work.sh init, start and update).
+      - ../work/generated/build-info.json:/etc/sidekick/build-info.json:ro
+    # No published port here: the gateway publishes it on 127.0.0.1.
+    ports: !reset []
+    # No healthcheck here: the api inherits the self-hosted one, so "healthy" means the same as there. The api
+    # process answers HTTP, the database answers with the runtime role and the schema is at the image's revision
+    # (sidekick.shared.readiness). tools/work.sh runs the same code (READINESS_PY); a test keeps them equal.
+
+  memory-worker:
+    # No healthcheck here: it inherits the self-hosted worker heartbeat check (python -c on sidekick.shared.worker_health, memory), as
+    # does automation-worker, so tools/work.sh waits for a loop that runs, not just a process that exists.
+    image: ${SIDEKICK_WORK_API_IMAGE:-roadlake-sidekick:work}
+    env_file: !override
+      - path: ../work/secrets/sidekick.env
+        required: true
+      - path: ../work/secrets/rooms.env
+        required: false
+    # `!override`: the self-hosted worker lists its settings as bare names resolved from selfhost.env, and a bare name that
+    # is not set would otherwise unset the same variable coming from the secrets file above.
+    environment: !override
+      <<: *sidekick-work-env
+
+  automation-worker:
+    # Scheduled process runs. Default on in the self-hosted file, so the work overlay gives it the work secrets too.
+    image: ${SIDEKICK_WORK_API_IMAGE:-roadlake-sidekick:work}
+    env_file: !override
+      - path: ../work/secrets/sidekick.env
+        required: true
+      - path: ../work/secrets/rooms.env
+        required: false
+    # `!override`: the self-hosted worker lists its settings as bare names resolved from selfhost.env, and a bare name that
+    # is not set would otherwise unset the same variable coming from the secrets file above.
+    environment: !override
+      <<: *sidekick-work-env
+
+  hindsight:
+    # Hindsight (the version and digest pin come from the self-hosted file; this overlay does not change them). Embeddings and reranker are local and pre-loaded in the
+    # image, so it needs nothing from the internet. Its language model is reached through the gateway, with
+    # provider `openai` (Hindsight's generic OpenAI-compatible provider, see docs/start/work-laptop.md for the source).
+    env_file: !override
+      - path: ../work/secrets/hindsight.env
+        required: true
+    depends_on:
+      gateway: { condition: service_healthy }
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: openai
+      HINDSIGHT_API_LLM_BASE_URL: http://model.work.internal:${SIDEKICK_WORK_MODEL_PORT:?run through tools/work.sh}${SIDEKICK_WORK_MODEL_PATH:-/v1}
+      HINDSIGHT_API_LLM_MODEL: ${SIDEKICK_WORK_MEMORY_MODEL:?run through tools/work.sh}
+      HINDSIGHT_API_LLM_OUTPUT_LANGUAGE: ${SIDEKICK_WORK_LOCALE:-sv}
+      # local = the models baked into the image; openai = an /embeddings endpoint on the same model server.
+      HINDSIGHT_API_EMBEDDINGS_PROVIDER: ${SIDEKICK_WORK_EMBEDDINGS_PROVIDER:-local}
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_BASE_URL: http://model.work.internal:${SIDEKICK_WORK_MODEL_PORT:?run through tools/work.sh}${SIDEKICK_WORK_MODEL_PATH:-/v1}
+      HINDSIGHT_API_EMBEDDINGS_OPENAI_MODEL: ${SIDEKICK_WORK_EMBEDDINGS_MODEL:-unused-while-embeddings-are-local}
+      # Never try to fetch a model from the internet. Safe because the default models are in the image.
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+
+  gateway:
+    # The only container with a route out, and the only published port. Pinned HAProxy 3.4 (LTS) by digest
+    # (checked against Docker Hub 2026-11-09). Two frontends, both fixed by configuration:
+    #   :8765         the MCP port, forwarded to api:8000      (published on 127.0.0.1 only)
+    #   :<model port> the model API, forwarded to the ONE upstream from work.env, and only under its base path
+    image: haproxy:3.4.7-alpine@sha256:5312d37032c079c4937d45ef63758852434351f3b425a3703521fd999837abcf
+    environment:
+      GATEWAY_MODEL_PORT: ${SIDEKICK_WORK_MODEL_PORT:?run through tools/work.sh}
+      GATEWAY_MODEL_PATH: ${SIDEKICK_WORK_MODEL_PATH:-/v1}
+      GATEWAY_UPSTREAM: ${SIDEKICK_WORK_UPSTREAM_ADDR:?run through tools/work.sh}
+      GATEWAY_UPSTREAM_HOST_HEADER: ${SIDEKICK_WORK_UPSTREAM_HOST_HEADER:?run through tools/work.sh}
+      # Empty for http; for https the TLS options with certificate and host name verification.
+      GATEWAY_UPSTREAM_TLS: ${SIDEKICK_WORK_UPSTREAM_TLS:-}
+    volumes:
+      # Rendered by tools/work.sh from gateway.haproxy.cfg plus one passthrough listener per allowed address.
+      - ../work/generated/gateway.haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      # The laptop's own trust store, so a company CA installed on Ubuntu is trusted for an https model server.
+      - ${SIDEKICK_WORK_CA_BUNDLE:-/etc/ssl/certs/ca-certificates.crt}:/etc/ssl/work-ca.pem:ro
+    ports:
+      - "127.0.0.1:${SIDEKICK_WORK_PORT:-8765}:8765"
+    # The MCP port is published only once the api is ready (database and schema), not merely started.
+    depends_on:
+      api: { condition: service_healthy }
+    networks:
+      edge:
+        aliases: [model.work.internal]
+      egress: {}
+    sysctls:
+      # The model server may listen on 80 or 443; HAProxy runs as a plain user.
+      net.ipv4.ip_unprivileged_port_start: "0"
+    read_only: true
+    tmpfs: [/tmp, /var/lib/haproxy]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    pids_limit: 64
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8765/__gateway_health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    logging: *sidekick-work-logging
+    restart: unless-stopped
+
+networks:
+  # edge is the self-hosted network that Hindsight and api share. Here it has no route out either; the
+  # gateway is the only member that is also on `egress`.
+  edge:
+    internal: true
+  egress: {}

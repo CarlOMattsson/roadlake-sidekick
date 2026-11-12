@@ -1,0 +1,84 @@
+/* Design tokens. Names and fallback values follow frontend/src/features/mcp-apps/ui/tokens.css (--sk-*);
+   tokens that exist only on the website are --site-*. This is the only file with colour values
+   (plus src/styles/code-theme.mjs for the syntax colours of code blocks, which need literal colours). */
+:root {
+  color-scheme: light dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+:root {
+  --sk-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif;
+  --site-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --sk-bg: light-dark(#ffffff, #1c1c1e);
+  --sk-surface: light-dark(#f4f4f5, #2a2a2d);
+  --sk-line: light-dark(#e4e4e7, #3a3a40);
+  --sk-fg: light-dark(#1f1f1f, #ededed);
+  --sk-muted: light-dark(#5f6368, #a1a1aa);
+  --sk-fg-2: color-mix(in srgb, var(--sk-fg) 55%, var(--sk-muted));
+  --sk-border: light-dark(#8a8a90, #75757d);
+  --sk-ring: light-dark(#2563eb, #7aa7ff);
+  --sk-inverse-bg: light-dark(#1f1f1f, #f4f4f5);
+  --sk-inverse-fg: light-dark(#ffffff, #1c1c1e);
+  --sk-selected-bg: light-dark(#e8e8e8, #3a3a3a);
+  --sk-success-line: light-dark(#15803d, #4ade80);
+  --sk-success-bg: light-dark(#e8f7ee, #14321f);
+  --sk-success-fg: light-dark(#14532d, #bbf7d0);
+  --sk-warning-line: light-dark(#b45309, #fcd34d);
+  --sk-warning-bg: light-dark(#fff4e0, #3a2a10);
+  --sk-warning-fg: light-dark(#78350f, #fde68a);
+  --sk-danger-line: light-dark(#b42318, #ff8a80);
+  --sk-danger-bg: light-dark(#fdecea, #3a1d1b);
+  --sk-danger-fg: light-dark(#7a1a12, #ffd2cc);
+
+  /* website only */
+  --site-link: light-dark(#1d4ed8, #8ab4ff);
+  --site-code-bg: light-dark(#f4f4f5, #242427);
+  --site-band: light-dark(#fafafa, #202022);
+
+  --sk-s1: 4px;
+  --sk-s2: 8px;
+  --sk-s3: 12px;
+  --sk-s4: 16px;
+  --sk-s5: 24px;
+  --sk-s6: 32px;
+  --site-s7: 48px;
+  --site-s8: 64px;
+  --site-s9: 96px;
+  --sk-radius: 0.5rem;
+  --sk-radius-card: 0.75rem;
+  --sk-radius-pill: 999px;
+  --sk-tap-lg: 3rem;
+  --site-header-h: 4rem;
+  --site-page-max: 76rem;
+  --site-prose-max: 46rem;
+  --site-gutter: var(--sk-s4);
+
+  --site-type-display: 650 clamp(2rem, 1.3rem + 3vw, 3.25rem) / 1.08 var(--sk-font);
+  --site-type-h1: 650 clamp(1.75rem, 1.45rem + 1.2vw, 2.25rem) / 1.2 var(--sk-font);
+  --site-type-h2: 600 1.5rem / 2rem var(--sk-font);
+  --site-type-h2-home: 600 clamp(1.5rem, 1.3rem + 0.8vw, 1.875rem) / 1.2 var(--sk-font);
+  --site-type-h3: 600 1.25rem / 1.75rem var(--sk-font);
+  --site-type-lead: 400 1.125rem / 1.75rem var(--sk-font);
+  --site-type-prose: 400 1rem / 1.625rem var(--sk-font);
+  --sk-type-section: 600 1.125rem / 1.5rem var(--sk-font);
+  --sk-type-row: 400 1rem / 1.3rem var(--sk-font);
+  --sk-type-meta: 400 0.875rem / 1.25rem var(--sk-font);
+  --sk-type-label: 500 0.875rem / 1.125rem var(--sk-font);
+  --sk-type-label-strong: 600 1rem / 1.25rem var(--sk-font);
+  --sk-type-caption: 500 0.75rem / 1rem var(--sk-font);
+}
+@media (min-width: 50rem) {
+  :root {
+    --site-gutter: var(--sk-s5);
+  }
+}
+@media (max-width: 49.99rem) {
+  :root {
+    --site-header-h: 3.5rem;
+  }
+}

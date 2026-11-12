@@ -1,0 +1,135 @@
+[project]
+name = "roadlake-sidekick"
+version = "0.1.0"
+description = "MCP-first personal operations system"
+license = { text = "Roadlake Sidekick Source Available License" }
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "anyio==4.14.2",
+  "fastapi==0.139.2",
+  # Pinned exactly and kept out of Dependabot (.github/dependabot.yml): fastmcp carries
+  # the MCP tool/schema contract the apps rely on, so an upgrade needs a contract review first.
+  "fastmcp==4.1.6",
+  "httpx==0.28.1",
+  "httpx2==2.16.0",
+  "jsonschema==4.26.0",
+  "mcp==2.3.0",
+  "cryptography==50.0.2",
+  "opentelemetry-api==1.45.2",
+  "opentelemetry-sdk==1.45.2",
+  "psycopg[binary]==3.3.4",
+  "py-key-value-aio[filetree,memory]==0.4.5",
+  "pydantic==2.13.4",
+  "pydantic-settings==2.14.2",
+  "python-json-logger==4.0.0",
+  "sqlalchemy==2.0.51",
+  "starlette==1.3.1",
+  "uvicorn==0.41.0",
+  "yoyo-migrations==9.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/CarlOMattsson/roadlake-sidekick"
+Source = "https://github.com/CarlOMattsson/roadlake-sidekick"
+Issues = "https://github.com/CarlOMattsson/roadlake-sidekick/issues"
+
+[dependency-groups]
+dev = [
+  "hypothesis==6.151.9",
+  "pre-commit==4.1.0",
+  "pyright==1.1.408",
+  "pytest==9.0.3",
+  "pytest-asyncio==1.3.0",
+  "pytest-cov==7.0.0",
+  "pytest-xdist==3.8.0",
+  "pyyaml==6.0.3",
+  "ruff==0.15.7",
+]
+
+[project.scripts]
+sidekick-admin = "sidekick.shared.auth.cli:main"
+sidekick-openapi = "sidekick.api.export_openapi:main"
+sidekick-automation-worker = "sidekick.automation.worker:main"
+sidekick-owner-export = "sidekick.owner_export.cli:main"
+sidekick-backup = "sidekick.backup.cli:main"
+sidekick-backup-worker = "sidekick.backup.worker:main"
+sidekick-memory-worker = "sidekick.memory.worker:main"
+sidekick-push-worker = "sidekick.companion.push_worker:main"
+sidekick-worker-health = "sidekick.shared.worker_health:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sidekick"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "S", "C901"]
+
+[tool.ruff.lint.mccabe]
+# Ratchet: the most complex function in src today scores 22. Lower this when one is simplified; never
+# raise it for new code, split the function instead. Test helpers that walk whole contract tables are
+# exempt (see per-file-ignores).
+max-complexity = 22
+
+[tool.ruff.lint.per-file-ignores]
+# Bandit (`S`) is on for everything. Exceptions are per file and name what the file legitimately does:
+# tests assert, use fake credentials, run git/docker/shell helpers with fixed argv, build SQL from literals and
+# parse compose files with SafeLoader subclasses; the three source files keep `assert` only to narrow a type.
+"tests/**" = ["S101", "S105", "S106", "C901"]
+"src/sidekick/mcp/input_schemas.py" = ["S101"]
+"src/sidekick/shopping/application/service.py" = ["S101"]
+"src/sidekick/tasks/application/service.py" = ["S101"]
+"tests/contract/test_mcp_oauth_proxy.py" = ["S103"]
+"tests/contract/test_mcp_tool_scope_gate.py" = ["S608"]
+"tests/support/mcp_scope_gate.py" = ["S608"]
+"tests/contract/test_settings_reference.py" = ["S603", "S607"]
+"tests/support/cross_owner_support.py" = ["S608"]
+"tests/db.py" = ["S608"]
+"tests/integration/test_journal_constraints.py" = ["S608"]
+"tests/integration/test_journal_migrations.py" = ["S608"]
+"tests/mcp/test_external_references.py" = ["S608"]
+"tests/mcp/test_journal_review.py" = ["S608"]
+"tests/mcp/test_lifecycle_tools.py" = ["S608"]
+"tests/mcp/test_stdio.py" = ["S603"]
+"tests/support/mcp_stdio.py" = ["S603"]
+"tests/policy/test_release_workflow.py" = ["S603", "S607"]
+"tests/selfhost/test_drill_script.py" = ["S603", "S607"]
+"tests/selfhost/test_release_migration_class.py" = ["S603", "S607", "S608"]
+"tests/selfhost/test_selfhost_logging.py" = ["S603", "S607"]
+"tests/selfhost/test_selfhost_ntfy.py" = ["S603", "S607"]
+"tests/selfhost/test_selfhost_update.py" = ["S603", "S607"]
+"tests/selfhost/work_package/*.py" = ["S506", "S603", "S607", "S608"]
+"tests/unit/test_private_endpoint.py" = ["S104"]
+"tests/unit/test_test_database_connection_guard.py" = ["S108"]
+"tests/unit/test_test_database_guard.py" = ["S104"]
+"tests/unit/test_third_party_log_allowlist.py" = ["S603"]
+"tests/unit/test_update_reminder.py" = ["S603", "S607"]
+"tests/unit/test_worker_health.py" = ["S108", "S603"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+reportUnusedFunction = false
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers"
+testpaths = ["tests"]
+pythonpath = [".", ".."]
+markers = [
+  "integration: requires PostgreSQL",
+  "performance: bounded local performance acceptance",
+  "policy: reads the repository's own source, docs or config files and asserts a rule about them; needs no database; CI runs it as its own step",
+  "xdist_group(name): run destructive migration tests on one worker with --dist loadgroup",
+]

@@ -1,0 +1,74 @@
+---
+title: Roadlake Sidekick
+description: Manage tasks, a journal, contacts and shopping by talking to Claude. Everything is stored in your own database on your own server.
+template: splash
+---
+
+import Hero from '../../../components/Hero.astro';
+import Section from '../../../components/Section.astro';
+import Steps from '../../../components/Steps.astro';
+import RoomStrip from '../../../components/RoomStrip.astro';
+import Facts from '../../../components/Facts.astro';
+import PageLink from '../../../components/PageLink.astro';
+import { productVersion } from '../../../lib/site';
+
+<Hero
+  status={`Preview ${productVersion()} · not yet released`}
+  title="Your day in Claude, stored on your server"
+  lead="Sidekick keeps track of your tasks, journal, contacts and shopping. You talk to Claude, and everything is saved in your own database."
+  primary={{ label: 'Get started', page: ['docs/start', 'docs'] }}
+  secondary={{ label: 'See pricing', page: 'pricing' }}
+  githubLabel="Source code on GitHub"
+  shot={{ name: 'journal-day', alt: 'The Journal room showing one day with week navigation, a daily summary and an entry.' }}
+  note="Simulated host, fictitious data, Swedish interface"
+/>
+
+<Section band title="How it works">
+  <Steps
+    items={[
+      { title: 'Run the server', text: 'Start Sidekick with Docker on a server or home computer that you control.' },
+      { title: 'Connect Claude', text: "Add your server as a custom connector, the link that lets Claude use Sidekick's tools." },
+      { title: 'Ask and work', text: 'Ask Claude how today looks or for a new task, and open a room in the conversation when you want to tap things yourself.' },
+    ]}
+  />
+</Section>
+
+<Section title="Four rooms, one database">
+  <RoomStrip
+    rooms={[
+      { name: 'work-status-board-dark', title: 'Work', text: 'An agenda, a status board, projects, tasks and steps, with dates and priorities.', alt: 'The Work room with the status board in dark mode and a To do group of fictitious tasks.' },
+      { name: 'journal-day', title: 'Journal', text: 'Several entries a day, written by you or by Claude, and a summary of the day.', alt: 'The Journal room showing one day with week navigation, a daily summary and an entry.' },
+      { name: 'contact', title: 'Contacts', text: 'People and organisations, linked to tasks, projects and journal entries.', alt: 'The Contacts room showing a fictitious supplier with role, organisation and notes.' },
+      { name: 'shopping-list', title: 'Shopping', text: 'Lists with quantities and store groups, where you tick off what you bought and can undo it.', alt: 'The Shopping room showing a list grouped by store, with quantities and purchase progress.' },
+    ]}
+    note="Simulated host, fictitious data, Swedish interface. The screenshots were not taken in Claude."
+  />
+  <p class="sec__more">The Android app shows Work, Journal and Shopping from the same database, and the Today widget puts today's tasks on your home screen. There is no prebuilt APK. You build the app from the source code.</p>
+  <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Read about the Android app <span aria-hidden="true">›</span></PageLink></p>
+</Section>
+
+<Section band title="You decide what is shared">
+  <Facts
+    items={[
+      { title: 'Your own database', text: 'Everything is stored in PostgreSQL on your server. Sidekick sends no telemetry and only contacts the services you set up yourself.' },
+      { title: 'Permissions you control', text: 'You choose which scopes, meaning permissions, Claude gets. What Claude may read is shared with Claude, including journal text if you allow it.' },
+      { title: 'Memory is optional', text: 'Memory is off until you turn it on. When it is on, text from your records goes to the model provider you chose.' },
+    ]}
+    more={{ label: 'Read who sees what', page: ['docs/explanation/security-and-privacy', 'docs'] }}
+  />
+</Section>
+
+<Section>
+  <div class="split">
+    <div class="card">
+      <h2>Free with every feature</h2>
+      <p>You can use everything without a license key. Without a key, Sidekick shows a small reminder that this is the free version. A key removes the reminder and changes nothing else.</p>
+      <PageLink page="pricing" class="btn btn--secondary">See prices</PageLink>
+    </div>
+    <div class="card">
+      <h2>Preview</h2>
+      <p>Sidekick {productVersion()} is a preview. There is no published container image and no prebuilt APK. You build both from the source code. Expect rough edges and breaking changes until a version is released.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Read the full preview status <span aria-hidden="true">›</span></PageLink></p>
+    </div>
+  </div>
+</Section>

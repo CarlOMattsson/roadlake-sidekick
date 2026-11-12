@@ -1,0 +1,1 @@
+"""BDD-oriented domain examples."""

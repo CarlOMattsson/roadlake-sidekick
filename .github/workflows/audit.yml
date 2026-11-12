@@ -1,0 +1,40 @@
+name: dependency-audit
+
+# Scans locked dependencies. Called from ci.yml, which the release workflow runs as a gate of every minor
+# or major release (so the audit is part of it), and on pull requests; it can also be run on demand.
+# There is no schedule: runs are tied to pull requests and releases.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with: { version: "0.11.8", enable-cache: true }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      # Every locked Python dependency, runtime and dev group (backend/uv.lock). Exceptions are listed with a
+      # reason per entry in .github/audit/pip-audit-ignores.txt; the script refuses an entry without one.
+      - name: pip-audit (backend, all locked dependency groups)
+        run: bash .github/audit/pip-audit.sh
+      # Everything that ends up in a shipped bundle must be a runtime dependency in package.json (the MCP App bundles
+      # preact, for one), so --omit=dev still covers all shipped code; a bundled package filed under devDependencies
+      # would escape this audit. The test tooling is not shipped and is kept current by Dependabot.
+      - name: npm audit (frontend, shipped runtime dependencies, high and above)
+        run: npm audit --audit-level=high --omit=dev
+        working-directory: frontend
+      # The website's shipped runtime dependencies (Astro, Starlight); its test tooling is kept current by Dependabot.
+      - name: npm audit (website, runtime dependencies, high and above)
+        run: npm audit --audit-level=high --omit=dev
+        working-directory: website
+      # The Android app's Maven dependencies, from the Gradle lockfiles, scanned with OSV-Scanner.
+      - name: OSV-Scanner (Android Gradle lockfiles)
+        run: bash .github/audit/osv-gradle.sh

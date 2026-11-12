@@ -1,0 +1,1109 @@
+{
+  "$defs": {
+    "ContactSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_id": {
+          "format": "uuid",
+          "title": "Contact Id",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contact_id",
+        "rationale"
+      ],
+      "title": "ContactSuggestion",
+      "type": "object"
+    },
+    "ContradictionStatus": {
+      "enum": [
+        "resolved",
+        "unresolved",
+        "possibly_superseded"
+      ],
+      "title": "ContradictionStatus",
+      "type": "string"
+    },
+    "CreateTaskProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 25,
+          "title": "Contact Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Description"
+        },
+        "due_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Due At"
+        },
+        "priority": {
+          "$ref": "#/$defs/TaskPriority"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Project Id"
+        },
+        "proposal_id": {
+          "format": "uuid",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "type": {
+          "const": "create_task",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "type",
+        "title",
+        "description",
+        "project_id",
+        "priority",
+        "due_at",
+        "contact_ids"
+      ],
+      "title": "CreateTaskProposal",
+      "type": "object"
+    },
+    "DailySummaryAnalysis": {
+      "additionalProperties": false,
+      "properties": {
+        "commitments": {
+          "items": {
+            "$ref": "#/$defs/SummaryStatement"
+          },
+          "maxItems": 50,
+          "title": "Commitments",
+          "type": "array"
+        },
+        "contradictions": {
+          "items": {
+            "$ref": "#/$defs/SummaryContradiction"
+          },
+          "maxItems": 25,
+          "title": "Contradictions",
+          "type": "array"
+        },
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/SummaryStatement"
+          },
+          "maxItems": 50,
+          "title": "Decisions",
+          "type": "array"
+        },
+        "important_events": {
+          "items": {
+            "$ref": "#/$defs/SummaryStatement"
+          },
+          "maxItems": 50,
+          "title": "Important Events",
+          "type": "array"
+        },
+        "kind": {
+          "const": "daily_summary",
+          "title": "Kind",
+          "type": "string"
+        },
+        "open_questions": {
+          "items": {
+            "$ref": "#/$defs/SummaryStatement"
+          },
+          "maxItems": 50,
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "overview": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Overview",
+          "type": "string"
+        },
+        "overview_entry_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Overview Entry Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "themes": {
+          "items": {
+            "$ref": "#/$defs/SummaryTheme"
+          },
+          "maxItems": 50,
+          "title": "Themes",
+          "type": "array"
+        },
+        "unresolved_items": {
+          "items": {
+            "$ref": "#/$defs/SummaryStatement"
+          },
+          "maxItems": 50,
+          "title": "Unresolved Items",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "overview",
+        "overview_entry_ids",
+        "themes",
+        "important_events",
+        "decisions",
+        "commitments",
+        "open_questions",
+        "unresolved_items",
+        "contradictions"
+      ],
+      "title": "DailySummaryAnalysis",
+      "type": "object"
+    },
+    "EntryDraftAnalysis": {
+      "additionalProperties": false,
+      "properties": {
+        "contact_suggestions": {
+          "items": {
+            "$ref": "#/$defs/ContactSuggestion"
+          },
+          "maxItems": 25,
+          "title": "Contact Suggestions",
+          "type": "array"
+        },
+        "key_points": {
+          "items": {
+            "$ref": "#/$defs/KeyPoint"
+          },
+          "maxItems": 50,
+          "title": "Key Points",
+          "type": "array"
+        },
+        "kind": {
+          "const": "entry_draft",
+          "title": "Kind",
+          "type": "string"
+        },
+        "project_suggestions": {
+          "items": {
+            "$ref": "#/$defs/ProjectSuggestion"
+          },
+          "maxItems": 25,
+          "title": "Project Suggestions",
+          "type": "array"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Summary"
+        },
+        "task_proposals": {
+          "items": {
+            "$ref": "#/$defs/TaskProposal"
+          },
+          "maxItems": 20,
+          "title": "Task Proposals",
+          "type": "array"
+        },
+        "task_suggestions": {
+          "items": {
+            "$ref": "#/$defs/TaskSuggestion"
+          },
+          "maxItems": 25,
+          "title": "Task Suggestions",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "summary",
+        "key_points",
+        "project_suggestions",
+        "task_suggestions",
+        "contact_suggestions",
+        "task_proposals"
+      ],
+      "title": "EntryDraftAnalysis",
+      "type": "object"
+    },
+    "KeyPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/KeyPointKind"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "title": "KeyPoint",
+      "type": "object"
+    },
+    "KeyPointKind": {
+      "enum": [
+        "fact",
+        "reflection",
+        "decision",
+        "commitment",
+        "question"
+      ],
+      "title": "KeyPointKind",
+      "type": "string"
+    },
+    "Perspective": {
+      "enum": [
+        "fact",
+        "interpretation",
+        "plan"
+      ],
+      "title": "Perspective",
+      "type": "string"
+    },
+    "ProjectSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "format": "uuid",
+          "title": "Project Id",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id",
+        "rationale"
+      ],
+      "title": "ProjectSuggestion",
+      "type": "object"
+    },
+    "SummaryContradiction": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "entry_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "minItems": 2,
+          "title": "Entry Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolution"
+        },
+        "status": {
+          "$ref": "#/$defs/ContradictionStatus"
+        }
+      },
+      "required": [
+        "description",
+        "status",
+        "resolution",
+        "entry_ids"
+      ],
+      "title": "SummaryContradiction",
+      "type": "object"
+    },
+    "SummaryStatement": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Entry Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "perspective": {
+          "$ref": "#/$defs/Perspective"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "perspective",
+        "entry_ids"
+      ],
+      "title": "SummaryStatement",
+      "type": "object"
+    },
+    "SummaryTheme": {
+      "additionalProperties": false,
+      "properties": {
+        "entry_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Entry Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "perspective": {
+          "$ref": "#/$defs/Perspective"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "summary",
+        "perspective",
+        "entry_ids"
+      ],
+      "title": "SummaryTheme",
+      "type": "object"
+    },
+    "TaskPriority": {
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "title": "TaskPriority",
+      "type": "string"
+    },
+    "TaskProposal": {
+      "discriminator": {
+        "mapping": {
+          "create_task": "#/$defs/CreateTaskProposal",
+          "update_task": "#/$defs/UpdateTaskProposal"
+        },
+        "propertyName": "type"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CreateTaskProposal"
+        },
+        {
+          "$ref": "#/$defs/UpdateTaskProposal"
+        }
+      ]
+    },
+    "TaskSuggestion": {
+      "additionalProperties": false,
+      "properties": {
+        "rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "rationale"
+      ],
+      "title": "TaskSuggestion",
+      "type": "object"
+    },
+    "UpdateTaskProposal": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "project_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "title"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "description"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "status"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "priority"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 10000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "due_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Due At"
+            },
+            "expected_task_version": {
+              "minimum": 1,
+              "title": "Expected Task Version",
+              "type": "integer"
+            },
+            "priority": {
+              "enum": [
+                "low",
+                "normal",
+                "high",
+                "urgent"
+              ],
+              "type": "string"
+            },
+            "project_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Project Id"
+            },
+            "proposal_id": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "todo",
+                "in_progress",
+                "blocked",
+                "completed"
+              ],
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "update_task",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "proposal_id",
+            "type",
+            "task_id",
+            "expected_task_version",
+            "due_at"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Each closed branch requires one mutable field so generated clients preserve omission versus explicit null without widening the proposal to unknown.",
+      "title": "UpdateTaskProposal"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "daily_summary": "#/$defs/DailySummaryAnalysis",
+      "entry_draft": "#/$defs/EntryDraftAnalysis"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/EntryDraftAnalysis"
+    },
+    {
+      "$ref": "#/$defs/DailySummaryAnalysis"
+    }
+  ]
+}

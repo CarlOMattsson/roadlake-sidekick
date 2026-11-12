@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The card of the widget picker preview: the widget's background colour and corner radius. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/window_background" />
+    <corners android:radius="20dp" />
+</shape>

@@ -1,0 +1,23 @@
+{
+  "extends": [
+    "html-validate:recommended"
+  ],
+  "rules": {
+    "void-style": "off",
+    "no-inline-style": "off",
+    "no-implicit-button-type": "off",
+    "valid-id": "off",
+    "element-permitted-content": "off",
+    "text-content": "off",
+    "long-title": "off",
+    "prefer-native-element": [
+      "error",
+      {
+        "exclude": [
+          "region"
+        ]
+      }
+    ],
+    "unique-landmark": "off"
+  }
+}

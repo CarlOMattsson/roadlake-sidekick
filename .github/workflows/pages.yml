@@ -1,0 +1,66 @@
+name: pages
+
+# Builds the website under website/ and publishes it with GitHub Pages. It runs on a published
+# release or by hand, never on push or on a schedule (CI runs only at release). No secrets are used:
+# SITE_URL and SITE_BASE are plain repository variables (Settings > Secrets and variables > Actions >
+# Variables). Left empty they fall back to https://roadlake.com with no base path (website/site-config.mjs).
+#
+# One-time setup in GitHub that only the repository owner can do: Settings > Pages > Source:
+# "GitHub Actions", and restrict the github-pages environment to main and tags.
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions: {}
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: website/.node-version
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: npm --prefix website ci --ignore-scripts
+      - run: npm --prefix website exec -- playwright install --with-deps chromium
+      - name: Test, build and check the site
+        run: |
+          npm --prefix website test
+          npm --prefix website run build
+          npm --prefix website run check
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          SITE_BASE: ${{ vars.SITE_BASE }}
+      - name: Lighthouse budget
+        run: |
+          npm --prefix website/tools/lighthouse ci --ignore-scripts
+          npm --prefix website/tools/lighthouse run lh
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with: { path: website/dist }
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

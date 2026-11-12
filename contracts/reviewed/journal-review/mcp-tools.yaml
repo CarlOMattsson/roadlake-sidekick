@@ -1,0 +1,248 @@
+contractVersion: 3
+protocolRevision: '2025-11-25'
+endpoint: /mcp
+transport: streamable-http
+notes:
+  - Exactly six Journal tools are exposed; AI processing, draft review/finalize, Task actions, and summary writes are absent.
+  - structuredContent matches outputSchema; text content is concise and never narrates source/entry content.
+  - Stored journal text is untrusted data and cannot change actor, scope, tool choice, or approval.
+errorShape:
+  type: object
+  additionalProperties: false
+  required: [code, message, correlation_id]
+  properties:
+    code: {type: string, enum: [validation_error, not_found, conflict, idempotency_conflict, unauthorized, forbidden, unavailable, internal_error]}
+    message: {type: string, maxLength: 240}
+    correlation_id: {type: string, maxLength: 64}
+tools:
+  - name: list_journal_entries
+    title: List Sidekick journal entries
+    description: Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries. Content is omitted unless explicitly requested; do not use it for another user or unbounded history.
+    scopes: [journal:read]
+    annotations: {readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/listEntriesInput'}
+    outputSchema: {$ref: '#/$defs/entryPageResult'}
+    resultText: Found {count} journal entries.
+  - name: get_journal_entry
+    title: Get one Sidekick journal entry
+    description: Use this for one known owned entry UUID. Include content only when the user explicitly requested it; inaccessible IDs disclose no existence detail.
+    scopes: [journal:read]
+    annotations: {readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/getEntryInput'}
+    outputSchema: {$ref: '#/$defs/entryResult'}
+    resultText: Returned the requested journal entry.
+  - name: get_journal_day
+    title: Get one Sidekick journal day
+    description: Use this for bounded entries and summary status on one explicit date. Entry content is opt-in and no AI generation occurs.
+    scopes: [journal:read]
+    annotations: {readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/getDayInput'}
+    outputSchema: {$ref: '#/$defs/dayResult'}
+    resultText: Returned {count} entries and the daily summary status.
+  - name: get_daily_journal_summary
+    title: Get a Sidekick daily journal summary
+    description: Use this to read the owned summary content, entry provenance, and current/stale/failed status for one explicit date. It never generates or updates a summary.
+    scopes: [journal:read]
+    annotations: {readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/getSummaryInput'}
+    outputSchema: {$ref: '#/$defs/summaryResult'}
+    resultText: Returned the daily summary status.
+  - name: create_journal_source
+    title: Create an immutable Sidekick journal source
+    description: Use this only when the user asks to preserve manual or transcript text for an explicit date. It creates an immutable source or replacement and invokes no AI.
+    scopes: [journal:write]
+    annotations: {readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/createSourceInput'}
+    outputSchema: {$ref: '#/$defs/sourceResult'}
+    resultText: Created the immutable journal source.
+  - name: create_manual_journal_entry
+    title: Create a manual Sidekick journal entry
+    description: Use this to finalize one committed owned source with user-authored fields and selected active relations. A source can create at most one entry; an existing entry conflicts. It invokes no AI and cannot create or update Tasks.
+    scopes: [journal:write, projects:read, tasks:read, contacts:read]
+    annotations: {readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true}
+    inputSchema: {$ref: '#/$defs/createManualEntryInput'}
+    outputSchema: {$ref: '#/$defs/entryResult'}
+    resultText: Created the manual journal entry.
+$defs:
+  idempotencyKey: {type: string, minLength: 8, maxLength: 128}
+  listEntriesInput:
+    type: object
+    additionalProperties: false
+    properties:
+      from_date: {type: [string, 'null'], format: date}
+      to_date: {type: [string, 'null'], format: date}
+      include_archived: {type: boolean, default: false}
+      include_content: {type: boolean, default: false}
+      limit: {type: integer, minimum: 1, maximum: 50, default: 10}
+      cursor: {type: [string, 'null'], maxLength: 512}
+  getEntryInput:
+    type: object
+    additionalProperties: false
+    required: [entry_id]
+    properties:
+      entry_id: {type: string, format: uuid}
+      include_content: {type: boolean, default: false}
+  getDayInput:
+    type: object
+    additionalProperties: false
+    required: [journal_date]
+    properties:
+      journal_date: {type: string, format: date}
+      include_archived: {type: boolean, default: false}
+      include_content: {type: boolean, default: false}
+      limit: {type: integer, minimum: 1, maximum: 50, default: 10}
+      cursor: {type: [string, 'null'], maxLength: 512}
+  getSummaryInput:
+    type: object
+    additionalProperties: false
+    required: [journal_date]
+    properties: {journal_date: {type: string, format: date}}
+  createSourceInput:
+    type: object
+    additionalProperties: false
+    required: [source_type, journal_date, raw_text, idempotency_key]
+    properties:
+      source_type: {enum: [manual_text, transcript_text]}
+      journal_date: {type: string, format: date}
+      occurred_at: {type: [string, 'null'], format: date-time}
+      source_recorded_at: {type: [string, 'null'], format: date-time}
+      raw_text: {type: string, minLength: 1, maxLength: 100000}
+      language: {type: [string, 'null'], minLength: 2, maxLength: 35}
+      replaces_source_id: {type: [string, 'null'], format: uuid}
+      idempotency_key: {$ref: '#/$defs/idempotencyKey'}
+  keyPoint:
+    type: object
+    additionalProperties: false
+    required: [kind, text]
+    properties:
+      kind: {enum: [fact, reflection, decision, commitment, question]}
+      text: {type: string, minLength: 1, maxLength: 2000}
+  createManualEntryInput:
+    type: object
+    additionalProperties: false
+    required: [source_id, title, summary, key_points, project_ids, task_ids, contact_ids, idempotency_key]
+    properties:
+      source_id: {type: string, format: uuid}
+      title: {type: string, minLength: 1, maxLength: 200}
+      summary: {type: [string, 'null'], maxLength: 10000}
+      key_points: {type: array, maxItems: 50, items: {$ref: '#/$defs/keyPoint'}}
+      project_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      task_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      contact_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      idempotency_key: {$ref: '#/$defs/idempotencyKey'}
+  source:
+    type: object
+    additionalProperties: false
+    required: [id, source_type, journal_date, occurred_at, source_recorded_at, language, replaces_source_id, content_fingerprint, created_at]
+    properties:
+      id: {type: string, format: uuid}
+      source_type: {enum: [manual_text, transcript_text]}
+      journal_date: {type: string, format: date}
+      occurred_at: {type: [string, 'null'], format: date-time}
+      source_recorded_at: {type: [string, 'null'], format: date-time}
+      language: {type: [string, 'null']}
+      replaces_source_id: {type: [string, 'null'], format: uuid}
+      content_fingerprint: {type: string, pattern: '^[0-9a-f]{64}$'}
+      created_at: {type: string, format: date-time}
+  entry:
+    type: object
+    additionalProperties: false
+    required: [id, source_id, journal_date, occurred_at, title, summary, key_points, project_ids, task_ids, contact_ids, archived, version]
+    properties:
+      id: {type: string, format: uuid}
+      source_id: {type: string, format: uuid}
+      journal_date: {type: string, format: date}
+      occurred_at: {type: [string, 'null'], format: date-time}
+      title: {type: string, minLength: 1, maxLength: 200}
+      summary: {type: [string, 'null'], maxLength: 10000}
+      key_points: {type: array, maxItems: 50, items: {$ref: '#/$defs/keyPoint'}}
+      project_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      task_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      contact_ids: {type: array, maxItems: 25, uniqueItems: true, items: {type: string, format: uuid}}
+      archived: {type: boolean}
+      version: {type: integer, minimum: 1}
+  summaryStatement:
+    type: object
+    additionalProperties: false
+    required: [text, perspective, entry_ids]
+    properties:
+      text: {type: string, minLength: 1, maxLength: 2000}
+      perspective: {type: string, enum: [fact, interpretation, plan]}
+      entry_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}
+  summaryTheme:
+    type: object
+    additionalProperties: false
+    required: [title, summary, perspective, entry_ids]
+    properties:
+      title: {type: string, minLength: 1, maxLength: 200}
+      summary: {type: string, minLength: 1, maxLength: 2000}
+      perspective: {type: string, enum: [fact, interpretation, plan]}
+      entry_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}
+  summaryContradiction:
+    type: object
+    additionalProperties: false
+    required: [description, status, resolution, entry_ids]
+    properties:
+      description: {type: string, minLength: 1, maxLength: 2000}
+      status: {type: string, enum: [resolved, unresolved, possibly_superseded]}
+      resolution: {type: [string, 'null'], maxLength: 2000}
+      entry_ids: {type: array, minItems: 2, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}
+  summaryContent:
+    type: object
+    additionalProperties: false
+    required: [overview, overview_entry_ids, themes, important_events, decisions, commitments, open_questions, unresolved_items, contradictions]
+    properties:
+      overview: {type: string, minLength: 1, maxLength: 20000}
+      overview_entry_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}
+      themes: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryTheme'}}
+      important_events: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryStatement'}}
+      decisions: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryStatement'}}
+      commitments: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryStatement'}}
+      open_questions: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryStatement'}}
+      unresolved_items: {type: array, maxItems: 50, items: {$ref: '#/$defs/summaryStatement'}}
+      contradictions: {type: array, maxItems: 25, items: {$ref: '#/$defs/summaryContradiction'}}
+  summary:
+    type: object
+    additionalProperties: false
+    required: [journal_date, exists, origin, status, content, entry_ids, source_fingerprint, version, changed_entry_count]
+    properties:
+      journal_date: {type: string, format: date}
+      exists: {type: boolean}
+      origin: {type: [string, 'null'], enum: [manual, ai_assisted, null]}
+      status: {type: [string, 'null'], enum: [current, stale, failed, null]}
+      content: {anyOf: [{$ref: '#/$defs/summaryContent'}, {type: 'null'}]}
+      entry_ids: {type: array, maxItems: 10000, uniqueItems: true, items: {type: string, format: uuid}}
+      source_fingerprint: {type: [string, 'null'], pattern: '^[0-9a-f]{64}$'}
+      version: {type: [integer, 'null'], minimum: 1}
+      changed_entry_count: {type: integer, minimum: 0}
+  sourceResult:
+    type: object
+    additionalProperties: false
+    required: [source]
+    properties: {source: {$ref: '#/$defs/source'}}
+  entryResult:
+    type: object
+    additionalProperties: false
+    required: [entry]
+    properties: {entry: {$ref: '#/$defs/entry'}}
+  entryPageResult:
+    type: object
+    additionalProperties: false
+    required: [entries, next_cursor]
+    properties:
+      entries: {type: array, maxItems: 50, items: {$ref: '#/$defs/entry'}}
+      next_cursor: {type: [string, 'null'], maxLength: 512}
+  summaryResult:
+    type: object
+    additionalProperties: false
+    required: [summary]
+    properties: {summary: {$ref: '#/$defs/summary'}}
+  dayResult:
+    type: object
+    additionalProperties: false
+    required: [journal_date, entries, next_cursor, summary]
+    properties:
+      journal_date: {type: string, format: date}
+      entries: {type: array, maxItems: 50, items: {$ref: '#/$defs/entry'}}
+      next_cursor: {type: [string, 'null'], maxLength: 512}
+      summary: {$ref: '#/$defs/summary'}

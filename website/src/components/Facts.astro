@@ -1,0 +1,14 @@
+---
+import { pageHref, type Locale } from '../lib/site';
+interface Props {
+  items: { title: string; text: string }[];
+  more?: { label: string; page: string | string[] };
+}
+const { items, more } = Astro.props;
+const locale = (Astro.locals.starlightRoute.locale ?? 'en') as Locale;
+const moreHref = more ? await pageHref(locale, more.page) : undefined;
+---
+<ul class="facts">
+  {items.map((i) => <li><h3>{i.title}</h3><p>{i.text}</p></li>)}
+</ul>
+{moreHref && more && <p class="facts__more"><a href={moreHref}>{more.label} <span aria-hidden="true">›</span></a></p>}

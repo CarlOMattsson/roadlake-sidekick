@@ -1,0 +1,126 @@
+{
+  "day": {
+    "done": {
+      "counts": {
+        "purchases": 0,
+        "steps": 0,
+        "tasks": 0
+      },
+      "purchases": [],
+      "steps": [],
+      "tasks": [],
+      "truncated": false
+    },
+    "entries": [
+      {
+        "archived": false,
+        "contact_ids": [],
+        "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+        "journal_date": "2026-11-10",
+        "key_points": [],
+        "links": [],
+        "occurred_at": null,
+        "project_ids": [],
+        "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+        "summary": null,
+        "task_ids": [],
+        "title": "Promenad på Södermalm",
+        "version": 1
+      }
+    ],
+    "entry_fingerprint": "737b538d0ceabf59a13b1fb8d56ca438f36901357c892cf28d9dd1b537618831",
+    "journal_date": "2026-11-10",
+    "next_cursor": null,
+    "owner_timezone": "Europe/Stockholm",
+    "summary": {
+      "changed_entry_count": 0,
+      "content": null,
+      "entry_ids": [],
+      "exists": false,
+      "journal_date": "2026-11-10",
+      "origin": null,
+      "source_fingerprint": null,
+      "status": null,
+      "version": null
+    },
+    "today": "2026-11-11"
+  },
+  "emptyDay": {
+    "done": {
+      "counts": {
+        "purchases": 0,
+        "steps": 0,
+        "tasks": 0
+      },
+      "purchases": [],
+      "steps": [],
+      "tasks": [],
+      "truncated": false
+    },
+    "entries": [],
+    "entry_fingerprint": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "journal_date": "2026-11-11",
+    "next_cursor": null,
+    "owner_timezone": "Europe/Stockholm",
+    "summary": {
+      "changed_entry_count": 0,
+      "content": null,
+      "entry_ids": [],
+      "exists": false,
+      "journal_date": "2026-11-11",
+      "origin": null,
+      "source_fingerprint": null,
+      "status": null,
+      "version": null
+    },
+    "today": "2026-11-11"
+  },
+  "entry": {
+    "entry": {
+      "archived": false,
+      "contact_ids": [],
+      "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+      "journal_date": "2026-11-10",
+      "key_points": [],
+      "links": [],
+      "occurred_at": null,
+      "project_ids": [],
+      "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "summary": null,
+      "task_ids": [],
+      "title": "Promenad på Södermalm",
+      "version": 1
+    }
+  },
+  "source": {
+    "source": {
+      "content_fingerprint": "4ad8c64250122729885ff5d247493f71ac34c095a9d1c89bdfb403ad01a6a529",
+      "created_at": "2026-11-11T13:07:25.805581Z",
+      "id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "journal_date": "2026-11-10",
+      "language": null,
+      "occurred_at": null,
+      "raw_text": "Gick längs vattnet och funderade på nästa vecka.\nÅ, vilken kväll!",
+      "replaces_source_id": null,
+      "source_recorded_at": null,
+      "source_type": "transcript_text"
+    }
+  },
+  "write": {
+    "entry": {
+      "archived": false,
+      "contact_ids": [],
+      "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+      "journal_date": "2026-11-10",
+      "key_points": [],
+      "links": [],
+      "occurred_at": null,
+      "project_ids": [],
+      "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "summary": null,
+      "task_ids": [],
+      "title": "Promenad på Södermalm",
+      "version": 1
+    }
+  }
+}

@@ -1,0 +1,70 @@
+/* Visible list controls (Up, Down, Archive, Restore) shared by Steps, Actions, links and saved views.
+   Plain buttons, 44 px tall, wrapping under the title on a narrow frame; no menu and no hover-only part. */
+.sidekick-work .work-manage-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.1rem 0 0.4rem 0;
+}
+.sidekick-work .work-manage-controls > button {
+  min-width: 2.75rem;
+  padding-inline: 0.7rem;
+  font-size: 0.9rem;
+}
+.sidekick-work .work-manage-archived {
+  margin-top: 0.75rem;
+}
+.sidekick-work .work-manage-archived-heading {
+  margin: 0 0 0.25rem;
+  font-size: 0.9rem;
+  color: var(--work-muted);
+}
+.sidekick-work .work-manage-archived ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidekick-work .work-manage-archived li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  border-bottom: var(--work-border-width) solid var(--work-line);
+}
+.sidekick-work .work-manage-archived-title {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--work-muted);
+  text-decoration: line-through;
+}
+/* The one-line undo notice after an archive or an unlink: the family's notice (sk-notice), placed here. */
+.sidekick-work .work-manage-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+/* "Ta bort koppling" is the same bordered button under a Task's Underlag and under a Contact's Projects;
+   it is never a text link, so no underline is drawn on it. */
+.sidekick-work .work-link-remove,
+.sidekick-work .work-manage-controls > button {
+  text-decoration: none;
+}
+/* The detail under a tapped row or a drill-in line while its record is read: a block of fixed height,
+   so the tree does not jump when the record arrives. */
+.sidekick-hierarchy .hierarchy-detail-skeleton {
+  height: 5.5rem;
+  margin: 0.5rem 0;
+  border-radius: var(--work-radius);
+  background: var(--work-line);
+  opacity: 0.35;
+}
+/* A detail drawn under its tree row is one plain item of the tree's list: no marker, indented. */
+.sidekick-hierarchy .hierarchy-detail-slot {
+  list-style: none;
+  padding: 0 0.25rem 0.5rem 1.5rem;
+}

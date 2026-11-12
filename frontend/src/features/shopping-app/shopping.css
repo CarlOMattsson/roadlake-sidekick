@@ -1,0 +1,739 @@
+/* Calm, mobile-first styling inside Claude hosts. Host tokens are used first and every token has a
+   fallback. Fallback colours use light-dark(), so the host's colour-scheme picks light or dark values.
+   The root background is transparent so the host surface shows through. */
+.sidekick-shopping {
+  --work-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --work-bg: var(--color-background-primary, light-dark(#ffffff, #1c1c1e));
+  --work-surface: var(
+    --color-background-secondary,
+    light-dark(#f4f4f5, #2a2a2d)
+  );
+  --work-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  --work-line: var(--color-border-primary, light-dark(#d4d4d8, #3f3f46));
+  --work-radius: var(--border-radius-md, 0.5rem);
+  --work-border: var(--border-width-regular, 1px);
+  --work-success: var(--color-border-success, light-dark(#548651, #7fbf8a));
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: var(--font-text-md-size, 16px);
+  line-height: var(--font-text-md-line-height, 1.5);
+  color: var(--work-fg);
+  background: transparent;
+  position: relative;
+  padding: calc(1rem + var(--host-safe-top, 0px))
+    calc(1rem + var(--host-safe-right, 0px))
+    calc(1rem + var(--host-safe-bottom, 0px))
+    calc(1rem + var(--host-safe-left, 0px));
+  max-width: 70rem;
+  margin: auto;
+  overflow-wrap: anywhere;
+}
+/* The app name in fullscreen is the h1 with class sk-eyebrow (family.css): the shared eyebrow, not a heading style.
+   Every h2 here is a card title or the BackHeader title, which bring their own style, so the room has no h2 rule. */
+.sidekick-shopping p {
+  margin: 0.4rem 0;
+}
+/* The eyebrow sits tight above its title; the card's gap spaces it. */
+.sidekick-shopping .sk-eyebrow {
+  margin: 0;
+}
+.sidekick-shopping label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+.sidekick-shopping input:not([type="checkbox"], .sk-createfield__input),
+.sidekick-shopping select,
+.sidekick-shopping textarea {
+  /* The body type in rem, not the room's host size in px: a field's text grows with the user's text size as the
+     words around it do. */
+  font: var(--sk-type-body);
+  color: inherit;
+  border: var(--work-border) solid var(--work-line);
+  border-radius: var(--work-radius);
+  padding: 0.5rem 0.6rem;
+  min-height: 2.75rem;
+  background: var(--work-bg);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* Buttons, their hierarchy and disabled state come from the family (family.css): secondary by default,
+   primary with class sk-btn--primary. */
+.shopping-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+/* A labelled field in a toolbar gets its own row when the buttons would squeeze it: the basis is 12rem,
+   so the select (the list picker) is never narrower than about 192 px on a 360-430 px phone. Without
+   the basis, the select shrank to about 21 px beside the buttons. The checkbox label is not a field. */
+.sidekick-shopping .shopping-toolbar > label:not(.shopping-check) {
+  flex: 1 1 12rem;
+}
+.shopping-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* No hairline between rows (designsystem §3 Listrad): the space separates them, the row template's 6. */
+.shopping-items > li {
+  padding: var(--sk-row-pad) 0;
+}
+.sidekick-shopping .shopping-check {
+  position: relative;
+  flex-direction: row;
+  gap: var(--sk-s2);
+  align-items: center;
+  font-weight: 400;
+}
+/* Bought or not is the same 24 px ring as Arbete's "Markera klar" (designsystem §3 Listrad): the status
+   glyph in the 36 px leading column. The checkbox stays for assistive technology and the keyboard, invisible over the
+   whole row (its label), so the target covers the leading column and the row. (The store view's row is not this
+   label: its ring is `.shopping-ring`, a button beside the row's own button, below.) */
+.sidekick-shopping input[type="checkbox"],
+.sidekick-work .work-steps .work-step-check {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.sidekick-shopping .shopping-check > .sk-status-glyph {
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+  margin-right: var(--sk-s1);
+}
+.sidekick-shopping .shopping-check:has(> input:focus-visible) {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: -2px;
+}
+.shopping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 0.75rem;
+}
+.shopping-editor fieldset {
+  border: var(--work-border) solid var(--work-line);
+  border-radius: var(--work-radius);
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+}
+/* The change form (ui-10): item on its own line, quantity and unit side by side, store; the rest behind "Fler fält".
+   Values are set in the body weight, labels in the label weight. */
+.sidekick-shopping .shopping-editor :is(input, select, textarea) {
+  font-weight: var(--sk-type-body-weight);
+}
+.sidekick-shopping .shopping-editor-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sk-s3);
+}
+.sidekick-shopping
+  .shopping-editor-main
+  > :is(.shopping-editor-name, .shopping-editor-store) {
+  grid-column: 1 / -1;
+}
+.sidekick-shopping .shopping-editor-main > label {
+  display: grid;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+.sidekick-shopping .shopping-editor-main input {
+  box-sizing: border-box;
+  width: 100%;
+}
+.sidekick-shopping .shopping-editor-more {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  width: 100%;
+  min-height: var(--sk-tap-lg);
+  margin: var(--sk-s2) 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-label-strong);
+  text-align: left;
+}
+.sidekick-shopping .shopping-editor-more > svg {
+  margin-inline-start: auto;
+  color: var(--sk-muted);
+  transition: transform 120ms ease;
+}
+.sidekick-shopping .shopping-editor-more[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-shopping .shopping-editor-more > svg {
+    transition: none;
+  }
+}
+.sidekick-shopping .shopping-editor-filled {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-shopping .shopping-editor-extra[hidden] {
+  display: none;
+}
+.sidekick-shopping .shopping-editor-actions {
+  margin-top: var(--sk-s3);
+}
+/* Save and Cancel stand as one pair: the same 48 px height. */
+.sidekick-shopping .shopping-editor-actions > button {
+  min-height: var(--sk-tap-lg);
+}
+.shopping-offer {
+  border-left: 0.25rem solid var(--work-muted);
+  padding: 0.5rem 0.75rem;
+}
+.shopping-offer-current {
+  border-color: var(--work-success);
+}
+.shopping-offer-expired {
+  opacity: 0.7;
+}
+.shopping-note {
+  white-space: pre-wrap;
+  color: var(--work-muted);
+  font-size: 0.9rem;
+}
+/* The failure notice (role="alert") takes its box from the family (family.css): one error box, at the row or in the card.
+   Its actions go on their own row. */
+.sidekick-shopping .shopping-failure-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+/* Status lines take the muted small text, except the Undo notice, which has the family's tone. */
+.sidekick-shopping [role="status"]:not(.sk-notice) {
+  color: var(--work-muted);
+  font-size: 0.9rem;
+}
+/* Loading is a small badge in the top corner, taken out of the flow, so the content does not move. */
+.sidekick-shopping > .shopping-loading {
+  position: absolute;
+  top: calc(0.5rem + var(--host-safe-top, 0px));
+  right: calc(0.5rem + var(--host-safe-right, 0px));
+  margin: 0;
+  padding: 0.2rem 0.6rem;
+  background: var(--work-surface);
+  border: var(--work-border) solid var(--work-line);
+  border-radius: var(--work-radius);
+  pointer-events: none;
+}
+/* Fullscreen: the host's reply field covers the bottom of the frame, so the content keeps the foot reserve
+   clear. --sk-foot-reserve (tokens.css) is max(host safe bottom, 6rem), so the safe area is not added again. */
+.sidekick-shopping.shopping-fullscreen {
+  padding-bottom: var(--sk-foot-reserve, 6rem);
+}
+/* Store heading "ICA", no count: a section heading (--sk-type-section). The rhythm is the row template's: 32 from the last row's glyphs and 12 to the first row's, as in every room. A store row is one line in the
+   middle of its 48, so the heading takes that extra air off its 24 and 4 (--sk-row-air-extra). The first in the view
+   stands 8 under the head's meta line (not 16), ≈ 12 between the glyphs as under every head. */
+.shopping-group > h3 {
+  margin: calc(var(--sk-section-above) - var(--sk-row-air-extra)) 0
+    calc(var(--sk-section-below) - var(--sk-row-air-extra));
+  font-size: var(--sk-type-section-size);
+  font-weight: var(--sk-type-section-weight);
+  line-height: var(--sk-type-section-line);
+  color: var(--sk-fg);
+}
+.shopping-group:first-of-type > h3 {
+  margin-top: var(--sk-s2);
+}
+/* A bought row while its Undo holds (designsystem §3 Ångra): it stays in its place with a filled ring and a muted
+   name. "Köpt · 8 st" is its meta line on x = 52 (the amount moves there) and Undo is a compact secondary button in the
+   trailing slot, its right edge on the content edge, beside the label (a button is never inside a label).
+   (Undo once started on the row's top, so its 48 target reached 4 px into the row above and a
+   tap there undid the wrong item.) The title stays where it stood before the purchase, 13 down as in a one-line 48 row
+   (centre 24), and the meta line follows 4 under it, so the row grows to 63. Undo (40) starts 4 down, its middle on the
+   title's middle, so its target (4 past every edge) starts on the row's own top and ends 15 above its bottom. */
+.shopping-store-item.shopping-held-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 var(--sk-s3);
+  align-items: start;
+}
+.shopping-held-item > :not(.shopping-store-line, .shopping-undo) {
+  grid-column: 1 / -1;
+}
+.sidekick-shopping .shopping-held-item .shopping-store-row {
+  padding-bottom: var(--sk-s1);
+}
+/* While Undo holds, Undo is the row's one trailing control: the › (open the change form) waits until it is gone,
+   as in the agenda. */
+.sidekick-shopping .shopping-held-item .shopping-chevron {
+  display: none;
+}
+.sidekick-shopping .shopping-held-item > .shopping-undo {
+  margin-top: calc((var(--sk-tap-lg) - var(--sk-compact)) / 2);
+}
+.sidekick-shopping .shopping-held-item .shopping-store-text {
+  flex-direction: column;
+  align-items: start;
+  gap: var(--sk-s1);
+}
+.sidekick-shopping
+  .shopping-held-item
+  :is(.shopping-store-text, .shopping-item-text) {
+  color: var(--sk-muted);
+}
+.sidekick-shopping .shopping-held {
+  font: var(--sk-type-meta);
+}
+/* "+ Lägg till vara" (designsystem §3 Listrad and Skapa): a row 48 high, the + on the ring's column and the text
+   on 52, in the row type at 400. It stands 8 under the progress line, and the first shop's heading 24 under its text:
+   the heading's 16 collapses with the row's −4 to 12, and the row's text sits 13 inside its 48. */
+.sidekick-shopping .shopping-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  width: 100%;
+  min-height: var(--sk-tap-lg);
+  margin: var(--sk-s2) 0 calc(-1 * var(--sk-s1));
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+  text-align: start;
+}
+.sidekick-shopping .shopping-add-row > svg {
+  flex: none;
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+}
+/* "Köpta (1) ⌄" folds the purchased items: the fold row (row.css .sk-fold), 24 under the last row's box as
+   a section heading. */
+.sidekick-shopping .shopping-purchased {
+  margin-top: calc(
+    var(--sk-section-above) - var(--sk-row-air-extra) -
+      (var(--sk-row-min) - var(--sk-type-section-line)) / 2
+  );
+}
+.shopping-purchased > .shopping-items > li {
+  color: var(--work-muted);
+}
+
+/* Inline card: the height follows the content (no empty space under the list) and there is no inner
+   scroll. The list is capped by the item count in shopping-card.tsx. Titles and items wrap to two lines,
+   then the rest is clipped with an ellipsis. */
+.sidekick-shopping.shopping-card {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+/* The card shell (surface, hairline, radius, padding, gap) is the family's sk-card. Here: the column layout. */
+.shopping-card-body {
+  box-sizing: border-box;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+.sidekick-shopping .shopping-card-status {
+  margin: 0;
+}
+.shopping-card-items {
+  display: grid;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.shopping-card-item {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+/* The card's Open is a text button (sk-btn--open, family.css): it keeps its own width in the card's column. */
+.shopping-card-open {
+  align-self: flex-start;
+}
+
+/* Small inline card after an add or update: the card grows with its content. The rows are capped in
+   room.tsx by item count ("+N more"), never clipped by CSS, so no name is cut without a mark. */
+.sidekick-shopping .shopping-batch-body {
+  height: auto;
+}
+/* One row per item, at most three: "Tillagd: Lampa till hallen", "Mjölk: uppdaterad till 2 l" (the
+   outcome, not "Ändrad:"), with the label muted and the value in the text colour (designsystem §3, inline card). Two
+   lines each, then an ellipsis (one line cut what was added), so the card stays at most 260 px high at
+   412. A wrapped line hangs 16 in, so each row's label stands out at its start. */
+.shopping-batch-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font: var(--sk-type-body);
+}
+.shopping-batch-names > li {
+  padding-inline-start: var(--sk-s4);
+  text-indent: calc(-1 * var(--sk-s4));
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+.shopping-batch-names > li > span,
+.shopping-batch-names > li:not(:has(span)) {
+  color: var(--sk-muted);
+}
+
+/* Fullscreen progress: a full-width stripe of 4 px under the list name. The text stays above it, and the
+   shared Progress keeps its track and fill (progress.css), only the layout changes here. */
+.sidekick-shopping .shopping-progress {
+  margin: var(--sk-s1) 0 0;
+}
+/* The create field, opened in the place of "+ Lägg till vara" (designsystem §3 Skapa). */
+.sidekick-shopping .shopping-create {
+  margin-block: var(--sk-s2) var(--sk-s1);
+}
+/* The receipt "Tillagd: Mjölk · ICA" stands 4 under the field (§3 Skapa), not on the room's paragraph margin. */
+.shopping-create > p {
+  margin: var(--sk-s1) 0 0;
+}
+/* The list head's one meta line: "1 av 8 köpta" and, 12 after it, the 6 px bar to the content edge,
+   centred on the line, so the head is title · 4 · meta as every detail head and «Köpta (1)» ends above the reply
+   field. */
+.sidekick-shopping .shopping-progress > .sk-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  width: 100%;
+  font: var(--sk-type-meta);
+}
+.sidekick-shopping .shopping-progress > .sk-progress > .sk-progress__track {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 6px;
+}
+
+/* Fullscreen store view: one row per item, 48 high at least (as Arbetes row): the ring is a button that ticks,
+   the rest of the row is a button that opens the change form. The list item has no padding of its own; space alone
+   separates the rows. The first title line starts 13 down in a one-line row (11 when the line is taller than 22), and
+   the ring and the amount follow that line's middle on a many-line row too. */
+.shopping-items > li.shopping-store-item {
+  padding: 0;
+}
+.sidekick-shopping .shopping-store-line {
+  --shopping-row-top: max(11px, calc((48px - var(--sk-type-row-line)) / 2));
+  display: flex;
+  align-items: stretch;
+}
+.sidekick-shopping :is(.shopping-ring, .shopping-store-row) {
+  /* A long press opens the change form: no callout, no text selection (as Arbetes rows). */
+  -webkit-touch-callout: none;
+  user-select: none;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sidekick-shopping :is(.shopping-ring, .shopping-store-row):disabled {
+  color: inherit;
+  cursor: default;
+}
+.sidekick-shopping :is(.shopping-ring, .shopping-store-row):focus-visible {
+  outline-offset: -2px;
+}
+/* The ring's target is the whole leading column in the row's height (ringens kolumn 0 px): the button stretches down
+   the line, keeps its ring on the first title line's middle, and its ::after makes it 48 wide (2 into the side margin,
+   2 over the gap to the title), as Arbetes `work-agenda-glyph`. */
+.sidekick-shopping .shopping-ring {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: var(--sk-lead-w);
+  min-height: 48px;
+  margin: 0 2px 0 var(--sk-lead-hang);
+  padding: calc(
+      var(--shopping-row-top) + var(--sk-type-row-line) / 2 -
+        var(--sk-ring-glyph) / 2
+    )
+    0 0;
+}
+.sidekick-shopping .shopping-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0 -2px;
+}
+.sidekick-shopping .shopping-ring > .sk-status-glyph {
+  width: var(--sk-ring-glyph);
+  height: var(--sk-ring-glyph);
+}
+.sidekick-shopping .shopping-store-row {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: flex-start;
+  box-sizing: border-box;
+  /* One-line rows are 48 high at least (designsystem §3 Listrad, 48 px, not 3rem). */
+  min-height: 48px;
+  padding: var(--shopping-row-top) 0 11px;
+  font-weight: var(--sk-weight-normal);
+  text-align: left;
+}
+/* The row opens the change form, so it ends in › as Arbetes rows do: 24 in a 24 box on the content edge,
+   its middle on the first text line, muted; a 16 glyph on a narrow frame or at large text (as contacts.css). */
+.sidekick-shopping .shopping-chevron {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: var(--sk-type-row-line);
+  margin-inline-start: var(--sk-s3);
+  color: var(--sk-muted);
+}
+.sidekick-shopping .shopping-chevron svg {
+  width: var(--shopping-chevron, 24px);
+  height: var(--shopping-chevron, 24px);
+}
+@container sk-frame (max-width: 399.98px) or (max-width: 17.25rem) {
+  .sidekick-shopping {
+    --shopping-chevron: 16px;
+  }
+}
+/* At large text (17.25rem is 412 px at 150 %) the › grows with the row's text instead: seven
+   eighths of the row type, in rem (the room's own size is the host's px), never under 16, so it stays a visible "opens"
+   beside a large name. */
+@container sk-frame (max-width: 17.25rem) {
+  .sidekick-shopping {
+    --shopping-chevron: max(16px, calc(var(--sk-type-row-size) * 0.875));
+  }
+  .sidekick-shopping .shopping-chevron {
+    width: auto;
+    min-width: 16px;
+  }
+}
+/* The name takes the free width and the amount sits at the right end of the same text line: one baseline. */
+.sidekick-shopping .shopping-store-text {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.sidekick-shopping .shopping-store-name {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--sk-type-row-size);
+  font-weight: var(--sk-type-row-weight);
+  line-height: var(--sk-type-row-line);
+  overflow-wrap: anywhere;
+}
+/* The amount ends on the content edge (396 at 412) with tabular figures, so every amount ends on the same x as the
+   other trailing items (designsystem §3 Högerslotten). */
+.sidekick-shopping .shopping-store-qty {
+  flex: none;
+  font: var(--sk-type-meta);
+  font-variant-numeric: tabular-nums;
+  color: var(--sk-muted);
+  white-space: nowrap;
+}
+
+/* Purchase row: the status sits in the text column under the item name, as a meta line. The text column
+   takes the free width of the row, so a long name wraps instead of pushing the Edit button out. */
+.sidekick-shopping .shopping-item-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-shopping .shopping-status {
+  color: var(--work-muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* Compact inline card (a host without fullscreen): the list name is the card title (sk-card__title, family.css),
+   the first open rows follow it, and the picker, the forms and the hint wait behind "Show all". Only the folded
+   state uses these rules. */
+.sidekick-shopping.shopping-folded .shopping-toolbar {
+  margin: 0.4rem 0;
+}
+/* A store heading is one short line: the store name, then the count, cut with an ellipsis if it is long. */
+.shopping-folded .shopping-group > h3 {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Open rows: the name line only, and the whole row is the 44 px tap target. "Att köpa" is the meaning of the
+   open section, so the status is left out. */
+.shopping-items--folded > li {
+  padding: 0;
+}
+.sidekick-shopping .shopping-items--folded .shopping-check {
+  min-height: 2.75rem;
+}
+.sidekick-shopping .shopping-items--folded .shopping-toolbar {
+  margin: 0;
+}
+.shopping-items--folded .shopping-status {
+  display: none;
+}
+/* The add field: one input and the "Add" button on one row, both 44 px high. */
+.shopping-folded .shopping-batch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin: 0.4rem 0;
+}
+.shopping-folded .shopping-batch > input {
+  grid-column: 1;
+  grid-row: 1;
+}
+.shopping-folded .shopping-batch > button {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 2.75rem;
+  white-space: nowrap;
+}
+.shopping-folded .shopping-batch > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+/* "Show all (N)" (or "Show fewer") is the one row under the compact list; the button is a 44 px touch target. */
+.shopping-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.6rem;
+  margin: 0.25rem 0;
+}
+/* The header: the room's eyebrow and "All lists" share one row, so the way back adds no line to the card.
+   The hint takes the row below. */
+.sidekick-shopping .shopping-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.6rem;
+}
+.sidekick-shopping .shopping-head > p {
+  flex-basis: 100%;
+}
+/* The header row (BackHeader) takes the full line of .shopping-head. Its frame, padding and title are BackHeader's own
+   (back-header.css): this room adds nothing to them. */
+.sidekick-shopping .sk-back-header {
+  flex: 0 0 100%;
+}
+/* The ⋯ menu under the header row (fullscreen): one row of buttons; "Kontroll" is last. The trigger is the family's
+   icon button with the shared ⋯ glyph. */
+.sidekick-shopping .shopping-more-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+  margin: 0.25rem 0 0.5rem;
+}
+/* The fullscreen progress is neutral and quiet: the muted text colour, not ink (ink is the primary action). */
+.sidekick-shopping .shopping-progress .sk-progress__fill {
+  background: var(--sk-muted);
+}
+/* The picker (no list chosen), as Kontakter's room head (§3 Rumshuvud): the heading "Listor" with + at the end of
+   its row, then one list row per list, each a 56 px tap target with name, meta and ›, hairlines between rows. */
+.sidekick-shopping .shopping-picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  min-height: var(--sk-tap-lg);
+}
+/* The picker's ⋯ (the phone's settings): its glyph ends on the content edge, as ⋯ does in the other rooms' heads. */
+.sidekick-shopping .shopping-picker-head > .shopping-more-trigger {
+  margin-inline: calc(-1 * var(--sk-s3))
+    calc((var(--sk-icon) - var(--sk-tap)) / 2);
+}
+.sidekick-shopping .shopping-picker-title {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: var(--sk-type-section-size);
+  font-weight: var(--sk-type-section-weight);
+  line-height: var(--sk-type-section-line);
+}
+.sidekick-shopping .shopping-picker > .shopping-create {
+  margin: var(--sk-s2) 0 0;
+}
+.shopping-lists {
+  list-style: none;
+  margin: var(--sk-s2) 0 0;
+  padding: 0;
+}
+.shopping-lists > li + li {
+  border-top: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-shopping .shopping-list-row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 56px;
+  padding: var(--sk-s2) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sk-fg);
+  text-align: left;
+  font-weight: var(--sk-weight-normal);
+}
+.sidekick-shopping .shopping-list-row:focus-visible {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: -2px;
+}
+.sidekick-shopping .shopping-list-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidekick-shopping .shopping-list-name {
+  font-size: var(--sk-type-row-size);
+  font-weight: var(--sk-type-row-weight);
+  line-height: var(--sk-type-row-line);
+  overflow-wrap: anywhere;
+}
+.sidekick-shopping .shopping-list-meta {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The row's › stands on the middle of the two lines, not on the name's line. */
+.sidekick-shopping .shopping-list-row > .shopping-chevron {
+  height: auto;
+}
+/* The long-press tip last in the store view's list (designsystem §3 Listrad, as Arbetes .work-row-tip): 24 above,
+   gone for good after the first long press (document attribute set by shopping-view.tsx). */
+.sidekick-shopping .shopping-hold-tip {
+  margin: var(--sk-s5) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+[data-shopping-hold] .shopping-hold-tip {
+  display: none;
+}

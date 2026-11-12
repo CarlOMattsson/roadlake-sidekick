@@ -1,0 +1,217 @@
+# Caddy ingress for the VPS profile (docker compose --profile vps). Copy to Caddyfile before use.
+# Only the MCP endpoint, its OAuth sign-in routes, the OAuth discovery documents, the opt-in
+# companion routes and the own ntfy topic path leave this host.
+# Everything else answers 404 here, and the api repeats the same allowlist (api/public_surface.py),
+# so a mistake in one layer does not expose the rest of the API.
+
+# Caddy's default logger (startup, TLS, and the error record of a failed proxy attempt) writes the
+# request, with its URI (path and query string) and header names, into the error line. Drop that object
+# there too, so no log line anywhere in this file's Caddy carries a raw path.
+{
+	log {
+		format filter {
+			wrap json
+			fields {
+				request delete
+			}
+		}
+	}
+}
+
+{$SIDEKICK_DOMAIN} {
+	# Route class: a fixed label per known ingress, derived from the path by prefix only. The raw path
+	# never reaches a log line: /mcp/<anything>, a companion id, the ntfy topic and any probe of an
+	# unknown path all collapse to one of the labels below. Matching is case-insensitive like Caddy's
+	# own `path` matcher. A label says which handler family a request was aimed at, not that the
+	# request was allowed; the logged status says that.
+	map {http.request.uri.path} {route_class} {
+		~(?i)^/mcp/(authorize|token|register|consent|auth/callback)$ oauth
+		~(?i)^/mcp(/|$) mcp
+		~(?i)^/\.well-known/oauth-(protected-resource|authorization-server)(/|$) well-known
+		~(?i)^/companion/ companion
+		~(?i)^/up[A-Za-z0-9_-]{8,64}(/|$) push
+		default unmatched
+	}
+
+	# Access log: an explicit allowlist, not a filtered copy of Caddy's record. The line carries the
+	# fixed top-level fields Caddy writes (time, level, logger, message, status, duration, size) plus the
+	# four fields appended below: method, host, route (the fixed class above, never the path) and a
+	# request id. The `request` object (client address, URI with path and query string, every header,
+	# TLS details) and `resp_headers` are deleted as a whole, so a field Caddy adds to them later cannot
+	# reach a log line, and a bearer token, cookie, one-time OAuth code, id or ntfy topic never can.
+	# `user_id`, `bytes_read` and Caddy's own `uuid` (the same value as `request_id`) are dropped as well.
+	log_append method {http.request.method}
+	log_append host {http.request.host}
+	log_append route {route_class}
+	log_append request_id {http.request.uuid}
+	log {
+		output stdout
+		format filter {
+			wrap json
+			fields {
+				request delete
+				resp_headers delete
+				user_id delete
+				bytes_read delete
+				uuid delete
+			}
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# The MCP endpoint (/mcp and /mcp/...), its /mcp/authorize, /mcp/token, /mcp/register,
+	# /mcp/consent and /mcp/auth/callback routes, and the OAuth discovery documents at the host root.
+	# Written as exact paths plus /* subtrees on purpose: the protected-resource document is
+	# /.well-known/oauth-protected-resource/mcp, and a bare "oauth-*" wildcard is not relied upon to span it.
+	@public path /mcp /mcp/* /.well-known/oauth-protected-resource /.well-known/oauth-protected-resource/* /.well-known/oauth-authorization-server /.well-known/oauth-authorization-server/*
+
+	# Request-body ceilings, the same as api/public_surface.py (the api enforces them as well, also for
+	# a chunked body without Content-Length): the OAuth token, consent, authorize, register and
+	# callback routes carry small forms, the MCP endpoint JSON-RPC up to 1 MiB.
+	@oauth_routes path /mcp/token /mcp/consent /mcp/authorize /mcp/register /mcp/auth/callback
+
+	handle @oauth_routes {
+		request_body {
+			max_size 16KiB
+		}
+		reverse_proxy api:8000
+	}
+
+	handle @public {
+		request_body {
+			max_size 1MiB
+		}
+		reverse_proxy api:8000 {
+			# Streamable HTTP answers must reach the client without buffering.
+			flush_interval -1
+		}
+	}
+
+	# The companion app adapter: exact method and path pairs only, the same list as
+	# api/public_surface.py COMPANION_ROUTES. The api answers them only with
+	# SIDEKICK_COMPANION_ENABLED=true; otherwise they are a 404 there too. Nothing else under
+	# /companion/ and no other method is forwarded.
+	@companion_get {
+		method GET
+		path_regexp ^/companion/v1/(device|reminders/pending|work/agenda|work/today|tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/steps|/contacts|/external-references)?)$
+	}
+	# The shopping and journal rooms (sidekick.api.companion_rooms): the same exact allowlist as COMPANION_ROUTES.
+	@companion_rooms_get {
+		method GET
+		path_regexp ^/companion/v1/(shopping/lists(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?|journal/entries(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?|journal/sources/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|journal/days/[0-9]{4}-[0-9]{2}-[0-9]{2})$
+	}
+	@companion_rooms_post {
+		method POST
+		path_regexp ^/companion/v1/(shopping/lists|journal/entries|shopping/lists/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(update|items)|shopping/items/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(update|purchased)|journal/entries/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update)$
+	}
+	@companion_post {
+		method POST
+		path_regexp ^/companion/v1/(pair|device/renew|push/test|reminders/ack|tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(complete|reopen))$
+	}
+	# Work beyond the agenda, kept apart from the lists above: the hierarchy, a Project (with its
+	# tasks), a Domain, a Process, and the tick of a Step.
+	@companion_get_work {
+		method GET
+		path_regexp ^/companion/v1/(work/hierarchy|projects/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(/tasks)?|(domains|processes)/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$
+	}
+	@companion_post_work {
+		method POST
+		path_regexp ^/companion/v1/steps/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(complete|reopen)$
+	}
+	@companion_put {
+		method PUT
+		path /companion/v1/push/subscription
+	}
+	# The instance's license key (api/companion_license.py): read it, or enter one. The key is in
+	# the body, which the api reads only after authentication and never logs; there is no id in the path.
+	@companion_license {
+		method GET PUT
+		path /companion/v1/license
+	}
+	@companion_delete {
+		method DELETE
+		path /companion/v1/device /companion/v1/push/subscription
+	}
+
+	handle @companion_get {
+		reverse_proxy api:8000
+	}
+	handle @companion_get_work {
+		reverse_proxy api:8000
+	}
+	handle @companion_post_work {
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_rooms_get {
+		reverse_proxy api:8000
+	}
+	handle @companion_rooms_post {
+		# Up to 50 shopping items, or a journal entry of at most 100 000 characters; the api caps the
+		# body at 128 KiB (shopping) and 256 KiB (journal), and the phone's own plugin refuses anything
+		# over 256 KiB.
+		request_body {
+			max_size 256KiB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_post {
+		# Bodies here are tiny ({"version"}, a pairing secret or up to 50 reminder ids); the api also
+		# caps them at 4 KiB.
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_put {
+		# The body is one push endpoint ({"endpoint"}); the api also caps it at 2 KiB.
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_license {
+		# The body is one license key ({"key"}, a few hundred characters); the api also caps it at 2 KiB.
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_delete {
+		reverse_proxy api:8000
+	}
+
+	# The own ntfy server (profile push): only the UnifiedPush topic path /up<random>, with its optional
+	# /json, /ws, /sse, /raw and /auth suffixes, is forwarded to the ntfy service. The ntfy web app, its /v1/
+	# API, the Matrix gateway, templates and the root never reach the internet, and the ntfy server denies
+	# everything without a login on top of that (ntfy/server.yml). Without the push profile the host name
+	# "ntfy" does not resolve and these paths answer 502.
+	@ntfy {
+		method GET POST PUT
+		path_regexp ^/up[A-Za-z0-9_-]{8,64}(/(json|ws|sse|raw|auth))?$
+	}
+
+	handle @ntfy {
+		# A wake message is a few bytes; ntfy also caps it at 1 KiB.
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy ntfy:8080 {
+			# The phone holds a streaming subscription open.
+			flush_interval -1
+		}
+	}
+
+	handle {
+		respond 404
+	}
+}

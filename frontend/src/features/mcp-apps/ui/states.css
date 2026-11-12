@@ -1,0 +1,170 @@
+/*
+ * Skeleton, empty and error states. Colours use host variables with light-dark() fallbacks,
+ * so they work before the shared tokens.css is loaded. Buttons are at least 44 px high.
+ */
+
+/* The skeleton's rows are awaiting.css's (SkeletonRows). Without a glyph the text starts on the content edge. */
+.sk-skeleton:not([data-glyph]) .sidekick-wait-row {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* The one empty state, the same in every room: start-aligned on the content edge where the rows will come. Line 1 in
+   the row type says what is missing, a muted meta line what the list is for; then "Säg till Claude:" over one example. */
+.sk-empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--sk-s1, 4px);
+  padding: var(--sk-s4, 16px) 0;
+  text-align: start;
+  font: var(--sk-type-row, inherit);
+}
+
+.sk-empty-title {
+  margin: 0;
+}
+
+.sk-empty-hint {
+  margin: 0;
+  color: var(--sk-muted, light-dark(#5f6368, #a1a1aa));
+}
+
+.sk-empty-ask {
+  display: grid;
+  justify-items: start;
+  gap: var(--sk-s2, 8px);
+  margin-top: var(--sk-s2, 8px);
+}
+.sk-empty-ask-lead {
+  margin: 0;
+  color: var(--sk-muted, light-dark(#5f6368, #a1a1aa));
+  font: var(--sk-type-meta, inherit);
+}
+/* The example: a quote on the surface fill, the shape of a sent chat line, with the send arrow at its end. A button
+   when the host takes messages (44 px or more, the text wraps), else the same shape as text. */
+.sk-empty .sk-empty-example {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s3, 12px);
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: var(--sk-tap, 2.75rem);
+  margin: 0;
+  padding: var(--sk-s2, 8px) var(--sk-s3, 12px) var(--sk-s2, 8px)
+    var(--sk-s4, 16px);
+  border: var(--sk-hairline, 1px) solid var(--sk-border, transparent);
+  border-radius: var(--sk-radius-card, 12px);
+  background: var(--sk-surface, light-dark(#f4f4f0, #27272a));
+  color: var(--sk-fg, inherit);
+  font: var(--sk-type-row, inherit);
+  text-align: start;
+}
+button.sk-empty-example {
+  cursor: pointer;
+}
+/* Without a host that takes messages (the phone) the example is only something to say to Claude: a quote in the
+   text's own place, with no frame and no fill, so it is not taken for a button that does nothing (ua-13). */
+.sk-empty .sk-empty-example--text {
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--sk-fg-2, var(--sk-fg, inherit));
+  font-style: italic;
+}
+.sk-empty-example-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sk-empty-example-send {
+  flex: none;
+  width: 1.25em;
+  height: 1.25em;
+  padding: 0.125em;
+  border-radius: 50%;
+  background: var(--sk-inverse-bg, CanvasText);
+  color: var(--sk-inverse-fg, Canvas);
+}
+button.sk-empty-example:active {
+  background: var(--sk-selected-bg, var(--sk-surface));
+}
+.sk-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2, 8px);
+  margin-top: var(--sk-s2, 8px);
+}
+
+/* The error box itself is in family.css. Here only the retry button: the family's primary button in a read error
+   (inverse fill, 48 px, 0 20 padding, 600, designsystem §3), a text button (no frame, --sk-fg, 600, 44 px
+   target, padding taken back) in a row error. The doubled class lifts it above the rooms' generic button rule. */
+.sk-error .sk-error-retry.sk-error-retry {
+  min-width: 2.75rem;
+  min-height: var(--sk-tap-lg, 3rem);
+  padding: 0 1.25rem;
+  border: var(--sk-hairline, 1px) solid var(--sk-inverse-bg, currentColor);
+  border-radius: var(--sk-radius, 6px);
+  background: var(--sk-inverse-bg, CanvasText);
+  color: var(--sk-inverse-fg, Canvas);
+  font: var(--sk-type-label-strong, inherit);
+  cursor: pointer;
+}
+
+.sk-error .sk-error-retry.sk-error-retry--text {
+  min-height: 2.75rem;
+  margin-inline: calc(-1 * var(--sk-s3, 12px));
+  padding: 0 var(--sk-s3, 12px);
+  border: 0;
+  background: none;
+  color: var(--sk-fg, inherit);
+  font: var(--sk-type-label-strong, inherit);
+}
+
+/* A read error's ⚠ stands on the ring's centre (x 28 at 412): at the content edge of the 36 px leading column, as
+   the rings and the avatars do (designsystem §3 Tillstånd). The doubled class lifts it above family.css. */
+.sk-error.sk-error--card .sk-error__icon {
+  justify-self: start;
+}
+/* "Sidekick svarade inte.": the meta line, 4 under the heading as in a row, muted. */
+.sk-error--card .sk-error__body > .sk-error-hint {
+  margin-top: var(--sk-s1);
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+/* "Försöker igen…" while the retry runs: the button keeps its place and the focus, and does nothing. */
+.sk-error [aria-busy="true"] {
+  cursor: progress;
+}
+
+/* A failed refresh over a list that stays: one row of the row system on top of it, 56 high with 12 of padding,
+   ⚠ at the content edge of the 36 px leading column, the line at x 52 in the row type and a secondary "Försök igen" in
+   the right slot, its right edge on the content edge. */
+.sk-error.sk-error.sk-error--refresh {
+  display: grid;
+  grid-template-columns: calc(var(--sk-s6) + var(--sk-s1)) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 0;
+  box-sizing: border-box;
+  min-height: 3.5rem;
+  margin: 0;
+  padding: var(--sk-s3) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+}
+.sk-error--refresh .sk-error__icon {
+  color: var(--sk-danger-line);
+}
+.sk-error.sk-error--refresh .sk-error-message {
+  margin: 0 var(--sk-s3) 0 0;
+}
+
+/* A room whose first read failed (Dagbok, Kontakter, Inköp in fullscreen) shows only the notice under the room strip:
+   it keeps the 16 under the chrome that Work's notice has under its tab row, so the four rooms' errors stand alike
+   (uc-7). */
+.sk-rooms__pane
+  :is(.sidekick-journal, .sidekick-shopping, .sidekick-work)
+  > .sk-error--card:first-child {
+  margin-block-start: var(--sk-s4);
+}

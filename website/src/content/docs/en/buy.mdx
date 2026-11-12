@@ -1,0 +1,50 @@
+---
+title: Buy a license key
+description: Sidekick license keys will be on sale soon, through Polar's checkout. How buying works and how to enter the key. You do not need a key to use Sidekick.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import PricingNotice from '../../../components/PricingNotice.astro';
+import Steps from '../../../components/Steps.astro';
+import BuyButton from '../../../components/BuyButton.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="Buy a license key"
+  lead="License keys will be on sale soon. This page explains what you buy and what happens next. The payment itself will happen in Polar's checkout, not here on the website."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <PricingNotice
+    title="On sale soon"
+    text="The buy link will be added here when sales start. The prices on the pricing page apply. Buying opens when payment through Polar is in place."
+  />
+  <section class="buyhow" aria-labelledby="h-steps">
+    <h2 id="h-steps">How it works</h2>
+    <Steps
+      items={[
+        { title: 'Choose a key', text: 'You pick a personal key or an organisation key, and how long it should be valid. The current keys and prices are in the [pricing table](pricing).' },
+        { title: "Pay in Polar's checkout", text: 'Polar handles the payment only.' },
+        { title: 'Receive the key by email', text: 'The key is sent to you once the payment is complete.' },
+        { title: 'Enter the key', text: 'Paste it into Control in one of the rooms, into Settings in the Android app, or on the server. Only the owner of the instance can enter a key.' },
+      ]}
+    />
+    <BuyButton />
+    <p><PageLink page={['docs/operate/license-key', 'docs/licensing']}>Read how to enter a license key</PageLink></p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-what">
+    <h2 id="h-what">What you buy</h2>
+    <p>A license key removes the reminder that this is the free version, for as long as the key is valid. It unlocks no features, because everything is already there without a key. When the key expires the reminder comes back and nothing else changes.</p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-know">
+    <h2 id="h-know">Good to know</h2>
+    <p>The key carries the name of the licensee, and the name is shown in the app. Do not share the key or post it publicly. The key is checked offline, so Sidekick contacts no server to check it.</p>
+  </section>
+  <PricingNotice
+    title="Don't need a key?"
+    text="Everything works without one. A key only removes the reminder that this is the free version."
+  >
+    <PageLink page="pricing">See what the key does and does not do</PageLink>.
+  </PricingNotice>
+</div>

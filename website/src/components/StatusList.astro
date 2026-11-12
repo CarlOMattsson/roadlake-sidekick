@@ -1,0 +1,27 @@
+---
+import Icon from './Icon.astro';
+interface Props {
+  title: string;
+  items: { state: 'yes' | 'no'; text: string }[];
+  /** Heading level of the title. */
+  level?: 'h2' | 'h3';
+  /** Screen-reader "Yes:"/"No:" prefixes; turn off when the item texts say it themselves. */
+  labels?: boolean;
+}
+const { title, items, level: Tag = 'h3', labels = true } = Astro.props;
+const t = Astro.locals.t;
+---
+<div class="card">
+  <Tag>{title}</Tag>
+  <slot />
+  <ul class="checks">
+    {
+      items.map((i) => (
+        <li class={i.state === 'yes' ? 'ok' : 'no'}>
+          <Icon name={i.state === 'yes' ? 'check' : 'circle'} />
+          <span>{labels && <span class="sr-only">{i.state === 'yes' ? t('site.list.yes') : t('site.list.no')} </span>}{i.text}</span>
+        </li>
+      ))
+    }
+  </ul>
+</div>

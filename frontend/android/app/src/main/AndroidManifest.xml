@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Whether there is a network at all, so a tap without one fails at once (HttpTransport). WorkManager declares it too. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Reminders are visible notifications; Android 13+ asks once, after pairing (D-078). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      The pairing credential and the cache stay on the phone: no Auto Backup and no device-to-device transfer
+      (ADR-005, "Distribution, safety and verification").
+    -->
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme.NoActionBar">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+              The pairing link the server's pairing command prints: sidekick://pair?server=<url>&code=<code>. It only fills
+              in the pairing screen, which asks before it pairs; any app or page may open it, so it never acts by itself.
+              The widget's own taps (sidekick://open) stay explicit intents and need no filter.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sidekick" android:host="pair" />
+            </intent-filter>
+
+        </activity>
+
+        <!--
+          The Today widget (ADR-005). Exported because the launcher and the system send its update broadcasts; it takes
+          no data from them. The widget's taps open MainActivity with explicit intents.
+        -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_title">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+
+        <!--
+          The UnifiedPush receiver (ntfy sends events here through the connector library). Not exported: the library
+          binds to it inside this app. The push message carries no content (D-078).
+        -->
+        <service
+            android:name=".push.SidekickPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

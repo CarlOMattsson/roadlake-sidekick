@@ -1,0 +1,7 @@
+---
+// Adds the primary links to Starlight's mobile menu (below the sidebar) next to language, theme and GitHub.
+import Default from '@astrojs/starlight/components/MobileMenuFooter.astro';
+import SiteNav from '../SiteNav.astro';
+---
+<SiteNav class="site-nav--menu" menu />
+<Default><slot /></Default>

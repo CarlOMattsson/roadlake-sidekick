@@ -1,0 +1,51 @@
+/* The update reminder (update-reminder.tsx): a calm dot on a ⋯ button and one compact row in Control, or in the ⋯ menu when Control is off. The ⋯ button is
+   position: relative (family.css .sk-iconbtn), so the dot sits in its corner, clear of the three dots of the glyph. */
+.sk-update-dot {
+  position: absolute;
+  top: 9px;
+  inset-inline-end: 9px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-accent-blue-line);
+  pointer-events: none;
+}
+
+.sk-update-row {
+  display: grid;
+  gap: var(--sk-s1);
+  justify-items: start;
+  min-width: 0;
+  margin: var(--sk-s3) 0 0;
+  padding-top: var(--sk-s3);
+  border-top: 1px solid var(--sk-line);
+  font-size: var(--sk-type-meta-size);
+  line-height: var(--sk-type-meta-line);
+  color: var(--sk-muted);
+}
+/* In a ⋯ menu card: the card's own padding, and a rule only when something stands above the row. */
+.sk-update-row--menu {
+  margin: 0;
+  padding: var(--sk-s3);
+}
+.sk-update-row--menu:not(:first-child) {
+  border-top: 1px solid var(--sk-line);
+}
+.sk-update-row--menu:first-child {
+  border-top: 0;
+}
+.sk-update-row p {
+  margin: 0;
+}
+p.sk-update-row {
+  display: block;
+}
+.sk-update-row code {
+  padding: 1px var(--sk-s1);
+  border-radius: var(--sk-radius);
+  background: var(--sk-surface);
+  color: var(--sk-fg);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+  user-select: all;
+}

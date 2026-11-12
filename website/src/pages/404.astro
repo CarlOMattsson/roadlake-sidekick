@@ -1,0 +1,28 @@
+---
+// GitHub Pages serves one 404 page for the whole site, so it is bilingual.
+import Bare from '../layouts/Bare.astro';
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+<Bare title="404 · Roadlake Sidekick" noindex>
+  <div class="lost">
+    <p class="lost__code" aria-hidden="true">404</p>
+    <section lang="sv" aria-labelledby="lost-sv">
+      <h1 id="lost-sv">Sidan finns inte</h1>
+      <p>Adressen leder ingenstans. Sidan kan ha flyttats eller aldrig funnits.</p>
+      <ul>
+        <li><a href={`${base}/sv/`}>Till startsidan</a></li>
+        <li><a href={`${base}/sv/docs/`}>Till dokumentationen</a></li>
+        <li><a href={`${base}/sv/docs/`}>Sök på webbplatsen</a></li>
+      </ul>
+    </section>
+    <section lang="en" aria-labelledby="lost-en">
+      <h2 id="lost-en">Page not found</h2>
+      <p>This address leads nowhere. The page may have moved, or it never existed.</p>
+      <ul>
+        <li><a href={`${base}/en/`}>Go to the home page</a></li>
+        <li><a href={`${base}/en/docs/`}>Go to the documentation</a></li>
+        <li><a href={`${base}/en/docs/`}>Search the site</a></li>
+      </ul>
+    </section>
+  </div>
+</Bare>

@@ -1,0 +1,100 @@
+/*
+ * App frame. Width, not breakpoints, decides density: the frame is a size container and the
+ * rules below read its inline size with @container. There are no @media width queries here.
+ */
+
+.sk-frame {
+  box-sizing: border-box;
+  container-type: inline-size;
+  container-name: sk-frame;
+  min-width: 0;
+}
+
+/* Inline: only the host safe area. Full: 16 px, 24 px from 640 px, on top of the safe area. */
+.sk-frame__body {
+  --sk-frame-pad: 0px;
+  /* The side padding, as variables: a band that must reach the frame's edges (the room strip's bar and Arbete's tab
+     row, which paint the page colour while stuck) takes it back with a negative margin and pads itself by as much. */
+  --sk-frame-pad-right: calc(var(--sk-frame-pad) + var(--host-safe-right, 0px));
+  --sk-frame-pad-left: calc(var(--sk-frame-pad) + var(--host-safe-left, 0px));
+  box-sizing: border-box;
+  min-width: 0;
+  padding-top: calc(var(--sk-frame-pad) + var(--host-safe-top, 0px));
+  padding-right: var(--sk-frame-pad-right);
+  padding-bottom: calc(var(--sk-frame-pad) + var(--host-safe-bottom, 0px));
+  padding-left: var(--sk-frame-pad-left);
+}
+
+/* Fullscreen: the host's reply field covers the foot, so the bottom uses the foot reserve (tokens.css). */
+.sk-frame[data-mode="full"] > .sk-frame__body {
+  --sk-frame-pad: 16px;
+  max-width: 72rem;
+  margin-inline: auto;
+  /* Half the pad above: the host's inset already gives air over the strip. 8 at 412, 12 from 640 px. */
+  padding-top: calc(var(--sk-frame-pad) / 2 + var(--host-safe-top, 0px));
+  padding-bottom: calc(var(--sk-frame-pad) + var(--sk-foot-reserve, 6rem));
+}
+
+@container sk-frame (min-width: 640px) {
+  .sk-frame[data-mode="full"] > .sk-frame__body {
+    --sk-frame-pad: 24px;
+  }
+}
+
+/* A narrow frame or large text: the side margin is 12, so the title column gains 8, and a
+   long Swedish word keeps its line ("sammanställningen" at 360 and 200 %). 17.25rem is 412 px at 150 % text. */
+@container sk-frame (max-width: 399.98px) or (max-width: 17.25rem) {
+  .sk-frame[data-mode="full"] > .sk-frame__body {
+    --sk-frame-pad-right: calc(12px + var(--host-safe-right, 0px));
+    --sk-frame-pad-left: calc(12px + var(--host-safe-left, 0px));
+    /* And the ring's column 48 (from 52): still a 48 target, and the title gains 4 more (a second step of the same rule). */
+    --sk-lead-w: max(44px, calc(var(--sk-ring-glyph) + 16px));
+    --sk-lead-hang: calc((var(--sk-ring-glyph) - var(--sk-lead-w)) / 2);
+  }
+}
+
+/* The row template's title: in a full-screen list a row's
+   title stops after 3 lines up to about 133 % text and is never cut above that (19rem is 412 px at 135 % text), so a
+   long title neither eats the screen nor goes missing at 200 %. The whole title is in the detail view. Each room's title
+   reads --sk-row-title-lines; an inline card keeps its own 2. */
+.sk-frame[data-mode="full"] > .sk-frame__body {
+  --sk-row-title-lines: 3;
+}
+@container sk-frame (max-width: 18.99rem) {
+  .sk-frame[data-mode="full"] > .sk-frame__body {
+    --sk-row-title-lines: none;
+  }
+}
+
+/* Row for a list and an optional detail. It is one column by default and becomes two columns only
+   when a detail is present (a second child) in a frame of at least 640 px. */
+.sk-wide {
+  min-width: 0;
+}
+
+@container sk-frame (min-width: 640px) {
+  .sk-wide:has(> :nth-child(2)),
+  .sk-shell[data-detail="open"] .sk-wide {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--sk-s4, 16px);
+    align-items: start;
+  }
+}
+
+/* Every room's content in fullscreen keeps the one reading width (--sk-room-max), centred, as the Agenda did alone
+   (ui-8: Uppgift, Dagbok, Inköp and Kontakter ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
+   caps its lists itself (work-shell.css), so the Status columns can still take the row. The room strip and the Back
+   row above keep the same width (sidekick-shell.css). Above the room roots' own reset in the strip's shell
+   (max-width: none), hence the frame in the selector. */
+.sk-frame[data-mode="full"]
+  .sk-rooms__layer
+  > :is(
+    .sidekick-work,
+    .sidekick-journal,
+    .sidekick-shopping,
+    .sidekick-control
+  ):not(:has(.sk-shell)) {
+  max-width: var(--sk-room-max);
+  margin-inline: auto;
+}

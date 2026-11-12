@@ -1,0 +1,62 @@
+version: 2
+
+# Weekly update pull requests. Minor and patch updates are grouped into one pull request per
+# ecosystem; major updates stay separate so each one is reviewed on its own.
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      uv-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      # fastmcp carries the MCP tool/schema contract the apps rely on. It is pinned exactly in
+      # backend/pyproject.toml and is only upgraded by hand, after a contract review.
+      - dependency-name: fastmcp
+
+  - package-ecosystem: npm
+    directories:
+      - /frontend
+      - /website
+      - /website/tools/lighthouse
+      - /website/tools/diagrams
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: gradle
+    directory: /frontend/android
+    schedule:
+      interval: weekly
+    groups:
+      gradle-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      docker-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker-compose
+    directories:
+      - /deploy/selfhost
+      - /deploy/work
+    schedule:
+      interval: weekly
+    groups:
+      compose-minor-patch:
+        update-types: [minor, patch]

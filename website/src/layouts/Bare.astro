@@ -1,0 +1,51 @@
+---
+// Shell of the two pages that sit outside Starlight (the language choice at / and the 404 page):
+// the site's tokens and buttons, no scripts, follows the system light/dark setting.
+import '../styles/tokens.css';
+import '../styles/marketing.css';
+import '../styles/standalone.css';
+interface Props {
+  title: string;
+  /** Language-choice page only: alternate links for search engines. */
+  alternates?: boolean;
+  noindex?: boolean;
+  /** Show the small wordmark link at the top (the language page has the name as its heading). */
+  brand?: boolean;
+}
+const { title, alternates = false, noindex = false, brand = true } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const site = (Astro.site?.href ?? '').replace(/\/$/, '');
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="robots" content={noindex ? 'noindex' : 'index, follow'} />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+    {
+      alternates && (
+        <>
+          <link rel="alternate" hreflang="sv" href={`${site}${base}/sv/`} />
+          <link rel="alternate" hreflang="en" href={`${site}${base}/en/`} />
+          <link rel="alternate" hreflang="x-default" href={`${site}${base}/`} />
+        </>
+      )
+    }
+  </head>
+  <body data-pagefind-ignore>
+    <main class="bare">
+      {
+        brand && (
+          <a class="wordmark" href={`${base}/`} translate="no" aria-label="Roadlake Sidekick">
+            <img class="wordmark__mark" src={`${base}/brand/sidekick-favicon.svg`} width="32" height="32" alt="" />
+            <span class="wordmark__a" aria-hidden="true">Roadlake</span> <span class="wordmark__b" aria-hidden="true">Sidekick</span>
+          </a>
+        )
+      }
+      <slot />
+    </main>
+  </body>
+</html>

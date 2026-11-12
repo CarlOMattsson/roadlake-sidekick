@@ -1,0 +1,22 @@
+/* The place picker (GroupSelect): a native select as wide as its line allows, the field frame of the Task editor,
+   and at least 44 px tall. Long titles are cut by the browser inside the closed select, never in the open list. */
+.sidekick-work .work-group-select {
+  font: inherit;
+  color: inherit;
+  background: var(--work-bg);
+  border: var(--work-border-width) solid var(--work-line);
+  border-radius: var(--work-radius);
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sidekick-work .work-group-select-state {
+  margin: 0;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,229 @@
+/* Sidekick design tokens (--sk-*) for MCP app views. Every value reads the host's variable first and
+   falls back to a fixed value. Fallback colours use light-dark(), which follows the host's colour-scheme,
+   so there is no prefers-color-scheme block. Hex values appear only inside var() or light-dark(). */
+:root {
+  /* Typography: three sizes, two weights. Host sizes first, fallback in rem. */
+  --sk-text-sm: var(--font-text-sm-size, 0.875rem);
+  --sk-text-md: var(--font-text-md-size, 1rem);
+  --sk-line-height: 1.4;
+  --sk-weight-normal: var(--font-weight-normal, 400);
+  --sk-weight-semibold: var(--font-weight-semibold, 600);
+  --sk-font: var(--font-sans, system-ui, sans-serif);
+  --sk-weight-medium: var(--font-weight-medium, 500);
+
+  /* Type scale. The only sizes and weights a view may use. Each role
+     has a size, a line height and a weight, and a font shorthand built from them: `font: var(--sk-type-row)`.
+     Sizes are fixed rem (so they follow the user's text size), not the host's sizes: the scale is measured
+     against a 412 px phone and must hold in every host. The typeface and the weights come from the host.
+     The older --sk-text-* tokens above stay until every room has moved over (--sk-heading-* are gone). */
+  --sk-type-title-size: 1.375rem; /* 22 / 28 */
+  --sk-type-title-line: 1.75rem;
+  --sk-type-title-weight: var(--sk-weight-semibold);
+  --sk-type-title: var(--sk-type-title-weight) var(--sk-type-title-size) /
+    var(--sk-type-title-line) var(--sk-font);
+  --sk-type-card-size: 1.125rem; /* 18 / 24 */
+  --sk-type-card-line: 1.5rem;
+  --sk-type-card-weight: var(--sk-weight-semibold);
+  --sk-type-row-size: 1rem; /* 16 / 22 */
+  --sk-type-row-line: 1.3rem;
+  --sk-type-row-weight: var(--sk-weight-normal);
+  --sk-type-row: var(--sk-type-row-weight) var(--sk-type-row-size) /
+    var(--sk-type-row-line) var(--sk-font);
+  --sk-type-body-size: 1rem; /* 16 / 24 */
+  --sk-type-body-line: 1.5rem;
+  --sk-type-body-weight: var(--sk-weight-normal);
+  --sk-type-body: var(--sk-type-body-weight) var(--sk-type-body-size) /
+    var(--sk-type-body-line) var(--sk-font);
+  /* Labels: the room strip, a tab and a chip at 14/18 (15.4/19.8 at 110 %), 500 unchosen and 600
+     chosen. A compact button (40 drawn, 48 to tap) is the same size at 600 (--sk-type-button). A full 48 button and the
+     back link keep 16/20 at 600 (--sk-type-label-strong). A menu row keeps 16/20 at 500 (--sk-type-menu). */
+  --sk-type-label-size: 0.875rem;
+  --sk-type-label-line: 1.125rem;
+  --sk-type-label-weight: var(--sk-weight-medium);
+  --sk-type-label: var(--sk-type-label-weight) var(--sk-type-label-size) /
+    var(--sk-type-label-line) var(--sk-font);
+  --sk-type-button: var(--sk-weight-semibold) var(--sk-type-label-size) /
+    var(--sk-type-label-line) var(--sk-font);
+  --sk-type-control-size: 1rem;
+  --sk-type-control-line: 1.25rem;
+  --sk-type-label-strong: var(--sk-weight-semibold)
+    var(--sk-type-control-size) / var(--sk-type-control-line) var(--sk-font);
+  --sk-type-menu: var(--sk-weight-medium) var(--sk-type-control-size) /
+    var(--sk-type-control-line) var(--sk-font);
+  /* Section heading: 18/24 (19.8/26.4 at 110 %) and 600 in --sk-fg, a size step over
+     the row titles it heads, not only a weight; its count "(n)" is muted 400 (.sk-count). It stands 24 under the last
+     row's box and 4 over the first row's (--sk-section-above, --sk-section-below), so 32 and 12 lie between the glyphs. */
+  --sk-type-section-size: 1.125rem; /* 18 / 24 */
+  --sk-type-section-line: 1.5rem;
+  --sk-type-section-weight: var(--sk-weight-semibold);
+  --sk-type-section: var(--sk-type-section-weight) var(--sk-type-section-size) /
+    var(--sk-type-section-line) var(--sk-font);
+  /* Meta line, card kicker, status chips, help text. */
+  --sk-type-meta-size: 0.875rem; /* 14 / 20 */
+  --sk-type-meta-line: 1.09375rem;
+  --sk-type-meta-weight: var(--sk-weight-normal);
+  --sk-type-meta: var(--sk-type-meta-weight) var(--sk-type-meta-size) /
+    var(--sk-type-meta-line) var(--sk-font);
+  /* The day strip's weekday and "Idag". */
+  --sk-type-caption-size: 0.75rem; /* 12 / 16 */
+  --sk-type-caption-line: 1rem;
+  --sk-type-caption-weight: var(--sk-weight-medium);
+  --sk-type-caption: var(--sk-type-caption-weight) var(--sk-type-caption-size) /
+    var(--sk-type-caption-line) var(--sk-font);
+
+  /* Spacing scale on a 4 px grid: 4, 8, 12, 16, 24, 32. The page gutter is 16. */
+  --sk-s1: 4px;
+  --sk-s2: 8px;
+  --sk-s3: 12px;
+  --sk-s4: 16px;
+  --sk-s5: 24px;
+  --sk-s6: 32px;
+  /* The one reading width of a room's content in fullscreen (ui-8): Agenda, Projekt, a Task, Dagbok, Kontakter, Inköp
+     and Kontroll all stand in a centred column of at most this width (layout.css); only Status's columns take the
+     whole row. */
+  --sk-room-max: 48rem;
+
+  /* Rows, glyphs and touch targets. A full button, the create row's field and its + are 48 (--sk-tap-lg). A control
+     drawn lower than 48 extends its target with a clear ::after. */
+  /* The row template: every list row in every room is at least 48 and
+     has 6 of air over its title line and under its last text line, the one value outside the spacing scale. A title with
+     a meta line is 54 at 110 %, two title lines 77, three 100; a one-line row without meta is the 48 floor. */
+  --sk-row-pad: 6px;
+  /* A row title's line limit: none here (inline cards keep their own 2); 3 in a full-screen list (layout.css). */
+  --sk-row-title-lines: none;
+  --sk-row-min: 48px;
+  --sk-section-above: var(--sk-s5);
+  --sk-section-below: var(--sk-s1);
+  /* A one-line row without meta holds its line in the middle of its 48, so it has this much more air than the 6 over
+     and under a line (6.55 at 110 %). A heading next to a list of such rows takes it off its 24 and 4, so 32 and 12 lie
+     between the glyphs there too (Inköp, the "+ Lägg till …" rows). */
+  --sk-row-air-extra: calc(
+    (var(--sk-row-min) - var(--sk-type-row-line)) / 2 - var(--sk-row-pad)
+  );
+  --sk-tap: 2.75rem;
+  /* The tab row of a room (Arbete's tabs or view picker and its tools): 48 at 110 % (2.75rem) but never
+     more than 56, so at 150 and 200 % text the fixed chrome is ≤ 100 and ≤ 112 (it was 109 and 136: every box in the row
+     grew with the rem). The labels still follow the text; only the row's air stops growing. */
+  --sk-tabs-h: min(var(--sk-tap), 56px);
+  --sk-tap-lg: 3rem;
+  /* A compact control: a compact primary, secondary or chip. Drawn 40, its ::after reaches 4
+     past each edge, a 48 target (locked). */
+  --sk-compact: 2.5rem;
+  /* The round ink + of a room head: drawn 32 at 100 % (the 24 glyph with 4 of ink around it), so it stands beside the
+     search and ⋯ glyphs as one of them and not as a button of its own size; its box stays 44 and its target 48. */
+  --sk-plus: 2rem;
+  /* The app frame's side padding (layout.css sets them on .sk-frame__body): a band that reaches the frame's edges
+     takes it back. 0 outside a frame. */
+  --sk-frame-pad-left: 0px;
+  --sk-frame-pad-right: 0px;
+  --sk-glyph: 16px;
+  /* The leading column of a list row (designsystem §3 Listrad). The ring's button is 44 wide at 100 %
+     and the ring plus 10 on each side when the text is larger (68 at 200 %, not the 88 of a 44 rem target), so the
+     title keeps the width. The ring stands on the content edge: the button hangs 10 into the margin. Its
+     box is 44 at 100 % and 11 + one row line + 11 at 200 %, so the ring's middle is the title line's middle. The target
+     is the whole column in the row's height (the ::after of each row kit). */
+  --sk-lead-w: max(44px, calc(var(--sk-ring-glyph) + 20px));
+  --sk-lead-hang: calc((var(--sk-ring-glyph) - var(--sk-lead-w)) / 2);
+  /* The ring (and a Step's square) in a list row: the icon size up to 133 % text, then 32, as the row's ›. At
+     200 % the column is 52 instead of 68, so the title gains 16 and long Swedish words keep their line;
+     the target is still the whole column (ringens kolumn 0 px). */
+  --sk-ring-glyph: clamp(24px, 1.5rem, 32px);
+  /* The ring's box: the row's air over and under the first title line, so the ring's middle is
+     the title line's middle when the box stands at the row's top. */
+  --sk-lead-h: calc(2 * var(--sk-row-pad) + var(--sk-type-row-line));
+  /* Icon buttons: a 24 px glyph in a 44 px target. */
+  --sk-icon: 1.5rem;
+  /* A row's ›: 24 up to 150 % text and 32 at 200 %, so it follows the text a step without taking
+     the title's width (the 48 of a 1.5rem glyph broke "styrelsemötet"). */
+  --sk-chevron: clamp(24px, 1rem, 32px);
+  --sk-hairline: var(--border-width-regular, 1px);
+
+  /* Radii: 8 for buttons, fields, the tab marker and the day strip's chosen day; 12 for cards (inline card,
+     journal card, error box); 999 only for chips and avatars. */
+  --sk-radius: var(--border-radius-md, 0.5rem);
+  --sk-radius-card: var(--border-radius-lg, 0.75rem);
+  --sk-radius-pill: var(--border-radius-full, 999px);
+
+  /* Host safe area as tokens. Sticky tops follow the host's top inset. The fullscreen foot reserve is
+     the larger of the host's bottom inset and 6rem, so a host that reports the reply field's inset and
+     one that does not both get the right space, and the two never add up. */
+  --sk-sticky-top: var(--host-safe-top, 0px);
+  --sk-foot-reserve: max(var(--host-safe-bottom, 0px), 6rem);
+  /* Where a sticky notice rests above the foot of the view. A fullscreen frame (family.css) sets it to --sk-foot-reserve. */
+  --sk-notice-bottom: 0px;
+
+  /* Surfaces and text colours. */
+  --sk-bg: var(--color-background-primary, light-dark(#ffffff, #1c1c1e));
+  --sk-surface: var(--color-background-secondary, light-dark(#f4f4f5, #2a2a2d));
+  --sk-line: var(--color-border-tertiary, light-dark(#e4e4e7, #3a3a40));
+  --sk-fg: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
+  --sk-muted: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
+  /* Written text under a title (an excerpt), between the text and the meta line: ≈ #3d3f42 / #cbcbce
+     on the fallbacks, and it follows the host's own two text colours. */
+  --sk-fg-2: color-mix(in srgb, var(--sk-fg) 55%, var(--sk-muted));
+  --sk-tertiary: var(--color-text-tertiary, light-dark(#6b6b72, #8e8e96));
+  /* Control outline: secondary buttons, fields and chips (designsystem §2). It must read as the edge of a control,
+     so it is at least 3:1 against both the page and the surface (WCAG 1.4.11): light #8a8a90 is 3.4:1 on --sk-bg
+     and 3.1:1 on --sk-surface; dark #75757d is 3.7:1 and 3.1:1. Dividers between rows use --sk-line, never this.
+     A host that sets --color-border-primary decides the value. */
+  --sk-border: var(--color-border-primary, light-dark(#8a8a90, #75757d));
+  --sk-ring: var(--color-ring-primary, light-dark(#2563eb, #7aa7ff));
+  /* Primary button: the host's inverse pair, so it is dark on a light host and light on a dark one. Dark fallback is
+     the dark text colour #ededed with #1c1c1e text (15:1): the dimmed #c8c8cc read as a disabled button on the phone
+     (ua-10). */
+  --sk-inverse-bg: var(
+    --color-background-inverse,
+    light-dark(var(--sk-fg), #ededed)
+  );
+  --sk-inverse-fg: var(--color-text-inverse, light-dark(var(--sk-bg), #1c1c1e));
+  /* Chosen: one form for every chosen thing, a 2 px outline in the text colour and 600, in both
+     modes. A chosen chip or segment also has the toned fill and a 16 px tick (--sk-check) before its text; a chip in ink
+     would compete with the screen's one primary. No host variable names this role, so it is a fixed pair. */
+  --sk-selected-bg: light-dark(#e8e8e8, #3a3a3a);
+  --sk-selected-line: var(--sk-fg);
+  --sk-selected-width: 2px;
+  /* The active room and the chosen day: the page colour on the strip's surface with the chosen outline (see docs/reference/design-system.md). Ink is kept for the primary action. */
+  --sk-nav-active-bg: var(--sk-bg);
+  --sk-nav-active-fg: var(--sk-fg);
+  --sk-nav-active-line: var(--sk-fg);
+  /* The 16 px tick of a chosen chip or segment, drawn as a mask in the text colour (family.css .sk-check). */
+  --sk-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+
+  /* The skeleton's bars and rings: 11 % of the host's text in the page colour, so the grey is the
+     page's own (warm on Claude's page) rather than a cold grey of its own. */
+  --sk-skeleton: color-mix(in srgb, var(--sk-fg) 11%, var(--sk-bg));
+  /* The tick knocked out of a filled status glyph: the page background. */
+  --sk-glyph-knockout: var(--sk-bg, light-dark(#ffffff, #1c1c1e));
+
+  /* Status colours: line, background and text for each of the four states. Always paired with text. */
+  --sk-success-line: var(--color-border-success, light-dark(#15803d, #4ade80));
+  --sk-success-bg: var(
+    --color-background-success,
+    light-dark(#e8f7ee, #14321f)
+  );
+  --sk-success-fg: var(--color-text-success, light-dark(#14532d, #bbf7d0));
+  --sk-warning-line: var(--color-border-warning, light-dark(#b45309, #fcd34d));
+  --sk-warning-bg: var(
+    --color-background-warning,
+    light-dark(#fff4e0, #3a2a10)
+  );
+  --sk-warning-fg: var(--color-text-warning, light-dark(#78350f, #fde68a));
+  --sk-danger-line: var(--color-border-danger, light-dark(#b42318, #ff8a80));
+  --sk-danger-bg: var(--color-background-danger, light-dark(#fdecea, #3a1d1b));
+  --sk-danger-fg: var(--color-text-danger, light-dark(#7a1a12, #ffd2cc));
+  /* Overdue red for text (E3): a delayed date, a "Försenade" heading. Light #b42318 is 6.6:1 on white;
+     dark #ff8a80 is 7.4:1 on --sk-bg and 6.2:1 on the dark surface. Used as text, not as a fill. */
+  --sk-overdue-fg: light-dark(#b42318, #ff8a80);
+
+  /* Accent palette (see docs/decisions/log.md D-061) for domain colours: eight names, each a line that switches with the theme through
+     light-dark(), 3:1 against --sk-bg and --sk-surface in both themes. The tint (-bg), the text (-fg) and
+     the base were read by no view and are gone (gzip); a view that needs a tint mixes the line into --sk-bg. */
+  --sk-accent-slate-line: light-dark(#475569, #94a3b8);
+  --sk-accent-blue-line: light-dark(#2563eb, #60a5fa);
+  --sk-accent-teal-line: light-dark(#0f766e, #2dd4bf);
+  --sk-accent-green-line: light-dark(#15803d, #4ade80);
+  --sk-accent-amber-line: light-dark(#b45309, #fbbf24);
+  --sk-accent-orange-line: light-dark(#c2410c, #fb923c);
+  --sk-accent-rose-line: light-dark(#be123c, #fb7185);
+  --sk-accent-violet-line: light-dark(#6d28d9, #a78bfa);
+}

@@ -1,0 +1,44 @@
+/* The Actions under one Step: an indented list, opened from the Step's ⋯ menu, whose rows carry the plain
+   Up, Down and Archive buttons from manage.css. No hover-only part. */
+/* Indented to the Step title: the checkbox is 1.25rem and the label gap 0.6rem, so the title starts at 1.85rem. */
+.sidekick-work .work-step-actions {
+  margin: 0.2rem 0 0.6rem 1.85rem;
+}
+.sidekick-work .work-step-actions-count {
+  margin: 0.2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--work-muted);
+}
+.sidekick-work .work-step-actions-body {
+  margin-top: 0.4rem;
+  padding-left: 0.75rem;
+  border-left: var(--work-border-width) solid var(--work-line);
+}
+.sidekick-work .work-step-actions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidekick-work .work-step-action {
+  padding-block: 0.35rem;
+  border-bottom: var(--work-border-width) solid var(--work-line);
+}
+.sidekick-work .work-step-action-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.6rem;
+}
+.sidekick-work .work-step-action-title {
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-step-action-status {
+  font-size: 0.85rem;
+  color: var(--work-muted);
+}
+.sidekick-work .work-step-actions-notice {
+  margin: 0.3rem 0;
+}
+.sidekick-work .work-step-actions-notice:empty {
+  display: none;
+}

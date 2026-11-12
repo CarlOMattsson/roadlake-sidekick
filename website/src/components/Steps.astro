@@ -1,0 +1,27 @@
+---
+// Numbered steps. A step's text may contain `[label](docs/page, fallback/page)` links; the paths are
+// locale-free page paths, resolved like PageLink (first existing page; plain text when none exists).
+import { pageHref, type Locale } from '../lib/site';
+interface Props {
+  items: { title: string; text: string }[];
+}
+const locale = (Astro.locals.starlightRoute.locale ?? 'en') as Locale;
+const parts = async (text: string) =>
+  Promise.all(
+    text.split(/(\[[^\]]+\]\([^)]+\))/).map(async (part) => {
+      const m = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
+      return m ? { label: m[1], href: await pageHref(locale, m[2].split(',').map((p) => p.trim())) } : { label: part };
+    }),
+  );
+const items = await Promise.all(Astro.props.items.map(async (i) => ({ ...i, parts: await parts(i.text) })));
+---
+<ol class="steps">
+  {
+    items.map((i) => (
+      <li>
+        <h3>{i.title}</h3>
+        <p>{i.parts.map((p) => ('href' in p && p.href ? <a href={p.href}>{p.label}</a> : p.label))}</p>
+      </li>
+    ))
+  }
+</ol>

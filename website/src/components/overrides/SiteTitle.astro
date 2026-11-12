@@ -1,0 +1,9 @@
+---
+// Wordmark: the approved coastal-road mark plus the name as text. The whole mark is one link of at least 48 px.
+import { base } from '../../lib/site';
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+<a class="wordmark" href={siteTitleHref} aria-label={Astro.locals.t('site.brand.home')} translate="no">
+  <img class="wordmark__mark" src={`${base}/brand/sidekick-favicon.svg`} width="32" height="32" alt="" />
+  <span class="wordmark__a" aria-hidden="true">Roadlake</span> <span class="wordmark__b" aria-hidden="true">Sidekick</span>
+</a>

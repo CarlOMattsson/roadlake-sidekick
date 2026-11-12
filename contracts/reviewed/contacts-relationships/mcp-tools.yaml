@@ -1,0 +1,317 @@
+contractVersion: 2
+protocolRevision: "2025-11-25"
+endpoint: /mcp
+transport: streamable-http
+notes:
+  - Reviewed planning contract; runtime FastMCP discovery becomes the generated snapshot.
+  - structuredContent MUST match outputSchema; content is a short content-free narration.
+  - Contact text is untrusted data and never changes actor, scopes, tool choice, or writes.
+errorShape:
+  type: object
+  additionalProperties: false
+  required: [code, message, correlation_id]
+  properties:
+    code:
+      type: string
+      enum: [validation_error, not_found, conflict, idempotency_conflict, unauthorized, forbidden, unavailable, internal_error]
+    message: { type: string, maxLength: 240 }
+    correlation_id: { type: string, maxLength: 64 }
+tools:
+  - name: list_contacts
+    title: List Sidekick contacts
+    description: Use this to find a bounded set of the authenticated user's Contacts by preferred name, alias, or exact email/phone metadata. Duplicate candidates are returned separately; do not use names to choose or link a Contact automatically.
+    scopes: [contacts:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/listContactsInput" }
+    outputSchema: { $ref: "#/$defs/contactPageResult" }
+    resultText: "Found {count} Contact candidates."
+  - name: get_contact_context
+    title: Get bounded Contact context
+    description: Use this after a Contact UUID is known to retrieve that owned active Contact and bounded current Project/Task context. Do not use it to resolve an ambiguous name, retrieve archived/future-domain data, or read another user's context.
+    scopes: [contacts:read, projects:read, tasks:read]
+    annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/getContactContextInput" }
+    outputSchema: { $ref: "#/$defs/contactContextResult" }
+    resultText: "Returned bounded Contact context with {project_count} Projects and {task_count} Tasks."
+  - name: create_contact
+    title: Create a Sidekick contact
+    description: Use this only when the user has asked to create one Contact. Optional aliases and metadata are stored only in Sidekick; no message or external lookup occurs. Safe to retry with the same key and payload.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/createContactInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Created the Contact."
+  - name: update_contact
+    title: Update a Sidekick contact
+    description: Use this for explicit edits to one known owned active Contact. Supply the observed version; omitted fields stay unchanged and explicit null clears optional metadata. Do not use this for aliases or work links.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/updateContactInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Updated the Contact."
+  - name: archive_contact
+    title: Archive a Sidekick contact
+    description: Use this when the user explicitly wants to hide one known Contact from active views. Archive is reversible, preserves typed links, and does not delete Contact data.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/versionedContactInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Archived the Contact; its data and links remain restorable."
+  - name: restore_contact
+    title: Restore a Sidekick contact
+    description: Use this when the user explicitly wants to return one archived owned Contact to active views. It does not restore or modify related Projects or Tasks.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/versionedContactInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Restored the Contact."
+  - name: add_contact_alias
+    title: Add a Contact alias
+    description: Use this to add one alternative name to a known active Contact using its current version. Equivalent aliases on the same Contact are not duplicated; the same alias may identify other Contacts.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/addAliasInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Added the Contact alias."
+  - name: remove_contact_alias
+    title: Remove a Contact alias
+    description: Use this only when the user wants to remove one known alias ID from an active Contact. It deletes that alias record but not the Contact or any work link.
+    scopes: [contacts:write]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: true, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/removeAliasInput" }
+    outputSchema: { $ref: "#/$defs/contactResult" }
+    resultText: "Removed the Contact alias."
+  - name: link_contact_to_project
+    title: Link a Contact to a Project
+    description: Use this only after the user-selected Contact and Project UUIDs are known. It records that the Project involves the Contact; it does not alter either record or contact an external system.
+    scopes: [contacts:write, projects:read]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/contactProjectMutationInput" }
+    outputSchema: { $ref: "#/$defs/projectContactResult" }
+    resultText: "Linked the Contact and Project."
+  - name: unlink_contact_from_project
+    title: Unlink a Contact from a Project
+    description: Use this only when the user wants to remove the known Contact–Project relation. It deletes the semantic link but does not delete or edit the Contact or Project.
+    scopes: [contacts:write, projects:read]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: true, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/contactProjectMutationInput" }
+    outputSchema: { $ref: "#/$defs/projectContactResult" }
+    resultText: "Removed the Contact–Project link."
+  - name: link_contact_to_task
+    title: Link a Contact to a Task
+    description: Use this only after the user-selected Contact and Task UUIDs are known. It records that the Task concerns the Contact; it does not alter either record or contact an external system.
+    scopes: [contacts:write, tasks:read]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: false, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/contactTaskMutationInput" }
+    outputSchema: { $ref: "#/$defs/taskContactResult" }
+    resultText: "Linked the Contact and Task."
+  - name: unlink_contact_from_task
+    title: Unlink a Contact from a Task
+    description: Use this only when the user wants to remove the known Contact–Task relation. It deletes the semantic link but does not delete or edit the Contact or Task.
+    scopes: [contacts:write, tasks:read]
+    annotations: { readOnlyHint: false, openWorldHint: false, destructiveHint: true, idempotentHint: true }
+    inputSchema: { $ref: "#/$defs/contactTaskMutationInput" }
+    outputSchema: { $ref: "#/$defs/taskContactResult" }
+    resultText: "Removed the Contact–Task link."
+$defs:
+  listContactsInput:
+    type: object
+    additionalProperties: false
+    properties:
+      q: { type: [string, "null"], minLength: 1, maxLength: 200 }
+      include_archived: { type: boolean, default: false }
+      limit: { type: integer, minimum: 1, maximum: 100, default: 25 }
+      cursor: { type: [string, "null"], maxLength: 512 }
+  getContactContextInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id]
+    properties:
+      contact_id: { type: string, format: uuid }
+      project_limit: { type: integer, minimum: 1, maximum: 25, default: 10 }
+      project_cursor: { type: [string, "null"], maxLength: 512 }
+      task_limit: { type: integer, minimum: 1, maximum: 25, default: 10 }
+      task_cursor: { type: [string, "null"], maxLength: 512 }
+      include_completed: { type: boolean, default: false }
+  createContactInput:
+    type: object
+    additionalProperties: false
+    required: [display_name, idempotency_key]
+    properties:
+      display_name: { type: string, minLength: 1, maxLength: 200 }
+      context_note: { type: [string, "null"], maxLength: 10000 }
+      email: { type: [string, "null"], maxLength: 320 }
+      phone: { type: [string, "null"], maxLength: 64 }
+      aliases:
+        type: array
+        maxItems: 20
+        uniqueItems: true
+        items: { type: string, minLength: 1, maxLength: 120 }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  updateContactInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, expected_version, idempotency_key, changes]
+    properties:
+      contact_id: { type: string, format: uuid }
+      expected_version: { type: integer, minimum: 1 }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+      changes:
+        type: object
+        additionalProperties: false
+        minProperties: 1
+        properties:
+          display_name: { type: string, minLength: 1, maxLength: 200 }
+          context_note: { type: [string, "null"], maxLength: 10000 }
+          email: { type: [string, "null"], maxLength: 320 }
+          phone: { type: [string, "null"], maxLength: 64 }
+  versionedContactInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, expected_version, idempotency_key]
+    properties:
+      contact_id: { type: string, format: uuid }
+      expected_version: { type: integer, minimum: 1 }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  addAliasInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, value, expected_version, idempotency_key]
+    properties:
+      contact_id: { type: string, format: uuid }
+      value: { type: string, minLength: 1, maxLength: 120 }
+      expected_version: { type: integer, minimum: 1 }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  removeAliasInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, alias_id, expected_version, idempotency_key]
+    properties:
+      contact_id: { type: string, format: uuid }
+      alias_id: { type: string, format: uuid }
+      expected_version: { type: integer, minimum: 1 }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  contactProjectMutationInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, project_id, idempotency_key]
+    properties:
+      contact_id: { type: string, format: uuid }
+      project_id: { type: string, format: uuid }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  contactTaskMutationInput:
+    type: object
+    additionalProperties: false
+    required: [contact_id, task_id, idempotency_key]
+    properties:
+      contact_id: { type: string, format: uuid }
+      task_id: { type: string, format: uuid }
+      idempotency_key: { $ref: "#/$defs/idempotencyKey" }
+  idempotencyKey: { type: string, minLength: 8, maxLength: 128 }
+  contactSummary:
+    type: object
+    additionalProperties: false
+    required: [id, display_name, archived, updated_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      display_name: { type: string, minLength: 1, maxLength: 200 }
+      archived: { type: boolean }
+      updated_at: { type: string, format: date-time }
+      version: { type: integer, minimum: 1 }
+  contactAlias:
+    type: object
+    additionalProperties: false
+    required: [id, value, created_at]
+    properties:
+      id: { type: string, format: uuid }
+      value: { type: string, minLength: 1, maxLength: 120 }
+      created_at: { type: string, format: date-time }
+  contact:
+    type: object
+    additionalProperties: false
+    required: [id, display_name, context_note, email, phone, aliases, archived, created_at, updated_at, archived_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      display_name: { type: string, minLength: 1, maxLength: 200 }
+      context_note: { type: [string, "null"], maxLength: 10000 }
+      email: { type: [string, "null"], maxLength: 320 }
+      phone: { type: [string, "null"], maxLength: 64 }
+      aliases: { type: array, maxItems: 20, items: { $ref: "#/$defs/contactAlias" } }
+      archived: { type: boolean }
+      created_at: { type: string, format: date-time }
+      updated_at: { type: string, format: date-time }
+      archived_at: { type: [string, "null"], format: date-time }
+      version: { type: integer, minimum: 1 }
+  projectSummary:
+    type: object
+    additionalProperties: false
+    required: [id, title, status, updated_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      title: { type: string, maxLength: 200 }
+      status: { type: string, enum: [active, paused, completed] }
+      updated_at: { type: string, format: date-time }
+      version: { type: integer, minimum: 1 }
+  taskSummary:
+    type: object
+    additionalProperties: false
+    required: [id, project_id, title, status, priority, due_at, updated_at, version]
+    properties:
+      id: { type: string, format: uuid }
+      project_id: { type: [string, "null"], format: uuid }
+      title: { type: string, maxLength: 200 }
+      status: { type: string, enum: [todo, in_progress, blocked, completed] }
+      priority: { type: string, enum: [low, normal, high, urgent] }
+      due_at: { type: [string, "null"], format: date-time }
+      updated_at: { type: string, format: date-time }
+      version: { type: integer, minimum: 1 }
+  contactResult:
+    type: object
+    additionalProperties: false
+    required: [contact]
+    properties: { contact: { $ref: "#/$defs/contact" } }
+  contactPageResult:
+    type: object
+    additionalProperties: false
+    required: [contacts, next_cursor]
+    properties:
+      contacts: { type: array, maxItems: 100, items: { $ref: "#/$defs/contactSummary" } }
+      next_cursor: { type: [string, "null"], maxLength: 512 }
+  projectContextPage:
+    type: object
+    additionalProperties: false
+    required: [items, next_cursor]
+    properties:
+      items: { type: array, maxItems: 25, items: { $ref: "#/$defs/projectSummary" } }
+      next_cursor: { type: [string, "null"], maxLength: 512 }
+  taskContextPage:
+    type: object
+    additionalProperties: false
+    required: [items, next_cursor]
+    properties:
+      items: { type: array, maxItems: 25, items: { $ref: "#/$defs/taskSummary" } }
+      next_cursor: { type: [string, "null"], maxLength: 512 }
+  contactContextResult:
+    type: object
+    additionalProperties: false
+    required: [contact, projects, tasks]
+    properties:
+      contact: { $ref: "#/$defs/contact" }
+      projects: { $ref: "#/$defs/projectContextPage" }
+      tasks: { $ref: "#/$defs/taskContextPage" }
+  projectContactResult:
+    type: object
+    additionalProperties: false
+    required: [contact_id, project_id, linked]
+    properties:
+      contact_id: { type: string, format: uuid }
+      project_id: { type: string, format: uuid }
+      linked: { type: boolean }
+  taskContactResult:
+    type: object
+    additionalProperties: false
+    required: [contact_id, task_id, linked]
+    properties:
+      contact_id: { type: string, format: uuid }
+      task_id: { type: string, format: uuid }
+      linked: { type: boolean }

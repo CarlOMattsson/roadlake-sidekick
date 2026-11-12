@@ -1,0 +1,204 @@
+/*
+ * Fullscreen shell. Narrow frames show one column: when a detail is open the list is hidden and
+ * the back button returns to it. Wide frames with a detail open show list and detail side by side
+ * (.sk-wide grid, only while data-detail="open"), so the back button hides. Without a detail the
+ * list takes the row, capped to a readable width; the board is the exception (see work.css).
+ */
+
+/* The work root caps itself at 40rem for inline; here the list (48rem) and the board decide width. */
+/* In fullscreen the host's reply field covers the bottom of the frame. The frame (.sk-frame__body in
+ * layout.css) keeps --sk-foot-reserve below the content. */
+.sk-shell {
+  --work-max-width: none;
+}
+
+/* The tab row is the room header (designsystem §3 "Rumshuvud"): 44 px high, the tabs on the left and the tools on
+ * the right. The row under it brings its own 12 px of air. It stays under the room strip while the view
+ * scrolls, on the page's colour, so the view in use is seen after the app scrolls itself; what sticks in the list
+ * (group headings, the board's column switch) rests under it. */
+.sk-shell-tabs {
+  position: sticky;
+  top: var(--sk-sticky-top);
+  z-index: 2;
+  margin-block-end: 0;
+  /* Its page colour reaches the frame's side edges, as the room strip's bar above it (sidekick-shell.css): the two
+     stuck rows are one band of the same width. The row's content keeps the content edges. */
+  margin-inline: calc(-1 * var(--sk-frame-pad-left, 0px))
+    calc(-1 * var(--sk-frame-pad-right, 0px));
+  /* Its tabs and tools keep the rooms' reading width (--sk-room-max), centred over the list as every room's head
+     (ui-8); the band still reaches the frame's edges. 100 % is the shell's width, inside the frame's pads. */
+  --sk-tabs-inset: max(0px, calc((100% - var(--sk-room-max)) / 2));
+  padding-inline: calc(var(--sk-frame-pad-left, 0px) + var(--sk-tabs-inset))
+    calc(var(--sk-frame-pad-right, 0px) + var(--sk-tabs-inset));
+  /* The hairline under the whole row, tools included (designsystem §3 "Flikar"), at the foot of its 44 px line and
+     within the content edges (content-box): a menu that wraps onto its own line under the row stays below it. */
+  background:
+    linear-gradient(var(--sk-line), var(--sk-line)) 0
+      calc(var(--sk-tabs-h) - var(--sk-hairline, 1px)) / 100%
+      var(--sk-hairline, 1px) no-repeat content-box,
+    var(--color-background-primary, Canvas);
+}
+
+/* With tools beside the tabs (search, "⋯"): the tabs take the rest of the row and the tools sit at its end. The tools' wrappers are display: contents, so each button and each menu is an
+ * item of this row: an open menu wraps onto a full-width line of its own under the row, and the "⋯" that opened it
+ * stays in place. The tools take the same width on every tab (an unused slot is an empty 44 px box), so the tabs
+ * never move when the tab changes. */
+.sk-shell-tabs--with-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+}
+
+.sk-shell-tabs--with-end .sk-shell-tabs-end,
+.sk-shell-tabs--with-end .sk-shell-tabs-end .work-agenda-more {
+  display: contents;
+}
+
+.sk-shell-tabs--with-end .sk-shell-tabs-end[hidden],
+.sk-shell-tabs--with-end .sk-shell-tabs-end [hidden] {
+  display: none;
+}
+
+.sk-shell-tabs--with-end .work-tab-slot {
+  flex: none;
+  width: var(--sk-tap);
+  height: var(--sk-tabs-h);
+}
+/* The tools are the row's height: a 2.75rem box at 150 % made the row 66, and 88 at 200 %. */
+.sidekick-work .sk-shell-tabs--with-end .work-tab-tool {
+  height: var(--sk-tabs-h);
+  min-height: 0;
+}
+
+/* A tab whose read failed shows the room's error box where the list starts, 16 px under the tab row's rule. */
+.sk-shell .sk-shell-list > .sk-error--card {
+  margin-block-start: var(--sk-s4);
+}
+
+.sk-shell-tabs--with-end :is(.work-agenda-bar-panel, .sk-pick-menu) {
+  flex: 0 0 100%;
+  order: 1;
+}
+
+/* An open menu lies in the flow under the row (not stuck): while it is open the row scrolls with the page. */
+.sk-shell-tabs:has(
+  .work-agenda-more:not([hidden]) .work-agenda-bar-panel:not([hidden]),
+  .sk-pick-menu
+) {
+  position: static;
+}
+
+/* Large text on a phone (200 %: the frame is under 16 rem wide). The room header stays one row (designsystem §3
+   "Rumshuvud"): when the tabs do not fit, the view picker takes their place (view-tabs.tsx) and the three
+   tools keep their place at the right. Icons are not text, so their boxes keep 44 px wide instead of growing with the
+   text, with 32 px glyphs (24 read as left behind by 32 px text), and they take the row's height, so they
+   share the tabs' top and their glyphs centre on the labels. */
+@container sk-frame (max-width: 16rem) {
+  .sidekick-work .sk-shell-tabs--with-end :is(.work-tab-tool, .work-tab-slot) {
+    align-self: center;
+    width: calc(var(--sk-s6) + var(--sk-s3));
+    height: var(--sk-tabs-h);
+    min-height: 0;
+  }
+  .sk-shell-tabs--with-end .work-tab-tool svg {
+    width: var(--sk-s6);
+    height: var(--sk-s6);
+  }
+  /* The round + stays a 32 circle with a 24 glyph in its 44 box, centred on the row: an ink disc does not grow with the
+     text, and a stretched box would draw an oval. */
+  .sidekick-work .sk-shell-tabs--with-end .work-tab-tool.sk-iconbtn--primary {
+    align-self: center;
+    height: calc(var(--sk-s6) + var(--sk-s3));
+    min-height: 0;
+    padding: calc(var(--sk-s3) / 2);
+  }
+  .sk-shell-tabs--with-end .work-tab-tool.sk-iconbtn--primary svg {
+    width: var(--sk-s5);
+    height: var(--sk-s5);
+  }
+  /* The + target is 48 but starts 1 lower than the box's own: the rooms' target reaches down to 48
+     from the strip's top (sidekick-shell.css), and the + box stands 4 under the row's top at 150 %, so its target would
+     lose a pixel to it. */
+  .sidekick-work .sk-shell-tabs-end .work-tab-tool.sk-iconbtn--primary::after {
+    inset-block: -1px -3px;
+  }
+}
+
+.sk-shell-back {
+  min-height: 2.75rem;
+  padding-inline: var(--sk-s2, 8px);
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-text-sm-size);
+  cursor: pointer;
+}
+
+.sk-shell[data-detail="open"] .sk-shell-list {
+  display: none;
+}
+
+/* Without a detail, a list (agenda, hierarchy, contacts) stays readable: centred, at most the rooms' one reading
+ * width (--sk-room-max, layout.css). The board has columns of its own and keeps the full row. */
+.sk-shell[data-detail="closed"]
+  .sk-shell-list:not(:has(.work-board .work-column)) {
+  max-width: var(--sk-room-max);
+  margin-inline: auto;
+}
+
+/* layout.css makes .sk-wide a 2fr/3fr grid whenever it has a second child, even without a detail. With
+ * two tabs visited (e.g. Agenda and Contacts) the visible list then sits in a narrow 2fr column. Without
+ * a detail the tab panel takes the row: .sk-wide is a plain block. */
+.sk-shell[data-detail="closed"] .sk-wide {
+  display: block;
+}
+
+@container sk-frame (min-width: 640px) {
+  .sk-shell[data-detail="open"] .sk-shell-list {
+    display: block;
+  }
+
+  .sk-shell-back {
+    display: none;
+  }
+}
+
+/* A visited tab that is not pressed stays mounted but hidden. This rule comes after the container
+ * rule above, with the same specificity, so the wide frame's `display: block` does not show it. */
+.sk-shell .sk-shell-list[hidden] {
+  display: none;
+}
+
+/* The fullscreen frame (.sidekick-work) already pads the shell; the panels inside keep their fonts and colours but not a second pad. */
+.sk-shell .sidekick-work[class] {
+  max-width: none;
+  padding: 0;
+}
+
+/* The shell owns the full width of the fullscreen frame; the Work root's 40rem reading cap is for
+ * inline views only. Lists inside the shell keep their own 48rem cap above. */
+.sidekick-work:has(.sk-shell) {
+  max-width: none;
+}
+
+/* One view only: no tab strip, the spacer keeps the row's tools at its end. */
+.sk-shell-tabs--with-end .sk-shell-tabs-fill {
+  flex: 1 1 0;
+  min-width: 0;
+  height: var(--sk-tabs-h);
+}
+
+/* With no room strip above (the phone's single room) the room's name stands in the spacer: the back link's type, in the
+   text colour, on the row's line, cut with an ellipsis rather than wrapped. A p, so the room's h2 rules do not apply. */
+.sidekick-work .sk-shell-tabs-title {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  overflow: hidden;
+  color: var(--sk-fg);
+  font: var(--sk-type-label-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,129 @@
+/* The To sort view (Att sortera, fullscreen Work). One row per unsorted Task: its title, then one button
+   per Domain. Every control is at least 44 px high and wide. The Domain buttons wrap onto more rows
+   instead of scrolling sideways, and long words break inside the button, so a 360 px phone has no
+   horizontal scroll. The Domain accent comes from data-accent (work.css sets --row-accent). */
+
+.sidekick-work .work-unsorted {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sidekick-work .work-unsorted-intro {
+  flex: 1 1 auto;
+  margin: var(--sk-s1) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow-wrap: anywhere;
+}
+/* The intro and Refresh share a line: the ↻ is a glyph button (sk-iconbtn) at the row's end. */
+.sidekick-work .work-unsorted-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sk-s2);
+}
+.sidekick-work .work-unsorted-refresh {
+  flex: none;
+  font-size: 1.25rem;
+}
+
+.sidekick-work .work-unsorted-row {
+  padding: 0.25rem 0;
+  min-width: 0;
+}
+.sidekick-work
+  .work-unsorted-list
+  > li.work-unsorted-row
+  > p.work-unsorted-title {
+  margin: 0;
+  padding: var(--sk-s2) 0;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+
+/* A row of Domain buttons; more than about four Domains wrap onto a second row. */
+.sidekick-work .work-unsorted-domains {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0 0 var(--sk-s2);
+}
+.sidekick-work .work-unsorted-domain {
+  flex: 0 1 auto;
+  min-width: var(--sk-tap);
+  margin: 0;
+  padding: var(--sk-s1) var(--sk-s3);
+  border-left: 4px solid var(--row-accent, var(--sk-border));
+  font: var(--sk-type-meta);
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+/* "Välj plats…": a button under the Domain buttons that unfolds the place picker (a native select) for its row. Both
+   are at least 44 px high; the button keeps its words whole and wraps at word breaks. */
+.sidekick-work .work-unsorted-pick {
+  display: grid;
+  justify-items: start;
+  gap: var(--sk-s2);
+  padding: 0 0 var(--sk-s2);
+}
+.sidekick-work .work-unsorted-pick-button {
+  min-width: var(--sk-tap);
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: var(--sk-s1) var(--sk-s3);
+  font: var(--sk-type-meta);
+  text-align: left;
+}
+.sidekick-work .work-unsorted-pick > .work-group-select {
+  justify-self: stretch;
+}
+.sidekick-work .work-unsorted-pick > .work-group-select-state {
+  justify-self: stretch;
+}
+
+/* The row after the agenda that opens the To sort view: a list row whose only action is to open, so it ends in ›
+   (designsystem §3 "Chevronregeln"), the glyph's centre on the row's ⋯ (width - 38). */
+.sidekick-work .work-unsorted-open-row {
+  margin: var(--sk-s5) 0 0;
+}
+.sidekick-work .work-unsorted-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--sk-type-row);
+  text-align: left;
+}
+.sidekick-work .work-unsorted-open svg {
+  flex: none;
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+  margin-inline-end: 10px;
+  color: var(--sk-muted);
+}
+
+/* The heading of the To sort view opened from the agenda; the back row sits above it (designsystem §3: 4 px). The
+   Undo line sits in the list (agenda.css), so the page keeps no room for a sticky foot. */
+.sidekick-work .work-unsorted-page {
+  min-width: 0;
+  max-width: 100%;
+}
+.sidekick-work .work-unsorted-heading {
+  margin: var(--sk-s1) 0 0;
+  font: var(--sk-type-title);
+  overflow-wrap: anywhere;
+}
+/* A sorted row while its Undo lasts: the title takes the task row's 11 px, so "Flyttad till Hem" and "Ångra"
+   sit as in the agenda (agenda.css). */
+.sidekick-work
+  .work-unsorted-list
+  > li.work-unsorted-row:has(> .work-agenda-undo)
+  > p.work-unsorted-title {
+  padding-block: 11px;
+}

@@ -1,0 +1,5 @@
+# Accepted pip-audit findings. One per line: <advisory id> | <expiry YYYY-MM-DD> | <reason and who decided, with date>
+# An entry without a reason or a valid expiry date makes the audit job fail, and so does an entry past its expiry date
+# (the date itself is the last day it holds). Pick a short expiry, at most 90 days out. Remove an entry as soon as the
+# dependency is updated.
+# The file is intentionally empty of entries: no vulnerability is accepted without a written decision.

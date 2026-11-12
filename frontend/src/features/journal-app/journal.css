@@ -1,0 +1,1078 @@
+.sidekick-journal {
+  font: var(--font-text-md-size, 16px)/var(--font-text-md-line-height, 1.5)
+    var(--font-sans, system-ui, sans-serif);
+  color: var(--sk-fg);
+  background: transparent;
+  padding: calc(1rem + var(--host-safe-top, 0px))
+    calc(1rem + var(--host-safe-right, 0px))
+    calc(1rem + var(--host-safe-bottom, 0px))
+    calc(1rem + var(--host-safe-left, 0px));
+  max-width: 40rem;
+  margin: auto;
+  overflow-wrap: anywhere;
+}
+/* Fullscreen: the host's reply field covers the bottom, so the last control clears it.
+   --sk-foot-reserve already includes the host safe area, so it is not added again. */
+.sidekick-journal.journal-fullscreen {
+  padding-bottom: calc(1rem + var(--sk-foot-reserve, 6rem));
+}
+/* The app name (h1) is the family eyebrow: class sk-eyebrow in the markup, styled by family.css. */
+/* The view title (designsystem §2): 22/28 semibold. */
+.sidekick-journal h2:not(.sk-card__title) {
+  font: var(--sk-type-title);
+  margin: var(--sk-s3) 0 var(--sk-s1);
+}
+/* Section headings ("Anteckningar", "Kopplat"): --sk-type-section, 24 under the box above and 4 over the first row's, so 32 and 12 lie between the glyphs as in every room; the first one under the day strip has 16
+   above. */
+.sidekick-journal h3 {
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+}
+/* Under the day's summary too: the summary is the head's ingress, so "Anteckningar" follows it as it
+   follows the strip, 16 to the box (≈ 22 to the caps with the summary's half-leading). The action that stood between
+   them is the + in the title row, and three notes end above the reply field. */
+.sidekick-journal :is(.sk-day-strip, .journal-day-summary) + h3 {
+  margin-top: var(--sk-s4);
+}
+/* The day's summary has no heading (designsystem §3, Dagens sammanfattning): an ingress in body text, 8 under
+   the strip, the view's first content; a note on a stale or failed summary follows 4 under it. */
+/* The summary in the body size on the row title's line height (22,9 at 110 %, not the 26,4 of
+   running text): two clamped lines of a list screen, and the pixels it gives back pay for the week row. */
+.sidekick-journal .journal-day-summary > p {
+  margin: var(--sk-s1) 0 0;
+  font: var(--sk-type-body-weight) var(--sk-type-body-size) /
+    var(--sk-type-row-line) var(--sk-font);
+}
+.sidekick-journal .journal-day-summary > p:first-child {
+  margin-top: var(--sk-s2);
+}
+/* "Dagen i korthet" is a label: the label role of «Försenade» on the agenda card,
+   15,4/600 text-2, which says the text is Claude's summary without being a 26 px heading, and 4 over the ingress. 8
+   under the strip, whose cells hold their own air under the dots, so ≈ 14 lie between the dots and the label. */
+.sidekick-journal .journal-day-summary > .journal-summary-label {
+  margin-bottom: var(--sk-s1);
+  font: var(--sk-weight-semibold) var(--sk-type-meta-size) /
+    var(--sk-type-meta-line) var(--sk-font);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-day-summary > .journal-summary-label + p {
+  margin-top: 0;
+}
+.sidekick-journal p {
+  margin: 0.4rem 0;
+}
+/* «Gjort»: the fold row (row.css .sk-fold) as the section's heading, «Gjort ⌄» with the count line as
+   its meta. Under the summary or the strip it has the 16 «Anteckningar» has there; elsewhere a section's 24. The
+   count line is the content, so it wraps (before «·», done-section.tsx) instead of ending in an ellipsis. */
+.sidekick-journal
+  :is(.sk-day-strip, .journal-day-summary)
+  + .journal-done
+  > h3 {
+  margin-top: var(--sk-s4);
+}
+.sidekick-journal .journal-done .sk-fold-meta {
+  white-space: normal;
+}
+/* Open: a muted label per kind in the label role of «Dagen i korthet» (15,4/600), 12 above it, and the rows' 6 under. */
+.sidekick-journal .journal-done-label {
+  margin: var(--sk-s3) 0 0;
+  font: var(--sk-weight-semibold) var(--sk-type-meta-size) /
+    var(--sk-type-meta-line) var(--sk-font);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-done-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+/* Read-only rows of the row template (entry-row.tsx's plain variant): no › column, so the title has the whole width. */
+.sidekick-journal .journal-done-row > .journal-entry-card {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* The bought items are the row's text: all of them, not a two-line excerpt. */
+.sidekick-journal .journal-done-items {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.sidekick-journal .journal-done-more {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* Buttons and error boxes: the family (family.css) gives the frame, the colours and the 44 px height. */
+.sidekick-journal button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Quiet buttons that lead a line (Tillbaka, Visa original) have no side padding, so their text lines up with
+   the heading's left edge. */
+.sidekick-journal .journal-back {
+  margin: 0.5rem 0;
+  padding-inline: 0;
+}
+.sidekick-journal .journal-toggle {
+  padding-inline: 0;
+}
+/* The notes list has no margin of its own: the rows' 6 and the heading's 4 give the rhythm. */
+.sidekick-journal .journal-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidekick-journal .journal-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+/* No divider between rows (a locked rule): the row template's air parts them. */
+.sidekick-journal .journal-list > li {
+  padding: var(--sk-row-pad) 0;
+}
+.sidekick-journal .journal-list > li > button {
+  width: 100%;
+}
+.sidekick-journal .journal-list > li > p {
+  font-size: 0.9rem;
+  opacity: 0.85;
+  margin: 0.25rem 0 0;
+}
+.sidekick-journal .journal-summary {
+  white-space: pre-line;
+}
+.sidekick-journal .journal-original {
+  white-space: pre-wrap;
+  font: inherit;
+  border-left: 3px solid var(--sk-border);
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+}
+.sidekick-journal .journal-muted {
+  opacity: 0.85;
+  font-size: 0.9rem;
+}
+/* The original line under a summary: the muted note and the quiet button share one row when there is room.
+   Both are 14 px; the button is 44 px high. */
+.sidekick-journal .journal-original-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 0.75rem;
+}
+.sidekick-journal .journal-original-row .journal-muted {
+  font-size: 0.875rem;
+}
+.sidekick-journal .journal-original-row .journal-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  min-height: 44px;
+  font-size: 0.9375rem;
+  color: var(--sk-fg);
+}
+.sidekick-journal .journal-original-row p {
+  margin: 0.4rem 0;
+}
+.sidekick-journal .journal-banner {
+  margin: 0.5rem 0;
+}
+.sidekick-journal .journal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.75rem 0;
+}
+/* The confirmation is a family card (sk-card in the markup): the frame comes from family.css. */
+.sidekick-journal .journal-confirm {
+  margin: 0.75rem 0;
+}
+.sidekick-journal .journal-fieldset {
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  margin: 0.5rem 0;
+  padding: 0.25rem 0.75rem 0.5rem;
+  min-width: 0;
+}
+.sidekick-journal .journal-fieldset legend {
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+.sidekick-journal .journal-check {
+  padding: 0.25rem 0;
+}
+.sidekick-journal .journal-check label {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  min-height: 2.75rem;
+  padding: 0.4rem 0;
+  cursor: pointer;
+}
+.sidekick-journal .journal-check input[type="checkbox"] {
+  width: 1.4rem;
+  height: 1.4rem;
+  flex: none;
+  margin: 0.15rem 0 0;
+}
+.sidekick-journal .journal-check > p {
+  margin: 0 0 0.25rem 2rem;
+}
+/* Rows with no checkbox: the decision pair is the control, so the text is not indented. */
+.sidekick-journal .journal-check-flat > p {
+  margin: 0.25rem 0 0;
+}
+/* The Godkänn/Avslå pair (decisionOptions: approve first, decline second). Nothing is pressed until the owner
+   chooses. The pressed option takes its status tones: Godkänn the success tones, Avslå the danger tones, each
+   with an inset outline. The chosen state is also written in text under the pair. */
+.sidekick-journal
+  .journal-check-flat
+  .sk-segmented
+  .sk-segmented__option[aria-pressed="true"]:nth-child(1) {
+  background: var(--sk-success-bg);
+  color: var(--sk-success-fg);
+  box-shadow: inset 0 0 0 1px var(--sk-success-line);
+}
+.sidekick-journal
+  .journal-check-flat
+  .sk-segmented
+  .sk-segmented__option[aria-pressed="true"]:nth-child(2) {
+  background: var(--sk-danger-bg);
+  color: var(--sk-danger-fg);
+  box-shadow: inset 0 0 0 1px var(--sk-danger-line);
+}
+/* Unpressed options of the pair: ink colour and a hairline ring in --sk-border, so both choices read
+   on the grey surface in dark theme. The pressed rules above keep their tints. */
+.sidekick-journal
+  .journal-check-flat
+  .sk-segmented
+  .sk-segmented__option:not([aria-pressed="true"]) {
+  color: var(--sk-fg);
+  box-shadow: inset 0 0 0 1px var(--sk-border);
+}
+.sidekick-journal .journal-choice {
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.sidekick-journal .journal-tag {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+.sidekick-journal .journal-edit {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+.sidekick-journal .journal-edit label {
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+.sidekick-journal .journal-edit input,
+.sidekick-journal .journal-edit select,
+.sidekick-journal .journal-edit textarea {
+  /* The body type in rem, not the room's host size in px: a field's text grows with the user's text size as the
+     words around it do. */
+  font: var(--sk-type-body);
+  color: inherit;
+  background: var(--sk-bg);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  min-height: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sidekick-journal .journal-edit textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+.sidekick-journal .journal-write textarea {
+  min-height: 8rem;
+}
+/* The focused field keeps room above and below it, so the phone's keyboard and the day strip do not cover it. */
+.sidekick-journal .journal-edit input,
+.sidekick-journal .journal-edit textarea {
+  scroll-margin-block: 5rem;
+}
+/* The write form's buttons stay at the bottom of the visible window while the form is taller than it: with the keyboard
+   open the window is the part above the keyboard, so Save is never behind it. Opaque, so the field passes under. */
+.sidekick-journal .journal-write > .journal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.5rem 0;
+  background: var(--sk-surface, Canvas);
+}
+.sidekick-journal.journal-fullscreen .journal-write > .journal-actions {
+  bottom: var(--sk-foot-reserve, 0px);
+}
+.sidekick-journal .journal-edit [aria-invalid="true"] {
+  border: calc(var(--sk-hairline) * 2) solid var(--sk-danger-line);
+}
+.sidekick-journal .journal-keypoint {
+  display: grid;
+  grid-template-columns: minmax(0, 8rem) minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  align-items: start;
+}
+/* Compact entry card from a single-entry tool result (sk-card in the markup: the family frame, surface,
+   hairline, padding and gap). The card keeps only its place in the flow; its children take no margin of
+   their own, the card's gap spaces them. The full summary stays in the DOM; CSS clamps it to three lines. */
+.sidekick-journal .journal-card {
+  margin: 0;
+}
+/* An inline card sits flush with the host's edge, as the Shopping and Control cards do: the host draws the
+   frame, so only the safe area pads the root (design language 3.2). */
+/* The card's kicker, "Dagbok · sparad 10:20" (14/20, muted), 4 above the 18/24 title (family.css), then the body. */
+.sidekick-journal .journal-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--sk-s1);
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sidekick-journal .journal-card-meta + .sk-card__title {
+  margin-top: calc(var(--sk-s1) - var(--sk-s2));
+}
+.sidekick-journal .journal-card-meta > h1,
+.sidekick-journal .journal-card-meta > p {
+  margin: 0;
+  font-size: inherit;
+  opacity: 1;
+}
+.sidekick-journal .journal-card .journal-summary {
+  margin: 0;
+  font: var(--sk-type-body);
+}
+/* The one muted line, "Sammanfattad av Claude · Kopplad till Bo Berg" (14/20, sk-card__meta), muted in its whole
+   length. A contact's name is a text button that opens the contact; its 44 px target reaches 12 above and below
+   the line, into the card's gaps (8 above, 16 below), so it meets nothing else. */
+/* A part that starts a line never starts it with its «·» (ui-13, as the Status cards in work.css): every part after
+   the first leads with a 0.55em box holding its «·» (the space before it is the text's own), the first part leads with
+   an empty box of the same width, the line starts 0.55em early and the clip hides that first 0.55em. A line's first
+   box is then always the hidden one, and its text keeps the card's content edge. The clip reaches far above and below,
+   so a contact chip's 48 target is not cut. The card's child selector, as the card's own margin reset is (below). */
+.sidekick-journal .journal-card > .journal-card-links {
+  margin: 0 0 0 calc(-1 * var(--journal-sep-w));
+  clip-path: inset(-3rem -3rem -3rem var(--journal-sep-w));
+  --journal-sep-w: 0.55em;
+}
+/* Each part wraps as a whole, so "Kopplad till Bo Berg" moves to the next line together. */
+.sidekick-journal .journal-card-links > span {
+  display: inline-block;
+}
+.sidekick-journal .journal-card-links > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: var(--journal-sep-w);
+}
+.sidekick-journal .journal-card-links .journal-card-sep {
+  display: inline-block;
+  width: var(--journal-sep-w);
+}
+/* A linked contact is a chip in the meta line : 32 visible, its target 48 (8 out above and
+   below, into the card's gaps), the radius of every chip, the name in the text colour at 500; no × (a link is removed
+   in the entry's fullscreen view). Its text sits on the line's baseline. */
+.sidekick-journal .journal-card-links button.journal-link-name {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 32px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--sk-s3);
+  vertical-align: baseline;
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+  font-weight: var(--sk-weight-medium);
+  text-align: start;
+}
+.sidekick-journal .journal-card-links button.journal-link-name::after {
+  content: "";
+  position: absolute;
+  /* 8 past the 1 px edge, placed from the padding box: 48 (−8 alone gave 46). */
+  inset: calc(-8px - var(--sk-hairline)) 0;
+}
+/* The link row: 12 below the meta line (the card's 8 gap and 4), nothing under it but the padding. */
+.sidekick-journal .journal-card > .journal-actions {
+  margin: var(--sk-s1) 0 0;
+}
+/* A receipt card stays within 240 at 412: the summary is cut at two lines; the entry view shows all of it. */
+.sidekick-journal .journal-card > .journal-card-summary {
+  -webkit-line-clamp: 2;
+}
+.sidekick-journal .journal-card-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Linked names as chips (the card and the entry view): rows that wrap, and a long name is cut with an ellipsis
+   so the card stays short. The card's remove button keeps a 44 px touch area; its negative margin keeps the
+   chip as tall as its text. */
+.sidekick-journal .journal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0;
+}
+.sidekick-journal .journal-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 2rem;
+  padding-inline: 0.6rem;
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+.sidekick-journal .journal-chip-name {
+  min-width: 0;
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A contact chip that opens its contact: the button keeps the chip's look (no frame of its own, the chip's
+   border stays) and a 44 px touch height. */
+.sidekick-journal .journal-chip > button.journal-chip-name {
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+/* The remove button in the entry view: a 44x44 target beside the name (no overlap), its right side reaching into
+   the chip's padding so the chip stays narrow. */
+.sidekick-journal .journal-chip-remove {
+  min-width: var(--sk-tap);
+  min-height: var(--sk-tap);
+  margin-block: 0;
+  margin-inline-end: -0.6rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+/* The links group takes focus after a removal (the chip is gone); the focus ring is for keyboard focus only. */
+.sidekick-journal .journal-entry-links:focus:not(:focus-visible) {
+  outline: none;
+}
+/* The Undo line after a link was removed: its message, then the Undo button, on one line when there is room. */
+.sidekick-journal .journal-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+.sidekick-journal .journal-undo > p {
+  margin: 0;
+}
+.sidekick-journal .journal-card > *,
+.sidekick-journal .journal-confirm > * {
+  margin: 0;
+}
+/* The glance's first entries: one row each, time then title. A long title wraps to two lines at most. */
+.sidekick-journal .journal-glance-entries {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.sidekick-journal .journal-glance-entries > li {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+  font-size: 0.95rem;
+  padding: 0;
+  border-top: var(--sk-hairline) solid var(--sk-border);
+}
+/* Each row is a button that opens its entry: the whole row is the touch target, at least 44 px high. */
+.sidekick-journal .journal-glance-row {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  justify-content: flex-start;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: inherit;
+  text-align: start;
+}
+.sidekick-journal .journal-glance-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+/* Inline pending rows (not fullscreen): tighter padding, and the meta line (state and size) on one line, cut
+   with an ellipsis. The full line stays in the markup and shows in fullscreen. */
+.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li {
+  padding: 0.35rem 0;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li > p {
+  margin: 0;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li > button {
+  padding-block: 0.25rem;
+  line-height: 1.3;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-pending-list
+  > li
+  > .journal-muted {
+  margin-top: 0.125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Timeline entry (entry-row.tsx, designsystem §3 Anteckningsrad): the row template's excerpt variant:
+   no frame, no surface, no hairlines and no icon; rows are parted by air. The title (row
+   type) first, then one meta line (meta type, muted, cut with an ellipsis) and, 6 under it, a two-line excerpt; the
+   row's 6 above and below, at least 48 high. The chevron is a 44 wide column ending on the content edge, on
+   the title's line. The whole row opens. */
+.sidekick-journal .journal-entry-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--sk-tap);
+  align-items: center;
+  width: 100%;
+  min-height: var(--sk-row-min);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--sk-row-pad) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+}
+button.journal-entry-card {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sidekick-journal .journal-entry-card > * {
+  grid-column: 1;
+  min-width: 0;
+}
+/* The chevron's box ends on the content edge, 396 at 412. */
+.sidekick-journal .journal-entry-card > .journal-entry-chevron {
+  grid-column: 2;
+  align-self: start;
+  justify-self: end;
+  display: grid;
+  place-items: center;
+  height: var(--sk-type-row-line);
+  color: var(--sk-muted);
+}
+/* The glyph is the shared row ›: --sk-chevron wide and high (24, or 16 on a narrow frame or at large text as in contacts.css
+   and shopping.css) with the icon's own 2 stroke, so it is the same size and weight as in Arbete, Inköp and Kontakter. */
+.sidekick-journal .journal-entry-chevron svg {
+  width: var(--sk-chevron);
+  height: var(--sk-chevron);
+}
+@container sk-frame (max-width: 399.98px) or (max-width: 17.25rem) {
+  .sidekick-journal {
+    --sk-chevron: 16px;
+  }
+}
+.sidekick-journal .journal-entry-card > .sk-row-primary {
+  font: var(--sk-type-row);
+}
+.sidekick-journal .journal-entry-meta,
+.sidekick-journal .journal-entry-excerpt {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The excerpt is what was written, so it reads a step above the meta line: three text
+   levels, title --sk-fg 16, excerpt --sk-fg-2 14, meta --sk-muted 14. */
+.sidekick-journal .journal-entry-excerpt {
+  color: var(--sk-fg-2);
+}
+.sidekick-journal .journal-entry-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-inline-end: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.sidekick-journal .journal-entry-excerpt {
+  /* 6 under the meta line, the row's own air, so the written text reads as its own block. */
+  margin-top: var(--sk-row-pad);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* An empty day (designsystem §3, Tomt): one muted sentence 12 under the strip (the week row's 9 is paid here), then "Berätta om dagen" 16 under it. */
+.sidekick-journal .journal-empty {
+  margin: var(--sk-s3) 0 0;
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-glance-title {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+/* The day view's head: the title row, "Tisdag 3 november" in the
+   title type and ⋯ at its end, and under it the week row "‹ 29 okt–4 nov ›" at the start, the arrows right beside the
+   week they step. One form at every width and text size (the old < 400 px rule is the only one). Every button keeps
+   its 48 × 48 target, and no two targets meet. */
+.sidekick-journal .sk-day-strip-head {
+  --sk-day-title-line: var(--sk-type-title-line);
+  /* ⋯'s 48 box stands at most 2 over the title's line box (the room strip's targets end above it) and its glyph sits
+     on the title's middle: at 110 % the box reaches down beside the week row, where the row has no control. */
+  --sk-day-more-top: max(0px, calc((var(--sk-day-title-line) - 48px) / 2));
+  /* ‹ ›'s 48 boxes reach 9 up into the title's line box, under its baseline (the title is no control, and no two
+     targets meet), so the week stands ≈ 8 under the title's glyphs as a meta line would. */
+  --sk-day-week-reach: 9px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "title tools" "arrows arrows";
+  align-items: start;
+  column-gap: 0;
+  /* The title as far under the room strip as every room's first line: strip glyph → title glyph
+     ≈ 29, as "‹ Arbete" over the title in 12/23 and the Back row in 04/09. */
+  margin-top: var(--sk-s3);
+}
+.sidekick-journal .sk-day-strip-title {
+  grid-area: title;
+  min-width: 0;
+}
+.sidekick-journal .sk-day-strip-title > h2 {
+  margin: 0;
+}
+/* The head's icon buttons are 48 × 48 in px at every text size, the glyph 24; the box is the
+   target (no ::after past it, so ‹ › never reach the strip's days). */
+.sidekick-journal .sk-day-strip-head .sk-iconbtn {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+}
+.sidekick-journal .sk-day-strip-head .sk-iconbtn::after {
+  inset: 0;
+}
+.sidekick-journal .sk-day-strip-head .sk-iconbtn svg {
+  width: 24px;
+  height: 24px;
+}
+/* ⋯ on the title row's end, its glyph box on the content edge. The row is the title's line: the box's overhang
+   below is given back, so the week row starts right under the title. */
+.sidekick-journal .sk-day-strip-tools {
+  grid-area: tools;
+  display: flex;
+  margin-block: var(--sk-day-more-top)
+    min(0px, calc(var(--sk-day-title-line) - 48px - var(--sk-day-more-top)));
+  margin-inline-end: -12px;
+}
+.sidekick-journal .sk-day-strip-tools > .sk-iconbtn {
+  align-content: start;
+  padding-top: calc(
+    var(--sk-day-title-line) / 2 - var(--sk-day-more-top) - 12px
+  );
+}
+/* The day's +: the 32 px round ink + of the list views (family.css .sk-iconbtn--primary), in px as the head's other
+   boxes, in a 48 box, its
+   middle on x 329 at 412 as Arbete's + (02), so 7 before the box of ⋯, which stands 2 further out here (384, the line
+   of the Back rows). The ink circle's middle is the title's first line's middle, as ⋯'s glyph: the box is
+   raised by what the 48 box needs over the line box (4,6 at 110 %, none from the 56 line at 200 %), so the room strip's
+   targets above still end before it. */
+.sidekick-journal .sk-day-strip-tools > .journal-day-add {
+  margin-block-start: min(
+    0px,
+    calc(var(--sk-day-title-line) / 2 - var(--sk-day-more-top) - 24px)
+  );
+  margin-inline-end: 7px;
+  align-content: center;
+  padding: 8px;
+}
+.sidekick-journal .sk-day-strip-tools > .journal-day-add svg {
+  width: 24px;
+  height: 24px;
+}
+/* The week row: ‹, the week's first and last day in the meta type (text-2), ›, and "Idag" after it when the week lacks
+   today. ‹'s glyph box on the content edge, the range's text right against both 48 boxes (the chevron's own air,
+   ≈ 17, parts them), so "‹ 29 okt–4 nov ›" reads as one thing. */
+.sidekick-journal .sk-day-strip-weekrow {
+  grid-area: arrows;
+  justify-self: start;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  /* The arrows and the range keep their place; only "Idag", last, drops to a line of its own when the frame is too
+     narrow for all four (360 px at 200 % text, an older week). */
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  max-width: calc(100% + 12px);
+  margin-inline-start: -12px;
+}
+.sidekick-journal .sk-day-strip-weekrow > .sk-iconbtn {
+  margin-top: calc(-1 * var(--sk-day-week-reach));
+}
+/* The range on the glyphs' middle: its box is lifted by the arrows' reach, halved by the centring. */
+.sidekick-journal .journal-day-range {
+  margin: 0 0 var(--sk-day-week-reach);
+  white-space: nowrap;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-journal .sk-day-strip-weekrow > .sk-btn--compact {
+  margin: 0 0 var(--sk-day-week-reach) var(--sk-s2);
+}
+/* The ⋯ menu as Work's: a card under the head in the surface colour, its items 44 rows of label text. */
+.sidekick-journal .journal-more-panel {
+  display: flex;
+  flex-direction: column;
+  margin: var(--sk-s2) 0 0;
+  padding: var(--sk-s1) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sidekick-journal .journal-more-panel[hidden] {
+  display: none;
+}
+.sidekick-journal .journal-more-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-menu);
+  text-align: start;
+}
+/* "Idag" is a secondary compact button (family.css: 40, a 48 target), 8 after › on the week row. ‹ and › are
+   .sk-iconbtn (family.css). On today › is aria-disabled in --sk-border (≥ 3:1 against the page in both
+   themes, lighter than the inked ‹; 38 % ink was 2,5:1), never hidden (a lone ‹ read as Back). */
+.sidekick-journal .sk-day-strip-arrow[aria-disabled="true"] {
+  color: var(--sk-border);
+  opacity: 1;
+  cursor: default;
+}
+/* Week strip under the title row: seven equal cells, 4 apart (2 under 400 px, so a cell stays 44 wide at 360). Only
+   below about 250 px, where a cell would be narrower than 30 px, does the week scroll inside itself (day-strip.tsx
+   centres the target day); the padding keeps the focus ring inside the scroll area, the negative margin gives it back. */
+/* flow-root: the week's negative margins stay inside, so the strip's box ends on the cells and the next block's 16
+   is measured from them. */
+.sidekick-journal .sk-day-strip {
+  display: flow-root;
+  position: relative;
+  min-width: 0;
+  /* Right under the title block: the week line's descent and the cells' own air over the weekday part
+     them, ≈ 11 between the glyphs. */
+  margin-top: 0;
+}
+.sidekick-journal .sk-day-strip-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(30px, 1fr));
+  column-gap: var(--sk-s1);
+  overflow-x: auto;
+  list-style: none;
+  margin: calc(-1 * var(--sk-s1));
+  padding: var(--sk-s1);
+}
+@media (max-width: 24.99rem) {
+  .sidekick-journal .sk-day-strip-week {
+    column-gap: 2px;
+  }
+}
+.sidekick-journal .sk-day-strip-week > li {
+  min-width: 0;
+}
+/* Large text in a phone frame (≈ 130 % at 360 px, 150 % at 412, the family's large-text line): seven cells no longer
+   fit with "Idag" and two-digit numbers inside them, so each cell keeps a width of its own text and the week scrolls
+   sideways inside itself, today centred (day-strip.tsx), instead of letting the labels run out of their frames. */
+@container sk-frame (max-width: 17.25rem) {
+  .sidekick-journal .sk-day-strip-week {
+    grid-template-columns: repeat(7, minmax(3.25rem, 1fr));
+    column-gap: var(--sk-s1);
+    scroll-snap-type: x proximity;
+  }
+  .sidekick-journal .sk-day-strip-week > li {
+    scroll-snap-align: center;
+  }
+}
+/* A cell: weekday (or "Idag"), the number, and an 8 px marker row for the entry dot. No frame and no fill; the chosen
+   day has the chosen outline (below). */
+.sidekick-journal .sk-day-strip-day {
+  display: grid;
+  grid-template-rows: var(--sk-type-caption-line) 1.375rem 0.5rem;
+  align-content: center;
+  justify-items: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: transparent;
+  color: var(--sk-fg);
+  text-align: center;
+}
+.sidekick-journal .sk-day-strip-weekday {
+  font: var(--sk-type-caption);
+  color: var(--sk-muted);
+  white-space: nowrap;
+}
+.sidekick-journal .sk-day-strip-today {
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-journal .sk-day-strip-number {
+  font-size: var(--sk-type-card-size);
+  line-height: 1.375rem;
+  font-weight: var(--sk-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+/* The chosen day is drawn as the chosen room: the page colour, a 2 px outline in the
+   text colour with radius 8, the weekday in --sk-fg and the number at 600. Navigation has one chosen form. Forced colours
+   drop the shadow, so there the cell keeps a real outline. */
+.sidekick-journal .sk-day-strip-day[aria-current="date"] {
+  background: var(--sk-nav-active-bg);
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line);
+  color: var(--sk-nav-active-fg);
+}
+@media (forced-colors: active) {
+  .sidekick-journal .sk-day-strip-day[aria-current="date"] {
+    outline: 2px solid CanvasText;
+    outline-offset: -2px;
+  }
+}
+.sidekick-journal .sk-day-strip-day[aria-current="date"] .sk-day-strip-number {
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-journal .sk-day-strip-day[aria-current="date"] .sk-day-strip-weekday {
+  color: inherit;
+}
+/* The marker row: a 6 px dot centred under the number means "has entries", on every day, selected or not. */
+.sidekick-journal .sk-day-strip-marker {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 0.5rem;
+}
+/* Muted: inside the chosen day it is not a second mark beside the outline. */
+.sidekick-journal .sk-day-strip-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sk-muted);
+}
+@media (max-width: 26rem) {
+  .sidekick-journal .journal-keypoint {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .sidekick-journal .journal-keypoint select {
+    grid-column: 1 / -1;
+  }
+}
+/* Draft review decision bar (Spara som journalpost, Avvisa utkast). In flow at 400 px and under, where a sticky
+   bar would cover the draft text on narrow screens. Above 400 px it is sticky at the bottom of the review, so the
+   primary action stays in reach while a long draft scrolls. Its background is the card surface (--sk-surface),
+   opaque, so the content passes under it. In fullscreen it rests on the foot reserve, above the host's reply
+   field (--sk-foot-reserve already includes the safe area). No position: fixed. */
+.sidekick-journal .journal-decision-bar {
+  margin: 0;
+  padding: 0.5rem 0;
+}
+@media (min-width: 401px) {
+  .sidekick-journal .journal-decision-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    background: var(--sk-surface);
+  }
+  .sidekick-journal.journal-fullscreen .journal-decision-bar {
+    bottom: var(--sk-foot-reserve, 6rem);
+  }
+}
+.sidekick-journal .journal-decision-bar > button {
+  min-height: 44px;
+  min-width: 44px;
+}
+/* 25rem and under: the two buttons share a row where they fit. */
+@media (max-width: 25rem) {
+  .sidekick-journal .journal-decision-bar > button {
+    flex: 1 1 auto;
+  }
+}
+/* Draft review, inline (one card, one screen). A section is a closed disclosure row: its heading is hidden and
+   its body hidden until the owner opens it (data-open). The summary is clamped to three lines with "Läs mer".
+   Fullscreen ignores all of it: headings and bodies show, the summary is whole, and no row or toggle is drawn. */
+.sidekick-journal:not(.journal-fullscreen) .journal-disclosure-head {
+  display: none;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-disclosure[data-open="false"]
+  > .journal-disclosure-body {
+  display: none;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-summary-clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sidekick-journal .journal-disclosure-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 44px;
+  padding-inline: 0;
+  text-align: start;
+  font-weight: 600;
+  border-bottom: var(--sk-hairline) solid var(--sk-border);
+}
+.sidekick-journal.journal-fullscreen .journal-disclosure-toggle,
+.sidekick-journal.journal-fullscreen .journal-summary-more {
+  display: none;
+}
+/* Inline draft only: a tighter frame so the closed draft fits one phone screen. The host safe area is kept. */
+.sidekick-journal:not(.journal-fullscreen):has(> .journal-draft) {
+  padding-top: calc(0.5rem + var(--host-safe-top, 0px));
+  padding-bottom: calc(0.5rem + var(--host-safe-bottom, 0px));
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-draft > h2 {
+  margin-top: 0.25rem;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-draft
+  .journal-decision-bar {
+  padding: 0.25rem 0;
+}
+/* Inline draft: Edit and Show original share one row (the hidden heading between them takes no room). */
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-draft
+  .journal-draft-action {
+  display: inline-block;
+  margin-inline-end: 0.5rem;
+}
+/* Inline draft: the "AI draft" tag and its note read as one paragraph. */
+.sidekick-journal:not(.journal-fullscreen) .journal-draft .journal-draft-tag,
+.sidekick-journal:not(.journal-fullscreen) .journal-draft .journal-draft-note {
+  display: inline;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-draft
+  .journal-draft-tag::after {
+  content: " · ";
+}
+/* Inline draft: tighter buttons so Save and Reject share one row down to 320 px. */
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-draft
+  .journal-decision-bar {
+  gap: 0.375rem;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-draft
+  .journal-decision-bar
+  > button {
+  padding-inline: 0.5rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Inline draft: Approve all must not make the card taller than one screen. The summary sentence stays for screen
+   readers only, "Choose yourself" is dropped (the two closed section rows are right below it), the two section
+   rows share one line, and an open section takes the whole line. Fullscreen shows all of it as written. */
+.sidekick-journal:not(.journal-fullscreen) .journal-choose-yourself {
+  display: none;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-approve-all {
+  margin: 0;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-disclosure-pair {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.75rem;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-disclosure-pair
+  > .journal-disclosure {
+  flex: 1 1 9rem;
+  min-width: 0;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-disclosure-pair
+  > .journal-disclosure[data-open="true"] {
+  flex-basis: 100%;
+}
+
+/* Deleting an entry: its ⋯ on its own row when no shell Back row holds it, the danger item of the menu (the overdue
+   red, as family.css names for ⋯ menus), and the line after the entry went to the trash. */
+.sidekick-journal .journal-entry-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+/* The menu's weight, as Work's danger items ("Ta bort koppling", "Arkivera"): the red says it, not the weight. */
+.sidekick-journal .journal-more-item--danger {
+  color: var(--sk-overdue-fg);
+}
+.sidekick-journal .journal-trashed > .journal-muted {
+  margin: var(--sk-s2) 0 0;
+}
+
+/* The day's + with Claude on offer: a card under the head with two real buttons, "Berätta
+   om dagen" (primary) and "Skriv själv" (secondary), side by side and wrapping at large text, the hint under them. */
+.sidekick-journal .journal-add-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) 0 var(--sk-s3);
+  padding: var(--sk-s3) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sidekick-journal .journal-add-panel[hidden] {
+  display: none;
+}
+.sidekick-journal .journal-add-panel > .journal-add-choice {
+  min-height: var(--sk-tap-lg);
+  max-width: 100%;
+  padding-block: var(--sk-s2);
+  white-space: normal;
+}
+.sidekick-journal .journal-add-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* An empty day's empty state stands 12 under the strip, as the sentence did; the family's own padding is only below. */
+.sidekick-journal .journal-empty-state > .sk-empty {
+  padding-top: var(--sk-s3);
+}
+.sidekick-journal .journal-write-self {
+  min-height: var(--sk-tap-lg);
+}
+/* A linked Task's chip: a title is longer than a name, so it may take the whole line before
+   it is cut. The full title is its tooltip and part of its accessible name. */
+.sidekick-journal .journal-task-chips .journal-chip-name {
+  max-width: 100%;
+}

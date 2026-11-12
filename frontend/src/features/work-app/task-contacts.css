@@ -1,0 +1,116 @@
+/* The link sheet of a Task's Contacts ("+ Koppla kontakt", design system §3 Create and the row menu's panel).
+   It sticks to the foot of the visible window, resting on --sk-notice-bottom: above the host's reply field in
+   fullscreen (the foot reserve), at the window's foot inline. The on-screen keyboard shrinks the window, so the
+   sheet rides above it. The field is drawn at the sheet's foot and the hits over it, so the field never moves while
+   they come and go, and the sheet grows upwards. The panel: --sk-surface, 1 px --sk-border inside, radius 12, 8 wider
+   than the list on each side so the field, the avatars and the + keep the list's x. Not position: fixed. */
+.sidekick-work .work-contact-sheet {
+  position: sticky;
+  bottom: var(--sk-notice-bottom, 0px);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) calc(-1 * var(--sk-s2)) 0;
+  padding: var(--sk-s2);
+  border-radius: var(--sk-radius-card);
+  /* Opaque over the page, whatever the host's surface colour is. */
+  background-color: var(--sk-bg);
+  background-image: linear-gradient(var(--sk-surface), var(--sk-surface));
+  box-shadow:
+    inset 0 0 0 var(--sk-hairline) var(--sk-border),
+    0 -2px 6px rgb(0 0 0 / 0.12);
+}
+/* "Koppla kontakt", the field's visible label and the sheet's title: 16/20 at 600 as the back link, 4 under the
+   panel's top edge so it stands 12 in. */
+.sidekick-work .work-contact-sheet-title {
+  order: 0;
+  padding-top: var(--sk-s1);
+  font: var(--sk-type-label-strong);
+  color: var(--sk-fg);
+}
+.sidekick-work .work-contact-sheet-results {
+  order: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.sidekick-work .work-contact-sheet-results:empty {
+  display: none;
+}
+.sidekick-work .work-contact-sheet-field {
+  order: 2;
+}
+/* The sheet's × closes it; the search field's own clear glyph would be a second ×. */
+.sidekick-work .work-contact-sheet-field input::-webkit-search-cancel-button {
+  appearance: none;
+}
+/* In fullscreen the hits scroll inside the sheet once the sheet would reach under the back row, so the title and the
+   field stay in view. --sk-sticky-top holds the room strip and the back row; the sheet's title, field, gaps and
+   padding take 4.25rem + 36 px (measured: 104 at 100 %, 111 at 110 %, 172 at 200 %), and 12 of air remain. */
+.sk-frame[data-mode="full"] .sidekick-work .work-contact-sheet-results {
+  max-block-size: max(
+    6rem,
+    calc(
+      100dvh - var(--sk-notice-bottom, 0px) - var(--sk-sticky-top, 0px) -
+        4.25rem - 48px
+    )
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* A hit is a Contact row (§3, Listrad): the 32 avatar on the content edge, the name on 56, 48 high. The whole row
+   links; it opens nothing, so it has no ›. Held, it takes the page colour under the sheet's surface. */
+.sidekick-work .work-contact-sheet-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sidekick-work .work-contact-sheet-row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sk-row-min);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  text-align: start;
+}
+.sidekick-work button.work-contact-sheet-row:active:not(:disabled) {
+  background: var(--sk-bg);
+}
+.sidekick-work .work-contact-sheet-name {
+  min-width: 0;
+  padding-block: var(--sk-row-pad);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+/* "Redan kopplad" under a hit that is linked already: the meta line, muted. */
+.sidekick-work .work-contact-sheet-meta {
+  display: block;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The hint, "Laddar…" and the empty sentence: body type, muted, one line of air (§3, Tillstånd). */
+.sidekick-work .work-contact-sheet-note {
+  margin: 0;
+  padding-block: var(--sk-s1);
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-contact-sheet-error {
+  margin: 0;
+  padding-block: var(--sk-s1);
+  font: var(--sk-type-body);
+  color: var(--sk-danger-fg);
+}
+/* "+ Skapa kontakt ”…”" is the list's action row; on the sheet's surface a held row takes the page colour. */
+.sidekick-work .work-contact-sheet-create.sk-action-row:active:not(:disabled) {
+  background: var(--sk-bg);
+}
