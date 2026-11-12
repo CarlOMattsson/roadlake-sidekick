@@ -19,8 +19,8 @@ therefore installed only when the installed FastMCP is the exact version this wa
 against and the replaced method still has the expected shape. On any deviation, and for any tool
 whose inputs cannot be keyed safely, behaviour is exactly FastMCP's own: no cache.
 `tests/mcp/test_schema_cache.py` proves the cached and uncached tool surface byte-identical.
-Only the test suite installs it (`tests/conftest.py`); production builds the server once and
-keeps FastMCP's own parsing.
+It lives in the test support package: only the test suite installs it (`tests/conftest.py`);
+production builds the server once and keeps FastMCP's own parsing.
 """
 
 from __future__ import annotations

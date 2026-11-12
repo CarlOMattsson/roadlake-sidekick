@@ -15,7 +15,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$REPO_ROOT/deploy/compose.test.yaml"
-INIT_SQL="$REPO_ROOT/deploy/postgres-init.sql"
+INIT_SQL="$REPO_ROOT/deploy/postgres-init.test-only.sql"
 SERVICE="db"
 DB_HOST="127.0.0.1"
 DB_PORT="55433"

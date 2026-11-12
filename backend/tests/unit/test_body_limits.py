@@ -24,6 +24,11 @@ from sidekick.api.body_limits import (
     MAX_MCP_BODY_BYTES,
     RequestBodyLimitMiddleware,
 )
+from sidekick.api.failed_auth import (
+    VERIFIED_BEARER_SCOPE_KEY,
+    FailedAuthGuard,
+    FailedAuthLimitMiddleware,
+)
 from sidekick.api.public_surface import MAX_REGISTER_BODY_BYTES
 from sidekick.shared.config import Settings
 from sidekick.shared.observability import NoopTelemetryAdapter
@@ -573,6 +578,69 @@ async def test_parallel_slow_bodies_fill_the_buffering_cap_and_the_next_is_503()
     recorder.reset()
     await call(middleware, recorder, "/mcp/", method="POST")
     assert recorder.status == 204
+
+
+@pytest.mark.asyncio
+async def test_anonymous_slow_bodies_cannot_starve_a_verified_bearer() -> None:
+    recorder = Recorder()
+    # Eight slots: anyone unverified gets six, the last two are held back for verified bearers.
+    middleware = RequestBodyLimitMiddleware(
+        recorder.app, NoopTelemetryAdapter(), body_read_timeout=5, max_buffered_requests=8
+    )
+    release = asyncio.Event()
+    slow = [
+        asyncio.create_task(middleware(http_scope("/mcp/", "POST"), held(release), Recorder().send))
+        for _ in range(6)
+    ]
+    await asyncio.sleep(0.05)  # Kept: lets the slow anonymous bodies start buffering
+
+    anonymous = Recorder()
+    await middleware(http_scope("/mcp/", "POST"), receive, anonymous.send)
+    assert anonymous.status == 503
+    assert not recorder.reached
+
+    verified_scope = http_scope("/mcp/", "POST")
+    verified_scope[VERIFIED_BEARER_SCOPE_KEY] = True
+    for _ in range(2):  # the held-back slots serve the owner's recent clients
+        recorder.reset()
+        await middleware(verified_scope, receive, recorder.send)
+        assert recorder.status == 204
+
+    release.set()
+    await asyncio.gather(*slow)
+
+
+@pytest.mark.asyncio
+async def test_a_bearer_the_app_has_not_verified_gets_no_priority_through_the_stack() -> None:
+    app = Recorder()
+    guard = FailedAuthGuard()
+    guard.record_success(guard.fingerprint(b"owner-token"))  # Kept: a token verified earlier
+    middleware = FailedAuthLimitMiddleware(
+        RequestBodyLimitMiddleware(
+            app.app, NoopTelemetryAdapter(), body_read_timeout=5, max_buffered_requests=4
+        ),
+        NoopTelemetryAdapter(),
+        guard,
+    )
+    release = asyncio.Event()
+
+    def bearer(token: bytes) -> dict[str, Any]:
+        return http_scope("/mcp/", "POST", [(b"authorization", b"Bearer " + token)])
+
+    slow = [
+        asyncio.create_task(middleware(bearer(b"guess-%d" % index), held(release), Recorder().send))
+        for index in range(3)  # three of four slots: the unverified cap
+    ]
+    await asyncio.sleep(0.05)  # Kept: lets the slow bodies start buffering
+
+    guessed = Recorder()
+    await middleware(bearer(b"another-guess"), receive, guessed.send)
+    assert guessed.status == 503
+    owner = Recorder()
+    await middleware(bearer(b"owner-token"), receive, owner.send)
+    assert owner.status == 204
+    release.set()
+    await asyncio.gather(*slow)
 
 
 @pytest.mark.asyncio

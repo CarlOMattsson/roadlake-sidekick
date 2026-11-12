@@ -65,7 +65,10 @@ compose() {
   args=(-p "$PROJECT" --project-directory "$SELFHOST" -f "$SELFHOST/compose.yaml" -f "$WORK/compose.yaml")
   if [ -f "$GEN/allow.compose.yaml" ]; then args+=(-f "$GEN/allow.compose.yaml"); fi
   # The self-hosted file demands a domain for its Caddy service (profile vps, never used here), even to parse.
-  SELFHOST_DOMAIN=work.invalid docker compose "${args[@]}" --env-file "$WORK_ENV" --profile memory "$@"
+  # The memory profile (Hindsight, memory worker) only when memory is on; `stop` forces it so `down` also removes
+  # containers started while it was on.
+  if [ "$MEMORY" = 1 ] || [ "$FORCE_MEMORY_PROFILE" = 1 ]; then args+=(--profile memory); fi
+  SELFHOST_DOMAIN=work.invalid docker compose "${args[@]}" --env-file "$WORK_ENV" "$@"
 }
 
 # ---------------------------------------------------------------------------------------------------------
@@ -78,6 +81,20 @@ msg() {
     sv:applang_bad|en:applang_bad) printf '%s' 'Svara sv eller en / Answer sv or en.' ;;
     sv:summary) printf '%s' 'Appens språk: %s. Rum: %s.' ;;
     en:summary) printf '%s' 'App language: %s. Rooms: %s.' ;;
+    sv:summary_mem_on) printf '%s' 'Minne: på (modellserver %s).' ;;
+    en:summary_mem_on) printf '%s' 'Memory: on (model server %s).' ;;
+    sv:summary_mem_off) printf '%s' 'Minne: av (ingen modellserver behövs).' ;;
+    en:summary_mem_off) printf '%s' 'Memory: off (no model server needed).' ;;
+    sv:memory_q) printf '%s' 'Vill du slå på minnet? Det kräver en modellserver. (j/N)' ;;
+    en:memory_q) printf '%s' 'Do you want to turn memory on? It needs a model server. (y/N)' ;;
+    sv:memory_q_on) printf '%s' 'Vill du slå på minnet? Det kräver en modellserver. (J/n)' ;;
+    en:memory_q_on) printf '%s' 'Do you want to turn memory on? It needs a model server. (Y/n)' ;;
+    sv:mem_off_word) printf '%s' '(minnet är av)' ;;
+    en:mem_off_word) printf '%s' '(memory is off)' ;;
+    sv:st_memory_off) printf '%s' 'Minne: av (Hindsight och minnesarbetaren körs inte; ingen modellserver används).' ;;
+    en:st_memory_off) printf '%s' 'Memory: off (Hindsight and the memory worker are not running; no model server is used).' ;;
+    sv:bk_mem_off) printf '%s' 'Minnet är av; bara databasen säkerhetskopieras.' ;;
+    en:bk_mem_off) printf '%s' 'Memory is off; only the database is backed up.' ;;
     # --- guide (setup)
     sv:title) printf '%s' 'Sidekick Work: installationsguide' ;;
     en:title) printf '%s' 'Sidekick Work: setup guide' ;;
@@ -571,8 +588,41 @@ PY
 
 # Derive everything compose needs from work.env and export it. Strict: refuses a placeholder or a bad address.
 # With "lenient" (stop) an unusable work.env is not an error, because compose only needs the names to parse.
+# 1 when the Hindsight memory is on. SIDEKICK_WORK_MEMORY=on|off decides; a work.env from before the setting existed
+# (no such line) keeps its old behaviour: memory on.
+MEMORY=0
+FORCE_MEMORY_PROFILE=0
+memory_wanted() {
+  case "$(envval SIDEKICK_WORK_MEMORY)" in
+    on|ON|true|yes|1|'') return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 derive() {
   local lenient="${1:-}" base parsed scheme host port path is_ip resolve addr hosthdr tls allow
+  if memory_wanted; then
+    MEMORY=1
+    export SIDEKICK_WORK_MEMORY_ENABLED=true
+  else
+    # No model server: the gateway keeps only the MCP port; the model listener gets a placeholder that never
+    # connects. Hindsight and the memory worker are not started (compose profile), and Sidekick's memory is off.
+    MEMORY=0
+    export SIDEKICK_WORK_MEMORY_ENABLED=false
+    allow="$(envval SIDEKICK_WORK_ALLOW)"
+    if ! ALLOW_PARSED="$(parse_allowlist "$allow" 0 2>&1)"; then
+      if [ "$lenient" = lenient ]; then
+        ALLOW_PARSED=""
+      else
+        echo "SIDEKICK_WORK_ALLOW: $ALLOW_PARSED" >&2
+        exit 1
+      fi
+    fi
+    export SIDEKICK_WORK_MODEL_PORT=1 SIDEKICK_WORK_MODEL_PATH=/v1 SIDEKICK_WORK_UPSTREAM_ADDR=unset:1
+    export SIDEKICK_WORK_UPSTREAM_HOST_HEADER=unset SIDEKICK_WORK_UPSTREAM_TLS="" SIDEKICK_WORK_MEMORY_MODEL=unset
+    derive_ca_bundle
+    return 0
+  fi
   base="$(envval SIDEKICK_WORK_MODEL_BASE_URL)"
   if [ -z "$base" ] || [[ "$base" == *"<"* ]]; then
     if [ "$lenient" = lenient ]; then export_placeholders; return 0; fi
@@ -1196,6 +1246,8 @@ cmd_start() {
     write_build_info
   fi
   log_start="$(wc -l <"$LOG")"
+  # Memory switched off after it ran: stop Hindsight and the memory worker (the volume is kept).
+  if [ "$MEMORY" = 0 ]; then compose stop hindsight memory-worker >>"$LOG" 2>&1 || true; fi
   if ! compose up -d --wait --wait-timeout 420 >>"$LOG" 2>&1; then
     errf up_fail "$LOG"
     tail -n 20 "$LOG" >&2 || true
@@ -1215,6 +1267,7 @@ cmd_stop() {
   need_docker
   [ -f "$WORK_ENV" ] || cp "$WORK/work.env.example" "$WORK_ENV"
   derive lenient
+  FORCE_MEMORY_PROFILE=1
   echo "=== $(now) stop ===" >>"$LOG"
   if [ "${1:-}" = "--purge" ]; then
     local answer
@@ -1236,6 +1289,7 @@ cmd_status() {
   derive
   local svc id state port api_id probe via direct_host out listed want hs_id line reached blocked commit="" cdate="" built="" updated=""
   for svc in postgres hindsight memory-worker automation-worker api gateway; do
+    if [ "$MEMORY" = 0 ]; then case "$svc" in hindsight|memory-worker) continue ;; esac; fi
     id="$(container_id "$svc")"
     if [ -z "$id" ]; then
       sayf st_not_running "$svc"
@@ -1244,6 +1298,7 @@ cmd_status() {
     state="$(docker inspect --format '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}-{{end}}' "$id" 2>/dev/null || msg st_unknown)"
     echo "$svc: $state"
   done
+  if [ "$MEMORY" = 0 ]; then say st_memory_off; fi
   if [ -f "$GEN/build-info.json" ]; then
     { read -r commit; read -r cdate; read -r built; read -r updated; } < <(python3 -c '
 import json, sys
@@ -1275,13 +1330,16 @@ try:
     print("DNS lookup of example.com", sys.argv[3])
 except OSError as error:
     print("DNS lookup of example.com", sys.argv[4], "(" + str(error.errno) + ")")
-print(sys.argv[5], reach(sys.argv[1], sys.argv[2]))
+if sys.argv[1]:
+    print(sys.argv[5], reach(sys.argv[1], sys.argv[2]))
 '
   reached="$(msg st_reached)"; blocked="$(msg st_blocked)"
   direct_host="${SIDEKICK_WORK_UPSTREAM_ADDR%:*}"
+  if [ "$MEMORY" = 0 ]; then direct_host=""; fi
   say st_probe_api
   compose exec -T api python -c "$probe" "$direct_host" "$SIDEKICK_WORK_MODEL_PORT" "$reached" "$blocked" "$(msg st_direct)" | sed 's/^/  /' || echo "  $(msg st_probe_fail)"
-  hs_id="$(container_id hindsight)"
+  hs_id=""
+  if [ "$MEMORY" = 1 ]; then hs_id="$(container_id hindsight)"; fi
   if [ -n "$hs_id" ]; then
     say st_probe_hs
     compose exec -T hindsight /app/api/.venv/bin/python -c "$probe" "$direct_host" "$SIDEKICK_WORK_MODEL_PORT" "$reached" "$blocked" "$(msg st_direct)" | sed 's/^/  /' || echo "  $(msg st_probe_fail)"
@@ -1308,6 +1366,7 @@ except urllib.error.HTTPError as error:
 except Exception as error:
     print("outside_error", type(error).__name__)
 '
+  if [ "$MEMORY" = 0 ]; then return 0; fi
   say st_via
   out="$(compose exec -T api python -c "$via" "http://$GATEWAY_NAME:$SIDEKICK_WORK_MODEL_PORT$SIDEKICK_WORK_MODEL_PATH" || true)"
   listed=""
@@ -1345,8 +1404,26 @@ autostart_file() {
   fi
 }
 
+# Escape text for an XML element body.
+xml_escape() {
+  local s="$1"
+  shopt -u patsub_replacement 2>/dev/null || true  # bash 5.2: "&" in a replacement would mean the match
+  s="${s//&/&amp;}"; s="${s//</&lt;}"; s="${s//>/&gt;}"
+  printf '%s' "$s"
+}
+
+# Quote one word for a systemd ExecStart= line (backslash and quote escaped; % and $ doubled so systemd does not expand them).
+systemd_quote() {
+  local s="$1"
+  s="${s//\\/\\\\}"; s="${s//\"/\\\"}"; s="${s//%/%%}"; s="${s//\$/\$\$}"
+  printf '"%s"' "$s"
+}
+
 autostart_on() {
   local file; file="$(autostart_file)"
+  local x_script x_log q_script
+  x_script="$(xml_escape "$REPO/tools/work.sh")"; x_log="$(xml_escape "$WORK/autostart.log")"
+  q_script="$(systemd_quote "$REPO/tools/work.sh")"
   mkdir -p "$(dirname "$file")"
   if [ "$(uname -s)" = Darwin ]; then
     cat >"$file" <<EOF
@@ -1356,10 +1433,10 @@ autostart_on() {
 <dict>
   <key>Label</key><string>$AUTOSTART_LABEL</string>
   <key>ProgramArguments</key>
-  <array><string>/bin/bash</string><string>$REPO/tools/work.sh</string><string>start</string><string>--wait-docker</string></array>
+  <array><string>/bin/bash</string><string>$x_script</string><string>start</string><string>--wait-docker</string></array>
   <key>RunAtLoad</key><true/>
-  <key>StandardOutPath</key><string>$WORK/autostart.log</string>
-  <key>StandardErrorPath</key><string>$WORK/autostart.log</string>
+  <key>StandardOutPath</key><string>$x_log</string>
+  <key>StandardErrorPath</key><string>$x_log</string>
 </dict>
 </plist>
 EOF
@@ -1378,7 +1455,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/bash $REPO/tools/work.sh start --wait-docker
+ExecStart=/bin/bash $q_script start --wait-docker
 
 [Install]
 WantedBy=default.target
@@ -1652,6 +1729,7 @@ abort_paused_backup() {
 # after Hindsight has been started again. The trap set by do_backup guarantees the restart on every other way out.
 backup_memory() {
   local out="$1" vol image ok=1
+  if [ "$MEMORY" = 0 ]; then say bk_mem_off; return 0; fi
   vol="$(hindsight_volume)"
   if [ -z "$vol" ]; then say bk_mem_none; return 0; fi
   image="$(hindsight_image)"
@@ -1735,6 +1813,7 @@ do_backup() {
   done
   db="$BACKUPS/sidekick-$ts.sql.enc"
   mem="$BACKUPS/hindsight-$ts.tar.gz.enc"
+  if [ "$MEMORY" = 0 ]; then mem=""; fi
   arm_traps "$BACKUP_TRAP"
   pause_writers || { errf bk_fail "$LOG"; exit 1; }
   PARTIAL_BACKUP_FILES="$db.part"
@@ -2005,7 +2084,7 @@ list_backup_sets() {
   for f in "$BACKUPS"/sidekick-*.sql.enc; do
     [ -e "$f" ] || continue
     ts="${f##*/sidekick-}"; ts="${ts%.sql.enc}"
-    if [ -s "$BACKUPS/hindsight-$ts.tar.gz.enc" ]; then
+    if [ "$MEMORY" = 0 ] || [ -s "$BACKUPS/hindsight-$ts.tar.gz.enc" ]; then
       [ "$found" = 1 ] || sayf rs_sets "$BACKUPS"
       found=1
       printf '  %s\n' "$ts"
@@ -2019,10 +2098,10 @@ list_backup_sets() {
 check_backup_set() {
   local db="$1" mem="$2"
   [ -s "$db" ] || { errf rs_missing "$db"; return 1; }
-  [ -s "$mem" ] || { errf rs_missing "$mem"; return 1; }
+  [ "$MEMORY" = 0 ] || [ -s "$mem" ] || { errf rs_missing "$mem"; return 1; }
   require_backup_key
   verify_dump "$db" || { errf rs_bad_dump "$db" "$BACKUP_KEY_FILE"; return 1; }
-  verify_archive "$mem" || { errf rs_bad_archive "$mem" "$BACKUP_KEY_FILE"; return 1; }
+  [ "$MEMORY" = 0 ] || verify_archive "$mem" || { errf rs_bad_archive "$mem" "$BACKUP_KEY_FILE"; return 1; }
 }
 
 # Renames sidekick to $2 and reads the encrypted dump $1 into a fresh sidekick (decrypted on the way, never to disk). Returns 1 on any failure (the trap undoes it).
@@ -2141,8 +2220,10 @@ cmd_restore() {
   mem="$dir/hindsight-$ts.tar.gz.enc"
   check_backup_set "$db" "$mem" || exit 1
   [ -f "$SELFHOST/restore-ownership.sql" ] || { errf rs_no_ownership "$SELFHOST/restore-ownership.sql"; exit 1; }
-  [ -n "$(hindsight_volume)" ] || { errf rs_no_volume "$PROJECT"; exit 1; }
-  sayf rs_plan "$db" "$mem" "$PROJECT" "$BACKUPS"
+  if [ "$MEMORY" = 1 ]; then
+    [ -n "$(hindsight_volume)" ] || { errf rs_no_volume "$PROJECT"; exit 1; }
+  fi
+  sayf rs_plan "$db" "$([ "$MEMORY" = 1 ] && echo "$mem" || msg mem_off_word)" "$PROJECT" "$BACKUPS"
   if [ "$apply" = 0 ]; then say rs_dry; return 0; fi
 
   printf "$(msg rs_confirm_q)" "$PROJECT" >&2
@@ -2156,18 +2237,20 @@ cmd_restore() {
   RESTORE_SAFETY_MEM="$LAST_BACKUP_MEM"
   RESTORE_OLD_NAME="sidekick_before_restore_${LAST_BACKUP_TS/-/_}"
   arm_traps abort_restore
-  [ -s "$RESTORE_SAFETY_MEM" ] || { errf bk_fail "$LOG"; exit 1; }
-  sayf rs_safety "$RESTORE_SAFETY_DB" "$RESTORE_SAFETY_MEM"
+  [ "$MEMORY" = 0 ] || [ -s "$RESTORE_SAFETY_MEM" ] || { errf bk_fail "$LOG"; exit 1; }
+  sayf rs_safety "$RESTORE_SAFETY_DB" "${RESTORE_SAFETY_MEM:-$(msg mem_off_word)}"
 
   # 3. The database.
   sayf rs_db "$RESTORE_OLD_NAME"
   restore_database "$db" "$RESTORE_OLD_NAME" || { errf rs_fail "$(msg rs_step_db)" "$LOG"; exit 1; }
   # 4. The memory.
-  say rs_mem
-  HINDSIGHT_PAUSED=1
-  compose stop hindsight >>"$LOG" 2>&1 || { errf rs_fail "$(msg rs_step_mem)" "$LOG"; exit 1; }
-  RESTORE_MEM_TOUCHED=1
-  unpack_memory "$mem" || { errf rs_fail "$(msg rs_step_mem)" "$LOG"; exit 1; }
+  if [ "$MEMORY" = 1 ]; then
+    say rs_mem
+    HINDSIGHT_PAUSED=1
+    compose stop hindsight >>"$LOG" 2>&1 || { errf rs_fail "$(msg rs_step_mem)" "$LOG"; exit 1; }
+    RESTORE_MEM_TOUCHED=1
+    unpack_memory "$mem" || { errf rs_fail "$(msg rs_step_mem)" "$LOG"; exit 1; }
+  fi
   # 5. A set from older code is brought up to the schema of this image (yoyo is idempotent).
   say rs_migrating
   compose run --rm -T --no-deps migrate >>"$LOG" 2>&1 || { errf rs_fail "$(msg rs_step_migrate)" "$LOG"; exit 1; }
@@ -2190,7 +2273,7 @@ cmd_restore() {
 
 # ---------------------------------------------------------------------------------------------------------
 cmd_setup() {
-  local lang_default ans url key mem allow rooms models parsed test_key keep_key port t missing
+  local lang_default ans url key mem allow rooms models parsed test_key keep_key port t missing want_mem
   lang_default="$L"
   printf '%s [%s]: ' "$(msg lang_q)" "$lang_default" >&2
   IFS= read -r ans || ans=""
@@ -2209,59 +2292,73 @@ cmd_setup() {
   if [ ! -f "$WORK_ENV" ]; then cp "$WORK/work.env.example" "$WORK_ENV"; chmod 600 "$WORK_ENV"; fi
   if ! secrets_exist; then generate_secrets; apply_model_key ""; fi
 
-  # 1. Model server address and key, tested with GET /models.
-  url="$(envval SIDEKICK_WORK_MODEL_BASE_URL)"
-  case "$url" in *"<"*) url="" ;; esac
-  keep_key="$(stored_model_key)"
-  models=""
-  while :; do
-    ask url url_q "$url"
-    if ! parsed="$(parse_base_url "$url" 2>&1)"; then
-      errf url_bad "$parsed"
-      url=""
-      continue
-    fi
-    printf '%s: ' "$(msg key_q)" >&2
-    key=""
-    IFS= read -rs key || key=""
-    echo >&2
-    case "$key" in
-      '') test_key="$keep_key" ;;
-      -) test_key="" ;;
-      *) test_key="$key" ;;
-    esac
-    errf testing "$url"
-    if models="$(list_models "$url" "$test_key")"; then
-      sayf test_ok "$(printf '%s\n' "$models" | grep -c . || true)"
-      break
-    fi
-    errf test_fail
-    models=""
-    confirm retry_q n || break
-  done
-  set_env SIDEKICK_WORK_MODEL_BASE_URL "$url"
-  case "$key" in
-    '') ;;
-    -) apply_model_key "" ;;
-    *) apply_model_key "$key" ;;
-  esac
-
-  # 2. The memory model (Hindsight's; Sidekick itself calls no model), chosen from the server's list.
-  mem="$(envval SIDEKICK_WORK_MEMORY_MODEL)"; case "$mem" in *"<"*) mem="" ;; esac
-  if [ -n "$models" ]; then
-    say models_head
-    printf '%s\n' "$models" | awk '{ printf "  %d) %s\n", NR, $0 }'
-    # shellcheck disable=SC2086
-    set -- $models
-    pick_model mem mem_q "${mem:-$1}" "$@"
+  # 0. Memory (Hindsight) is optional and needs a model server. Off is the proposal; an earlier answer is offered again.
+  if memory_wanted; then want_mem=1; else want_mem=0; fi
+  if [ "$want_mem" = 1 ]; then
+    if confirm memory_q_on y; then want_mem=1; else want_mem=0; fi
   else
-    ask mem mem_q "$mem"
+    if confirm memory_q n; then want_mem=1; else want_mem=0; fi
   fi
-  set_env SIDEKICK_WORK_MEMORY_MODEL "$mem"
+  url=""
+  if [ "$want_mem" = 1 ]; then
+    set_env SIDEKICK_WORK_MEMORY on
+    # 1. Model server address and key, tested with GET /models.
+    url="$(envval SIDEKICK_WORK_MODEL_BASE_URL)"
+    case "$url" in *"<"*) url="" ;; esac
+    keep_key="$(stored_model_key)"
+    models=""
+    while :; do
+      ask url url_q "$url"
+      if ! parsed="$(parse_base_url "$url" 2>&1)"; then
+        errf url_bad "$parsed"
+        url=""
+        continue
+      fi
+      printf '%s: ' "$(msg key_q)" >&2
+      key=""
+      IFS= read -rs key || key=""
+      echo >&2
+      case "$key" in
+        '') test_key="$keep_key" ;;
+        -) test_key="" ;;
+        *) test_key="$key" ;;
+      esac
+      errf testing "$url"
+      if models="$(list_models "$url" "$test_key")"; then
+        sayf test_ok "$(printf '%s\n' "$models" | grep -c . || true)"
+        break
+      fi
+      errf test_fail
+      models=""
+      confirm retry_q n || break
+    done
+    set_env SIDEKICK_WORK_MODEL_BASE_URL "$url"
+    case "$key" in
+      '') ;;
+      -) apply_model_key "" ;;
+      *) apply_model_key "$key" ;;
+    esac
+
+    # 2. The memory model (Hindsight's; Sidekick itself calls no model), chosen from the server's list.
+    mem="$(envval SIDEKICK_WORK_MEMORY_MODEL)"; case "$mem" in *"<"*) mem="" ;; esac
+    if [ -n "$models" ]; then
+      say models_head
+      printf '%s\n' "$models" | awk '{ printf "  %d) %s\n", NR, $0 }'
+      # shellcheck disable=SC2086
+      set -- $models
+      pick_model mem mem_q "${mem:-$1}" "$@"
+    else
+      ask mem mem_q "$mem"
+    fi
+    set_env SIDEKICK_WORK_MEMORY_MODEL "$mem"
+  else
+    set_env SIDEKICK_WORK_MEMORY off
+  fi
 
   # 3. Allowlist of further addresses.
   say allow_note
-  port="$(parse_base_url "$url" 2>/dev/null | sed -n 3p)"
+  port=""
+  if [ "$want_mem" = 1 ]; then port="$(parse_base_url "$url" 2>/dev/null | sed -n 3p)"; fi
   while :; do
     ask allow allow_q "$(envval SIDEKICK_WORK_ALLOW)"
     if [ -z "$allow" ]; then break; fi
@@ -2287,6 +2384,7 @@ cmd_setup() {
   set_env SIDEKICK_WORK_LOCALE "$applang"
   say wrote
   sayf summary "$applang" "$rooms"
+  if [ "$want_mem" = 1 ]; then sayf summary_mem_on "$url"; else say summary_mem_off; fi
   echo
 
   # 6. Autostart, then start (which also creates the owner and writes the Claude Desktop configuration).

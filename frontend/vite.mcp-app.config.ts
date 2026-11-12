@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { PREACT_COMPAT_ALIASES } from "./vite.mcp-app-alias";
 import { MCP_APP_BANNER } from "./vite.license-banner";
 
 // One self-contained resource for the whole Sidekick app: no CDN, external asset or connect permission.
@@ -141,11 +142,8 @@ export default defineConfig(({ mode }) => {
         // Why: the app is downloaded every time a card opens, so the bundle uses Preact's compat layer, which is much
         // smaller. Its events and batching differ in small ways (native events, microtask-batched updates, flushSync
         // emulated; board-card.tsx relies on it). The Playwright specs run this bundle; Vitest covers the same source on
-        // React, and the mobile shell (vite.mobile.config.ts) keeps real React.
-        { find: /^react$/, replacement: "preact/compat" },
-        { find: /^react-dom$/, replacement: "preact/compat" },
-        { find: /^react-dom\/client$/, replacement: "preact/compat/client" },
-        { find: /^react\/jsx-runtime$/, replacement: "preact/jsx-runtime" },
+        // React, and `npm run test:mcp-app:preact` reruns a sample of it with these same aliases, and the mobile shell (vite.mobile.config.ts) keeps real React.
+        ...PREACT_COMPAT_ALIASES,
       ],
     },
     build: {

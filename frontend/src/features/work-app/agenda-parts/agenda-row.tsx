@@ -56,7 +56,7 @@ function RowGlyph({
       </span>
     );
   // A Step or an action: a small muted square, shown and not pressed, so every title starts in one column and a Step
-  // never stands left of the Task it belongs to (ua-9). It says only done or not done: an action's own statuses are
+  // never stands left of the Task it belongs to. It says only done or not done: an action's own statuses are
   // not the ring's to tell, so none of them draws the dashed "unknown" frame.
   const done = item.status === "completed" || item.status === "done";
   return (

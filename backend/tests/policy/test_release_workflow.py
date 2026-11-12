@@ -318,7 +318,7 @@ def test_ci_and_drill_are_reusable_and_not_triggered_by_pushes_or_schedules() ->
     for name, trigger in triggers.items():
         assert "push" not in trigger and "schedule" not in trigger, name
         assert "workflow_call" in trigger and "workflow_dispatch" in trigger, name
-    assert "pull_request" in triggers["ci"]
+    assert not {"pull_request", "merge_group"} & set(triggers["ci"])
     # The drill takes the same optional inputs whether it is called or started by hand.
     assert set(triggers["release-drill"]["workflow_call"]["inputs"]) == set(
         triggers["release-drill"]["workflow_dispatch"]["inputs"]

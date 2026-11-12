@@ -26,7 +26,7 @@
   margin-inline: calc(-1 * var(--sk-frame-pad-left, 0px))
     calc(-1 * var(--sk-frame-pad-right, 0px));
   /* Its tabs and tools keep the rooms' reading width (--sk-room-max), centred over the list as every room's head
-     (ui-8); the band still reaches the frame's edges. 100 % is the shell's width, inside the frame's pads. */
+    ; the band still reaches the frame's edges. 100 % is the shell's width, inside the frame's pads. */
   --sk-tabs-inset: max(0px, calc((100% - var(--sk-room-max)) / 2));
   padding-inline: calc(var(--sk-frame-pad-left, 0px) + var(--sk-tabs-inset))
     calc(var(--sk-frame-pad-right, 0px) + var(--sk-tabs-inset));

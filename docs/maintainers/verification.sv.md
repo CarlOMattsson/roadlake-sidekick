@@ -17,7 +17,7 @@ Tabellen över de senaste kontrollerna finns på [underhållssidan](README.sv.md
 Kontrollerad 2026-11-11.
 
 - **Kontrollerat mot koden (läst, inte kört):** portarna i `deploy/compose.dev.yaml` (55440) och
-  `deploy/compose.test.yaml` (55433), deras tjänstnamn `db`, rollerna i `deploy/postgres-init.sql`,
+  `deploy/compose.test.yaml` (55433), deras tjänstnamn `db`, rollerna i `deploy/postgres-init.test-only.sql`,
   inställningsnamnen och minimilängden 32 tecken i `backend/src/sidekick/shared/config/` och `.env.example`,
   vägarna `/mcp/`, `/health/*` och `/companion/v1/`, fälten i startposten, npm-skriptens namn i
   `frontend/package.json`, var `build:mcp-app` skriver sitt resultat och testsvitens flagga `--full`.
@@ -31,7 +31,7 @@ Kontrollerad 2026-11-11.
   stdio-servern som svarar på `initialize`, och `build:mcp-app` (den incheckade filen kom tillbaka byte för byte lika).
   `ruff format --check` och `ruff check` gick igenom. Testdatabasen på port 55433 och backendsviten kördes inte.
 - **Inte verifierat i den här kontrollen:** själva stdio-anslutningen från Claude Desktop (bara serversidan), `pyright`,
-  webbläsarkontrollerna och testsviterna. CI kör byggena och testerna för varje pull request.
+  webbläsarkontrollerna och testsviterna. CI kör byggena och testerna som grind vid varje release, inte för pull requests.
 
 ## Android-appen
 

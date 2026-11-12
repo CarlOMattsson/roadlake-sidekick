@@ -10,14 +10,14 @@ from fastmcp.tools.function_parsing import ParsedFunction
 from pydantic import Field
 
 from sidekick.api.app import create_container
-from sidekick.mcp import schema_cache
-from sidekick.mcp.schema_cache import (
+from sidekick.mcp.server import create_mcp_server
+from tests.support import schema_cache
+from tests.support.schema_cache import (
     clear_schema_cache,
     install_schema_cache,
     schema_cache_disabled,
     schema_cache_stats,
 )
-from sidekick.mcp.server import create_mcp_server
 from tests.support.settings import make_settings
 
 Count = Annotated[int, Field(ge=1)]

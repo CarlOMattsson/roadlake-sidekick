@@ -47,6 +47,17 @@ class PairingGeneration {
         }
     }
 
+    /**
+     * For a call that is handed to another thread (a pool) and may wait there: fixes the pairing it belongs to now, on
+     * the caller's thread, not when a pool thread gets to it. The returned task runs [work] (given that generation)
+     * [pinned] to it, so a call made before an unpair and a new pairing is refused with `not_paired` instead of being
+     * sent with the new pairing's credential.
+     */
+    fun <T> bindNow(work: (Long) -> T): () -> T {
+        val captured = current()
+        return { pinned(captured) { work(captured) } }
+    }
+
     /** For [CompanionClient]: called after the pairing was loaded, before the request is built. */
     internal fun checkPinned() {
         val captured = pin.get() ?: return

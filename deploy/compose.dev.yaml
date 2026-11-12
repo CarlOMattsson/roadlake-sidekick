@@ -32,13 +32,13 @@ services:
       - sh
       - -ec
       - |
-        cp /usr/local/share/sidekick/postgres-init.sql /docker-entrypoint-initdb.d/001-roles.sql
+        cp /usr/local/share/sidekick/postgres-init.test-only.sql /docker-entrypoint-initdb.d/001-roles.sql
         chmod 644 /docker-entrypoint-initdb.d/001-roles.sql
         exec docker-entrypoint.sh "$$@"
       - sidekick-postgres-entrypoint
     volumes:
       - sidekick_pgdata:/var/lib/postgresql
-      - ./postgres-init.sql:/usr/local/share/sidekick/postgres-init.sql:ro
+      - ./postgres-init.test-only.sql:/usr/local/share/sidekick/postgres-init.test-only.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d ${SIDEKICK_DEV_DATABASE_NAME:-sidekick}"]
       interval: 2s

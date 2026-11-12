@@ -46,7 +46,7 @@ import type { MobilePlatform } from "./platform";
 import "./pairing.css";
 
 /**
- * The server address of the last pairing, offered again in the form after a disconnect (ua-17). Only the address: the
+ * The server address of the last pairing, offered again in the form after a disconnect. Only the address: the
  * code is never kept. In the page's own storage, so it goes with the app's data.
  */
 export const LAST_SERVER_KEY = "sidekick.lastServer";

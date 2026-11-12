@@ -72,6 +72,24 @@ for (const p of pages) {
   }
 }
 
+// The hit area of a lone link must not depend on the font: CI's fallback font has a smaller line box than the local one.
+for (const p of pages.filter((q) => ['home sv', 'home en', 'pricing', 'buy'].includes(q.name))) {
+  for (const width of widths) {
+    test(`${p.name} @${width}: hit areas stay 44 px with a different fallback font`, async ({ page }) => {
+      await page.setViewportSize({ width, height: width > 600 ? 900 : 812 });
+      await page.goto(base + p.path);
+      await ready(page);
+      // A constructed stylesheet is not an inline style, so the page's CSP lets it through.
+      await page.evaluate(() => {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync('* { font-family: "DejaVu Sans", sans-serif !important; }');
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+      });
+      expect(await smallTargets(page)).toEqual([]);
+    });
+  }
+}
+
 // Privacy, CSP and byte budget do not depend on the colour scheme, so one load per page and width is enough.
 for (const p of pages) {
   for (const width of widths) {

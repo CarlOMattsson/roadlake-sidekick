@@ -72,17 +72,24 @@ Claude och Android-appen pratar med en och samma Sidekick-server. Servern tillä
 
 ## Kör Sidekick
 
-**Du behöver:** en Claude-plan som stöder egna connectors, en publik HTTPS-adress till din server (en domän eller en tunnel dit), ett GitHub-konto (används för inloggning) och en Linux-dator med Docker. Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster du själv konfigurerar (GitHub-inloggning, push och modelltjänsten för det valfria Hindsight-minnet).
+Det finns två sätt. Välj efter var Claude ska köra.
 
+**1. Lokalt på din dator (enklast).** Sidekick och databasen körs i Docker på din egen dator, och du använder det från Claude Desktop via en lokal MCP-server. Allt Sidekick lagrar och kör stannar på din dator.
 
-- **Jobbdator:** jobbpaketet, *Sidekick Work*, kör Sidekick och ett privat Hindsight-minne i Docker och pratar med Claude Desktop
-  via en lokal MCP-server. Sidekick anropar själv ingen språkmodell, och Hindsights modellanrop går till din egen
-  OpenAI-kompatibla server. Claude Desktop är fortfarande en extern Claude-tjänst: det som visas eller skrivs i
-  samtalet delas med Claude. Se [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md) (engelska:
-  [Sidekick on a work laptop](docs/start/work-laptop.md)) och `bash tools/work.sh setup`. En AI-assistent som kör uppsättningen måste först fråga användaren vilket appspråk (föreslå svenska) och vilka rum (föreslå alla utom inköp) hen vill ha, och inte fortsätta utan båda svaren.
-- **Självhostad server:** [deploy/selfhost/](deploy/selfhost/) riktar sig mot Linux x86_64 med Docker Compose
-  på en VPS eller en hemdator som alltid är på. Följ [Första start](docs/start/self-hosted-server.sv.md#första-start): den
-  börjar med `git clone https://github.com/CarlOMattsson/roadlake-sidekick.git`, kopierar sedan `*.example`-filerna,
+- Du behöver ingen publik adress, domän, TLS-certifikat eller GitHub-konto, och den här vägen har ingen telefonåtkomst.
+- Du behöver Linux eller macOS med Docker (otestat på macOS, se [anteckningarna om macOS](docs/operate/work-laptop/macos.sv.md)) och Claude Desktop.
+- Bara för det valfria privata Hindsight-minnet behöver du också adressen till en OpenAI-kompatibel modellserver. Uppsättningen frågar först om du vill slå på minnet; förvalet är nej, och då behövs ingen modellserver.
+- Rummen väljer du själv. Det du gör i Claude Desktop delas fortfarande med Claude.
+- Guide: [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md) (engelska: [Sidekick on a work laptop](docs/start/work-laptop.md)), startas med `bash tools/work.sh setup`.
+
+**2. Egen server som Claude når på webben och i mobilen.** Du kör Sidekick på en Linux x86_64-dator med Docker Compose, en VPS eller en hemdator som alltid är på. Den här vägen kräver en Claude-plan som stöder egna connectors, en publik HTTPS-adress till servern (en domän eller en tunnel dit) och ett GitHub-konto (används för inloggning). Det är också vägen för Android-appen. Guide: [Första start på en server](docs/start/self-hosted-server.sv.md#första-start).
+
+Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster du själv konfigurerar (GitHub-inloggning, push och modelltjänsten för det valfria Hindsight-minnet).
+
+### Mer om den självhostade servern
+
+- **Självhostad server:** [deploy/selfhost/](deploy/selfhost/) börjar med
+  `git clone https://github.com/CarlOMattsson/roadlake-sidekick.git`, kopierar sedan `*.example`-filerna,
   genererar dina hemligheter, skapar ägaren och registrerar GitHub-inloggningen före första `up`. Profiler: `vps` (Caddy
   terminerar TLS på din domän) eller ingen (hemma: ordna en egen publik HTTPS-tunnel till `127.0.0.1:8000`).
 
@@ -93,8 +100,7 @@ Claude och Android-appen pratar med en och samma Sidekick-server. Servern tillä
   utanför servern. Hur du kopplar Claude till den körande servern står i
   [Anslut Claude](docs/operate/connect-claude.sv.md). Hur du parar Android-appen står i
   [Android-app](docs/operate/pair-android.sv.md).
-- **Claude Desktop på din egen dator:** Sidekick kan köras som en lokal stdio-MCP-server för Claude Desktop, utan
-  publikt ursprung; se steg 4 i [Kör Sidekick lokalt som utvecklare](docs/start/first-contribution.sv.md).
+- **Utvecklare:** Sidekick kan också köras som en lokal stdio-MCP-server för Claude Desktop från en källkodskopia; se steg 4 i [Kör Sidekick lokalt som utvecklare](docs/start/first-contribution.sv.md).
 - **Android-appen:** det finns ingen färdig APK; bygg appen från det här repot (JDK 21, Android SDK 36, Node.js 22) och
   para ihop den med din server; se [Bygg, installera och para ihop Android](docs/operate/pair-android.sv.md).
 
@@ -146,16 +152,4 @@ Tredjepartskomponenter behåller sina egna licenser; de förtecknas i [THIRD_PAR
 
 ### Licensnycklar
 
-Nycklar verifieras offline mot en **publik** nyckel (base64, rå Ed25519) som licensgivaren håller. Instansen läser
-den från `SIDEKICK_LICENSE_PUBLIC_KEY`, som har företräde, och annars från standardvärdet i
-`backend/src/sidekick/license/public_key.py`. Standardvärdet är licensgivarens publika nyckel, så ett bygge från det
-här repot med inställningen osatt godtar nycklar som licensgivaren har utfärdat. Bara om den gällande publika nyckeln
-är platshållaren eller inte är en giltig nyckel loggar start `license_public_key_unusable` (orsak `placeholder`
-eller `invalid`); varje nyckel behandlas då som olicensierad och obetald-notisen visas. Giltiga nycklar utfärdas bara av
-licensgivaren (se [LICENSE.md](LICENSE.md)); leta inte efter, skapa eller dela någon. Operatörer sparar en nyckel med
-`python -m sidekick.license.cli set` och kontrollerar läget med `python -m sidekick.license.cli show`.
-
-Releaseflödet vägrar bygga en avbild så länge standardvärdet är platshållaren (`tools/check-license-public-key.py`).
-Lämna `SIDEKICK_LICENSE_PUBLIC_KEY` osatt om du inte medvetet använder en annan publik nyckel, till exempel en du själv
-har publicerat för din egen fork; det är ett publikt värde, ingen hemlighet. Kontrollera genom att starta instansen och
-se att loggen saknar posten `license_public_key_unusable`, och kör sedan `python -m sidekick.license.cli show`.
+En licensnyckel är valfri och kontrolleras offline; utan nyckel visar programvaran en obetald-notis, och inget annat ändras. Operatörer sparar en nyckel med `python -m sidekick.license.cli set` och kontrollerar den med `python -m sidekick.license.cli show`. Hur nycklar verifieras, vilken publik nyckel instansen använder och hur du kontrollerar uppsättningen står i [Ange en licensnyckel](docs/operate/license-key.sv.md#så-kontrolleras-nyckeln); sammanfattningen på vanlig svenska och priserna finns i [Licens, licensnyckel och pris](docs/explanation/licensing.sv.md).

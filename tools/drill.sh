@@ -49,7 +49,8 @@ umask 077
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_PREFIX="sk-drill-"
-# Ports of instances that the drill must never touch. SIDEKICK_RESERVED_PORTS (comma-separated) only adds to this list.
+# Ports of instances that the drill must never touch: the maintainer's own databases (55432 older local default, 55434 AI-owned QA,
+# 55436 live instance), the test pool (55433) and their API ports (8100, 8101). SIDEKICK_RESERVED_PORTS (comma-separated) only adds to this list.
 RESERVED_PORTS=(55432 55433 55434 55436 8100 8101)
 if [ -n "${SIDEKICK_RESERVED_PORTS:-}" ]; then
   # Validate the whole value (newlines included), then normalise each port to a decimal integer.

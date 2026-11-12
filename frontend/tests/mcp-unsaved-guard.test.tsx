@@ -108,7 +108,7 @@ it("registry: a layer is dirty while a form in it reports unsaved edits", () => 
 
 it("the hook does nothing outside the shell", () => {
   render(<Plain />);
-  fireEvent.change(screen.getByLabelText("plain"), { target: { value: "x" } });
+  fireEvent.input(screen.getByLabelText("plain"), { target: { value: "x" } });
   expect(screen.getByLabelText("plain")).toHaveValue("x");
 });
 
@@ -123,7 +123,7 @@ it("Back with no unsaved edits goes back at once, without a question", () => {
 it("Back with unsaved edits asks first: Fortsätt redigera stays, Släng goes back", () => {
   mountShell(roomsWith(() => <Plain />));
   openLayer();
-  fireEvent.change(screen.getByLabelText("plain"), {
+  fireEvent.input(screen.getByLabelText("plain"), {
     target: { value: "halvskrivet" },
   });
   fireEvent.click(backRow());
@@ -147,7 +147,7 @@ it("asks in English for an English app", () => {
     { locale: "en" },
   );
   openLayer();
-  fireEvent.change(screen.getByLabelText("plain"), { target: { value: "x" } });
+  fireEvent.input(screen.getByLabelText("plain"), { target: { value: "x" } });
   fireEvent.click(backRow());
   expect(screen.getByText("Discard your changes?")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Discard" })).toBeInTheDocument();
@@ -159,7 +159,7 @@ it("asks in English for an English app", () => {
 it("pressing the active room tab goes to the root only after asking", () => {
   mountShell(roomsWith(() => <Plain />));
   openLayer();
-  fireEvent.change(screen.getByLabelText("plain"), { target: { value: "x" } });
+  fireEvent.input(screen.getByLabelText("plain"), { target: { value: "x" } });
   fireEvent.click(screen.getByRole("button", { name: "Arbete" }));
   expect(screen.getByText("Släng ändringarna?")).toBeInTheDocument();
   expect(screen.getByLabelText("plain")).toBeInTheDocument();
@@ -185,7 +185,7 @@ it("system Back (Android) asks too; a second Back answers Fortsätt redigera", (
   expect(screen.getByRole("heading", { name: "root" })).toBeVisible();
 
   openLayer();
-  fireEvent.change(screen.getByLabelText("plain"), { target: { value: "x" } });
+  fireEvent.input(screen.getByLabelText("plain"), { target: { value: "x" } });
   act(() => {
     expect(systemBack?.()).toBe(true);
   });
@@ -222,12 +222,12 @@ it("the Task editor asks only once a field differs from the Task", () => {
 
   openLayer();
   const title = screen.getByLabelText(workEn.titleLabel);
-  fireEvent.change(title, { target: { value: "Ring Anna idag" } });
+  fireEvent.input(title, { target: { value: "Ring Anna idag" } });
   fireEvent.click(backRow());
   expect(screen.getByText("Släng ändringarna?")).toBeInTheDocument();
   // A change reverted by hand is no change.
   fireEvent.click(screen.getByRole("button", { name: "Fortsätt redigera" }));
-  fireEvent.change(title, { target: { value: taskA.title } });
+  fireEvent.input(title, { target: { value: taskA.title } });
   fireEvent.click(backRow());
   expect(screen.queryByText("Släng ändringarna?")).toBeNull();
   expect(screen.getByRole("heading", { name: "root" })).toBeVisible();
@@ -250,11 +250,44 @@ it("the journal entry form asks once something is written", () => {
   expect(screen.queryByText("Släng ändringarna?")).toBeNull();
 
   openLayer();
-  fireEvent.change(screen.getByRole("textbox"), {
+  fireEvent.input(screen.getByRole("textbox"), {
     target: { value: "Ett halvskrivet tillägg" },
   });
   fireEvent.click(backRow());
   expect(screen.getByText("Släng ändringarna?")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Släng" }));
   expect(screen.getByRole("heading", { name: "root" })).toBeVisible();
+});
+
+it("a new tool result or a record to open at waits while a form holds unsaved edits", () => {
+  const rooms = roomsWith(() => <Plain />);
+  const view = mountShell(rooms);
+  openLayer();
+  const input = screen.getByLabelText("plain");
+  fireEvent.input(input, { target: { value: "halvskrivet" } });
+
+  const props = (over: Partial<Parameters<typeof SidekickShell>[0]>) => (
+    <SidekickShell
+      locale="sv"
+      rooms={rooms}
+      start={{ room: "work", view: "board" }}
+      full
+      features={LOCAL}
+      {...over}
+    />
+  );
+  view.rerender(props({ start: { room: "work", view: "board", id: "new" } }));
+  view.rerender(
+    props({
+      start: { room: "work", view: "board", id: "new" },
+      openAt: { room: "work", view: "task", id: "t2" },
+    }),
+  );
+  expect(screen.getByLabelText("plain")).toHaveValue("halvskrivet");
+
+  // Once the edits are discarded the waiting result is answered.
+  fireEvent.click(backRow());
+  fireEvent.click(screen.getByRole("button", { name: "Släng" }));
+  expect(screen.queryByText("Släng ändringarna?")).toBeNull();
+  expect(screen.queryByLabelText("plain")).not.toBeNull();
 });

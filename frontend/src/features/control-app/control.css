@@ -426,8 +426,8 @@
 }
 
 /* Borttaget's Återställ is a compact secondary button, as the rows' Ångra elsewhere (family.css sk-btn--compact: 40
-   drawn with a frame in the text colour, 48 to tap through its ::after), not tertiary text that read as disabled
-   (ui-18). Its frame stands on the row's content edge. Placed after the narrow card rule, which it overrides. */
+   drawn with a frame in the text colour, 48 to tap through its ::after), not tertiary text that read as disabled.
+   Its frame stands on the row's content edge. Placed after the narrow card rule, which it overrides. */
 .sidekick-control
   .control-row
   .control-row-action

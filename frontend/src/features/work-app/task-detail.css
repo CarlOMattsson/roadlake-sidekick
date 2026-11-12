@@ -17,7 +17,7 @@
   align-items: center;
   gap: var(--sk-s2);
   /* 8 under the meta line and 12 over the description: with the description's own half-leading ≈ 18 lie between the
-     buttons' edge and its glyphs, so the row reads as a block of its own and not as pressed onto the text (ui-22; 4
+     buttons' edge and its glyphs, so the row reads as a block of its own and not as pressed onto the text (4
      left ≈ 8, which read as cramped next to the sections' rhythm). */
   margin: var(--sk-s2) 0 var(--sk-s3);
 }

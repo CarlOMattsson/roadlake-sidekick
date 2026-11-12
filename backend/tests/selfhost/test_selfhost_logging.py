@@ -16,7 +16,7 @@ SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 # The only top-level fields besides Caddy's own fixed ones (time, level, logger, message, status,
 # duration, size) that an access log line may carry. `route` is a fixed label, never the path.
 APPENDED_FIELDS = {
-    "method": "{http.request.method}",
+    "method": "{method_class}",
     "host": "{http.request.host}",
     "route": "{route_class}",
     "request_id": "{http.request.uuid}",
@@ -71,6 +71,17 @@ def test_all_services_share_one_rotation_setting(services: dict[str, dict]) -> N
 def test_the_access_log_appends_exactly_the_reviewed_fields(caddy: str) -> None:
     appended = dict(re.findall(r"^\tlog_append (\w+) (\S+)$", caddy, re.M))
     assert appended == APPENDED_FIELDS
+
+
+def test_the_logged_method_is_a_closed_set_never_the_raw_token(caddy: str) -> None:
+    # A client can send any token as the HTTP method; only the standard ones are logged as they are.
+    assert "log_append method {http.request.method}" not in caddy
+    block = caddy.split("\tmap {http.request.method} {method_class} {", 1)[1].split("\n\t}\n", 1)[0]
+    rules = [line.strip() for line in block.strip().splitlines()]
+    assert rules == [
+        "~^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$ {1}",
+        "default OTHER",
+    ]
 
 
 def test_the_access_log_deletes_whole_objects_instead_of_single_headers(caddy: str) -> None:

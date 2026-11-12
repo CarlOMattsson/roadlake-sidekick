@@ -44,7 +44,7 @@ TEST_ENVIRONMENT_VARIABLES = frozenset(
 #: The default bind for `deploy/compose.test.yaml`, which the compose file itself uses.
 DEFAULT_TEST_DB_BIND = "127.0.0.1:55433"
 
-#: Role and password per test-database variable, exactly as `deploy/postgres-init.sql`
+#: Role and password per test-database variable, exactly as `deploy/postgres-init.test-only.sql`
 #: creates them and `deploy/compose.test.yaml` configures the superuser.
 TEST_DATABASE_ROLES = {
     "SIDEKICK_TEST_DATABASE_URL": ("postgresql+psycopg", "sidekick_app", "sidekick_app"),

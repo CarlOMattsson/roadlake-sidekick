@@ -2,14 +2,14 @@
 
 [English](work-laptop.md)
 
-<!-- description: Kör Sidekick och ett privat minne i Docker på din jobbdator och använd det från Claude Desktop, utan publik adress. Sidekicks containrar når bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude. -->
+<!-- description: Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och använd det från Claude Desktop, utan publik adress. Slår du på minnet når Sidekicks containrar bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude. -->
 
-Kör Sidekick och ett privat minne i Docker på din jobbdator och använd det från Claude Desktop, utan publik adress. Sidekicks containrar når bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude.
+Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och använd det från Claude Desktop, utan publik adress. Slår du på minnet når Sidekicks containrar bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude.
 
 ## Vad som lämnar datorn
 
-- **Sidekicks containrar** har ingen väg ut utom till modellservern i `work.env` (och de värdar du tillåter i
-  `SIDEKICK_WORK_ALLOW`). Hindsight skickar dit texten som minnet härleds ur: titlar, beskrivningar och anteckningar i
+- **Sidekicks containrar** har ingen väg ut utom till modellservern i `work.env`, om du slagit på minnet (och de värdar du tillåter i
+  `SIDEKICK_WORK_ALLOW`). Utan minnet lämnar ingenting datorn. Hindsight skickar dit texten som minnet härleds ur: titlar, beskrivningar och anteckningar i
   posterna i de rum du slagit på. Sidekick anropar själv ingen språkmodell, och pushnotiser är avstängda.
 - **Claude Desktop är en extern tjänst.** Allt ett Claude-samtal rör går till Claude (Anthropic): dina meddelanden,
   namnen på och argumenten till de Sidekick-verktyg som anropas samt det de returnerar (till exempel uppgiftstitlar,
@@ -30,12 +30,13 @@ Kör Sidekick och ett privat minne i Docker på din jobbdator och använd det fr
   med `docker ps` (utan `sudo`). Med Docker Desktop på Mac behövs inget extra.
 - `git`, `openssl`, `python3` och `curl` (finns som standard på Ubuntu och macOS).
 - Claude Desktop. Node.js behövs inte: Claude Desktop startar Sidekicks stdio-server direkt i containern.
-- Adressen till företagets modellserver (en vLLM-adress som slutar på `/v1`) och, om den kräver en, dess API-nyckel.
+- Bara om du vill ha minnet: adressen till företagets modellserver (en vLLM-adress som slutar på `/v1`) och, om den kräver en, dess API-nyckel. Modellservern är valfri; utan minnet körs Sidekick helt på datorn och behöver ingen.
 
 ## Snabbväg: guiden
 
-`bash tools/work.sh setup` frågar (på svenska eller engelska) efter modellserverns adress, testar den med
-`GET /models`, tar API-nyckeln som dold inmatning, låter dig välja minnesmodell ur serverns lista, frågar
+`bash tools/work.sh setup` frågar (på svenska eller engelska) först om du vill slå på minnet (förslaget är nej; det kräver
+en modellserver). Bara om du svarar ja frågar den efter modellserverns adress, testar den med
+`GET /models`, tar API-nyckeln som dold inmatning och låter dig välja minnesmodell ur serverns lista. Sedan frågar den
 vilka fler adresser Sidekick får nå, vilka rum som ska vara på (förslaget är `work,journal,contacts,control`) och om Sidekick ska starta vid
 inloggning, skriver `work.env`, kan starta allt och skriver Claude Desktop-inställningen. Den kan köras igen: tidigare
 svar föreslås som standard och bara de inställningar den frågar om skrivs om. Stegen nedan gör samma sak ett i taget.

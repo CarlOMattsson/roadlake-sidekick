@@ -227,7 +227,7 @@ new code.
 | "That code has expired or was already used. Create a new one." | The server answered 401 `pairing_invalid`: the code is older than 10 minutes, was used once already, or is wrong. Run `pair` again. |
 | "Couldn't reach the server…" or "The server didn't respond." | Address typo, DNS, TLS certificate or tunnel problem, or no internet on the phone. Open your server's address in the phone's browser to test reachability and the certificate. |
 | "Couldn't connect. Try again." | The server answered something else, most often 404 because `SIDEKICK_COMPANION_ENABLED` is not `true` (or the API was not restarted). |
-| "Too many attempts. Wait a minute and try again." | The pairing endpoint allows 30 failed attempts per minute, counted for all callers together. Wait a minute. |
+| "Too many attempts. Wait a minute and try again." | The pairing endpoint allows each address 10 failed attempts per minute (30 for all addresses together, which only applies to addresses that failed recently), plus a small reserve of 3 attempts a minute for a valid code. Behind a tunnel or proxy all visitors share one address. Wait a minute. |
 | "The connection has ended. Connect again." | The server refused the phone's credential (401): the phone was revoked, its credential expired, or the owner was deactivated. Pair again with a new code. |
 | Settings: "Install the ntfy app to get notifications." | No UnifiedPush distributor is installed. Install ntfy and reopen Sidekick. |
 | Settings: "Notifications are off for Sidekick." | Allow notifications for Sidekick in the phone's system settings. |

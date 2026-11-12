@@ -53,6 +53,16 @@ def test_auth_knows_no_memory_type_and_memory_application_imports_no_persistence
         assert _imports_package(_all_imports(path), "sidekick.shared.persistence") == [], path.name
 
 
+def _absolute_module(path: Path, node: ast.ImportFrom) -> str:
+    """The absolute module an `ImportFrom` names; relative imports resolve against `path`."""
+
+    if node.level == 0:
+        return node.module or ""
+    package = ["sidekick", *path.relative_to(SRC).parts[:-1]]
+    base = package[: len(package) - (node.level - 1)]
+    return ".".join([*base, *([node.module] if node.module else [])])
+
+
 def _runtime_imports(path: Path) -> set[str]:
     """Modules imported at run time: imports outside an `if TYPE_CHECKING:` block."""
 
@@ -69,9 +79,11 @@ def _runtime_imports(path: Path) -> set[str]:
     for node in ast.walk(tree):
         if id(node) in type_checking:
             continue
-        if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            found.add(node.module)
-            found.update(f"{node.module}.{alias.name}" for alias in node.names)
+        if isinstance(node, ast.ImportFrom):
+            module = _absolute_module(path, node)
+            if module:
+                found.add(module)
+                found.update(f"{module}.{alias.name}" for alias in node.names)
         elif isinstance(node, ast.Import):
             found.update(alias.name for alias in node.names)
     return found
@@ -82,9 +94,11 @@ def _all_imports(path: Path) -> set[str]:
 
     found: set[str] = set()
     for node in ast.walk(ast.parse(path.read_text())):
-        if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            found.add(node.module)
-            found.update(f"{node.module}.{alias.name}" for alias in node.names)
+        if isinstance(node, ast.ImportFrom):
+            module = _absolute_module(path, node)
+            if module:
+                found.add(module)
+                found.update(f"{module}.{alias.name}" for alias in node.names)
         elif isinstance(node, ast.Import):
             found.update(alias.name for alias in node.names)
     return found
@@ -217,3 +231,17 @@ def test_the_application_persistence_exceptions_are_real_and_explained() -> None
         assert reason.strip(), relative
         imports = _all_imports(SRC / relative)
         assert _imports_package(imports, "sidekick.shared.persistence"), relative
+
+
+def test_relative_imports_are_resolved_to_absolute_modules() -> None:
+    """`from ..mcp import x` inside `sidekick.structured` counts as an import of `sidekick.mcp`."""
+
+    module = SRC / "structured" / "_probe.py"
+    source = "from ..mcp import tools\nfrom . import records\nfrom ...outside import y\n"
+    tree = ast.parse(source)
+    nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)]
+    assert [_absolute_module(module, n) for n in nodes] == [
+        "sidekick.mcp",
+        "sidekick.structured",
+        "outside",
+    ]

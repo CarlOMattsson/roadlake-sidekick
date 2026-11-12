@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 // Mobile audit of the MCP Apps on the SIMULATED host (no backend, no database, no network).
-// Separate from playwright.mcp-app.config.ts so the regular suite is unchanged. It measures and
+// Unexpected step/probe/page errors fail the run (tests/e2e/mobile-audit-gate.ts); MOBILE_AUDIT_LENIENT=1 only measures.
+// Separate from playwright.mcp-app.config.ts so the regular suite is unchanged. It measures, and
 // takes screenshots; it asserts nothing about product quality. The run writes to the system temp folder (see the
 // MOBILE_AUDIT_OUT variable in the spec). The screenshot harnesses under tests/ux have their own configs;
 // tests/playwright-config-patterns.test.ts checks that every pattern below matches a file.

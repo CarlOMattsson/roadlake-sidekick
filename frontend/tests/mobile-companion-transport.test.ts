@@ -374,6 +374,8 @@ describe("CompanionRoomTransport answers", () => {
     [404, undefined, "not_found"],
     [409, undefined, "conflict"],
     [422, undefined, "validation_error"],
+    [405, undefined, "method_not_allowed"],
+    [400, { code: "bad_request" }, "bad_request"],
     [409, { code: "conflict" }, "conflict"],
     [403, { code: "forbidden" }, "forbidden"],
     [500, undefined, undefined],

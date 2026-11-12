@@ -243,8 +243,8 @@ export function MobileApp({
             </div>
           ) : null}
           <SidekickShell
-            // A new language draws the rooms again from the start, so every label is read in it.
-            key={`${roomsKey}:${locale}`}
+            // Keyed on the rooms only: a language change re-renders labels in place and keeps unsaved form text.
+            key={roomsKey}
             locale={locale}
             rooms={SIDEKICK_ROOMS}
             start={start}

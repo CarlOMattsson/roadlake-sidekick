@@ -5,7 +5,7 @@ the bundle; creating the tag, the GitHub release and any store listing is a deli
 workflow never creates a tag or a release. Svenska: [release.sv.md](release.sv.md).
 
 Releases are made at all three levels: major (`X.0.0`), minor (`X.Y.0`) and patch (`X.Y.Z`). Changes are tested
-locally before they are pushed, so CI does not run on every push: the full CI (with the dependency audit) and the
+locally before they are pushed, so CI never runs on a push or on a schedule (it runs by hand and as a release gate): the full CI (with the dependency audit) and the
 update/backup/restore drill run as gates of every real release, a patch included. A patch may only declare the
 migration class `expand` (a fix never ships a one-way schema step).
 
@@ -263,10 +263,27 @@ The first release has no predecessor, so there is nothing to update from; the ba
 - The signing key leaked or was lost: delete the environment secrets, tell the owner of the installations, and treat the
   next APK as a new app lineage.
 
+## Sending later changes to the public repository
+
+`tools/export/export-repo.sh <dir>` only creates the first, empty-history import and refuses a non-empty directory.
+Later changes go in as ordinary commits on top of the published history (force-push is not allowed):
+
+```bash
+git clone git@github.com:CarlOMattsson/roadlake-sidekick.git /path/to/clone
+tools/export/export-repo.sh --update --dry-run /path/to/clone   # lists A (added), M (modified), D (removed)
+tools/export/export-repo.sh --update [--author "Name <email>"] /path/to/clone
+git -C /path/to/clone push origin main                          # the script prints this; it never pushes
+```
+
+The clone must be on `main` with a clean working tree. The export runs with the same allowlist, denylist, overlay and
+forbidden-pattern check (exit 3 aborts before any commit), the files are mirrored into the clone (`.git` is never
+touched) and one commit is made whose message names the short hash of the source commit. If nothing differs, it
+prints "inga ändringar" and makes no commit.
+
 ## Tags and the first release
 
 The release workflow (`.github/workflows/release-image.yml`, started by hand) only runs from a commit on `main`, builds
-major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI does not run on pushes; changes are tested locally first). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
+major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI never runs on pushes or on a schedule, only by hand and as this gate, never on pull requests; changes are tested locally first). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
 It never creates git tags. After a release, push the signed tag at the released commit yourself; the next release finds its
 comparison point from that tag:
 

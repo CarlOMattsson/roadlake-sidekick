@@ -188,7 +188,7 @@
 /* The four Task statuses side by side, sharing the row equally. A column is never narrower than 13.25rem, where a
    card title keeps whole words ("sammanställningen", 158 at 110 %, has 162; the card's lead is 36, see below): the
    four (884 px with the gaps, 969 at 110 % text) fit a 1024 frame in Claude without a sideways scroll (at 14rem the
-   fourth ran under the fade, ui-7). At 12.5rem a 900 frame broke the word inside itself.
+   fourth ran under the fade). At 12.5rem a 900 frame broke the word inside itself.
    Only a narrower frame scrolls the row sideways in its own box (.work-columns); below 640 px the board is one list
    (BoardView's single layout). The Projekt column, when the board holds Projects, is a row of its own under the
    statuses, its cards side by side: it is not a status, and as a fifth column it pushed the four out of the frame.
@@ -209,7 +209,7 @@
 .sk-shell[data-detail="closed"] .work-columns > .work-column {
   min-width: 0;
   margin: 0;
-  /* 8 at the sides (12 before): the card's title gets the 8 (ui-7). */
+  /* 8 at the sides (12 before): the card's title gets the 8. */
   padding-inline: 0.5rem;
   scroll-snap-align: start;
 }
@@ -635,7 +635,7 @@
   line-height: 1;
 }
 
-/* The columns layout's card (ui-7): the title gets ≥ 75 % of the card. The ring stands on the title's first line,
+/* The columns layout's card: the title gets ≥ 75 % of the card. The ring stands on the title's first line,
    in a 36 wide box (6 of air on each side, a 44 target with its ::after), not centred down a 44 box with the grip
    beside it; the grip (⋮) only shows while the pointer is over the card or the handle has focus, in the card's own
    4 of padding. The meta line starts under the title, 36 + 4 in. 36 is px, not rem: at 110 % text the ring box stays
@@ -723,7 +723,7 @@
   > li.work-card
   > .work-card-meta {
   padding-left: calc(var(--work-card-lead) + 0.25rem - 0.8em);
-  /* A part that starts a line never starts it with its «·» (ui-13): every part carries a 0.8em dot before it, the meta
+  /* A part that starts a line never starts it with its «·»: every part carries a 0.8em dot before it, the meta
      starts 0.8em early, and the clip hides that first 0.8em, so the dot of a part at a line's start is cut away while
      the dots between parts on one line stay. The text keeps the title's x. */
   column-gap: 0;

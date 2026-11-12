@@ -87,14 +87,28 @@ export function SidekickShell({
   );
   // The props are answered in the render that sees them, so no frame draws the old stacks (the card opening
   // the full view, a new tool result, a record to open at). Only a change dispatches: a render-phase dispatch renders again.
-  const props = { start, openAt, full };
+  // Unsaved edits report here (useUnsavedGuard). The registry is made before the props are answered because a
+  // new tool result or a record to open at would drop the layers that hold them: it waits until they are saved or discarded.
+  const [unsaved] = useState(createUnsavedRegistry);
+  const [, setUnsavedTick] = useState(0);
+  useEffect(
+    () => unsaved.subscribe(() => setUnsavedTick((tick) => tick + 1)),
+    [unsaved],
+  );
+  const holdsUnsaved = unsaved.isDirty(
+    (Object.keys(shellNav.nav.stacks) as RoomId[]).flatMap((room) =>
+      layersOf(shellNav.nav, room).map((layer) => layer.id),
+    ),
+  );
+  const props = holdsUnsaved
+    ? { start: shellNav.seenStart, openAt: shellNav.pushedOpenAt, full }
+    : { start, openAt, full };
   if (answerProps(shellNav, props) !== shellNav)
     dispatch({ type: "props", ...props });
   const { nav, inlineKey } = shellNav;
   const [asked, setAsked] = useState<string | undefined>();
-  // Forms that hold unsaved edits report here (useUnsavedGuard). A Back or a press on the active room tab that would
-  // drop them asks first; `ask` is that question, tied to the layer it was asked on.
-  const [unsaved] = useState(createUnsavedRegistry);
+  // A Back or a press on the active room tab that would drop unsaved edits asks first; `ask` is that question,
+  // tied to the layer it was asked on.
   const [ask, setAsk] = useState<{ kind: "back" | "root"; layer: string }>();
   const askFrom = useRef<HTMLElement | null>(null);
 

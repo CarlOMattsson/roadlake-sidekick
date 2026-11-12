@@ -66,31 +66,12 @@ def test_the_policy_tests_run_as_their_own_step_and_not_in_the_main_run(ci: Path
     assert len(performance) == 1 and "-n " not in performance[0]
 
 
-# Files the policy tests read. The backend job runs only when its path filter matches, so a change
-# to any of these must also start the job, or a broken doc or config is merged unchecked.
-POLICY_INPUTS = [
-    "docs/**",
-    "deploy/**",
-    "tools/**",
-    "**/*.md",
-    ".env.example",
-    ".dockerignore",
-    "frontend/package.json",
-    "frontend/package-lock.json",
-    "frontend/android/**",
-    ".github/**",
-]
-
-
-def _backend_filter(ci: Path) -> list[str]:
-    steps = yaml.safe_load(ci.read_text(encoding="utf-8"))["jobs"]["changes"]["steps"]
-    (filter_step,) = [step for step in steps if step.get("id") == "filter"]
-    filters = yaml.safe_load(filter_step["with"]["filters"])
-    return list(filters["backend"])
-
-
 @pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))
-def test_the_backend_filter_covers_the_inputs_of_the_policy_tests(ci: Path) -> None:
-    patterns = set(_backend_filter(ci))
-    missing = [pattern for pattern in POLICY_INPUTS if pattern not in patterns]
-    assert not missing, f"the backend job would skip changes to: {missing}"
+def test_ci_runs_only_as_a_release_gate_or_on_demand(ci: Path) -> None:
+    """CI is a release gate: no runs on pull requests, merge queues or pushes."""
+
+    workflow = yaml.safe_load(ci.read_text(encoding="utf-8"))
+    assert set(workflow[True]) == {"workflow_dispatch", "workflow_call"}
+    assert "changes" not in workflow["jobs"], "there is no change filter without pull requests"
+    text = ci.read_text(encoding="utf-8")
+    assert "github.event_name" not in text and "paths-filter" not in text

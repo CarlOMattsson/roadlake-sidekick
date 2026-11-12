@@ -95,7 +95,12 @@ from pydantic import ValidationError as PydanticValidationError
 from starlette.concurrency import run_in_threadpool
 
 from sidekick.api.ingress_problem import problem_response as _problem_response
-from sidekick.api.public_surface import TokenBucket
+from sidekick.api.pairing_budget import (
+    DEFAULT_FAILURES_GLOBAL_PER_MINUTE,
+    DEFAULT_FAILURES_PER_CLIENT_PER_MINUTE,
+    DEFAULT_RESERVE_PER_MINUTE,
+    PairingBudget,
+)
 from sidekick.companion.operations import CapabilityMissing
 from sidekick.companion.push_reminders import ReminderService
 from sidekick.companion.response_budget import ensure_within_budget
@@ -116,12 +121,16 @@ LOGGER = logging.getLogger("sidekick.companion")
 
 COMPANION_PREFIX = "/companion/v1"
 API_VERSION = "companion.v1"
-# Only failed exchanges spend this budget. The secret has 256 bits, so the limit is no guard
-# against guessing; it bounds the unauthenticated work (a digest and one UPDATE) a caller who
-# knows the URL can make the server do. 30 a minute is ten times what a person mistyping or
-# retrying a scan produces. Once it is spent, every attempt (valid or not) is refused with 429
-# before any database work, until the budget refills.
-PAIR_FAILURES_PER_MINUTE = 30
+# Only failed exchanges spend the pairing budgets (see `sidekick.api.pairing_budget`). The secret
+# has 256 bits, so the limits are no guard against guessing; they bound the unauthenticated work
+# (a digest and one UPDATE) a caller who knows the URL can make the server do. Each client address
+# may fail 10 times a minute, all clients together 30, ten times what a person mistyping or
+# retrying a scan produces. A client that has spent its own budget is refused with 429 before any
+# database work; the global budget only gates clients that failed recently, so one stranger's
+# failures cannot refuse the owner's valid code from another address.
+PAIR_FAILURES_PER_CLIENT_PER_MINUTE = DEFAULT_FAILURES_PER_CLIENT_PER_MINUTE
+PAIR_FAILURES_PER_MINUTE = DEFAULT_FAILURES_GLOBAL_PER_MINUTE
+PAIR_RESERVE_PER_MINUTE = DEFAULT_RESERVE_PER_MINUTE
 MAX_TASK_BODY_BYTES = 4096
 _NO_STORE = {"Cache-Control": "no-store"}
 
@@ -483,7 +492,12 @@ def create_companion_router(
     """The companion routes, with this app's own pairing rate limit."""
 
     router = CompanionRouter()
-    failed_pairings = TokenBucket(PAIR_FAILURES_PER_MINUTE, clock)
+    failed_pairings = PairingBudget(
+        PAIR_FAILURES_PER_CLIENT_PER_MINUTE,
+        PAIR_FAILURES_PER_MINUTE,
+        PAIR_RESERVE_PER_MINUTE,
+        clock,
+    )
     # Additive: an older app reads `device` and ignores this field.
     enabled_rooms = list(ordered(rooms))
 

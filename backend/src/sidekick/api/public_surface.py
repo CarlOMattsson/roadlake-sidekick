@@ -137,6 +137,12 @@ class TokenBucket:
         self._tokens = min(self._capacity, self._tokens + (now - self._stamp) * self._rate)
         self._stamp = now
 
+    def available(self) -> float:
+        """The tokens in the bucket now, between 0 and the capacity."""
+
+        self._refill()
+        return self._tokens
+
     def seconds_until_budget(self) -> int:
         """Whole seconds, at least 1, until one token has refilled (the `Retry-After` value)."""
 

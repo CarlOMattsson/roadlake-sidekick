@@ -92,7 +92,7 @@ export function EntryCard({
         {meta.length > 0 && (
           <p className="sk-card__meta journal-card-links">
             {/* "·" leads its part, so a narrow card breaks before a "·", never inside a name; a part that starts a
-                line has its "·" clipped away (journal.css, ui-13). */}
+                line has its "·" clipped away (journal.css). */}
             {meta.map((part, index) => (
               <Fragment key={index}>
                 {index > 0 ? " " : null}

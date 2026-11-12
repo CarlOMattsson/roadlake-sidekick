@@ -97,6 +97,9 @@ export async function smallTargets(page: Page, min = 44): Promise<string[]> {
         const inset = [t, r, b, l].map((v) => (Number.isFinite(v) && v < 0 ? -v : 0));
         h += inset[0] + inset[2];
         w += inset[1] + inset[3];
+        // An overlay centred with a fixed height (top: 50%) covers that height whatever the font's line box is.
+        const fixed = px(after.height);
+        if (Number.isFinite(fixed)) h = Math.max(h, fixed);
       }
       // A text link can only be as wide as its words, so for those only the height counts. Controls and icon links need both.
       const textLink = el.tagName === 'A' && (el.textContent ?? '').trim().length > 0 && el.querySelector('svg, img') === null;

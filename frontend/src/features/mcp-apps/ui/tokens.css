@@ -78,7 +78,7 @@
   --sk-s4: 16px;
   --sk-s5: 24px;
   --sk-s6: 32px;
-  /* The one reading width of a room's content in fullscreen (ui-8): Agenda, Projekt, a Task, Dagbok, Kontakter, Inköp
+  /* The one reading width of a room's content in fullscreen: Agenda, Projekt, a Task, Dagbok, Kontakter, Inköp
      and Kontroll all stand in a centred column of at most this width (layout.css); only Status's columns take the
      whole row. */
   --sk-room-max: 48rem;
@@ -169,8 +169,7 @@
   --sk-border: var(--color-border-primary, light-dark(#8a8a90, #75757d));
   --sk-ring: var(--color-ring-primary, light-dark(#2563eb, #7aa7ff));
   /* Primary button: the host's inverse pair, so it is dark on a light host and light on a dark one. Dark fallback is
-     the dark text colour #ededed with #1c1c1e text (15:1): the dimmed #c8c8cc read as a disabled button on the phone
-     (ua-10). */
+     the dark text colour #ededed with #1c1c1e text (15:1): the dimmed #c8c8cc read as a disabled button on the phone. */
   --sk-inverse-bg: var(
     --color-background-inverse,
     light-dark(var(--sk-fg), #ededed)

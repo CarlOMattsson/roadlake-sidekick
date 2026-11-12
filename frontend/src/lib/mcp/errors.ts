@@ -67,8 +67,11 @@ export function writeFailure(error: unknown): WriteFailure {
       return "conflict";
     case "forbidden":
       return "forbidden";
-    // validation_error: the server refused these values; retrying the same values cannot help.
+    // validation_error, bad_request, method_not_allowed: the server refused this request for good
+    // (companion envelope included); sending the same request again cannot help.
     case "validation_error":
+    case "bad_request":
+    case "method_not_allowed":
       return "invalid";
     // not_found: the record is gone; sending the same write again cannot bring it back.
     case "not_found":

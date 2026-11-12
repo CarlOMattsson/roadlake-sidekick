@@ -23,7 +23,8 @@ Contributions require signing the [Contributor License Agreement](CLA.md). When 
 asks you in the pull request to sign it, once; the pull request cannot be merged before that. The agreement lets the
 licensor keep licensing the project, including under a license key and in the paid version.
 
-Run the checks in the [development guide](docs/contribute/development.md) before you open the pull request. The history of this
+Run the checks in the [development guide](docs/contribute/development.md) before you open the pull request; CI does not run on pull requests (it is a gate of every release), so the
+checks are yours to run locally (pre-commit and pre-push hooks). The history of this
 public repository is never rewritten (no force-push), so forks and links keep working.
 
 ## Build and test locally

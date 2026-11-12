@@ -20,7 +20,7 @@ if the value is missing. Set `SIDEKICK_WORK_LOCALE=en` there, then run `bash too
 ## The Android app
 
 The app's language is its own setting, never the system language: Swedish by default, English as an
-alternative. It is fixed when the web bundle is built, by the `sidekick-app-locale` meta tag in
-`frontend/mobile.html` (`sv` or `en`). For an English app, change `content="sv"` to `content="en"` before
-`npm run build:mobile`. The pairing screen, the widget and the reminder notification texts follow the same language.
+alternative. You choose it in the app itself, on the pairing screen or later in Settings (Inställningar); the choice is kept in the app's own
+storage and survives a restart. The `sidekick-app-locale` meta tag in `frontend/mobile.html` (`sv` or `en`) only sets the language the app starts in before
+you have chosen, so nothing needs rebuilding for English. The pairing screen, the widget and the reminder notification texts follow the same language.
 The one exception is the widget picker's names and previews, which follow the phone's language. The pairing command's own messages follow `SIDEKICK_MCP_APP_LOCALE`.

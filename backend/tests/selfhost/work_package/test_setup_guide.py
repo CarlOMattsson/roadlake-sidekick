@@ -53,6 +53,7 @@ def test_setup_asks_tests_the_server_and_writes_work_env_and_can_run_again(
 ) -> None:
     answers = [
         "sv",  # language
+        "j",  # turn the memory on
         model_server,  # model server address
         "setup-test-key",  # key (hidden input)
         "flash-y",  # memory model, by id
@@ -82,12 +83,39 @@ def test_setup_asks_tests_the_server_and_writes_work_env_and_can_run_again(
     assert stat.S_IMODE((secrets / "sidekick.env").stat().st_mode) == 0o600
     env_path.write_text(env + "# a line the guide must not touch\n", encoding="utf-8")
     # Second run, English, every answer left at its default (Enter), key kept: nothing is lost.
-    rerun = [model_server, "", "", "", "", "", "", "n", "n"]
+    rerun = ["", model_server, "", "", "", "", "", "", "n", "n"]
     result = run_work(mini_repo, "setup", stdin="en\n" + "\n".join(rerun) + "\n")
     assert result.returncode == 0, result.stderr
     assert "2 models found" in result.stdout
+    assert "Memory: on" in result.stdout
     assert env_path.read_text(encoding="utf-8") == env + "# a line the guide must not touch\n"
     assert "\nWORK_MODEL_API_KEY=setup-test-key\n" in (secrets / "sidekick.env").read_text()
+
+
+def test_setup_without_memory_asks_for_no_model_server_and_starts_without_hindsight(
+    mini_repo: Path,
+) -> None:
+    answers = [
+        "en",
+        "",  # memory: the proposal is no
+        "",  # allowlist
+        "-",  # rooms
+        "",  # app language
+        "n",  # autostart
+        "y",  # start now
+    ]
+    result = run_work(mini_repo, "setup", stdin="\n".join(answers) + "\n")
+    assert result.returncode == 0, result.stderr
+    assert "Do you want to turn memory on? It needs a model server. (y/N)" in result.stderr
+    assert "Model server address" not in result.stderr
+    assert "Memory: off" in result.stdout
+    env = (mini_repo / "deploy" / "work" / "work.env").read_text(encoding="utf-8")
+    assert "\nSIDEKICK_WORK_MEMORY=off\n" in env
+    calls = (mini_repo / "docker-calls.txt").read_text(encoding="utf-8")
+    assert "--profile memory" not in calls
+    assert "up -d" in calls
+    derived = (mini_repo / "docker-env.txt").read_text(encoding="utf-8")
+    assert "SIDEKICK_WORK_MEMORY_ENABLED=false" in derived
 
 
 @pytest.mark.skipif(shutil.which("curl") is None, reason="curl is not installed")
@@ -96,6 +124,7 @@ def test_setup_rejects_a_bad_address_and_a_bad_allowlist_and_asks_again(
 ) -> None:
     answers = [
         "en",
+        "y",  # memory on
         "ftp://nope",  # not an http(s) address: asked again
         model_server,
         "setup-test-key",
@@ -121,7 +150,7 @@ def test_setup_rejects_a_bad_address_and_a_bad_allowlist_and_asks_again(
 def test_guide_defaults_to_all_rooms_but_shopping_and_swedish_and_start_passes_them_on(
     mini_repo: Path, model_server: str
 ) -> None:
-    answers = ["en", model_server, "setup-test-key", "", "", "", "", "n", "y"]
+    answers = ["en", "y", model_server, "setup-test-key", "", "", "", "", "n", "y"]
     result = run_work(mini_repo, "setup", stdin="\n".join(answers) + "\n")
     assert result.returncode == 0, result.stderr
     assert "Enter = the proposal) [work,journal,contacts,control]" in result.stderr

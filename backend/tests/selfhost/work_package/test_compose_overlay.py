@@ -325,6 +325,15 @@ def test_hindsight_uses_the_openai_provider_through_the_gateway_with_local_embed
     assert environment["HF_HUB_OFFLINE"] == "1"
 
 
+def test_without_memory_there_is_no_hindsight_or_memory_worker_and_sidekick_memory_is_off(
+    merged_without_memory: dict[str, Any],
+) -> None:
+    services = merged_without_memory["services"]
+    assert "hindsight" not in services and "memory-worker" not in services
+    assert {"api", "gateway", "automation-worker", "postgres"} <= set(services)
+    assert services["api"]["environment"]["SIDEKICK_MEMORY_ENABLED"] == "false"
+
+
 def test_the_package_names_no_retired_sidekick_setting() -> None:
     files = [
         SCRIPT,

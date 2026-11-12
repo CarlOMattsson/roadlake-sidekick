@@ -30,7 +30,7 @@ npm --prefix frontend run check            # eslint + tsc -b + vitest
 
 # Backend tests (need the disposable PostgreSQL on port 55433 below, "Run the tests")
 (cd backend && uv run pytest --full)
-# Repository rules only (source, docs and config scans; CI runs them as their own step, no database)
+# Repository rules only (source, docs and config scans; the release CI runs them as their own step, no database)
 (cd backend && uv run pytest --full -m policy)
 
 # MCP App browser tests (Playwright with Chromium: `npx playwright install chromium` in frontend/)
@@ -56,9 +56,11 @@ shellcheck and gitleaks must be installed locally. When one is missing its stage
 (install: ...)` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into a failure.
 
 It does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits, the contract
-snapshot diff or the emulator test; CI does, so run the ones below that match what you changed.
+snapshot diff or the emulator test; the release CI does, so run the ones below that match what you changed.
 
-CI runs more than the commands above. Run the ones that match what you changed:
+CI does not run on pull requests, merges or pushes; it is a gate of every release (and can be started by hand). So
+the checks are yours to run before you push: install the hooks with `pre-commit install --hook-type pre-commit --hook-type
+pre-push`, and run the commands that match what you changed. The release CI runs more than the commands above:
 
 ```bash
 # Contract snapshots: regenerate (see "Code style") and check that `git diff --exit-code -- contracts` is clean.

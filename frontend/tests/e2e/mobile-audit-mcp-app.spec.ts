@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { CDPSession, FrameLocator, Page } from "@playwright/test";
+import { assertAuditClean } from "./mobile-audit-gate";
 import {
   deliverToolResult,
   openSimulatedApp,
@@ -1328,6 +1329,13 @@ for (const scenario of scenarios) {
             2,
           ),
         );
+        assertAuditClean({
+          id,
+          stepError,
+          probeError,
+          measured,
+          failures: opened.failures,
+        });
         void setHostContext;
       });
     }

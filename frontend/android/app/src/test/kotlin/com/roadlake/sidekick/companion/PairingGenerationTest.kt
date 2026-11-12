@@ -87,6 +87,40 @@ class PairingGenerationTest {
     }
 
     @Test
+    fun aCallBoundWhenItArrivedIsRefusedAfterThePairingChangedWhileItWaitedInThePool() {
+        val arrivedUnder = generation.current()
+        val task = generation.bindNow { captured ->
+            assertEquals(arrivedUnder, captured)
+            today()
+        }
+        // The call waits in a busy pool; the phone is unpaired and paired again before a thread picks it up.
+        store.clear()
+        store.save(newer)
+        http.calls.clear()
+        val ran = java.util.concurrent.Executors.newSingleThreadExecutor()
+        try {
+            val error = try {
+                ran.submit(task).get(5, TimeUnit.SECONDS)
+                null
+            } catch (e: java.util.concurrent.ExecutionException) {
+                e.cause as? CompanionException
+            }
+            assertEquals("not_paired", error?.code)
+        } finally {
+            ran.shutdownNow()
+        }
+        assertTrue(http.calls.isEmpty()) // nothing was sent with the new pairing's credential
+    }
+
+    @Test
+    fun aCallBoundWhenItArrivedRunsAsBeforeWhenThePairingDidNotChange() {
+        store.save(newer)
+        val task = generation.bindNow { today().status }
+        assertEquals(200, task())
+        assertEquals(1, http.calls.size)
+    }
+
+    @Test
     fun aPairingChangeWaitsForAWriteThatIsInProgressAndThenEndsIt() {
         val captured = generation.current()
         val inside = CountDownLatch(1)

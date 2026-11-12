@@ -20,7 +20,7 @@ bara om det saknas. Sätt `SIDEKICK_WORK_LOCALE=en` där och kör `bash tools/wo
 ## Android-appen
 
 Appens språk är en egen inställning och följer aldrig systemspråket: svenska som förval, engelska som
-alternativ. Det bestäms när webbpaketet byggs, av metataggen `sidekick-app-locale` i `frontend/mobile.html`
-(`sv` eller `en`). För en engelsk app ändrar du `content="sv"` till `content="en"` före
-`npm run build:mobile`. Kopplingsskärmen, widgeten och påminnelsernas aviseringar följer samma språk. Undantaget är
+alternativ. Du väljer det i appen själv, på kopplingsskärmen eller senare i Inställningar; valet sparas i appens egen
+lagring och finns kvar efter en omstart. Metataggen `sidekick-app-locale` i `frontend/mobile.html` (`sv` eller `en`) styr bara vilket språk appen
+startar på innan du har valt, så inget behöver byggas om för engelska. Kopplingsskärmen, widgeten och påminnelsernas aviseringar följer samma språk. Undantaget är
 widgetväljarens namn och förhandsvisning, som följer telefonens språk. Parkopplingskommandots egna meddelanden följer `SIDEKICK_MCP_APP_LOCALE`.

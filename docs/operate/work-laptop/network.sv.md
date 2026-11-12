@@ -16,7 +16,7 @@ brandväggsändringar. Datorns egna certifikatlager används för en https-model
 
 ## Tillåtna adresser
 
-Utöver modellservern går ingenting att nå. För att tillåta fler (till exempel en separat inbäddningsserver) lista
+Utöver modellservern (när minnet är på) går ingenting att nå. För att tillåta fler (till exempel en separat inbäddningsserver) lista
 värdnamn med port i `SIDEKICK_WORK_ALLOW=embed.foretag.lan:443,filer.foretag.lan:8443` (eller svara på guidens fråga).
 Varje post blir en ren TCP-genomsläppning i grindvakten, så klienten behåller det riktiga namnet och kontrollerar det
 riktiga certifikatet. Begränsningar: bara värdnamn (inga IP-adresser) och varje post behöver en egen port (även skild

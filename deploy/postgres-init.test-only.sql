@@ -1,3 +1,5 @@
+-- TEST AND DEVELOPMENT ONLY. Each role's password equals its name; never run this against a real instance.
+-- Self-hosted installs bootstrap roles with deploy/selfhost/postgres-init.sh, using generated passwords.
 DO $$ BEGIN
   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'sidekick_owner') THEN
     CREATE ROLE sidekick_owner NOLOGIN;

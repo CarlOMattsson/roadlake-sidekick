@@ -6,11 +6,11 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.mcp.schema_cache import install_schema_cache
 from sidekick.shared.observability import configure_observability
 from sidekick.shared.types import Actor
 from tests.db import configure_database_requirement, database_factory, dispose_test_engines
 from tests.support.fakes import JournalProviderSpy, journal_candidate_snapshot
+from tests.support.schema_cache import install_schema_cache
 
 
 def pytest_configure(config: pytest.Config) -> None:

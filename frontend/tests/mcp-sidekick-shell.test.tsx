@@ -191,7 +191,8 @@ it("keeps the room under a cross-link mounted with its state, so Back restores i
     ROOM_IDS.map((room) => [room, Stateful]),
   ) as RoomRegistry;
   setup({ rooms: stateful });
-  fireEvent.change(screen.getByLabelText("draft-journal"), {
+  // `input`, not `change`: Preact (the bundle) maps onChange to the input event, as a real keystroke fires it.
+  fireEvent.input(screen.getByLabelText("draft-journal"), {
     target: { value: "osparat utkast" },
   });
   navigateTo({ room: "contacts", view: "contact", id: "c1" }, "journal");
@@ -701,4 +702,32 @@ it("moves between strip buttons with the arrow keys", () => {
   expect(tab("Inköp")).toHaveFocus();
   fireEvent.keyDown(tab("Inköp"), { key: "Home" });
   expect(tab("Arbete")).toHaveFocus();
+});
+
+it("keeps unsaved form text when only the language changes", () => {
+  const FormStub = (props: ShellRoomProps) => (
+    <input aria-label="draft" data-room-input={props.entry.room} />
+  );
+  const formRooms = Object.fromEntries(
+    ROOM_IDS.map((room) => [room, FormStub]),
+  ) as RoomRegistry;
+  const { rerender } = setup({ rooms: formRooms });
+  const field = screen.getAllByLabelText("draft")[0] as HTMLInputElement;
+  fireEvent.change(field, { target: { value: "half-written note" } });
+  expect(tab("Dagbok")).toBeInTheDocument();
+
+  rerender(
+    <SidekickShell
+      locale="en"
+      rooms={formRooms}
+      start={journalStart}
+      full
+      features={LOCAL}
+    />,
+  );
+
+  expect(tab("Journal")).toBeInTheDocument();
+  expect((screen.getAllByLabelText("draft")[0] as HTMLInputElement).value).toBe(
+    "half-written note",
+  );
 });

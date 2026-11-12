@@ -2,7 +2,7 @@
  * The calm note of the mobile app when push cannot work because no UnifiedPush distributor (the ntfy app) is
  * installed. Everything else keeps working: Today is read in the foreground and by the widget's schedule. The note
  * is drawn only when the server sends notifications at all (`pushEnabled` of the pairing: a server with push off has
- * nothing for ntfy to bring, ua-6) and the distributor is missing; a denied notification permission or a registration
+ * nothing for ntfy to bring) and the distributor is missing; a denied notification permission or a registration
  * the server has not accepted yet is not the owner's to fix with this line. A refused or failed read draws nothing.
  * "Inte nu" puts it away for good on this phone; Inställningar keep the same fix.
  */

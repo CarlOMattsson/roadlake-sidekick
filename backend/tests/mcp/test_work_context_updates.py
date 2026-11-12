@@ -389,3 +389,73 @@ def test_mcp_accent_literal_matches_domain_palette() -> None:
     from sidekick.work.domain.context import DOMAIN_ACCENTS
 
     assert get_args(DomainAccent) == tuple(DOMAIN_ACCENTS)
+
+
+async def _tags_only(
+    client: Client, case: Case, record: dict[str, object], key: str, version: int, tags: list[str]
+):
+    return await client.call_tool(
+        case.tool,
+        {
+            case.id_arg: record["id"],
+            "version": version,
+            "idempotency_key": key,
+            "changes": {"tags": tags},
+        },
+        raise_on_error=False,
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.parametrize("kind", KINDS)
+async def test_tags_only_update_sets_replaces_and_clears_tags_and_bumps_version(kind: str) -> None:
+    case = CASES[kind]
+    container = create_container(make_settings(), database_factory())
+    owner = container.auth.provision_user("owner", "Owner")
+    server = _server_for(container, Actor(owner, WRITE_SCOPES))
+
+    async with Client(server) as client:
+        record = (await _seed(client))[kind]
+        first = await _tags_only(client, case, record, "tags-only-1", 1, ["Ekonomi", "Hem"])
+        second = await _tags_only(client, case, record, "tags-only-2", 2, ["Hem"])
+        cleared = await _tags_only(client, case, record, "tags-only-3", 3, [])
+        read_back = await client.call_tool(case.read_tool, {case.id_arg: record["id"]})
+
+    for result, version, tags in (
+        (first, 2, ["ekonomi", "hem"]),
+        (second, 3, ["hem"]),
+        (cleared, 4, []),
+    ):
+        assert not result.is_error
+        returned = result.structured_content[case.record_key]
+        assert returned["version"] == version
+        assert sorted(returned["tags"]) == tags
+    stored = read_back.structured_content[case.record_key]
+    assert stored["version"] == 4
+    assert stored["tags"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.parametrize("kind", KINDS)
+async def test_tags_only_update_replays_and_conflicts_on_stale_version(kind: str) -> None:
+    case = CASES[kind]
+    container = create_container(make_settings(), database_factory())
+    owner = container.auth.provision_user("owner", "Owner")
+    server = _server_for(container, Actor(owner, WRITE_SCOPES))
+
+    async with Client(server) as client:
+        record = (await _seed(client))[kind]
+        first = await _tags_only(client, case, record, "tags-only-replay", 1, ["Ekonomi"])
+        replay = await _tags_only(client, case, record, "tags-only-replay", 1, ["Ekonomi"])
+        stale = await _tags_only(client, case, record, "tags-only-stale", 1, ["Annat"])
+        read_back = await client.call_tool(case.read_tool, {case.id_arg: record["id"]})
+
+    assert not first.is_error
+    assert first.structured_content == replay.structured_content
+    assert stale.is_error
+    assert stale.structured_content["code"] == "conflict"
+    stored = read_back.structured_content[case.record_key]
+    assert stored["version"] == 2
+    assert stored["tags"] == ["ekonomi"]

@@ -83,7 +83,7 @@
 }
 
 /* Every room's content in fullscreen keeps the one reading width (--sk-room-max), centred, as the Agenda did alone
-   (ui-8: Uppgift, Dagbok, Inköp and Kontakter ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
+   (Uppgift, Dagbok, Inköp and Kontakter ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
    caps its lists itself (work-shell.css), so the Status columns can still take the row. The room strip and the Back
    row above keep the same width (sidekick-shell.css). Above the room roots' own reset in the strip's shell
    (max-width: none), hence the frame in the selector. */

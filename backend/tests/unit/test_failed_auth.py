@@ -21,6 +21,7 @@ from sidekick.api.failed_auth import (
     KNOWN_TOKEN_SECONDS,
     MAX_KNOWN_TOKENS,
     MAX_TRACKED_CLIENTS,
+    VERIFIED_BEARER_SCOPE_KEY,
     FailedAuthGuard,
     FailedAuthLimitMiddleware,
 )
@@ -291,6 +292,27 @@ async def test_a_fresh_owner_token_gets_through_a_sustained_attack_within_second
     # From now on the token is known and never throttled.
     for _ in range(20):
         assert (await attempt(middleware, GOOD, client="198.51.100.1")).status == 204
+
+
+@pytest.mark.asyncio
+async def test_only_a_recently_verified_token_is_marked_verified_for_later_layers() -> None:
+    seen: list[bool] = []
+
+    async def inner(scope: Scope, receive: Receive, send: Send) -> None:
+        seen.append(bool(scope.get(VERIFIED_BEARER_SCOPE_KEY)))
+        await send({"type": "http.response.start", "status": 204, "headers": []})
+        await send({"type": "http.response.body", "body": b""})
+
+    clock = Clock()
+    guard = FailedAuthGuard(clock=clock)
+    guard.record_success(guard.fingerprint(GOOD))
+    middleware = FailedAuthLimitMiddleware(inner, NoopTelemetryAdapter(), guard, clock=clock)
+    for token in (GOOD, b"guess", None):
+        await attempt(middleware, token)
+    assert seen == [True, False, False]
+    clock.now += KNOWN_TOKEN_SECONDS + 1
+    await attempt(middleware, GOOD)
+    assert seen[-1] is False  # the hour lapsed: no longer known
 
 
 @pytest.mark.asyncio

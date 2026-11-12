@@ -29,7 +29,8 @@ from sidekick.api.companion import (
     iso,
     no_store_headers,
 )
-from sidekick.api.public_surface import TokenBucket
+from sidekick.api.failed_auth import client_address
+from sidekick.api.pairing_budget import PairingBudget, PairingReservation
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.service import (
     MAX_PAIRING_SECRET_LENGTH,
@@ -91,23 +92,25 @@ def _count_pairing_failure(request: Request, *, limited: bool) -> None:
     )
 
 
-def _spend_pairing_budget(request: Request, failed_pairings: TokenBucket) -> None:
-    """Reserve one token BEFORE awaiting the exchange. Checking first and spending after would
+def _spend_pairing_budget(request: Request, failed_pairings: PairingBudget) -> PairingReservation:
+    """Reserve one attempt BEFORE awaiting the exchange. Checking first and spending after would
     let any number of concurrent requests pass the check before the first one spends, so the
-    budget is taken up front, atomically (no await between check and take). One budget for all
-    callers (behind a tunnel every visitor has the same peer address). With the budget spent we
-    refuse before any database work or exchange call; a valid secret is refused too until the
-    budget refills, because validity is only known after the exchange. A refused attempt writes
-    no audit row, only a content-free counter."""
+    budget is taken up front, atomically (no await between check and take). The budget is per
+    client address, with a global ceiling and a small reserve (`sidekick.api.pairing_budget`).
+    With every layer spent we refuse before any database work or exchange call; a valid secret is
+    refused too until the budget refills, because validity is only known after the exchange. A
+    refused attempt writes no audit row, only a content-free counter."""
 
-    if failed_pairings.take():
-        return
+    client = client_address(request.scope)
+    reservation = failed_pairings.admit(client)
+    if reservation is not None:
+        return reservation
     _count_pairing_failure(request, limited=True)
     raise CompanionProblem(
         429,
         "rate_limited",
         "Too many requests",
-        headers={"Retry-After": str(failed_pairings.seconds_until_budget())},
+        headers={"Retry-After": str(failed_pairings.retry_after(client))},
     )
 
 
@@ -124,13 +127,13 @@ def _push_enabled(request: Request) -> bool:
 
 
 def make_pair(
-    failed_pairings: TokenBucket, enabled_rooms: list[str]
+    failed_pairings: PairingBudget, enabled_rooms: list[str]
 ) -> Callable[[Request], Awaitable[JSONResponse]]:
     """The `POST /pair` handler, bound to this router's pairing budget and enabled rooms."""
 
     async def pair(request: Request) -> JSONResponse:
         payload = await PAIR_BODY.read(request)
-        _spend_pairing_budget(request, failed_pairings)
+        reservation = _spend_pairing_budget(request, failed_pairings)
         paired = await run_in_threadpool(
             device_service(request).exchange,
             payload.pairing_secret,
@@ -143,7 +146,7 @@ def make_pair(
                 401, "pairing_invalid", "Pairing secret is invalid, expired or already used"
             )
         # A successful pairing does not consume budget: give the reservation back.
-        failed_pairings.refund()
+        reservation.refund()
         return JSONResponse(
             status_code=201,
             headers=no_store_headers,
@@ -271,7 +274,7 @@ async def device_unpair(request: Request) -> Response:
 
 
 def add_device_routes(
-    router: CompanionRouter, failed_pairings: TokenBucket, enabled_rooms: list[str]
+    router: CompanionRouter, failed_pairings: PairingBudget, enabled_rooms: list[str]
 ) -> None:
     """Register pairing and the device's own routes on the companion router."""
 

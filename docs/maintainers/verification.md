@@ -17,7 +17,7 @@ The table of the latest checks is on [the maintainers page](README.md).
 Last checked on 2026-11-11.
 
 - **Checked against the code (read, not run):** the ports in `deploy/compose.dev.yaml` (55440) and
-  `deploy/compose.test.yaml` (55433), their service name `db`, the roles in `deploy/postgres-init.sql`, the
+  `deploy/compose.test.yaml` (55433), their service name `db`, the roles in `deploy/postgres-init.test-only.sql`, the
   setting names and the 32-character minimum in `backend/src/sidekick/shared/config/` and `.env.example`, the
   `/mcp/`, `/health/*` and `/companion/v1/` routes, the startup record fields, the npm script names in
   `frontend/package.json`, the build output path of `build:mcp-app`, and the `--full` option of the test suite.
@@ -32,7 +32,7 @@ Last checked on 2026-11-11.
   back byte-identical). `ruff format --check` and `ruff check` passed. The test database on port 55433 and the
   backend suite were not run.
 - **Not verified in this check:** the Claude Desktop stdio connection itself (only the server side), `pyright`, the
-  browser checks and the test suites. CI runs the builds and tests on every pull request.
+  browser checks and the test suites. CI runs the builds and tests as a gate of every release, not on pull requests.
 
 ## Android app
 

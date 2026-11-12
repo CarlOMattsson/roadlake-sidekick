@@ -19,7 +19,7 @@
   padding-inline: 6px var(--sk-s4);
 }
 /* Keyboard focus on a row's title rings the whole text block, title and meta line together: the title's own ring ran
-   through the meta line under it (ui-23). The ring is the family's (2 px --sk-ring), on the block's edge. */
+   through the meta line under it. The ring is the family's (2 px --sk-ring), on the block's edge. */
 .sidekick-work .work-agenda-body > button:focus-visible {
   outline: none;
 }
@@ -57,7 +57,7 @@
 }
 /* Each list of rows is a stacking context of its own: the ring and Ångra lie over the title's cover (z-index 1) inside
    it, and the whole list stays under the group heading that sticks over it (stickyHeading, z-index 1). Without it the
-   ring of a row scrolled under «Försenade (5)» was drawn over the heading and took its taps (ui-1). */
+   ring of a row scrolled under «Försenade (5)» was drawn over the heading and took its taps. */
 .sidekick-work .work-agenda .work-list {
   isolation: isolate;
 }
@@ -528,7 +528,7 @@
     calc(-1 * var(--sk-frame-pad-right, 0px)) var(--sk-section-below)
     calc(-1 * var(--sk-frame-pad-left, 0px));
   /* Its page colour reaches the frame's side edges, as the tab row's above it: the ring's target hangs into the side
-     margin, and a stuck heading covers that part too (ui-1). The text keeps the content edge. */
+     margin, and a stuck heading covers that part too. The text keeps the content edge. */
   padding: var(--sk-s2) var(--sk-frame-pad-right, 0px) 0
     var(--sk-frame-pad-left, 0px);
 }

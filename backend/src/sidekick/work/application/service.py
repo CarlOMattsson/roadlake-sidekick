@@ -3,7 +3,7 @@ lists, agenda, Today and board reads, and the Domain and Process writes."""
 
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta, tzinfo
 from typing import Any, Protocol, TypeVar, cast
 from uuid import UUID
@@ -996,11 +996,16 @@ class ContextService:
             current = self.store.get_domain(session, actor.user_id, domain_id)
             changes = command.entity_changes("domain")
             changes.pop("status", None)
-            updated = current.update(
-                now=self.clock.now(),
-                status=command.status if isinstance(command.status, DomainStatus) else UNSET,
-                **changes,
-            )
+            now = self.clock.now()
+            if changes or command.status is not UNSET or command.tags is UNSET:
+                updated = current.update(
+                    now=now,
+                    status=command.status if isinstance(command.status, DomainStatus) else UNSET,
+                    **changes,
+                )
+            else:
+                # A tags-only update still advances the version under the caller's expected one.
+                updated = replace(current, version=current.version + 1, updated_at=now)
             self.store.save_domain(session, updated, expected_version=version)
             self.store.append_audit(
                 session,
@@ -1112,12 +1117,16 @@ class ContextService:
                 and next_expected_run_at is None
             ):
                 next_expected_run_at = now + current.cadence.interval
-            updated = current.update(
-                now=now,
-                status=command.status if isinstance(command.status, ProcessStatus) else UNSET,
-                next_expected_run_at=next_expected_run_at,
-                **changes,
-            )
+            if changes or command.status is not UNSET or command.tags is UNSET:
+                updated = current.update(
+                    now=now,
+                    status=command.status if isinstance(command.status, ProcessStatus) else UNSET,
+                    next_expected_run_at=next_expected_run_at,
+                    **changes,
+                )
+            else:
+                # A tags-only update still advances the version under the caller's expected one.
+                updated = replace(current, version=current.version + 1, updated_at=now)
             self.store.save_process(session, updated, expected_version=version)
             self.store.append_audit(
                 session,

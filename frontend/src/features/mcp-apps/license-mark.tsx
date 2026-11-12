@@ -38,7 +38,7 @@ import "./license-mark.css";
  *   the phone's settings. Licensed it is one muted line and the coin is gone everywhere.
  * - `CardFoot` (ui/card.tsx) puts the coin at the end of an inline card's open row; a tap folds the row out in the card.
  * - `LicenseFoot`: the coin at the end of the full view's room, drawn by the shell, with two words beside it
- *   ("Gratisversion") so it does not stand as a lone symbol (ua-7).
+ *   ("Gratisversion") so it does not stand as a lone symbol.
  */
 
 /**

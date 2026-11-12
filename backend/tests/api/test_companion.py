@@ -19,7 +19,11 @@ from fastmcp import Client
 from sqlalchemy import func, select, update
 
 from sidekick.api.app import create_app
-from sidekick.api.companion import PAIR_FAILURES_PER_MINUTE
+from sidekick.api.companion import (
+    PAIR_FAILURES_PER_CLIENT_PER_MINUTE,
+    PAIR_FAILURES_PER_MINUTE,
+    PAIR_RESERVE_PER_MINUTE,
+)
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.service import CompanionDeviceService
 from sidekick.mcp.server import create_mcp_server
@@ -45,6 +49,9 @@ from tests.support.companion import (
     paired_token,
 )
 from tests.support.settings import make_settings
+
+# What one client address can fail before it is refused: its own budget plus the shared reserve.
+SAME_CLIENT_BUDGET = PAIR_FAILURES_PER_CLIENT_PER_MINUTE + PAIR_RESERVE_PER_MINUTE
 
 
 @pytest.mark.integration
@@ -230,19 +237,19 @@ def test_failed_pairings_are_rate_limited_and_a_spent_budget_refuses_before_any_
     with TestClient(app) as client:
         statuses = [
             client.post("/companion/v1/pair", json={"pairing_secret": "x" * 40}).status_code
-            for _ in range(PAIR_FAILURES_PER_MINUTE + 5)
+            for _ in range(SAME_CLIENT_BUDGET + 5)
         ]
         calls_when_spent = len(exchanged)
         refused = client.post("/companion/v1/pair", json={"pairing_secret": ticket.secret})
-    assert statuses[: PAIR_FAILURES_PER_MINUTE - 1] == [401] * (PAIR_FAILURES_PER_MINUTE - 1)
+    assert statuses[: SAME_CLIENT_BUDGET - 1] == [401] * (SAME_CLIENT_BUDGET - 1)
     assert statuses[-1] == 429
     # Only the attempts inside the budget reached the exchange service; the rest were refused
     # first, including a request carrying a real secret, which is left unused.
-    assert calls_when_spent == PAIR_FAILURES_PER_MINUTE
+    assert calls_when_spent == SAME_CLIENT_BUDGET
     assert len(exchanged) == calls_when_spent
     assert refused.status_code == 429
-    # One token refills every 2 s, so the wait is 1 or 2 s, never the old fixed minute.
-    assert refused.headers["retry-after"] in {"1", "2"}
+    # One token of the client's budget refills every 6 s, so the wait is 1 to 6 s, never a minute.
+    assert 1 <= int(refused.headers["retry-after"]) <= 6
     with app.state.container.session_factory() as session:
         pairing = session.scalar(
             select(CompanionPairingRow).where(CompanionPairingRow.id == ticket.pairing_id)
@@ -255,7 +262,7 @@ def test_concurrent_bad_pairings_cannot_overshoot_the_failure_budget(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     app = companion_app()
-    attempts = PAIR_FAILURES_PER_MINUTE * 3
+    attempts = SAME_CLIENT_BUDGET * 3
     reached = 0
     lock = threading.Lock()
     gate = threading.Event()  # no exchange returns before every refused request has been refused
@@ -281,7 +288,7 @@ def test_concurrent_bad_pairings_cannot_overshoot_the_failure_budget(
             # have answered, all the others are in flight, and the exchanges may finish. If the
             # budget overshoots, fewer are refused; the deadline then releases the gate and the
             # assertions below report the overshoot.
-            refused = attempts - PAIR_FAILURES_PER_MINUTE
+            refused = attempts - SAME_CLIENT_BUDGET
             try:
                 deadline = time.monotonic() + 5
                 while sum(task.done() for task in tasks) < refused and time.monotonic() < deadline:
@@ -293,10 +300,51 @@ def test_concurrent_bad_pairings_cannot_overshoot_the_failure_budget(
 
     with TestClient(app):  # runs the app lifespan
         statuses = asyncio.run(fire())
-    assert reached <= PAIR_FAILURES_PER_MINUTE
+    assert reached <= SAME_CLIENT_BUDGET
     assert statuses.count(401) == reached
     assert statuses.count(429) == attempts - reached
-    assert statuses.count(429) >= attempts - PAIR_FAILURES_PER_MINUTE
+    assert statuses.count(429) >= attempts - SAME_CLIENT_BUDGET
+
+
+@pytest.mark.integration
+def test_strangers_spending_the_global_pairing_budget_do_not_refuse_the_owners_valid_code() -> None:
+    app = companion_app()
+    user_id = owner(app)
+    ticket = devices(app).create_pairing(user_id, "Samsung")
+    strangers = PAIR_FAILURES_PER_MINUTE // PAIR_FAILURES_PER_CLIENT_PER_MINUTE + 2
+    for index in range(strangers):
+        with TestClient(app, client=(f"203.0.113.{index}", 4000)) as stranger:
+            statuses = [
+                stranger.post("/companion/v1/pair", json={"pairing_secret": "x" * 40}).status_code
+                for _ in range(SAME_CLIENT_BUDGET + 2)
+            ]
+            assert statuses[-1] == 429
+    with TestClient(app, client=("198.51.100.77", 4000)) as phone:
+        paired = phone.post("/companion/v1/pair", json={"pairing_secret": ticket.secret})
+    assert paired.status_code == 201, paired.text
+
+
+@pytest.mark.integration
+def test_a_valid_code_from_the_attackers_shared_address_uses_the_reserve_once() -> None:
+    app = companion_app()
+    user_id = owner(app)
+    with TestClient(app) as client:
+        for _ in range(PAIR_FAILURES_PER_CLIENT_PER_MINUTE):
+            assert (
+                client.post("/companion/v1/pair", json={"pairing_secret": "x" * 40}).status_code
+                == 401
+            )
+        # Own budget spent, reserve intact: the owner's code still works from this address ...
+        assert paired_token(client, app, user_id)
+        # ... and with the reserve spent by guessing, a valid code is refused again.
+        spent = [
+            client.post("/companion/v1/pair", json={"pairing_secret": "x" * 40}).status_code
+            for _ in range(PAIR_RESERVE_PER_MINUTE + 2)
+        ]
+        ticket = devices(app).create_pairing(user_id, "Second")
+        refused = client.post("/companion/v1/pair", json={"pairing_secret": ticket.secret})
+    assert spent[-1] == 429
+    assert refused.status_code == 429
 
 
 @pytest.mark.integration
@@ -304,14 +352,14 @@ def test_successful_pairings_do_not_consume_the_failure_budget() -> None:
     app = companion_app()
     user_id = owner(app)
     with TestClient(app) as client:
-        for _ in range(PAIR_FAILURES_PER_MINUTE + 5):
+        for _ in range(SAME_CLIENT_BUDGET + 5):
             paired_token(client, app, user_id)
         # Every success refunded its reservation, so a full budget of failures is still available.
         statuses = [
             client.post("/companion/v1/pair", json={"pairing_secret": "x" * 40}).status_code
-            for _ in range(PAIR_FAILURES_PER_MINUTE - 1)
+            for _ in range(SAME_CLIENT_BUDGET - 1)
         ]
-    assert statuses == [401] * (PAIR_FAILURES_PER_MINUTE - 1)
+    assert statuses == [401] * (SAME_CLIENT_BUDGET - 1)
 
 
 @pytest.mark.integration

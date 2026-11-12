@@ -1,7 +1,7 @@
 name: pages
 
 # Builds the website under website/ and publishes it with GitHub Pages. It runs on a published
-# release or by hand, never on push or on a schedule (CI runs only at release). No secrets are used:
+# release or by hand, never on push or on a schedule (CI too has no push or schedule trigger). No secrets are used:
 # SITE_URL and SITE_BASE are plain repository variables (Settings > Secrets and variables > Actions >
 # Variables). Left empty they fall back to https://roadlake.com with no base path (website/site-config.mjs).
 #

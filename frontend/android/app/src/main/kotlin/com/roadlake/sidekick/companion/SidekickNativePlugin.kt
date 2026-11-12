@@ -73,13 +73,13 @@ class SidekickNativePlugin : Plugin() {
     }
 
     @PluginMethod
-    fun request(call: PluginCall) = run(call) {
+    fun request(call: PluginCall) = runBound(call) { generation ->
         val query = queryOf(call)
         val body = objectArgument(call, "body")?.toString()
         val method = call.getString("method")
         val path = call.getString("path")
-        // Read before the request starts: a failure without an answer hands it to the page (see queuePurchase).
-        val generation = SidekickRuntime.get(context).today.pairingGeneration()
+        // The pairing the page called under (fixed when the call arrived, see runBound): a failure without an answer
+        // hands it to the page (see queuePurchase), and the request is refused if the pairing changed while it waited.
         val answer = try {
             SidekickRuntime.get(context).offlineReads.request(
                 method = method,
@@ -309,7 +309,7 @@ class SidekickNativePlugin : Plugin() {
      * `queued | rate_limited | no_subscription | disabled | offline | unpaired`. Never rejects for those cases.
      */
     @PluginMethod
-    fun sendTestPush(call: PluginCall) = run(call) {
+    fun sendTestPush(call: PluginCall) = runBound(call) {
         val result = client.sendTestPush()
         val answer = JSObject().put("outcome", result.outcome.wire)
         result.retryAfterSeconds?.let { answer.put("retryAfterSeconds", it) }
@@ -322,7 +322,18 @@ class SidekickNativePlugin : Plugin() {
     @PluginMethod
     fun unpair(call: PluginCall) = run(call) { JSObject().put("serverRevoked", client.unpair()) }
 
-    private fun run(call: PluginCall, work: () -> JSObject) {
+    private fun run(call: PluginCall, work: () -> JSObject) = submit(call, work)
+
+    /**
+     * Like [run], for a call that uses the pairing's credential: the pairing generation is fixed here, when the call
+     * arrives, and [work] runs pinned to it. A call that waited in the pool while the phone was unpaired and paired
+     * again is refused with `not_paired` rather than sent with the new pairing; [work] gets the generation.
+     */
+    private fun runBound(call: PluginCall, work: (Long) -> JSObject) {
+        submit(call, SidekickRuntime.get(context).generation.bindNow(work))
+    }
+
+    private fun submit(call: PluginCall, work: () -> JSObject) {
         val pool = executor
         if (pool == null) {
             call.reject("unavailable", "unavailable")

@@ -30,7 +30,7 @@ npm --prefix frontend run check            # eslint + tsc -b + vitest
 
 # Backendtester (kräver engångsdatabasen PostgreSQL på port 55433 nedan, "Kör testerna")
 (cd backend && uv run pytest --full)
-# Bara repots regler (skanning av källkod, dokument och konfiguration; CI kör dem som eget steg, ingen databas)
+# Bara repots regler (skanning av källkod, dokument och konfiguration; release-CI kör dem som eget steg, ingen databas)
 (cd backend && uv run pytest --full -m policy)
 
 # Webbläsartester för MCP-appen (Playwright med Chromium: `npx playwright install chromium` i frontend/)
@@ -57,10 +57,12 @@ shellcheck och gitleaks måste vara installerade lokalt. Saknas ett av dem skriv
 (install: ...)` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett fel.
 
 Den kör inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna, kontrollen av
-kontraktsögonblicksbilder eller emulatortestet; det gör CI, så kör de nedan som hör till det du har
+kontraktsögonblicksbilder eller emulatortestet; det gör release-CI, så kör de nedan som hör till det du har
 ändrat.
 
-CI kör mer än kommandona ovan. Kör dem som hör till det du har ändrat:
+CI körs inte för pull requests, sammanslagningar eller pushar; det är en grind vid varje release (och kan startas för
+hand). Kontrollerna kör alltså du själv innan du pushar: installera hookarna med `pre-commit install --hook-type
+pre-commit --hook-type pre-push` och kör kommandona som hör till det du har ändrat. Release-CI kör mer än kommandona ovan:
 
 ```bash
 # Kontraktsfiler: generera om (se "Kodstil") och kontrollera att `git diff --exit-code -- contracts` är ren.

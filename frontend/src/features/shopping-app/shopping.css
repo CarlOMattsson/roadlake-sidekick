@@ -126,7 +126,7 @@
   padding: 0.75rem;
   margin: 0.75rem 0;
 }
-/* The change form (ui-10): item on its own line, quantity and unit side by side, store; the rest behind "Fler fält".
+/* The change form: item on its own line, quantity and unit side by side, store; the rest behind "Fler fält".
    Values are set in the body weight, labels in the label weight. */
 .sidekick-shopping .shopping-editor :is(input, select, textarea) {
   font-weight: var(--sk-type-body-weight);

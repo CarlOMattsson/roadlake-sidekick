@@ -27,31 +27,6 @@ def test_configured_secret_signs_cursors() -> None:
     assert settings.cursor_signing_key == "s" * 40
 
 
-def test_the_removed_name_in_the_environment_stops_startup_and_names_the_new_one(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv("SIDEKICK_SESSION_SECRET", "SECRET-SENTINEL" + "f" * 30)
-    with pytest.raises(ValidationError) as error:
-        Settings(_env_file=None)
-    assert "SIDEKICK_SESSION_SECRET was renamed to SIDEKICK_CURSOR_SIGNING_SECRET" in str(
-        error.value
-    )
-    assert "SECRET-SENTINEL" not in str(error.value)
-
-
-def test_the_removed_name_in_a_dotenv_file_stops_startup_and_names_the_new_one(
-    tmp_path: Path,
-) -> None:
-    env_file = tmp_path / ".env"
-    env_file.write_text(f"SIDEKICK_SESSION_SECRET=SECRET-SENTINEL{'d' * 30}\n", encoding="utf-8")
-    with pytest.raises(ValidationError) as error:
-        Settings(_env_file=env_file)
-    assert "SIDEKICK_SESSION_SECRET was renamed to SIDEKICK_CURSOR_SIGNING_SECRET" in str(
-        error.value
-    )
-    assert "SECRET-SENTINEL" not in str(error.value)
-
-
 def test_placeholder_secret_never_becomes_the_signing_key() -> None:
     settings = Settings(_env_file=None)
     assert settings.cursor_signing_secret.startswith("development-")

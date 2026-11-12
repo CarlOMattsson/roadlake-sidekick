@@ -5,7 +5,7 @@
 # tools/work.sh, which passes both files, the project name sidekick-work and the derived SIDEKICK_WORK_* values.
 #
 #   docker compose -p sidekick-work --project-directory deploy/selfhost \
-#     -f deploy/selfhost/compose.yaml -f deploy/work/compose.yaml --env-file deploy/work/work.env --profile memory ...
+#     -f deploy/selfhost/compose.yaml -f deploy/work/compose.yaml --env-file deploy/work/work.env [--profile memory] ...
 #
 # Paths below are relative to deploy/selfhost (the project directory), hence ../work/.
 #
@@ -40,8 +40,9 @@ x-sidekick-work-env: &sidekick-work-env
   SIDEKICK_COMPANION_ENABLED: "false"
   SIDEKICK_PUSH_ENABLED: "false"
   SIDEKICK_BACKUP_ENABLED: "false"
-  # Memory: memory-worker + Hindsight, configured by the SIDEKICK_MEMORY_* settings below.
-  SIDEKICK_MEMORY_ENABLED: "true"
+  # Memory: memory-worker + Hindsight (compose profile `memory`, which tools/work.sh passes only when memory is on),
+  # configured by the SIDEKICK_MEMORY_* settings below. Off by default; tools/work.sh derives the value.
+  SIDEKICK_MEMORY_ENABLED: ${SIDEKICK_WORK_MEMORY_ENABLED:-false}
   SIDEKICK_MEMORY_PROVIDER: hindsight
   SIDEKICK_MEMORY_HINDSIGHT_BASE_URL: http://hindsight:8888
 

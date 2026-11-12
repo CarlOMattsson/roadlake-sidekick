@@ -7,7 +7,7 @@
 :root.sk-mobile {
   --sk-foot-reserve: var(--host-safe-bottom, 0px);
   /* Android's touch target is 48 dp, and what TalkBack and the accessibility scanner measure is the element's own box,
-     not the ::after that reaches past it in Claude (ua-5). So on the phone the controls drawn 44 (icon buttons, tabs,
+     not the ::after that reaches past it in Claude. So on the phone the controls drawn 44 (icon buttons, tabs,
      quiet buttons) and 40 (compact buttons such as Ångra, chips) are drawn 48. */
   --sk-tap: 3rem;
   --sk-compact: 3rem;

@@ -47,6 +47,9 @@ describe("MCP error helpers", () => {
     for (const [code, how] of Object.entries(expected)) {
       expect(writeFailure(failed(code))).toBe(how);
     }
+    // The companion envelope's definitive refusals are not transient either.
+    expect(writeFailure(failed("bad_request"))).toBe("invalid");
+    expect(writeFailure(failed("method_not_allowed"))).toBe("invalid");
     expect(writeFailure(new Error("boom"))).toBe("failed");
     expect(writeFailure(undefined)).toBe("failed");
   });

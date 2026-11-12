@@ -45,6 +45,19 @@ DERIVED_ENV = {
     "SIDEKICK_WORK_UPSTREAM_HOST_HEADER": "vllm.company.lan:8000",
     "SIDEKICK_WORK_UPSTREAM_TLS": "",
     "SIDEKICK_WORK_MEMORY_MODEL": "flash-test",
+    "SIDEKICK_WORK_MEMORY_ENABLED": "true",
+}
+
+# What it exports when the memory is off: placeholders that never connect, memory switched off.
+MEMORY_OFF_ENV = {
+    "SELFHOST_DOMAIN": "work.invalid",
+    "SIDEKICK_WORK_MODEL_PORT": "1",
+    "SIDEKICK_WORK_MODEL_PATH": "/v1",
+    "SIDEKICK_WORK_UPSTREAM_ADDR": "unset:1",
+    "SIDEKICK_WORK_UPSTREAM_HOST_HEADER": "unset",
+    "SIDEKICK_WORK_UPSTREAM_TLS": "",
+    "SIDEKICK_WORK_MEMORY_MODEL": "unset",
+    "SIDEKICK_WORK_MEMORY_ENABLED": "false",
 }
 
 

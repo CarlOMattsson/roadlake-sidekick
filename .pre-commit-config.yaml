@@ -1,3 +1,5 @@
+# Fast checks run on commit only when their area changed; full suites run on pre-push.
+# Install both: pre-commit install --hook-type pre-commit --hook-type pre-push
 repos:
   - repo: local
     hooks:
@@ -7,6 +9,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        files: ^backend/
 
       - id: backend-ruff-lint
         name: Backend Ruff Lint Check
@@ -14,6 +17,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        files: ^backend/
 
       - id: backend-pyright
         name: Backend Pyright Typecheck
@@ -21,12 +25,14 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        files: ^backend/
 
       - id: export-openapi-and-mcp-contracts
         name: Export OpenAPI, MCP and Companion Contracts Snapshot
         entry: bash -c 'uv run --project backend python -m sidekick.api.export_openapi --output contracts/openapi.generated.json && uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json && uv run --project backend python -m sidekick.api.export_companion_contract --output contracts/companion-api.generated.json && git diff --exit-code -- contracts && uv run --project backend python -m sidekick.mcp.export_tool_reference --check && uv run --project backend python -m sidekick.export_reference --check'
         language: system
         pass_filenames: false
+        files: ^(backend/|contracts/)
 
 
       - id: frontend-prettier-format
@@ -35,6 +41,7 @@ repos:
         language: system
         types_or: [javascript, jsx, ts, tsx, json, css]
         pass_filenames: false
+        files: ^frontend/
 
       - id: frontend-lint
         name: Frontend ESLint Check
@@ -42,6 +49,7 @@ repos:
         language: system
         types_or: [javascript, jsx, ts, tsx]
         pass_filenames: false
+        files: ^frontend/
 
       - id: frontend-typecheck
         name: Frontend TypeScript Check
@@ -49,15 +57,20 @@ repos:
         language: system
         types_or: [ts, tsx]
         pass_filenames: false
+        files: ^frontend/
 
       - id: frontend-tests
         name: Frontend Vitest Suite
         entry: bash -c 'cd frontend && npm test'
         language: system
         pass_filenames: false
+        files: ^frontend/
+        stages: [pre-push]
 
       - id: backend-pytest
         name: Backend Pytest Suite (Unit & Contract)
         entry: bash -c 'cd backend && uv run pytest -q tests/unit tests/policy tests/contract'
         language: system
         pass_filenames: false
+        files: ^backend/
+        stages: [pre-push]

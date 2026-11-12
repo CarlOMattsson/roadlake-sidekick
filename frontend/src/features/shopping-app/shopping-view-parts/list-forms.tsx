@@ -140,7 +140,7 @@ export function ListPicker({
 }: Omit<ListsView, "listName" | "onListName" | "onCreate"> & {
   /**
    * The host's own settings (the phone): the picker's head then ends with ⋯, which holds them, so they are one tap
-   * away also before any list exists (ua-8). Absent: no ⋯ (Claude's Kontroll is in a list's ⋯).
+   * away also before any list exists. Absent: no ⋯ (Claude's Kontroll is in a list's ⋯).
    */
   control?: HostSettingsEntry;
   /** Sends a message to Claude; absent when the host offers none (the empty state then shows its example as text). */

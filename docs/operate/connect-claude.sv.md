@@ -51,7 +51,8 @@ uppkoppling nekas, och skapa sedan om API:et.
 kostar avsändaren. Begärandekroppar hålls i minnet tills de är kompletta; högst `SIDEKICK_MAX_BUFFERED_REQUESTS` (förval
 32, 1 till 1024, upp till 1 MiB vardera) får vara på väg in samtidigt, och en begäran som möter fullt får `503` med
 `Retry-After: 1`. En plats frigörs när kroppen är komplett, inte när begäran besvarats, eftersom ett MCP-svar kan stå
-öppet länge. Att kontrollera en bärartoken kostar en databasfråga, så misslyckade försök (svar 401) räknas i en glidande
+öppet länge. En fjärdedel av platserna hålls tillbaka för bärartokens som API:et har verifierat den senaste timmen, så att
+anonyma klienter som öppnar många långsamma kroppar inte kan svälta dina anslutna klienter. Att kontrollera en bärartoken kostar en databasfråga, så misslyckade försök (svar 401) räknas i en glidande
 minut: efter `SIDEKICK_FAILED_AUTH_PER_CLIENT_PER_MINUTE` (förval 10) från en klientadress, eller
 `SIDEKICK_FAILED_AUTH_GLOBAL_PER_MINUTE` (förval 60) från alla klienter tillsammans, får ytterligare begäranden med en
 okänd token `429` med `Retry-After` innan databasen berörs. En token som API:et verifierat den senaste timmen stryps

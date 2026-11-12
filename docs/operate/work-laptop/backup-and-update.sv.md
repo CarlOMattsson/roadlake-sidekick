@@ -6,8 +6,8 @@
 
 Ta krypterade backuper av databasen och minnet på jobbdatorn, uppdatera, och gå tillbaka om en uppdatering misslyckas.
 
-`bash tools/work.sh backup` sparar i `deploy/work/backups/` två filer med samma tidsstämpel: databasdumpen
-(`sidekick-<tid>.sql.enc`) och Hindsights minne (`hindsight-<tid>.tar.gz.enc`). **Båda är krypterade** (se
+Med minnet på (`SIDEKICK_WORK_MEMORY=on` i `work.env`) sparar `bash tools/work.sh backup` i `deploy/work/backups/` två filer med samma tidsstämpel: databasdumpen
+(`sidekick-<tid>.sql.enc`) och Hindsights minne (`hindsight-<tid>.tar.gz.enc`). Med minnet av (`SIDEKICK_WORK_MEMORY=off`, förvalet, se [När minnet är av](#när-minnet-är-av)) sparas bara den första filen. **Båda är krypterade** (se
 [Säkerhetskopians nyckel](#säkerhetskopians-nyckel)); ingen klartextdump eller klartextarkiv skrivs någonsin till disk. Hindsight lagrar minnet i en inbyggd Postgres i
 volymen `hindsight_pg0`. För att de två kopiorna ska hänga ihop med varandra pausas först `api`, `memory-worker` och `automation-worker`, och de
 startas igen när båda kopiorna är klara (även om säkerhetskopian misslyckas eller avbryts). En kopia av levande databasfiler hänger inte ihop, så Hindsight stoppas några sekunder medan
@@ -21,6 +21,16 @@ uppsättningen eller den senaste färdiga, och rör bara filer som heter exakt `
 den har **lästs tillbaka**: `backup` avkrypterar varje fil igen, kontrollerar att dumpen slutar med pg_dumps
 slutmarkering och att arkivet går att lista och inte är tomt, och rapporterar den först därefter. En fil som inte klarar
 kontrollen tas bort och kommandot misslyckas (skrivarna och Hindsight startas igen).
+
+## När minnet är av
+
+`SIDEKICK_WORK_MEMORY=off` är förvalet. Då körs varken Hindsight eller minnesarbetaren och det finns ingen Hindsight-volym att säkerhetskopiera:
+`backup` skriver "Minnet är av; bara databasen säkerhetskopieras." och sparar bara `sidekick-<tid>.sql.enc`, och under tiden pausas bara `api`
+och `automation-worker`. `restore` behöver då bara den filen: det letar inte efter eller rör något minnesarkiv och planen markerar minnet
+som av (en säkerhetskopia som också har en minnesfil återställs utan den). Slår du på minnet senare
+(`bash tools/work.sh setup`, eller `SIDEKICK_WORK_MEMORY=on` plus modellserverns inställningar i `work.env`, sedan `start`) **börjar det tomt**:
+inget byggs upp i efterhand från tiden det var av, och en databaskopia från den tiden innehåller inget minne. En `work.env` från före
+inställningen saknar raden och behåller minnet på.
 
 ## Säkerhetskopians nyckel
 

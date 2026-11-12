@@ -5,7 +5,7 @@ paketet; att skapa taggen, GitHub-releasen och eventuell butiksnotering är ett 
 skapar aldrig en tagg eller en release. English: [release.md](release.md).
 
 Releaser görs på alla tre nivåer: major (`X.0.0`), minor (`X.Y.0`) och patch (`X.Y.Z`). Ändringar testas lokalt innan
-de pushas, så CI körs inte vid varje push: hela CI (med beroendegranskningen) och drillen för uppdatering, backup och
+de pushas, så CI körs aldrig vid push eller enligt schema (det körs för hand och som releasegrind): hela CI (med beroendegranskningen) och drillen för uppdatering, backup och
 återställning körs som grindar vid varje riktig release, också en patch. En patch får bara deklarera migrationsklassen
 `expand` (en rättning levererar aldrig ett enkelriktat schemasteg).
 
@@ -267,10 +267,26 @@ tillkännagivandet:
 - Signeringsnyckeln läckte eller förlorades: radera miljöhemligheterna, berätta för ägaren av installationerna och
   behandla nästa APK som en ny applinje.
 
+## Skicka senare ändringar till det publika repot
+
+`tools/export/export-repo.sh <katalog>` skapar bara den första importen och vägrar en katalog som inte är tom.
+Senare ändringar går in som vanliga commits ovanpå den publicerade historiken (force-push är inte tillåtet):
+
+```bash
+git clone git@github.com:CarlOMattsson/roadlake-sidekick.git /path/to/clone
+tools/export/export-repo.sh --update --dry-run /path/to/clone   # listar A (nya), M (ändrade), D (borttagna)
+tools/export/export-repo.sh --update [--author "Name <email>"] /path/to/clone
+git -C /path/to/clone push origin main                          # skriptet skriver ut detta; det pushar aldrig
+```
+
+Klonen måste stå på `main` med ren arbetskatalog. Exporten använder samma allowlist, denylist, overlay och
+spärrkontroll (kod 3 avbryter före commit), filerna speglas in i klonen (`.git` rörs aldrig) och en commit görs vars
+meddelande anger källcommitens korta hash. Skiljer inget skriver skriptet "inga ändringar" och gör ingen commit.
+
 ## Taggar och den första releasen
 
 Release-arbetsflödet (`.github/workflows/release-image.yml`, startas för hand) körs bara från en incheckning på
-`main`, bygger major-, minor- och patchversioner efter ägarens godkännande och kör hela CI och drillen själv som grindar (CI körs inte vid push; ändringar testas lokalt först). Det kontrollerar också den angivna migrationsklassen mot migrationerna som lagts till sedan föregående
+`main`, bygger major-, minor- och patchversioner efter ägarens godkännande och kör hela CI och drillen själv som grindar (CI körs aldrig vid push eller enligt schema, bara för hand och som den här grinden, aldrig för pull requests; ändringar testas lokalt först). Det kontrollerar också den angivna migrationsklassen mot migrationerna som lagts till sedan föregående
 release (en patch får bara deklarera `expand`). Det skapar aldrig git-taggar. Pusha den signerade taggen på den släppta incheckningen själv efter en release; nästa
 release hittar sin jämförelsepunkt från den taggen:
 

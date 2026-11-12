@@ -13,8 +13,9 @@ from pathlib import Path
 import pytest
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 
-from sidekick.mcp import input_schemas, schema_cache
+from sidekick.mcp import input_schemas
 from sidekick.shared.observability import harden_tracer_provider, sdk_internals, setup
+from tests.support import schema_cache
 
 BACKEND = Path(__file__).resolve().parents[2]
 

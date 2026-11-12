@@ -1,12 +1,9 @@
 name: CI
 
 on:
-  # Pull requests (outside contributions) run the gates before a merge. There is no push trigger: changes are
-  # tested locally before they are pushed, and the full run happens as a gate of every release
-  # (workflow_call from release-image.yml). `workflow_dispatch` re-runs the gates on demand.
-  pull_request:
-    branches: [main]
-  merge_group:
+  # CI runs only as a release gate (workflow_call from release-image.yml) or on demand (workflow_dispatch).
+  # There is no pull_request, merge_group or push trigger: contributors run the checks locally (pre-commit and
+  # pre-push) and the full run happens on exactly the commit that is released.
   workflow_dispatch:
   workflow_call:
 
@@ -14,56 +11,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      pull-requests: read
-      contents: read
-    outputs:
-      backend: ${{ steps.filter.outputs.backend }}
-      frontend: ${{ steps.filter.outputs.frontend }}
-      deploy: ${{ steps.filter.outputs.deploy }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
-        id: filter
-        with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'migrations/**'
-              - 'contracts/**'
-              - 'deploy/**'
-              - 'tools/**'
-              # The policy tests read these (docs parity, version sync, dockerignore, env example, workflows).
-              - 'docs/**'
-              - '**/*.md'
-              - '.env.example'
-              - '.dockerignore'
-              - 'frontend/package.json'
-              - 'frontend/package-lock.json'
-              - 'frontend/android/**'
-              - '.github/**'
-            frontend:
-              - 'frontend/**'
-              - 'contracts/**'
-              - 'backend/src/sidekick/mcp/apps/**'
-              - '.github/workflows/ci.yml'
-            deploy:
-              - 'deploy/**'
-              - 'backend/**'
-              - 'frontend/**'
-              - '.github/workflows/ci.yml'
-
   backend:
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -91,13 +43,13 @@ jobs:
         with: { version: "0.11.8", enable-cache: true }
       - run: uv sync --project backend --frozen --all-groups
       - name: Create bounded database roles
-        run: docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U postgres -d sidekick_test -f /dev/stdin < deploy/postgres-init.sql
+        run: docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U postgres -d sidekick_test -f /dev/stdin < deploy/postgres-init.test-only.sql
       - name: Create one database per pytest-xdist worker
-        # Same roles and grants as sidekick_test (deploy/postgres-init.sql). The suite migrates each worker database itself.
+        # Same roles and grants as sidekick_test (deploy/postgres-init.test-only.sql). The suite migrates each worker database itself.
         run: |
           for i in $(seq 0 $((SIDEKICK_TEST_WORKERS - 1))); do
             docker exec "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "CREATE DATABASE sidekick_test_w${i}"
-            docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -q -U postgres -d "sidekick_test_w${i}" -f /dev/stdin < deploy/postgres-init.sql
+            docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -q -U postgres -d "sidekick_test_w${i}" -f /dev/stdin < deploy/postgres-init.test-only.sql
           done
       - name: Apply migrations explicitly
         run: uv run --project backend yoyo apply --batch --database "$SIDEKICK_TEST_MIGRATION_DATABASE_URL" migrations
@@ -133,8 +85,6 @@ jobs:
           uv run --project backend python -m sidekick.export_reference --check
 
   frontend:
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -174,8 +124,6 @@ jobs:
 
   migration-policy:
     # Every shipped migration is checked: since the 0.1.0 baseline each one passes or declares its class.
-    needs: changes
-    if: needs.changes.outputs.backend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -186,8 +134,6 @@ jobs:
   android:
     # JVM unit tests, lint and the R8-minified release build of the Android shell. The release APK is unsigned: no
     # signing key is available to CI. The emulator smoke test is the separate android-emulator job.
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -223,8 +169,6 @@ jobs:
   android-emulator:
     # Instrumented smoke test of pairing and the Capacitor bridge on an emulator (API 34, x86_64). A simulated device,
     # not a real phone: it proves the wiring, not a manufacturer's battery management or a real network.
-    needs: changes
-    if: needs.changes.outputs.frontend == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -264,7 +208,6 @@ jobs:
   secrets:
     permissions:
       contents: read
-      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -301,11 +244,8 @@ jobs:
     uses: ./.github/workflows/audit.yml
 
   images:
-    needs: changes
-    if: needs.changes.outputs.deploy == 'true' || github.event_name != 'pull_request'
     permissions:
       contents: read
-      pull-requests: read
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

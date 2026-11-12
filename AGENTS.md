@@ -18,6 +18,10 @@ and a companion Android app. See [README.md](README.md) and [QUICKSTART.md](QUIC
 - Do not edit migrations that have been applied; add a new numbered file under `migrations/`. The chain starts at
   the 0.1.0 baseline (`100_baseline_0_1_0.py`); new files continue from `101_`.
 
+## Setting up Sidekick for a user
+
+If you run the local setup (`bash tools/work.sh setup`) on behalf of a person, ask them first which app language they want (propose Swedish) and which rooms they want (propose all except shopping), and do not continue without both answers.
+
 ## Repository layout
 
 - `backend/src/sidekick/`: one package per context (`work`, `tasks`, `projects`, `journal`, `contacts`, `shopping`,

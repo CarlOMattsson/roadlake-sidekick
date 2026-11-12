@@ -33,6 +33,7 @@ NOT_SETTINGS_SIDEKICK_KEYS = {
     "SIDEKICK_WORK_EMBEDDINGS_MODEL": "tools/work.sh and deploy/work/compose.yaml",
     "SIDEKICK_WORK_INSTANCE_LABEL": "tools/work.sh and deploy/work/compose.yaml",
     "SIDEKICK_WORK_LOCALE": "tools/work.sh and deploy/work/compose.yaml",
+    "SIDEKICK_WORK_MEMORY": "tools/work.sh",
     "SIDEKICK_WORK_TIMEZONE": "tools/work.sh and deploy/work/compose.yaml",
     "SIDEKICK_WORK_PORT": "tools/work.sh and deploy/work/compose.yaml",
     "SIDEKICK_WORK_CA_BUNDLE": "tools/work.sh and deploy/work/compose.yaml",

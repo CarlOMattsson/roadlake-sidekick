@@ -62,7 +62,7 @@ button.sk-empty-example {
   cursor: pointer;
 }
 /* Without a host that takes messages (the phone) the example is only something to say to Claude: a quote in the
-   text's own place, with no frame and no fill, so it is not taken for a button that does nothing (ua-13). */
+   text's own place, with no frame and no fill, so it is not taken for a button that does nothing. */
 .sk-empty .sk-empty-example--text {
   min-height: 0;
   padding: 0;

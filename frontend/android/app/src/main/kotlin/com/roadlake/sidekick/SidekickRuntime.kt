@@ -59,7 +59,9 @@ import java.util.concurrent.CopyOnWriteArraySet
 class SidekickRuntime private constructor(context: Context) {
     private val appContext = context.applicationContext
     private val pairingLostListeners = CopyOnWriteArraySet<() -> Unit>()
-    private val generation = PairingGeneration()
+
+    /** Shared by the client and everything that must stop when a pairing ends; also binds the plugin's queued calls. */
+    val generation = PairingGeneration()
 
     private fun textStore(name: String) = FileTextStore(
         File(appContext.noBackupFilesDir, "today/$name"),

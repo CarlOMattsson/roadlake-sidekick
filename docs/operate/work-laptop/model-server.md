@@ -6,6 +6,8 @@
 
 Memory on the work laptop uses your company's own model server. This page explains what the server has to support and how to configure it.
 
+The model server is optional and only needed for the memory. With `SIDEKICK_WORK_MEMORY=off` in `work.env` (the default; `bash tools/work.sh setup` asks) Hindsight and the memory worker are not started, and `status` shows the memory as off.
+
 - Hindsight's extraction may use tool calls, so vLLM should run the model with automatic tool choice:
   `--enable-auto-tool-choice --tool-call-parser <parser>`. The parser must match the model family, for example
   `glm45` or `glm47` for GLM and `deepseek_v31` for DeepSeek V3.1 in the vLLM documentation

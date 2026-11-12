@@ -36,7 +36,7 @@ services:
     tmpfs:
       - /var/lib/postgresql
     volumes:
-      - ./postgres-init.sql:/docker-entrypoint-initdb.d/001-roles.sql:ro
+      - ./postgres-init.test-only.sql:/docker-entrypoint-initdb.d/001-roles.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sidekick_test"]
       interval: 2s

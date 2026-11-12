@@ -264,7 +264,7 @@ export function AgendaView({
           ctx={ctx}
           section={section}
           rows={layout.shown(section)}
-          // Not while a search narrows the list: "Flytta N försenade" would read as moving the hits (ui-21).
+          // Not while a search narrows the list: "Flytta N försenade" would read as moving the hits.
           moveAllOffered={offers.rescheduleOffered && query.trim() === ""}
           onMoveAll={bulk.moveAllOverdue}
         />

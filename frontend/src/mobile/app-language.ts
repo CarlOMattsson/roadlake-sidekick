@@ -1,5 +1,5 @@
 /**
- * The phone's choice of app language (ua-3). The Claude apps take their language from the server's
+ * The phone's choice of app language. The Claude apps take their language from the server's
  * `<meta name="sidekick-app-locale">`; the phone's bundle carries the same meta (Swedish unless built otherwise), and
  * the owner may choose Svenska or English on the pairing screen or in Inställningar. The choice is kept in the page's
  * own storage, so it outlives a restart and goes with the app's data, and it is written into the meta, so every room

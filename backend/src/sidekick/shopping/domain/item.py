@@ -20,6 +20,17 @@ def text(value: str | None, maximum: int, *, required: bool = False) -> str | No
     return value
 
 
+def required_text(value: str | None, maximum: int) -> str:
+    """Like `text(..., required=True)`, but typed as a str: a missing or blank value raises."""
+
+    cleaned = text(value, maximum, required=True)
+    if (
+        cleaned is None
+    ):  # unreachable while `text` enforces `required`; kept as a real check, not an assert
+        raise ValidationError("invalid shopping text")
+    return cleaned
+
+
 def web_url(value: str | None) -> str | None:
     value = text(value, 2000)
     if value is not None:

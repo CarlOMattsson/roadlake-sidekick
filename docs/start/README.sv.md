@@ -17,7 +17,7 @@ Sidekick 0.1.0 är en förhandsversion. Installationen är övad i Linux-contain
 - **Ett GitHub-konto.** Det används för inloggningen.
 - **Linux x86_64 med Docker och Docker Compose.**
 
-Jobbdatorn och utvecklarvägen behöver ingen publik adress. De använder Claude Desktop på samma dator.
+Kraven gäller bara serverspåret. Enklast att börja är jobbdatorspåret: allt körs lokalt i Docker och du använder det från Claude Desktop, utan publik adress, domän, TLS eller GitHub-konto. Utvecklarvägen är också lokal.
 
 ## Fyra vägar
 
@@ -29,7 +29,7 @@ För dig som vill självhosta, alltså köra Sidekick på en maskin du själv st
 
 ### Jobbdatorn
 
-För dig som vill använda Sidekick på jobbet utan publik adress. Jobbpaketet kör Sidekick och ett privat minne i Docker på din laptop och pratar med Claude Desktop lokalt. Containrarna når bara företagets modellserver, men det Claude Desktop läser delas med Claude. Du behöver Ubuntu med Docker, Claude Desktop och adressen till företagets egen modellserver. Det finns ingen väg till telefonen i det här paketet.
+För dig som vill använda Sidekick på jobbet utan publik adress. Jobbpaketet kör Sidekick i Docker på din laptop och pratar med Claude Desktop lokalt. Minnet är valfritt och avstängt som förval; slår du på det når containrarna bara företagets modellserver. Det Claude Desktop läser delas med Claude. Du behöver Ubuntu med Docker och Claude Desktop, och adressen till företagets egen modellserver bara om du vill ha minnet. Det finns ingen väg till telefonen i det här paketet.
 
 [Gå till Sidekick på jobbdatorn](work-laptop.sv.md)
 

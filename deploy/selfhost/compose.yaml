@@ -60,9 +60,6 @@ x-sidekick-env-common: &sidekick-env-common
   SIDEKICK_DATABASE_URL:
   SIDEKICK_CURSOR_SIGNING_SECRET:
   SIDEKICK_TOKEN_PEPPER:
-  # The removed former name of the cursor secret, passed on only so that a selfhost.env that still has it stops
-  # the process with a message naming SIDEKICK_CURSOR_SIGNING_SECRET instead of the name being dropped silently.
-  SIDEKICK_SESSION_SECRET:
   SIDEKICK_DB_CONNECT_TIMEOUT_SECONDS:
   SIDEKICK_DB_STATEMENT_TIMEOUT_MS:
   SIDEKICK_DB_LOCK_TIMEOUT_MS:

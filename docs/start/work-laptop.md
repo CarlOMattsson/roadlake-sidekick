@@ -2,14 +2,14 @@
 
 [Svenska](work-laptop.sv.md)
 
-<!-- description: Run Sidekick and a private memory in Docker on your work laptop and use it from Claude Desktop, with no public address. Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude. -->
+<!-- description: Run Sidekick in Docker on your work laptop, with an optional private memory, and use it from Claude Desktop, with no public address. If you turn the memory on, Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude. -->
 
-Run Sidekick and a private memory in Docker on your work laptop and use it from Claude Desktop, with no public address. Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude.
+Run Sidekick in Docker on your work laptop, with an optional private memory, and use it from Claude Desktop, with no public address. If you turn the memory on, Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude.
 
 ## What leaves the laptop
 
-- **Sidekick's containers** have no route out except to the model server in `work.env` (and any hosts you allow in
-  `SIDEKICK_WORK_ALLOW`). Hindsight sends it the text it derives memory from: the titles, descriptions and notes of
+- **Sidekick's containers** have no route out except to the model server in `work.env`, if you turned the memory on (and
+  any hosts you allow in `SIDEKICK_WORK_ALLOW`). Without the memory nothing leaves the laptop. Hindsight sends it the text it derives memory from: the titles, descriptions and notes of
   the records in the rooms you switched on. Sidekick itself calls no language model, and push notifications are off.
 - **Claude Desktop is an external service.** Everything a Claude conversation touches goes to Claude (Anthropic): your
   messages, the names and arguments of the Sidekick tools it calls, and what they return (for example task titles,
@@ -30,12 +30,13 @@ Run Sidekick and a private memory in Docker on your work laptop and use it from 
   `docker ps` (without `sudo`). Docker Desktop on Mac needs nothing extra.
 - `git`, `openssl`, `python3` and `curl` (all standard on Ubuntu and macOS).
 - Claude Desktop. Node.js is not needed: Claude Desktop starts Sidekick's stdio server directly in the container.
-- The address of the company model server (a vLLM base URL ending in `/v1`) and, if it needs one, its API key.
+- Only if you want the memory: the address of the company model server (a vLLM base URL ending in `/v1`) and, if it needs one, its API key. The model server is optional; without the memory Sidekick runs entirely on the laptop and needs none.
 
 ## Quick way: the guide
 
-`bash tools/work.sh setup` asks (Swedish or English) for the model server address, tests it with `GET /models`,
-takes the API key as hidden input, lets you pick the memory model from the server's list, asks which
+`bash tools/work.sh setup` asks (Swedish or English) first whether to turn the memory on (proposal: no; it needs a model
+server). Only if you say yes it asks for the model server address, tests it with `GET /models`,
+takes the API key as hidden input and lets you pick the memory model from the server's list. It then asks which
 extra addresses Sidekick may reach, which rooms to switch on (it proposes `work,journal,contacts,control`) and whether Sidekick should start at
 login, writes `work.env`, can start everything and writes the Claude Desktop configuration. It can be run again:
 answers are offered as defaults and only the settings it asks about are rewritten. The manual steps below do the same

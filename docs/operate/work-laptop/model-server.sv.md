@@ -6,6 +6,8 @@
 
 Minnet på jobbdatorn använder företagets egen modellserver. Här står vad servern behöver klara och hur du ställer in den.
 
+Modellservern är valfri och behövs bara för minnet. Med `SIDEKICK_WORK_MEMORY=off` i `work.env` (förval; `bash tools/work.sh setup` frågar) startas varken Hindsight eller minnesarbetaren, och `status` visar minnet som av.
+
 - Hindsights utvinning kan använda verktygsanrop, så vLLM bör köra modellen med automatiskt verktygsval:
   `--enable-auto-tool-choice --tool-call-parser <parser>`. Parsern ska passa modellfamiljen, till exempel `glm45` eller
   `glm47` för GLM och `deepseek_v31` för DeepSeek V3.1 enligt vLLM-dokumentationen

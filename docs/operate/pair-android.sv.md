@@ -232,7 +232,7 @@ efter utgångstiden måste paras ihop igen med en ny kod.
 | "Koden gäller inte längre eller är redan använd. Skapa en ny." | Servern svarade 401 `pairing_invalid`: koden är äldre än 10 minuter, har redan använts en gång eller är fel. Kör `pair` igen. |
 | "Servern kunde inte nås…" eller "Servern svarade inte." | Felskriven adress, problem med DNS, TLS-certifikat eller tunnel, eller inget internet på telefonen. Öppna serverns adress i telefonens webbläsare för att testa att den går att nå och att certifikatet är giltigt. |
 | "Kopplingen misslyckades. Försök igen." | Servern svarade något annat, oftast 404 för att `SIDEKICK_COMPANION_ENABLED` inte är `true` (eller för att API:et inte startades om). |
-| "För många försök. Vänta en minut och försök igen." | Ändpunkten för parkoppling tillåter 30 misslyckade försök per minut, räknat för alla anropare tillsammans. Vänta en minut. |
+| "För många försök. Vänta en minut och försök igen." | Ändpunkten för parkoppling tillåter 10 misslyckade försök per minut och adress (30 för alla adresser tillsammans, vilket bara gäller adresser som nyligen har misslyckats), plus en liten reserv på 3 försök i minuten för en giltig kod. Bakom en tunnel eller proxy delar alla besökare samma adress. Vänta en minut. |
 | "Kopplingen har upphört. Koppla igen." | Servern nekade telefonens inloggningsuppgift (401): telefonen har spärrats, uppgiften har löpt ut eller ägaren har inaktiverats. Para ihop igen med en ny kod. |
 | Inställningar: "Installera appen ntfy för att få aviseringar." | Ingen UnifiedPush-distributör är installerad. Installera ntfy och öppna Sidekick igen. |
 | Inställningar: "Aviseringar är avstängda för Sidekick." | Tillåt aviseringar för Sidekick i telefonens systeminställningar. |

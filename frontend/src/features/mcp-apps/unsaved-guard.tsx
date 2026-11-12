@@ -15,19 +15,29 @@ export type UnsavedRegistry = {
   set: (layer: string, token: string, dirty: boolean) => void;
   /** True when any of these layers holds a form with unsaved edits. */
   isDirty: (layers: readonly string[]) => boolean;
+  /** Calls `listener` whenever a layer starts or stops holding unsaved edits; returns the unsubscribe. */
+  subscribe: (listener: () => void) => () => void;
 };
 
 export function createUnsavedRegistry(): UnsavedRegistry {
   const dirty = new Map<string, Set<string>>();
+  const listeners = new Set<() => void>();
   return {
     set(layer, token, on) {
+      const was = dirty.has(layer);
       const tokens = dirty.get(layer) ?? new Set<string>();
       if (on) tokens.add(token);
       else tokens.delete(token);
       if (tokens.size > 0) dirty.set(layer, tokens);
       else dirty.delete(layer);
+      if (dirty.has(layer) !== was)
+        for (const listener of listeners) listener();
     },
     isDirty: (layers) => layers.some((layer) => dirty.has(layer)),
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => void listeners.delete(listener);
+    },
   };
 }
 

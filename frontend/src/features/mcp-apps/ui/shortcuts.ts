@@ -209,7 +209,7 @@ export function useShortcuts(
 /**
  * A fine pointer (mouse, trackpad) as the primary input: a long press does nothing there, so a row's tip names the right
  * click and Shift+F10 instead. What the host reports (`data-host-pointer`, host-style.ts: its device flags or its
- * platform) comes first, since a desktop host may run in a frame whose media query says coarse (ui-9); without it the
+ * platform) comes first, since a desktop host may run in a frame whose media query says coarse; without it the
  * frame's `(pointer: fine)` decides. False where neither can tell (no matchMedia).
  */
 export const finePointer = () => {

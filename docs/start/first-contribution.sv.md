@@ -55,7 +55,7 @@ Databasen lyssnar på `127.0.0.1:55440`. För att ändra det sätter du variabel
 exempel `SIDEKICK_DEV_DB_BIND=127.0.0.1:55441 docker compose -f deploy/compose.dev.yaml up -d db`, och ändrar också
 porten i `yoyo`-adressen ovan och i `SIDEKICK_DATABASE_URL` i `.env`. Exportera den inte i skalet och lägg den inte i
 `.env`: den är en compose-inställning, inte en Sidekick-inställning, och backend vägrar starta på en
-`SIDEKICK_`-variabel som inte är deklarerad. `deploy/postgres-init.sql` skapar rollerna `sidekick_owner`, `sidekick_migrator` och `sidekick_app`, den sista med minsta möjliga
+`SIDEKICK_`-variabel som inte är deklarerad. `deploy/postgres-init.test-only.sql` skapar rollerna `sidekick_owner`, `sidekick_migrator` och `sidekick_app`, den sista med minsta möjliga
 rättigheter. Bara migreringsrollen kör DDL; applikationen gör det aldrig. Kör `yoyo apply` igen varje gång
 det kommer nya filer under `migrations/`.
 
@@ -180,7 +180,7 @@ docker compose -f deploy/compose.dev.yaml down -v    # raderar också den lokala
   eller så startades backend från en annan katalog (se steg 3).
 - **Migreringsfel:** kontrollera att databasen är frisk och att anslutningssträngen pekar på rätt port.
 - **`password authentication failed for user "sidekick_migrator"` vid första körningen:** rollerna i
-  `deploy/postgres-init.sql` skapades aldrig, eftersom databasvolymen initierades av en misslyckad första start och
+  `deploy/postgres-init.test-only.sql` skapades aldrig, eftersom databasvolymen initierades av en misslyckad första start och
   PostgreSQL hoppar över initieringen vid varje senare start. Kör `docker compose -f deploy/compose.dev.yaml down -v`
   (det raderar den lokala databasen) och starta om. Compose-filen kopierar filen som root, så en sträng `umask`
   (`077`) på utcheckningen är inte längre en orsak; för att se vad containern läste:

@@ -33,6 +33,13 @@
 		default unmatched
 	}
 
+	# Method class: the standard methods as they are, anything else (a client can send any token as the
+	# method) collapses to OTHER, so a client cannot write free text into the log through the method.
+	map {http.request.method} {method_class} {
+		~^(GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS)$ {1}
+		default OTHER
+	}
+
 	# Access log: an explicit allowlist, not a filtered copy of Caddy's record. The line carries the
 	# fixed top-level fields Caddy writes (time, level, logger, message, status, duration, size) plus the
 	# four fields appended below: method, host, route (the fixed class above, never the path) and a
@@ -40,7 +47,7 @@
 	# TLS details) and `resp_headers` are deleted as a whole, so a field Caddy adds to them later cannot
 	# reach a log line, and a bearer token, cookie, one-time OAuth code, id or ntfy topic never can.
 	# `user_id`, `bytes_read` and Caddy's own `uuid` (the same value as `request_id`) are dropped as well.
-	log_append method {http.request.method}
+	log_append method {method_class}
 	log_append host {http.request.host}
 	log_append route {route_class}
 	log_append request_id {http.request.uuid}

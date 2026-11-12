@@ -2,9 +2,11 @@
 
 import json
 import re
+import shutil
 import stat
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -94,6 +96,62 @@ def test_start_refuses_a_missing_or_placeholder_memory_model(mini_repo: Path) ->
         result = run_work(mini_repo, "start")
         assert result.returncode == 1
         assert "SIDEKICK_WORK_MEMORY_MODEL" in result.stderr
+
+
+def test_start_without_memory_needs_no_model_server_and_leaves_hindsight_out(
+    mini_repo: Path,
+) -> None:
+    assert run_work(mini_repo, "init").returncode == 0
+    write_env(
+        mini_repo,
+        SIDEKICK_WORK_MEMORY="off",
+        SIDEKICK_WORK_MODEL_BASE_URL="http://<vllm-host>:<port>/v1",
+    )
+    result = run_work(mini_repo, "start")
+    assert result.returncode == 0, result.stderr
+    calls = (mini_repo / "docker-calls.txt").read_text(encoding="utf-8")
+    assert "--profile memory" not in calls
+    assert "stop hindsight memory-worker" in calls
+    assert _derived(mini_repo)["SIDEKICK_WORK_MEMORY_ENABLED"] == "false"
+    # With the memory on, the profile is passed and Sidekick's memory is on.
+    write_env(
+        mini_repo,
+        SIDEKICK_WORK_MEMORY="on",
+        SIDEKICK_WORK_MODEL_BASE_URL="http://vllm:8000/v1",
+        SIDEKICK_WORK_MEMORY_MODEL="m",
+    )
+    assert run_work(mini_repo, "start").returncode == 0
+    assert "--profile memory" in (mini_repo / "docker-calls.txt").read_text(encoding="utf-8")
+    assert _derived(mini_repo)["SIDEKICK_WORK_MEMORY_ENABLED"] == "true"
+
+
+def test_memory_on_still_refuses_a_missing_model_server(mini_repo: Path) -> None:
+    assert run_work(mini_repo, "init").returncode == 0
+    write_env(mini_repo, SIDEKICK_WORK_MEMORY="on")
+    result = run_work(mini_repo, "start")
+    assert result.returncode == 1
+    assert "SIDEKICK_WORK_MODEL_BASE_URL" in result.stderr
+
+
+def test_backup_and_stop_work_without_memory(mini_repo: Path) -> None:
+    assert run_work(mini_repo, "init").returncode == 0
+    write_env(mini_repo, SIDEKICK_WORK_MEMORY="off")
+    result = run_work(mini_repo, "backup")
+    assert result.returncode == 0, result.stderr
+    assert "Memory is off" in result.stdout or "Minnet är av" in result.stdout
+    backups = mini_repo / "deploy" / "work" / "backups"
+    assert list(backups.glob("sidekick-*.sql.enc")) and not list(backups.glob("hindsight-*"))
+    assert run_work(mini_repo, "stop").returncode == 0
+    assert "--profile memory" in (mini_repo / "docker-calls.txt").read_text(encoding="utf-8")
+
+
+def test_status_shows_memory_as_off_not_as_an_error(mini_repo: Path) -> None:
+    assert run_work(mini_repo, "init").returncode == 0
+    write_env(mini_repo, SIDEKICK_WORK_MEMORY="off")
+    result = run_work(mini_repo, "status")
+    assert result.returncode == 0, result.stderr
+    assert "Minne: av" in result.stdout
+    assert "hindsight-containern" not in result.stdout
 
 
 def test_start_refuses_without_secrets(mini_repo: Path) -> None:
@@ -244,7 +302,7 @@ def test_autostart_writes_and_removes_the_unit(mini_repo: Path) -> None:
         assert "<key>RunAtLoad</key><true/>" in unit and "--wait-docker" in unit
     else:
         unit = (unit_dir / "sidekick-work.service").read_text(encoding="utf-8")
-        assert f"ExecStart=/bin/bash {mini_repo}/tools/work.sh start --wait-docker" in unit
+        assert f'ExecStart=/bin/bash "{mini_repo}/tools/work.sh" start --wait-docker' in unit
         assert "WantedBy=default.target" in unit and "After=docker.service" in unit
     assert run_work(mini_repo, "autostart", "status").stdout.startswith("på")
     assert run_work(mini_repo, "autostart", "off").returncode == 0
@@ -307,3 +365,30 @@ def test_the_other_commands_speak_the_chosen_language(mini_repo: Path) -> None:
         "SIDEKICK_WORK_MODEL_BASE_URL=http://<x>/v1\nSIDEKICK_WORK_LOCALE=en\n", encoding="utf-8"
     )
     assert "placeholder" in run_work(mini_repo, "start", SIDEKICK_WORK_LANG="").stderr
+
+
+ODD_NAME = "a b&<'\"\u00e5\u00e4\u00f6 %h $x"
+
+
+def test_autostart_unit_survives_awkward_repo_paths(mini_repo: Path, tmp_path: Path) -> None:
+    odd = tmp_path / "odd" / ODD_NAME
+    shutil.copytree(mini_repo, odd, symlinks=True)
+    script = f"{odd}/tools/work.sh"
+    # systemd unit (Linux branch)
+    assert run_work(odd, "autostart", "on").returncode == 0
+    unit_file = odd / "autostart" / "sidekick-work.service"
+    if sys.platform != "darwin":
+        escaped = script.replace("\\", "\\\\").replace('"', '\\"')
+        escaped = escaped.replace("%", "%%").replace("$", "$$")
+        unit = unit_file.read_text("utf-8")
+        assert f'ExecStart=/bin/bash "{escaped}" start --wait-docker' in unit
+    run_work(odd, "autostart", "off")
+    # launchd plist (macOS branch, via a stand-in uname): well-formed XML, exact path
+    uname = odd / "bin" / "uname"
+    uname.write_text("#!/bin/sh\necho Darwin\n", encoding="utf-8")
+    uname.chmod(0o755)
+    assert run_work(odd, "autostart", "on").returncode == 0
+    plist = (odd / "autostart" / "local.sidekick.work.plist").read_text(encoding="utf-8")
+    root = ET.fromstring(plist)  # noqa: S314 - our own generated file
+    strings = [e.text for e in root.iter("string")]
+    assert script in strings and f"{odd}/deploy/work/autostart.log" in strings

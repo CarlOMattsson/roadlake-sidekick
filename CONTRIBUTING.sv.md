@@ -22,7 +22,8 @@ Bidrag kräver att du signerar [avtalet för bidragsgivare (CLA)](CLA.md). När 
 Assistant dig signera det i pull requesten, en gång; den kan inte slås ihop före det. Avtalet gör att licensgivaren kan
 fortsätta licensiera projektet, även med licensnyckel och i den betalda versionen. CLA:t finns bara på engelska.
 
-Kör kontrollerna i [utvecklingsguiden](docs/contribute/development.sv.md) innan du öppnar pull requesten. Historiken i det här
+Kör kontrollerna i [utvecklingsguiden](docs/contribute/development.sv.md) innan du öppnar pull requesten; CI körs inte för pull requests (det är en grind vid varje release), så kontrollerna
+kör du själv lokalt (pre-commit- och pre-push-hookar). Historiken i det här
 publika repot skrivs aldrig om (ingen force-push), så att forkar och länkar fortsätter fungera.
 
 ## Bygg och testa lokalt

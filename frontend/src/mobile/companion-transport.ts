@@ -350,6 +350,8 @@ function codeOfStatus(status: number): CompanionErrorCode | undefined {
     case 400:
     case 422:
       return "validation_error";
+    case 405:
+      return "method_not_allowed";
     default:
       return undefined;
   }

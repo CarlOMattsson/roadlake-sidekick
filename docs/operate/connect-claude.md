@@ -47,7 +47,8 @@ client on a very slow link is refused, then recreate the API.
 the sender. Request bodies are held in memory until complete; at most `SIDEKICK_MAX_BUFFERED_REQUESTS` (default 32,
 1 to 1024, up to 1 MiB each) may still be arriving at once, and a request that finds every slot taken gets `503` with
 `Retry-After: 1`. A slot is freed when the body is complete, not when the request has been answered, because an MCP
-answer can stay open for a long time. Checking a bearer token costs a database query, so failed attempts (answered 401)
+answer can stay open for a long time. A quarter of the slots is held back for bearer tokens the API has verified within the
+last hour, so anonymous clients that open many slow bodies cannot starve your connected clients. Checking a bearer token costs a database query, so failed attempts (answered 401)
 are counted in a sliding minute: after `SIDEKICK_FAILED_AUTH_PER_CLIENT_PER_MINUTE` (default 10) from one client
 address, or `SIDEKICK_FAILED_AUTH_GLOBAL_PER_MINUTE` (default 60) from all clients together, further requests carrying
 an unknown token get `429` with `Retry-After` before the database is touched. A token the API has verified within the

@@ -41,7 +41,7 @@ export function ItemEditor({
 }) {
   const form = useRef<HTMLFormElement>(null);
   const extraId = useId();
-  // Progressive: the item, its amount and its shop first; the rest waits behind "Fler fält" (ui-10).
+  // Progressive: the item, its amount and its shop first; the rest waits behind "Fler fält".
   const [extraOpen, setExtraOpen] = useState(false);
   const filled = filledExtras(item);
   useEffect(() => {

@@ -2,8 +2,8 @@
 # First-start role bootstrap for the self-hosted Postgres.
 #
 # The postgres image runs every file in /docker-entrypoint-initdb.d once, on an empty data volume.
-# This is the self-hosted counterpart of deploy/postgres-init.sql. That file is for the disposable
-# test database and sets each password to the role name, which a customer installation must never do.
+# This is the self-hosted counterpart of deploy/postgres-init.test-only.sql. That file is for the disposable
+# test database and sets each password to the role name, which a real installation must never do.
 # Here the passwords come from db.env, so nothing secret is written to the repository.
 set -eu
 

@@ -670,19 +670,19 @@ class TaskService:
             changes["recurrence"] = _recurrence_rule(changes["recurrence"])
         if "project_id" in changes and changes["project_id"] is not None:
             project_id = changes["project_id"]
-            assert isinstance(project_id, UUID)
+            project_id = _require_uuid(project_id)
             self.store.get_project(session, actor.user_id, project_id)
         if "domain_id" in changes and changes["domain_id"] is not None:
             domain_id = changes["domain_id"]
-            assert isinstance(domain_id, UUID)
+            domain_id = _require_uuid(domain_id)
             self.store.get_domain(session, actor.user_id, domain_id)
         if "process_id" in changes and changes["process_id"] is not None:
             process_id = changes["process_id"]
-            assert isinstance(process_id, UUID)
+            process_id = _require_uuid(process_id)
             self.store.get_process(session, actor.user_id, process_id)
         if "waiting_on_contact_id" in changes and changes["waiting_on_contact_id"] is not None:
             contact_id = changes["waiting_on_contact_id"]
-            assert isinstance(contact_id, UUID)
+            contact_id = _require_uuid(contact_id)
             # Owner check first, so a cross-owner Contact is a safe not-found.
             self.store.get_contact(session, actor.user_id, contact_id)
         now = self.clock.now()
@@ -704,14 +704,16 @@ class TaskService:
             self.store.save_task(session, updated, expected_version=version)
         self._record_status_transition(session, actor, task, updated, now, source="updated")
         if tags_changed:
-            assert command.tags is not UNSET
+            tags = command.tags
+            if isinstance(tags, UnsetType):
+                raise RuntimeError("tags_changed without tags")
             apply_record_tags(
                 self.store,
                 session,
                 owner_id=actor.user_id,
                 kind="task",
                 record_id=task_id,
-                values=command.tags,
+                values=tags,
                 now=now,
             )
         self.store.append_audit(
@@ -1234,6 +1236,12 @@ def task_batch_replay_record(result: dict[str, Any]) -> dict[str, Any]:
             for entry in result["tasks"]
         ]
     }
+
+
+def _require_uuid(value: object) -> UUID:
+    if not isinstance(value, UUID):
+        raise TypeError(f"expected a UUID, got {type(value).__name__}")
+    return value
 
 
 def _recurrence_rule(value: RecurrenceRule | dict[str, Any] | None) -> RecurrenceRule | None:

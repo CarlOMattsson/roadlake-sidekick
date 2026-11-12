@@ -154,7 +154,7 @@ class TodayRepository(
         }
     }
 
-    /** The pairing generation now; a request reads it before it starts so that a later [enqueuePurchase] can be bound to it. */
+    /** The pairing generation now. The plugin binds a call to it when the call arrives ([PairingGeneration.bindNow]); [enqueuePurchase] takes that one. */
     fun pairingGeneration(): Long = generation.current()
 
     /** The purchases waiting to be sent, oldest first. Empty without a pairing. */

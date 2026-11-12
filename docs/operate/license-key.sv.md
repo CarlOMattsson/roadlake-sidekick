@@ -21,3 +21,13 @@ read -rs LICENSE_KEY                    # Bash: klistra in nyckeln, den visas in
 printf '%s' "$LICENSE_KEY" | docker compose --env-file selfhost.env run --rm -T api python -m sidekick.license.cli set
 unset LICENSE_KEY
 ```
+
+## Så kontrolleras nyckeln
+
+Nycklar verifieras offline mot en **publik** nyckel (base64, rå Ed25519) som licensgivaren håller. Instansen läser den från `SIDEKICK_LICENSE_PUBLIC_KEY`, som har företräde, och annars från standardvärdet i `backend/src/sidekick/license/public_key.py`. Standardvärdet är licensgivarens publika nyckel, så ett bygge från det här repot med inställningen osatt godtar nycklar som licensgivaren har utfärdat.
+
+Bara om den gällande publika nyckeln är platshållaren eller inte är en giltig nyckel loggar start `license_public_key_unusable` (orsak `placeholder` eller `invalid`); varje nyckel behandlas då som olicensierad och obetald-notisen visas. Giltiga nycklar utfärdas bara av licensgivaren (se [LICENSE.md](../../LICENSE.md)); leta inte efter, skapa eller dela någon.
+
+Releaseflödet vägrar bygga en avbild så länge standardvärdet är platshållaren (`tools/check-license-public-key.py`). Lämna `SIDEKICK_LICENSE_PUBLIC_KEY` osatt om du inte medvetet använder en annan publik nyckel, till exempel en du själv har publicerat för din egen fork; det är ett publikt värde, ingen hemlighet.
+
+Kontrollera genom att starta instansen och se att loggen saknar posten `license_public_key_unusable`, och kör sedan `python -m sidekick.license.cli show`.

@@ -17,6 +17,7 @@ from collections.abc import Collection
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
+from sidekick.api.failed_auth import VERIFIED_BEARER_SCOPE_KEY
 from sidekick.api.ingress_problem import refuse_request
 from sidekick.api.public_surface import is_companion_route
 from sidekick.mcp import MCP_MOUNT_PATH
@@ -42,8 +43,14 @@ DEFAULT_OAUTH_BODY_READ_TIMEOUT_SECONDS = 10.0
 # the app, not when the app returns: an MCP POST may answer with a stream that stays open for long
 # time, and holding a slot for it would let a few legitimate streams starve every other request.
 # A complete body therefore lives on while its request is handled, bounded by the app's own work.
+# Ingress cannot verify a credential (that is a database query in the app), so the slots are
+# shared by priority instead: a request whose bearer token the application has verified within
+# the hour (see `sidekick.api.failed_auth`) may use every slot, anyone else (no credential, or a
+# token not known yet) only all but a quarter, so anonymous clients that open many slow bodies
+# cannot starve the owner's recent clients.
 DEFAULT_MAX_BUFFERED_REQUESTS = 32
 BUFFER_FULL_RETRY_AFTER_SECONDS = 1
+VERIFIED_RESERVE_DIVISOR = 4
 
 
 def _is_mcp_endpoint(path: str) -> bool:
@@ -91,6 +98,10 @@ class RequestBodyLimitMiddleware:
         self._oauth_body_timeout = oauth_body_read_timeout
         # Counted without awaiting, so it is exact on the event loop without a lock.
         self._max_buffered = max_buffered_requests
+        # Slots held back for verified bearers; a cap of 1..3 has none to spare.
+        self._unverified_cap = (
+            max_buffered_requests - max_buffered_requests // VERIFIED_RESERVE_DIVISOR
+        )
         self._buffering = 0
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -116,7 +127,8 @@ class RequestBodyLimitMiddleware:
             if self._oauth_surface and is_oauth_body_path(path, companion)
             else self._body_timeout
         )
-        if self._buffering >= self._max_buffered:
+        cap = self._max_buffered if scope.get(VERIFIED_BEARER_SCOPE_KEY) else self._unverified_cap
+        if self._buffering >= cap:
             await self._refuse(
                 scope,
                 receive,

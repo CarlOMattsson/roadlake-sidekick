@@ -19,7 +19,7 @@ re-implementing it, and had to be testable without a framework (ADR-002).
 
 ### One database, three roles, expand-only migrations
 
-PostgreSQL is the only store of record. Three roles split authority (`deploy/postgres-init.sql`):
+PostgreSQL is the only store of record. Three roles split authority (`deploy/postgres-init.test-only.sql`):
 `sidekick_owner` owns the schema and has no login, `sidekick_migrator` runs migrations, and `sidekick_app` is the
 role every runtime process uses and holds data privileges only. At production start the runtime refuses a role that
 is a superuser, owns objects, can create in the schema or bypasses row-level security
@@ -95,5 +95,5 @@ they count (see `docs/explanation/threat-model.md`).
 - `migrations/103_trash_sweep_delete_grants.py`
 - `migrations/104_audit_event_source.py`
 - `tools/check-migration-policy.py`
-- `deploy/postgres-init.sql`
+- `deploy/postgres-init.test-only.sql`
 - `docs/explanation/architecture/backend.md`

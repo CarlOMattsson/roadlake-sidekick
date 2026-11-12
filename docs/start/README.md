@@ -17,7 +17,7 @@ Sidekick 0.1.0 is a preview. The installation is drilled on Linux containers and
 - **A GitHub account.** It is used to sign in.
 - **Linux x86_64 with Docker and Docker Compose.**
 
-The work laptop and the developer path need no public address. They use Claude Desktop on the same machine.
+These requirements apply only to the server path. The simplest way to start is the work laptop path: everything runs locally in Docker and you use it from Claude Desktop, with no public address, domain, TLS or GitHub account. The developer path is local too.
 
 ## Four paths
 
@@ -29,7 +29,7 @@ For you who want to self-host, meaning run Sidekick on a machine you control: a 
 
 ### Work laptop
 
-For you who want to use Sidekick at work without a public address. The work package runs Sidekick and a private memory in Docker on your laptop and talks to Claude Desktop locally. The containers reach only your company's model server, but what Claude Desktop reads is shared with Claude. You need Ubuntu with Docker, Claude Desktop and the address of your company's own model server. This package has no route to a phone.
+For you who want to use Sidekick at work without a public address. The work package runs Sidekick in Docker on your laptop and talks to Claude Desktop locally. The memory is optional and off by default; if you turn it on, the containers reach only your company's model server. What Claude Desktop reads is shared with Claude. You need Ubuntu with Docker and Claude Desktop, and the address of your company's own model server only if you want the memory. This package has no route to a phone.
 
 [Go to Sidekick on a work laptop](work-laptop.md)
 

@@ -120,7 +120,8 @@ def _import_build_helpers() -> None:
         dedupe_with_versions,
         serialize_server_result,
     ):
-        assert callable(helper)
+        if not callable(helper):
+            raise AttributeError(f"{helper!r} is not callable")
 
 
 def _warn_once(reason: str) -> None:

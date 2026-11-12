@@ -72,16 +72,23 @@ Claude and the Android app talk to one Sidekick server. The server applies one s
 
 ## Run it
 
-**You need:** a Claude plan that supports custom connectors, a public HTTPS address for your server (a domain, or a tunnel to it), a GitHub account (used to sign in) and a Linux machine with Docker. Sidekick sends no telemetry or analytics; it only contacts the services you configure (GitHub sign-in, push, and the model provider for optional Hindsight memory).
+There are two ways. Pick by where Claude will run.
 
+**1. Locally on your computer (simplest).** Sidekick and its database run in Docker on your own machine, and you use it from Claude Desktop through a local MCP server. Everything Sidekick stores and runs stays on your computer.
 
-- **Work laptop:** the work package, *Sidekick Work*, runs Sidekick and a private Hindsight memory in Docker and talks to Claude
-  Desktop over a local MCP server. Sidekick itself calls no language model, and Hindsight's model calls go to
-  your own OpenAI-compatible server. Claude Desktop remains an external Claude service: what is shown or typed in
-  the conversation is shared with Claude. See [Sidekick on a work laptop](docs/start/work-laptop.md) (Swedish:
-  [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md)) and `bash tools/work.sh setup`. An AI assistant that runs the setup must first ask the user which app language (propose Swedish) and which rooms (propose all except shopping) they want, and not continue without both answers.
-- **Self-hosted server:** [deploy/selfhost/](deploy/selfhost/) targets Linux x86_64 with Docker Compose on a VPS
-  or an always-on home computer. Follow [First start](docs/start/self-hosted-server.md#first-start): it starts with
+- You need no public address, domain, TLS certificate or GitHub account, and this route has no phone access.
+- You need Linux or macOS with Docker (untested on macOS, see [the macOS notes](docs/operate/work-laptop/macos.md)) and Claude Desktop.
+- Only for the optional private Hindsight memory you also need the address of an OpenAI-compatible model server. The setup asks first whether to turn the memory on; the default is no, and then no model server is needed.
+- You choose the rooms. What you do in Claude Desktop is still shared with Claude.
+- Guide: [Sidekick on a work laptop](docs/start/work-laptop.md) (Swedish: [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md)), started with `bash tools/work.sh setup`.
+
+**2. Your own server, reachable from Claude on the web and phone.** You run Sidekick on a Linux x86_64 machine with Docker Compose, a VPS or an always-on home computer. This route needs a Claude plan that supports custom connectors, a public HTTPS address for the server (a domain, or a tunnel to it) and a GitHub account (used to sign in). It is also the route for the Android app. Guide: [First start on a server](docs/start/self-hosted-server.md#first-start).
+
+Sidekick sends no telemetry or analytics; it only contacts the services you configure (GitHub sign-in, push, and the model provider for optional Hindsight memory).
+
+### More on the self-hosted server
+
+- **Self-hosted server:** [deploy/selfhost/](deploy/selfhost/) starts with
   `git clone https://github.com/CarlOMattsson/roadlake-sidekick.git`, then copies the `*.example` files, generates your
   secrets, creates the owner and registers the GitHub sign-in before the first `up`. Profiles: `vps` (Caddy terminates TLS
   on your domain) or none (home: bring your own public HTTPS tunnel to `127.0.0.1:8000`).
@@ -92,8 +99,7 @@ Claude and the Android app talk to one Sidekick server. The server applies one s
   Backups cover owner product data, not a full server image; keep an off-server copy. To connect Claude to
   the running server, see [Connect Claude](docs/operate/connect-claude.md); to pair the Android app, see
   [Android app](docs/operate/pair-android.md).
-- **Claude Desktop on your own machine:** Sidekick can run as a local stdio MCP server for Claude Desktop, with no
-  public origin; see step 4 of [Run Sidekick locally as a developer](docs/start/first-contribution.md).
+- **Developers:** Sidekick can also run as a local stdio MCP server for Claude Desktop from a source checkout; see step 4 of [Run Sidekick locally as a developer](docs/start/first-contribution.md).
 - **Android app:** there is no prebuilt APK; build the app from this repository (JDK 21, Android SDK 36, Node.js 22) and
   pair it with your server; see [Build, install and pair Android](docs/operate/pair-android.md).
 
@@ -144,17 +150,4 @@ Third-party components keep their own licenses; they are listed in [THIRD_PARTY_
 
 ### License keys
 
-Keys are verified offline against a **public** key (base64 raw Ed25519) held by the licensor. The instance reads
-it from `SIDEKICK_LICENSE_PUBLIC_KEY`, which takes precedence, and otherwise from the default in
-`backend/src/sidekick/license/public_key.py`. That default is the licensor's public key, so a build from this
-repository with the setting unset accepts keys issued by the licensor. Only if the effective public key is the
-placeholder or is not a valid key does startup log `license_public_key_unusable` (reason `placeholder` or `invalid`);
-every key is then treated as unlicensed and the unpaid notice is shown. Valid keys are
-issued only by the licensor (see [LICENSE.md](LICENSE.md)); do not look for, generate or share one. Operators
-store a key with `python -m sidekick.license.cli set` and check the state with `python -m sidekick.license.cli show`.
-
-The release workflow refuses to build an image while that default is still the placeholder
-(`tools/check-license-public-key.py`). Leave `SIDEKICK_LICENSE_PUBLIC_KEY` unset unless you deliberately use a
-different public key, for example one you published yourself for your own fork; it is a public value, not a secret.
-To verify, start the instance and check that the log has no `license_public_key_unusable` record, then run
-`python -m sidekick.license.cli show`.
+A license key is optional and checked offline; without one the software shows an unpaid notice, and nothing else changes. Operators store a key with `python -m sidekick.license.cli set` and check it with `python -m sidekick.license.cli show`. How keys are verified, which public key the instance uses and how to check the setup are in [Enter a license key](docs/operate/license-key.md#how-the-key-is-checked); the plain-words summary and prices are in [License, license key and price](docs/explanation/licensing.md).

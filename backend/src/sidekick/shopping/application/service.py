@@ -21,7 +21,7 @@ from sidekick.shopping.application.schemas import (
     OfferInput,
     PurchaseTarget,
 )
-from sidekick.shopping.domain import ItemDetails, Offer, text
+from sidekick.shopping.domain import ItemDetails, Offer, required_text, text
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 from sidekick.shopping.persistence.store import ShoppingStore
 
@@ -221,9 +221,7 @@ class ShoppingService:
     def create_list(
         self, actor: Actor, name: str, *, idempotency_key: str, correlation_id: str | None = None
     ) -> dict[str, Any]:
-        normalized_name = text(name, 200, required=True)
-        assert normalized_name is not None
-        name = normalized_name
+        name = required_text(name, 200)
 
         def execute(session: TxSession) -> dict[str, Any]:
             now = self.clock.now()
@@ -263,9 +261,7 @@ class ShoppingService:
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> dict[str, Any]:
-        normalized_name = text(name, 200, required=True)
-        assert normalized_name is not None
-        name = normalized_name
+        name = required_text(name, 200)
 
         def execute(session: TxSession) -> dict[str, Any]:
             row = self.store.get_list(session, actor.user_id, list_id, lock=True)

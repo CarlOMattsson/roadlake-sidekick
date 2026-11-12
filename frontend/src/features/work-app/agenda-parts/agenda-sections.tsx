@@ -64,7 +64,7 @@ export function AgendaSection({
   const overdue = section.group === "overdue";
   // The rows still to deal with: what "Flytta N till imorgon" moves and what the heading counts, one number at once
   // (a row standing for its Ångra is not counted, so "Försenade (4)" and "Flytta 4" agree). Only Tasks: the move takes
-  // Tasks alone, and a Step is its Task's to deal with (ua-9). A tick waiting to be sent counts as done.
+  // Tasks alone, and a Step is its Task's to deal with. A tick waiting to be sent counts as done.
   const movable = rows.open.filter(
     (item) =>
       item.kind === "task" &&

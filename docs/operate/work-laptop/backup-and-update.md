@@ -6,8 +6,8 @@
 
 Take encrypted backups of the database and the memory on your work laptop, update, and go back if an update fails.
 
-`bash tools/work.sh backup` writes two files with the same timestamp to `deploy/work/backups/`: the database dump
-(`sidekick-<time>.sql.enc`) and Hindsight's memory (`hindsight-<time>.tar.gz.enc`). **Both are encrypted** (see
+With the memory on (`SIDEKICK_WORK_MEMORY=on` in `work.env`), `bash tools/work.sh backup` writes two files with the same timestamp to `deploy/work/backups/`: the database dump
+(`sidekick-<time>.sql.enc`) and Hindsight's memory (`hindsight-<time>.tar.gz.enc`). With the memory off (`SIDEKICK_WORK_MEMORY=off`, the default, see [When the memory is off](#when-the-memory-is-off)) it writes only the first file. **Both are encrypted** (see
 [The backup key](#the-backup-key)); no plain dump or archive is ever written to disk. Hindsight keeps its memory in an embedded
 Postgres in the volume `hindsight_pg0`. So that the two copies match each other, the `api`, the `memory-worker` and the `automation-worker` are paused first
 and started again when both copies are done (also if the backup fails or is interrupted). A copy of live database files is not consistent, so Hindsight is stopped for a
@@ -21,6 +21,16 @@ one, and touches only files named exactly `sidekick-<time>.sql.enc` and `hindsig
 been **read back**: `backup` decrypts each file again, checks that the dump ends with pg_dump's end marker and that the
 archive lists and is not empty, and only then reports it. A file that fails this check is removed and the command
 fails (the writers and Hindsight are started again).
+
+## When the memory is off
+
+`SIDEKICK_WORK_MEMORY=off` is the default. Then Hindsight and the memory worker do not run and there is no Hindsight volume to back up:
+`backup` prints "Memory is off; only the database is backed up." and writes only `sidekick-<time>.sql.enc`, and only the `api` and
+the `automation-worker` are paused meanwhile. `restore` then needs just that file: it does not look for or touch a memory archive
+and the plan marks the memory as off (a set that also holds a memory file is restored without it). If you switch the memory on later
+(`bash tools/work.sh setup`, or `SIDEKICK_WORK_MEMORY=on` plus the model server settings in `work.env`, then `start`), it **starts empty**:
+nothing is built up from the time it was off, and a database backup from that time holds no memory. A `work.env` from before the
+setting existed has no such line and keeps the memory on.
 
 ## The backup key
 

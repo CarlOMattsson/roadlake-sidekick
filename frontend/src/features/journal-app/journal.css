@@ -350,7 +350,7 @@
 /* The one muted line, "Sammanfattad av Claude · Kopplad till Bo Berg" (14/20, sk-card__meta), muted in its whole
    length. A contact's name is a text button that opens the contact; its 44 px target reaches 12 above and below
    the line, into the card's gaps (8 above, 16 below), so it meets nothing else. */
-/* A part that starts a line never starts it with its «·» (ui-13, as the Status cards in work.css): every part after
+/* A part that starts a line never starts it with its «·» (as the Status cards in work.css): every part after
    the first leads with a 0.55em box holding its «·» (the space before it is the text's own), the first part leads with
    an empty box of the same width, the line starts 0.55em early and the clip hides that first 0.55em. A line's first
    box is then always the hidden one, and its text keeps the card's content edge. The clip reaches far above and below,

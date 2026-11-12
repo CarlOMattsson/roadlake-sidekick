@@ -9,11 +9,14 @@ WORKDIR /app
 # uv 0.11.8, pinned by manifest-list digest (resolved 2026-11-10; tools/pin-image-digests.sh re-pins).
 COPY --from=ghcr.io/astral-sh/uv:0.11.8@sha256:3b7b60a81d3c57ef471703e5c83fd4aaa33abcd403596fb22ab07db85ae91347 /uv /usr/local/bin/uv
 COPY backend/pyproject.toml backend/uv.lock ./backend/
-# Dependencies first (a cached layer that only changes with the lock file), then the source, then the project itself.
+# Dependencies first (a cached layer that only changes with the lock file), then the one copy of the source, then the
+# project itself as an editable install: the venv gets the console scripts (sidekick-admin, sidekick-backup, the
+# workers) and a .pth pointing at /app/backend/src. Editable on purpose: the code finds ./migrations and the build
+# info relative to its own path (sidekick.shared.readiness), which a copy inside site-packages would break.
 RUN cd backend && uv sync --frozen --no-dev --no-install-project
 COPY backend/src ./backend/src
 RUN chmod -R a+rX ./backend/src
-RUN cd backend && uv sync --frozen --no-dev --no-editable
+RUN cd backend && uv sync --frozen --no-dev
 
 # Tag python:3.13.13-slim, pinned by manifest-list digest (resolved 2026-11-10).
 FROM python:3.13.13-slim@sha256:aa938a849bcb82dce8f49480f056ab82bf5c1c3ebc294f0430f37b6820e7f286 AS runtime
@@ -29,7 +32,8 @@ RUN groupadd --system sidekick && useradd --system --gid sidekick --home-dir /ap
     && install -d -o sidekick -g sidekick -m 0700 /var/lib/sidekick
 # The venv keeps its build path (/app/backend/.venv), which its scripts and symlinks point at.
 COPY --from=builder /app/backend/.venv ./backend/.venv
-COPY backend/src ./backend/src
+# The source comes from the builder (the venv's editable install points at it); the build context is read once.
+COPY --from=builder /app/backend/src ./backend/src
 COPY migrations ./migrations
 # The licenses travel with the image (MIT/BSD/Apache notices, LGPL section 4 and the GPL-3 text, pointers to the
 # source of the LGPL wheels and the Debian base): LICENSE.md and THIRD_PARTY_NOTICES.md are generated or kept at the
@@ -55,7 +59,7 @@ ARG SIDEKICK_BUILD_DATE=
 ENV SIDEKICK_BUILD_COMMIT=${SIDEKICK_BUILD_COMMIT} SIDEKICK_BUILD_DATE=${SIDEKICK_BUILD_DATE}
 
 USER sidekick
-ENV PATH="/app/backend/.venv/bin:$PATH" PYTHONPATH="/app/backend/src"
+ENV PATH="/app/backend/.venv/bin:$PATH"
 EXPOSE 8000
 CMD ["uvicorn", "sidekick.api.app:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log"]
 # Liveness for the container that serves HTTP (pid 1 is uvicorn): only HTTP 200 from /health/live is healthy. Any

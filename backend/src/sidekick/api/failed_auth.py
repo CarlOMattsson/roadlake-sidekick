@@ -57,6 +57,9 @@ WINDOW_SECONDS = 60.0
 MAX_TRACKED_CLIENTS = 4096
 MAX_KNOWN_TOKENS = 64
 KNOWN_TOKEN_SECONDS = 3600.0
+# Set on the ASGI scope for a request whose bearer token the application verified within the hour,
+# so later ingress layers (the request-buffer cap) can tell the owner's traffic from the unknown.
+VERIFIED_BEARER_SCOPE_KEY = "sidekick.verified_bearer"
 # A refusal is logged at most once per this many seconds; every one is still counted as telemetry.
 LOG_INTERVAL_SECONDS = 60.0
 
@@ -100,6 +103,11 @@ class FailedAuthGuard:
         """A keyed hash of the token that is only good for recognising it again in this process."""
 
         return hmac.new(self._key, token, hashlib.sha256).digest()
+
+    def knows(self, fingerprint: bytes) -> bool:
+        """True if the application verified this token recently (renews its hour, like a use)."""
+
+        return self._is_known(fingerprint, self._clock())
 
     def retry_after(self, client: str, fingerprint: bytes | None) -> int | None:
         """Seconds to wait if this request must be refused now, else `None`."""
@@ -191,7 +199,9 @@ class FailedAuthLimitMiddleware:
             await self.app(scope, receive, send)
             return
         fingerprint = self._guard.fingerprint(token)
-        client = _client_of(scope)
+        if self._guard.knows(fingerprint):
+            scope[VERIFIED_BEARER_SCOPE_KEY] = True
+        client = client_address(scope)
         wait = self._guard.retry_after(client, fingerprint)
         if wait is not None:
             await self._refuse(scope, receive, send, wait)
@@ -236,6 +246,8 @@ class FailedAuthLimitMiddleware:
         )
 
 
-def _client_of(scope: Scope) -> str:
+def client_address(scope: Scope) -> str:
+    """The peer address of this request (the one the transport reports; no header is trusted)."""
+
     client = scope.get("client")
     return str(client[0]) if client else "unknown"

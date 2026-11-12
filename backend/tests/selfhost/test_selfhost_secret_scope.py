@@ -8,7 +8,6 @@ import pytest
 import yaml
 
 from sidekick.shared.config import Settings
-from sidekick.shared.config.environment import RENAMED_SETTINGS
 
 SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 SOURCE = Path(__file__).resolve().parents[2] / "src" / "sidekick"
@@ -53,8 +52,7 @@ def test_every_passed_name_is_a_declared_setting(services: dict[str, dict]) -> N
     for name in WORKERS:
         names = _bare_names(services[name])
         assert names, name
-        # A removed name is passed on on purpose: Settings then stops and names its successor.
-        unknown = names - DECLARED - {f"SIDEKICK_{old}" for old in RENAMED_SETTINGS}
+        unknown = names - DECLARED
         assert not unknown, (name, sorted(unknown))
 
 
@@ -269,12 +267,3 @@ def test_every_setting_a_worker_reads_is_in_its_environment(
     pinned = set(services[worker]["environment"]) - _bare_names(services[worker])
     missing = needed - _bare_names(services[worker]) - pinned
     assert not missing, (worker, sorted(missing))
-
-
-def test_the_removed_cursor_secret_name_still_reaches_every_worker(
-    services: dict[str, dict],
-) -> None:
-    """Passed on so a stale selfhost.env stops startup with a message instead of being ignored."""
-
-    for name in WORKERS:
-        assert "SIDEKICK_SESSION_SECRET" in _bare_names(services[name]), name

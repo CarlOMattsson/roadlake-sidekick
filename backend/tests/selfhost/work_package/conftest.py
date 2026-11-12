@@ -13,6 +13,7 @@ from tests.selfhost.work_package.support import (
     CRYPTO_STUB,
     DERIVED_ENV,
     MARKER,
+    MEMORY_OFF_ENV,
     REPO_ROOT,
     SCRIPT,
     SELFHOST,
@@ -26,8 +27,7 @@ def _overlay() -> dict[str, Any]:
     return yaml.load((WORK / "compose.yaml").read_text(encoding="utf-8"), Loader=ComposeLoader)
 
 
-@pytest.fixture(name="merged")
-def _merged(tmp_path: Path) -> dict[str, Any]:
+def _render_merged(tmp_path: Path, derived: dict[str, str], profiles: list[str]) -> dict[str, Any]:
     """The real result of both files, from Docker Compose itself (client side; no daemon needed).
 
     Run in a copy of deploy/ with stand-in secret files, because Compose reads env_file."""
@@ -69,18 +69,31 @@ def _merged(tmp_path: Path) -> dict[str, Any]:
             str(deploy / "work" / "compose.yaml"),
             "--env-file",
             str(WORK / "work.env.example"),
-            "--profile",
-            "memory",
+            *[arg for profile in profiles for arg in ("--profile", profile)],
             "config",
         ],
         capture_output=True,
         text=True,
-        env={**os.environ, **DERIVED_ENV},
+        env={**os.environ, **derived},
     )
     if result.returncode != 0 and "is not a docker command" in result.stderr:
         pytest.skip("docker compose is not available")
     assert result.returncode == 0, result.stderr
     return yaml.safe_load(result.stdout)
+
+
+@pytest.fixture(name="merged")
+def _merged(tmp_path: Path) -> dict[str, Any]:
+    """Memory on: the memory profile, as tools/work.sh passes it."""
+
+    return _render_merged(tmp_path, DERIVED_ENV, ["memory"])
+
+
+@pytest.fixture(name="merged_without_memory")
+def _merged_without_memory(tmp_path: Path) -> dict[str, Any]:
+    """Memory off: what tools/work.sh derives without a model server, and no memory profile."""
+
+    return _render_merged(tmp_path, MEMORY_OFF_ENV, [])
 
 
 @pytest.fixture(name="mini_repo")
