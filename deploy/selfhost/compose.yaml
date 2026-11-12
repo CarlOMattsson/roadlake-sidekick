@@ -527,7 +527,7 @@ services:
     # kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
     # Settings and secrets: hindsight.env (copy of hindsight.env.example), never selfhost.env.
     profiles: [memory]
-    image: ghcr.io/vectorize-io/hindsight:0.8.4@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
+    image: ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a714e933affd63753e181a0579328fdcbbc021800a76e0bc7b6e76b31
     env_file:
       - path: ./hindsight.env
         required: false
