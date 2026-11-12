@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "mermaid-isomorphic": "3.1.0",
-    "playwright": "1.61.1"
+    "playwright": "1.65.0"
   }
 }
