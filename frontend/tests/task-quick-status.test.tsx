@@ -8,10 +8,17 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
-import type { WorkTask, WorkTransport } from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
+import type {
+  WorkTask,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 const taskA: WorkTask = {
   id: "019f0000-0000-7000-8000-0000000000a1",

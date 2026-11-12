@@ -2,9 +2,9 @@
 
 [English](pair-android.md)
 
-<!-- description: Bygg Android-appen ur källkoden, installera den och koppla telefonen till din server med en engångskod. Det finns ingen färdig APK. -->
+<!-- description: Ladda ner den signerade Android-appen eller bygg den ur källkoden, installera den och koppla telefonen till din server med en engångskod. -->
 
-Bygg Android-appen ur källkoden, installera den och koppla telefonen till din server med en engångskod. Det finns ingen färdig APK.
+Ladda ner den signerade Android-appen eller bygg den ur källkoden, installera den och koppla telefonen till din server med en engångskod.
 
 ## Vad appen gör och inte gör
 
@@ -17,7 +17,20 @@ eller flyttar inte sin inloggningsuppgift (`android:allowBackup="false"`). Den k
 (`minSdk` 24). Android 13 och nyare frågar en gång om lov att visa aviseringar, efter parkopplingen. Det finns
 ingen iOS-app.
 
-## Krav
+## Ladda ner den signerade appen
+
+Varje release på repots GitHub Releases-sida har en signerad `sidekick-X.Y.Z.apk`, byggd och signerad av
+releaseflödet med underhållarens nyckel, bredvid `SHA256SUMS` och dess signatur (`SHA256SUMS.sigstore.json`).
+Ladda ner APK:n och de två filerna, kontrollera dem enligt
+[Verifiera en release](../maintainers/release.sv.md#verifiera-en-release) (`sha256sum -c SHA256SUMS`, sedan
+`cosign verify-blob` och `apksigner verify --print-certs`) och gå vidare till [Installera](#installera). Senare
+releaser installeras över den, eftersom de signeras med samma nyckel. Du kan också bygga appen själv, som nedan. En
+egenbyggd app har en annan nyckel och kan därför inte uppdatera den nedladdade eller tvärtom: avinstallera den gamla
+först och para ihop igen.
+
+## Bygg själv
+
+### Krav
 
 | Verktyg | Version | Källa |
 | --- | --- | --- |
@@ -42,7 +55,7 @@ senare**. 123 är första versionen med CSS-funktionen `light-dark()`, som vyern
 skärm. Åtgärd: uppdatera Android System WebView och Google Chrome i appbutiken. Går versionen inte att läsa startar
 appen som vanligt.
 
-## Bygg
+### Bygg
 
 Kör från repots rot. Webbdelen (mobilpaketet) byggs först. Sedan kopierar Capacitor in den i Android-projektet
 och genererar pluginmodulen, och till sist bygger Gradle appen.
@@ -77,7 +90,7 @@ appbutik tas inte upp här.
 ## Installera
 
 - **adb**: slå på utvecklaralternativ och USB-felsökning på telefonen, anslut den och kör sedan
-  `adb install -r app/build/outputs/apk/debug/app-debug.apk` (från `frontend/android`).
+  `adb install -r sidekick-X.Y.Z.apk` för den nedladdade appen, eller `adb install -r app/build/outputs/apk/debug/app-debug.apk` (från `frontend/android`) för ditt eget debugbygge.
 - **Sidladdning**: kopiera APK:n till telefonen och öppna den. Android ber dig tillåta installation från den
   app som öppnade filen ("installera okända appar"), och Play Protect kan varna för en okänd utvecklare.
 
@@ -184,6 +197,27 @@ Att tänka på:
 Sidekick öppnas, visar "Koppla till <din server>?" och kopplar först när du trycker på **Koppla**; **Avbryt** släpper
 länken. Länken ensam kopplar ingenting, eftersom vilken app eller sida som helst kan öppna en sådan länk: koppla bara
 om du själv skapade koden.
+
+**Varför länken inte är en verifierad Android App Link.** En App Link (`https`, `android:autoVerify="true"`) visar för Android att
+appen hör till domänen i länken, genom en `assetlinks.json` på den domänen som anger appens paketnamn och
+signeringscertifikatets fingeravtryck. Det går inte här: domänen är din egen servers, och du (eller operatören) bygger och
+signerar appen själv, så ingen kan i förväg publicera den filen åt dig. En fast
+`roadlake.com`-väg skulle inte heller hjälpa, eftersom ett bygge som signerats med din egen nyckel inte stämmer med ett fingeravtryck som
+publicerats där. Appen använder därför ett eget schema, `sidekick://pair`, och skyddet ligger i koden och i appen:
+
+- Koden gäller en gång och i 10 minuter, och servern begränsar misslyckade försök per adress. En app som fångade länken
+  efter att du kopplat (eller efter 10 minuter) får ingenting.
+- Länken kopplar aldrig av sig själv. Appen visar serverns värd, "Koppla till <värd>?", och väntar på att du trycker på
+  **Koppla**; en länk som anger en server du inte väntade dig avvisar du med **Avbryt**.
+- Länken tolkas strikt: exakt en `server` och en `code`, ett `https`-ursprung utan sökväg, en kod av rätt form,
+  högst 1024 tecken. Allt annat ignoreras.
+- En länk som når en telefon som redan är kopplad släpps, och appen säger det en gång.
+- Manifestet har ett enda filter, för `sidekick://pair`, och inget `https`-filter; `WidgetResourcesTest` fallerar om ett till läggs till.
+- Vill du inte förlita dig på länken, använd kopplingsskärmen för hand: koden går då aldrig genom någon annan app.
+
+Det schemat inte kan hindra är en annan installerad app som också registrerar `sidekick://pair` och som Androids
+appväljare väljer (eller är den enda), så att den läser länken före Sidekick. Skicka länken bara till dig själv, kontrollera vilken app som
+öppnas och skriv koden för hand om du tvivlar på telefonen. Koden är värdelös efter första användningen.
 
 **För hand.** Öppna Sidekick på telefonen. Kopplingsskärmen talar appens språk (svenska som förval; se [Språk](../reference/languages.sv.md#android-appen)) och har en hjälprad "Var hittar jag koden?". Den frågar efter:
 

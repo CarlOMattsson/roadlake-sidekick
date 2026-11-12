@@ -1,7 +1,5 @@
 import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -15,6 +13,15 @@ import {
   dayStripLabelsEn,
   dayStripLabelsSv,
 } from "@/features/journal-app/day-strip-labels";
+
+import { readSource } from "./helpers/source-files";
+import { readStylesheet } from "./helpers/stylesheet";
+
+// jsdom applies no CSS, so journal.css is read and resolved against the rendered strip. The rendered check is the
+// journal MCP App spec under tests/e2e.
+const journalCss = readStylesheet("features/journal-app/journal.css");
+const ROOM = { room: "sidekick-journal" };
+const NARROW_SCREEN = "@media (max-width: 24.99rem)";
 
 // 2026-10-25 is a Sunday; the strip shows the seven days that end on today, 19-25 Oct, so 21 Oct is in them.
 const TODAY = "2026-10-25";
@@ -337,56 +344,52 @@ describe("DayStrip rendering", () => {
   });
 
   it("draws the step arrows as the family icon buttons, with no box rule of their own, and draws an aria-disabled › in --sk-border at full opacity, never hidden", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/journal.css",
-      ),
-      "utf8",
-    );
+    render(<DayStrip {...props()} />);
+    const next = screen.getByRole("button", { name: "Next week" });
+    const previous = screen.getByRole("button", { name: "Previous week" });
+
     // The box, the 48 px target and the glyph size come from .sk-iconbtn; journal.css only tones › down on today
     // (both arrows always show, a lone ‹ read as Back).
-    expect(css).not.toMatch(/\.sk-day-strip-arrow \{/);
-    // --sk-border (>= 3:1 against the page in both themes), not 38 % ink (2,5:1).
-    expect(css).toMatch(
-      /\.sk-day-strip-arrow\[aria-disabled="true"\] \{[^}]*color: var\(--sk-border\);[^}]*opacity: 1;/,
+    expect(next).toHaveAttribute("aria-disabled", "true");
+    expect(journalCss.rules.map((rule) => rule.selector)).not.toContain(
+      ".sk-day-strip-arrow",
     );
-    expect(css).not.toMatch(/opacity: 0\.38/);
-    expect(css).not.toMatch(/visibility: hidden/);
+    // --sk-border (>= 3:1 against the page in both themes), not 38 % ink (2,5:1).
+    expect(journalCss.styleOf(next, ROOM)).toMatchObject({
+      color: "var(--sk-border)",
+      opacity: "1",
+    });
+    expect(journalCss.styleOf(previous, ROOM).color).toBeUndefined();
+    for (const rule of journalCss.rules) {
+      expect(rule.declarations.visibility, rule.selector).not.toBe("hidden");
+    }
   });
 
   it("draws «Dagen i korthet» as a label: meta size at 600 in --sk-muted, 4 over the ingress", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/journal.css",
-      ),
-      "utf8",
+    const rule = journalCss.rule(
+      ".sidekick-journal .journal-day-summary > .journal-summary-label",
     );
-    const rule =
-      /\.sidekick-journal \.journal-day-summary > \.journal-summary-label \{([^}]*)\}/.exec(
-        css,
-      )?.[1];
-    expect(rule, "summary label rule").toBeDefined();
-    expect(rule).toMatch(/margin-bottom: var\(--sk-s1\);/);
-    expect(rule).toMatch(
-      /font: var\(--sk-weight-semibold\) var\(--sk-type-meta-size\)/,
+
+    expect(rule["margin-bottom"]).toBe("var(--sk-s1)");
+    expect(rule.font).toMatch(
+      /^var\(--sk-weight-semibold\) var\(--sk-type-meta-size\)/,
     );
-    expect(rule).toMatch(/color: var\(--sk-muted\);/);
+    expect(rule.color).toBe("var(--sk-muted)");
   });
 
   it("keeps the arrows visible on touch screens too, and never takes them out of the layout", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/journal.css",
-      ),
-      "utf8",
-    );
-    // The arrows are no longer hidden on a coarse pointer or below 25rem: no clip-path, no absolute position.
-    expect(css).not.toMatch(/pointer: coarse/);
-    expect(css).not.toMatch(/\.sk-day-strip-arrow[^{]*\{[^}]*clip-path/);
-    expect(css).not.toMatch(/\.sk-day-strip-arrow \{[^}]*display: none/);
+    render(<DayStrip {...props()} />);
+    const arrow = screen.getByRole("button", { name: "Previous week" });
+
+    // The arrows are no longer hidden on a coarse pointer or below 25rem: no clip-path, no display: none.
+    expect(
+      journalCss.rules.flatMap((rule) => rule.conditions),
+    ).not.toContainEqual(expect.stringContaining("pointer: coarse"));
+    for (const conditions of [[], [NARROW_SCREEN]]) {
+      const style = journalCss.styleOf(arrow, { ...ROOM, conditions });
+      expect(style["clip-path"]).toBeUndefined();
+      expect(style.display).not.toBe("none");
+    }
   });
 
   it("fits seven equal days in the strip at 320 px, with no scroll and no inline width on the buttons", () => {
@@ -395,33 +398,27 @@ describe("DayStrip rendering", () => {
       // Widths come from journal.css; an inline minWidth would override the equal tracks.
       expect(button.style.minWidth).toBe("");
     }
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/journal.css",
-      ),
-      "utf8",
+    const week = document.querySelector(".sk-day-strip-week") as HTMLElement;
+    const cell = week.querySelector("li") as HTMLElement;
+    const weekStyle = journalCss.styleOf(week, ROOM);
+
+    // Seven equal tracks shared by the strip's width, at least 30 px each, so the week fits at 320 px and scrolls
+    // only as a fallback below about 250 px. The gap is 4 px (2 px under 25rem).
+    expect(weekStyle["grid-template-columns"]).toBe(
+      "repeat(7, minmax(30px, 1fr))",
     );
-    // Seven equal tracks shared by the strip's width, at least 30 px each, so the week fits at 320 px and scrolls only
-    // as a fallback below about 250 px. The gap is 4 px (2 px under 25rem).
-    expect(css).toMatch(
-      /\.sk-day-strip-week \{[^}]*grid-template-columns: repeat\(7, minmax\(30px, 1fr\)\);/,
-    );
-    expect(css).toMatch(
-      /\.sk-day-strip-week \{[^}]*column-gap: var\(--sk-s1\);/,
-    );
-    expect(css).toMatch(
-      /@media \(max-width: 24\.99rem\) \{\s*\.sidekick-journal \.sk-day-strip-week \{\s*column-gap: 2px;/,
-    );
-    expect(css).toMatch(/\.sk-day-strip-week > li \{[^}]*min-width: 0;/);
+    expect(weekStyle["column-gap"]).toBe("var(--sk-s1)");
+    expect(
+      journalCss.styleOf(week, { ...ROOM, conditions: [NARROW_SCREEN] })[
+        "column-gap"
+      ],
+    ).toBe("2px");
+    expect(weekStyle["scroll-snap-type"]).toBeUndefined();
+    expect(journalCss.styleOf(cell, ROOM)["min-width"]).toBe("0");
     // The day buttons take their width from the track; their 56 px height is the inline height.
-    expect(css).toMatch(/\.sk-day-strip-day \{[^}]*min-width: 0;/);
-    expect(css).not.toMatch(/minmax\(44px/);
-    const week = css.match(
-      /\.sidekick-journal \.sk-day-strip-week \{([^}]*)\}/,
-    );
-    expect(week?.[1]).toBeDefined();
-    expect(week?.[1]).not.toMatch(/scroll-snap/);
+    expect(
+      journalCss.styleOf(dayButton(WEEK[0] as string), ROOM)["min-width"],
+    ).toBe("0");
   });
 
   it("shows nothing for the week when the selected date is malformed", () => {
@@ -641,46 +638,59 @@ describe("DayStrip week steps and days after today", () => {
   });
 
   it("draws the selected day as the chosen room (page colour, 2 px outline), makes Today semibold in the weekday row, and centres the entry dot under the number", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/journal.css",
-      ),
-      "utf8",
-    );
-    // The chosen day has the chosen room's form: the page colour, a 2 px contour in the text colour.
-    expect(css).toMatch(
-      /\.sk-day-strip-day\[aria-current="date"\] \{[^}]*background: var\(--sk-nav-active-bg\);[^}]*box-shadow: inset 0 0 0 var\(--sk-selected-width\) var\(--sk-nav-active-line\);/,
-    );
-    expect(css).toMatch(
-      /\.sk-day-strip-day\[aria-current="date"\] \{[^}]*color: var\(--sk-nav-active-fg\);/,
-    );
+    render(<DayStrip {...props()} />);
+    const selected = dayButton(SELECTED);
+    const plain = dayButton("2026-10-22");
+
+    // The chosen day has the chosen room's form: the page colour, a 2 px contour in the text colour, and no
+    // border at all, not even a colour (only the radius is reset).
+    const chosen = journalCss.styleOf(selected, ROOM);
+    expect(chosen).toMatchObject({
+      background: "var(--sk-nav-active-bg)",
+      "box-shadow":
+        "inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line)",
+      color: "var(--sk-nav-active-fg)",
+    });
+    expect(chosen["border-color"]).toBeUndefined();
+    expect(chosen["border-style"]).toBeUndefined();
+    expect(journalCss.styleOf(plain, ROOM).background).toBe("transparent");
     // The number of the chosen day is 600; forced colours get a real outline in place of the shadow.
-    expect(css).toMatch(
-      /\.sk-day-strip-day\[aria-current="date"\] \.sk-day-strip-number \{[^}]*font-weight: var\(--sk-weight-semibold\);/,
-    );
-    expect(css).toMatch(
-      /forced-colors: active\) \{\s*\.sidekick-journal \.sk-day-strip-day\[aria-current="date"\] \{[^}]*outline: 2px solid CanvasText;/,
-    );
-    // No border at all, not even a colour (only the radius is reset).
-    expect(css).not.toMatch(
-      /\.sk-day-strip-day\[aria-current="date"\] \{[^}]*border(?!-radius)/,
-    );
+    expect(
+      journalCss.styleOf(
+        selected.querySelector(".sk-day-strip-number") as Element,
+        ROOM,
+      )["font-weight"],
+    ).toBe("var(--sk-weight-semibold)");
+    expect(
+      journalCss.styleOf(selected, {
+        ...ROOM,
+        conditions: ["@media (forced-colors: active)"],
+      }).outline,
+    ).toBe("2px solid CanvasText");
     // Today's word in the weekday row is only semibold: its colour stays the muted weekday colour.
-    expect(css).toMatch(
-      /\.sk-day-strip-today \{[^}]*font-weight: var\(--sk-weight-semibold\);/,
+    const today = dayButton(TODAY).querySelector(
+      ".sk-day-strip-today",
+    ) as Element;
+    expect(journalCss.styleOf(today, ROOM)["font-weight"]).toBe(
+      "var(--sk-weight-semibold)",
     );
-    expect(css).not.toMatch(/\.sk-day-strip-today \{[^}]*color:/);
+    expect(journalCss.styleOf(today, ROOM).color).toBe("var(--sk-muted)");
     // Every cell has no border (border: 0), so the strip is drawn by its fills and the cells keep one size.
-    expect(css).toMatch(/\.sk-day-strip-day \{[^}]*border: 0;/);
-    expect(css).not.toMatch(/sk-day-strip-(row|line)\b/);
+    expect(journalCss.styleOf(plain, ROOM).border).toBe("0");
     // The marker row is a centred grid; the dot is a 6 px circle in it, under the number.
-    expect(css).toMatch(
-      /\.sk-day-strip-marker \{[^}]*display: grid;[^}]*place-items: center;/,
-    );
-    expect(css).toMatch(
-      /\.sk-day-strip-dot \{[^}]*width: 6px;[^}]*height: 6px;[^}]*border-radius: 50%;/,
-    );
+    const marker = dayButton("2026-10-20").querySelector(
+      ".sk-day-strip-marker",
+    ) as Element;
+    expect(journalCss.styleOf(marker, ROOM)).toMatchObject({
+      display: "grid",
+      "place-items": "center",
+    });
+    expect(
+      journalCss.styleOf(
+        marker.querySelector(".sk-day-strip-dot") as Element,
+        ROOM,
+      ),
+    ).toMatchObject({ width: "6px", height: "6px", "border-radius": "50%" });
   });
 
   it("keeps › in the week that holds today as aria-disabled, and a press does nothing", async () => {
@@ -757,13 +767,7 @@ describe("weekRange, the week the arrows step, named under them", () => {
 
 describe("DayStrip and the journal text rule (D-058)", () => {
   it("contains no model context call and no console call", () => {
-    const source = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/journal-app/day-strip.tsx",
-      ),
-      "utf8",
-    );
+    const source = readSource("features/journal-app/day-strip.tsx");
     expect(source).not.toMatch(/\bupdateModelContext\b/);
     expect(source).not.toMatch(/\bconsole\s*\./);
   });

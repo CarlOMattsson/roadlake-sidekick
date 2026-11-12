@@ -6,8 +6,8 @@
 
 The Today widget shows today's tasks on your Android home screen. Reminders tell you in the morning and shortly before something is due. Both belong to the [Android app](android-app.md).
 
-:::note[Preview]
-The widget and the reminders have not been tried on a real phone. Push delivery to real phones is not verified.
+:::note[First release]
+The widget and the reminders belong to the Android app, which is in daily use on a real phone.
 :::
 
 ## Add the widget

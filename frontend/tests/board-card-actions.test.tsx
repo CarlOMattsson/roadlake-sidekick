@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { BoardCard } from "@/features/work-app/board-card";
-import { workEn, workStatusLabel } from "@/features/work-app/labels";
+import { BoardCard } from "@/features/work-app/board/board-card";
+import { workEn, workStatusLabel } from "@/features/work-app/shared/labels";
 import {
   TASK_STATUSES,
   type WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The controls of one board card: the glyph in the two layouts, the quick choices (the group that opens

@@ -6,8 +6,8 @@
 
 Det finns fyra sätt att börja. Välj efter var Sidekick ska köra och vad du vill göra.
 
-:::note[Förhandsversion]
-Sidekick 0.1.0 är en förhandsversion. Installationen är övad i Linux-containrar och följd från en ren klon. Den är inte provad mot riktiga Claude-anslutningar, en riktig GitHub-inloggning eller macOS.
+:::note[Första versionen]
+Sidekick 0.1.0 är den första versionen. Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux. macOS är ännu inte provat.
 :::
 
 ## Det här behöver du för en egen server

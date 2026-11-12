@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import {
@@ -18,6 +16,7 @@ import {
   PROCESS_ID,
   STEP_ID,
 } from "./helpers/companion-transport-fixtures";
+import { readRepoFile } from "./helpers/source-files";
 
 describe("CompanionRoomTransport Step ticks", () => {
   const complete = { step_id: STEP_ID, version: 3 };
@@ -339,13 +338,7 @@ describe("companion route tables against the published contract", () => {
    */
   function contractRoutes(): Set<string> {
     const contract = JSON.parse(
-      readFileSync(
-        path.resolve(
-          import.meta.dirname,
-          "../../contracts/companion-api.generated.json",
-        ),
-        "utf8",
-      ),
+      readRepoFile("contracts/companion-api.generated.json"),
     ) as { paths: Record<string, Record<string, unknown>> };
     return new Set(
       Object.entries(contract.paths).flatMap(([route, item]) =>

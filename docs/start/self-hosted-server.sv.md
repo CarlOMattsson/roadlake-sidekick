@@ -85,6 +85,8 @@ SIDEKICK_MCP_OAUTH_ALLOWED_IDENTITIES=github:<numeric GitHub id>=<UUID from step
 grep -nE '^[A-Z_]+=.*replace-with-' selfhost.env db.env
 ```
 
+Valfritt men rekommenderat: håll Sidekicks hemligheter borta från containrarnas miljövariabler genom att flytta dem till filer med `sh secrets-to-files.sh` (se [Hemligheter som filer](../operate/limits-and-secrets.sv.md#hemligheter-som-filer)). Kör det efter kontrollen ovan; en hemlighet som fortfarande säger `replace-with-` lämnas kvar där den är.
+
 **5. Starta.**
 
 ```bash

@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from sidekick.shared.persistence.models import ProjectRow, TaskRow
 from sidekick.shared.types import new_uuid7
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery
 from tests.support.work_paging import NOW, WorkFixture
 
 PAGE_SIZES = (1, 2, 3)
@@ -41,11 +41,11 @@ def _board_walk(fixture: WorkFixture, query: WorkQuery) -> dict[str, list[str]]:
     merged: dict[str, list[str]] = {}
     cursor: str | None = None
     for _ in range(100):
-        columns, cursor = fixture.contexts.work_board_page(
+        columns, cursor = fixture.work_lists.work_board_page(
             fixture.actor, replace(query, cursor=cursor)
         )
         for status, items in columns.items():
-            merged.setdefault(status, []).extend(item["title"] for item in items)
+            merged.setdefault(status, []).extend(item.title for item in items)
         if cursor is None:
             return merged
     raise AssertionError("pagination did not end")
@@ -89,8 +89,8 @@ def test_updated_desc_orders_by_the_last_change_not_the_version(limit: int) -> N
         )
     query = WorkQuery(kind="all", limit=100)
 
-    whole = [item["title"] for item in fixture.walk(query)]
-    paged = [item["title"] for item in fixture.walk(replace(query, limit=limit))]
+    whole = [item.title for item in fixture.walk(query)]
+    paged = [item.title for item in fixture.walk(replace(query, limit=limit))]
 
     # The Domain of the fixture was created 400 days ago, so it is last.
     assert whole == ["Nyligen", "Mitten", "Projekt", "Gammal", "Hem"]
@@ -108,8 +108,8 @@ def test_updated_desc_breaks_equal_times_by_id_across_pages(limit: int) -> None:
         )
     query = WorkQuery(kind="task", limit=100)
 
-    whole = [(item["id"], item["title"]) for item in fixture.walk(query)]
-    paged = [(item["id"], item["title"]) for item in fixture.walk(replace(query, limit=limit))]
+    whole = [(item.id, item.title) for item in fixture.walk(query)]
+    paged = [(item.id, item.title) for item in fixture.walk(replace(query, limit=limit))]
 
     assert len(whole) == 7
     assert [identifier for identifier, _ in whole] == sorted(
@@ -157,12 +157,12 @@ def test_board_first_page_of_one_holds_the_top_ranked_task() -> None:
     fixture = WorkFixture()
     _seed_ranked_board(fixture)
 
-    columns, cursor = fixture.contexts.work_board_page(
+    columns, cursor = fixture.work_lists.work_board_page(
         fixture.actor, WorkQuery(kind="task", limit=1)
     )
 
     # Ranked first (ties between columns fall to the newer change), though it is old.
-    assert [item["title"] for items in columns.values() for item in items] == ["Todo rank 1"]
+    assert [item.title for items in columns.values() for item in items] == ["Todo rank 1"]
     assert cursor is not None
 
 
@@ -172,13 +172,13 @@ def test_board_cursor_is_not_interchangeable_with_the_list_cursor() -> None:
     _seed_ranked_board(fixture)
     query = WorkQuery(kind="task", limit=1)
 
-    _, board_cursor = fixture.contexts.work_board_page(fixture.actor, query)
-    list_cursor = fixture.contexts.work_list_page(fixture.actor, query).next_cursor
+    _, board_cursor = fixture.work_lists.work_board_page(fixture.actor, query)
+    list_cursor = fixture.work_lists.work_list_page(fixture.actor, query).next_cursor
 
     assert board_cursor is not None and list_cursor is not None
     for call, cursor in (
-        (fixture.contexts.work_list_page, board_cursor),
-        (fixture.contexts.work_board_page, list_cursor),
+        (fixture.work_lists.work_list_page, board_cursor),
+        (fixture.work_lists.work_board_page, list_cursor),
     ):
         with pytest.raises(ValueError, match="invalid pagination cursor"):
             call(fixture.actor, replace(query, cursor=cursor))

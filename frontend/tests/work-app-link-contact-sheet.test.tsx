@@ -2,9 +2,13 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
-import type { WorkContact } from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
+import type { WorkContact } from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   KEY,
   anna,

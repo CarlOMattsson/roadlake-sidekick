@@ -1,15 +1,22 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { WorkShell, type WorkShellProps } from "@/features/work-app/work-shell";
+import { Segmented } from "@/features/mcp-apps/ui/segmented";
+import { TaskProps } from "@/features/work-app/tasks/task-detail-controls";
+import { workEn } from "@/features/work-app/shared/labels";
+import {
+  WorkShell,
+  type WorkShellProps,
+} from "@/features/work-app/shell/work-shell";
 import {
   workShellLabelsEn,
   workShellLabelsFor,
   workShellLabelsSv,
-} from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/shell/work-shell-labels";
+
+import { readSource } from "./helpers/source-files";
+import { readStylesheet } from "./helpers/stylesheet";
 
 function panels(): Pick<WorkShellProps, "agenda" | "board" | "hierarchy"> {
   return {
@@ -145,122 +152,122 @@ describe.each([
   });
 });
 
-describe("fullscreen clearance above the host reply field", () => {
-  // jsdom applies no CSS, so the rules are read from the stylesheets.
-  const read = (file: string) =>
-    readFileSync(path.resolve(import.meta.dirname, file), "utf8");
+// jsdom applies no CSS, so the rules are read from the stylesheets and resolved against the rendered markup.
+const ROOM = { room: "sidekick-work" };
+const shellCss = readStylesheet("features/work-app/shell/work-shell.css");
+const layoutCss = readStylesheet("features/mcp-apps/ui/layout.css");
+const tokensCss = readStylesheet("features/mcp-apps/ui/tokens.css");
+const detailCss = readStylesheet("features/work-app/tasks/task-detail.css");
 
+describe("fullscreen clearance above the host reply field", () => {
   it(".sk-shell adds no bottom padding (the frame keeps the foot reserve)", () => {
-    const css = read("../src/features/work-app/work-shell.css");
+    render(<WorkShell labels={workShellLabelsEn} {...panels()} />);
+    const shell = document.querySelector(".sk-shell") as HTMLElement;
+
+    expect(shellCss.styleOf(shell, ROOM)["padding-block-end"]).toBeUndefined();
+    expect(shellCss.styleOf(shell, ROOM)["padding-bottom"]).toBeUndefined();
     // --work-undo-bottom was read by nothing and is gone.
-    expect(css).not.toMatch(/work-undo-bottom/);
-    expect(css).not.toMatch(/\.sk-shell \{[^}]*padding-block-end/);
+    for (const rule of shellCss.rules) {
+      expect(Object.keys(rule.declarations)).not.toContain(
+        "--work-undo-bottom",
+      );
+    }
   });
 
   it("keeps the foot reserve below the frame content", () => {
-    const css = read("../src/features/mcp-apps/ui/layout.css");
-    expect(css).toMatch(
-      /\.sk-frame\[data-mode="full"\] > \.sk-frame__body \{[^}]*padding-bottom: calc\(var\(--sk-frame-pad\) \+ var\(--sk-foot-reserve, 6rem\)\);/,
+    render(<WorkShell labels={workShellLabelsEn} {...panels()} />);
+    const body = document.querySelector(".sk-frame__body") as HTMLElement;
+
+    expect(layoutCss.styleOf(body, ROOM)["padding-bottom"]).toBe(
+      "calc(var(--sk-frame-pad) + var(--sk-foot-reserve, 6rem))",
     );
   });
 
   it("defines the foot reserve as the larger of the host inset and 6rem", () => {
-    const tokens = read("../src/features/mcp-apps/ui/tokens.css");
-    expect(tokens).toMatch(
-      /--sk-foot-reserve: max\(var\(--host-safe-bottom, 0px\), 6rem\);/,
+    expect(tokensCss.rule(":root")["--sk-foot-reserve"]).toBe(
+      "max(var(--host-safe-bottom, 0px), 6rem)",
     );
   });
 });
 
 describe("task detail layout at 320 px", () => {
   it("leaves the detail its 16 px page margin, and has no status segments: the status is a property chip", () => {
-    // The task detail's rules live in task-detail.css (loaded right after work.css).
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/task-detail.css",
-      ),
-      "utf8",
+    render(
+      <TaskProps
+        hasDue={false}
+        busy={false}
+        status="todo"
+        labels={workEn}
+        onDue={vi.fn()}
+        onStatus={vi.fn()}
+      />,
     );
+
     // The detail has no frame of its own and adds no side padding: its 16 px side margin is the page's (the
     // fullscreen frame body, layout.css), the same as every other screen.
-    expect(css).toMatch(
-      /\.sidekick-work \.work-task \{\s*padding: 0;\s*border: 0;/,
-    );
-    const layout = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/layout.css",
-      ),
-      "utf8",
-    );
-    expect(layout).toMatch(/--sk-frame-pad: 16px;/);
-    // The status segments are gone: the status and the due date are property chips (task-detail-controls.tsx),
-    // not a radio group.
-    expect(css).not.toMatch(/work-task-status/);
-    const controls = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/task-detail-controls.tsx",
-      ),
-      "utf8",
-    );
-    expect(controls).not.toMatch(/role="radiogroup"/);
-    expect(controls).toMatch(/className="sk-chip work-prop-chip"/);
+    expect(detailCss.rule(".sidekick-work .work-task")).toMatchObject({
+      padding: "0",
+      border: "0",
+    });
+    expect(
+      layoutCss.rule('.sk-frame[data-mode="full"] > .sk-frame__body')[
+        "--sk-frame-pad"
+      ],
+    ).toBe("16px");
+    // The status and the due date are property chips, not a radio group.
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    for (const chip of screen.getAllByRole("button")) {
+      expect(chip).toHaveClass("sk-chip", "work-prop-chip");
+    }
+    expect(
+      detailCss.rules.map((rule) => rule.selector).join("\n"),
+    ).not.toContain("work-task-status");
   });
 
   it("sizes Markera klar to its text (a compact primary with no rule of its own), and gives each Step the row template's --sk-row-pad above and below inside its --sk-row-min", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/task-detail.css",
-      ),
-      "utf8",
+    render(
+      <TaskProps
+        hasDue={false}
+        busy={false}
+        status="todo"
+        labels={workEn}
+        onDue={vi.fn()}
+        onStatus={vi.fn()}
+        done={
+          <button type="button" className="sk-btn sk-btn--compact">
+            Done
+          </button>
+        }
+      />,
     );
-    // The button is the family's compact primary, as wide as its text; the old full-width rule is gone.
-    expect(css).not.toMatch(/work-task-done/);
-    const family = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/family.css",
-      ),
-      "utf8",
-    );
-    const compact = /\.sk-btn--compact \{([^}]*)\}/.exec(family)?.[1];
-    expect(compact, "compact rule").toBeDefined();
-    expect(compact).not.toMatch(/width: 100%/);
-    expect(compact).toMatch(/white-space: nowrap;/);
-    // It is the last control of the property row (task-detail-controls.tsx renders `done` after the chips).
-    const controls = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/task-detail-controls.tsx",
-      ),
-      "utf8",
-    );
-    expect(controls).toMatch(/\)\}\s*\{done\}\s*\{onDue && open === "due"/);
+    const family = readStylesheet("features/mcp-apps/ui/family.css");
+    const done = screen.getByRole("button", { name: "Done" });
+
+    // The button is the family's compact primary, as wide as its text; the old full-width rule is gone. It is the
+    // last control of the property row (task-detail-controls.tsx renders `done` after the chips).
+    expect(done.parentElement?.lastElementChild).toBe(done);
+    const compact = family.styleOf(done, ROOM);
+    expect(compact.width).not.toBe("100%");
+    expect(compact["white-space"]).toBe("nowrap");
+    expect(
+      detailCss.rules.map((rule) => rule.selector).join("\n"),
+    ).not.toContain("work-task-done");
     // The air lies inside the label's 48 (no ⋯), and the list rises by --sk-row-air-extra.
-    expect(css).not.toMatch(/\.sidekick-work \.work-steps > li \{/);
-    const step =
-      /\.sidekick-work \.work-steps :is\(label, \.work-step-read\) \{([^}]*)\}/.exec(
-        css,
-      )?.[1];
-    expect(step, "step rule").toBeDefined();
-    expect(step).toMatch(/min-height: var\(--sk-row-min\);/);
-    expect(step).toMatch(/padding-block: var\(--sk-row-pad\);/);
-    const list = /\.sidekick-work \.work-steps \{([^}]*)\}/.exec(css)?.[1];
-    expect(list).toMatch(
-      /margin: calc\(-1 \* var\(--sk-row-air-extra\)\) 0 0;/,
+    expect(detailCss.has(".sidekick-work .work-steps > li")).toBe(false);
+    expect(
+      detailCss.rule(".sidekick-work .work-steps :is(label, .work-step-read)"),
+    ).toMatchObject({
+      "min-height": "var(--sk-row-min)",
+      "padding-block": "var(--sk-row-pad)",
+    });
+    expect(detailCss.rule(".sidekick-work .work-steps").margin).toBe(
+      "calc(-1 * var(--sk-row-air-extra)) 0 0",
     );
   });
 
   it("gives a linked Contact no ⋯ button, only a › that opens it (removal is in the row's own menu)", () => {
-    const source = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/work-view-parts/task-contacts-section.tsx",
-      ),
-      "utf8",
+    const source = readSource(
+      "features/work-app/tasks/task-contacts-section.tsx",
     );
     const start = source.indexOf("<LinkedRow");
     expect(start).toBeGreaterThan(-1);
@@ -289,55 +296,86 @@ describe("workShellLabelsFor", () => {
 });
 
 describe("the tab row sticks under the host strip", () => {
-  // jsdom applies no CSS, so the sticky rules are read from the stylesheets.
-  const read = (file: string) =>
-    readFileSync(path.resolve(import.meta.dirname, file), "utf8");
+  const shellBarCss = readStylesheet("features/mcp-apps/sidekick-shell.css");
+  const BLEED =
+    "calc(-1 * var(--sk-frame-pad-left, 0px)) calc(-1 * var(--sk-frame-pad-right, 0px))";
+
+  /** The band declarations both stuck rows share: bled to the frame's edges, content kept at the reading width. */
+  function expectBand(style: Record<string, string>, inset: string) {
+    expect(style["margin-inline"]).toBe(BLEED);
+    expect(style[inset]).toBe(
+      "max(0px, calc((100% - var(--sk-room-max)) / 2))",
+    );
+    expect(style["padding-inline"]).toBe(
+      `calc(var(--sk-frame-pad-left, 0px) + var(${inset})) calc(var(--sk-frame-pad-right, 0px) + var(${inset}))`,
+    );
+  }
 
   it("sticks Work's tab row at the shell's sticky offset, above the list", () => {
-    const css = read("../src/features/work-app/work-shell.css");
-    expect(css).toMatch(
-      /\.sk-shell-tabs \{[^}]*position: sticky;[^}]*top: var\(--sk-sticky-top\);[^}]*z-index: 2;/,
-    );
+    render(<WorkShell labels={workShellLabelsEn} {...panels()} />);
+    const tabs = document.querySelector(".sk-shell-tabs") as HTMLElement;
+
+    expect(shellCss.styleOf(tabs, ROOM)).toMatchObject({
+      position: "sticky",
+      top: "var(--sk-sticky-top)",
+      "z-index": "2",
+    });
   });
 
   it("gives the list the offset under the strip and the tab row, whose height is --sk-tabs-h (--sk-sticky-top)", () => {
-    const css = read("../src/features/mcp-apps/sidekick-shell.css");
-    expect(css).toMatch(
-      /\.sk-shell-list \{\s*--sk-sticky-top: calc\(\s*var\(--host-safe-top, 0px\) \+ var\(--sk-bar-h, 0px\) \+ var\(--sk-tabs-h\)\s*\);\s*\}/,
+    render(<WorkShell labels={workShellLabelsEn} {...panels()} />);
+    const list = document.querySelector(".sk-shell-list") as HTMLElement;
+
+    const offset = shellBarCss.styleOf(list, ROOM)["--sk-sticky-top"];
+    expect(offset).toBe(
+      "calc(var(--host-safe-top, 0px) + var(--sk-bar-h, 0px) + var(--sk-tabs-h))",
     );
     // The tab row and its tools use the same height token, so the offset is the row's real height.
-    expect(css).not.toMatch(/\.sk-shell-list \{[^}]*var\(--sk-tap\)/);
-    const tabs = read("../src/features/work-app/view-tabs.css");
-    expect(tabs).toMatch(/height: var\(--sk-tabs-h\);/);
-    const shell = read("../src/features/work-app/work-shell.css");
-    expect(shell).toMatch(/height: var\(--sk-tabs-h\);/);
-    const tokens = read("../src/features/mcp-apps/ui/tokens.css");
-    expect(tokens).toMatch(/--sk-tabs-h:\s*min\(var\(--sk-tap\), 56px\);/);
+    expect(offset).not.toContain("--sk-tap");
+    expect(
+      readStylesheet("features/work-app/shell/view-tabs.css").rules.map(
+        (rule) => rule.declarations.height,
+      ),
+    ).toContain("var(--sk-tabs-h)");
+    expect(shellCss.rules.map((rule) => rule.declarations.height)).toContain(
+      "var(--sk-tabs-h)",
+    );
+    expect(tokensCss.rule(":root")["--sk-tabs-h"]).toBe(
+      "min(var(--sk-tap), 56px)",
+    );
   });
 
   it("paints the stuck room strip bar and Work's tab row to the frame's side edges, one band of one width", () => {
+    render(<WorkShell labels={workShellLabelsEn} {...panels()} />);
+    const tabs = document.querySelector(".sk-shell-tabs") as HTMLElement;
+
     // The strip and the Back row keep the rooms' reading width inside the band, as the tab row's tabs do.
-    const bleed =
-      /margin-inline: calc\(-1 \* var\(--sk-frame-pad-left, 0px\)\)\s+calc\(-1 \* var\(--sk-frame-pad-right, 0px\)\);[^}]*--sk-bar-inset: max\(0px, calc\(\(100% - var\(--sk-room-max\)\) \/ 2\)\);\s*padding-inline: calc\(var\(--sk-frame-pad-left, 0px\) \+ var\(--sk-bar-inset\)\)\s+calc\(var\(--sk-frame-pad-right, 0px\) \+ var\(--sk-bar-inset\)\);/;
-    const strip = read("../src/features/mcp-apps/sidekick-shell.css");
-    expect(strip).toMatch(
-      new RegExp(`\\.sk-rooms__bar \\{[^}]*${bleed.source}`),
-    );
-    // The tab row bleeds the same way; its tabs and tools keep the rooms' reading width inside the band (ui-8).
-    const shell = read("../src/features/work-app/work-shell.css");
-    expect(shell).toMatch(
-      /\.sk-shell-tabs \{[^}]*margin-inline: calc\(-1 \* var\(--sk-frame-pad-left, 0px\)\)\s+calc\(-1 \* var\(--sk-frame-pad-right, 0px\)\);[^}]*--sk-tabs-inset: max\(0px, calc\(\(100% - var\(--sk-room-max\)\) \/ 2\)\);\s*padding-inline: calc\(var\(--sk-frame-pad-left, 0px\) \+ var\(--sk-tabs-inset\)\)\s+calc\(var\(--sk-frame-pad-right, 0px\) \+ var\(--sk-tabs-inset\)\);/,
-    );
+    expectBand(shellBarCss.rule(".sk-rooms__bar"), "--sk-bar-inset");
+    // The tab row bleeds the same way; its tabs and tools keep the rooms' reading width inside the band.
+    expectBand(shellCss.styleOf(tabs, ROOM), "--sk-tabs-inset");
     // The frame's side padding is what the bands take back (layout.css).
-    const layout = read("../src/features/mcp-apps/ui/layout.css");
-    expect(layout).toMatch(/padding-right: var\(--sk-frame-pad-right\);/);
-    expect(layout).toMatch(/padding-left: var\(--sk-frame-pad-left\);/);
+    const body = document.querySelector(".sk-frame__body") as HTMLElement;
+    expect(layoutCss.styleOf(body, ROOM)).toMatchObject({
+      "padding-right": "var(--sk-frame-pad-right)",
+      "padding-left": "var(--sk-frame-pad-left)",
+    });
   });
 
   it("sticks Kontroll's segmented tabs at the same offset", () => {
-    const css = read("../src/features/control-app/control.css");
-    expect(css).toMatch(
-      /\.sidekick-control \.sk-segmented \{[^}]*position: sticky;[^}]*top: var\(--sk-sticky-top\);/,
+    render(
+      <Segmented
+        label="Kontroll"
+        options={[{ value: "a", label: "A" }]}
+        value="a"
+        onChange={vi.fn()}
+      />,
     );
+    const group = screen.getByRole("group", { name: "Kontroll" });
+
+    expect(
+      readStylesheet("features/control-app/control.css").styleOf(group, {
+        room: "sidekick-control",
+      }),
+    ).toMatchObject({ position: "sticky", top: "var(--sk-sticky-top)" });
   });
 });

@@ -26,14 +26,16 @@ from typing import Protocol
 
 from sidekick.companion.push_delivery import PushDeliveryService
 from sidekick.companion.push_delivery_store import SqlPushDeliveryStore
+from sidekick.companion.push_reminder_store import SqlReminderStore
 from sidekick.companion.push_reminders import ReminderScheduler
-from sidekick.companion.push_sender import HttpPushSender, create_client, silence_http_loggers
+from sidekick.companion.push_sender import HttpPushSender, create_client
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import Settings, get_settings
 from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging, log_failure, safe_log_fields
 from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.worker_health import WorkerHeartbeat
+from sidekick.store import SqlAlchemyStore
 
 LOGGER = logging.getLogger("sidekick.companion.push_worker")
 
@@ -69,7 +71,10 @@ def build_cycles(settings: Settings) -> tuple[DeliveryCycle, ScheduleCycle]:
         auth_host=settings.push_auth_host,
         auth_token=settings.push_auth_token,
     )
-    return service, ReminderScheduler.from_settings(settings, session_factory)
+    scheduler = ReminderScheduler.from_settings(
+        settings, SqlReminderStore(session_factory), SqlAlchemyStore(session_factory)
+    )
+    return service, scheduler
 
 
 def run_worker(
@@ -134,7 +139,6 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     configure_worker_logging()
-    silence_http_loggers()
     try:
         code = run_guarded(
             "sidekick-push-worker", lambda: run_worker(get_settings(), once=args.once)

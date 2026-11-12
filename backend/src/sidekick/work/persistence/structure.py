@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import cast
 from uuid import UUID
 
 from sqlalchemy import select
@@ -32,7 +33,7 @@ from sidekick.work.domain import (
     ProcessStatus,
 )
 from sidekick.work.domain.planning import Cadence
-from sidekick.work.domain.saved_view import SavedView
+from sidekick.work.domain.saved_view import SavedView, SavedViewDefinition
 from sidekick.work.persistence.mappers import (
     domain_from_row,
     domain_to_row,
@@ -42,6 +43,18 @@ from sidekick.work.persistence.mappers import (
     process_run_template_from_row,
     process_to_row,
 )
+
+
+def _saved_view_from_row(row: SavedViewRow) -> SavedView:
+    # The definition was checked by `validate_definition` before it was stored.
+    return SavedView(
+        row.id,
+        row.owner_id,
+        row.name,
+        cast("SavedViewDefinition", row.definition),
+        row.version,
+        row.archived_at,
+    )
 
 
 class WorkStructureStore:
@@ -71,10 +84,7 @@ class WorkStructureStore:
         if not include_archived:
             statement = statement.where(SavedViewRow.archived_at.is_(None))
         rows = session.scalars(statement.order_by(SavedViewRow.name.asc(), SavedViewRow.id.asc()))
-        return [
-            SavedView(row.id, row.owner_id, row.name, row.definition, row.version, row.archived_at)
-            for row in rows
-        ]
+        return [_saved_view_from_row(row) for row in rows]
 
     @staticmethod
     def get_saved_view(session: Session, owner_id: UUID, view_id: UUID) -> SavedView:
@@ -85,9 +95,7 @@ class WorkStructureStore:
         )
         if row is None:
             raise NotFoundError("saved view not found")
-        return SavedView(
-            row.id, row.owner_id, row.name, row.definition, row.version, row.archived_at
-        )
+        return _saved_view_from_row(row)
 
     @staticmethod
     def save_saved_view(
@@ -102,7 +110,7 @@ class WorkStructureStore:
                     id=item.id,
                     owner_id=item.owner_id,
                     name=item.name,
-                    definition=item.definition,
+                    definition=dict(item.definition),
                     version=item.version,
                     archived_at=item.archived_at,
                 )
@@ -114,7 +122,7 @@ class WorkStructureStore:
             raise ConflictError("stale saved view version")
         row.name, row.definition, row.version, row.archived_at = (
             item.name,
-            item.definition,
+            dict(item.definition),
             item.version,
             item.archived_at,
         )

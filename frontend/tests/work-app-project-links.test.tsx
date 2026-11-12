@@ -11,12 +11,12 @@ import { openLinkedRowMenu } from "./linked-row-menu-helpers";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { workDate } from "@/features/mcp-apps/ui/due";
-import { workEn } from "@/features/work-app/labels";
-import { linksLabelsEn } from "@/features/work-app/links-labels";
-import { taskPlaceLabelsEn } from "@/features/work-app/task-place-labels";
-import { manageLabelsEn } from "@/features/work-app/manage-labels";
-import { dueAtFromDateInput } from "@/features/work-app/task-edit";
-import { type WorkContact } from "@/features/work-app/transport";
+import { workEn } from "@/features/work-app/shared/labels";
+import { linksLabelsEn } from "@/features/work-app/shared/links-labels";
+import { taskPlaceLabelsEn } from "@/features/work-app/tasks/task-place-labels";
+import { manageLabelsEn } from "@/features/work-app/shared/manage-labels";
+import { dueAtFromDateInput } from "@/features/work-app/tasks/task-edit";
+import { type WorkContact } from "@/features/work-app/transport/transport";
 import {
   KEY,
   anna,

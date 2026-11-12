@@ -8,11 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.memory.adapters.fake import FakeMemoryProvider
-from sidekick.memory.application.sync import (
-    MemoryReconciler,
-    ReconcileResult,
-    SyncPolicy,
-)
+from sidekick.memory.application.sync import MemoryReconciler
+from sidekick.memory.application.sync_state import ReconcileResult, SyncPolicy
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.memory.ports import (
     MemoryFailureCategory,

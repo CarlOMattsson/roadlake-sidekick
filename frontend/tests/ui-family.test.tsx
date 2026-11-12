@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,7 +6,7 @@ import { Card, Eyebrow } from "@/features/mcp-apps/ui/card";
 import { Notice, UndoNotice } from "@/features/mcp-apps/ui/notice";
 import { ErrorNotice } from "@/features/mcp-apps/ui/states";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
+import { readStylesheet } from "./helpers/stylesheet";
 
 describe("Card", () => {
   it("renders eyebrow, title, body and actions in the family order", () => {
@@ -149,20 +147,29 @@ describe("ErrorNotice placement", () => {
 });
 
 describe("family.css", () => {
-  const css = readFileSync(path.join(uiDir, "family.css"), "utf8");
+  const css = readStylesheet("features/mcp-apps/ui/family.css");
   it("uses tokens only: no hex outside var() or light-dark()", () => {
-    const stripped = css
-      .replace(/\/\*[\s\S]*?\*\//g, "")
+    const stripped = css.rules
+      .flatMap((rule) => Object.values(rule.declarations))
+      .join(" ")
       .replace(/var\([^)]*\)/g, "");
     expect(stripped).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(css).not.toMatch(/prefers-color-scheme/);
+    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
+      expect.stringContaining("prefers-color-scheme"),
+    );
   });
   it("keeps every button at least 44 px high (the tap token; the phone raises it to 48)", () => {
-    expect(css).toMatch(/min-height:\s*var\(--sk-tap\)/);
+    render(<Button>Spara</Button>);
+
+    expect(
+      css.styleOf(screen.getByRole("button"), { room: "sidekick-work" })[
+        "min-height"
+      ],
+    ).toBe("var(--sk-tap)");
   });
   it("fullscreen frames lift every sticky notice above the foot reserve", () => {
-    expect(css).toMatch(
-      /\.sk-frame\[data-mode="full"\] \{[^}]*--sk-notice-bottom: var\(--sk-foot-reserve, 6rem\);/,
+    expect(css.rule('.sk-frame[data-mode="full"]')["--sk-notice-bottom"]).toBe(
+      "var(--sk-foot-reserve, 6rem)",
     );
   });
 });

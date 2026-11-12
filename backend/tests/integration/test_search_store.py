@@ -12,7 +12,7 @@ from sqlalchemy import update
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.api.app import create_app
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.contacts.persistence import PHONETIC_CANDIDATE_LIMIT
 from sidekick.search.persistence import (
     ContactHit,

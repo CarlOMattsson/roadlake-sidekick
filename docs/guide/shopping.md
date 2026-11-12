@@ -34,16 +34,18 @@ Tap "Ångra" (Undo) on the row right after you ticked it off. Later, open Bought
 
 Tap the item's row, next to the ring. This opens the item's form, where you change the name, quantity and store.
 
+## Create, rename or archive a list
+
+Tap + next to Lists (Listor) to create a new list. In full screen, ⋯ and "Redigera lista" (Edit list) renames the list, and "Arkivera lista" (Archive list) archives it.
+
 ## What you would rather ask Claude for
 
-- Creating a new list.
 - Adding many items at once, for example from a recipe.
 - Marking everything you bought in one store as bought.
-- Renaming a list or archiving it.
 
 ## Shopping in the Android app
 
-The Android app shows the same lists. There you can add, edit, tick off and undo. [Read about the Android app](android-app.md).
+The Android app shows the same lists. There you can create lists, add, edit, tick off and undo. [Read about the Android app](android-app.md).
 
 ## Scopes the room needs
 

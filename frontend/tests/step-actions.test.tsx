@@ -2,20 +2,20 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
-import { StepActions } from "@/features/work-app/step-actions";
+import { StepActions } from "@/features/work-app/steps/step-actions";
 import {
   stepActionsLabelsEn,
   stepActionsLabelsSv,
-} from "@/features/work-app/step-actions-labels";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { workSv } from "@/features/work-app/labels";
+} from "@/features/work-app/steps/step-actions-labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkAction,
   WorkActionPage,
   WorkOrderItem,
   WorkStep,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 // jsdom has no CSS global; focusControl selects its control with CSS.escape, as the browser does.
 const cssGlobal = globalThis as unknown as {

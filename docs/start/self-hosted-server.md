@@ -84,6 +84,8 @@ SIDEKICK_MCP_OAUTH_ALLOWED_IDENTITIES=github:<numeric GitHub id>=<UUID from step
 grep -nE '^[A-Z_]+=.*replace-with-' selfhost.env db.env
 ```
 
+Optional but recommended: keep the Sidekick secrets out of the containers' environment variables by moving them into files with `sh secrets-to-files.sh` (see [Secrets as files](../operate/limits-and-secrets.md#secrets-as-files)). Run it after the check above; it leaves a secret that still says `replace-with-` where it is.
+
 **5. Start.**
 
 ```bash

@@ -1,9 +1,13 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { RecordMeta } from "@/features/work-app/board-card";
+import { RecordMeta } from "@/features/work-app/board/board-card";
 import { workDate } from "@/features/mcp-apps/ui/due";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
-import type { WorkItemRecord } from "@/features/work-app/transport";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
+import type { WorkItemRecord } from "@/features/work-app/transport/transport";
 
 /*
  * The meta line of a record row is one builder, RecordMeta: "{due} · {status} · {kind} · {High} ·

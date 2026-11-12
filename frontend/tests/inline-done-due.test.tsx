@@ -4,13 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
+} from "@/features/work-app/inline/inline-summary-labels";
 import {
   AgendaSummary,
   InlineSummary,
   type InlineSummaryData,
-} from "@/features/work-app/inline-summary";
-import type { WorkItemRecord } from "@/features/work-app/transport";
+} from "@/features/work-app/inline/inline-summary";
+import type { WorkItemRecord } from "@/features/work-app/transport/transport";
 
 /*
  * A Task marked done ("completed") has no overdue state: its due date is not shown as "Försenad" or

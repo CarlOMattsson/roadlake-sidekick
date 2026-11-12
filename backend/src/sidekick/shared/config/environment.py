@@ -6,6 +6,7 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from sidekick.shared.config.base import SettingsGroup
+from sidekick.shared.config.secret_files import secret_file_variable_names
 
 
 class EnvironmentSettings(SettingsGroup):
@@ -25,6 +26,7 @@ class EnvironmentSettings(SettingsGroup):
     def reject_undeclared_environment(self) -> Self:
         prefix = self.model_config.get("env_prefix") or ""
         declared = {f"{prefix}{name}".upper() for name in type(self).model_fields}
+        declared |= secret_file_variable_names(type(self))
         # Test-database variables deliberately sit outside Settings: they choose a
         # destructive-test target, not an application configuration value. Every other
         # prefixed process variable must name a declared setting so a typo cannot silently

@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -10,7 +7,7 @@ import {
   type SegmentedOption,
 } from "@/features/mcp-apps/ui/segmented";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
+import { readStylesheet } from "./helpers/stylesheet";
 
 const optionsWithBadge: SegmentedOption<string>[] = [
   { value: "todo", label: "Att göra", badge: "7" },
@@ -92,16 +89,24 @@ describe("Segmented badge", () => {
 
 describe("Segmented badge styling", () => {
   it("lays the badged option out in two rows with tabular figures and keeps 44 px height", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+    const css = readStylesheet("features/mcp-apps/ui/segmented.css");
+    render(
+      <Segmented
+        label="Uppgifter"
+        options={optionsWithBadge}
+        value="todo"
+        onChange={vi.fn()}
+      />,
+    );
+    const option = screen.getByRole("button", { name: "Att göra 7" });
 
-    expect(css).toMatch(
-      /\.sk-segmented__option--badged\s*\{[^}]*flex-direction:\s*column/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented__badge\s*\{[^}]*font-variant-numeric:\s*tabular-nums/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented__option\s*\{[^}]*min-height:\s*2\.75rem/,
-    );
+    expect(option).toHaveClass("sk-segmented__option--badged");
+    expect(css.styleOf(option)["flex-direction"]).toBe("column");
+    expect(
+      css.styleOf(option.querySelector(".sk-segmented__badge") as Element)[
+        "font-variant-numeric"
+      ],
+    ).toBe("tabular-nums");
+    expect(css.styleOf(option)["min-height"]).toBe("2.75rem");
   });
 });

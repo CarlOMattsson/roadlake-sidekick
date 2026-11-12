@@ -2,13 +2,19 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { cardLabelsEn, cardLabelsSv } from "@/features/work-app/card-labels";
-import { WorkCard, type CardStatusWriter } from "@/features/work-app/work-card";
+import {
+  cardLabelsEn,
+  cardLabelsSv,
+} from "@/features/work-app/shared/card-labels";
+import {
+  WorkCard,
+  type CardStatusWriter,
+} from "@/features/work-app/inline/work-card";
 import type {
   WorkCardFrame,
   WorkItemRecord,
   WorkTask,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const TASK_ID = "019f0000-0000-7000-8000-000000000001";
 

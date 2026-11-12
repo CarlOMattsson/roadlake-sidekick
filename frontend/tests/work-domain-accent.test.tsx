@@ -1,14 +1,14 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { BoardCard } from "@/features/work-app/board-card";
-import { HierarchyView } from "@/features/work-app/hierarchy-view";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { BoardCard } from "@/features/work-app/board/board-card";
+import { HierarchyView } from "@/features/work-app/hierarchy/hierarchy-view";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   domainAccentOf,
   type WorkHierarchyNode,
   type WorkItemRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * Domain accent (see docs/decisions/log.md D-061). A valid accent name sets data-accent on a Work card or a

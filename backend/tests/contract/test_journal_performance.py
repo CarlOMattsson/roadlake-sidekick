@@ -103,36 +103,38 @@ def _seeded_journal() -> tuple[Any, Any, Actor, Any]:
         admin.dispose()
 
     actor = Actor(owner_id, frozenset({"journal:read"}))
-    return factory, app.state.container.journal, actor, detail_id
+    return factory, app.state.container, actor, detail_id
 
 
-def _reads(journal: Any, actor: Actor, detail_id: Any) -> dict[str, Callable[[], None]]:
+def _reads(container: Any, actor: Actor, detail_id: Any) -> dict[str, Callable[[], None]]:
     def list_entries() -> None:
-        page = journal.list_entries(
+        page = container.journal.list_entries(
             actor, start_date=JOURNAL_START, end_date=JOURNAL_END, limit=100
         )
         assert 0 < len(page.items) <= 100
 
     def get_day() -> None:
-        day = journal.get_day(actor, journal_date=JOURNAL_START, limit=100)
+        day = container.journal_day.get_day(actor, journal_date=JOURNAL_START, limit=100)
         assert 0 < len(day.entries) <= 100
 
     def get_entry() -> None:
-        assert journal.get_entry(actor, detail_id).title == "Synthetic journal entry"
+        assert container.journal.get_entry(actor, detail_id).title == "Synthetic journal entry"
 
     return {"365-day list": list_entries, "day": get_day, "detail": get_entry}
 
 
 @pytest.mark.integration
 def test_bounded_journal_reads_take_a_fixed_number_of_statements() -> None:
-    factory, journal, actor, detail_id = _seeded_journal()
+    factory, container, actor, detail_id = _seeded_journal()
 
-    for label, read in _reads(journal, actor, detail_id).items():
+    for label, read in _reads(container, actor, detail_id).items():
         with count_statements(factory) as statements:
             read()
         assert 0 < len(statements) <= MAX_STATEMENTS_PER_READ, (label, statements)
 
-    page = journal.list_entries(actor, start_date=JOURNAL_START, end_date=JOURNAL_END, limit=100)
+    page = container.journal.list_entries(
+        actor, start_date=JOURNAL_START, end_date=JOURNAL_END, limit=100
+    )
     fingerprint = entry_fingerprint(page.items)
     assert len(fingerprint) == 64
     # The fingerprint is computed from the bounded page in memory, not by a further read.
@@ -144,9 +146,11 @@ def test_bounded_journal_reads_take_a_fixed_number_of_statements() -> None:
 @pytest.mark.integration
 @pytest.mark.performance
 def test_bounded_journal_reads_and_fingerprint_p95_stay_below_the_generous_bound() -> None:
-    _factory, journal, actor, detail_id = _seeded_journal()
-    reads = _reads(journal, actor, detail_id)
-    page = journal.list_entries(actor, start_date=JOURNAL_START, end_date=JOURNAL_END, limit=100)
+    _factory, container, actor, detail_id = _seeded_journal()
+    reads = _reads(container, actor, detail_id)
+    page = container.journal.list_entries(
+        actor, start_date=JOURNAL_START, end_date=JOURNAL_END, limit=100
+    )
     durations: dict[str, list[float]] = {label: [] for label in (*reads, "bounded fingerprint")}
 
     for _iteration in range(20):

@@ -12,7 +12,7 @@ import pytest
 from sqlalchemy import text
 
 from sidekick.api.app import Container, create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.journal.domain.analysis import Perspective
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
 from sidekick.journal.domain.source import SourceType
@@ -101,7 +101,7 @@ def test_entry_lifecycle_preserves_provenance_relations_and_guarded_manual_summa
         CreateContactCommand(display_name="Sammanfattning kontakt"),
         "journal-summary-contact",
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=JOURNAL_DATE,
@@ -113,7 +113,7 @@ def test_entry_lifecycle_preserves_provenance_relations_and_guarded_manual_summa
         idempotency_key="journal-summary-source",
     )
     key_points = (KeyPoint(KeyPointKind.DECISION, "Följ upp beslutet."),)
-    entry = container.journal.create_manual_entry(
+    entry = container.journal_capture.create_manual_entry(
         actor,
         source_id=source.id,
         title="Sammanfattningsbar journalpost",
@@ -125,7 +125,7 @@ def test_entry_lifecycle_preserves_provenance_relations_and_guarded_manual_summa
         idempotency_key="journal-summary-entry",
     )
 
-    saved = container.journal.put_manual_summary(
+    saved = container.journal_day.put_manual_summary(
         actor,
         journal_date=JOURNAL_DATE,
         expected_entry_fingerprint=entry_fingerprint([entry]),
@@ -150,12 +150,12 @@ def test_entry_lifecycle_preserves_provenance_relations_and_guarded_manual_summa
     assert updated.version == 2
     assert updated.source_id == source.id
     assert updated.journal_date == JOURNAL_DATE
-    relations = container.journal.get_entry_relations(actor, entry.id)
+    relations = container.journal_relations.get_entry_relations(actor, entry.id)
     assert relations.project_ids == (project.id,)
     assert relations.task_ids == (task.id,)
     assert relations.contact_ids == (contact.id,)
 
-    stale = container.journal.get_day(actor, journal_date=JOURNAL_DATE)
+    stale = container.journal_day.get_day(actor, journal_date=JOURNAL_DATE)
     assert stale.summary_status.state == "stale"
     assert stale.summary_status.summary_id == saved.id
     assert stale.summary_status.version == 1
@@ -178,12 +178,12 @@ def test_entry_lifecycle_preserves_provenance_relations_and_guarded_manual_summa
     assert restored.version == 4
     assert restored.source_id == source.id
     assert restored.journal_date == JOURNAL_DATE
-    relations = container.journal.get_entry_relations(actor, entry.id)
+    relations = container.journal_relations.get_entry_relations(actor, entry.id)
     assert relations.project_ids == (project.id,)
     assert relations.task_ids == (task.id,)
     assert relations.contact_ids == (contact.id,)
 
-    refreshed = container.journal.put_manual_summary(
+    refreshed = container.journal_day.put_manual_summary(
         actor,
         journal_date=JOURNAL_DATE,
         expected_entry_fingerprint=entry_fingerprint([restored]),

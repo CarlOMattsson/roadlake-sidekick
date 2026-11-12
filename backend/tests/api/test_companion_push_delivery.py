@@ -24,7 +24,7 @@ from sidekick.api.app import create_app
 from sidekick.companion import push_delivery, push_sender, push_worker
 from sidekick.companion.push_delivery import PushDeliveryService
 from sidekick.companion.push_delivery_store import SqlPushDeliveryStore
-from sidekick.companion.push_outbox import (
+from sidekick.companion.push_outbox_store import (
     acting_device,
     enqueue_reminder_push,
     enqueue_wake,
@@ -32,6 +32,7 @@ from sidekick.companion.push_outbox import (
 )
 from sidekick.companion.push_sender import HttpPushSender, create_client
 from sidekick.lifecycle.domain import RecordKind
+from sidekick.shared.observability import HTTP_CLIENT_LOGGERS
 from sidekick.shared.persistence.models import (
     AuditEventRow,
     CompanionPairingRow,
@@ -42,7 +43,7 @@ from sidekick.shared.persistence.models import (
 )
 from sidekick.shared.types import new_uuid7, utc_now
 from sidekick.store import SqlAlchemyStore
-from sidekick.tasks.application.service import UpdateTaskCommand
+from sidekick.tasks.application import UpdateTaskCommand
 from sidekick.tasks.domain import Priority, Task, TaskStatus
 from tests.db import database_factory
 from tests.support.companion import (
@@ -1007,7 +1008,16 @@ def test_no_endpoint_or_topic_reaches_a_log_record(caplog: pytest.LogCaptureFixt
         assert SECRET_TOPIC not in rendered and "https://" not in rendered
         assert SECRET_TOPIC not in record.exc_text if record.exc_text else True
     assert {record.__dict__.get("push_host") for record in delivery} == {"ntfy.sh"}
-    assert not [r for r in records if r.name.startswith(("httpx", "httpcore"))]
+    # Any HTTP client library (httpx, httpcore and their httpx2/httpcore2 copies) logs request URLs,
+    # so none of its records may name the endpoint or the topic, and its loggers must be held back.
+    for record in records:
+        if record.name.startswith(("httpx", "httpcore")):
+            rendered = json.dumps(
+                [record.getMessage(), repr(record.args), record.exc_text], default=str
+            )
+            assert SECRET_TOPIC not in rendered and "ntfy.sh" not in rendered, record.name
+    for name in HTTP_CLIENT_LOGGERS:
+        assert logging.getLogger(name).getEffectiveLevel() >= logging.WARNING, name
 
 
 @pytest.mark.integration
@@ -1219,7 +1229,7 @@ def test_a_block_on_one_host_does_not_stop_another_host() -> None:
 def test_the_wake_due_time_is_added_in_utc_across_a_clock_change() -> None:
     from zoneinfo import ZoneInfo
 
-    from sidekick.companion.push_outbox import _wake_due
+    from sidekick.companion.push_outbox_store import _wake_due
 
     stockholm = ZoneInfo("Europe/Stockholm")
     last = datetime(2026, 10, 25, 2, 59, 50, tzinfo=stockholm, fold=0)  # CEST, just before the end

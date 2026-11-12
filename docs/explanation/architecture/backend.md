@@ -33,17 +33,19 @@ code and `backend/tests/policy/test_interface_layering.py` (see
   `composition.py`) is a thin composition of per-context mixins that live in each context's own
   `persistence` module, on a `StoreBase` (`shared/persistence/stores`) that holds the session factory,
   the transaction boundary, idempotency and audit. Every read and write filters by `owner_id`. Persistence adapters never
-  import an application package. Smaller domains (shopping, references, search) keep their own
+  import an application package. The smallest domains (references, search) keep their own
   `persistence.py` next to the service.
 - **API** (`api/`): FastAPI routes, mainly the companion routes used by the Android app. They
   parse, authenticate and call application services or `structured` functions.
 - **MCP** (`mcp/`): curated tools and the MCP Apps resource. A handler calls the same application
   services as the API and never calls Sidekick's own HTTP API.
-- **Transport layers hold no SQL.** Neither `api/` nor `mcp/` imports `sqlalchemy` or
-  `sidekick.shared.persistence`; they reach data only through the `Container`'s services. The one
-  database type they need, the session factory of `create_app`'s test seam, is re-exported as
-  `sidekick.composition.SessionFactory`. There are no remaining exceptions; a future one must be
-  listed with a reason in `TRANSPORT_PERSISTENCE_EXCEPTIONS` in the layering test.
+- **Transport layers hold no SQL.** Neither `api/` nor `mcp/` imports `sqlalchemy`,
+  `sidekick.shared.persistence` or any context's own `persistence` module; they reach data only
+  through the `Container`'s services, the companion's device, push-subscription and reminder
+  services included. The one database type they need, the session factory of `create_app`'s test
+  seam, is re-exported as `sidekick.composition.SessionFactory`, and the readiness probe is the one
+  place that hands the container's session factory on. There are no remaining exceptions; a future
+  one must be listed with a reason in `TRANSPORT_PERSISTENCE_EXCEPTIONS` in the layering test.
 - **Shared records** (`structured/`): the reads and write results both interfaces answer with, so
   neither interface imports the other.
 

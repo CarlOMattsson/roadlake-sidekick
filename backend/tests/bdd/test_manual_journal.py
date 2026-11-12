@@ -11,7 +11,6 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.journal.application.service import JournalService
 from sidekick.journal.domain.day_done import DayDone
 from sidekick.journal.domain.entry import (
     EntryHead,
@@ -36,6 +35,7 @@ from tests.support.fakes import (
     JournalProviderSpy,
     make_cursor_codec,
 )
+from tests.support.journal_services import ManualJournal
 
 OWNER_ID = UUID("018af000-0000-7000-8000-000000000001")
 # Every Project belongs to one owner-consistent Domain.
@@ -217,8 +217,8 @@ def _actor() -> Actor:
     )
 
 
-def _journal_service(store: ManualJournalStore, clock: MutableClock) -> JournalService:
-    return JournalService(store, clock, make_cursor_codec())
+def _journal_service(store: ManualJournalStore, clock: MutableClock) -> ManualJournal:
+    return ManualJournal.build(store, clock, make_cursor_codec())
 
 
 def _capture_source(
@@ -231,7 +231,7 @@ def _capture_source(
     replaces_source_id: UUID | None = None,
     key: str = "journal-source-001",
 ) -> Any:
-    return service.create_source(
+    return service.capture.create_source(
         _actor(),
         source_type=source_type,
         journal_date=JOURNAL_DATE,
@@ -254,7 +254,7 @@ def _finalize_manual(
     contact_ids: tuple[UUID, ...] = (),
     key: str = "journal-entry-001",
 ) -> Any:
-    return service.create_manual_entry(
+    return service.capture.create_manual_entry(
         _actor(),
         source_id=source_id,
         title=title,
@@ -378,7 +378,7 @@ def test_backdated_entry_uses_historical_day_and_later_creation_time() -> None:
     source = _capture_source(service)
 
     entry = _finalize_manual(service, source.id)
-    day = service.get_day(_actor(), journal_date=JOURNAL_DATE)
+    day = service.day.get_day(_actor(), journal_date=JOURNAL_DATE)
 
     assert source.journal_date == JOURNAL_DATE
     assert source.created_at.date() == date(2026, 7, 24)
@@ -416,9 +416,9 @@ def test_multiple_same_day_entries_remain_separate_and_deterministically_ordered
     ]
 
     listed = list(
-        service.list_entries(_actor(), start_date=JOURNAL_DATE, end_date=JOURNAL_DATE).items
+        service.entries.list_entries(_actor(), start_date=JOURNAL_DATE, end_date=JOURNAL_DATE).items
     )
-    day_entries = list(service.get_day(_actor(), journal_date=JOURNAL_DATE).entries)
+    day_entries = list(service.day.get_day(_actor(), journal_date=JOURNAL_DATE).entries)
     expected_ids = [entry.id for entry in sorted(entries, key=entry_order_key)]
 
     assert len(listed) == 3
@@ -432,7 +432,7 @@ def test_source_has_no_edit_archive_restore_or_delete_lifecycle() -> None:
     service = _journal_service(store, MutableClock())
     source = _capture_source(service)
 
-    assert service.get_source(_actor(), source.id) == source
+    assert service.capture.get_source(_actor(), source.id) == source
     forbidden = {
         "update_source",
         "edit_source",
@@ -440,7 +440,9 @@ def test_source_has_no_edit_archive_restore_or_delete_lifecycle() -> None:
         "restore_source",
         "delete_source",
     }
-    assert forbidden.isdisjoint(name for name, _ in inspect.getmembers(service, callable))
+    assert forbidden.isdisjoint(
+        name for part in service.services() for name, _ in inspect.getmembers(part, callable)
+    )
     assert not hasattr(source, "archived_at")
 
 
@@ -498,16 +500,16 @@ def test_manual_path_has_zero_task_provider_or_health_dependencies(
     service = _journal_service(store, MutableClock(now))
     source = _capture_source(service)
     _finalize_manual(service, source.id, task_ids=(JOURNAL_TASK_ID,))
-    day = service.get_day(_actor(), journal_date=JOURNAL_DATE)
+    day = service.day.get_day(_actor(), journal_date=JOURNAL_DATE)
 
     assert day.entries
     assert store.tasks == tasks_before
     assert store.processing_runs == []
     assert journal_provider_spy.calls == []
-    constructor = inspect.signature(type(service).__init__)
     required_provider_parameters = {
         name
-        for name, parameter in constructor.parameters.items()
+        for part in service.services()
+        for name, parameter in inspect.signature(type(part).__init__).parameters.items()
         if "provider" in name and parameter.default is inspect.Parameter.empty and name != "self"
     }
     assert required_provider_parameters == set()

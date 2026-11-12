@@ -1,8 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, type Mock } from "vitest";
-import { WorkView } from "@/features/work-app/work-view";
-import { workEn } from "@/features/work-app/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
 import {
   type WorkBoardPage,
   type WorkContactRecord,
@@ -13,7 +13,7 @@ import {
   type WorkTask,
   type WorkTaskSummary,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 export const taskA = {
   id: "019f0000-0000-7000-8000-0000000000a1",

@@ -16,7 +16,8 @@ and a companion Android app. See [README.md](README.md) and [QUICKSTART.md](QUIC
 - Do not edit generated files by hand: `backend/src/sidekick/mcp/apps/sidekick.html`,
   `contracts/*.generated.json`. Regenerate them (commands below).
 - Do not edit migrations that have been applied; add a new numbered file under `migrations/`. The chain starts at
-  the 0.1.0 baseline (`100_baseline_0_1_0.py`); new files continue from `101_`.
+  the 0.1.0 baseline (`100_schema_baseline_0_1_0.py`); new files take the next number after the highest one there,
+  never `101` to `105` (`backend/tests/policy/test_migration_numbering.py`).
 
 ## Setting up Sidekick for a user
 
@@ -25,8 +26,9 @@ If you run the local setup (`bash tools/work.sh setup`) on behalf of a person, a
 ## Repository layout
 
 - `backend/src/sidekick/`: one package per context (`work`, `tasks`, `projects`, `journal`, `contacts`, `shopping`,
-  `memory`, `automation`, `search`, `lifecycle`, `license`, `references`, `backup`, `owner_export`), the shared
-  read records (`structured/`), the transports (`mcp/`, `api/`, `companion/`) and `shared/`. Layering is enforced by
+  `memory`, `automation`, `search`, `lifecycle`, `license`, `references`, `companion`, `backup`, `owner_export`), the
+  shared read records (`structured/`), the two interfaces (`mcp/`, and `api/` with the companion routes), the operator
+  CLI (`admin/`), the composition root (`composition.py`) and `shared/`. Layering is enforced by
   `backend/tests/policy/test_interface_layering.py` and
   `test_package_boundaries.py`; the debt lists in those tests may only shrink.
 - `frontend/`: the MCP Apps rooms (`src/features/`, React, built into one HTML resource) and the Android app

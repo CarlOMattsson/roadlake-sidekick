@@ -6,7 +6,7 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle import RecordKind
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor

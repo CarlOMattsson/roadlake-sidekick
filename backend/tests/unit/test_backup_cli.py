@@ -12,7 +12,8 @@ from pydantic import SecretStr
 
 from sidekick.backup import cli as backup_cli
 from sidekick.backup.bundle import build_backup_bundle, build_backup_envelope, write_backup_file
-from sidekick.owner_export.core import EXPORT_SOURCES, ExportRefused, build_export_document
+from sidekick.owner_export.catalogue import EXPORT_SOURCES, ExportRefused
+from sidekick.owner_export.document import build_export_document
 
 OWNER_ID = "00000000-0000-7000-8000-000000000001"
 OTHER_OWNER_ID = "00000000-0000-7000-8000-000000000002"

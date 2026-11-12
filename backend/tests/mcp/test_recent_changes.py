@@ -15,7 +15,7 @@ from fastmcp import Client, FastMCP
 from mcp.types import TextContent
 
 from sidekick.api.app import Container, create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.journal.domain.source import SourceType
 from sidekick.lifecycle import RecordKind
 from sidekick.lifecycle.domain import RecentChange
@@ -26,7 +26,7 @@ from sidekick.references.domain import ExternalReferenceDetails
 from sidekick.shared.types import Actor
 from sidekick.shopping.application.schemas import BatchItem
 from sidekick.store import SqlAlchemyStore
-from sidekick.tasks.application.service import UpdateTaskCommand
+from sidekick.tasks.application import UpdateTaskCommand
 from tests.db import database_factory
 from tests.mcp.harness import ActorSwitch
 from tests.support.settings import make_settings
@@ -65,7 +65,7 @@ def _seed(container: Container, actor: Actor) -> dict[str, UUID]:
     contact = container.contacts.create(
         actor, CreateContactCommand(display_name="Sara Test"), "recent-contact"
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 10, 29),
@@ -76,7 +76,7 @@ def _seed(container: Container, actor: Actor) -> dict[str, UUID]:
         replaces_source_id=None,
         idempotency_key="recent-source",
     )
-    entry = container.journal.create_manual_entry(
+    entry = container.journal_capture.create_manual_entry(
         actor,
         source_id=source.id,
         title=JOURNAL_TITLE,
@@ -417,8 +417,8 @@ async def test_alias_and_unlink_changes_are_named_and_unlinks_keep_their_text() 
     )
     alias_id = contact.aliases[-1].id
     task = container.tasks.create(actor, title="Offertuppgift", idempotency_key="link-task")
-    container.contacts.link_task(actor, contact.id, task.id, "link-task-link")
-    container.contacts.unlink_task(actor, contact.id, task.id, "link-task-unlink")
+    container.contact_relations.link_task(actor, contact.id, task.id, "link-task-link")
+    container.contact_relations.unlink_task(actor, contact.id, task.id, "link-task-unlink")
     linked = container.references.link(
         actor,
         task.id,
@@ -499,8 +499,8 @@ async def test_linked_changes_name_both_sides_and_send_the_undo_to_the_app() -> 
         actor, CreateContactCommand(display_name="Lina Länk"), "linked-contact"
     )
     task = container.tasks.create(actor, title="Länkad uppgift", idempotency_key="linked-task")
-    container.contacts.link_task(actor, contact.id, task.id, "linked-task-link")
-    container.contacts.link_project(actor, contact.id, project.id, "linked-project-link")
+    container.contact_relations.link_task(actor, contact.id, task.id, "linked-task-link")
+    container.contact_relations.link_project(actor, contact.id, project.id, "linked-project-link")
     linked = container.references.link(
         actor,
         task.id,
@@ -563,8 +563,8 @@ async def test_link_changes_need_the_read_scope_of_both_sides() -> None:
         actor, CreateContactCommand(display_name="Scope Kontakt"), "scope-contact"
     )
     task = container.tasks.create(actor, title="Scopeuppgift", idempotency_key="scope-task")
-    container.contacts.link_task(actor, contact.id, task.id, "scope-task-link")
-    container.contacts.link_project(actor, contact.id, project.id, "scope-project-link")
+    container.contact_relations.link_task(actor, contact.id, task.id, "scope-task-link")
+    container.contact_relations.link_project(actor, contact.id, project.id, "scope-project-link")
     switch = ActorSwitch(actor)
     mcp = FastMCP("recent-linked-scope-test")
     register_change_tools(mcp, ToolContext(container, switch, lambda _name: lambda fn: fn))
@@ -747,8 +747,8 @@ async def test_change_titles_follow_the_app_language_when_the_feed_is_read() -> 
         idempotency_key="locale-alias-remove",
     )
     task = container.tasks.create(actor, title="Offertuppgift", idempotency_key="locale-task")
-    container.contacts.link_task(actor, contact.id, task.id, "locale-link")
-    container.contacts.unlink_task(actor, contact.id, task.id, "locale-unlink")
+    container.contact_relations.link_task(actor, contact.id, task.id, "locale-link")
+    container.contact_relations.unlink_task(actor, contact.id, task.id, "locale-unlink")
     titles = {
         change.kind: change.title for change in container.lifecycle.list_recent_changes(actor)
     }

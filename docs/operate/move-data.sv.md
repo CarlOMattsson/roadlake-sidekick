@@ -10,7 +10,7 @@ Flytta dina poster från en installation av 0.1.0 till en annan, till exempel ti
 
 Använd detta för att flytta till en ny server eller en ny databas. Källan måste vara en 0.1.0-installation som har en
 ägarbackup (`sidekick-backup create`, eller backupprofilen) eller kan göra en ägarexport. Importen läser bara det
-nuvarande formatet (format 4 vid baslinjens huvud i 0.1.0), som bara 0.1.0 skriver. Det finns inget stött sätt att
+nuvarande formatet (format 5), som bara 0.1.0 skriver, och formatet före det (format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
 importera data från en installation före 0.1.0: backuper, exporter, ögonblicksbilder och SQL-dumpar från före 0.1.0
 läses inte, och `sidekick-backup import` kan inte importera dem. Behåll dem som arkiv.
 

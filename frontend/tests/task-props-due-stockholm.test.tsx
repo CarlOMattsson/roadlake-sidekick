@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { workEn } from "@/features/work-app/labels";
-import { TaskProps } from "@/features/work-app/task-detail-controls";
+import { workEn } from "@/features/work-app/shared/labels";
+import { TaskProps } from "@/features/work-app/tasks/task-detail-controls";
 
 // The Task detail's due choices give 23:59 on the Stockholm calendar day, whatever the browser's zone.
 describe("TaskProps due choices in Stockholm time", () => {

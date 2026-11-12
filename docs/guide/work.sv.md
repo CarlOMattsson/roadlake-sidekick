@@ -45,6 +45,10 @@ När agendan har försenade uppgifter finns raden "Flytta … försenade till im
 
 Steg bockar du av i uppgiften, ett i taget.
 
+## Ändra en uppgift, dess plats eller hur den upprepas
+
+Öppna uppgiften och välj ⋯ och sedan "Redigera" för att ändra titel, beskrivning, prioritet och datum. Du kan också trycka på titeln. Under titeln flyttar chippet "Plats" uppgiften till ett projekt, en process eller en domän, och upprepningschippet låter den upprepas varje dag, vecka, månad eller år.
+
 ## Koppla en kontakt till en uppgift
 
 Öppna uppgiften och tryck på "+ Koppla kontakt". Kopplingen syns sedan både i uppgiften och hos kontakten.
@@ -52,8 +56,9 @@ Steg bockar du av i uppgiften, ett i taget.
 ## Det här ber du hellre Claude om
 
 - Skapa flera uppgifter på en gång, till exempel från en lista eller ett foto av en whiteboard.
-- Lägga upp projekt, områden och återkommande arbete.
-- Sätta prioritet, taggar och tidsuppskattningar.
+- Lägga upp projekt, domäner och processer.
+- Upprepa på vissa veckodagar eller med andra intervall.
+- Sätta taggar och tidsuppskattningar.
 - Flytta många uppgifter till ett visst datum.
 - Hitta en uppgift när du bara minns ungefär vad den handlade om.
 
@@ -65,6 +70,6 @@ En scope är en behörighet som servern kontrollerar vid varje anrop.
 | --- | --- |
 | Läsa | `tasks:read`, `projects:read` |
 | Ändra uppgifter och steg | `tasks:write` |
-| Ändra projekt och områden | `projects:write` |
+| Ändra projekt och domäner | `projects:write` |
 
 Alla verktyg och deras scopes står i [MCP-verktygsreferensen](../reference/mcp/index.md), som är på engelska.

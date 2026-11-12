@@ -1,25 +1,24 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, type Mock } from "vitest";
-import { placeChanges } from "@/features/work-app/group-choices";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { placeChanges } from "@/features/work-app/hierarchy/group-choices";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   taskPlaceLabelsEn,
   taskPlaceLabelsSv,
-} from "@/features/work-app/task-place-labels";
+} from "@/features/work-app/tasks/task-place-labels";
 import {
   UnsortedOpenRow,
   UnsortedView,
-} from "@/features/work-app/unsorted-view";
+} from "@/features/work-app/unsorted/unsorted-view";
 import type {
   DomainAccent,
   WorkDomain,
   WorkTask,
   WorkTaskChanges,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
+import { readStylesheet } from "./helpers/stylesheet";
 
 const TASK_A = "019f0000-0000-7000-8000-0000000000c1";
 const TASK_B = "019f0000-0000-7000-8000-0000000000c2";
@@ -442,35 +441,21 @@ describe("UnsortedOpenRow (the quiet row after the agenda)", () => {
   it("has a press area of at least 44 px high and wide", () => {
     // jsdom applies no CSS. The row is full width (unsorted.css); its 44 px height is the family's button
     // rule (family.css), not a rule of its own, so unsorted.css sets no min-height.
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/unsorted.css",
-      ),
-      "utf8",
+    const rule = readStylesheet("features/work-app/unsorted/unsorted.css").rule(
+      ".sidekick-work .work-unsorted-open",
     );
-    const rule = css.match(/\.sidekick-work \.work-unsorted-open \{([^}]*)\}/);
-    expect(rule?.[1]).toMatch(/width: 100%;/);
-    expect(rule?.[1]).not.toMatch(/min-height/);
-    const family = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/family.css",
-      ),
-      "utf8",
+    expect(rule.width).toBe("100%");
+    expect(rule).not.toHaveProperty(["min-height"]);
+    const family = readStylesheet("features/mcp-apps/ui/family.css").rule(
+      ":is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control) button, .sk-btn",
     );
-    expect(family).toMatch(
-      /:is\(\.sidekick-work, \.sidekick-journal, \.sidekick-shopping, \.sidekick-control\)\s+button,\s*\.sk-btn \{[^}]*min-height: var\(--sk-tap\);/,
-    );
+    expect(family["min-height"]).toBe("var(--sk-tap)");
     // The tap token is 44 px in Claude; the phone raises it to 48 px (mobile.css).
-    const tokens = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/tokens.css",
-      ),
-      "utf8",
-    );
-    expect(tokens).toContain("--sk-tap: 2.75rem;");
+    expect(
+      readStylesheet("features/mcp-apps/ui/tokens.css").rule(":root")[
+        "--sk-tap"
+      ],
+    ).toBe("2.75rem");
   });
   describe("the place picker (Välj plats…)", () => {
     it("reads the places only when a picker is opened, and sorts the Task into the chosen Project", async () => {

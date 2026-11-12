@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, type Mock } from "vitest";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { SavedViewsBar } from "@/features/work-app/saved-views-bar";
-import { savedViewsLabelsSv } from "@/features/work-app/saved-views-labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { SavedViewsBar } from "@/features/work-app/saved-views/saved-views-bar";
+import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
 import type {
   WorkFilters,
   WorkSavedView,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 export const meetings: WorkSavedView = {
   id: "019f0000-0000-7000-8000-0000000000v1",

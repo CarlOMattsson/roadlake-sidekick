@@ -20,6 +20,7 @@ from sidekick.shared.observability import NoopTelemetryAdapter, TelemetryPort
 from sidekick.shared.persistence.models import (
     AuditEventRow,
     IdempotencyRow,
+    UserRow,
 )
 from sidekick.shared.types import new_uuid7, utc_now
 
@@ -142,7 +143,7 @@ class StoreBase:
         transaction.
 
         The caller supplies only the explicit row types approved by
-        ``sidekick.owner_export.core.EXPORT_SOURCES``.  Keeping the owner predicate in
+        ``sidekick.owner_export.catalogue.EXPORT_SOURCES``.  Keeping the owner predicate in
         this persistence adapter makes it difficult for a future export source to
         accidentally turn into an unscoped table read.
         """
@@ -154,6 +155,12 @@ class StoreBase:
             .where(owner_column == owner_id)
             .order_by(*row_type.__table__.primary_key.columns)
         ).yield_per(EXPORT_FETCH_BATCH_ROWS)
+
+    @staticmethod
+    def owner_exists(session: Session, owner_id: UUID) -> bool:
+        """Whether a user row with this id exists (active or not)."""
+
+        return session.scalar(select(UserRow.id).where(UserRow.id == owner_id)) is not None
 
     def idempotent(
         self,

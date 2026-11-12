@@ -5,6 +5,7 @@ import type { ShoppingLabels } from "../labels";
 import { COMPACT_ROWS, emptyAsk, isEnter } from "./helpers";
 import { ChevronRightIcon, MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { CreateField } from "../../mcp-apps/ui/create-field";
+import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { EmptyState } from "../../mcp-apps/ui/states";
 import { workDate } from "../../mcp-apps/ui/due";
 
@@ -196,11 +197,9 @@ export function ListPicker({
         )}
       </div>
       {control && fullscreen && moreOpen && (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the button inside it (Escape closes); the container itself is not a control.
-        <div
+        <KeyScope
           className="shopping-more-menu"
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
+          onEscape={() => {
             setMoreOpen(false);
             moreButton.current?.focus();
           }}
@@ -214,7 +213,7 @@ export function ListPicker({
           >
             {control.label}
           </button>
-        </div>
+        </KeyScope>
       )}
       {newOpen && (
         <div className="shopping-create">

@@ -18,10 +18,10 @@ import {
   UpdateReminderRow,
   useMoreMark,
 } from "@/features/mcp-apps/update-reminder";
-import { AgendaMore } from "@/features/work-app/agenda-toolbar";
-import { ContactsView } from "@/features/work-app/contacts-list";
-import type { WorkTransport } from "@/features/work-app/transport";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { AgendaMore } from "@/features/work-app/agenda/agenda-toolbar";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import type { WorkTransport } from "@/features/work-app/transport/transport";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 
 // The update reminder works offline: the backend declares the running commit, its date and the number of days as
 // meta tags, and the app counts the age with its own clock (SIDEKICK_UPDATE_REMINDER_DAYS).

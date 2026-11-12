@@ -1,6 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { workEn } from "@/features/work-app/labels";
+import { workEn } from "@/features/work-app/shared/labels";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;

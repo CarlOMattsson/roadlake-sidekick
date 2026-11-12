@@ -1,8 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
-import { RowMenuTip, rowMenuHandlers } from "@/features/work-app/board-card";
-import { workEn, workSv } from "@/features/work-app/labels";
+import {
+  RowMenuTip,
+  rowMenuHandlers,
+} from "@/features/work-app/board/board-card";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 
 // The long-press tip (designsystem §3 "Listrad"): last in Agenda and Status until the quick choices are first
 // opened, then gone for good (the frame's storage when it may be used, the document for the session when not).

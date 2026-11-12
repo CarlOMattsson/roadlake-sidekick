@@ -1,8 +1,8 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { savedViewsLabelsSv } from "@/features/work-app/saved-views-labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
 import {
   meetings,
   fakeTransport,

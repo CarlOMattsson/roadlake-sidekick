@@ -1,7 +1,7 @@
 """Read-only "Dagens läge": one bounded summary of the owner's day in one call.
 
 `get_today_brief` adds no selection rules of its own. Tasks come from the Work agenda use case
-(`ContextService.work_agenda_page`, the same rules as `get_work_agenda`), the day's entries and
+(`WorkListService.work_agenda_page`, the same rules as `get_work_agenda`), the day's entries and
 summary status from `JournalService.get_day` (as `get_journal_day`), and the open shopping lists
 from `ShoppingService`. Each part needs its own read scope. A part whose scope is missing is left
 out of structuredContent without an error, as the Journal tools leave out content they may not see.
@@ -24,7 +24,7 @@ from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
 from sidekick.shared.types import Actor
 from sidekick.structured.base import Output
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery, WorkRow
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
@@ -200,41 +200,47 @@ def _summary_text(parts: dict[str, Any], locale: AppLocale = DEFAULT_LOCALE) -> 
 def _tasks_part(container: Container, actor: Actor, now: datetime) -> BriefTasks:
     window_end = now + timedelta(days=AGENDA_UPCOMING_DAYS)
     query = WorkQuery(limit=PAGE_SIZE, sort="due_asc", due_to=window_end)
-    items: list[dict[str, Any]] = []
+    items: list[WorkRow] = []
     cursor: str | None = None
     capped = True
     for _ in range(MAX_PAGES):
-        page = container.contexts.work_agenda_page(actor, replace(query, cursor=cursor))
+        page = container.work_lists.work_agenda_page(actor, replace(query, cursor=cursor))
         items.extend(page.items)
         if page.next_cursor is None:
             capped = False
             break
         cursor = page.next_cursor
-    listed = [item for item in items if item["agenda_group"] in ("overdue", "today")]
-    rows = [
-        BriefTaskRecord(
-            id=item["id"],
-            kind=item["kind"],
-            title=item["title"],
-            version=item["version"],
-            agenda_group=item["agenda_group"],
-            due_at=item["due_at"],
-            project_title=item.get("project_title"),
-        )
-        for item in listed[:TASK_ROW_LIMIT]
-    ]
+    rows: list[BriefTaskRecord] = []
+    listed = 0
+    for item in items:
+        group = item.agenda_group
+        if group not in ("overdue", "today"):
+            continue
+        listed += 1
+        if len(rows) < TASK_ROW_LIMIT:
+            rows.append(
+                BriefTaskRecord(
+                    id=item.id,
+                    kind=item.kind,
+                    title=item.title,
+                    version=item.version,
+                    agenda_group=group,
+                    due_at=item.due_at,
+                    project_title=item.project_title,
+                )
+            )
     return BriefTasks(
-        overdue_count=sum(1 for item in items if item["agenda_group"] == "overdue"),
-        today_count=sum(1 for item in items if item["agenda_group"] == "today"),
-        upcoming_7d_count=sum(1 for item in items if item["agenda_group"] == "upcoming"),
+        overdue_count=sum(1 for item in items if item.agenda_group == "overdue"),
+        today_count=sum(1 for item in items if item.agenda_group == "today"),
+        upcoming_7d_count=sum(1 for item in items if item.agenda_group == "upcoming"),
         items=rows,
-        truncated=len(listed) > TASK_ROW_LIMIT,
+        truncated=listed > TASK_ROW_LIMIT,
         capped=capped,
     )
 
 
 def _diary_part(container: Container, actor: Actor, day: date) -> BriefDiary:
-    journal_day = container.journal.get_day(
+    journal_day = container.journal_day.get_day(
         actor, journal_date=day, include_archived=False, limit=PAGE_SIZE, include_done=False
     )
     return BriefDiary(
@@ -301,7 +307,7 @@ def register_brief_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("get_today_brief")
     def get_today_brief() -> Any:
         actor = ctx.actor_provider()
-        now = ctx.container.contexts.clock.now()
+        now = ctx.container.work_lists.clock.now()
         day = now.astimezone(ctx.container.settings.owner_zone).date()
         parts: dict[str, Any] = {}
         if "tasks:read" in actor.scopes:

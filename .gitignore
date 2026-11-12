@@ -48,6 +48,7 @@ deploy/selfhost/update-state/
 # Own ntfy: accounts, hashes and the publish token written by ntfy-init.sh.
 deploy/selfhost/ntfy.env
 deploy/selfhost/ntfy-secrets/
+deploy/selfhost/secrets/
 
 # Work laptop package (tools/work.sh): settings and generated secrets stay on the machine.
 deploy/work/work.env

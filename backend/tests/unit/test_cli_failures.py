@@ -401,7 +401,6 @@ def test_worker_entry_points_fail_with_a_fixed_line(
 ) -> None:
     for module in (automation_worker, backup_worker, push_worker, memory_worker):
         monkeypatch.setattr(module, "configure_worker_logging", lambda: None)
-    monkeypatch.setattr(push_worker, "silence_http_loggers", lambda: None)
     run = build(monkeypatch)
 
     assert exit_code(run) == code

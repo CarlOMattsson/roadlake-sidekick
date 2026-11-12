@@ -1,4 +1,4 @@
-"""Owner-filtered reads of the automation policy, the pause control and the activity history."""
+"""Owner-filtered reads and writes of the activity history."""
 
 from collections.abc import Sequence
 from uuid import UUID
@@ -8,12 +8,10 @@ from sqlalchemy.orm import Session
 
 from sidekick.automation.application.service import (
     ActivityEntry,
-    AutomationControl,
     NewActivity,
 )
 from sidekick.shared.persistence.models import (
     ActivityEntryRow,
-    AssistantAutomationControlRow,
     DomainEventRow,
 )
 from sidekick.shared.persistence.stores.keyset import rows_after
@@ -21,21 +19,6 @@ from sidekick.shared.types import KeyValue
 
 
 class AutomationStoreMixin:
-    @staticmethod
-    def automation_control(session: Session, owner: UUID) -> AutomationControl | None:
-        """The owner's pause control, or None when it was never written."""
-
-        row = session.scalar(
-            select(AssistantAutomationControlRow).where(
-                AssistantAutomationControlRow.owner_id == owner
-            )
-        )
-        if row is None:
-            return None
-        return AutomationControl(
-            owner_id=row.owner_id, pause_all_automation=row.pause_all_automation
-        )
-
     @staticmethod
     def append_activity(session: Session, activity: NewActivity) -> None:
         """Insert the ledger event, then its activity entry, in the open transaction."""

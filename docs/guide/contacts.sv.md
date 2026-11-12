@@ -31,7 +31,7 @@ Resten fyller du i efteråt, eller ber Claude om.
 
 ## Ändra en kontakt
 
-Öppna kontakten, välj ⋯ och sedan "Redigera". Du kan också trycka på namnet.
+Öppna kontakten, välj ⋯ och sedan "Redigera". Du kan också trycka på namnet. I formuläret lägger du också till smeknamn under "Smeknamn", så att Claude hittar rätt person när du använder ett, och "Arkivera" döljer en kontakt som du inte längre vill se i listan.
 
 ## Öppna e-post eller telefon
 
@@ -44,10 +44,8 @@ Resten fyller du i efteråt, eller ber Claude om.
 ## Det här ber du hellre Claude om
 
 - Lägga till en kontakt med roll, organisation och anteckning i ett svep.
-- Lägga till ett smeknamn, så att Claude hittar rätt person när du använder det.
 - Koppla en kontakt till ett projekt eller en uppgift.
 - Fråga vem någon är och vad ni har på gång.
-- Arkivera en kontakt som du inte längre vill se i listan.
 
 ## Scopes som rummet behöver
 

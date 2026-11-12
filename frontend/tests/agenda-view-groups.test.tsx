@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import {
   fireEvent,
   render,
@@ -9,18 +7,20 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import { elementWithText } from "./helpers/exact-text";
+import { readStylesheet } from "./helpers/stylesheet";
 import {
   TASK_ID,
   task,
   other,
   done,
+  project,
   makeTransport,
   renderAgenda,
   glyphOf,
@@ -329,131 +329,170 @@ it("the filter field has a visible label above its input, in the view's language
   expect(workSv.agendaFilter).toBe("Filtrera uppgifter");
 });
 
-it("the agenda CSS keeps the meta line's time and status whole, lets only Hög and the Project give way, and sets the filter row", () => {
-  // jsdom applies no CSS, so the phone-first rules are read from agenda.css. The rendered check is
-  // tests/e2e/meta-line-mcp-app.spec.ts (360 and 412 px, text 110, 150 and 200 %).
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  // The kind is plain text: the board's pill frame is gone and no rule of its own remains.
-  expect(css).not.toMatch(/work-card-kind[^{]*\{[^}]*border-radius: 999px/);
-  // One meta line, at least one line high. A box fixed at one
-  // line that wrapped and clipped dropped "Pågår" and the Project at 360 px and 200 %, so the box is a floor, not a
-  // height: a part that must stand moves whole to a second line instead of vanishing.
-  const metaRule = css.match(/\.work-card-meta \{([^}]*)\}/);
-  expect(metaRule?.[1]).toMatch(/display: flex;/);
-  expect(metaRule?.[1]).toMatch(/flex-wrap: wrap;/);
-  expect(metaRule?.[1]).toMatch(/min-height: var\(--sk-type-meta-line\);/);
-  expect(metaRule?.[1]).not.toMatch(/(?<![-\w])height:/);
-  expect(metaRule?.[1]).toMatch(/align-content: flex-start;/);
-  expect(metaRule?.[1]).toMatch(/gap: 0 0\.8em;/);
-  expect(metaRule?.[1]).toMatch(/white-space: nowrap;/);
-  expect(metaRule?.[1]).toMatch(/overflow: clip;/);
-  expect(metaRule?.[1]).not.toMatch(/row-gap/);
-  expect(metaRule?.[1]).not.toMatch(/column-gap/);
-  // The row's 6 of air under the meta line comes from the one row-template token, as a margin so the clip is the line.
-  expect(metaRule?.[1]).toMatch(/margin: 0 0 var\(--sk-row-pad\);/);
-  expect(metaRule?.[1]).toMatch(/padding: 0;/);
-  expect(css).not.toMatch(/(?<![-\w])height: 0;/);
-  // Every part keeps its own width; no rule shrinks or cuts whatever part happens to be last (it was "Blockerad").
-  expect(css).toMatch(
-    /\.work-card-meta\s*>\s*\*\s*\{[^}]*position: relative;[^}]*flex: none;[^}]*pointer-events: none;/,
-  );
-  expect(css).not.toMatch(/\.work-card-meta\s*>\s*:last-child/);
+const ROOM = { room: "sidekick-work" };
+const agendaCss = readStylesheet("features/work-app/agenda/agenda.css");
+const workCss = readStylesheet("features/work-app/shell/work.css");
+const tokens = readStylesheet("features/mcp-apps/ui/tokens.css");
+
+/** A task whose meta line has every part: time, status, the High marker and a Project. */
+const fullMeta: WorkItemRecord = {
+  kind: "task",
+  id: "t-meta",
+  title: "Måla köket",
+  status: "in_progress",
+  due_at: "2026-10-20T09:00:00",
+  version: 1,
+  agenda_group: "overdue",
+  priority: "high",
+  project_title: "Renovering av köket",
+};
+
+// jsdom applies no CSS, so the phone-first rules are read from agenda.css and resolved against the rendered row.
+// The rendered check is tests/e2e/meta-line-mcp-app.spec.ts (360 and 412 px, text 110, 150 and 200 %).
+it("the meta line keeps its time and status whole, lets only the Project give way, and the filter row is a flex row", () => {
+  const { transport } = makeTransport();
+  const { container } = renderAgenda([fullMeta, project], transport);
+  const meta = container.querySelector(".work-card-project")
+    ?.parentElement as HTMLElement;
+  const parts = Array.from(meta.children);
+
+  // One meta line, at least one line high. A box fixed at one line that wrapped and clipped dropped "Pågår" and
+  // the Project at 360 px and 200 %, so the box is a floor, not a height: a part that must stand moves whole to
+  // a second line instead of vanishing.
+  const style = agendaCss.styleOf(meta, ROOM);
+  expect(style).toMatchObject({
+    display: "flex",
+    "flex-wrap": "wrap",
+    "min-height": "var(--sk-type-meta-line)",
+    "align-content": "flex-start",
+    gap: "0 0.8em",
+    "white-space": "nowrap",
+    overflow: "clip",
+    // The row's 6 of air under the meta line comes from the one row-template token, as a margin so the clip is
+    // the line.
+    margin: "0 0 var(--sk-row-pad)",
+    padding: "0",
+  });
+  for (const forbidden of ["height", "row-gap", "column-gap"]) {
+    expect(style[forbidden], forbidden).toBeUndefined();
+  }
+  // Every part keeps its own width; none is shrunk or cut except the Project.
+  expect(parts.length).toBeGreaterThanOrEqual(3);
+  for (const part of parts) {
+    const partStyle = agendaCss.styleOf(part, ROOM);
+    expect(partStyle, part.className).toMatchObject({
+      position: "relative",
+      "pointer-events": "none",
+    });
+    if (!part.matches(".work-card-project")) {
+      expect(partStyle.flex, part.className).toBe("none");
+    }
+  }
   // Only the Project shrinks, to 4em with an ellipsis.
-  const projectRule = css.match(
-    /\.work-card-meta\s*>\s*\.work-card-project\s*\{([^}]*)\}/,
-  );
-  expect(projectRule?.[1]).toMatch(/flex: 1 1 4em;/);
-  expect(projectRule?.[1]).toMatch(/max-width: max-content;/);
-  expect(projectRule?.[1]).toMatch(/min-width: 0;/);
-  expect(projectRule?.[1]).toMatch(/overflow: hidden;/);
-  expect(projectRule?.[1]).toMatch(/text-overflow: ellipsis;/);
-  // Hög and the Project after another part wrap to a 0-high line at the meta's edge, which the clip hides whole.
-  expect(css).toMatch(
-    /\*\s*\+\s*:is\(\.work-card-priority, \.work-card-project\)\s*\{[^}]*margin-block-end: calc\(-1 \* var\(--sk-type-meta-line\)\);/,
-  );
+  expect(
+    agendaCss.styleOf(
+      meta.querySelector(".work-card-project") as Element,
+      ROOM,
+    ),
+  ).toMatchObject({
+    flex: "1 1 4em",
+    "max-width": "max-content",
+    "min-width": "0",
+    overflow: "hidden",
+    "text-overflow": "ellipsis",
+  });
+  // Hög and the Project after another part wrap to a 0-high line at the meta's edge, which the clip hides whole;
+  // the part that opens the line is not pulled up.
+  expect(
+    agendaCss.styleOf(
+      meta.querySelector(".work-card-priority") as Element,
+      ROOM,
+    )["margin-block-end"],
+  ).toBe("calc(-1 * var(--sk-type-meta-line))");
+  expect(
+    agendaCss.styleOf(parts[0] as Element, ROOM)["margin-block-end"],
+  ).toBeUndefined();
   // The separator hangs in the gap before its part, so a part that starts the second line has no leading "·".
-  const sepRule = css.match(
-    /\.work-card-meta\s*>\s*\*\s*\+\s*\*::before\s*\{([^}]*)\}/,
-  );
-  expect(sepRule?.[1]).toMatch(/content: "·";/);
-  expect(sepRule?.[1]).toMatch(/position: absolute;/);
-  expect(sepRule?.[1]).toMatch(/right: 100%;/);
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-toolbar \{[^}]*display: flex;/,
-  );
+  expect(
+    agendaCss.styleOf(parts[1] as Element, { ...ROOM, pseudo: "::before" }),
+  ).toMatchObject({
+    content: '"·"',
+    position: "absolute",
+    right: "100%",
+  });
+  expect(
+    agendaCss.styleOf(parts[0] as Element, { ...ROOM, pseudo: "::before" }),
+  ).toEqual({});
+  // The kind is plain text: the board's pill frame is gone.
+  const kind = container.querySelector(".work-card-kind");
+  expect(kind).not.toBeNull();
+  expect(
+    agendaCss.styleOf(kind as Element, ROOM)["border-radius"],
+  ).toBeUndefined();
+  for (const rule of agendaCss.rules) {
+    expect(rule.declarations.height, rule.selector).not.toBe("0");
+  }
+  expect(
+    agendaCss.styleOf(
+      container.querySelector(".work-agenda-toolbar") as Element,
+      ROOM,
+    ).display,
+  ).toBe("flex");
 });
 
 it("breaks a long agenda title word only as a last resort (no automatic hyphens, never anywhere), and keeps the row's glyph at 44 px at every width", () => {
-  // jsdom applies no CSS, so the narrow-frame rules are read from agenda.css.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
+  const { transport } = makeTransport();
+  const { container } = renderAgenda([task], transport);
+  const title = container.querySelector(
+    ".work-agenda-body > button",
+  ) as HTMLElement;
+  const glyph = container.querySelector(".work-agenda-glyph") as HTMLElement;
+
+  // The title moves to the next line whole; `anywhere` split words at the end of a line, and `hyphens: auto`
+  // split "kalende-revent". It breaks inside a word only when the word alone is wider than the line.
+  expect(agendaCss.styleOf(title, ROOM)["overflow-wrap"]).toBe("break-word");
+  expect(workCss.styleOf(title, ROOM)).toMatchObject({
+    "overflow-wrap": "break-word",
+    hyphens: "manual",
+  });
+  for (const rule of [...agendaCss.rules, ...workCss.rules]) {
+    expect(rule.declarations.hyphens, rule.selector).not.toBe("auto");
+  }
+  // The glyph keeps its 44 px target at every width. In a task row the ring starts at the page's 16 px margin:
+  // the button is the leading column's width and hangs 10 px into the margin.
+  expect(agendaCss.styleOf(glyph, ROOM)).toMatchObject({
+    width: "var(--sk-lead-w)",
+    "min-width": "var(--sk-lead-w)",
+    "min-height": "var(--sk-lead-h)",
+    margin: "0 2px 0 var(--sk-lead-hang)",
+  });
+  // The ring is 24 to 32 px; the leading column is the ring plus 20, and at least 44, and its height is two row
+  // paddings plus one row line (the ring sits on the title line's middle).
+  const root = tokens.rule(":root");
+  expect(root["--sk-ring-glyph"]).toBe("clamp(24px, 1.5rem, 32px)");
+  expect(root["--sk-lead-w"]).toBe(
+    "max(44px, calc(var(--sk-ring-glyph) + 20px))",
   );
-  // The title moves to the next line whole; `anywhere` split words at the end of a line.
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-body > button \{[^}]*overflow-wrap: break-word;/,
-  );
-  // No automatic hyphens. A title moves whole to the next line and breaks inside a word only when the word
-  // alone is wider than the line (work.css, with the rule for the board's titles). `hyphens: auto` split "kalende-revent".
-  const work = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/work.css"),
-    "utf8",
-  );
-  expect(work).toMatch(
-    /\.sidekick-work \.work-agenda-body > button,[\s\S]*?\{\s*overflow-wrap: break-word;\s*hyphens: manual;/,
-  );
-  const workDeclarations = work.replace(/\/\*[\s\S]*?\*\//g, "");
-  expect(workDeclarations).not.toMatch(/hyphens:\s*auto/);
-  // Comments mention `anywhere` on purpose; only the declarations count here.
-  const declarations = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  expect(declarations).not.toMatch(
-    /\.work-agenda-body > button \{[^}]*anywhere/,
-  );
-  // The glyph keeps its 44 px target at every width.
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-glyph \{[^}]*min-width: 2\.75rem;[^}]*min-height: 2\.75rem;/,
-  );
-  // In a task row the ring starts at the page's 16 px margin: the button is the leading column's width (tokens.css
-  // --sk-lead-w: at least 44 px, the ring and 10 on each side at larger text) and hangs 10 px into the margin.
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-row \.work-agenda-glyph \{\s*width: var\(--sk-lead-w\);\s*min-width: var\(--sk-lead-w\);\s*min-height: var\(--sk-lead-h\);\s*margin: 0 2px 0 var\(--sk-lead-hang\);/,
-  );
-  const tokens = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/tokens.css"),
-    "utf8",
-  );
-  // The ring is 24 to 32 px; the leading column is the ring plus 20, and at least 44.
-  expect(tokens).toMatch(/--sk-ring-glyph: clamp\(24px, 1\.5rem, 32px\);/);
-  expect(tokens).toMatch(
-    /--sk-lead-w: max\(44px, calc\(var\(--sk-ring-glyph\) \+ 20px\)\);/,
-  );
-  // The leading column's height is two row paddings plus one row line (the ring sits on
-  // the title line's middle).
-  expect(tokens).toMatch(
-    /--sk-lead-h: calc\(2 \* var\(--sk-row-pad\) \+ var\(--sk-type-row-line\)\);/,
+  expect(root["--sk-lead-h"]).toBe(
+    "calc(2 * var(--sk-row-pad) + var(--sk-type-row-line))",
   );
   // No narrow-frame margin pulls the row's content outward at a narrow width.
-  expect(css).not.toMatch(/@container sk-frame \(max-width: 360px\)/);
-  expect(css).not.toMatch(/margin-inline: -0\.25rem -0\.5rem/);
+  expect(
+    agendaCss.rules.filter((rule) =>
+      rule.conditions.includes("@container sk-frame (max-width: 360px)"),
+    ),
+  ).toEqual([]);
 });
 
 it("the row title is 16 on a 1.3 line and the meta line 14 on a 1.25 line, the agenda's row type", () => {
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  const tokens = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/tokens.css"),
-    "utf8",
-  );
+  const { transport } = makeTransport();
+  const { container } = renderAgenda([task, fullMeta], transport);
+  const root = tokens.rule(":root");
   // The line heights in tokens.css, as a ratio of the size: the title 1.3rem on 1rem, the meta 1.09375rem on 0.875rem.
   const rem = (name: string) => {
-    const match = new RegExp(`--${name}: ([\\d.]+)rem;`).exec(tokens);
-    expect(match, name).not.toBeNull();
-    return Number(match?.[1]);
+    const value = /^([\d.]+)rem$/.exec(root[`--${name}`] ?? "")?.[1];
+    expect(value, name).toBeDefined();
+    return Number(value);
   };
   expect(
     rem("sk-type-row-line") / rem("sk-type-row-size"),
@@ -461,9 +500,17 @@ it("the row title is 16 on a 1.3 line and the meta line 14 on a 1.25 line, the a
   expect(
     rem("sk-type-meta-line") / rem("sk-type-meta-size"),
   ).toBeGreaterThanOrEqual(1.25);
-  // The title and the meta line use those types (the row's font shorthand), in the agenda's CSS.
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-body > button \{[^}]*font: var\(--sk-type-row\);/,
-  );
-  expect(css).toMatch(/\.work-card-meta \{[^}]*font: var\(--sk-type-meta\);/);
+  // The title and the meta line use those types (the row's font shorthand).
+  expect(
+    agendaCss.styleOf(
+      container.querySelector(".work-agenda-body > button") as Element,
+      ROOM,
+    ).font,
+  ).toBe("var(--sk-type-row)");
+  expect(
+    agendaCss.styleOf(
+      container.querySelector(".work-card-meta") as Element,
+      ROOM,
+    ).font,
+  ).toBe("var(--sk-type-meta)");
 });

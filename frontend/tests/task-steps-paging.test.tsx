@@ -4,11 +4,21 @@ import { describe, expect, it, vi } from "vitest";
 import {
   manageLabelsEn,
   manageLabelsSv,
-} from "@/features/work-app/manage-labels";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
-import { AUTO_STEP_PAGES, readSteps } from "@/features/work-app/step-pages";
-import { TaskSteps } from "@/features/work-app/task-steps";
-import type { WorkStep, WorkTransport } from "@/features/work-app/transport";
+} from "@/features/work-app/shared/manage-labels";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
+import {
+  AUTO_STEP_PAGES,
+  readSteps,
+} from "@/features/work-app/steps/step-pages";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import type {
+  WorkStep,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
 
 // jsdom has no CSS global; the row controls use CSS.escape to find a control by its Step id.
 if (!("CSS" in globalThis)) {

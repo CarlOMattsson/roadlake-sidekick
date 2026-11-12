@@ -1,4 +1,4 @@
-import { useRovingFocus } from "./roving-focus";
+import { KeyScope } from "./key-scope";
 import "./segmented.css";
 
 /**
@@ -32,20 +32,12 @@ export function Segmented<T extends string>({
   onChange,
   disabled = false,
 }: SegmentedProps<T>) {
-  const onKeyDown = useRovingFocus();
-
   // Roving tab stop: the pressed option is reachable with Tab. With nothing pressed, the first one is.
   const pressedIndex = options.findIndex((option) => option.value === value);
   const tabStopIndex = pressedIndex === -1 ? 0 : pressedIndex;
 
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a container-level handler for the arrow/Home/End keys bubbling up from the focusable buttons inside it; the container itself is not a control.
-    <div
-      role="group"
-      aria-label={label}
-      className="sk-segmented"
-      onKeyDown={onKeyDown}
-    >
+    <KeyScope roving role="group" aria-label={label} className="sk-segmented">
       {options.map((option, index) => {
         const pressed = index === pressedIndex;
         return (
@@ -77,6 +69,6 @@ export function Segmented<T extends string>({
           </button>
         );
       })}
-    </div>
+    </KeyScope>
   );
 }

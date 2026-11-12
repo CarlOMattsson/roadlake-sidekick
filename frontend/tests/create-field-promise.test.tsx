@@ -8,16 +8,16 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn } from "@/features/work-app/labels";
-import { NewTaskInput } from "@/features/work-app/new-task-input";
-import { newTaskInputLabelsEn } from "@/features/work-app/new-task-input-labels";
-import { ContactsView } from "@/features/work-app/contacts-list";
+import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { NewTaskInput } from "@/features/work-app/tasks/new-task-input";
+import { newTaskInputLabelsEn } from "@/features/work-app/tasks/new-task-input-labels";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
 import type {
   WorkContactsFrame,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 // The create field empties its text only when onCreate answers something other than false. These cases
 // check that NewContact (A) and NewTaskInput (B) answer with the real outcome of their write.

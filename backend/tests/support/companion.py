@@ -10,7 +10,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from sidekick.api.app import create_app
-from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.service import CompanionDeviceService
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
@@ -29,8 +28,7 @@ def companion_app() -> FastAPI:
 
 
 def devices(app: FastAPI) -> CompanionDeviceService:
-    container = app.state.container
-    return CompanionDeviceService(CompanionDeviceStore(container.session_factory), container.auth)
+    return app.state.container.companion_devices
 
 
 def owner(app: FastAPI, username: str = "owner") -> UUID:

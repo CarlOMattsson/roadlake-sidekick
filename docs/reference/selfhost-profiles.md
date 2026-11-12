@@ -30,6 +30,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `Caddyfile.example` | The Caddy configuration for the `vps` profile. Copy it to `Caddyfile`. |
 | `ntfy/server.yml` | The hardened ntfy server's configuration. |
 | `ntfy-init.sh` | One-time setup of the ntfy accounts. It prints no secret. |
+| `secrets-to-files.sh` | Moves the secrets of `selfhost.env` into files in `secrets/` and prints no value. See [Secrets as files](../operate/limits-and-secrets.md#secrets-as-files). |
 | `postgres-init.sh` | Creates the database roles on the first start of an empty volume. |
 | `update.sh` | Updates to a signed, digest-pinned image, with an encrypted snapshot first. See [Update](../operate/update.md). |
 | `restore.sh` | Restores one owner from an encrypted backup or a plain export. See [Backup and restore](../operate/backup-and-restore.md). |

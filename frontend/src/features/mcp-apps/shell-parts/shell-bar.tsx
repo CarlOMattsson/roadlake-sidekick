@@ -1,9 +1,10 @@
-import type { KeyboardEvent, ReactNode, Ref } from "react";
+import type { ReactNode, Ref } from "react";
 
 import type { RoomId } from "@/features/mcp-apps/router";
 import type { SidekickShellLabels } from "@/features/mcp-apps/sidekick-shell-labels";
 import { UnsavedAsk } from "@/features/mcp-apps/unsaved-guard";
 import { BackHeader } from "@/features/mcp-apps/ui/back-header";
+import { KeyScope } from "@/features/mcp-apps/ui/key-scope";
 
 /** The unsaved-edits question: shown under the bar while it is open for the layer on top. */
 export type ShellAsk = {
@@ -25,7 +26,6 @@ export function ShellBar({
   stripCurrent,
   tabStop,
   narrow,
-  onStripKeyDown,
   onChoose,
   picker,
   back,
@@ -41,7 +41,6 @@ export function ShellBar({
   stripCurrent: RoomId | undefined;
   tabStop: RoomId | undefined;
   narrow: boolean;
-  onStripKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   onChoose: (room: RoomId) => void;
   picker: { button: ReactNode; menu: ReactNode };
   /** The Back row: where it leads, what it does and where the layer on top puts its own actions. Absent: no Back. */
@@ -68,12 +67,11 @@ export function ShellBar({
     <div className="sk-rooms__bar" ref={barRef}>
       {strip ? (
         <nav className="sk-rooms" aria-label={labels.stripLabel}>
-          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for the arrow/Home/End keys bubbling up from the focusable buttons inside it; the container itself is not a control. */}
-          <div
+          <KeyScope
+            roving
             ref={tabsRef}
             className="sk-rooms__tabs"
             data-narrow={narrow || undefined}
-            onKeyDown={onStripKeyDown}
           >
             {stripRooms.map((room) => (
               <button
@@ -87,7 +85,7 @@ export function ShellBar({
                 {labels.rooms[room]}
               </button>
             ))}
-          </div>
+          </KeyScope>
           {picker.button}
         </nav>
       ) : null}

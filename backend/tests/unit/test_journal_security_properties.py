@@ -8,10 +8,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from sidekick.journal.application.service import (
-    _bounded_unique_ids,
-    _validate_list_bounds,
-)
+from sidekick.journal.application.paging import validate_list_bounds
+from sidekick.journal.application.relations import bounded_unique_ids
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
 from sidekick.journal.domain.records import EntryRelations
 from sidekick.mcp.results import error_result
@@ -28,17 +26,17 @@ OTHER_ID = UUID("018af000-0000-7000-8000-000000000002")
 def test_journal_date_ranges_never_exceed_366_inclusive_days(day_span: int) -> None:
     start = date(2026, 1, 1)
     with pytest.raises(ValidationError, match="at most 366"):
-        _validate_list_bounds(start, start + timedelta(days=day_span), 100)
+        validate_list_bounds(start, start + timedelta(days=day_span), 100)
 
 
 @given(st.integers(min_value=26, max_value=100))
 def test_relation_inputs_are_bounded_and_unique(relation_count: int) -> None:
     values = tuple(UUID(int=index + 1) for index in range(relation_count))
     with pytest.raises(ValidationError, match="at most 25"):
-        _bounded_unique_ids(values, "project_ids")
+        bounded_unique_ids(values, "project_ids")
 
     with pytest.raises(ValidationError, match="unique"):
-        _bounded_unique_ids(values[:1] * 2, "project_ids")
+        bounded_unique_ids(values[:1] * 2, "project_ids")
 
 
 @given(st.sampled_from(["journal:read", "journal:write", "projects:read", "tasks:read"]))

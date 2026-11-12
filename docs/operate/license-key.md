@@ -8,7 +8,7 @@ Enter a license key in a room, in the Android app or from the command line on th
 
 Only the owner of the instance can enter a key. Use one of these.
 
-- **In an MCP app.** Tap the mark in the top bar, or open the license row at the bottom of Control. Choose "Enter license key", paste the key and choose "Save".
+- **In an MCP app.** Open the license row at the bottom of Control; while the instance has no valid key, the coin at the bottom of each room leads there too (with Control switched off, the row is in the room's ⋯ panel). Choose "Enter license key", paste the key and choose "Save".
   If the key is accepted the row says so and shows the licensee. If not, nothing is changed.
 - **In the Android app.** Open Settings, go to the license row at the bottom, choose "Enter license key", paste the key and save.
   The app sends it to your server over the paired connection (`PUT /companion/v1/license`).

@@ -67,7 +67,7 @@ Backuper krypteras när du har slagit på backup-profilen och skapat en nyckel. 
 - Vad Claude, modellleverantören eller ntfy-servern sparar. Sidekick begränsar vad som skickas men styr inte vad de behåller.
 - Någon som har en giltig behörighet. Återkalla telefoner och åtkomster som du inte längre använder.
 
-Sidekick 0.1.0 är en förhandsversion. HTTPS-profilen, riktig GitHub-inloggning, riktiga Claude-anslutningar, macOS och appen på en riktig telefon är inte provade.
+Sidekick 0.1.0 är den första versionen. Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux. macOS är ännu inte provat.
 
 ## Rapportera en sårbarhet
 

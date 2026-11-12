@@ -4,21 +4,14 @@ import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
 
 /*
- * `findBy*` and `waitFor` have their own budget, independent of Vitest's `testTimeout`,
- * and it defaults to one second.
- *
- * That is the tighter of the two limits here and the one that actually bites: a test that
- * renders a whole room and then waits for a tool call to resolve is waiting on real
- * microtask and timer scheduling, which on a loaded machine takes longer than a second
- * while the test as a whole is still nowhere near its own timeout. Measured on this
- * machine, that produced a failure that never reproduced in isolation — eight consecutive
- * isolated runs passed — and only appeared in a full parallel run.
- *
- * Raising it costs a passing run nothing: the budget is a ceiling on how long a query may
- * take before it is called a failure, not a delay. A selector that never matches still
- * fails, and still reports the same "unable to find role" message.
+ * `findBy*` and `waitFor` have their own budget, independent of Vitest's `testTimeout`, and it defaults to one
+ * second. A test that renders a whole room and then waits for a tool call to resolve is waiting on real microtask
+ * and timer scheduling, which on a loaded machine takes longer than a second while the test as a whole is still
+ * nowhere near its own timeout. Five seconds covers that: the slowest whole test in a full run takes about nine
+ * seconds on a busy machine, so no single query comes near it. A selector that never matches still fails with the
+ * same "unable to find role" message, only sooner than it would at fifteen seconds.
  */
-configure({ asyncUtilTimeout: 15_000 });
+configure({ asyncUtilTimeout: 5_000 });
 
 /* jsdom lacks the observers and media query API the primitives rely on. */
 if (!("ResizeObserver" in globalThis)) {

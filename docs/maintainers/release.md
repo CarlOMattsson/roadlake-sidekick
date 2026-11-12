@@ -18,11 +18,13 @@ defined by `version` in `backend/pyproject.toml`; `tools/check-version-sync.py` 
 `backend/src/sidekick/__init__.py`, `frontend/package.json`, `frontend/package-lock.json`, the Android
 `versionName`/`versionCode` or `CHANGELOG.md` disagree. See [Versions](#versions).
 
-## Preview status and what is verified
+## First release and what is verified
 
-Version 0.1.0 is a preview: there is no tag, no published container image and no published APK yet. You build both
-from the repository (the first server start builds the image from your checkout; see the [Quickstart](../../QUICKSTART.md)
-and [android.md](../operate/pair-android.md)).
+Version 0.1.0 is the first version. Until it is published there is no tag, container image or APK to download, so you
+build both from the repository (the first server start builds the image from your checkout; see the
+[Quickstart](../../QUICKSTART.md) and [android.md](../operate/pair-android.md)). From the first release on, every GitHub
+release carries the signed APK `sidekick-X.Y.Z.apk` and the image is published on `ghcr.io` (see
+[What a release produces](#what-a-release-produces)); building them yourself still works.
 
 - **Drilled on Linux containers:** install, update, backup and restore of the self-hosted stack and of the work-laptop
   package (`tools/drill.sh`, also a release gate).
@@ -31,8 +33,9 @@ and [android.md](../operate/pair-android.md)).
   database, migrations, backend, user and token, an MCP call, the stdio server, the MCP App build, static checks), each
   in its own compose project with generated throw-away secrets. The steps work as written; the backend suite on the
   test database was not part of it.
-- **Not tried against real services:** the self-hosted HTTPS profile, a real GitHub sign-in, real Claude connections,
-  macOS, and the Android app on a real phone with a real server and push delivery.
+- **In daily use, verified by the maintainer on 2026-11-12:** the connection to real Claude, the Android app on a real
+  phone and the server on Linux.
+- **Not tried yet:** macOS.
 
 Expect rough edges and breaking changes until a release is published.
 
@@ -144,7 +147,23 @@ so a patch that adds a contract migration cannot declare `expand` either.
    python3 tools/check-version-sync.py --release --tag vX.Y.Z
    ```
 
-   Run the checks locally and merge to `main`; the release run itself runs the full CI.
+   Then run the whole release gate on the commit you are about to release:
+
+   ```sh
+   bash tools/check-all.sh --slot K --release
+   ```
+
+   `--release` adds, after the usual stages and in the order of `.github/workflows/ci.yml`, the checks that the
+   release CI runs on top of them: the contract diff (`sidekick.export_reference --check`,
+   `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, and the snapshots under `contracts/`
+   re-exported and compared), the frontend coverage threshold, the Playwright mobile audit (Chromium needed:
+   `npx playwright install chromium`) and the dependency audit of `audit.yml` (pip-audit, `npm audit` for the
+   frontend and the website, OSV-Scanner on the Gradle lockfiles). The frontend stage already includes the MCP App
+   views on Preact. The dependency audit needs the network (and Docker for OSV-Scanner): a part whose tool or host
+   is not available prints a `SKIPPED: ...` line and the stage is reported as `SKIPPED`, never as `ok`; add
+   `--strict` to make that a failure, and run the audit on a machine with network access before you release. Not
+   covered locally: the emulator test, the image build and the Compose smoke test; the release run does those.
+   Merge to `main` when it is green; the release run itself runs the full CI.
 3. **Dry run first.** Actions, "release-image", Run workflow: `version` = `vX.Y.Z`, `migration_class` (see below),
    `previous_release` (`none` for the very first release, otherwise empty), **`dry_run` ticked**. It builds both
    image platforms and the APK unsigned, pushes and signs nothing, needs no secrets, and uploads
@@ -171,6 +190,11 @@ so a patch that adds a contract migration cannot declare `expand` either.
    The tag should be signed (`git tag -s`); an annotated tag (`git tag -a`) is the minimum, because the next release
    finds its comparison point from it and the migration check refuses a lightweight tag. The workflow never creates
    the tag or the release; both are deliberate, signed steps of the maintainer.
+
+7. **Badges.** The README badges for the latest release, the release-image workflow and the Sigstore signature are left out
+   until a release exists. At the first release (`vX.Y.Z`, v0.1.0), add them back in `tools/export/overlay/README.md` and
+   `README.sv.md`, where the comment `<!-- release badges are added with the first release (v0.1.0) -->` stands, in both
+   languages, and check that they render.
 
 ## Verifying a release
 

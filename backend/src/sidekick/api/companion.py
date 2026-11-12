@@ -5,7 +5,7 @@ app's React rooms read exactly the structured content they read in Claude:
 
 - `GET  /companion/v1/work/agenda`              = `get_work_agenda` (same arguments as query)
 - `GET  /companion/v1/work/today`               Arbetes Idag (`limit` 1-50, default 20, `cursor`):
-  today's Tasks first, then the overdue ones, open Tasks only (`ContextService.work_today_page`)
+  today's Tasks first, then the overdue ones, open Tasks only (`WorkListService.work_today_page`)
 - `GET  /companion/v1/tasks/{task_id}`          = `get_task`
 - `GET  /companion/v1/tasks/{task_id}/steps`    = `list_task_steps` (`limit`, `cursor`)
 - `GET  /companion/v1/tasks/{task_id}/contacts` = `list_task_contacts` (`limit`, `cursor`)
@@ -482,8 +482,7 @@ async def task_body(request: Request) -> CompleteTaskRequest:
 
 
 def reminder_service(request: Request) -> ReminderService:
-    container = request.app.state.container
-    return ReminderService(container.session_factory, locale=container.settings.mcp_app_locale)
+    return request.app.state.container.reminders
 
 
 def create_companion_router(

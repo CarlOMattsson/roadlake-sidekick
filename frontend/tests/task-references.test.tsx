@@ -2,18 +2,18 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   linksLabelsEn,
   linksLabelsFor,
   linksLabelsSv,
-} from "@/features/work-app/links-labels";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { TaskReferences } from "@/features/work-app/task-references";
+} from "@/features/work-app/shared/links-labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { TaskReferences } from "@/features/work-app/tasks/task-references";
 import type {
   WorkExternalReference,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const TASK = "019f0000-0000-7000-8000-0000000000a1";
 const KEY =

@@ -22,19 +22,18 @@ from sidekick.api.app import Container, create_container
 from sidekick.automation.application.service import ActivityLedger
 from sidekick.automation.domain import AutomationCategory
 from sidekick.backup.bundle import OwnerBackupService, decrypt_backup_envelope, verify_backup_file
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle.domain import RecordKind
-from sidekick.owner_export.core import (
-    _POLYMORPHIC_SOURCE_NAMES,
-    _RETIRED_POLYMORPHIC_SOURCE_NAMES,
-    OwnerRestoreService,
-    _restore_id,
-    build_restore_plan,
+from sidekick.owner_export.restore import OwnerRestoreService
+from sidekick.owner_export.restore_plan import build_restore_plan
+from sidekick.owner_export.restore_remap import (
+    POLYMORPHIC_SOURCE_NAMES,
+    restore_id,
 )
 from sidekick.shared.persistence.models import ActivityEntryRow, DomainEventRow, TaskRow
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore
-from sidekick.work.application.service import UpdateContextCommand
+from sidekick.work.application.models import UpdateContextCommand
 from sidekick.work.domain.planning import Cadence
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -168,7 +167,7 @@ def test_a_backup_after_a_process_run_is_written_and_restores(tmp_path: Path) ->
     env.restore(env.backup(tmp_path))
 
     restored = dict(env.events(env.target))
-    assert restored["process_run"] == _restore_id(runs[0].id, env.target, "process_runs")
+    assert restored["process_run"] == restore_id(runs[0].id, env.target, "process_runs")
     assert ("process_run", restored["process_run"]) in env.activity(env.target)
 
 
@@ -188,13 +187,13 @@ def test_a_backup_after_a_task_was_removed_permanently_is_written_and_restores(
     env.restore(env.backup(tmp_path))
 
     restored_ids = {identifier for _, identifier in env.events(env.target)}
-    assert _restore_id(task.id, env.target, "tasks") in restored_ids  # same id a live Task gets
-    assert _restore_id(kept.id, env.target, "tasks") in restored_ids
+    assert restore_id(task.id, env.target, "tasks") in restored_ids  # same id a live Task gets
+    assert restore_id(kept.id, env.target, "tasks") in restored_ids
     with env.factory() as session:
         restored_tasks = set(
             session.scalars(select(TaskRow.id).where(TaskRow.owner_id == env.target))
         )
-    assert restored_tasks == {_restore_id(kept.id, env.target, "tasks")}
+    assert restored_tasks == {restore_id(kept.id, env.target, "tasks")}
 
 
 def _removable_contact(env: Env) -> tuple[RecordKind, UUID, int]:
@@ -238,14 +237,14 @@ def test_removed_records_of_other_kinds_never_make_a_backup_unrestorable(
 
     env.restore(env.backup(tmp_path))
 
-    source = _POLYMORPHIC_SOURCE_NAMES[kind.value]
-    assert (kind.value, _restore_id(record_id, env.target, source)) in env.events(env.target)
+    source = POLYMORPHIC_SOURCE_NAMES[kind.value]
+    assert (kind.value, restore_id(record_id, env.target, source)) in env.events(env.target)
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
     "aggregate_type",
-    [*sorted(_POLYMORPHIC_SOURCE_NAMES), *sorted(_RETIRED_POLYMORPHIC_SOURCE_NAMES), "legacy_kind"],
+    [*sorted(POLYMORPHIC_SOURCE_NAMES), "legacy_kind"],
 )
 def test_history_that_names_no_record_at_all_is_restored_with_a_stable_id(
     tmp_path: Path, aggregate_type: str
@@ -256,11 +255,7 @@ def test_history_that_names_no_record_at_all_is_restored_with_a_stable_id(
 
     env.restore(env.backup(tmp_path))
 
-    source = (
-        _POLYMORPHIC_SOURCE_NAMES.get(aggregate_type)
-        or _RETIRED_POLYMORPHIC_SOURCE_NAMES.get(aggregate_type)
-        or aggregate_type
-    )
-    expected = (aggregate_type, _restore_id(unknown, env.target, source))
+    source = POLYMORPHIC_SOURCE_NAMES.get(aggregate_type) or aggregate_type
+    expected = (aggregate_type, restore_id(unknown, env.target, source))
     assert expected in env.events(env.target)
     assert expected in env.activity(env.target)

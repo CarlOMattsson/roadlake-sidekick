@@ -3,7 +3,7 @@ import {
   hierarchyDetailLabelsEn,
   hierarchyDetailLabelsFor,
   hierarchyDetailLabelsSv,
-} from "@/features/work-app/hierarchy-detail-labels";
+} from "@/features/work-app/hierarchy/hierarchy-detail-labels";
 
 /*
  * The words of hierarchy-detail-labels.ts: the Projects list's meta words and filter, and the words the Task and

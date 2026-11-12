@@ -34,16 +34,18 @@ Tryck på "Ångra" på raden direkt efter att du bockat av. Senare öppnar du K�
 
 Tryck på varans rad, bredvid ringen. Då öppnas varans formulär, där du ändrar namn, antal och butik.
 
+## Skapa, byt namn på eller arkivera en lista
+
+Tryck på + bredvid Listor för att skapa en ny lista. I helskärm byter du namn på listan med ⋯ och "Redigera lista", och "Arkivera lista" arkiverar den.
+
 ## Det här ber du hellre Claude om
 
-- Skapa en ny lista.
 - Lägga till många varor på en gång, till exempel från ett recept.
 - Markera allt du köpte i en butik som köpt.
-- Byta namn på en lista eller arkivera den.
 
 ## Inköp i Android-appen
 
-Android-appen visar samma listor. Där kan du lägga till, ändra, bocka av och ångra. [Läs om Android-appen](android-app.sv.md).
+Android-appen visar samma listor. Där kan du skapa listor, lägga till, ändra, bocka av och ångra. [Läs om Android-appen](android-app.sv.md).
 
 ## Scopes som rummet behöver
 

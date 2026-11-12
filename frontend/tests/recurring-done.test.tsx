@@ -1,21 +1,21 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { isRecurringCycle } from "@/features/work-app/agenda-parts/agenda-helpers";
-import { RecordMeta } from "@/features/work-app/board-card";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { isRecurringCycle } from "@/features/work-app/agenda/parts/agenda-helpers";
+import { RecordMeta } from "@/features/work-app/board/board-card";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   taskPlaceLabelsEn,
   taskPlaceLabelsSv,
-} from "@/features/work-app/task-place-labels";
+} from "@/features/work-app/tasks/task-place-labels";
 import type {
   WorkItemRecord,
   WorkTask,
   WorkTaskChanges,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   DUE,
   NOW,

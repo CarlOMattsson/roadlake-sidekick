@@ -30,6 +30,7 @@ from sidekick.memory.ports import (
     validate_retain_items,
 )
 from sidekick.shared.errors.core import InternalFaultError
+from sidekick.shared.observability import silence_http_client_loggers
 from sidekick.shared.private_endpoint import validate_private_base_url
 
 KEY_VERSION = "v1"
@@ -102,6 +103,7 @@ class HindsightMemoryProvider:
         self._retain_timeout = retain_timeout_seconds
         self._max_response_bytes = max_response_bytes
         self._send_slots = threading.BoundedSemaphore(max_pending_sends)
+        silence_http_client_loggers()
         # trust_env=False keeps the bearer token away from any proxy named in the environment.
         self._client = client or httpx.Client(trust_env=False, follow_redirects=False)
 

@@ -4,7 +4,7 @@ import pytest
 
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import new_uuid7
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery
 
 
 def test_work_query_rejects_unsupported_projection_inputs() -> None:

@@ -1,17 +1,16 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
+} from "@/features/work-app/inline/inline-summary-labels";
 import {
   InlineSummary,
   type InlineSummaryData,
-} from "@/features/work-app/inline-summary";
-import { srcDir, installFixedClock } from "./helpers/inline-summary-fixtures";
+} from "@/features/work-app/inline/inline-summary";
+import { installFixedClock } from "./helpers/inline-summary-fixtures";
+import { readStylesheet } from "./helpers/stylesheet";
 
 installFixedClock();
 
@@ -227,13 +226,11 @@ describe("InlineSummary ready state", () => {
     expect(buttons[1]?.querySelector("svg")).not.toBeNull();
     expect(buttons[0]?.parentElement).toBe(buttons[1]?.parentElement);
     // The 44 px minimum is the family stylesheet's, not an inline style. jsdom loads no CSS, so the rule is read here.
-    const familyCss = readFileSync(
-      path.join(srcDir, "../mcp-apps/ui/family.css"),
-      "utf8",
-    );
-    expect(familyCss).toMatch(
-      /\.sk-btn--open \{[^}]*min-height: var\(--sk-tap\);/,
-    );
+    expect(
+      readStylesheet("features/mcp-apps/ui/family.css").rule(".sk-btn--open")[
+        "min-height"
+      ],
+    ).toBe("var(--sk-tap)");
     for (const button of buttons) {
       expect(button).not.toHaveAttribute("style");
       expect(button).toHaveClass("work-compact-action");

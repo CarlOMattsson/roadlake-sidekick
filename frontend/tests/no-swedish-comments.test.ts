@@ -8,10 +8,12 @@
 // appear inside a comment: text in quotes or backticks, capitalized words (room and screen
 // names such as Inköp or Dagbok) and single letters are ignored. Any other word with å, ä or ö
 // fails, and so do a few common Swedish words that have none of those letters.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
+
+import { sourceFiles } from "./helpers/source-files";
 
 const frontendDir = path.resolve(import.meta.dirname, "..");
 const roots = ["src", "tests"];
@@ -26,17 +28,12 @@ const swedishLetterWord =
 const swedishPlainWords =
   /(?<![\p{L}\p{N}_-])(?:och|inte|eller|eftersom|alltid|aldrig|bara|utan|ingen|inga|sedan|samma|vilket|annars|redan|kunna|finns|visas|skapa|ska)(?![\p{L}\p{N}_-])/u;
 
-function walk(dir: string): string[] {
-  const files: string[] = [];
-  for (const name of readdirSync(dir)) {
-    const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) {
-      if (!skippedDirs.has(name)) files.push(...walk(full));
-    } else if (sourceFile.test(name) && !name.endsWith(".d.ts")) {
-      files.push(full);
-    }
-  }
-  return files;
+function scannedFiles(dir: string): string[] {
+  return sourceFiles(
+    dir,
+    (name) => sourceFile.test(name) && !name.endsWith(".d.ts"),
+    [...skippedDirs],
+  );
 }
 
 function configFiles(): string[] {
@@ -98,7 +95,7 @@ function isSwedish(text: string): boolean {
 describe("frontend comments are English", () => {
   it("has no Swedish comments in src, tests or the config files", () => {
     const files = [
-      ...roots.flatMap((root) => walk(path.join(frontendDir, root))),
+      ...roots.flatMap((root) => scannedFiles(path.join(frontendDir, root))),
       ...configFiles(),
     ];
     const hits = files.flatMap((file) => {

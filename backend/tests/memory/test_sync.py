@@ -15,23 +15,25 @@ import pytest
 from sqlalchemy import Connection, Engine, delete, func, select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-import sidekick.memory.application.sync as sync_module
+import sidekick.memory.application.sync_pass as pass_module
+import sidekick.memory.application.sync_rules as rules_module
+import sidekick.memory.application.sync_send as send_module
 import sidekick.memory.domain as domain_module
 from sidekick.memory.adapters.fake import FakeMemoryProvider
-from sidekick.memory.application.sync import (
+from sidekick.memory.application.sync import MemoryReconciler
+from sidekick.memory.application.sync_rules import (
     BACKFILL_AGE,
     MAX_ATTEMPTS,
     OPERATION_DEADLINE,
     REMOVED_CATEGORY,
-    MemoryReconciler,
     SendCandidate,
-    SyncPolicy,
     derive_doc_key,
     is_backfill,
     retain_timestamp,
     retry_backoff,
     select_batch,
 )
+from sidekick.memory.application.sync_state import SyncPolicy
 from sidekick.memory.domain import MemoryKind
 from sidekick.memory.infrastructure.lock import (  # pyright: ignore[reportPrivateUsage]
     OwnerLock,
@@ -1100,7 +1102,8 @@ def test_a_pipeline_version_bump_resends_everything(monkeypatch: pytest.MonkeyPa
     before = _row(factory, contact)
 
     monkeypatch.setattr(domain_module, "MEMORY_PIPELINE_VERSION", 2)
-    monkeypatch.setattr(sync_module, "MEMORY_PIPELINE_VERSION", 2)
+    monkeypatch.setattr(pass_module, "MEMORY_PIPELINE_VERSION", 2)
+    monkeypatch.setattr(rules_module, "MEMORY_PIPELINE_VERSION", 2)
     clock.advance(timedelta(minutes=1))
     result = reconciler.reconcile_owner(owner)
 
@@ -1324,7 +1327,7 @@ def test_a_failed_submitted_commit_cannot_resurrect_a_deleted_record(
         raise RuntimeError("simulated failure while committing `submitted`")
 
     with monkeypatch.context() as patched:
-        patched.setattr(sync_module._Pass, "_mark_submitted", broken_commit)  # pyright: ignore[reportPrivateUsage]
+        patched.setattr(send_module.BatchSender, "_mark_submitted", broken_commit)  # pyright: ignore[reportPrivateUsage]
         with pytest.raises(RuntimeError):
             reconciler.reconcile_owner(owner)
     row = _row(factory, contact)
@@ -1685,7 +1688,7 @@ def test_the_conditional_upsert_refuses_a_batch_past_the_character_cap(
     for n in range(2, 4):
         _new_contact(factory, owner, f"Kontakt {n}")
     # A budget view that ignores the characters, so only the atomic upsert can say no.
-    monkeypatch.setattr(sync_module, "select_batch", lambda candidates, **_kw: list(candidates))
+    monkeypatch.setattr(send_module, "select_batch", lambda candidates, **_kw: list(candidates))
     tight = _reconciler(factory, provider, clock, daily_char_cap=3 * one_document)
 
     result = tight.reconcile_owner(owner)

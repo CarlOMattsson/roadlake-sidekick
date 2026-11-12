@@ -67,7 +67,7 @@ Backups are encrypted once you have turned on the backup profile and created a k
 - What Claude, the model provider or the ntfy server retain. Sidekick limits what is sent but does not control what they keep.
 - Someone who holds a valid credential. Revoke phones and access that you no longer use.
 
-Sidekick 0.1.0 is a preview. The HTTPS profile, a real GitHub sign-in, real Claude connections, macOS and the app on a real phone have not been tried.
+Sidekick 0.1.0 is the first version. It is in daily use with Claude, with the Android app on a real phone and on Linux. macOS has not been tried yet.
 
 ## Report a vulnerability
 

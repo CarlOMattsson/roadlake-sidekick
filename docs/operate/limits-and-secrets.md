@@ -49,3 +49,30 @@ Practical consequences:
 - A setting that only the API reads (for example `SIDEKICK_MCP_OAUTH_SCOPES`) takes effect after you restart `api`; the workers do not need it.
 - A new `SIDEKICK_` setting that a worker should read must be added to the list in `compose.yaml`. The test `backend/tests/selfhost/test_selfhost_secret_scope.py` checks that every listed name is a declared setting.
 - The work package (`tools/work.sh`) is not affected: it replaces the lists with its own secret files.
+
+## Secrets as files
+
+A secret in `selfhost.env` is an environment variable of the container: every process in it can read it, and `docker inspect` prints it. As a file it is mounted read-only at `/run/secrets/<name>`, only in the services that read it (the same lists as above), and `docker inspect` shows the path but not the value. The nine secret settings can be moved this way:
+
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY` and `SIDEKICK_PUSH_AUTH_TOKEN`.
+
+Existing installations keep working unchanged: a plain variable is still read. Move the values when you like:
+
+```sh
+cd deploy/selfhost
+sh secrets-to-files.sh --dry-run   # shows what would move, changes nothing
+sh secrets-to-files.sh             # moves it
+docker compose --env-file selfhost.env up -d
+```
+
+For each secret that has a real value in `selfhost.env` the script writes it to `secrets/<name>`, reads the file back and compares, and only then removes the `SIDEKICK_<NAME>=` line and adds `SELFHOST_<NAME>_FILE=./secrets/<name>`. It never prints a value or passes one on a command line. It leaves a secret where it is, with a note, when moving it could change its meaning: the value is still a placeholder, is assigned twice, or has a character Compose treats specially (a quote, a space, `$`, `#`, a backslash). Move those by hand: write the exact value and one line break to the file, delete the `SIDEKICK_<NAME>=` line, add the `SELFHOST_<NAME>_FILE=` line. Run the script again afterwards; what is already moved is not touched. `update.sh` accepts a backup key that lives in a file.
+
+How it works:
+
+- `compose.yaml` mounts each file as a Docker secret and sets `SIDEKICK_<NAME>_FILE=/run/secrets/<name>` in the services that read it, but only while `SELFHOST_<NAME>_FILE` is set. Without it the secret is an empty `/dev/null` mount and the backend ignores the empty variable.
+- The backend reads the file named by `SIDEKICK_<NAME>_FILE` for each of the nine settings (the ones marked secret in the [configuration reference](../reference/configuration.md)), drops the trailing line break and validates the value like any other. A missing, unreadable, empty, non-UTF-8 or oversized file stops the start with an error that names the variable, never the content.
+- Setting both `SIDEKICK_<NAME>` and `SIDEKICK_<NAME>_FILE` stops the start with an error. An empty `SIDEKICK_<NAME>` does not count as set. `SIDEKICK_<NAME>_FILE` is read from the process environment only, not from a `.env` file.
+- The directory `secrets/` has mode 700 and the files mode 644, not 600. Compose bind-mounts a file secret as it is on the host and ignores `uid`, `gid` and `mode`, and the container user is not you, so a mode 600 file could not be read in the container. The directory is what keeps other users of the host out. It is git-ignored.
+- Back up `secrets/` together with `selfhost.env` and keep both private. Losing the backup key still means the backups cannot be read.
+
+`db.env` (the PostgreSQL passwords and the migrator URL), `hindsight.env` and `ntfy.env` are separate files read by other services; they stay as they are.

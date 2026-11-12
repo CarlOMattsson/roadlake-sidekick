@@ -8,9 +8,9 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
-import { fillLabel, UNDO_MS } from "@/features/work-app/agenda-undo";
-import { workEn } from "@/features/work-app/labels";
-import type { WorkBoardPage } from "@/features/work-app/transport";
+import { fillLabel, UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { workEn } from "@/features/work-app/shared/labels";
+import type { WorkBoardPage } from "@/features/work-app/transport/transport";
 import { elementWithText } from "./helpers/exact-text";
 import {
   KEY,

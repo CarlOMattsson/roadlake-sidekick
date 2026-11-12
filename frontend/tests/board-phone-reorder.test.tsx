@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkBoardPage,
   WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import { elementWithText } from "./helpers/exact-text";
 import {
   KEY,

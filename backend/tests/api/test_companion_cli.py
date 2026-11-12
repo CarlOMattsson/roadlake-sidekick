@@ -14,6 +14,7 @@ from sqlalchemy import select
 
 from sidekick.companion import cli
 from sidekick.companion.cli import run
+from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.shared.persistence.models import AuditEventRow
 from tests.support.companion import bearer, companion_app, devices, paired_token
 
@@ -21,7 +22,7 @@ from tests.support.companion import bearer, companion_app, devices, paired_token
 def invoke(app, argv: list[str]) -> tuple[int, str]:  # type: ignore[no-untyped-def]
     container = app.state.container
     out, notice = io.StringIO(), io.StringIO()
-    code = run(argv, container.session_factory, container.auth, out, notice)
+    code = run(argv, CompanionDeviceStore(container.session_factory), container.auth, out, notice)
     return code, notice.getvalue() + "\x00" + out.getvalue()
 
 
@@ -210,7 +211,14 @@ def test_the_rights_notice_follows_the_app_language() -> None:
     container = app.state.container
     out, notice = io.StringIO(), io.StringIO()
     argv = ["pair", "--label", "Samsung", "--scope", "companion:tasks:read", "--device-days", "7"]
-    code = run(argv, container.session_factory, container.auth, out, notice, locale="en")
+    code = run(
+        argv,
+        CompanionDeviceStore(container.session_factory),
+        container.auth,
+        out,
+        notice,
+        locale="en",
+    )
     assert code == 0
     shown = notice.getvalue()
     assert 'Device "Samsung" gets the following permissions:' in shown

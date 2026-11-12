@@ -6,13 +6,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JournalRoom } from "@/features/journal-app/room";
 import { ShoppingRoom } from "@/features/shopping-app/room";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
-import { GroupSelect } from "@/features/work-app/group-select";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
+import { GroupSelect } from "@/features/work-app/hierarchy/group-select";
 import {
   groupSelectLabelsEn,
   groupSelectLabelsFor,
   groupSelectLabelsSv,
-} from "@/features/work-app/group-select-labels";
+} from "@/features/work-app/hierarchy/group-select-labels";
 import type { RoomProps } from "@/features/mcp-apps/room-types";
 import { toolResultCause } from "@/features/mcp-apps/ui/states";
 

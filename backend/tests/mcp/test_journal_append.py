@@ -424,7 +424,7 @@ async def _review_harness(
             }
         ),
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 21),
@@ -438,7 +438,7 @@ async def _review_harness(
     draft_id = seed_entry_draft(container, actor, source.id, source.journal_date)
     entry_id: UUID | None = None
     if with_entry:
-        entry_id = container.journal.create_manual_entry(
+        entry_id = container.journal_capture.create_manual_entry(
             actor,
             source_id=source.id,
             title="Lördag",
@@ -533,7 +533,7 @@ async def test_a_replaced_source_refuses_finalize_and_a_manual_entry() -> None:
     container, actor, source_id, draft_id, _ = await _review_harness(
         "append-guard", with_entry=False
     )
-    replacement = container.journal.create_source(
+    replacement = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 21),
@@ -559,7 +559,7 @@ async def test_a_replaced_source_refuses_finalize_and_a_manual_entry() -> None:
 
     assert _count_entries(container, actor.user_id) == 0
     with pytest.raises(ConflictError, match="journal source was replaced"):
-        container.journal.create_manual_entry(
+        container.journal_capture.create_manual_entry(
             actor,
             source_id=source_id,
             title="Dubbel",
@@ -568,7 +568,7 @@ async def test_a_replaced_source_refuses_finalize_and_a_manual_entry() -> None:
             idempotency_key="append-guard-manual-old",
         )
     assert _count_entries(container, actor.user_id) == 0
-    created = container.journal.create_manual_entry(
+    created = container.journal_capture.create_manual_entry(
         actor,
         source_id=replacement.id,
         title="På ersättaren",

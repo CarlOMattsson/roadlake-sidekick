@@ -17,8 +17,8 @@ import {
   vi,
 } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { workEn } from "@/features/work-app/labels";
-import { type WorkTask } from "@/features/work-app/transport";
+import { workEn } from "@/features/work-app/shared/labels";
+import { type WorkTask } from "@/features/work-app/transport/transport";
 import {
   KEY,
   taskA,

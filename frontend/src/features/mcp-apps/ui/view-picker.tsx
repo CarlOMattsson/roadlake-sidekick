@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { ChevronDownIcon } from "./icons";
+import { KeyScope } from "./key-scope";
 import "./view-picker.css";
 
 /**
@@ -71,11 +72,7 @@ export function useViewPicker<T extends string>({
     buttonRef.current?.focus();
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      return close();
-    }
+  function onKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Tab") {
       // WAI-ARIA menu button: Tab closes the menu and moves on naturally, no focus trap. The browser moves the
       // focus; the blur handler below closes the menu when it has left.
@@ -115,13 +112,13 @@ export function useViewPicker<T extends string>({
   ) : null;
 
   const menu = menuOpen ? (
-    // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- focus lives on the menu items (moved by script), the menu container only receives bubbling keys.
-    <div
+    <KeyScope
       ref={menuRef}
       id={menuId}
       role="menu"
       aria-label={label}
       className="sk-pick-menu"
+      onEscape={close}
       onKeyDown={onKeyDown}
       onBlur={(event) => {
         // The focus left the menu: by Tab / Shift+Tab (also onto the button), or to somewhere else outside the menu
@@ -168,7 +165,7 @@ export function useViewPicker<T extends string>({
           ) : null}
         </button>
       ))}
-    </div>
+    </KeyScope>
   ) : null;
 
   return { button, menu };

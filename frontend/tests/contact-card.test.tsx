@@ -2,17 +2,20 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { cardLabelsEn, cardLabelsSv } from "@/features/work-app/card-labels";
-import { initialsOf } from "@/features/work-app/contact-card";
-import { workEn } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+import {
+  cardLabelsEn,
+  cardLabelsSv,
+} from "@/features/work-app/shared/card-labels";
+import { initialsOf } from "@/features/work-app/contacts/contact-card";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   rootFromToolResult,
   type WorkContactRecord,
   type WorkTask,
   type WorkTaskSummary,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const anna: WorkContactRecord = {
   id: "019f0000-0000-7000-8000-0000000000c1",

@@ -1,13 +1,13 @@
 import { render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import { WorkView } from "@/features/work-app/work-view";
-import { cardLabelsEn } from "@/features/work-app/card-labels";
-import { workEn } from "@/features/work-app/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { cardLabelsEn } from "@/features/work-app/shared/card-labels";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkContactRecord,
   WorkTaskSummary,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The Tasks of a Contact (the "09" list, TaskSummaryList in the contact view) carry the same meta line as the other

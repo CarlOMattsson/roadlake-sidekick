@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -14,6 +11,7 @@ import { SettingsPanel } from "@/mobile/settings-panel";
 import { settingsLabelsEn, settingsLabelsSv } from "@/mobile/settings-labels";
 import { fakeNative, ok, type FakeNative } from "./helpers/fake-native";
 import type { NativeRequest } from "@/mobile/sidekick-native";
+import { readSource } from "./helpers/source-files";
 
 const AGENDA = {
   items: [
@@ -577,13 +575,7 @@ describe("the settings exist only in the mobile app", () => {
   });
 
   it("are never given by the Claude entry (its room host has no hostSettings)", () => {
-    const entry = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/sidekick-entry.tsx",
-      ),
-      "utf8",
-    );
+    const entry = readSource("features/mcp-apps/sidekick-entry.tsx");
     expect(entry).toContain("RoomHostContext.Provider");
     expect(entry).not.toMatch(/hostSettings|settings-panel|@\/mobile/);
   });

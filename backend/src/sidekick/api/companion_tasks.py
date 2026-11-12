@@ -38,7 +38,7 @@ from sidekick.companion.operations import (
     TASK_STEPS,
     operation_actor,
 )
-from sidekick.companion.push_outbox import acting_device
+from sidekick.companion.push_outbox_store import acting_device
 from sidekick.shared.auth import CompanionCredential
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.contacts import task_contacts_structured

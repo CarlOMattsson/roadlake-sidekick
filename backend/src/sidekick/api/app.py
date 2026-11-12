@@ -150,30 +150,12 @@ def _install_exception_handlers(app: FastAPI) -> None:
         if error.code == "internal_error":
             # A fault, not a client error: let the unexpected-error middleware answer it.
             raise error
-        statuses = {
-            "unauthorized": 401,
-            "forbidden": 403,
-            "not_found": 404,
-            "conflict": 409,
-            "processing_in_progress": 409,
-            "validation_error": 422,
-        }
-        safe_titles = {
-            "unauthorized": "Authentication required",
-            "forbidden": "Forbidden",
-            "not_found": "Not found",
-            "conflict": "Conflict",
-            "processing_in_progress": "Processing in progress",
-            "validation_error": "Request validation failed",
-        }
-        status_code = statuses.get(error.code, 400)
-        proposal_id = getattr(error, "proposal_id", None)
         return problem_response(
             request.scope,
-            status=status_code,
+            status=error.http_status,
             code=error.code,
-            title=safe_titles.get(error.code, "Request failed"),
-            extra=None if proposal_id is None else {"proposal_id": str(proposal_id)},
+            title=error.safe_title,
+            extra=None if error.proposal_id is None else {"proposal_id": str(error.proposal_id)},
         )
 
     async def invalid_input(request: Request, _error: Exception) -> JSONResponse:

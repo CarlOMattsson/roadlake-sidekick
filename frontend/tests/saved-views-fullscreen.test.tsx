@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workEn } from "@/features/work-app/labels";
-import { savedViewsLabelsEn } from "@/features/work-app/saved-views-labels";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
+import { workEn } from "@/features/work-app/shared/labels";
+import { savedViewsLabelsEn } from "@/features/work-app/saved-views/saved-views-labels";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
 import type {
   WorkAgendaPage,
   WorkBoardPage,
@@ -11,8 +11,8 @@ import type {
   WorkItemRecord,
   WorkSavedView,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 import { fakeTransport } from "./helpers/saved-views-fixtures";
 
 describe("WorkFullscreen with saved views", () => {

@@ -46,6 +46,7 @@ NOT_SIDEKICK_KEY_PATTERN = re.compile(
     r"|NTFY_[A-Z0-9_]+|TS_AUTHKEY"  # the ntfy server and its Tailscale sidecar
     r"|POSTGRES_PASSWORD|SELFHOST_DOMAIN"  # the self-host Compose stack
     r"|SELFHOST_[A-Z0-9_]+_(?:MEM|PIDS)_LIMIT"  # its per-service resource limits
+    r"|SELFHOST_[A-Z0-9_]+_FILE"  # the files of its secrets (compose.yaml mounts them)
 )
 KEY = re.compile(r"^\s*#?\s*(?:export\s+)?([A-Z][A-Z0-9_]*)=")
 

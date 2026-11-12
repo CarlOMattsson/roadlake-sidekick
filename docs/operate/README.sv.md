@@ -6,14 +6,14 @@
 
 Här finns guiderna för dig som sköter en Sidekick-server. Varje guide gör en sak. Har du inte startat servern än börjar du i [Första starten på en server](../start/self-hosted-server.sv.md).
 
-:::note[Förhandsversion]
-Installation, uppdatering, backup och återställning är övade i Linux-containrar. HTTPS-profilen, riktig GitHub-inloggning och riktiga Claude-anslutningar är inte provade. Ta en backup innan du ändrar något.
+:::note[Första versionen]
+Sidekick 0.1.0 är den första versionen och körs dagligen på Linux. macOS är ännu inte provat. Ta en backup innan du ändrar något.
 :::
 
 ## Ansluta
 
 - [Anslut Claude](connect-claude.sv.md): registrera inloggningen, lägg till connectorn och bestäm vad sessionen får göra.
-- [Bygg, installera och para ihop Android](pair-android.sv.md): bygg appen ur källkoden och koppla telefonen med en engångskod.
+- [Bygg, installera och para ihop Android](pair-android.sv.md): ladda ner den signerade appen eller bygg den ur källkoden, och koppla telefonen med en engångskod.
 - [Påminnelser via ntfy](push-reminders.sv.md): slå på påminnelser till telefonen, via den publika ntfy-servern eller en egen.
 
 ## Sköta

@@ -34,7 +34,7 @@ whatever GitHub says. The example ships with read scopes for projects, tasks, co
 read those, cannot change anything, and has no access to the Journal. Add `journal:read` for the Journal; a `:write`
 scope (listed next to its `:read`, for example `projects:write,projects:read`) lets Claude change that data, and
 `license:write` lets the app enter the instance's license key (add it only if you enter the key in the app), and
-`automation:read` / `automation:write` are for the automations room. Widen the list deliberately, then recreate the API (`docker compose --env-file selfhost.env up -d --force-recreate api`). If Claude
+`automation:read` / `automation:write` are reserved: no tool uses them yet. Widen the list deliberately, then recreate the API (`docker compose --env-file selfhost.env up -d --force-recreate api`). If Claude
 does not pick up the change, remove the connector and add it again.
 
 **Slow clients.** The API gives a public request one deadline for its whole body to arrive, so a client that drips

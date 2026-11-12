@@ -1,12 +1,12 @@
 import { act, fireEvent, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import { workEn } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   type WorkBoardPage,
   type WorkItemRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * Drag, keyboard move and conflict on the Work board. Pointer events are dispatched by hand

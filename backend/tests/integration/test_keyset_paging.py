@@ -22,7 +22,7 @@ from sidekick.shared.persistence.models import ContactRow, ProjectRow, TaskRow
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor, SystemClock, new_uuid7
 from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application.service import TaskService
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery
 from tests.support.work_paging import NOW, SCOPES, WorkFixture
 
 
@@ -61,15 +61,15 @@ def _walk_with_changes(
     Returns every id served and the ids of the first page.
     """
 
-    first = fixture.contexts.work_list_page(fixture.actor, query)
+    first = fixture.work_lists.work_list_page(fixture.actor, query)
     assert first.next_cursor is not None
-    first_ids = [item["id"] for item in first.items]
+    first_ids = [item.id for item in first.items]
     between(first_ids)
     ids = list(first_ids)
     cursor: str | None = first.next_cursor
     while cursor is not None:
-        page = fixture.contexts.work_list_page(fixture.actor, replace(query, cursor=cursor))
-        ids.extend(item["id"] for item in page.items)
+        page = fixture.work_lists.work_list_page(fixture.actor, replace(query, cursor=cursor))
+        ids.extend(item.id for item in page.items)
         cursor = page.next_cursor
     return ids, first_ids
 
@@ -80,7 +80,7 @@ def test_work_list_survives_inserts_and_deletes_between_pages(sort: str) -> None
     fixture = WorkFixture()
     fixture.seed(20, 40)
     query = WorkQuery(sort=sort, limit=10)  # type: ignore[arg-type]
-    before = [item["id"] for item in fixture.walk(replace(query, limit=100))]
+    before = [item.id for item in fixture.walk(replace(query, limit=100))]
     removed: list[UUID] = []
 
     def between(served: list[UUID]) -> None:
@@ -235,7 +235,7 @@ def test_work_cursor_is_bound_to_its_sort_and_filter() -> None:
     fixture = WorkFixture()
     fixture.seed(10, 20)
     query = WorkQuery(sort="due_asc", limit=5)
-    cursor = fixture.contexts.work_list_page(fixture.actor, query).next_cursor
+    cursor = fixture.work_lists.work_list_page(fixture.actor, query).next_cursor
     assert cursor is not None
     for other_query in (
         replace(query, sort="title_asc"),
@@ -244,25 +244,25 @@ def test_work_cursor_is_bound_to_its_sort_and_filter() -> None:
         replace(query, group="kind"),
     ):
         with pytest.raises(InvalidInputError, match="invalid pagination cursor"):
-            fixture.contexts.work_list_page(fixture.actor, replace(other_query, cursor=cursor))
+            fixture.work_lists.work_list_page(fixture.actor, replace(other_query, cursor=cursor))
 
 
 @pytest.mark.integration
 def test_today_walk_is_stable_when_a_task_is_added_between_pages() -> None:
     fixture = WorkFixture()
     fixture.seed(0, 60)
-    first = fixture.contexts.work_today_page(fixture.actor, limit=4)
+    first = fixture.work_lists.work_today_page(fixture.actor, limit=4)
     assert first.next_cursor is not None
     with fixture.factory.begin() as session:
         session.execute(
             insert(TaskRow),
             [_new_task(fixture.owner_id, "Brådskande", NOW - timedelta(days=90))],
         )
-    seen = [item["id"] for item in first.items]
+    seen = [item.id for item in first.items]
     cursor: str | None = first.next_cursor
     while cursor is not None:
-        page = fixture.contexts.work_today_page(fixture.actor, limit=4, cursor=cursor)
-        seen.extend(item["id"] for item in page.items)
+        page = fixture.work_lists.work_today_page(fixture.actor, limit=4, cursor=cursor)
+        seen.extend(item.id for item in page.items)
         cursor = page.next_cursor
     assert len(seen) == len(set(seen))
 
@@ -314,8 +314,8 @@ def test_small_pages_reproduce_the_whole_list_in_every_sort_and_group(
     fixture.seed(15, 45)
     query = WorkQuery(sort=sort, group=group, limit=100)  # type: ignore[arg-type]
 
-    whole = [(item["kind"], item["id"]) for item in fixture.walk(query)]
-    paged = [(item["kind"], item["id"]) for item in fixture.walk(replace(query, limit=7))]
+    whole = [(item.kind, item.id) for item in fixture.walk(query)]
+    paged = [(item.kind, item.id) for item in fixture.walk(replace(query, limit=7))]
 
     assert paged == whole
     assert len(whole) == len(set(whole)) > 50
@@ -366,8 +366,8 @@ def test_work_titles_of_maximum_length_keep_paging_in_title_order(character: str
     seen: list[str] = []
     cursor: str | None = None
     while True:
-        page = fixture.contexts.work_list_page(fixture.actor, replace(query, cursor=cursor))
-        seen.extend(item["title"] for item in page.items)
+        page = fixture.work_lists.work_list_page(fixture.actor, replace(query, cursor=cursor))
+        seen.extend(item.title for item in page.items)
         cursor = page.next_cursor
         if cursor is None:
             break
@@ -388,6 +388,6 @@ def test_text_keys_that_fold_longer_than_the_cut_off_still_page_without_gaps() -
         )
     query = WorkQuery(kind="task", sort="title_asc", limit=2)
 
-    seen = [item["id"] for item in fixture.walk(query)]
+    seen = [item.id for item in fixture.walk(query)]
 
     assert len(seen) == len(set(seen)) == 5

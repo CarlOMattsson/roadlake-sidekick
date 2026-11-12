@@ -1,11 +1,10 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { workEn } from "@/features/work-app/labels";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { workEn } from "@/features/work-app/shared/labels";
 import { elementWithText } from "./helpers/exact-text";
+import { readStylesheet } from "./helpers/stylesheet";
 import {
   TASK_ID,
   OTHER_ID,
@@ -21,6 +20,9 @@ import {
   openRow,
   resetAgendaEnvironment,
 } from "./helpers/agenda-view-fixtures";
+
+const ROOM = { room: "sidekick-work" };
+const agendaCss = readStylesheet("features/work-app/agenda/agenda.css");
 
 afterEach(resetAgendaEnvironment);
 
@@ -215,12 +217,14 @@ it("a done Task keeps its check glyph, and the agenda CSS dims its row", () => {
     rowOf(done.title).querySelector('[data-glyph$="-check"]'),
   ).not.toBeNull();
   expect(rowOf(task.title).querySelector('[data-glyph$="-check"]')).toBeNull();
-  // jsdom applies no CSS, so the dimming rule is read from agenda.css: it keys on the check glyph.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
+  // jsdom applies no CSS, so the dimming rule is read from agenda.css and resolved against the rendered rows: it
+  // keys on the check glyph.
+  const body = (title: string) =>
+    rowOf(title).querySelector(".work-agenda-body") as Element;
+  expect(agendaCss.styleOf(body(done.title), ROOM).color).toBe(
+    "var(--sk-muted)",
   );
-  expect(css).toMatch(/:has\(\[data-glyph\$="-check"\]\)[^{]*\{[^}]*color:/);
+  expect(agendaCss.styleOf(body(task.title), ROOM).color).toBeUndefined();
 });
 
 it("the Undo line is the changed row's own meta line, as a polite status line, and no list item or notice is added", async () => {
@@ -240,17 +244,14 @@ it("the Undo line is the changed row's own meta line, as a polite status line, a
   expect(line).toHaveTextContent("Done");
   expect(line).not.toHaveClass("sk-notice");
   // jsdom applies no CSS: no rule that names the line gives it a sticky position in agenda.css.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
+  const undoRules = agendaCss.rules.filter((rule) =>
+    rule.selector.includes("work-agenda-undo"),
   );
-  const undoRules = [
-    ...css.matchAll(/([^{}]*work-agenda-undo[^{}]*)\{([^}]*)\}/g),
-  ];
   expect(undoRules.length).toBeGreaterThan(0);
   for (const rule of undoRules) {
-    expect(rule[2]).not.toMatch(/position:\s*sticky/);
+    expect(rule.declarations.position, rule.selector).not.toBe("sticky");
   }
+  expect(agendaCss.styleOf(wrap, ROOM).position).not.toBe("sticky");
 });
 
 it("opening a row's quick choices scrolls them into view, so they are not hidden under the host's reply field", () => {
@@ -317,44 +318,37 @@ it("the Undo line scrolls itself into view with nearest when it shows, so its Å
 });
 
 it("the Datum choices are chips that wrap, the date input lies invisibly over its chip, and the open row and its menu are one surface with a --sk-border edge", () => {
-  // jsdom applies no CSS: the rules are read from agenda.css.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  const choices = /\.sidekick-work \.work-agenda-choices \{([^}]*)\}/.exec(
-    css,
-  )?.[1];
-  expect(choices, "choices rule").toBeDefined();
-  expect(choices).toMatch(/display: flex;/);
-  expect(choices).toMatch(/flex-wrap: wrap;/);
-  expect(choices).not.toMatch(/display: grid;/);
+  const { transport } = makeTransport();
+  renderAgenda([task], transport);
+  openRow(task.title);
+  const choices = screen
+    .getAllByRole("group")
+    .find((group) => group.classList.contains("work-agenda-choices"));
+  expect(choices).toBeDefined();
+
+  // jsdom applies no CSS: the rules are read from agenda.css and resolved against the rendered row.
+  const style = agendaCss.styleOf(choices as Element, ROOM);
+  expect(style).toMatchObject({ display: "flex", "flex-wrap": "wrap" });
   // No field is drawn. The input lies invisible over the chip's 48 target (the chip is 40 drawn, so 4 over
   // on each side), and a pointer anywhere on it reaches the platform's picker.
-  const dateInput = /\.sidekick-work \.work-agenda-date-input \{([^}]*)\}/.exec(
-    css,
-  )?.[1];
-  expect(dateInput, "date input rule").toBeDefined();
-  expect(dateInput).toMatch(/position: absolute;/);
-  // 4 past the chip's 1 px edge, placed from its padding box: the chip's 48.
-  expect(dateInput).toMatch(/inset: calc\(-4px - var\(--sk-hairline\)\);/);
-  expect(dateInput).toMatch(/opacity: 0;/);
-  expect(css).not.toMatch(/\.work-agenda-menu-row:last-child input/);
+  expect(
+    agendaCss.rule(".sidekick-work .work-agenda-date-input"),
+  ).toMatchObject({
+    position: "absolute",
+    // 4 past the chip's 1 px edge, placed from its padding box: the chip's 48.
+    inset: "calc(-4px - var(--sk-hairline))",
+    opacity: "0",
+  });
+  expect(agendaCss.has(".work-agenda-menu-row:last-child input")).toBe(false);
   // The surface is the open row's own box, with the card radius; the menu inside it has no background of its own.
-  const row =
-    /\.sidekick-work \.work-list > li\.work-agenda-row:has\(> \.work-agenda-menu\) \{([^}]*)\}/.exec(
-      css,
-    )?.[1];
-  expect(row, "open row rule").toBeDefined();
-  expect(row).toMatch(/background: var\(--sk-surface\);/);
-  expect(row).not.toMatch(/tonal/);
-  expect(row).toMatch(/border-radius: var\(--sk-radius-card\);/);
   // The edge is the secondary button's --sk-border, drawn inside; --sk-panel-line is gone.
-  expect(row).toMatch(
-    /box-shadow: inset 0 0 0 var\(--sk-hairline\) var\(--sk-border\);/,
-  );
-  expect(row).not.toMatch(/--sk-panel-line/);
-  const menu = /\.sidekick-work \.work-agenda-menu \{([^}]*)\}/.exec(css)?.[1];
-  expect(menu, "menu rule").toBeDefined();
-  expect(menu).not.toMatch(/background/);
+  const row = agendaCss.styleOf(rowOf(task.title), ROOM);
+  expect(row).toMatchObject({
+    background: "var(--sk-surface)",
+    "border-radius": "var(--sk-radius-card)",
+    "box-shadow": "inset 0 0 0 var(--sk-hairline) var(--sk-border)",
+  });
+  expect(Object.values(row).join(" ")).not.toMatch(/tonal|--sk-panel-line/);
+  const menu = document.querySelector(".work-agenda-menu") as Element;
+  expect(agendaCss.styleOf(menu, ROOM).background).toBeUndefined();
 });

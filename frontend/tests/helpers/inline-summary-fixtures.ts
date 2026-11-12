@@ -1,11 +1,5 @@
-import path from "node:path";
 import { afterEach, beforeEach, vi } from "vitest";
-import { type WorkItemRecord } from "@/features/work-app/transport";
-
-export const srcDir = path.resolve(
-  import.meta.dirname,
-  "../../src/features/work-app",
-);
+import { type WorkItemRecord } from "@/features/work-app/transport/transport";
 
 export const agendaItems: WorkItemRecord[] = [
   {

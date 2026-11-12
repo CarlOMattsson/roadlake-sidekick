@@ -4,11 +4,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
 import {
   contactsRoomLabelsEn,
   contactsRoomLabelsSv,
-} from "@/features/work-app/contacts-room-labels";
+} from "@/features/work-app/contacts/contacts-room-labels";
 import type { RoomProps } from "@/features/mcp-apps/room-types";
 
 const gustav = {

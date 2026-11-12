@@ -25,7 +25,7 @@
   "site.footer.security": "Säkerhet",
   "site.footer.contribute": "Bidra",
   "site.footer.licenseNote": "Källtillgängligt, inte öppen källkod. Licenstexten gäller.",
-  "site.footer.version": "Version {{version}} · förhandsversion",
+  "site.footer.version": "Version {{version}} · första versionen",
   "site.footer.noTracking": "Inga kakor, ingen spårning, inga skript från tredje part",
   "site.list.yes": "Ja:",
   "site.list.no": "Nej:",

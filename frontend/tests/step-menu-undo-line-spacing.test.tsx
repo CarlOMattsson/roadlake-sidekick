@@ -1,17 +1,24 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyHostStyle } from "@/features/mcp-apps/host-style";
-import { UndoMeta } from "@/features/work-app/agenda-undo";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { TaskSteps } from "@/features/work-app/task-steps";
-import type { WorkStep, WorkTransport } from "@/features/work-app/transport";
+import { UndoMeta } from "@/features/work-app/agenda/agenda-undo";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import type {
+  WorkStep,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
+
+import { readStylesheet, type Stylesheet } from "./helpers/stylesheet";
+
+const ROOM = { room: "sidekick-work" };
+const REDUCED_MOTION = "@media (prefers-reduced-motion: reduce)";
+const agendaCss = readStylesheet("features/work-app/agenda/agenda.css");
 
 // The Step menu and its tip, Ångra's time line held while the pointer or focus is in it, and the spacing.
-// The CSS rules are read as text, as tests/ui-css-contract.test.ts and agenda-view.test.tsx do.
+// The CSS rules are read from the stylesheets and resolved against the rendered markup (helpers/stylesheet.ts).
 
 // jsdom has no CSS global; the row controls use CSS.escape to find a control by its Step id.
 if (!("CSS" in globalThis)) {
@@ -181,7 +188,8 @@ describe("the Step menu tip under the list", () => {
   it("the tip is kept gone once the Step menu has been opened: the document and storage remember it", async () => {
     const { unmount } = renderSteps([stepA]);
     const row = await rowOf(stepA.title);
-    expect(screen.getByText(TIP_SV)).toBeInTheDocument();
+    const tip = screen.getByText(TIP_SV);
+    expect(agendaCss.styleOf(tip, ROOM).display).toBeUndefined();
 
     // The Step's row keeps its own open state, so the drawn tip stays in the DOM until the list draws again; the
     // document's data-row-menu hides it (agenda.css, checked below).
@@ -189,10 +197,7 @@ describe("the Step menu tip under the list", () => {
 
     expect(document.documentElement.dataset.rowMenu).toBe("1");
     expect(localStorage.getItem("sidekick.rowMenuUsed")).toBe("1");
-    const css = cssOf("agenda.css");
-    expect(css).toMatch(
-      /\[data-row-menu\] \.work-row-tip \{\s*display: none;\s*\}/,
-    );
+    expect(agendaCss.styleOf(tip, ROOM).display).toBe("none");
     unmount();
     delete document.documentElement.dataset.rowMenu;
     renderSteps([stepA]);
@@ -300,93 +305,128 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
   });
 });
 
-/** The stylesheet with its comments removed, so a word inside a comment cannot satisfy a rule. */
-function cssOf(file: string): string {
-  const raw = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app", file),
-    "utf8",
-  );
-  return raw.replace(/\/\*[\s\S]*?\*\//g, "");
-}
+describe("the Ångra time line, drawn from agenda.css", () => {
+  const css = agendaCss;
+  const BEFORE = { ...ROOM, pseudo: "::before" };
 
-/** The bodies of every `@media (prefers-reduced-motion: reduce)` block (their rules have no braces inside). */
-function reducedMotionBlocks(css: string): string[] {
-  return [
-    ...css.matchAll(
-      /@media \(prefers-reduced-motion: reduce\) \{((?:[^{}]*\{[^{}]*\}\s*)*)\}/g,
-    ),
-  ].map((match) => match[1] ?? "");
-}
-
-describe("the Ångra time line CSS contract (agenda.css)", () => {
-  const css = cssOf("agenda.css");
+  function renderUndo() {
+    render(
+      <div>
+        <span>Skicka offert</span>
+        <UndoMeta
+          text="Klar"
+          labels={workSv}
+          disabled={false}
+          onUndo={vi.fn()}
+          onExpire={vi.fn()}
+        />
+      </div>,
+    );
+    const button = screen.getByRole("button", { name: workSv.agendaUndo });
+    return { button, wrapper: button.parentElement as HTMLElement };
+  }
 
   it("runs the time line for 15 s in the button's ::before", () => {
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda-undo > button::before \{[^}]*animation: sk-undo-time 15s linear forwards;/,
+    const { button } = renderUndo();
+
+    expect(css.styleOf(button, BEFORE).animation).toBe(
+      "sk-undo-time 15s linear forwards",
     );
   });
 
   it("pauses the time line while the line is held", () => {
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda-undo\[data-held\] > button::before \{[^}]*animation-play-state: paused;/,
-    );
+    const { button, wrapper } = renderUndo();
+
+    expect(css.styleOf(button, BEFORE)["animation-play-state"]).toBeUndefined();
+    fireEvent.pointerEnter(wrapper);
+    expect(css.styleOf(button, BEFORE)["animation-play-state"]).toBe("paused");
+    fireEvent.pointerLeave(wrapper);
+    expect(css.styleOf(button, BEFORE)["animation-play-state"]).toBeUndefined();
   });
 
   it("draws no time line with reduced motion", () => {
-    const blocks = reducedMotionBlocks(css);
-    expect(blocks.length).toBeGreaterThan(0);
+    const { button } = renderUndo();
+
     expect(
-      blocks.some((body) =>
-        /\.sidekick-work \.work-agenda-undo > button::before \{\s*content: none;\s*\}/.test(
-          body,
-        ),
-      ),
-    ).toBe(true);
+      css.styleOf(button, { ...BEFORE, conditions: [REDUCED_MOTION] }).content,
+    ).toBe("none");
   });
 });
 
-describe("spacing CSS contract (the row template replaces the old 1.35 px)", () => {
+describe("spacing (the row template replaces the old 1.35 px)", () => {
+  const META =
+    ':is(.sidekick-work .work-agenda-body, .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card) > .work-card-meta';
+  const BOARD_CARD =
+    '.sidekick-work .work-board[data-layout="single"] .work-list > li.work-card';
+
+  /** The declaration values of a sheet, to prove a retired value is no longer written anywhere. */
+  function valuesOf(css: Stylesheet): string[] {
+    return css.rules.flatMap((rule) => Object.values(rule.declarations));
+  }
+
   it("gives each Agenda row no padding of its own and holds the 6 of air as a margin on the title and under a row without meta (agenda.css)", () => {
-    const css = cssOf("agenda.css");
-    expect(css).not.toMatch(/1\.35px/);
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda \.work-list > li\.work-agenda-row \{\s*padding: 0;\s*\}/,
-    );
+    const css = readStylesheet("features/work-app/agenda/agenda.css");
+
+    expect(valuesOf(css).join(" ")).not.toContain("1.35px");
+    expect(
+      css.rule(".sidekick-work .work-agenda .work-list > li.work-agenda-row")
+        .padding,
+    ).toBe("0");
     // The 6 over the title is a margin, outside the clamped box, and the buttons have no padding.
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda-body > button \{[^}]*margin: var\(--sk-row-pad\) 0 0;[^}]*padding: 0;/,
+    expect(css.rule(".sidekick-work .work-agenda-body > button")).toMatchObject(
+      {
+        margin: "var(--sk-row-pad) 0 0",
+        padding: "0",
+      },
     );
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda-body > \.work-card-title \{[^}]*margin: var\(--sk-row-pad\) 0 0;[^}]*padding: 0;/,
-    );
+    expect(
+      css.rule(".sidekick-work .work-agenda-body > .work-card-title"),
+    ).toMatchObject({ margin: "var(--sk-row-pad) 0 0", padding: "0" });
     // A row without a meta line keeps its 6 under the title as a margin too, not a padding.
-    expect(css).toMatch(
-      /> button:not\(\.work-drag-handle\):not\(\.work-card-done\) \{\s*margin-bottom: var\(--sk-row-pad\);\s*\}/,
-    );
-    expect(css).not.toMatch(/padding-bottom: var\(--sk-row-pad\)/);
-    expect(css).toMatch(
-      /\.work-card-meta \{[^}]*margin: 0 0 var\(--sk-row-pad\);[^}]*padding: 0;/,
-    );
-    expect(css).toMatch(
-      /\.sidekick-work \.work-agenda-line > button\.work-agenda-glyph::after \{\s*content: "";\s*position: absolute;\s*inset: 0 -2px;/,
-    );
+    expect(
+      css.rule(
+        `${BOARD_CARD}:not(:has(> .work-card-meta:not(:empty), > .work-agenda-undo)) > .work-card-head > button:not(.work-drag-handle):not(.work-card-done)`,
+      )["margin-bottom"],
+    ).toBe("var(--sk-row-pad)");
+    for (const rule of css.rules) {
+      expect(rule.declarations["padding-bottom"], rule.selector).not.toBe(
+        "var(--sk-row-pad)",
+      );
+    }
+    expect(css.rule(META)).toMatchObject({
+      margin: "0 0 var(--sk-row-pad)",
+      padding: "0",
+    });
+    expect(
+      css.rule(
+        ".sidekick-work .work-agenda-line > button.work-agenda-glyph::after",
+      ),
+    ).toMatchObject({ content: '""', position: "absolute", inset: "0 -2px" });
   });
 
   it("gives the Status card no padding of its own, a 48 floor, and no 1.35 px (work.css)", () => {
-    const css = cssOf("work.css");
-    expect(css).not.toMatch(/1\.35px/);
-    expect(css).toMatch(
-      /\.sidekick-work \.work-board\[data-layout="single"\] \.work-list > li\.work-card \{[^}]*min-height: var\(--sk-row-min\);[^}]*padding: 0;/,
-    );
+    const css = readStylesheet("features/work-app/shell/work.css");
+
+    expect(valuesOf(css).join(" ")).not.toContain("1.35px");
+    expect(css.rule(BOARD_CARD)).toMatchObject({
+      "min-height": "var(--sk-row-min)",
+      padding: "0",
+    });
   });
 
   it("sets a Contact's heading margin from the section tokens and no longer a 6 px list margin (contacts.css)", () => {
-    const css = cssOf("contacts.css");
-    expect(css).toMatch(
-      /\.sidekick-work article\.work-contact h3 \{[^}]*margin: var\(--sk-section-above\) 0 var\(--sk-section-below\);/,
+    const css = readStylesheet("features/work-app/contacts/contacts.css");
+
+    expect(css.rule(".sidekick-work article.work-contact h3").margin).toBe(
+      "var(--sk-section-above) 0 var(--sk-section-below)",
     );
-    expect(css).not.toMatch(/h3 \+ \.work-list \{\s*margin-top: 6px;/);
+    expect(
+      css.rules.some(
+        (rule) =>
+          rule.selector.endsWith("h3 + .work-list") &&
+          rule.declarations["margin-top"] === "6px",
+      ),
+    ).toBe(false);
   });
 });
 

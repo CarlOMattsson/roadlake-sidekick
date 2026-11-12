@@ -1,21 +1,28 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { AgendaSummary } from "@/features/work-app/inline-summary";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { AgendaSummary } from "@/features/work-app/inline/inline-summary";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
+} from "@/features/work-app/inline/inline-summary-labels";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { remindAt, waitedDays, waitingRows } from "@/features/work-app/waiting";
+} from "@/features/work-app/transport/transport";
+import {
+  remindAt,
+  waitedDays,
+  waitingRows,
+} from "@/features/work-app/shared/waiting";
+import { readStylesheet } from "./helpers/stylesheet";
 
 /** 27 Oct 2026, 12:00 UTC (Stockholm is still on summer time until 25 Oct, so 13:00 on the 27th). */
 const NOW = new Date("2026-10-27T12:00:00Z");
@@ -205,16 +212,16 @@ describe("waiting view in the fullscreen agenda", () => {
   });
 
   it("gives the reminder button a 44 px touch target and lets the row wrap at 320 px", () => {
-    const css = readFileSync(
-      path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-      "utf8",
+    const css = readStylesheet("features/work-app/agenda/agenda.css");
+
+    expect(css.rule(".sidekick-work .work-waiting-remind")).toMatchObject({
+      "min-height": "2.75rem",
+      "min-width": "2.75rem",
+      "max-width": "100%",
+    });
+    expect(css.rule(".sidekick-work .work-waiting-who")["flex-wrap"]).toBe(
+      "wrap",
     );
-    const remind = /\.work-waiting-remind\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-    expect(remind).toMatch(/min-height:\s*2\.75rem/);
-    expect(remind).toMatch(/min-width:\s*2\.75rem/);
-    expect(remind).toMatch(/max-width:\s*100%/);
-    const who = /\.work-waiting-who\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
-    expect(who).toMatch(/flex-wrap:\s*wrap/);
   });
 });
 

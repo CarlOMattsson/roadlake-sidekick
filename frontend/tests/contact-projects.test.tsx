@@ -2,9 +2,9 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { ContactProjects } from "@/features/work-app/contact-projects";
-import { projectStatusLabel, workSv } from "@/features/work-app/labels";
-import type { WorkProjectSummary } from "@/features/work-app/transport";
+import { ContactProjects } from "@/features/work-app/contacts/contact-projects";
+import { projectStatusLabel, workSv } from "@/features/work-app/shared/labels";
+import type { WorkProjectSummary } from "@/features/work-app/transport/transport";
 
 const offert: WorkProjectSummary = {
   id: "019f0000-0000-7000-8000-0000000000d1",

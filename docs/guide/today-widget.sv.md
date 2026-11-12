@@ -6,8 +6,8 @@
 
 Idag-widgeten visar dagens uppgifter på hemskärmen i Android. Påminnelserna säger till på morgonen och strax innan något ska göras. Båda hör till [Android-appen](android-app.sv.md).
 
-:::note[Förhandsversion]
-Widgeten och påminnelserna är inte provade på en riktig telefon. Leverans av push till riktiga telefoner är inte verifierad.
+:::note[Första versionen]
+Widgeten och påminnelserna hör till Android-appen, som används dagligen på en riktig telefon.
 :::
 
 ## Lägg till widgeten

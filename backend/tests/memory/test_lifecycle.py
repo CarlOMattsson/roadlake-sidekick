@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.memory.adapters.fake import FakeMemoryProvider
 from sidekick.memory.application import lifecycle
-from sidekick.memory.application.sync import PENDING, RETAINED
+from sidekick.memory.application.sync_rules import PENDING, RETAINED
 from sidekick.memory.domain import MemoryKind
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.memory.ports import MemoryProviderError, RetainItem

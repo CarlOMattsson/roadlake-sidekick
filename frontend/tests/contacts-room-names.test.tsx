@@ -6,11 +6,11 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
 import type { RoomProps } from "@/features/mcp-apps/room-types";
-import { workSv } from "@/features/work-app/labels";
+import { workSv } from "@/features/work-app/shared/labels";
 import {
   ContactsRoom,
   contactsRoomNames,
-} from "@/features/work-app/contacts-room";
+} from "@/features/work-app/contacts/contacts-room";
 
 const anna = {
   id: "019f0000-0000-7000-8000-0000000000c1",

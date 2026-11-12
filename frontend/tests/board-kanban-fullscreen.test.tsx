@@ -7,8 +7,6 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import {
   afterEach,
   beforeAll,
@@ -18,16 +16,16 @@ import {
   it,
   vi,
 } from "vitest";
-import { UNDO_MS } from "@/features/work-app/agenda-undo";
-import { BoardView } from "@/features/work-app/board";
-import { InlineSummary } from "@/features/work-app/inline-summary";
-import { inlineSummaryLabelsSv } from "@/features/work-app/inline-summary-labels";
-import { workEn, workStatusLabel } from "@/features/work-app/labels";
+import { UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { BoardView } from "@/features/work-app/board/board";
+import { InlineSummary } from "@/features/work-app/inline/inline-summary";
+import { inlineSummaryLabelsSv } from "@/features/work-app/inline/inline-summary-labels";
+import { workEn, workStatusLabel } from "@/features/work-app/shared/labels";
 import {
   TASK_STATUSES,
   type WorkBoardPage,
   type WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   taskA,
   transport,
@@ -35,6 +33,7 @@ import {
   rect,
   handleOf,
 } from "./helpers/board-kanban-fixtures";
+import { readStylesheet } from "./helpers/stylesheet";
 
 beforeAll(() => {
   // jsdom has no pointer capture; the board only asks for it, so a no-op is enough here.
@@ -66,23 +65,32 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const ROOM = { room: "sidekick-work" };
+
 describe("fullscreen board: Undo in the card, quick choices and meta line", () => {
-  const workCss = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/work.css"),
-    "utf8",
-  );
+  // jsdom applies no CSS, so the layout rules are read from work.css and compared declaration by declaration.
+  const workCss = readStylesheet("features/work-app/shell/work.css");
 
   it("the columns share the row from a 13.25rem minimum, the Projects column is a row of its own, and no column scrolls by itself", () => {
-    const css = workCss.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(css).toMatch(
-      /\.sk-shell\[data-detail="closed"\] \.work-columns \{[^}]*--work-column-min: 13.25rem;[^}]*grid-template-columns: repeat\(4, minmax\(var\(--work-column-min\), 1fr\)\);[^}]*overflow-x: auto;/,
-    );
-    expect(css).toMatch(
-      /\.work-column\[data-board-column="project"\] \{\s*grid-column: 1 \/ -1;\s*\}/,
-    );
+    expect(
+      workCss.rule('.sk-shell[data-detail="closed"] .work-columns'),
+    ).toMatchObject({
+      "--work-column-min": "13.25rem",
+      "grid-template-columns": "repeat(4, minmax(var(--work-column-min), 1fr))",
+      "overflow-x": "auto",
+    });
+    expect(
+      workCss.rule(
+        '.sk-shell[data-detail="closed"] .work-columns > .work-column[data-board-column="project"]',
+      )["grid-column"],
+    ).toBe("1 / -1");
     // The page grows with the cards: a column has no height cap and no vertical scroll of its own.
-    expect(css).not.toMatch(/max-height: (?!none)/);
-    expect(css).not.toMatch(/overflow-y: auto/);
+    for (const rule of workCss.rules) {
+      expect([undefined, "none"], rule.selector).toContain(
+        rule.declarations["max-height"],
+      );
+      expect(rule.declarations["overflow-y"], rule.selector).not.toBe("auto");
+    }
   });
 
   it("after an arrow move the Undo sits in the moved card's own line, with no foot under the columns", async () => {
@@ -146,6 +154,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     const withProject: WorkItemRecord = {
       ...taskA,
       project_title: "Bokslut och skatt",
+      due_at: "2099-01-15T09:00:00Z",
     };
     render(
       <BoardView
@@ -176,25 +185,28 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
       .closest("li")
       ?.querySelector(".work-card-meta > .work-card-project");
     expect(project).toHaveAttribute("title", "Bokslut och skatt");
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta \{[^}]*white-space: nowrap;/,
-    );
-    // The due time is a plain part too: when it does not fit beside the Project it wraps onto its own row.
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta \{[^}]*flex-wrap: wrap;/,
-    );
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta > \.work-card-project \{[^}]*flex: 1 1 6rem;/,
-    );
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta > \.work-card-project \{[^}]*overflow: hidden;[^}]*text-overflow: ellipsis;/,
-    );
+    const meta = project?.parentElement as HTMLElement;
+    expect(workCss.styleOf(meta, ROOM)).toMatchObject({
+      "white-space": "nowrap",
+      // The due time is a plain part too: when it does not fit beside the Project it wraps onto its own row.
+      "flex-wrap": "wrap",
+    });
+    expect(workCss.styleOf(project as Element, ROOM)).toMatchObject({
+      flex: "1 1 6rem",
+      overflow: "hidden",
+      "text-overflow": "ellipsis",
+    });
     // A priority or due part that does not fit is cut with an ellipsis too (200 % text), not clipped hard.
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta > span:not\(\.work-card-project\) \{[^}]*min-width: 0;[^}]*text-overflow: ellipsis;/,
-    );
+    const due = meta.querySelector("span:not(.work-card-project)");
+    expect(due).not.toBeNull();
+    expect(workCss.styleOf(due as Element, ROOM)).toMatchObject({
+      "min-width": "0",
+      "text-overflow": "ellipsis",
+    });
     // The board has no pill rule for the kind any more: it is a plain part, cut by the span rule above.
-    expect(workCss).not.toMatch(/work-card-kind/);
+    expect(
+      workCss.rules.filter((rule) => rule.selector.includes("work-card-kind")),
+    ).toEqual([]);
   });
 
   it("the parts come in one order, the time first, then the High marker and the Project last, with no separator text", () => {
@@ -241,22 +253,26 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     for (const part of parts) {
       expect(part.textContent).not.toContain("·");
     }
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta > \* \+ \*::before \{\s*content: "· ";/,
-    );
+    expect(
+      workCss.rule(
+        ".sidekick-work .work-column .work-card-meta > * + *::before",
+      ).content,
+    ).toBe('"· "');
     // The gap after each separator is set on the board's flex row, where a nowrap part keeps no trailing space.
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-column \.work-card-meta \{[^}]*column-gap: 0\.25em;/,
-    );
+    expect(
+      workCss.rule(".sidekick-work .work-column .work-card-meta")["column-gap"],
+    ).toBe("0.25em");
   });
 
   it("board titles get no automatic hyphens: every hyphen is manual, and words break only as a last resort", () => {
     // Chromium's Swedish patterns split compounds wrongly ("kalende-revent"), so no rule sets `hyphens: auto`.
-    // Comments mention the host's `hyphens: auto` on purpose; only the declarations count here.
-    const rules = workCss.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(rules).not.toMatch(/hyphens:\s*auto;/);
-    expect(rules).not.toMatch(/hyphenate-limit-chars:/);
-    expect(rules).toMatch(/\.sidekick-work \{[^}]*hyphens: manual;/);
+    for (const rule of workCss.rules) {
+      expect(rule.declarations.hyphens, rule.selector).not.toBe("auto");
+      expect(rule.declarations, rule.selector).not.toHaveProperty(
+        "hyphenate-limit-chars",
+      );
+    }
+    expect(workCss.rule(".sidekick-work").hyphens).toBe("manual");
   });
 
   it("a status chip keeps its glyph on the label's line, with a gap before the label", () => {
@@ -274,9 +290,11 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     expect(chip?.firstElementChild).toHaveAttribute("aria-hidden", "true");
     expect(chip?.lastChild?.textContent).toBe("Att göra");
     // jsdom applies no CSS: the line and the gap are read from work.css.
-    expect(workCss).toMatch(
-      /\.sidekick-work \.work-chip:has\(> \.sk-status-glyph\) \{[^}]*display: inline-flex;[^}]*align-items: center;[^}]*gap: 0\.35rem;/,
-    );
+    expect(workCss.styleOf(chip as Element, ROOM)).toMatchObject({
+      display: "inline-flex",
+      "align-items": "center",
+      gap: "0.35rem",
+    });
   });
 });
 

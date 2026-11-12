@@ -6,7 +6,7 @@ sorting and paging happen in PostgreSQL and no read is capped by a row limit bef
 
 from dataclasses import dataclass
 from datetime import date, datetime, time, tzinfo
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 from uuid import UUID
 
 from sidekick.projects.domain import Project
@@ -83,13 +83,16 @@ class WorkListSpec:
     board_order: bool = False
 
 
+type AgendaGroup = Literal["overdue", "today", "upcoming", "scheduled_later"]
+
+
 class WorkKey(NamedTuple):
     """One selected record: its kind and id, its agenda group when the spec has an agenda, and
     its `position`: the value of every `sort_keys` component, which a cursor continues after."""
 
     kind: str
     id: UUID
-    agenda_group: str | None
+    agenda_group: AgendaGroup | None
     position: tuple[KeyValue, ...] = ()
 
 

@@ -1,18 +1,18 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { BoardSummary } from "@/features/work-app/board-summary";
-import { AgendaSummary } from "@/features/work-app/inline-summary";
-import { inlineSummaryLabelsEn } from "@/features/work-app/inline-summary-labels";
-import { WorkView } from "@/features/work-app/work-view";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { BoardSummary } from "@/features/work-app/board/board-summary";
+import { AgendaSummary } from "@/features/work-app/inline/inline-summary";
+import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaPage,
   WorkBoardFrame,
   WorkBoardPage,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /** The open button's name is the label and, after " · ", what the card leaves out (§7), so match the start. */
 const openBoardName = new RegExp(`^${workEn.openBoard}`);

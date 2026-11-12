@@ -10,10 +10,10 @@
 #   backend-static  ruff format --check, ruff check, pyright
 #   policy          tools/check-version-sync.py, tools/third_party_notices.py --check and
 #                   tools/check-migration-policy.py --all
-#   shellcheck      shellcheck --severity=warning over every tracked shell script (the CI file selection)
+#   ShellCheck      shellcheck --severity=warning over every tracked shell script (the CI file selection)
 #   gitleaks        gitleaks git --redact over the full history (repo config and .gitleaksignore, as in CI)
 #   frontend        build:mobile first (mobile-csp.test.ts reads the built page), prettier --check,
-#                   eslint + tsc -b + vitest (npm run check)
+#                   eslint + tsc -b + vitest on React and the MCP App views on Preact (npm run check)
 #   mcp-app         npm run build:mcp-app, the checked-in resource must equal the build, then test:mcp-app
 #   website         npm --prefix website test, then run build, then run check (the page, link, accessibility and
 #                   price checks; the check script is skipped while website/package.json has none).
@@ -21,11 +21,26 @@
 #   extra           runs tools/check-extra.sh when a checkout has one (the stage is skipped otherwise)
 #   android         build:mobile, cap sync android, gradlew ktlintCheck testDebugUnitTest lintDebug assembleRelease
 #
+# Release gate (only with --release; the rest of the release CI, in the order of .github/workflows/ci.yml):
+#   contracts       the generated references and the tool types must equal the code: mcp.export_tool_reference --check,
+#                   export_reference --check, frontend generate:tool-types --check, and the contract snapshots under
+#                   contracts/ re-exported to a temporary file and compared (nothing in the working tree is rewritten).
+#                   Runs after backend-static
+#   coverage        the frontend coverage threshold (vitest --coverage, lines >= 91), after the frontend stage
+#   mobile-audit    the Playwright mobile audit on the simulated MCP host (Chromium: npx playwright install chromium),
+#                   after mcp-app
+#   dependency-audit  what .github/workflows/audit.yml runs: pip-audit, npm audit (frontend and website, runtime
+#                   dependencies, high and above) and OSV-Scanner on the Gradle lockfiles. Every part needs the
+#                   network; one that cannot reach its host (or lacks its tool) prints a "SKIPPED: ..." line and the
+#                   stage is reported as SKIPPED, never as ok, and with --strict as FAILED. Runs after gitleaks
+#
 # Options:
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
 #   --workers N           pytest-xdist workers for backend-tests (default 10)
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
 #   --skip-shellcheck     --skip-gitleaks   --skip-website   --skip-extra   --skip-android
+#   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit);
+#                         each has its own --skip-contracts, --skip-coverage, --skip-mobile-audit, --skip-audit
 #   --strict              a missing shellcheck, gitleaks or website/node_modules fails the run (default: that stage
 #                         prints a "SKIPPED: ... missing (install: ...)" line and is reported as SKIPPED, never as ok)
 #   --keep-going          run the remaining stages after a failure (default: stop at the first failure)
@@ -36,8 +51,8 @@
 # tools/test-db-pool.sh, which refuses any other port and any other database name. It does not start, stop,
 # deploy or read a running instance, and it never reads .env files.
 #
-# Not covered here: the Playwright mobile audit, the frontend coverage threshold, dependency audits, the contract
-# snapshot diff and the emulator test. CI runs those; see docs/contribute/development.md.
+# Not covered here, even with --release: the emulator test, the API image build and the Compose smoke test (they need
+# an emulator or a container runtime that this script does not drive). CI runs those; see docs/maintainers/release.md.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -57,10 +72,15 @@ SKIP_SHELLCHECK=0
 SKIP_GITLEAKS=0
 SKIP_EXTRA=0
 SKIP_ANDROID=0
+SKIP_CONTRACTS=0
+SKIP_COVERAGE=0
+SKIP_MOBILE_AUDIT=0
+SKIP_AUDIT=0
+RELEASE=0
 STRICT=0
 
 usage() {
-  sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,/^[^#]/{/^#/p}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 die() {
@@ -91,6 +111,11 @@ while [ $# -gt 0 ]; do
     --strict) STRICT=1; shift ;;
     --skip-extra) SKIP_EXTRA=1; shift ;;
     --skip-android) SKIP_ANDROID=1; shift ;;
+    --skip-contracts) SKIP_CONTRACTS=1; shift ;;
+    --skip-coverage) SKIP_COVERAGE=1; shift ;;
+    --skip-mobile-audit) SKIP_MOBILE_AUDIT=1; shift ;;
+    --skip-audit) SKIP_AUDIT=1; shift ;;
+    --release) RELEASE=1; shift ;;
     --keep-going) KEEP_GOING=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h | --help)
@@ -107,13 +132,21 @@ if [ "$SKIP_BACKEND_TESTS" -eq 0 ]; then
   [[ "$SLOT" =~ ^([1-9]|1[0-9]|20)$ ]] || die "--slot must be a number from 1 to 20 (the base database is never used)"
 fi
 
+# The release-gate stages only run with --release.
+if [ "$RELEASE" -eq 0 ]; then
+  SKIP_CONTRACTS=1
+  SKIP_COVERAGE=1
+  SKIP_MOBILE_AUDIT=1
+  SKIP_AUDIT=1
+fi
+
 need() {
   if [ "$DRY_RUN" -eq 0 ] && ! command -v "$1" >/dev/null 2>&1; then
     die "missing tool: $1"
   fi
 }
 
-# Exit code a stage uses when an optional tool is missing; run_stage turns it into SKIPPED (or FAILED with --strict).
+# Exit code a stage uses when an optional tool or the network is missing; run_stage turns it into SKIPPED (or FAILED with --strict).
 RC_TOOL_MISSING=77
 
 # optional_tool TOOL INSTALL_HINT: ends the stage with RC_TOOL_MISSING when TOOL is not installed (not in --dry-run).
@@ -163,9 +196,42 @@ stage_backend_tests() {
 stage_backend_static() {
   need uv
   cd backend || exit 1
-  run uv run ruff format --check .
-  run uv run ruff check --no-cache .
+  run uv run ruff format --check . ../tools/workctl
+  run uv run ruff check --no-cache . ../tools/workctl
   run uv run pyright
+}
+
+# check_snapshot MODULE FILE: re-exports the contract snapshot to a temporary file and compares it with the committed one,
+# the same check as the CI step that regenerates the files and runs `git diff --exit-code -- contracts`, without
+# rewriting anything in the working tree.
+check_snapshot() {
+  local module="$1" committed="$2" fresh
+  printf '+ uv run --project backend python -m %s --output <temporary file>, then compare with %s\n' "$module" "$committed"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    return 0
+  fi
+  fresh="$(mktemp)"
+  if ! uv run --project backend python -m "$module" --output "$fresh"; then
+    rm -f "$fresh"
+    exit 1
+  fi
+  if ! cmp -s "$fresh" "$committed"; then
+    rm -f "$fresh"
+    echo "check-all: $committed is out of date; regenerate it with: uv run --project backend python -m $module --output $committed" >&2
+    exit 1
+  fi
+  rm -f "$fresh"
+}
+
+stage_contracts() {
+  need uv
+  need npm
+  check_snapshot sidekick.api.export_openapi contracts/openapi.generated.json
+  check_snapshot sidekick.mcp.export_contract contracts/mcp-tools.generated.json
+  check_snapshot sidekick.api.export_companion_contract contracts/companion-api.generated.json
+  run uv run --project backend python -m sidekick.mcp.export_tool_reference --check
+  run uv run --project backend python -m sidekick.export_reference --check
+  run npm --prefix frontend run generate:tool-types -- --check
 }
 
 stage_policy() {
@@ -206,6 +272,13 @@ stage_frontend() {
   run npm --prefix frontend run check
 }
 
+# The CI frontend job runs the unit tests with the coverage threshold after the mobile bundle is built.
+stage_coverage() {
+  need npm
+  run npm --prefix frontend run build:mobile
+  run npm --prefix frontend run test:coverage
+}
+
 stage_mcp_app() {
   need npm
   local resource="backend/src/sidekick/mcp/apps/sidekick.html" before="" after=""
@@ -224,6 +297,18 @@ stage_mcp_app() {
   run npm --prefix frontend run test:mcp-app
 }
 
+# The mobile audit drives the checked-in MCP App resource in Chromium; CI writes its output under the runner temp directory.
+stage_mobile_audit() {
+  need npm
+  echo "+ MOBILE_AUDIT_OUT=<temporary directory>"
+  if [ "$DRY_RUN" -eq 0 ]; then
+    MOBILE_AUDIT_OUT="$(mktemp -d)"
+    export MOBILE_AUDIT_OUT
+  fi
+  cd frontend || exit 1
+  run npx playwright test --config playwright.mobile-audit.config.ts
+}
+
 # The website check script belongs to a separate piece of work; run it as soon as website/package.json declares it.
 website_has_check_script() {
   [ "$DRY_RUN" -eq 1 ] && return 0
@@ -239,6 +324,61 @@ stage_website() {
     run npm --prefix website run check
   else
     echo "website: no check script in website/package.json yet, skipped"
+  fi
+}
+
+# True (status 0) when a TCP connection to HOST:443 opens within a few seconds.
+host_reachable() {
+  python3 -c 'import socket, sys; socket.create_connection((sys.argv[1], 443), 4).close()' "$1" 2>/dev/null
+}
+
+AUDIT_SKIPPED=0
+AUDIT_FAILED=0
+
+# audit_step LABEL "TOOLS" "HOSTS" CMD...: runs one dependency audit. A missing tool or an unreachable host prints a
+# SKIPPED line and marks the stage as only partly checked; a failing audit marks it failed, and the next one still runs.
+audit_step() {
+  local label="$1" tool host
+  local -a tools hosts
+  read -ra tools <<<"$2"
+  read -ra hosts <<<"$3"
+  shift 3
+  echo "-- $label"
+  if [ "$DRY_RUN" -eq 0 ]; then
+    for tool in "${tools[@]}"; do
+      if ! command -v "$tool" >/dev/null 2>&1; then
+        echo "SKIPPED: $label: $tool missing"
+        AUDIT_SKIPPED=1
+        return 0
+      fi
+    done
+    for host in "${hosts[@]}"; do
+      if ! host_reachable "$host"; then
+        echo "SKIPPED: $label needs the network: $host is unreachable"
+        AUDIT_SKIPPED=1
+        return 0
+      fi
+    done
+  fi
+  (run "$@") || AUDIT_FAILED=1
+}
+
+# The steps of .github/workflows/audit.yml. All of them need the network, so none can fail silently offline.
+stage_dependency_audit() {
+  need python3
+  audit_step "pip-audit (backend, all locked dependency groups)" "uv uvx" "pypi.org files.pythonhosted.org" \
+    bash .github/audit/pip-audit.sh
+  audit_step "npm audit (frontend, runtime dependencies, high and above)" "npm" "registry.npmjs.org" \
+    npm --prefix frontend audit --audit-level=high --omit=dev
+  audit_step "npm audit (website, runtime dependencies, high and above)" "npm" "registry.npmjs.org" \
+    npm --prefix website audit --audit-level=high --omit=dev
+  audit_step "OSV-Scanner (Android Gradle lockfiles)" "docker" "ghcr.io api.osv.dev" \
+    bash .github/audit/osv-gradle.sh
+  if [ "$AUDIT_FAILED" -eq 1 ]; then
+    exit 1
+  fi
+  if [ "$AUDIT_SKIPPED" -eq 1 ]; then
+    exit "$RC_TOOL_MISSING"
   fi
 }
 
@@ -278,9 +418,9 @@ run_stage() {
   if [ "$rc" -eq 0 ]; then
     RESULTS+=("ok       $name")
   elif [ "$rc" -eq "$RC_TOOL_MISSING" ] && [ "$STRICT" -eq 0 ]; then
-    RESULTS+=("SKIPPED  $name (tool missing, not checked; --strict makes this a failure)")
+    RESULTS+=("SKIPPED  $name (a tool or the network was missing, so not fully checked; --strict makes this a failure)")
   elif [ "$rc" -eq "$RC_TOOL_MISSING" ]; then
-    RESULTS+=("FAILED   $name (tool missing, --strict)")
+    RESULTS+=("FAILED   $name (tool or network missing, --strict)")
     FAILED=1
   else
     RESULTS+=("FAILED   $name (exit $rc)")
@@ -290,11 +430,15 @@ run_stage() {
 
 run_stage backend-tests "$SKIP_BACKEND_TESTS" stage_backend_tests
 run_stage backend-static "$SKIP_BACKEND_STATIC" stage_backend_static
+run_stage contracts "$SKIP_CONTRACTS" stage_contracts
 run_stage policy "$SKIP_POLICY" stage_policy
 run_stage shellcheck "$SKIP_SHELLCHECK" stage_shellcheck
 run_stage gitleaks "$SKIP_GITLEAKS" stage_gitleaks
+run_stage dependency-audit "$SKIP_AUDIT" stage_dependency_audit
 run_stage frontend "$SKIP_FRONTEND" stage_frontend
+run_stage coverage "$SKIP_COVERAGE" stage_coverage
 run_stage mcp-app "$SKIP_MCP_APP" stage_mcp_app
+run_stage mobile-audit "$SKIP_MOBILE_AUDIT" stage_mobile_audit
 run_stage website "$SKIP_WEBSITE" stage_website
 # Optional hook: only a checkout that ships tools/check-extra.sh has this stage.
 if [ ! -f tools/check-extra.sh ]; then

@@ -31,7 +31,6 @@ from sidekick.api.companion import (
 )
 from sidekick.api.failed_auth import client_address
 from sidekick.api.pairing_budget import PairingBudget, PairingReservation
-from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.service import (
     MAX_PAIRING_SECRET_LENGTH,
     CompanionDeviceService,
@@ -63,8 +62,7 @@ RENEW_BODY = RequestBody(RenewRequest, MAX_RENEW_BODY_BYTES, required=False)
 
 
 def device_service(request: Request) -> CompanionDeviceService:
-    container = request.app.state.container
-    return CompanionDeviceService(CompanionDeviceStore(container.session_factory), container.auth)
+    return request.app.state.container.companion_devices
 
 
 def _device_json(device: CompanionDeviceView) -> dict[str, Any]:

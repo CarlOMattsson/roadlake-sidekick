@@ -44,6 +44,7 @@ from sidekick.structured.work import (
     task_page_structured,
     work_agenda_structured,
     work_hierarchy_structured,
+    work_item_record,
 )
 from sidekick.structured.work_records import (
     HierarchyOutput,
@@ -57,12 +58,9 @@ from sidekick.structured.work_records import (
     TaskPageOutput,
     WorkBoardOutput,
     WorkItemPageOutput,
-    WorkItemRecord,
 )
 from sidekick.tasks.domain import Priority, TaskStatus
-from sidekick.work.application.service import (
-    WorkQuery,
-)
+from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.tags_service import tag_public_data
 from sidekick.work.domain.planning import (
     MAX_ESTIMATED_MINUTES,
@@ -209,13 +207,12 @@ def _board_reply(ctx: ToolContext, board_query: WorkQuery, values: dict[str, Any
     """The board page for a query; `values` are the filters as the caller named them."""
 
     actor = ctx.actor_provider()
-    columns, next_cursor = ctx.container.contexts.work_board_page(actor, board_query)
-    manually_ordered = ctx.container.contexts.work_board_manual_statuses(actor, board_query)
+    columns, next_cursor = ctx.container.work_lists.work_board_page(actor, board_query)
+    manually_ordered = ctx.container.work_lists.work_board_manual_statuses(actor, board_query)
     filters = applied_filters(values, _BOARD_FILTER_DEFAULTS)
     structured = WorkBoardOutput(
         columns={
-            key: [WorkItemRecord.model_validate(item) for item in value]
-            for key, value in columns.items()
+            key: [work_item_record(row, {}) for row in value] for key, value in columns.items()
         },
         next_cursor=next_cursor,
         filters=filters,

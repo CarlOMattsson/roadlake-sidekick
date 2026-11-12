@@ -1,6 +1,6 @@
 """Open file formats generated from an owner export document.
 
-Both functions are pure: they read the JSON-shaped export that `sidekick.owner_export.core`
+Both functions are pure: they read the JSON-shaped export that `sidekick.owner_export.document`
 already produced and verified, and return text or file contents. They never touch a store,
 a session, or the network, and they do not change the export format. A collection that an
 older schema head lacked is absent from the document and reads as empty here.

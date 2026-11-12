@@ -41,7 +41,7 @@ from sidekick.structured.work_records import (
     WritePriority,
     end_of_day_due_at,
 )
-from sidekick.tasks.application.service import task_public_data
+from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority
 from sidekick.work.domain.planning import (
     MAX_ESTIMATED_MINUTES,

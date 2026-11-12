@@ -6,11 +6,12 @@ foreign keys remain the last line of defence. Record assignment lives in
 `sidekick.work.domain.tag_assignment`.
 """
 
-from typing import Any, Protocol, TypeVar
+from collections.abc import Mapping
+from typing import Protocol, TypedDict, TypeVar
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
-from sidekick.shared.replay import id_replay_record
+from sidekick.shared.replay import id_replay_record, id_result, record_id
 from sidekick.shared.types import (
     NAMED_KEY,
     Actor,
@@ -70,13 +71,13 @@ class WorkTagService:
         self.clock = clock
         self.cursor_codec = cursor_codec
 
-    def _replayed(self, session: TxSession, actor: Actor, record: dict[str, Any]) -> WorkTag:
+    def _replayed(self, session: TxSession, actor: Actor, record: Mapping[str, object]) -> WorkTag:
         """The tag a (possibly replayed) write refers to, re-read by id.
 
         The idempotency record keeps only the id, so a retry returns the tag as it is now.
         """
 
-        return self.store.get_work_tag(session, actor.user_id, UUID(record["id"]))
+        return self.store.get_work_tag(session, actor.user_id, record_id(record))
 
     def list(
         self,
@@ -140,10 +141,10 @@ class WorkTagService:
         actor.require("projects:write")
         slug = normalize_tag_slug(label)
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> WorkTag:
             existing = self.store.find_work_tag_by_slug(session, actor.user_id, slug)
             if existing is not None:
-                return _to_data(existing)
+                return existing
             now = self.clock.now()
             tag = WorkTag(
                 id=new_uuid7(),
@@ -154,7 +155,7 @@ class WorkTagService:
                 updated_at=now,
             )
             self.store.save_work_tag(session, tag)
-            return _to_data(tag)
+            return tag
 
         return self.store.transaction(
             lambda session: self._replayed(
@@ -166,7 +167,7 @@ class WorkTagService:
                     operation="create_work_tag",
                     key=idempotency_key,
                     payload={"slug": slug},
-                    execute=lambda: operation(session),
+                    execute=lambda: id_result(operation(session).id),
                     replay=id_replay_record,
                 ),
             )
@@ -178,14 +179,14 @@ class WorkTagService:
         actor.require("projects:write")
         slug = normalize_tag_slug(label)
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> WorkTag:
             current = self.store.get_work_tag(session, actor.user_id, tag_id)
             clash = self.store.find_work_tag_by_slug(session, actor.user_id, slug)
             if clash is not None and clash.id != current.id:
                 raise ValidationError("another tag already uses that name")
             renamed = current.rename(now=self.clock.now(), label=label)
             self.store.save_work_tag(session, renamed, expected_version=version)
-            return _to_data(renamed)
+            return renamed
 
         return self.store.transaction(
             lambda session: self._replayed(
@@ -197,7 +198,7 @@ class WorkTagService:
                     operation="rename_work_tag",
                     key=idempotency_key,
                     payload={"tag_id": str(tag_id), "version": version, "slug": slug},
-                    execute=lambda: operation(session),
+                    execute=lambda: id_result(operation(session).id),
                     replay=id_replay_record,
                 ),
             )
@@ -218,13 +219,13 @@ class WorkTagService:
     ) -> WorkTag:
         actor.require("projects:write")
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> WorkTag:
             current = self.store.get_work_tag(session, actor.user_id, tag_id)
             now = self.clock.now()
             updated = current.archive(now=now) if archived else current.restore(now=now)
             if updated is not current:
                 self.store.save_work_tag(session, updated, expected_version=version)
-            return _to_data(updated)
+            return updated
 
         return self.store.transaction(
             lambda session: self._replayed(
@@ -236,17 +237,28 @@ class WorkTagService:
                     operation="archive_work_tag" if archived else "restore_work_tag",
                     key=idempotency_key,
                     payload={"tag_id": str(tag_id), "version": version},
-                    execute=lambda: operation(session),
+                    execute=lambda: id_result(operation(session).id),
                     replay=id_replay_record,
                 ),
             )
         )
 
 
-def _to_data(tag: WorkTag) -> dict[str, Any]:
+class TagPublicData(TypedDict):
+    """A tag's public contract: no internal ownership fields."""
+
+    id: str
+    slug: str
+    label: str
+    created_at: str
+    updated_at: str
+    archived_at: str | None
+    version: int
+
+
+def tag_public_data(tag: WorkTag) -> TagPublicData:
     return {
         "id": str(tag.id),
-        "owner_id": str(tag.owner_id),
         "slug": tag.slug,
         "label": tag.label,
         "created_at": tag.created_at.isoformat(),
@@ -254,11 +266,3 @@ def _to_data(tag: WorkTag) -> dict[str, Any]:
         "archived_at": tag.archived_at.isoformat() if tag.archived_at else None,
         "version": tag.version,
     }
-
-
-def tag_public_data(tag: WorkTag) -> dict[str, Any]:
-    """Public contract without internal ownership fields."""
-
-    data = _to_data(tag)
-    data.pop("owner_id")
-    return data

@@ -50,15 +50,18 @@ kommandona utan att köra dem:
 ```bash
 bash tools/check-all.sh --slot 3                  # allt
 bash tools/check-all.sh --slot 3 --skip-android   # utan Android-bygget
+bash tools/check-all.sh --slot 3 --release        # plus resten av releasegrinden
 bash tools/check-all.sh --help                    # alla flaggor
 ```
 
 shellcheck och gitleaks måste vara installerade lokalt. Saknas ett av dem skriver steget `SKIPPED: <verktyg> missing
 (install: ...)` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett fel.
 
-Den kör inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna, kontrollen av
-kontraktsögonblicksbilder eller emulatortestet; det gör release-CI, så kör de nedan som hör till det du har
-ändrat.
+Som standard kör den inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna eller
+kontraktsdiffen. Lägg till `--release` för att köra dem också, i samma ordning som release-CI (se
+[releasechecklistan](../maintainers/release.sv.md)); beroendegranskningen kräver nätverk och rapporteras som `SKIPPED`
+när det inte nås. Emulatortestet, avbildsbygget och Compose-röktestet lämnas åt release-CI, så kör de nedan som hör
+till det du har ändrat.
 
 CI körs inte för pull requests, sammanslagningar eller pushar; det är en grind vid varje release (och kan startas för
 hand). Kontrollerna kör alltså du själv innan du pushar: installera hookarna med `pre-commit install --hook-type
@@ -104,8 +107,8 @@ npm --prefix frontend run build:mcp-app
 uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json
 ```
 
-`tools/check-all.sh` bygger om MCP-appens HTML och misslyckas när den incheckade bunten skiljer sig. Den jämför inte
-kontraktsfilen; det gör CI, så generera om den med det andra kommandot när du ändrar ett verktyg.
+`tools/check-all.sh` bygger om MCP-appens HTML och misslyckas när den incheckade bunten skiljer sig. Med `--release` jämför den
+dessutom kontraktsfilerna; generera om verktygskontraktet med det andra kommandot när du ändrar ett verktyg.
 
 ## Webbplats
 
@@ -153,7 +156,8 @@ Kontroller som vaktar webbplatsen:
   ```
 
 - Redigera inte en migrering som redan har körts; lägg till en ny numrerad fil under `migrations/`. Schemat
-  utgår från baslinjen 0.1.0 (`100_baseline_0_1_0.py`), så nya filer fortsätter från `101_`. Hur data flyttas mellan
+  utgår från baslinjen 0.1.0 (`100_schema_baseline_0_1_0.py`), och nya filer får nästa nummer efter det högsta där. Numren `101` till `105` används aldrig: äldre databaser
+  har dem redan i sin migreringslogg (`backend/tests/policy/test_migration_numbering.py`). Hur data flyttas mellan
   0.1.0-installationer (det finns ingen import från tidigare) står i [körboken för baslinjen](../explanation/schema-baseline.sv.md).
 
 ## Release

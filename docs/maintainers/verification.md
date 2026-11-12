@@ -31,7 +31,7 @@ Last checked on 2026-11-11.
   `initialize` with the token, the stdio server answering `initialize`, and `build:mcp-app` (the checked-in output came
   back byte-identical). `ruff format --check` and `ruff check` passed. The test database on port 55433 and the
   backend suite were not run.
-- **Not verified in this check:** the Claude Desktop stdio connection itself (only the server side), `pyright`, the
+- **Not verified in this check:** `pyright`, the
   browser checks and the test suites. CI runs the builds and tests as a gate of every release, not on pull requests.
 
 ## Android app
@@ -46,10 +46,9 @@ Last checked on 2026-11-10.
   and the pairing, renewal and test-notification limits in `backend/src/sidekick/companion/`.
 - **Run, without side effects:** `--help` of `python -m sidekick.companion.cli` and of its `pair` and `grant`
   commands (options, scopes and the `app` preset match this guide).
-- **Not verified in this check:** a Gradle build, an install on a phone or emulator, pairing against a running
-  server, and push delivery through ntfy. CI builds the web bundle, runs the JVM unit tests and lint, builds the
-  unsigned release APK, and runs an instrumented smoke test of pairing and the Capacitor bridge on an emulator. It
-  never installs the app on a real phone, pairs it with a real server or delivers a push.
+- **Verified by the maintainer, 2026-11-12:** the Android app on a real phone against a real server, in daily use.
+  CI builds the web bundle, runs the JVM unit tests and lint, builds the unsigned release APK, and runs an
+  instrumented smoke test of pairing and the Capacitor bridge on an emulator.
 
 ## Self-hosting
 
@@ -83,14 +82,16 @@ This guide is checked as ADR-004 asks of every guide; what was read and what was
   steps (tests cover them). The run was repeated afterwards with them, from a fresh clone under `umask 077`: build,
   `create-user` while the GitHub client id, secret and identity line still held their placeholders, the identity line,
   `up -d` (healthy), the discovery document, `readiness` printing `ok`, `401` on `/mcp/`. No manual step was needed.
-- **Not verified in this check:** a real GitHub sign-in and a real Claude connection, the `vps` profile (Caddy, TLS),
-  an update across a real schema change, and the real cosign signature check against a released image.
+- **Verified by the maintainer, 2026-11-12:** the connection to real Claude and running the server on Linux, in daily
+  use.
+- **Not covered by this check:** the `vps` profile (Caddy, TLS), an update across a real schema change, and the real
+  cosign signature check against a released image.
 
 ## Work package
 
 KNOWN (2026-11-11 follow-up): the umask handling, cache flag, failed-initialization diagnosis and optional
 Claude merge are checked with a stand-in Docker, temporary files and a local model-server fixture. OPEN: these
-changes have not been exercised in a real Ubuntu installation with umask 077 or in a real Claude Desktop session;
+changes were not exercised in a real Ubuntu installation with umask 077 in that follow-up;
 no containers were started for this follow-up.
 
 Checked on 2026-11-10. Verified:

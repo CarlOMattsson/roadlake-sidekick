@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 import { isRecordEntry } from "@/features/mcp-apps/nav-state";
 import { routeForShape, routeForTool } from "@/features/mcp-apps/router";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   parentLabel,
   routeOfFrame,
-} from "@/features/work-app/work-view-parts/frame-routing";
+} from "@/features/work-app/view/parts/frame-routing";
 import {
   rootFromToolResult,
   type WorkFrame,
-} from "@/features/work-app/transport";
-import { createWorkTransport } from "@/features/work-app/work-transport";
+} from "@/features/work-app/transport/transport";
+import { createWorkTransport } from "@/features/work-app/transport/work-transport";
 
 /* How a Process page is reached: tool result, route, shell entry, Back name and the Tasks read. */
 

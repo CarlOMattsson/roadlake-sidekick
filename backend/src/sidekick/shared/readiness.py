@@ -24,7 +24,7 @@ DEFAULT_MIGRATIONS_DIR = Path(__file__).resolve().parents[4] / "migrations"
 
 
 def expected_schema_head(migrations_dir: Path = DEFAULT_MIGRATIONS_DIR) -> str:
-    """The id of the newest numbered migration file, e.g. `101_tasks_project_and_due_indexes`."""
+    """The id of the newest numbered migration file, e.g. `100_schema_baseline_0_1_0`."""
 
     numbered: list[tuple[int, str]] = []
     for path in migrations_dir.glob("*.py"):

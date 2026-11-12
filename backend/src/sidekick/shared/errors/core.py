@@ -1,6 +1,7 @@
 """Transport-neutral errors safe to translate at adapter boundaries."""
 
 from typing import Literal
+from uuid import UUID
 
 from pydantic import ValidationError as ModelValidationError
 
@@ -12,6 +13,11 @@ SidekickErrorReason = Literal[
 
 class SidekickError(Exception):
     code = "sidekick_error"
+    # How the REST adapter answers this class: the status and a fixed title that holds no value.
+    http_status = 400
+    safe_title = "Request failed"
+    # Set by an error that identifies the proposal it is about; sent as `proposal_id` in the answer.
+    proposal_id: UUID | None = None
     reason: SidekickErrorReason | None
     # The owner's name for the record involved. Only the MCP error text uses it; never log it.
     subject: str | None
@@ -33,6 +39,8 @@ class SidekickError(Exception):
 
 class ValidationError(SidekickError):
     code = "validation_error"
+    http_status = 422
+    safe_title = "Request validation failed"
 
 
 class InvalidInputError(ValueError):
@@ -61,22 +69,30 @@ CLIENT_INPUT_ERRORS = (InvalidInputError, ModelValidationError)
 
 class NotFoundError(SidekickError):
     code = "not_found"
+    http_status = 404
+    safe_title = "Not found"
 
 
 class ConflictError(SidekickError):
     code = "conflict"
+    http_status = 409
+    safe_title = "Conflict"
 
 
 class PermissionDeniedError(SidekickError):
     """The caller lacks a right the operation needs (answered as 403 `forbidden`)."""
 
     code = "forbidden"
+    http_status = 403
+    safe_title = "Forbidden"
 
 
 class AuthenticationRequiredError(SidekickError):
     """The call carries no verified identity (answered as MCP `unauthorized`)."""
 
     code = "unauthorized"
+    http_status = 401
+    safe_title = "Authentication required"
 
 
 class RateLimitedError(SidekickError):

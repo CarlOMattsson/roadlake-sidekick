@@ -15,7 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.memory.application.settings import change_settings, set_exclusion
-from sidekick.memory.application.sync import derive_doc_key
+from sidekick.memory.application.sync_rules import derive_doc_key
 from sidekick.memory.domain import MemoryKind
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.shared.errors import ValidationError

@@ -14,7 +14,7 @@ Sidekick is a personal assistant that you run on your own server. You manage tas
 
 ### Do I need Claude?
 
-Yes. Sidekick has no web interface of its own. Claude is the interface, and the Android app is a second surface for reading and checking things off. [Read what the Android app does](guide/android-app.md).
+Yes. Sidekick has no web interface of its own. Claude is the interface, and the Android app is a second surface for work, the journal and shopping. [Read what the Android app does](guide/android-app.md).
 
 ### Which Claude plan do I need?
 
@@ -22,7 +22,7 @@ A plan that supports custom connectors, meaning links to your own servers. On Te
 
 ### Is Sidekick finished?
 
-No. Version 0.1.0 is a preview with no published container image and no prebuilt APK. The installation is drilled on Linux containers, but real Claude connections, macOS and the app on a real phone have not been tried. [See what has been tried](maintainers/release.md).
+No. Version 0.1.0 is the first version and is not released yet. From the first release on, every release has a signed container image and a signed Android APK; until then you build both from the source code. It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet. [See what has been tried](maintainers/release.md).
 
 ### Why are the rooms in Swedish?
 
@@ -76,7 +76,7 @@ Yes, in two ways: the work package runs Sidekick on a laptop against Claude Desk
 
 ### How do I update?
 
-Take a backup first. Then update either from source or to a signed image with `update.sh`, which only prints the plan until you add `--apply`. No image is published yet, so in the preview the source route applies. [Read how to update](operate/update.md).
+Take a backup first. Then update either from source or to a signed image with `update.sh`, which only prints the plan until you add `--apply`. No image is published yet, so for now the source route applies. [Read how to update](operate/update.md).
 
 ### How do I move my data?
 
@@ -86,7 +86,7 @@ Take a backup in the old installation, start the new one from an empty database 
 
 ### Is there an iOS app?
 
-No. There is an Android app, and you build it yourself from the source code. [Read about the Android app](guide/android-app.md).
+No. There is an Android app. From the first release on you download a signed APK from the release on GitHub, and you can also build it yourself from the source code. [Read about the Android app](guide/android-app.md).
 
 ### Does the app need Google services?
 
@@ -94,4 +94,4 @@ No. Reminders travel through UnifiedPush and the ntfy app, with no Firebase. [Re
 
 ### Can I create tasks in the app?
 
-No. In the app you read, check things off and write journal entries by hand. You create new tasks and projects in Claude. [Read what the app does and does not do](guide/android-app.md).
+Not in the Android app. There you read and check off work, write and edit journal entries by hand, and create shopping lists and add items. You create tasks in Claude, by asking or with + in the Work room; projects you create by asking Claude. [Read what the app does and does not do](guide/android-app.md).

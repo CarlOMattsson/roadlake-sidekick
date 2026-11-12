@@ -53,7 +53,7 @@ from uuid import UUID
 from sidekick.memory.application.recall import KIND_READ_SCOPE
 from sidekick.memory.application.records import MemorySettingsRecord, MemorySourceRecord
 from sidekick.memory.application.store import MemoryStore
-from sidekick.memory.application.sync import PARKED, derive_doc_key
+from sidekick.memory.application.sync_rules import PARKED, derive_doc_key
 from sidekick.memory.domain import MemoryKind
 from sidekick.shared.errors import (
     ConflictError,

@@ -19,15 +19,15 @@ from sqlalchemy.orm import Session, sessionmaker
 import sidekick.memory.worker as worker
 from sidekick.memory.adapters.fake import FakeMemoryProvider
 from sidekick.memory.application.lifecycle import BankCheckResult, SweepResult
-from sidekick.memory.application.sync import (
+from sidekick.memory.application.sync import MemoryReconciler
+from sidekick.memory.application.sync_rules import (
     PARKED,
     PENDING,
     REMOVED_CATEGORY,
     RETAINED,
     SUBMITTED,
-    MemoryReconciler,
-    SyncPolicy,
 )
+from sidekick.memory.application.sync_state import SyncPolicy
 from sidekick.memory.domain import MemoryKind
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.shared.config import Settings
@@ -518,14 +518,14 @@ def test_wipe_defers_a_marker_whose_second_delete_is_not_due(
     factory, owner, provider = wired
     _unconfirmed_row(factory, owner)
     clock = _Clock(datetime.now(UTC))
-    first = worker.wipe_owner(factory, provider, owner, clock=clock)
+    first = worker.wipe_owner(SqlAlchemyMemoryStore(factory), provider, owner, clock=clock)
     assert (first.documents_deleted, first.markers_kept, first.second_delete_pending) == (1, 1, 1)
 
-    again = worker.wipe_owner(factory, provider, owner, clock=clock)
+    again = worker.wipe_owner(SqlAlchemyMemoryStore(factory), provider, owner, clock=clock)
 
     assert (again.documents_deleted, again.deferred) == (0, 1)
     clock.current += timedelta(hours=3)
-    final = worker.wipe_owner(factory, provider, owner, clock=clock)
+    final = worker.wipe_owner(SqlAlchemyMemoryStore(factory), provider, owner, clock=clock)
     assert (final.documents_deleted, final.rows_removed, final.deferred) == (1, 1, 0)
     assert _statuses(factory, owner) == []
 
@@ -536,7 +536,7 @@ def test_wipe_defers_a_submitted_row_and_deletes_nothing_for_it(
     factory, owner, provider = wired
     _unconfirmed_row(factory, owner, status="submitted")
 
-    result = worker.wipe_owner(factory, provider, owner)
+    result = worker.wipe_owner(SqlAlchemyMemoryStore(factory), provider, owner)
 
     assert (result.deferred, result.documents_deleted) == (1, 0)
     assert provider.delete_calls == []
@@ -587,7 +587,7 @@ def test_rebuild_keeps_the_operation_id_of_submitted_rows_and_the_evidence_of_fa
     assert failed.retained_at is not None  # the bank may hold it although attempts were reset
 
     # A record deleted after a rebuild is still deleted twice.
-    first = worker.wipe_owner(factory, provider, owner)
+    first = worker.wipe_owner(SqlAlchemyMemoryStore(factory), provider, owner)
     assert first.markers_kept >= 1
     assert (owner, failed_key) in provider.delete_calls
     kept = {r.id: r for r in _rows_of(factory, owner)}

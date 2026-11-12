@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { linkName } from "./entry-card";
+import { KeyScope } from "../mcp-apps/ui/key-scope";
 import type { JournalLabels } from "./labels";
 import {
   writeFailure,
@@ -139,15 +140,10 @@ export function EntryLinks({
       tabIndex={-1}
     >
       {asking ? (
-        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-        <div
+        <KeyScope
           className="journal-undo journal-link-ask"
           role="group"
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            event.stopPropagation();
-            closeAsk("chip");
-          }}
+          onEscape={() => closeAsk("chip")}
         >
           <p role="status">{t.linkRemoveAsk(linkName(asking, t))}</p>
           <button
@@ -170,7 +166,7 @@ export function EntryLinks({
           >
             {t.cancel}
           </button>
-        </div>
+        </KeyScope>
       ) : (
         <>
           {links.length > 0 && (

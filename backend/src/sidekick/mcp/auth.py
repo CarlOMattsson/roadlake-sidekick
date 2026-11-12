@@ -15,7 +15,11 @@ from sidekick.mcp.correlation import UNKNOWN_CORRELATION, request_correlation_id
 from sidekick.shared.auth import MCP_SCOPES, AuthService
 from sidekick.shared.auth.verification_signal import mark_verified
 from sidekick.shared.errors import AuthenticationRequiredError
-from sidekick.shared.observability import TelemetryPort, safe_log_fields
+from sidekick.shared.observability import (
+    TelemetryPort,
+    safe_log_fields,
+    silence_http_client_loggers,
+)
 from sidekick.shared.types import Actor
 
 LOGGER = logging.getLogger("sidekick.mcp.auth")
@@ -81,6 +85,7 @@ class GitHubIdentityVerifier(GitHubTokenVerifier):
         upstream_cache_seconds: int,
         http_client: httpx2.AsyncClient | None = None,
     ) -> None:
+        silence_http_client_loggers()
         # No upstream scope requirement: the OAuth app asks GitHub for no scopes at all.
         super().__init__(
             required_scopes=None,

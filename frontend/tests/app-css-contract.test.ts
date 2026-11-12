@@ -1,9 +1,11 @@
 // CSS contract for the host theme. MCP apps inherit the host's colours and background, so every
 // app stylesheet must be transparent, follow the host tokens and use light-dark() instead of a
 // media query. The test reads the CSS source files; it changes no CSS.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { sourceFiles } from "./helpers/source-files";
 
 const featuresDir = path.resolve(import.meta.dirname, "../src/features");
 
@@ -28,14 +30,6 @@ const apps = [
 
 type CssFile = { rel: string; css: string; raw: string };
 
-function listCss(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) return listCss(full);
-    return entry.endsWith(".css") ? [full] : [];
-  });
-}
-
 // Comments are blanked out, keeping newlines, so line numbers in messages stay correct and
 // words such as "prefers-color-scheme block" inside a comment cannot trip a rule.
 function stripComments(raw: string): string {
@@ -49,7 +43,7 @@ function lineOf(text: string, index: number): number {
 }
 
 function loadCss(dirName: string): CssFile[] {
-  return listCss(path.join(featuresDir, dirName)).map((file) => {
+  return sourceFiles(path.join(featuresDir, dirName), /\.css$/).map((file) => {
     const raw = readFileSync(file, "utf8");
     return {
       rel: path.relative(featuresDir, file).split(path.sep).join("/"),
@@ -194,9 +188,9 @@ function declares(rule: CssRule, property: string, value: string): boolean {
 }
 
 const workSheets = [
-  "work-app/work.css",
-  "work-app/task-detail.css",
-  "work-app/inline-summary.css",
+  "work-app/shell/work.css",
+  "work-app/tasks/task-detail.css",
+  "work-app/inline/inline-summary.css",
 ].map((rel) => allFiles.find((f) => f.rel === rel));
 const workRules = workSheets.flatMap((sheet) =>
   sheet ? cssRules(sheet.css) : [],

@@ -29,7 +29,7 @@ def make_state() -> tuple[Container, Actor, Any]:
             {"journal:read", "journal:write", "projects:read", "tasks:read", "contacts:read"}
         ),
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=JOURNAL_DATE,
@@ -40,7 +40,7 @@ def make_state() -> tuple[Container, Actor, Any]:
         replaces_source_id=None,
         idempotency_key="mcp-summary-source",
     )
-    entry = container.journal.create_manual_entry(
+    entry = container.journal_capture.create_manual_entry(
         actor,
         source_id=source.id,
         title="Sammanfattningsbar post",
@@ -182,7 +182,7 @@ async def test_set_daily_summary_refuses_stale_fingerprint_and_version_with_stal
         )
         assert _structured(refreshed)["summary"]["version"] == fresh["summary"]["version"] + 1
 
-    assert container.journal.get_summary(actor, JOURNAL_DATE)[1] is not None
+    assert container.journal_day.get_summary(actor, JOURNAL_DATE)[1] is not None
 
 
 @pytest.mark.asyncio
@@ -207,4 +207,4 @@ async def test_set_daily_summary_needs_journal_write_and_writes_nothing_without_
 
     assert refused.is_error is True
     assert _structured(refused)["code"] == "forbidden"
-    assert container.journal.get_summary(actor, JOURNAL_DATE)[1] is None
+    assert container.journal_day.get_summary(actor, JOURNAL_DATE)[1] is None

@@ -796,7 +796,7 @@ def today_app(timezone: str = "Pacific/Auckland", now: datetime = AUCKLAND_NOW) 
         update={"companion_enabled": True, "owner_timezone": timezone}
     )
     app = create_app(settings, database_factory())
-    app.state.container.contexts.clock = FixedClock(now)
+    app.state.container.work_lists.clock = FixedClock(now)
     return app
 
 

@@ -49,7 +49,8 @@
 # Snapshot encryption: pg_dump output is piped through a one-off api container (same image the
 # installation already runs, so no new tool for the customer) that encrypts it with Fernet using
 # SIDEKICK_BACKUP_ENCRYPTION_KEY, the same key as the owner backups. The key reaches the container
-# through compose's env_file (selfhost.env), never through a command line, and is never printed.
+# through compose's env_file (selfhost.env) or as a secret file (SELFHOST_BACKUP_ENCRYPTION_KEY_FILE, see
+# secrets-to-files.sh), never through a command line, and is never printed.
 # Fernet is not a streaming format: the dump is held in memory once (fine for a personal
 # installation; snapshot_crypto.py refuses a dump over 512 MiB with an explicit message, and a larger
 # database needs a streaming scheme, not provided). openssl is not in the
@@ -289,7 +290,14 @@ check_upgrade_path() {
 }
 
 backup_key_present() { # presence only; the value is never read into the script
-  [ -f "$ENV_FILE" ] && grep -q '^SIDEKICK_BACKUP_ENCRYPTION_KEY=.\+' "$ENV_FILE"
+  [ -f "$ENV_FILE" ] || return 1
+  grep -q '^SIDEKICK_BACKUP_ENCRYPTION_KEY=.\+' "$ENV_FILE" && return 0
+  # Or a secret file (secrets-to-files.sh): SELFHOST_BACKUP_ENCRYPTION_KEY_FILE names it, relative to this directory.
+  local key_file
+  key_file="$(sed -n 's/^SELFHOST_BACKUP_ENCRYPTION_KEY_FILE=//p' "$ENV_FILE" | tail -n 1)"
+  [ -n "$key_file" ] || return 1
+  case "$key_file" in /*) ;; *) key_file="$SCRIPT_DIR/$key_file" ;; esac
+  [ -s "$key_file" ]
 }
 
 compose() { # release.env (if any) is a second env file, so a pinned SIDEKICK_API_IMAGE is honoured
@@ -309,7 +317,7 @@ compose() { # release.env (if any) is a second env file, so a pinned SIDEKICK_AP
 
 # stdin to stdout through a one-off api container: $1 = encrypt|decrypt. The one implementation of the snapshot
 # format is snapshot_crypto.py next to this script (its source is passed with python -I -c, the same way tools/work.sh
-# does); the key comes from selfhost.env through compose's env_file and is never on a command line.
+# does); the key comes from selfhost.env through compose's env_file, or from a secret file, and is never on a command line.
 CRYPTO_SCRIPT="$SCRIPT_DIR/snapshot_crypto.py"
 crypto_run() {
   [ -f "$CRYPTO_SCRIPT" ] || { echo "update.sh: snapshot_crypto.py not found next to this script" >&2; return 1; }
@@ -360,7 +368,7 @@ if [ "$mode" = "check" ]; then
     echo "  image schema head (label)      : ${img_head:-unknown (image absent locally or no label)}"
     echo "  image migration class (label)  : ${img_class:-unknown}"
     if [ -n "$(compose ps -q --status running postgres 2>/dev/null || true)" ]; then
-      db_head="$(compose exec -T postgres psql -U postgres -d sidekick -Atc 'select migration_id from _yoyo_migration order by migration_id desc limit 1' 2>/dev/null | grep -E '^[0-9]{3}_' || true)"
+      db_head="$(compose exec -T postgres psql -U postgres -d sidekick -Atc 'select migration_id from _yoyo_migration order by applied_at_utc desc, migration_id desc limit 1' 2>/dev/null | grep -E '^[0-9]{3}_' || true)"
       echo "  database schema head (applied) : ${db_head:-unknown}"
       if [ -n "$img_head" ] && [ -n "$db_head" ] && [ "$img_head" != "$db_head" ]; then
         echo "  NOTE: image schema head differs from the database (migrate pending, or db ahead of image)"
@@ -400,7 +408,7 @@ if [ "$mode" = "dry-run" ]; then
   echo "  cosign                      : $(have cosign) (missing = --apply refuses, fail closed)"
   echo "  selfhost.env                : $([ -f "$ENV_FILE" ] && echo present || echo MISSING)"
   echo "  compose files / project     : ${COMPOSE_FILES[*]} / ${PROJECT_NAME:-<compose default>}"
-  echo "  SIDEKICK_BACKUP_ENCRYPTION_KEY set: $(backup_key_present && echo yes || echo NO) (--apply refuses without it; also encrypts the snapshot)"
+  echo "  SIDEKICK_BACKUP_ENCRYPTION_KEY set (as a value or a secret file): $(backup_key_present && echo yes || echo NO) (--apply refuses without it; also encrypts the snapshot)"
   echo "  signer identity             : $([ -n "$identity" ] && echo given || echo NOT-GIVEN) (--cert-identity or SIDEKICK_RELEASE_CERT_IDENTITY)"
   echo "  current api image           : $previous_ref"
   echo "  last update journal state   : $(last_journal_state | grep . || echo none) (anything but DONE/ROLLED_BACK/ABORTED blocks --apply; STARTED, STOPPING_WRITERS and RESUMING, left by an update that was killed, are resumed)"
@@ -440,7 +448,7 @@ fi
 for compose_file in "${COMPOSE_FILES[@]}"; do
   [ -f "$compose_file" ] || die "compose file not found: $compose_file"
 done
-backup_key_present || die "SIDEKICK_BACKUP_ENCRYPTION_KEY is not set in selfhost.env; an update without a backup is refused"
+backup_key_present || die "SIDEKICK_BACKUP_ENCRYPTION_KEY is not set in selfhost.env (neither as a value nor as SELFHOST_BACKUP_ENCRYPTION_KEY_FILE); an update without a backup is refused"
 [ "$image" != "$current_pin" ] || die "the installation already runs this digest"
 
 umask 077

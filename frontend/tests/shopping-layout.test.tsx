@@ -1,7 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
 import { shoppingEn } from "@/features/shopping-app/labels";
@@ -10,6 +8,7 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import { readStylesheet } from "./helpers/stylesheet";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -64,31 +63,9 @@ function adapter(over: Partial<ShoppingTransport> = {}): ShoppingTransport {
   };
 }
 
-/** The stylesheet text of one rule, found by its exact selector. */
-function ruleOf(css: string, selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = new RegExp(
-    `(?:^|[\\s,}])${escaped}\\s*\\{([^}]*)\\}`,
-    "m",
-  ).exec(css);
-  return match?.[1] ?? "";
-}
-
-const css = readFileSync(
-  path.resolve(
-    import.meta.dirname,
-    "../src/features/shopping-app/shopping.css",
-  ),
-  "utf8",
-);
-const foldCss = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/row.css"),
-  "utf8",
-);
-const familyCss = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/family.css"),
-  "utf8",
-);
+const css = readStylesheet("features/shopping-app/shopping.css");
+const foldCss = readStylesheet("features/mcp-apps/ui/row.css");
+const familyCss = readStylesheet("features/mcp-apps/ui/family.css");
 
 describe("loading does not move the content", () => {
   it("the loading line is a badge taken out of the flow", async () => {
@@ -106,8 +83,8 @@ describe("loading does not move the content", () => {
     expect(container.querySelector(".shopping-loading")).toHaveTextContent(
       shoppingEn.loading,
     );
-    expect(ruleOf(css, ".sidekick-shopping > .shopping-loading")).toContain(
-      "position: absolute",
+    expect(css.rule(".sidekick-shopping > .shopping-loading").position).toBe(
+      "absolute",
     );
   });
 });
@@ -149,23 +126,27 @@ describe("a bought row holds its Ångra in place", () => {
 
   it("the Ångra target is 48 px: the 40 px compact button gets a 4 px area past its edge on each side", () => {
     // The size comes from the shared compact button (family.css), not from a rule of the shopping list's own.
-    expect(ruleOf(familyCss, ".sk-btn--compact")).toMatch(
-      /min-height:\s*var\(--sk-compact\);/,
+    expect(familyCss.rule(".sk-btn--compact")["min-height"]).toBe(
+      "var(--sk-compact)",
     );
-    expect(ruleOf(familyCss, ".sk-btn--compact::after")).toMatch(
-      /inset:\s*calc\(-4px - var\(--sk-hairline\)\);/,
+    expect(familyCss.rule(".sk-btn--compact::after").inset).toBe(
+      "calc(-4px - var(--sk-hairline))",
     );
   });
 
   it("the list has no sticky Ångra and no room reserved for one", () => {
-    expect(css).not.toMatch(/position:\s*sticky/);
+    expect(css.rules.map((rule) => rule.declarations.position)).not.toContain(
+      "sticky",
+    );
   });
 
   it("the rows have no hairline between them; the space separates them", () => {
-    const rule = ruleOf(css, ".shopping-items > li");
+    const rule = css.rule(".shopping-items > li");
     // The row template's own air, not 12.
-    expect(rule).toContain("padding: var(--sk-row-pad) 0;");
-    expect(rule).not.toMatch(/border/);
+    expect(rule).toHaveProperty(["padding"], "var(--sk-row-pad) 0");
+    expect(
+      Object.keys(rule).filter((name) => name.startsWith("border")),
+    ).toEqual([]);
   });
 });
 
@@ -179,76 +160,83 @@ it("fullscreen keeps 6rem of bottom room for the host's reply field", () => {
     />,
   );
   expect(container.querySelector("section")).toHaveClass("shopping-fullscreen");
-  const reserve = ruleOf(css, ".sidekick-shopping.shopping-fullscreen");
-  expect(reserve).toContain("padding-bottom: var(--sk-foot-reserve, 6rem);");
-  expect(reserve).not.toContain("--host-safe-bottom");
+  const reserve = css.rule(".sidekick-shopping.shopping-fullscreen");
+  expect(reserve).toHaveProperty(
+    ["padding-bottom"],
+    "var(--sk-foot-reserve, 6rem)",
+  );
+  expect(reserve["padding-bottom"]).not.toContain("--host-safe-bottom");
 });
 
 describe("phone sizes (PF-9)", () => {
   it("the text fallback is 16 px, so iOS does not zoom in on fields", () => {
-    expect(ruleOf(css, ".sidekick-shopping")).toContain(
-      "font-size: var(--font-text-md-size, 16px);",
+    expect(css.rule(".sidekick-shopping")).toHaveProperty(
+      ["font-size"],
+      "var(--font-text-md-size, 16px)",
     );
   });
 
   it("a toolbar field gets its own row basis, so the list picker is not squeezed beside the buttons", () => {
     expect(
-      ruleOf(
-        css,
+      css.rule(
         ".sidekick-shopping .shopping-toolbar > label:not(.shopping-check)",
       ),
-    ).toContain("flex: 1 1 12rem;");
+    ).toHaveProperty(["flex"], "1 1 12rem");
   });
 });
 
 describe("store rows are dense but keep the 44 px tap target", () => {
   it("a store row is 48 px high (48 px, not 3rem): the large tap target", () => {
-    expect(ruleOf(css, ".sidekick-shopping .shopping-store-row")).toContain(
-      "min-height: 48px;",
+    expect(css.rule(".sidekick-shopping .shopping-store-row")).toHaveProperty(
+      ["min-height"],
+      "48px",
     );
   });
 
   it("the amount ends on the content edge, with tabular figures and no fixed width", () => {
-    const rule = ruleOf(css, ".sidekick-shopping .shopping-store-qty");
-    expect(rule).not.toContain("margin-inline-end");
-    expect(rule).toContain("font-variant-numeric: tabular-nums;");
-    expect(rule).not.toMatch(/min-width|text-align/);
+    const rule = css.rule(".sidekick-shopping .shopping-store-qty");
+    expect(rule).not.toHaveProperty(["margin-inline-end"]);
+    expect(rule).toHaveProperty(["font-variant-numeric"], "tabular-nums");
+    expect(rule).not.toHaveProperty(["min-width"]);
+    expect(rule).not.toHaveProperty(["text-align"]);
   });
 
   it("the + Add item row of a card is 48 px high, the + on the ring's column (fullscreen has the + in the Back row instead)", () => {
-    expect(ruleOf(css, ".sidekick-shopping .shopping-add-row")).toContain(
-      "min-height: var(--sk-tap-lg);",
+    expect(css.rule(".sidekick-shopping .shopping-add-row")).toHaveProperty(
+      ["min-height"],
+      "var(--sk-tap-lg)",
     );
   });
 
   it("the store list item has no padding of its own", () => {
-    expect(ruleOf(css, ".shopping-items > li.shopping-store-item")).toContain(
-      "padding: 0;",
+    expect(css.rule(".shopping-items > li.shopping-store-item")).toHaveProperty(
+      ["padding"],
+      "0",
     );
   });
 
   it("batch names are not clipped by CSS; the card counts the rest instead", () => {
-    expect(ruleOf(css, ".shopping-batch-names")).not.toMatch(/line-clamp/);
+    expect(css.rule(".shopping-batch-names")).not.toHaveProperty([
+      "-webkit-line-clamp",
+    ]);
   });
 });
 
 describe("the fullscreen progress stripe and the purchased section", () => {
   it("the progress is one line: the meta text, then the 6 px bar to the content edge, 12 after it", () => {
-    const track = ruleOf(
-      css,
+    const track = css.rule(
       ".sidekick-shopping .shopping-progress > .sk-progress > .sk-progress__track",
     );
-    expect(track).toContain("flex: 1 1 auto;");
-    expect(track).toContain("min-width: 0;");
-    expect(track).toContain("height: 6px;");
-    const line = ruleOf(
-      css,
+    expect(track).toHaveProperty(["flex"], "1 1 auto");
+    expect(track).toHaveProperty(["min-width"], "0");
+    expect(track).toHaveProperty(["height"], "6px");
+    const line = css.rule(
       ".sidekick-shopping .shopping-progress > .sk-progress",
     );
-    expect(line).toContain("display: flex;");
-    expect(line).toContain("align-items: center;");
-    expect(line).toContain("gap: var(--sk-s3);");
-    expect(line).not.toContain("flex-direction: column;");
+    expect(line).toHaveProperty(["display"], "flex");
+    expect(line).toHaveProperty(["align-items"], "center");
+    expect(line).toHaveProperty(["gap"], "var(--sk-s3)");
+    expect(line).not.toHaveProperty(["flex-direction"], "column");
   });
 
   it("the Purchased fold is the shared fold row with ⌄ (an icon) last, turned up when it is open, inline and in fullscreen", async () => {
@@ -286,10 +274,12 @@ describe("the fullscreen progress stripe and the purchased section", () => {
       unmount();
     }
     // The old rules are gone; the shared rule (row.css) turns the icon up while open.
-    expect(css).not.toMatch(/shopping-purchased > summary/);
-    expect(css).not.toMatch(/shopping-bought-toggle/);
-    expect(ruleOf(foldCss, '.sk-fold[aria-expanded="true"] > svg')).toContain(
-      "transform: rotate(180deg);",
+    const selectors = css.rules.map((rule) => rule.selector).join("\n");
+    expect(selectors).not.toContain("shopping-purchased > summary");
+    expect(selectors).not.toContain("shopping-bought-toggle");
+    expect(foldCss.rule('.sk-fold[aria-expanded="true"] > svg')).toHaveProperty(
+      ["transform"],
+      "rotate(180deg)",
     );
   });
 });
@@ -300,43 +290,45 @@ describe("the inline card and the failure notice", () => {
       [familyCss, ".sk-card__title"],
       [css, ".shopping-card-item"],
     ] as const) {
-      const rule = ruleOf(source, selector);
-      expect(rule).toContain("-webkit-line-clamp: 2;");
-      expect(rule).toContain("-webkit-box-orient: vertical;");
-      expect(rule).not.toMatch(/white-space:\s*nowrap/);
+      const rule = source.rule(selector);
+      expect(rule).toHaveProperty(["-webkit-line-clamp"], "2");
+      expect(rule).toHaveProperty(["-webkit-box-orient"], "vertical");
+      expect(rule["white-space"]).not.toBe("nowrap");
     }
   });
 
   it("the failure notice puts its actions on their own row under the message", () => {
     expect(
-      ruleOf(css, ".sidekick-shopping .shopping-failure-actions"),
-    ).toContain("flex-wrap: wrap;");
+      css.rule(".sidekick-shopping .shopping-failure-actions"),
+    ).toHaveProperty(["flex-wrap"], "wrap");
   });
 });
 
 describe("the compact inline card fits a phone screen", () => {
   it("a store heading is one line of small text, cut with an ellipsis", () => {
-    const rule = ruleOf(css, ".shopping-folded .shopping-group > h3");
-    expect(rule).toContain("white-space: nowrap;");
-    expect(rule).toContain("text-overflow: ellipsis;");
-    expect(rule).toMatch(/font-size:\s*0\.8rem;/);
+    const rule = css.rule(".shopping-folded .shopping-group > h3");
+    expect(rule).toHaveProperty(["white-space"], "nowrap");
+    expect(rule).toHaveProperty(["text-overflow"], "ellipsis");
+    expect(rule).toHaveProperty(["font-size"], "0.8rem");
   });
 
   it("the add field and its button share one row, both 44 px high", () => {
-    expect(ruleOf(css, ".shopping-folded .shopping-batch")).toContain(
-      "grid-template-columns: minmax(0, 1fr) auto;",
+    expect(css.rule(".shopping-folded .shopping-batch")).toHaveProperty(
+      ["grid-template-columns"],
+      "minmax(0, 1fr) auto",
     );
-    expect(ruleOf(css, ".shopping-folded .shopping-batch > button")).toContain(
-      "min-height: 2.75rem;",
-    );
+    expect(
+      css.rule(".shopping-folded .shopping-batch > button"),
+    ).toHaveProperty(["min-height"], "2.75rem");
   });
 
   it("an open row is the 44 px tap target with no padding of its own", () => {
-    expect(ruleOf(css, ".shopping-items--folded > li")).toContain(
-      "padding: 0;",
+    expect(css.rule(".shopping-items--folded > li")).toHaveProperty(
+      ["padding"],
+      "0",
     );
     expect(
-      ruleOf(css, ".sidekick-shopping .shopping-items--folded .shopping-check"),
-    ).toContain("min-height: 2.75rem;");
+      css.rule(".sidekick-shopping .shopping-items--folded .shopping-check"),
+    ).toHaveProperty(["min-height"], "2.75rem");
   });
 });

@@ -2,16 +2,16 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { cardLabelsEn } from "@/features/work-app/card-labels";
-import { workEn } from "@/features/work-app/labels";
-import { WorkCard } from "@/features/work-app/work-card";
-import { WorkView } from "@/features/work-app/work-view";
+import { cardLabelsEn } from "@/features/work-app/shared/card-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkCard } from "@/features/work-app/inline/work-card";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   rootFromToolResult,
   type WorkCardFrame,
   type WorkItemRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const TASK_ID = "019f0000-0000-7000-8000-000000000001";
 const PROJECT_ID = "019f0000-0000-7000-8000-000000000002";

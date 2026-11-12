@@ -8,6 +8,7 @@ import {
 } from "../mcp-apps/ui/back-header";
 import { MoreIcon } from "../mcp-apps/ui/icons";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
+import { KeyScope } from "../mcp-apps/ui/key-scope";
 import type { JournalLabels } from "./labels";
 import {
   writeFailure,
@@ -133,13 +134,10 @@ export function EntryMenu({
         <div className="journal-entry-bar">{more}</div>
       )}
       {open && (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-        <div
+        <KeyScope
           id={panelId}
           className="journal-more-panel"
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            event.stopPropagation();
+          onEscape={() => {
             setOpen(false);
             button.current?.focus();
           }}
@@ -154,7 +152,7 @@ export function EntryMenu({
           >
             {t.deleteEntry}
           </button>
-        </div>
+        </KeyScope>
       )}
     </>
   );

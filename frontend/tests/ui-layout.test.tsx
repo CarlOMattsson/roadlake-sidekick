@@ -1,14 +1,11 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { AppFrame } from "@/features/mcp-apps/ui/layout";
 
-const css = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/layout.css"),
-  "utf8",
-);
+import { readStylesheet } from "./helpers/stylesheet";
+
+const css = readStylesheet("features/mcp-apps/ui/layout.css");
 
 describe.each(["inline", "full"] as const)("AppFrame mode=%s", (mode) => {
   it("is the frame root with data-mode and the body wrapper around the children", () => {
@@ -28,52 +25,76 @@ describe.each(["inline", "full"] as const)("AppFrame mode=%s", (mode) => {
 });
 
 describe("layout.css", () => {
-  it("makes the frame an inline-size container and names it for @container", () => {
-    expect(css).toMatch(
-      /\.sk-frame\s*\{[^}]*container-type:\s*inline-size;[^}]*container-name:\s*sk-frame;/,
+  const WIDE = "@container sk-frame (min-width: 640px)";
+  const NARROW = "@container sk-frame (max-width: 18.99rem)";
+
+  function renderFrame(mode: "inline" | "full", detail = false) {
+    const { container } = render(
+      <AppFrame mode={mode}>
+        <div className="sk-wide">
+          <p>Lista</p>
+          {detail ? <p>Detalj</p> : null}
+        </div>
+      </AppFrame>,
     );
+    const root = container.firstElementChild as HTMLElement;
+    return { root, body: root.firstElementChild as HTMLElement };
+  }
+
+  it("makes the frame an inline-size container and names it for @container", () => {
+    const { root } = renderFrame("inline");
+
+    expect(css.styleOf(root)).toMatchObject({
+      "container-type": "inline-size",
+      "container-name": "sk-frame",
+    });
   });
 
   it("pads the body with the host safe area on every side", () => {
+    const values = css.rules.flatMap((rule) =>
+      Object.values(rule.declarations),
+    );
     for (const side of ["top", "right", "bottom", "left"]) {
-      expect(css).toContain(`var(--host-safe-${side}, 0px)`);
+      expect(values.join(" ")).toContain(`var(--host-safe-${side}, 0px)`);
     }
   });
 
   it("uses 0 px inline and 16 px full, and 24 px full from a 640 px container", () => {
-    expect(css).toMatch(/--sk-frame-pad:\s*0px;/);
-    expect(css).toMatch(
-      /\.sk-frame\[data-mode="full"\]\s*>\s*\.sk-frame__body\s*\{[^}]*--sk-frame-pad:\s*16px;/,
-    );
-    const wide = css.slice(
-      css.indexOf("@container sk-frame (min-width: 640px)"),
-    );
-    expect(wide).toMatch(
-      /\.sk-frame\[data-mode="full"\]\s*>\s*\.sk-frame__body\s*\{\s*--sk-frame-pad:\s*24px;/,
+    const inline = renderFrame("inline").body;
+    expect(css.styleOf(inline)["--sk-frame-pad"]).toBe("0px");
+    cleanup();
+
+    const full = renderFrame("full").body;
+    expect(css.styleOf(full)["--sk-frame-pad"]).toBe("16px");
+    expect(css.styleOf(full, { conditions: [WIDE] })["--sk-frame-pad"]).toBe(
+      "24px",
     );
   });
 
   it("switches .sk-wide with a detail to a two-column grid only in a container of at least 640 px", () => {
-    const start = css.indexOf(
-      "@container sk-frame (min-width: 640px) {\n  .sk-wide",
-    );
-    expect(start).toBeGreaterThan(-1);
-    const wideRule = css.slice(start);
-    expect(wideRule).toMatch(/display:\s*grid;/);
-    expect(wideRule).toMatch(/grid-template-columns:\s*minmax\(0,\s*2fr\)/);
+    const { body } = renderFrame("full", true);
+    const wide = body.querySelector(".sk-wide") as Element;
+
+    const grid = css.styleOf(wide, { conditions: [WIDE] });
+    expect(grid.display).toBe("grid");
+    expect(grid["grid-template-columns"]).toMatch(/^minmax\(0, 2fr\)/);
+    expect(css.styleOf(wide).display).not.toBe("grid");
   });
 
   it("limits a row title to 3 lines in full screen and to none under a 19rem container", () => {
-    expect(css).toMatch(
-      /\.sk-frame\[data-mode="full"\] > \.sk-frame__body \{\s*--sk-row-title-lines: 3;\s*\}/,
-    );
-    expect(css).toMatch(
-      /@container sk-frame \(max-width: 18\.99rem\) \{\s*\.sk-frame\[data-mode="full"\] > \.sk-frame__body \{\s*--sk-row-title-lines: none;\s*\}\s*\}/,
-    );
+    const { body } = renderFrame("full");
+
+    expect(css.styleOf(body)["--sk-row-title-lines"]).toBe("3");
+    expect(
+      css.styleOf(body, { conditions: [NARROW] })["--sk-row-title-lines"],
+    ).toBe("none");
   });
 
   it("uses container queries, not width media queries, and no url()", () => {
-    expect(css).not.toMatch(/@media\s*\(\s*(min|max)-width/);
-    expect(css).not.toMatch(/url\(/);
+    const conditions = css.rules.flatMap((rule) => rule.conditions);
+    expect(conditions.filter((text) => text.startsWith("@media"))).toEqual([]);
+    expect(
+      css.rules.flatMap((rule) => Object.values(rule.declarations)).join(" "),
+    ).not.toContain("url(");
   });
 });

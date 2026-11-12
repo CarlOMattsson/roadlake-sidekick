@@ -4,7 +4,7 @@ import {
   type WorkHierarchyNode,
   type WorkHierarchyTask,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 export const domain: WorkHierarchyNode = {
   kind: "domain",

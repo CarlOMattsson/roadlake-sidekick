@@ -20,7 +20,8 @@ from sidekick.backup import worker as backup_worker
 from sidekick.companion import push_worker
 from sidekick.companion.push_delivery import PushDeliveryService
 from sidekick.memory import worker as memory_worker
-from sidekick.memory.application.sync import MemoryReconciler, ReconcileResult
+from sidekick.memory.application.sync import MemoryReconciler
+from sidekick.memory.application.sync_state import ReconcileResult
 from sidekick.shared import worker_health
 from sidekick.shared.backup_files import latest_backup_time
 from sidekick.shared.config import Settings

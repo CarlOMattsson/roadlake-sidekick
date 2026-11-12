@@ -4,19 +4,19 @@
 
 <!-- description: Android-appen visar Arbete, Dagbok och Inköp ur samma server som Claude. Det här gör appen, det här gör den inte, och så kommer du igång. -->
 
-Android-appen är en andra yta mot samma Sidekick-server, bredvid Claude. Den visar samma poster ur samma databas. Det finns ingen färdig APK: du bygger appen själv ur källkoden.
+Android-appen är en andra yta mot samma Sidekick-server, bredvid Claude. Den visar samma poster ur samma databas. Från och med första releasen har varje release på GitHub Releases en signerad APK, `sidekick-X.Y.Z.apk`, som du installerar direkt. Du kan också bygga appen själv ur källkoden.
 
-:::note[Förhandsversion]
-Appen byggs och testas automatiskt, bland annat i en emulator. Den är inte provad på en riktig telefon mot en riktig server.
+:::note[Första versionen]
+Appen används dagligen på en riktig telefon mot en riktig server. Den byggs och testas också automatiskt, bland annat i en emulator.
 :::
 
 ## Det här gör appen
 
 - **Arbete:** dagens agenda, projekt, uppgifter och steg. Du kan läsa dem, bocka av dem och öppna dem igen.
-- **Inköp:** listor och varor. Du kan lägga till, ändra, bocka av och ångra.
+- **Inköp:** listor och varor. Du kan skapa listor, lägga till, ändra, bocka av och ångra.
 - **Dagbok:** läs dagar och inlägg, och skriv eller ändra inlägg för hand.
 - **Idag-widgeten:** dagens uppgifter på hemskärmen. [Läs om widgeten och påminnelserna](today-widget.sv.md).
-- **Inställningar:** status för aviseringar, en testnotis, telefonens anslutning och valet att koppla från telefonen.
+- **Inställningar:** status för aviseringar, en testnotis, appens språk, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
 
 ## Det här gör appen inte
 
@@ -32,22 +32,22 @@ Det finns ingen iOS-app.
 
 - En telefon med Android 7.0 eller senare och en uppdaterad Android System WebView, version 123 eller senare.
 - En Sidekick-server som telefonen når över HTTPS på en publik adress.
-- En dator där du kan bygga appen.
+- Den signerade APK:n från en release, eller en dator där du bygger appen själv.
 
 Jobbpaketet har ingen väg till telefonen.
 
 ## Kom igång
 
-1. Bygg appen och installera den på telefonen.
+1. Ladda ner APK:n från releasen, eller bygg den själv, och installera den på telefonen.
 2. Slå på appens anslutning på servern.
 3. Skapa en kopplingskod på servern. Koden fungerar en gång och i tio minuter.
 4. Öppna appen, ange serverns adress och koden, och tryck på "Koppla".
 
-Alla kommandon står i driftsguiden. [Läs hur du bygger, installerar och parar ihop Android-appen](../operate/pair-android.sv.md).
+Alla kommandon står i driftsguiden. [Läs hur du installerar och parar ihop Android-appen](../operate/pair-android.sv.md). [Läs hur du kontrollerar en releases filer](../maintainers/release.sv.md#verifiera-en-release).
 
 ## Hitta Inställningar
 
-Inställningar ligger sist i menyn i rummet Arbete. Där ser du om aviseringarna fungerar, och där kan du skicka en testnotis.
+Inställningar ligger sist i menyn ⋯ i varje rum. Där ser du om aviseringarna fungerar, och där kan du skicka en testnotis.
 
 ## Koppla från en telefon
 
@@ -59,7 +59,7 @@ När du parar ihop telefonen får den en egen behörighet som bara gäller där.
 
 ## Språk
 
-Appens språk är en egen inställning och följer inte telefonens språk. Svenska är förval. Språket väljs när appen byggs. [Läs mer om språk](../reference/languages.sv.md).
+Appens språk är en egen inställning och följer inte telefonens språk. Svenska är förval. Du väljer Svenska eller English på kopplingsskärmen eller i Inställningar. [Läs mer om språk](../reference/languages.sv.md).
 
 ## Licens i appen
 

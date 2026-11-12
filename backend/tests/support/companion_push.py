@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.companion.push_outbox import (
+from sidekick.companion.push_outbox_store import (
     enqueue_wake,
 )
 from sidekick.shared.persistence.models import (

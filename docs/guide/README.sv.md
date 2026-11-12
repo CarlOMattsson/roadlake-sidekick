@@ -12,6 +12,15 @@ Du ber Claude om det du vill ha gjort, med vanliga ord. Claude anropar då verkt
 
 Många ändringar gör du lättast genom att fråga. Be om en ny uppgift, ett dagboksinlägg eller tio varor på en lista, så sköter Claude det. Vad Claude får läsa och ändra bestäms av de scopes, alltså behörigheter, som du har gett connectorn.
 
+## Prata igenom dagen med Claude
+
+Det effektivaste sättet att använda Sidekick är att prata med Claude i röstläget medan du går, cyklar eller kör bil. Du behöver inte diktera kommandon: låt Claude fråga om dagen och berätta fritt om det du har i huvudet. Ett samtal på tio minuter brukar ge en hel del uppgifter, dagboksanteckningar och kopplingar, och tankarna som snurrar får komma ur huvudet.
+
+- Börja till exempel med: "Fråga mig hur dagen har varit och hjälp mig få ordning på allt jag behöver göra."
+- Claude ställer följdfrågor om vem det gäller, när något ska vara klart och vad som hänger ihop. Sedan skapar Claude uppgifter, dagboksanteckningar och kontakter i Sidekick och kopplar ihop dem.
+- Med andra connectors i Claude kan Claude dessutom gå igenom Slack, e-post och kalender för att lägga till uppgifter du missat och boka möten.
+- Prata bara när det är säkert, till exempel handsfree i bilen.
+
 ## Rummen visar och låter dig klicka
 
 Det finns fyra rum, Arbete, Dagbok, Kontakter och Inköp, och dessutom Kontroll. Ett rum är en vy som Claude visar inne i samtalet. Där bockar du av, byter datum, skriver för hand och bläddrar mellan poster.
@@ -32,8 +41,8 @@ Servern kontrollerar varje ändring, oavsett om den kommer från Claude eller fr
 
 Det som sparas är dina poster: uppgifter, inlägg, kontakter och varor. Samtalets text sparas inte automatiskt i Sidekick. Vill du ha kvar något ur samtalet ber du Claude skriva det i dagboken.
 
-:::note[Förhandsversion]
-Rummen är byggda och testade i en simulerad värd. De är inte provade i riktiga Claude-anslutningar än.
+:::note[Första versionen]
+Rummen används dagligen i Claude. Det här är den första versionen, så små skavanker kan finnas kvar.
 :::
 
 ## Språk i rummen

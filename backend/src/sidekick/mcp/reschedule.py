@@ -1,10 +1,10 @@
 """Morning triage: move 1 to 20 Tasks' due dates in one atomic call, for voice and cards.
 
-`reschedule_tasks` calls the same Task update as `update_task` (`TaskService.reschedule` runs
-`TaskService._update` for each item in one transaction), so validation, versions, status history
-and the activity ledger are shared. A bare date, "tomorrow" and "next_week" all become 23:59 in the
-owner's zone through `end_of_day_due_at`, the helper create_task and update_task use. "next_week"
-is the Monday of next week, counted from the owner's calendar day.
+`reschedule_tasks` calls the same Task update as `update_task` (`TaskBulkService.reschedule` runs
+`TaskService.update_in_session` for each item in one transaction), so validation, versions,
+status history and the activity ledger are shared. A bare date, "tomorrow" and "next_week" all
+become 23:59 in the owner's zone through `end_of_day_due_at`, the helper create_task and
+update_task use. "next_week" is the Monday of next week, counted from the owner's calendar day.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from sidekick.mcp.text import spoken_date
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.structured.base import Output
 from sidekick.structured.work_records import end_of_day_due_at
-from sidekick.tasks.application.service import MAX_RESCHEDULE_TASKS, RescheduleTaskItem
+from sidekick.tasks.application.models import MAX_RESCHEDULE_TASKS, RescheduleTaskItem
 
 RescheduleWhen = Literal["tomorrow", "next_week", "clear"] | date
 
@@ -118,7 +118,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             )
             for item in items
         ]
-        tasks = ctx.container.tasks.reschedule(
+        tasks = ctx.container.task_bulk.reschedule(
             actor,
             commands,
             idempotency_key=idempotency_key,

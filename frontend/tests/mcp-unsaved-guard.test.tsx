@@ -21,8 +21,8 @@ import {
 import { ROOM_IDS } from "@/features/mcp-apps/router";
 import { EntryTextForm } from "@/features/journal-app/entry-write";
 import { journalEn } from "@/features/journal-app/labels";
-import { TaskEditor } from "@/features/work-app/task-edit";
-import { workEn } from "@/features/work-app/labels";
+import { TaskEditor } from "@/features/work-app/tasks/task-edit";
+import { workEn } from "@/features/work-app/shared/labels";
 import { taskA } from "./helpers/work-app-fixtures";
 
 const LOCAL: HostFeatures = {

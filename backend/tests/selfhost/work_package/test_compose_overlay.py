@@ -11,8 +11,9 @@ from typing import Any
 
 import pytest
 import yaml
+from tools.workctl import probe_egress
 
-from sidekick.shared.config import Settings
+from sidekick.shared.config import Settings, secret_file_variable_names
 from tests.selfhost.work_package.support import (
     MARKER,
     REPO_ROOT,
@@ -134,9 +135,16 @@ def test_only_the_gateway_has_a_route_to_the_outside(merged: dict[str, Any]) -> 
 def test_the_egress_probe_looks_up_a_name_that_exists() -> None:
     # A forwarding resolver answers NXDOMAIN for a made-up name, which would read as blocked.
     # Only a failed lookup of a name that certainly exists proves DNS is closed.
-    script = (REPO_ROOT / "tools" / "work.sh").read_text(encoding="utf-8")
-    assert 'socket.getaddrinfo("example.com", 443)' in script
-    assert "uuid" not in script.split("probe='")[1].split("'\n", 1)[0]
+    looked_up: list[str] = []
+
+    def lookup(name: str, _port: int) -> None:
+        looked_up.append(name)
+
+    def refuse(*_args: object, **_kwargs: object) -> None:
+        raise OSError("refused")
+
+    probe_egress.probe("", "1", "REACHED", "blocked", "direct", refuse, lookup)
+    assert looked_up == ["example.com"]
 
 
 GATEWAY_IMAGE = re.search(
@@ -297,6 +305,7 @@ def test_every_sidekick_setting_in_the_overlay_is_declared_and_the_settings_vali
     """The api refuses an undeclared SIDEKICK_ variable; production validates the model routes."""
 
     declared = {f"SIDEKICK_{name}".upper() for name in Settings.model_fields}
+    declared |= secret_file_variable_names(Settings)
     for name in ("api", "memory-worker", "automation-worker"):
         environment = merged["services"][name]["environment"]
         assert not {k for k in environment if k.startswith("SIDEKICK_")} - declared, name
@@ -337,6 +346,8 @@ def test_without_memory_there_is_no_hindsight_or_memory_worker_and_sidekick_memo
 def test_the_package_names_no_retired_sidekick_setting() -> None:
     files = [
         SCRIPT,
+        REPO_ROOT / "tools" / "workctl" / "messages.json",
+        *sorted((REPO_ROOT / "tools" / "workctl").glob("*.py")),
         WORK / "compose.yaml",
         WORK / "work.env.example",
         *sorted((REPO_ROOT / "docs" / "start").glob("work-laptop*.md")),

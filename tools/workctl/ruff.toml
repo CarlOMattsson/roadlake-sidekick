@@ -1,0 +1,6 @@
+# workctl runs with the user's system python3 before any virtual environment exists (a stock macOS has 3.9),
+# so it is linted against 3.9 syntax; everything else is the backend's rule set. CI and tools/check-all.sh pass
+# this directory to ruff explicitly (the backend run only walks backend/).
+extend = "../../backend/pyproject.toml"
+target-version = "py39"
+line-length = 120

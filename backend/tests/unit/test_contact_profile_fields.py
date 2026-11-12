@@ -5,10 +5,8 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.contacts.application.service import (
-    UpdateContactCommand,
-    contact_to_data,
-)
+from sidekick.contacts.application.models import UpdateContactCommand
+from sidekick.contacts.application.serialization import contact_to_data
 from sidekick.contacts.domain.contact import Contact
 from sidekick.contacts.domain.normalization import PROFILE_FIELD_LIMITS, normalize_profile_text
 from sidekick.shared.errors import ValidationError

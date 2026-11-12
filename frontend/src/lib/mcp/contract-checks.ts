@@ -56,7 +56,7 @@ import type {
   WorkStepPage,
   WorkTask,
   WorkUnlinkReferenceResult,
-} from "../../features/work-app/transport";
+} from "../../features/work-app/transport/transport";
 import type { Item } from "./derived";
 import type { ToolInputs, ToolResults } from "./tool-results.generated";
 

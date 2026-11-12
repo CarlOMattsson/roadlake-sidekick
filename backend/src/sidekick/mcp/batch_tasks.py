@@ -1,9 +1,10 @@
 """create_tasks: 1 to 20 Tasks, each with up to 10 ordered Steps, in one atomic, retry-safe call.
 
-`create_tasks` calls `TaskService.create_batch`, which runs every Task through the same `_create`
-as `create_task` and saves its Steps in the same session. Any failing item rejects the whole call,
-so a photographed whiteboard becomes one Project with all its Tasks, or nothing. A bare due date
-becomes 23:59 in the owner's zone through `end_of_day_due_at`, as in create_task.
+`create_tasks` calls `TaskBulkService.create_batch`, which runs every Task through the same
+`create_in_session` as `create_task` and saves its Steps in the same session. Any failing item
+rejects the whole call, so a photographed whiteboard becomes one Project with all its Tasks, or
+nothing. A bare due date becomes 23:59 in the owner's zone through `end_of_day_due_at`, as in
+create_task.
 """
 
 from __future__ import annotations
@@ -27,12 +28,12 @@ from sidekick.structured.work_records import (
     WritePriority,
     end_of_day_due_at,
 )
-from sidekick.tasks.application.service import (
+from sidekick.tasks.application.models import (
     MAX_BATCH_CREATE_TASKS,
     MAX_BATCH_STEPS_PER_TASK,
     NewTaskItem,
-    task_public_data,
 )
+from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority
 from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 
@@ -105,7 +106,7 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         # The reply lists each task's tags (projects:read), so refuse before anything is written.
         ctx.container.work_tags.require_record_tags_readable(actor)
         zone = ctx.container.settings.owner_zone
-        batch = ctx.container.tasks.create_batch(
+        batch = ctx.container.task_bulk.create_batch(
             actor,
             [
                 NewTaskItem(

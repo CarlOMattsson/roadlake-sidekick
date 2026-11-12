@@ -1,15 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { Row, type RowProps } from "@/features/mcp-apps/ui/row";
 
-const css = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/row.css"),
-  "utf8",
-);
+import { readStylesheet } from "./helpers/stylesheet";
+
+const css = readStylesheet("features/mcp-apps/ui/row.css");
 
 function renderRow(props: Partial<RowProps> & { primary: string }) {
   return render(
@@ -169,35 +166,55 @@ describe("Row keyboard and pointer", () => {
 });
 
 describe("row.css", () => {
-  it("reads the row template: a --sk-row-min floor, --sk-row-pad of air, no hairline, and a title clamp that only the line-limit token sets", () => {
-    const rowRule = css.match(/\.sk-row \{[^}]*\}/)?.[0] ?? "";
-    // The floor is the one row token (48 px in tokens.css, ui-tokens.test.ts), not a literal of its own.
-    expect(rowRule).toMatch(/min-height:\s*var\(--sk-row-min\)/);
-    expect(rowRule).not.toMatch(/border-bottom/);
-    // The open area holds the 6 of air over the title line and under the last text line.
-    const openRule = css.match(/^\.sk-row-open \{[^}]*\}/m)?.[0] ?? "";
-    expect(openRule).toMatch(/padding:\s*var\(--sk-row-pad\) 0;/);
+  function renderFull() {
+    renderRow({
+      primary: "Köp mjölk",
+      secondary: "Inköp · 2 st",
+      trailing: "2 st",
+      leading: <span>G</span>,
+      onLeading: vi.fn(),
+      onOpen: vi.fn(),
+    });
+    return document.querySelector(".sk-row") as HTMLElement;
+  }
+  const part = (root: HTMLElement, selector: string) =>
+    root.querySelector(selector) as Element;
 
-    // The title is cut only by the token: `none` in an inline card, 3 in a full-screen list (layout.css).
-    const primaryRule = css.match(/\.sk-row-primary \{[^}]*\}/)?.[0] ?? "";
-    expect(primaryRule).toMatch(
-      /-webkit-line-clamp:\s*var\(--sk-row-title-lines, none\);/,
+  it("reads the row template: a --sk-row-min floor, --sk-row-pad of air, no hairline, and a title clamp that only the line-limit token sets", () => {
+    const root = renderFull();
+
+    // The floor is the one row token (48 px in tokens.css, ui-tokens.test.ts), not a literal of its own.
+    const style = css.styleOf(root);
+    expect(style["min-height"]).toBe("var(--sk-row-min)");
+    expect(style["border-bottom"]).toBeUndefined();
+    // The open area holds the 6 of air over the title line and under the last text line.
+    expect(css.styleOf(part(root, ".sk-row-open")).padding).toBe(
+      "var(--sk-row-pad) 0",
     );
-    expect(primaryRule).not.toMatch(/-webkit-line-clamp:\s*\d/);
+    // The title is cut only by the token: `none` in an inline card, 3 in a full-screen list (layout.css).
+    expect(
+      css.styleOf(part(root, ".sk-row-primary"))["-webkit-line-clamp"],
+    ).toBe("var(--sk-row-title-lines, none)");
   });
 
   it("holds the metarad to one line cut with an ellipsis, and sets tabular numbers on the trailing text", () => {
-    const secondaryRule = css.match(/\.sk-row-secondary \{[^}]*\}/)?.[0] ?? "";
-    expect(secondaryRule).toMatch(/white-space:\s*nowrap/);
-    expect(secondaryRule).toMatch(/text-overflow:\s*ellipsis/);
-    expect(secondaryRule).toMatch(/overflow:\s*hidden/);
-    expect(secondaryRule).not.toMatch(/line-height:\s*1\.4/);
+    const root = renderFull();
 
-    const trailingRule = css.match(/\.sk-row-trailing \{[^}]*\}/)?.[0] ?? "";
-    expect(trailingRule).toMatch(/font-variant-numeric:\s*tabular-nums/);
+    const secondary = css.styleOf(part(root, ".sk-row-secondary"));
+    expect(secondary).toMatchObject({
+      "white-space": "nowrap",
+      "text-overflow": "ellipsis",
+      overflow: "hidden",
+    });
+    expect(secondary["line-height"]).not.toBe("1.4");
+    expect(
+      css.styleOf(part(root, ".sk-row-trailing"))["font-variant-numeric"],
+    ).toBe("tabular-nums");
   });
 
   it("uses no colour-scheme media query, so the host decides the theme", () => {
-    expect(css).not.toContain("prefers-color-scheme");
+    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
+      expect.stringContaining("prefers-color-scheme"),
+    );
   });
 });

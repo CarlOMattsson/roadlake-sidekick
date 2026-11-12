@@ -2,16 +2,22 @@
 it commits can be matched with the request log lines (and with the reply's `correlation_id`).
 
 The matrix is derived from the tool registry: every tool annotated `readOnlyHint: false` must
-either be exercised below, with its own correlation id, and leave an audit row carrying exactly
-that id, or be named in an explicit exception list with its reason. Both lists may only shrink:
-a new write tool fails the test until it is exercised, and a listed tool that starts to be
+either be exercised by the scenario, with its own correlation id, and leave an audit row carrying
+exactly that id, or be named in an explicit exception list with its reason. Both lists may only
+shrink: a new write tool fails its test until it is exercised, and a listed tool that starts to be
 exercised or audited fails it until it is removed from the list.
+
+The scenario runs once for the module; each write tool then has its own test case, so a failure
+names the tool. The cases are the write tools of the reviewed contract snapshot, which a test
+below ties to the registry the scenario lists.
 
 The HTTP request is stood in for by a fixed scope: `request_correlation_id` reads
 `sidekick.correlation_id` from it, exactly as the correlation middleware sets it.
 """
 
+import asyncio
 import os
+from dataclasses import dataclass
 from datetime import date
 from types import SimpleNamespace
 from typing import Any
@@ -26,6 +32,7 @@ from sidekick.mcp import correlation
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from tests.contract_counts import write_tool_names
 from tests.db import _cleanup_factory_for, database_factory
 from tests.support.journal_drafts import seed_entry_draft
 from tests.support.settings import make_settings
@@ -63,19 +70,31 @@ REPLAYED: tuple[str, ...] = (
 NOT_EXERCISED: frozenset[str] = frozenset()
 
 
-def _write_tool_names(tools: list[Any]) -> set[str]:
-    return {
-        tool.name
-        for tool in tools
-        if tool.annotations is not None and tool.annotations.readOnlyHint is False
-    }
+#: The module's cases share one scenario run, so they stay on one xdist worker.
+pytestmark = [pytest.mark.integration, pytest.mark.xdist_group("write-correlation")]
+
+WRITE_TOOLS = sorted(write_tool_names())
 
 
-@pytest.mark.asyncio
-@pytest.mark.integration
-async def test_every_write_tool_audits_its_requests_correlation_id(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+@dataclass(frozen=True)
+class Scenario:
+    """What one run of the write scenario recorded."""
+
+    registry_write_tools: set[str]
+    calls: dict[str, str]  # tool name -> correlation id of its (first) call
+    call_counts: dict[str, int]
+    by_corr: dict[str, list[str]]  # correlation id -> the audit events recorded under it
+    written: list[tuple[str, str]]  # (event, correlation id) of every row the scenario wrote
+    written_rows: str  # every audit row the scenario wrote, as text
+
+
+@pytest.fixture(scope="module")
+def scenario() -> Scenario:
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        return asyncio.run(_run_scenario(monkeypatch))
+
+
+async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("corr_owner", "Corr Owner")
     admin = _cleanup_factory_for(os.environ["SIDEKICK_TEST_ADMIN_DATABASE_URL"])
@@ -93,8 +112,12 @@ async def test_every_write_tool_audits_its_requests_correlation_id(
         actor_provider=lambda: Actor(owner, frozenset(MCP_SCOPES)),
         enable_auth=False,
     )
-    write_tools = _write_tool_names(list(await server.list_tools()))
-    calls: dict[str, str] = {}  # tool name -> correlation id of its (first) call
+    registry_write_tools = {
+        tool.name
+        for tool in await server.list_tools()
+        if tool.annotations is not None and tool.annotations.readOnlyHint is False
+    }
+    calls: dict[str, str] = {}
     first_args: dict[str, dict[str, Any]] = {}
     call_counts: dict[str, int] = {}
 
@@ -669,7 +692,6 @@ async def test_every_write_tool_audits_its_requests_correlation_id(
             current["id"] = calls[name]
             await client.call_tool(name, first_args[name])
 
-    exercised = set(calls)
     with admin() as session:
         rows = session.execute(
             text("SELECT id, event, correlation_id FROM sidekick.audit_events")
@@ -678,31 +700,67 @@ async def test_every_write_tool_audits_its_requests_correlation_id(
     by_corr: dict[str, list[str]] = {}
     for event, corr in written:
         by_corr.setdefault(corr, []).append(event)
-
-    assert exercised <= write_tools
-    # Every row written by this scenario carries the correlation id of exactly one of its calls.
-    assert [(event, corr) for event, corr in written if corr not in calls.values()] == []
-    for name, corr in calls.items():
-        if name in NO_AUDIT:
-            assert corr not in by_corr, f"{name} is listed as unaudited but audits"
-        else:
-            assert corr in by_corr, f"{name} wrote no audit row with its correlation id"
-    # The matrix is complete: every registry write tool is exercised or explicitly excepted.
-    assert write_tools - exercised == NOT_EXERCISED
-    assert set(NO_AUDIT) <= exercised
-    # Replaying the reorder with the same key records the audit event once.
-    assert by_corr[calls["reorder_work_board_column"]] == ["task.board_reordered"]
-    # A replayed request adds no event: each tool left one event per distinct call it made.
-    for name in REPLAYED:
-        assert len(by_corr[calls[name]]) == call_counts[name], f"{name} audited a replay"
-
-    # The events are content-free: no title, name or text the scenario wrote is in any row.
     with admin() as session:
         dumps = session.execute(
             text("SELECT id, to_jsonb(a)::text FROM sidekick.audit_events a")
         ).all()
-    written_rows = " ".join(dump for row_id, dump in dumps if row_id not in known)
-    for content in (
+    return Scenario(
+        registry_write_tools=registry_write_tools,
+        calls=calls,
+        call_counts=call_counts,
+        by_corr=by_corr,
+        written=written,
+        written_rows=" ".join(dump for row_id, dump in dumps if row_id not in known),
+    )
+
+
+@pytest.mark.parametrize("tool", WRITE_TOOLS)
+def test_write_tool_audits_its_requests_correlation_id(tool: str, scenario: Scenario) -> None:
+    if tool in NOT_EXERCISED:
+        assert tool not in scenario.calls, f"{tool} is exercised; remove it from NOT_EXERCISED"
+        return
+    assert tool in scenario.calls, f"{tool} is not exercised by the scenario"
+    corr = scenario.calls[tool]
+    if tool in NO_AUDIT:
+        assert corr not in scenario.by_corr, f"{tool} is listed as unaudited but audits"
+    else:
+        assert corr in scenario.by_corr, f"{tool} wrote no audit row with its correlation id"
+
+
+@pytest.mark.parametrize("tool", REPLAYED)
+def test_a_replayed_request_adds_no_second_audit_event(tool: str, scenario: Scenario) -> None:
+    # Each tool left one event per distinct call it made; the replay added none.
+    events = scenario.by_corr[scenario.calls[tool]]
+    assert len(events) == scenario.call_counts[tool], f"{tool} audited a replay"
+
+
+def test_the_matrix_covers_every_registry_write_tool(scenario: Scenario) -> None:
+    exercised = set(scenario.calls)
+    assert set(WRITE_TOOLS) == scenario.registry_write_tools, (
+        "contracts/mcp-tools.generated.json and the registry disagree on the write tools"
+    )
+    assert exercised <= scenario.registry_write_tools
+    assert scenario.registry_write_tools - exercised == NOT_EXERCISED
+    assert set(NO_AUDIT) <= exercised
+    assert set(REPLAYED) <= exercised
+
+
+def test_every_audit_row_carries_the_correlation_id_of_one_of_the_scenarios_calls(
+    scenario: Scenario,
+) -> None:
+    known_ids = set(scenario.calls.values())
+    assert [(event, corr) for event, corr in scenario.written if corr not in known_ids] == []
+
+
+def test_the_board_reorder_replayed_with_the_same_key_records_the_event_once(
+    scenario: Scenario,
+) -> None:
+    assert scenario.by_corr[scenario.calls["reorder_work_board_column"]] == ["task.board_reordered"]
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
         "Garden",
         "Allotment",
         "Fortnightly",
@@ -714,5 +772,8 @@ async def test_every_write_tool_audits_its_requests_correlation_id(
         "A tidy day",
         "Steps",
         "not-a-real-licence-key",
-    ):
-        assert content not in written_rows, f"audit rows carry {content!r}"
+    ],
+)
+def test_audit_events_are_content_free(content: str, scenario: Scenario) -> None:
+    """No title, name or text the scenario wrote is in any row."""
+    assert content not in scenario.written_rows, f"audit rows carry {content!r}"

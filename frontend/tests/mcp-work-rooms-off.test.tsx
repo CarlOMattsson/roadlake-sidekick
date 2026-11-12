@@ -6,18 +6,18 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { RoomProps } from "@/features/mcp-apps/room-types";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
-import { ContactsView } from "@/features/work-app/contacts-list";
-import { workEn } from "@/features/work-app/labels";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkContactRecord,
   WorkFrame,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 const TASK_ID = "019f0000-0000-7000-8000-0000000000a1";
 const ANNA_ID = "019f0000-0000-7000-8000-0000000000c1";

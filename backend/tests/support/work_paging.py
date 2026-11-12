@@ -19,7 +19,9 @@ from sidekick.shared.persistence.models import (
 )
 from sidekick.shared.types import Actor, new_uuid7
 from sidekick.store import SqlAlchemyStore
-from sidekick.work.application.service import ContextService, WorkQuery
+from sidekick.work.application.models import WorkQuery, WorkRow
+from sidekick.work.application.service import ContextService
+from sidekick.work.application.work_lists import WorkListService
 from tests.db import database_factory
 from tests.support.fakes import make_cursor_codec
 
@@ -44,9 +46,9 @@ class WorkFixture:
         self.owner_id = auth.provision_user("owner", "Owner")
         self.other_id = auth.provision_user("other", "Other")
         self.codec = make_cursor_codec()
-        self.contexts = ContextService(
-            SqlAlchemyStore(self.factory), _FixedClock(), self.codec, owner_timezone=UTC
-        )
+        store = SqlAlchemyStore(self.factory)
+        self.contexts = ContextService(store, _FixedClock(), self.codec, owner_timezone=UTC)
+        self.work_lists = WorkListService(store, _FixedClock(), self.codec, owner_timezone=UTC)
         self.actor = Actor(self.owner_id, SCOPES)
         self.domains: dict[UUID, UUID] = {}
         self.domain_id = self.domain_for(self.owner_id)
@@ -139,11 +141,11 @@ class WorkFixture:
                 for row_id, moment in session.execute(select(model.id, model.updated_at))
             }
 
-    def walk(self, query: WorkQuery) -> list[dict[str, Any]]:
-        items: list[dict[str, Any]] = []
+    def walk(self, query: WorkQuery) -> list[WorkRow]:
+        items: list[WorkRow] = []
         cursor: str | None = None
         for _ in range(100):
-            page = self.contexts.work_list_page(self.actor, replace(query, cursor=cursor))
+            page = self.work_lists.work_list_page(self.actor, replace(query, cursor=cursor))
             items.extend(page.items)
             cursor = page.next_cursor
             if cursor is None:

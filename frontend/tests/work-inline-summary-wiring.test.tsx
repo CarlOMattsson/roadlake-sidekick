@@ -1,18 +1,17 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
-import { WorkView } from "@/features/work-app/work-view";
-import { workEn } from "@/features/work-app/labels";
-import { inlineSummaryLabelsEn } from "@/features/work-app/inline-summary-labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
+import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
 import type {
   WorkFrame,
   WorkItemRecord,
   WorkProject,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
+import { readStylesheet } from "./helpers/stylesheet";
 
 const task: WorkTask = {
   id: "019f0000-0000-7000-8000-0000000000f1",
@@ -206,16 +205,13 @@ it("marks a Task done from the inline summary against the version it shows, with
   expect(done).not.toHaveAttribute("style");
   expect(done).toHaveClass("work-compact-action");
   expect(
-    readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/inline-summary.css",
-      ),
-      "utf8",
-    ),
-  ).toMatch(
-    /\.sidekick-work \.work-compact-action \{[^}]*min-height: var\(--sk-tap\);/,
-  );
+    readStylesheet("features/work-app/inline/inline-summary.css").styleOf(
+      done,
+      {
+        room: "sidekick-work",
+      },
+    )["min-height"],
+  ).toBe("var(--sk-tap)");
   await user.click(done);
 
   expect(work.getTask).not.toHaveBeenCalled();

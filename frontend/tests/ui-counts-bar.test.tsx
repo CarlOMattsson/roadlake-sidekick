@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
@@ -9,7 +6,7 @@ import {
   type CountsSegment,
 } from "@/features/mcp-apps/ui/counts-bar";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
+import { readStylesheet } from "./helpers/stylesheet";
 
 // The fourth segment has no tone (CountsTone has no "success"): it is drawn neutral by CSS and carries no data-tone.
 const segmentsSv: CountsSegment[] = [
@@ -187,54 +184,84 @@ describe.each([
 });
 
 describe("CountsBar styling", () => {
-  it("wraps the legend instead of scrolling, so four segments fit on 320 px", () => {
-    const css = readFileSync(path.join(uiDir, "counts-bar.css"), "utf8");
+  const css = readStylesheet("features/mcp-apps/ui/counts-bar.css");
+  const values = css.rules.flatMap((rule) => Object.values(rule.declarations));
+  const properties = css.rules.flatMap((rule) =>
+    Object.keys(rule.declarations),
+  );
 
-    expect(css).toMatch(/\.sk-counts-bar__legend\s*\{[^}]*flex-wrap:\s*wrap/);
-    expect(css).not.toMatch(/white-space:\s*nowrap/);
-    expect(css).not.toMatch(/overflow-x:\s*(auto|scroll)/);
+  function renderBar() {
+    render(<CountsBar label="Uppgifter per status" segments={segmentsSv} />);
+    const group = screen.getByRole("group", { name: "Uppgifter per status" });
+    return {
+      group,
+      legend: group.querySelector(".sk-counts-bar__legend") as Element,
+      track: group.querySelector(".sk-counts-bar__bar") as Element,
+      blocked: group.querySelector(
+        '.sk-counts-bar__item[data-tone="warning"]',
+      ) as Element,
+      item: group.querySelector(".sk-counts-bar__item") as Element,
+    };
+  }
+
+  it("wraps the legend instead of scrolling, so four segments fit on 320 px", () => {
+    const { legend } = renderBar();
+
+    expect(css.styleOf(legend)["flex-wrap"]).toBe("wrap");
+    expect(properties).not.toContain("overflow-x");
+    for (const rule of css.rules) {
+      expect(rule.declarations["white-space"], rule.selector).not.toBe(
+        "nowrap",
+      );
+    }
   });
 
   it("uses only host tokens with fallbacks, no own colour scheme media query", () => {
-    const css = readFileSync(path.join(uiDir, "counts-bar.css"), "utf8");
+    const { blocked } = renderBar();
 
-    expect(css).not.toMatch(/prefers-color-scheme/);
-    expect(css).toMatch(/var\(--color-text-primary,\s*light-dark\(/);
+    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
+      expect.stringContaining("prefers-color-scheme"),
+    );
+    expect(values.join(" ")).toMatch(/var\(--color-text-primary, light-dark\(/);
     // One colour, one meaning: "Att göra" is a mix of ink and page, "Pågår" the ink, and "Blockerad" a hatch
     // (not the overdue red: red means Försenad). Neither role names blue or orange.
-    expect(css).toMatch(
-      /--sk-cb-neutral:\s*color-mix\(in srgb,\s*var\(--sk-fg\)\s*\d+%,\s*var\(--sk-bg\)\)/,
+    const tokens = Object.fromEntries(
+      css.rules.flatMap((rule) => Object.entries(rule.declarations)),
     );
-    expect(css).toMatch(/--sk-cb-info:\s*var\(--sk-fg\)/);
-    expect(css).toMatch(
-      /--sk-cb-hatch:\s*repeating-linear-gradient\([^;]*var\(--sk-fg\)[^;]*var\(--sk-surface\)/,
+    expect(tokens["--sk-cb-neutral"]).toMatch(
+      /^color-mix\(in srgb, var\(--sk-fg\) \d+%, var\(--sk-bg\)\)$/,
     );
-    expect(css).not.toMatch(/--sk-cb-warning/);
-    expect(css).not.toMatch(/--sk-overdue-fg/);
-    const blocked =
-      /\.sk-counts-bar__item\[data-tone="warning"\]::before\s*\{([^}]*)\}/.exec(
-        css,
-      );
-    expect(blocked?.[1]).toContain("background: var(--sk-cb-hatch);");
-    expect(blocked?.[1]).toContain("box-shadow: inset 0 0 0 1px var(--sk-fg);");
-    expect(css).not.toMatch(/--color-text-info|--color-text-warning/);
+    expect(tokens["--sk-cb-info"]).toBe("var(--sk-fg)");
+    expect(tokens["--sk-cb-hatch"]).toMatch(
+      /^repeating-linear-gradient\(.*var\(--sk-fg\).*var\(--sk-surface\)/,
+    );
+    expect(properties).not.toContain("--sk-cb-warning");
+    expect(properties).not.toContain("--sk-overdue-fg");
+    expect(values.join(" ")).not.toMatch(
+      /--color-text-info|--color-text-warning/,
+    );
+    const swatch = css.styleOf(blocked, { pseudo: "::before" });
+    expect(swatch.background).toBe("var(--sk-cb-hatch)");
+    expect(swatch["box-shadow"]).toBe("inset 0 0 0 1px var(--sk-fg)");
   });
 
   it("draws the legend swatch as its segment: 12 wide, as high as the bar, a 2 px radius", () => {
-    const css = readFileSync(path.join(uiDir, "counts-bar.css"), "utf8");
-    const swatch = /\.sk-counts-bar__item::before\s*\{([^}]*)\}/.exec(css)?.[1];
-    expect(swatch).toContain("width: 0.75rem;");
-    expect(swatch).toContain("height: 0.5rem;");
-    expect(swatch).toContain("border-radius: 2px;");
-    expect(swatch).not.toContain("border-radius: 50%;");
-    const track = /\.sk-counts-bar__bar\s*\{([^}]*)\}/.exec(css)?.[1];
-    expect(track).toContain("height: 0.5rem;");
-    expect(track).toContain("border-radius: 2px;");
+    const { item, track } = renderBar();
+
+    expect(css.styleOf(item, { pseudo: "::before" })).toMatchObject({
+      width: "0.75rem",
+      height: "0.5rem",
+      "border-radius": "2px",
+    });
+    expect(css.styleOf(track)).toMatchObject({
+      height: "0.5rem",
+      "border-radius": "2px",
+    });
   });
 
   it("has no motion, so no reduced-motion variant is needed", () => {
-    const css = readFileSync(path.join(uiDir, "counts-bar.css"), "utf8");
-
-    expect(css).not.toMatch(/transition|animation/);
+    expect(
+      properties.filter((name) => /^(transition|animation)/.test(name)),
+    ).toEqual([]);
   });
 });

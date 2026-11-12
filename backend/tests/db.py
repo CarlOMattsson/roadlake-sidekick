@@ -181,7 +181,7 @@ CHAIN_HEAD_TABLES = (
 
 
 def latest_migration_id() -> str:
-    """The id of the newest migration file, e.g. `101_tasks_project_and_due_indexes`."""
+    """The id of the newest migration file, e.g. `100_schema_baseline_0_1_0`."""
 
     numbered = []
     for path in MIGRATIONS_PATH.glob("*.py"):

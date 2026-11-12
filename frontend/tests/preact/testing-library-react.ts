@@ -3,11 +3,11 @@
  * (vitest.mcp-app-preact.config.ts aliases the package to this file).
  *
  * Why: the real package is CommonJS and requires `react-dom` natively, so the Preact aliases never reach it and it
- * would render with React. This module offers the subset the tests use (`render`, `cleanup`, `act`, plus everything
+ * would render with React. This module offers the subset the tests use (`render`, `renderHook`, `cleanup`, `act`, plus everything
  * `@testing-library/dom` exports) on top of `preact/compat`, which is what the shipped bundle renders with.
  */
 import { configure, getQueriesForElement } from "@testing-library/dom";
-import type { ReactElement } from "react";
+import { createElement, type ReactElement } from "react";
 import { act as preactAct } from "preact/test-utils";
 import { render as preactRender } from "preact";
 
@@ -55,6 +55,25 @@ export function render(ui: ReactElement) {
         preactRender(null, container);
       }),
     ...getQueriesForElement(container),
+  };
+}
+
+export function renderHook<Result, Props>(
+  callback: (props: Props) => Result,
+  options: { initialProps?: Props } = {},
+) {
+  const result = { current: undefined as Result };
+  function Probe({ hookProps }: { hookProps: Props }) {
+    result.current = callback(hookProps);
+    return null;
+  }
+  const initial = options.initialProps as Props;
+  const view = render(createElement(Probe, { hookProps: initial }));
+  return {
+    result,
+    rerender: (props?: Props) =>
+      view.rerender(createElement(Probe, { hookProps: props ?? initial })),
+    unmount: view.unmount,
   };
 }
 

@@ -53,9 +53,9 @@ jobs:
           done
       - name: Apply migrations explicitly
         run: uv run --project backend yoyo apply --batch --database "$SIDEKICK_TEST_MIGRATION_DATABASE_URL" migrations
-      - run: uv run ruff format --check .
+      - run: uv run ruff format --check . ../tools/workctl
         working-directory: backend
-      - run: uv run ruff check --no-cache .
+      - run: uv run ruff check --no-cache . ../tools/workctl
         working-directory: backend
       - run: uv run pyright
         working-directory: backend
@@ -110,6 +110,9 @@ jobs:
       - run: npm run build:mobile
         working-directory: frontend
       - run: npm run test:coverage
+        working-directory: frontend
+      # The same view tests again with the Preact aliases of the shipped bundle (see vitest.mcp-app-preact.config.ts).
+      - run: npm run test:mcp-app:preact
         working-directory: frontend
       - run: npx playwright install --with-deps chromium
         working-directory: frontend

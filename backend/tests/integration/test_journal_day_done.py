@@ -8,7 +8,7 @@ from uuid import UUID
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.journal.application.service import JournalService
+from sidekick.journal.application.day import JournalDayService
 from sidekick.shared.auth import AuthService
 from sidekick.shared.observability import NoopTelemetryAdapter
 from sidekick.shared.persistence.models import DomainRow, ProjectRow, StepRow, TaskRow
@@ -44,7 +44,7 @@ class Clock:
 @dataclass(slots=True)
 class World:
     factory: sessionmaker[Session]
-    journal: JournalService
+    journal: JournalDayService
     owner: UUID
     other: UUID
     clock: Clock
@@ -63,7 +63,7 @@ def world() -> World:
     clock = Clock()
     return World(
         factory=factory,
-        journal=JournalService(SqlAlchemyStore(factory), clock, make_cursor_codec()),
+        journal=JournalDayService(SqlAlchemyStore(factory), clock, make_cursor_codec()),
         owner=auth.provision_user("done-owner", "Owner"),
         other=auth.provision_user("done-other", "Other"),
         clock=clock,

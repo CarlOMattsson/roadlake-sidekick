@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ContactEditor } from "@/features/work-app/contact-edit";
-import { workEn } from "@/features/work-app/labels";
-import type { WorkContactRecord } from "@/features/work-app/transport";
+import { ContactEditor } from "@/features/work-app/contacts/contact-edit";
+import { workEn } from "@/features/work-app/shared/labels";
+import type { WorkContactRecord } from "@/features/work-app/transport/transport";
 
 const anna: WorkContactRecord = {
   id: "019f0000-0000-7000-8000-0000000000c1",

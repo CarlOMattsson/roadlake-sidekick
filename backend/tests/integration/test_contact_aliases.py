@@ -3,7 +3,7 @@
 import pytest
 
 from sidekick.api.app import create_app
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.types import Actor
 from tests.db import database_factory

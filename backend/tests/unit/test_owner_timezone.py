@@ -11,7 +11,8 @@ from pydantic import ValidationError
 
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, Settings
 from sidekick.shared.types import Actor, SystemClock
-from sidekick.work.application.service import ContextService, owner_day_bounds
+from sidekick.work.application.service import ContextService
+from sidekick.work.application.work_lists import owner_day_bounds
 from tests.support.fakes import make_cursor_codec
 
 STOCKHOLM = ZoneInfo("Europe/Stockholm")

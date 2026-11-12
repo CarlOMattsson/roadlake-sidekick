@@ -10,7 +10,7 @@ import {
   relativeDue,
   workDate,
 } from "@/features/mcp-apps/ui/due";
-import { dateInputValue } from "@/features/work-app/task-edit";
+import { dateInputValue } from "@/features/work-app/tasks/task-edit";
 
 // SIDEKICK_OWNER_TIMEZONE arrives as a meta tag in the app document. The tests declare it in the
 // real document, the way the host loads the app, and clear it again afterwards.

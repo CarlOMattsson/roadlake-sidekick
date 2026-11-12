@@ -10,7 +10,7 @@ Move your records from one 0.1.0 installation to another, for example to a new s
 
 Use this to move to a new server or a fresh database. The source must be a 0.1.0 installation that has an owner backup
 (`sidekick-backup create`, or the backup profile) or can make an owner export. The importer reads only the current
-format (format 4 at the 0.1.0 baseline head), which only 0.1.0 writes. There is no supported way to import data from an
+format (format 5), which only 0.1.0 writes, and the format before it (format 4, written at the baseline head). There is no supported way to import data from an
 installation before 0.1.0: backups, exports, snapshots and SQL dumps from before 0.1.0 are not read, and
 `sidekick-backup import` cannot import them. Keep them as an archive.
 

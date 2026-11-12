@@ -6,8 +6,9 @@ bring the import cycle back, so the imports are read from the source and checked
 `sidekick.composition` builds the container for both and imports neither; nothing outside
 `sidekick.api` imports `sidekick.api` (`api/app.py` imports `mcp` to mount it, which the tests
 allow).
-The transport layers (`api`, `mcp`) hold no SQL: they neither import `sqlalchemy` nor the
-persistence package, only application services and `structured` reads through the container.
+The transport layers (`api`, `mcp`) hold no SQL: they import neither `sqlalchemy` nor the shared
+persistence package nor any context's own `persistence` module, only application services and
+`structured` reads through the container.
 `<domain>/application` packages import no `sidekick.shared.persistence` either. Their `sqlalchemy`
 imports are already covered by `test_package_boundaries.py` (rule 5, empty debt for `application`),
 so that rule is not repeated here.
@@ -29,8 +30,9 @@ API_IMPORT_EXCEPTIONS: set[str] = set()
 
 # Transport modules (relative to `sidekick`) that may import SQLAlchemy or the persistence package,
 # each with its reason. Empty: `api` and `mcp` get the session factory type from
-# `sidekick.composition.SessionFactory`, and everything else through the `Container`. Add an entry
-# only for wiring that cannot go through the composition root, and say why.
+# `sidekick.composition.SessionFactory`, and everything else (the companion services included)
+# through the `Container`. Add an entry only for wiring that cannot go through the composition
+# root, and say why.
 TRANSPORT_PERSISTENCE_EXCEPTIONS: dict[str, str] = {}
 
 PERSISTENCE_PACKAGES = ("sqlalchemy", "sidekick.shared.persistence")
@@ -106,6 +108,14 @@ def _all_imports(path: Path) -> set[str]:
 
 def _imports_package(modules: set[str], package: str) -> list[str]:
     return sorted(m for m in modules if m == package or m.startswith(f"{package}."))
+
+
+def _persistence_imports(modules: set[str]) -> list[str]:
+    """SQLAlchemy, the shared persistence package, and any context's own `persistence` module."""
+
+    found = {m for p in PERSISTENCE_PACKAGES for m in _imports_package(modules, p)}
+    found.update(m for m in modules if m.startswith("sidekick.") and "persistence" in m.split("."))
+    return sorted(found)
 
 
 def test_the_companion_routes_do_not_import_the_mcp_layer() -> None:
@@ -194,8 +204,7 @@ def test_the_transport_layers_import_no_sql_and_no_persistence_package() -> None
             relative = path.relative_to(SRC).as_posix()
             if relative in TRANSPORT_PERSISTENCE_EXCEPTIONS:
                 continue
-            imports = _all_imports(path)
-            found = [m for p in PERSISTENCE_PACKAGES for m in _imports_package(imports, p)]
+            found = _persistence_imports(_all_imports(path))
             if found:
                 offenders[relative] = found
     assert offenders == {}
@@ -205,7 +214,7 @@ def test_the_transport_persistence_exceptions_are_real_and_explained() -> None:
     for relative, reason in TRANSPORT_PERSISTENCE_EXCEPTIONS.items():
         assert reason.strip(), relative
         imports = _all_imports(SRC / relative)
-        assert any(_imports_package(imports, package) for package in PERSISTENCE_PACKAGES), relative
+        assert _persistence_imports(imports), relative
 
 
 def _application_modules() -> list[Path]:

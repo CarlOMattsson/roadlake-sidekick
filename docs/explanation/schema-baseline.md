@@ -8,20 +8,52 @@ Sidekick 0.1.0 creates the database from a single baseline. This page explains w
 
 ## What the baseline is
 
-The `migrations/` directory starts with `100_baseline_0_1_0.py`. It creates the whole schema on an empty
+The `migrations/` directory starts with `100_schema_baseline_0_1_0.py`. It creates the whole schema on an empty
 database: tables, constraints, indexes, grants and default privileges, in the schema, roles and database names of
-Sidekick (`sidekick`, `sidekick_owner`, `sidekick_migrator`, `sidekick_app`). New migrations continue from
-`101_`. The first one after it is `101_tasks_project_and_due_indexes.py`, which only adds two indexes on `tasks`.
+Sidekick (`sidekick`, `sidekick_owner`, `sidekick_migrator`, `sidekick_app`). New migrations are numbered from
+`106_`, because `101` to `105` are taken by the folded chain in the migration log of older databases.
 
-- It only creates. On a database that already has the schema it fails at the first statement and changes nothing.
+- It creates the schema on an empty database. On a database that already has a `sidekick` schema it creates nothing:
+  it either recognises or upgrades the database (see the next section) or refuses with a message and changes nothing.
 - It cannot be rolled back: that would drop every owner table. The way back is a backup.
 - The chain it replaced is not shipped.
 - The tables of features that were removed before 0.1.0 (the earlier built-in chat, live voice calls, the agent
   runtime, the assistant autonomy setting, and the preferences of the retired desktop app) are not created (decisions
   D-082 and D-084).
-- Two leftovers of the removed browser sign-in are the exception: the baseline still creates the `sessions` table and
-  the `users.password_hash` column. Migration `105_drop_sessions_and_password_hash.py` drops both, because
-  installations may already have applied the baseline, which is therefore never edited after the fact.
+- The leftovers of the removed browser sign-in (the `sessions` table and the `users.password_hash` column) are not
+  created either.
+
+## The folded development chain
+
+Before the first release the schema was built by `100_baseline_0_1_0.py` followed by five migrations: `101` (two
+indexes on `tasks`), `102` (the event ledger and the activity projection became append-only for the app role), `103`
+(delete grants on `domains` and `processes`), `104` (`audit_events.source`) and `105_drop_sessions_and_password_hash`
+(the sign-in leftovers). They were folded into this baseline, so it builds the schema they ended in; a test pins that
+to the checked-in fingerprint. The old files are not shipped, but one installation, the owner's, had applied them.
+
+The baseline decides from the database's own bookkeeping (`public._yoyo_migration`):
+
+| Database | What the baseline does |
+| --- | --- |
+| No `sidekick` schema | Creates the schema. |
+| `sidekick` schema and `105_drop_sessions_and_password_hash` applied | Nothing: the schema is already this one. yoyo records the baseline as applied; no table, row or grant is touched. |
+| `sidekick` schema and a prefix of the chain applied (`100_baseline_0_1_0`, or it and `101` up to `104`, in order) | Runs exactly the statements of the missing steps, verbatim from the folded migrations, in the one transaction, then the same checks as above; any failure rolls everything back. Only the baseline is recorded; the ids already there stay. |
+| Anything else: a gap in the chain, an unknown id, or no id at all | Refuses with the applied ids and what to do, changes nothing and records nothing. |
+
+A database that stood on `102` when the chain was folded receives the statements of `103`, `104` and
+`105` (delete grants, `audit_events.source`, the drop of `sessions` and `users.password_hash`, which deletes any
+leftover sessions and password hashes), and keeps all other data. A database that is refused should be rebuilt from
+an empty database with a restore through `sidekick-backup import`. Exports and backups stamped with any of the
+old ids are still accepted by the import.
+
+## Migration 106: the retired automation tables
+
+`106_drop_retired_automation_tables.py` drops `assistant_automation_policies`, `assistant_automation_control`,
+`assistant_automation_runs` and `assistant_task_review_findings`, which the baseline still creates (installations have
+already applied it, so it is not edited). Nothing writes or reads them any more, so they are empty. The migration
+refuses, with the table named and nothing changed, if one of them holds a row, and it cannot be rolled back. The ledger
+column `domain_events.automation_run_id` and the ledger type `automation_run` stay. The owner export dropped the four
+collections too (format 5); a format 4 export is still read, and is refused if one of those collections is not empty.
 
 ## Changing the schema: the checked-in fingerprint
 
@@ -45,4 +77,4 @@ contacts, shopping lists, memory bookkeeping, the activity log and automation, p
 ## Other deployments
 
 A deployment with its own scripts does the same: start from an empty database, run `yoyo apply` with the migrator role
-(the baseline `100_baseline_0_1_0.py` and the numbered migrations after it, in order), create the owner, import. There is nothing to mark or repair by hand.
+(the baseline `100_schema_baseline_0_1_0.py` and the numbered migrations after it, in order), create the owner, import. There is nothing to mark or repair by hand.

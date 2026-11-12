@@ -5,10 +5,8 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.contacts.application.service import (
-    ContactService,
-    CreateContactCommand,
-)
+from sidekick.contacts.application.models import CreateContactCommand
+from sidekick.contacts.application.service import ContactService
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import Actor
 from tests.support.fakes import InMemoryStore, make_cursor_codec

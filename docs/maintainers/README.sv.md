@@ -15,7 +15,7 @@ För dem som underhåller Sidekick: hur du släpper en version, releaseövningen
 
 | Guide | Senast kontrollerad | Hur | Inte verifierat |
 | --- | --- | --- | --- |
-| [Snabbstart](../start/first-contribution.sv.md) | 2026-11-11 | läst mot koden; körd utan sidoeffekter; följd från en ny klon | själva stdio-anslutningen från Claude Desktop, `pyright`, webbläsarkontroller, testsviter |
-| [Android-appen](../operate/pair-android.sv.md) | 2026-11-10 | läst mot koden; `--help` för companion-CLI:n | Gradle-bygge, installation på telefon, parkoppling mot en körande server, pushleverans |
-| [Självhostning](../start/self-hosted-server.sv.md) | 2026-11-11 | läst, körd, övad på containrar, följd från en ren export under standard- och `umask 077` | riktig GitHub-inloggning, riktig Claude-anslutning, `vps`-profilen, uppdatering över en riktig schemaändring, cosign-kontroll mot en släppt avbildning |
-| [Arbetspaketet](../start/work-laptop.sv.md) | 2026-11-11 (uppföljning), 2026-11-10 | läst, `bash -n`, tester med ersättnings-`docker`, övad på containrar | umask 077 på en riktig Ubuntu-installation, en riktig Claude Desktop-session, macOS |
+| [Snabbstart](../start/first-contribution.sv.md) | 2026-11-11 | läst mot koden; körd utan sidoeffekter; följd från en ny klon | `pyright`, webbläsarkontroller, testsviter |
+| [Android-appen](../operate/pair-android.sv.md) | 2026-11-10 | läst mot koden; `--help` för companion-CLI:n | Gradle-bygge i den här kontrollen (appen är verifierad på en riktig telefon av underhållaren, 2026-11-12) |
+| [Självhostning](../start/self-hosted-server.sv.md) | 2026-11-11 | läst, körd, övad på containrar, följd från en ren export under standard- och `umask 077` | `vps`-profilen, uppdatering över en riktig schemaändring, cosign-kontroll mot en släppt avbildning (den riktiga Claude-anslutningen och Linux-driften är verifierade av underhållaren, 2026-11-12) |
+| [Arbetspaketet](../start/work-laptop.sv.md) | 2026-11-11 (uppföljning), 2026-11-10 | läst, `bash -n`, tester med ersättnings-`docker`, övad på containrar | umask 077 på en riktig Ubuntu-installation, macOS |

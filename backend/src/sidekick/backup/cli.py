@@ -21,7 +21,8 @@ from sidekick.backup.bundle import (
     read_backup_file_bytes,
 )
 from sidekick.backup.importer import apply_import, load_export_document, plan_import
-from sidekick.owner_export.core import ExportRefused, canonical_json, verify_export
+from sidekick.owner_export.catalogue import ExportRefused
+from sidekick.owner_export.document import canonical_json, verify_export
 from sidekick.shared.cli_errors import (
     EXIT_FAILED,
     EXIT_UNEXPECTED,

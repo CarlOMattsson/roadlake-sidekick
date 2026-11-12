@@ -8,7 +8,7 @@ newest linked journal date, and leave every later line of the existing text unch
 import re
 from typing import Any
 
-from sidekick.mcp.contacts import _contact_context_text  # pyright: ignore[reportPrivateUsage]
+from sidekick.mcp.contact_text import contact_context_text
 from sidekick.mcp.text import CONTACT_CARD_NOTE
 from tests.support.mcp_contact_brief import (
     CONTACT_ID,
@@ -20,7 +20,7 @@ UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9
 
 
 def _brief_line(structured: dict[str, Any]) -> str:
-    return _contact_context_text(structured).split("\n", 1)[0]
+    return contact_context_text(structured).split("\n", 1)[0]
 
 
 def test_brief_names_role_and_organization_and_counts_open_tasks() -> None:
@@ -117,7 +117,7 @@ def test_brief_is_one_line_with_no_id_and_the_rest_of_the_text_is_unchanged() ->
         ],
     )
 
-    text = _contact_context_text(structured)
+    text = contact_context_text(structured)
     first, rest = text.split("\n", 1)
 
     assert not UUID_PATTERN.search(first)

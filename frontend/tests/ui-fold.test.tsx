@@ -1,19 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { Fold } from "@/features/mcp-apps/ui/fold";
 
-const srcDir = path.resolve(import.meta.dirname, "../src/features");
-const read = (rel: string) => readFileSync(path.join(srcDir, rel), "utf8");
-const bodyOf = (css: string, selector: string) => {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return (
-    new RegExp(`(?:^|[\\s,}])${escaped}\\s*\\{([^}]*)\\}`, "m").exec(
-      css,
-    )?.[1] ?? ""
-  );
-};
+import { readStylesheet } from "./helpers/stylesheet";
 
 describe("Fold, the one fold row", () => {
   it("is a button with aria-expanded, the counted text, an optional meta line, and ⌄ last", () => {
@@ -51,67 +40,96 @@ describe("Fold, the one fold row", () => {
 });
 
 describe("the fold row and the action row in CSS", () => {
-  const rowCss = read("mcp-apps/ui/row.css");
+  const rowCss = readStylesheet("features/mcp-apps/ui/row.css");
+  const room = { room: "sidekick-work" };
 
-  it(".sk-fold is the section type in ink, a 48 target with no fill or edge, and ⌄ turns up when open", () => {
-    const fold = bodyOf(
-      rowCss,
-      ":is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)\n  .sk-fold",
-    );
-    expect(fold).toContain("min-height: var(--sk-row-min);");
-    expect(fold).toContain("font: var(--sk-type-section);");
-    expect(fold).toContain("color: var(--sk-fg);");
-    expect(fold).toContain("border: 0;");
-    expect(fold).toContain("background: none;");
-    expect(bodyOf(rowCss, ".sk-fold-meta")).toContain(
-      "font: var(--sk-type-meta);",
-    );
-    expect(bodyOf(rowCss, ".sk-fold-meta")).toContain(
-      "color: var(--sk-muted);",
-    );
-    expect(bodyOf(rowCss, '.sk-fold[aria-expanded="true"] > svg')).toContain(
-      "transform: rotate(180deg);",
-    );
+  it("a rendered .sk-fold is the section type in ink, a 48 target with no fill or edge, and ⌄ turns up when open", () => {
+    render(<Fold text="Done (2)" meta="Since" open onToggle={vi.fn()} />);
+    const fold = screen.getByRole("button");
+
+    expect(rowCss.styleOf(fold, room)).toMatchObject({
+      "min-height": "var(--sk-row-min)",
+      font: "var(--sk-type-section)",
+      color: "var(--sk-fg)",
+      border: "0",
+      background: "none",
+    });
+    expect(
+      rowCss.styleOf(fold.querySelector(".sk-fold-meta") as Element, room),
+    ).toMatchObject({ font: "var(--sk-type-meta)", color: "var(--sk-muted)" });
+    expect(
+      rowCss.styleOf(fold.querySelector("svg") as Element, room).transform,
+    ).toBe("rotate(180deg)");
+  });
+
+  it("a closed fold's ⌄ does not turn", () => {
+    render(<Fold text="Done (2)" open={false} onToggle={vi.fn()} />);
+
+    expect(
+      rowCss.styleOf(screen.getByRole("button").querySelector("svg") as Element)
+        .transform,
+    ).toBeUndefined();
   });
 
   it(".sk-action-row is the list's tertiary row: 48 high, medium weight, ink, no fill or edge, a glyph in the ring's column", () => {
-    const action = bodyOf(
-      rowCss,
-      ":is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)\n  .sk-action-row",
+    render(
+      <button type="button" className="sk-action-row">
+        <svg aria-hidden="true" />
+        Move all
+      </button>,
     );
-    expect(action).toContain("min-height: var(--sk-row-min);");
-    expect(action).toContain("var(--sk-weight-medium)");
-    expect(action).toContain("color: var(--sk-fg);");
-    expect(action).toContain("border: 0;");
-    expect(action).toContain("background: none;");
-    const glyph = bodyOf(rowCss, ".sk-action-row > svg");
-    expect(glyph).toContain("width: var(--sk-ring-glyph);");
-    expect(glyph).toContain("flex: none;");
+    const action = screen.getByRole("button");
+
+    const style = rowCss.styleOf(action, room);
+    expect(style).toMatchObject({
+      "min-height": "var(--sk-row-min)",
+      color: "var(--sk-fg)",
+      border: "0",
+      background: "none",
+    });
+    expect(style.font).toContain("var(--sk-weight-medium)");
+    expect(
+      rowCss.styleOf(action.querySelector("svg") as Element, room),
+    ).toMatchObject({ width: "var(--sk-ring-glyph)", flex: "none" });
   });
 
   it("the rules of the old folds and action rows are gone from the app sheets", () => {
-    const work = read("work-app/work.css");
-    const agenda = read("work-app/agenda.css");
-    const detail = read("work-app/task-detail.css");
-    const contacts = read("work-app/contacts.css");
-    const shopping = read("shopping-app/shopping.css");
-    expect(work).not.toMatch(/\.work-board-fold/);
-    expect(shopping).not.toMatch(/\.shopping-bought-toggle/);
-    expect(shopping).not.toMatch(/\.shopping-purchased\s*>\s*summary/);
-    expect(contacts).not.toMatch(/\.work-contact-ways-value/);
-    expect(contacts).not.toMatch(/\.work-contact-ways\s*>\s*button/);
-    expect(detail).not.toMatch(/^\.sidekick-work \.work-add-row\s*\{/m);
-    expect(agenda).not.toMatch(/button\.work-agenda-move-all\s*\{/);
-  });
+    const stylesheets = {
+      work: readStylesheet("features/work-app/shell/work.css"),
+      detail: readStylesheet("features/work-app/tasks/task-detail.css"),
+      contacts: readStylesheet("features/work-app/contacts/contacts.css"),
+      shopping: readStylesheet("features/shopping-app/shopping.css"),
+    };
+    const selectors = (sheet: { rules: readonly { selector: string }[] }) =>
+      sheet.rules.map((rule) => rule.selector).join("\n");
 
-  it("the open row menu has a panel edge from the secondary button's --sk-border, and --sk-panel-line is gone", () => {
-    const tokens = read("mcp-apps/ui/tokens.css");
-    expect(tokens).not.toMatch(/--sk-panel-line/);
-    expect(tokens).toMatch(/--sk-border:/);
-    const agenda = read("work-app/agenda.css");
-    expect(agenda).not.toMatch(/--sk-panel-line/);
-    expect(agenda).toMatch(
-      /box-shadow:\s*inset 0 0 0 var\(--sk-hairline\) var\(--sk-border\);/,
+    expect(selectors(stylesheets.work)).not.toContain(".work-board-fold");
+    expect(selectors(stylesheets.shopping)).not.toContain(
+      ".shopping-bought-toggle",
     );
+    expect(selectors(stylesheets.shopping)).not.toContain(
+      ".shopping-purchased > summary",
+    );
+    expect(selectors(stylesheets.contacts)).not.toContain(
+      ".work-contact-ways-value",
+    );
+    expect(selectors(stylesheets.contacts)).not.toContain(
+      ".work-contact-ways > button",
+    );
+    expect(stylesheets.detail.has(".sidekick-work .work-add-row")).toBe(false);
+  });
+  it("the open row menu has a panel edge from the secondary button's --sk-border, and --sk-panel-line is gone", () => {
+    const tokens = readStylesheet("features/mcp-apps/ui/tokens.css");
+    const agenda = readStylesheet("features/work-app/agenda/agenda.css");
+    const properties = [...tokens.rules, ...agenda.rules].flatMap((rule) =>
+      Object.keys(rule.declarations),
+    );
+    const values = agenda.rules.flatMap((rule) =>
+      Object.values(rule.declarations),
+    );
+
+    expect(properties).not.toContain("--sk-panel-line");
+    expect(properties).toContain("--sk-border");
+    expect(values).toContain("inset 0 0 0 var(--sk-hairline) var(--sk-border)");
   });
 });

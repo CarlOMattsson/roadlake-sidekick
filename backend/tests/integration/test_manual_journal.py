@@ -14,7 +14,6 @@ from sqlalchemy import Engine, create_engine, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.journal.application.service import JournalService
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind, entry_order_key, entry_page_key
 from sidekick.journal.domain.source import SourceType
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
@@ -39,6 +38,7 @@ from tests.support.fakes import (
     JournalProviderSpy,
     make_cursor_codec,
 )
+from tests.support.journal_services import ManualJournal
 
 JOURNAL_DATE = date(2026, 7, 21)
 CREATED_AT = datetime(2026, 7, 24, 10, tzinfo=UTC)
@@ -103,8 +103,8 @@ def db(database_harness: DatabaseHarness) -> DatabaseHarness:
 
 
 @pytest.fixture
-def journal_service(db: DatabaseHarness) -> JournalService:
-    return JournalService(SqlAlchemyStore(db.factory), FixedClock(), make_cursor_codec())
+def journal_service(db: DatabaseHarness) -> ManualJournal:
+    return ManualJournal.build(SqlAlchemyStore(db.factory), FixedClock(), make_cursor_codec())
 
 
 def _actor(owner_id: UUID) -> Actor:
@@ -228,7 +228,7 @@ def _create_source(
     source_recorded_at: datetime | None = datetime(2026, 7, 21, 9, 5, tzinfo=UTC),
     key: str = "manual-journal-source-key",
 ) -> Any:
-    return service.create_source(
+    return service.capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=JOURNAL_DATE,
@@ -252,7 +252,7 @@ def _create_manual_entry(
     contact_ids: tuple[UUID, ...] = (),
     key: str = "manual-journal-manual-entry-key",
 ) -> Any:
-    return service.create_manual_entry(
+    return service.capture.create_manual_entry(
         actor,
         source_id=source_id,
         title=title,
@@ -441,9 +441,9 @@ def test_source_commit_and_owner_filtering_are_actor_derived(
         assert committed is not None
         assert committed.owner_id == owner.user_id
         assert committed.raw_text == JOURNAL_SOURCE_TEXT
-    assert journal_service.get_source(owner, source.id).id == source.id
+    assert journal_service.capture.get_source(owner, source.id).id == source.id
     with pytest.raises(NotFoundError):
-        journal_service.get_source(other, source.id)
+        journal_service.capture.get_source(other, source.id)
 
 
 @pytest.mark.integration
@@ -547,7 +547,8 @@ def test_manual_entry_commits_links_stale_audit_and_idempotency_atomically(
     assert journal_provider_spy.calls == []
     required_provider_parameters = {
         name
-        for name, parameter in inspect.signature(type(journal_service).__init__).parameters.items()
+        for part in journal_service.services()
+        for name, parameter in inspect.signature(type(part).__init__).parameters.items()
         if name != "self" and "provider" in name and parameter.default is inspect.Parameter.empty
     }
     assert required_provider_parameters == set()
@@ -671,13 +672,13 @@ def test_owned_lists_and_day_views_share_deterministic_fallback_order(
 
     expected_ids = [entry.id for entry in sorted(entries, key=entry_order_key)]
     listed = list(
-        journal_service.list_entries(
+        journal_service.entries.list_entries(
             actor,
             start_date=JOURNAL_DATE,
             end_date=JOURNAL_DATE,
         ).items
     )
-    day = journal_service.get_day(actor, journal_date=JOURNAL_DATE)
+    day = journal_service.day.get_day(actor, journal_date=JOURNAL_DATE)
 
     assert [entry.id for entry in listed] == expected_ids
     assert [entry.id for entry in day.entries] == expected_ids
@@ -708,11 +709,11 @@ def test_paging_survives_entries_removed_and_added_between_pages(
 
     def page(cursor: str | None) -> tuple[list[UUID], str | None]:
         if surface == "list":
-            result = journal_service.list_entries(
+            result = journal_service.entries.list_entries(
                 actor, start_date=JOURNAL_DATE, end_date=JOURNAL_DATE, limit=2, cursor=cursor
             )
             return [entry.id for entry in result.items], result.next_cursor
-        day = journal_service.get_day(
+        day = journal_service.day.get_day(
             actor, journal_date=JOURNAL_DATE, limit=2, cursor=cursor, include_done=False
         )
         return [entry.id for entry in day.entries], day.next_cursor
@@ -730,7 +731,7 @@ def test_paging_survives_entries_removed_and_added_between_pages(
 
     # Before the cursor: one served entry leaves, one new one arrives. After it: one arrives.
     served_first = next(entry for entry in initial if entry.id == first[0])
-    journal_service.archive_entry(
+    journal_service.entries.archive_entry(
         actor,
         entry_id=served_first.id,
         expected_version=served_first.version,

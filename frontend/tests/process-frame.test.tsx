@@ -1,16 +1,16 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   processFrameLabelsEn,
   processFrameLabelsSv,
-} from "@/features/work-app/work-view-parts/process-frame-labels";
+} from "@/features/work-app/hierarchy/process-frame-labels";
 import type {
   WorkProcessRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 import { transport as fakeTransport } from "./helpers/work-app-fixtures";
 
 /*

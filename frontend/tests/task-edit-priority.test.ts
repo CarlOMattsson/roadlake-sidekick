@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { changedFields, type TaskDraft } from "@/features/work-app/task-edit";
+import {
+  changedFields,
+  type TaskDraft,
+} from "@/features/work-app/tasks/task-edit";
 
 const base: TaskDraft = {
   title: "Ring kunden",

@@ -3,10 +3,8 @@
 # Roadlake Sidekick
 
 <p align="center">
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Latest release"></a>
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://img.shields.io/github/actions/workflow/status/CarlOMattsson/roadlake-sidekick/release-image.yml?label=release-image" alt="Release image workflow"></a>
+<!-- release badges are added with the first release (v0.1.0) -->
 <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-Source%20Available-blue" alt="License: Source Available"></a>
-<a href="docs/maintainers/release.md#verifying-a-release"><img src="https://img.shields.io/badge/signed%20with-Sigstore-brightgreen" alt="Signed with Sigstore"></a>
 <a href="https://roadlake.com"><img src="https://img.shields.io/badge/web-roadlake.com-informational" alt="Website: roadlake.com"></a>
 </p>
 
@@ -14,9 +12,9 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 
 [Svenska](README.sv.md) · [Documentation](docs/README.md) · [Quickstart](QUICKSTART.md) · [License](LICENSE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Decisions](docs/decisions/log.md)
 
-> **Status: preview, not yet released.** Version 0.1.0 has no tag and no published APK or container image; you build
-> both from this repository. Install, update, backup and restore are drilled on Linux containers; macOS, a real phone
-> with push delivery and real Claude connections are not verified. Details: [docs/maintainers/release.md](docs/maintainers/release.md).
+> **Status: first version, not yet released.** Version 0.1.0 has no tag yet, so for now you build the container image and
+> the APK from this repository. From the first release on, every release carries a signed image and a signed APK. It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS
+> has not been tried yet. Details: [docs/maintainers/release.md](docs/maintainers/release.md).
 
 Roadlake Sidekick is a self-hosted, MCP-first operating system for one person for work and tasks, journal, shopping and
 contacts. You talk to it through Claude; interactive MCP Apps rooms open inside the conversation when you
@@ -41,6 +39,15 @@ your own PostgreSQL database.
 The MCP apps' labels are Swedish by default (Arbete = Work, Dagbok = Journal, Inköp = Shopping, Kontroll = Control).
 Set `SIDEKICK_MCP_APP_LOCALE=en` on the server for English. The Android app has its own language setting; see
 [Languages](docs/reference/languages.md#the-android-app).
+
+## Talk your day through with Claude
+
+The most effective way to use Sidekick is a conversation with Claude in voice mode while you walk, cycle or drive. Don't dictate commands: let Claude ask about your day and talk freely about whatever is on your mind. Ten minutes of conversation usually turns into a good number of tasks, journal entries and links, and clears your head of the things that keep going round in it.
+
+- Start with something like: "Ask me how my day has been, and help me get on top of everything I need to do."
+- Claude asks follow-up questions: who is involved, when it has to happen, what belongs together. Then it creates the tasks, journal entries and contacts in Sidekick and links them.
+- With other connectors in Claude, it can also go through Slack, email and your calendar to add tasks you missed and book meetings.
+- Only talk when it is safe, for example hands-free in the car.
 
 ## What Claude can do
 
@@ -100,8 +107,8 @@ Sidekick sends no telemetry or analytics; it only contacts the services you conf
   the running server, see [Connect Claude](docs/operate/connect-claude.md); to pair the Android app, see
   [Android app](docs/operate/pair-android.md).
 - **Developers:** Sidekick can also run as a local stdio MCP server for Claude Desktop from a source checkout; see step 4 of [Run Sidekick locally as a developer](docs/start/first-contribution.md).
-- **Android app:** there is no prebuilt APK; build the app from this repository (JDK 21, Android SDK 36, Node.js 22) and
-  pair it with your server; see [Build, install and pair Android](docs/operate/pair-android.md).
+- **Android app:** from the first release on, install the signed APK attached to the GitHub release, or build the app
+  from this repository (JDK 21, Android SDK 36, Node.js 22), and pair it with your server; see [Build, install and pair Android](docs/operate/pair-android.md).
 
 ## Develop
 

@@ -19,7 +19,7 @@ const FEATURE_FOLDERS = [
 ];
 const SHARED_FEATURE_FOLDER = "mcp-apps";
 
-// Exception paths are relative to src/features, e.g. "work-app/transport".
+// Exception paths are relative to src/features, e.g. "work-app/transport/transport".
 const EXISTING_BOUNDARY_EXCEPTIONS = {
   // existing, to be removed: contract checks import feature transport modules.
   "src/lib/mcp/contract-checks.ts": [
@@ -27,20 +27,20 @@ const EXISTING_BOUNDARY_EXCEPTIONS = {
     "journal-app/draft-review-parts/edit-values",
     "journal-app/transport",
     "shopping-app/transport",
-    "work-app/transport",
+    "work-app/transport/transport",
   ],
   // existing, to be removed: the awaiting screen imports work-app and control-app labels.
   "src/features/mcp-apps/awaiting.tsx": [
     "control-app/labels",
-    "work-app/view-tabs",
-    "work-app/work-shell-labels",
+    "work-app/shell/view-tabs",
+    "work-app/shell/work-shell-labels",
   ],
   // existing, to be removed: the shell composes feature room entry points; how rooms compose is still open.
   "src/features/mcp-apps/sidekick-rooms.tsx": [
     "control-app/room",
     "journal-app/room",
     "shopping-app/room",
-    "work-app/contacts-room",
+    "work-app/contacts/contacts-room",
     "work-app/room",
   ],
 };
@@ -52,10 +52,10 @@ const OVERSIZED_FILES = {
   "src/features/journal-app/day-frame.tsx": 520,
   "src/features/journal-app/labels.ts": 520,
   "src/features/journal-app/transport.ts": 510,
-  "src/features/work-app/contacts-list.tsx": 600,
-  "src/features/work-app/labels.ts": 550,
-  "src/features/work-app/saved-views-bar.tsx": 530,
-  "src/features/work-app/task-steps.tsx": 660,
+  "src/features/work-app/contacts/contacts-list.tsx": 600,
+  "src/features/work-app/shared/labels.ts": 550,
+  "src/features/work-app/saved-views/saved-views-bar.tsx": 530,
+  "src/features/work-app/tasks/task-steps.tsx": 660,
   "src/mobile/companion-transport.ts": 610,
 };
 
@@ -78,15 +78,19 @@ function importBoundaryRules(folder, exceptions = []) {
   } else {
     patterns = FEATURE_FOLDERS.filter(
       (other) => other !== folder && other !== SHARED_FEATURE_FOLDER,
-    ).map((other) => ({
-      group: [
-        `**/${other}/**`,
-        ...exceptions
-          .filter((e) => e.startsWith(`${other}/`))
-          .map((e) => `!**/${e}`),
-      ],
-      message: `Import ${other} through src/features/mcp-apps or src/lib, not its internals.`,
-    }));
+    ).map((other) => {
+      const message = `Import ${other} through src/features/mcp-apps or src/lib, not its internals.`;
+      const allowedPaths = exceptions
+        .filter((e) => e.startsWith(`${other}/`))
+        .map((e) => escapeRegex(e.slice(other.length + 1)));
+      if (allowedPaths.length === 0)
+        return { group: [`**/${other}/**`], message };
+      // A regex, not a glob: gitignore-style negation cannot re-include a file under an ignored subfolder.
+      return {
+        regex: `(?:^|/)${other}/(?!(?:${allowedPaths.join("|")})$)`,
+        message,
+      };
+    });
   }
   return { "no-restricted-imports": ["error", { patterns }] };
 }

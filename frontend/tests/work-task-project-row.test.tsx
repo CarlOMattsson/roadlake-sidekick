@@ -2,9 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { workSv } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
-import type { WorkTask, WorkTransport } from "@/features/work-app/transport";
+import { workSv } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import type {
+  WorkTask,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
 
 /*
  * The Task detail names its Project in the place chip ("Plats: Flytt"); the title the Task already carries is the

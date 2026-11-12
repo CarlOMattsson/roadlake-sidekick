@@ -33,9 +33,13 @@ Minnet byggs av tjänsten Hindsight, som anropar en språkmodell hos den leveran
 
 Under Källor finns ett reglage per källa: dagbok, kontakter, projekt och uppgifter. När du stänger av en källa tas det som minnet har härlett ur den bort.
 
+## Se vad minnet innehåller
+
+Under varje källa som är på trycker du på "Visa vad Sidekick minns" för ett urval av vad minnet innehåller. Sökfältet frågar hela minnet.
+
 ## Håll en enskild post utanför minnet
 
-Be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
+Tryck på "Glöm den här" på ett faktum. Allt minnet har från den posten tas bort, och posten själv ändras inte. Du kan också be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
 
 ## Ange en licensnyckel
 

@@ -96,67 +96,7 @@ def test_the_first_release_of_this_repository_must_be_breaking() -> None:
 
     offenders = {path.name for path in tool.contract_files(root, policy, None)}
 
-    assert "100_baseline_0_1_0.py" in offenders
-
-
-def test_the_task_index_migration_is_expand_only() -> None:
-    """Index-only migrations after the baseline add to the schema and need no breaking release."""
-
-    tool = load_tool()
-    policy = tool.load_policy()
-    root = TOOL.parents[1]
-
-    offenders = {path.name for path in tool.contract_files(root, policy, None)}
-
-    assert "101_tasks_project_and_due_indexes.py" not in offenders
-
-
-def test_the_event_ledger_revoke_migration_is_a_declared_contract_step() -> None:
-    """Revoking UPDATE and DELETE from the app role narrows its rights, so it is a contract step."""
-
-    tool = load_tool()
-    policy = tool.load_policy()
-    root = TOOL.parents[1]
-
-    offenders = {path.name for path in tool.contract_files(root, policy, None)}
-
-    assert "102_event_ledger_append_only.py" in offenders
-
-
-def test_the_trash_sweep_grant_migration_is_expand_only() -> None:
-    """Granting DELETE on three tables widens the app role and drops nothing."""
-
-    tool = load_tool()
-    policy = tool.load_policy()
-    root = TOOL.parents[1]
-
-    offenders = {path.name for path in tool.contract_files(root, policy, None)}
-
-    assert "103_trash_sweep_delete_grants.py" not in offenders
-
-
-def test_the_audit_source_migration_is_expand_only() -> None:
-    """Adding a nullable column with a check drops nothing and narrows no right."""
-
-    tool = load_tool()
-    policy = tool.load_policy()
-    root = TOOL.parents[1]
-
-    offenders = {path.name for path in tool.contract_files(root, policy, None)}
-
-    assert "104_audit_event_source.py" not in offenders
-
-
-def test_the_sessions_and_password_hash_drop_is_a_declared_contract_step() -> None:
-    """Dropping a table and a column removes data, so the old code cannot run against it."""
-
-    tool = load_tool()
-    policy = tool.load_policy()
-    root = TOOL.parents[1]
-
-    offenders = {path.name for path in tool.contract_files(root, policy, None)}
-
-    assert "105_drop_sessions_and_password_hash.py" in offenders
+    assert "100_schema_baseline_0_1_0.py" in offenders
 
 
 def test_expand_only_migrations_accept_expand(repo: Path) -> None:

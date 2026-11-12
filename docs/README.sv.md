@@ -34,7 +34,7 @@ Ny här? Börja med en av de här:
 | --- | --- |
 | [Drift](operate/README.sv.md) | En karta över vad du gör när du driver en Sidekick-server. |
 | [Anslut Claude](operate/connect-claude.sv.md) | Lägg till din server som anpassad connector och logga in med GitHub. |
-| [Bygg, installera och para ihop Android](operate/pair-android.sv.md) | Bygg Android-appen ur källkoden och koppla telefonen med en engångskod. |
+| [Bygg, installera och para ihop Android](operate/pair-android.sv.md) | Installera den signerade APK:n från en release eller bygg appen ur källkoden, och koppla telefonen med en engångskod. |
 | [Uppdatera](operate/update.sv.md) | Uppdatera från källkoden eller till en signerad image. |
 | [Backup och återställning](operate/backup-and-restore.sv.md) | Krypterade backuper och att läsa tillbaka dem. |
 | [Drift av jobbpaketet](operate/work-laptop/README.sv.md) | Nätverket, start vid inloggning, backup och uppdatering, modellservern och avinstallation. |

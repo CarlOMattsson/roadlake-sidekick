@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from fastmcp import FastMCP
 from fastmcp.prompts import Prompt
@@ -40,6 +40,7 @@ from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.validation_errors import install_validation_error_redaction
 from sidekick.mcp.work_cards import register_work_card_tools
 from sidekick.mcp.work_tools import register_work_tools
+from sidekick.shared.compat import local_provider_components
 from sidekick.shared.observability import register_trusted_mcp_names
 from sidekick.shared.observability.library_logs import withhold_record_content
 from sidekick.shared.types import Actor
@@ -146,10 +147,10 @@ def _local_components(mcp: FastMCP) -> list[object]:
     startup instead of silently leaving the allowlist empty.
     """
 
-    store = getattr(getattr(mcp, "local_provider", None), "_components", None)
-    if not isinstance(store, dict):
+    store = local_provider_components(mcp)
+    if store is None:
         raise RuntimeError("fastmcp no longer exposes the local provider's component store")
-    return list(cast("dict[str, object]", store).values())
+    return list(store.values())
 
 
 def _register_trusted_span_names(mcp: FastMCP) -> None:

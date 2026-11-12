@@ -1,16 +1,16 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workEn } from "@/features/work-app/labels";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaPage,
   WorkBoardPage,
   WorkFrame,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 
 /*
  * The Work shell marks the other tabs out of date by the tab a write was made in, and keeps the mark until a read that

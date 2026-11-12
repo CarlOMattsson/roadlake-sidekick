@@ -1,14 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
-import { cardLabelsEn } from "@/features/work-app/card-labels";
-import { ContactsView } from "@/features/work-app/contacts-list";
-import { ContactAliases } from "@/features/work-app/contact-aliases";
-import { workEn } from "@/features/work-app/labels";
-import { WorkCard } from "@/features/work-app/work-card";
+import { cardLabelsEn } from "@/features/work-app/shared/card-labels";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import { ContactAliases } from "@/features/work-app/contacts/contact-aliases";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkCard } from "@/features/work-app/inline/work-card";
 import type {
   WorkCardFrame,
   WorkContactAlias,
@@ -16,7 +14,9 @@ import type {
   WorkContactsFrame,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
+
+import { readStylesheet } from "./helpers/stylesheet";
 
 const TASK: WorkItemRecord = {
   kind: "task",
@@ -68,17 +68,11 @@ describe("contact list rows start on the left", () => {
   });
 
   it("aligns the row to the start in contacts.css, above the shared button centring", () => {
-    const css = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/work-app/contacts.css",
-      ),
-      "utf8",
-    );
+    const css = readStylesheet("features/work-app/contacts/contacts.css");
 
-    expect(css).toMatch(
-      /\.sidekick-work \.work-contact-list \.sk-row-open\s*\{[^}]*justify-content:\s*flex-start[^}]*text-align:\s*start[^}]*\}/,
-    );
+    expect(
+      css.rule(".sidekick-work .work-contact-list .sk-row-open"),
+    ).toMatchObject({ "justify-content": "flex-start", "text-align": "start" });
   });
 });
 

@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ViewTabs } from "@/features/work-app/view-tabs";
+import { ViewTabs } from "@/features/work-app/shell/view-tabs";
 
 const options = [
   { value: "agenda", label: "Agenda" },

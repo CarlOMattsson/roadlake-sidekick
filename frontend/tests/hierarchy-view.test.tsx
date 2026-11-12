@@ -10,17 +10,17 @@ import {
   hierarchyProgress,
   mergeHierarchyPage,
   projectsLayout,
-} from "@/features/work-app/hierarchy-view";
+} from "@/features/work-app/hierarchy/hierarchy-view";
 import {
   hierarchyDetailLabelsEn,
   hierarchyDetailLabelsSv,
-} from "@/features/work-app/hierarchy-detail-labels";
-import { workEn, workSv } from "@/features/work-app/labels";
+} from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   rootFromToolResult,
   type WorkHierarchyFrame,
   type WorkHierarchyNode,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   domain,
   frameOf,

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 import { Segmented } from "./ui/segmented";
 import { controlLabels } from "../control-app/labels";
-import { ViewTabs } from "../work-app/view-tabs";
-import { workShellLabelsFor } from "../work-app/work-shell-labels";
+import { ViewTabs } from "../work-app/shell/view-tabs";
+import { workShellLabelsFor } from "../work-app/shell/work-shell-labels";
 import { sidekickShellLabelsFor } from "./sidekick-shell-labels";
 import { CONTROL_PARENT } from "./nav-state";
 import { STRIP_ROOM_IDS } from "./router";

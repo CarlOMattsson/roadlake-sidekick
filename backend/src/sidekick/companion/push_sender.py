@@ -7,12 +7,12 @@ loggers (which print request URLs) are silenced.
 
 from __future__ import annotations
 
-import logging
 import threading
 
 import httpx
 
 from sidekick.companion.push_delivery import SendFailed, SendsBusy
+from sidekick.shared.observability import silence_http_client_loggers
 
 SEND_TIMEOUT_SECONDS = 10.0
 # One overall deadline for a send, from the start of the request to the response headers. httpx
@@ -27,24 +27,17 @@ MAX_PENDING_SENDS = 4
 def create_client(transport: httpx.BaseTransport | None = None) -> httpx.Client:
     """The delivery HTTP client: no redirects, the send timeout, and quiet loggers."""
 
-    silence_http_loggers()
+    silence_http_client_loggers()
     return httpx.Client(
         follow_redirects=False, timeout=SEND_TIMEOUT_SECONDS, transport=transport, trust_env=False
     )
-
-
-def silence_http_loggers() -> None:
-    """httpx and httpcore log request URLs at INFO and DEBUG; an endpoint is a capability."""
-
-    for name in ("httpx", "httpcore"):
-        logging.getLogger(name).setLevel(logging.WARNING)
 
 
 class HttpPushSender:
     def __init__(
         self, client: httpx.Client, *, deadline_seconds: float = SEND_DEADLINE_SECONDS
     ) -> None:
-        silence_http_loggers()
+        silence_http_client_loggers()
         self._client = client
         self._deadline = deadline_seconds
         self._slots = threading.BoundedSemaphore(MAX_PENDING_SENDS)

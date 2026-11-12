@@ -6,14 +6,14 @@
 
 These are the guides for you who run a Sidekick server. Each guide does one thing. If you have not started the server yet, begin with [First start on a server](../start/self-hosted-server.md).
 
-:::note[Preview]
-Install, update, backup and restore are drilled on Linux containers. The HTTPS profile, a real GitHub sign-in and real Claude connections have not been tried. Take a backup before you change anything.
+:::note[First release]
+Sidekick 0.1.0 is the first version and runs on Linux in daily use. macOS has not been tried yet. Take a backup before you change anything.
 :::
 
 ## Connect
 
 - [Connect Claude](connect-claude.md): register the sign-in, add the connector and decide what the session may do.
-- [Build, install and pair Android](pair-android.md): build the app from source and connect the phone with a one-time code.
+- [Build, install and pair Android](pair-android.md): download the signed app or build it from source, and connect the phone with a one-time code.
 - [Reminders through ntfy](push-reminders.md): turn on reminders to the phone, through the public ntfy server or your own.
 
 ## Maintain

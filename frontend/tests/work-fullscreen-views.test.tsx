@@ -2,10 +2,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { workEn } from "@/features/work-app/labels";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import type { WorkTransport } from "@/features/work-app/transport";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import type { WorkTransport } from "@/features/work-app/transport/transport";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 
 /** The views the host serves are the room's `availableViews`; a view it does not serve is neither offered nor read. */
 const agendaPage = { items: [], next_cursor: null };

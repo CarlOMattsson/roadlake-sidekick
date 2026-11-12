@@ -10,9 +10,8 @@ import pytest
 
 from sidekick.shared.errors import ConflictError, PermissionDeniedError, ValidationError
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.tasks.application import MAX_BOARD_COLUMN_REORDER, TaskService
+from sidekick.tasks.application import MAX_BOARD_COLUMN_REORDER, TaskBoardService
 from sidekick.tasks.domain import Priority, Task, TaskStatus
-from tests.support.fakes import make_cursor_codec
 
 NOW = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)
 
@@ -92,11 +91,11 @@ class FakeBoardStore:
         return result
 
 
-def make_service(count: int = 3) -> tuple[TaskService, FakeBoardStore, Actor, list[Task]]:
+def make_service(count: int = 3) -> tuple[TaskBoardService, FakeBoardStore, Actor, list[Task]]:
     owner_id = new_uuid7()
     tasks = [make_task(owner_id, f"Task {index}") for index in range(count)]
     store = FakeBoardStore(tasks)
-    service = TaskService(store, FixedClock(), make_cursor_codec())  # type: ignore[arg-type]
+    service = TaskBoardService(store, FixedClock())  # type: ignore[arg-type]
     actor = Actor(owner_id, frozenset({"tasks:read", "tasks:write"}))
     return service, store, actor, tasks
 

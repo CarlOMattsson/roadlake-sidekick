@@ -30,6 +30,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `Caddyfile.example` | Caddys konfiguration för profilen `vps`. Kopiera till `Caddyfile`. |
 | `ntfy/server.yml` | Den härdade ntfy-serverns konfiguration. |
 | `ntfy-init.sh` | Engångsinställning av ntfy-kontona. Den skriver inte ut någon hemlighet. |
+| `secrets-to-files.sh` | Flyttar hemligheterna i `selfhost.env` till filer i `secrets/` och skriver inte ut något värde. Se [Hemligheter som filer](../operate/limits-and-secrets.sv.md#hemligheter-som-filer). |
 | `postgres-init.sh` | Skapar databasrollerna vid första starten av en tom volym. |
 | `update.sh` | Uppdaterar till en signerad, digest-låst image, med en krypterad ögonblicksbild först. Se [Uppdatera](../operate/update.sv.md). |
 | `restore.sh` | Återställer en ägare från en krypterad backup eller en vanlig export. Se [Backup och återställning](../operate/backup-and-restore.sv.md). |

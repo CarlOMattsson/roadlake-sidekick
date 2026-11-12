@@ -16,12 +16,9 @@ from sqlalchemy.orm import Session
 
 from sidekick.api.app import create_container
 from sidekick.backup.bundle import OwnerBackupService, verify_backup_file
-from sidekick.owner_export.core import (
-    OwnerExportService,
-    build_restore_plan,
-    verify_export,
-    verify_restorable,
-)
+from sidekick.owner_export.document import verify_export
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore_plan import build_restore_plan, verify_restorable
 from sidekick.shared.persistence.models import TaskRow
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore

@@ -23,12 +23,9 @@ from sqlalchemy.orm import Session, sessionmaker
 from sidekick.api.app import create_container
 from sidekick.backup import cli as backup_cli
 from sidekick.backup.bundle import build_backup_bundle, build_backup_envelope, write_backup_file
-from sidekick.owner_export.core import (
-    EXPORT_SOURCES,
-    OwnerExportService,
-    build_export_document,
-    verify_export,
-)
+from sidekick.owner_export.catalogue import EXPORT_SOURCES
+from sidekick.owner_export.document import build_export_document, verify_export
+from sidekick.owner_export.export import OwnerExportService
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory

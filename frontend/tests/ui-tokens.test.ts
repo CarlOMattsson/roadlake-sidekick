@@ -1,15 +1,11 @@
 // Design language: the --sk-* tokens in mcp-apps/ui/tokens.css are the only place where Sidekick
 // defines its look for MCP app views. Every value reads a host variable first, fallbacks use light-dark(),
 // and there is no prefers-color-scheme block, so the host's theme decides light or dark.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const tokensPath = path.resolve(
-  import.meta.dirname,
-  "../src/features/mcp-apps/ui/tokens.css",
-);
-const css = readFileSync(tokensPath, "utf8");
+import { readSource } from "./helpers/source-files";
+
+const css = readSource("features/mcp-apps/ui/tokens.css");
 const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 // Returns each declaration as [name, value] from the stripped source. Line breaks inside a value are

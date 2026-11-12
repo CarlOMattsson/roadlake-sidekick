@@ -42,5 +42,5 @@ the day the release is made (see "Releasing" in the [development guide](docs/con
 
 - The database starts from a single schema baseline (see
   [The 0.1.0 schema baseline](docs/explanation/schema-baseline.md)).
-- Preview status: install, update, backup and restore are drilled on Linux containers. macOS, the Android app on a
-  real phone with push delivery and real Claude connections are not verified yet; see [docs/maintainers/release.md](docs/maintainers/release.md).
+- First-release status: in daily use with Claude, with the Android app on a real phone and on Linux. macOS has not been
+  tried yet; see [docs/maintainers/release.md](docs/maintainers/release.md).

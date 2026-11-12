@@ -36,7 +36,7 @@ def make_state() -> tuple[object, Actor, UUID]:
             }
         ),
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=JOURNAL_DATE,
@@ -47,7 +47,7 @@ def make_state() -> tuple[object, Actor, UUID]:
         replaces_source_id=None,
         idempotency_key="mcp-read-source",
     )
-    entry = container.journal.create_manual_entry(
+    entry = container.journal_capture.create_manual_entry(
         actor,
         source_id=source.id,
         title="MCP läsbar journalpost",
@@ -66,7 +66,7 @@ def make_state() -> tuple[object, Actor, UUID]:
         unresolved_items=[],
         contradictions=[],
     )
-    container.journal.put_manual_summary(
+    container.journal_day.put_manual_summary(
         actor,
         journal_date=JOURNAL_DATE,
         expected_entry_fingerprint=entry_fingerprint([entry]),
@@ -255,7 +255,7 @@ async def test_get_journal_source_hides_another_owners_source_as_not_found() -> 
 async def test_list_pending_journal_is_owner_scoped_bounded_and_text_free() -> None:
     container, actor, _entry_id = make_state()
     for index in range(2):
-        container.journal.create_source(
+        container.journal_capture.create_source(
             actor,
             source_type=SourceType.MANUAL_TEXT,
             journal_date=PENDING_DAY,
@@ -268,7 +268,7 @@ async def test_list_pending_journal_is_owner_scoped_bounded_and_text_free() -> N
         )
     other_id = container.auth.provision_user("mcp-pending-other", "Other")
     other = Actor(other_id, READ_SCOPES)
-    container.journal.create_source(
+    container.journal_capture.create_source(
         other,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=PENDING_DAY,
@@ -375,7 +375,7 @@ async def test_source_reads_never_write_source_text_to_a_log(all_logs: _Collecto
     container = create_container(make_settings(), database_factory())
     user_id = container.auth.provision_user("mcp-source-log", "Log")
     actor = Actor(user_id, READ_SCOPES)
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=PENDING_DAY,

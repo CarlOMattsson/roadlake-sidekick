@@ -9,7 +9,7 @@
 # counts. The decrypted export stays in the memory of a one-off api container (--rm).
 #
 # Requires: postgres running (docker compose --env-file selfhost.env up -d postgres) and
-# SIDEKICK_BACKUP_ENCRYPTION_KEY in selfhost.env. The key is never printed or put on a command line.
+# SIDEKICK_BACKUP_ENCRYPTION_KEY in selfhost.env (or as a secret file, see secrets-to-files.sh). The key is never printed or put on a command line.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

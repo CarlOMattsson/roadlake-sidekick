@@ -1,12 +1,10 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { workEn, workSv } from "@/features/work-app/labels";
-import type { WorkAgendaFrame } from "@/features/work-app/transport";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import type { WorkAgendaFrame } from "@/features/work-app/transport/transport";
 import {
   task,
   other,
@@ -17,6 +15,13 @@ import {
   openRow,
   resetAgendaEnvironment,
 } from "./helpers/agenda-view-fixtures";
+
+import { readStylesheet } from "./helpers/stylesheet";
+
+const ROOM = { room: "sidekick-work" };
+const agendaCss = readStylesheet("features/work-app/agenda/agenda.css");
+const familyCss = readStylesheet("features/mcp-apps/ui/family.css");
+const tokensCss = readStylesheet("features/mcp-apps/ui/tokens.css");
 
 afterEach(resetAgendaEnvironment);
 
@@ -160,13 +165,7 @@ it("a read shows Loading as an absolutely placed status line, so the rows do not
   expect(loading).toHaveAttribute("role", "status");
   expect(loading).toHaveClass("work-agenda-loading");
   expect(loading.parentElement).toHaveClass("work-agenda");
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-loading \{[^}]*position: absolute;/,
-  );
+  expect(agendaCss.styleOf(loading, ROOM).position).toBe("absolute");
 });
 
 it("the refused-change notice names no view: the agenda, the board and To sort share it", () => {
@@ -250,31 +249,28 @@ it("Undo closes the quick choices of its row when they are opened after the chan
   );
 });
 
-it("the Undo line has no surface of its own: its wrapper is display contents, the status text is muted, and Undo is a compact tonal button", () => {
+it("the Undo line has no surface of its own: its wrapper is display contents, the status text is muted, and Undo is a compact tonal button", async () => {
+  const user = userEvent.setup();
+  const { transport } = makeTransport();
+  renderAgenda([task], transport);
+  await user.click(glyphOf(task.title));
+  const button = await undoButton();
+  const wrapper = button.parentElement as HTMLElement;
+  const line = wrapper.querySelector("p") as HTMLElement;
+
   // jsdom applies no CSS: the rules are read from agenda.css. The wrapper takes no box of its own, so the line
   // and the button are placed by the row's grid; the status is text in the meta type, with no box.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  const wrapper = /\.sidekick-work \.work-agenda-undo \{([^}]*)\}/.exec(
-    css,
-  )?.[1];
-  expect(wrapper).toBeDefined();
-  expect(wrapper).toMatch(/display: contents;/);
-  expect(wrapper).not.toMatch(/background|border|box-shadow/);
-  const line = /\.sidekick-work \.work-agenda-undo > p \{([^}]*)\}/.exec(
-    css,
-  )?.[1];
-  expect(line).toBeDefined();
-  expect(line).not.toMatch(/background|border|box-shadow/);
-  expect(line).toMatch(/color: var\(--sk-muted\);/);
-  const button = /\.sidekick-work \.work-agenda-undo > button \{([^}]*)\}/.exec(
-    css,
-  )?.[1];
-  expect(button).toBeDefined();
+  const boxless = ["background", "border", "box-shadow"];
+  const wrapperStyle = agendaCss.styleOf(wrapper, ROOM);
+  expect(wrapperStyle.display).toBe("contents");
+  const lineStyle = agendaCss.styleOf(line, ROOM);
+  expect(lineStyle.color).toBe("var(--sk-muted)");
+  for (const property of boxless) {
+    expect(wrapperStyle[property], property).toBeUndefined();
+    expect(lineStyle[property], property).toBeUndefined();
+  }
   // Ångra sits in the trailing column (-2) on the title's row, from row 1 to the line under it.
-  expect(button).toMatch(/grid-area: 1 \/ -2 \/ 3;/);
+  expect(agendaCss.styleOf(button, ROOM)["grid-area"]).toBe("1 / -2 / 3");
 });
 
 it("a click on the Undo line's background opens no record and does not undo the change", async () => {
@@ -318,35 +314,28 @@ it("the Undo button of a row is a compact secondary button (sk-btn--secondary sk
   expect(undo).not.toHaveClass("sk-btn--tonal");
   expect(undo.parentElement).toHaveClass("work-agenda-undo");
   // jsdom applies no CSS: the button is 40 (--sk-compact) and its ::after reaches 4 past each edge, a 48 target.
-  const family = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/family.css"),
-    "utf8",
+  expect(familyCss.styleOf(undo, ROOM)["min-height"]).toBe("var(--sk-compact)");
+  expect(familyCss.styleOf(undo, { ...ROOM, pseudo: "::after" }).inset).toBe(
+    "calc(-4px - var(--sk-hairline))",
   );
-  expect(family).toMatch(
-    /\.sk-btn--compact \{[^}]*min-height: var\(--sk-compact\);/,
-  );
-  expect(family).toMatch(
-    /\.sk-btn--compact::after \{[^}]*inset: calc\(-4px - var\(--sk-hairline\)\);/,
-  );
-  const tokens = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/tokens.css"),
-    "utf8",
-  );
-  expect(tokens).toMatch(/--sk-tap: 2\.75rem;/);
-  expect(tokens).toMatch(/--sk-compact: 2\.5rem;/);
+  const root = tokensCss.rule(":root");
+  expect(root["--sk-tap"]).toBe("2.75rem");
+  expect(root["--sk-compact"]).toBe("2.5rem");
 });
 
 it("the list reserves no room below for the Undo line, which sits in the list and never stops clicks", () => {
   // jsdom applies no CSS, so the rules are read from agenda.css.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
+  for (const rule of agendaCss.rules) {
+    expect(Object.keys(rule.declarations), rule.selector).not.toContain(
+      "--work-undo-bottom",
+    );
+    expect(rule.selector).not.toBe(".work-agenda:has(> .work-agenda-undo)");
+  }
+  const undoRules = agendaCss.rules.filter((rule) =>
+    rule.selector.includes("work-agenda-undo"),
   );
-  expect(css).not.toMatch(/work-undo-bottom/);
-  expect(css).not.toMatch(/work-agenda:has\(> \.work-agenda-undo\)/);
-  const rules = [...css.matchAll(/([^{}]*work-agenda-undo[^{}]*)\{([^}]*)\}/g)];
-  expect(rules.length).toBeGreaterThan(0);
-  for (const rule of rules) {
-    expect(rule[2]).not.toMatch(/pointer-events/);
+  expect(undoRules.length).toBeGreaterThan(0);
+  for (const rule of undoRules) {
+    expect(rule.declarations["pointer-events"], rule.selector).toBeUndefined();
   }
 });

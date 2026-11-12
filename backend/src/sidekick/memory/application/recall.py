@@ -36,7 +36,7 @@ from uuid import UUID
 
 from sidekick.memory.application.records import MemorySettingsRecord
 from sidekick.memory.application.store import LiveSource, MemoryStore
-from sidekick.memory.application.sync import RETAINED
+from sidekick.memory.application.sync_rules import RETAINED
 from sidekick.memory.domain import MemoryKind
 from sidekick.memory.ports import (
     ALLOWED_FACT_TYPES,

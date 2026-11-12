@@ -1,16 +1,16 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { BoardCard } from "@/features/work-app/board-card";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { TaskSteps } from "@/features/work-app/task-steps";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { BoardCard } from "@/features/work-app/board/board-card";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkStep,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The row menu has a button for a screen reader on every Task row of Agenda and Status and on every

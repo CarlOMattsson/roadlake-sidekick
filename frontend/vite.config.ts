@@ -18,18 +18,13 @@ export default defineConfig({
       "dist/**",
     ],
     /*
-     * Vitest's default is 5s, which is too tight for this suite.
-     *
-     * Most tests render a whole room (the MCP App views and the mobile shell, with their providers and
-     * transport fakes) and drive it through `userEvent`. A single test takes one to three seconds in jsdom on an
-     * idle machine and longer on a loaded machine or a shared CI runner, where it would
-     * otherwise fail as a timeout while the assertions are correct.
-     *
-     * The ceiling does not slow a passing run down: it only decides how long a test may take
-     * before it counts as failed. A test that genuinely hangs still fails.
+     * Vitest's default is 5s, which is too tight for this suite: most tests render a whole room (the MCP App views
+     * and the mobile shell, with their providers and transport fakes) and drive it through `userEvent`, and the
+     * slowest take five to nine seconds in a full run on a busy machine. Fifteen seconds leaves headroom over
+     * that without letting a hung test hold a run for half a minute. The ceiling does not slow a passing run down.
      */
-    testTimeout: 30_000,
-    hookTimeout: 30_000,
+    testTimeout: 15_000,
+    hookTimeout: 15_000,
     coverage: {
       provider: "v8",
       thresholds: {

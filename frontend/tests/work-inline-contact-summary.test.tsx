@@ -5,14 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/inline/inline-summary-labels";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   rootFromToolResult,
   type WorkContactRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const anna: WorkContactRecord = {
   id: "019f0000-0000-7000-8000-0000000000c1",

@@ -42,7 +42,9 @@ def task_contacts_structured(
 ) -> dict[str, Any]:
     """The structured content of `list_task_contacts` (shared with the companion route)."""
 
-    page = container.contacts.list_task_contacts(actor, task_id, limit=limit, cursor=cursor)
+    page = container.contact_relations.list_task_contacts(
+        actor, task_id, limit=limit, cursor=cursor
+    )
     return TaskContactPageRecord(
         items=[
             ContactSummaryRecord(

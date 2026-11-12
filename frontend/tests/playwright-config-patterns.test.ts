@@ -1,9 +1,11 @@
 // Every testMatch/testIgnore pattern of the Playwright configs must hit at least one file under its testDir.
 // A pattern for a file that is missing (or not shipped) otherwise passes silently:
 // Playwright just runs fewer specs. Configs that are not in this checkout are skipped.
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { sourceFiles } from "./helpers/source-files";
 
 const root = path.resolve(import.meta.dirname, "..");
 
@@ -18,15 +20,6 @@ type Scope = {
   testIgnore?: Pattern | Pattern[];
 };
 type Config = Scope & { projects?: Scope[] };
-
-function filesUnder(dir: string): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).flatMap((entry) => {
-    const full = path.join(dir, entry);
-    if (entry === "node_modules") return [];
-    return statSync(full).isDirectory() ? filesUnder(full) : [full];
-  });
-}
 
 function asList(value: Pattern | Pattern[] | undefined): Pattern[] {
   return value === undefined ? [] : Array.isArray(value) ? value : [value];
@@ -49,7 +42,7 @@ describe("Playwright config patterns", () => {
       const misses: string[] = [];
       for (const scope of scopes) {
         const dir = path.resolve(root, scope.testDir ?? config.testDir ?? ".");
-        const files = filesUnder(dir).map((file) =>
+        const files = sourceFiles(dir).map((file) =>
           path.relative(dir, file).split(path.sep).join("/"),
         );
         for (const kind of ["testMatch", "testIgnore"] as const) {

@@ -44,9 +44,9 @@ WORK_AGENDA = CompanionOperation(
     "companion:tasks:read",
     frozenset({"tasks:read", "projects:read", "contacts:read"}),
 )
-# Arbetes Idag for the widget and the app's Idag: `ContextService.work_today_page`, the agenda's own
-# overdue and today groups. It needs only `tasks:read` (the Project title is a field of the Task's
-# Work record); no Contact is read.
+# Arbetes Idag for the widget and the app's Idag: `WorkListService.work_today_page`, the agenda's
+# own overdue and today groups. It needs only `tasks:read` (the Project title is a field of the
+# Task's Work record); no Contact is read.
 WORK_TODAY = CompanionOperation(
     "work.today",
     "companion:tasks:read",

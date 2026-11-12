@@ -8,25 +8,32 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { WriteNotice } from "@/features/work-app/manage-controls";
-import { failureNotice, NoticeView } from "@/features/work-app/board";
-import { cardLabelsSv } from "@/features/work-app/card-labels";
-import { CreateParentTask } from "@/features/work-app/parent-task-create";
-import { ContactsView } from "@/features/work-app/contacts-list";
+import { WriteNotice } from "@/features/work-app/shared/manage-controls";
+import { failureNotice, NoticeView } from "@/features/work-app/board/board";
+import { cardLabelsSv } from "@/features/work-app/shared/card-labels";
+import { CreateParentTask } from "@/features/work-app/hierarchy/parent-task-create";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
 import {
   hierarchyDetailLabelsEn,
   hierarchyDetailLabelsSv,
-} from "@/features/work-app/hierarchy-detail-labels";
-import { inlineSummaryLabelsEn } from "@/features/work-app/inline-summary-labels";
-import { taskStatusLabel, workEn, workSv } from "@/features/work-app/labels";
+} from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
+import {
+  taskStatusLabel,
+  workEn,
+  workSv,
+} from "@/features/work-app/shared/labels";
 import {
   manageLabelsEn,
   manageLabelsSv,
-} from "@/features/work-app/manage-labels";
-import { TaskSteps } from "@/features/work-app/task-steps";
-import { useWorkWrite } from "@/features/work-app/use-work-write";
-import { WorkCard, type CardStatusWriter } from "@/features/work-app/work-card";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/shared/manage-labels";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { useWorkWrite } from "@/features/work-app/shared/use-work-write";
+import {
+  WorkCard,
+  type CardStatusWriter,
+} from "@/features/work-app/inline/work-card";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   writeFailure,
   type WorkCardFrame,
@@ -35,7 +42,7 @@ import {
   type WorkStep,
   type WorkTask,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * A write whose record no longer exists (for example removed in another chat) is its own kind:

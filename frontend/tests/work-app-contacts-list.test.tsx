@@ -9,14 +9,14 @@ import {
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { WorkView } from "@/features/work-app/work-view";
-import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   rootFromToolResult,
   type WorkContactSummary,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   KEY,
   anna,

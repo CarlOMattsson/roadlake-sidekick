@@ -14,7 +14,7 @@ Sidekick är en personlig assistent som du kör på din egen server. Du sköter 
 
 ### Behöver jag Claude?
 
-Ja. Sidekick har inget eget webbgränssnitt. Claude är gränssnittet, och Android-appen är en andra yta för att läsa och bocka av. [Läs vad Android-appen gör](guide/android-app.sv.md).
+Ja. Sidekick har inget eget webbgränssnitt. Claude är gränssnittet, och Android-appen är en andra yta för arbete, dagbok och inköp. [Läs vad Android-appen gör](guide/android-app.sv.md).
 
 ### Vilken Claude-plan behöver jag?
 
@@ -22,7 +22,7 @@ En plan som stöder anpassade connectors, alltså kopplingar till egna servrar. 
 
 ### Är Sidekick färdigt?
 
-Nej. Version 0.1.0 är en förhandsversion utan färdig containeravbild och utan färdig APK. Installationen är övad i Linux-containrar, men riktiga Claude-anslutningar, macOS och appen på en riktig telefon är inte provade. [Se vad som är provat](maintainers/release.sv.md).
+Nej. Version 0.1.0 är den första versionen och är inte släppt ännu. Från och med första releasen har varje release en signerad containeravbild och en signerad Android-APK; till dess bygger du båda själv ur källkoden. Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat. [Se vad som är provat](maintainers/release.sv.md).
 
 ### Varför är rummen på svenska?
 
@@ -76,7 +76,7 @@ Ja, på två sätt: jobbpaketet kör Sidekick på en laptop mot Claude Desktop l
 
 ### Hur uppdaterar jag?
 
-Ta en backup först. Sedan uppdaterar du antingen från källkoden eller till en signerad avbild med `update.sh`, som bara visar planen tills du lägger till `--apply`. Det finns ingen publicerad avbild än, så i förhandsversionen gäller källkodsvägen. [Läs hur du uppdaterar](operate/update.sv.md).
+Ta en backup först. Sedan uppdaterar du antingen från källkoden eller till en signerad avbild med `update.sh`, som bara visar planen tills du lägger till `--apply`. Det finns ingen publicerad avbild än, så tills vidare gäller källkodsvägen. [Läs hur du uppdaterar](operate/update.sv.md).
 
 ### Hur flyttar jag mina data?
 
@@ -86,7 +86,7 @@ Ta en backup i den gamla installationen, starta den nya från en tom databas och
 
 ### Finns det en iOS-app?
 
-Nej. Det finns en Android-app, och den bygger du själv ur källkoden. [Läs om Android-appen](guide/android-app.sv.md).
+Nej. Det finns en Android-app. Från och med första releasen laddar du ner en signerad APK från releasen på GitHub, och du kan också bygga den själv ur källkoden. [Läs om Android-appen](guide/android-app.sv.md).
 
 ### Behöver appen Googles tjänster?
 
@@ -94,4 +94,4 @@ Nej. Påminnelserna går via UnifiedPush och appen ntfy, utan Firebase. [Läs om
 
 ### Kan jag skapa uppgifter i appen?
 
-Nej. I appen läser du, bockar av och skriver dagbok för hand. Nya uppgifter och projekt skapar du i Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).
+Inte i Android-appen. Där läser och bockar du av arbete, skriver och ändrar dagboksinlägg för hand, och skapar inköpslistor och lägger till varor. Uppgifter skapar du i Claude, genom att be om dem eller med + i rummet Arbete; projekt skapar du genom att be Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).

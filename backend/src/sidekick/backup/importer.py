@@ -16,7 +16,6 @@ from typing import Any, cast
 from uuid import UUID
 
 from pydantic import SecretStr
-from sqlalchemy import select
 
 from sidekick.backup.bundle import (
     BACKUP_FORMAT,
@@ -25,15 +24,11 @@ from sidekick.backup.bundle import (
     BackupTooLarge,
     decrypt_backup_envelope,
 )
-from sidekick.owner_export.core import (
-    EXPORT_FORMAT,
-    ExportRefused,
-    OwnerExportService,
-    OwnerRestoreService,
-    build_restore_plan,
-    verify_export,
-)
-from sidekick.shared.persistence.models import UserRow
+from sidekick.owner_export.catalogue import EXPORT_FORMAT, ExportRefused
+from sidekick.owner_export.document import verify_export
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore import OwnerRestoreService
+from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore
 
@@ -98,11 +93,7 @@ def load_export_document(
 
 
 def _owner_exists(store: SqlAlchemyStore, owner_id: UUID) -> bool:
-    return store.transaction(
-        lambda session: (
-            session.scalar(select(UserRow.id).where(UserRow.id == owner_id)) is not None
-        ),
-    )
+    return store.transaction(lambda session: store.owner_exists(session, owner_id))
 
 
 def plan_import(

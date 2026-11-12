@@ -2,14 +2,14 @@ import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { vi } from "vitest";
-import { BoardQuery, BoardView } from "@/features/work-app/board";
-import { workEn } from "@/features/work-app/labels";
+import { BoardQuery, BoardView } from "@/features/work-app/board/board";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkBoardFrame,
   WorkBoardPage,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The Work board on a phone (the "single" layout): the statuses as sections of one list, each with its

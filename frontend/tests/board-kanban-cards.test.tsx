@@ -10,13 +10,17 @@ import {
   vi,
 } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { BoardView } from "@/features/work-app/board";
+import { BoardView } from "@/features/work-app/board/board";
 import { workDate } from "@/features/mcp-apps/ui/due";
-import { workEn, workSv, type WorkLabels } from "@/features/work-app/labels";
+import {
+  workEn,
+  workSv,
+  type WorkLabels,
+} from "@/features/work-app/shared/labels";
 import {
   type WorkItemRecord,
   type WorkTask,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   KEY,
   taskA,

@@ -7,7 +7,7 @@ import pytest
 from fastmcp import Client
 from sqlalchemy import Engine, event
 
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
 from tests.support.mcp_journal_write import SETUP, args, make_container, make_project

@@ -8,7 +8,7 @@ import {
   type McpErrorCode,
 } from "../src/lib/mcp/errors";
 import * as journal from "../src/features/journal-app/transport";
-import * as work from "../src/features/work-app/transport";
+import * as work from "../src/features/work-app/transport/transport";
 import * as control from "../src/features/control-app/transport";
 
 const failed = (code: unknown) => ({ code });

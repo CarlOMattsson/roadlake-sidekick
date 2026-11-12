@@ -37,8 +37,9 @@ from sidekick.memory.application.store import (
     SourceCountRow,
     SourceFlags,
     SourceRef,
+    SourceState,
 )
-from sidekick.memory.application.sync import (
+from sidekick.memory.application.sync_rules import (
     FAILED,
     PARKED,
     PENDING,
@@ -793,3 +794,106 @@ class SqlAlchemyMemoryStore:
             )
         )
         return cast(CursorResult[Any], reset).rowcount
+
+    # -- maintenance commands --
+
+    @staticmethod
+    def mark_owner_dirty(session: Session, owner_id: UUID, now: datetime) -> int:
+        result = session.execute(
+            update(MemorySourceRow)
+            .where(
+                MemorySourceRow.owner_id == owner_id,
+                MemorySourceRow.excluded.is_(False),
+                MemorySourceRow.status != SUBMITTED,
+                or_(
+                    MemorySourceRow.status != PARKED,
+                    MemorySourceRow.failure_category != REMOVED_CATEGORY,
+                ),
+            )
+            .values(
+                retained_at=case(
+                    (
+                        and_(
+                            MemorySourceRow.retained_at.is_(None),
+                            or_(
+                                MemorySourceRow.attempts > 0,
+                                MemorySourceRow.status.in_([FAILED, PARKED]),
+                            ),
+                        ),
+                        now,
+                    ),
+                    else_=MemorySourceRow.retained_at,
+                ),
+                status=PENDING,
+                attempts=0,
+                next_attempt_at=None,
+                operation_id=None,
+                failure_category=None,
+            )
+        )
+        return cast(CursorResult[Any], result).rowcount
+
+    @staticmethod
+    def silence_owner(
+        session: Session, owner_id: UUID, *, clear_domains: bool, now: datetime
+    ) -> None:
+        domains = {"journal": False, "contacts": False, "projects": False, "tasks": False}
+        values: dict[str, Any] = {"paused": True, "updated_at": now}
+        if clear_domains:
+            values.update(domains)
+        statement = pg_insert(MemorySettingsRow).values(
+            owner_id=owner_id, **domains, paused=True, version=1, created_at=now, updated_at=now
+        )
+        session.execute(
+            statement.on_conflict_do_update(
+                index_elements=[MemorySettingsRow.owner_id],
+                set_={**values, "version": MemorySettingsRow.version + 1},
+            )
+        )
+
+    @staticmethod
+    def source_state_page(
+        session: Session, owner_id: UUID, *, after: UUID | None, limit: int
+    ) -> list[SourceState]:
+        query = (
+            select(
+                MemorySourceRow.id,
+                MemorySourceRow.doc_key,
+                MemorySourceRow.status,
+                MemorySourceRow.excluded,
+                MemorySourceRow.failure_category,
+                MemorySourceRow.attempts,
+                MemorySourceRow.operation_id,
+                MemorySourceRow.retained_at,
+                MemorySourceRow.next_attempt_at,
+            )
+            .where(MemorySourceRow.owner_id == owner_id)
+            .order_by(MemorySourceRow.id)
+            .limit(limit)
+        )
+        if after is not None:
+            query = query.where(MemorySourceRow.id > after)
+        return [
+            SourceState(
+                row_id=row_id,
+                doc_key=doc_key,
+                status=status,
+                excluded=excluded,
+                removed_marker=status == PARKED and failure_category == REMOVED_CATEGORY,
+                attempts=attempts,
+                operation_id=operation_id,
+                retained_at=retained_at,
+                next_attempt_at=next_attempt_at,
+            )
+            for (
+                row_id,
+                doc_key,
+                status,
+                excluded,
+                failure_category,
+                attempts,
+                operation_id,
+                retained_at,
+                next_attempt_at,
+            ) in session.execute(query).all()
+        ]

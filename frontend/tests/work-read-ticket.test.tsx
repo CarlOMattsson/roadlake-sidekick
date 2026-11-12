@@ -1,14 +1,14 @@
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { hierarchyDetailLabelsSv } from "@/features/work-app/hierarchy-detail-labels";
-import { taskStatusLabel, workSv } from "@/features/work-app/labels";
+import { hierarchyDetailLabelsSv } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { taskStatusLabel, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkBoardFrame,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 /*
  * A read that started before a successful write must not put the older data back when it answers
@@ -16,9 +16,9 @@ import { WorkView } from "@/features/work-app/work-view";
  */
 
 // The board is a stand-in that can send two patches in one event, as two rows answering together do.
-vi.mock("@/features/work-app/board", async (importOriginal) => {
+vi.mock("@/features/work-app/board/board", async (importOriginal) => {
   const original =
-    await importOriginal<typeof import("@/features/work-app/board")>();
+    await importOriginal<typeof import("@/features/work-app/board/board")>();
   return {
     ...original,
     BoardView: ({

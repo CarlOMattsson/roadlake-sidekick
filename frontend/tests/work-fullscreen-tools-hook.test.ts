@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { useTabTools } from "@/features/work-app/work-fullscreen-parts/use-tab-tools";
+import { useTabTools } from "@/features/work-app/fullscreen/parts/use-tab-tools";
 
 describe("useTabTools", () => {
   it("gives the focus back to the button that opened search or the new-Task field", () => {

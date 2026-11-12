@@ -24,7 +24,7 @@ def test_a_database_behind_the_image_is_not_ready(tmp_path: Path) -> None:
 def test_a_database_ahead_of_the_image_is_still_ready(tmp_path: Path) -> None:
     """An expand-class rollback runs an older image on a newer schema; that must stay ready."""
 
-    (tmp_path / "100_baseline_0_1_0.py").write_text("", encoding="utf-8")
+    (tmp_path / "100_schema_baseline_0_1_0.py").write_text("", encoding="utf-8")
     assert readiness.is_ready(database_factory(), tmp_path) is True
 
 

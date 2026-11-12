@@ -2,15 +2,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { placeChanges } from "@/features/work-app/group-choices";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { placeChanges } from "@/features/work-app/hierarchy/group-choices";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   taskPlaceLabelsEn,
   taskPlaceLabelsFor,
   taskPlaceLabelsSv,
-} from "@/features/work-app/task-place-labels";
-import type { WorkTask, WorkTransport } from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/tasks/task-place-labels";
+import type {
+  WorkTask,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 /*
  * The place chip of the Task page ("Plats: Renovering av köket ⌄") and the repeat chip (a picker, read-only on the phone). The transports here

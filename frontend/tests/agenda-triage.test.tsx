@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import {
   act,
   fireEvent,
@@ -9,10 +7,10 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fillLabel, UNDO_MS } from "@/features/work-app/agenda-undo";
-import { triageDueAt } from "@/features/work-app/work-items";
-import { workEn, workSv } from "@/features/work-app/labels";
-import type { WorkItemRecord } from "@/features/work-app/transport";
+import { fillLabel, UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { triageDueAt } from "@/features/work-app/shared/work-items";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import type { WorkItemRecord } from "@/features/work-app/transport/transport";
 import {
   TASK_ID,
   OTHER_ID,
@@ -28,6 +26,7 @@ import {
   undoButton,
   undoLineOf,
 } from "./helpers/agenda-triage-fixtures";
+import { readStylesheet } from "./helpers/stylesheet";
 
 afterEach(() => {
   // A right click marks the row menu as used, and the tip under the list leaves with it.
@@ -574,16 +573,16 @@ it("the date choices in a row's quick choices wrap onto more lines instead of ov
   // jsdom applies no CSS, so the layout is read from agenda.css. The old triage button grid is gone: the moves sit in
   // the quick choices (.work-agenda-choices), which wrap, and the menu stands under the title's x (the lead column,
   // then the 2 px gap), so the choices never overlap the glyph or the title.
-  const css = readFileSync(
-    path.resolve(import.meta.dirname, "../src/features/work-app/agenda.css"),
-    "utf8",
-  );
-  expect(css).not.toMatch(/\.work-agenda-triage/);
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-choices \{[^}]*flex-wrap: wrap;/,
+  const css = readStylesheet("features/work-app/agenda/agenda.css");
+
+  expect(
+    css.rules.filter((rule) => rule.selector.includes("work-agenda-triage")),
+  ).toEqual([]);
+  expect(css.rule(".sidekick-work .work-agenda-choices")["flex-wrap"]).toBe(
+    "wrap",
   );
   // The menu's surface is its own box, 12 inside it; its chips start on the title's x (the lead column, then 2 px).
-  expect(css).toMatch(
-    /\.sidekick-work \.work-agenda-menu \{[^}]*padding: var\(--sk-s2\) var\(--sk-s2\) var\(--sk-s2\)\s+calc\(var\(--sk-lead-w\) \+ var\(--sk-lead-hang\) \+ 2px\);/,
+  expect(css.rule(".sidekick-work .work-agenda-menu").padding).toBe(
+    "var(--sk-s2) var(--sk-s2) var(--sk-s2) calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px)",
   );
 });

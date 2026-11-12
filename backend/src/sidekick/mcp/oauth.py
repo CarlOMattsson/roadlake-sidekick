@@ -39,7 +39,7 @@ from starlette.routing import Route
 from sidekick.mcp import MCP_MOUNT_PATH
 from sidekick.mcp.auth import GitHubIdentityVerifier
 from sidekick.shared.config import Settings
-from sidekick.shared.observability import TelemetryPort
+from sidekick.shared.observability import TelemetryPort, silence_http_client_loggers
 from sidekick.shared.observability.library_logs import withhold_record_content
 
 if TYPE_CHECKING:
@@ -240,6 +240,7 @@ def build_github_oauth_provider(
 def _upstream_client() -> httpx2.AsyncClient:
     """One pooled client for the GitHub identity check, bounded and never following redirects."""
 
+    silence_http_client_loggers()
     return httpx2.AsyncClient(timeout=10.0, follow_redirects=False)
 
 

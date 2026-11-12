@@ -26,6 +26,14 @@ from sidekick.companion.cli import PRESETS, SCOPE_DESCRIPTIONS
 from sidekick.companion.operations import OPERATIONS
 from sidekick.mcp.tool_scopes import TOOL_SCOPES
 from sidekick.shared.auth import COMPANION_SCOPES, MCP_SCOPES, OPT_IN_SCOPES
+from sidekick.shared.compat import (
+    is_append_action,
+    is_help_action,
+    is_subparsers_action,
+    parser_actions,
+    parser_exclusive_groups,
+    subparser_choice_actions,
+)
 from sidekick.shared.rooms import ROOM_SCOPES
 
 DEFAULT_OUTPUT_DIR = Path("docs/reference")
@@ -153,14 +161,10 @@ def _sentence(text: str) -> str:
 # --- CLI reference ------------------------------------------------------------------------------
 
 
-def _actions(parser: argparse.ArgumentParser) -> list[argparse.Action]:
-    return list(parser._actions)  # pyright: ignore[reportPrivateUsage]
-
-
 def _subparsers(parser: argparse.ArgumentParser) -> Any | None:
     """The subparsers action of a parser (it holds `choices` and `_choices_actions`), if any."""
-    for action in _actions(parser):
-        if isinstance(action, argparse._SubParsersAction):  # pyright: ignore[reportPrivateUsage]
+    for action in parser_actions(parser):
+        if is_subparsers_action(action):
             return cast("Any", action)
     return None
 
@@ -168,8 +172,8 @@ def _subparsers(parser: argparse.ArgumentParser) -> Any | None:
 def _exclusive_peers(parser: argparse.ArgumentParser) -> dict[str, list[str]]:
     """For each option in a mutually exclusive group, the other options of the group."""
     peers: dict[str, list[str]] = {}
-    for group in parser._mutually_exclusive_groups:  # pyright: ignore[reportPrivateUsage]
-        names = [_names(action) for action in group._group_actions]  # pyright: ignore[reportPrivateUsage]
+    for group in parser_exclusive_groups(parser):
+        names = [_names(action) for action in group]
         for name in names:
             peers[name] = [other for other in names if other != name]
     return peers
@@ -198,7 +202,7 @@ def _argument_notes(action: argparse.Action, peers: list[str]) -> str:
         notes.append(_sentence(action.help))
     if action.choices is not None and not action.metavar:
         notes.append("One of " + ", ".join(f"`{choice}`" for choice in action.choices) + ".")
-    if isinstance(action, argparse._AppendAction):  # pyright: ignore[reportPrivateUsage]
+    if is_append_action(action):
         notes.append("Repeatable.")
     default = action.default
     if default not in (None, False, argparse.SUPPRESS) and "default" not in (action.help or ""):
@@ -211,8 +215,8 @@ def _argument_notes(action: argparse.Action, peers: list[str]) -> str:
 def _argument_table(parser: argparse.ArgumentParser) -> list[str]:
     peers = _exclusive_peers(parser)
     rows: list[str] = []
-    for action in _actions(parser):
-        if isinstance(action, (argparse._HelpAction, argparse._SubParsersAction)):  # pyright: ignore[reportPrivateUsage]
+    for action in parser_actions(parser):
+        if is_help_action(action) or is_subparsers_action(action):
             continue
         required = "yes" if action.required or not action.option_strings else "no"
         if not action.option_strings and action.nargs == "?":
@@ -241,10 +245,7 @@ def _command_sections(spec: CliSpec, parser: argparse.ArgumentParser) -> list[st
         "",
     ]
     if sub := _subparsers(parser):
-        helps = {
-            choice.dest: choice.help or ""
-            for choice in sub._choices_actions  # pyright: ignore[reportPrivateUsage]
-        }
+        helps = {choice.dest: choice.help or "" for choice in subparser_choice_actions(sub)}
         lines += ["| Command | What it does |", "| --- | --- |"]
         lines += [
             f"| [`{name}`](#{_anchor(spec, name)}) | {_sentence(helps[name])} |"

@@ -2,10 +2,6 @@
 
 from .models import (
     ActivityEntryRow,
-    AssistantAutomationControlRow,
-    AssistantAutomationPolicyRow,
-    AssistantAutomationRunRow,
-    AssistantTaskReviewFindingRow,
     ContactAliasRow,
     ContactRow,
     DailyJournalSummaryEntryRow,
@@ -29,10 +25,6 @@ from .session import create_session_factory
 
 __all__ = [
     "ActivityEntryRow",
-    "AssistantAutomationControlRow",
-    "AssistantAutomationPolicyRow",
-    "AssistantAutomationRunRow",
-    "AssistantTaskReviewFindingRow",
     "ContactAliasRow",
     "ContactRow",
     "DailyJournalSummaryEntryRow",

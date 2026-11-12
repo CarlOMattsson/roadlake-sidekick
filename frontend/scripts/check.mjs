@@ -1,7 +1,7 @@
 // Runs lint, typecheck and the unit tests in parallel. Each command's output is buffered
 // and printed under a heading when that command finishes. Exit code 1 if any command failed.
 //
-//   npm run check        lint + tsc -b + vitest run
+//   npm run check        lint + tsc -b + vitest run + the MCP App views on Preact (test:mcp-app:preact)
 //   npm run check:bail   same, but vitest stops after 5 failures (--bail=5)
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,10 @@ const steps = [
   {
     name: "test (vitest run)",
     args: ["run", "test", ...(bail ? ["--", "--bail=5"] : [])],
+  },
+  {
+    name: "test (MCP App views on Preact)",
+    args: ["run", "test:mcp-app:preact", ...(bail ? ["--", "--bail=5"] : [])],
   },
 ];
 

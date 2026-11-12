@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
 import type {
   ShoppingInput,
@@ -9,6 +8,7 @@ import type {
 import type { ShoppingLabels } from "../labels";
 import { localDay } from "../transport";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
+import { KeyScope } from "../../mcp-apps/ui/key-scope";
 
 /** How many of the fields behind "Fler fält" hold a value, so the closed toggle can say that something is there. */
 function filledExtras(item: ShoppingItem): number {
@@ -111,16 +111,11 @@ export function ItemEditor({
     });
   }
   return (
-    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-    <form
+    <KeyScope
+      as="form"
       ref={form}
       className="shopping-editor"
-      onKeyDown={(event: KeyboardEvent<HTMLFormElement>) => {
-        if (event.key !== "Escape" || event.defaultPrevented) return;
-        event.preventDefault();
-        event.stopPropagation();
-        onCancel();
-      }}
+      onEscape={onCancel}
     >
       <fieldset disabled={busy}>
         <legend>
@@ -348,6 +343,6 @@ export function ItemEditor({
           </button>
         </div>
       </fieldset>
-    </form>
+    </KeyScope>
   );
 }

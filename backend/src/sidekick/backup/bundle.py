@@ -22,15 +22,10 @@ from uuid import uuid4
 from cryptography.fernet import Fernet, InvalidToken
 from pydantic import SecretStr
 
-from sidekick.owner_export.core import (
-    EXPORT_FORMAT_VERSION,
-    ExportBudget,
-    ExportRefused,
-    OwnerExportService,
-    canonical_json,
-    verify_export,
-    verify_restorable,
-)
+from sidekick.owner_export.catalogue import EXPORT_FORMAT_VERSION, ExportRefused
+from sidekick.owner_export.document import ExportBudget, canonical_json, verify_export
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore_plan import verify_restorable
 from sidekick.shared.backup_files import (
     BACKUP_FILE_PREFIX,
     BACKUP_FILE_SUFFIX,

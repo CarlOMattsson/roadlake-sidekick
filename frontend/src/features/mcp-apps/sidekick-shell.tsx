@@ -35,7 +35,6 @@ import { AppFrame } from "@/features/mcp-apps/ui/layout";
 import { RenderErrorBoundary } from "@/features/mcp-apps/ui/error-boundary";
 import { controlEntry } from "@/features/mcp-apps/ui/control-entry";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
-import { useRovingFocus } from "@/features/mcp-apps/ui/roving-focus";
 import { useViewPicker } from "@/features/mcp-apps/ui/view-picker";
 import { ShellBar } from "./shell-parts/shell-bar";
 import {
@@ -129,7 +128,6 @@ export function SidekickShell({
     full,
     stripVisible,
   );
-  const onStripKeyDown = useRovingFocus();
   // The end of the Back row, where the view on top puts its own pen and ⋯ (BackHeaderActions).
   const [backSlot, setBackSlot] = useState<HTMLSpanElement | null>(null);
 
@@ -395,7 +393,6 @@ export function SidekickShell({
             stripCurrent={stripCurrent}
             tabStop={stripCurrent ?? stripRooms[0]}
             narrow={narrow}
-            onStripKeyDown={onStripKeyDown}
             onChoose={choose}
             picker={picker}
             back={

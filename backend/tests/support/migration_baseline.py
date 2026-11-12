@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import Connection
 from yoyo import get_backend, read_migrations
 
 from tests.db import (
@@ -24,7 +25,8 @@ ROOT = Path(__file__).resolve().parents[3]
 MIGRATIONS_PATH = ROOT / "migrations"
 
 
-BASELINE = "100_baseline_0_1_0"
+BASELINE = "100_schema_baseline_0_1_0"
+DROP_AUTOMATION = "106_drop_retired_automation_tables"
 
 
 # The catalogue facts a migration can change, each as sorted text rows. Deparsed definitions
@@ -100,6 +102,21 @@ def _apply(path: Path) -> None:
     migrations = read_migrations(str(path))
     with backend.lock():
         backend.apply_migrations(backend.to_apply(migrations))
+
+
+def _applied_ids() -> set[str]:
+    engine = create_engine(_admin_url())
+    try:
+        with engine.connect() as connection:
+            return set(connection.scalars(text("SELECT migration_id FROM public._yoyo_migration")))
+    finally:
+        engine.dispose()
+
+
+def _tables(connection: Connection) -> set[str]:
+    return set(
+        connection.scalars(text("SELECT tablename FROM pg_tables WHERE schemaname = 'sidekick'"))
+    )
 
 
 def _snapshot() -> dict[str, list[str]]:

@@ -31,14 +31,9 @@ from sidekick.backup.bundle import (
     write_backup_file,
 )
 from sidekick.backup.importer import load_export_document
-from sidekick.owner_export.core import (
-    EXPORT_SOURCES,
-    ExportBudget,
-    ExportRefused,
-    OwnerExportService,
-    build_export_document,
-    canonical_json,
-)
+from sidekick.owner_export.catalogue import EXPORT_SOURCES, ExportRefused
+from sidekick.owner_export.document import ExportBudget, build_export_document, canonical_json
+from sidekick.owner_export.export import OwnerExportService
 from tests.support.backup import EmptyBackupStore, FixedClock
 
 OWNER_ID = "00000000-0000-7000-8000-000000000001"

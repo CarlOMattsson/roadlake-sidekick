@@ -27,7 +27,7 @@ import {
 import { ControlRoom } from "@/features/control-app/room";
 import { JournalRoom } from "@/features/journal-app/room";
 import { ShoppingRoom } from "@/features/shopping-app/room";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
 import { WorkRoom } from "@/features/work-app/room";
 import type {
   RoomRegistry,

@@ -20,7 +20,7 @@ from sidekick.mcp.instrument import instrument_mcp
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import Actor
-from sidekick.tasks.application.service import MAX_BATCH_CREATE_TASKS, NewTaskItem
+from sidekick.tasks.application.models import MAX_BATCH_CREATE_TASKS, NewTaskItem
 from sidekick.tasks.domain import Priority
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -135,7 +135,7 @@ async def test_twenty_one_items_and_an_empty_list_are_refused_before_any_write()
         for number in range(MAX_BATCH_CREATE_TASKS + 1)
     ]
     with pytest.raises(ValidationError):
-        container.tasks.create_batch(actor, service_items, idempotency_key="batch-service-21")
+        container.task_bulk.create_batch(actor, service_items, idempotency_key="batch-service-21")
 
     assert container.tasks.list(actor, limit=100).items == []
 

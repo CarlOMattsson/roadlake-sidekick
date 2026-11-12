@@ -11,7 +11,8 @@ from uuid import UUID
 import pytest
 
 from sidekick.owner_export import cli as owner_export_cli
-from sidekick.owner_export.core import EXPORT_SOURCES, build_export_document
+from sidekick.owner_export.catalogue import EXPORT_SOURCES
+from sidekick.owner_export.document import build_export_document
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
 ANNA_ID = "00000000-0000-7000-8000-00000000c001"

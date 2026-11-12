@@ -5,7 +5,7 @@
 Sidekick reads 68 environment variables, all prefixed `SIDEKICK_`. Set them in the process environment or in a `.env` file in the directory the backend is started from. The executable truth is the `Settings` class in [backend/src/sidekick/shared/config/](../../backend/src/sidekick/shared/config/); this page is rendered from it and a test fails when the two differ.
 
 - An unknown `SIDEKICK_*` variable stops startup, so a misspelled name cannot leave a setting on its default.
-- **Secret** `yes` means the value is kept out of `repr` and logs; it is never printed here.
+- **Secret** `yes` means the value is kept out of `repr` and logs; it is never printed here. A secret can also be given as `<NAME>_FILE`, the path of a file that holds the value (for example `SIDEKICK_TOKEN_PEPPER_FILE`; a Docker secret). The file's trailing line break is dropped, and setting both `<NAME>` and `<NAME>_FILE` stops startup.
 - Examples: [.env.example](../../.env.example) for local development, [selfhost.env.example](../../deploy/selfhost/selfhost.env.example) for a self-hosted instance.
 
 ## Core

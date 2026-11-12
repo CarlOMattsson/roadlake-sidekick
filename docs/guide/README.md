@@ -12,6 +12,15 @@ You ask Claude for what you want done, in plain words. Claude then calls tools o
 
 Many changes are easiest to make by asking. Ask for a new task, a journal entry or ten items on a list, and Claude takes care of it. What Claude may read and change is decided by the scopes, meaning permissions, that you gave the connector.
 
+## Talk your day through with Claude
+
+The most effective way to use Sidekick is a conversation with Claude in voice mode while you walk, cycle or drive. Don't dictate commands: let Claude ask about your day and talk freely about whatever is on your mind. Ten minutes of conversation usually turns into a good number of tasks, journal entries and links, and clears your head of the things that keep going round in it.
+
+- Start with something like: "Ask me how my day has been, and help me get on top of everything I need to do."
+- Claude asks follow-up questions: who is involved, when it has to happen, what belongs together. Then it creates the tasks, journal entries and contacts in Sidekick and links them.
+- With other connectors in Claude, it can also go through Slack, email and your calendar to add tasks you missed and book meetings.
+- Only talk when it is safe, for example hands-free in the car.
+
 ## The rooms show and let you tap
 
 There are four rooms, Work (Arbete), Journal (Dagbok), Contacts (Kontakter) and Shopping (Inköp), plus Control (Kontroll). A room is a view that Claude shows inside the conversation. There you check things off, change dates, write by hand and move between records.
@@ -32,8 +41,8 @@ The server checks every change, whether it comes from Claude or from a room. The
 
 What is stored is your records: tasks, entries, contacts and items. The text of the conversation is not stored in Sidekick automatically. If you want to keep something from the conversation, ask Claude to write it in the journal.
 
-:::note[Preview]
-The rooms are built and tested in a simulated host. They have not yet been tried in real Claude connections.
+:::note[First release]
+The rooms are in daily use in Claude. This is the first version, so small rough edges can remain.
 :::
 
 ## Language in the rooms

@@ -107,6 +107,22 @@ class SourceFlags:
     excluded: bool
 
 
+@dataclass(frozen=True, slots=True)
+class SourceState:
+    """The sync state of one `memory_sources` row, as the maintenance commands need it."""
+
+    row_id: UUID
+    doc_key: str
+    status: str
+    excluded: bool
+    #: A parked marker left by a deleted document.
+    removed_marker: bool
+    attempts: int
+    operation_id: str | None
+    retained_at: datetime | None
+    next_attempt_at: datetime | None
+
+
 class MemoryStore(AuditingStore, Protocol):
     """Owner-scoped persistence for the memory use cases."""
 
@@ -352,4 +368,30 @@ class MemoryStore(AuditingStore, Protocol):
 
     def reset_retained_rows(self, session: TxSession, owner_id: UUID) -> int:
         """Set the owner's `retained`, non-excluded rows to `pending`; returns how many."""
+        ...
+
+    # -- maintenance commands --
+
+    def mark_owner_dirty(self, session: TxSession, owner_id: UUID, now: datetime) -> int:
+        """Make the owner's settled rows `pending` again; returns how many rows were touched.
+
+        Excluded rows, removal markers and `submitted` rows are left alone. A row that was
+        attempted but never confirmed gets `retained_at = now` when it has none, because its
+        attempt count is reset and a later delete must still know the bank may hold a document.
+        """
+        ...
+
+    def silence_owner(
+        self, session: TxSession, owner_id: UUID, *, clear_domains: bool, now: datetime
+    ) -> None:
+        """Pause the owner's sync (and with `clear_domains` switch every domain off).
+
+        Creates the settings row when the owner has none.
+        """
+        ...
+
+    def source_state_page(
+        self, session: TxSession, owner_id: UUID, *, after: UUID | None, limit: int
+    ) -> list[SourceState]:
+        """The owner's rows ordered by id, after `after`."""
         ...

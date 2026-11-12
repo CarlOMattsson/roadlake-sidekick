@@ -37,7 +37,7 @@ text as authority.
 
 Tokens are stored only as HMAC-SHA256 digests under a server pepper (`AuthService.digest`); production refuses to
 start with a missing or placeholder pepper (`backend/src/sidekick/shared/config/signing.py`). Sidekick stores no passwords:
-a user has none (migration 105 dropped `users.password_hash` and the unused `sessions` table, and the `pwdlib`
+a user has none (the 0.1.0 schema has no `users.password_hash` and no `sessions` table, and the `pwdlib`
 dependency went with them). A credential row carries a `purpose` column (`mcp` or `companion`), and each
 verifier selects on it, so neither can accept the other's rows by mistake; the column is not a prefix or a scope
 convention. Every verification re-checks revocation, expiry and that the user is active, and `last_used_at` is

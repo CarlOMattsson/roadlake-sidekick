@@ -9,17 +9,17 @@ import {
   upsertView,
   viewNameProblem,
   viewsOfTab,
-} from "@/features/work-app/saved-views";
+} from "@/features/work-app/saved-views/saved-views";
 import {
   savedViewsLabelsEn,
   savedViewsLabelsFor,
   savedViewsLabelsSv,
-} from "@/features/work-app/saved-views-labels";
+} from "@/features/work-app/saved-views/saved-views-labels";
 import type {
   WorkFilters,
   WorkSavedView,
   WorkSavedViewDefinition,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 function view(
   id: string,

@@ -1,15 +1,15 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
-import { WorkView } from "@/features/work-app/work-view";
-import { workEn } from "@/features/work-app/labels";
-import { linksLabelsEn } from "@/features/work-app/links-labels";
-import { cardLabelsEn } from "@/features/work-app/card-labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
+import { linksLabelsEn } from "@/features/work-app/shared/links-labels";
+import { cardLabelsEn } from "@/features/work-app/shared/card-labels";
 import {
   rootFromToolResult,
   type WorkItemRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   KEY,
   agendaTask,

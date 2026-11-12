@@ -13,8 +13,9 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError
 
 from sidekick.api.app import create_app
-from sidekick.contacts.application.service import CreateContactCommand
-from sidekick.owner_export.core import OwnerExportService, build_restore_plan
+from sidekick.contacts.application.models import CreateContactCommand
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.auth import ALL_SCOPES
 from sidekick.shared.errors import ConflictError, NotFoundError, PermissionDeniedError
 from sidekick.shared.types import Actor, new_uuid7

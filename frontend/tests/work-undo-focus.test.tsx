@@ -1,18 +1,18 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workSv } from "@/features/work-app/labels";
-import { linksLabelsSv } from "@/features/work-app/links-labels";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { StepActions } from "@/features/work-app/step-actions";
-import { TaskReferences } from "@/features/work-app/task-references";
-import { TaskSteps } from "@/features/work-app/task-steps";
+import { workSv } from "@/features/work-app/shared/labels";
+import { linksLabelsSv } from "@/features/work-app/shared/links-labels";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { StepActions } from "@/features/work-app/steps/step-actions";
+import { TaskReferences } from "@/features/work-app/tasks/task-references";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
 import type {
   WorkAction,
   WorkExternalReference,
   WorkStep,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 // jsdom has no CSS global; the row controls select their buttons with CSS.escape, as the browser does.
 if (!("CSS" in globalThis)) {

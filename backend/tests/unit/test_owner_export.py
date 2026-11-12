@@ -5,25 +5,26 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.owner_export.core import (
-    _POLYMORPHIC_SOURCE_NAMES,
-    _RETIRED_POLYMORPHIC_SOURCE_NAMES,
-    ACCEPTED_SCHEMA_HEADS,
+from sidekick.owner_export.catalogue import (
+    ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT_VERSION,
     EXPORT_SOURCES,
+    FOLDED_CHAIN_HEADS,
+    PREVIOUS_EXPORT_FORMAT_VERSION,
+    RETIRED_COLLECTIONS,
     SCHEMA_CHAIN,
     SCHEMA_HEAD,
     ExportRefused,
-    OwnerExportService,
-    OwnerRestoreService,
-    _restore_id,
     accepted_schema_heads,
-    build_export_document,
-    build_restore_plan,
-    export_checksum,
-    verify_export,
-    verify_restorable,
+)
+from sidekick.owner_export.document import build_export_document, export_checksum, verify_export
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore import OwnerRestoreService
+from sidekick.owner_export.restore_plan import build_restore_plan, verify_restorable
+from sidekick.owner_export.restore_remap import (
+    POLYMORPHIC_SOURCE_NAMES,
+    restore_id,
 )
 from sidekick.shared.persistence.models import (
     ActivityEntryRow,
@@ -32,6 +33,7 @@ from sidekick.shared.persistence.models import (
     TaskStatusHistoryRow,
 )
 from sidekick.shared.types import Actor
+from tests.support.export_format4 import BASELINE_HEAD, as_format_4
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
 # Tables with a generated `search_vector` (0.1.0 baseline); it is derived, never exported.
@@ -205,7 +207,7 @@ def test_a_required_user_reference_that_cannot_resolve_blocks_the_plan(
     def refuse(*_args: object) -> None:
         raise ExportRefused("unresolved restore reference domain_events.actor_id")
 
-    monkeypatch.setattr("sidekick.owner_export.core._remap_user_reference", refuse)
+    monkeypatch.setattr("sidekick.owner_export.restore_plan.remap_user_reference", refuse)
 
     plan = build_restore_plan(document, OWNER_ID)
 
@@ -219,7 +221,7 @@ def test_a_restore_order_cycle_blocks_the_plan_instead_of_raising(
     def refuse(_collections: object) -> None:
         raise ExportRefused("restore order has a cycle")
 
-    monkeypatch.setattr("sidekick.owner_export.core._restore_source_order", refuse)
+    monkeypatch.setattr("sidekick.owner_export.restore_plan.restore_source_order", refuse)
 
     plan = build_restore_plan(domain_event_export("task"), OWNER_ID)
 
@@ -238,11 +240,10 @@ def _restored_aggregate_id(aggregate_type: str, target_owner: UUID) -> UUID:
     return store.session.added[0].aggregate_id  # type: ignore[attr-defined,no-any-return]
 
 
-# Every aggregate type with a mapping, a retired type, and one nothing knows: the record is gone
-# in each case (the export has no row of it), and none may stop a backup or a restore.
+# Every aggregate type with a mapping, and one nothing knows: the record is gone in each case
+# (the export has no row of it), and none may stop a backup or a restore.
 HISTORY_AGGREGATE_TYPES = (
-    *sorted(_POLYMORPHIC_SOURCE_NAMES),
-    *sorted(_RETIRED_POLYMORPHIC_SOURCE_NAMES),
+    *sorted(POLYMORPHIC_SOURCE_NAMES),
     "unknown_future_kind",
 )
 
@@ -261,44 +262,19 @@ def test_a_history_reference_to_a_removed_record_is_stable_and_never_blocks(
 
     assert restored != old_id
     assert restored == _restored_aggregate_id(aggregate_type, target_owner)
-    source = (
-        _POLYMORPHIC_SOURCE_NAMES.get(aggregate_type)
-        or _RETIRED_POLYMORPHIC_SOURCE_NAMES.get(aggregate_type)
-        or aggregate_type
-    )
+    source = POLYMORPHIC_SOURCE_NAMES.get(aggregate_type) or aggregate_type
     # The id a live record of that kind would have got, so references stay consistent.
-    assert restored == _restore_id(old_id, target_owner, source)
+    assert restored == restore_id(old_id, target_owner, source)
 
 
 def test_every_aggregate_type_the_ledger_writes_has_a_mapping() -> None:
     from sidekick.automation.application.service import ACTIVITY_AGGREGATE_SCOPES
 
-    written = {"task", "process_run", *ACTIVITY_AGGREGATE_SCOPES}
-    assert written <= set(_POLYMORPHIC_SOURCE_NAMES)
-    assert set(_POLYMORPHIC_SOURCE_NAMES.values()) <= {source.name for source in EXPORT_SOURCES}
-
-
-def test_a_reference_to_a_retired_record_gets_a_stable_id_and_does_not_block() -> None:
-    """A kept domain event can name a chat conversation whose table the baseline lacks."""
-
-    document = domain_event_export("chat_conversation")
-    target_owner = UUID("00000000-0000-7000-8000-000000000002")
-
-    plan = build_restore_plan(document, target_owner)
-    assert plan.status == "ready"
-    store = FakeRestoreStore()
-    OwnerRestoreService(store).restore(
-        document, target_owner_id=target_owner, expected_plan_checksum=plan.plan_checksum
-    )
-
-    restored = store.session.added[0]
-    old_id = UUID("00000000-0000-7000-8000-000000000011")
-    assert restored.aggregate_id not in (None, old_id)  # type: ignore[attr-defined]
-    again = FakeRestoreStore()
-    OwnerRestoreService(again).restore(
-        document, target_owner_id=target_owner, expected_plan_checksum=plan.plan_checksum
-    )
-    assert again.session.added[0].aggregate_id == restored.aggregate_id  # type: ignore[attr-defined]
+    # The run records of the retired automation engine have no export source any more; their ledger
+    # type stays readable and is restored under its own label like any unmapped type.
+    written = {"task", "process_run", *ACTIVITY_AGGREGATE_SCOPES} - {"automation_run"}
+    assert written <= set(POLYMORPHIC_SOURCE_NAMES)
+    assert set(POLYMORPHIC_SOURCE_NAMES.values()) <= {source.name for source in EXPORT_SOURCES}
 
 
 class FakeRestoreSession:
@@ -308,7 +284,7 @@ class FakeRestoreSession:
 
     def scalar(self, _query: object) -> object | None:
         self.scalar_calls += 1
-        return object() if self.scalar_calls == 1 else None
+        return None
 
     def execute(self, _query: object) -> None:
         return None
@@ -327,6 +303,9 @@ class FakeRestoreStore:
 
     def transaction(self, operation: object) -> object:
         return operation(self.session)  # type: ignore[operator]
+
+    def owner_exists(self, session: object, owner_id: UUID) -> bool:
+        return True
 
     def append_audit(self, session: object, **fields: object) -> None:
         self.audit.append(fields)
@@ -413,16 +392,17 @@ def reseal(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
-def test_current_export_is_format_four_at_the_chain_head() -> None:
+def test_current_export_is_format_five_at_the_chain_head() -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    assert document["format_version"] == EXPORT_FORMAT_VERSION == 4
+    assert document["format_version"] == EXPORT_FORMAT_VERSION == 5
     assert document["schema_head"] == SCHEMA_HEAD
     assert "external_references" in document["collections"]
     assert "task_external_references" in document["collections"]
     assert "memory_settings" in document["collections"]
     assert "chat_conversations" not in document["collections"]
+    assert not RETIRED_COLLECTIONS & set(document["collections"])
     assert "chat_memory_documents_derived_metadata" not in document["excluded"]
 
 
@@ -446,16 +426,68 @@ def test_the_schema_chain_lists_every_migration_file() -> None:
     assert [migration for migration, _ in SCHEMA_CHAIN] == files
 
 
-def test_an_export_from_head_100_is_accepted_by_head_101() -> None:
-    """Migration 101 only adds indexes, so it is format-neutral and head 100 stays readable."""
-
-    assert "100_baseline_0_1_0" in ACCEPTED_SCHEMA_HEADS
-    document = build_export_document(
+def _current_document() -> dict[str, Any]:
+    return build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    document["schema_head"] = "100_baseline_0_1_0"
 
-    assert verify_export(reseal(document)).owner_id == OWNER_ID
+
+@pytest.mark.parametrize("head", sorted(FOLDED_CHAIN_HEADS | {BASELINE_HEAD}))
+def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accepted(
+    head: str,
+) -> None:
+    """Format 4 was written at the baseline or at a head of the chain the baseline folded in
+    (the owner's installation carries 105). It differs from the current format only by four empty
+    collections of the retired automation engine, which are ignored."""
+
+    assert head in ACCEPTED_SCHEMA_HEADS_BY_FORMAT[PREVIOUS_EXPORT_FORMAT_VERSION]
+    assert head not in ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION]
+
+    verification = verify_export(as_format_4(_current_document(), head))
+
+    assert verification.owner_id == OWNER_ID
+    # The ignored collections are not part of what a reader sees.
+    assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
+
+
+def test_the_current_head_is_the_drop_of_the_retired_automation_tables() -> None:
+    assert SCHEMA_HEAD == "106_drop_retired_automation_tables"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+
+
+@pytest.mark.parametrize("name", sorted(RETIRED_COLLECTIONS))
+def test_a_format_4_export_with_a_row_in_a_retired_collection_is_refused(name: str) -> None:
+    document = as_format_4(_current_document(), retired_rows={name: [{"owner_id": str(OWNER_ID)}]})
+
+    with pytest.raises(ExportRefused, match=f"collection {name} of a retired feature"):
+        verify_export(document)
+
+
+def test_a_format_4_export_must_carry_every_retired_collection() -> None:
+    document = as_format_4(_current_document())
+    del document["collections"]["assistant_automation_runs"]
+    del document["manifest"]["collection_counts"]["assistant_automation_runs"]
+
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(document))
+
+
+def test_a_format_5_export_cannot_carry_a_retired_collection() -> None:
+    document = _current_document()
+    document["collections"]["assistant_automation_runs"] = []
+    document["manifest"]["collection_counts"]["assistant_automation_runs"] = 0
+
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(document))
+
+
+def test_the_head_of_one_format_is_not_accepted_for_the_other() -> None:
+    new_with_old_head = {**_current_document(), "schema_head": BASELINE_HEAD}
+    old_with_new_head = as_format_4(_current_document(), SCHEMA_HEAD)
+
+    for document in (new_with_old_head, old_with_new_head):
+        with pytest.raises(ExportRefused, match="unsupported schema head"):
+            verify_export(reseal(document))
 
 
 def test_a_real_format_change_ends_compatibility_with_older_heads() -> None:
@@ -465,7 +497,9 @@ def test_a_real_format_change_ends_compatibility_with_older_heads() -> None:
     assert accepted_schema_heads(chain[:2]) == {"100_a", "101_index"}
 
 
-@pytest.mark.parametrize("head", ["055_app_reads_migration_head", "101_future", "", None, 7])
+@pytest.mark.parametrize(
+    "head", ["055_app_reads_migration_head", "101_future", "100_schema_baseline", "", None, 7]
+)
 def test_any_other_schema_head_is_refused(head: object) -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -477,7 +511,7 @@ def test_any_other_schema_head_is_refused(head: object) -> None:
 
 
 def test_an_export_written_before_the_baseline_is_refused() -> None:
-    """Formats 1 to 3 (the retired chain) are no longer readable; only format 4 is."""
+    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 and 5 are."""
 
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -487,7 +521,7 @@ def test_an_export_written_before_the_baseline_is_refused() -> None:
     document["collections"]["chat_conversations"] = []
     document["manifest"]["collection_counts"]["chat_conversations"] = 0
 
-    with pytest.raises(ExportRefused, match="unsupported schema head"):
+    with pytest.raises(ExportRefused, match="unsupported export version"):
         verify_export(reseal(document))
 
 
@@ -540,7 +574,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
     assert document["collections"]["contacts"][0]["relationship"] == "syster"
 
 
-@pytest.mark.parametrize("version", [0, 1, 3, 5, "4", True, None, [4]])
+@pytest.mark.parametrize("version", [0, 1, 3, 6, "5", True, None, [5]])
 def test_a_format_version_that_the_head_never_wrote_is_refused(version: object) -> None:
     current = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -756,7 +790,7 @@ def test_snapshot_transaction_sets_repeatable_read_before_anything_else() -> Non
 def test_verify_restorable_accepts_a_closed_export_and_names_only_positions_when_it_refuses() -> (
     None
 ):
-    assert verify_restorable(domain_event_export("chat_conversation")).owner_id == OWNER_ID
+    assert verify_restorable(domain_event_export("unknown_future_kind")).owner_id == OWNER_ID
 
     document = domain_event_export("task")
     document["collections"]["task_status_history"] = [

@@ -1,11 +1,11 @@
 import { act, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { savedViewsLabelsSv } from "@/features/work-app/saved-views-labels";
+import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
 import type {
   WorkSavedView,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   meetings,
   boardView,

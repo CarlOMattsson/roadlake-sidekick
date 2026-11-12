@@ -45,7 +45,7 @@ from sidekick.structured.work import (
     work_hierarchy_structured,
 )
 from sidekick.tasks.domain import Priority, TaskStatus
-from sidekick.work.application.service import WorkToday
+from sidekick.work.application.models import WorkToday
 from sidekick.work.domain import MAX_ESTIMATED_MINUTES, MAX_TAG_FILTER_VALUES
 
 DEFAULT_TODAY_LIMIT = 20
@@ -68,13 +68,13 @@ def _today_json(today: WorkToday, timezone: str, limit: int) -> dict[str, Any]:
         "next_cursor": today.next_cursor,
         "items": [
             {
-                "id": str(item["id"]),
-                "title": item["title"],
-                "version": item["version"],
-                "status": item["status"],
-                "group": item["agenda_group"],
-                "due_at": iso(item["due_at"]),
-                "project_title": item.get("project_title"),
+                "id": str(item.id),
+                "title": item.title,
+                "version": item.version,
+                "status": item.status,
+                "group": item.agenda_group,
+                "due_at": iso(item.due_at),
+                "project_title": item.project_title,
             }
             for item in today.items
         ],
@@ -143,7 +143,7 @@ async def work_today(
     actor = operation_actor(credential, WORK_TODAY)
     container = request.app.state.container
     today = await run_in_threadpool(
-        lambda: container.contexts.work_today_page(actor, limit=limit, cursor=cursor)
+        lambda: container.work_lists.work_today_page(actor, limit=limit, cursor=cursor)
     )
     return JSONResponse(
         headers=no_store_headers,

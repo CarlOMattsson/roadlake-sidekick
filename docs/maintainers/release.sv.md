@@ -18,11 +18,13 @@ i `backend/pyproject.toml`; `tools/check-version-sync.py` (också ett enhetstest
 `backend/src/sidekick/__init__.py`, `frontend/package.json`, `frontend/package-lock.json`, Androids
 `versionName`/`versionCode` eller `CHANGELOG.md` inte stämmer överens. Se [Versioner](#versioner).
 
-## Förhandsstatus och vad som är verifierat
+## Första versionen och vad som är verifierat
 
-Version 0.1.0 är en förhandsversion: det finns ingen tagg, ingen publicerad containerimage och ingen publicerad APK
-än. Du bygger båda från repot (första serverstarten bygger imagen från din kopia; se
-[Snabbstart](../../QUICKSTART.md) och [android.sv.md](../operate/pair-android.sv.md)).
+Version 0.1.0 är den första versionen. Tills den är publicerad finns ingen tagg, containerimage eller APK att ladda ner,
+så du bygger båda från repot (första serverstarten bygger imagen från din kopia; se
+[Snabbstart](../../QUICKSTART.md) och [android.sv.md](../operate/pair-android.sv.md)). Från första releasen bär varje
+GitHub-release den signerade APK:n `sidekick-X.Y.Z.apk`, och imagen publiceras på `ghcr.io` (se
+[Vad en release ger](#vad-en-release-ger)); att bygga dem själv fungerar fortfarande.
 
 - **Drillat på Linux-containrar:** installation, uppdatering, backup och återställning av den självhostade stacken och
   av arbetsdatorpaketet (`tools/drill.sh`, också en releasegrind).
@@ -31,8 +33,9 @@ Version 0.1.0 är en förhandsversion: det finns ingen tagg, ingen publicerad co
   databas, migreringar, backend, användare och token, ett MCP-anrop, stdio-servern, bygget av MCP-appen,
   statiska kontroller), var och en i ett eget compose-projekt med genererade engångshemligheter. Stegen fungerar som
   de står; backendsviten mot testdatabasen ingick inte.
-- **Inte provat mot verkliga tjänster:** den självhostade HTTPS-profilen, en riktig GitHub-inloggning, riktiga
-  Claude-anslutningar, macOS, och Android-appen på en riktig telefon mot en riktig server med pushleverans.
+- **I daglig användning, verifierat av underhållaren 2026-11-12:** anslutningen till riktiga Claude, Android-appen på en
+  riktig telefon och servern på Linux.
+- **Ännu inte provat:** macOS.
 
 Räkna med skavanker och brytande ändringar tills en release är publicerad.
 
@@ -145,7 +148,23 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    python3 tools/check-version-sync.py --release --tag vX.Y.Z
    ```
 
-   Kör kontrollerna lokalt och slå ihop med `main`; själva releasekörningen kör hela CI.
+   Kör sedan hela releasegrinden på den commit du ska släppa:
+
+   ```sh
+   bash tools/check-all.sh --slot K --release
+   ```
+
+   `--release` lägger till, efter de vanliga stegen och i samma ordning som `.github/workflows/ci.yml`, de kontroller
+   som release-CI kör utöver dem: kontraktsdiffen (`sidekick.export_reference --check`,
+   `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, och ögonblicksbilderna under
+   `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning
+   (Chromium krävs: `npx playwright install chromium`) och beroendegranskningen i `audit.yml` (pip-audit, `npm audit`
+   för frontend och webbplatsen, OSV-Scanner på Gradle-låsfilerna). Frontend-steget omfattar redan MCP-appens vyer på
+   Preact. Beroendegranskningen kräver nätverk (och Docker för OSV-Scanner): en del vars verktyg eller värd inte
+   finns skriver en `SKIPPED: ...`-rad och steget rapporteras som `SKIPPED`, aldrig som `ok`; lägg till `--strict`
+   för att göra det till ett fel, och kör granskningen på en maskin med nätverk innan du släpper. Täcks inte lokalt:
+   emulatortestet, avbildsbygget och Compose-röktestet; releasekörningen gör dem.
+   Slå ihop med `main` när det är grönt; själva releasekörningen kör hela CI.
 3. **Torrkör först.** Actions, "release-image", Run workflow: `version` = `vX.Y.Z`, `migration_class` (se nedan),
    `previous_release` (`none` för den allra första releasen, annars tomt), **`dry_run` ikryssad**. Den bygger båda
    imageplattformarna och APK:n osignerad, pushar och signerar ingenting, behöver inga hemligheter och laddar upp
@@ -172,6 +191,11 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    Taggen ska vara signerad (`git tag -s`); en annoterad tagg (`git tag -a`) är minimum, eftersom nästa release hittar
    sin jämförelsepunkt från den och migrationskontrollen vägrar en lättviktig tagg. Arbetsflödet skapar aldrig taggen
    eller releasen; båda är medvetna, signerade steg som underhållaren tar.
+
+7. **Badges.** README-badgarna för senaste release, arbetsflödet release-image och Sigstore-signaturen är borttagna så
+   länge det inte finns någon release. Vid första releasen (`vX.Y.Z`, v0.1.0) lägger du tillbaka dem i
+   `tools/export/overlay/README.md` och `README.sv.md`, där kommentaren `<!-- release badges are added with the first release (v0.1.0) -->` står, i båda
+   språken, och kontrollerar att de renderas.
 
 ## Verifiera en release
 

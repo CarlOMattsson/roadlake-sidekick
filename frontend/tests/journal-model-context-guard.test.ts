@@ -3,15 +3,17 @@
 // app may not use it or console at all, and no feature may pass the journal content fields
 // (summary, key_points, raw_text) to it. onModelContext is the same channel as a prop of the rooms
 // and the shell, so the same rules apply to it.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { sourceFiles } from "./helpers/source-files";
 
 const featuresDir = path.resolve(import.meta.dirname, "../src/features");
 const journalAppDir = path.join(featuresDir, "journal-app");
 
 // Reviewed exception, keyed by "<relative file>:<argument text>". The work board summary
-// (work-app/board-summary.tsx) is passed as the bare identifier `summary`. It is board data,
+// (work-app/board/board-summary.tsx) is passed as the bare identifier `summary`. It is board data,
 // never journal content. Any other argument containing a journal field is a violation.
 const reviewedBoardSummaryCalls = new Set<string>([
   "work-app/room.tsx:summary",
@@ -29,16 +31,8 @@ const modelContextCallStart =
 type SourceFile = { rel: string; source: string };
 type ModelContextCall = { rel: string; args: string };
 
-function listSources(dir: string): string[] {
-  return readdirSync(dir).flatMap((entry) => {
-    const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) return listSources(full);
-    return /\.tsx?$/.test(entry) ? [full] : [];
-  });
-}
-
 function loadSources(dir: string): SourceFile[] {
-  return listSources(dir).map((file) => ({
+  return sourceFiles(dir, /\.tsx?$/).map((file) => ({
     rel: path.relative(featuresDir, file).split(path.sep).join("/"),
     source: readFileSync(file, "utf8"),
   }));
@@ -88,7 +82,7 @@ describe("D-058: journal text never reaches the model context", () => {
   const calls = all.flatMap(modelContextCalls);
 
   it("scans the journal app and finds model-context calls elsewhere", () => {
-    expect(listSources(journalAppDir).length).toBeGreaterThan(0);
+    expect(sourceFiles(journalAppDir, /\.tsx?$/).length).toBeGreaterThan(0);
     expect(calls.length).toBeGreaterThan(0);
   });
 

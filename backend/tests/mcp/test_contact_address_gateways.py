@@ -12,7 +12,7 @@ from uuid import UUID
 import pytest
 
 from sidekick.api.app import Container, create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
 from tests.db import database_factory
@@ -71,7 +71,7 @@ def _structured(result: Any) -> Mapping[str, Any]:
 async def test_list_contacts_and_list_task_contacts_structured_content_has_no_address() -> None:
     container, actor, contact_id = _setup()
     task = container.tasks.create(actor, title="Ring Anna", idempotency_key="address-gateway-task")
-    container.contacts.link_task(actor, contact_id, task.id, "address-gateway-link")
+    container.contact_relations.link_task(actor, contact_id, task.id, "address-gateway-link")
     server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
 
     listed = await server.call_tool("list_contacts", {})

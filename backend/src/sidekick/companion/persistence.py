@@ -17,7 +17,7 @@ from uuid import UUID
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.companion.push import revoke_for_device
+from sidekick.companion.push_subscription_store import revoke_for_device
 from sidekick.shared.auth import TOKEN_PURPOSE_COMPANION
 from sidekick.shared.persistence.models import (
     AuditEventRow,
@@ -85,6 +85,14 @@ class CompanionDeviceStore:
     @staticmethod
     def user_is_active(session: TxSession, user_id: UUID) -> bool:
         return bool(session.scalar(select(UserRow.active).where(UserRow.id == user_id)))
+
+    @staticmethod
+    def active_owner_ids(session: TxSession, limit: int) -> list[UUID]:
+        """At most `limit` ids of active users."""
+
+        return list(
+            session.scalars(select(UserRow.id).where(UserRow.active.is_(True)).limit(limit))
+        )
 
     @staticmethod
     def add_pairing(

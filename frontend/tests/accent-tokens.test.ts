@@ -3,15 +3,11 @@
 // view and were removed (gzip size). The test reads the CSS file as text and changes no CSS. The contrast
 // requirements (3:1 for an edge, 4.5:1 for text) are computed against the fallback values by a separate script
 // and are not tested here.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const tokensPath = path.resolve(
-  import.meta.dirname,
-  "../src/features/mcp-apps/ui/tokens.css",
-);
-const css = readFileSync(tokensPath, "utf8");
+import { readSource } from "./helpers/source-files";
+
+const css = readSource("features/mcp-apps/ui/tokens.css");
 const source = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 const accentNames = [

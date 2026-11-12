@@ -8,10 +8,10 @@ import type {
   ShoppingDetail,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
-import { WorkNewTaskContext } from "@/features/work-app/empty-actions";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { WorkEmpty } from "@/features/work-app/work-empty";
-import type { WorkTransport } from "@/features/work-app/transport";
+import { WorkNewTaskContext } from "@/features/work-app/shared/empty-actions";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { WorkEmpty } from "@/features/work-app/shared/work-empty";
+import type { WorkTransport } from "@/features/work-app/transport/transport";
 import { renderAgenda } from "./helpers/agenda-triage-fixtures";
 
 // The empty Agenda, Status and shopping list explain themselves and offer a way on, as Kontakter and Dagbok do.

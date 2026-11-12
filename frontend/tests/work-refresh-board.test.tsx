@@ -2,14 +2,14 @@ import { act, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import { BoardView } from "@/features/work-app/board";
-import { workEn } from "@/features/work-app/labels";
+import { BoardView } from "@/features/work-app/board/board";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkBoardFrame,
   WorkBoardPage,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import { elementWithText } from "./helpers/exact-text";
 
 const todoCard: WorkItemRecord = {

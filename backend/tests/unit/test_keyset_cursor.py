@@ -15,7 +15,7 @@ from sidekick.shared.types import (
     CursorCodec,
 )
 from sidekick.shared.types.core import unpack_key
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery
 from sidekick.work.listing import AgendaSpec, WorkListSpec, sort_keys
 
 ACTOR = UUID(int=7)

@@ -3,14 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { elementWithText } from "./helpers/exact-text";
-import { WorkView } from "@/features/work-app/work-view";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   rootFromToolResult,
   type WorkAgendaPage,
   type WorkItemRecord,
   type WorkTask,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   KEY,
   agendaTask,

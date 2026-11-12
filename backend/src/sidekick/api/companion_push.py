@@ -39,12 +39,12 @@ from sidekick.companion.push import (
     PairingNotFound,
     PushSubscriptionService,
 )
-from sidekick.companion.push_reminders import (
-    MAX_ACK_IDS,
+from sidekick.companion.push_reminder_models import (
     NoActiveSubscription,
     PendingReminders,
     PushTestRateLimited,
 )
+from sidekick.companion.push_reminders import MAX_ACK_IDS
 
 MAX_PUSH_BODY_BYTES = 2048
 MAX_ACK_BODY_BYTES = 4096
@@ -68,10 +68,7 @@ ACK_BODY = RequestBody(AckRequest, MAX_ACK_BODY_BYTES)
 
 
 def _push_service(request: Request) -> PushSubscriptionService:
-    container = request.app.state.container
-    return PushSubscriptionService(
-        container.session_factory, container.settings.push_allowed_host_set
-    )
+    return request.app.state.container.push_subscriptions
 
 
 def _reminders_json(pending: PendingReminders, timezone: str) -> dict[str, Any]:

@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -8,14 +6,15 @@ import {
   cardLabelsEn,
   cardLabelsFor,
   cardLabelsSv,
-} from "@/features/work-app/card-labels";
-import { WorkCard } from "@/features/work-app/work-card";
+} from "@/features/work-app/shared/card-labels";
+import { WorkCard } from "@/features/work-app/inline/work-card";
 import type {
   WorkCardFrame,
   WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
-const srcDir = path.resolve(import.meta.dirname, "../src/features/work-app");
+import { readSource } from "./helpers/source-files";
+import { readStylesheet } from "./helpers/stylesheet";
 
 function item(
   index: number,
@@ -68,14 +67,6 @@ function keyPaths(value: Record<string, unknown>, prefix = ""): string[] {
   });
 }
 
-/** Rule bodies from a stylesheet, keyed by their selector text. */
-function cssRules(css: string): Array<{ selector: string; body: string }> {
-  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((match) => ({
-    selector: match[1]!.trim(),
-    body: match[2]!,
-  }));
-}
-
 describe("work card labels", () => {
   it("expose identical key sets for Swedish and English", () => {
     expect(keyPaths(cardLabelsSv).sort()).toEqual(
@@ -104,8 +95,8 @@ describe("work card labels", () => {
   });
 
   it("is self-contained: the card and its labels import no Sidekick app catalogue or components", () => {
-    for (const file of ["work-card.tsx", "card-labels.ts"]) {
-      const source = readFileSync(path.join(srcDir, file), "utf8");
+    for (const file of ["inline/work-card.tsx", "shared/card-labels.ts"]) {
+      const source = readSource(`features/work-app/${file}`);
       expect(source, file).not.toMatch(/from\s+["']@\/(i18n|components)/);
     }
   });
@@ -488,10 +479,11 @@ describe("work card rows", () => {
 
 describe("work card styling", () => {
   // The inline card rules are in inline-summary.css (work.css keeps .work-compact-status, see its cascade note).
-  const css = ["work.css", "inline-summary.css"]
-    .map((file) => readFileSync(path.join(srcDir, file), "utf8"))
-    .join("\n");
-  const compactRules = cssRules(css).filter((rule) =>
+  const sheet = readStylesheet(
+    "features/work-app/shell/work.css",
+    "features/work-app/inline/inline-summary.css",
+  );
+  const compactRules = sheet.rules.filter((rule) =>
     rule.selector.includes("work-compact"),
   );
 
@@ -501,10 +493,14 @@ describe("work card styling", () => {
 
   it("has no inner scroll", () => {
     for (const rule of compactRules) {
-      expect(rule.body, rule.selector).not.toMatch(
-        /overflow(-x|-y)?:\s*(auto|scroll)/,
-      );
-      expect(rule.body, rule.selector).not.toMatch(/max-height/);
+      for (const property of ["overflow", "overflow-x", "overflow-y"]) {
+        expect(["auto", "scroll"], rule.selector).not.toContain(
+          rule.declarations[property],
+        );
+      }
+      expect(rule.declarations, rule.selector).not.toHaveProperty([
+        "max-height",
+      ]);
     }
   });
 
@@ -515,17 +511,20 @@ describe("work card styling", () => {
     // The floor is the family's --sk-tap token (tokens.css), which must stay at 2.75rem = 44 px. The primary
     // action takes the family's 48 px (--sk-tap-lg) through .sk-btn--primary, which only adds to the floor. Every
     // card action has a text label, so no min-width is needed (Open is a text button with ›).
-    expect(action?.body).toMatch(/min-height:\s*var\(--sk-tap\)/);
-    const tokens = readFileSync(
-      path.resolve(srcDir, "../mcp-apps/ui/tokens.css"),
-      "utf8",
-    );
-    expect(tokens).toMatch(/--sk-tap:\s*2\.75rem;/);
+    expect(action?.declarations["min-height"]).toBe("var(--sk-tap)");
+    expect(
+      readStylesheet("features/mcp-apps/ui/tokens.css").rule(":root")[
+        "--sk-tap"
+      ],
+    ).toBe("2.75rem");
   });
 
   it("takes its colours from the host variables, not literal colours", () => {
     for (const rule of compactRules) {
-      expect(rule.body, rule.selector).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
+      expect(
+        Object.values(rule.declarations).join(" "),
+        rule.selector,
+      ).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
     }
   });
 });

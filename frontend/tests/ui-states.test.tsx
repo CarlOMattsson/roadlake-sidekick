@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,12 +5,13 @@ import {
   EmptyState,
   ErrorNotice,
   Skeleton,
+  SkeletonRows,
   errorLabelsFor,
 } from "@/features/mcp-apps/ui/states";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
+import { readStylesheet } from "./helpers/stylesheet";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -439,17 +438,30 @@ describe("ErrorNotice heading by subject", () => {
 });
 
 describe("states styling", () => {
-  const css = readFileSync(path.join(uiDir, "states.css"), "utf8");
+  const css = readStylesheet("features/mcp-apps/ui/states.css");
 
   it("draws the skeleton with the waiting placeholder's blocks, whose pulse stops under reduced motion", () => {
-    const wait = readFileSync(path.join(uiDir, "..", "awaiting.css"), "utf8");
-    expect(css).not.toMatch(/sk-skeleton-pulse/);
-    expect(wait).toMatch(
-      /@media \(prefers-reduced-motion: reduce\)\s*\{[^}]*\.sidekick-wait-block\s*\{[^}]*animation:\s*none/,
-    );
+    const wait = readStylesheet("features/mcp-apps/awaiting.css");
+    render(<SkeletonRows rows={1} />);
+    const block = document.querySelector(".sidekick-wait-block") as Element;
+
+    expect(
+      css.rules.some((rule) =>
+        rule.declarations.animation?.includes("sk-skeleton-pulse"),
+      ),
+    ).toBe(false);
+    expect(
+      wait.styleOf(block, {
+        conditions: ["@media (prefers-reduced-motion: reduce)"],
+      }).animation,
+    ).toBe("none");
   });
 
   it("uses no pixel font sizes", () => {
-    expect(css).not.toMatch(/font-size:\s*\d+px/);
+    for (const rule of css.rules) {
+      expect(rule.declarations["font-size"] ?? "", rule.selector).not.toMatch(
+        /^\d+px$/,
+      );
+    }
   });
 });

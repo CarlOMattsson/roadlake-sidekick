@@ -14,7 +14,7 @@ from mcp.types import ToolAnnotations
 from sqlalchemy import text
 
 from sidekick.api.app import Container, create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.journal.domain.source import SourceType
 from sidekick.lifecycle import RecordKind
 from sidekick.lifecycle.application.service import _READ_SCOPE
@@ -77,7 +77,7 @@ def make_harness(username: str) -> Harness:
     contact = container.contacts.create(
         actor, CreateContactCommand(display_name="Trash contact"), f"{username}-contact"
     )
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 21),
@@ -88,7 +88,7 @@ def make_harness(username: str) -> Harness:
         replaces_source_id=None,
         idempotency_key=f"{username}-source",
     )
-    entry = container.journal.create_manual_entry(
+    entry = container.journal_capture.create_manual_entry(
         actor,
         source_id=source.id,
         title=JOURNAL_TITLE,
@@ -266,7 +266,7 @@ async def test_journal_sources_are_not_part_of_the_mcp_surface() -> None:
     """Sources are immutable (no UPDATE grant), so trash cannot move them."""
 
     harness = make_harness("trash-journal-source")
-    source_id = harness.container.journal.create_source(
+    source_id = harness.container.journal_capture.create_source(
         harness.actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 22),
@@ -614,7 +614,7 @@ async def test_trashed_journal_sources_do_not_take_the_page_from_readable_record
     admin = create_test_session_factory(admin_url)
     source_ids = []
     for index in range(3):
-        source = harness.container.journal.create_source(
+        source = harness.container.journal_capture.create_source(
             harness.actor,
             source_type=SourceType.MANUAL_TEXT,
             journal_date=date(2026, 7, 25 + index),

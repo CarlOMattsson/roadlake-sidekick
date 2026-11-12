@@ -102,6 +102,33 @@ x-sidekick-env-push: &sidekick-env-push
   SIDEKICK_PUSH_QUIET_START:
   SIDEKICK_PUSH_QUIET_END:
 
+# Secrets as files instead of environment variables. A value in the environment is visible to every process of the
+# container and to `docker inspect`; a file mounted at /run/secrets is neither. Opt in per secret: set
+# SELFHOST_<NAME>_FILE in selfhost.env to the path of the file (relative to this directory, for example
+# ./secrets/token_pepper), and remove SIDEKICK_<NAME> from selfhost.env; `sh secrets-to-files.sh` does both without
+# printing a value. While the variable is not set, the file is /dev/null, SIDEKICK_<NAME>_FILE is empty (the backend
+# then ignores it) and the plain SIDEKICK_<NAME> keeps working. A secret reaches exactly the services that read it,
+# like the lists above; setting both SIDEKICK_<NAME> and SIDEKICK_<NAME>_FILE stops the process at startup.
+# backend/tests/selfhost/test_selfhost_secret_scope.py keeps the two lists in step.
+x-sidekick-secret-files-common: &sidekick-secret-files-common
+  SIDEKICK_DATABASE_URL_FILE: ${SELFHOST_DATABASE_URL_FILE:+/run/secrets/database_url}
+  SIDEKICK_CURSOR_SIGNING_SECRET_FILE: ${SELFHOST_CURSOR_SIGNING_SECRET_FILE:+/run/secrets/cursor_signing_secret}
+  SIDEKICK_TOKEN_PEPPER_FILE: ${SELFHOST_TOKEN_PEPPER_FILE:+/run/secrets/token_pepper}
+
+x-sidekick-secret-files-memory: &sidekick-secret-files-memory
+  SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN_FILE: ${SELFHOST_MEMORY_HINDSIGHT_API_TOKEN_FILE:+/run/secrets/memory_hindsight_api_token}
+  SIDEKICK_MEMORY_ID_DERIVATION_KEY_FILE: ${SELFHOST_MEMORY_ID_DERIVATION_KEY_FILE:+/run/secrets/memory_id_derivation_key}
+
+x-sidekick-secret-files-backup: &sidekick-secret-files-backup
+  SIDEKICK_BACKUP_ENCRYPTION_KEY_FILE: ${SELFHOST_BACKUP_ENCRYPTION_KEY_FILE:+/run/secrets/backup_encryption_key}
+
+x-sidekick-secret-files-push: &sidekick-secret-files-push
+  SIDEKICK_PUSH_AUTH_TOKEN_FILE: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:+/run/secrets/push_auth_token}
+
+x-sidekick-secret-files-oauth: &sidekick-secret-files-oauth
+  SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:+/run/secrets/mcp_oauth_github_client_secret}
+  SIDEKICK_MCP_OAUTH_SIGNING_KEY_FILE: ${SELFHOST_MCP_OAUTH_SIGNING_KEY_FILE:+/run/secrets/mcp_oauth_signing_key}
+
 x-sidekick-build: &sidekick-build
   context: ../..
   dockerfile: backend/Dockerfile
@@ -206,9 +233,25 @@ services:
       # Pinned here, not only in the env file, so a missing or edited file cannot fall back to the
       # development defaults of Settings.
       SIDEKICK_ENVIRONMENT: production
+      <<:
+        - *sidekick-secret-files-common
+        - *sidekick-secret-files-memory
+        - *sidekick-secret-files-backup
+        - *sidekick-secret-files-push
+        - *sidekick-secret-files-oauth
     env_file:
       - path: ./selfhost.env
         required: false
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - memory_hindsight_api_token
+      - memory_id_derivation_key
+      - backup_encryption_key
+      - push_auth_token
+      - mcp_oauth_github_client_secret
+      - mcp_oauth_signing_key
     depends_on:
       postgres: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
@@ -292,12 +335,18 @@ services:
     image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
     build: *sidekick-build
     environment:
-      <<: [*sidekick-env-common, *sidekick-env-memory]
+      <<: [*sidekick-env-common, *sidekick-env-memory, *sidekick-secret-files-common, *sidekick-secret-files-memory]
       # Pinned as on api, so a missing or edited file cannot fall back to the development defaults.
       SIDEKICK_ENVIRONMENT: production
       SIDEKICK_PUSH_ENABLED:
       SIDEKICK_PUSH_WAKE_MIN_INTERVAL_SECONDS:
       SIDEKICK_LICENSE_PUBLIC_KEY:
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - memory_hindsight_api_token
+      - memory_id_derivation_key
     command:
       - sidekick-automation-worker
     healthcheck:
@@ -329,10 +378,15 @@ services:
     environment:
       # Pinned here so that the profile alone turns backups on and fixes the target directory.
       # Retention and interval are in selfhost.env.example. The key must be set in selfhost.env.
-      <<: [*sidekick-env-common, *sidekick-env-backup]
+      <<: [*sidekick-env-common, *sidekick-env-backup, *sidekick-secret-files-common, *sidekick-secret-files-backup]
       SIDEKICK_ENVIRONMENT: production
       SIDEKICK_BACKUP_ENABLED: "true"
       SIDEKICK_BACKUP_DIRECTORY: /var/lib/sidekick/backups
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - backup_encryption_key
     command:
       - sidekick-backup-worker
     healthcheck:
@@ -369,8 +423,13 @@ services:
     image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
     build: *sidekick-build
     environment:
-      <<: [*sidekick-env-common, *sidekick-env-push]
+      <<: [*sidekick-env-common, *sidekick-env-push, *sidekick-secret-files-common, *sidekick-secret-files-push]
       SIDEKICK_ENVIRONMENT: production
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - push_auth_token
     command:
       - sidekick-push-worker
     healthcheck:
@@ -426,8 +485,8 @@ services:
 
   caddy:
     profiles: [vps]
-    # Tag caddy:2-alpine (a floating tag), pinned by manifest-list digest (resolved 2026-11-10). Bump deliberately.
-    image: caddy:2-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    # Caddy 2.11.9, pinned by exact tag and manifest-list digest (the digest decides what runs). Bump deliberately.
+    image: caddy:2.11.9-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
     environment:
       SIDEKICK_DOMAIN: ${SELFHOST_DOMAIN:?set SELFHOST_DOMAIN in selfhost.env}
     volumes:
@@ -462,13 +521,13 @@ services:
     restart: unless-stopped
 
   hindsight:
-    # Memory, memory profile only. Hindsight 0.8.4 pinned by digest (the contract's fallbackReference). Version
+    # Memory, memory profile only. Hindsight 0.8.4 pinned by digest, with its exact tag (the contract's fallbackReference). Version
     # 1.1.0 is not delivered here yet: it is adopted only after its live retain and recall checks pass and an
     # upgrade path for an existing memory volume exists (see contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml). Its database is the embedded pg0,
     # kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
     # Settings and secrets: hindsight.env (copy of hindsight.env.example), never selfhost.env.
     profiles: [memory]
-    image: ghcr.io/vectorize-io/hindsight@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
+    image: ghcr.io/vectorize-io/hindsight:0.8.4@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
     env_file:
       - path: ./hindsight.env
         required: false
@@ -528,9 +587,15 @@ services:
     image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
     build: *sidekick-build
     environment:
-      <<: [*sidekick-env-common, *sidekick-env-memory]
+      <<: [*sidekick-env-common, *sidekick-env-memory, *sidekick-secret-files-common, *sidekick-secret-files-memory]
       # Pinned as on api, so a missing or edited file cannot fall back to the development defaults.
       SIDEKICK_ENVIRONMENT: production
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - memory_hindsight_api_token
+      - memory_id_derivation_key
     command:
       - sidekick-memory-worker
     healthcheck:
@@ -567,6 +632,31 @@ networks:
   # Internal: ntfy and Caddy only. ntfy has no route to the internet and nothing else can reach it.
   push:
     internal: true
+
+# The files behind the secrets above. Compose bind-mounts each file read-only at /run/secrets/<name> and, for a file
+# source, ignores uid, gid and mode: the container user (sidekick) reads the file with the permissions it has on the
+# host. secrets-to-files.sh therefore puts the files in a directory that only you can enter (mode 700) and makes the
+# files themselves readable (mode 644); the directory is what keeps other host users out. /dev/null is the value
+# while a secret is not opted in (see x-sidekick-secret-files-common).
+secrets:
+  database_url:
+    file: ${SELFHOST_DATABASE_URL_FILE:-/dev/null}
+  cursor_signing_secret:
+    file: ${SELFHOST_CURSOR_SIGNING_SECRET_FILE:-/dev/null}
+  token_pepper:
+    file: ${SELFHOST_TOKEN_PEPPER_FILE:-/dev/null}
+  memory_hindsight_api_token:
+    file: ${SELFHOST_MEMORY_HINDSIGHT_API_TOKEN_FILE:-/dev/null}
+  memory_id_derivation_key:
+    file: ${SELFHOST_MEMORY_ID_DERIVATION_KEY_FILE:-/dev/null}
+  backup_encryption_key:
+    file: ${SELFHOST_BACKUP_ENCRYPTION_KEY_FILE:-/dev/null}
+  push_auth_token:
+    file: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:-/dev/null}
+  mcp_oauth_github_client_secret:
+    file: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:-/dev/null}
+  mcp_oauth_signing_key:
+    file: ${SELFHOST_MCP_OAUTH_SIGNING_KEY_FILE:-/dev/null}
 
 volumes:
   pgdata: {}

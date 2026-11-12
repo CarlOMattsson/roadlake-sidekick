@@ -14,6 +14,7 @@ from sidekick.shared.config.oauth import (
     parse_mcp_oauth_scopes,
 )
 from sidekick.shared.config.push import parse_push_allowed_hosts
+from sidekick.shared.config.secret_files import is_secret_field, secret_file_variable_names
 from sidekick.shared.config.settings import Settings
 from sidekick.shared.config.sources import (
     ConfigurationSources,
@@ -36,11 +37,13 @@ __all__ = [
     "dotenv_variables",
     "get_admin_settings",
     "get_settings",
+    "is_secret_field",
     "parse_mcp_oauth_identities",
     "parse_mcp_oauth_redirect_uris",
     "parse_mcp_oauth_scopes",
     "parse_owner_timezone",
     "parse_push_allowed_hosts",
+    "secret_file_variable_names",
 ]
 
 

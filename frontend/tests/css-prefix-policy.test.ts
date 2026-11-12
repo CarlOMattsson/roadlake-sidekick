@@ -4,9 +4,11 @@
 //
 // The prefix counts only where it starts a name: "search-", "match-", "touch-", "each-" or
 // "--branch-" never match, because the character before "ch-" is part of the same word.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { sourceFiles } from "./helpers/source-files";
 
 const frontendDir = path.resolve(import.meta.dirname, "..");
 const repoDir = path.resolve(frontendDir, "..");
@@ -14,16 +16,6 @@ const repoDir = path.resolve(frontendDir, "..");
 const legacyPrefix = /(?<![A-Za-z0-9_$-])(?:--)?ch-/g;
 
 const sourceExtensions = new Set([".ts", ".tsx", ".css", ".html", ".json"]);
-
-function walk(dir: string, keep: (file: string) => boolean): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).flatMap((name) => {
-    const full = path.join(dir, name);
-    if (name === "node_modules") return [];
-    if (statSync(full).isDirectory()) return walk(full, keep);
-    return keep(full) ? [full] : [];
-  });
-}
 
 function legacyHits(files: string[]): string[] {
   return files.flatMap((file) => {
@@ -38,8 +30,8 @@ function legacyHits(files: string[]): string[] {
 
 describe("CSS prefix policy (sk-, never ch-)", () => {
   it("frontend/src uses no ch- or --ch- prefix", () => {
-    const files = walk(path.join(frontendDir, "src"), (file) =>
-      sourceExtensions.has(path.extname(file)),
+    const files = sourceFiles(path.join(frontendDir, "src"), (name) =>
+      sourceExtensions.has(path.extname(name)),
     );
     expect(files.length).toBeGreaterThan(0);
     expect(legacyHits(files)).toEqual([]);
@@ -54,12 +46,8 @@ describe("CSS prefix policy (sk-, never ch-)", () => {
     );
     const built = [
       ...(existsSync(committedApp) ? [committedApp] : []),
-      ...walk(path.join(frontendDir, "dist-mcp-app"), (file) =>
-        file.endsWith(".css"),
-      ),
-      ...walk(path.join(frontendDir, "dist-mobile"), (file) =>
-        file.endsWith(".css"),
-      ),
+      ...sourceFiles(path.join(frontendDir, "dist-mcp-app"), /\.css$/),
+      ...sourceFiles(path.join(frontendDir, "dist-mobile"), /\.css$/),
     ];
     expect(built.length).toBeGreaterThan(0);
     expect(legacyHits(built)).toEqual([]);

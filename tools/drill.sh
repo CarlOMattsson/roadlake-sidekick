@@ -683,7 +683,7 @@ pick_port() {
 copy_selfhost_files() { # $1 = destination directory
   mkdir -p "$1"
   (cd "$REPO/deploy/selfhost" && find . -mindepth 1 -maxdepth 1 \
-    ! -name '*.env' ! -name '*secrets*' ! -name 'update-state' ! -name 'Caddyfile' ! -name '*.partial' \
+    ! -name '*.env' ! -name '*secrets' ! -name 'update-state' ! -name 'Caddyfile' ! -name '*.partial' \
     -exec cp -a {} "$1/" \;)
   cp "$1/Caddyfile.example" "$1/Caddyfile"
 }
@@ -859,7 +859,7 @@ sh_compose() {
 }
 sh_psql() { sh_compose exec -T postgres psql -U postgres -d sidekick -v ON_ERROR_STOP=1 -Atc "$1"; }
 sh_schema() { sh_psql "select count(*) from _yoyo_migration"; }
-sh_head() { sh_psql "select migration_id from _yoyo_migration order by migration_id desc limit 1"; }
+sh_head() { sh_psql "select migration_id from _yoyo_migration order by applied_at_utc desc, migration_id desc limit 1"; }
 sh_update_sh() { bash "$SH_DIR/update.sh" -p "$SH_PROJECT" -f "$SH_DIR/compose.yaml" -f "$SH_DIR/drill.override.yaml" "$@"; }
 # Encrypt or decrypt stdin with the key of selfhost.env (the container's env_file), the way update.sh does.
 sh_crypto() { sh_compose run --rm -T --no-deps api python -I -c "$(cat "$SH_DIR/snapshot_crypto.py")" "$1"; }
@@ -1066,6 +1066,9 @@ wk_set_image() {
 wk_install() {
   mkdir -p "$WK_REPO/tools" "$WK_REPO/deploy/work"
   cp "$REPO/tools/work.sh" "$WK_REPO/tools/work.sh"
+  # work.sh delegates its logic to the standard-library package tools/workctl.
+  cp -R "$REPO/tools/workctl" "$WK_REPO/tools/workctl"
+  find "$WK_REPO/tools/workctl" -name __pycache__ -prune -exec rm -rf {} +
   copy_selfhost_files "$WK_REPO/deploy/selfhost"
   cp "$REPO/deploy/work/compose.yaml" "$REPO/deploy/work/gateway.haproxy.cfg" "$REPO/deploy/work/work.env.example" "$WK_REPO/deploy/work/"
   {

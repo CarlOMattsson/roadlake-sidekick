@@ -7,10 +7,13 @@ import {
 } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { manageLabelsSv } from "@/features/work-app/manage-labels";
-import { workSv } from "@/features/work-app/labels";
-import { TaskSteps } from "@/features/work-app/task-steps";
-import type { WorkStep, WorkTransport } from "@/features/work-app/transport";
+import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
+import { workSv } from "@/features/work-app/shared/labels";
+import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import type {
+  WorkStep,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
 
 // jsdom has no CSS global; the row controls use CSS.escape to find a control by its Step id.
 if (!("CSS" in globalThis)) {

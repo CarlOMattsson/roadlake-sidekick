@@ -14,7 +14,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ
-from sidekick.mcp.contacts import CLOSEST_HINT
+from sidekick.mcp.contact_text import CLOSEST_HINT
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.results import output_schema, result, spoken_names
 from sidekick.mcp.text import flat, rows_text

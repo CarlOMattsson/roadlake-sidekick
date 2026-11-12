@@ -17,10 +17,11 @@ from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import ProgrammingError
 
 from sidekick.api.app import create_app
+from sidekick.companion.push_reminder_models import PushTestRateLimited
+from sidekick.companion.push_reminder_store import SqlReminderStore
 from sidekick.companion.push_reminders import (
     TEST_TITLES,
     TESTS_PER_HOUR,
-    PushTestRateLimited,
     ReminderScheduler,
     ReminderService,
 )
@@ -32,6 +33,7 @@ from sidekick.shared.persistence.models import (
     TaskRow,
 )
 from sidekick.shared.types import new_uuid7
+from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.companion import bearer, create_task, owner, paired_token
 from tests.support.companion_push import (
@@ -55,26 +57,6 @@ class Clock:
         return self.now
 
 
-_ROUTE_CLOCK: list[Clock] = []
-
-
-@pytest.fixture(autouse=True)
-def route_uses_the_tests_fixed_clock(monkeypatch: pytest.MonkeyPatch) -> None:
-    """The routes build their own `ReminderService` on the real clock; reminders older than a day
-    are stale, so a test pinned to a fixed day would start failing once that day is past. `setup()`
-    registers the test's clock and the routes read it."""
-
-    _ROUTE_CLOCK.clear()
-    original = ReminderService
-
-    def with_fixed_clock(*args: Any, **kwargs: Any) -> ReminderService:
-        if _ROUTE_CLOCK:
-            kwargs.setdefault("clock", _ROUTE_CLOCK[0])
-        return original(*args, **kwargs)
-
-    monkeypatch.setattr("sidekick.api.companion.ReminderService", with_fixed_clock)
-
-
 def push_app(**overrides: object) -> FastAPI:
     settings = make_settings().model_copy(
         update={"companion_enabled": True, "push_enabled": True, **overrides}
@@ -84,7 +66,10 @@ def push_app(**overrides: object) -> FastAPI:
 
 def scheduler(app: FastAPI, clock: Clock) -> ReminderScheduler:
     return ReminderScheduler.from_settings(
-        app.state.container.settings, factory_of(app), clock=clock
+        app.state.container.settings,
+        SqlReminderStore(factory_of(app)),
+        SqlAlchemyStore(factory_of(app)),
+        clock=clock,
     )
 
 
@@ -113,7 +98,13 @@ def setup(
     client = TestClient(app)
     token, device = subscribed(client, app, user_id)
     clock = clock or Clock(NOON)
-    _ROUTE_CLOCK[:] = [clock]
+    # The routes use the container's `ReminderService`, which reads the real clock; reminders older
+    # than a day are stale, so a test pinned to a fixed day would start failing once that day is
+    # past. The test's clock replaces the service the routes read.
+    container = app.state.container
+    container.reminders = ReminderService(
+        SqlReminderStore(factory_of(app)), clock=clock, locale=container.settings.mcp_app_locale
+    )
     return app, client, user_id, token, device, clock
 
 
@@ -445,7 +436,7 @@ def test_pending_is_empty_without_reminders_and_caps_at_twenty_items_newest_kept
             "summary": None,
         }
         factory = factory_of(app)
-        service = ReminderService(factory, clock=clock)
+        service = ReminderService(SqlReminderStore(factory), clock=clock)
         with factory.begin() as session:
             for index in range(25):
                 session.add(
@@ -470,7 +461,7 @@ def test_a_reminder_nobody_fetched_for_a_day_is_stale() -> None:
     with client:
         task_due(app, user_id, datetime(2026, 11, 7, 10, 0, tzinfo=UTC))
         scheduler(app, clock).run_once()
-        service = ReminderService(factory_of(app), clock=clock)
+        service = ReminderService(SqlReminderStore(factory_of(app)), clock=clock)
         clock.now = NOON + timedelta(hours=23)
         assert service.pending(user_id).summary is not None
         clock.now = NOON + timedelta(hours=25)
@@ -484,7 +475,7 @@ def test_ack_hides_the_reminders_is_idempotent_and_touches_only_the_owners_own()
         seeded_pending(app, client, user_id, clock)
         other = owner(app, "someone-else")
         other_token = paired_token(client, app, other)
-        stranger = ReminderService(factory_of(app), clock=clock)
+        stranger = ReminderService(SqlReminderStore(factory_of(app)), clock=clock)
         with factory_of(app).begin() as session:
             foreign = uuid4()
             session.add(
@@ -659,7 +650,7 @@ def test_the_test_route_allows_five_an_hour_per_device() -> None:
 def test_the_test_budget_frees_up_after_an_hour() -> None:
     app, client, user_id, _token, device, clock = setup()
     with client:
-        service = ReminderService(factory_of(app), clock=clock)
+        service = ReminderService(SqlReminderStore(factory_of(app)), clock=clock)
         for _ in range(TESTS_PER_HOUR):
             service.queue_test(user_id, device)
         with pytest.raises(PushTestRateLimited):

@@ -1,6 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -10,8 +7,9 @@ import {
   type SegmentedOption,
 } from "@/features/mcp-apps/ui/segmented";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
-const workDir = path.resolve(import.meta.dirname, "../src/features/work-app");
+import { Fold } from "@/features/mcp-apps/ui/fold";
+
+import { readStylesheet } from "./helpers/stylesheet";
 
 const optionsSv: SegmentedOption<string>[] = [
   { value: "agenda", label: "Agenda" },
@@ -245,112 +243,119 @@ describe.each([
   });
 });
 
-describe("Segmented styling", () => {
-  it("keeps every option at least 44 px high and out of a horizontal scroll", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+const NARROW = "@container (max-width: 360px)";
 
-    expect(css).toMatch(
-      /\.sk-segmented__option\s*\{[^}]*min-height:\s*2\.75rem/,
+describe("Segmented styling", () => {
+  const sheet = readStylesheet("features/mcp-apps/ui/segmented.css");
+  const family = readStylesheet("features/mcp-apps/ui/family.css");
+
+  /** A rendered row with one pressed option, one plain and one with a badge. */
+  function renderRow() {
+    render(
+      <Segmented
+        label="Vyer"
+        options={[
+          { value: "a", label: "Agenda" },
+          { value: "b", label: "Board" },
+          { value: "c", label: "Klara", badge: "3" },
+        ]}
+        value="a"
+        onChange={vi.fn()}
+      />,
     );
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*flex-wrap:\s*wrap/);
-    expect(css).not.toMatch(/overflow-x:\s*(auto|scroll)/);
+    return {
+      group: screen.getByRole("group", { name: "Vyer" }),
+      pressed: screen.getByRole("button", { name: "Agenda" }),
+      plain: screen.getByRole("button", { name: "Board" }),
+      badged: screen.getByRole("button", { name: /Klara/ }),
+    };
+  }
+
+  it("keeps every option at least 44 px high, wrapped onto more rows rather than scrolled", () => {
+    const { group, plain } = renderRow();
+
+    expect(sheet.styleOf(plain)["min-height"]).toBe("2.75rem");
+    expect(sheet.styleOf(group)["flex-wrap"]).toBe("wrap");
+    expect(
+      sheet.rules.map((rule) => rule.declarations["overflow-x"]),
+    ).not.toContain("auto");
   });
 
-  it("uses only host tokens with fallbacks, no own colour scheme media query", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+  it("uses host tokens with fallbacks and no colour scheme query of its own", () => {
+    const { group } = renderRow();
 
-    expect(css).not.toMatch(/prefers-color-scheme/);
-    expect(css).toMatch(/var\(--color-text-primary,\s*light-dark\(/);
+    expect(sheet.rules.map((rule) => rule.conditions.join(" "))).not.toContain(
+      "@media (prefers-color-scheme: dark)",
+    );
+    expect(sheet.styleOf(group)["--sk-seg-fg"]).toMatch(
+      /^var\(--color-text-primary, light-dark\(/,
+    );
   });
 
   it("shares the row equally with 12 px inside each option, and a 1 px frame with no gap or padding", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+    const { group, plain } = renderRow();
 
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*flex:\s*1 1 0/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*padding:\s*0\.25rem 0\.75rem;/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented\s*\{[^}]*border:\s*1px solid var\(--sk-border,/,
-    );
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*gap:\s*0;/);
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*padding:\s*0;/);
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*background:\s*transparent/);
-    // Each option reaches 1 px over the frame, so the pressed contour replaces the frame line where it lies.
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*margin:\s*-1px;/,
+    expect(sheet.styleOf(plain)).toMatchObject({
+      padding: "0.25rem 0.75rem",
+      // Each option reaches 1 px over the frame, so the pressed contour replaces the frame line where it lies.
+      margin: "-1px",
+      "min-width": "min-content",
+    });
+    expect(sheet.styleOf(group)).toMatchObject({
+      gap: "0",
+      padding: "0",
+      background: "transparent",
+    });
+    expect(sheet.styleOf(group).border).toMatch(
+      /^1px solid var\(--sk-border, /,
     );
   });
 
-  it("never narrows an option below its longest word, and wraps the row when the options do not fit", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+  it("wraps a label inside its option and never cuts it with an ellipsis", () => {
+    const { plain } = renderRow();
+    const label = plain.querySelector(".sk-segmented__label") as HTMLElement;
 
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*min-width:\s*min-content/,
-    );
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*flex-wrap:\s*wrap/);
+    expect(sheet.styleOf(label)["white-space"]).toBe("normal");
+    expect(sheet.styleOf(plain)).toMatchObject({
+      "line-height": "1.2",
+      "text-align": "center",
+      border: "0",
+      background: "transparent",
+    });
+    for (const rule of sheet.rules) {
+      expect(rule.declarations["text-overflow"], rule.selector).toBeUndefined();
+      expect(rule.declarations["line-clamp"], rule.selector).toBeUndefined();
+      expect(
+        rule.declarations["-webkit-line-clamp"],
+        rule.selector,
+      ).toBeUndefined();
+    }
   });
 
-  it("wraps a label inside its option and never cuts it with an ellipsis, and the option keeps its own border and background", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
+  it("fills the pressed option with the toned fill, the text colour and 600, and marks it with a 2 px contour", () => {
+    const { pressed, plain } = renderRow();
+    const style = sheet.styleOf(pressed);
 
-    expect(css).not.toMatch(/text-overflow:\s*ellipsis/);
-    expect(css).not.toMatch(/-webkit-line-clamp|line-clamp:/);
-    expect(css).toMatch(/\.sk-segmented__label\s*\{[^}]*white-space:\s*normal/);
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*line-height:\s*1\.2;/,
+    expect(style.background).toMatch(/^var\(--sk-selected-bg, light-dark\(/);
+    expect(style.color).toBe("var(--sk-seg-fg)");
+    expect(style["font-weight"]).toBe("var(--font-weight-semibold, 600)");
+    expect(style["box-shadow"]).toBe(
+      "inset 0 0 0 var(--sk-selected-width, 2px) var(--sk-selected-line, var(--sk-seg-fg))",
     );
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*text-align:\s*center/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*border:\s*0/,
-    );
-    expect(css).toMatch(
-      /\.sk-segmented \.sk-segmented__option\s*\{[^}]*background:\s*transparent/,
-    );
+    // The option that is not pressed gets none of it.
+    expect(sheet.styleOf(plain)["box-shadow"]).toBeUndefined();
+    expect(sheet.styleOf(plain).color).toBe("var(--sk-seg-muted)");
   });
 
-  it("fills the pressed option with the toned fill, the text colour and 600, not an inverse fill", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
-    const pressed =
-      /\.sk-segmented \.sk-segmented__option\[aria-pressed="true"\]\s*\{([^}]*)\}/.exec(
-        css,
-      )?.[1];
-
-    expect(pressed, "pressed option rule").toBeDefined();
-    expect(pressed).toMatch(
-      /background:\s*var\(--sk-selected-bg,\s*light-dark\(/,
+  it("draws no focus ring of its own: the family's one ring covers every control", () => {
+    for (const rule of sheet.rules) {
+      expect(rule.declarations.outline, rule.selector).toBeUndefined();
+    }
+    const ring = family.rule(
+      ":focus-visible, :is(.work-banner, .journal-banner):focus",
     );
-    expect(pressed).toMatch(/color:\s*var\(--sk-seg-fg\)/);
-    expect(pressed).toMatch(
-      /font-weight:\s*var\(--font-weight-semibold,\s*600\)/,
-    );
-    expect(css).not.toMatch(/--sk-seg-on-/);
-  });
-
-  it("marks the pressed option with a 2 px contour in the text colour, and its focus ring is the family's one ring", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
-    const family = readFileSync(path.join(uiDir, "family.css"), "utf8");
-    const pressed =
-      /\.sk-segmented \.sk-segmented__option\[aria-pressed="true"\]\s*\{([^}]*)\}/.exec(
-        css,
-      )?.[1];
-
-    expect(pressed, "pressed option rule").toBeDefined();
-    expect(pressed).toMatch(
-      /box-shadow:\s*inset 0 0 0 var\(--sk-selected-width,\s*2px\)\s*var\(--sk-selected-line,\s*var\(--sk-seg-fg\)\)/,
-    );
-    expect(pressed).not.toMatch(/--sk-seg-ring/);
-    // One focus ring for every control: segmented.css draws none of its own, family.css draws it for all.
-    expect(css.replace(/\/\*[\s\S]*?\*\//g, "")).not.toMatch(
-      /outline|--sk-seg-ring/,
-    );
-    expect(family).toMatch(
-      /:focus-visible,\s*:is\(\.work-banner, \.journal-banner\):focus\s*\{[^}]*outline:\s*2px solid var\(--sk-ring\);[^}]*outline-offset:\s*2px;/,
-    );
+    expect(ring.outline).toBe("2px solid var(--sk-ring)");
+    expect(ring["outline-offset"]).toBe("2px");
   });
 
   it("wraps a plain label in the label span, so the wrapping applies without a badge", () => {
@@ -369,65 +374,43 @@ describe("Segmented styling", () => {
     );
   });
 
-  it("keeps a label whole in a narrow frame (360 px or less): no line clamp that would hide a line, the option still 44 px high", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
-    const narrow = /@container \(max-width:\s*360px\)\s*\{([\s\S]*?)\n\}/.exec(
-      css,
-    )?.[1];
-
-    expect(narrow, "narrow frame rule").toBeDefined();
-    expect(narrow).not.toMatch(/line-clamp/);
-    expect(narrow).not.toMatch(/\.sk-segmented__label/);
-    // The cell keeps its 12 px and the frame its 1 px at every width; only the label gets smaller.
-    expect(narrow).not.toMatch(/padding/);
-    expect(narrow).toMatch(/\.sk-segmented__option--badged\s*\{\s*gap:\s*0;/);
-    expect(narrow).not.toMatch(/min-height/);
-    expect(css).toMatch(
-      /\.sk-segmented__option\s*\{[^}]*min-height:\s*2\.75rem/,
+  it("in a narrow container only the label gets smaller: the cell keeps its padding, frame and 44 px height", () => {
+    const { group, plain, badged } = renderRow();
+    const narrowRules = sheet.rules.filter((rule) =>
+      rule.conditions.includes(NARROW),
     );
-  });
 
-  it("keeps the 1 px frame at 320 px, the label at 0.875rem or more, and no ellipsis", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
-    const narrow = /@container \(max-width:\s*360px\)\s*\{([\s\S]*?)\n\}/.exec(
-      css,
-    )?.[1];
-
-    expect(narrow, "narrow frame rule").toBeDefined();
-    // The frame is not shrunk in the narrow rule: it is 1 px with no gap or padding at every width.
-    expect(narrow).not.toMatch(/\.sk-segmented\s*\{/);
-    expect(css).toMatch(/\.sk-segmented\s*\{[^}]*gap:\s*0;[^}]*padding:\s*0;/);
-    const size = /font-size:\s*([\d.]+)rem;/.exec(narrow ?? "")?.[1];
-    expect(size, "narrow label font size").toBeDefined();
+    // A nearest-container query (no name), so a Kontroll card that is not an .sk-frame app frame gets it too.
+    expect(narrowRules.length).toBeGreaterThan(0);
+    const narrow = sheet.styleOf(plain, { conditions: [NARROW] });
+    const size = /^([\d.]+)rem$/.exec(narrow["font-size"] ?? "")?.[1];
     expect(Number(size)).toBeGreaterThanOrEqual(0.875);
-    expect(css).not.toMatch(/text-overflow:\s*ellipsis/);
-  });
-
-  it("is a nearest-container query, so a Kontroll card (not an .sk-frame app frame) gets the narrow rule too", () => {
-    const css = readFileSync(path.join(uiDir, "segmented.css"), "utf8");
-
-    expect(css).not.toMatch(/@container sk-frame \(max-width:\s*360px\)/);
-    expect(css).toMatch(/@container \(max-width:\s*360px\)/);
+    expect(narrow.padding).toBeUndefined();
+    expect(narrow["min-height"]).toBeUndefined();
+    expect(sheet.styleOf(group, { conditions: [NARROW] })).toEqual({});
+    expect(sheet.styleOf(badged, { conditions: [NARROW] }).gap).toBe("0");
+    const label = plain.querySelector(".sk-segmented__label") as HTMLElement;
+    expect(sheet.styleOf(label, { conditions: [NARROW] })).toEqual({});
   });
 });
 
 describe("Single-column board sections on a phone", () => {
   it("heads each section in the section type and the foreground colour, and folds Klar with the shared fold row", () => {
-    const css = readFileSync(path.join(workDir, "work.css"), "utf8");
-    const heading =
-      /\.work-board\[data-layout="single"\] \.work-column > h3\s*\{([^}]*)\}/.exec(
-        css,
-      );
+    const work = readStylesheet("features/work-app/shell/work.css");
+    const heading = work.rule(
+      '.sidekick-work .work-board[data-layout="single"] .work-column > h3',
+    );
 
-    expect(heading?.[1], "single section heading rule").toBeDefined();
-    expect(heading?.[1]).toMatch(/font:\s*var\(--sk-type-section\)/);
-    expect(heading?.[1]).toMatch(/color:\s*var\(--sk-fg\)/);
-    expect(heading?.[1]).not.toMatch(/color:\s*var\(--sk-muted\)/);
-    // The own fold rule is gone: "Klar (n)" is the shared .sk-fold, in the section type and ink (row.css).
-    expect(css).not.toMatch(/\.work-board-fold/);
-    const fold = readFileSync(path.join(uiDir, "row.css"), "utf8");
-    const rule = /\.sk-fold\s*\{([^}]*)\}/.exec(fold)?.[1] ?? "";
-    expect(rule).toMatch(/font:\s*var\(--sk-type-section\)/);
-    expect(rule).toMatch(/color:\s*var\(--sk-fg\)/);
+    expect(heading.font).toBe("var(--sk-type-section)");
+    expect(heading.color).toBe("var(--sk-fg)");
+    // "Klar (n)" is the shared .sk-fold, in the section type and ink (row.css), not a rule of the board's own.
+    expect(work.has(".work-board-fold")).toBe(false);
+    render(<Fold text="Klar (2)" open={false} onToggle={vi.fn()} />);
+    const fold = readStylesheet("features/mcp-apps/ui/row.css").styleOf(
+      screen.getByRole("button"),
+      { room: "sidekick-work" },
+    );
+    expect(fold.font).toBe("var(--sk-type-section)");
+    expect(fold.color).toBe("var(--sk-fg)");
   });
 });

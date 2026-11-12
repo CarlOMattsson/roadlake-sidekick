@@ -68,7 +68,7 @@ async def make_harness(username: str, *, with_task: bool = True) -> Harness:
         task_id = container.tasks.create(
             actor, title=TASK_TITLE, idempotency_key=f"{username}-task"
         ).id
-    source = container.journal.create_source(
+    source = container.journal_capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 21),

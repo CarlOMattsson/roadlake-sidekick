@@ -2,22 +2,22 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { ContactCard } from "@/features/work-app/contact-card";
-import { cardLabelsSv } from "@/features/work-app/card-labels";
+import { ContactCard } from "@/features/work-app/contacts/contact-card";
+import { cardLabelsSv } from "@/features/work-app/shared/card-labels";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
-import { InlineSummary } from "@/features/work-app/inline-summary";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/inline/inline-summary-labels";
+import { InlineSummary } from "@/features/work-app/inline/inline-summary";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   rootFromToolResult,
   type WorkContactRecord,
   type WorkProject,
   type WorkTask,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * A record that is read and no longer exists (the host answers not_found) is not a read error: the view

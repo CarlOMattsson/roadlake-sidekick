@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { workSv } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
-import { type WorkTransport } from "@/features/work-app/transport";
+import { workSv } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { type WorkTransport } from "@/features/work-app/transport/transport";
 
 /*
  * A failed Task read shows a second line under the heading: "Sidekick svarade inte. Kontrollera anslutningen." when no answer came from

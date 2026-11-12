@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Protocol, TypeVar
+from typing import Protocol, TypeVar
 from uuid import UUID
 
 from sidekick.automation.domain import AutomationCategory
 from sidekick.shared.errors import ConflictError, ValidationError
-from sidekick.shared.replay import items_replay_record
+from sidekick.shared.replay import ids_result, items_replay_record, record_id
 from sidekick.shared.types import (
     Actor,
     AuditingStore,
@@ -137,8 +137,8 @@ class ProcessRunService:
         if not 1 <= max_runs <= MAX_PROCESS_RUNS:
             raise ValidationError("process run recovery bound must be between 1 and 100")
 
-        def operation(session: TxSession) -> list[dict[str, Any]]:
-            results: list[dict[str, Any]] = []
+        def operation(session: TxSession) -> list[ProcessRun]:
+            results: list[ProcessRun] = []
             for _ in range(max_runs):
                 process = self.store.claim_due_process(session, self.clock.now())
                 if process is None or process.next_expected_run_at is None:
@@ -172,10 +172,10 @@ class ProcessRunService:
                         scheduled_for=updated.next_expected_run_at,
                         now=self.clock.now(),
                     )
-                results.append(run_to_data(run))
+                results.append(run)
             return results
 
-        return [run_from_data(item) for item in self.store.transaction(operation)]
+        return self.store.transaction(operation)
 
     def recover_stalled_outbox(self) -> int:
         """Return abandoned Process-run intents to the queued state."""
@@ -205,11 +205,11 @@ class ProcessRunService:
         if not 1 <= max_runs <= MAX_PROCESS_RUNS:
             raise ValidationError("process reconciliation bound must be between 1 and 100")
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> list[ProcessRun]:
             process = self.store.get_process(session, actor.user_id, process_id)
             if process.status is not ProcessStatus.ACTIVE:
                 raise ConflictError("only an active Process can be reconciled")
-            results: list[dict[str, Any]] = []
+            results: list[ProcessRun] = []
             for _ in range(max_runs):
                 marker = process.next_expected_run_at
                 if process.cadence is None or marker is None or marker > self.clock.now():
@@ -225,18 +225,16 @@ class ProcessRunService:
                 if outbox is None:
                     break
                 results.append(
-                    run_to_data(
-                        self._materialize(
-                            session,
-                            process,
-                            marker,
-                            "user",
-                            correlation_id,
-                            actor_id=actor.user_id,
-                            outbox_id=outbox.id,
-                            outbox_worker_id=f"owner:{actor.user_id}",
-                            advance_schedule=True,
-                        )
+                    self._materialize(
+                        session,
+                        process,
+                        marker,
+                        "user",
+                        correlation_id,
+                        actor_id=actor.user_id,
+                        outbox_id=outbox.id,
+                        outbox_worker_id=f"owner:{actor.user_id}",
+                        advance_schedule=True,
                     )
                 )
                 self.store.enqueue_process_run_outbox(
@@ -247,7 +245,7 @@ class ProcessRunService:
                     now=self.clock.now(),
                 )
                 process = self.store.get_process(session, actor.user_id, process_id)
-            return {"runs": results}
+            return results
 
         def replayed(session: TxSession) -> list[ProcessRun]:
             result = self.store.idempotent(
@@ -256,11 +254,11 @@ class ProcessRunService:
                 operation="reconcile_process_runs",
                 key=idempotency_key,
                 payload={"process_id": str(process_id), "max_runs": max_runs},
-                execute=lambda: operation(session),
+                execute=lambda: ids_result((run.id for run in operation(session)), "runs"),
                 replay=lambda result: items_replay_record(result, "runs"),
             )
             return self.store.get_process_runs(
-                session, actor.user_id, [UUID(item["id"]) for item in result["runs"]]
+                session, actor.user_id, [record_id(item) for item in result["runs"]]
             )
 
         return self.store.transaction(replayed)
@@ -495,27 +493,3 @@ class ProcessRunService:
             correlation_id=correlation_id,
             occurred_at=now,
         )
-
-
-def run_to_data(run: ProcessRun) -> dict[str, Any]:
-    return {
-        "id": str(run.id),
-        "owner_id": str(run.owner_id),
-        "process_id": str(run.process_id),
-        "task_id": str(run.task_id),
-        "scheduled_for": run.scheduled_for.isoformat(),
-        "template_version": run.template_version,
-        "created_at": run.created_at.isoformat(),
-    }
-
-
-def run_from_data(data: dict[str, Any]) -> ProcessRun:
-    return ProcessRun(
-        id=UUID(data["id"]),
-        owner_id=UUID(data["owner_id"]),
-        process_id=UUID(data["process_id"]),
-        task_id=UUID(data["task_id"]),
-        scheduled_for=datetime.fromisoformat(data["scheduled_for"]),
-        template_version=data["template_version"],
-        created_at=datetime.fromisoformat(data["created_at"]),
-    )

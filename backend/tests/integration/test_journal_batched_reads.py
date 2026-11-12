@@ -66,7 +66,7 @@ def _world(entry_count: int) -> tuple[Container, sessionmaker[Session], Actor, U
     actor = Actor(owner_id, SCOPES)
     project_id, contact_id = _seed_links(factory, owner_id)
     for number in range(entry_count):
-        container.journal.write_entry(
+        container.journal_capture.write_entry(
             actor,
             source_type=SourceType.TRANSCRIPT_TEXT,
             journal_date=DAY,
@@ -121,7 +121,7 @@ def _statement_counts(entry_count: int) -> dict[str, int]:
     counts["day"] = len(statements)
     assert len(day["entries"]) == entry_count
     assert day["entry_fingerprint"] == entry_fingerprint(
-        container.journal.get_day(actor, journal_date=DAY).entries
+        container.journal_day.get_day(actor, journal_date=DAY).entries
     )
     return counts
 
@@ -150,5 +150,5 @@ def test_the_day_fingerprint_reads_no_entry_text() -> None:
     assert len(statements) == 1
     for column in ("title", "summary", "key_points", "raw_text"):
         assert column not in statements[0]
-    day = container.journal.get_day(actor, journal_date=DAY)
+    day = container.journal_day.get_day(actor, journal_date=DAY)
     assert entry_fingerprint(heads) == day.entry_fingerprint

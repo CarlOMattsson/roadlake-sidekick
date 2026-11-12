@@ -11,10 +11,20 @@ from uuid import UUID
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.automation.application.service import ActivityLedger, AutomationPolicyService
-from sidekick.companion.push_outbox import install_wake_hook
+from sidekick.companion.persistence import CompanionDeviceStore
+from sidekick.companion.push import PushSubscriptionService
+from sidekick.companion.push_outbox_store import install_wake_hook
+from sidekick.companion.push_reminder_store import SqlReminderStore
+from sidekick.companion.push_reminders import ReminderService
+from sidekick.companion.push_subscription_store import SqlPushSubscriptionStore
+from sidekick.companion.service import CompanionDeviceService
+from sidekick.contacts.application.relations import ContactRelationService
 from sidekick.contacts.application.service import ContactService
 from sidekick.journal.application.analysis import JournalAnalysisService
+from sidekick.journal.application.capture import JournalCaptureService
+from sidekick.journal.application.day import JournalDayService
 from sidekick.journal.application.finalize import JournalFinalizeService
+from sidekick.journal.application.relations import JournalRelationService
 from sidekick.journal.application.service import JournalService
 from sidekick.license.persistence import LicenseStore
 from sidekick.license.service import LicenseService
@@ -38,12 +48,13 @@ from sidekick.shared.types import CursorCodec, SystemClock
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
 from sidekick.store import SqlAlchemyStore
-from sidekick.tasks.application import TaskService
+from sidekick.tasks.application import TaskBoardService, TaskBulkService, TaskService
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.steps_service import StepsService
 from sidekick.work.application.tags_service import WorkTagService
+from sidekick.work.application.work_lists import WorkListService
 
 # The session factory type, named here so the transport layers (`api`, `mcp`) can type the test
 # seam of `create_app` without importing SQLAlchemy themselves.
@@ -57,12 +68,19 @@ class Container:
     auth: AuthService
     projects: ProjectService
     contexts: ContextService
+    work_lists: WorkListService
     steps: StepsService
     saved_views: SavedViewService
     work_tags: WorkTagService
     tasks: TaskService
+    task_board: TaskBoardService
+    task_bulk: TaskBulkService
     contacts: ContactService
+    contact_relations: ContactRelationService
     journal: JournalService
+    journal_capture: JournalCaptureService
+    journal_day: JournalDayService
+    journal_relations: JournalRelationService
     shopping: ShoppingService
     references: ExternalReferenceService
     search: SearchService
@@ -71,6 +89,11 @@ class Container:
     automation: AutomationPolicyService
     lifecycle: RecordLifecycleService
     process_runs: ProcessRunService
+    # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
+    # the reminders the phone fetches. The companion routes reach them only through here.
+    companion_devices: CompanionDeviceService
+    push_subscriptions: PushSubscriptionService
+    reminders: ReminderService
     # The instance's license key and its display state (D-081); checked offline.
     license: LicenseService
     # Derived-memory provider, built once from settings; None when memory is off.
@@ -167,9 +190,11 @@ def create_container(
     contexts = ContextService(
         store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
     )
+    work_lists = WorkListService(
+        store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+    )
     steps = StepsService(store, SystemClock(), cursor_codec)
     contacts = ContactService(store, SystemClock(), cursor_codec)
-    journal = JournalService(store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
     container = Container(
@@ -178,12 +203,21 @@ def create_container(
         auth=auth_service,
         projects=projects,
         contexts=contexts,
+        work_lists=work_lists,
         steps=steps,
         saved_views=SavedViewService(store, SystemClock()),
         work_tags=WorkTagService(store, SystemClock(), cursor_codec),
         tasks=tasks,
+        task_board=TaskBoardService(store, SystemClock()),
+        task_bulk=TaskBulkService(tasks),
         contacts=contacts,
-        journal=journal,
+        contact_relations=ContactRelationService(store, SystemClock(), cursor_codec),
+        journal=JournalService(store, SystemClock(), cursor_codec),
+        journal_capture=JournalCaptureService(store, SystemClock()),
+        journal_day=JournalDayService(
+            store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+        ),
+        journal_relations=JournalRelationService(store),
         shopping=ShoppingService(
             ShoppingStore(factory, resolved_telemetry),
             SystemClock(),
@@ -204,6 +238,11 @@ def create_container(
         automation=automation_service,
         lifecycle=create_lifecycle_service(store, settings),
         process_runs=ProcessRunService(store, tasks, SystemClock(), activity_ledger),
+        companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
+        push_subscriptions=PushSubscriptionService.from_settings(
+            SqlPushSubscriptionStore(factory), settings
+        ),
+        reminders=ReminderService(SqlReminderStore(factory), locale=settings.mcp_app_locale),
         license=LicenseService(LicenseStore(factory), settings.license_public_key),
         memory=_memory_provider(settings),
         memory_store=memory_store,

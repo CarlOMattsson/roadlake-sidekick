@@ -1,11 +1,12 @@
 """Validated, non-executable saved Work view use cases."""
 
 import json
-from typing import Any, Protocol, TypeVar, cast
+from collections.abc import Mapping
+from typing import Protocol, TypeVar, cast
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
-from sidekick.shared.replay import id_replay_record
+from sidekick.shared.replay import id_replay_record, id_result, record_id
 from sidekick.shared.types import (
     Actor,
     AuditingStore,
@@ -15,31 +16,10 @@ from sidekick.shared.types import (
     TxSession,
     new_uuid7,
 )
-from sidekick.work.domain.saved_view import SavedView
+from sidekick.work.domain.saved_view import SAVED_VIEW_FIELDS, SavedView, SavedViewDefinition
 
 T = TypeVar("T")
 MAX_BYTES = 8192
-ALLOWED = {
-    "name",
-    "view",
-    "context",
-    "status",
-    "priority",
-    "priorities",
-    "attention",
-    "archive",
-    "kind",
-    "q",
-    "sort",
-    "group",
-    "version",
-    # Planning filters: a saved view may name them, never anything executable.
-    "tags",
-    "tag_match",
-    "actionable",
-    "waiting",
-    "estimate",
-}
 MAX_SAVED_VIEW_TAGS = 5
 
 
@@ -53,8 +33,8 @@ class SavedViewStore(TransactionalStore, IdempotentStore, AuditingStore, Protoco
     ) -> None: ...
 
 
-def validate_definition(value: dict[str, Any]) -> dict[str, Any]:
-    if set(value) - ALLOWED:
+def validate_definition(value: Mapping[str, object]) -> SavedViewDefinition:
+    if set(value) - SAVED_VIEW_FIELDS:
         raise ValidationError("saved view contains unsupported fields")
     if value.get("view") not in {"dashboard", "hierarchy", "list", "board", "agenda"}:
         raise ValidationError("saved view has an invalid view")
@@ -80,7 +60,7 @@ def validate_definition(value: dict[str, Any]) -> dict[str, Any]:
     encoded = json.dumps(value, separators=(",", ":"), sort_keys=True)
     if len(encoded.encode()) > MAX_BYTES:
         raise ValidationError("saved view is too large")
-    return value
+    return cast(SavedViewDefinition, dict(value))
 
 
 class SavedViewService:
@@ -88,13 +68,15 @@ class SavedViewService:
         self.store = store
         self.clock = clock
 
-    def _replayed(self, session: TxSession, actor: Actor, record: dict[str, Any]) -> SavedView:
+    def _replayed(
+        self, session: TxSession, actor: Actor, record: Mapping[str, object]
+    ) -> SavedView:
         """The saved view a (possibly replayed) write refers to, re-read by id.
 
         The idempotency record keeps only the id, so a retry returns the view as it is now.
         """
 
-        return self.store.get_saved_view(session, actor.user_id, UUID(record["id"]))
+        return self.store.get_saved_view(session, actor.user_id, record_id(record))
 
     def list(self, actor: Actor, *, include_archived: bool = False) -> list[SavedView]:
         actor.require("projects:read")
@@ -130,7 +112,7 @@ class SavedViewService:
         actor: Actor,
         *,
         name: str,
-        definition: dict[str, Any],
+        definition: Mapping[str, object],
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> SavedView:
@@ -150,7 +132,7 @@ class SavedViewService:
                     operation="create_saved_view",
                     key=idempotency_key,
                     payload=payload,
-                    execute=lambda: self._save_result(s, actor, item, correlation_id),
+                    execute=lambda: id_result(self._save(s, actor, item, correlation_id).id),
                     replay=id_replay_record,
                 ),
             )
@@ -163,7 +145,7 @@ class SavedViewService:
         *,
         version: int,
         name: str | None,
-        definition: dict[str, Any] | None,
+        definition: Mapping[str, object] | None,
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> SavedView:
@@ -171,7 +153,7 @@ class SavedViewService:
         if name is not None and (not name.strip() or len(name.strip()) > 120):
             raise ValidationError("saved view name must contain 1-120 characters")
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> SavedView:
             current = self.store.get_saved_view(session, actor.user_id, view_id)
             if current.archived_at is not None:
                 raise ValidationError("archived saved view must be restored before editing")
@@ -193,7 +175,7 @@ class SavedViewService:
             )
             self.store.save_saved_view(session, updated, expected_version=version)
             self._audit(session, actor, "saved_view.updated", view_id, correlation_id)
-            return self._result(updated)
+            return updated
 
         return self.store.transaction(
             lambda s: self._replayed(
@@ -210,7 +192,7 @@ class SavedViewService:
                         "name": name,
                         "definition": definition,
                     },
-                    execute=lambda: operation(s),
+                    execute=lambda: id_result(operation(s).id),
                     replay=id_replay_record,
                 ),
             )
@@ -264,7 +246,7 @@ class SavedViewService:
     ) -> SavedView:
         actor.require("projects:write")
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> SavedView:
             current = self.store.get_saved_view(session, actor.user_id, view_id)
             updated = SavedView(
                 current.id,
@@ -282,7 +264,7 @@ class SavedViewService:
                 view_id,
                 correlation_id,
             )
-            return self._result(updated)
+            return updated
 
         return self.store.transaction(
             lambda s: self._replayed(
@@ -294,26 +276,15 @@ class SavedViewService:
                     operation="archive_saved_view" if archived else "restore_saved_view",
                     key=idempotency_key,
                     payload={"id": str(view_id), "version": version},
-                    execute=lambda: operation(s),
+                    execute=lambda: id_result(operation(s).id),
                     replay=id_replay_record,
                 ),
             )
         )
 
-    def _save_result(
+    def _save(
         self, session: TxSession, actor: Actor, item: SavedView, correlation_id: str | None
-    ) -> dict[str, Any]:
+    ) -> SavedView:
         self.store.save_saved_view(session, item)
         self._audit(session, actor, "saved_view.created", item.id, correlation_id)
-        return self._result(item)
-
-    @staticmethod
-    def _result(item: SavedView) -> dict[str, Any]:
-        return {
-            "id": str(item.id),
-            "owner_id": str(item.owner_id),
-            "name": item.name,
-            "definition": item.definition,
-            "version": item.version,
-            "archived_at": item.archived_at.isoformat() if item.archived_at else None,
-        }
+        return item

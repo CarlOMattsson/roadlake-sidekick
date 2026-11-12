@@ -11,8 +11,8 @@ import {
   shortTitle,
   UNDO_MS,
   UNDO_TITLE_MAX,
-} from "@/features/work-app/agenda-undo";
-import { workEn } from "@/features/work-app/labels";
+} from "@/features/work-app/agenda/agenda-undo";
+import { workEn } from "@/features/work-app/shared/labels";
 import {
   TASK_ID,
   task,

@@ -2,18 +2,21 @@ import { render, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { cardLabelsEn, cardLabelsSv } from "@/features/work-app/card-labels";
+import {
+  cardLabelsEn,
+  cardLabelsSv,
+} from "@/features/work-app/shared/card-labels";
 import {
   WORK_CARD_CHANNEL,
   WorkCard,
   type CardStatusWriter,
-} from "@/features/work-app/work-card";
-import { rootFromToolResult } from "@/features/work-app/transport";
+} from "@/features/work-app/inline/work-card";
+import { rootFromToolResult } from "@/features/work-app/transport/transport";
 import type {
   WorkCardFrame,
   WorkItemRecord,
   WorkTask,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const TASK_ID = "019f0000-0000-7000-8000-000000000001";
 const OLDER = "2026-10-25T10:00:00Z";

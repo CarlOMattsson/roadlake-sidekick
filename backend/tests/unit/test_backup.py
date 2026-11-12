@@ -19,12 +19,9 @@ from sidekick.backup.bundle import (
     verify_backup_file,
     write_backup_file,
 )
-from sidekick.owner_export.core import (
-    EXPORT_SOURCES,
-    ExportRefused,
-    OwnerExportService,
-    build_export_document,
-)
+from sidekick.owner_export.catalogue import EXPORT_SOURCES, ExportRefused
+from sidekick.owner_export.document import build_export_document
+from sidekick.owner_export.export import OwnerExportService
 from sidekick.shared.backup_files import latest_backup_time
 from tests.support.backup import (
     CREATED_AT,

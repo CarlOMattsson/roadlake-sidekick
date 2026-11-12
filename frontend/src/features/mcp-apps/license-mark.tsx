@@ -26,6 +26,7 @@ import {
 } from "./license-state";
 import { Button, buttonClass } from "./ui/button";
 import { workDate } from "./ui/due";
+import { KeyScope } from "./ui/key-scope";
 import { RoomSurfaceContext } from "./ui/room-context";
 import { ErrorNotice } from "./ui/states";
 import "./license-mark.css";
@@ -290,15 +291,10 @@ export function LicenseRow({
         ) : null}
       </div>
       {editing ? (
-        // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-        <div
+        <KeyScope
           className="sk-license-row__editor"
           id={fieldId}
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") return;
-            event.stopPropagation();
-            close();
-          }}
+          onEscape={close}
         >
           <textarea
             ref={field}
@@ -326,7 +322,7 @@ export function LicenseRow({
               {labels.cancel}
             </Button>
           </div>
-        </div>
+        </KeyScope>
       ) : null}
       {outcome?.kind === "failed" ? (
         <ErrorNotice

@@ -1,4 +1,4 @@
-"""The 0.1.0 schema baseline (100_baseline_0_1_0): the schema of a new installation.
+"""The 0.1.0 schema baseline (100_schema_baseline_0_1_0): the schema of a new installation.
 
 Two guards:
 
@@ -9,7 +9,11 @@ Two guards:
   `test_a_fresh_install_matches_the_checked_in_schema_fingerprint`);
 * the migrations carry no name from before the rename.
 
-There is no upgrade path from the old chain: a database that already has the schema is refused.
+The baseline folded the development chain `100_baseline_0_1_0` to
+`105_drop_sessions_and_password_hash`. A database that applied all of it (the owner's installation)
+is recognised and left unchanged; a database on an earlier step of that chain is brought to the head
+(tested against the real old chain in `tests/ops/test_baseline_upgrades_folded_chain.py`); any other
+database that already has the schema is refused.
 """
 
 from __future__ import annotations
@@ -26,31 +30,36 @@ from yoyo import get_backend, read_migrations
 
 from tests.support.migration_baseline import (
     BASELINE,
+    DROP_AUTOMATION,
     MIGRATIONS_PATH,
     OLD_NAME,
     _admin_url,
+    _applied_ids,
     _apply,
     _migration_url,
     _reset_schema,
     _run,
     _snapshot,
+    _tables,
     rebuilt_schema,  # noqa: F401  (a fixture)
 )
 
-# Migrations after the baseline; the snapshot is the baseline plus these.
-LATER_MIGRATIONS = frozenset(
-    {
-        "101_tasks_project_and_due_indexes",
-        "102_event_ledger_append_only",
-        "103_trash_sweep_delete_grants",
-        "104_audit_event_source",
-        "105_drop_sessions_and_password_hash",
-    }
+# The ids of the folded development chain, as an installation that applied it has them recorded.
+FOLDED_BASELINE = "100_baseline_0_1_0"
+FOLDED_HEAD = "105_drop_sessions_and_password_hash"
+FOLDED_CHAIN = (
+    FOLDED_BASELINE,
+    "101_tasks_project_and_due_indexes",
+    "102_event_ledger_append_only",
+    "103_trash_sweep_delete_grants",
+    "104_audit_event_source",
+    FOLDED_HEAD,
 )
 SNAPSHOT_PATH = Path(__file__).resolve().parents[1] / "fixtures" / "baseline-catalogue.json"
 
 # The tables of removed features (chat, live voice, proposals and others), which Sidekick no longer
-# has. The baseline never creates them.
+# has. The baseline never creates the chat tables, and migration 106 drops the four automation
+# tables that it does create, so a fresh install has none of them.
 RETIRED_TABLES = frozenset(
     {
         "chat_action_proposal_sources",
@@ -75,6 +84,10 @@ RETIRED_TABLES = frozenset(
         "agent_proposals",
         "entity_origins",
         "assistant_autonomy_actions",
+        "assistant_automation_control",
+        "assistant_automation_policies",
+        "assistant_automation_runs",
+        "assistant_task_review_findings",
         "user_assistant_settings",
         "user_key_bindings",
         "user_ui_preferences",
@@ -86,10 +99,6 @@ RETIRED_TABLES = frozenset(
 APP_PRIVILEGES = {
     "actions": "SIUD",
     "activity_entries": "SI",
-    "assistant_automation_control": "SIUD",
-    "assistant_automation_policies": "SIUD",
-    "assistant_automation_runs": "SIUD",
-    "assistant_task_review_findings": "SIUD",
     "audit_events": "SI",
     "companion_pairings": "SIU",
     "contact_aliases": "SIUD",
@@ -149,21 +158,6 @@ PRIVILEGES_QUERY = text(
 )
 
 
-def _applied_ids() -> set[str]:
-    engine = create_engine(_admin_url())
-    try:
-        with engine.connect() as connection:
-            return set(connection.scalars(text("SELECT migration_id FROM public._yoyo_migration")))
-    finally:
-        engine.dispose()
-
-
-def _tables(connection: Connection) -> set[str]:
-    return set(
-        connection.scalars(text("SELECT tablename FROM pg_tables WHERE schemaname = 'sidekick'"))
-    )
-
-
 @pytest.mark.integration
 @pytest.mark.xdist_group("migrations")
 @pytest.mark.usefixtures("rebuilt_schema")
@@ -171,7 +165,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
     _reset_schema()
     _apply(MIGRATIONS_PATH)
 
-    assert _applied_ids() == {BASELINE, *LATER_MIGRATIONS}
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION}
     engine = create_engine(_admin_url())
     try:
         with engine.connect() as connection:
@@ -310,7 +304,7 @@ def test_the_baseline_refuses_a_database_that_already_has_the_schema() -> None:
         "CREATE TABLE sidekick.users (id uuid PRIMARY KEY)"
     )
 
-    with pytest.raises(Exception, match=r'schema "sidekick" already exists'):
+    with pytest.raises(Exception, match=r"sidekick schema already exists but is not at a revision"):
         _apply(MIGRATIONS_PATH)
 
     engine = create_engine(_admin_url())
@@ -341,7 +335,181 @@ def test_the_baseline_refuses_a_rollback() -> None:
     assert BASELINE in _applied_ids()
 
 
-DROP_MIGRATION = "105_drop_sessions_and_password_hash"
+def _stamp_as_folded_chain(upto: str) -> None:
+    """Make the bookkeeping read as if the folded development chain had been applied up to `upto`.
+
+    The schema of the database is the one the baseline builds, which is what the chain's head built
+    too (the fingerprint test pins that), so this is what the owner's installation looks like.
+    """
+
+    _stamp(list(FOLDED_CHAIN[: FOLDED_CHAIN.index(upto) + 1]))
+
+
+OWNER_ID = "00000000-0000-4000-8000-000000000001"
+
+
+def _insert_owner() -> None:
+    _run(
+        "INSERT INTO sidekick.users (id, username, display_name, created_at) "
+        "VALUES (:id, 'kept', 'Kept', now())",
+        {"id": OWNER_ID},
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.xdist_group("migrations")
+@pytest.mark.usefixtures("rebuilt_schema")
+def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data() -> None:
+    """The owner's installation applied `100_baseline_0_1_0`..`105`; the new baseline is then
+    recorded without running anything: the schema and the rows stay as they were."""
+
+    _reset_schema()
+    _apply(MIGRATIONS_PATH)
+    _insert_owner()
+    _stamp_as_folded_chain(FOLDED_HEAD)
+    before = _snapshot()
+
+    _apply(MIGRATIONS_PATH)
+
+    assert _snapshot() == before
+    assert _applied_ids() == {*FOLDED_CHAIN, BASELINE, DROP_AUTOMATION}
+    engine = create_engine(_admin_url())
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT username FROM sidekick.users")) == "kept"
+    finally:
+        engine.dispose()
+    backend = get_backend(_migration_url())
+    assert not list(backend.to_apply(read_migrations(str(MIGRATIONS_PATH))))
+
+
+def _stamp(ids: list[str]) -> None:
+    """Replace the record of the new migrations with `ids`; the migrations after the baseline are
+    forgotten too, because a database on the folded chain has not applied them."""
+
+    for migration_id in (BASELINE, DROP_AUTOMATION):
+        _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
+    for migration_id in ids:
+        _run(
+            "INSERT INTO public._yoyo_migration (migration_hash, migration_id, applied_at_utc) "
+            "VALUES (md5(:id), :id, now())",
+            {"id": migration_id},
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.xdist_group("migrations")
+@pytest.mark.usefixtures("rebuilt_schema")
+@pytest.mark.parametrize(
+    "ids",
+    [
+        # a hole in the chain
+        [FOLDED_CHAIN[0], FOLDED_CHAIN[2]],
+        [FOLDED_CHAIN[0], FOLDED_CHAIN[1], FOLDED_CHAIN[3]],
+        # the chain without its first migration
+        list(FOLDED_CHAIN[1:3]),
+        # an id the chain did not have
+        [*FOLDED_CHAIN[:3], "999_unknown"],
+        [*FOLDED_CHAIN, "106_unknown"],
+        # no migration recorded at all, but a schema
+        [],
+    ],
+    ids=["hole-101", "hole-102", "no-first", "unknown-id", "unknown-after-head", "none"],
+)
+def test_a_database_whose_applied_ids_are_not_a_prefix_of_the_folded_chain_is_refused(
+    ids: list[str],
+) -> None:
+    """A gap, a missing first migration or an id from outside the chain means the schema is not one
+    the chain built, so it is refused with what to do; nothing is changed or recorded."""
+
+    _reset_schema()
+    _apply(MIGRATIONS_PATH)
+    _insert_owner()
+    _stamp(ids)
+    before = _snapshot()
+
+    with pytest.raises(Exception, match=r"not at a revision this baseline replaces") as refused:
+        _apply(MIGRATIONS_PATH)
+
+    assert "restore a backup" in str(refused.value)
+    assert _snapshot() == before
+    assert BASELINE not in _applied_ids()
+    engine = create_engine(_admin_url())
+    try:
+        with engine.connect() as connection:
+            assert connection.scalar(text("SELECT username FROM sidekick.users")) == "kept"
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.integration
+@pytest.mark.xdist_group("migrations")
+@pytest.mark.usefixtures("rebuilt_schema")
+@pytest.mark.parametrize(
+    ("damage", "failed_check"),
+    [
+        ("ALTER TABLE sidekick.audit_events DROP COLUMN source", "audit_events.source exists"),
+        (
+            "CREATE TABLE sidekick.sessions (id uuid PRIMARY KEY)",
+            "sessions is dropped",
+        ),
+        (
+            "ALTER TABLE sidekick.users ADD COLUMN password_hash text",
+            "users.password_hash is dropped",
+        ),
+        (
+            "GRANT UPDATE ON sidekick.domain_events TO sidekick_app",
+            "the event ledger is append-only for the app role",
+        ),
+        (
+            "REVOKE DELETE ON sidekick.domains FROM sidekick_app",
+            "the app role may delete domains",
+        ),
+    ],
+)
+def test_a_105_database_whose_schema_does_not_match_is_refused_and_not_stamped(
+    damage: str, failed_check: str
+) -> None:
+    """The bookkeeping says 105, but the schema is not the one 105 built (a hand edit, a restore
+    of mixed state): adopting it would stamp a wrong schema, so it is refused and nothing is
+    recorded."""
+
+    _reset_schema()
+    _apply(MIGRATIONS_PATH)
+    _insert_owner()
+    _run("SET LOCAL ROLE sidekick_owner; " + damage)
+    _stamp_as_folded_chain(FOLDED_HEAD)
+    before = _snapshot()
+
+    with pytest.raises(Exception, match=r"does not match the schema this baseline") as refused:
+        _apply(MIGRATIONS_PATH)
+
+    assert failed_check in str(refused.value)
+    assert _snapshot() == before
+    assert BASELINE not in _applied_ids()
+
+
+@pytest.mark.integration
+@pytest.mark.xdist_group("migrations")
+@pytest.mark.usefixtures("rebuilt_schema")
+def test_the_baseline_has_no_sign_in_remnants_and_the_final_grants() -> None:
+    """What migrations 101 to 105 changed is in the baseline: no `sessions`, no
+    `users.password_hash`, `audit_events.source`, the two `tasks` indexes, append-only history
+    and delete rights on `domains` and `processes`."""
+
+    _reset_schema()
+    _apply(MIGRATIONS_PATH)
+    engine = create_engine(_admin_url())
+    try:
+        with engine.connect() as connection:
+            assert "sessions" not in _tables(connection)
+            assert "password_hash" not in _columns(connection, "users")
+            assert "source" in _columns(connection, "audit_events")
+            privileges = dict(connection.execute(PRIVILEGES_QUERY).tuples().all())
+    finally:
+        engine.dispose()
+    assert privileges["domain_events"] == privileges["activity_entries"] == "SI"
+    assert privileges["domains"] == privileges["processes"] == "SIUD"
 
 
 def _columns(connection: Connection, table: str) -> set[str]:
@@ -354,75 +522,3 @@ def _columns(connection: Connection, table: str) -> set[str]:
             {"table": table},
         )
     )
-
-
-@pytest.mark.integration
-@pytest.mark.xdist_group("migrations")
-@pytest.mark.usefixtures("rebuilt_schema")
-def test_the_sign_in_remnants_are_dropped_and_come_back_empty_on_rollback(tmp_path: Path) -> None:
-    """Upgrading from head 104 removes `sessions` and `users.password_hash` and keeps the users.
-
-    Rolling the drop back recreates the table, empty and writable by the app role, and the column
-    with an empty string for the existing user.
-    """
-
-    before = tmp_path / "chain-104"
-    before.mkdir()
-    for path in MIGRATIONS_PATH.glob("*.py"):
-        if path.stem != DROP_MIGRATION:
-            (before / path.name).write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
-    _reset_schema()
-    _apply(before)
-    _run(
-        "INSERT INTO sidekick.users (id, username, display_name, password_hash, created_at) "
-        "VALUES ('00000000-0000-4000-8000-000000000001', 'kept', 'Kept', 'old-hash', now())"
-    )
-    _run(
-        "INSERT INTO sidekick.sessions "
-        "(id, user_id, token_digest, csrf_digest, expires_at, created_at) VALUES "
-        "('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', "
-        "repeat('a', 64), repeat('b', 64), now(), now())"
-    )
-    engine = create_engine(_admin_url())
-    try:
-        with engine.connect() as connection:
-            assert "sessions" in _tables(connection)
-            assert "password_hash" in _columns(connection, "users")
-    finally:
-        engine.dispose()
-
-    _apply(MIGRATIONS_PATH)
-
-    engine = create_engine(_admin_url())
-    try:
-        with engine.connect() as connection:
-            assert "sessions" not in _tables(connection)
-            assert "password_hash" not in _columns(connection, "users")
-            assert connection.scalar(text("SELECT username FROM sidekick.users")) == "kept"
-    finally:
-        engine.dispose()
-    assert DROP_MIGRATION in _applied_ids()
-
-    backend = get_backend(_migration_url())
-    migration = next(
-        item for item in read_migrations(str(MIGRATIONS_PATH)) if item.id == DROP_MIGRATION
-    )
-    with backend.lock():
-        backend.rollback_one(migration)
-
-    engine = create_engine(_admin_url())
-    try:
-        with engine.connect() as connection:
-            assert "sessions" in _tables(connection)
-            assert connection.scalar(text("SELECT count(*) FROM sidekick.sessions")) == 0
-            assert connection.scalar(text("SELECT password_hash FROM sidekick.users")) == ""
-            granted = connection.scalar(
-                text(
-                    "SELECT string_agg(privilege_type, ',' ORDER BY privilege_type) "
-                    "FROM information_schema.role_table_grants WHERE table_schema = 'sidekick' "
-                    "AND table_name = 'sessions' AND grantee = 'sidekick_app'"
-                )
-            )
-            assert granted == "DELETE,INSERT,SELECT,UPDATE"
-    finally:
-        engine.dispose()

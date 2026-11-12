@@ -9,7 +9,7 @@ from uuid import UUID
 
 from pydantic import Field
 
-from sidekick.journal.application.service import RelationChange
+from sidekick.journal.application.models import RelationChange
 from sidekick.journal.domain.day_done import owner_today
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
 from sidekick.journal.domain.records import DaySummaryStatus, EntryRelations, RelationLabels
@@ -282,7 +282,7 @@ def entry_with_relations(
     *,
     include_content: bool,
 ) -> JournalEntryRecord:
-    relations = container.journal.get_entry_relations(actor, entry.id)
+    relations = container.journal_relations.get_entry_relations(actor, entry.id)
     return labeled_entry_record(container, actor, entry, relations, include_content=include_content)
 
 
@@ -296,7 +296,7 @@ def entry_records_with_relations(
     """The entries' records with links, and with content their names: one batched read of
     every entry's links and names instead of one per entry."""
 
-    relations = container.journal.get_entries_relations(
+    relations = container.journal_relations.get_entries_relations(
         actor, tuple(entry.id for entry in entries), with_labels=include_content
     )
     return [
@@ -320,7 +320,11 @@ def labeled_entry_record(
 ) -> JournalEntryRecord:
     """The entry record with its links named; names need the kind's read scope (D-060)."""
 
-    labels = container.journal.get_relation_labels(actor, relations) if include_content else None
+    labels = (
+        container.journal_relations.get_relation_labels(actor, relations)
+        if include_content
+        else None
+    )
     return entry_record(entry, relations, include_content=include_content, labels=labels)
 
 
@@ -388,7 +392,7 @@ def journal_source_structured(
 ) -> dict[str, Any]:
     """The structured content of `get_journal_source`: one owned source with its immutable text."""
 
-    source = container.journal.get_source(actor, source_id)
+    source = container.journal_capture.get_source(actor, source_id)
     return JournalSourceReadResult(
         source=source_read_record(source, include_content=include_content)
     ).model_dump(mode="json")
@@ -417,7 +421,7 @@ def journal_day_structured(
 ) -> dict[str, Any]:
     """The structured content of `get_journal_day`: entries, summary status and `done`."""
 
-    day = container.journal.get_day(
+    day = container.journal_day.get_day(
         actor,
         journal_date=journal_date,
         include_archived=include_archived,
@@ -463,7 +467,7 @@ def write_journal_entry_structured(
         task_ids=tuple(task_ids or ()),
         contact_ids=tuple(contact_ids or ()),
     )
-    _, entry = container.journal.write_entry(
+    _, entry = container.journal_capture.write_entry(
         actor,
         source_type=SourceType.TRANSCRIPT_TEXT,
         journal_date=journal_date,
@@ -519,7 +523,9 @@ def update_journal_entry_structured(
         remove_contact_ids=tuple(remove_contact_ids or ()),
     )
     before = (
-        container.journal.get_entry_relations(actor, entry_id) if not change.is_empty() else None
+        container.journal_relations.get_entry_relations(actor, entry_id)
+        if not change.is_empty()
+        else None
     )
     appended = tuple(KeyPoint(point.kind, point.text) for point in append_key_points or [])
     if appended or append_text is not None:

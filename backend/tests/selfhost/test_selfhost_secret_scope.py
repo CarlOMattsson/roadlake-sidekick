@@ -7,13 +7,14 @@ from pathlib import Path
 import pytest
 import yaml
 
-from sidekick.shared.config import Settings
+from sidekick.shared.config import Settings, is_secret_field
 
 SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 SOURCE = Path(__file__).resolve().parents[2] / "src" / "sidekick"
 WORKERS = ("automation-worker", "backup", "push", "memory-worker")
 LIMITED = ("postgres", "migrate", "api", *WORKERS, "hindsight")
 DECLARED = {f"SIDEKICK_{name}".upper() for name in Settings.model_fields}
+SECRET_FIELDS = {name for name, field in Settings.model_fields.items() if is_secret_field(field)}
 BACKUP_FLOOR_BYTES = 2 * 1024**3  # 512 MiB of plaintext, several copies alive while it is encrypted
 UNITS = {"m": 1024**2, "g": 1024**3}
 
@@ -131,6 +132,77 @@ def test_the_limits_are_documented_in_the_env_example_and_never_as_sidekick_name
         name = line.lstrip("# ").split("=", 1)[0]
         if name.startswith("SIDEKICK_") and "=" in line:
             assert name in DECLARED, name
+
+
+# --- secrets as files: the same scoping as the plain variables, opt-in per secret ---
+
+
+def _file_names(service: dict) -> set[str]:
+    """The secret settings a service is given as `SIDEKICK_<NAME>_FILE`."""
+    return {
+        field
+        for field in SECRET_FIELDS
+        if f"SIDEKICK_{field.upper()}_FILE" in service.get("environment", {})
+    }
+
+
+def _mounted(service: dict) -> set[str]:
+    return set(service.get("secrets", []))
+
+
+def test_the_top_level_secrets_are_the_secret_settings_and_default_to_dev_null() -> None:
+    compose = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encoding="utf-8"))
+    assert set(compose["secrets"]) == SECRET_FIELDS
+    for field, definition in compose["secrets"].items():
+        assert definition == {"file": f"${{SELFHOST_{field.upper()}_FILE:-/dev/null}}"}, field
+
+
+def test_a_secret_file_variable_is_passed_only_when_the_operator_opted_in(
+    services: dict[str, dict],
+) -> None:
+    for name, service in services.items():
+        for field in _file_names(service):
+            value = service["environment"][f"SIDEKICK_{field.upper()}_FILE"]
+            assert value == f"${{SELFHOST_{field.upper()}_FILE:+/run/secrets/{field}}}", (
+                name,
+                field,
+            )
+
+
+@pytest.mark.parametrize("worker", WORKERS)
+def test_a_worker_gets_the_file_of_exactly_the_secrets_it_gets_as_variables(
+    services: dict[str, dict], worker: str
+) -> None:
+    service = services[worker]
+    held = {field for field in SECRET_FIELDS if f"SIDEKICK_{field.upper()}" in _bare_names(service)}
+    assert held, worker
+    assert _file_names(service) == held, worker
+    assert _mounted(service) == held, worker
+
+
+def test_api_gets_every_secret_as_a_file(services: dict[str, dict]) -> None:
+    assert _file_names(services["api"]) == SECRET_FIELDS
+    assert _mounted(services["api"]) == SECRET_FIELDS
+
+
+def test_no_other_service_mounts_a_secret(services: dict[str, dict]) -> None:
+    for name, service in services.items():
+        if name not in ("api", *WORKERS):
+            assert "secrets" not in service, name
+            assert not _file_names(service), name
+
+
+def test_the_env_example_documents_a_file_line_for_every_secret_setting() -> None:
+    text = (SELFHOST / "selfhost.env.example").read_text(encoding="utf-8")
+    for field in SECRET_FIELDS:
+        assert f"\n#SELFHOST_{field.upper()}_FILE=./secrets/{field}\n" in text, field
+
+
+def test_the_migration_script_moves_exactly_the_secret_settings() -> None:
+    text = (SELFHOST / "secrets-to-files.sh").read_text(encoding="utf-8")
+    block = text.split('secrets="', 1)[1].split('"', 1)[0]
+    pairs = dict(line.split(":") for line in block.split())
+    assert pairs == {f"SIDEKICK_{field.upper()}": field for field in SECRET_FIELDS}
 
 
 # --- the settings each worker's code path reads must be in its environment list ---------------

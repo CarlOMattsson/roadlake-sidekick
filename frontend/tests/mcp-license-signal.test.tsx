@@ -37,8 +37,8 @@ import {
 import { ROOM_IDS, type RoomId } from "@/features/mcp-apps/router";
 import { CardFoot } from "@/features/mcp-apps/ui/card";
 import { updateReminderLabelsSv } from "@/features/mcp-apps/update-reminder-labels";
-import { AgendaMore } from "@/features/work-app/agenda-toolbar";
-import { workSv } from "@/features/work-app/labels";
+import { AgendaMore } from "@/features/work-app/agenda/agenda-toolbar";
+import { workSv } from "@/features/work-app/shared/labels";
 
 // The license signal (see docs/decisions/log.md D-083): the backend declares the display state as one JSON meta, `sidekick-license`. These are
 // fixtures of that contract (the backend is built in parallel); no network, no key in the document.

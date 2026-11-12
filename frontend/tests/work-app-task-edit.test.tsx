@@ -10,13 +10,13 @@ import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { ownerDayPlus } from "@/features/mcp-apps/ui/due";
-import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn } from "@/features/work-app/labels";
-import { isCompleteDate } from "@/features/work-app/fields";
+import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { isCompleteDate } from "@/features/work-app/shared/fields";
 import {
   dateInputValue,
   dueAtFromDateInput,
-} from "@/features/work-app/task-edit";
+} from "@/features/work-app/tasks/task-edit";
 import {
   KEY,
   keyOf,

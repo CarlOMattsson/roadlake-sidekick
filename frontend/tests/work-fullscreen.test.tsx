@@ -8,9 +8,9 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
-import { workEn } from "@/features/work-app/labels";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { WorkView } from "@/features/work-app/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { WorkView } from "@/features/work-app/view/work-view";
 import type {
   WorkAgendaPage,
   WorkBoardPage,
@@ -20,8 +20,8 @@ import type {
   WorkTask,
   WorkTransport,
   WorkUnsortedPage,
-} from "@/features/work-app/transport";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 
 const agendaItem: WorkItemRecord = {
   kind: "task",

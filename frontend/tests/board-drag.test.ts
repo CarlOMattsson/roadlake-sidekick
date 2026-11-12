@@ -12,7 +12,7 @@ import {
   type DragPointer,
   type Point,
   type Rect,
-} from "../src/features/work-app/board-drag";
+} from "../src/features/work-app/board/board-drag";
 
 const rect = (
   left: number,

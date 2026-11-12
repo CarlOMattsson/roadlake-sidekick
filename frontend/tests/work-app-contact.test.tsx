@@ -8,10 +8,10 @@ import {
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { ContactsView } from "@/features/work-app/contacts-list";
-import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { type WorkContactRecord } from "@/features/work-app/transport";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { type WorkContactRecord } from "@/features/work-app/transport/transport";
 import {
   KEY,
   anna,

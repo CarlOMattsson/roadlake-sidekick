@@ -21,6 +21,12 @@ from sidekick.export_reference import (
     stale_problems,
 )
 from sidekick.shared.auth import COMPANION_SCOPES, MCP_SCOPES, OPT_IN_SCOPES
+from sidekick.shared.compat import (
+    is_help_action,
+    is_subparsers_action,
+    parser_actions,
+    subparser_choice_actions,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 REFERENCE_DIR = ROOT / "docs" / "reference"
@@ -74,15 +80,15 @@ def test_every_command_and_argument_has_a_help_text() -> None:
             children = {f"{command} {name}": child for name, child in sub.choices.items()}
             missing += [
                 f"{command} {action.dest}"
-                for action in sub._choices_actions  # pyright: ignore[reportPrivateUsage]
+                for action in subparser_choice_actions(sub)
                 if not action.help
             ]
         for name, child in children.items():
             missing += [
                 f"{name} {action.dest}"
-                for action in reference._actions(child)  # pyright: ignore[reportPrivateUsage]
-                if not isinstance(action, argparse._HelpAction)  # pyright: ignore[reportPrivateUsage]
-                and not isinstance(action, argparse._SubParsersAction)  # pyright: ignore[reportPrivateUsage]
+                for action in parser_actions(child)
+                if not is_help_action(action)
+                and not is_subparsers_action(action)
                 and not action.help
             ]
 

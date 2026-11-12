@@ -2,9 +2,9 @@
 
 [Svenska](pair-android.sv.md)
 
-<!-- description: Build the Android app from source, install it and connect the phone to your server with a one-time code. There is no prebuilt APK. -->
+<!-- description: Download the signed Android app or build it from source, install it and connect the phone to your server with a one-time code. -->
 
-Build the Android app from source, install it and connect the phone to your server with a one-time code. There is no prebuilt APK.
+Download the signed Android app or build it from source, install it and connect the phone to your server with a one-time code.
 
 ## What the app does and does not do
 
@@ -16,7 +16,20 @@ scanner and no camera permission: the pairing code is typed, pasted, or arrives 
 its credential (`android:allowBackup="false"`). It runs on Android 7.0 or newer (`minSdk` 24).
 Android 13 and newer ask for notification permission once, after pairing. There is no iOS app.
 
-## Requirements
+## Download the signed app
+
+Every release on the repository's GitHub Releases page has a signed `sidekick-X.Y.Z.apk`, built and signed by the
+release workflow with the maintainer's key, next to `SHA256SUMS` and its signature (`SHA256SUMS.sigstore.json`).
+Download the APK and those two files, check them as described in
+[Verifying a release](../maintainers/release.md#verifying-a-release) (`sha256sum -c SHA256SUMS`, then
+`cosign verify-blob` and `apksigner verify --print-certs`), and go on to [Install](#install). Later releases install
+over it, because they are signed with the same key. You can also build the app yourself, as below. A self-built app
+has another key, so it cannot update the downloaded one or the other way round: uninstall the old one first and pair
+again.
+
+## Build it yourself
+
+### Requirements
 
 | Tool | Version | Source |
 | --- | --- | --- |
@@ -40,7 +53,7 @@ is the `target` and `cssTarget` of the mobile build (`frontend/vite.mobile.confi
 app shows a short explanation (Swedish or English, per the app's language setting) instead of a blank screen. To fix it,
 update Android System WebView and Google Chrome in the app store. If the version cannot be read, the app starts as usual.
 
-## Build
+### Build
 
 Run from the repository root. The web part (the mobile bundle) is built first, then Capacitor copies it
 into the Android project and generates the plugin module, then Gradle builds the app.
@@ -75,7 +88,7 @@ an app store is not covered here.
 ## Install
 
 - **adb**: enable developer options and USB debugging on the phone, connect it, then
-  `adb install -r app/build/outputs/apk/debug/app-debug.apk` (from `frontend/android`).
+  `adb install -r sidekick-X.Y.Z.apk` for the downloaded app, or `adb install -r app/build/outputs/apk/debug/app-debug.apk` (from `frontend/android`) for your own debug build.
 - **Sideload**: copy the APK to the phone and open it. Android asks you to allow installs from the app that
   opened the file ("install unknown apps"), and Play Protect may warn about an unknown developer.
 
@@ -180,6 +193,27 @@ Notes:
 shows "Connect to <your server>?", and connects only when you tap **Connect**; **Cancel** drops the link. Nothing
 is paired by the link alone, because any app or page can open such a link: connect only if you created the code
 yourself.
+
+**Why the link is not a verified Android App Link.** An App Link (`https`, `android:autoVerify="true"`) proves to Android
+that the app belongs to the domain in the link, through an `assetlinks.json` file on that domain that names the app's package and
+signing-certificate fingerprint. That cannot work here: the domain is your own server's, and you (or the operator) build
+and sign the app yourself, so no one can publish that file for you in advance. A fixed
+`roadlake.com` route would not help either, because a build signed with your own key does not match a fingerprint published
+there. The app therefore uses its own scheme, `sidekick://pair`, and the protection is in the code and in the app instead:
+
+- The code works once and for 10 minutes, and the server limits failed attempts per address. An app that captured the link
+  after you had paired (or after 10 minutes) gets nothing.
+- The link never pairs by itself. The app shows the server's host, "Connect to <host>?", and waits for your tap on
+  **Connect**; a link that names a server you did not expect is refused with **Cancel**.
+- The link is parsed strictly: exactly one `server` and one `code`, an `https` origin with no path, a code of the right
+  shape, at most 1024 characters. Anything else is ignored.
+- A link that reaches a phone that is already paired is dropped, and the app says so once.
+- The manifest has one filter, for `sidekick://pair`, and no `https` filter; `WidgetResourcesTest` fails if another is added.
+- If you do not want to rely on the link, use the pairing screen by hand: the code then never passes through another app.
+
+What the scheme cannot prevent is another installed app that also registers `sidekick://pair` and is chosen by Android's
+app picker (or is the only one), so that it reads the link before Sidekick does. Send the link only to yourself, check which app
+opens, and if you doubt the phone, type the code by hand. The code is useless after its first use.
 
 **By hand.** On the phone, open Sidekick. The pairing screen speaks the app's language (Swedish by default; see [Languages](../reference/languages.md#the-android-app)) and has a "Where do I find the code?" help line. It asks for:
 

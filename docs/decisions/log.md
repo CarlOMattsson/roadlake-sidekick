@@ -314,7 +314,7 @@ worker, the push sender and the voice entry remain. Data is not deleted: tables,
 untouched, and retired setting names are tolerated and ignored at startup.
 
 Correction (2026-11-11): the sentence "Data is not deleted: tables, models and migrations are untouched" described the
-state when this decision was taken. The 0.1.0 baseline (`migrations/100_baseline_0_1_0.py`) does not create the retired
+state when this decision was taken. The 0.1.0 baseline (`migrations/100_schema_baseline_0_1_0.py`) does not create the retired
 tables, and an in-place upgrade of an older installation is not supported, so data of the removed features is not
 carried over; see `docs/explanation/schema-baseline.md`.
 

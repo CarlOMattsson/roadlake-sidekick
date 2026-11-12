@@ -142,7 +142,7 @@ export default defineConfig(({ mode }) => {
         // Why: the app is downloaded every time a card opens, so the bundle uses Preact's compat layer, which is much
         // smaller. Its events and batching differ in small ways (native events, microtask-batched updates, flushSync
         // emulated; board-card.tsx relies on it). The Playwright specs run this bundle; Vitest covers the same source on
-        // React, and `npm run test:mcp-app:preact` reruns a sample of it with these same aliases, and the mobile shell (vite.mobile.config.ts) keeps real React.
+        // React, and `npm run test:mcp-app:preact` reruns the view tests with these same aliases (npm run check includes it), and the mobile shell (vite.mobile.config.ts) keeps real React.
         ...PREACT_COMPAT_ALIASES,
       ],
     },

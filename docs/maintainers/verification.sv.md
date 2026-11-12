@@ -30,7 +30,7 @@ Kontrollerad 2026-11-11.
   backend med `/health/live` och `/health/ready`, `create-user` och `create-token`, ett MCP-`initialize` med token,
   stdio-servern som svarar på `initialize`, och `build:mcp-app` (den incheckade filen kom tillbaka byte för byte lika).
   `ruff format --check` och `ruff check` gick igenom. Testdatabasen på port 55433 och backendsviten kördes inte.
-- **Inte verifierat i den här kontrollen:** själva stdio-anslutningen från Claude Desktop (bara serversidan), `pyright`,
+- **Inte verifierat i den här kontrollen:** `pyright`,
   webbläsarkontrollerna och testsviterna. CI kör byggena och testerna som grind vid varje release, inte för pull requests.
 
 ## Android-appen
@@ -44,11 +44,9 @@ Kontrollerad 2026-11-10.
   gränserna för parkoppling, förnyelse och testnotiser i `backend/src/sidekick/companion/`.
 - **Kört, utan sidoeffekter:** `--help` för `python -m sidekick.companion.cli` och för dess kommandon `pair` och
   `grant` (flaggor, scopes och förvalet `app` stämmer med guiden).
-- **Inte verifierat i den här kontrollen:** ett Gradle-bygge, installation på en telefon eller emulator,
-  parkoppling mot en körande server och push-leverans via ntfy. CI bygger webbpaketet, kör JVM-enhetstesterna och lint,
-  bygger den osignerade release-APK:n och kör ett instrumenterat rökprov av parkoppling och Capacitor-bryggan på en
-  emulator. CI installerar aldrig appen på en riktig telefon, parkopplar den inte mot en riktig server och levererar
-  ingen push.
+- **Verifierat av underhållaren, 2026-11-12:** Android-appen på en riktig telefon mot en riktig server, i daglig
+  användning. CI bygger webbpaketet, kör JVM-enhetstesterna och lint, bygger den osignerade release-APK:n och kör ett
+  instrumenterat rökprov av parkoppling och Capacitor-bryggan på en emulator.
 
 ## Självhostning
 
@@ -85,15 +83,16 @@ Guiden kontrolleras som ADR-004 kräver av varje guide; vad som lästs och vad s
   `umask 077`: bygge, `create-user` medan GitHub-klient-id, hemlighet och identitetsrad ännu hade sina platshållare,
   identitetsraden, `up -d` (friskt), upptäcktsdokumentet, `readiness` som skrev `ok`, `401` på `/mcp/`. Inget manuellt
   steg behövdes.
-- **Inte verifierat i den här kontrollen:** en riktig GitHub-inloggning och en riktig Claude-anslutning, `vps`-profilen
-  (Caddy, TLS), en uppdatering över en riktig schemaändring och den riktiga cosign-kontrollen mot en släppt avbildning.
+- **Verifierat av underhållaren, 2026-11-12:** anslutningen till riktiga Claude och drift av servern på Linux, i daglig
+  användning.
+- **Ingår inte i den här kontrollen:** `vps`-profilen (Caddy, TLS), en uppdatering över en riktig schemaändring och den
+  riktiga cosign-kontrollen mot en släppt avbildning.
 
 ## Arbetspaketet
 
 KNOWN (uppföljning 2026-11-11): umask-hanteringen, cacheflaggan, diagnosen av misslyckad initiering och den
 frivilliga Claude-sammanslagningen kontrolleras med stubbad Docker, tillfälliga filer och en lokal modellserverfixtur.
-OPEN: ändringarna har inte provats i en riktig Ubuntu-installation med umask 077 eller i en riktig Claude
-Desktop-session; inga containrar startades under denna uppföljning.
+OPEN: ändringarna provades inte i en riktig Ubuntu-installation med umask 077 i den uppföljningen; inga containrar startades under denna uppföljning.
 
 Kontrollerat 2026-11-10. Verifierat:
 

@@ -32,12 +32,6 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .audit import ActivityEntryRow, AuditEventRow, DomainEventRow, IdempotencyRow
-from .automation import (
-    AssistantAutomationControlRow,
-    AssistantAutomationPolicyRow,
-    AssistantAutomationRunRow,
-    AssistantTaskReviewFindingRow,
-)
 from .base import RETAINED_UNMAPPED_TABLES, SCHEMA, Base
 from .companion import CompanionPairingRow, PushOutboxRow, PushReminderRow, PushSubscriptionRow
 from .contacts import ContactAliasRow, ContactRow, ProjectContactRow, TaskContactRow
@@ -83,10 +77,6 @@ __all__ = [
     "ActionRow",
     "ActivityEntryRow",
     "Any",
-    "AssistantAutomationControlRow",
-    "AssistantAutomationPolicyRow",
-    "AssistantAutomationRunRow",
-    "AssistantTaskReviewFindingRow",
     "AuditEventRow",
     "Base",
     "BigInteger",

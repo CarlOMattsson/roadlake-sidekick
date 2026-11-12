@@ -6,8 +6,8 @@ import {
   dateInputValue,
   draftFromTask,
   dueAtFromDateInput,
-} from "@/features/work-app/task-edit";
-import type { WorkTask } from "@/features/work-app/transport";
+} from "@/features/work-app/tasks/task-edit";
+import type { WorkTask } from "@/features/work-app/transport/transport";
 
 // The edit form and the project's new Task build due_at as 23:59 on the Stockholm
 // day, whatever the browser's zone, and read the Stockholm day back, so an untouched field never changes the due.

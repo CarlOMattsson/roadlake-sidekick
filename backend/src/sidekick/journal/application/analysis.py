@@ -18,7 +18,7 @@ from sidekick.journal.domain.analysis import (
     KeyPoint,
     UpdateTaskProposal,
 )
-from sidekick.journal.domain.review import CandidateCatalog, DraftReview
+from sidekick.journal.domain.review import CandidateCatalog, DraftReview, ScopedDraft, scope_draft
 from sidekick.projects.domain import Project, ProjectStatus
 from sidekick.shared.errors import NotFoundError, ValidationError
 from sidekick.shared.types import Actor, Clock, IdempotentStore, TransactionalStore, TxSession
@@ -81,6 +81,14 @@ class JournalAnalysisService:
         return self.store.transaction(
             lambda session: self.store.get_journal_draft(session, actor.user_id, draft_id)
         )
+
+    def read_draft(
+        self, actor: Actor, draft_id: UUID, *, include_content: bool = True
+    ) -> ScopedDraft:
+        """The draft as the caller's scopes allow it; no `include_content` leaves owner text out."""
+
+        draft = self.get_draft(actor, draft_id)
+        return scope_draft(draft, actor.scopes, include_content=include_content)
 
     def update_draft(
         self,

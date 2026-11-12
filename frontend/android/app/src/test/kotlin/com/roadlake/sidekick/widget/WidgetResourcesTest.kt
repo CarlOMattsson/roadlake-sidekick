@@ -99,6 +99,15 @@ class WidgetResourcesTest {
         assertTrue(text.contains("android.intent.action.VIEW"))
     }
 
+    @Test
+    fun thePairingLinkIsNotAnAppLinkBecauseEveryInstallationSignsItsOwnApp() {
+        val manifest = file("AndroidManifest.xml")
+        // The domain is the user's own and the app is signed with the user's own key, so no assetlinks.json can verify it.
+        assertFalse(manifest.contains("autoVerify"))
+        assertFalse(Regex("""android:scheme="https?"""").containsMatchIn(manifest))
+        assertEquals(1, Regex("android.intent.action.VIEW").findAll(manifest).count())
+    }
+
     private fun stringText(path: String, name: String): String =
         Regex("""<string name="$name">([^<]*)</string>""").find(file(path))!!.groupValues[1]
 

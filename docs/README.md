@@ -34,7 +34,7 @@ New here? Start with one of these:
 | --- | --- |
 | [Operate](operate/README.md) | A map of what you do when you run a Sidekick server. |
 | [Connect Claude](operate/connect-claude.md) | Add your server as a custom connector and sign in with GitHub. |
-| [Build, install and pair Android](operate/pair-android.md) | Build the Android app from source and connect the phone with a one-time code. |
+| [Build, install and pair Android](operate/pair-android.md) | Install the signed APK from a release or build the app from source, and connect the phone with a one-time code. |
 | [Update](operate/update.md) | Update from source or to a signed image. |
 | [Backup and restore](operate/backup-and-restore.md) | Encrypted backups and reading them back. |
 | [Operating the work package](operate/work-laptop/README.md) | The network, start at login, backup and update, the model server and uninstalling. |

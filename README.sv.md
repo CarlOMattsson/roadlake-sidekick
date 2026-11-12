@@ -3,10 +3,8 @@
 # Roadlake Sidekick
 
 <p align="center">
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Senaste release"></a>
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://img.shields.io/github/actions/workflow/status/CarlOMattsson/roadlake-sidekick/release-image.yml?label=release-image" alt="Arbetsflödet release-image"></a>
+<!-- release badges are added with the first release (v0.1.0) -->
 <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-Source%20Available-blue" alt="Licens: Source Available"></a>
-<a href="docs/maintainers/release.sv.md#verifiera-en-release"><img src="https://img.shields.io/badge/signed%20with-Sigstore-brightgreen" alt="Signerad med Sigstore"></a>
 <a href="https://roadlake.com"><img src="https://img.shields.io/badge/web-roadlake.com-informational" alt="Webbplats: roadlake.com"></a>
 </p>
 
@@ -14,9 +12,9 @@ Roadlake Sidekick är en personlig assistent som du kör på din egen server: du
 
 [English](README.md) · [Dokumentation](docs/README.sv.md) · [Snabbstart](QUICKSTART.sv.md) · [Licens](LICENSE.md) · [Bidra](CONTRIBUTING.sv.md) · [Säkerhet](SECURITY.sv.md) · [Beslut](docs/decisions/log.md)
 
-> **Status: förhandsversion, ännu inte släppt.** Version 0.1.0 har ingen tagg och ingen publicerad APK eller
-> containerimage; du bygger båda från det här repot. Installation, uppdatering, backup och återställning är drillade
-> på Linux-containrar; macOS, en riktig telefon med pushleverans och riktiga Claude-anslutningar är inte verifierade.
+> **Status: första versionen, ännu inte släppt.** Version 0.1.0 har ingen tagg än, så tills vidare bygger du containerimagen
+> och APK:n från det här repot. Från och med första releasen har varje release en signerad image och en signerad APK. Den används dagligen med Claude, med Android-appen på en riktig
+> telefon och på Linux; macOS är ännu inte provat.
 > Detaljer: [docs/maintainers/release.md](docs/maintainers/release.md) (på engelska) och [docs/maintainers/release.sv.md](docs/maintainers/release.sv.md).
 
 Roadlake Sidekick är ett självhostat, MCP-först personligt operativsystem för arbete och uppgifter, dagbok, inköp och
@@ -41,6 +39,15 @@ PostgreSQL-databas.
 
 MCP-appernas texter är på svenska som standard (`SIDEKICK_MCP_APP_LOCALE=sv`); sätt `SIDEKICK_MCP_APP_LOCALE=en` på
 servern för engelska. Android-appen har en egen språkinställning; se [Språk](docs/reference/languages.sv.md#android-appen).
+
+## Prata igenom dagen med Claude
+
+Det effektivaste sättet att använda Sidekick är att prata med Claude i röstläget medan du går, cyklar eller kör bil. Du behöver inte diktera kommandon: låt Claude fråga om dagen och berätta fritt om det du har i huvudet. Ett samtal på tio minuter brukar ge en hel del uppgifter, dagboksanteckningar och kopplingar, och tankarna som snurrar får komma ur huvudet.
+
+- Börja till exempel med: "Fråga mig hur dagen har varit och hjälp mig få ordning på allt jag behöver göra."
+- Claude ställer följdfrågor om vem det gäller, när något ska vara klart och vad som hänger ihop. Sedan skapar Claude uppgifter, dagboksanteckningar och kontakter i Sidekick och kopplar ihop dem.
+- Med andra connectors i Claude kan Claude dessutom gå igenom Slack, e-post och kalender för att lägga till uppgifter du missat och boka möten.
+- Prata bara när det är säkert, till exempel handsfree i bilen.
 
 ## Vad Claude kan göra
 
@@ -101,8 +108,8 @@ Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster d
   [Anslut Claude](docs/operate/connect-claude.sv.md). Hur du parar Android-appen står i
   [Android-app](docs/operate/pair-android.sv.md).
 - **Utvecklare:** Sidekick kan också köras som en lokal stdio-MCP-server för Claude Desktop från en källkodskopia; se steg 4 i [Kör Sidekick lokalt som utvecklare](docs/start/first-contribution.sv.md).
-- **Android-appen:** det finns ingen färdig APK; bygg appen från det här repot (JDK 21, Android SDK 36, Node.js 22) och
-  para ihop den med din server; se [Bygg, installera och para ihop Android](docs/operate/pair-android.sv.md).
+- **Android-appen:** från och med första releasen installerar du den signerade APK:n som ligger i GitHub-releasen, eller
+  bygger appen från det här repot (JDK 21, Android SDK 36, Node.js 22), och parar ihop den med din server; se [Bygg, installera och para ihop Android](docs/operate/pair-android.sv.md).
 
 ## Utveckla
 

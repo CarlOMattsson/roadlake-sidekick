@@ -1,21 +1,21 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workEn, workSv } from "@/features/work-app/labels";
-import { NewTaskInput } from "@/features/work-app/new-task-input";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { NewTaskInput } from "@/features/work-app/tasks/new-task-input";
 import {
   newTaskInputLabelsEn,
   newTaskInputLabelsFor,
   newTaskInputLabelsSv,
-} from "@/features/work-app/new-task-input-labels";
+} from "@/features/work-app/tasks/new-task-input-labels";
 import type {
   WorkAgendaPage,
   WorkBoardPage,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 
 const created: WorkTask = {
   id: "019f0000-0000-7000-8000-0000000000d1",

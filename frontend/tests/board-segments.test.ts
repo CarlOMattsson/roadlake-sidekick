@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   PROJECT_SEGMENT,
   boardSegments,
@@ -7,11 +7,11 @@ import {
   nestSteps,
   segmentItems,
   type BoardSegment,
-} from "@/features/work-app/work-items";
+} from "@/features/work-app/shared/work-items";
 import type {
   WorkBoardPage,
   WorkItemRecord,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 function record(kind: string, id: string, status: string): WorkItemRecord {
   return { kind, id, title: `${kind} ${id}`, status };

@@ -18,6 +18,7 @@ from sidekick.companion.push import (
     PushSubscriptionService,
     validate_endpoint,
 )
+from sidekick.companion.push_subscription_store import SqlPushSubscriptionStore
 from sidekick.shared.auth import TOKEN_SCOPES
 from sidekick.shared.persistence.models import AuditEventRow, PushSubscriptionRow
 from tests.db import database_factory
@@ -365,8 +366,9 @@ def test_an_unknown_pairing_is_a_401_but_an_unexpected_lookup_error_is_not(
 ) -> None:
     app = companion_app()
     user_id = owner(app)
-    service = PushSubscriptionService(
-        app.state.container.session_factory, app.state.container.settings.push_allowed_host_set
+    service = PushSubscriptionService.from_settings(
+        SqlPushSubscriptionStore(app.state.container.session_factory),
+        app.state.container.settings,
     )
     with pytest.raises(PairingNotFound):
         service.subscribe(user_id, UUID(int=1), ENDPOINT)

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { triageDueAt } from "../src/features/work-app/work-items";
+import { triageDueAt } from "../src/features/work-app/shared/work-items";
 
 import {
   relativeDue,

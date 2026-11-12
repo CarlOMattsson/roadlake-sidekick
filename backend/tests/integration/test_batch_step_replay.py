@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sidekick.api.app import Container, create_app
 from sidekick.shared.persistence.models import IdempotencyRow, StepRow
 from sidekick.shared.types import Actor, utc_now
-from sidekick.tasks.application.service import NewTaskItem, TaskBatch
+from sidekick.tasks.application.models import NewTaskItem, TaskBatch
 from sidekick.tasks.domain import Priority
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -34,7 +34,7 @@ def _setup() -> tuple[Container, Actor, sessionmaker[Session]]:
 
 def _batch(container: Container, actor: Actor) -> TaskBatch:
     item = NewTaskItem("Plan", None, Priority.NORMAL, (), ("Ett", "Två", "Tre"))
-    return container.tasks.create_batch(actor, [item], idempotency_key=KEY)
+    return container.task_bulk.create_batch(actor, [item], idempotency_key=KEY)
 
 
 def _replay(container: Container, actor: Actor) -> TaskBatch:
@@ -166,10 +166,10 @@ def test_an_old_record_without_step_ids_falls_back_to_the_current_live_steps() -
 def test_a_batch_without_steps_replays_with_no_steps() -> None:
     container, actor, _ = _setup()
     item = NewTaskItem("Bara titel", None, Priority.NORMAL, (), ())
-    container.tasks.create_batch(actor, [item], idempotency_key="no-steps-1")
+    container.task_bulk.create_batch(actor, [item], idempotency_key="no-steps-1")
     task_id = container.tasks.list(actor, limit=10).items[0].id
     container.steps.create_step(actor, task_id, title="Senare", idempotency_key="later-step-1")
 
-    replayed = container.tasks.create_batch(actor, [item], idempotency_key="no-steps-1")
+    replayed = container.task_bulk.create_batch(actor, [item], idempotency_key="no-steps-1")
 
     assert replayed.tasks[0].steps == ()

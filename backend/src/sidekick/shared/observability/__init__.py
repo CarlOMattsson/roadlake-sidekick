@@ -1,6 +1,7 @@
 """Privacy-preserving request correlation and structured logging."""
 
 from .failure import log_failure
+from .http_client_logs import HTTP_CLIENT_LOGGERS, silence_http_client_loggers
 from .middleware import (
     CorrelationMiddleware,
     IngressLogRecord,
@@ -40,6 +41,7 @@ from .span_allowlist import (
 from .third_party_logs import install_safe_record_factory
 
 __all__ = [
+    "HTTP_CLIENT_LOGGERS",
     "SAFE_ATTRIBUTE_NAMES",
     "SAFE_LOG_FIELDS",
     "SAFE_SPAN_ATTRIBUTES",
@@ -70,5 +72,6 @@ __all__ = [
     "safe_log_fields",
     "safe_mcp_method",
     "safe_telemetry_attributes",
+    "silence_http_client_loggers",
     "stop_span_export",
 ]

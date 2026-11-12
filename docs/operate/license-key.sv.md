@@ -8,7 +8,7 @@ Ange en licensnyckel i ett rum, i Android-appen eller från kommandoraden på se
 
 Bara instansens ägare kan ange en nyckel. Använd ett av sätten nedan.
 
-- **I en MCP-app.** Tryck på markeringen i toppraden, eller öppna licensraden längst ned i Kontroll. Välj "Ange licensnyckel", klistra in nyckeln och välj "Spara".
+- **I en MCP-app.** Öppna licensraden längst ned i Kontroll; så länge instansen saknar giltig nyckel leder myntet längst ned i varje rum också dit (är Kontroll avstängt ligger raden i rummets ⋯-panel). Välj "Ange licensnyckel", klistra in nyckeln och välj "Spara".
   Godkänns nyckeln säger raden det och visar vem den är utfärdad till. Annars ändras ingenting.
 - **I Android-appen.** Öppna Inställningar, gå till licensraden längst ned, välj "Ange licensnyckel", klistra in nyckeln och spara.
   Appen skickar den till din server över den parade anslutningen (`PUT /companion/v1/license`).

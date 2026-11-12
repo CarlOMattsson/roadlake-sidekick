@@ -3,8 +3,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workSv } from "@/features/work-app/labels";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
+import { workSv } from "@/features/work-app/shared/labels";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
 import type { RoomProps } from "@/features/mcp-apps/room-types";
 
 const anna = {

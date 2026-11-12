@@ -65,7 +65,7 @@ registration, no web sign-in and no cookie.
 | Credential theft or replay | Tokens are stored only as keyed digests (HMAC with a server pepper) with a purpose column, so an MCP token and a device credential cannot be exchanged; expiry, revocation and last-used are checked on each call (for sign-in through GitHub, a successful check of the GitHub grant is reused for 300 seconds by default, `SIDEKICK_MCP_OAUTH_UPSTREAM_CACHE_SECONDS`, so a revoked grant can keep working that long unless the setting is lowered or the api container is recreated; an owner who is disabled is refused at once); device credentials last 30 days by default and renew themselves; pairing codes are redeemed atomically once. |
 | Prompt injection through stored text or tool output | Stored text cannot select an actor, widen a scope or trigger another tool; writes are direct, owner-checked commands with versions and idempotency keys; the one AI-reviewed flow (the journal draft) needs the owner to finalize; destructive operations are trash and restore, and permanent deletion is not a public tool. |
 | Leakage through logs, traces and errors | Structured logs use an allowlist of fields; titles, text, prompts, tokens and bodies are never logged; errors returned to clients are generic and carry a correlation id; tests prove redaction. |
-| Resource exhaustion | Request body size and read-time limits, bounded batch sizes and page sizes, limits on device-credential renewals and test notifications, timeouts on outgoing calls. |
+| Resource exhaustion | Request body size and read-time limits, bounded batch sizes and page sizes, limits on device-credential renewals and test notifications, timeouts on outgoing calls. The model-visible tool list also has a fixed context budget, and its output schemas a ceiling, so tool definitions cannot grow past what a host puts in the model's context without a reviewed change (`backend/tests/contract/test_tool_context_budget.py`); the size of each tool's answer is bounded by the page and batch sizes above. |
 | Data loss or silent corruption | Optimistic versions on writes, durable idempotency, append-only event ledger, trash before deletion, encrypted backups that are decrypted and checked again before they count, and a drill that restores them. |
 | Stolen backup file | Backups and snapshots are encrypted with a key kept outside the backup directory; losing the key means losing the backups. |
 | Exposure through the memory service | Hindsight is optional; per-source switches, pause and per-record exclusion are owner controls; journal text and other derived input go to the configured model provider, which the owner chooses. |
@@ -123,16 +123,15 @@ that a push reveals.
 
 | Threat | Existing control |
 | --- | --- |
-| Records leaking through the push channel | A push body is one of two fixed values (`{"k":"w"}` or `{"k":"r"}`); it contains no title, text or id, and the phone fetches the real data from the authenticated companion API after the wake (`backend/src/sidekick/companion/push_worker.py`, `push_outbox.py`). Reminders are shown by the phone itself, never composed on the push server. |
+| Records leaking through the push channel | A push body is one of two fixed values (`{"k":"w"}` or `{"k":"r"}`); it contains no title, text or id, and the phone fetches the real data from the authenticated companion API after the wake (`backend/src/sidekick/companion/push_worker.py`, `push_outbox_store.py`). Reminders are shown by the phone itself, never composed on the push server. |
 | Server-side request forgery through a registered endpoint | An endpoint must be https, port 443, no userinfo, no IP literal, at most 512 printable ASCII characters and on the owner's allowlist of hosts (default: the public ntfy.sh server); it is validated again before every send, so removing a host takes effect at once. The worker follows no redirects, times out after 10 seconds and never reads the response body (`backend/src/sidekick/companion/push.py`, `backend/tests/api/test_companion_push.py`, `backend/tests/api/test_companion_push_delivery.py`). |
 | Topic or endpoint leakage | Endpoints, topics and payloads are never logged or audited; a subscription is identified in logs by its host only, and span scrubbing covers exceptions (`backend/src/sidekick/shared/observability/setup.py`). A person who learns a topic can read or send content-free wakes for that phone, but cannot read records or act as the device; the damage is noise and a battery cost. The self-hosted notification server denies all access by default, lets Sidekick write and the phone read only the `up*` topics, has no web app, no accounts, no on-disk cache and logs at `warn` so no topic is written (`deploy/selfhost/ntfy/server.yml`). On the shared public server the topic name is the only secret. |
 | Credential sent to the wrong host | The publish token is a `SecretStr` and is attached only when the endpoint's host equals the configured auth host exactly; every other host gets no credentials (`backend/tests/unit/test_push_worker_auth.py`). |
 | Revoked or expired device still receiving wakes | The worker checks the device credential and the owner before each send and revokes the subscription instead of sending. |
-| Runaway sending | Wakes are coalesced per subscription, there is a minimum interval, retries back off with a cap, and a 429 blocks the host in memory rather than hammering it (`push_outbox.py`, `push_delivery.py`). |
+| Runaway sending | Wakes are coalesced per subscription, there is a minimum interval, retries back off with a cap, and a 429 blocks the host in memory rather than hammering it (`push_outbox_store.py`, `push_delivery.py`). |
 
 Residual: the notification server learns that a phone was woken and when, and its IP address. The shared server is
-a third party; use your own for anything beyond a trial. Delivery to real phones is not yet verified (see the
-[README](../../README.md)).
+a third party; use your own for anything beyond a trial.
 
 ### Backup encryption
 
@@ -160,5 +159,4 @@ database. Off-server copies and key custody are the owner's responsibility.
   needs.
 - Backups are encrypted in memory, so very large databases need more memory than disk; off-server copies are the
   owner's responsibility.
-- The macOS path, the Android app on real devices and push delivery are not yet verified; see the status box in the
-  [README](../../README.md).
+- The macOS path has not been tried yet; see the status box in the [README](../../README.md).

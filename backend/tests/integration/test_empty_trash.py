@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import select, text
 
 from sidekick.api.app import create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
 from sidekick.journal.domain.source import SourceType
 from sidekick.lifecycle.application.empty_trash import empty_trash
@@ -154,7 +154,7 @@ def test_a_record_a_foreign_key_still_protects_is_kept_and_the_sweep_goes_on() -
         container.tasks.create(actor, title=f"Loose {number}", idempotency_key=f"loose-{number}")
         for number in range(2)
     ]
-    container.journal.write_entry(
+    container.journal_capture.write_entry(
         actor,
         source_type=SourceType.TRANSCRIPT_TEXT,
         journal_date=date(2026, 7, 21),
@@ -213,7 +213,7 @@ def test_the_sweep_as_the_application_role_removes_domains_and_processes_keeps_j
     process = container.contexts.create_process(
         actor, domain_id=domain.id, name="Monthly", description=None, idempotency_key="grant-proc"
     )
-    source, entry = container.journal.write_entry(
+    source, entry = container.journal_capture.write_entry(
         actor,
         source_type=SourceType.TRANSCRIPT_TEXT,
         journal_date=date(2026, 7, 22),

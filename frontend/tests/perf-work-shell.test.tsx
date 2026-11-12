@@ -1,8 +1,8 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { workEn } from "@/features/work-app/labels";
-import { savedViewsLabelsEn } from "@/features/work-app/saved-views-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { savedViewsLabelsEn } from "@/features/work-app/saved-views/saved-views-labels";
 import type {
   WorkAgendaPage,
   WorkBoardPage,
@@ -11,9 +11,9 @@ import type {
   WorkItemRecord,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 
 // Performance: the Work shell reads only what is shown. A hidden room reads nothing, the To sort count is read once
 // per refreshKey, a write in the shell makes the other tabs out of date (read when pressed), a Task made twice is

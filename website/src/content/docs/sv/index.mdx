@@ -13,7 +13,7 @@ import PageLink from '../../../components/PageLink.astro';
 import { productVersion } from '../../../lib/site';
 
 <Hero
-  status={`Förhandsversion ${productVersion()} · inte släppt än`}
+  status={`Första versionen ${productVersion()} · inte släppt än`}
   title="Din vardag i Claude, sparad på din egen server"
   lead="Sidekick håller ordning på uppgifter, dagbok, kontakter och inköp. Du pratar med Claude, och allt sparas i din egen databas."
   primary={{ label: 'Kom igång', page: ['docs/start', 'docs'] }}
@@ -33,6 +33,16 @@ import { productVersion } from '../../../lib/site';
   />
 </Section>
 
+<Section title="Prata igenom dagen med Claude">
+  <p>Det effektivaste sättet att använda Sidekick är att prata med Claude i röstläget medan du går, cyklar eller kör bil. Du behöver inte diktera kommandon: låt Claude fråga om dagen och berätta fritt om det du har i huvudet. Ett samtal på tio minuter brukar ge en hel del uppgifter, dagboksanteckningar och kopplingar, och tankarna som snurrar får komma ur huvudet.</p>
+  <ul>
+    <li>Börja till exempel med: &quot;Fråga mig hur dagen har varit och hjälp mig få ordning på allt jag behöver göra.&quot;</li>
+    <li>Claude ställer följdfrågor om vem det gäller, när något ska vara klart och vad som hänger ihop. Sedan skapar Claude uppgifter, dagboksanteckningar och kontakter i Sidekick och kopplar ihop dem.</li>
+    <li>Med andra connectors i Claude kan Claude dessutom gå igenom Slack, e-post och kalender för att lägga till uppgifter du missat och boka möten.</li>
+    <li>Prata bara när det är säkert, till exempel handsfree i bilen.</li>
+  </ul>
+</Section>
+
 <Section title="Fyra rum, en databas">
   <RoomStrip
     rooms={[
@@ -43,7 +53,7 @@ import { productVersion } from '../../../lib/site';
     ]}
     note="Simulerad värd, påhittade data. Bilderna är inte tagna i Claude."
   />
-  <p class="sec__more">Android-appen visar Arbete, Dagbok och Inköp ur samma databas, och Idag-widgeten visar dagens uppgifter på hemskärmen. Det finns ingen färdig APK. Du bygger appen själv ur källkoden.</p>
+  <p class="sec__more">Android-appen visar Arbete, Dagbok och Inköp ur samma databas, och Idag-widgeten visar dagens uppgifter på hemskärmen. Från och med första releasen har varje release en signerad APK att installera. Du kan också bygga appen själv ur källkoden.</p>
   <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Läs om Android-appen <span aria-hidden="true">›</span></PageLink></p>
 </Section>
 
@@ -66,9 +76,9 @@ import { productVersion } from '../../../lib/site';
       <PageLink page="pricing" class="btn btn--secondary">Se priser</PageLink>
     </div>
     <div class="card">
-      <h2>Förhandsversion</h2>
-      <p>Sidekick {productVersion()} är en förhandsversion. Det finns ingen färdig containeravbild och ingen färdig APK. Du bygger båda ur källkoden. Räkna med ojämnheter och ändringar som bryter bakåt tills en version är släppt.</p>
-      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Läs hela statusen för förhandsversionen <span aria-hidden="true">›</span></PageLink></p>
+      <h2>Första versionen</h2>
+      <p>Sidekick {productVersion()} är den första versionen. Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat. Fram till första releasen bygger du containeravbilden och APK:n ur källkoden; därefter har varje release en signerad avbild och en signerad APK. Räkna med ojämnheter och ändringar som bryter bakåt tills en version är släppt.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Läs hela statusen för första versionen <span aria-hidden="true">›</span></PageLink></p>
     </div>
   </div>
 </Section>

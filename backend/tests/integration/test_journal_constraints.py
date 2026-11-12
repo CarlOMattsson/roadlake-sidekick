@@ -16,7 +16,7 @@ from tests.db import database_factory, require_test_database_url
 
 
 def test_baseline_exists_before_constraint_tests() -> None:
-    migration = Path(__file__).resolve().parents[3] / "migrations" / "100_baseline_0_1_0.py"
+    migration = Path(__file__).resolve().parents[3] / "migrations" / "100_schema_baseline_0_1_0.py"
     assert migration.is_file()
 
 

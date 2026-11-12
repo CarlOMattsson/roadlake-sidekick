@@ -36,7 +36,7 @@ om och vad GitHub säger. Exemplet levereras bara med läs-scopes för projekt, 
 läsa det, kan inte ändra något och har ingen åtkomst till Dagboken. Lägg till `journal:read` för Dagboken. Ett
 `:write`-scope (anges bredvid sitt `:read`, till exempel `projects:write,projects:read`) låter Claude ändra den datan,
 `license:write` låter appen ange instansens licensnyckel (lägg bara till det om du anger nyckeln i appen), och
-`automation:read` / `automation:write` gäller automationsrummet. Utöka listan med eftertanke och skapa sedan om API:et
+`automation:read` / `automation:write` är reserverade: inget verktyg använder dem än. Utöka listan med eftertanke och skapa sedan om API:et
 (`docker compose --env-file selfhost.env up -d --force-recreate api`). Om Claude inte märker ändringen: ta
 bort anslutningen och lägg till den igen.
 

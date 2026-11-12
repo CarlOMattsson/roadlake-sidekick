@@ -1,12 +1,9 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
-
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { Progress } from "@/features/mcp-apps/ui/progress";
 
-const uiDir = path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui");
+import { readStylesheet } from "./helpers/stylesheet";
 
 describe.each([
   { done: 2, total: 5, text: "2/5", width: "40%" },
@@ -65,10 +62,17 @@ describe("Progress bounds", () => {
 
 describe("Progress styling", () => {
   it("uses host tokens with fallbacks and no fixed colour-scheme media query", () => {
-    const css = readFileSync(path.join(uiDir, "progress.css"), "utf8");
+    const css = readStylesheet("features/mcp-apps/ui/progress.css");
+    const values = css.rules.flatMap((rule) =>
+      Object.values(rule.declarations),
+    );
 
-    expect(css).not.toMatch(/prefers-color-scheme/);
-    expect(css).toMatch(/var\(--color-text-secondary,\s*light-dark\(/);
-    expect(css).toMatch(/var\(--color-text-info,\s*light-dark\(/);
+    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
+      expect.stringContaining("prefers-color-scheme"),
+    );
+    expect(values.join(" ")).toMatch(
+      /var\(--color-text-secondary, light-dark\(/,
+    );
+    expect(values.join(" ")).toMatch(/var\(--color-text-info, light-dark\(/);
   });
 });

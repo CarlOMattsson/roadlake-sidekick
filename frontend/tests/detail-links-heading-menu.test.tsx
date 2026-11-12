@@ -2,22 +2,22 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { openLinkedRowMenu } from "./linked-row-menu-helpers";
-import { linksLabelsEn } from "@/features/work-app/links-labels";
-import { ContactWays } from "@/features/work-app/contact-card";
-import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { linksLabelsEn } from "@/features/work-app/shared/links-labels";
+import { ContactWays } from "@/features/work-app/contacts/contact-card";
+import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   manageLabelsEn,
   manageLabelsSv,
-} from "@/features/work-app/manage-labels";
+} from "@/features/work-app/shared/manage-labels";
 import type {
   WorkContactRecord,
   WorkProjectSummary,
   WorkTask,
   WorkTaskSummary,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 /** A Task's or Contact's link is removed from the ⋯ of the heading row, and Undo writes it back. */
 

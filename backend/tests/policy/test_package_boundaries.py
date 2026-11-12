@@ -13,16 +13,17 @@ have no layer yet and are not restricted by rules 1 and 2.
                   composition root (the `admin` CLI) is a context of its own, not part of `shared`.
 4. features    -> never the cross-readers `lifecycle`, `search`, `memory`, `owner_export` or
                   `backup`; they sit above the features.
-5. service     -> never `sqlalchemy`. A context's `application` modules and its `service` modules
-                  ask a store for rows (queries live in the context's own `persistence` module,
-                  composed into `sidekick.store`); they type the open session as
+5. no SQL      -> a context's modules never import `sqlalchemy`, except its storage modules: a
+                  `persistence` or `infrastructure` package or module, and any module named
+                  `store` or `*_store`. Everything else (application, service, workers, CLIs) asks
+                  a store for rows (composed into `sidekick.store`) and types the open session as
                   `sidekick.shared.types.TxSession`.
 
 Every import counts: top level, inside functions (late imports) and inside `if TYPE_CHECKING:`.
 Relative imports are resolved to absolute module names first.
 
 Known violations are listed in `DEBT` (rule -> module -> imported modules) so the suite fails on
-any *new* violation; the list is empty today.
+any *new* violation.
 `test_the_debt_list_has_no_stale_entries` fails when an entry is no longer violated, so the list
 only shrinks. Fix a violation, then delete its line. Never add a line to get a build green.
 """
@@ -53,7 +54,7 @@ RULE_DOMAIN = "domain-imports-only-shared-and-domains"
 RULE_APPLICATION = "application-imports-own-context-and-other-domains"
 RULE_SHARED = "shared-imports-no-context"
 RULE_FEATURE = "feature-imports-no-cross-reader"
-RULE_SERVICE_SQL = "service-layer-imports-no-sqlalchemy"
+RULE_SERVICE_SQL = "only-storage-modules-import-sqlalchemy"
 RULES = (RULE_DOMAIN, RULE_APPLICATION, RULE_SHARED, RULE_FEATURE, RULE_SERVICE_SQL)
 
 # Rule -> importing module -> imported modules that break it today. Shrink only.
@@ -115,14 +116,17 @@ def _imported_from_source(source: str, package: str) -> set[str]:
     return {name for name in found if name.split(".")[0] in {"sidekick", "sqlalchemy"}}
 
 
-def _is_service_module(parts: list[str]) -> bool:
-    """True for a context's `application` modules and its `service` modules."""
+def _is_sql_free_module(parts: list[str]) -> bool:
+    """True for every module of a context that is not one of its storage modules."""
 
-    return (
-        len(parts) > 2
-        and parts[1] in CONTEXTS
-        and (parts[2] == "application" or parts[-1] == "service")
+    if len(parts) < 3 or parts[1] not in CONTEXTS:
+        return False
+    is_storage = (
+        any(part in {"persistence", "infrastructure"} for part in parts[2:])
+        or parts[-1] == "store"
+        or parts[-1].endswith("_store")
     )
+    return not is_storage
 
 
 def _broken_rules(source: str, target: str) -> list[str]:
@@ -130,7 +134,7 @@ def _broken_rules(source: str, target: str) -> list[str]:
 
     src, dst = source.split("."), target.split(".")
     if dst[0] == "sqlalchemy":
-        return [RULE_SERVICE_SQL] if _is_service_module(src) else []
+        return [RULE_SERVICE_SQL] if _is_sql_free_module(src) else []
     if len(src) < 2 or len(dst) < 2:
         return []
     src_context, dst_context = src[1], dst[1]
@@ -223,6 +227,13 @@ def test_the_rules_classify_imports() -> None:
     assert _broken_rules("sidekick.shopping.persistence.store", "sqlalchemy") == []
     assert _broken_rules("sidekick.work.persistence.tags", "sqlalchemy") == []
     assert _broken_rules("sidekick.shared.auth.service", "sqlalchemy") == []
+    assert _broken_rules("sidekick.memory.worker", "sqlalchemy.orm") == [RULE_SERVICE_SQL]
+    assert _broken_rules("sidekick.companion.cli", "sqlalchemy") == [RULE_SERVICE_SQL]
+    assert _broken_rules("sidekick.companion.push_reminders", "sqlalchemy") == [RULE_SERVICE_SQL]
+    assert _broken_rules("sidekick.companion.push_reminder_store", "sqlalchemy") == []
+    assert _broken_rules("sidekick.companion.persistence", "sqlalchemy") == []
+    assert _broken_rules("sidekick.journal.persistence.entries", "sqlalchemy") == []
+    assert _broken_rules("sidekick.memory.infrastructure.lock", "sqlalchemy") == []
 
 
 def test_relative_imports_are_resolved_to_absolute_names() -> None:

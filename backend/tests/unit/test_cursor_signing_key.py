@@ -13,6 +13,7 @@ from sidekick.shared.config import Settings
 from sidekick.shared.errors import InvalidInputError
 from sidekick.shared.types import CursorCodec
 from sidekick.work.application.service import ContextService
+from sidekick.work.application.work_lists import WorkListService
 
 ACTOR = UUID(int=7)
 
@@ -40,8 +41,9 @@ def test_cursor_from_another_key_is_rejected_as_invalid() -> None:
         CursorCodec("b" * 40).decode(ACTOR, issued, "tasks")
 
 
-def test_cursor_codec_is_a_required_service_dependency() -> None:
-    parameter = inspect.signature(ContextService.__init__).parameters["cursor_codec"]
+@pytest.mark.parametrize("service", [ContextService, WorkListService])
+def test_cursor_codec_is_a_required_service_dependency(service: type) -> None:
+    parameter = inspect.signature(service.__init__).parameters["cursor_codec"]
     assert parameter.default is inspect.Parameter.empty
     assert "None" not in str(parameter.annotation)
 

@@ -47,6 +47,8 @@ from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
 from mcp.types import CallToolRequestParams
 
+from sidekick.shared.compat import low_level_server, set_tool_input_schema_lookup
+
 LOGGER = logging.getLogger("sidekick.mcp.input_schemas")
 
 REVIEWED_FASTMCP_VERSION: Final = "4.1.6"
@@ -87,7 +89,7 @@ def _internals_reason(server: FastMCP) -> str | None:
     library visible at startup, not on the first tool call.
     """
 
-    low_level = getattr(server, "_mcp_server", None)
+    low_level = low_level_server(server)
     if low_level is None or not hasattr(low_level, "get_tool_input_schema"):
         return "the low-level server has no get_tool_input_schema"
     if low_level.get_tool_input_schema is not None:
@@ -199,7 +201,7 @@ class _InputSchemaLookup(Middleware):
         }
         wire = serialize_server_result("tools/list", MODERN_PROTOCOL_VERSION, dumped)
         schemas: dict[str, Mapping[str, Any]] = {t["name"]: t["inputSchema"] for t in wire["tools"]}
-        server._mcp_server.get_tool_input_schema = schemas.get  # pyright: ignore[reportPrivateUsage]
+        set_tool_input_schema_lookup(server, schemas.get)
 
 
 def _caller_dependent_middleware(server: FastMCP) -> str | None:

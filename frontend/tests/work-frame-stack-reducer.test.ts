@@ -3,12 +3,12 @@ import {
   createFrameStackState,
   frameStackReducer,
   type FrameStackAction,
-} from "@/features/work-app/work-view-parts/frame-stack-reducer";
+} from "@/features/work-app/view/parts/frame-stack-reducer";
 import {
   workTabsReducer,
   createWorkTabsState,
-} from "@/features/work-app/work-shell-tabs";
-import type { WorkFrame } from "@/features/work-app/transport";
+} from "@/features/work-app/shell/work-shell-tabs";
+import type { WorkFrame } from "@/features/work-app/transport/transport";
 
 const board = (name: string) =>
   ({ kind: "board", name }) as unknown as WorkFrame;

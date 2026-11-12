@@ -75,12 +75,6 @@ class ActivityEntry:
 
 
 @dataclass(frozen=True, slots=True)
-class AutomationControl:
-    owner_id: UUID
-    pause_all_automation: bool
-
-
-@dataclass(frozen=True, slots=True)
 class NewActivity:
     """One ledger event and the activity-history entry projected from it, ready to be stored."""
 
@@ -116,8 +110,6 @@ class ActivityWriter(Protocol):
 
 
 class AutomationStore(ActivityWriter, TransactionalStore, IdempotentStore, Protocol):
-    def automation_control(self, session: TxSession, owner: UUID) -> AutomationControl | None: ...
-
     def activity_entries(
         self,
         session: TxSession,
@@ -291,10 +283,6 @@ class AutomationPolicyService:
         self.store = store
         self.clock = clock
         self.cursor_codec = cursor_codec
-
-    def paused(self, session: TxSession, owner_id: UUID) -> bool:
-        row = self.store.automation_control(session, owner_id)
-        return bool(row and row.pause_all_automation)
 
     def list_activity(
         self,

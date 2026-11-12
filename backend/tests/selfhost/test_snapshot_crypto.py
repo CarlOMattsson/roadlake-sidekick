@@ -66,3 +66,57 @@ def test_the_decrypt_bound_always_fits_a_token_for_the_largest_plaintext(size: i
     assert module.MAX_PLAINTEXT_BYTES == 512 * 1024 * 1024
     token = Fernet(Fernet.generate_key()).encrypt(b"x" * size)
     assert len(token) <= (size + 16 + 73) * 4 // 3 + 4
+
+
+def test_the_key_can_come_from_the_file_a_docker_secret_provides(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    key = Fernet.generate_key()
+    key_file = tmp_path / "backup_encryption_key"
+    key_file.write_bytes(key + b"\n")
+    module = load()
+    monkeypatch.delenv("SIDEKICK_BACKUP_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY_FILE", str(key_file))
+    out, err = io.BytesIO(), io.StringIO()
+    monkeypatch.setattr(sys, "stdin", SimpleNamespace(buffer=io.BytesIO(b"dump")))
+    monkeypatch.setattr(sys, "stdout", SimpleNamespace(buffer=out))
+    monkeypatch.setattr(sys, "stderr", err)
+
+    assert module.main("encrypt") == 0
+    assert Fernet(key).decrypt(out.getvalue()[len(module.MAGIC) :]) == b"dump"
+
+
+def test_an_empty_key_file_variable_falls_back_to_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    key = Fernet.generate_key().decode()
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY_FILE", "")
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY", key)
+
+    assert load().read_key() == key.encode()
+
+
+def test_a_key_value_together_with_a_key_file_is_refused(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    key = Fernet.generate_key().decode()
+    key_file = tmp_path / "key"
+    key_file.write_text(key)
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY", key)
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY_FILE", str(key_file))
+
+    with pytest.raises(ValueError, match="both set"):
+        load().read_key()
+
+
+@pytest.mark.parametrize("content", [b"x" * 4097, b"\n"])
+def test_a_key_file_that_is_too_large_or_empty_is_refused_not_truncated(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, content: bytes
+) -> None:
+    key_file = tmp_path / "key"
+    key_file.write_bytes(content)
+    monkeypatch.delenv("SIDEKICK_BACKUP_ENCRYPTION_KEY", raising=False)
+    monkeypatch.setenv("SIDEKICK_BACKUP_ENCRYPTION_KEY_FILE", str(key_file))
+
+    with pytest.raises(ValueError, match="key file"):
+        load().read_key()

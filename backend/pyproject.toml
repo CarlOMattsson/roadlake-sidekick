@@ -105,6 +105,7 @@ max-complexity = 22
 "tests/selfhost/test_drill_script.py" = ["S603", "S607"]
 "tests/selfhost/test_release_migration_class.py" = ["S603", "S607", "S608"]
 "tests/selfhost/test_selfhost_logging.py" = ["S603", "S607"]
+"tests/selfhost/test_secrets_to_files.py" = ["S603", "S607"]
 "tests/selfhost/test_selfhost_ntfy.py" = ["S603", "S607"]
 "tests/selfhost/test_selfhost_update.py" = ["S603", "S607"]
 "tests/selfhost/work_package/*.py" = ["S506", "S603", "S607", "S608"]
@@ -121,7 +122,7 @@ quote-style = "double"
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"
-include = ["src"]
+include = ["src", "../tools/workctl"]
 venvPath = "."
 venv = ".venv"
 reportUnusedFunction = false

@@ -396,7 +396,7 @@ def test_database_tables_constraints_indexes_and_grants_match_orm() -> None:
 
 
 def test_baseline_declares_source_immutability_and_authoritative_entry_uniqueness() -> None:
-    migration = Path(__file__).resolve().parents[3] / "migrations" / "100_baseline_0_1_0.py"
+    migration = Path(__file__).resolve().parents[3] / "migrations" / "100_schema_baseline_0_1_0.py"
     sql = migration.read_text(encoding="utf-8")
     assert "GRANT SELECT,INSERT ON TABLE sidekick.journal_sources TO sidekick_app" in sql
     assert "ON TABLE sidekick.journal_sources TO sidekick_app" in sql

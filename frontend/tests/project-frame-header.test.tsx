@@ -1,8 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { workEn, workSv } from "@/features/work-app/labels";
-import type { WorkProject, WorkTransport } from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
+import type {
+  WorkProject,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   projectA,
   transport as fakeTransport,

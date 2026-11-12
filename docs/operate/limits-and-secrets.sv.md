@@ -49,3 +49,30 @@ Praktiska följder:
 - En inställning som bara API:et läser (till exempel `SIDEKICK_MCP_OAUTH_SCOPES`) gäller efter att du startat om `api`; workers behöver den inte.
 - En ny `SIDEKICK_`-inställning som en worker ska läsa måste läggas till i listan i `compose.yaml`. Testet `backend/tests/selfhost/test_selfhost_secret_scope.py` kontrollerar att varje listat namn är en deklarerad inställning.
 - Arbetspaketet (`tools/work.sh`) påverkas inte: det ersätter listorna med sina egna hemlighetsfiler.
+
+## Hemligheter som filer
+
+En hemlighet i `selfhost.env` är en miljövariabel i containern: varje process i den kan läsa den, och `docker inspect` skriver ut den. Som fil monteras den skrivskyddad på `/run/secrets/<namn>`, bara i de tjänster som läser den (samma listor som ovan), och `docker inspect` visar sökvägen men inte värdet. De nio hemliga inställningarna kan flyttas på det sättet:
+
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY` och `SIDEKICK_PUSH_AUTH_TOKEN`.
+
+Befintliga installationer fungerar oförändrat: en vanlig variabel läses fortfarande. Flytta värdena när det passar:
+
+```sh
+cd deploy/selfhost
+sh secrets-to-files.sh --dry-run   # visar vad som skulle flyttas, ändrar ingenting
+sh secrets-to-files.sh             # flyttar
+docker compose --env-file selfhost.env up -d
+```
+
+För varje hemlighet som har ett riktigt värde i `selfhost.env` skriver skriptet det till `secrets/<namn>`, läser tillbaka filen och jämför, och först därefter tar det bort raden `SIDEKICK_<NAMN>=` och lägger till `SELFHOST_<NAMN>_FILE=./secrets/<namn>`. Det skriver aldrig ut ett värde och skickar aldrig ett på en kommandorad. Det lämnar en hemlighet kvar, med en notering, när flytten kan ändra dess betydelse: värdet är fortfarande en platshållare, är satt två gånger eller har ett tecken som Compose behandlar speciellt (citationstecken, mellanslag, `$`, `#`, omvänt snedstreck). Flytta de för hand: skriv exakt värde och en radbrytning till filen, ta bort raden `SIDEKICK_<NAMN>=` och lägg till raden `SELFHOST_<NAMN>_FILE=`. Kör skriptet igen efteråt; det som redan är flyttat rörs inte. `update.sh` godtar en backupnyckel som ligger i en fil.
+
+Så fungerar det:
+
+- `compose.yaml` monterar varje fil som en Docker-secret och sätter `SIDEKICK_<NAMN>_FILE=/run/secrets/<namn>` i de tjänster som läser den, men bara medan `SELFHOST_<NAMN>_FILE` är satt. Utan den är hemligheten en tom `/dev/null`-montering och backend ignorerar den tomma variabeln.
+- Backend läser filen som `SIDEKICK_<NAMN>_FILE` pekar på för var och en av de nio inställningarna (de som är markerade som hemliga i [konfigurationsreferensen](../reference/configuration.md)), tar bort den avslutande radbrytningen och validerar värdet som vilket annat. En saknad, oläsbar, tom, icke-UTF-8-fil eller en för stor fil stoppar starten med ett fel som nämner variabeln, aldrig innehållet.
+- Om både `SIDEKICK_<NAMN>` och `SIDEKICK_<NAMN>_FILE` är satta stoppas starten med ett fel. Ett tomt `SIDEKICK_<NAMN>` räknas inte som satt. `SIDEKICK_<NAMN>_FILE` läses bara ur processmiljön, inte ur en `.env`-fil.
+- Katalogen `secrets/` har läge 700 och filerna läge 644, inte 600. Compose bind-monterar en filhemlighet som den är på värden och ignorerar `uid`, `gid` och `mode`, och containerns användare är inte du, så en fil med läge 600 går inte att läsa i containern. Katalogen är det som håller andra användare på värden ute. Den är gitignorerad.
+- Ta backup på `secrets/` tillsammans med `selfhost.env` och håll båda privata. Förlorar du backupnyckeln går backuperna fortfarande inte att läsa.
+
+`db.env` (PostgreSQL-lösenorden och migreringsadressen), `hindsight.env` och `ntfy.env` är separata filer som andra tjänster läser; de förblir som de är.

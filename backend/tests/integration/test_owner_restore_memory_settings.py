@@ -12,12 +12,10 @@ import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.api.app import Container, create_container
-from sidekick.owner_export.core import (
-    ExportRefused,
-    OwnerExportService,
-    OwnerRestoreService,
-    build_restore_plan,
-)
+from sidekick.owner_export.catalogue import ExportRefused
+from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.restore import OwnerRestoreService
+from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.persistence.models import MemorySettingsRow
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore

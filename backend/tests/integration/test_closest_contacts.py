@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from sidekick.api.app import create_container
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
 from tests.db import database_factory

@@ -2,8 +2,8 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { workEn } from "@/features/work-app/labels";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { workEn } from "@/features/work-app/shared/labels";
 import { WorkRoom } from "@/features/work-app/room";
 import type { RoomTransport } from "@/features/mcp-apps/room-types";
 import { ShoppingRoom } from "@/features/shopping-app/room";

@@ -1,17 +1,21 @@
 """Task application use cases."""
 
-from .service import (
+from .board import TaskBoardService
+from .bulk import TaskBulkService
+from .models import (
     MAX_BOARD_COLUMN_REORDER,
     BoardPlacement,
     RescheduleTaskItem,
-    TaskService,
     UpdateTaskCommand,
 )
+from .service import TaskService
 
 __all__ = [
     "MAX_BOARD_COLUMN_REORDER",
     "BoardPlacement",
     "RescheduleTaskItem",
+    "TaskBoardService",
+    "TaskBulkService",
     "TaskService",
     "UpdateTaskCommand",
 ]

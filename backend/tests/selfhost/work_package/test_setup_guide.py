@@ -13,7 +13,6 @@ import pytest
 
 from tests.selfhost.work_package.support import (
     REPO_ROOT,
-    SCRIPT,
     retired_names,
     run_work,
 )
@@ -190,11 +189,3 @@ def test_the_readmes_describe_stdio_and_backup_and_no_node_bridge(suffix: str) -
         "bash tools/work.sh restore",
     ):
         assert needed in text, needed
-
-
-def test_the_guide_texts_exist_in_both_languages() -> None:
-    text = SCRIPT.read_text(encoding="utf-8")
-    both = re.findall(r"^\s+sv:(\w+)\|en:(\w+)\)", text, re.M)
-    sv = set(re.findall(r"^\s+sv:(\w+)\)", text, re.M)) | {a for a, _ in both}
-    en = set(re.findall(r"^\s+en:(\w+)\)", text, re.M)) | {b for _, b in both}
-    assert sv and sv == en, sv ^ en

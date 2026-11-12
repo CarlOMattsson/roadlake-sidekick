@@ -7,13 +7,15 @@
 //      -lead, -open or -back) and that sets min-height has at least 2.75rem or 44px.
 //   4. No overflow-y: auto or scroll in selectors that apply to the inline mode.
 //   5. Every var(--sk-*) is defined in tokens.css or in the same stylesheet.
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { sourceFiles, srcDir } from "./helpers/source-files";
+
 const featuresDir = path.resolve(import.meta.dirname, "../src/features");
 
-// Directories whose top-level *.css files are scanned: the shared MCP-app kit and the three apps.
+// Directories whose *.css files are scanned, including their subfolders: the shared MCP-app kit and the three apps.
 // Shopping has its single stylesheet at shopping-app/*.css, found by the same glob as the others.
 const scannedDirs = [
   "mcp-apps/ui",
@@ -40,13 +42,10 @@ function lineOf(text: string, index: number): number {
 function loadCss(): CssFile[] {
   return scannedDirs.flatMap((dir) => {
     const absolute = path.join(featuresDir, dir);
-    return readdirSync(absolute)
-      .filter((entry) => entry.endsWith(".css"))
-      .sort()
-      .map((entry) => ({
-        rel: `${dir}/${entry}`,
-        css: stripComments(readFileSync(path.join(absolute, entry), "utf8")),
-      }));
+    return sourceFiles(absolute, /\.css$/).map((file) => ({
+      rel: `${dir}/${path.relative(absolute, file).split(path.sep).join("/")}`,
+      css: stripComments(readFileSync(file, "utf8")),
+    }));
   });
 }
 
@@ -173,9 +172,9 @@ describe("MCP-app UI CSS contract (D28)", () => {
   it("scans the expected stylesheets", () => {
     const names = files.map((file) => file.rel);
     expect(names).toContain("mcp-apps/ui/states.css");
-    expect(names).toContain("work-app/work.css");
-    expect(names).toContain("work-app/task-detail.css");
-    expect(names).toContain("work-app/inline-summary.css");
+    expect(names).toContain("work-app/shell/work.css");
+    expect(names).toContain("work-app/tasks/task-detail.css");
+    expect(names).toContain("work-app/inline/inline-summary.css");
     expect(names).toContain("journal-app/journal.css");
     expect(names).toContain("shopping-app/shopping.css");
   });
@@ -352,16 +351,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
         if (pattern.test(file.css)) violations.push(`${file.rel} ${pattern}`);
       }
     }
-    const srcDir = path.resolve(import.meta.dirname, "../src");
-    const walk = (dir: string): string[] =>
-      readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
-        entry.isDirectory()
-          ? walk(path.join(dir, entry.name))
-          : /\.(tsx?|css)$/.test(entry.name)
-            ? [path.join(dir, entry.name)]
-            : [],
-      );
-    for (const file of walk(srcDir)) {
+    for (const file of sourceFiles(srcDir, /\.(tsx?|css)$/)) {
       const text = readFileSync(file, "utf8");
       for (const pattern of stale) {
         if (pattern.test(text))
@@ -470,7 +460,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
     expect(
       valueOf(
         ruleBody(
-          "work-app/work.css",
+          "work-app/shell/work.css",
           '.sidekick-work .work-board[data-layout="single"] .work-list > li.work-card',
         ),
         "min-height",

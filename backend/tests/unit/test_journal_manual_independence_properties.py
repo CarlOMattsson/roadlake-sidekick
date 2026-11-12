@@ -10,7 +10,6 @@ from uuid import UUID
 from hypothesis import given
 from hypothesis import strategies as st
 
-from sidekick.journal.application.service import JournalService
 from sidekick.journal.domain.day_done import DayDone
 from sidekick.journal.domain.entry import EntryHead, JournalEntry, KeyPoint, KeyPointKind
 from sidekick.journal.domain.source import JournalSource, SourceType
@@ -23,6 +22,7 @@ from sidekick.journal.domain.summary import (
 )
 from sidekick.shared.types import Actor
 from tests.support.fakes import make_cursor_codec
+from tests.support.journal_services import ManualJournal
 
 OWNER = UUID("018af000-0000-7000-8000-000000000001")
 SOURCE_ID = UUID("01910000-0000-7000-8000-000000000001")
@@ -195,8 +195,8 @@ def actor() -> Actor:
     )
 
 
-def make_service(store: ManualOnlyStore) -> JournalService:
-    return JournalService(
+def make_service(store: ManualOnlyStore) -> ManualJournal:
+    return ManualJournal.build(
         store,
         FixedClock(datetime(2026, 7, 24, 8, 0, tzinfo=UTC)),
         make_cursor_codec(),
@@ -223,7 +223,7 @@ def test_manual_source_and_entry_never_create_runs_or_change_task_state(overview
     service = make_service(store)
     before_task = dict(store.task_state)
 
-    source = service.create_source(
+    source = service.capture.create_source(
         actor(),
         source_type=SourceType.MANUAL_TEXT,
         journal_date=date(2026, 7, 21),
@@ -234,7 +234,7 @@ def test_manual_source_and_entry_never_create_runs_or_change_task_state(overview
         replaces_source_id=None,
         idempotency_key="manual-source-property",
     )
-    entry = service.create_manual_entry(
+    entry = service.capture.create_manual_entry(
         actor(),
         source_id=source.id,
         title="Manuell post",
@@ -242,7 +242,7 @@ def test_manual_source_and_entry_never_create_runs_or_change_task_state(overview
         key_points=(KeyPoint(KeyPointKind.DECISION, "Följ upp beslutet."),),
         idempotency_key="manual-entry-property",
     )
-    summary = service.put_manual_summary(
+    summary = service.day.put_manual_summary(
         actor(),
         journal_date=entry.journal_date,
         expected_entry_fingerprint=entry_fingerprint([entry]),

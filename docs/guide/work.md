@@ -45,6 +45,10 @@ When the agenda has overdue tasks, the row "Flytta … försenade till imorgon" 
 
 You check steps off inside the task, one at a time.
 
+## Edit a task, its place or how it repeats
+
+Open the task and choose ⋯ and then "Redigera" (Edit) to change the title, description, priority and date. You can also tap the title. Under the title, the chip "Plats" (Place) moves the task to a project, process or domain, and the repeat chip makes it repeat every day, week, month or year.
+
 ## Link a contact to a task
 
 Open the task and tap "+ Koppla kontakt" (Link contact). The link then shows both in the task and on the contact.
@@ -52,8 +56,9 @@ Open the task and tap "+ Koppla kontakt" (Link contact). The link then shows bot
 ## What you would rather ask Claude for
 
 - Creating several tasks at once, for example from a list or a photo of a whiteboard.
-- Setting up projects, domains and recurring work.
-- Setting priorities, tags and time estimates.
+- Setting up projects, domains and processes.
+- Repeating on given weekdays or at other intervals.
+- Setting tags and time estimates.
 - Moving many tasks to a given date.
 - Finding a task when you only remember roughly what it was about.
 

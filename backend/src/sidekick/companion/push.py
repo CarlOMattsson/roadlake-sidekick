@@ -17,20 +17,13 @@ from __future__ import annotations
 import ipaddress
 from collections.abc import Callable, Collection
 from datetime import datetime
+from typing import Protocol
 from urllib.parse import urlsplit
 from uuid import UUID
 
-from sqlalchemy import select, update
-from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import Session, sessionmaker
-
+from sidekick.shared.config import Settings
 from sidekick.shared.errors.core import NotFoundError, ValidationError
-from sidekick.shared.persistence.models import (
-    AuditEventRow,
-    CompanionPairingRow,
-    PushSubscriptionRow,
-)
-from sidekick.shared.types import new_uuid7, utc_now
+from sidekick.shared.types import utc_now
 
 MAX_ENDPOINT_LENGTH = 512
 PUSH_PORT = 443
@@ -83,16 +76,44 @@ def _is_ip_literal(host: str) -> bool:
     return True
 
 
+class PushSubscriptionStore(Protocol):
+    def subscribe(
+        self,
+        user_id: UUID,
+        device_id: UUID,
+        endpoint: str,
+        host: str,
+        now: datetime,
+        correlation_id: str | None,
+    ) -> bool:
+        """Register (or replace) the device's endpoint and audit it. False without a pairing."""
+        ...
+
+    def unsubscribe(
+        self, user_id: UUID, device_id: UUID, now: datetime, correlation_id: str | None
+    ) -> bool: ...
+
+    def active_endpoint_host(self, user_id: UUID, device_id: UUID) -> str | None: ...
+
+
 class PushSubscriptionService:
     def __init__(
         self,
-        session_factory: sessionmaker[Session],
-        allowed_hosts: Collection[str],
+        store: PushSubscriptionStore,
+        allowed_hosts: Callable[[], Collection[str]],
         clock: Callable[[], datetime] = utc_now,
     ) -> None:
-        self._session_factory = session_factory
-        self._allowed_hosts = frozenset(allowed_hosts)
+        # The hosts are looked up when an endpoint is registered, so a process that builds the
+        # service but never serves a registration (the automation worker) reads no push setting.
+        self._store = store
+        self._allowed_hosts = allowed_hosts
         self._clock = clock
+
+    @classmethod
+    def from_settings(
+        cls, store: PushSubscriptionStore, settings: Settings
+    ) -> PushSubscriptionService:
+        return cls(store, lambda: settings.push_allowed_host_set)
 
     def subscribe(
         self,
@@ -106,37 +127,11 @@ class PushSubscriptionService:
         `EndpointRejected` for an unacceptable endpoint and `PairingNotFound` for an unknown
         device."""
 
-        host = validate_endpoint(endpoint, self._allowed_hosts)
-        now = self._clock()
-        with self._session_factory.begin() as session:
-            pairing_id = _pairing_of(session, user_id, device_id)
-            if pairing_id is None:
-                raise PairingNotFound
-            statement = insert(PushSubscriptionRow).values(
-                id=new_uuid7(),
-                pairing_id=pairing_id,
-                user_id=user_id,
-                endpoint=endpoint,
-                endpoint_host=host,
-                created_at=now,
-                updated_at=now,
-                failure_count=0,
-            )
-            session.execute(
-                statement.on_conflict_do_update(
-                    index_elements=[PushSubscriptionRow.pairing_id],
-                    index_where=PushSubscriptionRow.revoked_at.is_(None),
-                    set_={
-                        "endpoint": statement.excluded.endpoint,
-                        "endpoint_host": statement.excluded.endpoint_host,
-                        "updated_at": now,
-                        "failure_count": 0,
-                    },
-                )
-            )
-            record_device_event(
-                session, user_id, "companion.push_subscribed", device_id, correlation_id
-            )
+        host = validate_endpoint(endpoint, self._allowed_hosts())
+        if not self._store.subscribe(
+            user_id, device_id, endpoint, host, self._clock(), correlation_id
+        ):
+            raise PairingNotFound
         return host
 
     def unsubscribe(
@@ -144,75 +139,9 @@ class PushSubscriptionService:
     ) -> bool:
         """Revoke the device's active subscription. Idempotent; `False` when there was none."""
 
-        with self._session_factory.begin() as session:
-            revoked = revoke_for_device(session, user_id, device_id, self._clock())
-            if revoked:
-                record_device_event(
-                    session, user_id, "companion.push_unsubscribed", device_id, correlation_id
-                )
-            return revoked
+        return self._store.unsubscribe(user_id, device_id, self._clock(), correlation_id)
 
     def active_endpoint_host(self, user_id: UUID, device_id: UUID) -> str | None:
         """The host of the device's active subscription, for tests and status; never the URL."""
 
-        with self._session_factory() as session:
-            return session.scalar(
-                select(PushSubscriptionRow.endpoint_host)
-                .join(CompanionPairingRow, CompanionPairingRow.id == PushSubscriptionRow.pairing_id)
-                .where(
-                    CompanionPairingRow.device_token_id == device_id,
-                    PushSubscriptionRow.user_id == user_id,
-                    PushSubscriptionRow.revoked_at.is_(None),
-                )
-            )
-
-
-def revoke_for_device(session: Session, user_id: UUID, device_id: UUID, now: datetime) -> bool:
-    """Revoke the active subscription of the pairing behind `device_id`, in the caller's
-    transaction. The device service calls this when it revokes the device."""
-
-    pairing_ids = select(CompanionPairingRow.id).where(
-        CompanionPairingRow.device_token_id == device_id, CompanionPairingRow.user_id == user_id
-    )
-    result = session.execute(
-        update(PushSubscriptionRow)
-        .where(
-            PushSubscriptionRow.pairing_id.in_(pairing_ids),
-            PushSubscriptionRow.user_id == user_id,
-            PushSubscriptionRow.revoked_at.is_(None),
-        )
-        .values(revoked_at=now, updated_at=now)
-        .execution_options(synchronize_session=False)
-    )
-    return bool(result.rowcount)  # type: ignore[attr-defined]
-
-
-def _pairing_of(session: Session, user_id: UUID, device_id: UUID) -> UUID | None:
-    return session.scalar(
-        select(CompanionPairingRow.id).where(
-            CompanionPairingRow.device_token_id == device_id,
-            CompanionPairingRow.user_id == user_id,
-        )
-    )
-
-
-def record_device_event(
-    session: Session,
-    user_id: UUID,
-    event: str,
-    device_id: UUID,
-    correlation_id: str | None,
-) -> None:
-    session.add(
-        AuditEventRow(
-            id=new_uuid7(),
-            actor_id=user_id,
-            event=event,
-            outcome="success",
-            reason=None,
-            correlation_id=correlation_id,
-            target_type="companion_device",
-            target_id=device_id,
-            occurred_at=utc_now(),
-        )
-    )
+        return self._store.active_endpoint_host(user_id, device_id)

@@ -1,7 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
@@ -10,6 +8,7 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import { readStylesheet } from "./helpers/stylesheet";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -63,27 +62,8 @@ function adapter(over: Partial<ShoppingTransport> = {}): ShoppingTransport {
   };
 }
 
-/** The stylesheet text of one rule, found by its exact selector. */
-function ruleOf(css: string, selector: string): string {
-  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = new RegExp(
-    `(?:^|[\\s,}])${escaped}\\s*\\{([^}]*)\\}`,
-    "m",
-  ).exec(css);
-  return match?.[1] ?? "";
-}
-
-const css = readFileSync(
-  path.resolve(
-    import.meta.dirname,
-    "../src/features/shopping-app/shopping.css",
-  ),
-  "utf8",
-);
-const familyCss = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/ui/family.css"),
-  "utf8",
-);
+const css = readStylesheet("features/shopping-app/shopping.css");
+const familyCss = readStylesheet("features/mcp-apps/ui/family.css");
 
 describe("purchase row markup (phone)", () => {
   it("the status is part of the checkbox label, under the name, not a sibling of the Edit button", async () => {
@@ -236,61 +216,64 @@ describe("list pager shows only when there is more than one page of lists", () =
 
 describe("phone CSS contract for the purchase row (appended rules)", () => {
   it("the text column takes the free width and may shrink, so a long name wraps", () => {
-    const rule = ruleOf(css, ".sidekick-shopping .shopping-item-text");
-    expect(rule).toContain("flex: 1;");
-    expect(rule).toContain("min-width: 0;");
-    expect(rule).toContain("overflow-wrap: anywhere;");
+    const rule = css.rule(".sidekick-shopping .shopping-item-text");
+    expect(rule).toHaveProperty(["flex"], "1");
+    expect(rule).toHaveProperty(["min-width"], "0");
+    expect(rule).toHaveProperty(["overflow-wrap"], "anywhere");
   });
 
   it("the status is a muted meta line", () => {
-    const rule = ruleOf(css, ".sidekick-shopping .shopping-status");
-    expect(rule).toContain("color: var(--work-muted);");
-    expect(rule).toContain("font-size: 0.9rem;");
+    const rule = css.rule(".sidekick-shopping .shopping-status");
+    expect(rule).toHaveProperty(["color"], "var(--work-muted)");
+    expect(rule).toHaveProperty(["font-size"], "0.9rem");
   });
 
   it("the native checkbox is invisible and covers the whole row, so the row is its hit area", () => {
     // The shopping checkbox and the work step checkbox share one rule (shopping.css), so it is found by the whole list.
-    const checkbox =
-      /\.sidekick-shopping input\[type="checkbox"\],\s*\.sidekick-work \.work-steps \.work-step-check\s*\{([^}]*)\}/.exec(
-        css,
-      )?.[1] ?? "";
-    expect(checkbox).toContain("position: absolute;");
-    expect(checkbox).toContain("inset: 0;");
-    expect(checkbox).toContain("width: 100%;");
-    expect(checkbox).toContain("height: 100%;");
-    expect(checkbox).toContain("opacity: 0;");
-    expect(ruleOf(css, ".sidekick-shopping .shopping-check")).toContain(
-      "position: relative;",
+    const checkbox = css.rule(
+      '.sidekick-shopping input[type="checkbox"], .sidekick-work .work-steps .work-step-check',
+    );
+    expect(checkbox).toHaveProperty(["position"], "absolute");
+    expect(checkbox).toHaveProperty(["inset"], "0");
+    expect(checkbox).toHaveProperty(["width"], "100%");
+    expect(checkbox).toHaveProperty(["height"], "100%");
+    expect(checkbox).toHaveProperty(["opacity"], "0");
+    expect(css.rule(".sidekick-shopping .shopping-check")).toHaveProperty(
+      ["position"],
+      "relative",
     );
   });
 
   it("the status glyph is the visible 24 px ring in the leading column", () => {
-    const glyph = ruleOf(
-      css,
+    const glyph = css.rule(
       ".sidekick-shopping .shopping-check > .sk-status-glyph",
     );
-    expect(glyph).toContain("width: var(--sk-icon);");
-    expect(glyph).toContain("height: var(--sk-icon);");
+    expect(glyph).toHaveProperty(["width"], "var(--sk-icon)");
+    expect(glyph).toHaveProperty(["height"], "var(--sk-icon)");
   });
 
   it("the store view's ring is a stretched button, 48 wide with its ::after, ring on the first title line", () => {
-    const ring = ruleOf(css, ".sidekick-shopping .shopping-ring");
-    expect(ring).toContain("width: var(--sk-lead-w);");
-    expect(ring).toContain("align-items: flex-start;");
-    expect(ruleOf(css, ".sidekick-shopping .shopping-store-line")).toContain(
-      "align-items: stretch;",
+    const ring = css.rule(".sidekick-shopping .shopping-ring");
+    expect(ring).toHaveProperty(["width"], "var(--sk-lead-w)");
+    expect(ring).toHaveProperty(["align-items"], "flex-start");
+    expect(css.rule(".sidekick-shopping .shopping-store-line")).toHaveProperty(
+      ["align-items"],
+      "stretch",
     );
-    expect(ruleOf(css, ".sidekick-shopping .shopping-ring::after")).toContain(
-      "inset: 0 -2px;",
+    expect(css.rule(".sidekick-shopping .shopping-ring::after")).toHaveProperty(
+      ["inset"],
+      "0 -2px",
     );
   });
 
   it("the store row is 48 px high, and buttons keep 44 px height", () => {
-    expect(ruleOf(css, ".sidekick-shopping .shopping-store-row")).toContain(
-      "min-height: 48px;",
+    expect(css.rule(".sidekick-shopping .shopping-store-row")).toHaveProperty(
+      ["min-height"],
+      "48px",
     );
-    expect(ruleOf(familyCss, ".sk-btn")).toContain(
-      "min-height: var(--sk-tap);",
+    expect(familyCss.rule(".sk-btn")).toHaveProperty(
+      ["min-height"],
+      "var(--sk-tap)",
     );
   });
 });

@@ -21,7 +21,7 @@ from sidekick.mcp.reschedule import MAX_RESCHEDULE_TASKS, register_reschedule_to
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import Actor
-from sidekick.tasks.application.service import RescheduleTaskItem
+from sidekick.tasks.application.models import RescheduleTaskItem
 from sidekick.tasks.domain import Task
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -271,7 +271,7 @@ def test_the_service_refuses_twenty_one_items_without_writing_any_task() -> None
     items.append(RescheduleTaskItem(task_id=uuid4(), expected_version=1, due_at=None))
 
     with pytest.raises(ValidationError):
-        container.tasks.reschedule(actor, items, idempotency_key="service-too-many-1")
+        container.task_bulk.reschedule(actor, items, idempotency_key="service-too-many-1")
 
     assert [container.tasks.get(actor, task.id).version for task in tasks] == [
         task.version for task in tasks

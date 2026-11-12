@@ -13,7 +13,7 @@ import PageLink from '../../../components/PageLink.astro';
 import { productVersion } from '../../../lib/site';
 
 <Hero
-  status={`Preview ${productVersion()} · not yet released`}
+  status={`First release ${productVersion()} · not yet released`}
   title="Your day in Claude, stored on your server"
   lead="Sidekick keeps track of your tasks, journal, contacts and shopping. You talk to Claude, and everything is saved in your own database."
   primary={{ label: 'Get started', page: ['docs/start', 'docs'] }}
@@ -33,6 +33,16 @@ import { productVersion } from '../../../lib/site';
   />
 </Section>
 
+<Section title="Talk your day through with Claude">
+  <p>The most effective way to use Sidekick is a conversation with Claude in voice mode while you walk, cycle or drive. Don't dictate commands: let Claude ask about your day and talk freely about whatever is on your mind. Ten minutes of conversation usually turns into a good number of tasks, journal entries and links, and clears your head of the things that keep going round in it.</p>
+  <ul>
+    <li>Start with something like: &quot;Ask me how my day has been, and help me get on top of everything I need to do.&quot;</li>
+    <li>Claude asks follow-up questions: who is involved, when it has to happen, what belongs together. Then it creates the tasks, journal entries and contacts in Sidekick and links them.</li>
+    <li>With other connectors in Claude, it can also go through Slack, email and your calendar to add tasks you missed and book meetings.</li>
+    <li>Only talk when it is safe, for example hands-free in the car.</li>
+  </ul>
+</Section>
+
 <Section title="Four rooms, one database">
   <RoomStrip
     rooms={[
@@ -43,7 +53,7 @@ import { productVersion } from '../../../lib/site';
     ]}
     note="Simulated host, fictitious data, Swedish interface. The screenshots were not taken in Claude."
   />
-  <p class="sec__more">The Android app shows Work, Journal and Shopping from the same database, and the Today widget puts today's tasks on your home screen. There is no prebuilt APK. You build the app from the source code.</p>
+  <p class="sec__more">The Android app shows Work, Journal and Shopping from the same database, and the Today widget puts today's tasks on your home screen. From the first release on, every release has a signed APK to install. You can also build the app from the source code.</p>
   <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Read about the Android app <span aria-hidden="true">›</span></PageLink></p>
 </Section>
 
@@ -66,9 +76,9 @@ import { productVersion } from '../../../lib/site';
       <PageLink page="pricing" class="btn btn--secondary">See prices</PageLink>
     </div>
     <div class="card">
-      <h2>Preview</h2>
-      <p>Sidekick {productVersion()} is a preview. There is no published container image and no prebuilt APK. You build both from the source code. Expect rough edges and breaking changes until a version is released.</p>
-      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Read the full preview status <span aria-hidden="true">›</span></PageLink></p>
+      <h2>First release</h2>
+      <p>Sidekick {productVersion()} is the first version. It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet. Until the first release you build the container image and the APK from the source code; from then on, every release has a signed image and a signed APK. Expect rough edges and breaking changes until a version is released.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Read the full release status <span aria-hidden="true">›</span></PageLink></p>
     </div>
   </div>
 </Section>

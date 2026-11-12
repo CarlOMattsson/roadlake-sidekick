@@ -49,14 +49,18 @@ browser tests, and the Android Gradle build. It touches no database other than t
 ```bash
 bash tools/check-all.sh --slot 3                  # everything
 bash tools/check-all.sh --slot 3 --skip-android   # without the Android build
+bash tools/check-all.sh --slot 3 --release        # plus the rest of the release gate
 bash tools/check-all.sh --help                    # all options
 ```
 
 shellcheck and gitleaks must be installed locally. When one is missing its stage prints `SKIPPED: <tool> missing
 (install: ...)` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into a failure.
 
-It does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits, the contract
-snapshot diff or the emulator test; the release CI does, so run the ones below that match what you changed.
+By default it does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits or the
+contract diff. Add `--release` to run those too, in the order of the release CI (see
+[the release checklist](../maintainers/release.md)); the dependency audit needs the network and is reported as `SKIPPED`
+when it is not reachable. The emulator test, the image build and the Compose smoke test are left to the release CI, so
+run the ones below that match what you changed.
 
 CI does not run on pull requests, merges or pushes; it is a gate of every release (and can be started by hand). So
 the checks are yours to run before you push: install the hooks with `pre-commit install --hook-type pre-commit --hook-type
@@ -100,8 +104,8 @@ npm --prefix frontend run build:mcp-app
 uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json
 ```
 
-`tools/check-all.sh` rebuilds the MCP App HTML and fails when the committed bundle differs. It does not compare
-the contract file; CI does, so regenerate it with the second command whenever you change a tool.
+`tools/check-all.sh` rebuilds the MCP App HTML and fails when the committed bundle differs. With `--release` it also
+compares the contract files; regenerate the tool contract with the second command whenever you change a tool.
 
 ## Website
 
@@ -148,7 +152,8 @@ Checks that guard the site:
   ```
 
 - Do not edit a migration that has already been applied; add a new numbered file under `migrations/`. The schema
-  starts from the 0.1.0 baseline (`100_baseline_0_1_0.py`), so new files continue from `101_`. Moving data between
+  starts from the 0.1.0 baseline (`100_schema_baseline_0_1_0.py`), and new files take the next number after the highest one there. Numbers `101` to `105` are never used: older databases
+  already carry them in their migration log (`backend/tests/policy/test_migration_numbering.py`). Moving data between
   0.1.0 installations (there is no import from earlier ones) is described in [the baseline runbook](../explanation/schema-baseline.md).
 
 ## Releasing

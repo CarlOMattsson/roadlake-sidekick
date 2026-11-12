@@ -5,7 +5,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from sidekick.contacts.application.service import ContactService, CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
+from sidekick.contacts.application.relations import ContactRelationService
+from sidekick.contacts.application.service import ContactService
 from sidekick.projects.application import ProjectService, UpdateProjectCommand
 from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.errors import NotFoundError
@@ -42,6 +44,7 @@ def test_completed_or_archived_endpoints_cannot_be_linked_or_unlinked() -> None:
     store = InMemoryStore()
     clock = FixedClock()
     contacts = ContactService(store, clock, make_cursor_codec())
+    relations = ContactRelationService(store, clock, make_cursor_codec())
     projects = ProjectService(store, clock, make_cursor_codec())
     tasks = TaskService(store, clock, make_cursor_codec())
     contact = contacts.create(actor(), CreateContactCommand("Rasmus"), "contact-create")
@@ -59,10 +62,10 @@ def test_completed_or_archived_endpoints_cannot_be_linked_or_unlinked() -> None:
     task = tasks.complete(actor(), task.id, version=task.version, idempotency_key="task-done")
 
     with pytest.raises(NotFoundError):
-        contacts.link_project(actor(), contact.id, project.id, "link-project")
+        relations.link_project(actor(), contact.id, project.id, "link-project")
     with pytest.raises(NotFoundError):
-        contacts.link_task(actor(), contact.id, task.id, "link-task")
+        relations.link_task(actor(), contact.id, task.id, "link-task")
     with pytest.raises(NotFoundError):
-        contacts.unlink_project(actor(), contact.id, uuid4(), "unlink-missing-project")
+        relations.unlink_project(actor(), contact.id, uuid4(), "unlink-missing-project")
     with pytest.raises(NotFoundError):
-        contacts.unlink_task(actor(), uuid4(), task.id, "unlink-missing-contact")
+        relations.unlink_task(actor(), uuid4(), task.id, "unlink-missing-contact")

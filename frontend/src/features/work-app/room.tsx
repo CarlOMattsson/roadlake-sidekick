@@ -1,22 +1,22 @@
 import { useEffect, useEffectEvent, useMemo, useState } from "react";
-import { WorkView } from "./work-view";
-import { WorkFullscreen } from "./work-fullscreen";
+import { WorkView } from "./view/work-view";
+import { WorkFullscreen } from "./fullscreen/work-fullscreen";
 import { RoomMessageContext } from "../mcp-apps/ui/room-context";
-import { HierarchySummary } from "./inline-summary";
-import { workEn, workSv } from "./labels";
-import { cardLabelsFor } from "./card-labels";
-import { workShellLabelsFor } from "./work-shell-labels";
+import { HierarchySummary } from "./inline/inline-summary";
+import { workEn, workSv } from "./shared/labels";
+import { cardLabelsFor } from "./shared/card-labels";
+import { workShellLabelsFor } from "./shell/work-shell-labels";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "./inline-summary-labels";
+} from "./inline/inline-summary-labels";
 import { appLocale } from "../mcp-apps/app-locale";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import type { RoomProps } from "../mcp-apps/room-types";
-import { createWorkTransport } from "./work-transport";
-import { UnsortedView } from "./unsorted-view";
-import { rootFromToolResult, type WorkFrame } from "./transport";
-import type { WorkTab } from "./work-shell";
+import { createWorkTransport } from "./transport/work-transport";
+import { UnsortedView } from "./unsorted/unsorted-view";
+import { rootFromToolResult, type WorkFrame } from "./transport/transport";
+import type { WorkTab } from "./shell/work-shell";
 
 /**
  * What the room holds. `seen*` say which result this state was derived from: a changed resultId,

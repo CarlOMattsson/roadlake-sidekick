@@ -26,21 +26,8 @@ import logging
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Literal
 from uuid import UUID
-
-from sqlalchemy import (
-    CursorResult,
-    Engine,
-    and_,
-    case,
-    distinct,
-    or_,
-    select,
-    update,
-)
-from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.memory.application.lifecycle import (
     BankCheckResult,
@@ -48,20 +35,11 @@ from sidekick.memory.application.lifecycle import (
     sweep_orphan_banks,
     verify_banks_after_start,
 )
-from sidekick.memory.application.store import MemoryStore
-from sidekick.memory.application.sync import (
-    FAILED,
-    PARKED,
-    PENDING,
-    REMOVED_CATEGORY,
-    SUBMITTED,
-    MemoryReconciler,
-    ReconcileResult,
-    SyncPolicy,
-    removal_hold_until,
-)
+from sidekick.memory.application.store import MemoryStore, SourceState
+from sidekick.memory.application.sync import MemoryReconciler
+from sidekick.memory.application.sync_rules import SUBMITTED, removal_hold_until
+from sidekick.memory.application.sync_state import ReconcileResult, SyncPolicy
 from sidekick.memory.factory import build_provider
-from sidekick.memory.infrastructure.lock import OwnerLock
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.memory.ports import MemoryProvider, MemoryProviderError
 from sidekick.shared.cli_errors import run_guarded
@@ -69,7 +47,6 @@ from sidekick.shared.config import Settings, get_settings
 from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging
 from sidekick.shared.persistence import create_session_factory
-from sidekick.shared.persistence.models import MemorySettingsRow, MemorySourceRow
 from sidekick.shared.types import Clock, SystemClock
 from sidekick.shared.worker_health import WorkerHeartbeat
 
@@ -125,16 +102,14 @@ def _latest_boundary(now: datetime) -> datetime:
 def run_pass(
     *,
     settings: Settings,
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     provider: MemoryProvider,
     clock: Clock | None = None,
     full: bool = False,
 ) -> list[ReconcileResult]:
     """One reconcile pass for every owner with memory rows or settings."""
 
-    reconciler = MemoryReconciler(
-        SqlAlchemyMemoryStore(factory), provider, SyncPolicy.from_settings(settings), clock=clock
-    )
+    reconciler = MemoryReconciler(store, provider, SyncPolicy.from_settings(settings), clock=clock)
     return reconciler.reconcile_all(full=full)
 
 
@@ -145,9 +120,7 @@ def pass_succeeded(results: Sequence[ReconcileResult]) -> bool:
     return not results or any(result.healthy for result in results)
 
 
-def mark_owner_dirty(
-    factory: sessionmaker[Session], owner_id: UUID, *, clock: Clock | None = None
-) -> int:
+def mark_owner_dirty(store: MemoryStore, owner_id: UUID, *, clock: Clock | None = None) -> int:
     """Make the owner's settled rows due again, so the next pass resends them.
 
     `_reconcile_record` sends a row whose status is `pending` with no retry time, even when its
@@ -164,44 +137,12 @@ def mark_owner_dirty(
     """
 
     now = (clock or SystemClock()).now()
-    with factory.begin() as session:
-        result = session.execute(
-            update(MemorySourceRow)
-            .where(
-                MemorySourceRow.owner_id == owner_id,
-                MemorySourceRow.excluded.is_(False),
-                MemorySourceRow.status != SUBMITTED,
-                or_(
-                    MemorySourceRow.status != PARKED,
-                    MemorySourceRow.failure_category != REMOVED_CATEGORY,
-                ),
-            )
-            .values(
-                retained_at=case(
-                    (
-                        and_(
-                            MemorySourceRow.retained_at.is_(None),
-                            or_(
-                                MemorySourceRow.attempts > 0,
-                                MemorySourceRow.status.in_([FAILED, PARKED]),
-                            ),
-                        ),
-                        now,
-                    ),
-                    else_=MemorySourceRow.retained_at,
-                ),
-                status=PENDING,
-                attempts=0,
-                next_attempt_at=None,
-                operation_id=None,
-                failure_category=None,
-            )
-        )
-        return cast(CursorResult[Any], result).rowcount
+    with store.begin() as session:
+        return store.mark_owner_dirty(session, owner_id, now)
 
 
 def silence_owner(
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     owner_id: UUID,
     *,
     clear_domains: bool,
@@ -213,23 +154,12 @@ def silence_owner(
     """
 
     now = (clock or SystemClock()).now()
-    domains = {"journal": False, "contacts": False, "projects": False, "tasks": False}
-    values: dict[str, Any] = {"paused": True, "updated_at": now}
-    if clear_domains:
-        values.update(domains)
-    statement = pg_insert(MemorySettingsRow).values(
-        owner_id=owner_id, **domains, paused=True, version=1, created_at=now, updated_at=now
-    )
-    statement = statement.on_conflict_do_update(
-        index_elements=[MemorySettingsRow.owner_id],
-        set_={**values, "version": MemorySettingsRow.version + 1},
-    )
-    with factory.begin() as session:
-        session.execute(statement)
+    with store.begin() as session:
+        store.silence_owner(session, owner_id, clear_domains=clear_domains, now=now)
 
 
 def wipe_owner(
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     provider: MemoryProvider,
     owner_id: UUID,
     *,
@@ -250,66 +180,23 @@ def wipe_owner(
 
     result = WipeResult(owner_id=owner_id)
     clock = clock or SystemClock()
-    lock = OwnerLock(_engine(factory), owner_id)
+    lock = store.owner_lock(owner_id)
     if not lock.acquire():
         result.outcome = "locked"
         return result
     try:
         if pause:
-            silence_owner(factory, owner_id, clear_domains=clear_domains, clock=clock)
+            silence_owner(store, owner_id, clear_domains=clear_domains, clock=clock)
         after: UUID | None = None
         while True:
             lock.assert_alive()
-            query = (
-                select(
-                    MemorySourceRow.id,
-                    MemorySourceRow.doc_key,
-                    MemorySourceRow.status,
-                    MemorySourceRow.excluded,
-                    MemorySourceRow.failure_category,
-                    MemorySourceRow.attempts,
-                    MemorySourceRow.operation_id,
-                    MemorySourceRow.retained_at,
-                    MemorySourceRow.next_attempt_at,
-                )
-                .where(MemorySourceRow.owner_id == owner_id)
-                .order_by(MemorySourceRow.id)
-                .limit(WIPE_PAGE_SIZE)
-            )
-            if after is not None:
-                query = query.where(MemorySourceRow.id > after)
-            with factory() as session:
-                page = session.execute(query).all()
+            with store.read() as session:
+                page = store.source_state_page(session, owner_id, after=after, limit=WIPE_PAGE_SIZE)
             if not page:
                 break
-            for (
-                row_id,
-                doc_key,
-                status,
-                excluded,
-                failure_category,
-                attempts,
-                operation_id,
-                retained_at,
-                next_attempt_at,
-            ) in page:
-                _wipe_row(
-                    factory,
-                    provider,
-                    owner_id,
-                    result,
-                    clock,
-                    row_id=row_id,
-                    doc_key=doc_key,
-                    status=status,
-                    excluded=excluded,
-                    removed=status == PARKED and failure_category == REMOVED_CATEGORY,
-                    attempts=attempts,
-                    operation_id=operation_id,
-                    retained_at=retained_at,
-                    next_attempt_at=next_attempt_at,
-                )
-            after = page[-1][0]
+            for state in page:
+                _wipe_row(store, provider, owner_id, result, clock, state)
+            after = page[-1].row_id
     except MemoryProviderError as error:
         result.outcome = "failed"
         result.error_category = error.category
@@ -323,46 +210,41 @@ def wipe_owner(
 
 
 def _wipe_row(
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     provider: MemoryProvider,
     owner_id: UUID,
     result: WipeResult,
     clock: Clock,
-    *,
-    row_id: UUID,
-    doc_key: str,
-    status: str,
-    excluded: bool,
-    removed: bool,
-    attempts: int,
-    operation_id: str | None,
-    retained_at: datetime | None,
-    next_attempt_at: datetime | None,
+    state: SourceState,
 ) -> None:
     now = clock.now()
     hold_until: datetime | None = None
-    if status == SUBMITTED:
+    if state.status == SUBMITTED:
         result.deferred += 1
         return
-    if removed:
-        if next_attempt_at is None and excluded:
+    if state.removed_marker:
+        if state.next_attempt_at is None and state.excluded:
             return  # The document is already gone; the row is only the exclusion marker.
-        if next_attempt_at is not None and next_attempt_at > now:
+        if state.next_attempt_at is not None and state.next_attempt_at > now:
             result.deferred += 1  # The second delete is not due yet; run the command again.
             return
     else:
         hold_until = removal_hold_until(
-            status=status,
-            attempts=attempts,
-            operation_id=operation_id,
-            retained_at=retained_at,
+            status=state.status,
+            attempts=state.attempts,
+            operation_id=state.operation_id,
+            retained_at=state.retained_at,
             now=now,
         )
-    provider.delete_document(owner_id=owner_id, document_id=doc_key)
+    provider.delete_document(owner_id=owner_id, document_id=state.doc_key)
     result.documents_deleted += 1
-    with factory.begin() as session:
-        kept = SqlAlchemyMemoryStore(factory).settle_removed_row(
-            session, row_id=row_id, doc_key=doc_key, excluded=excluded, hold_until=hold_until
+    with store.begin() as session:
+        kept = store.settle_removed_row(
+            session,
+            row_id=state.row_id,
+            doc_key=state.doc_key,
+            excluded=state.excluded,
+            hold_until=hold_until,
         )
     if not kept:
         result.rows_removed += 1
@@ -375,7 +257,7 @@ def _wipe_row(
 def run_wipe(
     *,
     settings: Settings,
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     owner_id: UUID | None,
     and_pause: bool = False,
 ) -> int:
@@ -393,11 +275,11 @@ def run_wipe(
         )
         return 1
     provider = build_provider(settings)
-    owners = [owner_id] if owner_id is not None else _owners_with_state(factory)
+    owners = [owner_id] if owner_id is not None else _owners_with_state(store)
     exit_code = 0
     for owner in owners:
         result = wipe_owner(
-            factory,
+            store,
             provider,
             owner,
             pause=forget or and_pause,
@@ -422,34 +304,23 @@ def run_wipe(
     return exit_code
 
 
-def _owners_with_state(factory: sessionmaker[Session]) -> list[UUID]:
+def _owners_with_state(store: MemoryStore) -> list[UUID]:
     """Every owner with memory rows or memory settings (a settings-only owner is paused too)."""
 
-    with factory() as session:
-        rows = session.scalars(
-            select(distinct(MemorySourceRow.owner_id)).union(select(MemorySettingsRow.owner_id))
-        ).all()
-        return sorted(rows)
-
-
-def _engine(factory: sessionmaker[Session]) -> Engine:
-    with factory() as session:
-        bind = session.get_bind()
-    if not isinstance(bind, Engine):
-        raise TypeError("memory worker needs a session factory bound to an engine")
-    return bind
+    with store.read() as session:
+        return sorted(store.owner_ids(session))
 
 
 async def _guarded(
     task: Callable[[MemoryStore, MemoryProvider], BankCheckResult | SweepResult],
-    factory: sessionmaker[Session],
+    store: MemoryStore,
     provider: MemoryProvider,
 ) -> bool:
     """Run a lifecycle task in a thread and log its counts. True when it ran to completion."""
 
     name = "memory bank check" if task is verify_banks_after_start else "memory orphan sweep"
     try:
-        result = await asyncio.to_thread(task, SqlAlchemyMemoryStore(factory), provider)
+        result = await asyncio.to_thread(task, store, provider)
     except Exception as error:
         # Logged by exception type only; the message may echo record content.
         LOGGER.error(
@@ -479,16 +350,17 @@ async def run_worker(
         require_unprivileged_role=settings.environment == "production",
         timeouts=settings.database_timeouts,
     )
+    store = SqlAlchemyMemoryStore(factory)
     if wipe or forget_owner is not None:
         try:
             return run_wipe(
-                settings=settings, factory=factory, owner_id=forget_owner, and_pause=and_pause
+                settings=settings, store=store, owner_id=forget_owner, and_pause=and_pause
             )
         except ValueError:
             LOGGER.error("memory provider configuration is incomplete")
             return 1
     if rebuild_owner is not None:
-        marked = mark_owner_dirty(factory, rebuild_owner)
+        marked = mark_owner_dirty(store, rebuild_owner)
         LOGGER.info(
             "memory rows marked for rebuild",
             extra={"row_count": marked},
@@ -515,10 +387,10 @@ async def run_worker(
         full = schedule.due(started)
         if bank_check_pending:
             # At start, and again every pass until Hindsight has answered for every owner.
-            bank_check_pending = not await _guarded(verify_banks_after_start, factory, provider)
+            bank_check_pending = not await _guarded(verify_banks_after_start, store, provider)
         try:
             results = await asyncio.to_thread(
-                run_pass, settings=settings, factory=factory, provider=provider, full=full
+                run_pass, settings=settings, store=store, provider=provider, full=full
             )
             if full:
                 schedule.mark_done(started)
@@ -541,7 +413,7 @@ async def run_worker(
             )
         if full:
             if settings.memory_orphan_sweep_enabled:
-                await _guarded(sweep_orphan_banks, factory, provider)
+                await _guarded(sweep_orphan_banks, store, provider)
             else:
                 LOGGER.info("memory_orphan_sweep_disabled")
         if once:
@@ -602,9 +474,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     _check_args(parser, args)
     configure_worker_logging()
-    # The HTTP client logs request lines at INFO; keep URLs and document ids out of the log.
-    for noisy in ("httpx", "httpcore"):
-        logging.getLogger(noisy).setLevel(logging.WARNING)
     try:
         return run_guarded(
             "sidekick-memory-worker",

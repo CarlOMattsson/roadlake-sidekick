@@ -12,17 +12,15 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from sidekick.owner_export.core import (
-    ExportRefused,
-    OwnerRestoreService,
-    build_restore_plan,
-    verify_export,
-)
+from sidekick.owner_export.catalogue import ExportRefused
+from sidekick.owner_export.document import verify_export
 from sidekick.owner_export.formats import (
     ExportFormatError,
     contacts_to_vcard,
     journal_to_markdown,
 )
+from sidekick.owner_export.restore import OwnerRestoreService
+from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import get_settings
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale

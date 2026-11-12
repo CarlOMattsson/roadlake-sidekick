@@ -3,13 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
-import { ContactsView } from "@/features/work-app/contacts-list";
-import { workEn } from "@/features/work-app/labels";
+import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkContactsFrame,
   WorkContactSummary,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const bo: WorkContactSummary = {
   id: "id-bo",

@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -7,20 +5,24 @@ import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsFor,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
-import { AgendaSummary, InlineRow } from "@/features/work-app/inline-summary";
-import { workEn } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/inline/inline-summary-labels";
+import {
+  AgendaSummary,
+  InlineRow,
+} from "@/features/work-app/inline/inline-summary";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import {
   type WorkFrame,
   type WorkItemRecord,
   type WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   agendaItems,
-  srcDir,
   installFixedClock,
 } from "./helpers/inline-summary-fixtures";
+import { readSource } from "./helpers/source-files";
+import { readStylesheet } from "./helpers/stylesheet";
 
 installFixedClock();
 
@@ -238,10 +240,13 @@ describe("inline row meta and open chevron", () => {
   });
 
   it("lays the open row out as the title and the chevron on one line, with the meta under them", () => {
-    const css = readFileSync(path.join(srcDir, "inline-summary.css"), "utf8");
-    expect(css).toMatch(
-      /\.work-compact-open\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s*auto;/,
-    );
+    const css = readStylesheet("features/work-app/inline/inline-summary.css");
+
+    expect(
+      css.rule(
+        ".sidekick-work :is(.work-compact-agenda, .work-compact-board) .work-compact-open",
+      )["grid-template-columns"],
+    ).toBe("minmax(0, 1fr) auto");
   });
 });
 
@@ -259,8 +264,11 @@ describe("inline summary labels", () => {
   });
 
   it("is self-contained: the summary and its labels import no Sidekick app catalogue or components", () => {
-    for (const file of ["inline-summary.tsx", "inline-summary-labels.ts"]) {
-      const source = readFileSync(path.join(srcDir, file), "utf8");
+    for (const file of [
+      "inline/inline-summary.tsx",
+      "inline/inline-summary-labels.ts",
+    ]) {
+      const source = readSource(`features/work-app/${file}`);
       expect(source, file).not.toMatch(/from\s+["']@\/(i18n|components)/);
     }
   });

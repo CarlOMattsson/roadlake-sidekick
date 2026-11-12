@@ -6,14 +6,14 @@ import {
   within,
 } from "@testing-library/react";
 import { expect, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { workEn, type WorkLabels } from "@/features/work-app/labels";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { workEn, type WorkLabels } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkTaskChanges,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 export const TASK_ID = "019f0000-0000-7000-8000-0000000000c1";
 export const OTHER_ID = "019f0000-0000-7000-8000-0000000000c2";

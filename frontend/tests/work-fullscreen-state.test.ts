@@ -3,19 +3,22 @@ import {
   initialRefreshState,
   refreshReducer,
   type RefreshAction,
-} from "@/features/work-app/work-fullscreen-parts/refresh-reducer";
+} from "@/features/work-app/fullscreen/parts/refresh-reducer";
 import {
   initialToolsState,
   isOpenOver,
   toolsReducer,
   type ToolsAction,
-} from "@/features/work-app/work-fullscreen-parts/tools-reducer";
+} from "@/features/work-app/fullscreen/parts/tools-reducer";
 import {
   filtersOf,
   isTabFrame,
   marking,
-} from "@/features/work-app/work-fullscreen-parts/tab-data";
-import type { WorkFrame, WorkTransport } from "@/features/work-app/transport";
+} from "@/features/work-app/fullscreen/parts/tab-data";
+import type {
+  WorkFrame,
+  WorkTransport,
+} from "@/features/work-app/transport/transport";
 
 function tools(...actions: ToolsAction[]) {
   return actions.reduce(toolsReducer, initialToolsState);

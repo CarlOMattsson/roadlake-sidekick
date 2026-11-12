@@ -1,12 +1,12 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import {
   TASK_ID,
   task,

@@ -9,7 +9,7 @@ import pytest
 from fastmcp import Client
 from sqlalchemy import text
 
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
 from tests.support.fakes import JOURNAL_REDACTION_SENTINEL_ONE, JOURNAL_REDACTION_SENTINEL_TWO

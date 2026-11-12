@@ -24,7 +24,9 @@ from sidekick.shared.errors import NotFoundError
 from sidekick.shared.types import Actor, SystemClock
 from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskService
-from sidekick.work.application.service import ContextService, WorkQuery
+from sidekick.work.application.models import WorkQuery
+from sidekick.work.application.service import ContextService
+from sidekick.work.application.work_lists import WorkListService
 from tests.db import database_factory
 from tests.support.fakes import make_cursor_codec
 
@@ -39,6 +41,7 @@ class _World:
     tasks: TaskService
     projects: ProjectService
     contexts: ContextService
+    work_lists: WorkListService
     lifecycle: RecordLifecycleService
     domain_id: UUID
 
@@ -49,6 +52,7 @@ class _World:
         store = SqlAlchemyStore(factory)
         codec = make_cursor_codec()
         contexts = ContextService(store, SystemClock(), codec, owner_timezone=UTC)
+        work_lists = WorkListService(store, SystemClock(), codec, owner_timezone=UTC)
         actor = Actor(owner_id, ALL_SCOPES)
         domain = contexts.create_domain(
             actor, name="Hem", description=None, idempotency_key="domain-home"
@@ -60,6 +64,7 @@ class _World:
             tasks=TaskService(store, SystemClock(), codec),
             projects=ProjectService(store, SystemClock(), codec),
             contexts=contexts,
+            work_lists=work_lists,
             lifecycle=RecordLifecycleService(store, SystemClock(), codec),
             domain_id=domain.id,
         )
@@ -76,15 +81,15 @@ class _World:
     def work_titles(self, *, agenda: bool = False) -> set[str]:
         query = WorkQuery(kind="task", limit=100)
         page = (
-            self.contexts.work_agenda_page(self.actor, query)
+            self.work_lists.work_agenda_page(self.actor, query)
             if agenda
-            else self.contexts.work_list_page(self.actor, query)
+            else self.work_lists.work_list_page(self.actor, query)
         )
-        return {item["title"] for item in page.items}
+        return {item.title for item in page.items}
 
     def board_titles(self) -> set[str]:
-        columns, _ = self.contexts.work_board_page(self.actor, WorkQuery(kind="task", limit=100))
-        return {item["title"] for items in columns.values() for item in items}
+        columns, _ = self.work_lists.work_board_page(self.actor, WorkQuery(kind="task", limit=100))
+        return {item.title for items in columns.values() for item in items}
 
     def search_titles(self, term: str) -> set[str]:
         hits = self.store.transaction(

@@ -24,3 +24,13 @@ def app_only_tool_names() -> frozenset[str]:
         for tool in tools
         if (tool.get("_meta") or {}).get("ui", {}).get("visibility") == ["app"]
     )
+
+
+def write_tool_names() -> frozenset[str]:
+    """Return the names the reviewed snapshot annotates `readOnlyHint: false`."""
+    tools = json.loads(MCP_TOOLS_SNAPSHOT.read_text(encoding="utf-8"))
+    return frozenset(
+        tool["name"]
+        for tool in tools
+        if (tool.get("annotations") or {}).get("readOnlyHint") is False
+    )

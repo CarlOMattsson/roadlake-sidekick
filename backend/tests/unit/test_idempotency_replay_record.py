@@ -1,5 +1,7 @@
 """The replay record an idempotent operation may store: identifiers only, never free text."""
 
+from uuid import UUID
+
 import pytest
 
 from sidekick.shared.persistence.stores.base import (
@@ -8,7 +10,13 @@ from sidekick.shared.persistence.stores.base import (
     ReplayRecordError,
     StoreBase,
 )
-from sidekick.shared.replay import id_replay_record, items_replay_record
+from sidekick.shared.replay import (
+    id_replay_record,
+    id_result,
+    ids_result,
+    items_replay_record,
+    record_id,
+)
 
 ID = "0192f1a0-0000-7000-8000-000000000001"
 SECRET = "Hemlig titel Zxqv"
@@ -87,3 +95,12 @@ def test_an_oversized_record_is_refused() -> None:
 
     with pytest.raises(ReplayRecordError):
         StoreBase.replay_record("create_contact", {"ids": ids}, lambda full: full)
+
+
+def test_a_write_hands_the_store_only_the_ids_it_wrote() -> None:
+    first, second = UUID(ID), UUID(int=2)
+
+    assert id_result(first) == {"id": ID}
+    assert ids_result([first, second], "runs") == {"runs": [{"id": ID}, {"id": str(second)}]}
+    assert record_id(id_result(first)) == first
+    assert id_replay_record(id_result(first)) == {"id": ID}

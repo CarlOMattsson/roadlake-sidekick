@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.api.app import create_app
 from sidekick.automation.worker import prune_idempotency_records
-from sidekick.contacts.application.service import CreateContactCommand
+from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle import RecordKind
 from sidekick.shared.errors import IdempotencyKeyReusedError, NotFoundError
 from sidekick.shared.persistence.models import IdempotencyRow
@@ -18,7 +18,7 @@ from sidekick.shared.persistence.stores.base import IDEMPOTENCY_RETENTION, Repla
 from sidekick.shared.types import Actor, new_uuid7, utc_now
 from sidekick.shopping.application.schemas import BatchItem
 from sidekick.store import SqlAlchemyStore
-from sidekick.tasks.application.service import NewTaskItem
+from sidekick.tasks.application.models import NewTaskItem
 from sidekick.tasks.domain import Priority
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -236,7 +236,7 @@ def test_a_batch_a_step_reorder_and_a_trash_replay_from_ids() -> None:
     secret = "Hemlig uppgift Zxqv"
     item = NewTaskItem(secret, None, Priority.NORMAL, (), (secret + " ett", secret + " två"))
 
-    batch = container.tasks.create_batch(actor, [item], idempotency_key="idem-batch-001")
+    batch = container.task_bulk.create_batch(actor, [item], idempotency_key="idem-batch-001")
     task = batch.tasks[0].task
     assert [step["title"] for step in batch.tasks[0].steps] == [secret + " ett", secret + " två"]
     steps = container.steps.list_steps(actor, task.id).items
@@ -265,4 +265,4 @@ def test_a_batch_a_step_reorder_and_a_trash_replay_from_ids() -> None:
     # The Task is in the trash now: a batch retry reads it again and no longer finds it, rather
     # than answering from a stored copy of its title.
     with pytest.raises(NotFoundError):
-        container.tasks.create_batch(actor, [item], idempotency_key="idem-batch-001")
+        container.task_bulk.create_batch(actor, [item], idempotency_key="idem-batch-001")

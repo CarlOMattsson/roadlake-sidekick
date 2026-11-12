@@ -102,6 +102,11 @@ def _mini_repo(tmp_path: Path) -> Path:
 
     (tmp_path / "tools").mkdir()
     shutil.copy(SCRIPT, tmp_path / "tools" / "work.sh")
+    shutil.copytree(
+        REPO_ROOT / "tools" / "workctl",
+        tmp_path / "tools" / "workctl",
+        ignore=shutil.ignore_patterns("__pycache__"),
+    )
     for checker in ("check-release-migration-class.py", "check-migration-policy.py"):
         shutil.copy(REPO_ROOT / "tools" / checker, tmp_path / "tools" / checker)
     (tmp_path / "deploy" / "selfhost").mkdir(parents=True)

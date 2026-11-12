@@ -23,7 +23,7 @@ from sidekick.shared.persistence.models import (
     WorkTagRow,
 )
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.work.application.service import WorkQuery
+from sidekick.work.application.models import WorkQuery, WorkRow
 from tests.support.work_paging import (
     NOW,
     SCOPES,
@@ -42,15 +42,15 @@ def test_full_page_walk_over_a_thousand_records_has_no_gaps_or_duplicates() -> N
 
     items = fixture.walk(WorkQuery(limit=100))
 
-    ids = [item["id"] for item in items]
+    ids = [item.id for item in items]
     assert len(ids) == expected == PROJECTS + TASKS + 1
     assert len(set(ids)) == len(ids)
-    assert {item["kind"] for item in items} == {"domain", "project", "task"}
+    assert {item.kind for item in items} == {"domain", "project", "task"}
     # Default order is `updated_desc`: the last change, then id, both descending. The seed gives
     # every record a version and a time that do not rank the records alike.
     changed = fixture.updated_at_by_id()
-    assert [(changed[item["id"]], str(item["id"])) for item in items] == sorted(
-        ((changed[item["id"]], str(item["id"])) for item in items), reverse=True
+    assert [(changed[item.id], str(item.id)) for item in items] == sorted(
+        ((changed[item.id], str(item.id)) for item in items), reverse=True
     )
 
 
@@ -61,8 +61,8 @@ def test_title_sorted_walk_of_tasks_is_complete_and_ordered() -> None:
 
     items = fixture.walk(WorkQuery(kind="task", sort="title_asc", limit=100))
 
-    assert len(items) == len({item["id"] for item in items}) == TASKS
-    titles = [item["title"].casefold() for item in items]
+    assert len(items) == len({item.id for item in items}) == TASKS
+    titles = [item.title.casefold() for item in items]
     assert titles == sorted(titles)
 
 
@@ -74,8 +74,8 @@ def test_oldest_matching_project_and_task_are_found() -> None:
     projects = fixture.walk(WorkQuery(kind="project", q="gammal nål"))
     tasks = fixture.walk(WorkQuery(kind="task", q="GAMMAL UPPGIFT"))
 
-    assert [item["title"] for item in projects] == ["Gammal nål"]
-    assert [item["title"] for item in tasks] == ["Gammal uppgift"]
+    assert [item.title for item in projects] == ["Gammal nål"]
+    assert [item.title for item in tasks] == ["Gammal uppgift"]
 
 
 @pytest.mark.integration
@@ -95,7 +95,7 @@ def test_status_priority_and_project_filters_see_every_record() -> None:
     normal = fixture.walk(WorkQuery(kind="task", priority="normal", limit=100))
 
     assert len(done) == completed
-    assert {item["project_id"] for item in in_a_project} == {project_id[0]}
+    assert {item.project_id for item in in_a_project} == {project_id[0]}
     assert len(normal) == TASKS
     assert 0 < in_project < TASKS
 
@@ -148,9 +148,9 @@ def test_tag_filter_finds_the_oldest_tagged_records() -> None:
     any_match = fixture.walk(WorkQuery(tags=("viktig",)))
     all_match = fixture.walk(WorkQuery(tags=("viktig", "hemma"), tag_match="all"))
 
-    assert {item["id"] for item in any_match} == {project, task}
-    assert {tuple(item["tags"]) for item in any_match} == {("hemma", "viktig"), ("viktig",)}
-    assert [item["id"] for item in all_match] == [project]
+    assert {item.id for item in any_match} == {project, task}
+    assert {tuple(item.tags) for item in any_match} == {("hemma", "viktig"), ("viktig",)}
+    assert [item.id for item in all_match] == [project]
 
 
 @pytest.mark.integration
@@ -197,8 +197,8 @@ def test_steps_and_actions_of_the_oldest_task_are_listed() -> None:
     steps = fixture.walk(WorkQuery(kind="step"))
     actions = fixture.walk(WorkQuery(kind="action"))
 
-    assert [(item["title"], item["parent_id"]) for item in steps] == [("Steg ett", task)]
-    assert [(item["title"], item["parent_id"]) for item in actions] == [("Åtgärd ett", step_id)]
+    assert [(item.title, item.parent_id) for item in steps] == [("Steg ett", task)]
+    assert [(item.title, item.parent_id) for item in actions] == [("Åtgärd ett", step_id)]
 
 
 @pytest.mark.integration
@@ -218,7 +218,7 @@ def test_other_owners_records_never_appear() -> None:
                 .where(ProjectRow.owner_id == fixture.other_id)
             )
         }
-    assert not theirs & {item["id"] for item in items}
+    assert not theirs & {item.id for item in items}
 
 
 @pytest.mark.integration
@@ -229,10 +229,10 @@ def test_agenda_and_today_cover_overdue_tasks_beyond_the_thousand_newest() -> No
     due_today = sum(1 for index in range(TASKS) if index % 10 == 1)
 
     cursor: str | None = None
-    seen: list[dict[str, Any]] = []
+    seen: list[WorkRow] = []
     totals: set[tuple[int, int, int]] = set()
     for _ in range(20):
-        today = fixture.contexts.work_today_page(fixture.actor, limit=100, cursor=cursor)
+        today = fixture.work_lists.work_today_page(fixture.actor, limit=100, cursor=cursor)
         totals.add((today.total, today.overdue_total, today.today_total))
         seen.extend(today.items)
         cursor = today.next_cursor
@@ -240,26 +240,28 @@ def test_agenda_and_today_cover_overdue_tasks_beyond_the_thousand_newest() -> No
             break
 
     assert totals == {(overdue + due_today, overdue, due_today)}
-    assert len({item["id"] for item in seen}) == len(seen) == overdue + due_today
-    groups = [item["agenda_group"] for item in seen]
+    assert len({item.id for item in seen}) == len(seen) == overdue + due_today
+    groups = [item.agenda_group for item in seen]
     assert groups == ["today"] * due_today + ["overdue"] * overdue
-    overdue_due = [item["due_at"] for item in seen if item["agenda_group"] == "overdue"]
+    overdue_due = [
+        item.due_at for item in seen if item.agenda_group == "overdue" and item.due_at is not None
+    ]
     assert overdue_due == sorted(overdue_due)
     # The oldest Task by update time (index 0) is the most recently overdue, so it ends the list.
-    assert seen[-1]["title"] == "Gammal uppgift"
+    assert seen[-1].title == "Gammal uppgift"
 
-    agenda_items: list[dict[str, Any]] = []
+    agenda_items: list[WorkRow] = []
     cursor = None
     for _ in range(20):
-        page = fixture.contexts.work_agenda_page(
+        page = fixture.work_lists.work_agenda_page(
             fixture.actor, WorkQuery(kind="task", sort="due_asc", limit=100, cursor=cursor)
         )
         agenda_items.extend(page.items)
         cursor = page.next_cursor
         if cursor is None:
             break
-    assert len({item["id"] for item in agenda_items}) == len(agenda_items)
-    assert {item["agenda_group"] for item in agenda_items} == {"overdue", "today"}
+    assert len({item.id for item in agenda_items}) == len(agenda_items)
+    assert {item.agenda_group for item in agenda_items} == {"overdue", "today"}
     assert len(agenda_items) == overdue + due_today
 
 
@@ -277,19 +279,19 @@ def test_statement_count_per_page_does_not_grow_with_the_number_of_records() -> 
         counts: dict[str, int] = {}
         for name, query in queries.items():
             with fixture.count_statements() as statements:
-                first = fixture.contexts.work_list_page(fixture.actor, query)
+                first = fixture.work_lists.work_list_page(fixture.actor, query)
             assert first.next_cursor is not None
             counts[name] = len(statements)
             with fixture.count_statements() as statements:
-                fixture.contexts.work_list_page(
+                fixture.work_lists.work_list_page(
                     fixture.actor, replace(query, cursor=first.next_cursor)
                 )
             counts[name + " (page 2)"] = len(statements)
         with fixture.count_statements() as statements:
-            fixture.contexts.work_agenda_page(fixture.actor, WorkQuery(sort="due_asc", limit=10))
+            fixture.work_lists.work_agenda_page(fixture.actor, WorkQuery(sort="due_asc", limit=10))
         counts["agenda"] = len(statements)
         with fixture.count_statements() as statements:
-            fixture.contexts.work_today_page(fixture.actor, limit=10)
+            fixture.work_lists.work_today_page(fixture.actor, limit=10)
         counts["today"] = len(statements)
         return counts
 
@@ -308,7 +310,7 @@ def test_cursor_is_a_keyset_position_and_bad_cursors_are_rejected() -> None:
     fixture.seed(30, 30)
     query = WorkQuery(limit=10)
 
-    first = fixture.contexts.work_list_page(fixture.actor, query)
+    first = fixture.work_lists.work_list_page(fixture.actor, query)
 
     assert first.next_cursor is not None
     # The cursor is a keyset position (last change, id, kind of the last record served), not an
@@ -321,19 +323,19 @@ def test_cursor_is_a_keyset_position_and_bad_cursors_are_rejected() -> None:
     )
     changed = fixture.updated_at_by_id()
     assert position == (
-        changed[first.items[-1]["id"]],
-        first.items[-1]["id"],
-        first.items[-1]["kind"],
+        changed[first.items[-1].id],
+        first.items[-1].id,
+        first.items[-1].kind,
     )
     with pytest.raises(ValueError, match="invalid pagination cursor"):
-        fixture.contexts.work_list_page(fixture.actor, replace(query, cursor="garbage"))
+        fixture.work_lists.work_list_page(fixture.actor, replace(query, cursor="garbage"))
     with pytest.raises(ValueError, match="invalid pagination cursor"):
-        fixture.contexts.work_list_page(
+        fixture.work_lists.work_list_page(
             fixture.actor, replace(query, cursor=first.next_cursor, kind="task")
         )
     stranger = Actor(fixture.other_id, SCOPES)
     with pytest.raises(ValueError, match="invalid pagination cursor"):
-        fixture.contexts.work_list_page(stranger, replace(query, cursor=first.next_cursor))
+        fixture.work_lists.work_list_page(stranger, replace(query, cursor=first.next_cursor))
 
 
 @pytest.mark.integration
@@ -343,11 +345,11 @@ def test_work_reads_require_the_tasks_read_scope() -> None:
     unscoped = Actor(fixture.owner_id, frozenset({"projects:read"}))
 
     with pytest.raises(PermissionDeniedError):
-        fixture.contexts.work_list_page(unscoped, WorkQuery())
+        fixture.work_lists.work_list_page(unscoped, WorkQuery())
     with pytest.raises(PermissionDeniedError):
-        fixture.contexts.work_agenda_page(unscoped, WorkQuery())
+        fixture.work_lists.work_agenda_page(unscoped, WorkQuery())
     with pytest.raises(PermissionDeniedError):
-        fixture.contexts.work_today_page(unscoped, limit=10)
+        fixture.work_lists.work_today_page(unscoped, limit=10)
 
 
 @pytest.mark.integration
@@ -415,7 +417,7 @@ def test_sort_and_group_orders() -> None:
         )
 
     def titles(**options: Any) -> list[str]:
-        return [item["title"] for item in fixture.walk(WorkQuery(**options))]
+        return [item.title for item in fixture.walk(WorkQuery(**options))]
 
     # Group by kind (code point order of the kind), then case-insensitive title.
     assert titles(sort="title_asc", group="kind") == [
@@ -462,7 +464,7 @@ def test_text_query_folds_case_and_sharp_s_and_treats_wildcards_literally() -> N
     _insert_projects(fixture, ["Städa Straße", "100% klart", "snabb_väg", "Annat"])
 
     def found(q: str) -> list[str]:
-        return [item["title"] for item in fixture.walk(WorkQuery(kind="project", q=q))]
+        return [item.title for item in fixture.walk(WorkQuery(kind="project", q=q))]
 
     assert found("STRASSE") == ["Städa Straße"]
     assert found("städa") == ["Städa Straße"]
@@ -497,7 +499,7 @@ def test_text_query_matches_like_casefold_for_ligatures_sigma_and_turkish_i(
     fixture = WorkFixture()
     _insert_projects(fixture, [title, "Orelaterat"])
 
-    found = [item["title"] for item in fixture.walk(WorkQuery(kind="project", q=query))]
+    found = [item.title for item in fixture.walk(WorkQuery(kind="project", q=query))]
 
     assert found == [title]
 
@@ -524,8 +526,7 @@ def test_title_order_matches_the_old_casefold_sort() -> None:
     _insert_projects(fixture, titles)
 
     listed = [
-        item["title"]
-        for item in fixture.walk(WorkQuery(kind="project", sort="title_asc", limit=100))
+        item.title for item in fixture.walk(WorkQuery(kind="project", sort="title_asc", limit=100))
     ]
 
     # The old Python sort: casefolded title, then id (the ids here are inserted in list order).

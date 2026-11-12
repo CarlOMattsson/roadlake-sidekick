@@ -8,15 +8,18 @@ import {
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { BoardView } from "@/features/work-app/board";
-import { workEn } from "@/features/work-app/labels";
-import { appendBoardPage, shownOrder } from "@/features/work-app/work-items";
+import { BoardView } from "@/features/work-app/board/board";
+import { workEn } from "@/features/work-app/shared/labels";
+import {
+  appendBoardPage,
+  shownOrder,
+} from "@/features/work-app/shared/work-items";
 import type {
   WorkBoardFrame,
   WorkBoardPage,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The phone's Status list (the "single" layout) sorts each section by due date, the overdue first and the undated

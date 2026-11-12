@@ -1,14 +1,14 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
-import { AgendaView } from "@/features/work-app/agenda";
-import { fillLabel } from "@/features/work-app/agenda-undo";
-import { workEn } from "@/features/work-app/labels";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkTaskChanges,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 const NOW = new Date(2026, 9, 29, 10, 0);
 const first: WorkItemRecord = {

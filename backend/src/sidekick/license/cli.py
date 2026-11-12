@@ -24,8 +24,6 @@ import sys
 from collections.abc import Sequence
 from typing import TextIO
 
-from sqlalchemy.orm import Session, sessionmaker
-
 from sidekick.license.key import MAX_PASTED_LENGTH, LicenseView
 from sidekick.license.persistence import LicenseStore
 from sidekick.license.service import LicenseService
@@ -56,7 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(
     argv: Sequence[str] | None,
-    session_factory: sessionmaker[Session],
+    store: LicenseStore,
     public_key: str | None,
     out: TextIO = sys.stdout,
     notice: TextIO | None = None,
@@ -64,7 +62,7 @@ def run(
     locale: AppLocale = DEFAULT_LOCALE,
 ) -> int:
     args = build_parser().parse_args(argv)
-    service = LicenseService(LicenseStore(session_factory), public_key)
+    service = LicenseService(store, public_key)
     if args.command == "set":
         raw = args.key if args.key is not None else (stdin or sys.stdin).read(MAX_PASTED_LENGTH + 1)
         outcome = service.set_key(raw)
@@ -91,7 +89,9 @@ def _run_from_settings() -> int:
 
     settings = get_settings()
     factory = create_session_factory(settings.database_url, timeouts=settings.database_timeouts)
-    return run(None, factory, settings.license_public_key, locale=settings.mcp_app_locale)
+    return run(
+        None, LicenseStore(factory), settings.license_public_key, locale=settings.mcp_app_locale
+    )
 
 
 def main() -> None:

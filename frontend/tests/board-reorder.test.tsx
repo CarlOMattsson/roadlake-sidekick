@@ -1,13 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-import { workEn } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import type {
   WorkBoardPage,
   WorkItemRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 import { sleep } from "./helpers/board-kanban-fixtures";
 
 /*

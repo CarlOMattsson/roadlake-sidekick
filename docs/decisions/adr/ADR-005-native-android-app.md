@@ -105,7 +105,7 @@ automatically. Journal and contact content is not cached. PostgreSQL stays autho
   Google services dependency. The self-hosting package ships a hardened ntfy server (D-080); the
   public ntfy.sh server works as a fallback.
 - A domain change and its push intent are written in the same transaction
-  (`backend/src/sidekick/companion/push_outbox.py`); a separate worker (`sidekick-push-worker`)
+  (`backend/src/sidekick/companion/push_outbox_store.py`); a separate worker (`sidekick-push-worker`)
   sends only after commit, so a rolled-back change sends nothing and a failed push never rolls back
   a write.
 - The push message carries no titles, ids, dates or user text. The phone treats it as an untrusted
@@ -181,7 +181,7 @@ Code comments refer to these stages:
 - Companion adapter and capabilities: `backend/src/sidekick/api/companion.py`,
   `backend/src/sidekick/companion/operations.py`, `backend/src/sidekick/companion/service.py`,
   `backend/src/sidekick/shared/auth/service.py`.
-- Push: `backend/src/sidekick/companion/push_outbox.py`, `push_worker.py`, `push_schedule.py`;
+- Push: `backend/src/sidekick/companion/push_outbox_store.py`, `push_worker.py`, `push_schedule.py`;
   `deploy/selfhost/compose.yaml` (profile `push`).
 - Tests: `backend/tests/api/test_companion*.py`, `frontend/tests/mobile-companion-transport.test.ts`,
   `frontend/android/app/src/test/kotlin/com/roadlake/sidekick/`.

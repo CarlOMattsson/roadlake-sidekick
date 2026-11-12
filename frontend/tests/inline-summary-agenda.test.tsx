@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
-} from "@/features/work-app/inline-summary-labels";
-import { AgendaSummary } from "@/features/work-app/inline-summary";
-import { type WorkItemRecord } from "@/features/work-app/transport";
+} from "@/features/work-app/inline/inline-summary-labels";
+import { AgendaSummary } from "@/features/work-app/inline/inline-summary";
+import { type WorkItemRecord } from "@/features/work-app/transport/transport";
 import {
   agendaItems,
   installFixedClock,

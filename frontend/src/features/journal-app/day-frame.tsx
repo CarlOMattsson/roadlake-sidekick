@@ -8,6 +8,7 @@ import { EntryRow } from "./entry-row";
 import { isForbidden } from "./transport";
 import type { JournalDay, JournalFrame } from "./transport";
 import { useShortcuts } from "../mcp-apps/ui/shortcuts";
+import { KeyScope } from "../mcp-apps/ui/key-scope";
 import { MenuUpdateReminder, useMoreMark } from "../mcp-apps/update-reminder";
 import {
   MenuLicenseRow,
@@ -343,14 +344,11 @@ export function DayFrame({
             {hasMore && (
               // The room's ⋯ menu as Work's (a card under the head, 44 rows): Control, or the update reminder
               // in its place when Control is off.
-              // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-              <div
+              <KeyScope
                 id={morePanel}
                 className="journal-more-panel"
                 hidden={!moreOpen}
-                onKeyDown={(event) => {
-                  if (event.key !== "Escape") return;
-                  event.stopPropagation();
+                onEscape={() => {
                   setMoreOpen(false);
                   moreButton.current?.focus();
                 }}
@@ -369,7 +367,7 @@ export function DayFrame({
                 )}
                 <MenuUpdateReminder />
                 <MenuLicenseRow />
-              </div>
+              </KeyScope>
             )}
           </>
         }
@@ -377,13 +375,10 @@ export function DayFrame({
           // Mounted only while open: a closed panel between the week and the content would part the strip from the
           // summary and heading that follow it (journal.css).
           canWrite && tellClaudeAction && addOpen ? (
-            // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
-            <div
+            <KeyScope
               id={addPanel}
               className="journal-add-panel"
-              onKeyDown={(event) => {
-                if (event.key !== "Escape") return;
-                event.stopPropagation();
+              onEscape={() => {
                 setAddOpen(false);
                 addButton.current?.focus();
               }}
@@ -411,7 +406,7 @@ export function DayFrame({
                 {t.writeYourself}
               </button>
               <p className="journal-add-hint">{t.tellClaudeHint}</p>
-            </div>
+            </KeyScope>
           ) : undefined
         }
         // "Idag" shows only while the strip shows a week without today: in today's week the strip's own

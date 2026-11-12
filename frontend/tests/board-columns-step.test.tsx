@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { BoardCard } from "@/features/work-app/board-card";
-import { workEn } from "@/features/work-app/labels";
-import type { WorkItemRecord } from "@/features/work-app/transport";
+import { BoardCard } from "@/features/work-app/board/board-card";
+import { workEn } from "@/features/work-app/shared/labels";
+import type { WorkItemRecord } from "@/features/work-app/transport/transport";
 
 /**
  * A Step on the columns board (Status in a wide frame) shows its square in the card's lead, as a Task shows its ring

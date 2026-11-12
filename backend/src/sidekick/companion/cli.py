@@ -36,9 +36,6 @@ from typing import TextIO
 from urllib.parse import urlencode, urlsplit
 from uuid import UUID
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session, sessionmaker
-
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.service import (
     DEFAULT_DEVICE_LIFETIME_DAYS,
@@ -50,7 +47,6 @@ from sidekick.companion.service import (
 from sidekick.shared.auth import COMPANION_SCOPES, AuthService
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale, LocalizedText, localized
-from sidekick.shared.persistence.models import UserRow
 
 PRESETS: dict[str, frozenset[str]] = {
     "app": frozenset(
@@ -215,7 +211,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(
     argv: Sequence[str] | None,
-    session_factory: sessionmaker[Session],
+    store: CompanionDeviceStore,
     auth: AuthService,
     out: TextIO = sys.stdout,
     notice: TextIO | None = None,
@@ -230,9 +226,9 @@ def run(
             parser.error(
                 f"{args.command} requires an explicit --scope (repeatable) or --preset app"
             )
-    service = CompanionDeviceService(CompanionDeviceStore(session_factory), auth)
+    service = CompanionDeviceService(store, auth)
     try:
-        user_id = args.user_id or _only_active_owner(session_factory)
+        user_id = args.user_id or _only_active_owner(store)
     except ValueError as error:
         parser.error(str(error))
     if args.command == "pair":
@@ -269,9 +265,8 @@ def run(
     return 0
 
 
-def _only_active_owner(session_factory: sessionmaker[Session]) -> UUID:
-    with session_factory() as session:
-        owners = list(session.scalars(select(UserRow.id).where(UserRow.active.is_(True)).limit(2)))
+def _only_active_owner(store: CompanionDeviceStore) -> UUID:
+    owners = store.read(lambda session: store.active_owner_ids(session, 2))
     if len(owners) != 1:
         raise ValueError("pass --user-id: there is not exactly one active owner")
     return owners[0]
@@ -338,7 +333,7 @@ def _run_from_settings() -> int:
     factory = create_session_factory(settings.database_url, timeouts=settings.database_timeouts)
     return run(
         None,
-        factory,
+        CompanionDeviceStore(factory),
         create_auth_service(factory, settings),
         locale=settings.mcp_app_locale,
     )

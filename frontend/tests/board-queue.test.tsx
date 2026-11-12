@@ -8,16 +8,16 @@ import {
 } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { BoardView } from "@/features/work-app/board";
-import { workEn } from "@/features/work-app/labels";
-import { WorkView } from "@/features/work-app/work-view";
+import { BoardView } from "@/features/work-app/board/board";
+import { workEn } from "@/features/work-app/shared/labels";
+import { WorkView } from "@/features/work-app/view/work-view";
 import type {
   WorkBoardFrame,
   WorkBoardPage,
   WorkItemRecord,
   WorkTask,
   WorkTransport,
-} from "@/features/work-app/transport";
+} from "@/features/work-app/transport/transport";
 
 /*
  * The board's card writes queue per card. A tap on a card whose write is still running

@@ -21,7 +21,9 @@ from opentelemetry.trace import Status
 from pythonjsonlogger.json import JsonFormatter
 
 from sidekick import __version__
+from sidekick.shared.compat import active_span_processor, replace_active_span_processor
 
+from .http_client_logs import HTTP_CLIENT_LOGGERS, silence_http_client_loggers
 from .port import NoopTelemetryAdapter, OpenTelemetryAdapter, TelemetryPort
 from .propagation import TRACEPARENT_ONLY
 from .sdk_internals import span_rewrite_problem
@@ -261,8 +263,7 @@ _THIRD_PARTY_LOGGERS = (
     "fastapi",
     "starlette",
     "sqlalchemy",
-    "httpx",
-    "httpcore",
+    *HTTP_CLIENT_LOGGERS,
     "mcp",
     "fastmcp",
     "asyncio",
@@ -307,6 +308,7 @@ def harden_third_party_logging(stream: TextIO | None = None) -> None:
     """
 
     install_safe_record_factory()
+    silence_http_client_loggers()
     safe = logging.StreamHandler(stream or sys.stderr)
     safe.setFormatter(ExceptionTypeOnlyFormatter("%(levelname)s %(name)s %(message)s"))
     for name in _THIRD_PARTY_LOGGERS:
@@ -329,6 +331,7 @@ def configure_worker_logging() -> None:
     """
 
     install_safe_record_factory()
+    silence_http_client_loggers()
     handler = logging.StreamHandler()
     handler.setFormatter(ExceptionTypeOnlyFormatter("%(asctime)s %(levelname)s %(message)s"))
     logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
@@ -386,7 +389,7 @@ def harden_tracer_provider(provider: TracerProvider) -> bool:
     registers no such processor (a test asserts that); do not add one without scrubbing there.
     """
 
-    chain: Any = getattr(provider, "_active_span_processor", None)
+    chain: Any = active_span_processor(provider)
     if not isinstance(chain, SpanProcessor):
         _LOG.warning("span_scrubbing_unavailable")
         return False
@@ -443,7 +446,7 @@ def stop_span_export(provider: TracerProvider) -> None:
     call are not recalled. Never raises.
     """
 
-    chain: Any = getattr(provider, "_active_span_processor", None)
+    chain: Any = active_span_processor(provider)
     if chain is not None:
         try:
             chain.on_start = _drop_started
@@ -454,7 +457,7 @@ def stop_span_export(provider: TracerProvider) -> None:
                 extra=safe_log_fields({"error_type": type(error).__name__}),
             )
     try:
-        provider._active_span_processor = SynchronousMultiSpanProcessor()  # pyright: ignore[reportPrivateUsage]
+        replace_active_span_processor(provider, SynchronousMultiSpanProcessor())
         provider.add_span_processor = lambda _processor: None  # type: ignore[method-assign]
     except Exception as error:
         _LOG.error(

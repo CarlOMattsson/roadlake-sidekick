@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,10 +7,11 @@ import {
 } from "@/features/mcp-apps/awaiting";
 import { sidekickShellLabelsFor } from "@/features/mcp-apps/sidekick-shell-labels";
 
-const awaitingCss = readFileSync(
-  path.resolve(import.meta.dirname, "../src/features/mcp-apps/awaiting.css"),
-  "utf8",
-);
+import { readRepoFile } from "./helpers/source-files";
+import { readStylesheet } from "./helpers/stylesheet";
+
+const awaitingCss = readStylesheet("features/mcp-apps/awaiting.css");
+const familyCss = readStylesheet("features/mcp-apps/ui/family.css");
 
 /** Returns the hex colours in a CSS value that are not inside var() or light-dark(). */
 function bareHexColors(value: string): string[] {
@@ -268,6 +267,14 @@ describe("AwaitingResult defaults", () => {
 });
 
 describe("AwaitingResult theme, spacing and motion", () => {
+  /** A full-frame placeholder with the room strip, the header and the rows, and the one in front of it. */
+  function renderFull() {
+    const { container } = render(
+      <AwaitingResult locale="en-US" room="work" view="agenda" />,
+    );
+    return container;
+  }
+
   it("checks the colour helper itself so the hex test cannot pass vacuously", () => {
     expect(bareHexColors("#fff")).toEqual(["#fff"]);
     expect(bareHexColors("var(--x, #fff)")).toEqual([]);
@@ -276,114 +283,132 @@ describe("AwaitingResult theme, spacing and motion", () => {
   });
 
   it("has no hex colour outside var() or light-dark()", () => {
-    expect(bareHexColors(awaitingCss)).toEqual([]);
+    const values = awaitingCss.rules.flatMap((rule) =>
+      Object.values(rule.declarations),
+    );
+    expect(values.flatMap(bareHexColors)).toEqual([]);
   });
 
   it("pads the container 16 px at the sides and 8 above plus the host's safe area, as the room does, and has no corner radius of its own", () => {
-    const container = awaitingCss.match(/\.sidekick-wait \{[^}]*\}/)?.[0] ?? "";
-    expect(container).toMatch(
-      /padding: calc\(8px \+ var\(--host-safe-top, 0px\)\)/,
+    const container = renderFull().querySelector(".sidekick-wait") as Element;
+    const style = awaitingCss.styleOf(container);
+
+    // The frame is 16 px at the sides in px (not rem), so the strip stands where the loaded view puts it at every
+    // text size.
+    expect(style.padding).toBe(
+      "calc(8px + var(--host-safe-top, 0px)) calc(16px + var(--host-safe-right, 0px)) calc(1rem + var(--host-safe-bottom, 0px)) calc(16px + var(--host-safe-left, 0px))",
     );
     // Only the property counts: the --w-radius token may name the host's radius variable.
-    expect(container).not.toMatch(/(?:^|[\s;{])border-radius:/);
+    expect(style["border-radius"]).toBeUndefined();
   });
 
   it("gives the strip 40 px and the rows the row template's 48 floor and 6 of padding, and no chip styles", () => {
-    expect(awaitingCss).toMatch(/\.sidekick-wait-strip \{[^}]*height: 40px;/);
+    const container = renderFull();
+    const strip = container.querySelector(".sidekick-wait-strip") as Element;
+    const room = strip.querySelector(".sidekick-wait-room") as Element;
+    const row = container.querySelector(".sidekick-wait-row") as Element;
+    const glyph = row.querySelector(".sidekick-wait-glyph") as Element;
+
+    expect(awaitingCss.styleOf(strip)).toMatchObject({
+      height: "40px",
+      display: "flex",
+    });
     // Four cells sharing the row as the shell's strip does: flex 1 1 0, never narrower than the label.
-    expect(awaitingCss).toMatch(/\.sidekick-wait-strip \{[^}]*display: flex;/);
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-room \{[^}]*flex: 1 1 0;[^}]*min-width: min-content;/,
-    );
+    expect(awaitingCss.styleOf(room)).toMatchObject({
+      flex: "1 1 0",
+      "min-width": "min-content",
+    });
     // The header is the real components (their own CSS), and the placeholder draws no chips.
-    expect(awaitingCss).not.toMatch(/\.sidekick-wait-(chip|chips|tabs)\b/);
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-row \{[^}]*min-height: var\(--sk-row-min, 48px\);[^}]*padding-block: var\(--sk-row-pad, 6px\);/,
-    );
-    // A 40 px leading column, so the title starts at x 56 with the 16 px padding; the glyph is the ring's box.
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-row \{[^}]*grid-template-columns: 40px minmax\(0, 1fr\);/,
-    );
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-glyph \{[^}]*width: var\(--sk-ring-glyph, 1\.5rem\);/,
-    );
-    // The frame is 16 px at the sides in px (not rem), so the strip stands where the loaded view puts it at every text size.
-    expect(awaitingCss).toMatch(
-      /padding: calc\(8px \+ var\(--host-safe-top, 0px\)\)\s*calc\(16px \+ var\(--host-safe-right, 0px\)\)\s*calc\(1rem \+ var\(--host-safe-bottom, 0px\)\)\s*calc\(16px \+ var\(--host-safe-left, 0px\)\);/,
-    );
+    for (const rule of awaitingCss.rules) {
+      expect(rule.selector).not.toMatch(/\.sidekick-wait-(chip|chips|tabs)\b/);
+    }
+    expect(awaitingCss.styleOf(row)).toMatchObject({
+      "min-height": "var(--sk-row-min, 48px)",
+      "padding-block": "var(--sk-row-pad, 6px)",
+      // A 40 px leading column, so the title starts at x 56 with the 16 px padding.
+      "grid-template-columns": "40px minmax(0, 1fr)",
+    });
+    // The glyph is the ring's box, and a contour, not a filled disc (designsystem §3 Tillstånd).
+    const glyphStyle = awaitingCss.styleOf(glyph);
+    expect(glyphStyle.width).toBe("var(--sk-ring-glyph, 1.5rem)");
+    expect(glyphStyle.background).toBe("transparent");
+    expect(glyphStyle.outline).toMatch(/^2px solid/);
     // A row with a second title line draws a shorter second bar.
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-row \.sidekick-wait-row-title \+ \.sidekick-wait-row-title \{[^}]*width: 40%;/,
-    );
-    // The ring is a contour, not a filled disc (designsystem §3 Tillstånd).
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-glyph \{[^}]*background: transparent;[^}]*outline: 2px solid/,
-    );
+    const titles = Array.from(container.querySelectorAll(".sidekick-wait-row"))
+      .find(
+        (candidate) =>
+          candidate.querySelectorAll(".sidekick-wait-row-title").length > 1,
+      )
+      ?.querySelectorAll(".sidekick-wait-row-title") as NodeListOf<Element>;
+    expect(titles).toBeDefined();
+    expect(awaitingCss.styleOf(titles[1] as Element).width).toBe("40%");
+    expect(awaitingCss.styleOf(titles[0] as Element).width).not.toBe("40%");
   });
 
   it("hides the loading line visually, so it is read by assistive technology and never drawn", () => {
-    // The family's one hidden-text rule (family.css) holds the loading line's class.
-    const familyCss = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/family.css",
-      ),
-      "utf8",
-    );
-    const line = /\.sidekick-wait-line,[^{]*\{([^}]*)\}/.exec(familyCss)?.[1];
+    const line = renderFull().querySelector(".sidekick-wait-line") as Element;
 
-    expect(line, "loading line rule").toBeDefined();
-    expect(line).toMatch(/position: absolute;/);
-    expect(line).toMatch(/width: 1px;/);
-    expect(line).toMatch(/height: 1px;/);
-    expect(line).toMatch(/clip-path: inset\(50%\);/);
+    // The family's one hidden-text rule (family.css) holds the loading line's class, in every room and frame:
+    // its selector no longer leaves Arbete's full frame out.
+    const hidden = familyCss.styleOf(line);
+    expect(hidden).toMatchObject({
+      position: "absolute",
+      width: "1px",
+      height: "1px",
+      "clip-path": "inset(50%)",
+    });
+    expect(
+      familyCss.has(
+        '.sidekick-wait:not([data-room="work"][data-frame="full"]) .sidekick-wait-line',
+      ),
+    ).toBe(false);
+    // The line has no drawn style of its own, and only the timeout's sentence is drawn, in the note's type.
+    expect(awaitingCss.has(".sidekick-wait-line")).toBe(false);
   });
 
-  it("hides the loading line in every room and frame, so it is read and never drawn", () => {
-    const familyCss = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/family.css",
-      ),
-      "utf8",
-    );
-    // The hidden-text rule's selector no longer leaves Arbete's full frame out.
-    expect(familyCss).toContain(".sidekick-wait .sidekick-wait-line,");
-    expect(familyCss).not.toContain(
-      '.sidekick-wait:not([data-room="work"][data-frame="full"])',
-    );
-    // Only the timeout's sentence is drawn, in the note's type; the line has no drawn style of its own any more.
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-note \{[^}]*color: var\(--w-muted\);[^}]*font-size: 0\.875rem;[^}]*line-height: 1\.25rem;/,
-    );
-    expect(awaitingCss).not.toMatch(/\.sidekick-wait-line \{/);
+  it("draws the timeout sentence in the note's type", () => {
+    render(<AwaitingResult locale="sv" />);
+    act(() => {
+      vi.advanceTimersByTime(8000);
+    });
+
+    expect(
+      awaitingCss.styleOf(screen.getByText(/Väntar på data/)),
+    ).toMatchObject({
+      color: "var(--w-muted)",
+      "font-size": "0.875rem",
+      "line-height": "1.25rem",
+    });
   });
 
   it("shows the rows after 300 ms with opacity only, so a fast answer shows no placeholder and nothing moves", () => {
-    expect(awaitingCss).toMatch(
-      /\.sidekick-wait-rows \{[^}]*animation: sidekick-wait-appear 1ms linear 300ms both;/,
+    const rows = renderFull().querySelector(".sidekick-wait-rows") as Element;
+
+    expect(awaitingCss.styleOf(rows).animation).toBe(
+      "sidekick-wait-appear 1ms linear 300ms both",
     );
-    expect(awaitingCss).toMatch(
-      /@keyframes sidekick-wait-appear \{\s*from \{\s*opacity: 0;\s*\}\s*to \{\s*opacity: 1;/,
-    );
+    expect(awaitingCss.keyframes("sidekick-wait-appear")).toEqual([
+      { selector: "from", declarations: { opacity: "0" } },
+      { selector: "to", declarations: { opacity: "1" } },
+    ]);
   });
 
   it("pulses the placeholder and stops the pulse with reduced motion", () => {
-    expect(awaitingCss).toMatch(/animation: sidekick-wait-pulse /);
-    expect(awaitingCss).toMatch(
-      /@media \(prefers-reduced-motion: reduce\) \{\s*\.sidekick-wait-block \{\s*animation: none;/,
+    const block = renderFull().querySelector(".sidekick-wait-block") as Element;
+
+    expect(awaitingCss.styleOf(block).animation).toMatch(
+      /^sidekick-wait-pulse /,
     );
+    expect(
+      awaitingCss.styleOf(block, {
+        conditions: ["@media (prefers-reduced-motion: reduce)"],
+      }).animation,
+    ).toBe("none");
   });
 });
 
 describe("the static placeholder in the built document", () => {
-  const built = readFileSync(
-    path.resolve(
-      import.meta.dirname,
-      "../../backend/src/sidekick/mcp/apps/sidekick.html",
-    ),
-    "utf8",
-  );
+  const built = readRepoFile("backend/src/sidekick/mcp/apps/sidekick.html");
 
   it.each(["sv", "en"] as const)(
     "carries the %s room names and loading line of the app, hidden for the other language",

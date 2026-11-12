@@ -49,8 +49,8 @@ class FixedClock:
 def _setup(now: datetime) -> tuple[Container, UUID]:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("brief-owner", "Brief Owner")
-    # The agenda reads the clock of the Work context service, so the day is fixed through it.
-    container.contexts.clock = FixedClock(now)
+    # The agenda reads the clock of the Work list service, so the day is fixed through it.
+    container.work_lists.clock = FixedClock(now)
     return container, owner
 
 

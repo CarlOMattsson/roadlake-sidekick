@@ -25,14 +25,15 @@ role every runtime process uses and holds data privileges only. At production st
 is a superuser, owns objects, can create in the schema or bypasses row-level security
 (`backend/src/sidekick/shared/persistence/runtime_role.py`). Runtime processes never migrate; migrations are an
 explicit one-shot step that runs before the new image starts (Yoyo, `migrations/`, baseline
-`100_baseline_0_1_0.py`; `docs/explanation/architecture/backend.md`).
+`100_schema_baseline_0_1_0.py`; `docs/explanation/architecture/backend.md`).
 
 A release may only run expand migrations. A file that drops, renames, retypes, adds `NOT NULL`, revokes or truncates
 must declare `# migration-class: contract`, and `tools/check-migration-policy.py` fails the build on an unmarked one.
 History tables are append-only for the app role: `audit_events`, `domain_events` and `activity_entries` grant the
-runtime `INSERT` and `SELECT` only (`migrations/102_event_ledger_append_only.py`).
+runtime `INSERT` and `SELECT` only (set in `migrations/100_schema_baseline_0_1_0.py`; the grant was narrowed by migration 102
+before it was folded into the baseline).
 Permanent removal (`sidekick-admin empty-trash`) runs as the same app role, which holds `DELETE` on the tables it
-removes from, including `domains` and `processes` since `migrations/103_trash_sweep_delete_grants.py`. It deletes the
+removes from, including `domains` and `processes` (granted in the baseline, formerly migration 103). It deletes the
 record, never that history: the ledger keeps the titles and values it recorded. `journal_entries` and the shopping
 tables keep no `DELETE`, so permanent removal refuses them with a safe error and the sweep counts them as kept; an
 immutable Journal source has no `UPDATE` or `DELETE` grant either. Erasing Journal entries is not supported.
@@ -91,9 +92,7 @@ they count (see `docs/explanation/threat-model.md`).
 - `backend/src/sidekick/shared/persistence/runtime_role.py`
 - `backend/src/sidekick/shared/replay.py`
 - `backend/src/sidekick/shared/persistence/models/` (`IdempotencyRow`, `AuditEventRow`, `DomainEventRow`)
-- `migrations/102_event_ledger_append_only.py`
-- `migrations/103_trash_sweep_delete_grants.py`
-- `migrations/104_audit_event_source.py`
+- `migrations/100_schema_baseline_0_1_0.py`
 - `tools/check-migration-policy.py`
 - `deploy/postgres-init.test-only.sql`
 - `docs/explanation/architecture/backend.md`

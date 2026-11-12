@@ -9,20 +9,20 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AgendaView } from "@/features/work-app/agenda";
-import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy-detail-labels";
-import { workEn } from "@/features/work-app/labels";
-import { newTaskInputLabelsEn } from "@/features/work-app/new-task-input-labels";
+import { AgendaView } from "@/features/work-app/agenda/agenda";
+import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { workEn } from "@/features/work-app/shared/labels";
+import { newTaskInputLabelsEn } from "@/features/work-app/tasks/new-task-input-labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
   WorkTask,
   WorkTaskChanges,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkFullscreen } from "@/features/work-app/work-fullscreen";
-import { WorkView } from "@/features/work-app/work-view";
-import { workShellLabelsEn } from "@/features/work-app/work-shell-labels";
+} from "@/features/work-app/transport/transport";
+import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
+import { WorkView } from "@/features/work-app/view/work-view";
+import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
 import { toolOffered } from "@/features/mcp-apps/tool-support";
 import { CompanionRoomTransport } from "@/mobile/companion-transport";
 import { fakeNative, ok } from "./helpers/fake-native";

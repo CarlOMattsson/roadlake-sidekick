@@ -38,43 +38,20 @@ from sidekick.structured.work_records import (
     end_of_day_due_at,
 )
 from sidekick.tasks.application import UpdateTaskCommand
-from sidekick.tasks.application.service import task_public_data
+from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority, TaskStatus
-from sidekick.work.application.service import (
-    WorkQuery,
+from sidekick.work.application.models import HierarchyNode, WorkQuery, WorkRow
+from sidekick.work.application.serialization import (
     clipped_project_title,
-    domain_to_data,
+    domain_public_data,
     process_hierarchy_node,
-    process_to_data,
+    process_public_data,
 )
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
 
 RECORD_STEP_LIMIT = 50
-
-
-def domain_record_data(domain: Any, tags: list[str] | None = None) -> dict[str, Any]:
-    """Return the public Domain contract without the persistence owner key."""
-
-    data = domain_to_data(domain)
-    data.pop("owner_id", None)
-    data["tags"] = list(tags or [])
-    return data
-
-
-def process_record_data(process: Any, tags: list[str] | None = None) -> dict[str, Any]:
-    """Return the public Process contract without the persistence owner key.
-
-    `next_expected_run_at` is REST-only: the closed MCP `ProcessRecord` does not declare it,
-    so passing it through made every MCP Process read and write fail validation.
-    """
-
-    data = process_to_data(process)
-    data.pop("owner_id", None)
-    data.pop("next_expected_run_at", None)
-    data["tags"] = list(tags or [])
-    return data
 
 
 def with_tags(data: dict[str, Any], tags: list[str] | None) -> dict[str, Any]:
@@ -106,8 +83,8 @@ def applied_filters(
 
 
 def waiting_contact_names(
-    container: Container, actor: Actor, items: Sequence[Mapping[str, Any]]
-) -> dict[Any, str]:
+    container: Container, actor: Actor, rows: Sequence[WorkRow]
+) -> dict[UUID, str]:
     """Return the display name of each Contact a record waits on, by id.
 
     Empty without the contacts:read scope, so a session that cannot read Contacts still sees the
@@ -116,14 +93,19 @@ def waiting_contact_names(
 
     if "contacts:read" not in actor.scopes:
         return {}
-    wanted = [
-        contact_id
-        for item in items
-        if (contact_id := item.get("waiting_on_contact_id")) is not None
-    ]
+    wanted = [row.waiting_on_contact_id for row in rows if row.waiting_on_contact_id is not None]
     if not wanted:
         return {}
     return dict(container.contacts.waiting_contact_names(actor, wanted))
+
+
+def work_item_record(row: WorkRow, names: Mapping[UUID, str]) -> WorkItemRecord:
+    """The structured record of a Work row: the one place a row becomes plain data."""
+
+    data = row.to_data()
+    if row.waiting_on_contact_id is not None:
+        data["waiting_on_contact_name"] = names.get(row.waiting_on_contact_id)
+    return WorkItemRecord.model_validate(data)
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,7 +149,7 @@ def work_agenda_structured(
     status = a.status.value if a.status else None
     priority = a.priority.value if a.priority else None
     tags = list(a.tags) if a.tags is not None else None
-    page = container.contexts.work_agenda_page(
+    page = container.work_lists.work_agenda_page(
         actor,
         WorkQuery(
             q=a.q,
@@ -221,17 +203,7 @@ def work_agenda_structured(
     )
     names = waiting_contact_names(container, actor, page.items)
     return WorkItemPageOutput(
-        items=[
-            WorkItemRecord.model_validate(
-                {
-                    **item,
-                    "waiting_on_contact_name": names.get(item.get("waiting_on_contact_id")),
-                }
-                if names
-                else item
-            )
-            for item in page.items
-        ],
+        items=[work_item_record(row, names) for row in page.items],
         next_cursor=page.next_cursor,
         filters=filters,
     ).model_dump(mode="json")
@@ -378,7 +350,7 @@ def domain_structured(container: Container, actor: Actor, domain_id: UUID) -> di
     domain = container.contexts.get_domain(actor, domain_id)
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "domain", domain_id)]
     return DomainOutput(
-        domain=DomainRecord.model_validate(domain_record_data(domain, slugs))
+        domain=DomainRecord.model_validate(domain_public_data(domain, slugs))
     ).model_dump(mode="json")
 
 
@@ -388,7 +360,7 @@ def process_structured(container: Container, actor: Actor, process_id: UUID) -> 
     process = container.contexts.get_process(actor, process_id)
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "process", process_id)]
     return ProcessOutput(
-        process=ProcessRecord.model_validate(process_record_data(process, slugs))
+        process=ProcessRecord.model_validate(process_public_data(process, slugs))
     ).model_dump(mode="json")
 
 
@@ -398,12 +370,12 @@ _HIERARCHY_TASK_SCAN_LIMIT = 1000
 
 
 def hierarchy_nodes_structured(
-    nodes: list[dict[str, Any]], next_cursor: str | None
+    nodes: Sequence[HierarchyNode], next_cursor: str | None
 ) -> dict[str, Any]:
     """The structured content of `get_work_hierarchy` without tasks."""
 
     return HierarchyOutput(
-        nodes=[HierarchyNodeRecord.model_validate(node) for node in nodes],
+        nodes=[HierarchyNodeRecord.model_validate(node.to_data()) for node in nodes],
         truncated=next_cursor is not None,
         next_cursor=next_cursor,
     ).model_dump(mode="json", exclude={"tasks"})
@@ -437,7 +409,7 @@ def work_hierarchy_structured(
         return hierarchy_nodes_structured(nodes, next_cursor)
     tasks, tasks_truncated = hierarchy_tasks(container, actor, nodes, process_id=process_id)
     return HierarchyOutput(
-        nodes=[HierarchyNodeRecord.model_validate(node) for node in nodes],
+        nodes=[HierarchyNodeRecord.model_validate(node.to_data()) for node in nodes],
         truncated=next_cursor is not None or tasks_truncated,
         next_cursor=next_cursor,
         tasks=[HierarchyTaskRecord.model_validate(task) for task in tasks],
@@ -447,7 +419,7 @@ def work_hierarchy_structured(
 def hierarchy_tasks(
     container: Container,
     actor: Actor,
-    nodes: Sequence[Mapping[str, Any]],
+    nodes: Sequence[HierarchyNode],
     *,
     process_id: UUID | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
@@ -462,7 +434,7 @@ def hierarchy_tasks(
     caller has already checked that the Process is the owner's and passes only its node.
     """
 
-    parent_ids = {str(node["id"]) for node in nodes if node["kind"] in ("project", "process")}
+    parent_ids = {str(node.id) for node in nodes if node.kind in ("project", "process")}
     tasks: list[dict[str, Any]] = []
     scanned = 0
     cut_tasks = False

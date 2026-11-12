@@ -5,13 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { RoomProps } from "@/features/mcp-apps/room-types";
-import { ContactsRoom } from "@/features/work-app/contacts-room";
-import { workEn, workSv } from "@/features/work-app/labels";
+import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type {
   WorkContactRecord,
   WorkTransport,
-} from "@/features/work-app/transport";
-import { WorkView } from "@/features/work-app/work-view";
+} from "@/features/work-app/transport/transport";
+import { WorkView } from "@/features/work-app/view/work-view";
 
 const anna: WorkContactRecord = {
   id: "019f0000-0000-7000-8000-0000000000c1",

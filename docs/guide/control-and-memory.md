@@ -33,9 +33,13 @@ Open the Sidekick's memory tab and tap "Pausa minnet" (Pause memory). Tap "Åter
 
 Under Källor (Sources) there is one switch per source: journal, contacts, projects and tasks. When you switch a source off, what memory derived from it is removed.
 
+## See what memory holds
+
+Under each source that is on, tap "Visa vad Sidekick minns" (Show what Sidekick remembers) for a sample of what memory holds. The search field asks the whole memory.
+
 ## Keep a single record out of memory
 
-Ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
+Tap "Glöm den här" (Forget this) on a fact. Everything memory holds from that record is removed, and the record itself is unchanged. You can also ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
 
 ## Enter a license key
 

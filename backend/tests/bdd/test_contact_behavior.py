@@ -3,11 +3,8 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sidekick.contacts.application.service import (
-    ContactService,
-    CreateContactCommand,
-    UpdateContactCommand,
-)
+from sidekick.contacts.application.models import CreateContactCommand, UpdateContactCommand
+from sidekick.contacts.application.service import ContactService
 from sidekick.shared.types import Actor
 from tests.support.fakes import InMemoryStore, make_cursor_codec
 

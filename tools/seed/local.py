@@ -21,6 +21,7 @@ from uuid import UUID, uuid4
 
 from sidekick.composition import create_auth_service
 from sidekick.contacts.application.service import ContactService, CreateContactCommand
+from sidekick.journal.application.capture import JournalCaptureService
 from sidekick.journal.application.service import JournalService
 from sidekick.journal.domain.entry import KeyPoint
 from sidekick.projects.application import ProjectService
@@ -77,6 +78,7 @@ class Services:
     steps: StepsService
     contacts: ContactService
     journal: JournalService
+    journal_capture: JournalCaptureService
 
 
 def log(message: str) -> None:
@@ -120,9 +122,8 @@ def build_services(settings: Settings) -> Services:
         tasks=TaskService(store, clock, cursor_codec),
         steps=StepsService(store, clock, cursor_codec),
         contacts=ContactService(store, clock, cursor_codec),
-        journal=JournalService(
-            store, clock, cursor_codec, owner_timezone=settings.owner_zone
-        ),
+        journal=JournalService(store, clock, cursor_codec),
+        journal_capture=JournalCaptureService(store, clock),
     )
 
 
@@ -310,6 +311,7 @@ def seed_contacts(
 def seed_journal(
     actor: Actor,
     journal: JournalService,
+    journal_capture: JournalCaptureService,
     project_ids: dict[str, UUID],
     open_tasks: dict[str, UUID],
     contact_ids: dict[str, UUID],
@@ -339,7 +341,7 @@ def seed_journal(
             journal_spec.hour,
             tzinfo=UTC,
         )
-        source = journal.create_source(
+        source = journal_capture.create_source(
             actor,
             source_type=journal_spec.source_type,
             journal_date=journal_date,
@@ -351,7 +353,7 @@ def seed_journal(
             idempotency_key=key("journal-source"),
         )
         counters.add("journal_sources")
-        entry = journal.create_manual_entry(
+        entry = journal_capture.create_manual_entry(
             actor,
             source_id=source.id,
             title=journal_spec.title,
@@ -431,7 +433,13 @@ def main(argv: list[str] | None = None) -> int:
         for item in services.contacts.list(actor, limit=100).items
     }
     seed_journal(
-        actor, services.journal, project_ids, open_tasks, contact_ids, counters
+        actor,
+        services.journal,
+        services.journal_capture,
+        project_ids,
+        open_tasks,
+        contact_ids,
+        counters,
     )
 
     log("--- summary ---")

@@ -34,9 +34,7 @@ from sidekick.projects.application.service import project_public_data
 from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
 from sidekick.structured.work import (
-    domain_record_data,
     domain_structured,
-    process_record_data,
     process_structured,
     project_detail_structured,
     with_description_excerpt,
@@ -60,9 +58,8 @@ from sidekick.structured.work_records import (
     ProjectPageOutput,
     ProjectRecord,
 )
-from sidekick.work.application.service import (
-    UpdateContextCommand,
-)
+from sidekick.work.application.models import UpdateContextCommand
+from sidekick.work.application.serialization import domain_public_data, process_public_data
 
 # Parameter types shared by several tools; the JSON schema each produces is pinned by the contract.
 _Limit100 = Annotated[int, Field(ge=1, le=100)]
@@ -277,7 +274,7 @@ def _register_list_domains(mcp: FastMCP, ctx: ToolContext) -> None:
         structured = DomainPageOutput(
             domains=[
                 DomainRecord.model_validate(
-                    domain_record_data(item, list(slugs.get(("domain", item.id), ())))
+                    domain_public_data(item, list(slugs.get(("domain", item.id), ())))
                 )
                 for item in page.items
             ],
@@ -345,7 +342,7 @@ def _register_create_domain(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = DomainOutput(
-            domain=DomainRecord.model_validate(domain_record_data(domain))
+            domain=DomainRecord.model_validate(domain_public_data(domain))
         ).model_dump(mode="json")
         record = structured["domain"]
         return result(
@@ -385,7 +382,7 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         slugs = [tag.slug for tag in ctx.container.work_tags.for_record(actor, "domain", domain_id)]
         structured = DomainOutput(
-            domain=DomainRecord.model_validate(domain_record_data(domain, slugs))
+            domain=DomainRecord.model_validate(domain_public_data(domain, slugs))
         ).model_dump(mode="json")
         record = structured["domain"]
         return result(
@@ -421,7 +418,7 @@ def _register_create_process(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = ProcessOutput(
-            process=ProcessRecord.model_validate(process_record_data(process))
+            process=ProcessRecord.model_validate(process_public_data(process))
         ).model_dump(mode="json")
         record = structured["process"]
         ref = record_ref(record, title_key="name", parent=("domain", record["domain_id"]))
@@ -459,7 +456,7 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
             tag.slug for tag in ctx.container.work_tags.for_record(actor, "process", process_id)
         ]
         structured = ProcessOutput(
-            process=ProcessRecord.model_validate(process_record_data(process, slugs))
+            process=ProcessRecord.model_validate(process_public_data(process, slugs))
         ).model_dump(mode="json")
         record = structured["process"]
         ref = record_ref(record, title_key="name", parent=("domain", record["domain_id"]))
@@ -489,7 +486,7 @@ def _register_list_processes(mcp: FastMCP, ctx: ToolContext) -> None:
         structured = ProcessPageOutput(
             processes=[
                 ProcessRecord.model_validate(
-                    process_record_data(item, list(slugs.get(("process", item.id), ())))
+                    process_public_data(item, list(slugs.get(("process", item.id), ())))
                 )
                 for item in page.items
             ],
