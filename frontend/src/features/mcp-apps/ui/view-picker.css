@@ -20,7 +20,7 @@
 .sk-pick[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
-/* Arbete's ⋯ panel (agenda-toolbar.css) is the same card. */
+/* Work's ⋯ panel (agenda-toolbar.css) is the same card. */
 .sk-pick-menu,
 .sidekick-work .work-agenda-bar-panel {
   display: flex;
@@ -51,7 +51,7 @@
 .sk-pick-menu .sk-pick-item + .sk-pick-item {
   border-top: var(--sk-hairline, 1px) solid var(--sk-line);
 }
-/* Inside the room strip the ring sits inside the box; in a room (Arbete's view picker) it is the shared ring. */
+/* Inside the room strip the ring sits inside the box; in a room (Work's view picker) it is the shared ring. */
 .sk-rooms :is(.sk-pick, .sk-pick-item):focus-visible {
   outline-offset: -2px;
 }

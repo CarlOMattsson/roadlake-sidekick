@@ -160,9 +160,8 @@ button.sk-empty-example:active {
   margin: 0 var(--sk-s3) 0 0;
 }
 
-/* A room whose first read failed (Dagbok, Kontakter, Inköp in fullscreen) shows only the notice under the room strip:
-   it keeps the 16 under the chrome that Work's notice has under its tab row, so the four rooms' errors stand alike
-   (uc-7). */
+/* A room whose first read failed (Journal, Contacts, Shopping in fullscreen) shows only the notice under the room strip:
+   it keeps the 16 under the chrome that Work's notice has under its tab row, so the four rooms' errors stand alike. */
 .sk-rooms__pane
   :is(.sidekick-journal, .sidekick-shopping, .sidekick-work)
   > .sk-error--card:first-child {

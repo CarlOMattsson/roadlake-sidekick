@@ -1,7 +1,7 @@
 /* Task detail (moved from work.css unchanged; loaded directly after it, see work-view.tsx). */
 /* The task detail sits directly on the page: no frame (WorkRoom draws it with chrome off in fullscreen), and the
    16 px side margin is the page's own. Each section (Steg,
-   Kontakter) starts 24 px below the one before it. */
+   Contacts) starts 24 px below the one before it. */
 .sidekick-work .work-task {
   padding: 0;
   border: 0;
@@ -287,7 +287,7 @@
   margin-inline-end: calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px - 24px);
 }
 
-/* "Klar · nästa: fre 27 nov · Ångra" right under "Markera klar" on a recurring Task (uc-1): the line in the meta's
+/* "Klar · nästa: fre 27 nov · Ångra" right under "Markera klar" on a recurring Task: the line in the meta's
    type, Ångra beside it on the same 44 px row. */
 .sidekick-work .work-task-cycle {
   display: flex;
@@ -324,7 +324,7 @@
   padding-inline-start: calc(var(--sk-icon) + var(--sk-s3));
 }
 
-/* The repeat rules as chips under the place row, the current one ticked (uc-4), as the row menu's Status and Datum.
+/* The repeat rules as chips under the place row, the current one ticked, as the row menu's Status and Datum.
    A row of their own across the whole width, so they wrap together and never beside the chips above. */
 .sidekick-work .work-repeat-choices {
   flex-basis: 100%;

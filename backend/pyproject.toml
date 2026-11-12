@@ -10,6 +10,9 @@ dependencies = [
   # Pinned exactly and kept out of Dependabot (.github/dependabot.yml): fastmcp carries
   # the MCP tool/schema contract the apps rely on, so an upgrade needs a contract review first.
   "fastmcp==4.1.6",
+  # Two HTTP clients on purpose: fastmcp-slim 4.1.6 builds its OAuth token verifier on httpx2
+  # (mcp/auth.py and mcp/oauth.py hand it an httpx2.AsyncClient), so that import cannot move to
+  # httpx; the push sender and the Hindsight adapter use httpx.
   "httpx==0.28.1",
   "httpx2==2.16.0",
   "jsonschema==4.26.0",
@@ -47,7 +50,7 @@ dev = [
 ]
 
 [project.scripts]
-sidekick-admin = "sidekick.shared.auth.cli:main"
+sidekick-admin = "sidekick.admin.cli:main"
 sidekick-openapi = "sidekick.api.export_openapi:main"
 sidekick-automation-worker = "sidekick.automation.worker:main"
 sidekick-owner-export = "sidekick.owner_export.cli:main"

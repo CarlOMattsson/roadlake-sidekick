@@ -19,7 +19,7 @@ property of the server rather than of a tool description.
 
 - **Personal access token** (`rsp_` prefix). Created by the operator with `sidekick-admin`, shown once, scoped,
   expiring (90 days by default, at most 365, or explicitly never) and revocable
-  (`backend/src/sidekick/shared/auth/cli.py`, `AuthService.create_personal_token`).
+  (`backend/src/sidekick/admin/cli.py`, `AuthService.create_personal_token`).
 - **GitHub OAuth** for the public MCP endpoint (`SIDEKICK_MCP_AUTH_MODE=github_oauth`). Sidekick writes no
   authorization server: FastMCP's OAuth proxy does registration, PKCE, audience and consent
   (`backend/src/sidekick/mcp/oauth.py`). Sidekick decides only whether the numeric GitHub id is on the configured
@@ -83,7 +83,7 @@ tool description is advice to the model, not an authorization; the server check 
 ## Evidence
 
 - `backend/src/sidekick/shared/auth/service.py`
-- `backend/src/sidekick/shared/auth/cli.py`
+- `backend/src/sidekick/admin/cli.py`
 - `backend/src/sidekick/shared/types/core.py`
 - `backend/src/sidekick/mcp/auth.py`
 - `backend/src/sidekick/mcp/oauth.py`

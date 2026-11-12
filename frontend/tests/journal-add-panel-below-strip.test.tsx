@@ -1,4 +1,4 @@
-// uc-10: the Dagbok + panel opens under the week strip, where the day's content starts, so the strip never moves.
+// The Dagbok + panel opens under the week strip, where the day's content starts, so the strip never moves.
 // The dark button names what it does: it hands over to Claude. Simulated-host test (JournalView with a mocked transport).
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

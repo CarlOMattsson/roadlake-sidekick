@@ -8,7 +8,7 @@ import type { TestPushOutcome } from "./sidekick-native";
  */
 export type SettingsLabels = {
   dateLocale: string;
-  /** The entry at the end of the Work room's ⋯ menu, in Kontroll's place, and the title of the settings. */
+  /** The entry at the end of the Work room's ⋯ menu, in Control's place, and the title of the settings. */
   title: string;
   notificationsHeading: string;
   /** The heading over Svenska | English. */

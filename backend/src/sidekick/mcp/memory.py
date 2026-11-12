@@ -2,7 +2,8 @@
 
 `get_memory_status`, `set_memory_settings` and `exclude_from_memory` sit over
 `sidekick.memory.application.settings`, which holds the scope rules (see its docstring). Their first
-text line is speakable (D-072): counts and domain names, never an id, version or time.
+text line is speakable (D-072: voice mode works through MCP): counts and domain names, never an id,
+version or time.
 
 Facts come only from `sidekick.memory.application.recall.recall_verified`, which releases a fact
 only when Postgres confirms its source. This module adds each cited record's title and date with

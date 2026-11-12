@@ -14,7 +14,7 @@ import "./view-picker.css";
  * The picker that stands in for a row of tabs that does not fit (designsystem §3 "Rumshuvud", "Rumsremsan"):
  * one button with the chosen option's name and ⌄ ("Status ⌄", "Arbete ⌄"), which opens a menu with the options as
  * `menuitemradio` and ✓ on the chosen one, in the form of the ⋯ menu (a full-width card under the row, in the page
- * flow). The room strip, Arbete's views and later Kontroll's tabs use this one picker.
+ * flow). The room strip, Work's views and later Control's tabs use this one picker.
  *
  * It returns the button and the menu apart, so the caller puts the button in its row and the menu on a line of its own
  * under the row. Arrow keys, Home and End move between the items, Escape closes the menu and gives the focus back to the button, Tab / Shift+Tab close it and move on (no focus trap).
@@ -45,7 +45,7 @@ export function useViewPicker<T extends string>({
   className?: string;
   /** Also report a press on the chosen option (the room picker: the active room goes to its root). */
   reselect?: boolean;
-  /** The button's words while no option is chosen (`value` undefined, e.g. "Rum" in Kontroll); else the first option's. */
+  /** The button's words while no option is chosen (`value` undefined, e.g. "Rum" in Control); else the first option's. */
   placeholder?: string;
 }): { button: ReactNode; menu: ReactNode } {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -56,7 +56,7 @@ export function useViewPicker<T extends string>({
   const menuOpen = shown && open;
   const chosen = options.find((option) => option.value === value);
 
-  // An opened menu puts the focus on the chosen option, or on the first one when none is chosen (Kontroll).
+  // An opened menu puts the focus on the chosen option, or on the first one when none is chosen (Control).
   useEffect(() => {
     if (!menuOpen) return;
     const menu = menuRef.current;

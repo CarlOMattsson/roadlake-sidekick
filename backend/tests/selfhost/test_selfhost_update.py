@@ -413,6 +413,35 @@ def test_rollback_also_starts_the_default_on_worker(harness: Harness) -> None:
     assert rollback["args"][-2:] == ["api", "automation-worker"]
 
 
+def test_a_running_caddy_is_recreated_with_api_so_it_joins_the_proxy_network(
+    harness: Harness,
+) -> None:
+    """api trusts forwarded headers from Caddy's proxy address only; Caddy must join it."""
+
+    harness.set_running(ALL_WORKERS + ",caddy")
+    result = harness.apply()
+    assert result.returncode == 0, result.stderr
+    final_up = [c for c in harness.calls() if c["sub"] == "up"][-1]
+    assert "vps" in final_up["profiles"]
+    assert "caddy" in final_up["args"] and "api" in final_up["args"]
+
+
+def test_rollback_recreates_a_running_caddy_too(harness: Harness) -> None:
+    harness.set_running(ALL_WORKERS + ",caddy")
+    result = harness.apply(FAKE_READY_IMAGES=PREVIOUS)
+    assert result.returncode == 1
+    rollback = [c for c in harness.calls() if c["sub"] == "up"][-1]
+    assert rollback["image"] == PREVIOUS
+    assert "vps" in rollback["profiles"] and "caddy" in rollback["args"]
+
+
+def test_no_caddy_is_started_on_an_installation_that_does_not_run_one(harness: Harness) -> None:
+    result = harness.apply()
+    assert result.returncode == 0, result.stderr
+    for call in (c for c in harness.calls() if c["sub"] == "up"):
+        assert "caddy" not in call["args"] and "vps" not in call["profiles"]
+
+
 def test_a_failed_owner_backup_starts_the_previous_image_and_workers_again(
     harness: Harness,
 ) -> None:

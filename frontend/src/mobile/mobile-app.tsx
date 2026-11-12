@@ -4,12 +4,12 @@
  * phone around them needs: the room host for a transport that is not a postMessage bridge, system Back, the launch
  * hint, and the safe-area insets. No room is copied and there is no model to message. The room strip stands at the
  * top with the three rooms the app serves (MOBILE_STRIP_ROOMS) that the server shows (SIDEKICK_ENABLED_ROOMS, read by
- * server-rooms.ts; with Arbete alone there is no strip), and the narrow room picker takes its place when they do not
+ * server-rooms.ts; with Work alone there is no strip), and the narrow room picker takes its place when they do not
  * fit; there is no bottom bar. What the app cannot answer (the AI drafts of the Journal, the
  * recipient search of Shopping) the rooms leave out themselves, by asking the transport which tools it has.
  *
  * The phone's settings (settings-panel.tsx) open from "Inställningar" at the end of every room's ⋯ menu, where
- * Kontroll stands in Claude. They cover the shell, which stays mounted, and Back (‹ Arbete or system Back) returns.
+ * Control stands in Claude. They cover the shell, which stays mounted, and Back (‹ Arbete or system Back) returns.
  */
 import {
   useCallback,

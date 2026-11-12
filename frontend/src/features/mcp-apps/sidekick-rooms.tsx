@@ -55,7 +55,7 @@ export type RoomHost = {
   /** Per room, the views the host can serve. Absent (or a room not listed): every view. */
   availableViews?: Partial<Record<RoomId, readonly string[]>>;
   /**
-   * The host's own settings, offered in every room's ⋯ menu in Kontroll's place (RoomProps.hostSettings). `onOpen` is
+   * The host's own settings, offered in every room's ⋯ menu in Control's place (RoomProps.hostSettings). `onOpen` is
    * told the room it was opened from, so the settings can lead back there.
    */
   hostSettings?: { label: string; onOpen: (from: RoomId) => void };

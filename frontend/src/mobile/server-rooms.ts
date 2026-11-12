@@ -10,7 +10,7 @@
  * backend declares it in the app document (app-timezone.ts), so every date the phone draws is in the owner's zone and not
  * in Stockholm's default or the phone's own. A change of zone starts the shell again, like a change of rooms.
  *
- * Kontroll (`control`) is never on in the phone: the companion API has no trash, history or memory routes, so its
+ * Control (`control`) is never on in the phone: the companion API has no trash, history or memory routes, so its
  * views could only fail. Every link to it disappears, and the shell sends the license entry to Inställningar instead.
  */
 import { useEffect, useState } from "react";
@@ -30,14 +30,14 @@ const ALL_ROOMS = "all";
 /** The room the companion API does not serve; the phone's settings stand in its place. */
 const PHONE_WITHOUT: (typeof ROOM_IDS)[number] = "control";
 
-/** The rooms the phone draws: the server's list, or every room when it did not say, without Kontroll. */
+/** The rooms the phone draws: the server's list, or every room when it did not say, without Control. */
 function phoneRooms(rooms: readonly string[] | undefined): string[] {
   return (rooms ?? ROOM_IDS).filter((room) => room !== PHONE_WITHOUT);
 }
 
 /**
  * `key` is undefined until the stored copy has been read (it is local and quick), then names the rooms: it changes
- * when they do, so a caller that keys the shell on it starts again in Arbete when a room it had open goes away.
+ * when they do, so a caller that keys the shell on it starts again in Work when a room it had open goes away.
  * Without `native` (a host that cannot ask) every room stays on and the key is there at once.
  */
 export function useServerRooms(

@@ -1,4 +1,4 @@
-"""`/companion/v1/` routes of the rooms Inköp and Dagbok (ADR-005; D-076 for the journal).
+"""`/companion/v1/` routes of the rooms Shopping and Journal (ADR-005; D-076 for the journal).
 
 Added to the companion router by `create_companion_router` (sidekick.api.companion), which also
 supplies the route class, so every refusal here is the same versioned problem envelope and the
@@ -6,7 +6,7 @@ request log carries only the operation name and the outcome. Like the Idag route
 thin transport over the use case the MCP tool of the same name calls, and answers that tool's
 structured content, so the React rooms read what they read in Claude.
 
-Inköp (`companion:shopping:read`; the writes also `companion:shopping:write`):
+Shopping (`companion:shopping:read`; the writes also `companion:shopping:write`):
 
 - `GET  /companion/v1/shopping/lists`                       = `list_shopping_lists`
 - `GET  /companion/v1/shopping/lists/{list_id}`             = `get_shopping_list`
@@ -20,7 +20,7 @@ Inköp (`companion:shopping:read`; the writes also `companion:shopping:write`):
 - `POST /companion/v1/shopping/items/{item_id}/purchased`   = `set_shopping_item_purchased`
   (`{"purchased", "version"}`; the undo is the same call with `purchased: false`)
 
-Dagbok (`companion:journal:read`; the writes also `companion:journal:write`), only the owner's
+Journal (`companion:journal:read`; the writes also `companion:journal:write`), only the owner's
 manual writing (D-076) and the text of a source read back, no draft or summary flow:
 
 - `GET  /companion/v1/journal/days/{journal_date}`          = `get_journal_day`
@@ -146,8 +146,8 @@ class UpdateEntryBody(_Body):
     append_key_points: Annotated[list[JournalKeyPointInput], Field(max_length=50)] | None = None
     append_text: Annotated[str, Field(min_length=1, max_length=100_000), NoImageData] | None = None
     # No link fields (add/remove project or contact ids): changing a link needs `projects:read` or
-    # `contacts:read`, which a Dagbok device does not hold. `extra="forbid"` refuses them as a plain
-    # 422 that echoes nothing, instead of letting the use case answer 403 after the fact.
+    # `contacts:read`, which a Journal device does not hold. `extra="forbid"` refuses them as a
+    # plain 422 that echoes nothing, instead of letting the use case answer 403 after the fact.
 
 
 CREATE_LIST_BODY = RequestBody(CreateListBody, MAX_SHOPPING_BODY_BYTES)
@@ -171,7 +171,7 @@ def _correlation(request: Request) -> str | None:
 
 
 def add_room_routes(router: CompanionRouter, rooms: Collection[str]) -> None:
-    """Register the routes of the rooms Inköp and Dagbok that this instance shows.
+    """Register the routes of the rooms Shopping and Journal that this instance shows.
 
     A room that is switched off (`SIDEKICK_ENABLED_ROOMS`) gets no route, so its paths answer 404.
     """
@@ -183,7 +183,7 @@ def add_room_routes(router: CompanionRouter, rooms: Collection[str]) -> None:
 
 
 def add_shopping_routes(router: CompanionRouter) -> None:
-    """Register the Inköp routes on the companion router."""
+    """Register the Shopping routes on the companion router."""
 
     _add_shopping_read_routes(router)
     _add_shopping_list_write_routes(router)
@@ -359,7 +359,7 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
 
 
 def add_journal_routes(router: CompanionRouter) -> None:
-    """Register the Dagbok routes on the companion router."""
+    """Register the Journal routes on the companion router."""
     _add_journal_read_routes(router)
     _add_journal_write_routes(router)
 

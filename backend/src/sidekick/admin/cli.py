@@ -1,12 +1,16 @@
 """Finite operator commands for provisioning users and MCP credentials.
 
+This entrance lives outside `sidekick.shared` because it wires the other contexts through the
+composition root (`sidekick.composition`), which the shared kernel may never import.
+
 `create-user` needs no terminal: it prints the new user's UUID, which is what
 `SIDEKICK_MCP_OAUTH_ALLOWED_IDENTITIES` maps a GitHub identity to. The commands read the same
 settings as the API except that the MCP OAuth policy is not validated (see `get_admin_settings`),
 so the first user can be created before that policy names them.
 
-`empty-trash` is the operator's way to empty the trash (D-031): it only counts unless `--yes` is
-given, and every removal goes through the lifecycle use case that accepts only trashed records.
+`empty-trash` is the operator's way to empty the trash (D-031: permanent removal is a server
+command, never an MCP tool): it only counts unless `--yes` is given, and every removal goes through
+the lifecycle use case that accepts only trashed records.
 """
 
 import argparse
@@ -17,6 +21,7 @@ from datetime import datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
+from sidekick import composition
 from sidekick.shared.auth import OPT_IN_SCOPES, TOKEN_SCOPES
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import Settings, get_admin_settings
@@ -112,11 +117,7 @@ def _run_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
     if args.command == "empty-trash":
         run_empty_trash(settings, remove=args.yes, older_than_days=args.older_than)
         return
-    # Imported late: this entrance provisions owners, which needs the other contexts' hooks that
-    # only the composition root wires, and composition itself imports `sidekick.shared.auth`.
-    from sidekick.composition import create_auth_service
-
-    service = create_auth_service(
+    service = composition.create_auth_service(
         create_session_factory(settings.database_url, timeouts=settings.database_timeouts),
         settings,
     )
@@ -167,14 +168,11 @@ def _run_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
 def run_empty_trash(settings: Settings, *, remove: bool, older_than_days: int | None) -> None:
     """Print counts per record kind, and delete only with `remove`; never a title or any text."""
 
-    # Imported late for the same reason as in `main`: composition imports `sidekick.shared.auth`.
-    from sidekick.composition import create_admin_lifecycle_service, sweep_trash_for_admin
-
-    lifecycle = create_admin_lifecycle_service(
+    lifecycle = composition.create_admin_lifecycle_service(
         create_session_factory(settings.database_url, timeouts=settings.database_timeouts),
         settings,
     )
-    result = sweep_trash_for_admin(
+    result = composition.sweep_trash_for_admin(
         lifecycle,
         remove=remove,
         older_than=None if older_than_days is None else timedelta(days=older_than_days),

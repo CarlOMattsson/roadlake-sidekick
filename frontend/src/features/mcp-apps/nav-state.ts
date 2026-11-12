@@ -74,7 +74,7 @@ export const CONTROL_PARENT: RoomId = "work";
  * (agenda, board, day, shopping list) is the room's root. A card that opened straight on one record
  * (a Task, a post, a Contact) makes the room's overview the root and the record its first step, so
  * Back and a press on the room always reach the overview.
- * Control is never a root: it is a step above Arbete's overview, so the strip marks no room and Back
+ * Control is never a root: it is a step above Work's overview, so the strip marks no room and Back
  * reads "‹ Arbete".
  */
 export function createNavState(start: NavEntry): NavState {

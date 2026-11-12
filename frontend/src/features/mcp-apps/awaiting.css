@@ -80,12 +80,12 @@
   font-weight: var(--font-weight-semibold, 600);
 }
 
-/* The room's real header (Arbete's tab row, Kontroll's Back, title and tabs), inert, 8 px under the strip as the
+/* The room's real header (Work's tab row, Control's Back, title and tabs), inert, 8 px under the strip as the
    shell's gap. It sits in a .sk-rooms__pane, so the rooms' own pane rules place it as in the loaded view. */
 .sidekick-wait-head {
   margin-block-start: var(--sk-s1);
 }
-/* Kontroll: the strip with no room marked, "‹ Arbete", the title "Kontroll" right under it and the tabs 12 under the
+/* Control: the strip with no room marked, "‹ Arbete", the title "Kontroll" right under it and the tabs 12 under the
    title; the first row 12 under the tabs, as control.css. */
 .sidekick-wait-head[data-room="control"] .sidekick-control.sidekick-control {
   display: grid;
@@ -118,7 +118,7 @@
 }
 
 /* The skeleton follows the row template (§4 Tillstånd): the same geometry as the finished list, so
-   nothing moves when the data comes. Arbete's lists open on a group heading: a bar in its 26,4 line, 8 under the tab row
+   nothing moves when the data comes. Work's lists open on a group heading: a bar in its 26,4 line, 8 under the tab row
    (the agenda's heading padding) and 4 over the first row, as the real heading. */
 .sidekick-wait-section {
   width: 6rem;
@@ -196,7 +196,7 @@
   margin-block: calc((var(--sk-type-meta-line, 1.1rem) - 0.625rem) / 2);
 }
 
-/* Kontakter: a 32 px avatar in the 36 px column and the name alone at x 52, in a 48 px row. */
+/* Contacts: a 32 px avatar in the 36 px column and the name alone at x 52, in a 48 px row. */
 .sidekick-wait[data-room="contacts"] .sidekick-wait-row {
   align-items: center;
   min-height: 48px;
@@ -213,7 +213,7 @@
   display: none;
 }
 
-/* Rows without a glyph (Dagbok, Kontroll, a room not known yet): the text starts on the content edge. */
+/* Rows without a glyph (Journal, Control, a room not known yet): the text starts on the content edge. */
 .sidekick-wait:not(
     [data-room="work"],
     [data-room="shopping"],
@@ -262,7 +262,7 @@
   color: var(--sk-tertiary);
 }
 .sidekick-wait .sk-iconbtn.sk-iconbtn--primary[aria-disabled="true"] {
-  /* On the content box, as family.css draws the loaded +: a 32 disc in its 44 box, not a 44 one (uc-9). */
+  /* On the content box, as family.css draws the loaded +: a 32 disc in its 44 box, not a 44 one. */
   background: var(--sk-inverse-bg) content-box;
   color: var(--sk-inverse-fg);
   opacity: 0.4;

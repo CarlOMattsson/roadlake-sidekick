@@ -16,10 +16,10 @@ from sidekick.api.app import Container
 from sidekick.journal.domain.analysis import (
     CreateTaskProposal,
     KeyPoint,
-    KeyPointKind,
     TaskPriority,
     UpdateTaskProposal,
 )
+from sidekick.journal.domain.entry import KeyPointKind
 from sidekick.journal.domain.review import (
     CandidateCatalog,
     ContactCandidate,

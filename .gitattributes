@@ -1,0 +1,18 @@
+# Generated files: GitHub collapses them in diffs and leaves them out of the language statistics.
+# `-diff` also stops git from printing the body of the bundle, a single 700 kB HTML file.
+
+# The MCP app bundle, built from frontend/ (see frontend/package.json) and checked in so the server
+# ships it without a Node build.
+backend/src/sidekick/mcp/apps/*.html linguist-generated=true -diff
+
+# Contracts and frontend types generated from the backend (checked by backend/tests/contract).
+*.generated.json linguist-generated=true
+*.generated.ts linguist-generated=true
+
+# Dependency lock files and files written by tools.
+backend/uv.lock linguist-generated=true
+frontend/package-lock.json linguist-generated=true
+frontend/android/gradle/locks/*.lockfile linguist-generated=true
+frontend/android/app/capacitor.build.gradle linguist-generated=true
+frontend/android/capacitor.settings.gradle linguist-generated=true
+frontend/android/app/src/main/assets/licenses/third-party-licenses.txt linguist-generated=true

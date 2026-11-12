@@ -1,4 +1,4 @@
-// uc-7: one read-error presentation for a whole room. Journal, Shopping and Contacts show the shared notice under the
+// One read-error presentation for a whole room. Journal, Shopping and Contacts show the shared notice under the
 // room's own chrome (no card with an eyebrow), always with the cause line and "Try again"; the place picker uses the
 // notice's row variant. These are simulated-host tests (the room components with a plain transport), not a real Claude host.
 import { render, screen } from "@testing-library/react";

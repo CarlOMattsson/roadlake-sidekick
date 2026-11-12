@@ -1,4 +1,4 @@
-"""Visible push reminders (ADR-005; D-078).
+"""Visible push reminders (ADR-005; D-078, push through UnifiedPush, with quiet hours).
 
 `ReminderScheduler` runs inside the push worker. For each owner with an active subscription it
 creates, in the owner's zone (D-063) and by the rules in `push_schedule`:

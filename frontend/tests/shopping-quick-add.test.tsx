@@ -377,7 +377,7 @@ it("an empty list shows + Add item, keeps the field closed until a click, and sa
   expect(
     screen.queryByRole("textbox", { name: shoppingEn.addItem }),
   ).not.toBeInTheDocument();
-  // The empty state says what the list is for (uc-3), with its own "+ Add an item".
+  // The empty state says what the list is for, with its own "+ Add an item".
   expect(screen.getByText(shoppingEn.empty)).toBeInTheDocument();
   expect(screen.getByText(shoppingEn.emptyHint)).toBeInTheDocument();
   await user.click(addRow());

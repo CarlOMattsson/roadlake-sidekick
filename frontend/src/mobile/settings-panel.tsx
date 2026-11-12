@@ -1,6 +1,6 @@
 /**
  * The phone's settings (ADR-005): one screen above the rooms, opened from "Inställningar" at the end of every room's
- * ⋯ menu, where Kontroll stands in Claude. It exists only in the mobile app: Claude has no phone to set.
+ * ⋯ menu, where Control stands in Claude. It exists only in the mobile app: Claude has no phone to set.
  *
  * First "Språk": Svenska | English, the app's language (app-language.ts; the widget follows it). Then two sections,
  * each read on its own from the native side, each with its own reading line, failure and retry:

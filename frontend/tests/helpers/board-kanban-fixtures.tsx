@@ -128,8 +128,32 @@ export function pointer(
   fireEvent(target, event);
 }
 
+/**
+ * Lets already-dispatched work settle before a test asserts that something did NOT happen. There is
+ * nothing to poll for an absence, so the wait is short; to wait for something that should happen,
+ * use `waitFor`/`findBy*`, and to let the board's own timing pass (long press, edge dwell), use
+ * `useBoardClock` and `advanceClock`.
+ */
 export function sleep(ms: number) {
   return act(async () => {
     await new Promise((resolve) => setTimeout(resolve, ms));
+  });
+}
+
+/**
+ * Takes over the clock the board's drag reads (`performance.now` and its `setInterval` tick), so a
+ * long press or an edge dwell passes by `advanceClock` instead of by waiting. `setTimeout` stays
+ * real, which keeps `waitFor` working. Call `vi.useRealTimers()` when done (an `afterEach` does).
+ */
+export function useBoardClock() {
+  vi.useFakeTimers({
+    toFake: ["setInterval", "clearInterval", "performance"],
+  });
+}
+
+/** Moves the clock taken over by `useBoardClock` forward and lets the board react to every tick. */
+export function advanceClock(ms: number) {
+  act(() => {
+    vi.advanceTimersByTime(ms);
   });
 }

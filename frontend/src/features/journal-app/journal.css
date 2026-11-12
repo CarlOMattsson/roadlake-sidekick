@@ -579,7 +579,7 @@ button.journal-entry-card {
   color: var(--sk-muted);
 }
 /* The glyph is the shared row ›: --sk-chevron wide and high (24, or 16 on a narrow frame or at large text as in contacts.css
-   and shopping.css) with the icon's own 2 stroke, so it is the same size and weight as in Arbete, Inköp and Kontakter. */
+   and shopping.css) with the icon's own 2 stroke, so it is the same size and weight as in Work, Shopping and Contacts. */
 .sidekick-journal .journal-entry-chevron svg {
   width: var(--sk-chevron);
   height: var(--sk-chevron);
@@ -691,7 +691,7 @@ button.journal-entry-card {
 }
 /* The day's +: the 32 px round ink + of the list views (family.css .sk-iconbtn--primary), in px as the head's other
    boxes, in a 48 box, its
-   middle on x 329 at 412 as Arbete's + (02), so 7 before the box of ⋯, which stands 2 further out here (384, the line
+   middle on x 329 at 412 as Work's + (02), so 7 before the box of ⋯, which stands 2 further out here (384, the line
    of the Back rows). The ink circle's middle is the title's first line's middle, as ⋯'s glyph: the box is
    raised by what the 48 box needs over the line box (4,6 at 110 %, none from the 56 line at 200 %), so the room strip's
    targets above still end before it. */

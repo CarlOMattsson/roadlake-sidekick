@@ -15,7 +15,9 @@ språkmodellsleverantör du väljer.
    Inbäddningar och omrankning körs lokalt i containern. **Det som lämnar din maskin:** texten som Hindsight
    utvinner fakta ur, skickad till den leverantören med den nyckeln. Fyll i filen först när du har bestämt dig
    för det. För en leverantör i ditt eget nät: använd en OpenAI-kompatibel server och sätt
-   `HINDSIGHT_API_LLM_PROVIDER=openai` med dess bas-URL.
+   `HINDSIGHT_API_LLM_PROVIDER=openai` med dess bas-URL. Tjänsten körs offline med skrivskyddat rotfilsystem, så de
+   lokala inbäddnings- och omrankningsmodellerna måste vara de som redan finns i imagen: väljer du en annan
+   `HINDSIGHT_API_EMBEDDINGS_*`- eller `HINDSIGHT_API_RERANKER_*`-modell laddar Hindsight inte ner den och startar inte.
 2. Avkommentera blocket `SIDEKICK_MEMORY_*` i `selfhost.env`: `SIDEKICK_MEMORY_PROVIDER=hindsight`,
    `SIDEKICK_MEMORY_HINDSIGHT_BASE_URL=http://hindsight:8888`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN` (samma värde som
    tenant-nyckeln i `hindsight.env`), `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, och sätt `SIDEKICK_MEMORY_ENABLED=true`.

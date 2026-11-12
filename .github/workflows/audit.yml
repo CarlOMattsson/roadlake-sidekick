@@ -1,8 +1,8 @@
 name: dependency-audit
 
-# Scans locked dependencies. Called from ci.yml, which the release workflow runs as a gate of every minor
-# or major release (so the audit is part of it), and on pull requests; it can also be run on demand.
-# There is no schedule: runs are tied to pull requests and releases.
+# Scans locked dependencies. Called from ci.yml, which the release workflow runs as a gate of every release
+# (major, minor and patch), so the audit is part of each one; it can also be run on demand.
+# There is no schedule and no pull request or push trigger: runs are tied to releases and to manual starts.
 on:
   workflow_dispatch:
   workflow_call:

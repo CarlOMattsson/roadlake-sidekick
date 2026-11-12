@@ -125,9 +125,6 @@ Checks that guard the site:
 
 - `backend/tests/policy/test_docs_language_parity.py`: every published document has an English and a Swedish
   twin with the same structure, and the hand-written pages and interface strings match in both languages.
-- The extra check of `tools/check-all.sh` (present only in the maintainers' checkout; a
-  published clone skips it): exports the repository, then verifies that every source named in the content map is in
-  the export.
 - `tools/check-all.sh`: the `website` stage runs the tests, the build and the site checks; it is skipped (and a
   failure with `--strict`) when `website/node_modules` is missing. `--skip-website` leaves it out.
 - `.github/workflows/pages.yml`: builds, checks and publishes the site when a release is published or when run by

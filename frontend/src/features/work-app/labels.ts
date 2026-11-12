@@ -231,7 +231,7 @@ export const workEn = {
   /** Moves a card one place down in its Task status column. */
   moveDown: "Move down",
   moveListFor: (title: string) => `Choose a status for ${title}`,
-  /** The row menu's button for a screen reader (not drawn), on a row of Arbete and on a Step. */
+  /** The row menu's button for a screen reader (not drawn), on a row of Work and on a Step. */
   rowMenuButton: (title: string) => `More options for ${title}`,
   dragTaskFor: (title: string) =>
     `Drag ${title}, or use the left and right arrow keys to move it to the neighboring column`,

@@ -15,6 +15,9 @@ from pydantic import (
     model_validator,
 )
 
+from sidekick.tasks.domain import TaskStatus
+
+from .entry import KeyPointKind
 from .source import require_aware
 
 NonBlank200 = Annotated[str, StringConstraints(min_length=1, max_length=200)]
@@ -28,26 +31,14 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
-class KeyPointKind(StrEnum):
-    FACT = "fact"
-    REFLECTION = "reflection"
-    DECISION = "decision"
-    COMMITMENT = "commitment"
-    QUESTION = "question"
-
-
+# Kept apart from `tasks.domain.Priority` on purpose: the class name is the published JSON
+# Schema title (`TaskPriority` in the MCP tool contracts, `Priority` in the companion API). A
+# test locks the two value sets together.
 class TaskPriority(StrEnum):
     LOW = "low"
     NORMAL = "normal"
     HIGH = "high"
     URGENT = "urgent"
-
-
-class TaskStatus(StrEnum):
-    TODO = "todo"
-    IN_PROGRESS = "in_progress"
-    BLOCKED = "blocked"
-    COMPLETED = "completed"
 
 
 class Perspective(StrEnum):

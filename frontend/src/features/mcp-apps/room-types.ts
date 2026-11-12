@@ -121,7 +121,7 @@ export type RoomProps = {
   /** False while the room is mounted but hidden. Defaults to true. */
   active?: boolean;
   /**
-   * The host's own settings, in Kontroll's place at the end of the room's ⋯ menu (the phone's "Inställningar"). Given
+   * The host's own settings, in Control's place at the end of the room's ⋯ menu (the phone's "Inställningar"). Given
    * only by a host that has settings of its own; Claude gives none.
    */
   hostSettings?: HostSettingsEntry;

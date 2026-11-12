@@ -18,10 +18,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from sidekick.journal.domain.analysis import (
     CreateTaskProposal,
     TaskPriority,
-    TaskStatus,
     UpdateTaskProposal,
 )
 from sidekick.journal.domain.source import require_aware
+from sidekick.tasks.domain import TaskStatus
 
 
 class ReviewInputModel(BaseModel):

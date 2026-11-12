@@ -19,7 +19,7 @@ import {
   renderBar,
 } from "./helpers/saved-views-fixtures";
 
-// uc-2: the host may sandbox an MCP App without `allow-forms`, and then no form ever submits. These tests
+// The host may sandbox an MCP App without `allow-forms`, and then no form ever submits. These tests
 // swallow every submit event before React sees it, the way such a sandbox does, and require that Enter in
 // the field and a click on the button still act.
 

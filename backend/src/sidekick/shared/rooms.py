@@ -1,8 +1,8 @@
 """The rooms an instance shows (`SIDEKICK_ENABLED_ROOMS`) and the scopes a room stands for.
 
-A room is one of the app's places: Arbete (`work`), Dagbok (`journal`), Inköp (`shopping`),
-Kontakter (`contacts`) and Kontroll (`control`). An instance can leave rooms out, for example a
-work machine that shows Arbete only. A room that is left out takes its MCP tools, its navigation
+A room is one of the app's places: Work (`work`), Journal (`journal`), Shopping (`shopping`),
+Contacts (`contacts`) and Control (`control`). An instance can leave rooms out, for example a
+work machine that shows Work only. A room that is left out takes its MCP tools, its navigation
 and its companion routes with it; its data stays where it is.
 """
 

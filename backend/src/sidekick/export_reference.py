@@ -66,7 +66,7 @@ CLIS: tuple[CliSpec, ...] = (
     CliSpec(
         "sidekick-admin",
         "uv run --project backend sidekick-admin",
-        "sidekick.shared.auth.cli",
+        "sidekick.admin.cli",
         "build_parser",
         "Create users, issue and revoke MCP tokens, and empty the trash.",
     ),

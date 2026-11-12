@@ -57,7 +57,7 @@
 }
 /* A strip alone over a room's tab row: above the tab row (z-index 2), whose targets reach 2 up over its
    own top, so where both reach when it sticks the rooms keep their 48. A bar that holds a Back row keeps the default stacking order:
-   the tabs under the Back row (Kontroll's) keep the 4 they reach up into the gap. */
+   the tabs under the Back row (Control's) keep the 4 they reach up into the gap. */
 .sk-rooms__bar:not(:has(> .sk-back-header)) {
   z-index: 3;
 }
@@ -185,7 +185,7 @@
   /* What a room keeps sticky (the board's column switch, group headings) rests below the strip. */
   --sk-sticky-top: calc(var(--host-safe-top, 0px) + var(--sk-bar-h, 0px));
 }
-/* Arbete's tab row sticks under the strip, so what its list keeps sticky rests under both. */
+/* Work's tab row sticks under the strip, so what its list keeps sticky rests under both. */
 .sk-shell-list {
   --sk-sticky-top: calc(
     var(--host-safe-top, 0px) + var(--sk-bar-h, 0px) + var(--sk-tabs-h)

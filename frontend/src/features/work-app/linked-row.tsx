@@ -29,7 +29,7 @@ export function LinkedRowTip({ labels: t }: { labels: WorkLabels }) {
 
 /**
  * A linked row (a Contact under a Task, a Project under a Contact) with its own quick menu (design system §3 "Snabbval",
- * as Arbete's rows and Steps): a long press (touch), a right click, Shift+F10 or the menu key opens "Ta bort koppling",
+ * as Work's rows and Steps): a long press (touch), a right click, Shift+F10 or the menu key opens "Ta bort koppling",
  * and a button drawn nowhere ("Fler val för {namn}") opens the same menu for a screen reader. There is no ⋯ on the row;
  * a plain tap still opens what the row links to. The menu writes at once; the row then stays with its Ångra (`gone`) and
  * the focus goes to it. Without `onRemove` the row has no menu. `children` are the row's `work-agenda-line`.

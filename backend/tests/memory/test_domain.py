@@ -19,7 +19,6 @@ from sidekick.memory.domain import (
     TaskInput,
     canonical_document,
     is_memory_candidate,
-    memory_kind_of,
 )
 from sidekick.projects.domain import ProjectStatus
 from sidekick.tasks.domain import Priority, Task, TaskStatus
@@ -320,13 +319,6 @@ def test_recurring_task_is_never_a_candidate() -> None:
         canonical_document(task(description=MID_TEXT, is_recurring=True, contact_names=("Sara",)))
         is None
     )
-
-
-def test_memory_kind_of_matches_each_record_type() -> None:
-    assert memory_kind_of(journal_entry()) is MemoryKind.JOURNAL_ENTRY
-    assert memory_kind_of(contact()) is MemoryKind.CONTACT
-    assert memory_kind_of(project()) is MemoryKind.PROJECT
-    assert memory_kind_of(task()) is MemoryKind.TASK
 
 
 # --- Forbidden fields -------------------------------------------------------------------------

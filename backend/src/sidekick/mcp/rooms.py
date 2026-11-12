@@ -12,9 +12,9 @@ surface a switched-off room means two things, both applied by `create_mcp_server
 curated contract to be listed here, so a new tool cannot be added without choosing its room.
 
 Tools that read across rooms stay with `work` (`search`, `get_today_brief`, `recall_memory`) and
-narrow themselves by scope. The trash tools stay with `work` so that an instance with Arbete only
-can delete and undo; the Papperskorg view itself is Kontroll's. The change list, the memory
-settings and the assistant activity are what Kontroll shows, so they belong to `control`.
+narrow themselves by scope. The trash tools stay with `work` so that an instance with Work only
+can delete and undo; the Trash view itself is Control's. The change list, the memory
+settings and the assistant activity are what Control shows, so they belong to `control`.
 """
 
 from collections.abc import Callable, Collection, Mapping
@@ -142,13 +142,6 @@ TOOL_ROOM: Final[Mapping[str, Room]] = {
 }
 if len(TOOL_ROOM) != sum(len(tools) for tools in ROOM_TOOLS.values()):
     raise RuntimeError("a tool is listed under two rooms in ROOM_TOOLS")
-
-
-def tool_is_enabled(tool: str, enabled: Collection[str]) -> bool:
-    """False only for a tool of a room that is switched off. A tool outside the table is kept."""
-
-    room = TOOL_ROOM.get(tool)
-    return room is None or room in enabled
 
 
 def remove_disabled_room_tools(mcp: FastMCP, enabled: Collection[str]) -> None:

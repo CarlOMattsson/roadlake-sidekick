@@ -201,16 +201,6 @@ def is_memory_candidate(record: MemoryRecord) -> bool:
     return _task_is_candidate(record)
 
 
-def memory_kind_of(record: MemoryRecord) -> MemoryKind:
-    if isinstance(record, JournalEntryInput):
-        return MemoryKind.JOURNAL_ENTRY
-    if isinstance(record, ContactInput):
-        return MemoryKind.CONTACT
-    if isinstance(record, ProjectInput):
-        return MemoryKind.PROJECT
-    return MemoryKind.TASK
-
-
 def _fingerprint(
     *,
     kind: MemoryKind,

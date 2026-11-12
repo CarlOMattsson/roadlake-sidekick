@@ -1,4 +1,4 @@
-// uc-11: a search with no match offers the way on: "+ Create contact "Zlatan"" opens the create field with the query in it,
+// A search with no match offers the way on: "+ Create contact "Zlatan"" opens the create field with the query in it,
 // and "Tell Claude: ..." as in the empty list. Simulated-host test (the Contacts room with a plain transport).
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";

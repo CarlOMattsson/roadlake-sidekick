@@ -8,7 +8,9 @@ have no layer yet and are not restricted by rules 1 and 2.
 1. domain      -> only `sidekick.shared` and domains (own or another context's).
 2. application -> `sidekick.shared`, its own context, and other contexts' *domain*; never another
                   context's application (or persistence, or any other part).
-3. shared      -> never a context (features do not leak down into the shared kernel).
+3. shared      -> nothing above it: no context, no interface (`api`, `mcp`, `structured`) and no
+                  top-level module such as `composition` or `store`. An entrance that needs the
+                  composition root (the `admin` CLI) is a context of its own, not part of `shared`.
 4. features    -> never the cross-readers `lifecycle`, `search`, `memory`, `owner_export` or
                   `backup`; they sit above the features.
 5. service     -> never `sqlalchemy`. A context's `application` modules and its `service` modules
@@ -142,7 +144,7 @@ def _broken_rules(source: str, target: str) -> list[str]:
         broken.append(RULE_DOMAIN)
     if in_application and dst_context not in {SHARED, src_context} and not dst_is_domain:
         broken.append(RULE_APPLICATION)
-    if src_context == SHARED and dst_context in CONTEXTS:
+    if src_context == SHARED and dst_context != SHARED:
         broken.append(RULE_SHARED)
     if src_context in FEATURES and dst_context in CROSS_READERS:
         broken.append(RULE_FEATURE)
@@ -173,6 +175,8 @@ def test_the_contexts_follow_the_package_layout() -> None:
     assert CROSS_READERS <= CONTEXTS
     assert not CONTEXTS & INTERFACES
     assert {"journal", "work", "shared"} <= {path.name for path in SRC.iterdir()}
+    assert "admin" in CONTEXTS
+    assert not (SRC / "shared" / "auth" / "cli.py").exists()
     assert set(DEBT) <= set(RULES)
 
 
@@ -191,6 +195,11 @@ def test_the_rules_classify_imports() -> None:
         RULE_SHARED
     ]
     assert _broken_rules("sidekick.shared.persistence.m", "sidekick.shared.types") == []
+    assert _broken_rules("sidekick.shared.auth.service", "sidekick.composition") == [RULE_SHARED]
+    assert _broken_rules("sidekick.shared.auth.service", "sidekick.admin.cli") == [RULE_SHARED]
+    assert _broken_rules("sidekick.shared.worker", "sidekick.api.app") == [RULE_SHARED]
+    assert _broken_rules("sidekick.shared.worker", "sidekick.store") == [RULE_SHARED]
+    assert _broken_rules("sidekick.admin.cli", "sidekick.composition") == []
     assert _broken_rules("sidekick.tasks.application.s", "sidekick.lifecycle.application.s") == [
         RULE_APPLICATION,
         RULE_FEATURE,

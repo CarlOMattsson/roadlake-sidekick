@@ -29,7 +29,7 @@ type DayFrameProps = FrameProps & {
   refreshKey?: number;
   onTellClaude?: (text?: string) => void;
   /**
-   * The last entry of the day view's ⋯: Kontroll, or the host's own settings (the phone's "Inställningar"). Absent: no
+   * The last entry of the day view's ⋯: Control, or the host's own settings (the phone's "Inställningar"). Absent: no
    * such entry.
    */
   control?: HostSettingsEntry;
@@ -76,7 +76,7 @@ export function DayFrame({
   // «Gjort» is folded until the owner opens it; it stays open while she steps between days.
   const [doneOpen, setDoneOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
-  // The license coin asks (Kontroll off): this ⋯ opens on its row.
+  // The license coin asks (Control off): this ⋯ opens on its row.
   useLicenseMenu(moreButton, () => setMoreOpen(true));
   const morePanel = useId();
   const [phase, setPhase] = useState<
@@ -341,7 +341,7 @@ export function DayFrame({
         panel={
           <>
             {hasMore && (
-              // The room's ⋯ menu as Work's (a card under the head, 44 rows): Kontroll, or the update reminder
+              // The room's ⋯ menu as Work's (a card under the head, 44 rows): Control, or the update reminder
               // in its place when Control is off.
               // eslint-disable-next-line jsx-a11y/no-static-element-interactions -- a container-level handler for keys bubbling up from the focusable controls inside it (Escape closes); the container itself is not a control.
               <div

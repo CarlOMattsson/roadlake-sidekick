@@ -86,7 +86,8 @@ VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
 # means the service runs by default, with no profile). This is the one
 # list the updater uses to find which are running, stop them before the migration, start them again with the new
 # (or, on rollback, the previous) image and keep them stopped when a manual restore is needed. A new worker
-# service in compose.yaml is added here and nowhere else. ntfy, caddy and hindsight are other images, not touched.
+# service in compose.yaml is added here and nowhere else. ntfy, caddy and hindsight are other images, not touched
+# (start_api only recreates a running caddy, so that it picks up the current network configuration).
 WORKERS=(":automation-worker" "backup:backup" "push:push" "memory:memory-worker")
 # Run inside the api container; exit 0 = ready. The api healthcheck in compose.yaml holds the same code (a test
 # keeps them equal). 1) The running api process must answer HTTP within 3 s: 2xx, or the intended 404 (the public
@@ -652,6 +653,13 @@ start_api() { # $1 = image ref
     [ -z "${entry%%:*}" ] || continue
     case " ${services[*]} " in *" ${entry#*:} "*) ;; *) services+=("${entry#*:}"); started_workers+=("$entry") ;; esac
   done
+  # Caddy (vps profile) is recreated with api when it runs: api trusts forwarded headers from Caddy's fixed address on
+  # the proxy network only, so a Caddy container created before that network existed (no proxy membership, no `api`
+  # pin in extra_hosts) would reach api over edge and have its X-Forwarded-* headers ignored. Its image is not touched.
+  if [ -n "$(compose --profile vps ps -q caddy 2>/dev/null)" ]; then
+    profiles+=(--profile vps)
+    services+=(caddy)
+  fi
   compose ${profiles[@]+"${profiles[@]}"} up -d --no-build --pull never "${services[@]}"
 }
 

@@ -67,7 +67,7 @@ Guiden kontrolleras som ADR-004 kräver av varje guide; vad som lästs och vad s
   [Releaseövning](release-drill.sv.md)), den krypterade ögonblicksbilden och dess dekryptering, en krypterad databas- och
   Hindsight-kopia, radering av alla volymer, återställningen (`pg_restore`, uppackning av Hindsight-volymen) och
   vägran vid fel eller tom nyckel.
-- **Följt från en ren export av publiceringsträdet, 2026-11-11** (eget compose-projekt, genererade
+- **Följt från en ren kopia av källträdet, 2026-11-11** (eget compose-projekt, genererade
   engångshemligheter, hemmaprofilen, ingen tunnel): bygge, `create-user`, identitetsraden, `up -d` (friskt, schemat
   tillämpat), OAuth-upptäcktsdokumenten, dynamisk klientregistrering, authorize och samtycke (omdirigerar till GitHub),
   tokenslutpunktens avslag på en okänd kod, 401-utmaningen på `/mcp`, att vidga behörigheterna och återskapa API:t,
@@ -76,7 +76,7 @@ Guiden kontrolleras som ADR-004 kräver av varje guide; vad som lästs och vad s
   Inloggningen efter GitHub, tokenutbytet, MCP-anropen `initialize` och verktygslistningen, `create_task` och `list_tasks` kördes i den
   riktiga avbildningen mot den riktiga databasen med GitHub ersatt av en stand-in (ett riktigt GitHub-konto går inte
   att använda i ett test).
-- **Ny klon under `umask 077`, 2026-11-11:** en export av publiceringsträdet klonades och den här guiden följdes på
+- **Ny klon under `umask 077`, 2026-11-11:** en ren kopia av källträdet klonades och den här guiden följdes på
   Docker 29 (Compose 2.40) med en sträng umask. Det avslöjade två fel som en tidigare körning under standardumask inte
   hade visat: PostgreSQL kunde inte läsa den monterade `postgres-init.sh`, och imagen innehöll kod som den
   oprivilegierade användaren inte kunde läsa. Körningen gick igenom efter att de kringgåtts för hand: bygge,

@@ -9,16 +9,16 @@
     python -m sidekick.companion.cli revoke --device-id UUID [--user-id UUID]
 
 `pair` requires an explicit choice of rights: `--scope` (repeatable, companion scopes only) or
-`--preset app` (tasks, Inköp, Dagbok, notifications and the license key). It shows the rights and
-lifetimes in the app language (on stderr) before it prints the pairing secret once, with its
+`--preset app` (tasks, Shopping, Journal, notifications and the license key). It shows the rights
+and lifetimes in the app language (on stderr) before it prints the pairing secret once, with its
 expiry: paste it into the app within 10 minutes (there is no QR code). With `--server-url` the JSON
 also carries `pairing_link`, `sidekick://pair?server=<url>&code=<code>`, which opens the phone's app
-with both fields filled in (the app still asks before it pairs). It is single-use; the
-device exchanges it at `POST /companion/v1/pair` for its own credential, which the operator never
-sees. Without `--user-id` the command uses the installation's only active owner and refuses when
-there is not exactly one.
+with both fields filled in (the app still asks before it pairs). It is single-use; the device
+exchanges it at `POST /companion/v1/pair` for its own credential, which the operator never sees.
+Without `--user-id` the command uses the installation's only active owner and refuses when there is
+not exactly one.
 
-`grant` adds capabilities to a device that is already paired (for example Inköp and Dagbok to a
+`grant` adds capabilities to a device that is already paired (for example Shopping and Journal to a
 phone paired before those rooms existed). It never removes one; the device keeps its credential.
 Like `pair` it shows the device's resulting rights in the app language on stderr.
 

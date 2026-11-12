@@ -65,7 +65,7 @@ function isContactsRoot(frame: WorkFrame | undefined): frame is WorkFrame {
 }
 
 /**
- * The names the Contacts room shows. The room is Kontakter (Contacts) everywhere: the region the view
+ * The names the Contacts room shows. The room is Contacts (Kontakter in Swedish) everywhere: the region the view
  * draws is named by `labels.title`, and the eyebrow of an inline or card summary by `appName`. Both
  * say the room's own name, not the Work app's "Arbete".
  */

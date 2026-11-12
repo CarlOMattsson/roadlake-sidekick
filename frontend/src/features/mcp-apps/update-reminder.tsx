@@ -18,7 +18,7 @@ export const UPDATE_COMMAND = "tools/work.sh update";
  * suffix on its accessible name ("Fler alternativ – uppdatering finns att hämta"), so the dot is said and not only
  * seen. No banner and no modal: the dot leads to the ⋯ menu. With the Control room on, its "Kontroll" entry holds
  * the row; with Control off (SIDEKICK_ENABLED_ROOMS=work) the menu holds the row itself (`MenuUpdateReminder`), and
- * `inMenu` tells a room whose ⋯ exists only for Kontroll that it needs the button anyway. `inMenu` stays true after
+ * `inMenu` tells a room whose ⋯ exists only for Control that it needs the button anyway. `inMenu` stays true after
  * "not for this version", so the button the owner just used does not vanish under the confirmation.
  * Without a reminder the label is `label` unchanged and there is no dot.
  */

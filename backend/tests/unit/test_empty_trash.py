@@ -9,9 +9,9 @@ from uuid import UUID
 import pytest
 
 from sidekick import composition
+from sidekick.admin import cli as auth_cli
 from sidekick.lifecycle import RecordKind, RecordLifecycleService, TrashItem
 from sidekick.lifecycle.application.empty_trash import empty_trash
-from sidekick.shared.auth import cli as auth_cli
 from sidekick.shared.db_timeouts import DatabaseTimeouts
 from sidekick.shared.errors import ConflictError
 from sidekick.shared.types import CursorCodec, new_uuid7

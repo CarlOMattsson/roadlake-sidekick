@@ -476,7 +476,7 @@ async def test_the_shorter_oauth_form_budget_applies_only_where_the_oauth_flow_i
     tmp_path: Path,
 ) -> None:
     async def slow_form() -> dict[str, Any]:
-        await asyncio.sleep(0.1)  # past the 0.05 s OAuth budget, inside the 0.2 s general one
+        await asyncio.sleep(0.1)  # Kept: past the 0.05 s OAuth budget, inside the 0.2 s general one
         return {"type": "http.request", "body": b"ok", "more_body": False}
 
     oauth = await through_the_app(

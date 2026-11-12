@@ -133,7 +133,7 @@ def sweep_trash_for_admin(
     older_than: timedelta | None,
     correlation_id: str,
 ) -> EmptyTrashResult:
-    """Run the operator's trash sweep; `sidekick.shared.auth.cli` reaches it only through here."""
+    """Run the operator's trash sweep; `sidekick.admin.cli` reaches it only through here."""
 
     return empty_trash(
         lifecycle, remove=remove, older_than=older_than, correlation_id=correlation_id

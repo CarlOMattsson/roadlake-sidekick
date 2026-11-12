@@ -63,7 +63,7 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(rf"/companion/v1/tasks/{_UUID}/external-references")),
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/complete")),
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/reopen")),
-    # Arbete beyond the agenda: hierarchy, Project, Domain, Process, and the tick of a Step.
+    # Work beyond the agenda: hierarchy, Project, Domain, Process, and the tick of a Step.
     ("GET", re.compile(r"/companion/v1/work/hierarchy")),
     ("GET", re.compile(rf"/companion/v1/projects/{_UUID}")),
     ("GET", re.compile(rf"/companion/v1/projects/{_UUID}/tasks")),
@@ -71,7 +71,7 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(rf"/companion/v1/processes/{_UUID}")),
     ("POST", re.compile(rf"/companion/v1/steps/{_UUID}/complete")),
     ("POST", re.compile(rf"/companion/v1/steps/{_UUID}/reopen")),
-    # Inköp and Dagbok (sidekick.api.companion_rooms); a journal day is an ISO date.
+    # Shopping and Journal (sidekick.api.companion_rooms); a journal day is an ISO date.
     ("GET", re.compile(r"/companion/v1/shopping/lists")),
     ("GET", re.compile(rf"/companion/v1/shopping/lists/{_UUID}")),
     ("POST", re.compile(r"/companion/v1/shopping/lists")),

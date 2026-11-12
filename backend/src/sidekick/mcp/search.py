@@ -2,7 +2,8 @@
 
 Journal hits carry ids, the journal date, where the match was found and the entry title. No
 Journal summary, raw text or excerpt appears in either text block or in structuredContent
-(D-058).
+(D-058: logs, audit and telemetry never carry user content; the owner reads journal text in the
+Journal room).
 """
 
 from __future__ import annotations

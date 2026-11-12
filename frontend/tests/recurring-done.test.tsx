@@ -24,7 +24,7 @@ import {
   rowOf,
 } from "./helpers/agenda-triage-fixtures";
 
-// uc-1: a recurring Task marked done comes back "todo" with its next date (the server records the cycle in
+// A recurring Task marked done comes back "todo" with its next date (the server records the cycle in
 // last_completed_at). The view must say so ("Klar · nästa: …") with an Ångra that writes the old date back.
 
 const monthly = {

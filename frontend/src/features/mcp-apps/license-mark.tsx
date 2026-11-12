@@ -34,7 +34,7 @@ import "./license-mark.css";
  * The license signal's parts (see docs/decisions/log.md D-083):
  * - `LicenseMark`: a small amber coin with "$", 16 px in a 44 px target, no text, no animation. It stands only in the
  *   free version and after the license ran out, never on ⋯ (the update dot's place).
- * - `LicenseRow`: the one place with words, after the update row: Kontroll's foot, the ⋯ panel when Kontroll is off,
+ * - `LicenseRow`: the one place with words, after the update row: Control's foot, the ⋯ panel when Control is off,
  *   the phone's settings. Licensed it is one muted line and the coin is gone everywhere.
  * - `CardFoot` (ui/card.tsx) puts the coin at the end of an inline card's open row; a tap folds the row out in the card.
  * - `LicenseFoot`: the coin at the end of the full view's room, drawn by the shell, with two words beside it
@@ -374,12 +374,12 @@ function BuyButton({
   );
 }
 
-/** Whether the ⋯ panels hold the row: Kontroll is off and the host has no settings of its own. */
+/** Whether the ⋯ panels hold the row: Control is off and the host has no settings of its own. */
 function menuHoldsRow(host: LicenseHost): boolean {
   return !roomEnabled("control") && !host.openSettings;
 }
 
-/** The row inside a room's ⋯ panel, after the update row, when Kontroll is off (SIDEKICK_ENABLED_ROOMS=work). */
+/** The row inside a room's ⋯ panel, after the update row, when Control is off (SIDEKICK_ENABLED_ROOMS=work). */
 export function MenuLicenseRow({ now }: { now?: () => Date }) {
   const host = useContext(LicenseHostContext);
   if (!menuHoldsRow(host)) return null;
@@ -387,7 +387,7 @@ export function MenuLicenseRow({ now }: { now?: () => Date }) {
 }
 
 /**
- * Whether a room needs its ⋯ for the license (a room whose ⋯ exists only for Kontroll): the coin stands and the
+ * Whether a room needs its ⋯ for the license (a room whose ⋯ exists only for Control): the coin stands and the
  * panel holds the row.
  */
 export function useLicenseInMenu(): boolean {
@@ -397,7 +397,7 @@ export function useLicenseInMenu(): boolean {
 }
 
 /**
- * For the owner of a ⋯ panel: when the coin asks (Kontroll off), the panel that is on screen opens. `anchor` is the ⋯
+ * For the owner of a ⋯ panel: when the coin asks (Control off), the panel that is on screen opens. `anchor` is the ⋯
  * button; a menu whose button is hidden (another tab, another room) does not answer.
  */
 export function useLicenseMenu(
@@ -451,7 +451,7 @@ export function LicenseCardFoot({ children }: { children: ReactNode }) {
 }
 
 /**
- * The coin at the end of the full view's room, drawn by the shell. `onShow` leads to the row (Kontroll, the ⋯ panel,
+ * The coin at the end of the full view's room, drawn by the shell. `onShow` leads to the row (Control, the ⋯ panel,
  * the phone's settings) and returns false when there is none on this host; the row then folds out here.
  */
 export function LicenseFoot({

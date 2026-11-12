@@ -75,7 +75,7 @@ jobs:
       # The reviewed baselines under contracts/reviewed/ are accepted artifacts and are
       # never regenerated; the suite above compares them with the running implementation.
       # Only the single snapshot of the current surface is regenerated and diffed.
-      - name: Verify the contract snapshot and the MCP tool reference are regenerated, not drifting
+      - name: Verify the contract snapshot and the generated references are regenerated, not drifting
         run: |
           uv run --project backend python -m sidekick.api.export_openapi --output contracts/openapi.generated.json
           uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json
@@ -91,7 +91,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with:
+          {
+            node-version: 22.22.1,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
       - run: npm ci
         working-directory: frontend
       - run: npm run lint
@@ -99,6 +104,10 @@ jobs:
       - run: npm run format:check
         working-directory: frontend
       - run: npm run typecheck
+        working-directory: frontend
+      # The mobile bundle is built before the unit tests: mobile-csp.test.ts checks the built page and fails
+      # (in CI) when it is missing.
+      - run: npm run build:mobile
         working-directory: frontend
       - run: npm run test:coverage
         working-directory: frontend
@@ -119,8 +128,6 @@ jobs:
         working-directory: frontend
         env:
           MOBILE_AUDIT_OUT: ${{ runner.temp }}/mobile-audit
-      - run: npm run build:mobile
-        working-directory: frontend
 
   migration-policy:
     # Every shipped migration is checked: since the 0.1.0 baseline each one passes or declares its class.
@@ -140,7 +147,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with:
+          {
+            node-version: 22.22.1,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
@@ -157,7 +169,7 @@ jobs:
         working-directory: frontend
       - run: npx cap sync android
         working-directory: frontend
-      - run: ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+      - run: ./gradlew :app:ktlintCheck :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
         working-directory: frontend/android
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -175,7 +187,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with:
+          {
+            node-version: 22.22.1,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
@@ -237,8 +254,8 @@ jobs:
           done | xargs -0 -r shellcheck --severity=warning
 
   dependency-audit:
-    # Runs on every event: a vulnerable dependency is a defect whatever files the change touches.
-    # The job itself lives in audit.yml so the weekly schedule can run it without the other jobs.
+    # Part of every CI run, whatever files the release touches: a vulnerable dependency is a defect.
+    # The job itself lives in audit.yml so it can also be started on its own by hand.
     permissions:
       contents: read
     uses: ./.github/workflows/audit.yml

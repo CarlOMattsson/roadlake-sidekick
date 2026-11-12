@@ -1,4 +1,5 @@
-"""Push delivery rules (ADR-005; D-078): what to send, when to retry and when to give up.
+"""Push delivery rules (ADR-005; D-078, push through UnifiedPush): what to send, when to retry and
+when to give up.
 
 `PushDeliveryService` sends what `push_outbox` holds, after the commit that queued it. It knows the
 rules and nothing about storage or HTTP: rows are read and written through `PushDeliveryStore`

@@ -48,7 +48,7 @@ export function ShoppingHeader({
   moreButton: RefObject<HTMLButtonElement | null>;
   moreMark: ReturnType<typeof useMoreMark>;
   editOpen: boolean;
-  /** The last entry of the ⋯: Kontroll, or the host's own settings (the phone). */
+  /** The last entry of the ⋯: Control, or the host's own settings (the phone). */
   control?: HostSettingsEntry;
   showHint: boolean;
   onBack: () => void;
@@ -59,7 +59,7 @@ export function ShoppingHeader({
   const { framed } = useContext(RoomSurfaceContext);
   return (
     <header className="shopping-head">
-      {/* The strip above already says Inköp: framed, the heading stays for assistive technology only. */}
+      {/* The strip above already says Shopping: framed, the heading stays for assistive technology only. */}
       <h1 className={framed ? "shopping-visually-hidden" : "sk-eyebrow"}>
         {t.title}
       </h1>

@@ -75,3 +75,48 @@ def test_ci_runs_only_as_a_release_gate_or_on_demand(ci: Path) -> None:
     assert "changes" not in workflow["jobs"], "there is no change filter without pull requests"
     text = ci.read_text(encoding="utf-8")
     assert "github.event_name" not in text and "paths-filter" not in text
+
+
+# The CI of the public copy is a second file that must stay the same workflow as this one.
+# Only these differences are intended: each concerns a file that the public copy does not
+# contain (tests/ops and the production Compose files are the maintainer's own deployment tooling).
+SOURCE_ONLY_JOBS = {"compose-smoke"}
+SOURCE_ONLY_RUN_FLAGS = (" --ignore=tests/ops",)
+SOURCE_CI = ROOT / ".github" / "workflows" / "ci.yml"
+OVERLAY_CI = ROOT / "tools" / "export" / "overlay" / ".github" / "workflows" / "ci.yml"
+
+
+def _normalized_source_run(run: str) -> str:
+    for flag in SOURCE_ONLY_RUN_FLAGS:
+        run = run.replace(flag, "")
+    return run
+
+
+def _normalized_source_job(job: object) -> object:
+    assert isinstance(job, dict)
+    steps = [
+        {
+            key: _normalized_source_run(value) if key == "run" else value
+            for key, value in step.items()
+        }
+        for step in job.get("steps", [])
+    ]
+    return {**job, **({"steps": steps} if "steps" in job else {})}
+
+
+@pytest.mark.skipif(
+    not (SOURCE_CI.is_file() and OVERLAY_CI.is_file()),
+    reason="the overlay exists only in the working repository",
+)
+def test_the_published_ci_differs_from_the_source_ci_only_in_the_listed_ways() -> None:
+    source = yaml.safe_load(SOURCE_CI.read_text(encoding="utf-8"))
+    overlay = yaml.safe_load(OVERLAY_CI.read_text(encoding="utf-8"))
+    assert {key: value for key, value in source.items() if key != "jobs"} == {
+        key: value for key, value in overlay.items() if key != "jobs"
+    }, "the workflow name, triggers, permissions and env must match"
+    assert set(source["jobs"]) - set(overlay["jobs"]) == SOURCE_ONLY_JOBS
+    assert set(overlay["jobs"]) <= set(source["jobs"]), "the published CI has no jobs of its own"
+    for name, job in overlay["jobs"].items():
+        assert _normalized_source_job(source["jobs"][name]) == job, (
+            f"job {name} drifted between source and overlay"
+        )

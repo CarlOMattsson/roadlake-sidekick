@@ -1,7 +1,7 @@
 """Every decision id (`D-0xx`) that docs/ or backend/src mention exists in the decision log.
 
 The log is `docs/decisions/log.md`, plus `archive.md` where replaced decisions
-live (the published tree has both; the owner's tree keeps everything in the first).
+live (a decision that is replaced moves to the archive).
 """
 
 import re

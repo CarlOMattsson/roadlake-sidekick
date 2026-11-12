@@ -1,4 +1,4 @@
-"""Push subscriptions of paired companion devices (ADR-005; D-078).
+"""Push subscriptions of paired companion devices (ADR-005; D-078, push through UnifiedPush).
 
 A device registers the UnifiedPush endpoint its distributor gave it. The endpoint is a capability
 to push to that phone and the server will later POST to it, so it is validated as an SSRF guard

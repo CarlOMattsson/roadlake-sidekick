@@ -55,8 +55,8 @@ app's React rooms read exactly the structured content they read in Claude:
 
 The route groups live in sibling modules, each added to this router by `create_companion_router`:
 pairing and the device's own routes in `sidekick.api.companion_device`, push and reminders in
-`sidekick.api.companion_push`, the Arbete reads in `sidekick.api.companion_work`, Tasks and Steps in
-`sidekick.api.companion_tasks`, and the rooms Inköp and Dagbok (`/companion/v1/shopping/...`,
+`sidekick.api.companion_push`, the Work reads in `sidekick.api.companion_work`, Tasks and Steps in
+`sidekick.api.companion_tasks`, and the rooms Shopping and Journal (`/companion/v1/shopping/...`,
 `/companion/v1/journal/...`) in `sidekick.api.companion_rooms`. This module holds what they share:
 the problem envelope, the route class, authentication and the body helpers.
 

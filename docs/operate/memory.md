@@ -14,6 +14,9 @@ is derived or sent until you turn it on, and the material goes to the language m
    Embeddings and reranking run locally in the container. **What leaves your machine:** the text Hindsight extracts
    facts from, sent to that provider with that key. Fill the file in only once you have decided that. For a provider on
    your own network use an OpenAI-compatible server and set `HINDSIGHT_API_LLM_PROVIDER=openai` with its base URL.
+   The service runs offline with a read-only root filesystem, so the local embedding and reranker models must be the
+   ones already in the image: if you set a different `HINDSIGHT_API_EMBEDDINGS_*` or `HINDSIGHT_API_RERANKER_*` model,
+   Hindsight does not download it and fails to start.
 2. In `selfhost.env` uncomment the `SIDEKICK_MEMORY_*` block: `SIDEKICK_MEMORY_PROVIDER=hindsight`,
    `SIDEKICK_MEMORY_HINDSIGHT_BASE_URL=http://hindsight:8888`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN` (the same value as the
    tenant key in `hindsight.env`), `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, and set `SIDEKICK_MEMORY_ENABLED=true`.

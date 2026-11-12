@@ -1,4 +1,5 @@
-"""`/companion/v1/` push and reminder routes (ADR-005, D-078): `/push/...` and `/reminders/...`.
+"""`/companion/v1/` push and reminder routes (ADR-005; D-078, push through UnifiedPush):
+`/push/...` and `/reminders/...`.
 
 Added to the companion router by `create_companion_router` (sidekick.api.companion), which also
 supplies the route class, so every refusal here is the same versioned problem envelope and the

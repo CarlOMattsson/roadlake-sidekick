@@ -159,7 +159,7 @@ export function useLicense(
 
 let focusAskedAt = 0;
 
-/** The next license row that is shown takes the focus (Kontroll, a ⋯ panel or the phone's settings). */
+/** The next license row that is shown takes the focus (Control, a ⋯ panel or the phone's settings). */
 export function requestLicenseFocus(): void {
   focusAskedAt = Date.now();
 }

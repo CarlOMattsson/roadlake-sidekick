@@ -15,7 +15,7 @@
   container-name: sk-control;
 }
 
-/* The three tabs stay under the room strip while the view scrolls, as Arbete's tab row. */
+/* The three tabs stay under the room strip while the view scrolls, as Work's tab row. */
 .sidekick-control .sk-segmented {
   position: sticky;
   top: var(--sk-sticky-top);
@@ -485,7 +485,7 @@
 }
 
 /* "Visa vad Sidekick minns" / "Dölj": a compact secondary button under its source, so it reads as an action and not
-   as a heading (uc-5); "Dölj" keeps a 48 wide target. */
+   as a heading; "Dölj" keeps a 48 wide target. */
 .sidekick-control .control-recall-toggle {
   justify-self: start;
   min-width: 3rem;

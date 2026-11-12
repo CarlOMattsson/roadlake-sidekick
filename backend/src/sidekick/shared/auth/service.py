@@ -54,15 +54,15 @@ ALL_SCOPES: frozenset[str] = frozenset(MCP_SCOPES)
 OPT_IN_SCOPES = frozenset({"automation:read", "automation:write"})
 TOKEN_SCOPES = ALL_SCOPES - OPT_IN_SCOPES
 
-# Device capabilities of a paired companion app (ADR-005). They are not application scopes:
-# no session, personal token or MCP credential can hold them, and a companion credential holds
-# nothing else. The companion adapter maps each one to a fixed set of operations
-# (sidekick.companion.operations); the device is never handed `tasks:write` itself.
-# `companion:push` registers the device's UnifiedPush endpoint (D-078); it reaches no use case.
-# The rooms Inköp and Dagbok: a read and a write capability each. The write capability is the manual
-# writing of the owner's own data (D-076: the journal is written and changed by hand in the room, no
-# AI). A write operation answers with the record it wrote, so it also needs the room's read
-# capability (`CompanionOperation.also`).
+# Device capabilities of a paired companion app (ADR-005). They are not application scopes: no
+# session, personal token or MCP credential can hold them, and a companion credential holds nothing
+# else. The companion adapter maps each one to a fixed set of operations
+# (sidekick.companion.operations); the device is never handed `tasks:write` itself. `companion:push`
+# registers the device's UnifiedPush endpoint (D-078); it reaches no use case. The rooms Shopping
+# and Journal: a read and a write capability each. The write capability is the manual writing of the
+# owner's own data (D-076: the journal is written and changed by hand in the room, no AI). A write
+# operation answers with the record it wrote, so it also needs the room's read capability
+# (`CompanionOperation.also`).
 COMPANION_ROOM_SCOPES = frozenset(
     {
         "companion:shopping:read",

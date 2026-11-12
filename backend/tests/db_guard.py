@@ -54,9 +54,8 @@ RESERVED_PORTS_VARIABLE = "SIDEKICK_RESERVED_PORTS"
 
 #: Default ports of instances that tests must never touch (non-test PostgreSQL databases that
 #: may run next to the test container). Never reachable from a test, not even if
-#: `EXTRA_PORTS_VARIABLE` lists them. These are the maintainer's own long-running databases:
-#: 55432 is an older local default, 55434 is the AI-owned QA instance, 55436 is the owner's live
-#: instance (P1). Add your own ports with `SIDEKICK_RESERVED_PORTS`; the test pool uses 55433.
+#: `EXTRA_PORTS_VARIABLE` lists them. Add your own ports with `SIDEKICK_RESERVED_PORTS`; the
+#: test pool uses 55433.
 RESERVED_PORTS = frozenset({55432, 55434, 55436})
 
 

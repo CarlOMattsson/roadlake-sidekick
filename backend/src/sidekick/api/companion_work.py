@@ -1,4 +1,4 @@
-"""`/companion/v1/` read routes of Arbete: agenda, Idag, hierarchy, Projects, Domains, Processes.
+"""`/companion/v1/` read routes of Work: agenda, Today, hierarchy, Projects, Domains, Processes.
 
 Added to the companion router by `create_companion_router` (sidekick.api.companion), which also
 supplies the route class, so every refusal here is the same versioned problem envelope and the
@@ -222,7 +222,7 @@ async def process_detail(request: Request, process_id: UUID) -> JSONResponse:
 
 
 def add_work_routes(router: CompanionRouter) -> None:
-    """Register the Arbete read routes on the companion router."""
+    """Register the Work read routes on the companion router."""
 
     router.add(CompanionRouteSpec("GET", "/work/agenda", WORK_AGENDA.name), work_agenda)
     router.add(CompanionRouteSpec("GET", "/work/today", WORK_TODAY.name), work_today)

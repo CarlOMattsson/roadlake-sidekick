@@ -94,7 +94,7 @@ export function ShellBar({
       {picker.menu}
       {back ? (
         <BackHeader
-          // "‹ X" names where it leads, also in Kontroll ("‹ Arbete" over the title "Kontroll").
+          // "‹ X" names where it leads, also in Control ("‹ Arbete" over the title "Kontroll").
           label={back.label}
           onBack={back.onBack}
           actions={collapseButton}

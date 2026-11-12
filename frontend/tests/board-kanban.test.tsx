@@ -32,6 +32,8 @@ import {
   handleOf,
   pointer,
   sleep,
+  useBoardClock,
+  advanceClock,
 } from "./helpers/board-kanban-fixtures";
 
 beforeAll(() => {
@@ -62,6 +64,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 it("drags a Task with the mouse into another status and writes it with its version and a key", async () => {
@@ -195,17 +198,18 @@ it("a touch that moves before the long press scrolls, and a held touch drags", a
   const updateTask = vi.fn().mockResolvedValue({
     task: { ...taskA, status: "in_progress", version: 2 },
   });
+  useBoardClock();
   render(rootBoard(transport({ updateTask })));
   const handle = handleOf(taskA.title);
 
   pointer(handle, "pointerdown", 20, 60, "touch");
   pointer(handle, "pointermove", 150, 60, "touch");
   pointer(handle, "pointerup", 150, 60, "touch");
-  await sleep(300);
+  advanceClock(300);
   expect(updateTask).not.toHaveBeenCalled();
 
   pointer(handle, "pointerdown", 20, 60, "touch");
-  await sleep(300);
+  advanceClock(300);
   pointer(handle, "pointermove", 150, 60, "touch");
   pointer(handle, "pointerup", 150, 60, "touch");
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
@@ -221,13 +225,14 @@ it("a drag held at the board edge moves the Task to the neighbouring column", as
   const updateTask = vi.fn().mockResolvedValue({
     task: { ...taskA, status: "in_progress", version: 2 },
   });
+  useBoardClock();
   render(rootBoard(transport({ updateTask })));
   const handle = handleOf(taskA.title);
 
   pointer(handle, "pointerdown", 20, 60);
   // The edge strips sit at the board's own edges; x 590 is inside the 32 px strip on the right.
   pointer(handle, "pointermove", 590, 60);
-  await sleep(700);
+  advanceClock(700);
   pointer(handle, "pointerup", 590, 60);
 
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));

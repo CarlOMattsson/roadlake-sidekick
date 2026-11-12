@@ -1,9 +1,10 @@
 """Operator sweep that empties the trash through the existing permanent-removal use case.
 
-Run by whoever runs the server (`sidekick-admin empty-trash`, D-031). It never deletes on its own:
-every record goes through `RecordLifecycleService.permanently_remove`, which accepts only a
-trashed record, checks descendants first, and writes an audit row. A dry run reads counts only.
-The result holds counts per record kind and never a title, text or id.
+Run by whoever runs the server (`sidekick-admin empty-trash`; D-031: permanent removal is a server
+command, never an MCP tool). It never deletes on its own: every record goes through
+`RecordLifecycleService.permanently_remove`, which accepts only a trashed record, checks descendants
+first, and writes an audit row. A dry run reads counts only. The result holds counts per record kind
+and never a title, text or id.
 """
 
 from collections import Counter

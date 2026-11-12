@@ -130,7 +130,7 @@
 .sk-back-header__actions button:last-child::after {
   inset-inline-end: -2px;
 }
-/* A detail view's + (Inköp's list): the round ink primary of family.css (.sk-iconbtn--primary), 4
+/* A detail view's + (Shopping's list): the round ink primary of family.css (.sk-iconbtn--primary), 4
    before ⋯ as in the room heads, so the two targets meet nowhere. Open, it is drawn held. */
 .sk-back-header .sk-back-header__actions button.sk-iconbtn--primary {
   margin-inline-end: var(--sk-s1);

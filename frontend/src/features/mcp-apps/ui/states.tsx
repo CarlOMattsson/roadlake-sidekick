@@ -138,7 +138,7 @@ export function SkeletonRows({
 }
 
 /**
- * The skeleton of a list that loads inside a drawn frame (a tab change, Kontroll): the same neutral rows as the first
+ * The skeleton of a list that loads inside a drawn frame (a tab change, Control): the same neutral rows as the first
  * load (SkeletonRows), five of them. Nothing is rendered until `delayMs` of loading has passed, so a fast read shows no
  * placeholder. Once shown, it stays for at least `minMs` even if loading ends sooner, so it does not flicker.
  * `heading` adds the heading bar of a list that opens on a section heading; `glyph` the ring of the leading column.

@@ -94,3 +94,10 @@ docker buildx imagetools inspect ghcr.io/<owner>/roadlake-sidekick@sha256:<diges
   API answers, and then run
   `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ABORTED manual" >> update-state/journal.log`. Until that line is in the
   journal, the next `--apply` is refused.
+
+**Docker network error on `up` or `update.sh`.** Caddy and the API talk over a small internal Docker network
+(`proxy`) that uses the fixed address block `198.51.100.0/29` (reserved for documentation, so it is never routed on
+the internet). The API trusts the forwarded client address and scheme only from Caddy's address there. If Docker
+answers `Pool overlaps with other one on this address space`, the block collides with an existing Docker network or
+a VPN route on the host: find it with `docker network ls` and `docker network inspect`, remove or move that network,
+and run the update again. `update.sh` recreates a running Caddy together with the API so that it joins this network.

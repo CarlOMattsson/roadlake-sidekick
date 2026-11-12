@@ -9,6 +9,7 @@ import pytest
 from sqlalchemy import select
 
 from sidekick import composition
+from sidekick.admin import cli as auth_cli
 from sidekick.shared.auth import (
     ALL_SCOPES,
     MCP_SCOPES,
@@ -16,7 +17,6 @@ from sidekick.shared.auth import (
     TOKEN_SCOPES,
     AuthService,
 )
-from sidekick.shared.auth import cli as auth_cli
 from sidekick.shared.db_timeouts import DatabaseTimeouts
 from sidekick.shared.persistence.models import MemorySettingsRow, PersonalAccessTokenRow, UserRow
 from tests.db import database_factory

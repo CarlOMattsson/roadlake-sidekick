@@ -1,5 +1,5 @@
 """Wake pushes queued in the same transaction as the Task or Step change that caused them
-(ADR-005; D-078).
+(ADR-005; D-078, push through UnifiedPush).
 
 When push is enabled (`SIDEKICK_PUSH_ENABLED`), `install_wake_hook` registers a `before_flush`
 listener on the application's session factory. Whenever a flush writes a `TaskRow` or `StepRow`

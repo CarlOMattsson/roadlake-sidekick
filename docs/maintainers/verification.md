@@ -67,7 +67,7 @@ This guide is checked as ADR-004 asks of every guide; what was read and what was
   update with `update.sh --apply` (stand-in signature check, same schema: see [Release drill](release-drill.md)), the
   encrypted snapshot and its decryption, an encrypted database and Hindsight archive, deleting every volume, the
   restore (`pg_restore`, unpacking the Hindsight volume) and the refusal of a wrong or empty key.
-- **Followed from a clean export of the publishing tree, 2026-11-11** (own compose project, generated
+- **Followed from a clean copy of the source tree, 2026-11-11** (own compose project, generated
   throw-away secrets, home-machine profile, no tunnel): build, `create-user`, identity line, `up -d` (healthy, schema
   applied), the OAuth discovery documents, dynamic client registration, authorize and consent (redirects to GitHub),
   the token endpoint refusing an unknown code, the 401 challenge on `/mcp`, widening the scopes and recreating the API,
@@ -75,7 +75,7 @@ This guide is checked as ADR-004 asks of every guide; what was read and what was
   owner, the from-source update, `update.sh` dry run and `--check`, the companion pairing code. The sign-in after
   GitHub, the token exchange, the MCP `initialize` and tool listing calls, `create_task` and `list_tasks` ran in the real image against
   the real database with GitHub answered by a stand-in (a real GitHub account cannot be used from a test).
-- **Fresh clone under `umask 077`, 2026-11-11:** an export of the publishing tree was cloned and this guide followed on
+- **Fresh clone under `umask 077`, 2026-11-11:** a clean copy of the source tree was cloned and this guide followed on
   Docker 29 (Compose 2.40) with a strict umask. It found two failures that an earlier run under the default umask
   had not shown: PostgreSQL could not read the mounted `postgres-init.sh`, and the image held code the unprivileged
   user could not read. The run went through after those were worked around by hand: build, `create-user`, identity

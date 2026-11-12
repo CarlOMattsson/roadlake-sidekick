@@ -160,7 +160,7 @@
   margin: 0;
 }
 /* The detail view's title (Task, Contact): right under the Back row's box in fullscreen (not 12),
-   so the head reads Back · title · 4 · meta · 8 · controls · 4 · description, as Inköp's list head. */
+   so the head reads Back · title · 4 · meta · 8 · controls · 4 · description, as Shopping's list head. */
 .sidekick-work h2.work-detail-title.work-detail-title {
   margin: 0;
   padding: 0;

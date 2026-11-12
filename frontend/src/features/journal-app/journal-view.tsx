@@ -67,7 +67,7 @@ export function JournalView({
    * day", and a day with entries "+ Tell Claude more". Called with the message to send, or nothing for the default.
    */
   onTellClaude?: (text?: string) => void;
-  /** The host's own settings (the phone): the day view's ⋯ ends with them instead of Kontroll. */
+  /** The host's own settings (the phone): the day view's ⋯ ends with them instead of Control. */
   hostSettings?: HostSettingsEntry;
 }) {
   // Drawn inside the Sidekick shell, the shell names the room: the app name stays for assistive technology only.

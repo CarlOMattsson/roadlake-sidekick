@@ -263,23 +263,6 @@ The first release has no predecessor, so there is nothing to update from; the ba
 - The signing key leaked or was lost: delete the environment secrets, tell the owner of the installations, and treat the
   next APK as a new app lineage.
 
-## Sending later changes to the public repository
-
-`tools/export/export-repo.sh <dir>` only creates the first, empty-history import and refuses a non-empty directory.
-Later changes go in as ordinary commits on top of the published history (force-push is not allowed):
-
-```bash
-git clone git@github.com:CarlOMattsson/roadlake-sidekick.git /path/to/clone
-tools/export/export-repo.sh --update --dry-run /path/to/clone   # lists A (added), M (modified), D (removed)
-tools/export/export-repo.sh --update [--author "Name <email>"] /path/to/clone
-git -C /path/to/clone push origin main                          # the script prints this; it never pushes
-```
-
-The clone must be on `main` with a clean working tree. The export runs with the same allowlist, denylist, overlay and
-forbidden-pattern check (exit 3 aborts before any commit), the files are mirrored into the clone (`.git` is never
-touched) and one commit is made whose message names the short hash of the source commit. If nothing differs, it
-prints "inga ändringar" and makes no commit.
-
 ## Tags and the first release
 
 The release workflow (`.github/workflows/release-image.yml`, started by hand) only runs from a commit on `main`, builds

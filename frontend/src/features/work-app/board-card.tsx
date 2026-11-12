@@ -302,7 +302,7 @@ export function RecordMeta({
       : workKindLabel(t, item.kind);
   const marked = item.kind === "task" && item.priority === "high";
   const due = rowDue(item, now, t.dateLocale, group);
-  // A Task that repeats says so after its time: "↻ varje månad" (uc-1).
+  // A Task that repeats says so after its time: "↻ varje månad".
   const repeat =
     item.kind === "task" && item.recurrence
       ? taskPlaceLabelsFor(t.dateLocale).repeatsShort(item.recurrence)

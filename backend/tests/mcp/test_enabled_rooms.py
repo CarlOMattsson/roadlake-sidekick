@@ -13,7 +13,7 @@ from fastmcp import FastMCP
 from sidekick.api.app import create_container
 from sidekick.lifecycle import RecordKind
 from sidekick.mcp.lifecycle import _READ_SCOPE_BY_KIND
-from sidekick.mcp.rooms import ROOM_TOOLS, TOOL_ROOM, tool_is_enabled
+from sidekick.mcp.rooms import ROOM_TOOLS, TOOL_ROOM
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.config import Settings
 from sidekick.shared.rooms import ROOMS, disabled_scopes
@@ -42,12 +42,6 @@ def test_every_tool_of_the_contract_has_exactly_one_room() -> None:
     assert frozenset(TOOL_ROOM) == SNAPSHOT_TOOLS
     assert sum(len(tools) for tools in ROOM_TOOLS.values()) == len(SNAPSHOT_TOOLS)
     assert set(ROOM_TOOLS) == set(ROOMS)
-
-
-def test_a_tool_outside_the_table_is_kept() -> None:
-    assert tool_is_enabled("a_tool_outside_the_table", {"work"})
-    assert not tool_is_enabled("write_journal_entry", {"work"})
-    assert tool_is_enabled("write_journal_entry", {"work", "journal"})
 
 
 @pytest.mark.asyncio

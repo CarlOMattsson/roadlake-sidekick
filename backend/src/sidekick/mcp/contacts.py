@@ -59,7 +59,8 @@ class ContactRecord(Output):
     relationship: str | None = None
     organization: str | None = None
     role: str | None = None
-    # Shown to the Contact app and to the model (D-060).
+    # Shown to the Contact app and to the model (D-060: the host model may read the owner's own
+    # content, within the token's scopes).
     address: str | None = None
     aliases: list[ContactAliasRecord]
     archived: bool
@@ -370,7 +371,7 @@ def _contact_context_text(
         more = " (older links not shown)" if journal["has_more"] else ""
         lines.append(f"Journal entries: {len(entries)} newest{more}")
         lines.extend(
-            # Ids and dates here; the titles are in block 2 (D-060).
+            # Ids and dates here; the titles are in block 2, which the model may read (D-060).
             f"- journal entry {e['id']} | {e['journal_date']}"
             for e in entries
         )

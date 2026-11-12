@@ -8,7 +8,7 @@ import type { WorkLabels } from "../labels";
 
 /**
  * One tab's "⋯" menu. Its last entry is the host's own settings when it has them (the phone's "Inställningar"), else
- * Kontroll, which a routing host offers when the Control room is on and the host can list the trash.
+ * Control, which a routing host offers when the Control room is on and the host can list the trash.
  */
 export function TabMore({
   labels,

@@ -491,7 +491,7 @@
   font-size: 0.875rem;
 }
 /* The status symbol is a 24 px ring in the 44 px done button and the drag grip (A2). The ring of a Task card on the
-   board (its drag handle) is the same size as a Step card's glyph (uc-6); the card's lead and the ring's place on the
+   board (its drag handle) is the same size as a Step card's glyph; the card's lead and the ring's place on the
    title's first line are worked out from it. */
 .sidekick-work .work-card-done .sk-status-glyph,
 .sidekick-work .work-drag-handle .sk-status-glyph,

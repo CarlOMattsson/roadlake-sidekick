@@ -2,7 +2,7 @@ import { useUndoHold } from "../task-detail-controls";
 import type { WorkLabels } from "../labels";
 
 /**
- * The Task view's answer to "Markera klar" on a recurring Task (uc-1): the server recorded the cycle and opened the
+ * The Task view's answer to "Markera klar" on a recurring Task: the server recorded the cycle and opened the
  * Task again for its next date, so the button still says "Markera klar". This line, right under it, says what
  * happened ("Klar · nästa: fre 27 nov") with Ångra, which writes the earlier due date back. It is a polite live
  * region; its time to undo stops while the pointer is over it or focus is in it, and `onExpire` ends it.

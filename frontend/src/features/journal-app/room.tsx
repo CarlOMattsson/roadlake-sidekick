@@ -230,7 +230,7 @@ export function JournalRoom(props: JournalRoomProps) {
   const contactsOn = roomEnabled("contacts");
   const canOpenContact =
     contactsOn && toolOffered(props.transport, "get_contact_context");
-  // Changing a link needs rights a mobile Dagbok device does not hold, so the unlink is not offered there.
+  // Changing a link needs rights a mobile Journal device does not hold, so the unlink is not offered there.
   const canChangeLinks = toolOffered(props.transport, "update_journal_entry", {
     remove_contact_ids: [],
   });

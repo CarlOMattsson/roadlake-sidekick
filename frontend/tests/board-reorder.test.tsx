@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { workEn } from "@/features/work-app/labels";
@@ -14,6 +8,7 @@ import type {
   WorkItemRecord,
   WorkTransport,
 } from "@/features/work-app/transport";
+import { sleep } from "./helpers/board-kanban-fixtures";
 
 /*
  * Order inside one Task status column on the Work board. Pointer events are dispatched by hand
@@ -161,12 +156,6 @@ function cardIds(column: HTMLElement): (string | null)[] {
   return Array.from(column.querySelectorAll("[data-card-id]"), (card) =>
     card.getAttribute("data-card-id"),
   );
-}
-
-function sleep(ms: number) {
-  return act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, ms));
-  });
 }
 
 it("drops a Task lower in a complete column and writes the new order with each version and a key", async () => {

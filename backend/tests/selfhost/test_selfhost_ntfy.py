@@ -83,7 +83,7 @@ def test_the_state_directory_is_a_small_private_tmpfs(ntfy: dict) -> None:
 def test_ntfy_sits_on_the_internal_push_network_only(compose: dict, ntfy: dict) -> None:
     assert ntfy["networks"] == ["push"]
     assert compose["networks"]["push"] == {"internal": True}
-    assert compose["services"]["caddy"]["networks"] == ["edge", "push"]
+    assert set(compose["services"]["caddy"]["networks"]) == {"edge", "proxy", "push"}
     # Nothing else may join it: that would put another service next to the ntfy port.
     members = [n for n, s in compose["services"].items() if "push" in (s.get("networks") or [])]
     assert sorted(members) == ["caddy", "ntfy"]

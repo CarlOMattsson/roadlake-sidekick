@@ -88,8 +88,8 @@
   cursor: default;
 }
 
-/* Narrow: the nearest container is 360 px or less (a 320 px Kontroll card, or a 320 px app frame). The unnamed query
-   matches any container, because Kontroll is not an app frame (.sk-frame). Only the label gets smaller, 0.875rem (the
+/* Narrow: the nearest container is 360 px or less (a 320 px Control card, or a 320 px app frame). The unnamed query
+   matches any container, because Control is not an app frame (.sk-frame). Only the label gets smaller, 0.875rem (the
    smallest size allowed). The option keeps its 12 px, so the pressed option keeps its inner space at every width; at
    320 px the options may wrap onto a second row. The option keeps its 44 px minimum height.
    A one-word label ("Blockerad") is never narrower than its word, so it is never cut. */

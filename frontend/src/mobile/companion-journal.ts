@@ -90,7 +90,7 @@ const UPDATE_KEYS = [
 ] as const;
 
 /**
- * The link changes the app never sends: changing a link needs projects:read / contacts:read, which a Dagbok
+ * The link changes the app never sends: changing a link needs projects:read / contacts:read, which a Journal
  * device does not hold (the server refuses the fields with a 422). The planner refuses them before a request,
  * and the transport answers `supportsCall` no so the entry view offers no unlinking.
  */

@@ -187,7 +187,7 @@ export function AgendaMore({
   const panelId = useId();
   const more = useRef<HTMLButtonElement>(null);
   const mark = useMoreMark(t.moreActions);
-  // The license coin asks (Kontroll off): the ⋯ of the tab on screen opens on its row.
+  // The license coin asks (Control off): the ⋯ of the tab on screen opens on its row.
   useLicenseMenu(more, () => onOpenChange(true));
   function close() {
     onOpenChange(false);

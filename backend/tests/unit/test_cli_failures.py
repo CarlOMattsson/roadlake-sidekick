@@ -16,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from sidekick import composition
+from sidekick.admin import cli as auth_cli
 from sidekick.automation import worker as automation_worker
 from sidekick.backup import cli as backup_cli
 from sidekick.backup import worker as backup_worker
@@ -25,7 +26,6 @@ from sidekick.license import cli as license_cli
 from sidekick.memory import worker as memory_worker
 from sidekick.owner_export import cli as owner_export_cli
 from sidekick.shared import worker_health
-from sidekick.shared.auth import cli as auth_cli
 from sidekick.shared.cli_errors import (
     EXIT_CONFLICT,
     EXIT_DATABASE,

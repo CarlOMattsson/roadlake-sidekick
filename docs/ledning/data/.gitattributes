@@ -1,0 +1,3 @@
+# Append-only event logs: on merge, keep the lines from both sides instead of conflicting
+# at the end of the file. ledning.py drops exact duplicate lines when it reads.
+*.jsonl merge=union

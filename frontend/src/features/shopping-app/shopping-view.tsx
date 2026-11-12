@@ -87,7 +87,7 @@ export function ShoppingView({
   compact?: boolean;
   /** Opens another room; the list's ⋯ then ends with "Kontroll" (designsystem §3, Rumshuvud). */
   onNavigate?: (target: RoomTarget) => void;
-  /** The host's own settings (the phone): the list's ⋯ ends with them instead of Kontroll. */
+  /** The host's own settings (the phone): the list's ⋯ ends with them instead of Control. */
   hostSettings?: HostSettingsEntry;
   /**
    * The confirmed rows, owned by the room: a later result for the same list never takes a row back to an older
@@ -148,7 +148,7 @@ export function ShoppingView({
   });
   // The ⋯ menu in the header of the fullscreen view. It holds "Edit list" and closes when an item is chosen.
   const moreButton = useRef<HTMLButtonElement>(null);
-  // The license coin asks (Kontroll off): this ⋯ opens on its row.
+  // The license coin asks (Control off): this ⋯ opens on its row.
   useLicenseMenu(moreButton, () => setPanel("moreOpen", true));
   const moreMark = useMoreMark(t.moreActions);
   // The last entry of the list's ⋯ (designsystem §3): the host's own settings (the phone), else "Kontroll" when the

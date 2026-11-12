@@ -812,7 +812,7 @@
 }
 
 /* Keyboard focus on a row's ring rings the glyph itself, 3 outside it (a circle for a Task), not the 48 tall leading
-   column, whose box starts in the side margin and was cut at the frame's left edge (uc-15). */
+   column, whose box starts in the side margin and was cut at the frame's left edge. */
 .sidekick-work .work-agenda-line > button.work-agenda-glyph:focus-visible {
   outline: none;
 }
@@ -826,7 +826,7 @@
 }
 
 /* A group heading that has stuck under the tab row draws a hairline under itself, so the rows scrolling under it end
-   on a line instead of showing half-cut glyphs (uc-18). Where the engine has no scroll-state queries, nothing
+   on a line instead of showing half-cut glyphs. Where the engine has no scroll-state queries, nothing
    changes. */
 .sidekick-work .work-agenda-group-head {
   container-type: scroll-state;

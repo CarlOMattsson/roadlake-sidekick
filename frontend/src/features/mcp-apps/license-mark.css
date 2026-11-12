@@ -34,7 +34,7 @@
 .sk-card__foot > :first-child {
   align-self: center;
 }
-/* The coin takes 40 of the row's height (its target stays 48 through ::after), so a compact open row (40, Arbete's
+/* The coin takes 40 of the row's height (its target stays 48 through ::after), so a compact open row (40, Work's
    cards) keeps its height: the coin adds none. */
 .sk-card__foot > .sk-license-mark {
   margin-block: calc((var(--sk-compact) - var(--sk-tap)) / 2);

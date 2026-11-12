@@ -96,3 +96,11 @@ sista ordet i `update-state/journal.log`, visar vilket fall du är i:
   API:et svarar och kör sedan
   `echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) ABORTED manual" >> update-state/journal.log`. Tills den raden finns i
   journalen vägras nästa `--apply`.
+
+**Docker-nätverksfel vid `up` eller `update.sh`.** Caddy och API:et pratar över ett litet internt Docker-nätverk
+(`proxy`) med det fasta adressblocket `198.51.100.0/29` (reserverat för dokumentation, så det routas aldrig på
+internet). API:et litar på klientadress och schema från vidarebefordrade huvuden bara från Caddys adress där. Svarar
+Docker `Pool overlaps with other one on this address space` krockar blocket med ett befintligt Docker-nätverk eller en
+VPN-route på värden: hitta det med `docker network ls` och `docker network inspect`, ta bort eller flytta det nätverket
+och kör uppdateringen igen. `update.sh` återskapar en körande Caddy tillsammans med API:et så att den går med i
+nätverket.

@@ -13,7 +13,7 @@
 /* Inline: only the host safe area. Full: 16 px, 24 px from 640 px, on top of the safe area. */
 .sk-frame__body {
   --sk-frame-pad: 0px;
-  /* The side padding, as variables: a band that must reach the frame's edges (the room strip's bar and Arbete's tab
+  /* The side padding, as variables: a band that must reach the frame's edges (the room strip's bar and Work's tab
      row, which paint the page colour while stuck) takes it back with a negative margin and pads itself by as much. */
   --sk-frame-pad-right: calc(var(--sk-frame-pad) + var(--host-safe-right, 0px));
   --sk-frame-pad-left: calc(var(--sk-frame-pad) + var(--host-safe-left, 0px));
@@ -83,7 +83,7 @@
 }
 
 /* Every room's content in fullscreen keeps the one reading width (--sk-room-max), centred, as the Agenda did alone
-   (Uppgift, Dagbok, Inköp and Kontakter ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
+   (Uppgift, Journal, Shopping and Contacts ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
    caps its lists itself (work-shell.css), so the Status columns can still take the row. The room strip and the Back
    row above keep the same width (sidekick-shell.css). Above the room roots' own reset in the strip's shell
    (max-width: none), hence the frame in the selector. */

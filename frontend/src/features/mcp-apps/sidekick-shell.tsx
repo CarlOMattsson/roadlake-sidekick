@@ -144,7 +144,7 @@ export function SidekickShell({
       value,
       label: labels.rooms[value],
     })),
-    // Kontroll applies to every room, so the picker marks none there and says "Rum", as the
+    // Control applies to every room, so the picker marks none there and says "Rum", as the
     // strip does; its first room takes the focus when it opens.
     value: inControl ? undefined : nav.active,
     placeholder: labels.stripLabel,
@@ -255,8 +255,8 @@ export function SidekickShell({
   }
 
   /**
-   * The license coin of the room's foot leads to the license row: the host's own settings (the phone), else Kontroll,
-   * else (Kontroll off) the ⋯ panel of the room on screen. The row takes the focus there. False: no place answered,
+   * The license coin of the room's foot leads to the license row: the host's own settings (the phone), else Control,
+   * else (Control off) the ⋯ panel of the room on screen. The row takes the focus there. False: no place answered,
    * and the foot folds the row out itself.
    */
   function showLicense(): boolean {
@@ -436,7 +436,7 @@ export function SidekickShell({
           strip={strip}
           backSlot={showBack ? backSlot : null}
         />
-        {/* The license coin, last in the room (see docs/decisions/log.md D-083). Kontroll holds the row itself, so the coin is not drawn there. */}
+        {/* The license coin, last in the room (see docs/decisions/log.md D-083). Control holds the row itself, so the coin is not drawn there. */}
         {inControl ? null : (
           <LicenseFoot key={nav.active} locale={locale} onShow={showLicense} />
         )}

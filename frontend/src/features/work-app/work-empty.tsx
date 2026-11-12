@@ -6,7 +6,7 @@ import { WorkNewTaskContext } from "./empty-actions";
 import type { WorkLabels } from "./labels";
 
 /**
- * The empty Agenda and Status (uc-3), in the family's empty state as Kontakter and Dagbok have it: what is missing,
+ * The empty Agenda and Status, in the family's empty state as Contacts and Journal have it: what is missing,
  * one line on what the view is for, "Säg till Claude:" with an example (a button that sends it where the host offers
  * messages), and "+ Lägg till en uppgift" where the tab row can create a Task.
  */

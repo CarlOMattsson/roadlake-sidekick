@@ -609,7 +609,7 @@ function StepReadMark({ done, label }: { done: boolean; label: string }) {
 
 /**
  * One Step of the list: the checkbox and the title, and the Step's Actions under the title. A long press (touch), a
- * right click, Shift+F10 or the menu key on the Step opens its Up, Down and Archive buttons (as Arbete's rows;
+ * right click, Shift+F10 or the menu key on the Step opens its Up, Down and Archive buttons (as Work's rows;
  * the ⋯ is gone), and the check says so to a screen reader (aria-keyshortcuts, aria-description). The menu stays open
  * after a move, so the focus rule keeps the moved row's Up or Down button.
  */

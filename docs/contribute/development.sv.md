@@ -129,9 +129,6 @@ Kontroller som vaktar webbplatsen:
 
 - `backend/tests/policy/test_docs_language_parity.py`: varje publicerat dokument har en engelsk och en svensk
   tvilling med samma struktur, och de handskrivna sidorna och gränssnittstexterna stämmer i båda språken.
-- Det extra steget i `tools/check-all.sh` (finns bara i underhållarnas utcheckning; en
-  publicerad klon hoppar över det): exporterar repot och kontrollerar sedan att varje källa i innehållskartan finns
-  i exporten.
 - `tools/check-all.sh`: steget `website` kör testerna, bygget och webbplatskontrollerna; det hoppas över (och
   fäller med `--strict`) när `website/node_modules` saknas. `--skip-website` utesluter det.
 - `.github/workflows/pages.yml`: bygger, kontrollerar och publicerar webbplatsen när en release publiceras eller

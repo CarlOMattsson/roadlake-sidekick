@@ -72,7 +72,7 @@
 /* The tools at the end of the tab row (designsystem §3 "Rumshuvud"): the shared icon buttons (.sk-iconbtn,
    family.css), 44 px boxes. Counted from the right: ⋯ outermost, then +, then search, 48 apart (was 44):
    4 between the boxes. The glyph's box ends on the content edge: the boxes are moved 10 outwards, so the centres
-   are 384, 336 and 288 at 412, the same grid as Dagbok's ‹ › (336, 384) and Kontakter's + ⋯, and ⋯'s box reaches 10
+   are 384, 336 and 288 at 412, the same grid as Journal's ‹ › (336, 384) and Contacts' + ⋯, and ⋯'s box reaches 10
    into the side margin. Each target is 48 × 48 and reaches 2 into the gap on each side, so neighbours meet and never
    overlap. */
 .sidekick-work :is(.work-tab-tool, .work-tab-slot) {

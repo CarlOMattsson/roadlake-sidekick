@@ -1,5 +1,5 @@
 /* The phone's settings (settings-panel.tsx). Design tokens only; the frame (AppFrame, layout.css) gives the 16 px edge
-   and the safe-area insets. Sections follow Kontroll's rhythm: a section heading 24 above and 4 under it. */
+   and the safe-area insets. Sections follow Control's rhythm: a section heading 24 above and 4 under it. */
 .mobile-settings {
   color: var(--sk-fg);
   font: var(--sk-type-body);

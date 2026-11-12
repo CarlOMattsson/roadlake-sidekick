@@ -14,7 +14,7 @@ import { WorkEmpty } from "@/features/work-app/work-empty";
 import type { WorkTransport } from "@/features/work-app/transport";
 import { renderAgenda } from "./helpers/agenda-triage-fixtures";
 
-// uc-3: the empty Agenda, Status and shopping list explain themselves and offer a way on, as Kontakter and Dagbok do.
+// The empty Agenda, Status and shopping list explain themselves and offer a way on, as Kontakter and Dagbok do.
 
 describe("Empty Agenda and Status", () => {
   it("says what the Agenda is for, with an example for Claude", () => {

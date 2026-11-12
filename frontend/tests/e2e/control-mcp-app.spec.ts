@@ -457,7 +457,7 @@ test("Control app shows the assistant's activity in History, read-only, from lis
   expect(networkRequests()).toBe(0);
 });
 
-test("Control app searches memory on Enter and on Sök in a sandbox without allow-forms (uc-2)", async ({
+test("Control app searches memory on Enter and on Sök in a sandbox without allow-forms", async ({
   page,
 }) => {
   // The simulated host's iframe has sandbox="allow-scripts" only, so a form here never submits. The search

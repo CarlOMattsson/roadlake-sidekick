@@ -262,8 +262,9 @@ def _waiting_sentence(
     """Return line 1 of the waiting view: who the longest wait is on, for how long, and what for.
 
     `first` is the longest wait (or, with no dated wait, the first record). With one record the
-    sentence reads "You are waiting on Anna Berg for 9 days: Förbered demo."; with several it
-    counts them and names the longest. It holds no id, version or ISO time (D-072).
+    sentence reads "You are waiting on Anna Berg for 9 days: Förbered demo."; with several it counts
+    them and names the longest. It holds no id, version or ISO time (D-072: the first line of a
+    reply is a speakable sentence).
     """
 
     name = first.get("waiting_on_contact_name")

@@ -28,9 +28,8 @@ from sidekick.journal.domain.analysis import (
     UpdateTaskProposal,
 )
 from sidekick.journal.domain.analysis import KeyPoint as AnalysisKeyPoint
-from sidekick.journal.domain.analysis import KeyPointKind as AnalysisKeyPointKind
 from sidekick.journal.domain.day_done import owner_today
-from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
+from sidekick.journal.domain.entry import KeyPoint
 from sidekick.journal.domain.finalize import FinalizeCommand
 from sidekick.journal.domain.records import DaySummaryStatus, EntryRelations
 from sidekick.journal.domain.review import (
@@ -303,10 +302,7 @@ def _draft_record(
         state=draft.state.value,
         title=draft.title,
         summary=draft.summary if include_content else None,
-        key_points=[
-            JournalKeyPoint(kind=KeyPointKind(point.kind.value), text=point.text)
-            for point in draft.key_points
-        ]
+        key_points=[JournalKeyPoint(kind=point.kind, text=point.text) for point in draft.key_points]
         if include_content
         else [],
         suggestions=JournalDraftSuggestions(
@@ -358,10 +354,7 @@ def _draft_status(draft: DraftReview) -> JournalDraftStatusResult:
 
 
 def _analysis_key_points(points: list[JournalKeyPointInput]) -> tuple[AnalysisKeyPoint, ...]:
-    return tuple(
-        AnalysisKeyPoint(kind=AnalysisKeyPointKind(point.kind.value), text=point.text)
-        for point in points
-    )
+    return tuple(AnalysisKeyPoint(kind=point.kind, text=point.text) for point in points)
 
 
 def _draft_dump(record: BaseModel) -> dict[str, Any]:
@@ -374,7 +367,8 @@ def _draft_dump(record: BaseModel) -> dict[str, Any]:
     return record.model_dump(mode="json", exclude_unset=True)
 
 
-# Block 2 of every Journal tool result is the full structuredContent (D-060):
+# Block 2 of every Journal tool result is the full structuredContent (D-060: the host model may
+# read the owner's own content):
 # Claude may read all Journal information in tool results, titles, summaries, key points, raw
 # text, drafts and rationales alike. Logs, audit, SQL telemetry and error surfaces never carry
 # journal text; see tests/contract/test_journal_telemetry_redaction.py.

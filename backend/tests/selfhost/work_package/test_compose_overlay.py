@@ -122,7 +122,7 @@ def test_no_service_in_the_work_profile_set_can_publish_on_all_interfaces(
 def test_only_the_gateway_has_a_route_to_the_outside(merged: dict[str, Any]) -> None:
     networks = merged["networks"]
     internal = {name for name, net in networks.items() if net.get("internal")}
-    assert internal == {"data", "edge"}
+    assert internal == {"data", "edge", "proxy"}
     routed = {name for name in networks if name not in internal}
     assert routed == {"egress"}
     for name, service in merged["services"].items():

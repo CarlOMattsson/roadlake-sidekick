@@ -92,7 +92,7 @@ TASK_REOPEN = CompanionOperation(
     frozenset({"tasks:read", "tasks:write", "projects:read"}),
 )
 
-# --- Arbete beyond the agenda: the Project list, Projects, their Domains and Processes, and
+# --- Work beyond the agenda: the Project list, Projects, their Domains and Processes, and
 # the Steps of a Task. All of them reuse the device capabilities that already exist, so a device
 # paired before these routes existed has them at once: reading is `companion:tasks:read`, ticking is
 # `companion:tasks:complete`.
@@ -137,7 +137,8 @@ STEP_REOPEN = CompanionOperation(
     frozenset({"tasks:write"}),
 )
 
-# Registering or removing the device's own UnifiedPush endpoint (D-078). It reaches no domain
+# Registering or removing the device's own UnifiedPush endpoint (D-078: push through UnifiedPush,
+# the message carries no content). It reaches no domain
 # use case, so it holds no application scope: the actor carries only the credential's owner.
 PUSH_SUBSCRIPTION = CompanionOperation("push.subscription", "companion:push", frozenset())
 
@@ -145,13 +146,14 @@ PUSH_SUBSCRIPTION = CompanionOperation("push.subscription", "companion:push", fr
 # They read and write only the reminders table of the credential's owner, so no application scope.
 PUSH_REMINDERS = CompanionOperation("push.reminders", "companion:push", frozenset())
 
-# The instance's license (D-081): read the display state, enter a key. Neither reaches a domain use
+# The instance's license (D-081: signed keys checked offline): read the display state, enter a
+# key. Neither reaches a domain use
 # case, so no application scope; the key is set through `LicenseService.set_by_owner`, which also
 # requires the credential's user to be the installation's only owner.
 LICENSE_SHOW = CompanionOperation("license.show", "companion:license", frozenset())
 LICENSE_SET = CompanionOperation("license.set", "companion:license", frozenset())
 
-# --- Inköp (shopping) ---------------------------------------------------------------------------
+# --- Shopping -----------------------------------------------------------------------------------
 # The reads need `companion:shopping:read`; the writes need `companion:shopping:write` and the read
 # capability too. Adding and changing an item can name a gift recipient, which the use case checks
 # against `contacts:read` (it only confirms the Contact exists; no Contact field is returned).
@@ -192,9 +194,10 @@ SHOPPING_ITEM_PURCHASED = CompanionOperation(
     also="companion:shopping:read",
 )
 
-# --- Dagbok (journal) ---------------------------------------------------------------------------
+# --- Journal ------------------------------------------------------------------------------------
 # The same application scopes as the MCP tools of the same name (`JOURNAL_TOOL_SCOPES`; a test pins
-# the equality). Only the owner's manual writing is here (D-076): a new entry from the owner's own
+# the equality). Only the owner's manual writing is here (D-076: the journal is written by hand
+# in the room, AI-first otherwise): a new entry from the owner's own
 # words and a change of an existing entry, and reading the source text back. No draft, summary or
 # other AI-derived flow.
 JOURNAL_DAY = CompanionOperation(

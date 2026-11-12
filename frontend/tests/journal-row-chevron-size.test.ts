@@ -1,4 +1,4 @@
-// uc-16: the row › in Dagbok is the shared row glyph: --sk-chevron wide and high (24, 16 on a narrow frame), as in the
+// The row › in Dagbok is the shared row glyph: --sk-chevron wide and high (24, 16 on a narrow frame), as in the
 // other rooms, instead of the icon's own 24 px at every width. Reads the stylesheet, as journal-css-contract does.
 import { readFileSync } from "node:fs";
 import path from "node:path";

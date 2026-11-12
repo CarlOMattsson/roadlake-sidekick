@@ -31,7 +31,7 @@ export function repeatChanges(value: string): WorkTaskChanges {
 /**
  * The Task's own repeat rule as a chip on the place row: "Upprepas varje vecka ⌄". The rule belongs to the Task, not
  * to a Process. A tap unfolds the rules as chips under the row, the current one ticked, as the row menu's Status and
- * Date (uc-4): not repeating, every day, week, month or year. One tap on another chip is one
+ * Date: not repeating, every day, week, month or year. One tap on another chip is one
  * update_task through `onChoose` and folds the chips away. A rule the chips have no word for (every 2nd week, chosen
  * weekdays, an end date) stands as its own ticked chip, "… (current)", so opening the choices never loses it. Where
  * the host cannot write (the phone), a rule shows as a plain read-only chip and a Task without one shows nothing.

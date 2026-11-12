@@ -1,8 +1,8 @@
 // The only hand-edited registry for the docs sync (scripts/sync-docs.mjs).
-// Paths are relative to the source root (the repository, or an export of it). Entries without a
+// Paths are relative to the source root (the repository). Entries without a
 // trailing slash are stems: "docs/android" covers android.md and android.sv.md.
 
-// Which documents become pages. Mirrors the export allowlist (tools/export/allowlist.txt).
+// Which documents become pages. Only these documents are published.
 // After the docs restructuring only this list and `order` change, never the script.
 export const include = [
   'docs/README',

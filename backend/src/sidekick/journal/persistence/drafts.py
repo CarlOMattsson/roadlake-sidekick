@@ -16,7 +16,7 @@ from sidekick.journal.domain.analysis import (
 from sidekick.journal.domain.analysis import (
     KeyPoint as AnalysisKeyPoint,
 )
-from sidekick.journal.domain.entry import JournalEntry, KeyPoint, KeyPointKind
+from sidekick.journal.domain.entry import JournalEntry, KeyPoint
 from sidekick.journal.domain.finalize import (
     FinalizeCommand,
     FinalizeProposalConflict,
@@ -426,9 +426,7 @@ def _update_proposal_changes(proposal: UpdateTaskProposal) -> dict[str, Any]:
     for field_name in _UPDATE_PROPOSAL_FIELDS:
         if field_name in proposal.model_fields_set:
             value = getattr(proposal, field_name)
-            if field_name == "status" and value is not None:
-                value = TaskStatus(value.value)
-            elif field_name == "priority" and value is not None:
+            if field_name == "priority" and value is not None:
                 value = Priority(value.value)
             changes[field_name] = value
     return changes
@@ -447,8 +445,7 @@ def _build_journal_entry(
         title=command.title,
         summary=command.summary,
         key_points=tuple(
-            KeyPoint(kind=KeyPointKind(point.kind.value), text=point.text)
-            for point in command.key_points
+            KeyPoint(kind=point.kind, text=point.text) for point in command.key_points
         ),
         version=1,
         created_at=now,

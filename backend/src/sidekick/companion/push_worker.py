@@ -1,5 +1,7 @@
-"""Push worker process (ADR-005; D-078): `python -m sidekick.companion.push_worker` (or
-`sidekick-push-worker`), its own process mode like `sidekick.backup.worker`.
+"""Push worker process (ADR-005; D-078, push through UnifiedPush).
+
+Run as `python -m sidekick.companion.push_worker` (or `sidekick-push-worker`), its own process mode
+like `sidekick.backup.worker`.
 
 This module is only the loop and the CLI. The delivery rules are in `push_delivery`, their SQL in
 `push_delivery_store` and the HTTP send in `push_sender`. Each cycle also runs the reminder

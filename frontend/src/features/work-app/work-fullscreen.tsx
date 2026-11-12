@@ -62,10 +62,10 @@ export type WorkFullscreenProps = {
   onRoute?: (target: RoomTarget) => void;
   /**
    * Whether the host can answer a tool at all (RoomTransport.supportsTool). Absent: every tool. A menu item whose tool
-   * the host lacks is not offered: Sparade vyer (with its archived views) needs list_saved_work_views, Kontroll list_trash.
+   * the host lacks is not offered: Sparade vyer (with its archived views) needs list_saved_work_views, Control list_trash.
    */
   supportsTool?: (name: string) => boolean;
-  /** The host's own settings: the ⋯ menu's last entry in Kontroll's place (the phone's "Inställningar"). */
+  /** The host's own settings: the ⋯ menu's last entry in Control's place (the phone's "Inställningar"). */
   hostSettings?: HostSettingsEntry;
   /** A new value reads the shown lists again in place (tab, filters, scroll and typed text stay). */
   refreshKey?: number;
@@ -314,7 +314,7 @@ export function WorkFullscreen({
       />
     );
   }
-  // The "⋯" of each tab (Sparade vyer, Uppdatera, Kontroll last), mounted on every tab and shown on its own.
+  // The "⋯" of each tab (Sparade vyer, Uppdatera, Control last), mounted on every tab and shown on its own.
   function more(tab: WorkTab) {
     return (
       <TabMore

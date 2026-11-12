@@ -21,15 +21,15 @@ import "./awaiting.css";
  *   The static placeholder in vite.mcp-app.config.ts is this state, class for class.
  * - After the handshake the host context may name the tool that opened the card (`toolInfo`, optional in MCP Apps
  *   2026-01-26). The entry routes it to `room` and `view`, and the placeholder marks that room in the strip and draws
- *   its real header, inert: Arbete's tab row (ViewTabs, search and + held off while the list loads, and ⋯); Kontroll's
- *   "‹ Arbete", title and tabs, with no strip (Kontroll applies to every room). The header sits in a
+ *   its real header, inert: Work's tab row (ViewTabs, search and + held off while the list loads, and ⋯); Control's
+ *   "‹ Arbete", title and tabs, with no strip (Control applies to every room). The header sits in a
  *   `sk-rooms__pane`, as in the shell, so the rooms' own rules place it exactly as the loaded view.
  * - `full` false (the host said inline): a card has no strip, so only the rows are drawn.
  *
  * What is loading ("Laddar uppgifter…") is read by assistive technology through the status role and never drawn.
  * Rows have the measures of the finished list rows: a 36 px leading column with the glyph at the content edge, the
  * text at x 52, 12 px of padding, 70 px for two lines and no hairlines. The skeleton never guesses the groups
- *: Arbete's lists open on a heading, so one bar holds its place, and five rows follow (SkeletonRows). The blocks
+ *: Work's lists open on a heading, so one bar holds its place, and five rows follow (SkeletonRows). The blocks
  * pulse softly and stop with `prefers-reduced-motion`.
  * After `timeoutMs` one sentence says to ask Claude to open the app again.
  *
@@ -102,7 +102,7 @@ export function AwaitingResult({
 
   const timedOut = expiredFor === timeoutMs;
   const workTab = WORK_TABS.find((tab) => tab === view);
-  // The router names a changes or activity result; both are Kontroll's History tab.
+  // The router names a changes or activity result; both are Control's History tab.
   const controlView =
     view === "changes" || view === "activity"
       ? "history"
@@ -124,7 +124,7 @@ export function AwaitingResult({
             onChange={nothing}
           />
           {/* The loaded row's own markup (work-fullscreen.tsx): the tools in .sk-shell-tabs-end and + as
-              .work-tab-create, so search, + and ⋯ get the same boxes and do not move when the list comes (uc-9). */}
+              .work-tab-create, so search, + and ⋯ get the same boxes and do not move when the list comes. */}
           <div className="sk-shell-tabs-end">
             <span className="sk-iconbtn work-tab-tool" aria-disabled="true">
               <SearchIcon />
@@ -162,7 +162,7 @@ export function AwaitingResult({
       </>
     );
   }
-  // Kontroll keeps the strip with no room marked: the way back looks the same everywhere.
+  // Control keeps the strip with no room marked: the way back looks the same everywhere.
   const strip = full;
 
   return (

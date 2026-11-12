@@ -464,7 +464,7 @@ export class CompanionRoomTransport implements RoomTransport {
    * The call itself, for the one tool the list answers in part: update_task with the completing change, and with the
    * reopening change when the asker names a completed Task (`from_status`; a question without it is answered no).
    * A room hides a date or status choice that would be refused, and keeps "Markera klar", "Ångra" and "Återöppna".
-   * update_journal_entry is answered no when the asker names a link change (the Dagbok device has no right to it).
+   * update_journal_entry is answered no when the asker names a link change (the Journal device has no right to it).
    */
   supportsCall: NonNullable<RoomTransport["supportsCall"]> = (name, args) => {
     if (name === "list_tasks")

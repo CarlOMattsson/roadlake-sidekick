@@ -78,8 +78,8 @@
   --sk-s4: 16px;
   --sk-s5: 24px;
   --sk-s6: 32px;
-  /* The one reading width of a room's content in fullscreen: Agenda, Projekt, a Task, Dagbok, Kontakter, Inköp
-     and Kontroll all stand in a centred column of at most this width (layout.css); only Status's columns take the
+  /* The one reading width of a room's content in fullscreen: Agenda, Projekt, a Task, Journal, Contacts, Shopping
+     and Control all stand in a centred column of at most this width (layout.css); only Status's columns take the
      whole row. */
   --sk-room-max: 48rem;
 
@@ -96,12 +96,12 @@
   --sk-section-below: var(--sk-s1);
   /* A one-line row without meta holds its line in the middle of its 48, so it has this much more air than the 6 over
      and under a line (6.55 at 110 %). A heading next to a list of such rows takes it off its 24 and 4, so 32 and 12 lie
-     between the glyphs there too (Inköp, the "+ Lägg till …" rows). */
+     between the glyphs there too (Shopping, the "+ Lägg till …" rows). */
   --sk-row-air-extra: calc(
     (var(--sk-row-min) - var(--sk-type-row-line)) / 2 - var(--sk-row-pad)
   );
   --sk-tap: 2.75rem;
-  /* The tab row of a room (Arbete's tabs or view picker and its tools): 48 at 110 % (2.75rem) but never
+  /* The tab row of a room (Work's tabs or view picker and its tools): 48 at 110 % (2.75rem) but never
      more than 56, so at 150 and 200 % text the fixed chrome is ≤ 100 and ≤ 112 (it was 109 and 136: every box in the row
      grew with the rem). The labels still follow the text; only the row's air stops growing. */
   --sk-tabs-h: min(var(--sk-tap), 56px);
