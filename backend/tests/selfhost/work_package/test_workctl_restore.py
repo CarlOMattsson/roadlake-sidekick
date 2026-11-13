@@ -158,8 +158,6 @@ def test_the_commands_answer_with_exit_codes_and_lines(
 ) -> None:
     assert cli.main(["is-uuid", "--", "123e4567-e89b-12d3-a456-426614174000"]) == 0
     assert cli.main(["is-uuid", "--", "nope"]) == 1
-    assert cli.main(["is-yes", "--", "ja"]) == 0
-    assert cli.main(["is-yes", "--", "-n"]) == 1
     capsys.readouterr()
 
     assert cli.main(["pick", "--answer=2", "--", "-first", "second"]) == 0

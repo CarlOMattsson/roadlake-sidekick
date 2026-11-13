@@ -8,7 +8,7 @@ Journal room).
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastmcp import FastMCP
 from fastmcp.tools import ToolResult
@@ -98,7 +98,7 @@ def _closest_header(names: list[str]) -> str:
     return f"{label}: {spoken_names(names, total=len(names))}?"
 
 
-def _structured(search_result: SearchResult) -> dict[str, Any]:
+def _structured(search_result: SearchResult) -> dict[str, object]:
     """Structured content without absent kinds or cursors. A journal hit keeps `title`, null for a
     source without an entry: `exclude_none` would drop it, and the output schema requires it."""
     structured = search_result.model_dump(mode="json", exclude_none=True)

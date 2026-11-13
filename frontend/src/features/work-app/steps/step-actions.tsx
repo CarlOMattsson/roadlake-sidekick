@@ -32,6 +32,8 @@ export type StepActionsProps = {
   labels: WorkLabels;
   /** Shown by the Step's ⋯ menu ("Visa åtgärder"); nothing is drawn while it is false. */
   open: boolean;
+  /** Called with the number of active Actions after each read and each archive, so the Step's row can follow it. */
+  onCount: (count: number) => void;
 };
 
 type ActionsPhase = "idle" | "ready" | "forbidden" | "error";
@@ -59,6 +61,7 @@ export function StepActions({
   transport,
   labels: t,
   open,
+  onCount,
 }: StepActionsProps) {
   const manage = manageLabelsFor(t.dateLocale);
   const s = stepActionsLabelsFor(t.dateLocale);
@@ -81,6 +84,11 @@ export function StepActions({
   // newest request, or that crosses a successful write, is stale and must not overwrite the list.
   const ticket = useRef(0);
   const mounted = useRef(true);
+  // The newest callback, read when an answer arrives; it is no dependency, so a new one starts no new read.
+  const countRef = useRef(onCount);
+  useEffect(() => {
+    countRef.current = onCount;
+  }, [onCount]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -110,6 +118,7 @@ export function StepActions({
         setActions(page.items);
         setPhase("ready");
         setReading(false);
+        countRef.current(page.items.length);
       })
       .catch((error: unknown) => {
         if (current !== ticket.current || !mounted.current) return;
@@ -170,6 +179,7 @@ export function StepActions({
       focusUndoIn(undoBox.current);
     };
     setActions(remaining);
+    countRef.current(remaining.length);
     setArchived((list) => [
       ...list,
       {

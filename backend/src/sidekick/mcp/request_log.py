@@ -11,7 +11,7 @@ import json
 import logging
 import re
 import time
-from typing import Any, cast
+from typing import cast
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
@@ -120,9 +120,9 @@ class McpRequestLogging(Middleware):
 
     async def on_message(
         self,
-        context: MiddlewareContext[Any],
-        call_next: CallNext[Any, Any],
-    ) -> Any:
+        context: MiddlewareContext[object],
+        call_next: CallNext[object, object],
+    ) -> object:
         if context.type != "request" or INTERNAL_LISTING.get():
             return await call_next(context)
         method = context.method

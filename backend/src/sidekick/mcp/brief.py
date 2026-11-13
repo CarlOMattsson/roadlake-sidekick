@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal, TypedDict
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -156,7 +156,15 @@ def _phrase(words: _Words, count: int, forms: tuple[str, str]) -> str:
     return f"{count} {plural}"
 
 
-def _summary_text(parts: dict[str, Any], locale: AppLocale = DEFAULT_LOCALE) -> str:
+class _BriefParts(TypedDict, total=False):
+    """The parts of the brief the actor's scopes allow; a missing key is a part left out."""
+
+    tasks: BriefTasks
+    diary: BriefDiary
+    shopping: BriefShopping
+
+
+def _summary_text(parts: _BriefParts, locale: AppLocale = DEFAULT_LOCALE) -> str:
     """Return at most three sentences in the app language for the model to read aloud, with no
     titles."""
 
@@ -311,7 +319,7 @@ def register_brief_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         actor = ctx.actor_provider()
         now = ctx.container.work_lists.clock.now()
         day = now.astimezone(ctx.container.settings.owner_zone).date()
-        parts: dict[str, Any] = {}
+        parts: _BriefParts = {}
         if "tasks:read" in actor.scopes:
             parts["tasks"] = _tasks_part(ctx.container, actor, now)
         if "journal:read" in actor.scopes:

@@ -16,7 +16,14 @@ from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.tool_context import ToolContext
-from sidekick.mcp.work_text import cell, found_sentence, list_text, record_ref, spoken_line
+from sidekick.mcp.work_text import (
+    TextRow,
+    cell,
+    found_sentence,
+    list_text,
+    record_ref,
+    spoken_line,
+)
 from sidekick.shared.types import MAX_CURSOR_LENGTH, UNSET
 from sidekick.structured.work import (
     action_record,
@@ -29,10 +36,12 @@ from sidekick.structured.work_records import (
     ActionOutput,
     ActionPageOutput,
     ActionRecord,
+    ListedStepPageOutput,
     ReorderItem,
     StepChanges,
     StepOutput,
     StepPageOutput,
+    StepRecord,
 )
 from sidekick.work.application.steps_service import MAX_REORDER_STEPS
 
@@ -45,18 +54,20 @@ _ReorderSteps = Annotated[list[ReorderItem], Field(min_length=1, max_length=MAX_
 # An Action reorder still reads one page of 100 Actions, so its input stays at 100.
 _ReorderActions = Annotated[list[ReorderItem], Field(min_length=1, max_length=100)]
 
-_PARENT_KEY = {"step": "task_id", "action": "step_id"}
-_PARENT_KIND = {"step": "task", "action": "step"}
 
-
-def _record_reply(kind: str, verb: str, record: dict[str, Any]) -> ToolResult:
+def _record_reply(verb: str, record: StepRecord | ActionRecord) -> ToolResult:
     """A Step or Action result with one spoken line naming it and its parent."""
 
+    if isinstance(record, StepRecord):
+        kind, parent = "step", ("task", record.task_id)
+    else:
+        kind, parent = "action", ("step", record.step_id)
     return result(
-        {kind: record},
+        # Fields the record did not set (a new record has no instruction or note) stay out.
+        {kind: record.model_dump(mode="json", exclude_unset=True)},
         spoken_line(
-            f"{verb} {kind} {cell(record['title'])}.",
-            record_ref(record, parent=(_PARENT_KIND[kind], record[_PARENT_KEY[kind]])),
+            f"{verb} {kind} {cell(record.title)}.",
+            record_ref(record.id, record.version, record.title, parent=parent),
         ),
     )
 
@@ -71,8 +82,11 @@ def _changed(changes: BaseModel, *names: str) -> dict[str, Any]:
 def _register_list_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="list_task_steps",
-        description="List bounded ordered Steps for one owned Task; next_cursor continues.",
-        output_schema=output_schema(StepPageOutput),
+        description=(
+            "List bounded ordered Steps for one owned Task, each with its action_count; "
+            "next_cursor continues."
+        ),
+        output_schema=output_schema(ListedStepPageOutput),
         annotations=READ,
     )
     @ctx.instrument("list_task_steps")
@@ -83,15 +97,15 @@ def _register_list_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
             ctx.container, ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )
         return result(
-            data,
+            data.model_dump(mode="json"),
             list_text(
                 found_sentence(
-                    len(data["items"]),
-                    "step",
-                    "steps",
-                    [item["title"] for item in data["items"]],
+                    len(data.items), "step", "steps", [item.title for item in data.items]
                 ),
-                data["items"],
+                [
+                    TextRow(i.id, i.title, version=i.version, status=i.status, due_at=i.due_at)
+                    for i in data.items
+                ],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )
@@ -113,8 +127,8 @@ def _register_list_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
         page = ctx.container.steps.list_actions(
             ctx.actor_provider(), step_id, limit=limit, cursor=cursor
         )
-        data: dict[str, Any] = {
-            "items": [
+        data = ActionPageOutput(
+            items=[
                 ActionRecord.model_validate(
                     {
                         "id": x.id,
@@ -127,21 +141,21 @@ def _register_list_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
                         "attention_requested": x.attention_requested,
                         "archived_at": x.archived_at,
                     }
-                ).model_dump(mode="json")
+                )
                 for x in page.items
             ],
-            "next_cursor": page.next_cursor,
-        }
+            next_cursor=page.next_cursor,
+        )
         return result(
-            data,
+            data.model_dump(mode="json"),
             list_text(
                 found_sentence(
-                    len(page.items),
-                    "action",
-                    "actions",
-                    [item["title"] for item in data["items"]],
+                    len(page.items), "action", "actions", [item.title for item in data.items]
                 ),
-                data["items"],
+                [
+                    TextRow(i.id, i.title, version=i.version, status=i.status, due_at=i.due_at)
+                    for i in data.items
+                ],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )
@@ -169,18 +183,20 @@ def _register_create_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        record = {
-            "id": str(step.id),
-            "task_id": str(step.task_id),
-            "title": step.title,
-            "status": step.status.value,
-            "position": step.position,
-            "due_at": step.due_at,
-            "version": step.version,
-            "attention_requested": step.attention_requested,
-            "archived_at": step.archived_at,
-        }
-        return _record_reply("step", "Created", record)
+        record = StepRecord.model_validate(
+            {
+                "id": step.id,
+                "task_id": step.task_id,
+                "title": step.title,
+                "status": step.status.value,
+                "position": step.position,
+                "due_at": step.due_at,
+                "version": step.version,
+                "attention_requested": step.attention_requested,
+                "archived_at": step.archived_at,
+            }
+        )
+        return _record_reply("Created", record)
 
 
 def _register_create_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -205,18 +221,20 @@ def _register_create_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        record = {
-            "id": str(action.id),
-            "step_id": str(action.step_id),
-            "title": action.title,
-            "status": action.status.value,
-            "position": action.position,
-            "due_at": action.due_at,
-            "version": action.version,
-            "attention_requested": action.attention_requested,
-            "archived_at": action.archived_at,
-        }
-        return _record_reply("action", "Created", record)
+        record = ActionRecord.model_validate(
+            {
+                "id": action.id,
+                "step_id": action.step_id,
+                "title": action.title,
+                "status": action.status.value,
+                "position": action.position,
+                "due_at": action.due_at,
+                "version": action.version,
+                "attention_requested": action.attention_requested,
+                "archived_at": action.archived_at,
+            }
+        )
+        return _record_reply("Created", record)
 
 
 def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -242,7 +260,7 @@ def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = step_record(step)
-        return _record_reply("step", "Updated", record)
+        return _record_reply("Updated", record)
 
 
 def _register_complete_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -266,12 +284,14 @@ def _register_complete_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        record = structured["step"]
+        record = structured.step
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Completed step {cell(record['title'])}.",
-                record_ref(record, parent=("task", record["task_id"])),
+                f"Completed step {cell(record.title)}.",
+                record_ref(
+                    record.id, record.version, record.title, parent=("task", record.task_id)
+                ),
             ),
         )
 
@@ -298,7 +318,7 @@ def _register_archive_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = step_record(step)
-        return _record_reply("step", "Archived", record)
+        return _record_reply("Archived", record)
 
 
 def _register_restore_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -323,7 +343,7 @@ def _register_restore_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = step_record(step)
-        return _record_reply("step", "Restored", record)
+        return _record_reply("Restored", record)
 
 
 def _register_reorder_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -347,8 +367,11 @@ def _register_reorder_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
+        reordered = StepPageOutput(
+            items=[step_record(item) for item in page.items], next_cursor=page.next_cursor
+        )
         return result(
-            {"items": [step_record(item) for item in page.items], "next_cursor": page.next_cursor},
+            reordered.model_dump(mode="json"),
             f"Reordered {len(page.items)} steps in task {task_id}.",
         )
 
@@ -376,7 +399,7 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
-        return _record_reply("action", "Updated", record)
+        return _record_reply("Updated", record)
 
 
 def _register_complete_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -400,7 +423,7 @@ def _register_complete_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
-        return _record_reply("action", "Completed", record)
+        return _record_reply("Completed", record)
 
 
 def _register_archive_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -425,7 +448,7 @@ def _register_archive_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
-        return _record_reply("action", "Archived", record)
+        return _record_reply("Archived", record)
 
 
 def _register_restore_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -450,7 +473,7 @@ def _register_restore_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
-        return _record_reply("action", "Restored", record)
+        return _record_reply("Restored", record)
 
 
 def _register_reorder_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -474,11 +497,11 @@ def _register_reorder_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
+        reordered = ActionPageOutput(
+            items=[action_record(item) for item in page.items], next_cursor=page.next_cursor
+        )
         return result(
-            {
-                "items": [action_record(item) for item in page.items],
-                "next_cursor": page.next_cursor,
-            },
+            reordered.model_dump(mode="json"),
             f"Reordered {len(page.items)} actions in step {step_id}.",
         )
 

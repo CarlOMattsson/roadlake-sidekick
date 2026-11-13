@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { formatCalendarDate, formatTime } from "./dates";
+import { formatShortDateWithYear, formatTime } from "./dates";
 import { EntryLinks } from "./entry-links";
 import { EntryTasks } from "./entry-tasks";
 import { FieldsEditor, mergeFields } from "./draft-review";
 import { EntryTextForm } from "./entry-write";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { keyFor } from "../mcp-apps/idempotency";
 import type { PendingKey } from "../mcp-apps/idempotency";
 import { originalLine, summaryRest } from "./entry-card";
@@ -281,7 +282,11 @@ export function EntryFrame({
             />
           )}
           <p>
-            {formatCalendarDate(entry.journal_date, t.dateLocale)}
+            {formatShortDateWithYear(
+              entry.journal_date,
+              t.dateLocale,
+              ownerToday(),
+            )}
             {entry.occurred_at && (
               <>
                 {" · "}

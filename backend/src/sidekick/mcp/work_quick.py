@@ -6,15 +6,16 @@ Line 1 is the sentence voice mode reads: no id, no version, no ISO time. Rows af
 id and version for the next call.
 """
 
-from collections.abc import Mapping, Sequence
-from typing import Any
+from collections.abc import Sequence
 
 from sidekick.mcp.results import spoken_names
 from sidekick.mcp.text import CARD_NOTE, MAX_ROWS, card_row, card_rows, count_phrase
+from sidekick.mcp.work_text import iso_time
+from sidekick.structured.work_records import WorkItemRecord
 
 
 def quick_agenda_sentence(
-    items: Sequence[Mapping[str, Any]], next_cursor: str | None, *, max_minutes: int | None
+    items: Sequence[WorkItemRecord], next_cursor: str | None, *, max_minutes: int | None
 ) -> str:
     """Line 1: how many Tasks, within how many minutes, and the first few titles."""
 
@@ -27,25 +28,24 @@ def quick_agenda_sentence(
         return f"No open tasks{fit}."
     page = "" if next_cursor is None else " on this page (more follow)"
     noun = count_phrase(len(items), "task", "tasks") + page
-    names = spoken_names([str(item["title"]) for item in items], len(items))
+    names = spoken_names([item.title for item in items], len(items))
     return f"{noun}{fit}: {names}."
 
 
 def quick_agenda_text(
-    items: Sequence[Mapping[str, Any]], next_cursor: str | None, *, max_minutes: int | None
+    items: Sequence[WorkItemRecord], next_cursor: str | None, *, max_minutes: int | None
 ) -> str:
     """Return the sentence, then one row per Task: id and version, title, estimate and due date."""
 
     rows: list[str] = []
     for item in items:
-        minutes = item.get("estimated_minutes")
-        due = item.get("due_at")
+        minutes = item.estimated_minutes
         rows.append(
             card_row(
-                f"{item['id']} v{item['version']}",
-                str(item["title"]),
+                f"{item.id} v{item.version}",
+                item.title,
                 f"{minutes} min" if minutes is not None else "no estimate",
-                f"due {due}" if due else "no date",
+                f"due {iso_time(item.due_at)}" if item.due_at else "no date",
             )
         )
     lines = [quick_agenda_sentence(items, next_cursor, max_minutes=max_minutes)]

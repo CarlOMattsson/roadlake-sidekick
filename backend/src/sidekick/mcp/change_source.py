@@ -6,7 +6,8 @@ Claude's. The middleware sets the source for the duration of the call; the audit
 (`sidekick.shared.change_source`). It reads the tool's listed visibility and never its arguments.
 """
 
-from typing import Any, cast
+from collections.abc import Mapping
+from typing import cast
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
@@ -16,7 +17,7 @@ from mcp.types import CallToolRequestParams
 from sidekick.shared.change_source import ChangeSource, change_source
 
 
-def source_of_tool(meta: dict[str, Any] | None) -> ChangeSource:
+def source_of_tool(meta: Mapping[str, object] | None) -> ChangeSource:
     """`you` for a tool whose `_meta.ui.visibility` is exactly `["app"]`, else `claude`."""
 
     ui: object = (meta or {}).get("ui")

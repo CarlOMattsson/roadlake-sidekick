@@ -135,10 +135,13 @@ export type WorkProject = WithOptional<
  * description. Dates are YYYY-MM-DD and are sent as they are, without a time zone conversion.
  */
 export type WorkProjectChanges = Inputs["update_project"]["changes"];
-/** One Step as the Step tools return it. */
+/**
+ * One Step as the Step tools return it. `action_count` (the Step's active Actions) comes from
+ * list_task_steps only: the Step writes leave it out, and an older server never sends it.
+ */
 export type WorkStep = WithOptional<
   Pick<
-    Results["create_task_step"]["step"],
+    Item<Results["list_task_steps"]["items"]>,
     | "id"
     | "title"
     | "status"
@@ -146,8 +149,9 @@ export type WorkStep = WithOptional<
     | "version"
     | "position"
     | "archived_at"
+    | "action_count"
   >,
-  "position" | "archived_at"
+  "position" | "archived_at" | "action_count"
 >;
 /** One Action under a Step as list_step_actions and the Action writes return it (ActionRecord). */
 export type WorkAction = WithOptional<

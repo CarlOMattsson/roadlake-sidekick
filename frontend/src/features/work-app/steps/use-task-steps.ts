@@ -370,6 +370,13 @@ export function useTaskSteps(
     dispatch({ type: "created", step, status: t.stepAdded });
   }
 
+  /** The Step's Actions were read or changed: the row offers "Visa åtgärder" only while there are some. */
+  const setActionCount = useCallback(
+    (stepId: string, count: number) =>
+      dispatch({ type: "actionsCounted", stepId, count }),
+    [],
+  );
+
   return {
     state,
     write,
@@ -390,5 +397,6 @@ export function useTaskSteps(
     restore,
     retryWrite,
     stepCreated,
+    setActionCount,
   };
 }

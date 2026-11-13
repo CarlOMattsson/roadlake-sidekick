@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -30,19 +29,19 @@ def _linked_contact_name(ctx: ToolContext, contact_id: UUID) -> str:
     return flat(ctx.container.contacts.get(actor, contact_id).display_name)
 
 
-def _project_link_result(res: Mapping[str, Any]) -> dict[str, Any]:
+def _project_link_result(res: Mapping[str, object]) -> dict[str, object]:
     return ProjectContactResult(
-        contact_id=UUID(res["contact_id"]),
-        project_id=UUID(res["project_id"]),
-        linked=res["linked"],
+        contact_id=UUID(str(res["contact_id"])),
+        project_id=UUID(str(res["project_id"])),
+        linked=bool(res["linked"]),
     ).model_dump(mode="json")
 
 
-def _task_link_result(res: Mapping[str, Any]) -> dict[str, Any]:
+def _task_link_result(res: Mapping[str, object]) -> dict[str, object]:
     return TaskContactResult(
-        contact_id=UUID(res["contact_id"]),
-        task_id=UUID(res["task_id"]),
-        linked=res["linked"],
+        contact_id=UUID(str(res["contact_id"])),
+        task_id=UUID(str(res["task_id"])),
+        linked=bool(res["linked"]),
     ).model_dump(mode="json")
 
 

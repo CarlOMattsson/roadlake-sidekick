@@ -8,7 +8,7 @@ There is no REST route for it: the MCP tool calls the automation application ser
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -43,9 +43,9 @@ class ActivityRecord(Output):
     aggregate_type: Annotated[str, Field(max_length=64)]
     aggregate_id: UUID
     summary: Annotated[str, Field(max_length=2_000)]
-    before_values: dict[str, Any]
-    after_values: dict[str, Any]
-    evidence: dict[str, Any]
+    before_values: dict[str, object]
+    after_values: dict[str, object]
+    evidence: dict[str, object]
     policy_mode: AutomationPolicyMode | None
     correlation_id: Annotated[str, Field(max_length=128)] | None
     occurred_at: datetime

@@ -42,7 +42,7 @@ import { NewContact } from "./new-contact";
 import type { CreateRequest } from "./new-contact-state";
 import { useContactsList } from "./use-contacts-list";
 import { TagFilter } from "../../mcp-apps/ui/tags";
-import { useTagVocabulary } from "../../mcp-apps/ui/tag-vocabulary";
+import { useWorkTags } from "../shared/work-tags";
 import { tagLabelsFor } from "../../mcp-apps/ui/tag-labels";
 
 /** list_contacts takes q of 1 to 200 characters; an empty search lists every Contact. */
@@ -116,10 +116,7 @@ export function ContactsView({
   const chosenTags = frame.tags ?? [];
   const fresh = pageMatches(page, query, frame.includeArchived, chosenTags);
   // The tags in use on Contacts, for the filter row; none (or no list_tags on the host) draws no row.
-  const vocabulary = useTagVocabulary(
-    offers("list_tags") ? transport.listTags : undefined,
-    "contact",
-  );
+  const vocabulary = useWorkTags(transport, "contact");
   const tagWords = tagLabelsFor(t.dateLocale);
 
   function created(contact: WorkContactRecord) {

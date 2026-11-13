@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { workEn } from "@/features/work-app/shared/labels";
+import { tagEn } from "@/features/mcp-apps/ui/tag-labels";
+import type { TagRecord } from "@/features/mcp-apps/ui/tag-vocabulary";
 import { savedViewsLabelsEn } from "@/features/work-app/saved-views/saved-views-labels";
 import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
 import type {
@@ -82,6 +84,36 @@ describe("WorkFullscreen with saved views", () => {
     archived_at: null,
   };
 
+  const taggedAgenda: WorkSavedView = {
+    id: "019f0000-0000-7000-8000-0000000000v7",
+    name: "Kunder",
+    definition: {
+      view: "agenda",
+      context: "all",
+      tags: ["kund"],
+      tag_match: "all",
+    },
+    version: 1,
+    archived_at: null,
+  };
+  const kund: TagRecord = {
+    id: "019f0000-0000-7000-8000-0000000000t1",
+    slug: "kund",
+    label: "kund",
+    archived_at: null,
+    created_at: "2026-11-01T10:00:00Z",
+    updated_at: "2026-11-01T10:00:00Z",
+    version: 1,
+    usage: {
+      contact: 0,
+      domain: 0,
+      journal_entry: 0,
+      process: 0,
+      project: 0,
+      task: 3,
+    },
+  };
+
   /** A fullscreen transport: the reads of the tabs and the saved-view methods. */
   function fullTransport(
     views: WorkSavedView[] = [englishAgenda, englishBoard],
@@ -93,12 +125,14 @@ describe("WorkFullscreen with saved views", () => {
       .fn()
       .mockResolvedValue({ items: [], next_cursor: null });
     const listDomains = vi.fn().mockResolvedValue([]);
+    const listTags = vi.fn().mockResolvedValue([kund]);
     const transport = {
       ...fake.transport,
       getWorkAgenda,
       getWorkBoard,
       listUnsortedTasks,
       listDomains,
+      listTags,
     } as unknown as WorkTransport;
     return { ...fake, transport, getWorkAgenda, getWorkBoard };
   }
@@ -314,5 +348,68 @@ describe("WorkFullscreen with saved views", () => {
       { view: "agenda", context: "all", status: "todo" },
       expect.any(String),
     );
+  });
+  it("saves the tag filter chosen in the agenda with the view", async () => {
+    const fake = fullTransport([]);
+    fake.createSavedWorkView.mockResolvedValue({ saved_view: taggedAgenda });
+    const user = userEvent.setup();
+    mount(
+      { kind: "agenda", filters: { status: "todo" }, page: agendaPage },
+      fake.transport,
+    );
+    const filter = await screen.findByRole("group", { name: tagEn.filter });
+    await user.click(within(filter).getByRole("button", { name: "kund" }));
+    expect(fake.getWorkAgenda).toHaveBeenLastCalledWith({
+      status: "todo",
+      tags: ["kund"],
+      tag_match: "all",
+    });
+
+    await user.click(screen.getByRole("button", { name: workEn.moreActions }));
+    await user.click(
+      await screen.findByRole("button", { name: "Saved views" }),
+    );
+    await user.type(
+      await screen.findByLabelText(savedViewsLabelsEn.nameLabel),
+      "Kunder",
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(fake.createSavedWorkView).toHaveBeenCalledWith(
+      "Kunder",
+      {
+        view: "agenda",
+        context: "all",
+        status: "todo",
+        tags: ["kund"],
+        tag_match: "all",
+      },
+      expect.any(String),
+    );
+  });
+
+  it("opens a saved view with its tags chosen in the tag filter", async () => {
+    const fake = fullTransport([taggedAgenda]);
+    const user = userEvent.setup();
+    mount({ kind: "agenda", filters: {}, page: agendaPage }, fake.transport);
+
+    await user.click(
+      await screen.findByRole("button", { name: workEn.moreActions }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Saved views" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Open: Kunder" }),
+    );
+
+    expect(fake.getWorkAgenda).toHaveBeenLastCalledWith({
+      tags: ["kund"],
+      tag_match: "all",
+    });
+    const filter = await screen.findByRole("group", { name: tagEn.filter });
+    expect(
+      await within(filter).findByRole("button", { name: "kund" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 });

@@ -79,7 +79,21 @@ export type StepsAction =
   | { type: "moreFailed" }
   | { type: "archived"; item: ArchivedStep }
   | { type: "restored"; item: ArchivedStep; status: string }
-  | { type: "created"; step: WorkStep; status: string };
+  | { type: "created"; step: WorkStep; status: string }
+  /** The Step's Actions were read or changed: its row now knows how many active ones it has. */
+  | { type: "actionsCounted"; stepId: string; count: number };
+
+/**
+ * `step` with the Action count the view already held for it. The Step writes answer without a count,
+ * so the count read with the list is carried over rather than lost.
+ */
+function keepActionCount(
+  step: WorkStep,
+  known: WorkStep | undefined,
+): WorkStep {
+  const count = step.action_count ?? known?.action_count;
+  return count === undefined ? step : { ...step, action_count: count };
+}
 
 export const initialStepsState: StepsState = {
   phase: "loading",
@@ -147,7 +161,9 @@ export function stepsReducer(
         ...state,
         refreshing: false,
         steps: state.steps.map((item) =>
-          item.id === action.step.id ? action.step : item,
+          item.id === action.step.id
+            ? keepActionCount(action.step, item)
+            : item,
         ),
       };
     case "stepUndoSet":
@@ -165,7 +181,12 @@ export function stepsReducer(
       return {
         ...state,
         refreshing: false,
-        steps: action.items,
+        steps: action.items.map((item) =>
+          keepActionCount(
+            item,
+            state.steps.find((known) => known.id === item.id),
+          ),
+        ),
         nextCursor: undefined,
         status: action.status,
       };
@@ -203,9 +224,19 @@ export function stepsReducer(
         refreshing: false,
         steps: [
           ...state.steps.filter((item) => item.id !== action.step.id),
-          action.step,
+          // A new Step has no Actions yet.
+          { action_count: 0, ...action.step },
         ],
         status: action.status,
+      };
+    case "actionsCounted":
+      return {
+        ...state,
+        steps: state.steps.map((item) =>
+          item.id === action.stepId
+            ? { ...item, action_count: action.count }
+            : item,
+        ),
       };
   }
 }

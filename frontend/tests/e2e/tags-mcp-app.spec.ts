@@ -134,6 +134,29 @@ for (const [view, tool, result] of [
     expect(failures).toEqual([]);
   });
 
+test("Journal day: a row's tags are read whole at a phone's width", async ({
+  page,
+}) => {
+  const { app, failures } = await openWork(page, bigJournalDay, {
+    width: 375,
+  });
+  const chips = app.locator(".journal-entry-row .sk-tag:not(.sk-tag--more)");
+  expect(await chips.count()).toBeGreaterThan(0);
+  // No pill is cut: its text fits its box (no ellipsis) and it stays inside the row.
+  for (const chip of await chips.all()) {
+    const fits = await chip.evaluate(
+      (el) =>
+        el.scrollWidth <= el.clientWidth &&
+        el.getBoundingClientRect().right <=
+          (el.closest(".journal-entry-card")?.getBoundingClientRect().right ??
+            0) +
+            1,
+    );
+    expect(fits).toBe(true);
+  }
+  expect(failures).toEqual([]);
+});
+
 test("Task: a tag added from the suggestions is one update_task of the whole set", async ({
   page,
 }) => {

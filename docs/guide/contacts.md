@@ -31,7 +31,7 @@ You fill in the rest afterwards, or ask Claude to.
 
 ## Edit a contact
 
-Open the contact, choose ⋯ and then "Redigera" (Edit). You can also tap the name. In the form you also add nicknames under "Smeknamn" (Nicknames), so that Claude finds the right person when you use one, and "Arkivera" (Archive) hides a contact you no longer want to see in the list.
+Open the contact, choose ⋯ and then "Redigera" (Edit). You can also tap the name. In the form you also add other names under "Även kallad" (Nicknames), so that Claude finds the right person when you use one, and "Arkivera" (Archive) hides a contact you no longer want to see in the list.
 
 ## Open an email address or phone number
 

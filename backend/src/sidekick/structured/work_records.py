@@ -328,8 +328,19 @@ class ActionRecord(Output):
     note: str | None = None
 
 
+class ListedStepRecord(StepRecord):
+    """A Step as `list_task_steps` returns it, with the number of its active Actions."""
+
+    action_count: int = Field(ge=0)
+
+
 class StepPageOutput(Output):
     items: list[StepRecord]
+    next_cursor: str | None = None
+
+
+class ListedStepPageOutput(Output):
+    items: list[ListedStepRecord]
     next_cursor: str | None = None
 
 

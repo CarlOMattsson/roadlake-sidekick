@@ -1,3 +1,4 @@
+import { useEffect, useEffectEvent } from "react";
 import { roomEnabled } from "../../mcp-apps/enabled-rooms";
 import { BackHeader } from "../../mcp-apps/ui/back-header";
 import { AgendaView } from "../agenda/agenda";
@@ -52,6 +53,7 @@ export function WorkView({
   refreshKey,
   boardAvailable,
   hierarchyQuery,
+  onListFilters,
 }: WorkViewProps) {
   const {
     stack,
@@ -66,6 +68,20 @@ export function WorkView({
     replaceFrame,
     back,
   } = useFrameStack({ initial, onStackDepth, onRoute });
+  // The filters of the agenda or board at the bottom of the stack, told whenever they change (a tag chosen), so the
+  // shell saves a view with the filters the list shows now.
+  const root = stack[0];
+  const listFilters =
+    root?.kind === "agenda" || root?.kind === "board"
+      ? root.filters
+      : undefined;
+  const filtersKey = listFilters ? JSON.stringify(listFilters) : undefined;
+  const reportFilters = useEffectEvent(() => {
+    if (listFilters) onListFilters?.(listFilters);
+  });
+  useEffect(() => {
+    reportFilters();
+  }, [filtersKey]);
   // Inline (fullscreen offered) and the Task or Project is the only frame: a summary, not the view.
   const summaryRoot = fullscreen !== undefined && stack.length === 1;
   // An inline Contact root is a card with no form; its visually hidden heading is the Contact label,

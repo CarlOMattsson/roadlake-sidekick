@@ -4,14 +4,21 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar
 
 from sidekick.shared.types import Actor
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
 
-Instrument = Callable[[str], Callable[[Callable[..., Any]], Callable[..., Any]]]
+P = ParamSpec("P")
+R = TypeVar("R")
+
+
+class Instrument(Protocol):
+    """Wraps a tool in its telemetry span: `@ctx.instrument("tool_name")` keeps the signature."""
+
+    def __call__(self, tool_name: str, /) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
 @dataclass(frozen=True, slots=True)

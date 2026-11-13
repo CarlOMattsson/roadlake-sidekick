@@ -22,6 +22,11 @@ const swipeMinimum = 48;
 export type DayStripProps = {
   /** The selected day, YYYY-MM-DD. The strip shows the seven days of `stripDays(selected, today)`. */
   selected: string;
+  /**
+   * No day is chosen: the view lists entries from many days (a tag filter). No cell is filled or read as selected;
+   * `selected` still picks the week and holds the strip's tab stop, and a tap on a day opens that day.
+   */
+  unmarked?: boolean;
   /** Today, YYYY-MM-DD. Passed in so the strip never reads the clock. */
   today: string;
   /** Days (YYYY-MM-DD) with at least one entry. Days outside the shown seven are ignored. */
@@ -122,6 +127,7 @@ function dayOfMonth(date: string): string {
  */
 export function DayStrip({
   selected,
+  unmarked = false,
   today,
   daysWithEntries,
   labels: t,
@@ -261,7 +267,8 @@ export function DayStrip({
         {days.length > 0 && (
           <ol ref={weekList} className="sk-day-strip-week">
             {days.map((date) => {
-              const active = date === selected;
+              const anchor = date === selected;
+              const active = anchor && !unmarked;
               const hasEntries = marked.has(date);
               const isToday = date === today;
               // The name starts with the two words the cell shows (its weekday, or "Idag", and the day number) so
@@ -286,7 +293,7 @@ export function DayStrip({
                     aria-current={active ? "date" : undefined}
                     aria-label={name}
                     aria-keyshortcuts="ArrowLeft ArrowRight"
-                    tabIndex={active ? 0 : -1}
+                    tabIndex={anchor ? 0 : -1}
                     disabled={disabled || date > today}
                     style={dayStyle}
                     onClick={() => onSelect(date)}
@@ -322,7 +329,7 @@ export function DayStrip({
         )}
         {/* The date is in the view heading; this region only announces a change to screen readers. */}
         <span className="sk-day-strip-live" aria-live="polite">
-          {formatCalendarDate(selected, t.dateLocale)}
+          {unmarked ? "" : formatCalendarDate(selected, t.dateLocale)}
         </span>
       </div>
       {below}

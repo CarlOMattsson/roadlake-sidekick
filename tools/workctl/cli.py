@@ -227,8 +227,20 @@ def _cmd_is_uuid(args: argparse.Namespace) -> int:
     return 0 if owner.is_uuid(args.value) else 1
 
 
-def _cmd_is_yes(args: argparse.Namespace) -> int:
-    return 0 if prompts.is_yes(args.answer) else 1
+def _cmd_ask(args: argparse.Namespace) -> int:
+    if args.raw:
+        prompt = messages.render(args.lang, args.key, *args.values)
+    else:
+        prompt = prompts.question(messages.text(args.lang, args.key), args.default)
+    answer = prompts.ask(prompt, args.default, secret=args.secret, only_on_terminal=args.only_on_terminal)
+    # Bytes, so the answer is returned as it was typed whatever the locale; no trailing newline.
+    sys.stdout.buffer.write(answer.encode("utf-8", errors="surrogateescape"))
+    return 0
+
+
+def _cmd_confirm(args: argparse.Namespace) -> int:
+    prompt = prompts.question(messages.text(args.lang, args.key))
+    return 0 if prompts.confirm(prompt, args.default) else 1
 
 
 def _cmd_pick(args: argparse.Namespace) -> int:
@@ -393,8 +405,23 @@ def build_parser() -> argparse.ArgumentParser:
     sub = add("is-uuid", _cmd_is_uuid, "exit 0 when the value is a well-formed UUID")
     sub.add_argument("value")
 
-    sub = add("is-yes", _cmd_is_yes, "exit 0 when the answer counts as a yes (j, y, ja, yes)")
-    sub.add_argument("answer")
+    sub = add(
+        "ask", _cmd_ask, "ask a question of the message table on stderr; print the answer, else the default, on stdout"
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--key", required=True)
+    sub.add_argument("--default", default="")
+    sub.add_argument("--secret", action="store_true", help="no echo while the answer is typed")
+    sub.add_argument("--raw", action="store_true", help="the message is the whole prompt (no colon, no default shown)")
+    sub.add_argument("--only-on-terminal", action="store_true", help="show the prompt only when stdin is a terminal")
+    sub.add_argument("values", nargs="*", help="fill the message's %%s (with --raw)")
+
+    sub = add(
+        "confirm", _cmd_confirm, "ask a yes/no question; exit 0 for a yes (j, y, ja, yes), an empty answer is --default"
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--key", required=True)
+    sub.add_argument("--default", choices=("y", "n"), required=True)
 
     sub = add("pick", _cmd_pick, "print the numbered choice the answer names, else the answer itself")
     sub.add_argument("--answer", required=True)

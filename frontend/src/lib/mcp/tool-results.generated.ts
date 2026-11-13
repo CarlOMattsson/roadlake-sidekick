@@ -577,7 +577,22 @@ export type ToolResults = {
     next_cursor: string | null;
     task_id: string;
   };
-  list_task_steps: StepPageOutput;
+  list_task_steps: {
+    items: Array<{
+      action_count: number;
+      archived_at: string | null;
+      attention_requested: boolean;
+      due_at: string | null;
+      id: string;
+      instruction: string | null;
+      position: number;
+      status: string;
+      task_id: string;
+      title: string;
+      version: number;
+    }>;
+    next_cursor: string | null;
+  };
   list_tasks: {
     next_cursor: string | null;
     tasks: Array<{
@@ -642,7 +657,10 @@ export type ToolResults = {
   reject_journal_draft: JournalDraftStatusResult;
   remove_contact_alias: ContactResult;
   reorder_step_actions: ActionPageOutput;
-  reorder_task_steps: StepPageOutput;
+  reorder_task_steps: {
+    items: Array<StepRecord>;
+    next_cursor: string | null;
+  };
   reorder_work_board_column: {
     items: Array<{
       task_id: string;
@@ -2045,11 +2063,6 @@ export type SavedViewRecord = {
 
 export type StepOutput = {
   step: StepRecord;
-};
-
-export type StepPageOutput = {
-  items: Array<StepRecord>;
-  next_cursor: string | null;
 };
 
 export type StepRecord = {

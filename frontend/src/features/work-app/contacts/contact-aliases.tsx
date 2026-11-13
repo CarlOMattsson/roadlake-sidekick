@@ -47,7 +47,7 @@ export function ContactAliases({
 }
 
 /**
- * The nicknames (aliases) of one Contact under the name (design system §4, "Alias (09)"): one muted meta line,
+ * The nicknames (aliases) of one Contact under the name: one muted meta line,
  * "Även kallad X, Y" ("Nicknames: X, Y" in English); without nicknames nothing is drawn. Adding and removing nicknames happens in the
  * Contact's editor (`ContactAliases`), not here.
  */

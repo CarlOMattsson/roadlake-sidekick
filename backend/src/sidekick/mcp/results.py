@@ -4,7 +4,7 @@ import copy
 import functools
 import json
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import cast
 from uuid import uuid4
 
 import pydantic_core
@@ -76,11 +76,13 @@ _LARGE_RESULT_NOTE = (
 
 
 @functools.cache
-def _cached_output_schema(model: type[BaseModel], mode: JsonSchemaMode) -> dict[str, Any]:
+def _cached_output_schema(model: type[BaseModel], mode: JsonSchemaMode) -> dict[str, object]:
     return model.model_json_schema(mode=mode)
 
 
-def output_schema(model: type[BaseModel], *, mode: JsonSchemaMode = "validation") -> dict[str, Any]:
+def output_schema(
+    model: type[BaseModel], *, mode: JsonSchemaMode = "validation"
+) -> dict[str, object]:
     """Return a private copy of the memoised JSON Schema for a tool's output model.
 
     The copy keeps callers from mutating the cached schema shared by later tool builds.
@@ -89,7 +91,7 @@ def output_schema(model: type[BaseModel], *, mode: JsonSchemaMode = "validation"
     return copy.deepcopy(_cached_output_schema(model, mode))
 
 
-def _without_empty(value: Any) -> Any:
+def _without_empty(value: object) -> object:
     """Return a copy of a JSON-compatible value without keys whose value is None or ``[]``.
 
     The rule applies recursively to dicts and to dicts inside lists. Other values, including
@@ -98,14 +100,14 @@ def _without_empty(value: Any) -> Any:
     """
 
     if isinstance(value, dict):
-        mapping = cast(dict[str, Any], value)
+        mapping = cast(dict[str, object], value)
         return {
             key: _without_empty(item)
             for key, item in mapping.items()
             if item is not None and item != []
         }
     if isinstance(value, list):
-        return [_without_empty(item) for item in cast(list[Any], value)]
+        return [_without_empty(item) for item in cast(list[object], value)]
     return value
 
 

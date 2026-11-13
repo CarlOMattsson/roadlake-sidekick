@@ -100,7 +100,13 @@ function setup(overrides: Partial<WorkTransport> = {}) {
  * The Step row's side of the Actions: its ⋯ menu's "Visa åtgärder" button opens and closes them, and
  * StepActions draws nothing while they are closed.
  */
-function ActionsHarness({ transport }: { transport: WorkTransport }) {
+function ActionsHarness({
+  transport,
+  onCount = vi.fn(),
+}: {
+  transport: WorkTransport;
+  onCount?: (count: number) => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -116,6 +122,7 @@ function ActionsHarness({ transport }: { transport: WorkTransport }) {
         transport={transport}
         labels={workSv}
         open={open}
+        onCount={onCount}
       />
     </>
   );
@@ -437,6 +444,22 @@ it("shows a failed read with Try again, which reads the list again", async () =>
   await user.click(screen.getByRole("button", { name: "Försök igen" }));
   expect(await screen.findByText("Ring receptionen")).toBeInTheDocument();
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+});
+
+it("reports how many actions are active after the read and after an archive, for the Step's row", async () => {
+  const user = userEvent.setup();
+  const onCount = vi.fn();
+  const transport = setup();
+  render(<ActionsHarness transport={transport} onCount={onCount} />);
+  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await screen.findByText("Ring receptionen");
+  expect(onCount).toHaveBeenLastCalledWith(2);
+
+  await user.click(
+    screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
+  );
+  await screen.findByText("Arkiverade ”Ring receptionen”.");
+  expect(onCount).toHaveBeenLastCalledWith(1);
 });
 
 it("keeps the English and Swedish key sets identical", () => {

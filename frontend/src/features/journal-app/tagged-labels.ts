@@ -5,7 +5,14 @@
  */
 export const taggedEn = {
   taggedEntries: "Tagged entries",
-  taggedWindow: "The last 12 months, newest first",
+  /** How far back the list reaches: one window of 12 months, and one more for each "Show more". */
+  taggedWindow: (years: number): string =>
+    years === 1
+      ? "The last 12 months, newest first"
+      : `The last ${years} years, newest first`,
+  /** Reads the 12 months before the oldest window read. */
+  taggedMore: "Show more",
+  taggedNoOlder: "No entry with these tags in the year before.",
   taggedEmpty: (tags: number): string =>
     tags === 1
       ? "No entry from the last 12 months has this tag."
@@ -21,7 +28,12 @@ export const taggedEn = {
 
 export const taggedSv: typeof taggedEn = {
   taggedEntries: "Taggade anteckningar",
-  taggedWindow: "De senaste 12 månaderna, nyast först",
+  taggedWindow: (years) =>
+    years === 1
+      ? "De senaste 12 månaderna, nyast först"
+      : `De senaste ${years} åren, nyast först`,
+  taggedMore: "Visa fler",
+  taggedNoOlder: "Ingen anteckning med de här taggarna året innan.",
   taggedEmpty: (tags) =>
     tags === 1
       ? "Ingen anteckning de senaste 12 månaderna har den här taggen."

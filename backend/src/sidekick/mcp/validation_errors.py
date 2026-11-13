@@ -22,7 +22,7 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, cast
+from typing import cast
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError, ValidationError
@@ -32,6 +32,7 @@ from jsonschema import ValidationError as SchemaValidationError
 from jsonschema.protocols import Validator
 from jsonschema.validators import validator_for
 from mcp.types import CallToolRequestParams
+from pydantic import JsonValue
 from pydantic import ValidationError as PydanticValidationError
 
 from sidekick.mcp.request_log import SchemaRejection
@@ -160,7 +161,7 @@ def _validator_for(schema: dict[str, object]) -> Validator:
     return _validator_for_schema_json(json.dumps(schema))
 
 
-def _schema_message(schema: dict[str, object], arguments: dict[str, Any]) -> str | None:
+def _schema_message(schema: dict[str, object], arguments: dict[str, JsonValue]) -> str | None:
     """Check the arguments against the tool's listed schema; describe every failure, or None."""
 
     # A failure with no describable row still counts as a failure, so the fallback is returned.
@@ -187,7 +188,7 @@ class SchemaCheckedArguments(Middleware):
         params = context.message
         tool = await self._mcp.get_tool(params.name)
         if tool is not None:
-            arguments: dict[str, Any] = params.arguments or {}
+            arguments: dict[str, JsonValue] = params.arguments or {}
             message = _schema_message(tool.parameters, arguments)
             if message is not None:
                 raise SchemaRejection(message)

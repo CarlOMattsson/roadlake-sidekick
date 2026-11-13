@@ -214,8 +214,7 @@ stored_model_key() {
 store_model_key() {
   local key="${SIDEKICK_WORK_MODEL_API_KEY:-}"
   if [ -z "$key" ] && [ -t 0 ]; then
-    read -rsp "$(msg model_key_ask)" key
-    echo
+    key="$(workctl ask --lang "$L" --key model_key_ask --raw --secret)" || exit 1
   fi
   apply_model_key "$key"
   if [ -n "$key" ]; then
@@ -248,20 +247,15 @@ container_id() { compose ps -q "$1" 2>/dev/null || true; }
 
 # ask VARNAME KEY [default]: prompt text from the table; the answer (or the default) ends up in $VARNAME.
 ask() {
-  local __var="$1" __key="$2" __def="${3:-}" __ans=""
+  local __var="$1" __key="$2" __def="${3:-}" __ans
   if [ -z "$__def" ]; then __def="${4:-}"; fi
-  if [ -n "$__def" ]; then printf '%s [%s]: ' "$(msg "$__key")" "$__def" >&2; else printf '%s: ' "$(msg "$__key")" >&2; fi
-  IFS= read -r __ans || __ans=""
-  printf -v "$__var" '%s' "${__ans:-$__def}"
+  # A workctl that fails stops the script: it must not pass for an empty answer.
+  __ans="$(workctl ask --lang "$L" --key "$__key" --default="$__def")" || exit 1
+  printf -v "$__var" '%s' "$__ans"
 }
 
 # yes/no with a default (y or n); j/y/ja/yes are yes.
-confirm() {
-  local key="$1" default="$2" ans=""
-  printf '%s: ' "$(msg "$key")" >&2
-  IFS= read -r ans || ans=""
-  workctl is-yes -- "${ans:-$default}"
-}
+confirm() { workctl confirm --lang "$L" --key "$1" --default "$2"; }
 
 # GET <base>/models with the key passed on stdin (never on a command line). Prints the model ids, one per line.
 list_models() { printf '%s' "$2" | workctl models-list --base-url "$1"; }
@@ -467,7 +461,7 @@ cmd_stop() {
   echo "=== $(now) stop ===" >>"$LOG"
   if [ "${1:-}" = "--purge" ]; then
     local answer
-    read -rp "$(msg purge_q)" answer
+    answer="$(workctl ask --lang "$L" --key purge_q --raw --only-on-terminal)" || exit 1
     [ "$answer" = "$(msg purge_yes)" ] || { say aborted; exit 1; }
     compose down -v >>"$LOG" 2>&1 || { errf down_fail "$LOG"; exit 1; }
     rm -rf "$SECRETS" "$BACKUPS" "$GEN"
@@ -1241,8 +1235,7 @@ cmd_restore() {
   sayf rs_plan "$db" "$([ "$MEMORY" = 1 ] && echo "$mem" || msg mem_off_word)" "$PROJECT" "$BACKUPS"
   if [ "$apply" = 0 ]; then say rs_dry; return 0; fi
 
-  printf "$(msg rs_confirm_q)" "$PROJECT" >&2
-  IFS= read -r answer || answer=""
+  answer="$(workctl ask --lang "$L" --key rs_confirm_q --raw -- "$PROJECT")" || exit 1
   [ "$answer" = "$PROJECT" ] || { say aborted; exit 1; }
   echo "=== $(now) restore $ts ===" >>"$LOG"
 
@@ -1290,9 +1283,8 @@ cmd_restore() {
 cmd_setup() {
   local lang_default ans url key mem allow rooms models parsed test_key keep_key port t missing want_mem
   lang_default="$L"
-  printf '%s [%s]: ' "$(msg lang_q)" "$lang_default" >&2
-  IFS= read -r ans || ans=""
-  case "${ans:-$lang_default}" in sv*|SV*) L=sv ;; *) L=en ;; esac
+  ask ans lang_q "$lang_default"
+  case "$ans" in sv*|SV*) L=sv ;; *) L=en ;; esac
   warn_strict_umask
   echo
   say title
@@ -1329,10 +1321,7 @@ cmd_setup() {
         url=""
         continue
       fi
-      printf '%s: ' "$(msg key_q)" >&2
-      key=""
-      IFS= read -rs key || key=""
-      echo >&2
+      key="$(workctl ask --lang "$L" --key key_q --secret)" || exit 1
       case "$key" in
         '') test_key="$keep_key" ;;
         -) test_key="" ;;

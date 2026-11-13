@@ -130,7 +130,7 @@ export function ProjectFrame({
     );
   }
   return (
-    <article>
+    <article className="work-project">
       <DetailBar
         back={back}
         kicker={phase !== "gone" ? t.project : undefined}

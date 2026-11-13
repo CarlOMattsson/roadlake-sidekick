@@ -200,7 +200,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   completing: "Sparar…",
   completedNote: "Markerade uppgiften som klar.",
   undo: workSv.agendaUndo,
-  undoneNote: "Ångrade: uppgiften är inte längre markerad som klar.",
+  undoneNote: "Ångrat. Uppgiften är öppen igen.",
   conflict:
     "Uppgiften ändrades någon annanstans. Läs om för att se senaste versionen.",
   saveFailed: "Kunde inte spara. Försök igen.",

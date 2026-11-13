@@ -6,13 +6,13 @@
 
 ## `list_task_steps`
 
-List bounded ordered Steps for one owned Task; next_cursor continues.
+List bounded ordered Steps for one owned Task, each with its action_count; next_cursor continues.
 
 Access: read
 
 Scopes: requires `tasks:read`.
 
-Returns: `StepPageOutput` with `items` (array of StepRecord), `next_cursor` (string or null).
+Returns: `ListedStepPageOutput` with `items` (array of ListedStepRecord), `next_cursor` (string or null).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |

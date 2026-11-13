@@ -79,6 +79,17 @@ it("folds Klar: its rows show only after the heading button opens it", async () 
   ).toBeInTheDocument();
 });
 
+it("reads the board with the search only once the text changes, not with the text it mounts with", async () => {
+  const work = transport();
+  const { rerender } = render(search(work, "anna"));
+  await act(() => new Promise((resolve) => setTimeout(resolve, 400)));
+  expect(work.getWorkBoard).not.toHaveBeenCalled();
+  rerender(search(work, "annas"));
+  await waitFor(() =>
+    expect(work.getWorkBoard).toHaveBeenCalledWith({ q: "annas" }),
+  );
+});
+
 it("the search filters the titles without regard to case, and says so when nothing matches", async () => {
   const user = userEvent.setup();
   const work = transport();
@@ -96,8 +107,10 @@ it("the search filters the titles without regard to case, and says so when nothi
   expect(screen.queryByRole("button", { name: workEn.moveDown })).toBeNull();
   rerender(search(work, "zzz"));
   // A search with no hit names the text; the "Rensa sökningen" button comes only with a clear from the shell.
+  // The text rests 300 ms before the board reads with it, and the line shows once that read has answered. A read
+  // for an earlier text can land first on a loaded machine, so wait for this one instead of looking straight away.
   expect(
-    screen.getByText(fillLabel(workEn.agendaNoMatch, { q: "zzz" })),
+    await screen.findByText(fillLabel(workEn.agendaNoMatch, { q: "zzz" })),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: workEn.agendaClearSearch }),

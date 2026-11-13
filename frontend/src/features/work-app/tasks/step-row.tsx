@@ -58,6 +58,7 @@ export function StepRow({
   onMove,
   onArchive,
   actions,
+  onActionCount,
 }: {
   step: WorkStep;
   index: number;
@@ -78,11 +79,16 @@ export function StepRow({
   onArchive?: () => void;
   /** False: no "Visa åtgärder". With no menu entry at all, the Step has no menu (no long press, no hint). */
   actions: boolean;
+  /** The Step's Actions were read or changed; `count` is how many are active. */
+  onActionCount: (count: number) => void;
 }) {
-  const hasMenu = Boolean(onMove || onArchive || actions);
   const [open, setOpen] = useState(false);
   // The Step's Actions open from this menu; they stay open until the menu's button closes them.
   const [actionsOpen, setActionsOpen] = useState(false);
+  // A Step known to have no Actions offers no "Visa åtgärder"; an unknown count (an older server) still does.
+  // While they are open the button stays, so archiving the last Action does not take away the way to close them.
+  const offersActions = actions && (actionsOpen || step.action_count !== 0);
+  const hasMenu = Boolean(onMove || onArchive || offersActions);
   const s = stepActionsLabelsFor(t.dateLocale);
   return (
     <li
@@ -147,7 +153,7 @@ export function StepRow({
             onMove={onMove}
             onArchive={onArchive}
           />
-          {actions && (
+          {offersActions && (
             <button
               type="button"
               className="work-step-actions-open"
@@ -181,6 +187,7 @@ export function StepRow({
           transport={transport}
           labels={t}
           open={actionsOpen}
+          onCount={onActionCount}
         />
       )}
       {hasMenu && (

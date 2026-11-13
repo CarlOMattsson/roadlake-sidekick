@@ -51,6 +51,9 @@ class StepsStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
         *,
         after: tuple[int, UUID] | None = None,
     ) -> list[Step]: ...
+    def count_active_actions_by_step(
+        self, session: TxSession, owner_id: UUID, step_ids: tuple[UUID, ...]
+    ) -> dict[UUID, int]: ...
     def save_step(
         self, session: TxSession, step: Step, expected_version: int | None = None
     ) -> None: ...
@@ -127,14 +130,36 @@ class StepsService:
     ) -> Page[Step]:
         """Continue active Steps in position/id order; a reorder invalidates what was read."""
 
+        return self._read_steps(actor, task_id, limit, cursor, count_actions=False)[0]
+
+    def list_steps_with_action_counts(
+        self, actor: Actor, task_id: UUID, *, limit: int = 100, cursor: str | None = None
+    ) -> tuple[Page[Step], dict[UUID, int]]:
+        """The page `list_steps` gives and, in the same read, how many active Actions each Step has.
+
+        The counts come from one grouped query for the whole page, not one per Step; a Step with no
+        Actions is absent from the mapping.
+        """
+
+        return self._read_steps(actor, task_id, limit, cursor, count_actions=True)
+
+    def _read_steps(
+        self, actor: Actor, task_id: UUID, limit: int, cursor: str | None, *, count_actions: bool
+    ) -> tuple[Page[Step], dict[UUID, int]]:
         actor.require("tasks:read")
         validate_limit(limit, maximum=100)
         query_key = f"steps:v1:task={task_id}"
         after = self._decode_position(actor, cursor, query_key)
-        rows = self.store.transaction(
-            lambda s: self.store.list_steps(s, actor.user_id, task_id, limit + 1, after=after)
-        )
-        return self._page(actor, rows, limit, query_key)
+
+        def read(session: TxSession) -> tuple[list[Step], dict[UUID, int]]:
+            rows = self.store.list_steps(session, actor.user_id, task_id, limit + 1, after=after)
+            if not count_actions:
+                return rows, {}
+            step_ids = tuple(step.id for step in rows)
+            return rows, self.store.count_active_actions_by_step(session, actor.user_id, step_ids)
+
+        rows, counts = self.store.transaction(read)
+        return self._page(actor, rows, limit, query_key), counts
 
     def get_step(self, actor: Actor, step_id: UUID) -> Step:
         actor.require("tasks:read")

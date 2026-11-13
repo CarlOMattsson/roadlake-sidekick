@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from uuid import UUID
 
 from sidekick.projects.application.service import project_public_data
+from sidekick.projects.domain import Project
 from sidekick.shared.errors import InvalidInputError
 from sidekick.shared.text_excerpt import excerpt
 from sidekick.shared.types import Actor
@@ -21,10 +22,13 @@ from sidekick.structured.work_records import (
     HierarchyNodeRecord,
     HierarchyOutput,
     HierarchyTaskRecord,
+    ListedStepPageOutput,
+    ListedStepRecord,
     ProcessOutput,
     ProcessRecord,
     ProjectDetailOutput,
     ProjectDetailRecord,
+    StepOutput,
     StepRecord,
     TaskChanges,
     TaskDetailOutput,
@@ -38,6 +42,7 @@ from sidekick.structured.work_records import (
     end_of_day_due_at,
 )
 from sidekick.tasks.application import UpdateTaskCommand
+from sidekick.tasks.application.models import TaskDetailRead
 from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority, TaskStatus
 from sidekick.work.application.models import HierarchyNode, WorkQuery, WorkRow
@@ -47,6 +52,7 @@ from sidekick.work.application.serialization import (
     process_hierarchy_node,
     process_public_data,
 )
+from sidekick.work.domain import Action, Step
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
@@ -142,7 +148,7 @@ class WorkAgendaArguments:
 
 def work_agenda_structured(
     container: Container, actor: Actor, arguments: WorkAgendaArguments
-) -> dict[str, Any]:
+) -> WorkItemPageOutput:
     """The structured content of `get_work_agenda`; the companion adapter answers the same."""
 
     a = arguments
@@ -206,12 +212,12 @@ def work_agenda_structured(
         items=[work_item_record(row, names) for row in page.items],
         next_cursor=page.next_cursor,
         filters=filters,
-    ).model_dump(mode="json")
+    )
 
 
 def task_detail_structured(
     container: Container, actor: Actor, task_id: UUID
-) -> tuple[dict[str, Any], Any]:
+) -> tuple[TaskDetailOutput, TaskDetailRead]:
     """The structured content of `get_task`, and the detail read it came from (for the text)."""
 
     # One transaction for the Task, tags, Project title, Step counts and the first Steps.
@@ -219,9 +225,7 @@ def task_detail_structured(
     task_data = with_tags(task_public_data(detail.task), [tag.slug for tag in detail.tags])
     task_data["project_title"] = clipped_project_title(detail.project_title)
     task_data.update(detail.step_counts)
-    structured = TaskDetailOutput(task=TaskDetailRecord.model_validate(task_data)).model_dump(
-        mode="json"
-    )
+    structured = TaskDetailOutput(task=TaskDetailRecord.model_validate(task_data))
     return structured, detail
 
 
@@ -233,7 +237,7 @@ def complete_task_structured(
     version: int,
     idempotency_key: str,
     correlation_id: str | None = None,
-) -> dict[str, Any]:
+) -> TaskOutput:
     """Complete one Task through `TaskService.complete`; the structured content of
     `complete_task`. Version check, transaction, audit, recurrence and durable idempotency are
     the use case's own."""
@@ -248,9 +252,7 @@ def complete_task_structured(
         correlation_id=correlation_id,
     )
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task_id)]
-    return TaskOutput(
-        task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs))
-    ).model_dump(mode="json")
+    return TaskOutput(task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs)))
 
 
 def update_task_structured(
@@ -263,7 +265,7 @@ def update_task_structured(
     changes: TaskChanges,
     correlation_id: str | None = None,
     only_if_status: TaskStatus | None = None,
-) -> dict[str, Any]:
+) -> TaskOutput:
     """Update one Task through `TaskService.update`; the structured content of `update_task`.
 
     `only_if_status` is the use case's own atomic status guard (the companion's reopen).
@@ -288,9 +290,7 @@ def update_task_structured(
         only_if_status=only_if_status,
     )
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task_id)]
-    return TaskOutput(
-        task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs))
-    ).model_dump(mode="json")
+    return TaskOutput(task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs)))
 
 
 def task_steps_structured(
@@ -300,34 +300,27 @@ def task_steps_structured(
     *,
     limit: int = 100,
     cursor: str | None = None,
-) -> dict[str, Any]:
-    """The structured content of `list_task_steps`."""
+) -> ListedStepPageOutput:
+    """The structured content of `list_task_steps`: Steps with their active Action counts."""
 
-    page = container.steps.list_steps(actor, task_id, limit=limit, cursor=cursor)
-    return {
-        "items": [
-            StepRecord.model_validate(
-                {
-                    "id": x.id,
-                    "task_id": x.task_id,
-                    "title": x.title,
-                    "status": x.status.value,
-                    "position": x.position,
-                    "due_at": x.due_at,
-                    "version": x.version,
-                    "attention_requested": x.attention_requested,
-                    "archived_at": x.archived_at,
-                }
-            ).model_dump(mode="json")
-            for x in page.items
+    page, action_counts = container.steps.list_steps_with_action_counts(
+        actor, task_id, limit=limit, cursor=cursor
+    )
+    return ListedStepPageOutput(
+        items=[
+            ListedStepRecord(
+                **step_record(step).model_dump(),
+                action_count=action_counts.get(step.id, 0),
+            )
+            for step in page.items
         ],
-        "next_cursor": page.next_cursor,
-    }
+        next_cursor=page.next_cursor,
+    )
 
 
 def project_detail_structured(
     container: Container, actor: Actor, project_id: UUID
-) -> tuple[dict[str, Any], Any]:
+) -> tuple[ProjectDetailOutput, Project]:
     """The structured content of `get_project`, and the Project it came from (for the text)."""
 
     project = container.projects.get(actor, project_id)
@@ -338,30 +331,24 @@ def project_detail_structured(
     project_data = with_tags(project_public_data(project), slugs)
     project_data["estimate_totals"] = estimate_totals.to_data()
     project_data.update(container.contexts.project_task_counts(actor, project_id))
-    structured = ProjectDetailOutput(
-        project=ProjectDetailRecord.model_validate(project_data)
-    ).model_dump(mode="json")
+    structured = ProjectDetailOutput(project=ProjectDetailRecord.model_validate(project_data))
     return structured, project
 
 
-def domain_structured(container: Container, actor: Actor, domain_id: UUID) -> dict[str, Any]:
+def domain_structured(container: Container, actor: Actor, domain_id: UUID) -> DomainOutput:
     """The structured content of `get_domain`."""
 
     domain = container.contexts.get_domain(actor, domain_id)
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "domain", domain_id)]
-    return DomainOutput(
-        domain=DomainRecord.model_validate(domain_public_data(domain, slugs))
-    ).model_dump(mode="json")
+    return DomainOutput(domain=DomainRecord.model_validate(domain_public_data(domain, slugs)))
 
 
-def process_structured(container: Container, actor: Actor, process_id: UUID) -> dict[str, Any]:
+def process_structured(container: Container, actor: Actor, process_id: UUID) -> ProcessOutput:
     """The structured content of `get_process`."""
 
     process = container.contexts.get_process(actor, process_id)
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "process", process_id)]
-    return ProcessOutput(
-        process=ProcessRecord.model_validate(process_public_data(process, slugs))
-    ).model_dump(mode="json")
+    return ProcessOutput(process=ProcessRecord.model_validate(process_public_data(process, slugs)))
 
 
 _HIERARCHY_TASK_LIMIT = 200
@@ -371,14 +358,14 @@ _HIERARCHY_TASK_SCAN_LIMIT = 1000
 
 def hierarchy_nodes_structured(
     nodes: Sequence[HierarchyNode], next_cursor: str | None
-) -> dict[str, Any]:
-    """The structured content of `get_work_hierarchy` without tasks."""
+) -> HierarchyOutput:
+    """The structured content of `get_work_hierarchy` without tasks (`tasks` is left unset)."""
 
     return HierarchyOutput(
         nodes=[HierarchyNodeRecord.model_validate(node.to_data()) for node in nodes],
         truncated=next_cursor is not None,
         next_cursor=next_cursor,
-    ).model_dump(mode="json", exclude={"tasks"})
+    )
 
 
 def work_hierarchy_structured(
@@ -389,8 +376,10 @@ def work_hierarchy_structured(
     cursor: str | None,
     include_tasks: bool,
     process_id: UUID | None = None,
-) -> dict[str, Any]:
+) -> HierarchyOutput:
     """The structured content of `get_work_hierarchy`, shared by the MCP tool and the companion.
+
+    Without `include_tasks` the result's `tasks` is unset: dump it with `exclude_unset=True`.
 
     `process_id` narrows the Tasks to the ones filed under that Process (the Process must be the
     caller's own); it only means something together with `include_tasks`, so alone it is refused.
@@ -412,8 +401,8 @@ def work_hierarchy_structured(
         nodes=[HierarchyNodeRecord.model_validate(node.to_data()) for node in nodes],
         truncated=next_cursor is not None or tasks_truncated,
         next_cursor=next_cursor,
-        tasks=[HierarchyTaskRecord.model_validate(task) for task in tasks],
-    ).model_dump(mode="json")
+        tasks=tasks,
+    )
 
 
 def hierarchy_tasks(
@@ -422,7 +411,7 @@ def hierarchy_tasks(
     nodes: Sequence[HierarchyNode],
     *,
     process_id: UUID | None = None,
-) -> tuple[list[dict[str, Any]], bool]:
+) -> tuple[list[HierarchyTaskRecord], bool]:
     """Return the active Tasks under the page's Projects and Processes, and whether a cap cut them.
 
     Tasks come from the same use case as `list_tasks`, read 100 at a time, and Steps from the
@@ -435,7 +424,7 @@ def hierarchy_tasks(
     """
 
     parent_ids = {str(node.id) for node in nodes if node.kind in ("project", "process")}
-    tasks: list[dict[str, Any]] = []
+    tasks: list[HierarchyTaskRecord] = []
     scanned = 0
     cut_tasks = False
     cut_steps = False
@@ -471,7 +460,7 @@ def hierarchy_tasks(
                     ],
                 }
             )
-            tasks.append(task.model_dump(mode="json"))
+            tasks.append(task)
         if cut_tasks or page.next_cursor is None:
             break
         if scanned >= _HIERARCHY_TASK_SCAN_LIMIT:
@@ -532,7 +521,7 @@ def task_page_structured(
     status: TaskStatus | None = None,
     cursor: str | None = None,
     unsorted: bool = False,
-) -> dict[str, Any]:
+) -> TaskPageOutput:
     """The structured content of `list_tasks`, shared with the companion's Project Tasks page:
     each row carries a description excerpt, not the whole description (`get_task` has it)."""
 
@@ -549,7 +538,7 @@ def task_page_structured(
     return TaskPageOutput(
         tasks=[TaskListRecord.model_validate(with_description_excerpt(row)) for row in rows],
         next_cursor=next_cursor,
-    ).model_dump(mode="json")
+    )
 
 
 def complete_step_structured(
@@ -560,7 +549,7 @@ def complete_step_structured(
     version: int,
     idempotency_key: str,
     correlation_id: str | None = None,
-) -> dict[str, Any]:
+) -> StepOutput:
     """Complete one Step through `StepsService.complete_step`; the structured content of
     `complete_task_step`."""
 
@@ -571,7 +560,7 @@ def complete_step_structured(
         idempotency_key=idempotency_key,
         correlation_id=correlation_id,
     )
-    return {"step": step_record(step)}
+    return StepOutput(step=step_record(step))
 
 
 def reopen_step_structured(
@@ -582,7 +571,7 @@ def reopen_step_structured(
     version: int,
     idempotency_key: str,
     correlation_id: str | None = None,
-) -> dict[str, Any]:
+) -> StepOutput:
     """Set a completed Step back to "todo": `update_task_step` with exactly `status = todo`,
     guarded by the use case so it only ever applies to a completed Step."""
 
@@ -595,10 +584,10 @@ def reopen_step_structured(
         only_if_status=TaskStatus.COMPLETED,
         correlation_id=correlation_id,
     )
-    return {"step": step_record(step)}
+    return StepOutput(step=step_record(step))
 
 
-def step_record(step: Any) -> dict[str, Any]:
+def step_record(step: Step) -> StepRecord:
     return StepRecord.model_validate(
         {
             "id": step.id,
@@ -612,10 +601,10 @@ def step_record(step: Any) -> dict[str, Any]:
             "archived_at": step.archived_at,
             "instruction": step.instruction,
         }
-    ).model_dump(mode="json")
+    )
 
 
-def action_record(action: Any) -> dict[str, Any]:
+def action_record(action: Action) -> ActionRecord:
     return ActionRecord.model_validate(
         {
             "id": action.id,
@@ -629,4 +618,4 @@ def action_record(action: Any) -> dict[str, Any]:
             "archived_at": action.archived_at,
             "note": action.note,
         }
-    ).model_dump(mode="json")
+    )

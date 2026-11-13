@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { formatCalendarDate, formatTime } from "./dates";
+import { formatShortDateWithYear, formatTime } from "./dates";
 import { labelFor } from "./labels";
 import { isForbidden } from "./transport";
 import type { JournalSource } from "./transport";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import type { FrameProps, LoadPhase } from "./frame-props";
 
@@ -61,7 +62,11 @@ export function SourceFrame({
           <p className="journal-muted">{t.originalNote}</p>
           <p>
             {labelFor(t.sourceType, source.source_type)} ·{" "}
-            {formatCalendarDate(source.journal_date, t.dateLocale)}
+            {formatShortDateWithYear(
+              source.journal_date,
+              t.dateLocale,
+              ownerToday(),
+            )}
           </p>
           {source.source_recorded_at && (
             <p>

@@ -66,7 +66,7 @@ export function ProcessFrame({
     ]);
   }
   return (
-    <article>
+    <article className="work-process">
       <DetailBar
         back={back}
         kicker={phase !== "gone" ? pl.process : undefined}

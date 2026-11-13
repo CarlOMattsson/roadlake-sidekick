@@ -97,10 +97,14 @@ describe("the tag filter of the day view", () => {
 
   it("reads the last 12 months for every chosen tag, newest first, and following the cursor", async () => {
     const user = userEvent.setup();
+    const thisYear = Number(ownerToday(undefined).slice(0, 4));
     const listTaggedEntries = vi
       .fn()
       .mockResolvedValueOnce(
-        page([onDay(1, "2026-03-02"), onDay(2, "2026-05-09")], "c1"),
+        page(
+          [onDay(1, `${thisYear}-01-02`), onDay(2, `${thisYear - 1}-05-09`)],
+          "c1",
+        ),
       )
       .mockResolvedValueOnce(page([onDay(3, "2026-09-30")]));
     renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
@@ -130,10 +134,14 @@ describe("the tag filter of the day view", () => {
       await screen.findAllByRole("button", { name: /^Post/ })
     ).map((b) => within(b).getByText(/^Post \d/).textContent);
     expect(titles).toEqual(["Post 3", "Post 2", "Post 1"]);
-    // The day leads each row's meta line, since the list spans days; the day's own content is gone.
+    // The day leads each row's meta line, since the list spans days; the year only when it is not this year.
     expect(screen.getByRole("button", { name: /Post 2/ })).toHaveTextContent(
-      "9 May 2026",
+      `9 May ${thisYear - 1}`,
     );
+    const thisYearRow = screen.getByRole("button", { name: /Post 1/ });
+    expect(thisYearRow).toHaveTextContent("2 Jan");
+    expect(thisYearRow).not.toHaveTextContent(String(thisYear));
+    // The day's own content is gone.
     expect(screen.queryByText("Dagen handlade om offerten.")).toBeNull();
     expect(
       screen.queryByRole("heading", { name: journalEn.entries }),
@@ -305,5 +313,72 @@ describe("the tag filter of the day view", () => {
     expect(
       screen.getByRole("group", { name: "Filtrera på tagg" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("the tagged list in place of the day", () => {
+  it("names the view by the list and marks no day of the strip", async () => {
+    const user = userEvent.setup();
+    renderDay(
+      transportMock({
+        listTags: listTagsMock(),
+        listTaggedEntries: vi.fn(() =>
+          Promise.resolve(page([onDay(1, "2026-09-30")])),
+        ),
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText("Post 1");
+    const headings = screen.getAllByRole("heading", {
+      name: journalEn.taggedEntries,
+    });
+    expect(headings).toHaveLength(1);
+    expect(headings[0]?.tagName).toBe("H2");
+    expect(document.querySelector('[aria-current="date"]')).toBeNull();
+  });
+
+  it("reads the year before the oldest with Show more, under the list, until a year is empty", async () => {
+    const user = userEvent.setup();
+    const listTaggedEntries = vi
+      .fn()
+      .mockResolvedValueOnce(page([onDay(1, "2026-09-30")]))
+      .mockResolvedValueOnce(page([onDay(2, "2025-06-01")]))
+      .mockResolvedValueOnce(page([]));
+    renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText("Post 1");
+
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    await screen.findByText("Post 2");
+    const today = ownerToday(undefined);
+    const to = shiftDate(today, -366);
+    expect(listTaggedEntries).toHaveBeenNthCalledWith(
+      2,
+      ["viktig"],
+      shiftDate(to, -365),
+      to,
+      null,
+    );
+    const text = document.body.textContent ?? "";
+    expect(text.indexOf("Post 1")).toBeLessThan(text.indexOf("Post 2"));
+    expect(
+      screen.getByText(/The last 2 years, newest first/),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    expect(
+      await screen.findByText(journalEn.taggedNoOlder),
+    ).toBeInTheDocument();
+    const older = shiftDate(today, -732);
+    expect(listTaggedEntries).toHaveBeenLastCalledWith(
+      ["viktig"],
+      shiftDate(older, -365),
+      older,
+      null,
+    );
   });
 });

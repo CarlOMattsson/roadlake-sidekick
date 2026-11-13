@@ -11,7 +11,7 @@ and archived Steps are left out.
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastmcp import Client, FastMCP
@@ -19,7 +19,7 @@ from fastmcp import Client, FastMCP
 from sidekick.api.app import Container, create_container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.mcp.text import CARD_NOTE, MAX_ROWS, RECORD_CARD_NOTE
-from sidekick.mcp.work_text import hierarchy_card_text, record_card_text
+from sidekick.mcp.work_text import HierarchyRow, hierarchy_card_text, record_card_text
 from sidekick.shared.types import Actor
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -193,15 +193,15 @@ def test_record_card_text_puts_the_sentence_first_then_ids_details_and_the_note_
 
 def test_hierarchy_card_text_indents_by_level_and_counts_rows_past_the_limit() -> None:
     nodes = [
-        {"id": f"n{number}", "version": 1, "title": f"Node {number}", "kind": "project"}
+        HierarchyRow(UUID(int=number), None, f"Node {number}", "project", version=1)
         for number in range(MAX_ROWS + 2)
     ]
     indents = [0, 1, *([0] * MAX_ROWS)]
 
     lines = hierarchy_card_text(nodes, indents).splitlines()
 
-    assert lines[0] == "- n0 v1 | Node 0 | project"
-    assert lines[1] == "  - n1 v1 | Node 1 | project"
+    assert lines[0] == f"- {UUID(int=0)} v1 | Node 0 | project"
+    assert lines[1] == f"  - {UUID(int=1)} v1 | Node 1 | project"
     assert len([line for line in lines if line.lstrip().startswith("- ")]) == MAX_ROWS
     assert lines[-2] == "… 2 more"
     assert lines[-1] == CARD_NOTE

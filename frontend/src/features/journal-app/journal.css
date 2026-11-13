@@ -609,6 +609,22 @@ button.journal-entry-card {
   padding-inline-end: 2px;
   font-variant-numeric: tabular-nums;
 }
+/* A row's tags are read whole: when the meta text and the tags do not fit on one line the tags drop to a line of
+   their own under the meta (and wrap there) instead of being cut to a few letters beside it (tags.css). */
+.sidekick-journal .journal-entry-meta:has(> .sk-tags) {
+  flex-wrap: wrap;
+  overflow: visible;
+  text-overflow: clip;
+  row-gap: 2px;
+}
+.sidekick-journal .journal-entry-meta > .sk-tags {
+  flex-wrap: wrap;
+  max-width: 100%;
+  overflow: visible;
+}
+.sidekick-journal .journal-entry-meta > .sk-tags > .sk-tag {
+  max-width: 100%;
+}
 .sidekick-journal .journal-entry-excerpt {
   /* 6 under the meta line, the row's own air, so the written text reads as its own block. */
   margin-top: var(--sk-row-pad);

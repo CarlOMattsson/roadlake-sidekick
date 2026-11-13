@@ -1,7 +1,8 @@
 import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { TagChips } from "../mcp-apps/ui/tags";
 import type { TagOption } from "../mcp-apps/ui/tag-vocabulary";
-import { formatCalendarDate, formatTime } from "./dates";
+import { formatShortDateWithYear, formatTime } from "./dates";
 import { linkName, summaryRest } from "./entry-card";
 import type { JournalLabels } from "./labels";
 import type { JournalEntry } from "./transport";
@@ -54,7 +55,11 @@ export function EntryRow({
   const time =
     dated && entry.journal_date ? (
       <time dateTime={entry.journal_date}>
-        {formatCalendarDate(entry.journal_date, t.dateLocale)}
+        {formatShortDateWithYear(
+          entry.journal_date,
+          t.dateLocale,
+          ownerToday(),
+        )}
       </time>
     ) : entry.occurred_at ? (
       <time dateTime={entry.occurred_at}>

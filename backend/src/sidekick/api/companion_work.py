@@ -132,7 +132,7 @@ async def work_agenda(
     )
     container = request.app.state.container
     structured = await run_in_threadpool(work_agenda_structured, container, actor, arguments)
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def work_today(
@@ -172,7 +172,9 @@ async def work_hierarchy(
             process_id=process_id,
         )
     )
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(
+        headers=no_store_headers, content=structured.model_dump(mode="json", exclude_unset=True)
+    )
 
 
 async def project_detail(request: Request, project_id: UUID) -> JSONResponse:
@@ -182,7 +184,7 @@ async def project_detail(request: Request, project_id: UUID) -> JSONResponse:
     structured, _project = await run_in_threadpool(
         project_detail_structured, container, actor, project_id
     )
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def project_tasks(
@@ -201,7 +203,7 @@ async def project_tasks(
         container.projects.get(actor, project_id)
         return task_page_structured(
             container, actor, limit=limit, project_id=project_id, cursor=cursor
-        )
+        ).model_dump(mode="json")
 
     return JSONResponse(headers=no_store_headers, content=await run_in_threadpool(read))
 
@@ -211,7 +213,7 @@ async def domain_detail(request: Request, domain_id: UUID) -> JSONResponse:
     actor = operation_actor(credential, DOMAIN_DETAIL)
     container = request.app.state.container
     structured = await run_in_threadpool(domain_structured, container, actor, domain_id)
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def process_detail(request: Request, process_id: UUID) -> JSONResponse:
@@ -219,7 +221,7 @@ async def process_detail(request: Request, process_id: UUID) -> JSONResponse:
     actor = operation_actor(credential, PROCESS_DETAIL)
     container = request.app.state.container
     structured = await run_in_threadpool(process_structured, container, actor, process_id)
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 def add_work_routes(router: CompanionRouter) -> None:

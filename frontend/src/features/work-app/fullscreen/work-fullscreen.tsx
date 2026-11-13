@@ -14,6 +14,7 @@ import type { SavedViewTab } from "../saved-views/saved-views";
 import { SavedViewsBar } from "../saved-views/saved-views-bar";
 import { savedViewsLabelsFor } from "../saved-views/saved-views-labels";
 import type {
+  WorkFilters,
   WorkFrame,
   WorkTask,
   WorkTransport,
@@ -31,6 +32,7 @@ import {
   filtersOf,
   isTabFrame,
   TABS,
+  type PerTab,
   type WorkTabFrame,
 } from "./parts/tab-data";
 import { useTabFreshness } from "./parts/use-tab-freshness";
@@ -135,6 +137,9 @@ export function WorkFullscreen({
     onViewApplied,
   });
   const { entries, retry, applyView } = reads;
+  // The filters each list shows now (a tag chosen in it), which a saved view is made from; a list not yet told
+  // falls back to the filters it was read with.
+  const [listFilters, setListFilters] = useState<PerTab<WorkFilters>>({});
   // Tasks added with the new-Task row, newest first. The agenda lists dated work only, so it shows these in a group
   // of their own; each add also reads the agenda and the board again in place (the board's To do gets the Task).
   const [created, setCreated] = useState<WorkTask[]>([]);
@@ -198,6 +203,9 @@ export function WorkFullscreen({
               : undefined
           }
           onStackDepth={tools.setDepth[tab]}
+          onListFilters={(filters) =>
+            setListFilters((current) => ({ ...current, [tab]: filters }))
+          }
         />
       </WorkNewTaskContext.Provider>
     );
@@ -232,7 +240,7 @@ export function WorkFullscreen({
         transport={transport}
         labels={savedLabels}
         manage={manage}
-        filters={filtersOf(entries[tab])}
+        filters={listFilters[tab] ?? filtersOf(entries[tab])}
         onOpen={(definition) => applyView(tab, definition)}
       />
     );

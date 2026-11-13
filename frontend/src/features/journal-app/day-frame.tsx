@@ -284,8 +284,11 @@ export function DayFrame({
 
   return (
     <article>
+      {/* With a tag chosen the list spans many days: the heading names the list, and no day in the strip is chosen
+          (a tap on one opens that day and leaves the filter). */}
       <DayStrip
         selected={shownDate}
+        unmarked={dayTags.filtered}
         today={today}
         daysWithEntries={daysWithEntries}
         labels={dayStripLabels}
@@ -293,7 +296,9 @@ export function DayFrame({
         onSelect={go}
         heading={
           <h2 ref={heading} tabIndex={-1}>
-            {formatDayHeading(shownDate, t.dateLocale, today)}
+            {dayTags.filtered
+              ? t.taggedEntries
+              : formatDayHeading(shownDate, t.dateLocale, today)}
           </h2>
         }
         more={

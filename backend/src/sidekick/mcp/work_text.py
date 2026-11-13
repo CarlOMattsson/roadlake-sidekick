@@ -4,8 +4,11 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, tzinfo
-from typing import Any
+from uuid import UUID
+
+import pydantic_core
 
 from sidekick.mcp.results import spoken_names
 from sidekick.mcp.text import (
@@ -27,12 +30,44 @@ from sidekick.mcp.text import (
 )
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale, LocalizedText, localized
 from sidekick.structured.work import RECORD_STEP_LIMIT
+from sidekick.structured.work_records import (
+    HierarchyNodeRecord,
+    HierarchyTaskRecord,
+    ProjectDetailRecord,
+    TaskDetailRecord,
+    TaskRecord,
+    WorkItemRecord,
+)
 from sidekick.work.domain import Step
 
 _MAX_SUMMARY_ROWS = 50
 
 
-def cell(value: Any) -> str:
+@dataclass(frozen=True, slots=True)
+class TextRow:
+    """One listed record as `list_text` shows it; a field left None is not shown."""
+
+    id: UUID
+    title: str
+    version: int | None = None
+    status: str | None = None
+    due_at: datetime | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class HierarchyRow:
+    """One node, Task or Step of the hierarchy as its card text shows it."""
+
+    id: UUID
+    parent_id: UUID | None
+    title: str
+    kind: str
+    status: str | None = None
+    version: int | None = None
+    due_at: datetime | None = None
+
+
+def cell(value: object) -> str:
     """Return one summary cell: dates as ISO text, no line breaks, no repeated spaces."""
 
     if isinstance(value, datetime | date):
@@ -40,32 +75,28 @@ def cell(value: Any) -> str:
     return " ".join(str(value).split())
 
 
-def _rows(
-    items: Sequence[Mapping[str, Any]],
-    *,
-    title_key: str = "title",
-    indents: Sequence[int] | None = None,
-) -> list[str]:
-    """Return `- <id> | [kind |] <title> | [v<version> |] [<status> |] [due <due>]` lines.
+def iso_time(value: datetime) -> str:
+    """A time as the JSON block shows it: a UTC instant ends in Z."""
 
-    Optional fields appear only when the record has them. `indents` gives each row's nesting
-    level, two spaces per level, for hierarchies.
+    return cell(pydantic_core.to_jsonable_python(value))
+
+
+def _rows(items: Sequence[TextRow]) -> list[str]:
+    """Return `- <id> | <title> | [v<version> |] [<status> |] [due <due>]` lines.
+
+    Optional fields appear only when the record has them.
     """
 
     lines: list[str] = []
-    for index, item in enumerate(items):
-        parts = [cell(item["id"])]
-        if item.get("kind") is not None:
-            parts.append(cell(item["kind"]))
-        parts.append(cell(item[title_key]))
-        if item.get("version") is not None:
-            parts.append(f"v{item['version']}")
-        if item.get("status") is not None:
-            parts.append(cell(item["status"]))
-        if item.get("due_at") is not None:
-            parts.append(f"due {cell(item['due_at'])}")
-        level = indents[index] if indents is not None else 0
-        lines.append("  " * level + "- " + " | ".join(parts))
+    for item in items:
+        parts = [cell(item.id), cell(item.title)]
+        if item.version is not None:
+            parts.append(f"v{item.version}")
+        if item.status is not None:
+            parts.append(cell(item.status))
+        if item.due_at is not None:
+            parts.append(f"due {iso_time(item.due_at)}")
+        lines.append("- " + " | ".join(parts))
     return lines
 
 
@@ -77,10 +108,8 @@ _MORE_ROWS: LocalizedText = {
 
 def list_text(
     head: str,
-    items: Sequence[Mapping[str, Any]],
+    items: Sequence[TextRow],
     *,
-    title_key: str = "title",
-    indents: Sequence[int] | None = None,
     locale: AppLocale = DEFAULT_LOCALE,
 ) -> str:
     """Return the `Found N ...` line followed by at most 50 row lines.
@@ -89,14 +118,14 @@ def list_text(
     still in the JSON block, so block 1 only needs to name the ids a model is likely to use next.
     """
 
-    rows = _rows(items, title_key=title_key, indents=indents)
+    rows = _rows(items)
     lines = [head, *rows[:_MAX_SUMMARY_ROWS]]
     if len(rows) > _MAX_SUMMARY_ROWS:
         lines.append(localized(_MORE_ROWS, locale).format(count=len(rows) - _MAX_SUMMARY_ROWS))
     return "\n".join(lines)
 
 
-def _more_text(name: str, value: Any) -> str | None:
+def _more_text(name: str, value: str | None) -> str | None:
     """Return `More: <name> <value>.` when a next page exists, so the model can ask for it."""
 
     return None if value is None else f"More: {name} {value}."
@@ -118,32 +147,28 @@ def _on_page(next_cursor: str | None) -> str:
     return "" if next_cursor is None else " on this page (more follow)"
 
 
-def agenda_sentence(items: Sequence[Mapping[str, Any]], next_cursor: str | None) -> str:
+def agenda_sentence(items: Sequence[WorkItemRecord], next_cursor: str | None) -> str:
     """Return line 1 of the agenda card: the item count, then overdue and due-today counts."""
 
-    counts = Counter(item["agenda_group"] for item in items)
+    counts = Counter(item.agenda_group for item in items)
     noun = count_phrase(len(items), "agenda item", "agenda items") + _on_page(next_cursor)
     return f"{noun}: {counts['overdue']} overdue, {counts['today']} due today."
 
 
-def _is_task(item: Mapping[str, Any]) -> bool:
-    """True for a Task record; a board record without a kind counts as a Task."""
+def _is_task(item: WorkItemRecord) -> bool:
+    """True for a Task record."""
 
-    return item.get("kind", "task") == "task"
+    return item.kind == "task"
 
 
-def _other_kinds_phrase(columns: Mapping[str, Sequence[Mapping[str, Any]]]) -> str:
+def _other_kinds_phrase(columns: Mapping[str, Sequence[WorkItemRecord]]) -> str:
     """The Projects and Domains on a board page in words ("2 projects, 1 domain"), or empty."""
 
-    kinds = Counter(
-        str(item["kind"]) for items in columns.values() for item in items if not _is_task(item)
-    )
+    kinds = Counter(item.kind for items in columns.values() for item in items if not _is_task(item))
     return ", ".join(count_phrase(count, kind, f"{kind}s") for kind, count in kinds.items())
 
 
-def board_sentence(
-    columns: Mapping[str, Sequence[Mapping[str, Any]]], next_cursor: str | None
-) -> str:
+def board_sentence(columns: Mapping[str, Sequence[WorkItemRecord]], next_cursor: str | None) -> str:
     """Return line 1 of the board card: the Task count, then the Tasks per status in words.
 
     Projects and Domains share the board's columns but are not Tasks, so they are never counted
@@ -168,7 +193,7 @@ def board_sentence(
 
 def work_item_sentence(
     kind: str,
-    title: Any,
+    title: str,
     status: str,
     day: date | None,
     *,
@@ -187,17 +212,17 @@ _AGENDA_GROUPS = ("overdue", "today", "upcoming", "scheduled_later")
 _AGENDA_LIST_GROUPS = ("overdue", "today")
 
 
-def _agenda_row(item: Mapping[str, Any]) -> str:
+def _agenda_row(item: WorkItemRecord) -> str:
     return card_row(
-        f"{item['id']} v{item['version']}",
-        item["title"],
-        f"due {item['due_at']}" if item["due_at"] else None,
-        f"project {item['project_title']}" if item["project_title"] else None,
+        f"{item.id} v{item.version}",
+        item.title,
+        f"due {iso_time(item.due_at)}" if item.due_at else None,
+        f"project {item.project_title}" if item.project_title else None,
     )
 
 
 def agenda_card_text(
-    items: Sequence[Mapping[str, Any]], next_cursor: str | None, *, now: datetime
+    items: Sequence[WorkItemRecord], next_cursor: str | None, *, now: datetime
 ) -> str:
     """Return the agenda card's text: a count per group, then the overdue and today rows.
 
@@ -207,26 +232,21 @@ def agenda_card_text(
     they are cut at AGENDA_ROW_LIMIT rows. Later upcoming and scheduled records are counted only.
     """
 
-    counts = Counter(item["agenda_group"] for item in items)
+    counts = Counter(item.agenda_group for item in items)
     counted = ", ".join(f"{group} {counts[group]}" for group in _AGENDA_GROUPS)
     head = f"Work agenda card shown: {len(items)} items ({counted})."
     window_end = now + timedelta(days=AGENDA_UPCOMING_DAYS)
-    listed = [
-        item for group in _AGENDA_LIST_GROUPS for item in items if item["agenda_group"] == group
-    ]
-    # The page's due_at is ISO text here (JSON mode), so it is parsed before comparing. Undated
-    # upcoming records (waiting tasks without a due time) are counted only, never parsed.
+    listed = [item for group in _AGENDA_LIST_GROUPS for item in items if item.agenda_group == group]
+    # Undated upcoming records (waiting tasks without a due time) are counted only, never listed.
     upcoming = sorted(
         (
-            item
+            (item.due_at, item)
             for item in items
-            if item["agenda_group"] == "upcoming"
-            and item.get("due_at")
-            and datetime.fromisoformat(str(item["due_at"])) <= window_end
+            if item.agenda_group == "upcoming" and item.due_at and item.due_at <= window_end
         ),
-        key=lambda item: datetime.fromisoformat(str(item["due_at"])),
+        key=lambda pair: pair[0],
     )
-    rows = [_agenda_row(item) for item in [*listed, *upcoming]]
+    rows = [_agenda_row(item) for item in [*listed, *(item for _, item in upcoming)]]
     lines = card_rows(head, rows, limit=AGENDA_ROW_LIMIT)
     more = _more_text("next_cursor", next_cursor)
     if more is not None:
@@ -253,7 +273,7 @@ def _waiting_days_phrase(days: int) -> str:
 
 
 def _waiting_sentence(
-    first: Mapping[str, Any],
+    first: WorkItemRecord,
     days: int | None,
     *,
     total: int,
@@ -267,10 +287,10 @@ def _waiting_sentence(
     reply is a speakable sentence).
     """
 
-    name = first.get("waiting_on_contact_name")
+    name = first.waiting_on_contact_name
     who = f" on {cell(name)}" if name else ""
     how_long = f" {_waiting_days_phrase(days)}" if days is not None else ""
-    title = cell(first["title"])
+    title = cell(first.title)
     if total == 1:
         return f"You are waiting{who}{how_long}: {title}."
     count = f"{total} things{_on_page(next_cursor)}"
@@ -280,7 +300,7 @@ def _waiting_sentence(
 
 
 def waiting_agenda_text(
-    items: Sequence[Mapping[str, Any]],
+    items: Sequence[WorkItemRecord],
     next_cursor: str | None,
     *,
     now: datetime,
@@ -294,16 +314,11 @@ def waiting_agenda_text(
     waiting date come last, with no day count.
     """
 
-    # The page's waiting_since is ISO text here (JSON mode), so it is parsed before comparing.
     dated = sorted(
-        (
-            (datetime.fromisoformat(str(item["waiting_since"])), item)
-            for item in items
-            if item["waiting_since"] is not None
-        ),
+        ((item.waiting_since, item) for item in items if item.waiting_since is not None),
         key=lambda pair: pair[0],
     )
-    undated = [item for item in items if item["waiting_since"] is None]
+    undated = [item for item in items if item.waiting_since is None]
     rows: list[str] = []
     first_days: int | None = None
     for since, item in dated:
@@ -311,14 +326,12 @@ def waiting_agenda_text(
         if first_days is None:
             first_days = days
         unit = "day" if days == 1 else "days"
-        details = [item.get("waiting_on_contact_name"), f"waited {days} {unit}"]
+        details = [item.waiting_on_contact_name, f"waited {days} {unit}"]
         if days >= _WAITING_REMIND_DAYS:
             details.append("remind")
-        rows.append(card_row(f"{item['id']} v{item['version']}", item["title"], *details))
+        rows.append(card_row(f"{item.id} v{item.version}", item.title, *details))
     rows.extend(
-        card_row(
-            f"{item['id']} v{item['version']}", item["title"], item.get("waiting_on_contact_name")
-        )
+        card_row(f"{item.id} v{item.version}", item.title, item.waiting_on_contact_name)
         for item in undated
     )
     lines = card_rows("Waiting, longest first:", rows, limit=AGENDA_ROW_LIMIT)
@@ -334,7 +347,7 @@ def waiting_agenda_text(
 
 
 def board_card_text(
-    columns: Mapping[str, Sequence[Mapping[str, Any]]],
+    columns: Mapping[str, Sequence[WorkItemRecord]],
     next_cursor: str | None,
     *,
     filtered: bool,
@@ -368,13 +381,10 @@ def board_card_text(
     for key, items in task_columns.items():
         if not items:
             continue
-        rows = [card_row(f"{item['id']} v{item['version']}", item["title"]) for item in items]
+        rows = [card_row(f"{item.id} v{item.version}", item.title) for item in items]
         lines.extend(card_rows(f"{key} {len(items)}:", rows, limit=BOARD_ROW_LIMIT))
     if other:
-        rows = [
-            card_row(f"{item['id']} v{item['version']}", item["title"], str(item["kind"]))
-            for item in other
-        ]
+        rows = [card_row(f"{item.id} v{item.version}", item.title, item.kind) for item in other]
         lines.extend(card_rows(f"not tasks {len(other)}:", rows, limit=BOARD_ROW_LIMIT))
     more = _more_text("next_cursor", next_cursor)
     if more is not None:
@@ -391,7 +401,7 @@ _NODE_KIND_NOUNS = {
 
 
 def hierarchy_sentence(
-    nodes: Sequence[Mapping[str, Any]],
+    nodes: Sequence[HierarchyNodeRecord],
     *,
     task_count: int | None = None,
     step_count: int | None = None,
@@ -403,7 +413,7 @@ def hierarchy_sentence(
     `next_cursor` the sentence says this is one page and how to get the rest.
     """
 
-    kinds = Counter(node["kind"] for node in nodes)
+    kinds = Counter(node.kind for node in nodes)
     parts = [
         count_phrase(kinds[kind], one, many)
         for kind, (one, many) in _NODE_KIND_NOUNS.items()
@@ -416,28 +426,25 @@ def hierarchy_sentence(
     if not parts:
         return "Nothing is set up in Work yet."
     joined = f"{', '.join(parts[:-1])} and {parts[-1]}" if len(parts) > 1 else parts[0]
-    names = spoken_names([node["title"] for node in nodes], len(nodes))
+    names = spoken_names([node.title for node in nodes], len(nodes))
     sentence = f"Found {joined}: {names}." if names else f"Found {joined}."
     if next_cursor is not None:
         sentence += " More nodes follow; call again with cursor=next_cursor."
     return sentence
 
 
-def hierarchy_indents(nodes: Sequence[Mapping[str, Any]]) -> list[int]:
-    """Return each hierarchy node's nesting level from its parent_id chain.
+def hierarchy_indents(rows: Sequence[HierarchyRow]) -> list[int]:
+    """Return each hierarchy row's nesting level from its parent_id chain.
 
-    A parent that is not on this page does not count, so that node is shown at level 0.
+    A parent that is not on this page does not count, so that row is shown at level 0.
     """
 
-    parents: dict[str, str | None] = {
-        cell(node["id"]): (cell(node["parent_id"]) if node.get("parent_id") else None)
-        for node in nodes
-    }
+    parents = {row.id: row.parent_id for row in rows}
     indents: list[int] = []
-    for node in nodes:
+    for row in rows:
         level = 0
-        parent = parents[cell(node["id"])]
-        while parent is not None and parent in parents and level < len(nodes):
+        parent = parents[row.id]
+        while parent is not None and parent in parents and level < len(rows):
             level += 1
             parent = parents[parent]
         indents.append(level)
@@ -445,53 +452,50 @@ def hierarchy_indents(nodes: Sequence[Mapping[str, Any]]) -> list[int]:
 
 
 def hierarchy_text_items(
-    nodes: Sequence[Mapping[str, Any]], tasks: Sequence[Mapping[str, Any]]
-) -> list[dict[str, Any]]:
+    nodes: Sequence[HierarchyNodeRecord], tasks: Sequence[HierarchyTaskRecord]
+) -> list[HierarchyRow]:
     """Flatten nodes, Tasks and Steps into one parent-linked list for the text summary."""
 
-    items: list[dict[str, Any]] = [dict(node) for node in nodes]
+    items = [
+        HierarchyRow(
+            node.id, node.parent_id, node.title, node.kind, status=node.status, version=node.version
+        )
+        for node in nodes
+    ]
     for task in tasks:
         items.append(
-            {
-                "kind": "task",
-                "id": task["id"],
-                "parent_id": task["parent_id"],
-                "title": task["title"],
-                "status": task["status"],
-                "version": task["version"],
-                "due_at": task["due_at"],
-            }
+            HierarchyRow(
+                task.id,
+                task.parent_id,
+                task.title,
+                "task",
+                status=task.status,
+                version=task.version,
+                due_at=task.due_at,
+            )
         )
         items.extend(
-            {
-                "kind": "step",
-                "id": step["id"],
-                "parent_id": task["id"],
-                "title": step["title"],
-                "status": step["status"],
-            }
-            for step in task["steps"]
+            HierarchyRow(step.id, task.id, step.title, "step", status=step.status)
+            for step in task.steps
         )
     return items
 
 
-def _hierarchy_row(item: Mapping[str, Any], level: int) -> str:
+def _hierarchy_row(item: HierarchyRow, level: int) -> str:
     """One hierarchy row: `<id> v<version> | <title> | <kind> | <status>`, indented by level."""
 
-    version = item.get("version")
-    ident = cell(item["id"]) if version is None else f"{cell(item['id'])} v{version}"
-    due = item.get("due_at")
+    ident = cell(item.id) if item.version is None else f"{cell(item.id)} v{item.version}"
     row = card_row(
         ident,
-        item["title"],
-        item.get("kind"),
-        item.get("status"),
-        None if due is None else f"due {cell(due)}",
+        item.title,
+        item.kind,
+        item.status,
+        None if item.due_at is None else f"due {iso_time(item.due_at)}",
     )
     return "  " * level + row
 
 
-def hierarchy_card_text(items: Sequence[Mapping[str, Any]], indents: Sequence[int]) -> str:
+def hierarchy_card_text(items: Sequence[HierarchyRow], indents: Sequence[int]) -> str:
     """Return the hierarchy card's rows, one per node, Task or Step, then the card note.
 
     Each row names the id, so a follow-up call needs no extra read; nesting is two spaces per
@@ -507,14 +511,15 @@ def hierarchy_card_text(items: Sequence[Mapping[str, Any]], indents: Sequence[in
 
 
 def record_ref(
-    record: Mapping[str, Any],
+    record_id: object,
+    version: int,
+    title: str,
     *,
-    title_key: str = "title",
-    parent: tuple[str, Any] | None = None,
+    parent: tuple[str, object | None] | None = None,
 ) -> str:
     """Return `<id> v<version>: <title>`, plus ` in <label> <id>` when the parent id is set."""
 
-    text = f"{cell(record['id'])} v{record['version']}: {cell(record[title_key])}"
+    text = f"{cell(record_id)} v{version}: {cell(title)}"
     if parent is not None and parent[1] is not None:
         text += f" in {parent[0]} {cell(parent[1])}"
     return text
@@ -536,7 +541,7 @@ _RECORD_DESCRIPTION_LIMIT = 1500
 _RECORD_STEP_TITLE_LIMIT = 80
 
 
-def _record_detail_lines(record: Mapping[str, Any]) -> list[str]:
+def _record_detail_lines(description: str | None, tags: Sequence[str]) -> list[str]:
     """The description and tags of one record, each on one short line, when it has them.
 
     The description is flattened to one line and cut at _RECORD_DESCRIPTION_LIMIT characters, so
@@ -544,20 +549,20 @@ def _record_detail_lines(record: Mapping[str, Any]) -> list[str]:
     """
 
     lines: list[str] = []
-    description = flat(record["description"] or "", _RECORD_DESCRIPTION_LIMIT)
-    if description:
-        lines.append(f"Description: {description}")
-    if record.get("tags"):
-        lines.append(f"Tags: {', '.join(record['tags'])}.")
+    shortened = flat(description or "", _RECORD_DESCRIPTION_LIMIT)
+    if shortened:
+        lines.append(f"Description: {shortened}")
+    if tags:
+        lines.append(f"Tags: {', '.join(tags)}.")
     return lines
 
 
-def task_detail_lines(record: Mapping[str, Any], steps: Sequence[Step]) -> list[str]:
+def task_detail_lines(record: TaskDetailRecord, steps: Sequence[Step]) -> list[str]:
     """Description, tags, estimate, then the Steps as `N of M done` and one title line each."""
 
-    lines = _record_detail_lines(record)
-    if record.get("estimated_minutes") is not None:
-        lines.append(f"Estimate: {record['estimated_minutes']} min.")
+    lines = _record_detail_lines(record.description, record.tags)
+    if record.estimated_minutes is not None:
+        lines.append(f"Estimate: {record.estimated_minutes} min.")
     if steps:
         shown = steps[:RECORD_STEP_LIMIT]
         done = sum(1 for step in shown if step.status.value == "completed")
@@ -570,16 +575,16 @@ def task_detail_lines(record: Mapping[str, Any], steps: Sequence[Step]) -> list[
     return lines
 
 
-def project_detail_lines(record: Mapping[str, Any]) -> list[str]:
+def project_detail_lines(record: ProjectDetailRecord) -> list[str]:
     """Description, tags and the estimate of the Project's open Tasks, when the totals are read."""
 
-    lines = _record_detail_lines(record)
-    totals = record.get("estimate_totals")
+    lines = _record_detail_lines(record.description, record.tags)
+    totals = record.estimate_totals
     if totals is not None:
-        open_tasks = count_phrase(totals["task_count"], "open task", "open tasks")
+        open_tasks = count_phrase(totals.task_count, "open task", "open tasks")
         lines.append(
-            f"Estimate: {totals['estimated_minutes_total']} min over {open_tasks}, "
-            f"{totals['unestimated_count']} unestimated."
+            f"Estimate: {totals.estimated_minutes_total} min over {open_tasks}, "
+            f"{totals.unestimated_count} unestimated."
         )
     return lines
 
@@ -594,9 +599,9 @@ def record_card_text(sentence: str, ref: str, details: Sequence[str]) -> str:
     return spoken_line(sentence, "\n".join([ref, *details, RECORD_CARD_NOTE]))
 
 
-def task_parent(record: Mapping[str, Any]) -> tuple[str, Any]:
+def task_parent(record: TaskRecord) -> tuple[str, UUID | None]:
     """Return the project, or else the process, that a Task belongs to, for `record_ref`."""
 
-    if record.get("project_id") is not None:
-        return ("project", record["project_id"])
-    return ("process", record.get("process_id"))
+    if record.project_id is not None:
+        return ("project", record.project_id)
+    return ("process", record.process_id)

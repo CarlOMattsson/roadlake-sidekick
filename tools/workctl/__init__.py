@@ -38,7 +38,7 @@ Moved:
   name); ``work.sh`` only gathers the logs and runs the read-only queries.
 * ``restore``    : the complete backup sets of a directory, what a typed ``restore`` argument names and what
   undoing a half-done database swap has to do.
-* ``prompts``    : what counts as a yes and the choice of a number from a list in the guide.
+* ``prompts``    : the guide's questions (read one line, hidden input, defaults), yes answers and numbered choices.
 * ``owner``      : the UUID check for the user Claude Desktop acts as.
 
 Still in ``work.sh`` (candidates to move next, in order of value):

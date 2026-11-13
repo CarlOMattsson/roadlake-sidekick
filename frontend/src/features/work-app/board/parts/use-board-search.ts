@@ -1,4 +1,4 @@
-import { useContext, useEffect, useEffectEvent } from "react";
+import { useContext, useEffect, useEffectEvent, useRef } from "react";
 import { foldSearchText } from "../../shared/work-items";
 import { BoardClearSearch, BoardQuery } from "./board-search";
 import type { BoardCore } from "./use-board-core";
@@ -12,7 +12,8 @@ const SEARCH_MAX = 200;
  * The tab row's search as the board sees it: the text it filters by and, after a rest, the server read that
  * carries it as `q`. A changed search text rests for a moment, then the board is read from its first page with
  * the text as `q` (an emptied search reads without it): the cards of a page not loaded yet are found too, and
- * "Visa fler" goes on from the new first page. The text at mount is not a request.
+ * "Visa fler" goes on from the new first page. The text at mount is not a request: it only filters the loaded
+ * cards, and the board is read with it only once the text changes.
  */
 export function useBoardSearch({ latest, commit, reload }: BoardCore) {
   const query = useContext(BoardQuery);
@@ -24,7 +25,10 @@ export function useBoardSearch({ latest, commit, reload }: BoardCore) {
     commit({ ...latest.current, search: searchText || undefined });
     reload();
   });
+  const askedText = useRef(searchText);
   useEffect(() => {
+    if (searchText === askedText.current) return;
+    askedText.current = searchText;
     const timer = setTimeout(startSearch, SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [searchText]);

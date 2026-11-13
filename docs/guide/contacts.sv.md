@@ -31,7 +31,7 @@ Resten fyller du i efteråt, eller ber Claude om.
 
 ## Ändra en kontakt
 
-Öppna kontakten, välj ⋯ och sedan "Redigera". Du kan också trycka på namnet. I formuläret lägger du också till smeknamn under "Smeknamn", så att Claude hittar rätt person när du använder ett, och "Arkivera" döljer en kontakt som du inte längre vill se i listan.
+Öppna kontakten, välj ⋯ och sedan "Redigera". Du kan också trycka på namnet. I formuläret lägger du också till andra namn under "Även kallad", så att Claude hittar rätt person när du använder ett, och "Arkivera" döljer en kontakt som du inte längre vill se i listan.
 
 ## Öppna e-post eller telefon
 

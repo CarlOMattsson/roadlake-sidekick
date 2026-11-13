@@ -33,14 +33,13 @@ import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any
 from uuid import UUID
 
 from anyio import to_thread
 from fastmcp import FastMCP
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from mcp.shared.exceptions import MCPError
-from mcp.types import Request
+from mcp.types import Request, RequestParams
 from pydantic import ValidationError
 
 from sidekick.composition import Container, create_container
@@ -80,9 +79,9 @@ class OwnerStillActive(Middleware):
 
     async def on_request(
         self,
-        context: MiddlewareContext[Request[Any, Any]],
-        call_next: CallNext[Request[Any, Any], Any],
-    ) -> Any:
+        context: MiddlewareContext[Request[RequestParams | None, str]],
+        call_next: CallNext[Request[RequestParams | None, str], object],
+    ) -> object:
         try:
             active = await to_thread.run_sync(self._container.auth.is_user_active, self._owner_id)
         except Exception:

@@ -40,11 +40,11 @@ import logging
 from collections.abc import Mapping
 from contextvars import ContextVar
 from importlib import metadata
-from typing import Any, Final
+from typing import Final
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
-from fastmcp.tools import ToolResult
+from fastmcp.tools import Tool, ToolResult
 from mcp.types import CallToolRequestParams
 
 from sidekick.shared.compat import low_level_server, set_tool_input_schema_lookup
@@ -200,7 +200,9 @@ class _InputSchemaLookup(Middleware):
             ],
         }
         wire = serialize_server_result("tools/list", MODERN_PROTOCOL_VERSION, dumped)
-        schemas: dict[str, Mapping[str, Any]] = {t["name"]: t["inputSchema"] for t in wire["tools"]}
+        schemas: dict[str, Mapping[str, object]] = {
+            t["name"]: t["inputSchema"] for t in wire["tools"]
+        }
         set_tool_input_schema_lookup(server, schemas.get)
 
 
@@ -222,7 +224,7 @@ def _caller_dependent_middleware(server: FastMCP) -> str | None:
     return None
 
 
-async def _provider_tools(server: FastMCP) -> list[Any]:
+async def _provider_tools(server: FastMCP) -> list[Tool]:
     """Every tool the providers and transforms yield, before enabled and auth filtering."""
 
     from fastmcp.server.providers.aggregate import AggregateProvider

@@ -362,3 +362,23 @@ describe("quiet buttons that lead a line align with the heading", () => {
     );
   });
 });
+
+describe("a row's tags are read whole", () => {
+  it("the meta line wraps so the tags drop to a line of their own instead of being cut", () => {
+    const meta = ruleFor(
+      ".sidekick-journal .journal-entry-meta:has(> .sk-tags)",
+    );
+    expect(meta, "meta rule").toBeDefined();
+    expect(declares(meta!, "flex-wrap", "wrap")).toBe(true);
+    expect(declares(meta!, "overflow", "visible")).toBe(true);
+    const tags = ruleFor(".sidekick-journal .journal-entry-meta > .sk-tags");
+    expect(tags, "tags rule").toBeDefined();
+    expect(declares(tags!, "flex-wrap", "wrap")).toBe(true);
+    expect(declares(tags!, "max-width", "100%")).toBe(true);
+    const chip = ruleFor(
+      ".sidekick-journal .journal-entry-meta > .sk-tags > .sk-tag",
+    );
+    expect(chip, "chip rule").toBeDefined();
+    expect(declares(chip!, "max-width", "100%")).toBe(true);
+  });
+});

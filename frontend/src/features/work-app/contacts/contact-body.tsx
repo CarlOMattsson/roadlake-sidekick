@@ -17,7 +17,7 @@ import type { ContactRecord } from "./use-contact-record";
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import { WriteStatus } from "../view/parts/write-status";
 import { TagField } from "../../mcp-apps/ui/tags";
-import { useTagVocabulary } from "../../mcp-apps/ui/tag-vocabulary";
+import { useWorkTags } from "../shared/work-tags";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 
 /** What the Contact frame shows once the Contact is read: its state, details, editor, Tasks, entries and Projects. */
@@ -44,10 +44,7 @@ export function ContactBody({
     dl.aboutContact(name.split(/\s+/u)[0] ?? name);
   const sendMessage = useContext(RoomMessageContext);
   const offers = useToolSupport(transport);
-  const vocabulary = useTagVocabulary(
-    offers("list_tags") ? transport.listTags : undefined,
-    "contact",
-  );
+  const vocabulary = useWorkTags(transport, "contact");
   // The field the editor opens on when one of a new Contact's first steps opened it.
   const [focusField, setFocusField] = useState<
     "phone" | "email" | "relationship"

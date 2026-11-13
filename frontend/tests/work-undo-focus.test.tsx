@@ -165,6 +165,7 @@ describe("focus after an archive or an unlink, and after Undo", () => {
         transport={transport}
         labels={workSv}
         open
+        onCount={vi.fn()}
       />,
     );
 

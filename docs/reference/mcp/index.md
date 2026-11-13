@@ -26,7 +26,7 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 
 ### [Steps and actions](steps-and-actions.md)
 
-- [`list_task_steps`](steps-and-actions.md#list_task_steps): List bounded ordered Steps for one owned Task; next_cursor continues. (read)
+- [`list_task_steps`](steps-and-actions.md#list_task_steps): List bounded ordered Steps for one owned Task, each with its action_count; next_cursor continues. (read)
 - [`create_task_step`](steps-and-actions.md#create_task_step): Create an ordered Step under one owned Task with a retry-safe key. (write)
 - [`update_task_step`](steps-and-actions.md#update_task_step): Update a Step with optimistic version checking. (write)
 - [`complete_task_step`](steps-and-actions.md#complete_task_step): Complete a Step with optimistic version checking. (write)

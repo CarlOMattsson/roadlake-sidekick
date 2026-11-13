@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -51,14 +51,14 @@ from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 _Version = Annotated[int, Field(ge=1)]
 
 
-def _task_reply(structured: dict[str, Any], verb: str) -> ToolResult:
+def _task_reply(structured: TaskOutput, verb: str) -> ToolResult:
     """`<verb> task <title>.` and the task's reference line, as the tool result."""
-    record = structured["task"]
+    record = structured.task
     return result(
-        structured,
+        structured.model_dump(mode="json"),
         spoken_line(
-            f"{verb} task {cell(record['title'])}.",
-            record_ref(record, parent=task_parent(record)),
+            f"{verb} task {cell(record.title)}.",
+            record_ref(record.id, record.version, record.title, parent=task_parent(record)),
         ),
     )
 
@@ -77,22 +77,22 @@ def _register_get_task(mcp: FastMCP, ctx: ToolContext) -> None:
     def get_task(task_id: UUID) -> ToolResult:
         structured, detail = task_detail_structured(ctx.container, ctx.actor_provider(), task_id)
         task = detail.task
-        record = structured["task"]
+        record = structured.task
         zone = ctx.container.settings.owner_zone
         due = task.due_at.astimezone(zone).date() if task.due_at is not None else None
         sentence = work_item_sentence(
             "Task",
-            record["title"],
+            record.title,
             task.status.value,
             due,
             label="due date",
             today=datetime.now(zone).date(),
         )
         return card_result(
-            structured,
+            structured.model_dump(mode="json"),
             record_card_text(
                 sentence,
-                record_ref(record, parent=task_parent(record)),
+                record_ref(record.id, record.version, record.title, parent=task_parent(record)),
                 task_detail_lines(record, detail.steps),
             ),
         )
@@ -154,7 +154,7 @@ def _register_create_task(mcp: FastMCP, ctx: ToolContext) -> None:
         slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task.id)]
         structured = TaskOutput(
             task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs))
-        ).model_dump(mode="json")
+        )
         return _task_reply(structured, "Created")
 
 

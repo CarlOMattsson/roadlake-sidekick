@@ -10,8 +10,8 @@ import json
 import re
 from datetime import UTC, date, datetime
 from decimal import Decimal
-from typing import Any
-from uuid import UUID
+from typing import Any, Literal
+from uuid import NAMESPACE_OID, UUID, uuid5
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -34,16 +34,20 @@ from sidekick.mcp.text import (
     spoken_status,
 )
 from sidekick.mcp.work_text import (
+    HierarchyRow,
+    TextRow,
     agenda_card_text,
     agenda_sentence,
     board_card_text,
     board_sentence,
+    hierarchy_card_text,
     hierarchy_indents,
     list_text,
     waiting_agenda_text,
     work_item_sentence,
 )
 from sidekick.shared.types import Actor
+from sidekick.structured.work_records import WorkItemRecord
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -655,59 +659,37 @@ def test_block_two_is_kept_at_the_text_json_limit_and_left_out_just_above_it() -
 
 def test_list_text_puts_id_version_status_and_due_on_each_row_and_caps_at_fifty() -> None:
     items = [
-        {
-            "id": f"id-{number}",
-            "title": f"Item\n{number}  x",
-            "version": 2,
-            "status": "active",
-            "due_at": "2026-10-25T12:00:00Z",
-        }
+        TextRow(
+            UUID(int=number),
+            f"Item\n{number}  x",
+            version=2,
+            status="active",
+            due_at=datetime(2026, 10, 25, 12, tzinfo=UTC),
+        )
         for number in range(53)
     ]
 
     lines = list_text("Found 53 things.", items).splitlines()
 
     assert lines[0] == "Found 53 things."
-    assert lines[1] == "- id-0 | Item 0 x | v2 | active | due 2026-10-25T12:00:00Z"
+    assert lines[1] == f"- {UUID(int=0)} | Item 0 x | v2 | active | due 2026-10-25T12:00:00Z"
     assert len(lines) == 1 + 50 + 1
     assert lines[-1] == "… 3 till (använd cursor)"
 
 
 def test_hierarchy_text_indents_children_two_spaces_per_level() -> None:
-    nodes = [
-        {
-            "kind": "domain",
-            "id": "d",
-            "parent_id": None,
-            "title": "Ops",
-            "status": "a",
-            "version": 1,
-        },
-        {
-            "kind": "project",
-            "id": "p",
-            "parent_id": "d",
-            "title": "Launch",
-            "status": "a",
-            "version": 1,
-        },
-        {
-            "kind": "project",
-            "id": "q",
-            "parent_id": "gone",
-            "title": "Orphan",
-            "status": "a",
-            "version": 1,
-        },
+    domain, project, orphan = UUID(int=1), UUID(int=2), UUID(int=3)
+    rows = [
+        HierarchyRow(domain, None, "Ops", "domain", status="a", version=1),
+        HierarchyRow(project, domain, "Launch", "project", status="a", version=1),
+        HierarchyRow(orphan, UUID(int=9), "Orphan", "project", status="a", version=1),
     ]
 
-    lines = list_text(
-        "Found 3 hierarchy nodes.", nodes, indents=hierarchy_indents(nodes)
-    ).splitlines()
+    lines = hierarchy_card_text(rows, hierarchy_indents(rows)).splitlines()
 
-    assert lines[1] == "- d | domain | Ops | v1 | a"
-    assert lines[2] == "  - p | project | Launch | v1 | a"
-    assert lines[3] == "- q | project | Orphan | v1 | a"
+    assert lines[0] == f"- {domain} v1 | Ops | domain | a"
+    assert lines[1] == f"  - {project} v1 | Launch | project | a"
+    assert lines[2] == f"- {orphan} v1 | Orphan | project | a"
 
 
 @pytest.mark.asyncio
@@ -902,18 +884,59 @@ def test_card_rows_keeps_the_head_and_at_most_the_limit_then_counts_the_rest() -
 
 
 _AGENDA_NOW = datetime(2026, 10, 27, 12, 0, tzinfo=UTC)
+_Group = Literal["overdue", "today", "upcoming", "scheduled_later"]
 
 
-def _agenda_item(item_id: str, group: str, **extra: Any) -> dict[str, Any]:
-    return {
-        "id": item_id,
-        "version": 3,
-        "title": f"Title {item_id}",
-        "agenda_group": group,
-        "due_at": "2026-10-25T09:00:00+00:00",
-        "project_title": None,
-        **extra,
-    }
+def _id(label: str) -> UUID:
+    """A fixed id per label, so an expected row can name the record it expects."""
+
+    return uuid5(NAMESPACE_OID, label)
+
+
+def _at(value: str | None) -> datetime | None:
+    return None if value is None else datetime.fromisoformat(value)
+
+
+def _record(
+    label: str,
+    *,
+    kind: str = "task",
+    title: str | None = None,
+    version: int = 1,
+    group: _Group | None = None,
+    due_at: str | None = None,
+    project_title: str | None = None,
+    waiting_since: str | None = None,
+    name: str | None = None,
+    estimated_minutes: int | None = None,
+) -> WorkItemRecord:
+    return WorkItemRecord(
+        kind=kind,
+        id=_id(label),
+        parent_id=None,
+        title=title or f"Title {label}",
+        status="todo",
+        version=version,
+        agenda_group=group,
+        due_at=_at(due_at),
+        project_title=project_title,
+        waiting_since=_at(waiting_since),
+        waiting_on_contact_name=name,
+        estimated_minutes=estimated_minutes,
+    )
+
+
+def _agenda_item(
+    label: str,
+    group: _Group,
+    *,
+    title: str | None = None,
+    due_at: str | None = "2026-10-25T09:00:00+00:00",
+    project_title: str | None = None,
+) -> WorkItemRecord:
+    return _record(
+        label, title=title, version=3, group=group, due_at=due_at, project_title=project_title
+    )
 
 
 def test_agenda_card_text_lists_overdue_and_today_rows_and_counts_the_other_groups() -> None:
@@ -932,9 +955,9 @@ def test_agenda_card_text_lists_overdue_and_today_rows_and_counts_the_other_grou
 
     assert text.splitlines() == [
         "Work agenda card shown: 5 items (overdue 2, today 1, upcoming 1, scheduled_later 1).",
-        "- ov-1 v3 | Title ov-1 | due 2026-10-20T09:00:00+00:00 | project Bokslut",
-        "- ov-2 v3 | " + long_title[:79] + "… | due 2026-10-21T09:00:00+00:00",
-        "- td-1 v3 | Title td-1 | due 2026-10-27T18:00:00+00:00",
+        f"- {_id('ov-1')} v3 | Title ov-1 | due 2026-10-20T09:00:00Z | project Bokslut",
+        f"- {_id('ov-2')} v3 | " + long_title[:79] + "… | due 2026-10-21T09:00:00Z",
+        f"- {_id('td-1')} v3 | Title td-1 | due 2026-10-27T18:00:00Z",
         "More: next_cursor cursor-2.",
         f"{CARD_NOTE} {AGENDA_NOTE}",
     ]
@@ -978,8 +1001,8 @@ def test_agenda_card_text_lists_upcoming_rows_due_within_seven_days_only() -> No
 
     assert lines == [
         "Work agenda card shown: 3 items (overdue 1, today 0, upcoming 2, scheduled_later 0).",
-        "- ov-1 v3 | Title ov-1 | due 2026-10-20T09:00:00+00:00",
-        "- up-near v3 | Title up-near | due 2026-10-30T09:00:00+00:00",
+        f"- {_id('ov-1')} v3 | Title ov-1 | due 2026-10-20T09:00:00Z",
+        f"- {_id('up-near')} v3 | Title up-near | due 2026-10-30T09:00:00Z",
         f"{CARD_NOTE} {AGENDA_NOTE}",
     ]
 
@@ -999,15 +1022,9 @@ _WAITING_ZONE = ZoneInfo("Europe/Stockholm")
 
 
 def _waiting_item(
-    item_id: str, since: str | None, version: int = 1, name: str | None = None
-) -> dict[str, Any]:
-    return {
-        "id": item_id,
-        "version": version,
-        "title": f"Title {item_id}",
-        "waiting_since": since,
-        "waiting_on_contact_name": name,
-    }
+    label: str, since: str | None, version: int = 1, name: str | None = None
+) -> WorkItemRecord:
+    return _record(label, version=version, waiting_since=since, name=name)
 
 
 def test_waiting_agenda_text_lists_the_longest_wait_first_and_marks_seven_days_or_more() -> None:
@@ -1025,10 +1042,10 @@ def test_waiting_agenda_text_lists_the_longest_wait_first_and_marks_seven_days_o
         "You are waiting on 4 things on this page (more follow), longest on Anna Berg for 17 days: "
         "Title w-old.",
         "Waiting, longest first:",
-        "- w-old v3 | Title w-old | Anna Berg | waited 17 days | remind",
-        "- w-mid v1 | Title w-mid | waited 7 days | remind",
-        "- w-edge v1 | Title w-edge | waited 6 days",
-        "- w-new v1 | Title w-new | waited 1 day",
+        f"- {_id('w-old')} v3 | Title w-old | Anna Berg | waited 17 days | remind",
+        f"- {_id('w-mid')} v1 | Title w-mid | waited 7 days | remind",
+        f"- {_id('w-edge')} v1 | Title w-edge | waited 6 days",
+        f"- {_id('w-new')} v1 | Title w-new | waited 1 day",
         "More: next_cursor cursor-2.",
         CARD_NOTE,
     ]
@@ -1064,41 +1081,38 @@ def test_waiting_agenda_text_keeps_line_one_free_of_ids_and_puts_undated_rows_la
     lines = waiting_agenda_text(items, None, now=_AGENDA_NOW, zone=_WAITING_ZONE).splitlines()
 
     assert lines[0] == "You are waiting on 2 things, longest since today: Title w-dated."
-    assert "w-dated v" not in lines[0]
-    assert lines[2] == "- w-dated v1 | Title w-dated | waited 0 days"
-    assert lines[3] == "- w-undated v1 | Title w-undated"
+    assert str(_id("w-dated")) not in lines[0]
+    assert lines[2] == f"- {_id('w-dated')} v1 | Title w-dated | waited 0 days"
+    assert lines[3] == f"- {_id('w-undated')} v1 | Title w-undated"
     assert not any(line.startswith("More:") for line in lines)
     assert lines[-1] == CARD_NOTE
 
 
 def test_board_card_text_names_at_most_eight_ids_per_column_and_counts_the_rest() -> None:
     columns = {
-        "todo": [
-            {"id": f"td-{number}", "version": 2, "title": f"Todo {number}"} for number in range(9)
-        ],
-        "blocked": [{"id": "bl-1", "version": 5, "title": "Blocked"}],
+        "todo": [_record(f"td-{number}", version=2, title=f"Todo {number}") for number in range(9)],
+        "blocked": [_record("bl-1", version=5, title="Blocked")],
     }
 
     lines = board_card_text(columns, None, filtered=False).splitlines()
 
     assert lines[0] == "Work board card shown: 10 tasks (todo 9, blocked 1)."
     assert lines[1] == "todo 9:"
-    assert lines[2] == "- td-0 v2 | Todo 0"
-    assert lines[1 + BOARD_ROW_LIMIT] == (
-        f"- td-{BOARD_ROW_LIMIT - 1} v2 | Todo {BOARD_ROW_LIMIT - 1}"
-    )
+    assert lines[2] == f"- {_id('td-0')} v2 | Todo 0"
+    last = BOARD_ROW_LIMIT - 1
+    assert lines[1 + BOARD_ROW_LIMIT] == f"- {_id(f'td-{last}')} v2 | Todo {last}"
     assert lines[2 + BOARD_ROW_LIMIT] == "… 1 more"
     assert lines[3 + BOARD_ROW_LIMIT] == "blocked 1:"
-    assert lines[4 + BOARD_ROW_LIMIT] == "- bl-1 v5 | Blocked"
+    assert lines[4 + BOARD_ROW_LIMIT] == f"- {_id('bl-1')} v5 | Blocked"
     assert lines[-1] == CARD_NOTE
 
 
 def test_board_card_text_counts_only_tasks_and_lists_projects_and_domains_apart() -> None:
     columns = {
-        "todo": [{"kind": "task", "id": "t-1", "version": 1, "title": "Ring"}],
+        "todo": [_record("t-1", title="Ring")],
         "active": [
-            {"kind": "project", "id": "p-1", "version": 4, "title": "Kök"},
-            {"kind": "domain", "id": "d-1", "version": 2, "title": "Hem"},
+            _record("p-1", kind="project", version=4, title="Kök"),
+            _record("d-1", kind="domain", version=2, title="Hem"),
         ],
     }
 
@@ -1107,10 +1121,10 @@ def test_board_card_text_counts_only_tasks_and_lists_projects_and_domains_apart(
     assert lines == [
         "Work board card shown: 1 task (todo 1), also 1 project, 1 domain.",
         "todo 1:",
-        "- t-1 v1 | Ring",
+        f"- {_id('t-1')} v1 | Ring",
         "not tasks 2:",
-        "- p-1 v4 | Kök | project",
-        "- d-1 v2 | Hem | domain",
+        f"- {_id('p-1')} v4 | Kök | project",
+        f"- {_id('d-1')} v2 | Hem | domain",
         CARD_NOTE,
     ]
     assert board_sentence(columns, None) == (
@@ -1339,16 +1353,16 @@ def test_agenda_sentence_counts_only_this_page_when_more_pages_follow() -> None:
 
 
 def test_board_sentence_counts_tasks_per_status_in_words() -> None:
-    columns: dict[str, list[dict[str, str]]] = {
-        "todo": [{"id": "a"}, {"id": "b"}],
-        "in_progress": [{"id": "c"}],
+    columns = {
+        "todo": [_record("a"), _record("b")],
+        "in_progress": [_record("c")],
     }
     assert board_sentence(columns, None) == ("The Work board has 3 tasks: 2 to do, 1 in progress.")
     assert board_sentence({}, None) == "The Work board has no records."
-    assert board_sentence({"todo": [{"id": "a"}]}, "cursor-2") == (
+    assert board_sentence({"todo": [_record("a")]}, "cursor-2") == (
         "The Work board has 1 task on this page (more follow): 1 to do."
     )
-    only_project = {"active": [{"kind": "project", "id": "p"}]}
+    only_project = {"active": [_record("p", kind="project")]}
     assert board_sentence(only_project, None) == (
         "The Work board has 0 tasks. Also listed: 1 project."
     )

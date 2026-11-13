@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -22,6 +23,7 @@ from sidekick.mcp.text import (
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_quick import quick_agenda_text
 from sidekick.mcp.work_text import (
+    TextRow,
     agenda_card_text,
     agenda_sentence,
     board_card_text,
@@ -100,7 +102,8 @@ def _saved_view_reply(item: SavedView, verb: str) -> ToolResult:
     return result(
         structured,
         spoken_line(
-            f"{verb} saved Work view {cell(view['name'])}.", record_ref(view, title_key="name")
+            f"{verb} saved Work view {cell(view['name'])}.",
+            record_ref(view["id"], view["version"], view["name"]),
         ),
     )
 
@@ -129,13 +132,14 @@ def _register_list_tags(mcp: FastMCP, ctx: ToolContext) -> None:
             actor, limit=limit, cursor=cursor, include_archived=include_archived
         )
         usage = ctx.container.work_tags.usage(actor, [item.id for item in page.items])
-        structured = TagPageOutput(
+        listed = TagPageOutput(
             tags=[
                 TagRecord.model_validate({**tag_public_data(item), "usage": usage[item.id]})
                 for item in page.items
             ],
             next_cursor=page.next_cursor,
-        ).model_dump(mode="json")
+        )
+        structured = listed.model_dump(mode="json")
         for tag in structured["tags"]:
             # A kind the caller may not read is left out of the counts, not shown as null.
             tag["usage"] = {
@@ -144,14 +148,8 @@ def _register_list_tags(mcp: FastMCP, ctx: ToolContext) -> None:
         return result(
             structured,
             list_text(
-                found_sentence(
-                    len(page.items),
-                    "tag",
-                    "tags",
-                    [tag["label"] for tag in structured["tags"]],
-                ),
-                structured["tags"],
-                title_key="label",
+                found_sentence(len(page.items), "tag", "tags", [tag.label for tag in listed.tags]),
+                [TextRow(t.id, t.label, version=t.version) for t in listed.tags],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )
@@ -190,7 +188,7 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
             cursor=cursor,
             unsorted=unsorted,
         )
-        titles = [task["title"] for task in structured["tasks"]]
+        titles = [task.title for task in structured.tasks]
         if not unsorted:
             head = found_sentence(len(titles), "task", "tasks", titles)
         elif not titles:
@@ -199,9 +197,13 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
             head = found_sentence(
                 len(titles), "unsorted task", "unsorted tasks", titles, lead="You have"
             )
+        rows = [
+            TextRow(t.id, t.title, version=t.version, status=t.status, due_at=t.due_at)
+            for t in structured.tasks
+        ]
         return result(
-            structured,
-            list_text(head, structured["tasks"], locale=ctx.container.settings.mcp_app_locale),
+            structured.model_dump(mode="json"),
+            list_text(head, rows, locale=ctx.container.settings.mcp_app_locale),
         )
 
 
@@ -215,7 +217,9 @@ _BOARD_FILTER_DEFAULTS = {
 }
 
 
-def _board_reply(ctx: ToolContext, board_query: WorkQuery, values: dict[str, Any]) -> ToolResult:
+def _board_reply(
+    ctx: ToolContext, board_query: WorkQuery, values: Mapping[str, object]
+) -> ToolResult:
     """The board page for a query; `values` are the filters as the caller named them."""
 
     actor = ctx.actor_provider()
@@ -229,15 +233,13 @@ def _board_reply(ctx: ToolContext, board_query: WorkQuery, values: dict[str, Any
         next_cursor=next_cursor,
         filters=filters,
         manually_ordered=list(manually_ordered),
-    ).model_dump(mode="json")
-    sentence = board_sentence(structured["columns"], structured["next_cursor"])
+    )
+    sentence = board_sentence(structured.columns, structured.next_cursor)
     return card_result(
-        structured,
+        structured.model_dump(mode="json"),
         spoken_line(
             sentence,
-            board_card_text(
-                structured["columns"], structured["next_cursor"], filtered=bool(filters)
-            ),
+            board_card_text(structured.columns, structured.next_cursor, filtered=bool(filters)),
         ),
     )
 
@@ -306,7 +308,7 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
 
 def _agenda_reply(
     ctx: ToolContext,
-    structured: dict[str, Any],
+    structured: WorkItemPageOutput,
     *,
     waiting: str,
     include_undated: bool,
@@ -314,7 +316,7 @@ def _agenda_reply(
 ) -> ToolResult:
     """The agenda card; the waiting and quick-planning asks get their own plain text."""
 
-    items, next_cursor = structured["items"], structured["next_cursor"]
+    items, next_cursor = structured.items, structured.next_cursor
     if waiting == "waiting":
         text = waiting_agenda_text(
             items, next_cursor, now=datetime.now(UTC), zone=ctx.container.settings.owner_zone
@@ -326,7 +328,7 @@ def _agenda_reply(
             agenda_sentence(items, next_cursor),
             agenda_card_text(items, next_cursor, now=datetime.now(UTC)),
         )
-    return card_result(structured, text)
+    return card_result(structured.model_dump(mode="json"), text)
 
 
 def _register_get_work_agenda(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -433,25 +435,26 @@ def _register_get_work_hierarchy(mcp: FastMCP, ctx: ToolContext) -> None:
             include_tasks=include_tasks,
             process_id=process_id,
         )
-        next_cursor = structured["next_cursor"]
+        next_cursor = structured.next_cursor
+        # Without include_tasks the answer carries no `tasks` key at all.
+        dumped = structured.model_dump(mode="json", exclude_unset=True)
         if not include_tasks:
+            rows = hierarchy_text_items(structured.nodes, [])
             return card_result(
-                structured,
+                dumped,
                 spoken_line(
-                    hierarchy_sentence(structured["nodes"], next_cursor=next_cursor),
-                    hierarchy_card_text(
-                        structured["nodes"], hierarchy_indents(structured["nodes"])
-                    ),
+                    hierarchy_sentence(structured.nodes, next_cursor=next_cursor),
+                    hierarchy_card_text(rows, hierarchy_indents(rows)),
                 ),
             )
-        text_items = hierarchy_text_items(structured["nodes"], structured["tasks"])
-        step_count = sum(len(task["steps"]) for task in structured["tasks"])
+        text_items = hierarchy_text_items(structured.nodes, structured.tasks)
+        step_count = sum(len(task.steps) for task in structured.tasks)
         return card_result(
-            structured,
+            dumped,
             spoken_line(
                 hierarchy_sentence(
-                    structured["nodes"],
-                    task_count=len(structured["tasks"]),
+                    structured.nodes,
+                    task_count=len(structured.tasks),
                     step_count=step_count,
                     next_cursor=next_cursor,
                 ),
@@ -477,15 +480,12 @@ def _register_list_saved_work_views(mcp: FastMCP, ctx: ToolContext) -> None:
         items = ctx.container.saved_views.list(
             ctx.actor_provider(), include_archived=include_archived
         )
-        structured = SavedViewListOutput(
-            saved_views=[saved_view_record(item) for item in items]
-        ).model_dump(mode="json")
+        structured = SavedViewListOutput(saved_views=[saved_view_record(item) for item in items])
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             list_text(
                 f"Found {count_phrase(len(items), 'saved Work view', 'saved Work views')}.",
-                structured["saved_views"],
-                title_key="name",
+                [TextRow(v.id, v.name, version=v.version) for v in structured.saved_views],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )

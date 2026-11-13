@@ -4,14 +4,13 @@ import argparse
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
 
 from sidekick.composition import create_container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.config import get_settings
 
 
-async def export() -> list[dict[str, Any]]:
+async def export() -> list[dict[str, object]]:
     container = create_container(get_settings())
     tools = await create_mcp_server(container).list_tools()
     return [

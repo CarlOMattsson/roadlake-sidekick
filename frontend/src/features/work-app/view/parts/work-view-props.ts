@@ -3,7 +3,11 @@ import type { AgendaControls } from "../../agenda/agenda";
 import type { CardLabels } from "../../shared/card-labels";
 import type { InlineSummaryLabels } from "../../inline/inline-summary-labels";
 import type { WorkLabels } from "../../shared/labels";
-import type { WorkFrame, WorkTransport } from "../../transport/transport";
+import type {
+  WorkFilters,
+  WorkFrame,
+  WorkTransport,
+} from "../../transport/transport";
 
 /** The props of WorkView: both hosts use the same UI, and the transport alone decides how data is read. */
 export type WorkViewProps = {
@@ -61,4 +65,6 @@ export type WorkViewProps = {
   boardAvailable?: boolean;
   /** The Projects tab's search text (fullscreen tab row). Given, the hierarchy shows no filter field of its own. */
   hierarchyQuery?: string;
+  /** Called with the filters of the root agenda or board when they first show and whenever they change. */
+  onListFilters?: (filters: WorkFilters) => void;
 };

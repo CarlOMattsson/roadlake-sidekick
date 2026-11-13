@@ -93,7 +93,7 @@ async def task_detail(request: Request, task_id: UUID) -> JSONResponse:
     actor = operation_actor(credential, TASK_DETAIL)
     container = request.app.state.container
     structured, _detail = await run_in_threadpool(task_detail_structured, container, actor, task_id)
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def task_steps(
@@ -108,7 +108,7 @@ async def task_steps(
     structured = await run_in_threadpool(
         lambda: task_steps_structured(container, actor, task_id, limit=limit, cursor=cursor)
     )
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def task_contacts(
@@ -166,7 +166,7 @@ async def task_reopen(
                 changes=TaskChanges(status=TaskStatus.TODO),
                 correlation_id=request.scope.get("sidekick.correlation_id"),
                 only_if_status=TaskStatus.COMPLETED,
-            )
+            ).model_dump(mode="json")
 
     structured = await run_in_threadpool(reopen)
     return JSONResponse(headers=no_store_headers, content=_write_result(credential, structured))
@@ -192,7 +192,7 @@ async def task_complete(
                 version=body.version,
                 idempotency_key=idempotency_key,
                 correlation_id=request.scope.get("sidekick.correlation_id"),
-            )
+            ).model_dump(mode="json")
 
     structured = await run_in_threadpool(complete)
     return JSONResponse(headers=no_store_headers, content=_write_result(credential, structured))
@@ -217,7 +217,7 @@ async def step_complete(
                 version=body.version,
                 idempotency_key=idempotency_key,
                 correlation_id=request.scope.get("sidekick.correlation_id"),
-            )
+            ).model_dump(mode="json")
 
     structured = await run_in_threadpool(complete)
     return JSONResponse(
@@ -244,7 +244,7 @@ async def step_reopen(
                 version=body.version,
                 idempotency_key=idempotency_key,
                 correlation_id=request.scope.get("sidekick.correlation_id"),
-            )
+            ).model_dump(mode="json")
 
     structured = await run_in_threadpool(reopen)
     return JSONResponse(

@@ -21,6 +21,7 @@ from sidekick.mcp.text import (
 )
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_text import (
+    TextRow,
     cell,
     found_sentence,
     list_text,
@@ -115,17 +116,20 @@ def _register_list_projects(mcp: FastMCP, ctx: ToolContext) -> None:
                 for item in page.items
             ],
             next_cursor=page.next_cursor,
-        ).model_dump(mode="json")
+        )
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             list_text(
                 found_sentence(
                     len(page.items),
                     "project",
                     "projects",
-                    [project["title"] for project in structured["projects"]],
+                    [project.title for project in structured.projects],
                 ),
-                structured["projects"],
+                [
+                    TextRow(p.id, p.title, version=p.version, status=p.status)
+                    for p in structured.projects
+                ],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )
@@ -146,20 +150,22 @@ def _register_get_project(mcp: FastMCP, ctx: ToolContext) -> None:
     def get_project(project_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured, project = project_detail_structured(ctx.container, actor, project_id)
-        record = structured["project"]
+        record = structured.project
         sentence = work_item_sentence(
             "Project",
-            record["title"],
+            record.title,
             project.status.value,
             project.target_date,
             label="target date",
             today=datetime.now(ctx.container.settings.owner_zone).date(),
         )
         return card_result(
-            structured,
+            structured.model_dump(mode="json"),
             record_card_text(
                 sentence,
-                record_ref(record, parent=("domain", record["domain_id"])),
+                record_ref(
+                    record.id, record.version, record.title, parent=("domain", record.domain_id)
+                ),
                 project_detail_lines(record),
             ),
         )
@@ -203,13 +209,15 @@ def _register_create_project(mcp: FastMCP, ctx: ToolContext) -> None:
         ]
         structured = ProjectOutput(
             project=ProjectRecord.model_validate(with_tags(project_public_data(project), slugs))
-        ).model_dump(mode="json")
-        record = structured["project"]
+        )
+        record = structured.project
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Created project {cell(record['title'])}.",
-                record_ref(record, parent=("domain", record["domain_id"])),
+                f"Created project {cell(record.title)}.",
+                record_ref(
+                    record.id, record.version, record.title, parent=("domain", record.domain_id)
+                ),
             ),
         )
 
@@ -246,13 +254,15 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         ]
         structured = ProjectOutput(
             project=ProjectRecord.model_validate(with_tags(project_public_data(project), slugs))
-        ).model_dump(mode="json")
-        record = structured["project"]
+        )
+        record = structured.project
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Updated project {cell(record['title'])}.",
-                record_ref(record, parent=("domain", record["domain_id"])),
+                f"Updated project {cell(record.title)}.",
+                record_ref(
+                    record.id, record.version, record.title, parent=("domain", record.domain_id)
+                ),
             ),
         )
 
@@ -280,21 +290,20 @@ def _register_list_domains(mcp: FastMCP, ctx: ToolContext) -> None:
                 for item in page.items
             ],
             next_cursor=page.next_cursor,
-        ).model_dump(mode="json")
+        )
         text = list_text(
             found_sentence(
                 len(page.items),
                 "domain",
                 "domains",
-                [domain["name"] for domain in structured["domains"]],
+                [domain.name for domain in structured.domains],
             ),
-            structured["domains"],
-            title_key="name",
+            [TextRow(d.id, d.name, version=d.version, status=d.status) for d in structured.domains],
             locale=ctx.container.settings.mcp_app_locale,
         )
         if not page.items:
             text = f"{text}\n{EMPTY_WORK_NOTE}"
-        return result(structured, text)
+        return result(structured.model_dump(mode="json"), text)
 
 
 def _register_get_domain(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -309,10 +318,13 @@ def _register_get_domain(mcp: FastMCP, ctx: ToolContext) -> None:
     def get_domain(domain_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured = domain_structured(ctx.container, actor, domain_id)
-        record = structured["domain"]
+        record = structured.domain
         return result(
-            structured,
-            spoken_line(f"Domain {cell(record['name'])}.", record_ref(record, title_key="name")),
+            structured.model_dump(mode="json"),
+            spoken_line(
+                f"Domain {cell(record.name)}.",
+                record_ref(record.id, record.version, record.name),
+            ),
         )
 
 
@@ -342,14 +354,13 @@ def _register_create_domain(mcp: FastMCP, ctx: ToolContext) -> None:
             accent=accent,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = DomainOutput(
-            domain=DomainRecord.model_validate(domain_public_data(domain))
-        ).model_dump(mode="json")
-        record = structured["domain"]
+        structured = DomainOutput(domain=DomainRecord.model_validate(domain_public_data(domain)))
+        record = structured.domain
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Created domain {cell(record['name'])}.", record_ref(record, title_key="name")
+                f"Created domain {cell(record.name)}.",
+                record_ref(record.id, record.version, record.name),
             ),
         )
 
@@ -384,12 +395,13 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         slugs = [tag.slug for tag in ctx.container.work_tags.for_record(actor, "domain", domain_id)]
         structured = DomainOutput(
             domain=DomainRecord.model_validate(domain_public_data(domain, slugs))
-        ).model_dump(mode="json")
-        record = structured["domain"]
+        )
+        record = structured.domain
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Updated domain {cell(record['name'])}.", record_ref(record, title_key="name")
+                f"Updated domain {cell(record.name)}.",
+                record_ref(record.id, record.version, record.name),
             ),
         )
 
@@ -420,10 +432,15 @@ def _register_create_process(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         structured = ProcessOutput(
             process=ProcessRecord.model_validate(process_public_data(process))
-        ).model_dump(mode="json")
-        record = structured["process"]
-        ref = record_ref(record, title_key="name", parent=("domain", record["domain_id"]))
-        return result(structured, spoken_line(f"Created process {cell(record['name'])}.", ref))
+        )
+        record = structured.process
+        ref = record_ref(
+            record.id, record.version, record.name, parent=("domain", record.domain_id)
+        )
+        return result(
+            structured.model_dump(mode="json"),
+            spoken_line(f"Created process {cell(record.name)}.", ref),
+        )
 
 
 def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -458,10 +475,15 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
         ]
         structured = ProcessOutput(
             process=ProcessRecord.model_validate(process_public_data(process, slugs))
-        ).model_dump(mode="json")
-        record = structured["process"]
-        ref = record_ref(record, title_key="name", parent=("domain", record["domain_id"]))
-        return result(structured, spoken_line(f"Updated process {cell(record['name'])}.", ref))
+        )
+        record = structured.process
+        ref = record_ref(
+            record.id, record.version, record.name, parent=("domain", record.domain_id)
+        )
+        return result(
+            structured.model_dump(mode="json"),
+            spoken_line(f"Updated process {cell(record.name)}.", ref),
+        )
 
 
 def _register_list_processes(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -492,18 +514,20 @@ def _register_list_processes(mcp: FastMCP, ctx: ToolContext) -> None:
                 for item in page.items
             ],
             next_cursor=page.next_cursor,
-        ).model_dump(mode="json")
+        )
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             list_text(
                 found_sentence(
                     len(page.items),
                     "process",
                     "processes",
-                    [process["name"] for process in structured["processes"]],
+                    [process.name for process in structured.processes],
                 ),
-                structured["processes"],
-                title_key="name",
+                [
+                    TextRow(p.id, p.name, version=p.version, status=p.status)
+                    for p in structured.processes
+                ],
                 locale=ctx.container.settings.mcp_app_locale,
             ),
         )
@@ -521,12 +545,17 @@ def _register_get_process(mcp: FastMCP, ctx: ToolContext) -> None:
     def get_process(process_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured = process_structured(ctx.container, actor, process_id)
-        record = structured["process"]
+        record = structured.process
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             spoken_line(
-                f"Process {cell(record['name'])}.",
-                record_ref(record, title_key="name", parent=("domain", record["domain_id"])),
+                f"Process {cell(record.name)}.",
+                record_ref(
+                    record.id,
+                    record.version,
+                    record.name,
+                    parent=("domain", record.domain_id),
+                ),
             ),
         )
 

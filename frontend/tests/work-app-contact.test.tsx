@@ -650,18 +650,18 @@ it("names the alias and archive controls in Swedish", async () => {
     await screen.findByRole("button", { name: workSv.moreActions }),
   );
   // No separate nickname entry in the menu; Arkivera sits there under Redigera.
-  expect(screen.queryByRole("button", { name: "Ändra smeknamn" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Ändra namn" })).toBeNull();
   expect(screen.getByRole("button", { name: "Arkivera" })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: workSv.edit }));
   expect(
-    await screen.findByRole("group", { name: "Smeknamn" }),
+    await screen.findByRole("group", { name: "Även kallad" }),
   ).toBeInTheDocument();
   expect(
     await screen.findByRole("button", {
-      name: "Ta bort smeknamnet Annan A",
+      name: "Ta bort namnet Annan A",
     }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Lägg till smeknamn" }),
+    screen.getByRole("button", { name: "Lägg till namn" }),
   ).toBeInTheDocument();
 });

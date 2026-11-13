@@ -27,6 +27,10 @@ from typing import Any, cast
 
 from sidekick.mcp.tool_scopes import TOOL_SCOPES, describe
 
+# A JSON object read from the contract file: a tool, or a (nested) JSON Schema. The keys and the
+# shapes behind them vary with the schema, so values are read with `.get` and checked where used.
+JsonObject = dict[str, Any]
+
 DEFAULT_CONTRACT = Path("contracts/mcp-tools.generated.json")
 DEFAULT_OUTPUT_DIR = Path("docs/reference/mcp")
 INDEX_PAGE = "index.md"
@@ -231,26 +235,26 @@ def _summary(description: str) -> str:
     return _escape(_first_sentence(description))
 
 
-def _alternatives(schema: dict[str, Any]) -> list[dict[str, Any]]:
+def _alternatives(schema: JsonObject) -> list[JsonObject]:
     return schema.get("anyOf") or schema.get("oneOf") or [schema]
 
 
-def _variants(schema: dict[str, Any]) -> list[dict[str, Any]]:
+def _variants(schema: JsonObject) -> list[JsonObject]:
     """The non-null alternatives of a schema (the schema itself when it has no `anyOf`)."""
     return [option for option in _alternatives(schema) if option.get("type") != "null"]
 
 
-def _nullable(schema: dict[str, Any]) -> bool:
+def _nullable(schema: JsonObject) -> bool:
     return any(option.get("type") == "null" for option in _alternatives(schema))
 
 
-def _record_name(schema: dict[str, Any]) -> str:
+def _record_name(schema: JsonObject) -> str:
     """The model class name pydantic puts in an object's `title`, else the plain word `object`."""
     title = schema.get("title")
     return title if isinstance(title, str) and _RECORD_NAME.fullmatch(title) else "object"
 
 
-def _type(schema: dict[str, Any], *, named: bool = False) -> str:
+def _type(schema: JsonObject, *, named: bool = False) -> str:
     """The type of a schema; with `named`, an object is shown by its model class name."""
     names: list[str] = []
     for variant in _variants(schema):
@@ -273,7 +277,7 @@ def _type(schema: dict[str, Any], *, named: bool = False) -> str:
     return " or ".join(names) or "any"
 
 
-def _range(low: Any, high: Any, unit: str) -> str | None:
+def _range(low: object, high: object, unit: str) -> str | None:
     if low is not None and high is not None:
         return f"{low} to {high} {unit}"
     if high is not None:
@@ -283,7 +287,7 @@ def _range(low: Any, high: Any, unit: str) -> str | None:
     return None
 
 
-def _notes(schema: dict[str, Any]) -> str:
+def _notes(schema: JsonObject) -> str:
     notes: list[str] = []
     default = schema.get("default")
     if default is not None:
@@ -324,13 +328,13 @@ class _Row:
     notes: str
 
 
-def _object_variants(schema: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+def _object_variants(schema: JsonObject) -> list[tuple[str, JsonObject]]:
     """The nested objects of a parameter: the object itself, or the objects its array holds.
 
     Each comes with the path suffix of its fields (`.` for an object, `[].` for an array item). When
     an array holds several object shapes, a suffix names the shape by its `type` constant.
     """
-    found: list[tuple[str, dict[str, Any]]] = []
+    found: list[tuple[str, JsonObject]] = []
     for variant in _variants(schema):
         if variant.get("type") == "object" and variant.get("properties"):
             found.append((".", variant))
@@ -346,7 +350,7 @@ def _object_variants(schema: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]
 
 
 def _rows(
-    properties: dict[str, Any], required: set[str], prefix: str = "", depth: int = 0
+    properties: JsonObject, required: set[str], prefix: str = "", depth: int = 0
 ) -> list[_Row]:
     rows: list[_Row] = []
     for name in sorted(properties, key=lambda key: (key not in required, key)):
@@ -364,8 +368,8 @@ def _rows(
     return rows
 
 
-def _parameters(tool: dict[str, Any]) -> list[str]:
-    properties: dict[str, Any] = tool["inputSchema"].get("properties", {})
+def _parameters(tool: JsonObject) -> list[str]:
+    properties: JsonObject = tool["inputSchema"].get("properties", {})
     if not properties:
         return ["No parameters.", ""]
     required = set(tool["inputSchema"].get("required", []))
@@ -383,10 +387,10 @@ def _parameters(tool: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _output(tool: dict[str, Any]) -> str:
+def _output(tool: JsonObject) -> str:
     """A one-line summary of the structured answer, from the tool's output schema."""
     schema = _object(tool.get("outputSchema"))
-    properties: dict[str, Any] = schema.get("properties", {})
+    properties: JsonObject = schema.get("properties", {})
     if not properties:
         return "No structured fields."
     required = set(schema.get("required", []))
@@ -402,22 +406,22 @@ def _output(tool: dict[str, Any]) -> str:
     return f"{head}{', '.join(fields)}{more}."
 
 
-def _object(value: Any) -> dict[str, Any]:
-    return cast("dict[str, Any]", value) if isinstance(value, dict) else {}
+def _object(value: object) -> JsonObject:
+    return cast("JsonObject", value) if isinstance(value, dict) else {}
 
 
-def _access(tool: dict[str, Any]) -> str:
+def _access(tool: JsonObject) -> str:
     annotations = _object(tool.get("annotations"))
     if annotations.get("readOnlyHint"):
         return "read"
     return "write (destructive)" if annotations.get("destructiveHint") else "write"
 
 
-def _is_app_only(tool: dict[str, Any]) -> bool:
+def _is_app_only(tool: JsonObject) -> bool:
     return _object(_object(tool.get("_meta")).get("ui")).get("visibility") == ["app"]
 
 
-def _tool_section(tool: dict[str, Any], level: str) -> list[str]:
+def _tool_section(tool: JsonObject, level: str) -> list[str]:
     name = tool["name"]
     return [
         f"{level} `{name}`",
@@ -434,7 +438,7 @@ def _tool_section(tool: dict[str, Any], level: str) -> list[str]:
     ]
 
 
-def _check_coverage(by_name: dict[str, dict[str, Any]]) -> None:
+def _check_coverage(by_name: dict[str, JsonObject]) -> None:
     placed = [name for area in AREAS for name in area.tools]
     if len(placed) != len(set(placed)):
         raise ValueError("a tool is listed in more than one area")
@@ -461,7 +465,7 @@ def _header(title: str, description: str | None = None) -> list[str]:
     ]
 
 
-def _area_page(area: Area, tools: list[dict[str, Any]]) -> str:
+def _area_page(area: Area, tools: list[JsonObject]) -> str:
     lines = [
         *_header(f"MCP tools: {area.title}"),
         f"[MCP tool reference](index.md) | {len(tools)} model-visible "
@@ -474,7 +478,7 @@ def _area_page(area: Area, tools: list[dict[str, Any]]) -> str:
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
-def _app_only_page(groups: list[tuple[Area, list[dict[str, Any]]]]) -> str:
+def _app_only_page(groups: list[tuple[Area, list[JsonObject]]]) -> str:
     total = sum(len(tools) for _, tools in groups)
     lines = [
         *_header(
@@ -497,9 +501,9 @@ def _app_only_page(groups: list[tuple[Area, list[dict[str, Any]]]]) -> str:
 
 
 def _index_page(
-    tools: list[dict[str, Any]],
-    model_groups: list[tuple[Area, list[dict[str, Any]]]],
-    app_groups: list[tuple[Area, list[dict[str, Any]]]],
+    tools: list[JsonObject],
+    model_groups: list[tuple[Area, list[JsonObject]]],
+    app_groups: list[tuple[Area, list[JsonObject]]],
 ) -> str:
     app_total = sum(len(group) for _, group in app_groups)
     lines = [
@@ -547,12 +551,12 @@ def _index_page(
     return "\n".join(lines).rstrip("\n") + "\n"
 
 
-def render_pages(tools: list[dict[str, Any]]) -> dict[str, str]:
+def render_pages(tools: list[JsonObject]) -> dict[str, str]:
     """Every page of the reference, keyed by file name."""
     by_name = {tool["name"]: tool for tool in tools}
     _check_coverage(by_name)
-    model_groups: list[tuple[Area, list[dict[str, Any]]]] = []
-    app_groups: list[tuple[Area, list[dict[str, Any]]]] = []
+    model_groups: list[tuple[Area, list[JsonObject]]] = []
+    app_groups: list[tuple[Area, list[JsonObject]]] = []
     for area in AREAS:
         members = [by_name[name] for name in area.tools]
         if model := [tool for tool in members if not _is_app_only(tool)]:

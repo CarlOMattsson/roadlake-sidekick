@@ -4,7 +4,7 @@ Swedish is the default and must read exactly as before; English is the reviewed 
 its own plural forms.
 """
 
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -15,7 +15,7 @@ from sidekick.mcp.brief import (
     BriefTasks,
     _summary_text,  # pyright: ignore[reportPrivateUsage]
 )
-from sidekick.mcp.work_text import list_text
+from sidekick.mcp.work_text import TextRow, list_text
 from sidekick.shared.locale import AppLocale, localized
 
 
@@ -101,7 +101,7 @@ def test_a_brief_without_any_part_says_so_in_both_languages() -> None:
     [("sv", "… 3 till (använd cursor)"), ("en", "… 3 more (use cursor)")],
 )
 def test_the_left_out_rows_line_follows_the_language(locale: AppLocale, last_line: str) -> None:
-    items = [{"id": str(index), "title": f"Rad {index}"} for index in range(53)]
+    items = [TextRow(UUID(int=index), f"Rad {index}") for index in range(53)]
 
     lines = list_text("Found 53 things.", items, locale=locale)
 

@@ -171,6 +171,26 @@ class StepActionStore:
         return grouped
 
     @staticmethod
+    def count_active_actions_by_step(
+        session: Session, owner_id: UUID, step_ids: tuple[UUID, ...]
+    ) -> dict[UUID, int]:
+        """Active Actions per Step among `step_ids`, grouped; Steps with none are absent."""
+
+        if not step_ids:
+            return {}
+        rows = session.execute(
+            select(ActionRow.step_id, func.count())
+            .where(
+                ActionRow.owner_id == owner_id,
+                ActionRow.step_id == any_(bindparam("step_ids", list(step_ids), type_=_UUID_ARRAY)),
+                ActionRow.trashed_at.is_(None),
+                ActionRow.archived_at.is_(None),
+            )
+            .group_by(ActionRow.step_id)
+        )
+        return {step_id: count for step_id, count in rows}
+
+    @staticmethod
     def lock_step_order(session: Session, owner_id: UUID, task_id: UUID) -> None:
         """Serialize position changes among one Task's Steps by locking the Task row.
 

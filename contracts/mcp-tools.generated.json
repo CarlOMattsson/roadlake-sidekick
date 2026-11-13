@@ -17675,7 +17675,7 @@
       "readOnlyHint": true,
       "title": "Lista steg f\u00f6r uppgift"
     },
-    "description": "List bounded ordered Steps for one owned Task; next_cursor continues.",
+    "description": "List bounded ordered Steps for one owned Task, each with its action_count; next_cursor continues.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -17714,7 +17714,13 @@
         "items": {
           "items": {
             "additionalProperties": false,
+            "description": "A Step as `list_task_steps` returns it, with the number of its active Actions.",
             "properties": {
+              "action_count": {
+                "minimum": 0,
+                "title": "Action Count",
+                "type": "integer"
+              },
               "archived_at": {
                 "anyOf": [
                   {
@@ -17791,9 +17797,10 @@
               "status",
               "position",
               "due_at",
-              "version"
+              "version",
+              "action_count"
             ],
-            "title": "StepRecord",
+            "title": "ListedStepRecord",
             "type": "object"
           },
           "title": "Items",
@@ -17815,7 +17822,7 @@
       "required": [
         "items"
       ],
-      "title": "StepPageOutput",
+      "title": "ListedStepPageOutput",
       "type": "object"
     },
     "title": "Lista steg f\u00f6r uppgift"
