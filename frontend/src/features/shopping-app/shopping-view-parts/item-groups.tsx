@@ -114,7 +114,7 @@ export function ItemGroups({
 }
 
 /**
- * "Köpta (n) ⌄", the fold row, inline and in fullscreen alike. `purchased` is the settled bought items, newest first,
+ * The `boughtCount` fold row (with its chevron), inline and in fullscreen alike. `purchased` is the settled bought items, newest first,
  * each with the day it was bought; the store view says once, above them, that the ring buys an item again.
  */
 export function PurchasedFold({

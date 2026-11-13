@@ -81,6 +81,7 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("100_schema_baseline_0_1_0", False),
     ("106_drop_retired_automation_tables", False),
     ("107_contact_and_journal_entry_tags", False),
+    ("108_memory_forgotten_facts", True),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -175,7 +176,9 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("journal_entry_contacts", JournalEntryContactRow),
     ExportSource("daily_journal_summaries", DailyJournalSummaryRow),
     ExportSource("daily_journal_summary_entries", DailyJournalSummaryEntryRow),
-    ExportSource("memory_settings", MemorySettingsRow),
+    # The forgotten-statement salt is not exported yet, and neither are the statements it keys
+    # (`memory_forgotten_facts`). An export written now therefore restores without them.
+    ExportSource("memory_settings", MemorySettingsRow, redacted_fields=frozenset({"forget_salt"})),
 )
 
 # Authentication, instance configuration, operational state and derived memory stay local.
@@ -189,7 +192,29 @@ EXCLUDED_COLLECTIONS: tuple[str, ...] = (
     "memory_sources_derived_metadata",
     "memory_usage_daily_derived_counters",
     "hindsight_memory_bank_content",
+    # Not yet exported: the forgotten-statement digests and their provider ids stay local until the
+    # next export format carries them (together with `memory_settings.forget_salt`). Documents
+    # written before migration 108 do not list them (see `excluded_collections_for`).
+    "memory_forgotten_facts",
+    "memory_forgotten_units",
 )
+EXCLUDED_ADDED_AT_HEAD = "108_memory_forgotten_facts"
+_EXCLUDED_ADDED_AT_HEAD_NAMES: frozenset[str] = frozenset(
+    {"memory_forgotten_facts", "memory_forgotten_units"}
+)
+
+
+def excluded_collections_for(schema_head: object) -> list[str]:
+    """The exclusion catalogue a document stamped with `schema_head` lists: the current one from
+    the migration that added names to it onward, the one before it for any earlier head."""
+
+    heads = [migration for migration, _ in SCHEMA_CHAIN]
+    if schema_head in heads and heads.index(str(schema_head)) >= heads.index(
+        EXCLUDED_ADDED_AT_HEAD
+    ):
+        return list(EXCLUDED_COLLECTIONS)
+    return [name for name in EXCLUDED_COLLECTIONS if name not in _EXCLUDED_ADDED_AT_HEAD_NAMES]
+
 
 SOURCES_BY_NAME = {source.name: source for source in EXPORT_SOURCES}
 TABLE_TO_SOURCE = {source.row_type.__table__.name: source.name for source in EXPORT_SOURCES}

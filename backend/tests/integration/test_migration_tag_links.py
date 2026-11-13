@@ -17,6 +17,7 @@ from yoyo import get_backend, read_migrations
 from tests.support.migration_baseline import (
     BASELINE,
     DROP_AUTOMATION,
+    FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
     TAG_LINKS,
     _admin_url,
@@ -120,8 +121,12 @@ def test_the_links_are_added_and_every_existing_row_is_kept(tmp_path: Path) -> N
 
     _apply(MIGRATIONS_PATH)
 
-    assert _tables_now() == before | set(LINK_TABLES)
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
+    # Migration 108 adds its own two tables in the same run.
+    assert _tables_now() == before | set(LINK_TABLES) | {
+        "memory_forgotten_facts",
+        "memory_forgotten_units",
+    }
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
     assert _scalar("SELECT count(*) FROM sidekick.contacts") == 1
     assert _scalar("SELECT count(*) FROM sidekick.journal_entries") == 1
     assert _scalar("SELECT count(*) FROM sidekick.work_tags") == 2
@@ -196,7 +201,7 @@ def test_a_rollback_drops_only_the_links(tmp_path: Path) -> None:
         backend.rollback_one(migration)
 
     assert set(LINK_TABLES).isdisjoint(_tables_now())
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION}
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, FORGOTTEN_FACTS}
     assert _scalar("SELECT count(*) FROM sidekick.contacts") == 1
     assert _scalar("SELECT count(*) FROM sidekick.work_tags") == 2
     # And it applies again.

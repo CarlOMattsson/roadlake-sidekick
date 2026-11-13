@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ownerNoon, ownerToday } from "./app-timezone";
+import { ownerNoon, ownerToday } from "@/features/mcp-apps/app-timezone";
 
 afterEach(() => {
   vi.useRealTimers();

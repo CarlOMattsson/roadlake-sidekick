@@ -331,3 +331,14 @@ härledning, och som release-arbetsflödet kör innan något byggs. OpenAPI-doku
 - **Vad numret betyder.** En patch rättar fel utan att bryta beteende eller schema. En minor-release lägger till
   funktioner och får ha `expand`-migreringar. Migrationsklassen `breaking` eller en ny version av
   companion-API:t kräver minst en minor-release så länge versionen är under 1.0, och en major-release därefter.
+
+## Kvartalsvis genomgång av beroenden
+
+`fastmcp` är fastlåst till en exakt version och undantaget från automatiska uppdateringsförslag, eftersom det bär
+verktygs- och schemakontraktet som rummen och klienterna litar på. En fastlåst version får inga rättningar av sig
+själv, så en gång per kvartal (och tidigare om en säkerhetsnotis nämner den) läser man versionsanteckningar och
+säkerhetsnotiser för `fastmcp`, `mcp`, `httpx`, `httpx2` och de andra fastlåsta körtidsbiblioteken och avgör för var
+och en om den ska uppgraderas eller varför inte. En uppgradering av `fastmcp` går först genom kontrakttesterna
+(den genererade verktygslistan, `backend/tests/contract/test_tool_context_budget.py` och autentiseringstesterna),
+aldrig bara på en grön enhetstestkörning. Resonemanget finns i
+[hotmodellen](../explanation/threat-model.md#reviewing-the-frozen-mcp-library-and-other-dependencies) (på engelska).

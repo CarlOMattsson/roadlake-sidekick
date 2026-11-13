@@ -20,11 +20,11 @@ export function ChipChoices({
   busy,
   onChoose,
 }: {
-  /** The chip's accessible name, "Ändra prioritet: Hög". */
+  /** The chip's accessible name: the `changePriority` or `changeStatus` label, then the value. */
   name: string;
   /** What the chip shows. */
   text: ReactNode;
-  /** The name of the unfolded group, "Upprepning för Ring Anna". */
+  /** The name of the unfolded group: the `repeatPickerFor` label. */
   groupLabel: string;
   options: ChipChoice[];
   /** The ticked option. */

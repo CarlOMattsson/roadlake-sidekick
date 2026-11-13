@@ -23,6 +23,7 @@ from sidekick.owner_export.catalogue import (
     SCHEMA_HEAD,
     SOURCES_BY_NAME,
     ExportRefused,
+    excluded_collections_for,
     source_fields,
 )
 from sidekick.work.domain.context import DOMAIN_ACCENTS
@@ -132,7 +133,7 @@ class ExportVerification:
     collection_counts: dict[str, int]
 
 
-def verify_export(document: Mapping[str, Any]) -> ExportVerification:
+def _verify_header(document: Mapping[str, Any]) -> tuple[UUID, int]:
     if document.get("format") != EXPORT_FORMAT:
         raise ExportRefused("unsupported export format")
     format_version = document.get("format_version")
@@ -150,7 +151,46 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
         owner_id = UUID(str(document["owner_id"]))
     except (KeyError, TypeError, ValueError) as error:
         raise ExportRefused("invalid owner id") from error
+    return owner_id, format_version
 
+
+def _verify_rows(name: str, source: Any, rows_value: Any, owner_id: UUID) -> None:
+    if not isinstance(rows_value, list):
+        raise ExportRefused(f"collection {name} must be an array")
+    rows = cast(list[Any], rows_value)
+    fields = set(source_fields(source))
+    for row_value in rows:
+        if not isinstance(row_value, Mapping):
+            raise ExportRefused(f"collection {name} contains a non-object row")
+        row = cast(Mapping[str, Any], row_value)
+        if set(row) != fields:
+            raise ExportRefused(f"collection {name} has an unexpected row shape")
+        if row.get("owner_id") != str(owner_id):
+            raise ExportRefused(f"collection {name} crosses the owner boundary")
+        # The accent is a closed palette, mirroring the domain entity and the DB CHECK.
+        if name == "domains" and row.get("accent") not in (None, *DOMAIN_ACCENTS):
+            raise ExportRefused(f"collection {name} has an invalid domain accent")
+
+
+def _verify_manifest(document: Mapping[str, Any], collections: Mapping[str, Any]) -> str:
+    excluded = document.get("excluded")
+    if excluded != excluded_collections_for(document.get("schema_head")):
+        raise ExportRefused("export exclusion catalogue does not match format")
+    manifest_value = document.get("manifest")
+    if not isinstance(manifest_value, Mapping):
+        raise ExportRefused("manifest must be an object")
+    manifest = cast(Mapping[str, Any], manifest_value)
+    counts = manifest.get("collection_counts")
+    if counts != {name: len(collections[name]) for name in collections}:
+        raise ExportRefused("manifest counts do not match collections")
+    checksum = manifest.get("sha256")
+    if not isinstance(checksum, str) or checksum != export_checksum(document):
+        raise ExportRefused("export checksum mismatch")
+    return checksum
+
+
+def verify_export(document: Mapping[str, Any]) -> ExportVerification:
+    owner_id, format_version = _verify_header(document)
     collections_value = document.get("collections")
     if not isinstance(collections_value, Mapping):
         raise ExportRefused("collections must be an object")
@@ -167,39 +207,9 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
     for name in sorted(retired):
         if collections[name] != []:
             raise ExportRefused(f"collection {name} of a retired feature must be empty")
-
     for name, source in SOURCES_BY_NAME.items():
-        if name in not_yet:
-            continue
-        rows_value = collections[name]
-        if not isinstance(rows_value, list):
-            raise ExportRefused(f"collection {name} must be an array")
-        rows = cast(list[Any], rows_value)
-        fields = set(source_fields(source))
-        for row_value in rows:
-            if not isinstance(row_value, Mapping):
-                raise ExportRefused(f"collection {name} contains a non-object row")
-            row = cast(Mapping[str, Any], row_value)
-            if set(row) != fields:
-                raise ExportRefused(f"collection {name} has an unexpected row shape")
-            if row.get("owner_id") != str(owner_id):
-                raise ExportRefused(f"collection {name} crosses the owner boundary")
-            # The accent is a closed palette, mirroring the domain entity and the DB CHECK.
-            if name == "domains" and row.get("accent") not in (None, *DOMAIN_ACCENTS):
-                raise ExportRefused(f"collection {name} has an invalid domain accent")
-
-    excluded = document.get("excluded")
-    if excluded != list(EXCLUDED_COLLECTIONS):
-        raise ExportRefused("export exclusion catalogue does not match format")
-    manifest_value = document.get("manifest")
-    if not isinstance(manifest_value, Mapping):
-        raise ExportRefused("manifest must be an object")
-    manifest = cast(Mapping[str, Any], manifest_value)
-    counts = manifest.get("collection_counts")
-    if counts != {name: len(collections[name]) for name in collections}:
-        raise ExportRefused("manifest counts do not match collections")
+        if name not in not_yet:
+            _verify_rows(name, source, collections[name], owner_id)
+    checksum = _verify_manifest(document, collections)
     document_counts = {name: len(collections.get(name, ())) for name in SOURCES_BY_NAME}
-    checksum = manifest.get("sha256")
-    if not isinstance(checksum, str) or checksum != export_checksum(document):
-        raise ExportRefused("export checksum mismatch")
     return ExportVerification(owner_id, checksum, document_counts)

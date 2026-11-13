@@ -12,8 +12,9 @@ Logs carry owner ids, counts and fixed categories only, never document text.
   not in Sidekick's own bank format, and it refuses outright when the picture looks wrong (see
   `sweep_orphan_banks`), because a wrong deletion costs a full re-import.
 
-D-057: nothing of the owner's data in Postgres is deleted here. `memory_sources` rows only change
-status, and rows of a deleted user are removed by the `users` foreign key cascade, not by this code.
+D-057 (destructive operations need the owner's confirmation): nothing of the
+owner's data in Postgres is deleted here. `memory_sources` rows only change status, and rows of a
+deleted user are removed by the `users` foreign key cascade, not by this code.
 """
 
 from __future__ import annotations

@@ -30,7 +30,7 @@ export function AgendaSearchToggle({
   onOpenChange,
   buttonRef,
 }: {
-  /** "Sök uppgifter" / "Search tasks". */
+  /** The `search` label of the work shell: the toggle's accessible name. */
   label: string;
   open: boolean;
   /** True while the list loads or could not be read: aria-disabled (tertiary), and a tap does nothing. */
@@ -114,9 +114,9 @@ export function AgendaSearch({
   onClose,
 }: {
   id: string;
-  /** Name and placeholder of the field: "Sök uppgifter" / "Search tasks". */
+  /** Name and placeholder of the field: the `search` label of the work shell. */
   label: string;
-  /** Name of the ×: "Stäng sökningen" / "Close search". */
+  /** Name of the ×: the `closeSearch` label of the work shell. */
   closeLabel: string;
   query: string;
   onQuery: (query: string) => void;

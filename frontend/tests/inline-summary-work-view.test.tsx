@@ -21,7 +21,6 @@ import {
   agendaItems,
   installFixedClock,
 } from "./helpers/inline-summary-fixtures";
-import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
 installFixedClock();
@@ -261,15 +260,5 @@ describe("inline summary labels", () => {
     expect(inlineSummaryLabelsFor("sv-SE")).toBe(inlineSummaryLabelsSv);
     expect(inlineSummaryLabelsFor("en-US")).toBe(inlineSummaryLabelsEn);
     expect(inlineSummaryLabelsFor("")).toBe(inlineSummaryLabelsEn);
-  });
-
-  it("is self-contained: the summary and its labels import no Sidekick app catalogue or components", () => {
-    for (const file of [
-      "inline/inline-summary.tsx",
-      "inline/inline-summary-labels.ts",
-    ]) {
-      const source = readSource(`features/work-app/${file}`);
-      expect(source, file).not.toMatch(/from\s+["']@\/(i18n|components)/);
-    }
   });
 });

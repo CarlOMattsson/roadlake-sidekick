@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Mapping
-from typing import Protocol, TypeVar, cast
+from typing import Protocol, TypeVar, cast, get_args
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
@@ -17,6 +17,7 @@ from sidekick.shared.types import (
     new_uuid7,
 )
 from sidekick.work.domain.saved_view import SAVED_VIEW_FIELDS, SavedView, SavedViewDefinition
+from sidekick.work.listing import WorkActionable, WorkEstimate, WorkTagMatch, WorkWaiting
 
 T = TypeVar("T")
 MAX_BYTES = 8192
@@ -40,13 +41,13 @@ def validate_definition(value: Mapping[str, object]) -> SavedViewDefinition:
         raise ValidationError("saved view has an invalid view")
     if value.get("context") not in {"all", "domain", "process", "project", "task"}:
         raise ValidationError("saved view has an invalid context")
-    if "actionable" in value and value["actionable"] not in {"all", "now", "later"}:
+    if "actionable" in value and value["actionable"] not in get_args(WorkActionable):
         raise ValidationError("saved view has an invalid actionable filter")
-    if "waiting" in value and value["waiting"] not in {"all", "waiting", "not_waiting"}:
+    if "waiting" in value and value["waiting"] not in get_args(WorkWaiting):
         raise ValidationError("saved view has an invalid waiting filter")
-    if "estimate" in value and value["estimate"] not in {"all", "estimated", "unestimated"}:
+    if "estimate" in value and value["estimate"] not in get_args(WorkEstimate):
         raise ValidationError("saved view has an invalid estimate filter")
-    if "tag_match" in value and value["tag_match"] not in {"any", "all"}:
+    if "tag_match" in value and value["tag_match"] not in get_args(WorkTagMatch):
         raise ValidationError("saved view has an invalid tag match mode")
     tags = value.get("tags")
     if tags is not None:

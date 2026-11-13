@@ -2,10 +2,10 @@
 
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, timedelta, tzinfo
 from decimal import Decimal
-from typing import Any
+from typing import Any, TypedDict, cast
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
@@ -14,7 +14,6 @@ from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.idempotent_operation import run_idempotent_operation
 from sidekick.shared.observability import TelemetryPort
-from sidekick.shared.replay import id_replay_record
 from sidekick.shared.types import (
     UNSET,
     Actor,
@@ -26,6 +25,7 @@ from sidekick.shared.types import (
     validate_limit,
 )
 from sidekick.shopping.application.schemas import (
+    AddedItem,
     BatchItem,
     BatchResult,
     ItemRecord,
@@ -80,6 +80,40 @@ def _merge_key(name: str, unit: str | None) -> tuple[str, str]:
     return (name.casefold(), (unit or "").casefold())
 
 
+class IdRef(TypedDict):
+    id: str
+
+
+class ListReplay(TypedDict):
+    shopping_list: IdRef
+
+
+class ItemReplay(TypedDict):
+    item: IdRef
+
+
+class PurchaseReplay(ItemReplay):
+    unchanged: bool
+
+
+class AddedItemReplay(TypedDict):
+    item: IdRef
+    merged: bool
+
+
+class BatchReplay(TypedDict):
+    items: list[AddedItemReplay]
+
+
+class PurchasedBatchReplay(TypedDict):
+    items: list[IdRef]
+    unchanged_item_ids: list[str]
+
+
+def _ref(record_id: UUID) -> IdRef:
+    return {"id": str(record_id)}
+
+
 @dataclass(frozen=True, slots=True)
 class ItemPatch:
     """Editable item fields. UNSET means the caller did not send the field; None clears it."""
@@ -99,10 +133,10 @@ class ItemPatch:
     def full(cls, details: ItemDetails) -> "ItemPatch":
         return cls(**{key: getattr(details, key) for key in ITEM_FIELDS})
 
-    def changes(self) -> dict[str, Any]:
+    def changes(self) -> dict[str, object]:
         return {key: getattr(self, key) for key in ITEM_FIELDS if getattr(self, key) is not UNSET}
 
-    def payload(self) -> dict[str, Any]:
+    def payload(self) -> dict[str, object]:
         return {
             key: asdict(value) if isinstance(value, Offer) else value
             for key, value in self.changes().items()
@@ -112,21 +146,19 @@ class ItemPatch:
 def merged_details(row: ShoppingItemRow, patch: ItemPatch) -> ItemDetails:
     """The stored item with only the patched fields replaced."""
 
-    current: dict[str, Any] = {key: getattr(row, key) for key in DETAIL_FIELDS}
-    current["offer"] = (
-        Offer(**{key: getattr(row, f"offer_{key}") for key in OFFER_FIELDS})
-        if row.offer_price is not None
-        else None
+    current = ItemDetails(
+        **{key: getattr(row, key) for key in DETAIL_FIELDS},
+        offer=(
+            Offer(**{key: getattr(row, f"offer_{key}") for key in OFFER_FIELDS})
+            if row.offer_price is not None
+            else None
+        ),
     )
-    return ItemDetails(**{**current, **patch.changes()})
+    return replace(current, **patch.changes())
 
 
 def list_record(row: ShoppingListRow) -> ListRecord:
     return ListRecord.model_validate(row, from_attributes=True)
-
-
-def list_data(row: ShoppingListRow) -> dict[str, Any]:
-    return list_record(row).model_dump(mode="json")
 
 
 def item_record(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) -> ItemRecord:
@@ -155,18 +187,30 @@ def item_record(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) 
     )
 
 
-def item_data(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) -> dict[str, Any]:
-    return item_record(row, on_date, names).model_dump(mode="json")
+def _list_replay(result: ListResult) -> ListReplay:
+    return {"shopping_list": _ref(result.shopping_list.id)}
 
 
-def _added_items_replay(result: dict[str, Any]) -> dict[str, Any]:
+def _item_replay(result: ItemResult) -> ItemReplay:
+    return {"item": _ref(result.item.id)}
+
+
+def _purchase_replay(result: PurchaseOutcome) -> PurchaseReplay:
+    return {"item": _ref(result.item.id), "unchanged": result.unchanged}
+
+
+def _purchased_batch_replay(result: PurchasedBatchResult) -> PurchasedBatchReplay:
+    return {
+        "items": [_ref(item.id) for item in result.items],
+        "unchanged_item_ids": [str(item_id) for item_id in result.unchanged_item_ids],
+    }
+
+
+def _added_items_replay(result: BatchResult) -> BatchReplay:
     """What a retry of `add_items` keeps: each item's id and whether it was merged."""
 
     return {
-        "items": [
-            {"item": id_replay_record(entry["item"]), "merged": entry["merged"]}
-            for entry in result["items"]
-        ]
+        "items": [{"item": _ref(entry.item.id), "merged": entry.merged} for entry in result.items]
     }
 
 
@@ -260,7 +304,7 @@ class ShoppingService:
     ) -> ListResult:
         name = required_text(name, 200)
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> ListResult:
             now = self.clock.now()
             row = ShoppingListRow(
                 id=new_uuid7(),
@@ -274,7 +318,7 @@ class ShoppingService:
             session.add(row)
             session.flush()
             self._audit(session, actor, "shopping.list_created", row.id, correlation_id)
-            return {"shopping_list": list_data(row)}
+            return ListResult(shopping_list=list_record(row))
 
         return self._write(
             actor,
@@ -284,7 +328,7 @@ class ShoppingService:
             execute,
             correlation_id,
             model=ListResult,
-            replay=lambda result: {"shopping_list": id_replay_record(result["shopping_list"])},
+            replay=_list_replay,
             rebuild=lambda session, record: self._list_result(session, actor, record),
         )
 
@@ -301,14 +345,14 @@ class ShoppingService:
     ) -> ListResult:
         name = required_text(name, 200)
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> ListResult:
             row = self.store.get_list(session, actor.user_id, list_id, lock=True)
             self._version(row.version, version)
             row.name, row.archived = name, archived
             row.version += 1
             row.updated_at = self.clock.now()
             self._audit(session, actor, "shopping.list_updated", row.id, correlation_id)
-            return {"shopping_list": list_data(row)}
+            return ListResult(shopping_list=list_record(row))
 
         return self._write(
             actor,
@@ -318,7 +362,7 @@ class ShoppingService:
             execute,
             correlation_id,
             model=ListResult,
-            replay=lambda result: {"shopping_list": id_replay_record(result["shopping_list"])},
+            replay=_list_replay,
             rebuild=lambda session, record: self._list_result(session, actor, record),
         )
 
@@ -344,13 +388,13 @@ class ShoppingService:
             if detail.recipient_contact_id is not None:
                 actor.require("contacts:read")
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> BatchResult:
             shopping_list = self.store.get_list(session, actor.user_id, list_id, lock=True)
             self._active(shopping_list)
             for detail in details:
                 self._validate_details(session, actor, detail)
             now = self.clock.now()
-            added: list[dict[str, Any]] = []
+            added: list[AddedItem] = []
             open_rows: dict[tuple[str, str], ShoppingItemRow] = {}
             created: set[UUID] = set()
             if merge_duplicates:
@@ -379,11 +423,11 @@ class ShoppingService:
                             )
                         merged_count += 1
                         added.append(
-                            {
-                                "client_ref": source.client_ref,
-                                "item": item_data(target, self._owner_day(now), names),
-                                "merged": True,
-                            }
+                            AddedItem(
+                                client_ref=source.client_ref,
+                                item=item_record(target, self._owner_day(now), names),
+                                merged=True,
+                            )
                         )
                         continue
                 row = ShoppingItemRow(
@@ -404,22 +448,22 @@ class ShoppingService:
                 if merge_duplicates:
                     open_rows.setdefault(_merge_key(detail.name, detail.unit), row)
                 added.append(
-                    {
-                        "client_ref": source.client_ref,
-                        "item": item_data(row, self._owner_day(now), names),
-                        "merged": False,
-                    }
+                    AddedItem(
+                        client_ref=source.client_ref,
+                        item=item_record(row, self._owner_day(now), names),
+                        merged=False,
+                    )
                 )
                 self._audit(session, actor, "shopping.item_added", row.id, correlation_id)
-            return {
-                "items": added,
-                "evaluated_on": self._owner_day(now).isoformat(),
-                "list_name": shopping_list.name,
-                "merged_count": merged_count,
-                "open_count": self.store.open_count(session, actor.user_id, list_id),
-            }
+            return BatchResult(
+                items=added,
+                evaluated_on=self._owner_day(now),
+                list_name=shopping_list.name,
+                merged_count=merged_count,
+                open_count=self.store.open_count(session, actor.user_id, list_id),
+            )
 
-        payload: dict[str, Any] = {
+        payload: dict[str, object] = {
             "list_id": str(list_id),
             "items": [item.model_dump(mode="json") for item in items],
         }
@@ -447,8 +491,8 @@ class ShoppingService:
         actor: Actor,
         list_id: UUID,
         items: list[BatchItem],
-        record: dict[str, Any],
-    ) -> dict[str, Any]:
+        record: BatchReplay,
+    ) -> BatchResult:
         """The answer of `add_items` rebuilt from its identifier-only record."""
 
         today = self._owner_day(self.clock.now())
@@ -460,20 +504,20 @@ class ShoppingService:
         ]
         names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
         entries = [
-            {
-                "client_ref": source.client_ref,
-                "item": item_data(row, today, names),
-                "merged": entry["merged"],
-            }
+            AddedItem(
+                client_ref=source.client_ref,
+                item=item_record(row, today, names),
+                merged=entry["merged"],
+            )
             for source, entry, row in zip(items, record["items"], rows, strict=True)
         ]
-        return {
-            "items": entries,
-            "evaluated_on": today.isoformat(),
-            "list_name": self.store.get_list(session, actor.user_id, list_id).name,
-            "merged_count": sum(1 for entry in entries if entry["merged"]),
-            "open_count": self.store.open_count(session, actor.user_id, list_id),
-        }
+        return BatchResult(
+            items=entries,
+            evaluated_on=today,
+            list_name=self.store.get_list(session, actor.user_id, list_id).name,
+            merged_count=sum(1 for entry in entries if entry.merged),
+            open_count=self.store.open_count(session, actor.user_id, list_id),
+        )
 
     def update_item(
         self,
@@ -491,7 +535,7 @@ class ShoppingService:
         if patch.changes().get("recipient_contact_id") is not None:
             actor.require("contacts:read")
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> ItemResult:
             row = self.store.get_item(session, actor.user_id, item_id)
             shopping_list = self.store.get_list(session, actor.user_id, row.list_id, lock=True)
             self._active(shopping_list)
@@ -502,12 +546,13 @@ class ShoppingService:
             row.version += 1
             row.updated_at = self.clock.now()
             self._audit(session, actor, "shopping.item_updated", row.id, correlation_id)
-            return {
-                "item": self._one_item_data(session, actor, row, self._owner_day(self.clock.now())),
-                "evaluated_on": self._owner_day(self.clock.now()).isoformat(),
-                "list_name": shopping_list.name,
-                "open_count": self.store.open_count(session, actor.user_id, row.list_id),
-            }
+            today = self._owner_day(self.clock.now())
+            return ItemResult(
+                item=self._one_item_record(session, actor, row, today),
+                evaluated_on=today,
+                list_name=shopping_list.name,
+                open_count=self.store.open_count(session, actor.user_id, row.list_id),
+            )
 
         return self._write(
             actor,
@@ -517,7 +562,7 @@ class ShoppingService:
             execute,
             correlation_id,
             model=ItemResult,
-            replay=lambda result: {"item": id_replay_record(result["item"])},
+            replay=_item_replay,
             rebuild=lambda session, record: self._item_result(session, actor, record),
         )
 
@@ -534,7 +579,7 @@ class ShoppingService:
         """Mark one item purchased or wanted. An item already in the asked state is returned
         unchanged (`unchanged` true) even with a stale version; otherwise the version must match."""
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> PurchaseOutcome:
             row = self.store.get_item(session, actor.user_id, item_id)
             shopping_list = self.store.get_list(session, actor.user_id, row.list_id, lock=True)
             self._active(shopping_list)
@@ -562,13 +607,13 @@ class ShoppingService:
                     row.id,
                     correlation_id,
                 )
-            return {
-                "item": self._one_item_data(session, actor, row, self._owner_day(now)),
-                "evaluated_on": self._owner_day(now).isoformat(),
-                "list_name": shopping_list.name,
-                "open_count": self.store.open_count(session, actor.user_id, row.list_id),
-                "unchanged": unchanged,
-            }
+            return PurchaseOutcome(
+                item=self._one_item_record(session, actor, row, self._owner_day(now)),
+                evaluated_on=self._owner_day(now),
+                list_name=shopping_list.name,
+                open_count=self.store.open_count(session, actor.user_id, row.list_id),
+                unchanged=unchanged,
+            )
 
         return self._write(
             actor,
@@ -578,14 +623,10 @@ class ShoppingService:
             execute,
             correlation_id,
             model=PurchaseOutcome,
-            replay=lambda result: {
-                "item": id_replay_record(result["item"]),
-                "unchanged": result["unchanged"],
-            },
-            rebuild=lambda session, record: {
-                **self._item_result(session, actor, record),
-                "unchanged": record["unchanged"],
-            },
+            replay=_purchase_replay,
+            rebuild=lambda session, record: PurchaseOutcome(
+                **dict(self._item_result(session, actor, record)), unchanged=record["unchanged"]
+            ),
         )
 
     def set_purchased_many(
@@ -604,7 +645,7 @@ class ShoppingService:
         if not 1 <= len(targets) <= 50 or len({t.item_id for t in targets}) != len(targets):
             raise ValidationError("invalid shopping batch")
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> PurchasedBatchResult:
             rows = [self.store.get_item(session, actor.user_id, t.item_id) for t in targets]
             # Lists are locked in id order, so two overlapping batches cannot deadlock.
             for list_id in sorted({row.list_id for row in rows}):
@@ -649,12 +690,12 @@ class ShoppingService:
                 if len(list_ids) == 1
                 else None
             )
-            return {
-                "items": self._items_data(session, actor, rows, self._owner_day(now)),
-                "unchanged_item_ids": [str(item_id) for item_id in unchanged],
-                "evaluated_on": self._owner_day(now).isoformat(),
-                "open_count": open_count,
-            }
+            return PurchasedBatchResult(
+                items=self._item_records(session, actor, rows, self._owner_day(now)),
+                unchanged_item_ids=unchanged,
+                evaluated_on=self._owner_day(now),
+                open_count=open_count,
+            )
 
         return self._write(
             actor,
@@ -667,30 +708,28 @@ class ShoppingService:
             execute,
             correlation_id,
             model=PurchasedBatchResult,
-            replay=lambda result: {
-                "items": [id_replay_record(item) for item in result["items"]],
-                "unchanged_item_ids": result["unchanged_item_ids"],
-            },
+            replay=_purchased_batch_replay,
             rebuild=lambda session, record: self._purchased_many_result(session, actor, record),
         )
 
-    def _write[R: BaseModel](
+    def _write[R: BaseModel, Rec](
         self,
         actor: Actor,
         operation: str,
         key: str,
-        payload: dict[str, Any],
-        execute: Callable[[TxSession], dict[str, Any]],
+        payload: dict[str, object],
+        execute: Callable[[TxSession], R],
         correlation_id: str | None,
         *,
         model: type[R],
-        replay: Callable[[dict[str, Any]], dict[str, Any]],
-        rebuild: Callable[[TxSession, dict[str, Any]], dict[str, Any]],
+        replay: Callable[[R], Rec],
+        rebuild: Callable[[TxSession, Rec], R],
     ) -> R:
         """Run one idempotent write; only `replay(result)` is kept and `rebuild` re-reads the rest.
 
-        The idempotency record holds identifiers and flags, so a retry returns the records as they
-        are now, never a stored copy of their names or notes.
+        The idempotency record (`Rec`, a TypedDict of the operation) holds identifiers and flags,
+        so a retry returns the records as they are now, never a stored copy of their names or
+        notes. The store keeps plain JSON, so the result and the record cross it as such.
         """
 
         actor.require("shopping:write")
@@ -703,50 +742,48 @@ class ShoppingService:
             operation=operation,
             key=key,
             payload=payload,
-            execute=execute,
+            execute=lambda session: execute(session).model_dump(mode="json"),
             correlation_id=correlation_id,
-            replay=replay,
-            rebuild=rebuild,
+            replay=lambda result: cast(dict[str, Any], replay(model.model_validate(result))),
+            rebuild=lambda session, record: rebuild(session, cast(Rec, record)).model_dump(
+                mode="json"
+            ),
         )
         return model.model_validate(answer)
 
-    def _list_result(
-        self, session: TxSession, actor: Actor, record: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _list_result(self, session: TxSession, actor: Actor, record: ListReplay) -> ListResult:
         row = self.store.get_list(session, actor.user_id, UUID(record["shopping_list"]["id"]))
-        return {"shopping_list": list_data(row)}
+        return ListResult(shopping_list=list_record(row))
 
-    def _item_result(
-        self, session: TxSession, actor: Actor, record: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _item_result(self, session: TxSession, actor: Actor, record: ItemReplay) -> ItemResult:
         """One item with its list's name and open count, as a write answers."""
 
         today = self._owner_day(self.clock.now())
         row = self.store.get_item(session, actor.user_id, UUID(record["item"]["id"]))
-        return {
-            "item": self._one_item_data(session, actor, row, today),
-            "evaluated_on": today.isoformat(),
-            "list_name": self.store.get_list(session, actor.user_id, row.list_id).name,
-            "open_count": self.store.open_count(session, actor.user_id, row.list_id),
-        }
+        return ItemResult(
+            item=self._one_item_record(session, actor, row, today),
+            evaluated_on=today,
+            list_name=self.store.get_list(session, actor.user_id, row.list_id).name,
+            open_count=self.store.open_count(session, actor.user_id, row.list_id),
+        )
 
     def _purchased_many_result(
-        self, session: TxSession, actor: Actor, record: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, session: TxSession, actor: Actor, record: PurchasedBatchReplay
+    ) -> PurchasedBatchResult:
         today = self._owner_day(self.clock.now())
         rows = [self.store.get_item(session, actor.user_id, UUID(i["id"])) for i in record["items"]]
         list_ids = {row.list_id for row in rows}
-        return {
-            "items": self._items_data(session, actor, rows, today),
-            "unchanged_item_ids": record["unchanged_item_ids"],
-            "evaluated_on": today.isoformat(),
+        return PurchasedBatchResult(
+            items=self._item_records(session, actor, rows, today),
+            unchanged_item_ids=[UUID(item_id) for item_id in record["unchanged_item_ids"]],
+            evaluated_on=today,
             # open_count only means something for one list; a batch across lists gets None.
-            "open_count": (
+            open_count=(
                 self.store.open_count(session, actor.user_id, next(iter(list_ids)))
                 if len(list_ids) == 1
                 else None
             ),
-        }
+        )
 
     def _recipient_names(
         self, session: TxSession, actor: Actor, contact_ids: Iterable[UUID | None]
@@ -760,16 +797,16 @@ class ShoppingService:
         found = self.store.contact_display_names(session, actor.user_id, tuple(wanted))
         return {contact_id: name for contact_id, (name, _archived) in found.items()}
 
-    def _items_data(
+    def _item_records(
         self, session: TxSession, actor: Actor, rows: list[ShoppingItemRow], on_date: date
-    ) -> list[dict[str, Any]]:
+    ) -> list[ItemRecord]:
         names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
-        return [item_data(row, on_date, names) for row in rows]
+        return [item_record(row, on_date, names) for row in rows]
 
-    def _one_item_data(
+    def _one_item_record(
         self, session: TxSession, actor: Actor, row: ShoppingItemRow, on_date: date
-    ) -> dict[str, Any]:
-        return self._items_data(session, actor, [row], on_date)[0]
+    ) -> ItemRecord:
+        return self._item_records(session, actor, [row], on_date)[0]
 
     def _validate_details(self, session: TxSession, actor: Actor, details: ItemDetails) -> None:
         if details.offer is not None and details.offer.checked_on > self._owner_day(

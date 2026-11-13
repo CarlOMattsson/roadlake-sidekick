@@ -48,13 +48,13 @@ export function deriveView({
     ) ?? [];
   const open = items.filter((item) => !item.purchased);
   const purchased = items.filter((item) => item.purchased);
-  // The rows of the open groups: the open items, and the bought ones whose Undo still holds ("Köpt"), in the list's order.
+  // The rows of the open groups: the open items, and the bought ones whose Undo still holds (`bought`), in the list's order.
   const rows = items.filter(
     (item) => !item.purchased || held[item.id]?.purchased,
   );
-  // "Köpta (n)": the bought items that are settled, the newest first. A bought item still held with its Undo stands in
+  // The `boughtCount` fold: the bought items that are settled, the newest first. A bought item still held with its Undo stands in
   // the open rows and joins the fold only when the time to undo is up, so the count never moves while Undo is offered.
-  // The progress ("2 av 7 köpta") counts every bought item, held ones too.
+  // The progress (`boughtOf`) counts every bought item, held ones too.
   const settled = purchased
     .filter((item) => !held[item.id]?.purchased)
     .sort((a, b) => boughtAt(b) - boughtAt(a));

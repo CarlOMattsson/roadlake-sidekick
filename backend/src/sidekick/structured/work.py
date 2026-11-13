@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import TYPE_CHECKING, Any, cast
 from uuid import UUID
 
 from sidekick.projects.application.service import project_public_data
@@ -53,6 +53,17 @@ from sidekick.work.application.serialization import (
     process_public_data,
 )
 from sidekick.work.domain import Action, ActionCounts, Step
+from sidekick.work.listing import (
+    WorkActionable,
+    WorkArchive,
+    WorkAttention,
+    WorkEstimate,
+    WorkGroup,
+    WorkKind,
+    WorkSort,
+    WorkTagMatch,
+    WorkWaiting,
+)
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
@@ -124,23 +135,16 @@ class WorkAgendaArguments:
     q: str | None = None
     status: TaskStatus | None = None
     priority: Priority | None = None
-    attention: Literal["all", "requested"] = "all"
-    archive: Literal["active", "archived", "all"] = "active"
-    kind: Literal["all", "domain", "process", "project", "task", "step", "action"] = "all"
-    sort: Literal[
-        "updated_desc",
-        "due_asc",
-        "title_asc",
-        "priority_desc",
-        "not_before_asc",
-        "estimate_asc",
-    ] = "due_asc"
-    group: Literal["none", "kind", "status", "context"] = "none"
+    attention: WorkAttention = "all"
+    archive: WorkArchive = "active"
+    kind: WorkKind = "all"
+    sort: WorkSort = "due_asc"
+    group: WorkGroup = "none"
     tags: tuple[str, ...] | None = None
-    tag_match: Literal["any", "all"] = "any"
-    actionable: Literal["all", "now", "later"] = "all"
-    waiting: Literal["all", "waiting", "not_waiting"] = "all"
-    estimate: Literal["all", "estimated", "unestimated"] = "all"
+    tag_match: WorkTagMatch = "any"
+    actionable: WorkActionable = "all"
+    waiting: WorkWaiting = "all"
+    estimate: WorkEstimate = "all"
     cursor: str | None = None
     max_minutes: int | None = None
     include_undated: bool = False

@@ -61,6 +61,19 @@ DEFAULT_ROOMS="work,journal,contacts,control"
 # the checkout; the secrets travel on stdin, never on a command line.
 workctl() { PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$REPO/tools${PYTHONPATH:+:$PYTHONPATH}" python3 -m workctl "$@"; }
 
+# The options of start, update and restore: workctl prints NAME=value lines, which become OPT_<NAME>. A call it refuses
+# prints the usage text and ends the script with 2.
+parse_options() {
+  local out line
+  out="$(workctl parse-args --lang "$L" -- "$@")" || exit 2
+  while IFS= read -r line; do
+    if [ -n "$line" ]; then printf -v "OPT_${line%%=*}" '%s' "${line#*=}"; fi
+  done <<<"$out"
+}
+
+# The decision about a container's state is the self-hosted updater's, one copy (deploy/selfhost/update_policy.py).
+policy() { python3 -I "$SELFHOST/update_policy.py" "$@"; }
+
 now() { date +%Y-%m-%dT%H:%M:%S; }
 now_utc() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
@@ -105,30 +118,9 @@ envval() {
   workctl env-value --env-file "$WORK_ENV" -- "$1"
 }
 
-# Replace the first "KEY=..." or "# KEY=..." line of work.env with "KEY=value" (or append). Rewrites only that
-# line, so every other setting and comment survives a second run of the guide.
-set_env() { workctl env-set --env-file "$WORK_ENV" -- "$1" "$2"; }
-
-# Turn an active "KEY=..." line into a comment (the setting is then off).
-unset_env() { workctl env-unset --env-file "$WORK_ENV" -- "$1"; }
-
-# Split SIDEKICK_WORK_MODEL_BASE_URL into scheme, host, port, path, is_ip (one per line); exit 2 with a reason.
-parse_base_url() {
-  workctl base-url --lang "$L" -- "$1"
-}
-
-# Validate the allowlist "host:port,host:port": host names only (they become names on the internal network, so
-# the client keeps its own name and certificate check), ports distinct from each other and from the two the
-# gateway already uses. Prints the normalized list, one "host port" per line; exit 2 with a reason.
-parse_allowlist() {
-  workctl allowlist --lang "$L" --model-port "$2" -- "$1"
-}
-
-# 0 (success) when the Hindsight memory is on. SIDEKICK_WORK_MEMORY=on|off decides; a work.env from before the
-# setting existed (no such line) keeps its old behaviour: memory on.
+# MEMORY is 1 when the Hindsight memory is on (SIDEKICK_WORK_MEMORY=on|off in work.env, see `derive`).
 MEMORY=0
 FORCE_MEMORY_PROFILE=0
-memory_wanted() { workctl memory-wanted --env-file "$WORK_ENV"; }
 
 # Derive everything compose needs from work.env and export it (workctl derive prints MEMORY=0|1, NAME=value lines
 # and "allow host port" lines). Strict: refuses a placeholder or a bad address. With "lenient" (stop) an unusable
@@ -204,12 +196,6 @@ apply_model_key() {
   printf '%s' "$1" | workctl model-key-apply --secrets-dir "$SECRETS"
 }
 
-# The key currently stored (empty when none).
-# Only ever held in a variable, never printed.
-stored_model_key() {
-  workctl model-key-show --secrets-dir "$SECRETS"
-}
-
 # SIDEKICK_WORK_MODEL_API_KEY in the environment, else asked for on a terminal (no echo), else none.
 store_model_key() {
   local key="${SIDEKICK_WORK_MODEL_API_KEY:-}"
@@ -245,27 +231,8 @@ write_rooms_env() { workctl rooms-env --env-file "$WORK_ENV" --secrets-dir "$SEC
 
 container_id() { compose ps -q "$1" 2>/dev/null || true; }
 
-# ask VARNAME KEY [default]: prompt text from the table; the answer (or the default) ends up in $VARNAME.
-ask() {
-  local __var="$1" __key="$2" __def="${3:-}" __ans
-  if [ -z "$__def" ]; then __def="${4:-}"; fi
-  # A workctl that fails stops the script: it must not pass for an empty answer.
-  __ans="$(workctl ask --lang "$L" --key "$__key" --default="$__def")" || exit 1
-  printf -v "$__var" '%s' "$__ans"
-}
-
 # yes/no with a default (y or n); j/y/ja/yes are yes.
 confirm() { workctl confirm --lang "$L" --key "$1" --default "$2"; }
-
-# GET <base>/models with the key passed on stdin (never on a command line). Prints the model ids, one per line.
-list_models() { printf '%s' "$2" | workctl models-list --base-url "$1"; }
-
-# Pick from a numbered list or take a typed id. $1 variable, $2 prompt key, $3 default id, rest: the ids.
-pick_model() {
-  local var="$1" key="$2" def="$3" ans; shift 3
-  ask ans "$key" "$def"
-  printf -v "$var" '%s' "$(workctl pick --answer="$ans" -- "$@" || printf '%s' "$ans")"
-}
 
 # ---------------------------------------------------------------------------------------------------------
 
@@ -359,15 +326,9 @@ desktop_setup() {
 # The answer is read from the caller's stdin by workctl.
 cmd_claude_config() {
   [ "$#" = 0 ] || { errf usage; exit 2; }
-  local target="${SIDEKICK_WORK_CLAUDE_CONFIG:-}"
-  if [ -n "$target" ]; then
-    :  # Explicit path, also used by tests so that the real Claude configuration is never touched.
-  elif [ "$(uname -s)" = Darwin ]; then
-    target="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
-  else
-    target="$HOME/.config/Claude/claude_desktop_config.json"
-  fi
-  workctl claude-config --lang "$L" --source "$SECRETS/claude_desktop_config.json" --target "$target"
+  # The path is decided by workctl: SIDEKICK_WORK_CLAUDE_CONFIG when set (also used by tests so that the real Claude
+  # configuration is never touched), else the platform's own place.
+  workctl claude-config --lang "$L" --source "$SECRETS/claude_desktop_config.json" --platform "$(uname -s)"
 }
 
 # Read-only diagnosis after a failed start: the shell gathers the evidence, workctl (diagnose) decides what it means.
@@ -394,26 +355,16 @@ diagnose_first_start() {
 
 cmd_start() {
   warn_strict_umask
-  local build=0 wait_docker=0 no_cache=0 image arg i log_start
+  local OPT_BUILD OPT_NO_CACHE OPT_WAIT_DOCKER image i log_start
   local build_args=()
-  for arg in "$@"; do
-    case "$arg" in
-      --build) build=1 ;;
-      --no-cache) no_cache=1 ;;
-      --wait-docker) wait_docker=1 ;;
-      *) errf usage; exit 2 ;;
-    esac
-  done
-  if [ "$no_cache" = 1 ]; then
-    [ "$build" = 1 ] || { errf usage; exit 2; }
-    build_args+=(--no-cache)
-  fi
+  parse_options start "$@"
+  if [ "$OPT_NO_CACHE" = 1 ]; then build_args+=(--no-cache); fi
   need_docker
   ensure_work_env || exit 1
   ensure_secrets
   derive
   write_rooms_env
-  if [ "$wait_docker" = 1 ]; then
+  if [ "$OPT_WAIT_DOCKER" = 1 ]; then
     # Used by autostart: Docker may still be starting at login. Bounded wait, then give up.
     i=0
     until docker info >/dev/null 2>&1; do
@@ -424,9 +375,8 @@ cmd_start() {
   fi
   render_generated
   echo "=== $(now) start ===" >>"$LOG"
-  image="${SIDEKICK_WORK_API_IMAGE:-$(envval SIDEKICK_WORK_API_IMAGE)}"
-  image="${image:-roadlake-sidekick:work}"
-  if [ "$build" = 1 ] || ! docker image inspect "$image" >/dev/null 2>&1; then
+  image="$(workctl api-image --env-file "$WORK_ENV")"
+  if [ "$OPT_BUILD" = 1 ] || ! docker image inspect "$image" >/dev/null 2>&1; then
     sayf building "$image"
     if ! compose build ${build_args[@]+"${build_args[@]}"} api >>"$LOG" 2>&1; then
       errf build_fail "$LOG"
@@ -691,16 +641,16 @@ PARTIAL_BACKUP_FILES=""
 # paused one is still alive; a created one starts by itself when it has a restart policy. Non-zero when compose or
 # docker cannot tell (the caller fails closed). Same rule as live_containers() in deploy/selfhost/update.sh.
 live_writer_containers() {
-  local cids cid line policy
+  local cids cid line answer
   cids="$(compose ps -a -q "$1" 2>>"$LOG")" || return 1
   for cid in $cids; do
     line="$(docker inspect -f '{{.State.Status}} {{.HostConfig.RestartPolicy.Name}}' "$cid" 2>>"$LOG")" || return 1
-    case "$line" in
-      running\ * | restarting\ * | paused\ *) echo "$cid" ;;
-      created\ *)
-        policy="${line#created }"
-        if [ -n "$policy" ] && [ "$policy" != no ]; then echo "$cid"; fi
-        ;;
+    # Only the word "inactive" means not active; a crash or no output is no answer, never "not active".
+    answer="$(policy container-active --inspect-line="$line")" || return 1
+    case "$answer" in
+      active) echo "$cid" ;;
+      inactive) ;;
+      *) return 1 ;;
     esac
   done
 }
@@ -908,14 +858,10 @@ UPDATE_BEFORE=""     # the commit the checkout was on; the code goes back to it 
 
 # The image name the stack runs from and a tag that keeps what runs now, before the build moves the name on.
 save_previous_image() {
-  local name
-  CUR_IMAGE="${SIDEKICK_WORK_API_IMAGE:-$(envval SIDEKICK_WORK_API_IMAGE)}"
-  CUR_IMAGE="${CUR_IMAGE:-roadlake-sidekick:work}"
+  CUR_IMAGE="$(workctl api-image --env-file "$WORK_ENV")"
   PREV_IMAGE="$(docker image inspect -f '{{.Id}}' "$CUR_IMAGE" 2>/dev/null)" || PREV_IMAGE=""
   [ -n "$PREV_IMAGE" ] || return 0
-  name="${CUR_IMAGE%@*}"
-  case "${name##*/}" in *:*) name="${name%:*}" ;; esac
-  PREV_IMAGE_TAG="$name:previous"
+  PREV_IMAGE_TAG="$(workctl previous-image-tag -- "$CUR_IMAGE")"
   if docker tag "$PREV_IMAGE" "$PREV_IMAGE_TAG" >>"$LOG" 2>&1; then
     sayf up_prev_saved "$PREV_IMAGE_TAG"
   else
@@ -973,14 +919,8 @@ update_stays_stopped() { # before, after, branch
 # is and how to go back (docs/operate/work-laptop/backup-and-update.md). Compare deploy/selfhost/update.sh: the same rule, written there for a
 # pinned image.
 cmd_update() {
-  local allow_breaking=0
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --allow-breaking-migration) allow_breaking=1 ;;
-      *) errf usage; exit 2 ;;
-    esac
-    shift
-  done
+  local OPT_ALLOW_BREAKING
+  parse_options update "$@"
   need_docker; need_tool git
   git -C "$REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1 || { errf up_no_git; exit 1; }
   ensure_work_env || exit 1
@@ -1001,7 +941,7 @@ cmd_update() {
   fi
   after="$(git -C "$REPO" rev-parse HEAD)"
   # A refusal exits; the trap puts the code back on $before.
-  if [ "$before" != "$after" ] && ! check_migration_class "$before" "$allow_breaking"; then exit 1; fi
+  if [ "$before" != "$after" ] && ! check_migration_class "$before" "$OPT_ALLOW_BREAKING"; then exit 1; fi
   if [ "$before" = "$after" ]; then sayf up_same "${after:0:10}"; else sayf up_changed "${before:0:10}" "${after:0:10}"; fi
   write_rooms_env
   render_generated
@@ -1191,21 +1131,14 @@ sync_owner_id() {
 }
 
 cmd_restore() {
-  local apply=0 arg="" ref dir ts db mem answer
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-      --apply) apply=1 ;;
-      -*) errf rs_usage; exit 2 ;;
-      *) [ -z "$arg" ] || { errf rs_usage; exit 2; }; arg="$1" ;;
-    esac
-    shift
-  done
+  local OPT_APPLY OPT_REFERENCE ref dir ts db mem answer
+  parse_options restore "$@"
   need_docker
   ensure_work_env || exit 1
   ensure_secrets
   derive
-  if [ -z "$arg" ]; then errf rs_usage; list_backup_sets >&2; exit 2; fi
-  ref="$(workctl restore-ref --lang "$L" --backups "$BACKUPS" -- "$arg")" || exit 2
+  if [ -z "$OPT_REFERENCE" ]; then errf rs_usage; list_backup_sets >&2; exit 2; fi
+  ref="$(workctl restore-ref --lang "$L" --backups "$BACKUPS" -- "$OPT_REFERENCE")" || exit 2
   dir="${ref%%$'\n'*}"
   ts="${ref#*$'\n'}"
   db="$dir/sidekick-$ts.sql.enc"
@@ -1216,7 +1149,7 @@ cmd_restore() {
     [ -n "$(hindsight_volume)" ] || { errf rs_no_volume "$PROJECT"; exit 1; }
   fi
   sayf rs_plan "$db" "$([ "$MEMORY" = 1 ] && echo "$mem" || msg mem_off_word)" "$PROJECT" "$BACKUPS"
-  if [ "$apply" = 0 ]; then say rs_dry; return 0; fi
+  if [ "$OPT_APPLY" = 0 ]; then say rs_dry; return 0; fi
 
   answer="$(workctl ask --lang "$L" --key rs_confirm_q --raw -- "$PROJECT")" || exit 1
   [ "$answer" = "$PROJECT" ] || { say aborted; exit 1; }
@@ -1226,7 +1159,7 @@ cmd_restore() {
   do_backup --keep-paused
   RESTORE_SAFETY_DB="$LAST_BACKUP_DB"
   RESTORE_SAFETY_MEM="$LAST_BACKUP_MEM"
-  RESTORE_OLD_NAME="sidekick_before_restore_${LAST_BACKUP_TS/-/_}"
+  RESTORE_OLD_NAME="$(workctl restore-old-name -- "$LAST_BACKUP_TS")"
   arm_traps abort_restore
   [ "$MEMORY" = 0 ] || [ -s "$RESTORE_SAFETY_MEM" ] || { errf bk_fail "$LOG"; exit 1; }
   sayf rs_safety "$RESTORE_SAFETY_DB" "${RESTORE_SAFETY_MEM:-$(msg mem_off_word)}"
@@ -1264,10 +1197,8 @@ cmd_restore() {
 
 # ---------------------------------------------------------------------------------------------------------
 cmd_setup() {
-  local lang_default ans url key mem allow rooms models parsed test_key keep_key port t missing want_mem
-  lang_default="$L"
-  ask ans lang_q "$lang_default"
-  case "$ans" in sv*|SV*) L=sv ;; *) L=en ;; esac
+  local missing t
+  L="$(workctl setup-language --lang "$L")" || exit 1
   warn_strict_umask
   echo
   say title
@@ -1282,99 +1213,12 @@ cmd_setup() {
   if [ ! -f "$WORK_ENV" ]; then cp "$WORK/work.env.example" "$WORK_ENV"; chmod 600 "$WORK_ENV"; fi
   if ! secrets_exist; then generate_secrets; apply_model_key ""; fi
 
-  # 0. Memory (Hindsight) is optional and needs a model server. Off is the proposal; an earlier answer is offered again.
-  if memory_wanted; then want_mem=1; else want_mem=0; fi
-  if [ "$want_mem" = 1 ]; then
-    if confirm memory_q_on y; then want_mem=1; else want_mem=0; fi
-  else
-    if confirm memory_q n; then want_mem=1; else want_mem=0; fi
-  fi
-  url=""
-  if [ "$want_mem" = 1 ]; then
-    set_env SIDEKICK_WORK_MEMORY on
-    # 1. Model server address and key, tested with GET /models.
-    url="$(envval SIDEKICK_WORK_MODEL_BASE_URL)"
-    case "$url" in *"<"*) url="" ;; esac
-    keep_key="$(stored_model_key)"
-    models=""
-    while :; do
-      ask url url_q "$url"
-      if ! parsed="$(parse_base_url "$url" 2>&1)"; then
-        errf url_bad "$parsed"
-        url=""
-        continue
-      fi
-      key="$(workctl ask --lang "$L" --key key_q --secret)" || exit 1
-      case "$key" in
-        '') test_key="$keep_key" ;;
-        -) test_key="" ;;
-        *) test_key="$key" ;;
-      esac
-      errf testing "$url"
-      if models="$(list_models "$url" "$test_key")"; then
-        sayf test_ok "$(printf '%s\n' "$models" | grep -c . || true)"
-        break
-      fi
-      errf test_fail
-      models=""
-      confirm retry_q n || break
-    done
-    set_env SIDEKICK_WORK_MODEL_BASE_URL "$url"
-    case "$key" in
-      '') ;;
-      -) apply_model_key "" ;;
-      *) apply_model_key "$key" ;;
-    esac
+  # The questions (memory, model server and key, memory model, allowlist, rooms, app language) and their answers in
+  # work.env: tools/workctl/setupguide.py. A failing guide stops the script.
+  workctl setup-guide --lang "$L" --env-file "$WORK_ENV" --secrets-dir "$SECRETS" --default-rooms "$DEFAULT_ROOMS" \
+    || exit 1
 
-    # 2. The memory model (Hindsight's; Sidekick itself calls no model), chosen from the server's list.
-    mem="$(envval SIDEKICK_WORK_MEMORY_MODEL)"; case "$mem" in *"<"*) mem="" ;; esac
-    if [ -n "$models" ]; then
-      say models_head
-      printf '%s\n' "$models" | awk '{ printf "  %d) %s\n", NR, $0 }'
-      # shellcheck disable=SC2086
-      set -- $models
-      pick_model mem mem_q "${mem:-$1}" "$@"
-    else
-      ask mem mem_q "$mem"
-    fi
-    set_env SIDEKICK_WORK_MEMORY_MODEL "$mem"
-  else
-    set_env SIDEKICK_WORK_MEMORY off
-  fi
-
-  # 3. Allowlist of further addresses.
-  say allow_note
-  port=""
-  if [ "$want_mem" = 1 ]; then port="$(parse_base_url "$url" 2>/dev/null | sed -n 3p)"; fi
-  while :; do
-    ask allow allow_q "$(envval SIDEKICK_WORK_ALLOW)"
-    if [ -z "$allow" ]; then break; fi
-    if parsed="$(parse_allowlist "$allow" "${port:-0}" 2>&1)"; then break; fi
-    errf allow_bad "$parsed"
-  done
-  if [ -n "$allow" ]; then set_env SIDEKICK_WORK_ALLOW "$allow"; else unset_env SIDEKICK_WORK_ALLOW; fi
-
-  # 4. Rooms. The proposal for a work machine is every room except shopping; Enter takes the value offered in
-  # brackets (an existing work.env value wins) and "-" switches every room on.
-  say rooms_note
-  ask rooms rooms_q "$(envval SIDEKICK_ENABLED_ROOMS)" "$DEFAULT_ROOMS"
-  if [ -z "$rooms" ]; then rooms="$DEFAULT_ROOMS"; fi
-  if [ "$rooms" = "-" ]; then unset_env SIDEKICK_ENABLED_ROOMS; else set_env SIDEKICK_ENABLED_ROOMS "$rooms"; fi
-
-  # 5. The apps' language is its own question (the guide's display language may differ). Swedish is the proposal
-  # unless work.env already holds a value.
-  while :; do
-    ask applang applang_q "$(envval SIDEKICK_WORK_LOCALE)" sv
-    case "$applang" in sv|en) break ;; esac
-    errf applang_bad
-  done
-  set_env SIDEKICK_WORK_LOCALE "$applang"
-  say wrote
-  sayf summary "$applang" "$rooms"
-  if [ "$want_mem" = 1 ]; then sayf summary_mem_on "$url"; else say summary_mem_off; fi
-  echo
-
-  # 6. Autostart, then start (which also creates the owner and writes the Claude Desktop configuration).
+  # Autostart, then start (which also creates the owner and writes the Claude Desktop configuration).
   if confirm auto_q n; then
     cmd_autostart on
   else
@@ -1393,11 +1237,8 @@ main() {
   command -v python3 >/dev/null 2>&1 || { echo "python3 (3.9 or newer) is required / python3 (3.9 eller nyare) behövs." >&2; exit 1; }
   init_lang
   exec 7>&1 8>&2
-  case "$command" in
-    setup|init|start|stop|backup|update) LOCK_COMMAND="$command" ;;
-    restore) case " $* " in *" --apply "*) LOCK_COMMAND="restore --apply" ;; esac ;;
-  esac
-  if [ -n "${LOCK_COMMAND:-}" ]; then
+  LOCK_COMMAND="$(workctl lock-command -- "$command" "$@")"
+  if [ -n "$LOCK_COMMAND" ]; then
     take_lock "$LOCK_COMMAND"
     disarm_traps
   fi

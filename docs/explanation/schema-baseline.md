@@ -62,6 +62,17 @@ owner (composite foreign keys), removed with either. The tag vocabulary `work_ta
 Rolling it back drops only the two link tables. The owner export carries them as two new collections (format 6); a
 format 5 export has none and restores without tags.
 
+## Migration 108: forgotten facts
+
+`108_memory_forgotten_facts.py` is an additive (expand) migration for forgetting one remembered fact. It creates
+`memory_forgotten_facts` (one row per statement the owner asked Sidekick to stop using, holding only a salted digest of
+the normalised statement and never its text) and `memory_forgotten_units` (the provider fact ids that carry such a
+statement, and the state of hiding them: the reconcile pass's queue). A unit can only join one owner's statement and
+source row (composite foreign keys, which needed a unique key on `memory_sources (id, owner_id)`). It also adds the
+nullable `memory_settings.forget_salt`, the owner's salt for the digest. Rolling it back drops the two tables, the column
+and the key, which discards every forgotten statement made since; no record or setting is touched. The owner export does
+not carry the new tables or the salt yet.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

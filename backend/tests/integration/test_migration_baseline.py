@@ -31,6 +31,7 @@ from yoyo import get_backend, read_migrations
 from tests.support.migration_baseline import (
     BASELINE,
     DROP_AUTOMATION,
+    FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
     OLD_NAME,
     TAG_LINKS,
@@ -122,6 +123,8 @@ APP_PRIVILEGES = {
     "journal_processing_runs": "SIU",
     "journal_sources": "SI",
     "journal_summary_proposals": "SIU",
+    "memory_forgotten_facts": "SIUD",
+    "memory_forgotten_units": "SIUD",
     "memory_settings": "SIU",
     "memory_sources": "SIUD",
     "memory_usage_daily": "SIU",
@@ -168,7 +171,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
     _reset_schema()
     _apply(MIGRATIONS_PATH)
 
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
     engine = create_engine(_admin_url())
     try:
         with engine.connect() as connection:
@@ -370,17 +373,26 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
     _apply(MIGRATIONS_PATH)
     _insert_owner()
     before = _snapshot()
-    # A database on the folded chain has not applied the tag links of migration 107 either.
+    # A database on the folded chain has not applied migrations 107 and 108 either.
     _run(
         "SET LOCAL ROLE sidekick_owner; "
-        "DROP TABLE sidekick.contact_tags, sidekick.journal_entry_tags"
+        "DROP TABLE sidekick.contact_tags, sidekick.journal_entry_tags, "
+        "sidekick.memory_forgotten_units, sidekick.memory_forgotten_facts; "
+        "ALTER TABLE sidekick.memory_sources DROP CONSTRAINT uq_memory_sources_id_owner; "
+        "ALTER TABLE sidekick.memory_settings DROP COLUMN forget_salt"
     )
     _stamp_as_folded_chain(FOLDED_HEAD)
 
     _apply(MIGRATIONS_PATH)
 
     assert _snapshot() == before
-    assert _applied_ids() == {*FOLDED_CHAIN, BASELINE, DROP_AUTOMATION, TAG_LINKS}
+    assert _applied_ids() == {
+        *FOLDED_CHAIN,
+        BASELINE,
+        DROP_AUTOMATION,
+        TAG_LINKS,
+        FORGOTTEN_FACTS,
+    }
     engine = create_engine(_admin_url())
     try:
         with engine.connect() as connection:
@@ -395,7 +407,7 @@ def _stamp(ids: list[str]) -> None:
     """Replace the record of the new migrations with `ids`; the migrations after the baseline are
     forgotten too, because a database on the folded chain has not applied them."""
 
-    for migration_id in (BASELINE, DROP_AUTOMATION, TAG_LINKS):
+    for migration_id in (BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:
         _run(

@@ -1,8 +1,8 @@
 /**
  * Text-level reading of the app's stylesheets for the CSS contract tests.
  *
- * The contract tests (`ui-css-contract`, `app-css-contract`, `journal-css-contract`) check rules of the real
- * files as text and state only what they expect. Loading the files, blanking comments, splitting rules and
+ * The stylesheet tests (`css-policy`, `ui-css-contract`, `project-task-rows`) check rules of the real files as text
+ * and state only what they expect. Loading the files, blanking comments, splitting rules and
  * reading a declaration live here once. `helpers/stylesheet.ts` is the other reader: it resolves which rules
  * apply to a rendered element, while this one answers "does this selector declare this value".
  */
@@ -111,14 +111,6 @@ export function declares(
   return rule.declarations
     .split(";")
     .some((declaration) => declaration.trim() === `${property}: ${value}`);
-}
-
-/** The first rule whose whole selector list is `selector` (whitespace collapsed). */
-export function ruleFor(
-  rules: readonly CssRule[],
-  selector: string,
-): CssRule | undefined {
-  return rules.find((rule) => rule.selector === selector);
 }
 
 /** The custom properties declared (`--sk-name:`) in `css`. */

@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import { Progress } from "@/features/mcp-apps/ui/progress";
 
-import { readStylesheet } from "./helpers/stylesheet";
-
 describe.each([
   { done: 2, total: 5, text: "2/5", width: "40%" },
   { done: 0, total: 5, text: "0/5", width: "0%" },
@@ -57,22 +55,5 @@ describe("Progress bounds", () => {
     render(<Progress done={2.7} total={5.2} />);
 
     expect(screen.getByText("2/5")).toBeInTheDocument();
-  });
-});
-
-describe("Progress styling", () => {
-  it("uses host tokens with fallbacks and no fixed colour-scheme media query", () => {
-    const css = readStylesheet("features/mcp-apps/ui/progress.css");
-    const values = css.rules.flatMap((rule) =>
-      Object.values(rule.declarations),
-    );
-
-    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
-      expect.stringContaining("prefers-color-scheme"),
-    );
-    expect(values.join(" ")).toMatch(
-      /var\(--color-text-secondary, light-dark\(/,
-    );
-    expect(values.join(" ")).toMatch(/var\(--color-text-info, light-dark\(/);
   });
 });

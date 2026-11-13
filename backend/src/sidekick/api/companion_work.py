@@ -9,7 +9,7 @@ listed in the module docstring of `sidekick.api.companion`.
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import Query, Request
@@ -48,6 +48,17 @@ from sidekick.tasks.domain import Priority, TaskStatus
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.application.models import WorkToday
 from sidekick.work.domain import MAX_TAG_FILTER_VALUES
+from sidekick.work.listing import (
+    WorkActionable,
+    WorkArchive,
+    WorkAttention,
+    WorkEstimate,
+    WorkGroup,
+    WorkKind,
+    WorkSort,
+    WorkTagMatch,
+    WorkWaiting,
+)
 
 DEFAULT_TODAY_LIMIT = 20
 MAX_TODAY_LIMIT = 50
@@ -88,23 +99,16 @@ async def work_agenda(
     q: Annotated[str | None, Query(max_length=200)] = None,
     status: TaskStatus | None = None,
     priority: Priority | None = None,
-    attention: Literal["all", "requested"] = "all",
-    archive: Literal["active", "archived", "all"] = "active",
-    kind: Literal["all", "domain", "process", "project", "task", "step", "action"] = "all",
-    sort: Literal[
-        "updated_desc",
-        "due_asc",
-        "title_asc",
-        "priority_desc",
-        "not_before_asc",
-        "estimate_asc",
-    ] = "due_asc",
-    group: Literal["none", "kind", "status", "context"] = "none",
+    attention: WorkAttention = "all",
+    archive: WorkArchive = "active",
+    kind: WorkKind = "all",
+    sort: WorkSort = "due_asc",
+    group: WorkGroup = "none",
     tags: Annotated[list[str] | None, Query(max_length=MAX_TAG_FILTER_VALUES)] = None,
-    tag_match: Literal["any", "all"] = "any",
-    actionable: Literal["all", "now", "later"] = "all",
-    waiting: Literal["all", "waiting", "not_waiting"] = "all",
-    estimate: Literal["all", "estimated", "unestimated"] = "all",
+    tag_match: WorkTagMatch = "any",
+    actionable: WorkActionable = "all",
+    waiting: WorkWaiting = "all",
+    estimate: WorkEstimate = "all",
     cursor: Annotated[str | None, Query(max_length=MAX_CURSOR_LENGTH)] = None,
     max_minutes: Annotated[int | None, Query(ge=1, le=MAX_ESTIMATED_MINUTES)] = None,
     include_undated: bool = False,

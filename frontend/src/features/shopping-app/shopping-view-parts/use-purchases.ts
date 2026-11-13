@@ -18,14 +18,14 @@ type Params = {
  * place with its Undo (`held`) until the server's reply replaces the row.
  *
  * Offline (the mobile app): a purchase that got no answer waits in the phone's outbox (`waiting`, item id → the state
- * that will be sent). The row keeps that state and says "Väntar på anslutning" instead of going back; it takes no new tap until
+ * that will be sent). The row keeps that state and says `waitingForNetwork` instead of going back; it takes no new tap until
  * the outbox has sent it. When the outbox has run and the row has left it, the list is read again.
  */
 export function usePurchases({ transport, read, writes, onWritten }: Params) {
   const { written, detailNow, setDetail, setError, reload } = read;
   const { setConflict, setFailedWrite } = writes;
   // A purchase is a write of its own row, not of the whole list: a tap while the row's write runs
-  // waits behind it (shown as "Väntar…"), other rows are free. `wanted` is the state the user asked for, drawn
+  // waits behind it (shown as `queued`), other rows are free. `wanted` is the state the user asked for, drawn
   // at once; the server's reply replaces it, a refusal takes it back.
   const rowQueue = useRowQueue();
   const [wanted, setWanted] = useState<Record<string, boolean>>({});
@@ -89,7 +89,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
     unsure.current.clear();
   }
   // Buying or undoing a purchase is one write of that row, against the newest version this view knows
-  // of the row. The row shows the asked state at once. A tap while the row's write runs waits behind it ("Väntar…");
+  // of the row. The row shows the asked state at once. A tap while the row's write runs waits behind it (`queued`);
   // other rows and the rest of the list stay free. The reply replaces the row, with no read of the list. A reply that
   // does not show the asked state is a failure ("Try again"), and a refusal puts the row back as it was.
   function togglePurchase(row: ShoppingItem) {
@@ -236,7 +236,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
       }
     });
   }
-  /** The time to undo of a row is up: the row goes where it belongs (the open rows, or "Köpta"). */
+  /** The time to undo of a row is up: the row goes where it belongs (the open rows, or the `boughtCount` fold). */
   const release = useCallback((id: string) => {
     setHeld((before) => {
       if (!(id in before)) return before;

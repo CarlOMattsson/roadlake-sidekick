@@ -27,6 +27,17 @@ from sidekick.work.domain.planning import (
     MAX_STEP_INSTRUCTION_LENGTH,
     MAX_TAGS_PER_RECORD,
 )
+from sidekick.work.listing import (
+    WorkActionable,
+    WorkArchive,
+    WorkAttention,
+    WorkEstimate,
+    WorkGroup,
+    WorkKind,
+    WorkSort,
+    WorkTagMatch,
+    WorkWaiting,
+)
 
 if TYPE_CHECKING:
     pass
@@ -441,26 +452,16 @@ class SavedViewFilters(Output):
     status: TaskStatus | None = None
     priority: Priority | None = None
     priorities: Annotated[list[Priority] | None, Field(max_length=4)] = None
-    attention: Literal["all", "requested"] | None = None
-    archive: Literal["active", "archived", "all"] | None = None
-    kind: Literal["all", "domain", "process", "project", "task", "step", "action"] | None = None
-    sort: (
-        Literal[
-            "updated_desc",
-            "due_asc",
-            "title_asc",
-            "priority_desc",
-            "not_before_asc",
-            "estimate_asc",
-        ]
-        | None
-    ) = None
-    group: Literal["none", "kind", "status", "context"] | None = None
+    attention: WorkAttention | None = None
+    archive: WorkArchive | None = None
+    kind: WorkKind | None = None
+    sort: WorkSort | None = None
+    group: WorkGroup | None = None
     tags: Annotated[list[Annotated[str, Field(max_length=80)]] | None, Field(max_length=5)] = None
-    tag_match: Literal["any", "all"] | None = None
-    actionable: Literal["all", "now", "later"] | None = None
-    waiting: Literal["all", "waiting", "not_waiting"] | None = None
-    estimate: Literal["all", "estimated", "unestimated"] | None = None
+    tag_match: WorkTagMatch | None = None
+    actionable: WorkActionable | None = None
+    waiting: WorkWaiting | None = None
+    estimate: WorkEstimate | None = None
 
 
 class SavedViewDefinitionRecord(Output):

@@ -99,12 +99,10 @@ def test_the_env_value_command_prints_an_empty_line_for_a_missing_file(
     assert capsys.readouterr().out == "\n"
 
 
-@pytest.mark.parametrize(("value", "code"), [("on", 0), ("off", 1)])
-def test_the_memory_wanted_command_answers_with_its_exit_code(
-    tmp_path: Path, value: str, code: int
-) -> None:
+@pytest.mark.parametrize(("value", "wanted"), [("on", True), ("off", False)])
+def test_memory_wanted_follows_the_setting(tmp_path: Path, value: str, wanted: bool) -> None:
     env_file = _env(tmp_path, f"SIDEKICK_WORK_MEMORY={value}\n")
-    assert cli.main(["memory-wanted", "--env-file", str(env_file)]) == code
+    assert workenv.memory_wanted(env_file) is wanted
 
 
 def test_set_value_replaces_an_active_line_and_keeps_the_rest(tmp_path: Path) -> None:
@@ -153,13 +151,6 @@ def test_unset_value_comments_out_only_active_lines(tmp_path: Path) -> None:
     assert path.read_text(encoding="utf-8") == "# KEY=1\n# KEY=2\nKEY_LONGER=3\n"
 
 
-def test_the_env_set_and_env_unset_commands_edit_the_file(tmp_path: Path) -> None:
-    path = _env(tmp_path, "A=1\n")
-    assert cli.main(["env-set", "--env-file", str(path), "--", "B", "2"]) == 0
-    assert cli.main(["env-unset", "--env-file", str(path), "--", "A"]) == 0
-    assert path.read_text(encoding="utf-8") == "# A=1\nB=2\n"
-
-
 def test_set_value_keeps_the_line_breaks_of_the_file(tmp_path: Path) -> None:
     path = tmp_path / "work.env"
     path.write_bytes(b"A=1\r\nKEY=old\r\nB=2\rC=3\nD=4")
@@ -188,14 +179,4 @@ def test_set_value_refuses_a_value_with_a_line_break_and_writes_nothing(
     path = _env(tmp_path, "A=1\n")
     with pytest.raises(ValueError):
         workenv.set_value(path, "KEY", value)
-    assert path.read_text(encoding="utf-8") == "A=1\n"
-
-
-def test_the_env_set_command_exits_1_for_a_value_with_a_line_break(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    path = _env(tmp_path, "A=1\n")
-    assert cli.main(["env-set", "--env-file", str(path), "--", "KEY", "a\nb"]) == 1
-    captured = capsys.readouterr()
-    assert captured.out == "" and captured.err.strip() != ""
     assert path.read_text(encoding="utf-8") == "A=1\n"

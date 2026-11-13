@@ -389,7 +389,7 @@ export function ShoppingView({
             env={rowEnv}
             onToggle={() => setPanel("boughtOpen", !panels.boughtOpen)}
           />
-          {/* Last in the list, after "Köpta (n)", as Arbetes tip stands after "Klar (n)". */}
+          {/* Last in the list, after the `boughtCount` fold, as Arbetes tip stands after "Klar (n)". */}
           {storeMode && rows.length > 0 && !list.archived && !wasHoldUsed() && (
             <p className="shopping-hold-tip">{holdTip}</p>
           )}

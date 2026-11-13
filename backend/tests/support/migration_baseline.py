@@ -28,6 +28,7 @@ MIGRATIONS_PATH = ROOT / "migrations"
 BASELINE = "100_schema_baseline_0_1_0"
 DROP_AUTOMATION = "106_drop_retired_automation_tables"
 TAG_LINKS = "107_contact_and_journal_entry_tags"
+FORGOTTEN_FACTS = "108_memory_forgotten_facts"
 
 
 # The catalogue facts a migration can change, each as sorted text rows. Deparsed definitions

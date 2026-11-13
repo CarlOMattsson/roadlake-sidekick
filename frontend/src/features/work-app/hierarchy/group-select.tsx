@@ -24,7 +24,7 @@ export function GroupSelect({
   onChange,
 }: {
   id?: string;
-  /** The accessible name: "Plats för Måla taket". */
+  /** The accessible name: the `pickerFor` label of the Task. */
   label: string;
   value: TaskPlace | null;
   choices: GroupChoicesState & { retry: () => void };
@@ -34,7 +34,7 @@ export function GroupSelect({
 }) {
   if (choices.phase === "error")
     return (
-      // The family's error notice in its row variant: the sentence, and "Försök igen" as a text button.
+      // The family's error notice in its row variant: the sentence, and the retry as a text button.
       <ErrorNotice
         locale={t.locale}
         placement="row"

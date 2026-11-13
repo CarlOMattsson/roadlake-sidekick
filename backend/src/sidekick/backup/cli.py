@@ -218,6 +218,60 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _dispatch(args: argparse.Namespace) -> int:
+    if args.command == "keygen":
+        print(Fernet.generate_key().decode("ascii"))
+        return 0
+    if args.command == "create":
+        settings = get_settings()
+        service = OwnerBackupService(_import_store())
+        result = service.create(
+            directory=args.directory or settings.backup_directory,
+            key=_settings_key(settings),
+            retention_count=settings.backup_retention_count,
+            retention_days=settings.backup_retention_days,
+            min_keep=settings.backup_min_keep,
+            space_margin_percent=settings.backup_space_margin_pct,
+        )
+        print(
+            json.dumps(
+                {
+                    "path": str(result.path),
+                    "owner_count": result.owner_count,
+                    "ciphertext_sha256": result.ciphertext_sha256,
+                    "pruned_count": result.pruned_count,
+                },
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.command == "verify":
+        print(json.dumps(_verify(args.path), sort_keys=True))
+        return 0
+    if args.command == "extract-export":
+        print(json.dumps(_extract_export(args.path, args.output), sort_keys=True))
+        return 0
+    if args.command == "import":
+        result = _import(args)
+        print(json.dumps(result, sort_keys=True))
+        if args.apply and not result["verified"]:
+            print("import verification failed: row counts differ", file=sys.stderr)
+            return 1
+        return 0
+    if args.command == "prune":
+        settings = get_settings()
+        deleted = prune_backup_files(
+            settings.backup_directory,
+            retention_count=settings.backup_retention_count,
+            retention_days=settings.backup_retention_days,
+            now=SystemClock().now(),
+            min_keep=settings.backup_min_keep,
+        )
+        print(json.dumps({"pruned_count": len(deleted)}, sort_keys=True))
+        return 0
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -225,56 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--apply and --plan-checksum must be given together")
 
     try:
-        if args.command == "keygen":
-            print(Fernet.generate_key().decode("ascii"))
-            return 0
-        if args.command == "create":
-            settings = get_settings()
-            service = OwnerBackupService(_import_store())
-            result = service.create(
-                directory=args.directory or settings.backup_directory,
-                key=_settings_key(settings),
-                retention_count=settings.backup_retention_count,
-                retention_days=settings.backup_retention_days,
-                min_keep=settings.backup_min_keep,
-                space_margin_percent=settings.backup_space_margin_pct,
-            )
-            print(
-                json.dumps(
-                    {
-                        "path": str(result.path),
-                        "owner_count": result.owner_count,
-                        "ciphertext_sha256": result.ciphertext_sha256,
-                        "pruned_count": result.pruned_count,
-                    },
-                    sort_keys=True,
-                )
-            )
-            return 0
-        if args.command == "verify":
-            print(json.dumps(_verify(args.path), sort_keys=True))
-            return 0
-        if args.command == "extract-export":
-            print(json.dumps(_extract_export(args.path, args.output), sort_keys=True))
-            return 0
-        if args.command == "import":
-            result = _import(args)
-            print(json.dumps(result, sort_keys=True))
-            if args.apply and not result["verified"]:
-                print("import verification failed: row counts differ", file=sys.stderr)
-                return 1
-            return 0
-        if args.command == "prune":
-            settings = get_settings()
-            deleted = prune_backup_files(
-                settings.backup_directory,
-                retention_count=settings.backup_retention_count,
-                retention_days=settings.backup_retention_days,
-                now=SystemClock().now(),
-                min_keep=settings.backup_min_keep,
-            )
-            print(json.dumps({"pruned_count": len(deleted)}, sort_keys=True))
-            return 0
+        return _dispatch(args)
     except ValidationError as error:
         # pydantic's ValidationError is a ValueError and can echo rejected input values.
         print(f"backup operation refused: {describe_failure(error).message}", file=sys.stderr)
@@ -304,7 +309,6 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_FAILED
         # A conflict (3) or a database failure (4) keeps its code from the shared table.
         return report_failure("sidekick-backup", error)
-    return 2
 
 
 if __name__ == "__main__":

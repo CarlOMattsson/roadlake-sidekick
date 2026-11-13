@@ -18,8 +18,8 @@ import type { RowEnv } from "./row-parts";
 
 /**
  * One large row per item of the store view: the ring marks it bought or open again, a tap on the rest of the row
- * opens its change form. While Undo holds, the meta line says "Köpt · 8 st" (the amount moves there) and Undo
- * stands in the trailing slot. A held row stands in its place with Undo; under "Köpta" (inPlace false) the same
+ * opens its change form. While Undo holds, the meta line says `bought` and the amount (the amount moves there) and Undo
+ * stands in the trailing slot. A held row stands in its place with Undo; under the `boughtCount` fold (inPlace false) the same
  * item is a plain bought row.
  */
 export function StoreRow({
@@ -37,7 +37,7 @@ export function StoreRow({
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
-  // A bought row is done: it keeps its name, and under "Köpta" the day it was bought.
+  // A bought row is done: it keeps its name, and under the `boughtCount` fold the day it was bought.
   const meta = item.purchased
     ? inPlace
       ? ""

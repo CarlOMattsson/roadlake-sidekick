@@ -8,6 +8,7 @@ import type {
   WorkTaskSummary,
 } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
+import { DetailTitle } from "../view/parts/detail-title";
 import { FrameMeta } from "../view/parts/frame-meta";
 import type { FrameProps } from "../view/parts/frame-types";
 import { processFrameLabelsFor } from "./process-frame-labels";
@@ -71,9 +72,9 @@ export function ProcessFrame({
         back={back}
         kicker={phase !== "gone" ? pl.process : undefined}
       />
-      <h2 ref={heading} tabIndex={-1} className="work-detail-title">
+      <DetailTitle heading={heading}>
         {phase === "ready" && process ? process.name : pl.process}
-      </h2>
+      </DetailTitle>
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
         <ErrorNotice

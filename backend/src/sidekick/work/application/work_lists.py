@@ -161,7 +161,7 @@ class WorkListService:
         *,
         board_order: bool = False,
     ) -> WorkListSpec:
-        tags, tag_match = query.normalized_tags()
+        tags, _ = query.normalized_tags()
         return WorkListSpec(
             now=now,
             q=query.q,
@@ -174,7 +174,7 @@ class WorkListService:
             kind=query.kind,
             project_id=query.project_id,
             tags=tags,
-            tag_match=tag_match,
+            tag_match=query.tag_match,
             actionable=query.actionable,
             waiting=query.waiting,
             estimate=query.estimate,

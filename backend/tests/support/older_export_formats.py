@@ -7,14 +7,17 @@ from typing import Any
 
 from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    EXPORT_FORMAT_VERSION,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_TAG_LINKS,
     RETIRED_COLLECTIONS,
+    excluded_collections_for,
 )
 from sidekick.owner_export.document import export_checksum
 
 BASELINE_HEAD = "100_schema_baseline_0_1_0"
 DROP_AUTOMATION_HEAD = "106_drop_retired_automation_tables"
+TAG_LINKS_HEAD = "107_contact_and_journal_entry_tags"
 
 
 def _resealed(
@@ -25,6 +28,7 @@ def _resealed(
         **document,
         "format_version": format_version,
         "schema_head": head,
+        "excluded": excluded_collections_for(head),
         "collections": dict(collections),
         "manifest": {"collection_counts": counts},
     }
@@ -38,6 +42,12 @@ def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
         for name, rows in document["collections"].items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_6
     }
+
+
+def as_format_6_at_107(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The document as migration 107 wrote it: format 6, before the forgotten-statement tables."""
+
+    return _resealed(document, EXPORT_FORMAT_VERSION, TAG_LINKS_HEAD, document["collections"])
 
 
 def as_format_5(document: Mapping[str, Any], head: str = DROP_AUTOMATION_HEAD) -> dict[str, Any]:

@@ -160,11 +160,6 @@ def test_the_commands_answer_with_exit_codes_and_lines(
     assert cli.main(["is-uuid", "--", "nope"]) == 1
     capsys.readouterr()
 
-    assert cli.main(["pick", "--answer=2", "--", "-first", "second"]) == 0
-    assert capsys.readouterr().out == "second\n"
-    assert cli.main(["pick", "--answer=-x", "--"]) == 0
-    assert capsys.readouterr().out == "-x\n"
-
     monkeypatch.setattr(sys, "stdin", io.StringIO("sidekick\nold\n"))
     assert cli.main(["rollback-action", "--old", "old"]) == 0
     assert capsys.readouterr().out == "rename-back\n"

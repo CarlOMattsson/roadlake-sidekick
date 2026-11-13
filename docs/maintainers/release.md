@@ -328,3 +328,13 @@ The OpenAPI document takes its version from the package.
 - **What the number means.** A patch fixes without changing behaviour or schema in a breaking way. A minor
   release adds features and may add `expand` migrations. A `breaking` migration class or a new companion API
   version needs at least a minor release while the version is below 1.0, and a major release after that.
+
+## Quarterly dependency review
+
+`fastmcp` is pinned to an exact version and left out of automatic update proposals, because it carries the tool and
+schema contract the rooms and clients rely on. A frozen version collects no fixes by itself, so once a quarter (and
+sooner when a security advisory names it) read the release notes and advisories of `fastmcp`, `mcp`, `httpx`,
+`httpx2` and the other pinned runtime libraries, and for each decide to upgrade or to record why not. An upgrade of
+`fastmcp` goes through the contract tests first (the generated tool list, `backend/tests/contract/test_tool_context_budget.py`
+and the authentication tests), never on a green unit run alone. The reasoning is in the
+[threat model](../explanation/threat-model.md#reviewing-the-frozen-mcp-library-and-other-dependencies).

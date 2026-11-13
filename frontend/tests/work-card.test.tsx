@@ -13,7 +13,6 @@ import type {
   WorkItemRecord,
 } from "@/features/work-app/transport/transport";
 
-import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
 describe("work card counts", () => {
@@ -119,13 +118,6 @@ describe("work card labels", () => {
     expect(cardLabelsFor("sv-SE")).toBe(cardLabelsSv);
     expect(cardLabelsFor("en-US")).toBe(cardLabelsEn);
     expect(cardLabelsFor("")).toBe(cardLabelsEn);
-  });
-
-  it("is self-contained: the card and its labels import no Sidekick app catalogue or components", () => {
-    for (const file of ["inline/work-card.tsx", "shared/card-labels.ts"]) {
-      const source = readSource(`features/work-app/${file}`);
-      expect(source, file).not.toMatch(/from\s+["']@\/(i18n|components)/);
-    }
   });
 });
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol
 from uuid import UUID
 
@@ -26,6 +26,10 @@ MemoryFailureCategory = Literal[
     "operation_lost",
 ]
 OperationState = Literal["pending", "retained", "failed"]
+#: What curating one provider fact came to: `applied` (the fact is now in the requested state, an
+#: unchanged one included) or `gone` (the provider no longer has that fact, for example because its
+#: document was replaced since).
+FactCurationOutcome = Literal["applied", "gone"]
 #: Which adapter serves the port. For status displays only; application code must not branch on it.
 MemoryProviderName = Literal["fake", "hindsight"]
 
@@ -75,13 +79,23 @@ class MemoryFact:
     """A recalled fact and the document it was derived from. Callers check the source row."""
 
     id: str
-    text: str
+    #: Left out of `repr`, so a fact in a log line or a traceback never prints its text.
+    text: str = field(repr=False)
     document_id: str
     occurred_start: str | None
     occurred_end: str | None
     #: The provider's fact type. None when the provider does not say (observations are then off by
     #: configuration); a value outside `ALLOWED_FACT_TYPES` is refused by the adapter and by recall.
     fact_type: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class DocumentFact:
+    """One valid fact of a document, as the provider lists it."""
+
+    id: str
+    #: Left out of `repr`, so a fact in a log line or a traceback never prints its text.
+    text: str = field(repr=False)
 
 
 def validate_opaque_id(value: str) -> None:
@@ -148,3 +162,25 @@ class MemoryProvider(Protocol):
         ...
 
     def health(self) -> bool: ...
+
+
+class FactCuration(Protocol):
+    """Hiding single facts at the provider, for the statements the owner asked to forget.
+
+    Only the reconcile pass calls these. An invalidated fact is left out of recall and listings at
+    the provider and can be restored, so nothing is lost by hiding it. A call never carries the
+    text of a fact.
+    """
+
+    def invalidate_fact(self, *, owner_id: UUID, fact_id: str) -> FactCurationOutcome:
+        """Hide one fact. Hiding a fact that is already hidden is not an error."""
+        ...
+
+    def restore_fact(self, *, owner_id: UUID, fact_id: str) -> FactCurationOutcome:
+        """Show a hidden fact again. Restoring a fact that is not hidden is not an error."""
+        ...
+
+    def list_document_facts(self, *, owner_id: UUID, document_id: str) -> tuple[DocumentFact, ...]:
+        """The valid facts of one document, hidden ones left out. A document the provider does not
+        have lists no facts."""
+        ...

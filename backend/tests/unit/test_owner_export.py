@@ -17,8 +17,10 @@ from sidekick.owner_export.catalogue import (
     RETIRED_COLLECTIONS,
     SCHEMA_CHAIN,
     SCHEMA_HEAD,
+    SOURCES_BY_NAME,
     ExportRefused,
     accepted_schema_heads,
+    source_fields,
 )
 from sidekick.owner_export.document import build_export_document, export_checksum, verify_export
 from sidekick.owner_export.export import OwnerExportService
@@ -40,6 +42,7 @@ from tests.support.older_export_formats import (
     DROP_AUTOMATION_HEAD,
     as_format_4,
     as_format_5,
+    as_format_6_at_107,
 )
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
@@ -458,9 +461,14 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_current_head_is_the_tag_links_of_contacts_and_journal_entries() -> None:
-    assert SCHEMA_HEAD == "107_contact_and_journal_entry_tags"
-    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+def test_the_head_is_the_forgotten_facts_migration_and_the_tag_link_format_accepts_it() -> None:
+    """Migration 108 leaves the export alone, so an export written at 107 is still current."""
+
+    assert SCHEMA_HEAD == "108_memory_forgotten_facts"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
+        "107_contact_and_journal_entry_tags",
+        SCHEMA_HEAD,
+    }
 
 
 def test_a_format_5_export_from_migration_106_is_still_accepted_without_tag_links() -> None:
@@ -475,6 +483,31 @@ def test_a_format_5_export_from_migration_106_is_still_accepted_without_tag_link
 
     assert verification.owner_id == OWNER_ID
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
+
+
+def test_the_forgotten_statements_and_their_salt_are_not_exported_yet_and_say_so() -> None:
+    """Migration 108's tables and salt stay local until the next export format carries them. They
+    are named in the exclusion catalogue, so the absence is stated and not silent."""
+
+    assert "forget_salt" not in source_fields(SOURCES_BY_NAME["memory_settings"])
+    assert not {name for name in SOURCES_BY_NAME if name.startswith("memory_forgotten")}
+    assert {"memory_forgotten_facts", "memory_forgotten_units"} <= set(EXCLUDED_COLLECTIONS)
+    assert _current_document()["excluded"] == list(EXCLUDED_COLLECTIONS)
+
+
+def test_an_export_from_migration_107_lists_the_exclusions_it_was_written_with() -> None:
+    """Format 6 was written at 107 with the shorter exclusion catalogue and is still accepted."""
+
+    old = as_format_6_at_107(_current_document())
+
+    assert "memory_forgotten_facts" not in old["excluded"]
+    assert verify_export(old).owner_id == OWNER_ID
+    # The catalogue must match the head: the new one at 107, or the old one at 108, is refused.
+    with pytest.raises(ExportRefused, match="exclusion catalogue"):
+        verify_export(reseal({**old, "excluded": list(EXCLUDED_COLLECTIONS)}))
+    current = _current_document()
+    with pytest.raises(ExportRefused, match="exclusion catalogue"):
+        verify_export(reseal({**current, "excluded": old["excluded"]}))
 
 
 def test_a_format_5_export_cannot_carry_a_tag_link_collection() -> None:

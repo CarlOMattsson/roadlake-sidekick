@@ -1,14 +1,13 @@
 """The model list of tools/workctl: bearer key, no redirects, bad answers refused."""
 
 import http.server
-import io
 import json
 import threading
 from collections.abc import Iterator
 from typing import ClassVar
 
 import pytest
-from tools.workctl import cli, modelserver
+from tools.workctl import modelserver
 
 KEY = "test-key-123"
 
@@ -99,20 +98,3 @@ def test_fetch_refuses_an_address_that_is_not_http() -> None:
 def test_fetch_fails_when_nobody_listens() -> None:
     with pytest.raises(ValueError):
         modelserver.fetch_model_ids("http://127.0.0.1:1/v1", KEY)
-
-
-def test_the_models_list_command_reads_the_key_from_stdin(
-    server: str, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr("sys.stdin", io.StringIO(KEY))
-    assert cli.main(["models-list", "--base-url", f"{server}/v1"]) == 0
-    assert capsys.readouterr().out == "glm-x\nflash-y\n"
-
-
-def test_the_models_list_command_exits_1_and_prints_nothing_on_failure(
-    server: str, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr("sys.stdin", io.StringIO("wrong"))
-    assert cli.main(["models-list", "--base-url", f"{server}/v1"]) == 1
-    captured = capsys.readouterr()
-    assert (captured.out, captured.err) == ("", "")

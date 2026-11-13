@@ -481,20 +481,18 @@ def _lock_rows(
     )
 
 
-def _validate_locked_relations(
+def _is_open_project(row: ProjectRow | None) -> bool:
+    return row is not None and row.archived_at is None and row.status != "completed"
+
+
+def _validate_relation_selection(
     command: FinalizeCommand,
     *,
-    catalog: CandidateCatalog,
+    catalog_ids: dict[str, set[UUID]],
     projects: dict[UUID, ProjectRow],
     tasks: dict[UUID, TaskRow],
     contacts: dict[UUID, ContactRow],
 ) -> None:
-    catalog_ids = {
-        "projects": {candidate.id for candidate in catalog.projects},
-        "tasks": {candidate.id for candidate in catalog.tasks},
-        "contacts": {candidate.id for candidate in catalog.contacts},
-    }
-    catalog_task_versions = {candidate.id: candidate.version for candidate in catalog.tasks}
     for kind, values in command.relation_selection.items():
         for identifier, origin in values:
             if origin == "model_suggested" and identifier not in catalog_ids[kind]:
@@ -502,29 +500,33 @@ def _validate_locked_relations(
             if origin not in {"model_suggested", "user_selected"}:
                 raise ValidationError("unknown relation origin")
             if kind == "projects":
-                row = projects.get(identifier)
-                if row is None or row.archived_at is not None or row.status == "completed":
-                    raise NotFoundError("relation target not found")
+                found = _is_open_project(projects.get(identifier))
             elif kind == "tasks":
                 row = tasks.get(identifier)
-                if row is None or row.archived_at is not None or row.status == "completed":
-                    raise NotFoundError("relation target not found")
+                found = row is not None and row.archived_at is None and row.status != "completed"
             else:
-                row = contacts.get(identifier)
-                if row is None or row.archived:
-                    raise NotFoundError("relation target not found")
+                contact = contacts.get(identifier)
+                found = contact is not None and not contact.archived
+            if not found:
+                raise NotFoundError("relation target not found")
 
+
+def _validate_task_proposals(
+    command: FinalizeCommand,
+    *,
+    catalog: CandidateCatalog,
+    catalog_ids: dict[str, set[UUID]],
+    projects: dict[UUID, ProjectRow],
+    tasks: dict[UUID, TaskRow],
+    contacts: dict[UUID, ContactRow],
+) -> None:
+    catalog_task_versions = {candidate.id: candidate.version for candidate in catalog.tasks}
     for proposal in command.task_proposals:
         if isinstance(proposal, CreateTaskProposal):
             if proposal.project_id is not None:
                 if proposal.project_id not in catalog_ids["projects"]:
                     raise ValidationError("proposal references an unknown project")
-                project = projects.get(proposal.project_id)
-                if (
-                    project is None
-                    or project.archived_at is not None
-                    or project.status == "completed"
-                ):
+                if not _is_open_project(projects.get(proposal.project_id)):
                     raise NotFoundError("project not found")
             for contact_id in proposal.contact_ids:
                 contact = contacts.get(contact_id)
@@ -539,11 +541,35 @@ def _validate_locked_relations(
                 raise NotFoundError("task not found")
             if row.version != proposal.expected_task_version:
                 raise FinalizeProposalConflict(proposal.proposal_id)
-            if "project_id" in proposal.model_fields_set and proposal.project_id is not None:
-                project = projects.get(proposal.project_id)
-                if (
-                    project is None
-                    or project.archived_at is not None
-                    or project.status == "completed"
-                ):
-                    raise NotFoundError("project not found")
+            if (
+                "project_id" in proposal.model_fields_set
+                and proposal.project_id is not None
+                and not _is_open_project(projects.get(proposal.project_id))
+            ):
+                raise NotFoundError("project not found")
+
+
+def _validate_locked_relations(
+    command: FinalizeCommand,
+    *,
+    catalog: CandidateCatalog,
+    projects: dict[UUID, ProjectRow],
+    tasks: dict[UUID, TaskRow],
+    contacts: dict[UUID, ContactRow],
+) -> None:
+    catalog_ids = {
+        "projects": {candidate.id for candidate in catalog.projects},
+        "tasks": {candidate.id for candidate in catalog.tasks},
+        "contacts": {candidate.id for candidate in catalog.contacts},
+    }
+    _validate_relation_selection(
+        command, catalog_ids=catalog_ids, projects=projects, tasks=tasks, contacts=contacts
+    )
+    _validate_task_proposals(
+        command,
+        catalog=catalog,
+        catalog_ids=catalog_ids,
+        projects=projects,
+        tasks=tasks,
+        contacts=contacts,
+    )

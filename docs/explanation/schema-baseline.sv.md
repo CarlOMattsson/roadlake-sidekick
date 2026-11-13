@@ -61,6 +61,17 @@ samlingarna (format 5); en export i format 4 läses fortfarande, och vägras om 
 En återrullning tar bara bort de två länktabellerna. Ägarexporten bär dem som två nya samlingar (format 6); en export i
 format 5 har inga och återställs utan taggar.
 
+## Migrering 108: glömda fakta
+
+`108_memory_forgotten_facts.py` är en additiv (expand) migrering för att glömma ett enskilt minnesfaktum. Den skapar
+`memory_forgotten_facts` (en rad per påstående som ägaren bett Sidekick sluta använda, med bara en saltad kontrollsumma av
+det normaliserade påståendet och aldrig dess text) och `memory_forgotten_units` (de faktaid hos minnestjänsten som bär ett
+sådant påstående, och hur långt döljandet har kommit: avstämningspassets kö). En enhet kan bara höra till en ägares
+påstående och källrad (sammansatta främmande nycklar, vilket krävde en unik nyckel på `memory_sources (id, owner_id)`).
+Den lägger också till den nullbara `memory_settings.forget_salt`, ägarens salt för kontrollsumman. Återställning tar bort
+de två tabellerna, kolumnen och nyckeln, vilket kastar alla glömda påståenden som gjorts sedan dess; ingen post eller
+inställning rörs. Ägarexporten tar ännu inte med de nya tabellerna eller saltet.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

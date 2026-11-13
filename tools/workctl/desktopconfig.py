@@ -72,6 +72,16 @@ def desktop_config(docker_bin: str, container: str, owner: str) -> dict[str, Any
     }
 
 
+def claude_config_target(platform: str, override: str, home: Path) -> Path:
+    """Where Claude Desktop keeps its own configuration. ``override`` (an explicit path, also used by tests so that
+    the real configuration is never touched) wins; ``platform`` is ``uname -s``."""
+    if override:
+        return Path(override)
+    if platform == "Darwin":
+        return home / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
+    return home / ".config" / "Claude" / "claude_desktop_config.json"
+
+
 def write_desktop_config(out_file: Path, docker_bin: str, container: str, owner: str) -> None:
     """Write the entry file, mode 600 from the first byte (also when the file already exists)."""
     config = desktop_config(docker_bin, container, owner)

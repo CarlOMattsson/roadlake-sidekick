@@ -16,7 +16,7 @@ import {
   parseQuantityInput,
 } from "./helpers";
 
-/** How many of the fields behind "Fler fält" hold a value, so the closed toggle can say that something is there. */
+/** How many of the fields behind the `moreFields` toggle hold a value, so the closed toggle can say that something is there. */
 function filledExtras(item: ShoppingItem): number {
   return [
     item.product_url,
@@ -47,7 +47,7 @@ export function ItemEditor({
 }) {
   const form = useRef<HTMLFormElement>(null);
   const extraId = useId();
-  // Progressive: the item, its amount and its shop first; the rest waits behind "Fler fält".
+  // Progressive: the item, its amount and its shop first; the rest waits behind `moreFields`.
   const [extraOpen, setExtraOpen] = useState(false);
   // The offer's fields are a fold of their own inside it, closed until opened.
   const [offerOpen, setOfferOpen] = useState(false);
@@ -63,7 +63,7 @@ export function ItemEditor({
   // Runs from the Save button's click, not from a submit event (no allow-forms in the App iframe).
   function save() {
     if (!form.current) return;
-    // A wrong value behind the closed "Fler fält" (or the closed offer) opens it first, so the browser can point at the field.
+    // A wrong value behind the closed `moreFields` (or the closed offer) opens it first, so the browser can point at the field.
     const invalid = form.current.querySelector(
       "input:invalid, select:invalid, textarea:invalid",
     );

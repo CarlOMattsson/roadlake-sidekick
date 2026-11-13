@@ -4,7 +4,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from datetime import date, datetime
-from typing import Any
+from typing import Any, get_args
 from uuid import UUID
 
 from sidekick.shared.cadence import Cadence
@@ -13,7 +13,18 @@ from sidekick.shared.types import UNSET, UnsetType, validate_limit
 from sidekick.tasks.domain.planning import validate_estimated_minutes
 from sidekick.work.domain import DomainStatus, ProcessStatus
 from sidekick.work.domain.planning import normalize_tag_filter
-from sidekick.work.listing import AgendaGroup
+from sidekick.work.listing import (
+    AgendaGroup,
+    WorkActionable,
+    WorkArchive,
+    WorkAttention,
+    WorkEstimate,
+    WorkGroup,
+    WorkKind,
+    WorkSort,
+    WorkTagMatch,
+    WorkWaiting,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +79,13 @@ class UpdateContextCommand:
         return {key: value for key, value in changes.items() if key in allowed}
 
 
+def _require(value: str, vocabulary: object, message: str) -> None:
+    """Reject a filter value outside its closed vocabulary (callers may pass any string)."""
+
+    if value not in get_args(vocabulary):
+        raise ValidationError(message)
+
+
 @dataclass(frozen=True, slots=True)
 class WorkQuery:
     """Closed, bounded projection inputs shared by Work read models."""
@@ -77,19 +95,19 @@ class WorkQuery:
     priority: str | None = None
     due_from: datetime | None = None
     due_to: datetime | None = None
-    attention: str = "all"
-    archive: str = "active"
-    kind: str = "all"
-    sort: str = "updated_desc"
-    group: str = "none"
+    attention: WorkAttention = "all"
+    archive: WorkArchive = "active"
+    kind: WorkKind = "all"
+    sort: WorkSort = "updated_desc"
+    group: WorkGroup = "none"
     limit: int = 100
     cursor: str | None = None
     tags: tuple[str, ...] = ()
     """Bounded, deduplicated tag slugs. Empty means no tag filter."""
-    tag_match: str = "any"
-    actionable: str = "all"
-    waiting: str = "all"
-    estimate: str = "all"
+    tag_match: WorkTagMatch = "any"
+    actionable: WorkActionable = "all"
+    waiting: WorkWaiting = "all"
+    estimate: WorkEstimate = "all"
     project_id: UUID | None = None
     """Only Tasks of this Project; Projects and other kinds never match. None means no filter."""
     max_minutes: int | None = None
@@ -104,31 +122,16 @@ class WorkQuery:
             message="Work page size must be between 1 and 100",
             error=ValidationError,
         )
-        if self.attention not in {"all", "requested"}:
-            raise ValidationError("invalid Work attention filter")
-        if self.archive not in {"active", "archived", "all"}:
-            raise ValidationError("invalid Work archive filter")
-        if self.kind not in {"all", "domain", "process", "project", "task", "step", "action"}:
-            raise ValidationError("invalid Work kind filter")
-        if self.sort not in {
-            "updated_desc",
-            "due_asc",
-            "title_asc",
-            "priority_desc",
-            "not_before_asc",
-            "estimate_asc",
-        }:
-            raise ValidationError("invalid Work sort")
-        if self.group not in {"none", "kind", "status", "context"}:
-            raise ValidationError("invalid Work grouping")
+        _require(self.attention, WorkAttention, "invalid Work attention filter")
+        _require(self.archive, WorkArchive, "invalid Work archive filter")
+        _require(self.kind, WorkKind, "invalid Work kind filter")
+        _require(self.sort, WorkSort, "invalid Work sort")
+        _require(self.group, WorkGroup, "invalid Work grouping")
         if self.q is not None and len(self.q) > 200:
             raise ValidationError("Work text query is too long")
-        if self.actionable not in {"all", "now", "later"}:
-            raise ValidationError("invalid Work actionable filter")
-        if self.waiting not in {"all", "waiting", "not_waiting"}:
-            raise ValidationError("invalid Work waiting filter")
-        if self.estimate not in {"all", "estimated", "unestimated"}:
-            raise ValidationError("invalid Work estimate filter")
+        _require(self.actionable, WorkActionable, "invalid Work actionable filter")
+        _require(self.waiting, WorkWaiting, "invalid Work waiting filter")
+        _require(self.estimate, WorkEstimate, "invalid Work estimate filter")
         if self.max_minutes is not None:
             validate_estimated_minutes(self.max_minutes)
         normalize_tag_filter(list(self.tags), self.tag_match)

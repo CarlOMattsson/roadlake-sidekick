@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Annotated, Literal
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -68,6 +68,17 @@ from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.tags_service import tag_public_data
 from sidekick.work.domain.planning import MAX_TAG_FILTER_VALUES
 from sidekick.work.domain.saved_view import SavedView
+from sidekick.work.listing import (
+    WorkActionable,
+    WorkArchive,
+    WorkAttention,
+    WorkEstimate,
+    WorkGroup,
+    WorkKind,
+    WorkSort,
+    WorkTagMatch,
+    WorkWaiting,
+)
 
 
 def saved_view_record(item: SavedView) -> SavedViewRecord:
@@ -86,12 +97,6 @@ _Cursor = Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)]
 _Query = Annotated[str | None, Field(max_length=200)]
 _Version = Annotated[int, Field(ge=1)]
 _TagFilter = Annotated[list[str] | None, Field(max_length=MAX_TAG_FILTER_VALUES)]
-_Attention = Literal["all", "requested"]
-_Archive = Literal["active", "archived", "all"]
-_TagMatch = Literal["any", "all"]
-_Actionable = Literal["all", "now", "later"]
-_Waiting = Literal["all", "waiting", "not_waiting"]
-_Estimate = Literal["all", "estimated", "unestimated"]
 
 
 def _saved_view_reply(item: SavedView, verb: str) -> ToolResult:
@@ -264,13 +269,13 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
         q: _Query = None,
         status: TaskStatus | None = None,
         priority: Priority | None = None,
-        attention: _Attention = "all",
-        archive: _Archive = "active",
+        attention: WorkAttention = "all",
+        archive: WorkArchive = "active",
         tags: _TagFilter = None,
-        tag_match: _TagMatch = "any",
-        actionable: _Actionable = "all",
-        waiting: _Waiting = "all",
-        estimate: _Estimate = "all",
+        tag_match: WorkTagMatch = "any",
+        actionable: WorkActionable = "all",
+        waiting: WorkWaiting = "all",
+        estimate: WorkEstimate = "all",
         project_id: UUID | None = None,
         cursor: _Cursor = None,
     ) -> ToolResult:
@@ -352,23 +357,16 @@ def _register_get_work_agenda(mcp: FastMCP, ctx: ToolContext) -> None:
         q: _Query = None,
         status: TaskStatus | None = None,
         priority: Priority | None = None,
-        attention: _Attention = "all",
-        archive: _Archive = "active",
-        kind: Literal["all", "domain", "process", "project", "task", "step", "action"] = "all",
-        sort: Literal[
-            "updated_desc",
-            "due_asc",
-            "title_asc",
-            "priority_desc",
-            "not_before_asc",
-            "estimate_asc",
-        ] = "due_asc",
-        group: Literal["none", "kind", "status", "context"] = "none",
+        attention: WorkAttention = "all",
+        archive: WorkArchive = "active",
+        kind: WorkKind = "all",
+        sort: WorkSort = "due_asc",
+        group: WorkGroup = "none",
         tags: _TagFilter = None,
-        tag_match: _TagMatch = "any",
-        actionable: _Actionable = "all",
-        waiting: _Waiting = "all",
-        estimate: _Estimate = "all",
+        tag_match: WorkTagMatch = "any",
+        actionable: WorkActionable = "all",
+        waiting: WorkWaiting = "all",
+        estimate: WorkEstimate = "all",
         cursor: _Cursor = None,
         max_minutes: Annotated[int | None, Field(ge=1, le=MAX_ESTIMATED_MINUTES)] = None,
         include_undated: bool = False,

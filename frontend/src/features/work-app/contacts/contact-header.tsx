@@ -5,6 +5,7 @@ import type { WorkLabels } from "../shared/labels";
 import { MoreIcon } from "../tasks/task-detail-controls";
 import { ContactProfileLine } from "./contact-journal-entries";
 import { DetailBar } from "../view/parts/detail-bar";
+import { DetailTitle } from "../view/parts/detail-title";
 import type { BackTarget } from "../view/parts/frame-types";
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import type { ContactRecord } from "./use-contact-record";
@@ -73,17 +74,14 @@ export function ContactHeader({
           ) : undefined
         }
       />
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- a pointer shortcut for editing; the keyboard route to the same action is the Edit item in the header menu. */}
-      <h2
-        ref={heading}
-        tabIndex={-1}
-        className="work-detail-title"
-        onClick={
+      <DetailTitle
+        heading={heading}
+        onEdit={
           ready && !ready.archived && !editing && !busy ? edit : undefined
         }
       >
         {ready ? ready.display_name : t.contact}
-      </h2>
+      </DetailTitle>
       {/* The profile line of the list row, 4 under the name as the Task's meta line; the nicknames under it.
           While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
       {ready && !editing && <ContactProfileLine contact={ready} />}

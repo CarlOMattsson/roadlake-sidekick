@@ -49,7 +49,7 @@ export type RowEnv = {
 
 /**
  * Whether the row stands in its place with the line of what happened and its Undo: the change is held and the row
- * shows the state it gave it. A row in "Köpta" (`inPlace` false) is never held.
+ * shows the state it gave it. A row in the `boughtCount` fold (`inPlace` false) is never held.
  */
 export function isHolding(item: ShoppingItem, env: RowEnv, inPlace: boolean) {
   return inPlace && env.held[item.id]?.purchased === item.purchased;
@@ -89,13 +89,13 @@ export function undoButton(
   );
 }
 
-/** The word of what happened to a held row: "Köpt" or "Inte köpt". */
+/** The word of what happened to a held row: `bought` or `notBought`. */
 export function heldWord(item: ShoppingItem, env: RowEnv) {
   return item.purchased ? env.labels.bought : env.labels.notBought;
 }
 
 /**
- * What happened to a held row, said for assistive technology: "Köpt: Mjölk". The visible line in the row says the same
+ * What happened to a held row, said for assistive technology: the `bought` word and the item name. The visible line in the row says the same
  * (it is hidden from assistive technology); this one is the row's polite status (`role="status"`) and holds the name.
  */
 export function heldStatus(item: ShoppingItem, env: RowEnv) {
@@ -107,8 +107,8 @@ export function heldStatus(item: ShoppingItem, env: RowEnv) {
 }
 
 /**
- * A tap that waits behind the row's running write says so in the row: "Väntar…" in the meta type, muted. A purchase
- * waiting in the phone's outbox says "Väntar på anslutning" the same way.
+ * A tap that waits behind the row's running write says so in the row: `queued` in the meta type, muted. A purchase
+ * waiting in the phone's outbox says `waitingForNetwork` the same way.
  * The visual mark sits in the row, which is aria-busy; the announcement is one stable status region outside it.
  */
 export function queuedMark(item: ShoppingItem, env: RowEnv) {

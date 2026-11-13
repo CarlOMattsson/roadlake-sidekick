@@ -1,4 +1,3 @@
-import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,7 +9,6 @@ import type {
   RecallResult,
 } from "@/features/control-app/transport";
 import { onEnterKey } from "@/features/mcp-apps/ui/enter-key";
-import { featuresDir, readText, sourceFiles } from "./helpers/source-files";
 import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
 import {
   fakeTransport,
@@ -22,7 +20,8 @@ import {
 
 // The host may sandbox an MCP App without `allow-forms`, and then no form ever submits. These tests
 // swallow every submit event before React sees it, the way such a sandbox does, and require that Enter in
-// the field and a click on the button still act.
+// the field and a click on the button still act. The source rule that every form's onSubmit is only preventSubmit is
+// an ESLint rule (eslint.config.js, FEATURE_SYNTAX_RULES).
 
 function swallowSubmit(event: Event) {
   event.preventDefault();
@@ -173,22 +172,5 @@ describe("onEnterKey", () => {
     expect(action).not.toHaveBeenCalled();
     fireEvent.keyDown(input, { key: "Enter" });
     expect(action).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("Every form in the MCP apps", () => {
-  it("acts without submission: a form's onSubmit only prevents navigation", () => {
-    const offenders: string[] = [];
-    for (const file of sourceFiles(
-      featuresDir,
-      (name) => name.endsWith(".tsx") && !name.includes(".test."),
-    )) {
-      const text = readText(file);
-      for (const match of text.matchAll(/<form\b[^>]*?onSubmit=\{([^}]*)/gs)) {
-        if (match[1]?.trim() !== "preventSubmit")
-          offenders.push(path.relative(featuresDir, file));
-      }
-    }
-    expect(offenders).toEqual([]);
   });
 });

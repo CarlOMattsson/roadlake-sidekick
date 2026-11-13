@@ -18,6 +18,26 @@ WorkRecord = Domain | Process | Project | Task | Step | Action
 """Any one record the Work list can name."""
 
 
+# The closed filter, sort and grouping vocabulary of the Work list. These are plain aliases (not
+# `type` statements) so that tool and query schemas inline the values instead of referencing them.
+WorkAttention = Literal["all", "requested"]
+WorkArchive = Literal["active", "archived", "all"]
+WorkKind = Literal["all", "domain", "process", "project", "task", "step", "action"]
+WorkSort = Literal[
+    "updated_desc",
+    "due_asc",
+    "title_asc",
+    "priority_desc",
+    "not_before_asc",
+    "estimate_asc",
+]
+WorkGroup = Literal["none", "kind", "status", "context"]
+WorkTagMatch = Literal["any", "all"]
+WorkActionable = Literal["all", "now", "later"]
+WorkWaiting = Literal["all", "waiting", "not_waiting"]
+WorkEstimate = Literal["all", "estimated", "unestimated"]
+
+
 # A Project's target date is the last day it may land on, so it is due at the end of that day in
 # the owner's zone (as a Task given a bare date is); its start date is the day's first moment.
 PROJECT_TARGET_TIME = time(23, 59)
@@ -64,17 +84,17 @@ class WorkListSpec:
     due_from: datetime | None = None
     due_to: datetime | None = None
     attention_requested: bool = False
-    archive: str = "active"
-    kind: str = "all"
+    archive: WorkArchive = "active"
+    kind: WorkKind = "all"
     project_id: UUID | None = None
     tags: tuple[str, ...] = ()
-    tag_match: str = "any"
-    actionable: str = "all"
-    waiting: str = "all"
-    estimate: str = "all"
+    tag_match: WorkTagMatch = "any"
+    actionable: WorkActionable = "all"
+    waiting: WorkWaiting = "all"
+    estimate: WorkEstimate = "all"
     max_minutes: int | None = None
-    sort: str = "updated_desc"
-    group: str = "none"
+    sort: WorkSort = "updated_desc"
+    group: WorkGroup = "none"
     agenda: AgendaSpec | None = None
     # IANA key of the owner's zone; it decides the instants of a Project's date-only fields.
     owner_zone: str = "UTC"

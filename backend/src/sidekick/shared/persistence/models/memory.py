@@ -11,6 +11,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     PrimaryKeyConstraint,
@@ -36,6 +37,7 @@ class MemorySourceRow(Base):
     __table_args__ = (
         UniqueConstraint("doc_key", name="uq_memory_sources_doc_key"),
         UniqueConstraint("owner_id", "source_kind", "source_id", name="uq_memory_sources_source"),
+        UniqueConstraint("id", "owner_id", name="uq_memory_sources_id_owner"),
         Index("ix_memory_sources_due", "status", "next_attempt_at", "id"),
         CheckConstraint(
             "source_kind IN ('journal_entry', 'contact', 'project', 'task')",
@@ -89,6 +91,10 @@ class MemorySettingsRow(Base):
     __tablename__ = "memory_settings"
     __table_args__ = (
         CheckConstraint("version >= 1", name="ck_memory_settings_version"),
+        CheckConstraint(
+            "forget_salt IS NULL OR forget_salt ~ '^[0-9a-f]{32}$'",
+            name="ck_memory_settings_forget_salt",
+        ),
         {"schema": SCHEMA},
     )
     owner_id: Mapped[UUID] = mapped_column(
@@ -99,6 +105,9 @@ class MemorySettingsRow(Base):
     projects: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     tasks: Mapped[bool] = mapped_column(Boolean, default=True, server_default=text("true"))
     paused: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: 16 random bytes as lower-case hex: the salt of this owner's forgotten-statement keys. NULL
+    #: until the owner first asks Sidekick to forget a statement.
+    forget_salt: Mapped[str | None] = mapped_column(CHAR(32))
     version: Mapped[int] = mapped_column(Integer, default=1)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
@@ -120,3 +129,86 @@ class MemoryUsageDailyRow(Base):
     retain_documents: Mapped[int] = mapped_column(Integer, default=0)
     backfill_documents: Mapped[int] = mapped_column(Integer, default=0)
     characters: Mapped[int] = mapped_column(BigInteger, default=0)
+
+
+class MemoryForgottenFactRow(Base):
+    """One statement the owner asked Sidekick to stop using. The statement itself is never stored.
+
+    `text_key` is the salted digest from `sidekick.memory.forgetting`. `released_at` is NULL while
+    the statement is forgotten and set when the owner takes it back.
+    """
+
+    __tablename__ = "memory_forgotten_facts"
+    __table_args__ = (
+        UniqueConstraint("id", "owner_id", name="uq_memory_forgotten_facts_id_owner"),
+        UniqueConstraint("owner_id", "text_key", name="uq_memory_forgotten_facts_key"),
+        CheckConstraint("text_key ~ '^[0-9a-f]{64}$'", name="ck_memory_forgotten_facts_text_key"),
+        ForeignKeyConstraint(
+            ["origin_source_id", "owner_id"],
+            [f"{SCHEMA}.memory_sources.id", f"{SCHEMA}.memory_sources.owner_id"],
+            name="fk_memory_forgotten_facts_origin_owner",
+            ondelete="SET NULL (origin_source_id)",
+        ),
+        CheckConstraint(
+            "released_at IS NULL OR released_at >= created_at",
+            name="ck_memory_forgotten_facts_released",
+        ),
+        {"schema": SCHEMA},
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    text_key: Mapped[str] = mapped_column(CHAR(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    origin_source_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+
+
+class MemoryForgottenUnitRow(Base):
+    """A provider fact id that carries a forgotten statement, and where hiding it stands.
+
+    The table is also the reconcile pass's queue. A unit shares its owner with the statement and
+    the source row (composite keys).
+    """
+
+    __tablename__ = "memory_forgotten_units"
+    __table_args__ = (
+        UniqueConstraint(
+            "memory_source_id", "provider_fact_id", name="uq_memory_forgotten_units_fact"
+        ),
+        Index("ix_memory_forgotten_units_due", "state", "next_attempt_at", "id"),
+        Index("ix_memory_forgotten_units_fact", "forgotten_id"),
+        ForeignKeyConstraint(
+            ["forgotten_id", "owner_id"],
+            [f"{SCHEMA}.memory_forgotten_facts.id", f"{SCHEMA}.memory_forgotten_facts.owner_id"],
+            name="fk_memory_forgotten_units_fact_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["memory_source_id", "owner_id"],
+            [f"{SCHEMA}.memory_sources.id", f"{SCHEMA}.memory_sources.owner_id"],
+            name="fk_memory_forgotten_units_source_owner",
+            ondelete="CASCADE",
+        ),
+        CheckConstraint(
+            "length(btrim(provider_fact_id)) > 0", name="ck_memory_forgotten_units_provider_fact_id"
+        ),
+        CheckConstraint(
+            "state IN ('pending', 'invalidated', 'reverting', 'parked')",
+            name="ck_memory_forgotten_units_state",
+        ),
+        CheckConstraint("attempts >= 0", name="ck_memory_forgotten_units_attempts"),
+        CheckConstraint(
+            "state <> 'parked' OR failure_category IS NOT NULL",
+            name="ck_memory_forgotten_units_parked",
+        ),
+        {"schema": SCHEMA},
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    forgotten_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
+    memory_source_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True))
+    provider_fact_id: Mapped[str] = mapped_column(String(200))
+    state: Mapped[str] = mapped_column(String(12))
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failure_category: Mapped[str | None] = mapped_column(String(40))

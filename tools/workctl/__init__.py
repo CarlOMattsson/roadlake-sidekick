@@ -48,10 +48,16 @@ Moved:
   the digest of a push and the versions of a release.
 * ``prompts``    : the guide's questions (read one line, hidden input, defaults), yes answers and numbered choices.
 * ``owner``      : the UUID check for the user Claude Desktop acts as.
+* ``setupguide`` : the questions of ``setup`` (memory, model server and key, memory model, allowlist, rooms, app
+  language) and the writing of the answers; the shell keeps the tool checks, the first-run secrets, autostart and start.
+
+* ``invocation`` : the options of start, update and restore (a refused call is a usage error), the name a command
+  takes the lock under and the image the stack runs from.
+* ``stackstate`` : the tag that keeps the previous image and the name of the database a restore sets aside (whether a
+  container is or may become active is ``deploy/selfhost/update_policy.py``, shared with the updater).
 
 Still in ``work.sh`` (candidates to move next, in order of value):
 
 1. Backup, restore and update orchestration (docker, traps, locks, pause/resume of writers): thin shell
    around compose calls, last to move; its decision pieces have moved (``backupfiles``, ``restore``, ``backupkey``).
-2. ``setup``, the interactive guide.
 """

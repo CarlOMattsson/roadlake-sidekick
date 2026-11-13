@@ -14,6 +14,7 @@ import type {
   WorkTaskSummary,
 } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
+import { DetailTitle } from "../view/parts/detail-title";
 import { FrameMeta } from "../view/parts/frame-meta";
 import type { FrameProps } from "../view/parts/frame-types";
 import { TaskSummaryList } from "../tasks/task-summary-list";
@@ -151,12 +152,9 @@ export function ProjectFrame({
           ) : undefined
         }
       />
-      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- a pointer shortcut for editing; the keyboard route to the same action is the Edit item in the header menu. */}
-      <h2
-        ref={heading}
-        tabIndex={-1}
-        className="work-detail-title"
-        onClick={
+      <DetailTitle
+        heading={heading}
+        onEdit={
           phase === "ready" &&
           project &&
           editOffered &&
@@ -167,7 +165,7 @@ export function ProjectFrame({
         }
       >
         {phase === "ready" && project ? project.title : t.project}
-      </h2>
+      </DetailTitle>
       {phase === "ready" && project && editOffered && menuOpen && (
         <ContactMenu
           id={menuId}

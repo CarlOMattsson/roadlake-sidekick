@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from tools.workctl import secretfiles
 
 from tests.selfhost.work_package.support import REPO_ROOT
 
@@ -51,47 +52,6 @@ def _model_secrets(tmp_path: Path) -> Path:
         "HINDSIGHT_API_LLM_API_KEY=not-needed\n", encoding="utf-8"
     )
     return secrets_dir
-
-
-def test_base_url_prints_the_five_parts(tmp_path: Path) -> None:
-    result = _workctl(tmp_path, "base-url", "https://embed.a.lan:8443/v1")
-    assert result.returncode == 0
-    assert result.stdout == "https\nembed.a.lan\n8443\n/v1\n0\n"
-    assert result.stderr == ""
-
-
-def test_base_url_rejects_a_bad_address_with_one_line_on_stderr(tmp_path: Path) -> None:
-    result = _workctl(tmp_path, "base-url", "--lang", "en", "ftp://embed.a.lan/v1")
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert result.stderr == "the address must start with http:// or https:// and have a host\n"
-
-
-def test_allowlist_prints_host_and_port_lines(tmp_path: Path) -> None:
-    result = _workctl(
-        tmp_path, "allowlist", "--lang", "en", "--model-port", "8000", "embed.a.lan:443,x.b:8443"
-    )
-    assert result.returncode == 0
-    assert result.stdout == "embed.a.lan 443\nx.b 8443\n"
-    assert result.stderr == ""
-
-
-@pytest.mark.parametrize(
-    ("raw", "reason"),
-    [
-        ("10.0.0.5:443", "'10.0.0.5:443': IP addresses cannot be allowed, use a host name"),
-        (
-            "embed.a.lan:8000",
-            "'embed.a.lan:8000': port 8000 is already used "
-            "(the model server, MCP or another entry)",
-        ),
-    ],
-)
-def test_allowlist_rejects_a_bad_entry(tmp_path: Path, raw: str, reason: str) -> None:
-    result = _workctl(tmp_path, "allowlist", "--lang", "en", "--model-port", "8000", raw)
-    assert result.returncode == 1
-    assert result.stdout == ""
-    assert result.stderr == reason + "\n"
 
 
 def test_autostart_on_writes_the_systemd_unit_into_the_override_directory(tmp_path: Path) -> None:
@@ -162,10 +122,7 @@ def test_model_key_apply_reads_stdin_and_the_key_is_shown_only_by_show(
         model_secrets / "hindsight.env"
     ).read_text(encoding="utf-8")
 
-    shown = _workctl(tmp_path, "model-key-show", *secrets_arg)
-    assert shown.returncode == 0
-    assert shown.stdout == "sk-cli-secret-42\n"
-    assert shown.stderr == ""
+    assert secretfiles.stored_model_key(model_secrets) == "sk-cli-secret-42"
 
 
 def test_model_key_apply_with_empty_stdin_means_no_key(tmp_path: Path, model_secrets: Path) -> None:
@@ -175,9 +132,7 @@ def test_model_key_apply_with_empty_stdin_means_no_key(tmp_path: Path, model_sec
     assert cleared.returncode == 0
     assert cleared.stdout == ""
 
-    shown = _workctl(tmp_path, "model-key-show", *secrets_arg)
-    assert shown.returncode == 0
-    assert shown.stdout == ""
+    assert secretfiles.stored_model_key(model_secrets) == ""
     assert "HINDSIGHT_API_LLM_API_KEY=not-needed" in (model_secrets / "hindsight.env").read_text(
         encoding="utf-8"
     )
@@ -277,14 +232,15 @@ def test_claude_config_reads_the_answer_from_stdin(tmp_path: Path) -> None:
     source = tmp_path / "entry.json"
     source.write_text('{"mcpServers":{"sidekick-work":{"command":"docker"}}}', encoding="utf-8")
     target = tmp_path / "claude.json"
-    args = ("claude-config", "--lang", "en", "--source", str(source), "--target", str(target))
+    args = ("claude-config", "--lang", "en", "--source", str(source), "--platform", "Linux")
+    env = {"SIDEKICK_WORK_CLAUDE_CONFIG": str(target)}
 
-    declined = _workctl(tmp_path, *args, stdin="n\n")
+    declined = _workctl(tmp_path, *args, stdin="n\n", extra_env=env)
     assert declined.returncode == 0
     assert declined.stderr == "Save the change? (y/N): "
     assert not target.exists()
 
-    accepted = _workctl(tmp_path, *args, stdin="y\n")
+    accepted = _workctl(tmp_path, *args, stdin="y\n", extra_env=env)
     assert accepted.returncode == 0
     assert accepted.stdout.endswith(f"Saved: {target}. Restart Claude Desktop completely.\n")
     assert json.loads(target.read_text(encoding="utf-8")) == {
@@ -300,8 +256,9 @@ def test_claude_config_without_the_entry_file_exits_1(tmp_path: Path) -> None:
         "en",
         "--source",
         str(tmp_path / "missing.json"),
-        "--target",
-        str(tmp_path / "claude.json"),
+        "--platform",
+        "Linux",
+        extra_env={"SIDEKICK_WORK_CLAUDE_CONFIG": str(tmp_path / "claude.json")},
     )
     assert result.returncode == 1
     assert result.stderr == "The Sidekick entry is missing. First run: bash tools/work.sh start\n"

@@ -231,6 +231,29 @@ def _removal_count(
     return store.retained_document_count(session, owner_id, kind)
 
 
+def _validate_changes(actor: Actor, changes: dict[str, bool], expected_version: int) -> None:
+    # The setting names and values are a closed set: only the four domains and `paused`, each a real
+    # boolean. Anything else is refused before any scope check or write, so no caller can store an
+    # unknown fact type or a truthy non-boolean in the owner's row.
+    for name, value in changes.items():
+        if name not in ALLOWED_SETTINGS:
+            raise ValidationError("unknown memory setting")
+        # The annotation says bool, but the value arrives from untyped tool arguments.
+        if not isinstance(value, bool):  # pyright: ignore[reportUnnecessaryIsInstance]  # runtime guard
+            raise ValidationError("memory settings must be true or false")
+    # An empty call and `paused` ask for no single domain, so any write scope is enough to proceed.
+    no_write_scope = not any(scope in actor.scopes for scope in DOMAIN_WRITE_SCOPE.values())
+    if (not changes or "paused" in changes) and no_write_scope:
+        raise PermissionDeniedError("missing required scope: journal:write")
+    for name in changes:
+        if name != "paused":
+            actor.require(DOMAIN_WRITE_SCOPE[name])
+    if not changes:
+        raise ValidationError("at least one memory setting is required")
+    if expected_version < 0:
+        raise ValidationError("expected version must not be negative")
+
+
 def change_settings(
     store: MemoryStore,
     session: TxSession,
@@ -256,26 +279,7 @@ def change_settings(
     changes no value, writes nothing and so records nothing.
     """
 
-    # The setting names and values are a closed set: only the four domains and `paused`, each a real
-    # boolean. Anything else is refused before any scope check or write, so no caller can store an
-    # unknown fact type or a truthy non-boolean in the owner's row.
-    for name, value in changes.items():
-        if name not in ALLOWED_SETTINGS:
-            raise ValidationError("unknown memory setting")
-        # The annotation says bool, but the value arrives from untyped tool arguments.
-        if not isinstance(value, bool):  # pyright: ignore[reportUnnecessaryIsInstance]  # runtime guard
-            raise ValidationError("memory settings must be true or false")
-    # An empty call and `paused` ask for no single domain, so any write scope is enough to proceed.
-    no_write_scope = not any(scope in actor.scopes for scope in DOMAIN_WRITE_SCOPE.values())
-    if (not changes or "paused" in changes) and no_write_scope:
-        raise PermissionDeniedError("missing required scope: journal:write")
-    for name in changes:
-        if name != "paused":
-            actor.require(DOMAIN_WRITE_SCOPE[name])
-    if not changes:
-        raise ValidationError("at least one memory setting is required")
-    if expected_version < 0:
-        raise ValidationError("expected version must not be negative")
+    _validate_changes(actor, changes, expected_version)
     owner_id = actor.user_id
     row = store.settings_for_update(session, owner_id)
     current = _view(row)

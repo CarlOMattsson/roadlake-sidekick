@@ -44,7 +44,7 @@ export function TaskProps({
   onDue?: (dueAt: string) => void;
   onStatus?: (status: OpenTaskStatus) => void;
   sentence?: string;
-  /** "Markera klar" / "Återöppna", last in the control row. */
+  /** `markDone` or `reopenTask`, last in the control row. */
   done?: ReactNode;
   children?: ReactNode;
 }) {

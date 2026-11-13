@@ -56,7 +56,13 @@ from .journal import (
     JournalSummaryProposalRow,
 )
 from .license import InstanceLicenseRow
-from .memory import MemorySettingsRow, MemorySourceRow, MemoryUsageDailyRow
+from .memory import (
+    MemoryForgottenFactRow,
+    MemoryForgottenUnitRow,
+    MemorySettingsRow,
+    MemorySourceRow,
+    MemoryUsageDailyRow,
+)
 from .tasks import ActionRow, StepRow, TaskRow, TaskStatusHistoryRow
 from .work import (
     DomainRow,
@@ -119,6 +125,8 @@ __all__ = [
     "JournalSourceRow",
     "JournalSummaryProposalRow",
     "Mapped",
+    "MemoryForgottenFactRow",
+    "MemoryForgottenUnitRow",
     "MemorySettingsRow",
     "MemorySourceRow",
     "MemoryUsageDailyRow",

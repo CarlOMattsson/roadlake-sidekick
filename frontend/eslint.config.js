@@ -49,18 +49,13 @@ const MAX_FILE_LINES = 500;
 // Existing files over MAX_FILE_LINES, with their size rounded up to the next ten. Split a file and delete its line;
 // never raise a number.
 const OVERSIZED_FILES = {
-  "src/features/journal-app/day-frame.tsx": 520,
   "src/features/journal-app/labels.ts": 515,
-  "src/features/journal-app/transport.ts": 510,
-  "src/features/work-app/contacts/contacts-list.tsx": 600,
-  "src/features/work-app/saved-views/saved-views-bar.tsx": 530,
-  "src/features/work-app/tasks/task-steps.tsx": 660,
   "src/mobile/companion-transport.ts": 610,
 };
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function importBoundaryRules(folder, exceptions = []) {
+function importBoundaryRules(folder, exceptions = [], extraPatterns = []) {
   let patterns;
   if (folder === "lib") {
     // A regex, not a glob: gitignore-style negation cannot re-include a file under an ignored parent folder.
@@ -91,8 +86,37 @@ function importBoundaryRules(folder, exceptions = []) {
       };
     });
   }
-  return { "no-restricted-imports": ["error", { patterns }] };
+  return {
+    "no-restricted-imports": [
+      "error",
+      { patterns: [...patterns, ...extraPatterns] },
+    ],
+  };
 }
+
+// Files that must stay usable without the Sidekick app's own catalogue or components: the inline cards render in
+// a host that loads only what they import. Each file also keeps its folder's import boundary.
+const SELF_CONTAINED_FILES = [
+  "src/features/work-app/inline/inline-summary.tsx",
+  "src/features/work-app/inline/inline-summary-labels.ts",
+  "src/features/work-app/inline/work-card.tsx",
+  "src/features/work-app/shared/card-labels.ts",
+];
+const SELF_CONTAINED_PATTERNS = [
+  {
+    regex: "^@/(?:i18n|components)(?:/|$)",
+    message:
+      "The inline card and its labels import no Sidekick app catalogue or components.",
+  },
+];
+// The Claude entry gives its rooms no host settings: the settings screen exists only in the mobile app.
+const CLAUDE_ENTRY_FILE = "src/features/mcp-apps/sidekick-entry.tsx";
+const CLAUDE_ENTRY_PATTERNS = [
+  {
+    regex: "(?:^@/mobile(?:/|$)|settings-panel)",
+    message: "The Claude entry offers no host settings; they are mobile only.",
+  },
+];
 
 const importBoundaryBlocks = [
   { files: ["src/lib/**/*.{ts,tsx}"], rules: importBoundaryRules("lib") },
@@ -108,6 +132,39 @@ const importBoundaryBlocks = [
       exceptions,
     ),
   })),
+  ...SELF_CONTAINED_FILES.map((file) => ({
+    files: [file],
+    rules: importBoundaryRules("work-app", [], SELF_CONTAINED_PATTERNS),
+  })),
+  {
+    files: [CLAUDE_ENTRY_FILE],
+    rules: importBoundaryRules("mcp-apps", [], CLAUDE_ENTRY_PATTERNS),
+  },
+];
+
+const TSX_SYNTAX_RULES = [
+  {
+    selector: "JSXText[value=/[A-Za-zÅÄÖÜåäöü]{2,}/]",
+    message:
+      "User-visible text must come from the label files, not a JSX literal.",
+  },
+  {
+    selector:
+      "JSXAttribute[name.name=/^(aria-label|aria-description|alt|title)$/] > Literal[value=/[A-Za-zÅÄÖÜåäöü]{2,}/]",
+    message: "Accessible names must come from the label files, not a literal.",
+  },
+];
+
+// The MCP apps' forms act through their buttons; the mobile pairing form submits.
+const FEATURE_SYNTAX_RULES = [
+  ...TSX_SYNTAX_RULES,
+  {
+    // A form acts through its buttons: its submit handler only prevents navigation.
+    selector:
+      "JSXOpeningElement[name.name='form'] > JSXAttribute[name.name='onSubmit'] > JSXExpressionContainer > :not(Identifier[name='preventSubmit'])",
+    message:
+      "A form's onSubmit must be preventSubmit; act through the buttons.",
+  },
 ];
 
 export default tseslint.config(
@@ -151,18 +208,25 @@ export default tseslint.config(
      */
     files: ["src/**/*.tsx"],
     rules: {
+      "no-restricted-syntax": ["error", ...TSX_SYNTAX_RULES],
+    },
+  },
+  {
+    files: ["src/features/**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": ["error", ...FEATURE_SYNTAX_RULES],
+    },
+  },
+  {
+    // The Claude entry never reads host settings (see CLAUDE_ENTRY_PATTERNS).
+    files: [CLAUDE_ENTRY_FILE],
+    rules: {
       "no-restricted-syntax": [
         "error",
+        ...FEATURE_SYNTAX_RULES,
         {
-          selector: "JSXText[value=/[A-Za-zÅÄÖÜåäöü]{2,}/]",
-          message:
-            "User-visible text must come from the label files, not a JSX literal.",
-        },
-        {
-          selector:
-            "JSXAttribute[name.name=/^(aria-label|aria-description|alt|title)$/] > Literal[value=/[A-Za-zÅÄÖÜåäöü]{2,}/]",
-          message:
-            "Accessible names must come from the label files, not a literal.",
+          selector: "Identifier[name='hostSettings']",
+          message: "The Claude entry gives its rooms no hostSettings.",
         },
       ],
     },

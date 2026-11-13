@@ -16,6 +16,7 @@ from yoyo import get_backend, read_migrations
 from tests.support.migration_baseline import (
     BASELINE,
     DROP_AUTOMATION,
+    FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
     TAG_LINKS,
     _admin_url,
@@ -119,9 +120,14 @@ def test_empty_retired_tables_are_dropped_and_nothing_else_is(tmp_path: Path) ->
 
     _apply(MIGRATIONS_PATH)
 
-    # The retired tables go; migration 107 adds the two tag link tables.
-    assert _tables_now() == (before - set(RETIRED)) | {"contact_tags", "journal_entry_tags"}
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
+    # The retired tables go; migration 107 adds the two tag link tables and 108 the forgotten facts.
+    assert _tables_now() == (before - set(RETIRED)) | {
+        "contact_tags",
+        "journal_entry_tags",
+        "memory_forgotten_facts",
+        "memory_forgotten_units",
+    }
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
     # The ledger keeps its history of automation runs.
     engine = create_engine(_admin_url())
     try:

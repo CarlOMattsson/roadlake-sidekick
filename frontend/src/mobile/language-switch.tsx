@@ -16,7 +16,7 @@ export function LanguageSwitch({
 }: {
   locale: AppLocale;
   onChange: (next: AppLocale) => void;
-  /** The group's name for assistive technology ("Språk", "Language"). */
+  /** The group's name for assistive technology (the `language` label). */
   label: string;
   /** The pairing screen's quiet form: text buttons at the end of the line, no frame. */
   compact?: boolean;

@@ -13,7 +13,6 @@ import sys
 from pathlib import Path
 
 from . import (
-    addresses,
     autostart,
     backupfiles,
     backupkey,
@@ -23,12 +22,14 @@ from . import (
     drillpolicy,
     drilltimings,
     generated,
+    invocation,
     messages,
-    modelserver,
     owner,
     prompts,
     restore,
     secretfiles,
+    setupguide,
+    stackstate,
     status,
     updatestate,
     workenv,
@@ -45,25 +46,6 @@ DRILL_REFUSED = 2
 def _fail(message: str) -> int:
     print(message, file=sys.stderr)
     return 1
-
-
-def _cmd_base_url(args: argparse.Namespace) -> int:
-    try:
-        parsed = addresses.parse_base_url(args.url, args.lang)
-    except addresses.AddressError as error:
-        return _fail(str(error))
-    print("\n".join(parsed.lines()))
-    return 0
-
-
-def _cmd_allowlist(args: argparse.Namespace) -> int:
-    try:
-        entries = addresses.parse_allowlist(args.allow, args.model_port, args.lang)
-    except addresses.AddressError as error:
-        return _fail(str(error))
-    for host, port in entries:
-        print(host, port)
-    return 0
 
 
 def _cmd_autostart(args: argparse.Namespace) -> int:
@@ -107,13 +89,6 @@ def _cmd_model_key_apply(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_model_key_show(args: argparse.Namespace) -> int:
-    key = secretfiles.stored_model_key(args.secrets_dir)
-    if key:
-        print(key)
-    return 0
-
-
 def _cmd_rooms_env(args: argparse.Namespace) -> int:
     secretfiles.write_rooms_env(args.secrets_dir, workenv.env_value(args.env_file, secretfiles.ROOMS_NAME))
     return 0
@@ -134,23 +109,6 @@ def _cmd_text(args: argparse.Namespace) -> int:
 def _cmd_env_value(args: argparse.Namespace) -> int:
     print(workenv.env_value(args.env_file, args.key))
     return 0
-
-
-def _cmd_env_set(args: argparse.Namespace) -> int:
-    try:
-        workenv.set_value(args.env_file, args.key, args.value)
-    except ValueError as error:
-        return _fail(str(error))
-    return 0
-
-
-def _cmd_env_unset(args: argparse.Namespace) -> int:
-    workenv.unset_value(args.env_file, args.key)
-    return 0
-
-
-def _cmd_memory_wanted(args: argparse.Namespace) -> int:
-    return 0 if workenv.memory_wanted(args.env_file) else 1
 
 
 def _cmd_derive(args: argparse.Namespace) -> int:
@@ -240,18 +198,12 @@ def _cmd_desktop_config(args: argparse.Namespace) -> int:
 
 
 def _cmd_claude_config(args: argparse.Namespace) -> int:
-    return desktopconfig.merge_into_claude_config(
-        args.source, args.target, args.lang, sys.stdin.readline, sys.stdout, sys.stderr
+    target = desktopconfig.claude_config_target(
+        args.platform, os.environ.get("SIDEKICK_WORK_CLAUDE_CONFIG", ""), Path.home()
     )
-
-
-def _cmd_models_list(args: argparse.Namespace) -> int:
-    try:
-        ids = modelserver.fetch_model_ids(args.base_url, sys.stdin.read().rstrip("\n"))
-    except ValueError:
-        return 1
-    print("\n".join(ids))
-    return 0
+    return desktopconfig.merge_into_claude_config(
+        args.source, target, args.lang, sys.stdin.readline, sys.stdout, sys.stderr
+    )
 
 
 def _cmd_backup_key(args: argparse.Namespace) -> int:
@@ -386,11 +338,6 @@ def _cmd_confirm(args: argparse.Namespace) -> int:
     return 0 if prompts.confirm(prompt, args.default) else 1
 
 
-def _cmd_pick(args: argparse.Namespace) -> int:
-    print(prompts.pick_choice(args.answer, args.choices))
-    return 0
-
-
 def _cmd_backup_sets(args: argparse.Namespace) -> int:
     stamps = restore.complete_sets(args.dir, args.memory == "on")
     if not stamps:
@@ -417,6 +364,49 @@ def _cmd_rollback_action(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_parse_args(args: argparse.Namespace) -> int:
+    try:
+        options = invocation.parse_options(args.command_name, args.arguments)
+    except invocation.UsageError as error:
+        print(messages.render(args.lang, error.key), file=sys.stderr)
+        return 2
+    print("\n".join(options.lines()))
+    return 0
+
+
+def _cmd_lock_command(args: argparse.Namespace) -> int:
+    print(invocation.lock_command(args.command_name, args.arguments))
+    return 0
+
+
+def _cmd_api_image(args: argparse.Namespace) -> int:
+    print(invocation.api_image(args.env_file))
+    return 0
+
+
+def _cmd_previous_image_tag(args: argparse.Namespace) -> int:
+    print(stackstate.previous_image_tag(args.image))
+    return 0
+
+
+def _cmd_restore_old_name(args: argparse.Namespace) -> int:
+    print(stackstate.old_database_name(args.stamp))
+    return 0
+
+
+def _cmd_setup_language(args: argparse.Namespace) -> int:
+    sys.stdout.write(setupguide.ask_language(args.lang))
+    return 0
+
+
+def _cmd_setup_guide(args: argparse.Namespace) -> int:
+    try:
+        setupguide.run_guide(args.lang, args.env_file, args.secrets_dir, args.default_rooms)
+    except ValueError as error:
+        return _fail(str(error))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="workctl", description="Logic behind tools/work.sh.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -425,15 +415,6 @@ def build_parser() -> argparse.ArgumentParser:
         sub = commands.add_parser(name, help=help_text)
         sub.set_defaults(handler=handler)
         return sub
-
-    sub = add("base-url", _cmd_base_url, "split the model server URL (scheme, host, port, path, is_ip)")
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("url")
-
-    sub = add("allowlist", _cmd_allowlist, "validate host:port,host:port; print 'host port' lines")
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--model-port", type=int, required=True)
-    sub.add_argument("allow")
 
     sub = add("autostart", _cmd_autostart, "switch the start at login on or off, or show its state")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
@@ -454,9 +435,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_argument("--secrets-dir", type=Path, required=True)
 
-    sub = add("model-key-show", _cmd_model_key_show, "print the stored model key (empty = none)")
-    sub.add_argument("--secrets-dir", type=Path, required=True)
-
     sub = add("rooms-env", _cmd_rooms_env, "write secrets/rooms.env from work.env (removed when no rooms are set)")
     sub.add_argument("--env-file", type=Path, required=True)
     sub.add_argument("--secrets-dir", type=Path, required=True)
@@ -473,18 +451,6 @@ def build_parser() -> argparse.ArgumentParser:
     sub = add("env-value", _cmd_env_value, "print one value of work.env (last assignment wins, quotes stripped)")
     sub.add_argument("--env-file", type=Path, required=True)
     sub.add_argument("key")
-
-    sub = add("env-set", _cmd_env_set, "set KEY=value in work.env (replaces the first KEY or # KEY line, else appends)")
-    sub.add_argument("--env-file", type=Path, required=True)
-    sub.add_argument("key")
-    sub.add_argument("value")
-
-    sub = add("env-unset", _cmd_env_unset, "comment out the active KEY lines of work.env")
-    sub.add_argument("--env-file", type=Path, required=True)
-    sub.add_argument("key")
-
-    sub = add("memory-wanted", _cmd_memory_wanted, "exit 0 when work.env turns the memory on, 1 when off")
-    sub.add_argument("--env-file", type=Path, required=True)
 
     sub = add("derive", _cmd_derive, "print MEMORY, the NAME=value exports and the allowlist from work.env")
     sub.add_argument("--env-file", type=Path, required=True)
@@ -546,7 +512,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
     sub.add_argument("--source", type=Path, required=True)
-    sub.add_argument("--target", type=Path, required=True)
+    sub.add_argument("--platform", required=True, help="uname -s: Darwin keeps the file elsewhere than Linux")
 
     add(
         "first-start-evidence",
@@ -593,9 +559,40 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--key", required=True)
     sub.add_argument("--default", choices=("y", "n"), required=True)
 
-    sub = add("pick", _cmd_pick, "print the numbered choice the answer names, else the answer itself")
-    sub.add_argument("--answer", required=True)
-    sub.add_argument("choices", nargs="*")
+    sub = add(
+        "parse-args",
+        _cmd_parse_args,
+        "print the options of start, update or restore as NAME=value lines; exit 2 with the usage text when refused",
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("command_name", choices=sorted(invocation.PARSERS))
+    sub.add_argument("arguments", nargs="*")
+
+    sub = add("lock-command", _cmd_lock_command, "print the name a command takes the lock under, or nothing")
+    sub.add_argument("command_name")
+    sub.add_argument("arguments", nargs="*")
+
+    sub = add("api-image", _cmd_api_image, "print the image the stack runs from")
+    sub.add_argument("--env-file", type=Path, required=True)
+
+    sub = add("previous-image-tag", _cmd_previous_image_tag, "print the tag that keeps the image that runs now")
+    sub.add_argument("image")
+
+    sub = add("restore-old-name", _cmd_restore_old_name, "print the name the database gets during a restore")
+    sub.add_argument("stamp")
+
+    sub = add("setup-language", _cmd_setup_language, "ask the guide's language; print sv or en")
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv", help="the current language, offered as the answer")
+
+    sub = add(
+        "setup-guide",
+        _cmd_setup_guide,
+        "ask the questions of setup (memory, model server, allowlist, rooms, app language) and write the answers",
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--env-file", type=Path, required=True)
+    sub.add_argument("--secrets-dir", type=Path, required=True)
+    sub.add_argument("--default-rooms", required=True)
 
     sub = add("backup-sets", _cmd_backup_sets, "list the complete backup sets of a directory")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
@@ -613,13 +610,6 @@ def build_parser() -> argparse.ArgumentParser:
         "rollback-action", _cmd_rollback_action, "print keep, rename-back or fail for the database names on stdin"
     )
     sub.add_argument("--old", required=True)
-
-    sub = add(
-        "models-list",
-        _cmd_models_list,
-        "print the model ids the server lists (API key on stdin); exit 1 when it cannot be asked",
-    )
-    sub.add_argument("--base-url", required=True)
 
     sub = add(
         "backup-key", _cmd_backup_key, "check the backup key file; create it with --generate when no backup exists"

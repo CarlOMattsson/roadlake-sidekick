@@ -114,6 +114,7 @@ def _mini_repo(tmp_path: Path) -> Path:
     shutil.copy(SELFHOST / "compose.yaml", tmp_path / "deploy" / "selfhost")
     shutil.copy(SELFHOST / "restore-ownership.sql", tmp_path / "deploy" / "selfhost")
     shutil.copy(SELFHOST / "snapshot_crypto.py", tmp_path / "deploy" / "selfhost")
+    shutil.copy(SELFHOST / "update_policy.py", tmp_path / "deploy" / "selfhost")
     shutil.copy(SELFHOST / "postgres-init.sh", tmp_path / "deploy" / "selfhost")
     (tmp_path / "deploy" / "work").mkdir()
     for name in ("compose.yaml", "work.env.example", "gateway.haproxy.cfg"):

@@ -75,19 +75,16 @@ target-version = "py313"
 select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "S", "C901"]
 
 [tool.ruff.lint.mccabe]
-# Ratchet: the most complex function in src today scores 22. Lower this when one is simplified; never
+# Ratchet: the most complex function in src today scores 16. Lower this when one is simplified; never
 # raise it for new code, split the function instead. Test helpers that walk whole contract tables are
 # exempt (see per-file-ignores).
-max-complexity = 22
+max-complexity = 16
 
 [tool.ruff.lint.per-file-ignores]
 # Bandit (`S`) is on for everything. Exceptions are per file and name what the file legitimately does:
 # tests assert, use fake credentials, run git/docker/shell helpers with fixed argv, build SQL from literals and
-# parse compose files with SafeLoader subclasses; the three source files keep `assert` only to narrow a type.
+# parse compose files with SafeLoader subclasses.
 "tests/**" = ["S101", "S105", "S106", "C901"]
-"src/sidekick/mcp/input_schemas.py" = ["S101"]
-"src/sidekick/shopping/application/service.py" = ["S101"]
-"src/sidekick/tasks/application/service.py" = ["S101"]
 "tests/contract/test_mcp_oauth_proxy.py" = ["S103"]
 "tests/contract/test_mcp_tool_scope_gate.py" = ["S608"]
 "tests/support/mcp_scope_gate.py" = ["S608"]

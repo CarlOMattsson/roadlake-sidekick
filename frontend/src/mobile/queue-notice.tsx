@@ -1,7 +1,7 @@
 /**
  * What the phone could not send of what the user did without a network: a shopping write that waited longer than
- * seven days, or that the server refused. They stand in a card headed "Inköp som inte skickades", each as a short
- * line, "Mjölk, Ost. Den låg i kön i över 7 dagar.", with the way out: "Försök igen" puts it back in the outbox, "Ta bort" removes it. Nothing the user queued disappears
+ * seven days, or that the server refused. They stand in a card headed with `failed`, each as a short
+ * line (the names, then `expired` or `rejected`), with the way out: `retry` puts it back in the outbox, `remove` removes it. Nothing the user queued disappears
  * unseen. Drawn over the rooms (it is the phone's own, like the push note), only while something failed. A refused read
  * draws nothing; a refused retry or remove says so on its line and leaves it where it is.
  */
@@ -17,7 +17,7 @@ export type QueueNoticeLabels = {
   failed: string;
   /** What an add of items without a name reads as. */
   items: string;
-  /** "Mjölk, Ost och 2 till". */
+  /** The names of the first items, then how many more (the names, then the count of the rest). */
   more: (names: string, count: number) => string;
   /** A purchase, by the state it asked for. */
   bought: string;

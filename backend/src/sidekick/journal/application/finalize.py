@@ -151,16 +151,12 @@ def validate_finalize_task_proposals(
                 raise ValidationError("proposal references an unknown project")
 
 
-def validate_finalize_command(
+def _validate_relation_selection(
     command: FinalizeCommand,
     *,
     catalog_ids: dict[str, set[UUID]],
     live_targets: dict[str, dict[UUID, Any]],
 ) -> None:
-    """Validate provenance and active relation targets without exposing target details."""
-
-    if command.expected_version < 1:
-        raise ValidationError("expected draft version is invalid")
     for kind in ("projects", "tasks", "contacts"):
         values = command.relation_selection.get(kind)
         if values is None or len(values) > 25 or len({item[0] for item in values}) != len(values):
@@ -175,6 +171,19 @@ def validate_finalize_command(
                     raise NotFoundError("relation target not found")
             else:
                 raise ValidationError("unknown relation origin")
+
+
+def validate_finalize_command(
+    command: FinalizeCommand,
+    *,
+    catalog_ids: dict[str, set[UUID]],
+    live_targets: dict[str, dict[UUID, Any]],
+) -> None:
+    """Validate provenance and active relation targets without exposing target details."""
+
+    if command.expected_version < 1:
+        raise ValidationError("expected draft version is invalid")
+    _validate_relation_selection(command, catalog_ids=catalog_ids, live_targets=live_targets)
 
     for proposal in command.task_proposals:
         if isinstance(proposal, CreateTaskProposal):
