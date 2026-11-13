@@ -225,19 +225,27 @@ export function ControlRoom(props: RoomProps) {
                   : {}),
               };
             });
+    // A tool result that came while this read was on its way is newer: it keeps the card, and this answer is dropped.
+    const asked = shown.revision;
     read
       .then((fresh) => {
         setRetrying(false);
-        setShown((prev) => ({
-          ...prev,
-          failed: false,
-          known: fresh,
-          revision: prev.revision + 1,
-        }));
+        setShown((prev) =>
+          prev.revision === asked
+            ? {
+                ...prev,
+                failed: false,
+                known: fresh,
+                revision: prev.revision + 1,
+              }
+            : prev,
+        );
       })
       .catch((cause: unknown) => {
         setRetrying(false);
-        setShown((prev) => ({ ...prev, cause }));
+        setShown((prev) =>
+          prev.revision === asked ? { ...prev, cause } : prev,
+        );
       });
   }
 

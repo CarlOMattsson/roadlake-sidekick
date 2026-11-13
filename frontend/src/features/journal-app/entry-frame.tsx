@@ -4,6 +4,7 @@ import { EntryLinks } from "./entry-links";
 import { EntryTasks } from "./entry-tasks";
 import { FieldsEditor, mergeFields } from "./draft-review";
 import { EntryTextForm } from "./entry-write";
+import { isNotFound } from "../../lib/mcp/errors";
 import { ownerToday } from "../mcp-apps/app-timezone";
 import { keyFor } from "../mcp-apps/idempotency";
 import type { PendingKey } from "../mcp-apps/idempotency";
@@ -28,14 +29,6 @@ import type { FrameProps, LoadPhase } from "./frame-props";
 
 /** The saved entry offers at most this many "Open the task" buttons, one per created task. */
 const taskOpenLimit = 3;
-
-/**
- * True when the server says the entry is gone (deleted while the owner was in another view). Such a
- * refusal is not transient either: the view shows a calm line, not retry.
- */
-function isNotFound(error: unknown): boolean {
-  return (error as { code?: unknown } | null | undefined)?.code === "not_found";
-}
 
 export function EntryFrame({
   id,

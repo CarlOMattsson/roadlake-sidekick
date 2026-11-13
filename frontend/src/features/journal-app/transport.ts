@@ -7,6 +7,7 @@
  * no source and calls no AI.
  */
 import { isNotFound } from "../../lib/mcp/errors";
+import { cursorFrom, isPlainObject } from "../../lib/mcp/shape";
 import type { Item, WithOptional } from "../../lib/mcp/derived";
 import type {
   ToolInputs,
@@ -628,12 +629,4 @@ function withOwnerTimezone(value: unknown): { owner_timezone?: string } {
 function withDone(value: unknown): { done?: JournalDone } {
   const done = doneFrom(value);
   return done ? { done } : {};
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function cursorFrom(data: { next_cursor?: unknown } | null | undefined) {
-  return typeof data?.next_cursor === "string" ? data.next_cursor : null;
 }

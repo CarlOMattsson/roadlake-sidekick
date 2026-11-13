@@ -9,6 +9,7 @@ import type {
   WorkTransport,
 } from "@/features/work-app/transport/transport";
 import { WorkView } from "@/features/work-app/view/work-view";
+import { deferred } from "./helpers/deferred";
 
 /*
  * A read that started before a successful write must not put the older data back when it answers
@@ -45,14 +46,6 @@ vi.mock("@/features/work-app/board/board", async (importOriginal) => {
 });
 
 const TASK_ID = "019f0000-0000-7000-8000-0000000000a1";
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 const emptyPage = { items: [], next_cursor: null };
 

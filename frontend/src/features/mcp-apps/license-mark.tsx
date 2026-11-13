@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 
+import { isPlainObject } from "../../lib/mcp/shape";
 import { appLocale, type AppLocale } from "./app-locale";
 import { roomEnabled } from "./enabled-rooms";
 import type { RoomId } from "./router";
@@ -135,10 +136,6 @@ type Outcome =
   | { kind: "expired"; date: string }
   | { kind: "failed"; cause: unknown };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 /**
  * The license row. Free version or expired: the sentence, "Köp licens" (when LICENSE_BUY_URL is set, otherwise a line that licenses can soon be bought) and "Ange
  * licensnyckel", which folds out a field and Spara. The key goes only to set_license_key, through the host (the tool is
@@ -216,9 +213,9 @@ export function LicenseRow({
     host.call<unknown>("set_license_key", { key: value }).then(
       (answer) => {
         setSaving(false);
-        const body = isRecord(answer) ? answer : {};
+        const body = isPlainObject(answer) ? answer : {};
         const display: License | undefined = licenseFrom(
-          isRecord(body.license) ? body.license : body,
+          isPlainObject(body.license) ? body.license : body,
         );
         if (body.accepted === false) {
           // Calm, by the field; the text stays so the owner can see what went in.

@@ -10,6 +10,7 @@ import type {
   WorkItemRecord,
   WorkTransport,
 } from "@/features/work-app/transport/transport";
+import { deferred } from "./helpers/deferred";
 
 const SKICKA_ID = "019f0000-0000-7000-8000-0000000000a1";
 const FAKTURA_ID = "019f0000-0000-7000-8000-0000000000a3";
@@ -32,14 +33,6 @@ const faktura: WorkItemRecord = {
   version: 1,
   agenda_group: "today",
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 /** The agenda's frame lives in a parent, as in the work view, so a read that lands replaces the page. */
 function Harness({

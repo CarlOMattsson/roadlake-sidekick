@@ -20,9 +20,9 @@ import {
   transportMock,
   decisionButton,
   renderDraft,
-  deferred,
   OFFERTEN,
 } from "./helpers/journal-app-fixtures";
+import { deferred } from "./helpers/deferred";
 
 describe("journal draft review", () => {
   it("turns a conflict on a draft that was handled elsewhere into the handled state after reload", async () => {

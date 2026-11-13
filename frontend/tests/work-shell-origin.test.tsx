@@ -11,6 +11,7 @@ import type {
 } from "@/features/work-app/transport/transport";
 import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
 import { workShellLabelsEn } from "@/features/work-app/shell/work-shell-labels";
+import { deferred } from "./helpers/deferred";
 
 /*
  * The Work shell marks the other tabs out of date by the tab a write was made in, and keeps the mark until a read that
@@ -45,15 +46,6 @@ const pageWith = (card: WorkItemRecord): WorkBoardPage => ({
   columns: { todo: [card] },
   next_cursor: null,
 });
-
-type Deferred<T> = { promise: Promise<T>; resolve: (value: T) => void };
-function deferred<T>(): Deferred<T> {
-  let resolve: (value: T) => void = () => undefined;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 const done = {
   task: { ...agendaItem, status: "completed", version: 2 },

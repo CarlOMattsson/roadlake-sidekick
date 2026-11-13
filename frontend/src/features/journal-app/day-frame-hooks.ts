@@ -1,18 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { JournalDay, JournalFrame, JournalTransport } from "./transport";
 
-/** True while the owning component is mounted, so a read that lands later can be dropped. */
-export function useMountedRef() {
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  return mounted;
-}
-
 type DayFrameValue = Extract<JournalFrame, { kind: "day" }>;
 
 /**

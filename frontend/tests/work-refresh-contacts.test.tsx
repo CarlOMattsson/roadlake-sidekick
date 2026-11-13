@@ -10,6 +10,7 @@ import type {
   WorkContactSummary,
   WorkTransport,
 } from "@/features/work-app/transport/transport";
+import { deferred } from "./helpers/deferred";
 
 const bo: WorkContactSummary = {
   id: "id-bo",
@@ -21,14 +22,6 @@ const bosse: WorkContactSummary = {
   display_name: "Bosse",
   archived: false,
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 /** The list's frame lives in a parent, as in the work view, so a read that lands replaces the page. */
 function Harness({

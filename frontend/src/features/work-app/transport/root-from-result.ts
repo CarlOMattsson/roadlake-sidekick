@@ -3,7 +3,7 @@
  * result-guards.ts (built from the generated tool contract); a record that fails the check opens its
  * frame with only the id, or no frame at all.
  */
-import { isPlainObject } from "../../../lib/mcp/shape";
+import { cursorFrom, isPlainObject } from "../../../lib/mcp/shape";
 import {
   isContactRecord,
   isContactSummary,
@@ -267,8 +267,4 @@ function filtersFrom(
       filters[key] = value;
   }
   return filters;
-}
-
-function cursorFrom(data: { next_cursor?: unknown } | null | undefined) {
-  return typeof data?.next_cursor === "string" ? data.next_cursor : null;
 }

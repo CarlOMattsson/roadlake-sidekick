@@ -34,7 +34,8 @@ import {
   type AgendaControls,
 } from "./parts/use-agenda-layout";
 import { useAgendaSelection } from "./parts/use-agenda-selection";
-import { useAgendaSession, useMounted } from "./parts/use-agenda-session";
+import { useMounted } from "../../mcp-apps/ui/use-mounted";
+import { useAgendaSession } from "./parts/use-agenda-session";
 import { useKeepFocus } from "./parts/use-keep-focus";
 import { useOfflineAgenda } from "./parts/use-offline-agenda";
 import { useRowMenu } from "./parts/use-row-menu";

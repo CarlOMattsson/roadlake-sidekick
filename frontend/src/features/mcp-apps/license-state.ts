@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from "react";
 
+import { isPlainObject } from "../../lib/mcp/shape";
 import { parseDueDay } from "./ui/due";
 
 /**
@@ -38,10 +39,6 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 /** A focus request older than this is forgotten, so a row mounted much later does not take the focus. */
 const FOCUS_WINDOW_MS = 2_000;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
@@ -51,7 +48,7 @@ function text(value: unknown): string | undefined {
  * state Sidekick knows. `invalid` becomes `unlicensed`.
  */
 export function licenseFrom(value: unknown): License | undefined {
-  if (!isRecord(value)) return undefined;
+  if (!isPlainObject(value)) return undefined;
   const raw = value.state;
   const state = raw === "invalid" ? "unlicensed" : raw;
   if (state !== "unlicensed" && state !== "licensed" && state !== "expired")

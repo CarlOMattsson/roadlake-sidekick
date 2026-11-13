@@ -1,0 +1,10 @@
+/** A promise settled by the test: hold a transport answer back, then release it when the test decides. */
+export function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}

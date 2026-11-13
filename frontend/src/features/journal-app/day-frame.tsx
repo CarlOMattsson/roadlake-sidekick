@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatDayHeading, formatLongDate, shiftDate } from "./dates";
 import { DayEmpty } from "./day-empty";
-import { useDayRefresh, useEntryDates, useMountedRef } from "./day-frame-hooks";
+import { useDayRefresh, useEntryDates } from "./day-frame-hooks";
 import { DayHeading } from "./day-heading";
 import { DayMoreButton, DayMorePanel, useDayMore } from "./day-more";
 import { DayStrip, stripDays } from "./day-strip";
@@ -15,6 +15,7 @@ import { DayTags, useDayTags } from "./day-tags";
 import { isForbidden } from "./transport";
 import type { JournalDay, JournalFrame } from "./transport";
 import { useShortcuts } from "../mcp-apps/ui/shortcuts";
+import { useMounted } from "../mcp-apps/ui/use-mounted";
 import type { HostSettingsEntry } from "../mcp-apps/room-types";
 import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
@@ -68,7 +69,7 @@ export function DayFrame({
   const { page } = frame;
   // The tags the day is filtered on; the choice is kept in the frame, so Back returns to the tagged list.
   const dayTags = useDayTags(transport, frame.tags, refreshKey);
-  const mounted = useMountedRef();
+  const mounted = useMounted();
   // The owner's today (the zone the day result names, else the declared one), never the device's.
   const today = ownerToday(page.owner_timezone);
   // A failed or forbidden read shows only the notice under the day the owner tried to open. The

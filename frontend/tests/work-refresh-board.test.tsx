@@ -11,6 +11,7 @@ import type {
   WorkTransport,
 } from "@/features/work-app/transport/transport";
 import { elementWithText } from "./helpers/exact-text";
+import { deferred } from "./helpers/deferred";
 
 const todoCard: WorkItemRecord = {
   kind: "task",
@@ -47,14 +48,6 @@ const before: WorkBoardPage = {
   },
   next_cursor: null,
 };
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 /** The board's frame lives in a parent, as in the work view, so a read that lands replaces the page. */
 function Harness({

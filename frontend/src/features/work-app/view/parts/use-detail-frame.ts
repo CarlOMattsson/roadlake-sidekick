@@ -9,7 +9,7 @@ import {
   type Phase,
   type WriteState,
 } from "./frame-types";
-import { useMounted } from "./use-mounted";
+import { useMounted } from "../../../mcp-apps/ui/use-mounted";
 
 /**
  * The state every detail frame (Task, Contact, Project) shares: the read phase, the editor flag, the last

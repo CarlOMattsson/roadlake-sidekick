@@ -14,18 +14,6 @@ import type {
 } from "../../transport/transport";
 import type { RowState } from "./use-row-state";
 
-/** True while the view is mounted: a write that outlives it must not set state. */
-export function useMounted() {
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-  return mounted;
-}
-
 /**
  * The reads and the guarded actions of the agenda: the busy state and the last notice, `run` (one read or bulk write at a
  * time), `reread` and `loadMore`, the row queue and the keys and retry the row writes share. A saved Task, the caller's

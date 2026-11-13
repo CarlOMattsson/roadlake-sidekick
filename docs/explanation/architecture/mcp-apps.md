@@ -2,7 +2,7 @@
 
 Sidekick has no web frontend of its own. A compatible MCP host (Claude today) carries the conversation and
 renders Sidekick's interactive views as MCP Apps. The Android app is a second surface for the same rooms
-(D-075, [ADR-005](../../decisions/adr/ADR-005-native-android-app.md)); see the end of the next section. This
+([ADR-005](../../decisions/adr/ADR-005-native-android-app.md)); see the end of the next section. This
 document describes the MCP Apps boundary: what the apps do, what the backend keeps, and what a view may and
 may not ask of the host. The visual rules for the views are in
 [the design system](../../reference/design-system.md).

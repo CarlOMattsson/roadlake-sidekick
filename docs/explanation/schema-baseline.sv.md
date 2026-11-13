@@ -17,8 +17,7 @@ villkor, index, behörigheter och standardbehörigheter, med Sidekicks namn på 
 - Den kan inte rullas tillbaka: det skulle ta bort varje ägartabell. Vägen tillbaka är en säkerhetskopia.
 - Kedjan den ersätter levereras inte.
 - Tabellerna för funktioner som togs bort före 0.1.0 (den tidigare inbyggda chatten, livesamtal med röst,
-  agentkörningen, assistentens autonomiinställning och inställningarna för den avvecklade skrivbordsappen) skapas inte
-  (besluten D-082 och D-084).
+  agentkörningen, assistentens autonomiinställning och inställningarna för den avvecklade skrivbordsappen) skapas inte.
 - Resterna av den borttagna webbinloggningen (tabellen `sessions` och kolumnen `users.password_hash`) skapas inte
   heller.
 

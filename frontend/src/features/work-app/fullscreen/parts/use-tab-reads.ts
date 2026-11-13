@@ -9,7 +9,7 @@ import type {
   WorkSavedViewDefinition,
   WorkTransport,
 } from "../../transport/transport";
-import { useMounted } from "../../view/parts/use-mounted";
+import { useMounted } from "../../../mcp-apps/ui/use-mounted";
 import type { WorkTab } from "../../shell/work-shell";
 import {
   readTab,

@@ -20,6 +20,8 @@ from . import (
     derive,
     desktopconfig,
     diagnose,
+    drillpolicy,
+    drilltimings,
     generated,
     messages,
     modelserver,
@@ -36,6 +38,8 @@ from . import (
 COUNT_NEEDED = 10
 # Exit code of ``backup-space``: the free size or a setting could not be judged.
 BACKUP_SPACE_UNKNOWN = 2
+# Exit code of the ``drill-*`` checks that refuse their input (the reason is on stderr); 1 means nothing was found.
+DRILL_REFUSED = 2
 
 
 def _fail(message: str) -> int:
@@ -162,6 +166,58 @@ def _cmd_status_version(args: argparse.Namespace) -> int:
     line = status.version_line(args.lang, args.build_info)
     if line:
         print(line)
+    return 0
+
+
+def _cmd_drill_timings(args: argparse.Namespace) -> int:
+    try:
+        timings = drilltimings.parse(sys.stdin.read().splitlines())
+    except ValueError as error:
+        return _fail(str(error))
+    table = drilltimings.markdown_table(timings) if args.markdown else drilltimings.text_table(timings)
+    print("\n".join(table))
+    return 0
+
+
+def _cmd_drill_reserved_ports(args: argparse.Namespace) -> int:
+    try:
+        ports = drillpolicy.extra_reserved_ports(args.value)
+    except drillpolicy.Refused as refusal:
+        print(refusal, file=sys.stderr)
+        return DRILL_REFUSED
+    for port in ports:
+        print(port)
+    return 0
+
+
+def _cmd_drill_image_pair(args: argparse.Namespace) -> int:
+    try:
+        drillpolicy.check_image_pair(args.from_image, args.to_image)
+    except drillpolicy.Refused as refusal:
+        print(refusal, file=sys.stderr)
+        return DRILL_REFUSED
+    return 0
+
+
+def _cmd_drill_pick_port(args: argparse.Namespace) -> int:
+    port = drillpolicy.pick_port(drillpolicy.parse_ports(args.reserved), drillpolicy.parse_ports(args.used))
+    if port is None:
+        print("drill: no free port found", file=sys.stderr)
+        return 1
+    print(port)
+    return 0
+
+
+def _cmd_drill_pushed_digest(_args: argparse.Namespace) -> int:
+    digest = drillpolicy.pushed_digest(sys.stdin.read())
+    if digest is None:
+        return 1
+    print(digest)
+    return 0
+
+
+def _cmd_drill_release_versions(args: argparse.Namespace) -> int:
+    print(" ".join(drillpolicy.release_versions(args.pyproject)))
     return 0
 
 
@@ -443,6 +499,33 @@ def build_parser() -> argparse.ArgumentParser:
     sub = add("status-via", _cmd_status_via, "translate the gateway probe's output (stdin)")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
     sub.add_argument("--wanted-model", default="", help="warn when this model id is not among the listed ones")
+
+    sub = add("drill-timings", _cmd_drill_timings, "print the drill's step durations (records on stdin) as a table")
+    sub.add_argument("--markdown", action="store_true", help="the GitHub job-summary table instead of the plain one")
+
+    sub = add(
+        "drill-reserved-ports",
+        _cmd_drill_reserved_ports,
+        "print the normalised extra reserved ports, one per line; exit 2 with the reason when refused",
+    )
+    sub.add_argument("value")
+
+    sub = add("drill-image-pair", _cmd_drill_image_pair, "exit 2 with the reason unless the two images may be drilled")
+    sub.add_argument("--from", dest="from_image", default="")
+    sub.add_argument("--to", dest="to_image", default="")
+
+    sub = add("drill-pick-port", _cmd_drill_pick_port, "print a random free port; exit 1 when none was found")
+    sub.add_argument("--reserved", default="", help="space or comma separated")
+    sub.add_argument("--used", default="", help="space or comma separated")
+
+    add("drill-pushed-digest", _cmd_drill_pushed_digest, "print the digest of the docker push output on stdin")
+
+    sub = add(
+        "drill-release-versions",
+        _cmd_drill_release_versions,
+        "print 'version next-patch-version' of a pyproject.toml",
+    )
+    sub.add_argument("pyproject", type=Path)
 
     sub = add("build-info", _cmd_build_info, "write build-info.json")
     sub.add_argument("--path", type=Path, required=True)

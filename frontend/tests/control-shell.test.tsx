@@ -17,6 +17,7 @@ import type {
   TrashItem,
   TrashList,
 } from "@/features/control-app/transport";
+import { deferred } from "./helpers/deferred";
 
 const now = () => new Date("2026-11-01T10:00:00Z");
 
@@ -123,16 +124,6 @@ function renderApp(
       now={now}
     />,
   );
-}
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 function viewButton(name: string) {

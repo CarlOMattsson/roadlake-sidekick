@@ -18,8 +18,7 @@ Sidekick (`sidekick`, `sidekick_owner`, `sidekick_migrator`, `sidekick_app`). Ne
 - It cannot be rolled back: that would drop every owner table. The way back is a backup.
 - The chain it replaced is not shipped.
 - The tables of features that were removed before 0.1.0 (the earlier built-in chat, live voice calls, the agent
-  runtime, the assistant autonomy setting, and the preferences of the retired desktop app) are not created (decisions
-  D-082 and D-084).
+  runtime, the assistant autonomy setting, and the preferences of the retired desktop app) are not created.
 - The leftovers of the removed browser sign-in (the `sessions` table and the `users.password_hash` column) are not
   created either.
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { RoomTarget } from "../../mcp-apps/room-types";
 import type { WorkTransport } from "../transport/transport";
-import { useMounted } from "../view/parts/use-mounted";
+import { useMounted } from "../../mcp-apps/ui/use-mounted";
 import {
   UNSORTED_COUNT_LIMIT,
   type UnsortedCount,
@@ -34,21 +34,25 @@ export function useUnsorted({
   // The agenda's page scroll when To sort opened; Back puts it back once the agenda shows again.
   const agendaScroll = useRef<number | undefined>(undefined);
 
+  // Counts the reads: only the newest one answers, so a slow older read cannot bring an older count back.
+  const ticket = useRef(0);
   /** Reads how many Tasks are unsorted; a failed read leaves the row hidden. */
   const readUnsorted = useCallback(() => {
+    const mine = ++ticket.current;
     void (async () => {
       try {
         const page = await transport.listUnsortedTasks(
           null,
           UNSORTED_COUNT_LIMIT,
         );
-        if (aliveRef.current)
+        if (aliveRef.current && mine === ticket.current)
           setUnsorted({
             count: page.items.length,
             more: page.next_cursor !== null,
           });
       } catch {
-        if (aliveRef.current) setUnsorted({ count: 0, more: false });
+        if (aliveRef.current && mine === ticket.current)
+          setUnsorted({ count: 0, more: false });
       }
     })();
   }, [transport, aliveRef]);

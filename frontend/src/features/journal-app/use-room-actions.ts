@@ -49,11 +49,16 @@ export function useRoomActions({
     transport
       .getDay(ownerToday(zone))
       .then((page) =>
-        setState((prev) => ({
-          ...withRoot(prev, { kind: "day", page }),
-          retrying: false,
-          failed: false,
-        })),
+        // A tool result that came while the read was on its way has already replaced the notice; it stays.
+        setState((prev) =>
+          prev.failed
+            ? {
+                ...withRoot(prev, { kind: "day", page }),
+                retrying: false,
+                failed: false,
+              }
+            : { ...prev, retrying: false },
+        ),
       )
       .catch((cause: unknown) => patch({ retrying: false, cause }));
   }

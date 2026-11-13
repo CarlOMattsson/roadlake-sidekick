@@ -26,6 +26,11 @@ export function isPlainObject(
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** The `next_cursor` of a page result, or null when it has none (the last page). */
+export function cursorFrom(data: { next_cursor?: unknown } | null | undefined) {
+  return typeof data?.next_cursor === "string" ? data.next_cursor : null;
+}
+
 /**
  * Whether `value` fits `shape`. In an object the contract's `required` keys must be present;
  * a key that is present (not undefined) must fit its property. An empty shape matches anything.

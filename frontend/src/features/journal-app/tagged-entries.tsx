@@ -56,13 +56,8 @@ export function TaggedEntries({
   const [read, setRead] = useState<Read>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
   const list = transport.listTaggedEntries;
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  // Counts the reads of the last 12 months, and the unmounting: a window that answers after either is dropped.
+  const ticket = useRef(0);
   /** The window of 366 days that ends `back` windows before today, its entries newest first. */
   const readWindow = useCallback(
     async (back: number) => {
@@ -82,10 +77,11 @@ export function TaggedEntries({
     [list, tags, today],
   );
   useEffect(() => {
-    let current = true;
+    const marker = ticket;
+    const mine = ++marker.current;
     readWindow(0).then(
       ({ entries, capped }) => {
-        if (current)
+        if (mine === marker.current)
           setRead({
             kind: "ready",
             entries,
@@ -97,11 +93,11 @@ export function TaggedEntries({
           });
       },
       (cause: unknown) => {
-        if (current) setRead({ kind: "error", cause });
+        if (mine === marker.current) setRead({ kind: "error", cause });
       },
     );
     return () => {
-      current = false;
+      marker.current++;
     };
   }, [readWindow, attempt, refreshKey]);
   /** "Visa fler": the entries already read first, then the 12 months before the oldest read, added under the list. */
@@ -113,9 +109,10 @@ export function TaggedEntries({
   }
   function readOlder(shown: Ready) {
     setRead({ ...shown, more: "busy" });
+    const mine = ticket.current;
     readWindow(shown.years).then(
       ({ entries, capped }) => {
-        if (!mounted.current) return;
+        if (mine !== ticket.current) return;
         setRead({
           kind: "ready",
           entries: [...shown.entries, ...entries],
@@ -127,7 +124,7 @@ export function TaggedEntries({
         });
       },
       () => {
-        if (mounted.current) setRead({ ...shown, more: "failed" });
+        if (mine === ticket.current) setRead({ ...shown, more: "failed" });
       },
     );
   }

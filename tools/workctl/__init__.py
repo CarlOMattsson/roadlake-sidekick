@@ -43,6 +43,9 @@ Moved:
 * ``updatestate``: the state files of ``deploy/selfhost/update.sh``: the atomic journal entry, the release pointer
   and its restore after a rollback, the lock owner and the snapshot name with the regex for its finished form.
   Reading the journal and the pointer stays in ``update.sh`` (``--check`` and the dry run run without python3).
+* ``drilltimings``: the table of step durations of ``tools/drill.sh`` (plain text and the Markdown job summary).
+* ``drillpolicy``: the other checks of ``tools/drill.sh``: the extra reserved ports, the image pair, the free port,
+  the digest of a push and the versions of a release.
 * ``prompts``    : the guide's questions (read one line, hidden input, defaults), yes answers and numbered choices.
 * ``owner``      : the UUID check for the user Claude Desktop acts as.
 

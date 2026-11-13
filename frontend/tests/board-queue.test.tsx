@@ -18,6 +18,7 @@ import type {
   WorkTask,
   WorkTransport,
 } from "@/features/work-app/transport/transport";
+import { deferred } from "./helpers/deferred";
 
 /*
  * The board's card writes queue per card. A tap on a card whose write is still running
@@ -46,15 +47,6 @@ const board: WorkBoardPage = {
   columns: { todo: [taskA, taskB], in_progress: [], completed: [] },
   next_cursor: null,
 };
-
-type Deferred<T> = { promise: Promise<T>; resolve: (value: T) => void };
-function deferred<T>(): Deferred<T> {
-  let resolve: (value: T) => void = () => undefined;
-  const promise = new Promise<T>((done) => {
-    resolve = done;
-  });
-  return { promise, resolve };
-}
 
 function written(card: WorkItemRecord, status: string, version: number) {
   return { task: { ...card, status, version } as WorkTask };

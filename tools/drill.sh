@@ -52,10 +52,11 @@ PROJECT_PREFIX="sk-drill-"
 # Reserved ports: the drill must never touch these (long-running databases and their API ports, plus the test pool's 55433).
 # SIDEKICK_RESERVED_PORTS (comma-separated) only adds to this list.
 RESERVED_PORTS=(55432 55433 55434 55436 8100 8101)
-# The checks are tools/drill_policy.py (the host's python3); what the cleanup may remove stays in this file.
-drill_policy() { python3 -I "$REPO/tools/drill_policy.py" "$@"; }
+# The checks and the formatting of the step durations are tools/workctl (standard library only), like in
+# deploy/selfhost/update.sh; what the cleanup may remove stays in this file.
+workctl() { PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$REPO/tools${PYTHONPATH:+:$PYTHONPATH}" python3 -m workctl "$@"; }
 if [ -n "${SIDEKICK_RESERVED_PORTS:-}" ]; then
-  extra_reserved="$(drill_policy reserved-ports "$SIDEKICK_RESERVED_PORTS")" || exit 2
+  extra_reserved="$(workctl drill-reserved-ports "$SIDEKICK_RESERVED_PORTS")" || exit 2
   while IFS= read -r _p; do
     [ -z "$_p" ] || RESERVED_PORTS+=("$_p")
   done <<<"$extra_reserved"
@@ -141,7 +142,7 @@ if [ "$dry" = 1 ]; then
   identity="${identity:-drill@example.invalid}"
 fi
 if [ "$local_images" = 0 ]; then
-  drill_policy image-pair --from "$from_image" --to "$to_image" || exit 2
+  workctl drill-image-pair --from "$from_image" --to "$to_image" || exit 2
 fi
 if [ "$scenario" != work ] && [ -z "$identity" ]; then
   echo "drill: selfhost needs --cert-identity (or DRILL_CERT_IDENTITY): update.sh verifies the real signature" >&2
@@ -249,7 +250,7 @@ USED_PORTS=()
 # 127.0.0.1. Not run in a command substitution: USED_PORTS must survive the call.
 PICKED=""
 pick_port() {
-  PICKED="$(drill_policy pick-port --reserved "${RESERVED_PORTS[*]}" --used "${USED_PORTS[*]-}")" || return 1
+  PICKED="$(workctl drill-pick-port --reserved "${RESERVED_PORTS[*]}" --used "${USED_PORTS[*]-}")" || return 1
   USED_PORTS+=("$PICKED")
 }
 
@@ -329,26 +330,12 @@ step() {
   fi
 }
 
-# The durations, as text and (in GitHub Actions) as a table in the job summary.
+# The durations, as text and (in GitHub Actions) as a table in the job summary: tools/workctl formats the records.
 report_timings() {
-  local line status step took total=0
   [ "${#TIMINGS[@]}" -gt 0 ] || return 0
-  say "TIMINGS (seconds):"
-  for line in "${TIMINGS[@]}"; do
-    read -r status step took <<<"$line"
-    total=$((total + took))
-    say "  $status $step $took"
-  done
-  say "  total $total"
+  printf '%s\n' "${TIMINGS[@]}" | workctl drill-timings | tee -a "$LOG"
   if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
-    {
-      printf '### Drill steps\n\n| Step | Result | Seconds |\n| --- | --- | ---: |\n'
-      for line in "${TIMINGS[@]}"; do
-        read -r status step took <<<"$line"
-        printf '| %s | %s | %s |\n' "$step" "$status" "$took"
-      done
-      printf '| total | | %s |\n' "$total"
-    } >>"$GITHUB_STEP_SUMMARY"
+    printf '%s\n' "${TIMINGS[@]}" | workctl drill-timings --markdown >>"$GITHUB_STEP_SUMMARY"
   fi
 }
 
@@ -396,7 +383,7 @@ local_images_build() {
     sleep 1
   done
   # The release workflow's inputs, from the same files: the version of the source, the newest migration, the stepping stone.
-  versions="$(drill_policy release-versions "$REPO/backend/pyproject.toml")"
+  versions="$(workctl drill-release-versions "$REPO/backend/pyproject.toml")"
   version="${versions% *}"
   next="${versions#* }"
   head="$(find "$REPO/migrations" -maxdepth 1 -name '[0-9]*.py' -printf '%f\n' | sort | tail -n 1)"
@@ -412,7 +399,7 @@ local_images_build() {
       --build-arg SIDEKICK_MIGRATION_CLASS=expand --build-arg "SIDEKICK_SCHEMA_HEAD=$head" \
       --build-arg "SIDEKICK_MIN_UPGRADE_FROM=$min" --label "org.opencontainers.image.version=$ver" "$REPO" >/dev/null
     out="$(docker push "$tag" 2>&1)"
-    digest="$(printf '%s\n' "$out" | drill_policy pushed-digest)" \
+    digest="$(printf '%s\n' "$out" | workctl drill-pushed-digest)" \
       || { printf '%s\n' "$out" >&2; echo "no digest from the push of $tag" >&2; return 1; }
     echo "$REG_ADDR/sidekick@$digest" >>"$TMP/kv/local_refs"
     kv_set "${role}_image" "$REG_ADDR/sidekick@$digest"

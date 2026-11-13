@@ -28,7 +28,7 @@ import {
   projectInlineSummary,
   taskInlineSummary,
 } from "./inline-data";
-import { useMounted } from "../view/parts/use-mounted";
+import { useMounted } from "../../mcp-apps/ui/use-mounted";
 
 /** What Undo after Done writes back: the status the Task had, or for a recurring Task its due date and completion. */
 type DoneUndo = {

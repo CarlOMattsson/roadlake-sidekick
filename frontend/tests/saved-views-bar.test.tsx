@@ -12,8 +12,8 @@ import {
   fakeTransport,
   renderBar,
   openPanel,
-  deferred,
 } from "./helpers/saved-views-fixtures";
+import { deferred } from "./helpers/deferred";
 
 describe("SavedViewsBar: the panel and the list", () => {
   it("shows the toggle with aria-expanded and reads nothing until the panel opens", async () => {
