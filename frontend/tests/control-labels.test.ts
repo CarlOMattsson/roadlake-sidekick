@@ -36,7 +36,9 @@ describe("English memory sentences", () => {
     expect(controlEn.confirmTitle("journal")).toBe(
       "Turn off memory for your journal?",
     );
-    expect(controlEn.confirmYes("tasks")).toBe("Yes, delete memory of tasks");
+    expect(controlEn.confirmYes("tasks")).toBe(
+      "Yes, delete the memory of your tasks",
+    );
     expect(controlEn.confirmCount("contacts", 2)).toBe(
       "This deletes only what Sidekick remembers about your contacts (2 records). Your contacts won’t change.",
     );
@@ -77,7 +79,7 @@ describe("Control tab meta lines", () => {
 
   it("say how many sources are on, and name the source list", () => {
     expect(controlSv.sourcesOn(3, 4)).toBe("3 av 4 källor");
-    expect(controlEn.sourcesOn(3, 4)).toBe("3 of 4 sources");
+    expect(controlEn.sourcesOn(3, 4)).toBe("3 of 4 sources on");
     expect(controlSv.sourcesTitle).toBe("Källor");
     expect(controlEn.sourcesTitle).toBe("Sources");
   });

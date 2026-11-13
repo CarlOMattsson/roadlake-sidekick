@@ -210,7 +210,7 @@ describe("the row in Control", () => {
     declare({ ageDays: 1, days: 1 });
     render(<UpdateReminderRow locale="en" now={now} />);
     expect(
-      screen.getByText("Sidekick is 1 day old (commit abc1234)"),
+      screen.getByText("This version is 1 day old (commit abc1234)"),
     ).toBeTruthy();
     expect(
       screen.getByRole("button", {
@@ -317,7 +317,7 @@ describe("Control's full view", () => {
     declare();
     render(view({ ...controlEn, locale: "en" }, true));
     expect(
-      screen.getByText("Sidekick is 20 days old (commit abc1234)"),
+      screen.getByText("This version is 20 days old (commit abc1234)"),
     ).toBeTruthy();
   });
 
@@ -388,7 +388,7 @@ describe("the row in the ⋯ menu when the Control room is off", () => {
     );
     render(contacts());
     expect(
-      await screen.findByText("Sidekick is 20 days old (commit abc1234)"),
+      await screen.findByText("This version is 20 days old (commit abc1234)"),
     ).toBeTruthy();
     // The panel is closed (hidden) until ⋯ opens it, so the button is found with hidden: true.
     expect(

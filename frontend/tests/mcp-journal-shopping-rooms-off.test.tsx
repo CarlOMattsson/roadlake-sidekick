@@ -179,6 +179,7 @@ describe("Journal with the Contact and Control rooms off", () => {
   function journal() {
     return transportOf((name) => {
       if (name === "get_journal_entry") return { entry: ENTRY };
+      if (name === "list_tags") return { tags: [] };
       throw new Error(`unexpected ${name}`);
     });
   }
@@ -225,12 +226,18 @@ describe("Journal with the Contact and Control rooms off", () => {
     expect(
       screen.queryByRole("button", { name: journalEn.linkRemove("Anna") }),
     ).toBeNull();
-    expect(called(call)).toEqual(["get_journal_entry"]);
+    // The entry and the tag vocabulary for its tag field; nothing about the Contact room.
+    expect([...called(call)].sort()).toEqual([
+      "get_journal_entry",
+      "list_tags",
+    ]);
   });
 
   async function dayMenu() {
     const user = userEvent.setup();
-    const { transport } = transportOf(() => DAY);
+    const { transport } = transportOf((name) =>
+      name === "list_tags" ? { tags: [] } : DAY,
+    );
     render(
       <JournalRoom
         mode="full"

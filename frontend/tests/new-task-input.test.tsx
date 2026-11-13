@@ -192,7 +192,7 @@ describe("NewTaskInput", () => {
 
     it("creates in no place by default and says Unsorted", async () => {
       const { createTask } = mountWithPlace();
-      await screen.findByRole("combobox", { name: "Place" });
+      await screen.findByRole("combobox", { name: "File under" });
       await userEvent.type(
         screen.getByRole("textbox", { name: "New task" }),
         "Måla taket{Enter}",
@@ -206,7 +206,9 @@ describe("NewTaskInput", () => {
 
     it("sends the chosen Project, names it in the receipt and keeps the choice for the next Task", async () => {
       const { createTask } = mountWithPlace();
-      const picker = await screen.findByRole("combobox", { name: "Place" });
+      const picker = await screen.findByRole("combobox", {
+        name: "File under",
+      });
       await userEvent.selectOptions(picker, "project:p1");
       const field = screen.getByRole("textbox", { name: "New task" });
       await userEvent.type(field, "Måla taket{Enter}");

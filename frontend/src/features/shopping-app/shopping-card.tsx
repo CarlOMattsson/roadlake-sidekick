@@ -32,11 +32,12 @@ export function formatQuantity(value: number | string, locale: string): string {
 
 /**
  * Quantity and unit as text, for example "2 l", "1,5 l" or "12 st". A quantity has a unit (designsystem §1.6):
- * without one it counts pieces, "8 st" ("8 pcs"). The locale is the list labels' dateLocale; it defaults to English.
+ * without one it counts pieces: "8 st" in Swedish, the bare number "8" in English. The locale is the list labels' dateLocale; it defaults to English.
  */
 export function quantityText(item: ShoppingItem, locale = "en-GB"): string {
   const quantity = formatQuantity(item.quantity, locale);
-  return `${quantity} ${item.unit || (locale.startsWith("sv") ? "st" : "pcs")}`;
+  const unit = item.unit || (locale.startsWith("sv") ? "st" : "");
+  return unit ? `${quantity} ${unit}` : quantity;
 }
 
 /**

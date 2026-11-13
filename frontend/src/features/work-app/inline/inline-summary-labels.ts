@@ -103,8 +103,8 @@ export const inlineSummaryLabelsEn = {
   completedNote: "Marked the task as done.",
   /** After Done: "Done" and Undo for a short while; Undo writes the earlier status back. */
   undo: workEn.agendaUndo,
-  undoneNote: "Undid it: the task is not marked done anymore.",
-  conflict: "This task was changed in the meantime. Reload to see the latest.",
+  undoneNote: "Undone. The task is open again.",
+  conflict: workEn.conflict,
   saveFailed: "Couldn’t save. Try again.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
   notFound: "This no longer exists. It may have been deleted elsewhere.",

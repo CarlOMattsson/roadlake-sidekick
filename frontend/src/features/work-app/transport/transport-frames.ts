@@ -145,6 +145,8 @@ export type WorkContactsFrame = {
   kind: "contacts";
   q: string;
   includeArchived: boolean;
+  /** The chosen tag filter; absent or empty lists every Contact. */
+  tags?: string[];
   page?: WorkContactsPage;
 };
 /**

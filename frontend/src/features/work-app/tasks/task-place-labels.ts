@@ -89,19 +89,19 @@ export const taskPlaceLabelsSv = {
 export type TaskPlaceLabels = typeof taskPlaceLabelsSv;
 
 export const taskPlaceLabelsEn: TaskPlaceLabels = {
-  changePlace: "Change place",
-  chipValue: (place) => `Place: ${place}`,
+  changePlace: "Change what it’s filed under",
+  chipValue: (place) => `Filed under: ${place}`,
   unsortedName: "Unsorted",
   domainName: "Area",
   projectName: "Project",
   processName: "Process",
   open: (place) => `Open ${place}`,
-  pickerFor: (task) => `Place for ${task}`,
-  choosePlace: "Choose place…",
-  unsortedIntro: "No place yet. Tap an area, or choose a project or a process.",
-  changeRepeat: "Change repeat",
+  pickerFor: (task) => `Where ${task} belongs`,
+  choosePlace: "Choose where…",
+  unsortedIntro: "Not filed yet. Tap an area, or choose a project or process.",
+  changeRepeat: "Change how often it repeats",
   repeatsNot: "Doesn’t repeat",
-  repeatPickerFor: (task) => `Repeat for ${task}`,
+  repeatPickerFor: (task) => `Repeat settings for ${task}`,
   repeatOptions: {
     none: "Doesn’t repeat",
     daily: "Every day",

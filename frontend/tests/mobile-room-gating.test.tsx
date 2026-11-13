@@ -85,9 +85,12 @@ function transportOf(
 }
 
 const COMPANION_LIKE = (name: string) =>
-  !["list_contacts", "list_pending_journal", "get_contact_context"].includes(
-    name,
-  );
+  ![
+    "list_contacts",
+    "list_pending_journal",
+    "get_contact_context",
+    "list_tags",
+  ].includes(name);
 
 beforeAll(() => {
   document.head.innerHTML = '<meta name="sidekick-app-locale" content="en">';
@@ -171,6 +174,7 @@ describe("Journal: originals, drafts and the contact room", () => {
   function journal(supports?: typeof COMPANION_LIKE) {
     return transportOf((name) => {
       if (name === "get_journal_entry") return { entry: ENTRY };
+      if (name === "list_tags") return { tags: [] };
       throw new Error(`unexpected ${name}`);
     }, supports);
   }

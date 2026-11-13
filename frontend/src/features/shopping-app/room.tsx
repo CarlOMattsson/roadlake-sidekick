@@ -169,10 +169,10 @@ function clock(at: string, locale: string): string {
  * When the list was written, with its day: "idag 13:00", "igår 13:00", else "tis 3 nov 13:00" (the
  * day as every date in the app reads it), so a card read later does not pass yesterday's time off as today's.
  */
-function updatedWhen(at: string, locale: string): string {
-  const day = workDate(at, new Date(), locale, { inline: true });
-  const time = clock(at, locale);
-  return day ? `${day} ${time}` : time;
+function updatedWhen(at: string, t: ShoppingLabels): string {
+  const day = workDate(at, new Date(), t.dateLocale, { inline: true });
+  const time = clock(at, t.dateLocale);
+  return day ? t.dayAt(day, time) : time;
 }
 
 /** Recognises a batch result. A list detail has shopping_list and is never a batch. */
@@ -240,7 +240,7 @@ function BatchCard({
         <div className="shopping-card-body shopping-batch-body sk-card">
           <p className="sk-eyebrow">
             {t.updatedKicker(
-              summary.at ? updatedWhen(summary.at, t.dateLocale) : undefined,
+              summary.at ? updatedWhen(summary.at, t) : undefined,
               summary.open,
             )}
           </p>

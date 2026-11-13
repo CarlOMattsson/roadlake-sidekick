@@ -127,11 +127,11 @@ it("a failed Undo says the same and Try again writes back only what is not back 
 
 it("words the question, the confirming button and the done line in Swedish and English", () => {
   expect(workSv.moveAllConfirm(3)).toBe("Flytta 3 till imorgon?");
-  expect(workEn.moveAllConfirm(3)).toBe("Move 3 to tomorrow?");
+  expect(workEn.moveAllConfirm(3)).toBe("Move 3 tasks to tomorrow?");
   expect(workSv.moveAllConfirmYes).toBe("Flytta");
   expect(workSv.moveAllDone(3)).toBe("3 flyttade till imorgon");
   expect(workSv.moveAllDone(1)).toBe("1 flyttad till imorgon");
-  expect(workEn.moveAllDone(3)).toBe("3 moved to tomorrow");
+  expect(workEn.moveAllDone(3)).toBe("Moved 3 tasks to tomorrow");
   expect(workSv.moveAllFailed).toBe(
     "Det gick inte att flytta de försenade. Försök igen.",
   );

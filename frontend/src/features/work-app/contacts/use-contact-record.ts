@@ -16,7 +16,7 @@ import { useFrameRead, type DetailFrame } from "../view/parts/use-detail-frame";
 
 /**
  * What the Contact frame holds besides the shared detail-frame state: the Contact with its Projects, Tasks
- * and linked Journal entries, the "Show more" page of Tasks, and every Contact write (edit, nickname,
+ * and linked Journal entries, the "Show more" page of Tasks, and every Contact write (edit, tags, nickname,
  * archive, unlinking a Project). The frame draws it; this hook reads and writes.
  */
 export function useContactRecord({
@@ -120,6 +120,17 @@ export function useContactRecord({
       leaveEditor,
     );
   }
+  /** Writes the Contact's whole tag set (update_contact changes.tags); `done` runs once it is stored. */
+  function setTags(tags: string[], done: () => void) {
+    if (!contact) return;
+    runWrite(
+      JSON.stringify(["tags", contact.id, contact.version, tags]),
+      "write",
+      (key) =>
+        transport.updateContact(contact.id, contact.version, { tags }, key),
+      done,
+    );
+  }
   function addAlias(value: string, done: () => void) {
     if (!contact) return;
     runWrite(
@@ -184,6 +195,7 @@ export function useContactRecord({
     loadMore,
     retry,
     saveContact,
+    setTags,
     addAlias,
     removeAlias,
     setArchived,

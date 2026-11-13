@@ -225,7 +225,7 @@ describe("the license row", () => {
     rerender(<LicenseRow locale="en" now={now} />);
     expect(
       screen.getByText(
-        "Your license expired on Tue 3 Nov. You’re welcome to buy a new one.",
+        "Your license expired on Tue 3 Nov. You can buy a new one.",
       ),
     ).toBeTruthy();
   });

@@ -47,15 +47,15 @@ describe("whenText in English", () => {
   it.each([
     ["30 s ago", new Date(now.getTime() - 30_000).toISOString(), "just now"],
     ["12 min ago", minutesBefore(12), "12 min ago"],
-    ["today", "2026-11-01T08:05:00Z", "today 09:05"],
-    ["yesterday", "2026-10-31T13:30:00Z", "yesterday 14:30"],
+    ["today", "2026-11-01T08:05:00Z", "today at 09:05"],
+    ["yesterday", "2026-10-31T13:30:00Z", "yesterday at 14:30"],
     ["47 h ago, the day before yesterday", "2026-10-30T11:00:00Z", "30 Oct"],
     [
       "30 Oct 14:30, the day before yesterday",
       "2026-10-30T13:30:00Z",
       "30 Oct",
     ],
-    ["31 Oct 23:59, yesterday", "2026-10-31T22:59:00Z", "yesterday 23:59"],
+    ["31 Oct 23:59, yesterday", "2026-10-31T22:59:00Z", "yesterday at 23:59"],
     ["29 Oct, over two days", "2026-10-29T13:30:00Z", "29 Oct"],
     ["another year, over two days", "2025-12-05T08:00:00Z", "5 Dec 2025"],
   ])("%s", (_label, value, expected) => {

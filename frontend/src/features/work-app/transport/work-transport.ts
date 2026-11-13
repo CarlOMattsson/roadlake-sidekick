@@ -1,5 +1,6 @@
 import type { RoomTransport } from "../../mcp-apps/room-types";
 import type { ToolSupport } from "../../mcp-apps/tool-support";
+import type { TagRecord } from "../../mcp-apps/ui/tag-vocabulary";
 import {
   rootFromToolResult,
   type WorkAgendaPage,
@@ -144,13 +145,15 @@ export function createWorkTransport(
           next_cursor: page.next_cursor,
         }),
       ),
-    listContacts: ({ q, includeArchived }, cursor) =>
+    listContacts: ({ q, includeArchived, tags = [] }, cursor) =>
       call<{
         contacts: WorkContactSummary[];
         next_cursor: string | null;
       }>("list_contacts", {
         q: q === "" ? null : q,
         include_archived: includeArchived,
+        // Sent only when chosen, so an unfiltered read stays the call it was.
+        ...(tags.length > 0 ? { tags, tag_match: "all" } : {}),
         limit: 25,
         cursor: cursor ?? null,
       }).then((page) => ({
@@ -195,6 +198,10 @@ export function createWorkTransport(
         task_limit: 20,
         task_cursor: taskCursor ?? null,
       }),
+    listTags: () =>
+      call<{ tags: TagRecord[] }>("list_tags", { limit: 100 }).then(
+        (page) => page.tags,
+      ),
     updateContact: (contactId, expectedVersion, changes, idempotencyKey) =>
       call("update_contact", {
         contact_id: contactId,

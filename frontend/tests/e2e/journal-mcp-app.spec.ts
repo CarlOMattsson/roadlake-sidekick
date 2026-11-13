@@ -173,12 +173,13 @@ test("sandboxed Journal App moves from day to entry to original and back on a mo
       ).journalTest,
   );
   expect(state.initialized).toBe(true);
-  // The glance reads the day's draft count once (list_pending_journal), and the day strip reads its seven days'
-  // dates (list_journal_entries); those reads are not navigation.
+  // The glance reads the day's draft count once (list_pending_journal), the day strip reads its seven days'
+  // dates (list_journal_entries) and the tag filter the owner's tags (list_tags); those reads are not navigation.
   const calls = state.calls.filter(
     (call) =>
       call.name !== "list_pending_journal" &&
-      call.name !== "list_journal_entries",
+      call.name !== "list_journal_entries" &&
+      call.name !== "list_tags",
   );
   const names = calls.map((call) => call.name);
   // Back remounts the entry frame, which reads its entry again, as Work frames do.
@@ -478,7 +479,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
     app.getByText("Kunden vill ha offerten före fredag."),
   ).toBeVisible();
 
-  const calls = await page.evaluate(
+  const all = await page.evaluate(
     () =>
       (
         window as unknown as {
@@ -488,6 +489,8 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
         }
       ).journalTest.calls,
   );
+  // The tag field's suggestions (list_tags) are a read beside the review, not a step of it.
+  const calls = all.filter((call) => call.name !== "list_tags");
   const names = calls.map((call) => call.name);
   expect(names).toEqual([
     "get_journal_draft",

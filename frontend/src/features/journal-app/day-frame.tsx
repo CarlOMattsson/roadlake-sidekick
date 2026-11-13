@@ -5,6 +5,8 @@ import { dayStripLabelsEn, dayStripLabelsSv } from "./day-strip-labels";
 import { DoneSection } from "./done-section";
 import { EntryTextForm } from "./entry-write";
 import { EntryRow } from "./entry-row";
+import { DaySummary, hasDaySummary } from "./day-summary";
+import { DayTags, useDayTags } from "./day-tags";
 import { isForbidden } from "./transport";
 import type { JournalDay, JournalFrame } from "./transport";
 import { useShortcuts } from "../mcp-apps/ui/shortcuts";
@@ -90,6 +92,8 @@ export function DayFrame({
   const [expandedDate, setExpandedDate] = useState<string>();
   const heading = useRef<HTMLHeadingElement>(null);
   const { page } = frame;
+  // The tags the day is filtered on; the choice is kept in the frame, so Back returns to the tagged list.
+  const dayTags = useDayTags(transport, frame.tags, refreshKey);
   const mounted = useRef(true);
   // The owner's today (the zone the day result names, else the declared one), never the device's.
   const today = ownerToday(page.owner_timezone);
@@ -132,7 +136,7 @@ export function DayFrame({
     shown.transport.getDay(shown.frame.page.journal_date).then(
       (next: JournalDay) => {
         if (!mounted.current || latest.current.frame !== shown.frame) return;
-        shown.onChange({ kind: "day", page: next });
+        shown.onChange({ ...shown.frame, page: next });
       },
       () => undefined,
     );
@@ -188,10 +192,7 @@ export function DayFrame({
   if (page.entries.length > 0) daysWithEntries.push(page.journal_date);
 
   // The summary section shows with a summary or a note about one; an empty summary is not shown.
-  const summaryShown =
-    Boolean(page.summary.exists && page.summary.content?.overview) ||
-    page.summary.status === "stale" ||
-    page.summary.status === "failed";
+  const summaryShown = hasDaySummary(page.summary);
   // What was done on the day (completed tasks and steps, and purchases, as the journal read returns them); an older server sends no `done`, and the section is then absent.
   const done = page.done ? (
     <DoneSection
@@ -257,12 +258,12 @@ export function DayFrame({
       // The day is read again so the entry sits where the server puts it; if that read fails the entry is added here.
       return transport.getDay(journalDate).then(
         (next) => {
-          if (mounted.current) onChange({ kind: "day", page: next });
+          if (mounted.current) onChange({ ...frame, page: next });
         },
         () => {
           if (mounted.current)
             onChange({
-              kind: "day",
+              ...frame,
               page: { ...page, entries: [...page.entries, entry] },
             });
         },
@@ -446,33 +447,21 @@ export function DayFrame({
           onCancel={() => setComposing(false)}
         />
       )}
+      {/* Under the strip: the tag filter, and with a tag chosen the tagged list in place of the day's content. */}
       {!failedDate && (
+        <DayTags
+          state={dayTags}
+          frame={frame}
+          transport={transport}
+          labels={t}
+          refreshKey={refreshKey}
+          onChange={onChange}
+          onOpen={onOpen}
+        />
+      )}
+      {!failedDate && !dayTags.filtered && (
         <>
-          {/* An empty summary is not shown: the section appears only with a summary or a note about one. It has no
-              heading: the summary is an ingress under the strip. A muted label in the section type names it, so it is not
-              read as the user's own note; assistive technology hears the name as the section's. */}
-          {summaryShown ? (
-            <section className="journal-day-summary" aria-label={t.summary}>
-              {page.summary.exists && page.summary.content?.overview && (
-                <p className="journal-summary-label" aria-hidden="true">
-                  {t.summary}
-                </p>
-              )}
-              {page.summary.exists && page.summary.content?.overview && (
-                <p
-                  className={
-                    fullscreen
-                      ? "journal-summary"
-                      : "journal-summary journal-card-summary"
-                  }
-                >
-                  {page.summary.content.overview}
-                </p>
-              )}
-              {page.summary.status === "stale" && <p>{t.summaryStale}</p>}
-              {page.summary.status === "failed" && <p>{t.summaryFailed}</p>}
-            </section>
-          ) : null}
+          <DaySummary day={page} fullscreen={fullscreen} labels={t} />
           {/* «Gjort» under the day's summary, or first on a day with notes and no summary. */}
           {(summaryShown || page.entries.length > 0) && done}
           {/* An empty day has no section heading over nothing: one sentence, then the primary way to write. */}
@@ -536,6 +525,7 @@ export function DayFrame({
                   key={entry.id}
                   entry={entry}
                   labels={t}
+                  tagVocabulary={dayTags.vocabulary.suggestions}
                   onOpen={() => onOpen({ kind: "entry", id: entry.id })}
                 />
               ))}

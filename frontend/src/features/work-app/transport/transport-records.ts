@@ -274,12 +274,13 @@ export type WorkContactSummary = WithOptional<
     | "relationship"
     | "organization"
     | "role"
+    | "tags"
   >,
-  "archived" | "relationship" | "organization" | "role"
+  "archived" | "relationship" | "organization" | "role" | "tags"
 >;
 /**
  * One page of the Contact list with the search it was read with. A cursor belongs to that search
- * (q and include_archived), so Show more always repeats it.
+ * (q, include_archived and the tag filter), so Show more always repeats it.
  */
 export type WorkContactsPage = {
   items: WorkContactSummary[];
@@ -287,6 +288,8 @@ export type WorkContactsPage = {
   /** The trimmed search text; empty means every Contact. */
   q: string;
   includeArchived: boolean;
+  /** The tag filter the page was read with (every tag must match); absent means none. */
+  tags?: string[];
 };
 /** Fields create_contact takes from this app; email is omitted when empty. */
 export type WorkContactCreate = Pick<
@@ -297,22 +300,26 @@ export type WorkContactAlias = Pick<
   Item<Results["create_contact"]["contact"]["aliases"]>,
   "id" | "value" | "created_at"
 >;
-/** A Contact as get_contact_context and the contact writes return it (ContactRecord). */
-export type WorkContactRecord = Pick<
-  Results["create_contact"]["contact"],
-  | "id"
-  | "display_name"
-  | "email"
-  | "phone"
-  | "context_note"
-  | "relationship"
-  | "organization"
-  | "role"
-  | "address"
-  | "aliases"
-  | "archived"
-  | "archived_at"
-  | "version"
+/** A Contact as get_contact_context and the contact writes return it (ContactRecord); `tags` is absent from an older server. */
+export type WorkContactRecord = WithOptional<
+  Pick<
+    Results["create_contact"]["contact"],
+    | "id"
+    | "display_name"
+    | "email"
+    | "phone"
+    | "context_note"
+    | "relationship"
+    | "organization"
+    | "role"
+    | "address"
+    | "aliases"
+    | "archived"
+    | "archived_at"
+    | "version"
+    | "tags"
+  >,
+  "tags"
 >;
 /**
  * Fields update_contact accepts. An omitted key is left unchanged; null clears email, phone or the

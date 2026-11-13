@@ -79,7 +79,7 @@ it("opens a Task's Project and a Task of the Project, and goes back one step at 
   // The place chip names the Project; its panel links to the Project page.
   await user.click(
     await screen.findByRole("button", {
-      name: `Change place: ${projectA.title}`,
+      name: `Change what it’s filed under: ${projectA.title}`,
     }),
   );
   await user.click(
@@ -117,7 +117,7 @@ it("names the Project with its plain label in the place chip when the Task carri
   render(rootTask(work, projectTask.id));
   expect(
     await screen.findByRole("button", {
-      name: `Change place: ${taskPlaceLabelsEn.projectName}`,
+      name: `Change what it’s filed under: ${taskPlaceLabelsEn.projectName}`,
     }),
   ).toBeInTheDocument();
   expect(

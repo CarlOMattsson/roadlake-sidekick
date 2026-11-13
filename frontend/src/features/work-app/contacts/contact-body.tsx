@@ -16,6 +16,9 @@ import { TaskSummaryList } from "../tasks/task-summary-list";
 import type { ContactRecord } from "./use-contact-record";
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import { WriteStatus } from "../view/parts/write-status";
+import { TagField } from "../../mcp-apps/ui/tags";
+import { useTagVocabulary } from "../../mcp-apps/ui/tag-vocabulary";
+import { useToolSupport } from "../../mcp-apps/tool-support";
 
 /** What the Contact frame shows once the Contact is read: its state, details, editor, Tasks, entries and Projects. */
 export function ContactBody({
@@ -40,6 +43,11 @@ export function ContactBody({
   const about = (name: string) =>
     dl.aboutContact(name.split(/\s+/u)[0] ?? name);
   const sendMessage = useContext(RoomMessageContext);
+  const offers = useToolSupport(transport);
+  const vocabulary = useTagVocabulary(
+    offers("list_tags") ? transport.listTags : undefined,
+    "contact",
+  );
   // The field the editor opens on when one of a new Contact's first steps opened it.
   const [focusField, setFocusField] = useState<
     "phone" | "email" | "relationship"
@@ -58,6 +66,7 @@ export function ContactBody({
       contact.organization,
       contact.context_note,
     ].some((value) => value?.trim()) &&
+    !contact.tags?.length &&
     tasks.length === 0 &&
     !nextCursor &&
     !(journal && journal.items.length > 0) &&
@@ -91,6 +100,21 @@ export function ContactBody({
       {/* "Kontaktvägar ⌄" right after the name and alias: a fold row of 48, the
           view's first content, with e-mail, phone and address closed in it. */}
       <ContactWays contact={contact} onOpenLink={onOpenLink} labels={dl} />
+      {/* The tags under the ways to reach her: the pills and one quiet button that edits them in place. */}
+      <TagField
+        tags={contact.tags ?? []}
+        suggestions={vocabulary.suggestions}
+        editable={!contact.archived && offers("update_contact")}
+        busy={write.kind === "busy"}
+        name={contact.display_name}
+        onChange={(tags, done) =>
+          record.setTags(tags, () => {
+            vocabulary.refresh();
+            done();
+          })
+        }
+        locale={t.dateLocale}
+      />
       {/* No "Etikett:" rows (design system §3, Kontaktvyn): the note is a paragraph under "Om Anna". */}
       {contact.context_note && (
         <>

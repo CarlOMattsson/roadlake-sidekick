@@ -41,6 +41,9 @@ import { pageMatches } from "./contacts-list-state";
 import { NewContact } from "./new-contact";
 import type { CreateRequest } from "./new-contact-state";
 import { useContactsList } from "./use-contacts-list";
+import { TagFilter } from "../../mcp-apps/ui/tags";
+import { useTagVocabulary } from "../../mcp-apps/ui/tag-vocabulary";
+import { tagLabelsFor } from "../../mcp-apps/ui/tag-labels";
 
 /** list_contacts takes q of 1 to 200 characters; an empty search lists every Contact. */
 const SEARCH_MAX_LENGTH = 200;
@@ -110,7 +113,14 @@ export function ContactsView({
   }, [moves]);
   const { page } = frame;
   const query = frame.q.trim();
-  const fresh = pageMatches(page, query, frame.includeArchived);
+  const chosenTags = frame.tags ?? [];
+  const fresh = pageMatches(page, query, frame.includeArchived, chosenTags);
+  // The tags in use on Contacts, for the filter row; none (or no list_tags on the host) draws no row.
+  const vocabulary = useTagVocabulary(
+    offers("list_tags") ? transport.listTags : undefined,
+    "contact",
+  );
+  const tagWords = tagLabelsFor(t.dateLocale);
 
   function created(contact: WorkContactRecord) {
     list.forgetPage();
@@ -125,6 +135,8 @@ export function ContactsView({
       key={contact.id}
       contact={contact}
       archivedLabel={t.archivedLabel}
+      knownTags={vocabulary.suggestions}
+      locale={t.dateLocale}
       onOpen={() => onOpen({ kind: "contact", id: contact.id })}
     />
   );
@@ -197,6 +209,17 @@ export function ContactsView({
         <MenuUpdateReminder />
         <MenuLicenseRow />
       </KeyScope>
+      <TagFilter
+        options={vocabulary.options}
+        selected={chosenTags}
+        onChange={list.changeTags}
+        locale={t.dateLocale}
+      />
+      {fresh && chosenTags.length > 0 && (
+        <p role="status" className="work-visually-hidden">
+          {tagWords.filtered(chosenTags)}
+        </p>
+      )}
       {loading && <p role="status">{t.loading}</p>}
       {error === "forbidden" && <p>{t.contactsForbidden}</p>}
       {error === "error" && (
@@ -205,7 +228,7 @@ export function ContactsView({
           locale={t.dateLocale}
           subject="contacts"
           cause={cause}
-          onRetry={() => list.read(query, frame.includeArchived)}
+          onRetry={() => list.read()}
         />
       )}
       {fresh &&

@@ -46,11 +46,20 @@ export function contactsListReducer(
   }
 }
 
-/** True when `page` answers this search and archive switch. */
+/** True when `page` answers this search, archive switch and tag filter. */
 export function pageMatches(
   page: WorkContactsPage | undefined,
   q: string,
   includeArchived: boolean,
+  tags: readonly string[] = [],
 ): page is WorkContactsPage {
-  return page?.q === q && page.includeArchived === includeArchived;
+  return (
+    page?.q === q &&
+    page.includeArchived === includeArchived &&
+    sameTags(page.tags ?? [], tags)
+  );
+}
+
+function sameTags(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }

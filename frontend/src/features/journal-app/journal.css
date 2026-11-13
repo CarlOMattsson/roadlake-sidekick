@@ -1061,3 +1061,7 @@ button.journal-entry-card {
 .sidekick-journal .journal-task-chips .journal-chip-name {
   max-width: 100%;
 }
+/* The draft's tags are set in the full view; the inline card keeps to one phone screen. */
+.sidekick-journal:not(.journal-fullscreen) .journal-draft-tags {
+  display: none;
+}

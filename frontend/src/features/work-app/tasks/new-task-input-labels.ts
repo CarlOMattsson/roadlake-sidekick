@@ -45,7 +45,7 @@ export const newTaskInputLabelsEn: NewTaskInputLabels = {
   close: "Close",
   added: (title, place) => `${title} added to ${place}`,
   unsorted: "Unsorted",
-  place: "Place",
+  place: "File under",
   failed: (title) => `Couldn’t add “${title}”.`,
   recentHeading: (count) => `Just added (${count})`,
   undated: "No date",

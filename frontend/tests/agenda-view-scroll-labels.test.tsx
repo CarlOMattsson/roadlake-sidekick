@@ -189,8 +189,8 @@ it("the Undo line of a due move reads 'Flyttad till {date}', with the date as th
 it("the labels of the new row menu hint and the overdue move count are set in labels.ts", () => {
   expect(workEn.rowMenuHint).toBe("Touch and hold a task for more options.");
   expect(workSv.rowMenuHint).toBe("Håll inne en uppgift för fler val.");
-  expect(workEn.moveAllOverdue(1)).toBe("Move 1 overdue to tomorrow");
-  expect(workEn.moveAllOverdue(5)).toBe("Move 5 overdue to tomorrow");
+  expect(workEn.moveAllOverdue(1)).toBe("Move 1 overdue task to tomorrow");
+  expect(workEn.moveAllOverdue(5)).toBe("Move 5 overdue tasks to tomorrow");
   expect(workSv.moveAllOverdue(1)).toBe("Flytta 1 försenad till imorgon");
   expect(workSv.moveAllOverdue(5)).toBe("Flytta 5 försenade till imorgon");
   expect(workEn.moreActions).toBe("More options");

@@ -112,7 +112,10 @@ describe("ContactsRoom", () => {
     );
     expect(await screen.findByText("Bo Berg")).toBeInTheDocument();
     expect(screen.queryByText("Anna Andersson")).not.toBeInTheDocument();
-    expect(transport.call).not.toHaveBeenCalled();
+    // Only the tag vocabulary for the filter row is read; the list itself is not.
+    expect(vi.mocked(transport.call).mock.calls.map(([name]) => name)).toEqual([
+      "list_tags",
+    ]);
   });
 
   it("ignores a result that belongs to another room", async () => {

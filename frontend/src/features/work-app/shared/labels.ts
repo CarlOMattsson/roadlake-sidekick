@@ -28,8 +28,6 @@ export const workEn = {
   addDue: "Add date",
   /** The Task detail's button in place of "Mark done" when the Task is done. */
   reopenTask: "Reopen",
-  /** Agenda: moves every open overdue Task to tomorrow with one call; the count is always in the text. */
-  moveAllOverdue: (n: number) => `Move ${n} overdue to tomorrow`,
   ...moveAllEn,
   priority: "Priority",
   priorityLevel: {
@@ -125,7 +123,7 @@ export const workEn = {
     `Steps · ${done} of ${total} done`,
   /** The meta line of a Step just checked or unchecked, beside its Undo. */
   stepDone: "Done",
-  stepReopened: "Open again",
+  stepReopened: "Reopened",
   stepCreateFailed: "Couldn’t add the step. Try again.",
   linkContact: "Link contact",
   contactSearchHint: "Type at least two characters to search.",
@@ -196,7 +194,8 @@ export const workEn = {
   noCards: "Nothing here.",
   boardEmpty: "No tasks yet.",
   /** The empty Status: what the view is for, under "No tasks yet." */
-  boardEmptyHint: "Your tasks by status: to do, in progress, blocked and done.",
+  boardEmptyHint:
+    "Your tasks by status: to do, in progress, blocked, and done.",
   boardForbidden: "You don’t have access to Status.",
   openBoard: "Open Status",
   boardNearestOverdue: "Longest overdue",
@@ -342,10 +341,6 @@ export const workSv: WorkLabels = {
   changeDue: "Ändra datum",
   addDue: "Lägg till datum",
   reopenTask: "Återöppna",
-  /** The agenda: moves every overdue Task to tomorrow with one call; the text always states the count and what
-   *  is moved. */
-  moveAllOverdue: (n: number) =>
-    `Flytta ${n} ${n === 1 ? "försenad" : "försenade"} till imorgon`,
   ...moveAllSv,
   priority: "Prioritet",
   priorityLevel: {

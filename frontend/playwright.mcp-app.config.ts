@@ -23,6 +23,7 @@ export default defineConfig({
     "app-navigation-reads-mcp-app.spec.ts",
     "meta-line-mcp-app.spec.ts",
     "layout-mcp-app.spec.ts",
+    "tags-mcp-app.spec.ts",
   ],
   fullyParallel: true,
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 6,

@@ -15,6 +15,8 @@ import type {
   JournalFrame,
 } from "./transport";
 import { ErrorNotice } from "../mcp-apps/ui/states";
+import { TagField } from "../mcp-apps/ui/tags";
+import { useTagVocabulary } from "../mcp-apps/ui/tag-vocabulary";
 import {
   EntryMenu,
   EntryTrashed,
@@ -64,6 +66,13 @@ export function EntryFrame({
   const [editing, setEditing] = useState(false);
   const [changedNote, setChangedNote] = useState<string>();
   const editKey = useRef<PendingKey | undefined>(undefined);
+  // The tags are written on their own, as one update of the complete set; the key and the failure are theirs too.
+  const [tagBusy, setTagBusy] = useState(false);
+  const [tagFailure, setTagFailure] = useState<
+    ReturnType<typeof writeFailure> | undefined
+  >();
+  const tagKey = useRef<PendingKey | undefined>(undefined);
+  const vocabulary = useTagVocabulary(transport.listTags, "journal_entry");
   const heading = useRef<HTMLHeadingElement>(null);
   const trashState = useEntryTrash(transport, entry, reloadEntry);
   // The title is the heading above. A summary that repeats it shows only the rest, as the card does.
@@ -180,6 +189,31 @@ export function EntryFrame({
       heading.current?.focus();
     });
   }
+  /** Writes the complete tag set at the entry's version; `done` runs once it is stored. A failed write can be retried as it was. */
+  function saveTags(next: string[], done: () => void) {
+    const write = transport.updateEntryTags;
+    if (!write || !entry || tagBusy) return;
+    const pending = keyFor(
+      tagKey.current,
+      JSON.stringify(["tags", entry.id, entry.version, next]),
+    );
+    tagKey.current = pending;
+    setTagBusy(true);
+    setTagFailure(undefined);
+    write(entry.id, entry.version, next, pending.key)
+      .then((result) => {
+        tagKey.current = undefined;
+        entryChanged(result.entry);
+        vocabulary.refresh();
+        done();
+      })
+      .catch((error: unknown) => {
+        const how = writeFailure(error);
+        setTagFailure(how);
+        if (how === "conflict") reloadEntry();
+      })
+      .finally(() => setTagBusy(false));
+  }
   function appendText(text: string, idempotencyKey: string): Promise<void> {
     const write = transport.appendEntryText;
     if (!write || !entry) return Promise.reject(new Error("no append"));
@@ -258,6 +292,31 @@ export function EntryFrame({
             )}
           </p>
           {entry.archived && <p className="journal-muted">{t.archived}</p>}
+          {/* Changed in place (no form); an archived entry shows its tags only. */}
+          <TagField
+            tags={entry.tags ?? []}
+            suggestions={vocabulary.suggestions}
+            editable={
+              transport.updateEntryTags !== undefined &&
+              !entry.archived &&
+              mode === "view"
+            }
+            busy={tagBusy}
+            name={entry.title}
+            onChange={saveTags}
+            locale={t.dateLocale}
+          />
+          {tagFailure && (
+            <p role="alert" className="journal-banner">
+              {tagFailure === "conflict"
+                ? t.tagsConflict
+                : tagFailure === "invalid"
+                  ? t.tagsInvalid
+                  : tagFailure === "forbidden"
+                    ? t.forbiddenWrite
+                    : t.tagsFailed}
+            </p>
+          )}
           {changedNote && <p role="status">{changedNote}</p>}
           {canEdit && (transport.updateEntry || transport.appendEntryText) && (
             <div className="journal-actions">

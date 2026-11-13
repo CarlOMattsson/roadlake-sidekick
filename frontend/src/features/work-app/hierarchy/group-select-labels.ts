@@ -20,12 +20,12 @@ export const groupSelectLabelsSv = {
 export type GroupSelectLabels = typeof groupSelectLabelsSv;
 
 export const groupSelectLabelsEn: GroupSelectLabels = {
-  place: "Place",
-  none: "No place (Unsorted)",
+  place: "Filed under",
+  none: "Nowhere yet (Unsorted)",
   domainOnly: (domain) => `${domain}, no project`,
   processOption: (title) => `${title} (process)`,
-  loading: "Loading places…",
-  failed: "Couldn’t load the places.",
+  loading: "Loading areas and projects…",
+  failed: "Couldn’t load areas and projects.",
   locale: "en",
 };
 

@@ -18,7 +18,7 @@ export const cardLabelsEn = {
   connections: "Links",
   statusGroup: "Change status",
   statusConflict:
-    "This task has changed since it was loaded. Reload to see the latest version.",
+    "This task was changed elsewhere. Reload to see the latest version.",
   reread: "Reload",
   statusFailed: "Couldn’t save the status.",
   /** A change to a Task that no longer exists: no Try again, since it cannot come back. */

@@ -68,7 +68,7 @@ describe("a Step's Ångra", () => {
     expect(document.querySelector(".work-manage-undo")).toBeNull();
   });
 
-  it("says Open again in English after an uncheck, and runs out after the Undo time", async () => {
+  it("says Reopened in English after an uncheck, and runs out after the Undo time", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(
@@ -80,7 +80,7 @@ describe("a Step's Ångra", () => {
     );
     await user.click(await screen.findByRole("checkbox", { name: open.title }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Open again");
+    expect(await screen.findByRole("status")).toHaveTextContent("Reopened");
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS + 100);

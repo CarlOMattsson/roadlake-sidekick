@@ -178,11 +178,35 @@ export const contactNames = [
   "Nils Nilsson",
   "Olof Olsson",
 ];
+/** The owner's tag vocabulary (list_tags), used on Contacts and Journal entries alike. */
+export const tagVocabulary = {
+  tags: [
+    ["viktig", 6, 3],
+    ["kund", 9, 0],
+    ["familj", 4, 2],
+    ["styrelse", 2, 4],
+    ["byggprojekt-göteborg", 3, 1],
+    ["vänta", 1, 2],
+  ].map(([slug, contact, journal_entry], n) => ({
+    id: uid(10, n),
+    slug,
+    label: slug,
+    created_at: iso(-40),
+    updated_at: iso(-40),
+    version: 1,
+    usage: { contact, journal_entry },
+  })),
+  next_cursor: null,
+};
+/** Tags for the n-th Contact or entry: none, one, or three (two and "+1" on a row), with a long one. */
+const tagsOf = (n: number): string[] =>
+  [[], ["viktig"], ["kund", "byggprojekt-göteborg", "viktig"]][n % 3]!;
 export const bigContactList = {
   contacts: range(0, 40).map((n) => ({
     id: uid(4, n),
     display_name: `${contactNames[n % contactNames.length]}${n >= contactNames.length ? ` ${n}` : ""}`,
     archived: false,
+    tags: tagsOf(n),
   })),
   next_cursor: null,
   q: "",
@@ -205,6 +229,7 @@ export const contactRecord = (n: number, name: string) => ({
   ],
   archived: false,
   archived_at: null,
+  tags: ["kund", "viktig", "byggprojekt-göteborg"],
   created_at: iso(-60),
   updated_at: iso(-2),
   version: 2,
@@ -273,6 +298,7 @@ export const workReplies: Record<string, unknown> = {
   get_work_agenda: { structuredContent: bigAgenda },
   get_work_hierarchy: { structuredContent: bigHierarchy },
   list_contacts: { structuredContent: bigContactList },
+  list_tags: { structuredContent: tagVocabulary },
   get_task: { structuredContent: { task: fullTask } },
   get_project: { structuredContent: { project: projectRecord } },
   list_tasks: {
@@ -318,6 +344,7 @@ const jEntry = (n: number, title: string) => ({
   project_ids: [uid(2, 0)],
   task_ids: [uid(1, 1)],
   contact_ids: [uid(4, 0), uid(4, 1)],
+  tags: tagsOf(n + 1),
   // Long names on purpose: the card cuts them to one line each and still has to fit one screen.
   links: [
     { kind: "contact", id: uid(4, 0), label: "Anna Andersson-Lindqvist" },
@@ -448,6 +475,7 @@ export const journalReplies: Record<string, unknown> = {
   },
   get_journal_draft: { structuredContent: bigJournalDraft },
   list_pending_journal: { structuredContent: bigJournalPending },
+  list_tags: { structuredContent: tagVocabulary },
 };
 
 // ---------- Shopping ----------

@@ -150,6 +150,7 @@ function cardFrom(structured: unknown): EntryCardData | undefined {
     occurred_at,
     contact_ids,
     task_ids,
+    tags,
     version,
     links,
   } = entry as Record<string, unknown>;
@@ -165,7 +166,12 @@ function cardFrom(structured: unknown): EntryCardData | undefined {
     typeof occurred_at !== "string"
   )
     return undefined;
-  if (!isIdList(contact_ids) || !isIdList(task_ids)) return undefined;
+  if (
+    !isStringList(contact_ids) ||
+    !isStringList(task_ids) ||
+    !isStringList(tags)
+  )
+    return undefined;
   if (!isLinkList(links)) return undefined;
   return {
     id,
@@ -176,6 +182,7 @@ function cardFrom(structured: unknown): EntryCardData | undefined {
     occurred_at: typeof occurred_at === "string" ? occurred_at : null,
     contact_ids,
     task_ids,
+    tags,
     version: typeof version === "number" ? version : undefined,
     links: links?.map((link) => ({
       kind: link.kind,
@@ -184,7 +191,7 @@ function cardFrom(structured: unknown): EntryCardData | undefined {
     })),
   };
 }
-function isIdList(value: unknown): value is string[] | undefined {
+function isStringList(value: unknown): value is string[] | undefined {
   return (
     value === undefined ||
     (Array.isArray(value) && value.every((id) => typeof id === "string"))
@@ -243,6 +250,15 @@ export function JournalRoom(props: JournalRoomProps) {
   // A linked Task shows by its title where it can be read and opened: get_task offered and the Work room on.
   const canReadTasks =
     roomEnabled("work") && toolOffered(props.transport, "get_task");
+  // Tags: the vocabulary needs list_tags; the filter also needs the tagged read; editing needs the tags write. The phone
+  // answers none of them (its routes take no tags), so the room shows no filter and no tag editing there.
+  const canListTags = toolOffered(props.transport, "list_tags");
+  const canFilterTags =
+    canListTags &&
+    toolOffered(props.transport, "list_journal_entries", { tags: [] });
+  const canWriteTags = toolOffered(props.transport, "update_journal_entry", {
+    tags: [],
+  });
   const transport = useMemo(
     () =>
       createJournalTransport(
@@ -251,8 +267,22 @@ export function JournalRoom(props: JournalRoomProps) {
         canChangeLinks,
         canTrash,
         canReadTasks,
+        {
+          vocabulary: canListTags,
+          filter: canFilterTags,
+          write: canWriteTags,
+        },
       ),
-    [call, canReadSource, canChangeLinks, canTrash, canReadTasks],
+    [
+      call,
+      canReadSource,
+      canChangeLinks,
+      canTrash,
+      canReadTasks,
+      canListTags,
+      canFilterTags,
+      canWriteTags,
+    ],
   );
   const locale = appLocale();
   const labels = locale.startsWith("sv") ? journalSv : journalEn;

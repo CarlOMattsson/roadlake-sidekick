@@ -162,7 +162,7 @@ describe("batch card names the list", () => {
         list_name: "Veckohandel",
       });
       expect(
-        screen.getByText("Shopping · updated today 14:00"),
+        screen.getByText("Shopping · updated today at 14:00"),
       ).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -185,7 +185,7 @@ describe("batch card names the list", () => {
         list_name: "Veckohandel",
       });
       expect(
-        screen.getByText("Shopping · updated yesterday 14:00"),
+        screen.getByText("Shopping · updated yesterday at 14:00"),
       ).toBeInTheDocument();
       vi.setSystemTime(new Date("2026-10-27T08:00:00Z"));
       deliver({
@@ -194,7 +194,7 @@ describe("batch card names the list", () => {
         list_name: "Veckohandel",
       });
       expect(
-        screen.getByText("Shopping · updated Sat 24 Oct 14:00"),
+        screen.getByText("Shopping · updated Sat 24 Oct at 14:00"),
       ).toBeInTheDocument();
     } finally {
       vi.useRealTimers();

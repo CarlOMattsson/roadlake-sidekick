@@ -16,11 +16,10 @@ export const shoppingEn = {
   /** The empty list's own way to start in fullscreen: it opens the create field, as the Back row's + does. */
   emptyAddItem: "Add an item",
   loading: "Loading…",
-  failed:
-    "Couldn’t finish that. Refresh to see where things stand, or try the same thing again.",
+  failed: "Something went wrong. Refresh the list, or try again.",
   retry: "Try again",
   /** The one-line failure under a row whose bought mark could not be saved. */
-  markFailed: "Couldn’t mark this.",
+  markFailed: "Couldn’t save that change.",
   batch: "Add items (separated by commas or one per line, up to 50)",
   batchShort: "Items",
   batchPlaceholder: "Add items, e.g. milk, eggs",
@@ -43,7 +42,7 @@ export const shoppingEn = {
   recipient: "Gift recipient (optional)",
   occasion: "Occasion",
   target: "Target date (optional)",
-  offer: "Noted offer",
+  offer: "Offer",
   price: "Offer price",
   regular: "Regular price (optional)",
   regularPrice: "Regular price",
@@ -69,7 +68,7 @@ export const shoppingEn = {
   page: "Page",
   hint: "Keep one list per purpose: groceries, furniture, gifts. Dates are optional.",
   offerHint:
-    "A noted observation, not a live price check. Clear the price to remove the offer.",
+    "A price you noted, not a live price check. Clear the price to remove the offer.",
   recipientHint:
     "Claude can find the right Sidekick contact and link it once you choose. The current recipient stays until you pick another.",
   evaluated: "Offers as of",
@@ -104,7 +103,7 @@ export const shoppingEn = {
   showFewer: "Show fewer",
   boughtCount: (count: number) => `Bought (${count})`,
   conflict:
-    "The list was changed elsewhere and has been refreshed. Tap the ring to try again.",
+    "The list was changed elsewhere and has been refreshed. Tap the circle to try again.",
   otherStore: "No store",
   storeRemaining: (store: string, open: number) => `${store} · ${open} left`,
   undoPurchase: "Undo",
@@ -119,7 +118,7 @@ export const shoppingEn = {
   markBought: (name: string) => `Mark ${name} as bought`,
   markOpen: (name: string) => `Mark ${name} as not bought`,
   /** The tip last in the store view's list, until a row's change form is first opened. */
-  holdTip: "Tap the ring when you’ve bought an item, or the item to edit it.",
+  holdTip: "Tap the circle when you’ve bought an item, or the item to edit it.",
   /** The same tip with a fine pointer (mouse, trackpad), also the row's aria-description there. */
   holdKeys: "Click an item or press Shift+F10 to edit it.",
   /** Under the create field when the add failed; the typed text stays. */
@@ -135,6 +134,8 @@ export const shoppingEn = {
   /** The meta line of a list row: "7 left · updated today". */
   listLeft: (count: number) => (count === 0 ? "Nothing left" : `${count} left`),
   listUpdated: (day: string) => `updated ${day}`,
+  /** A day and a clock time together: "yesterday at 10:00". */
+  dayAt: (day: string, time: string) => `${day} at ${time}`,
   listArchived: "Archived",
   /** The example under "No lists yet." and under an empty list: one sentence to say to Claude. */
   emptyListsExample: "Add milk and eggs to my shopping list",
@@ -256,6 +257,7 @@ export const shoppingSv: ShoppingLabels = {
   listLeft: (count: number) => (count === 0 ? "Inget kvar" : `${count} kvar`),
   listUpdated: (day: string) =>
     `uppdaterad ${day.charAt(0).toLocaleLowerCase("sv") + day.slice(1)}`,
+  dayAt: (day: string, time: string) => `${day} ${time}`,
   listArchived: "Arkiverad",
   emptyListsExample: "Lägg till mjölk och ägg på inköpslistan",
   emptyListExample: (list: string) => `Lägg till kaffe på ${list}`,

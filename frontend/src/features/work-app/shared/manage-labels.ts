@@ -23,9 +23,9 @@ export const manageLabelsEn = {
   archived: (title: string) => `Archived “${title}”.`,
   restored: (title: string) => `Restored “${title}”.`,
   conflict:
-    "This was changed elsewhere after you loaded it. Reload to see the latest, then try again.",
+    "This was changed elsewhere. Reload to see the latest version, then try again.",
   forbidden: "You don’t have permission to make this change.",
-  notFound: "This no longer exists. It may have been deleted in another chat.",
+  notFound: "This no longer exists. It may have been deleted elsewhere.",
   invalid: "That change wasn’t accepted. Reload and try again.",
   failed: "Couldn’t save the change.",
 };
@@ -52,7 +52,7 @@ export const manageLabelsSv: ManageLabels = {
   conflict:
     "Det här ändrades någon annanstans efter att du läste det. Läs om, så ser du senaste läget, och försök sedan igen.",
   forbidden: "Du har inte behörighet att göra den här ändringen.",
-  notFound: "Den finns inte längre. Den kan ha tagits bort i en annan chatt.",
+  notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   invalid: "Ändringen godtogs inte. Läs om och försök igen.",
   failed: "Ändringen kunde inte sparas.",
 };

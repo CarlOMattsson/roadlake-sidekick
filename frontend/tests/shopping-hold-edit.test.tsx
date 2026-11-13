@@ -305,7 +305,7 @@ it("the tip is shown in Swedish with the Swedish labels", async () => {
     "Tryck på ringen när du köpt något, eller på varan för att ändra.",
   );
   expect(shoppingEn.holdTip).toBe(
-    "Tap the ring when you’ve bought an item, or the item to edit it.",
+    "Tap the circle when you’ve bought an item, or the item to edit it.",
   );
 });
 

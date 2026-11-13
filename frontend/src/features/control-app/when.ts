@@ -47,12 +47,14 @@ const WORDS = {
     minutes: (n: number) => `för ${n} min sedan`,
     today: "idag",
     yesterday: "igår",
+    dayAt: (day: string, clock: string) => `${day} ${clock}`,
   },
   en: {
     now: "just now",
     minutes: (n: number) => `${n} min ago`,
     today: "today",
     yesterday: "yesterday",
+    dayAt: (day: string, clock: string) => `${day} at ${clock}`,
   },
 };
 
@@ -109,8 +111,8 @@ export function whenText(
   const clock = `${stamp.hour}:${stamp.minute}`;
   // Today and yesterday, by the owner calendar, keep the clock; anything older is only a date.
   const daysAgo = dayNumber(stampOf(now)) - dayNumber(stamp);
-  if (daysAgo <= 0) return `${words.today} ${clock}`;
-  if (daysAgo === 1) return `${words.yesterday} ${clock}`;
+  if (daysAgo <= 0) return words.dayAt(words.today, clock);
+  if (daysAgo === 1) return words.dayAt(words.yesterday, clock);
   const month = MONTHS[locale][stamp.month - 1] ?? "";
   const year = stamp.year === stampOf(now).year ? "" : ` ${stamp.year}`;
   return `${stamp.day} ${month}${year}`;

@@ -379,7 +379,7 @@ describe("the repeat chip of the Task page", () => {
     renderTask(work, workEn);
 
     const chip = await screen.findByRole("button", {
-      name: "Change repeat: Doesn’t repeat",
+      name: "Change how often it repeats: Doesn’t repeat",
     });
     await user.click(chip);
     expect(
@@ -387,7 +387,7 @@ describe("the repeat chip of the Task page", () => {
     ).toBeInTheDocument();
     await user.keyboard("{Escape}");
     expect(
-      screen.queryByRole("group", { name: "Repeat for Måla taket" }),
+      screen.queryByRole("group", { name: "Repeat settings for Måla taket" }),
     ).not.toBeInTheDocument();
     expect(chip).toHaveFocus();
   });

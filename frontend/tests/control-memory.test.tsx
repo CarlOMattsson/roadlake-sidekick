@@ -263,7 +263,7 @@ describe("MemoryView status", () => {
       />,
     );
     expect(
-      screen.getByText(metaLine("On · 12 entries in memory · 2 on the way")),
+      screen.getByText(metaLine("On · 12 entries in memory · 2 being added")),
     ).toBeVisible();
     const sw = screen.getByRole("switch", { name: "Journal: on" });
     expect(sw.textContent).toBe("");
@@ -664,7 +664,7 @@ describe("MemoryView sources heading", () => {
       screen.getByRole("heading", { level: 3, name: "Sources" }),
     ).toBeInTheDocument();
     expect(document.querySelector("p.control-headrow-meta")).toHaveTextContent(
-      "2 of 4 sources",
+      "2 of 4 sources on",
     );
   });
 });

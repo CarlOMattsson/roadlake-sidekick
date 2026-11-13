@@ -29,7 +29,7 @@ export const updateReminderLabelsSv: UpdateReminderLabels = {
 export const updateReminderLabelsEn: UpdateReminderLabels = {
   moreSuffix: "update available",
   age: (days, commit) =>
-    `Sidekick is ${days} ${days === 1 ? "day" : "days"} old (commit ${commit})`,
+    `This version is ${days} ${days === 1 ? "day" : "days"} old (commit ${commit})`,
   howTo: "Update with",
   dismiss: "Don’t remind me about this version",
   dismissed: "OK, no more reminders for this version.",

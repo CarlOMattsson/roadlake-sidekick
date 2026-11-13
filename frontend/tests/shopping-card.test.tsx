@@ -172,20 +172,18 @@ it("quantityText adds the unit after the formatted number", () => {
   expect(quantityText(item({ quantity: "12.000", unit: "st" }), "sv-SE")).toBe(
     "12 st",
   );
-  expect(quantityText(item({ quantity: "1.000", unit: null }))).toBe("1 pcs");
+  expect(quantityText(item({ quantity: "1.000", unit: null }))).toBe("1");
   expect(quantityText(item({ quantity: "1.500", unit: "l" }), "sv-SE")).toBe(
     "1,5 l",
   );
   expect(quantityText(item({ quantity: "1.500", unit: "l" }))).toBe("1.5 l");
 });
 
-it("counts a unitless quantity in pieces: st in Swedish, pcs otherwise", () => {
+it("counts a unitless quantity in pieces: st in Swedish, the bare number otherwise", () => {
   expect(quantityText(item({ quantity: "8", unit: null }), "sv-SE")).toBe(
     "8 st",
   );
-  expect(quantityText(item({ quantity: "8", unit: null }), "en-GB")).toBe(
-    "8 pcs",
-  );
+  expect(quantityText(item({ quantity: "8", unit: null }), "en-GB")).toBe("8");
 });
 
 it("leaves out a quantity of one when the item has no unit", () => {
@@ -223,7 +221,7 @@ it("leaves out a quantity of one when the item has no unit", () => {
   expect(screen.getByText("Havregryn")).toBeInTheDocument();
   expect(screen.queryByText("Havregryn · 1")).not.toBeInTheDocument();
   expect(screen.getByText("Ägg · 1 st")).toBeInTheDocument();
-  expect(screen.getByText("Bröd · 2 pcs")).toBeInTheDocument();
+  expect(screen.getByText("Bröd · 2")).toBeInTheDocument();
 });
 
 it("shows the formatted quantity in the card with the Swedish labels", () => {

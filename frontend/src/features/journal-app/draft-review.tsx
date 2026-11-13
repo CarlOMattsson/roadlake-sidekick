@@ -1,5 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { ErrorNotice } from "../mcp-apps/ui/states";
+import { TagField } from "../mcp-apps/ui/tags";
+import {
+  forgetTagVocabulary,
+  useTagVocabulary,
+} from "../mcp-apps/ui/tag-vocabulary";
 import type { JournalLabels } from "./labels";
 import type {
   JournalDraft,
@@ -64,6 +69,9 @@ export function DraftFrame({
   const [draft, setDraft] = useState<JournalDraft>();
   const [source, setSource] = useState<JournalSource>();
   const [editing, setEditing] = useState(false);
+  // The tags the owner sets on the entry the draft becomes; the draft itself carries none. Sent with the finalize.
+  const [tags, setTags] = useState<string[]>([]);
+  const vocabulary = useTagVocabulary(transport.listTags, "journal_entry");
   const editingRef = useRef(editing);
   const [notices, setNotices] = useState<Notices>({
     proposalChanged: false,
@@ -210,6 +218,7 @@ export function DraftFrame({
       ...fields,
       relation_selection: selection(draft, plan.picked),
       task_proposals: keptProposals(draft, plan.picks),
+      ...(tags.length > 0 ? { tags } : {}),
     };
     const pendingKey = writes.keyedBy(
       JSON.stringify(["finalize", draft.id, draft.version, input]),
@@ -218,7 +227,11 @@ export function DraftFrame({
       "finalize",
       () =>
         transport.finalizeDraft(draft.id, draft.version, input, pendingKey.key),
-      (result) => onFinalized(draft.id, result),
+      (result) => {
+        // A tag that is new to the vocabulary is read again by the next view that lists it.
+        if (tags.length > 0) forgetTagVocabulary(transport.listTags);
+        onFinalized(draft.id, result);
+      },
     );
   }
 
@@ -357,6 +370,23 @@ export function DraftFrame({
           <OriginalText source={source} labels={t} />
           {pending && (
             <>
+              {/* Fullscreen only (journal.css): inline the card has to fit one phone screen. */}
+              <div className="journal-draft-tags">
+                <h3 className="journal-disclosure-head">{t.draftTags}</h3>
+                <TagField
+                  tags={tags}
+                  suggestions={vocabulary.suggestions}
+                  editable
+                  busy={busy || confirm !== undefined}
+                  name={draft.title}
+                  onChange={(next, done) => {
+                    setWrite({ kind: "idle" });
+                    setTags(next);
+                    done();
+                  }}
+                  locale={t.dateLocale}
+                />
+              </div>
               <RelationsSection
                 id={`${baseId}-relations`}
                 draft={draft}

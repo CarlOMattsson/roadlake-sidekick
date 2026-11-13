@@ -725,17 +725,19 @@ test("sandboxed Work App opens the Contact list from list_contacts, searches, op
       ).workTest,
   );
   expect(state.initialized).toBe(true);
-  expect(state.calls.map((call) => call.name)).toEqual([
+  // The tag filter's vocabulary (list_tags) is read once beside the list; it is not navigation.
+  const calls = state.calls.filter((call) => call.name !== "list_tags");
+  expect(calls.map((call) => call.name)).toEqual([
     "list_contacts",
     "get_contact_context",
   ]);
-  expect(state.calls[0]?.arguments).toMatchObject({
+  expect(calls[0]?.arguments).toMatchObject({
     q: "Bo",
     include_archived: false,
     limit: 25,
     cursor: null,
   });
-  expect(state.calls[1]?.arguments).toMatchObject({
+  expect(calls[1]?.arguments).toMatchObject({
     contact_id: "019f0000-0000-7000-8000-000000000004",
   });
   // The inlined stylesheet must reach the App: the row is a flex navigation row and the frame is padded.

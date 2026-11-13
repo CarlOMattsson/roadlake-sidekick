@@ -163,7 +163,7 @@ it("moves every open overdue Task to tomorrow with one reschedule_tasks call, an
     ),
   });
   renderAgenda([task, other], transport);
-  // One open overdue Task: the button counts it, and reads "Move 1 overdue to tomorrow".
+  // One open overdue Task: the button counts it, and reads "Move 1 overdue task to tomorrow".
   await userEvent.click(
     screen.getByRole("button", { name: workEn.moveAllOverdue(1) }),
   );

@@ -265,7 +265,10 @@ describe("journal room: refresh in place", () => {
       refreshKey: 1,
     });
     await screen.findByRole("heading", { level: 2, name: entry.title });
-    expect(call).toHaveBeenCalledTimes(1);
+    // The tag vocabulary is read too; the refresh is about the entry.
+    const entryReads = () =>
+      call.mock.calls.filter(([name]) => name === "get_journal_entry").length;
+    expect(entryReads()).toBe(1);
 
     rerender(
       <JournalRoom
@@ -276,7 +279,7 @@ describe("journal room: refresh in place", () => {
       />,
     );
 
-    await waitFor(() => expect(call).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(entryReads()).toBe(2));
     expect(screen.queryByText(journalEn.loading)).toBeNull();
     expect(
       screen.getByRole("heading", { level: 2, name: entry.title }),

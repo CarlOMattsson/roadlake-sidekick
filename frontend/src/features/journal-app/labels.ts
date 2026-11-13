@@ -1,7 +1,7 @@
-import { draftConfirmEn, draftConfirmSv } from "./draft-confirm-labels";
+import { partsEn, partsSv } from "./label-parts";
 
 export const journalEn = {
-  ...draftConfirmEn,
+  ...partsEn,
   title: "Journal",
   dateLocale: "en-GB",
   back: "Back",
@@ -270,7 +270,7 @@ export const journalEn = {
 export type JournalLabels = typeof journalEn;
 
 export const journalSv: JournalLabels = {
-  ...draftConfirmSv,
+  ...partsSv,
   title: "Dagbok",
   dateLocale: "sv-SE",
   back: "Tillbaka",

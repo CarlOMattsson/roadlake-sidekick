@@ -1,0 +1,270 @@
+/* Tags (tags.tsx): small pills for a record's tags, the editor that changes them and the filter row of a list.
+   A pill is drawn small (24 in a row, 32 where it is a control) and every control around one is 44 to tap: the
+   button is the 44 box with no edge of its own, the pill inside it carries the look and the focus ring. Host
+   tokens first. Two-class selectors, so a room's button rule (`.sidekick-work button`) cannot override them. */
+
+.sk-tags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s1);
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.sk-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 1.5rem;
+  padding: 0 var(--sk-s2);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-surface);
+  color: var(--sk-fg-2);
+  font: var(--sk-type-caption);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
+.sk-tags > .sk-tag--more {
+  border-color: transparent;
+  background: transparent;
+  color: var(--sk-muted);
+  padding-inline: var(--sk-s1);
+}
+
+/* Read once as a sentence, not drawn (the pills are aria-hidden). */
+.sk-tags-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* In a list row the tags close the one meta line: the meta text gives way first (its ellipsis), the pills
+   stay whole up to their own cut, and the row keeps its height (a 20 px pill on the 17.5 px meta line). */
+:has(> .sk-row-meta):has(> .sk-tags),
+.sk-row-secondary:has(> .sk-tags) {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s1);
+}
+:has(> .sk-tags) > .sk-row-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+:has(> .sk-row-meta) > .sk-tags,
+.sk-row-secondary > .sk-tags {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+}
+:has(> .sk-row-meta) > .sk-tags > .sk-tag,
+.sk-row-secondary .sk-tag {
+  display: inline-block;
+  min-height: 0;
+  max-width: 6.5rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 1.125rem;
+}
+
+/* ---- The field in a room: the pills and "Lägg till tagg" / "Ändra taggar" ---- */
+.sk-tag-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--sk-s2);
+  margin: var(--sk-s1) 0;
+}
+
+.sk-tag-field .sk-tag-field__open {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  min-height: var(--sk-tap);
+  padding: 0 var(--sk-s2);
+  border-color: transparent;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-button);
+}
+.sk-tag-field .sk-tag-field__open:first-child {
+  margin-inline-start: calc(-1 * var(--sk-s2));
+}
+.sk-tag-field__open svg {
+  width: 16px;
+  height: 16px;
+}
+.sk-tag-field .sk-tag-field__open:active:not(:disabled) {
+  background: var(--sk-surface);
+}
+
+/* ---- The editor ---- */
+.sk-tag-editor {
+  display: grid;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) 0;
+  padding: var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius-card);
+}
+
+.sk-tag-editor .sk-tag-editor__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sk-s1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sk-tag-editor .sk-tag-editor__list > li {
+  margin: 0;
+  padding: 0;
+}
+
+.sk-tag-editor .sk-tag-editor__remove,
+.sk-tag-filter .sk-tag-filter__option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--sk-tap);
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.sk-tag-editor .sk-tag-editor__remove:focus-visible,
+.sk-tag-filter .sk-tag-filter__option:focus-visible {
+  outline: none;
+}
+.sk-tag-editor__remove:focus-visible > .sk-tag,
+.sk-tag-filter__option:focus-visible > .sk-tag {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 2px;
+}
+
+/* A pill that is a control: 32 drawn, 14 text, the icon at its end. */
+.sk-tag-editor .sk-tag,
+.sk-tag-filter .sk-tag {
+  min-height: 2rem;
+  padding: 0 var(--sk-s3);
+  color: var(--sk-fg);
+  font: var(--sk-type-label);
+}
+.sk-tag-editor .sk-tag--removable {
+  padding-inline-end: var(--sk-s2);
+}
+.sk-tag-editor .sk-tag--suggested {
+  padding-inline-start: var(--sk-s2);
+  border-style: dashed;
+  border-color: var(--sk-border);
+  background: transparent;
+}
+.sk-tag-editor .sk-tag svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+.sk-tag-editor__remove:hover:not(:disabled) > .sk-tag--removable {
+  border-color: var(--sk-border);
+}
+
+.sk-tag-editor__add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+}
+.sk-tag-editor .sk-tag-editor__input {
+  flex: 1 1 9rem;
+  min-width: 0;
+  min-height: var(--sk-tap);
+  box-sizing: border-box;
+}
+.sk-tag-editor__add > button {
+  flex: none;
+}
+
+.sk-tag-editor .sk-tag-editor__problem {
+  margin: 0;
+  color: var(--sk-overdue-fg);
+  font: var(--sk-type-meta);
+}
+.sk-tag-editor .sk-tag-editor__suggested {
+  margin: var(--sk-s1) 0 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-caption);
+}
+
+/* ---- The filter row of a list: one line of chips that scrolls sideways, never a second line, and "Rensa"
+   at its end outside the scroller (no chip moves when it appears; the scroller only gets narrower) ---- */
+.sk-tag-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  margin: var(--sk-s1) 0 0;
+}
+.sk-tag-filter__scroll {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.sk-tag-filter__scroll::-webkit-scrollbar {
+  display: none;
+}
+.sk-tag-filter .sk-tag-filter__option {
+  flex: none;
+  padding-inline: 2px;
+}
+.sk-tag-filter .sk-tag-filter__option:first-child {
+  justify-content: flex-start;
+  padding-inline-start: 0;
+}
+.sk-tag-filter__option[aria-pressed="true"] > .sk-tag {
+  border-color: var(--sk-inverse-bg);
+  background: var(--sk-inverse-bg);
+  color: var(--sk-inverse-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+/* The tick, so the pressed state is not carried by the fill alone. */
+.sk-tag-filter__option[aria-pressed="true"] > .sk-tag::before {
+  content: "";
+  flex: none;
+  width: 12px;
+  height: 12px;
+  background: currentColor;
+  mask: var(--sk-check) center / contain no-repeat;
+}
+.sk-tag-filter .sk-tag-filter__clear {
+  flex: none;
+  min-height: var(--sk-tap);
+  padding: 0 var(--sk-s2);
+  border-color: transparent;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-button);
+}

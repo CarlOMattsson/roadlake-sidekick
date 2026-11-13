@@ -12,9 +12,25 @@ import {
 
 const SEARCH_DEBOUNCE_MS = 300;
 
+/** What one list read asks for: the trimmed search, the archive switch and the tag filter (only when chosen). */
+type ListQuery = { q: string; includeArchived: boolean; tags?: string[] };
+
+function queryOf(frame: WorkContactsFrame): ListQuery {
+  const tags = frame.tags ?? [];
+  return {
+    q: frame.q.trim(),
+    includeArchived: frame.includeArchived,
+    ...(tags.length > 0 ? { tags } : {}),
+  };
+}
+
+function matches(frame: WorkContactsFrame, query: ListQuery): boolean {
+  return pageMatches(frame.page, query.q, query.includeArchived, query.tags);
+}
+
 /**
  * The reading of the Contact list: a debounced search (an answer to an older search is ignored), the archive
- * switch, Show more, and a read again when `refreshKey` changes. The search and the page live in the frame, so
+ * switch, the tag filter, Show more, and a read again when `refreshKey` changes. The search and the page live in the frame, so
  * coming back from a Contact shows the same list; every change goes out through `onChange`.
  */
 export function useContactsList({
@@ -46,17 +62,16 @@ export function useContactsList({
     latest.current = next;
   }
   /** Reads the first page; the answer replaces the page unless a newer search has started. */
-  function fetchFirst(q: string, includeArchived: boolean, current: number) {
+  function fetchFirst(query: ListQuery, current: number) {
     transport
-      .listContacts({ q, includeArchived })
+      .listContacts(query)
       .then((result) => {
         if (current !== ticket.current) return;
         emit({
           page: {
             items: result.items,
             next_cursor: result.next_cursor,
-            q,
-            includeArchived,
+            ...query,
           },
         });
       })
@@ -69,16 +84,16 @@ export function useContactsList({
         });
       });
   }
-  function read(q: string, includeArchived: boolean) {
+  /** Reads the list as the frame now asks for it; Retry and a refresh call it. */
+  function read(query: ListQuery = queryOf(latest.current)) {
     dispatch({ type: "reset" });
-    fetchFirst(q, includeArchived, ++ticket.current);
+    fetchFirst(query, ++ticket.current);
   }
 
   // A frame without a page, or whose search was interrupted before it was read, reads on mount.
   const readIfMissing = useEffectEvent(() => {
-    const start = latest.current;
-    if (!pageMatches(start.page, start.q.trim(), start.includeArchived))
-      fetchFirst(start.q.trim(), start.includeArchived, ++ticket.current);
+    const start = queryOf(latest.current);
+    if (!matches(latest.current, start)) fetchFirst(start, ++ticket.current);
   });
   useEffect(() => {
     const marker = ticket;
@@ -91,9 +106,7 @@ export function useContactsList({
   }, [transport]);
   // A changed refreshKey reads the list again with the same search and archive switch, in place.
   const seenRefreshKey = useRef(refreshKey);
-  const readAgain = useEffectEvent(() =>
-    read(frame.q.trim(), frame.includeArchived),
-  );
+  const readAgain = useEffectEvent(() => read(queryOf(frame)));
   useEffect(() => {
     if (refreshKey === undefined || refreshKey === seenRefreshKey.current)
       return;
@@ -107,22 +120,20 @@ export function useContactsList({
     ticket.current++;
     clearTimeout(timer.current);
     dispatch({ type: "reset" });
-    const q = value.trim();
-    if (pageMatches(latest.current.page, q, latest.current.includeArchived))
-      return;
-    timer.current = setTimeout(
-      () => read(q, latest.current.includeArchived),
-      SEARCH_DEBOUNCE_MS,
-    );
+    if (matches(latest.current, queryOf(latest.current))) return;
+    timer.current = setTimeout(() => read(), SEARCH_DEBOUNCE_MS);
   }
-  function changeArchived(includeArchived: boolean) {
-    emit({ includeArchived });
+  /** The archive switch or the tag filter: read at once, unless the shown page already answers it. */
+  function changeNow(
+    patch: Pick<Partial<WorkContactsFrame>, "includeArchived" | "tags">,
+  ) {
+    emit(patch);
     clearTimeout(timer.current);
     ticket.current++;
     dispatch({ type: "reset" });
-    const q = latest.current.q.trim();
-    if (pageMatches(latest.current.page, q, includeArchived)) return;
-    read(q, includeArchived);
+    const query = queryOf(latest.current);
+    if (matches(latest.current, query)) return;
+    read(query);
   }
   function loadMore() {
     const shown = latest.current.page;
@@ -131,7 +142,11 @@ export function useContactsList({
     dispatch({ type: "moreStarted" });
     transport
       .listContacts(
-        { q: shown.q, includeArchived: shown.includeArchived },
+        {
+          q: shown.q,
+          includeArchived: shown.includeArchived,
+          ...(shown.tags ? { tags: shown.tags } : {}),
+        },
         shown.next_cursor,
       )
       .then((result) => {
@@ -165,7 +180,9 @@ export function useContactsList({
     more,
     read,
     changeQuery,
-    changeArchived,
+    changeArchived: (includeArchived: boolean) =>
+      changeNow({ includeArchived }),
+    changeTags: (tags: string[]) => changeNow({ tags }),
     loadMore,
     forgetPage,
   };

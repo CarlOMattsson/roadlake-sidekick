@@ -464,7 +464,9 @@ export class CompanionRoomTransport implements RoomTransport {
    * The call itself, for the one tool the list answers in part: update_task with the completing change, and with the
    * reopening change when the asker names a completed Task (`from_status`; a question without it is answered no).
    * A room hides a date or status choice that would be refused, and keeps "Markera klar", "Ångra" and "Återöppna".
-   * update_journal_entry is answered no when the asker names a link change (the Journal device has no right to it).
+   * update_journal_entry is answered no when the asker names a link change (the Journal device has no right to it) or tags,
+   * and list_journal_entries when it asks for tags: the companion routes take neither, so the Journal room shows no tag
+   * filter or tag editing on the phone.
    */
   supportsCall: NonNullable<RoomTransport["supportsCall"]> = (name, args) => {
     if (name === "list_tasks")
@@ -475,10 +477,13 @@ export class CompanionRoomTransport implements RoomTransport {
       return isArgs(args) && isHierarchyRead(args);
     if (name === "update_task_step")
       return isArgs(args) && isReopeningChange(args.changes);
+    if (name === "list_journal_entries")
+      return this.supportsTool(name) && isArgs(args) && !("tags" in args);
     if (name === "update_journal_entry")
       return (
         this.supportsTool(name) &&
         isArgs(args) &&
+        !("tags" in args) &&
         JOURNAL_LINK_KEYS.every((key) => !(key in args))
       );
     if (name !== "update_task") return this.supportsTool(name);

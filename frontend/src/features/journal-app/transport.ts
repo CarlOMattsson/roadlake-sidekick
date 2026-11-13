@@ -13,6 +13,12 @@ import type {
   ToolResults,
 } from "../../lib/mcp/tool-results.generated";
 import type { RoomTransport } from "../mcp-apps/room-types";
+import { withEntry } from "./entry-result";
+import {
+  createTagTransport,
+  type TagSupport,
+  type TagTransport,
+} from "./tag-transport";
 
 export type JournalKeyPoint =
   ToolResults["get_journal_entry"]["entry"]["key_points"][number];
@@ -22,11 +28,11 @@ export type JournalEntryLink = Item<
 >;
 /**
  * One Journal entry as get_journal_entry and get_journal_day return it (JournalEntryRecord).
- * `links` (the Projects and Contacts with their names) is absent from an older server.
+ * `links` (the Projects and Contacts with their names) and `tags` (slugs) are absent from an older server.
  */
 export type JournalEntry = WithOptional<
   ToolResults["get_journal_entry"]["entry"],
-  "links"
+  "links" | "tags"
 >;
 type JournalDayResult = ToolResults["get_journal_day"];
 /** Only the daily summary fields the day view shows (JournalSummaryRecord). */
@@ -129,6 +135,8 @@ export type JournalDraftFields = Pick<
 export type JournalFinalizeInput = JournalDraftFields & {
   relation_selection: RelationSelection;
   task_proposals: JournalTaskProposal[];
+  /** The tags the owner set on the new entry (the complete set); absent: the entry starts without tags. */
+  tags?: string[];
 };
 export type JournalFinalizeResult = Omit<
   ToolResults["finalize_journal_draft"],
@@ -150,7 +158,7 @@ export type JournalEntryInput = Pick<
   "journal_date" | "title" | "source_text" | "occurred_at"
 >;
 
-export type JournalTransport = {
+export type JournalTransport = TagTransport & {
   /** One day with entry content and summary status; the view reads it for its own navigation. */
   getDay: (journalDate: string) => Promise<JournalDay>;
   /**
@@ -260,8 +268,11 @@ export function createJournalTransport(
   withTrash = false,
   /** True: the host offers get_task and the Work room is on, so a linked Task shows by its title. */
   withTaskTitles = false,
+  /** What the host answers of tags: the vocabulary (list_tags), the tagged read and the entry's tag write. */
+  withTags: TagSupport = { vocabulary: false, filter: false, write: false },
 ): JournalTransport {
   return {
+    ...createTagTransport(call, withTags),
     ...(withTaskTitles
       ? {
           getTaskTitle: (taskId: string) =>
@@ -347,6 +358,7 @@ export function createJournalTransport(
         key_points: input.key_points,
         relation_selection: input.relation_selection,
         task_proposals: input.task_proposals,
+        ...(input.tags ? { tags: input.tags } : {}),
         idempotency_key: idempotencyKey,
       }),
     ...(withLinks
@@ -416,25 +428,14 @@ export function createJournalTransport(
   };
 }
 
-/** The write's answer when it carries an entry with an id and a version; anything else is a failed write. */
-function withEntry(
-  result: { entry: JournalEntry },
-  tool: string,
-): { entry: JournalEntry } {
-  const entry = (result as { entry?: Partial<JournalEntry> } | null)?.entry;
-  if (
-    typeof entry !== "object" ||
-    entry === null ||
-    typeof entry.id !== "string" ||
-    typeof entry.version !== "number"
-  )
-    throw new Error(`${tool} returned no entry`);
-  return result;
-}
-
 /** One navigation frame. A day frame keeps its page, so going back shows it without a new read. */
 export type JournalFrame =
-  | { kind: "day"; page: JournalDay }
+  | {
+      kind: "day";
+      page: JournalDay;
+      /** The tags the day view is filtered on (slugs); absent or empty: the day itself. Kept so Back returns to the list. */
+      tags?: string[];
+    }
   | {
       kind: "entry";
       id: string;

@@ -63,14 +63,14 @@ export const controlEn = {
     `${more ? `${count}+ deleted` : count === 1 ? "1 deleted" : `${count} deleted`} · can be restored`,
   historyMeta: "What you and Claude have done, newest first",
   /** The meta of "Memory is on": how many of the sources are on. */
-  sourcesOn: (on: number, all: number) => `${on} of ${all} sources`,
+  sourcesOn: (on: number, all: number) => `${on} of ${all} sources on`,
   sourcesTitle: "Sources",
   // Trash
   trashTitle: "Deleted",
   trashEmpty: "Nothing deleted.",
   trashEmptyHint: "What you delete lands here first and can be restored.",
   trashMore: "Show more",
-  trashMoreFailed: "Could not load more. Try again.",
+  trashMoreFailed: "Couldn’t load more. Try again.",
   hiddenTitle: "Title hidden",
   trashedWhen: (when: string) => (when ? `deleted ${when}` : "deleted"),
   restore: "Restore",
@@ -119,8 +119,8 @@ export const controlEn = {
    * entry (`memory_sources.source_kind` "journal_entry"), the others a contact, project or task. */
   countStored: (count: number, domain: MemoryDomain) =>
     `${count} ${count === 1 ? EN_RECORD_NOUNS[domain][0] : EN_RECORD_NOUNS[domain][1]} in memory`,
-  countWaiting: (count: number) => `${count} on the way`,
-  countStuck: (count: number) => `${count} waiting on memory`,
+  countWaiting: (count: number) => `${count} being added`,
+  countStuck: (count: number) => `${count} waiting`,
   countUnknown: "Count unknown",
   countOff: "not in memory",
   countDeleting: "deleting…",
@@ -136,7 +136,7 @@ export const controlEn = {
   },
   confirmCost: "To get it back, the memory has to be rebuilt from scratch.",
   confirmYes: (domain: MemoryDomain) =>
-    `Yes, delete memory of ${EN_DOMAIN_FORMS[domain].definite}`,
+    `Yes, delete the memory of your ${EN_DOMAIN_FORMS[domain].definite}`,
   confirmNo: "Cancel",
   memoryBusy: "Saving…",
   memorySaved: "Saved.",
@@ -241,7 +241,7 @@ export const controlEn = {
     restored: "restored",
     trashed: "deleted",
     purchased: "bought",
-    reopened: "put back",
+    reopened: "back on the list",
   } as Record<string, string>,
 };
 export type ControlLabels = Omit<typeof controlEn, "locale"> & {

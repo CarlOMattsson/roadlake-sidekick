@@ -4,6 +4,7 @@
  */
 import type { OfflineSupport } from "../../mcp-apps/room-types";
 import type { ToolSupport } from "../../mcp-apps/tool-support";
+import type { ReadTags } from "../../mcp-apps/ui/tag-vocabulary";
 import type {
   WorkFilters,
   WorkAgendaPage,
@@ -130,9 +131,12 @@ export type WorkTransport = ToolSupport & {
     q: string,
     cursor?: string | null,
   ) => Promise<WorkContactPage>;
-  /** The Contact list, one page per call; omit the cursor for the first page. An empty q lists every Contact. */
+  /**
+   * The Contact list, one page per call; omit the cursor for the first page. An empty q lists every Contact;
+   * `tags` keeps the Contacts that carry every one of them.
+   */
   listContacts: (
-    options: { q: string; includeArchived: boolean },
+    options: { q: string; includeArchived: boolean; tags?: string[] },
     cursor?: string | null,
   ) => Promise<{ items: WorkContactSummary[]; next_cursor: string | null }>;
   /** Creates a Contact; resolves it as stored. The key makes a retry replay the result. */
@@ -170,6 +174,8 @@ export type WorkTransport = ToolSupport & {
     contactId: string,
     taskCursor?: string | null,
   ) => Promise<WorkContactContext>;
+  /** The first page of the owner's tag vocabulary (list_tags); absent where the host has no such call. */
+  listTags?: ReadTags;
   /** Writes the given changes against `expectedVersion`; resolves the Contact as stored. */
   updateContact: (
     contactId: string,

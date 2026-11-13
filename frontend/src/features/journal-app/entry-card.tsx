@@ -4,6 +4,7 @@ import type { JournalLabels } from "./labels";
 import type { JournalEntryLink } from "./transport";
 import { CardFoot } from "../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import { TagChips } from "../mcp-apps/ui/tags";
 import "./journal.css";
 
 /**
@@ -22,6 +23,8 @@ export type EntryCardData = {
   occurred_at?: string | null;
   contact_ids?: string[];
   task_ids?: string[];
+  /** The entry's tags (slugs); absent from a result of an older server. */
+  tags?: string[];
   /** The entry's version: the expected_version of the link writes; without it the card cannot remove links. */
   version?: number;
   /** The Projects and Contacts of the entry with their names; absent from a result of an older server. */
@@ -71,6 +74,10 @@ export function EntryCard({
     ...(entry.links === undefined
       ? legacyLinks(entry, t)
       : linkParts(entry, t, onOpenContact)),
+    // The tags close the same line (two at most, "+N" for the rest), so the card stays as high as without them.
+    entry.tags && entry.tags.length > 0 ? (
+      <TagChips tags={entry.tags} max={2} locale={t.dateLocale} />
+    ) : undefined,
   ].filter((part) => part !== undefined);
   return (
     <section className="sidekick-journal" aria-label={t.title}>
@@ -88,7 +95,7 @@ export function EntryCard({
         {summary && (
           <p className="journal-summary journal-card-summary">{summary}</p>
         )}
-        {/* One muted line: "Sammanfattad av Claude · Kopplad till Bo Berg · 1 uppgift". */}
+        {/* One muted line: "Sammanfattad av Claude · Kopplad till Bo Berg · 1 uppgift · viktig". */}
         {meta.length > 0 && (
           <p className="sk-card__meta journal-card-links">
             {/* "·" leads its part, so a narrow card breaks before a "·", never inside a name; a part that starts a

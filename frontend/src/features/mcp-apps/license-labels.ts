@@ -70,14 +70,14 @@ export const licenseLabelsSv: LicenseLabels = {
 };
 
 export const licenseLabelsEn: LicenseLabels = {
-  mark: "Free version. Show license",
+  mark: "Free version – view license",
   footFree: "Free version",
   footExpired: "License expired",
-  unlicensed: "Free version. You’re welcome to buy a license.",
+  unlicensed: "Free version. You can buy a license.",
   expired: (date) =>
     date
-      ? `Your license expired on ${date}. You’re welcome to buy a new one.`
-      : "Your license has expired. You’re welcome to buy a new one.",
+      ? `Your license expired on ${date}. You can buy a new one.`
+      : "Your license has expired. You can buy a new one.",
   licensed: (licensee, date) =>
     [licensee ? `Licensed to ${licensee}` : "Licensed", date && `until ${date}`]
       .filter(Boolean)
