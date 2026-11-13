@@ -140,16 +140,10 @@
   }
 }
 
-/* A Project's or a Process's page lists its Tasks in the detail rows of a Task or a Contact (§3, Listrad): no padding
-   of their own, 54 with a meta line. A row without one is the 48 floor with its line in the middle of it, as a one-line
-   Step or linked Contact: its air over and under the line grows by --sk-row-air-extra, so the ring, the title and the
-   › move down together, the ring stays on the title's first line and a title that wraps keeps even air around it. */
-.sidekick-work
-  :is(.work-project, .work-process)
-  .work-list
-  > li.work-agenda-row {
-  padding: 0;
-}
+/* A Project's or a Process's page lists its Tasks in the rows of agenda.css (no padding of their own, 54 with a meta
+   line). A row without one is the 48 floor with its line in the middle of it, as a one-line Step or linked Contact: its
+   air over and under the line grows by --sk-row-air-extra, so the ring, the title and the › move down together, the
+   ring stays on the title's first line and a title that wraps keeps even air around it. */
 .sidekick-work
   :is(.work-project, .work-process)
   .work-agenda-line:not(:has(.work-card-meta)) {

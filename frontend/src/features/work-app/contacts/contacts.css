@@ -293,9 +293,6 @@
 .sidekick-work :is(.work-task, .work-contact) .work-list > li {
   border-bottom: 0;
 }
-.sidekick-work :is(.work-task, .work-contact) .work-list > li.work-agenda-row {
-  padding: 0;
-}
 .sidekick-work .work-agenda-glyph > svg:not(.sk-status-glyph) {
   color: var(--sk-muted);
 }

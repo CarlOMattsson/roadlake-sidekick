@@ -14,7 +14,7 @@ import pytest
 pytestmark = pytest.mark.policy
 
 MCP_ROOT = Path(__file__).resolve().parents[2] / "src" / "sidekick" / "mcp"
-MAX_ANY = 3
+MAX_ANY = 1
 
 
 def _any_names() -> dict[str, int]:

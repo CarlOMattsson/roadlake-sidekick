@@ -573,12 +573,30 @@ class StepChanges(Output):
     attention_requested: bool | None = None
     instruction: Annotated[str | None, Field(max_length=MAX_STEP_INSTRUCTION_LENGTH)] = None
 
+    @model_validator(mode="after")
+    def reject_null_required_fields(self) -> StepChanges:
+        if "title" in self.model_fields_set and self.title is None:
+            raise ValueError("title cannot be null")
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
+        if "attention_requested" in self.model_fields_set and self.attention_requested is None:
+            raise ValueError("attention_requested cannot be null")
+        return self
+
 
 class ActionChanges(Output):
     title: Annotated[str | None, Field(min_length=1, max_length=200)] = None
     due_at: datetime | None = None
     attention_requested: bool | None = None
     note: Annotated[str | None, Field(max_length=MAX_ACTION_NOTE_LENGTH)] = None
+
+    @model_validator(mode="after")
+    def reject_null_required_fields(self) -> ActionChanges:
+        if "title" in self.model_fields_set and self.title is None:
+            raise ValueError("title cannot be null")
+        if "attention_requested" in self.model_fields_set and self.attention_requested is None:
+            raise ValueError("attention_requested cannot be null")
+        return self
 
 
 class ProjectChanges(Output):
@@ -601,6 +619,8 @@ class ProjectChanges(Output):
             raise ValueError("at least one change is required")
         if "title" in self.model_fields_set and self.title is None:
             raise ValueError("title cannot be null")
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
         if "domain_id" in self.model_fields_set and self.domain_id is None:
             raise ValueError("project domain cannot be cleared")
         return self
@@ -625,6 +645,8 @@ class DomainChanges(Output):
             raise ValueError("at least one change is required")
         if "name" in self.model_fields_set and self.name is None:
             raise ValueError("name cannot be null")
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
         return self
 
 
@@ -644,6 +666,8 @@ class ProcessChanges(Output):
             raise ValueError("at least one change is required")
         if "name" in self.model_fields_set and self.name is None:
             raise ValueError("name cannot be null")
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
         if "domain_id" in self.model_fields_set and self.domain_id is None:
             raise ValueError("process domain cannot be cleared")
         return self

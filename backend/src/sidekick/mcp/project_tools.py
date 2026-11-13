@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
+from sidekick.mcp.patch import present, sent
 from sidekick.mcp.results import card_result, output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import (
@@ -34,7 +35,7 @@ from sidekick.mcp.work_text import (
 from sidekick.projects.application import UpdateProjectCommand
 from sidekick.projects.application.service import project_public_data
 from sidekick.projects.domain import ProjectStatus
-from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
+from sidekick.shared.types import MAX_CURSOR_LENGTH, UNSET, UnsetType
 from sidekick.structured.work import (
     domain_structured,
     process_structured,
@@ -71,17 +72,48 @@ _Name = Annotated[str, Field(min_length=1, max_length=200)]
 _Description = Annotated[str | None, Field(max_length=10_000)]
 
 
-def _tag_safe_patch(ctx: ToolContext, actor: Actor, changes: BaseModel) -> dict[str, Any]:
-    """The explicit changes of an update, refused before anything is written without tag access.
+def _tag_set(
+    changes: ProjectChanges | DomainChanges | ProcessChanges,
+) -> tuple[str, ...] | UnsetType:
+    """The intended tag set: unset when not sent, empty for an explicit null."""
 
-    The reply lists the record's tags (projects:read), so the actor must be able to read them.
-    """
+    return tuple(changes.tags or ()) if "tags" in changes.model_fields_set else UNSET
 
-    ctx.container.work_tags.require_record_tags_readable(actor, "project")
-    patch = changes.model_dump(exclude_unset=True)
-    if "tags" in patch:
-        patch["tags"] = tuple(patch["tags"] or ())
-    return patch
+
+def _project_command(changes: ProjectChanges) -> UpdateProjectCommand:
+    return UpdateProjectCommand(
+        title=present(changes.title),
+        description=sent(changes, "description", changes.description),
+        status=present(changes.status),
+        start_date=sent(changes, "start_date", changes.start_date),
+        target_date=sent(changes, "target_date", changes.target_date),
+        domain_id=present(changes.domain_id),
+        definition_of_done=sent(changes, "definition_of_done", changes.definition_of_done),
+        tags=_tag_set(changes),
+    )
+
+
+def _domain_command(changes: DomainChanges) -> UpdateContextCommand:
+    return UpdateContextCommand(
+        name=present(changes.name),
+        description=sent(changes, "description", changes.description),
+        status=present(changes.status),
+        review_cadence=sent(changes, "review_cadence", changes.review_cadence),
+        last_reviewed_at=sent(changes, "last_reviewed_at", changes.last_reviewed_at),
+        accent=sent(changes, "accent", changes.accent),
+        tags=_tag_set(changes),
+    )
+
+
+def _process_command(changes: ProcessChanges) -> UpdateContextCommand:
+    return UpdateContextCommand(
+        name=present(changes.name),
+        description=sent(changes, "description", changes.description),
+        status=present(changes.status),
+        domain_id=present(changes.domain_id),
+        cadence=sent(changes, "cadence", changes.cadence),
+        tags=_tag_set(changes),
+    )
 
 
 def _register_list_projects(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -240,13 +272,14 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         changes: ProjectChanges,
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        patch = _tag_safe_patch(ctx, actor, changes)
+        # The reply lists the record\'s tags (projects:read); refuse before anything is written.
+        ctx.container.work_tags.require_record_tags_readable(actor, "project")
         project = ctx.container.projects.update(
             actor,
             project_id,
             version=version,
             idempotency_key=idempotency_key,
-            command=UpdateProjectCommand(**patch),
+            command=_project_command(changes),
             correlation_id=request_correlation_id_or_new(),
         )
         slugs = [
@@ -383,13 +416,14 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         changes: DomainChanges,
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        patch = _tag_safe_patch(ctx, actor, changes)
+        # The reply lists the record\'s tags (projects:read); refuse before anything is written.
+        ctx.container.work_tags.require_record_tags_readable(actor, "domain")
         domain = ctx.container.contexts.update_domain(
             actor,
             domain_id,
             version=version,
             idempotency_key=idempotency_key,
-            command=UpdateContextCommand(**patch),
+            command=_domain_command(changes),
             correlation_id=request_correlation_id_or_new(),
         )
         slugs = [tag.slug for tag in ctx.container.work_tags.for_record(actor, "domain", domain_id)]
@@ -461,13 +495,14 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
         changes: ProcessChanges,
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        patch = _tag_safe_patch(ctx, actor, changes)
+        # The reply lists the record\'s tags (projects:read); refuse before anything is written.
+        ctx.container.work_tags.require_record_tags_readable(actor, "process")
         process = ctx.container.contexts.update_process(
             actor,
             process_id,
             version=version,
             idempotency_key=idempotency_key,
-            command=UpdateContextCommand(**patch),
+            command=_process_command(changes),
             correlation_id=request_correlation_id_or_new(),
         )
         slugs = [

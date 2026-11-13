@@ -41,7 +41,7 @@ def low_level_server(server: FastMCP) -> Any | None:
 
 
 def set_tool_input_schema_lookup(
-    server: FastMCP, lookup: Callable[[str], Mapping[str, Any] | None]
+    server: FastMCP, lookup: Callable[[str], Mapping[str, object] | None]
 ) -> None:
     """Install the SDK's per-call input-schema lookup on `server`.
 

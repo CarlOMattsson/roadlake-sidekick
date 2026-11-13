@@ -61,10 +61,15 @@
 .sidekick-work .work-agenda .work-list {
   isolation: isolate;
 }
-/* The agenda's rows: no padding of their own. The title's box holds the
-   row's 6 of air over its line and the meta line's the 6 under its own, so the title box is a larger target and a row
-   with a meta line is 54 at 110 % (77 and 100 with two and three title lines); 14 lie between two rows' glyphs. */
-.sidekick-work .work-agenda .work-list > li.work-agenda-row {
+/* The agenda's rows, and the rows of a Task's, a Contact's, a Project's or a Process's lists: no padding of their own.
+   The title's box holds the row's 6 of air over its line and the meta line's the 6 under its own, so the title box is
+   a larger target and a row with a meta line is 54 at 110 % (77 and 100 with two and three title lines); 14 lie
+   between two rows' glyphs. */
+.sidekick-work .work-agenda .work-list > li.work-agenda-row,
+.sidekick-work
+  :is(.work-task, .work-contact, .work-project, .work-process)
+  .work-list
+  > li.work-agenda-row {
   padding: 0;
 }
 .sidekick-work .work-agenda-glyph {

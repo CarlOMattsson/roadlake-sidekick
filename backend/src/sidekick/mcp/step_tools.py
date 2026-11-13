@@ -3,17 +3,18 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
+from sidekick.mcp.patch import present, sent
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_text import (
@@ -24,7 +25,7 @@ from sidekick.mcp.work_text import (
     record_ref,
     spoken_line,
 )
-from sidekick.shared.types import MAX_CURSOR_LENGTH, UNSET
+from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.work import (
     action_record,
     complete_step_structured,
@@ -70,13 +71,6 @@ def _record_reply(verb: str, record: StepRecord | ActionRecord) -> ToolResult:
             record_ref(record.id, record.version, record.title, parent=parent),
         ),
     )
-
-
-def _changed(changes: BaseModel, *names: str) -> dict[str, Any]:
-    """The named fields the caller set; the rest are UNSET, so an explicit null still applies."""
-
-    fields = changes.model_dump()
-    return {name: fields[name] if name in changes.model_fields_set else UNSET for name in names}
 
 
 def _register_list_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -256,7 +250,11 @@ def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             step_id,
             version=version,
             idempotency_key=idempotency_key,
-            **_changed(changes, "title", "status", "due_at", "attention_requested"),
+            title=present(changes.title),
+            status=present(changes.status),
+            due_at=sent(changes, "due_at", changes.due_at),
+            attention_requested=present(changes.attention_requested),
+            instruction=sent(changes, "instruction", changes.instruction),
             correlation_id=request_correlation_id_or_new(),
         )
         record = step_record(step)
@@ -395,7 +393,10 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             action_id,
             version=version,
             idempotency_key=idempotency_key,
-            **_changed(changes, "title", "due_at", "attention_requested"),
+            title=present(changes.title),
+            due_at=sent(changes, "due_at", changes.due_at),
+            attention_requested=present(changes.attention_requested),
+            note=sent(changes, "note", changes.note),
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
