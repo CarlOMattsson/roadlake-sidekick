@@ -1,15 +1,18 @@
 import type { ReactNode } from "react";
+import { Fold } from "../../mcp-apps/ui/fold";
 
 export type DisclosureKey = "keyPoints" | "relations" | "proposals";
 
 /**
- * A section of the draft as a disclosure. Inline it is a closed row with its count ("Uppgiftsförslag (8)",
- * aria-expanded) and the heading is hidden; fullscreen shows the heading and the whole body, as before (the
- * CSS in journal.css decides which). The body stays mounted when closed, so each row keeps the owner's choices.
+ * A section of the draft as a disclosure. Inline it is the app's fold row with its count and ⌄ ("Uppgiftsändringar
+ * (8)", aria-expanded), each on a line of its own, and the heading is hidden; fullscreen shows the heading and the
+ * whole body, as before (the CSS in journal.css decides which). The body stays mounted when closed, so each row keeps
+ * the owner's choices.
  */
 export function Disclosure({
   id,
   title,
+  foldTitle = title,
   count,
   open,
   onToggle,
@@ -17,6 +20,8 @@ export function Disclosure({
 }: {
   id: string;
   title: string;
+  /** The fold row's name inline, when the heading's is too long for one line at 320 px. */
+  foldTitle?: string;
   count: number;
   open: boolean;
   onToggle: () => void;
@@ -25,18 +30,13 @@ export function Disclosure({
   return (
     <section className="journal-disclosure" data-open={open ? "true" : "false"}>
       <h3 className="journal-disclosure-head">{title}</h3>
-      <button
-        type="button"
-        className="sk-btn--quiet journal-disclosure-toggle"
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={onToggle}
-      >
-        <span>
-          {title} ({count})
-        </span>
-        <span aria-hidden="true">{open ? "▴" : "▾"}</span>
-      </button>
+      <Fold
+        className="journal-disclosure-toggle"
+        text={`${foldTitle} (${count})`}
+        open={open}
+        onToggle={onToggle}
+        controls={id}
+      />
       <div id={id} className="journal-disclosure-body">
         {children}
       </div>

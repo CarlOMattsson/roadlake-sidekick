@@ -12,18 +12,22 @@ export function Fold({
   open,
   onToggle,
   className,
+  controls,
 }: {
   text: string;
   meta?: string;
   open: boolean;
   onToggle: () => void;
   className?: string;
+  /** The id of the region it opens, when that region stays in the page while folded (aria-controls). */
+  controls?: string;
 }) {
   return (
     <button
       type="button"
       className={className ? `sk-fold ${className}` : "sk-fold"}
       aria-expanded={open}
+      aria-controls={controls}
       onClick={onToggle}
     >
       <span className="sk-fold-text">

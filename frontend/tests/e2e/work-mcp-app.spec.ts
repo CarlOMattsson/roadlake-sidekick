@@ -664,6 +664,8 @@ test("sandboxed Work App opens a Task's Project, recovers from a stale Project v
   await expect(
     app.getByRole("heading", { level: 2, name: "Offert till Anna" }),
   ).toBeVisible();
+  // Edit is in the Project's ⋯, as on a Task and a Contact.
+  await app.getByRole("button", { name: "More options" }).click();
   await app.getByRole("button", { name: "Edit" }).click();
   await app.getByLabel("Title").fill("Offert idag");
   await app.getByRole("button", { name: "Save" }).click();

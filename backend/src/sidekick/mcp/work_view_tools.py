@@ -246,7 +246,7 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="get_work_board",
         description=(
-            "Use this for the status board: one bounded page of Work records in manual order, "
+            "Use this for the Status view: one bounded page of Work records in manual order, "
             "grouped into status columns. For what is due, use get_work_agenda. Read-only. "
             "project_id (from list_projects) shows one project; q matches task text only. When "
             "the app card opens, reply in one or two sentences, no repeated list or table. Card "

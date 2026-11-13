@@ -18,8 +18,8 @@ TagsInput = Annotated[
     Field(
         max_length=MAX_TAGS_PER_RECORD,
         description=(
-            "Complete tag set, e.g. 'viktig', 'vänta', 'familj'; replaces the current set, "
-            "[] clears it."
+            "Complete tag set, e.g. 'important', 'waiting', 'family'; "
+            "replaces the current set, [] clears it."
         ),
     ),
 ]

@@ -281,7 +281,7 @@ test("sandboxed Journal App shows a pending source without a draft as plain text
   ).toBeVisible();
   await expect(
     app.getByText(
-      "Öppna ett utkast för att granska det. Inget sparas förrän du väljer det.",
+      "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
     ),
   ).toBeVisible();
   await expect(app.getByRole("button")).toHaveCount(0);
@@ -437,7 +437,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Utkast om offerten" }).click();
+  await app.getByRole("button", { name: /^Utkast om offerten/ }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Utkast om offerten" }),
   ).toBeVisible();
@@ -448,7 +448,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
     app.getByText("Råtext: Anna vill ha offerten före fredag."),
   ).toBeVisible();
   // The links start closed inline; opening the row shows the suggestion.
-  await app.getByRole("button", { name: /^Suggested links/ }).click();
+  await app.getByRole("button", { name: /^Links/ }).click();
   // A suggestion has only the Godkänn/Avslå pair; the pair is the link choice.
   const link = app
     .getByRole("group", { name: "Decision for Projekt Offert" })
@@ -462,12 +462,8 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
       .evaluate((element) => getComputedStyle(element).borderTopLeftRadius),
   ).resolves.toBe("8px");
   await link.click();
-  await app.getByRole("button", { name: "Save as journal entry" }).click();
-  await expect(
-    app.getByText(
-      "This saves 1 journal entry with 1 link. It creates 0 tasks and updates 0 tasks.",
-    ),
-  ).toBeVisible();
+  await app.getByRole("button", { name: "Save as entry" }).click();
+  await expect(app.getByText("This saves an entry with 1 link.")).toBeVisible();
   await app.getByRole("button", { name: "Yes, save entry" }).click();
   const banner = app.getByRole("alert");
   await expect(banner).toBeFocused();
@@ -475,11 +471,9 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
   await expect(app.getByRole("alert")).toHaveCount(0);
   // The chosen link survives the reload.
   await expect(link).toHaveAttribute("aria-pressed", "true");
-  await app.getByRole("button", { name: "Save as journal entry" }).click();
+  await app.getByRole("button", { name: "Save as entry" }).click();
   await app.getByRole("button", { name: "Yes, save entry" }).click();
-  await expect(
-    app.getByText("Journal entry saved. 0 tasks created, 0 updated."),
-  ).toBeVisible();
+  await expect(app.getByText("Entry saved.")).toBeVisible();
   await expect(
     app.getByText("Kunden vill ha offerten före fredag."),
   ).toBeVisible();
@@ -753,7 +747,7 @@ test("sandboxed Journal App draft decision bar is not sticky at 320 px and 190 p
       reads: { get_journal_draft: { draft, source } },
     });
     const app = page.frameLocator("iframe");
-    await app.getByRole("button", { name: "Utkast om offerten" }).click();
+    await app.getByRole("button", { name: /^Utkast om offerten/ }).click();
     await expect(
       app.getByRole("heading", { level: 2, name: "Utkast om offerten" }),
     ).toBeVisible();

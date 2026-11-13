@@ -75,8 +75,8 @@ export function EntryCard({
   return (
     <section className="sidekick-journal" aria-label={t.title}>
       <article className="journal-card sk-card">
-        {/* The kicker before the title: "Dagbok · sparad 10:20". Two elements, so the app name stays a heading and the
-            saved line stays a status. */}
+        {/* The kicker before the title: "Dagbok · idag 10:20". Two elements, so the app name stays a heading and the
+            day line stays a status. */}
         <div className="journal-card-meta">
           <h1 className="sk-eyebrow">{t.title}</h1>
           <span aria-hidden="true">·</span>
@@ -106,19 +106,19 @@ export function EntryCard({
             ))}
           </p>
         )}
+        {/* The open button is the foot's own child, as in the shopping card: inside a wrapper that the foot lets
+            shrink, "Öppna anteckningen" broke onto two lines beside the coin. */}
         <CardFoot>
-          <div className="journal-actions sk-card__actions">
-            <button
-              type="button"
-              className="sk-btn--open"
-              onClick={onOpen}
-              disabled={opening}
-              aria-busy={opening || undefined}
-            >
-              {opening ? t.cardOpening : t.cardOpenEntry}
-              <ChevronRightIcon />
-            </button>
-          </div>
+          <button
+            type="button"
+            className="sk-btn--open"
+            onClick={onOpen}
+            disabled={opening}
+            aria-busy={opening || undefined}
+          >
+            {opening ? t.cardOpening : t.cardOpenEntry}
+            <ChevronRightIcon />
+          </button>
         </CardFoot>
       </article>
     </section>
@@ -229,8 +229,9 @@ export function summaryRest(
 }
 
 /**
- * "Sparad idag 12:30", "Sparad igår 18:05" or "Sparad 26 okt kl. 14:05". The date and time come from the
- * entry when the result has them; the year is shown only when it is not the year of today.
+ * When the entry happened, the day and time it is filed under: "idag 12:30", "igår 18:05", or "26 okt 14:05"
+ * (the year only when it is not this year's). It is not when the entry was saved, so the line does not say
+ * "sparad" then; a result without a date says only "sparad".
  */
 function savedLine(
   entry: EntryCardData,
@@ -242,9 +243,9 @@ function savedLine(
     ? formatTime(entry.occurred_at, t.dateLocale)
     : undefined;
   const relative = relativeDay(entry.journal_date, today);
-  if (relative === "today") return t.cardSavedToday(time);
-  if (relative === "yesterday") return t.cardSavedYesterday(time);
-  return t.cardSavedAt(
+  if (relative === "today") return t.cardWhenToday(time);
+  if (relative === "yesterday") return t.cardWhenYesterday(time);
+  return t.cardWhenAt(
     formatShortDateWithYear(entry.journal_date, t.dateLocale, today),
     time,
   );

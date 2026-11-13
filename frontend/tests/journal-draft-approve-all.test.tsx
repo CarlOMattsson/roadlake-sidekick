@@ -337,12 +337,12 @@ describe.each([
     expect(transport.finalizeDraft).not.toHaveBeenCalled();
     expect(
       screen.getByRole("button", {
-        name: (name: string) => name.startsWith(t.relations),
+        name: (name: string) => name.startsWith(t.relationsFold),
       }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("button", {
-        name: (name: string) => name.startsWith(t.proposals),
+        name: (name: string) => name.startsWith(t.proposalsFold),
       }),
     ).toHaveAttribute("aria-expanded", "true");
   });
@@ -358,7 +358,7 @@ describe.each([
     expect(screen.getByText(t.suggestionSummary(2, 1))).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: (name: string) => name.startsWith(t.relations),
+        name: (name: string) => name.startsWith(t.relationsFold),
       }),
     ).toHaveAttribute("aria-expanded", "true");
   });
@@ -420,6 +420,83 @@ describe.each([
       screen.queryByRole("button", { name: t.saveWithoutThem }),
     ).not.toBeInTheDocument();
   });
+
+  it("says nothing about a decision on an undecided row, and names Approved or Declined once one is chosen", async () => {
+    const user = userEvent.setup();
+    renderFrame(transportFor(draftWithSuggestions()), t);
+    await screen.findByRole("button", { name: t.approveAll });
+
+    // The unpressed Approve/Decline pair says it is open; no "No decision yet" and no per-row "Suggested by AI".
+    expect(screen.queryByText(/No decision yet|Inget beslut ännu/)).toBeNull();
+    expect(screen.queryByText(/Suggested by AI|Föreslaget av AI/)).toBeNull();
+    expect(screen.queryByText(t.decisionApproved)).toBeNull();
+    expect(screen.queryByText(t.decisionDeclined)).toBeNull();
+
+    await user.click(
+      within(decisionGroup(annaRow)).getByRole("button", { name: t.decline }),
+    );
+    expect(
+      within(decisionGroup(annaRow).parentElement!).getByText(
+        t.decisionDeclined,
+      ),
+    ).toBeInTheDocument();
+    // The other rows stay silent.
+    expect(screen.queryByText(t.decisionApproved)).toBeNull();
+    expect(screen.queryByText(/No decision yet|Inget beslut ännu/)).toBeNull();
+  });
+
+  it("draws each suggestion section as the app's fold row that names the region it controls", async () => {
+    const user = userEvent.setup();
+    const { container } = renderFrame(transportFor(draftWithSuggestions()), t);
+    await screen.findByRole("button", { name: t.approveAll });
+
+    const toggles = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        "button.sk-fold.journal-disclosure-toggle",
+      ),
+    );
+    expect(toggles.length).toBeGreaterThanOrEqual(2);
+    for (const toggle of toggles) {
+      const target = toggle.getAttribute("aria-controls");
+      expect(target).toBeTruthy();
+      const region = container.querySelector(`[id="${target}"]`);
+      expect(region).toHaveClass("journal-disclosure-body");
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      // The chevron is an icon, not a text glyph.
+      expect(toggle.querySelector("svg")).not.toBeNull();
+      expect(toggle.textContent).not.toMatch(/[▾▴]/);
+    }
+    // No pair wrapper is left around the toggles.
+    expect(container.querySelector(".journal-disclosure-pair")).toBeNull();
+
+    // The count is its own inline box, so the computed name may leave out the space before it.
+    const links = screen.getByRole("button", {
+      name: new RegExp(`^${t.relationsFold} ?\\(\\d+\\)$`),
+    });
+    expect(links).toBeInTheDocument();
+    await user.click(links);
+    expect(links).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("hides the legend of the task proposals visually but keeps it for a screen reader", async () => {
+    const { container } = renderFrame(transportFor(draftWithSuggestions()), t);
+    await screen.findByRole("button", { name: t.approveAll });
+
+    const legend = Array.from(container.querySelectorAll("legend")).find(
+      (candidate) => candidate.textContent === t.proposals,
+    );
+    expect(legend).toHaveClass("journal-visually-hidden");
+    expect(
+      screen.getByRole("group", { name: t.proposals }),
+    ).toBeInTheDocument();
+  });
+
+  it("names an unknown suggestion as an unknown item in words", async () => {
+    renderFrame(transportFor(draftWithSuggestions()), t);
+    await screen.findByRole("button", { name: t.approveAll });
+
+    expect(screen.getAllByText(t.unknownItem).length).toBeGreaterThan(0);
+  });
 });
 
 describe("journal-app approve all suggestions, Swedish texts", () => {
@@ -436,7 +513,7 @@ describe("journal-app approve all suggestions, Swedish texts", () => {
     expect(screen.getByRole("button", { name: "Välj själv" })).toBeEnabled();
 
     await user.click(
-      screen.getByRole("button", { name: "Spara som journalpost" }),
+      screen.getByRole("button", { name: "Spara som anteckning" }),
     );
     expect(
       screen.getByText(

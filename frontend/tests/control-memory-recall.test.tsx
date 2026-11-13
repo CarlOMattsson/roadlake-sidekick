@@ -162,6 +162,30 @@ describe("Memory recall", () => {
     expect(await screen.findByText(controlSv.recallEmpty)).toBeInTheDocument();
   });
 
+  it("drops a fact of the wrong shape quietly and keeps the others", async () => {
+    const broken = [
+      { text: "Utan källa", occurred: null },
+      {
+        text: "Okänd sort",
+        source: { kind: "nonsense", id: "x", title: null },
+      },
+      null,
+      sample[0]!,
+    ] as unknown as RecalledFact[];
+    const recall = vi.fn<Recall>(() => Promise.resolve(ok(broken)));
+    renderMemory(makeTransport(recall, vi.fn()));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: /Visa vad Sidekick minns från Dagbok/,
+      }),
+    );
+
+    expect(await screen.findByText("Anna föreslog en promenad")).toBeVisible();
+    expect(screen.queryByText("Utan källa")).toBeNull();
+    expect(screen.queryByText("Okänd sort")).toBeNull();
+    expect(screen.getAllByRole("button", { name: /Glöm/ })).toHaveLength(1);
+  });
+
   it("says memory is paused and off instead of listing", async () => {
     const recall = vi.fn<Recall>(() =>
       Promise.resolve({ status: "paused", facts: [], truncated: false }),

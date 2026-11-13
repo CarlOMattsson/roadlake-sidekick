@@ -379,6 +379,39 @@ describe("HierarchyView", () => {
     expect(screen.getByText(hierarchyDetailLabelsEn.noGroups)).toBeVisible();
   });
 
+  it("heads the Projects outside every Domain 'Utan domän' when there is a Domain, and lists them in that region", () => {
+    const loose = node("project", "pro-loose", "Lös projekt", null);
+    render(
+      <HierarchyView
+        frame={frameOf([domain, project, loose])}
+        transport={transport()}
+        labels={workSv}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Utan domän" }),
+    ).toBeVisible();
+    expect(screen.getByRole("region", { name: "Utan domän" })).toContainElement(
+      screen.getByRole("button", { name: /Lös projekt/ }),
+    );
+    expect(
+      screen.getByRole("region", { name: "Ekonomi" }),
+    ).not.toContainElement(screen.getByRole("button", { name: /Lös projekt/ }));
+  });
+
+  it("draws no 'No area' heading when no Domain is on the page at all", () => {
+    render(
+      <HierarchyView
+        frame={frameOf([project, processNode])}
+        transport={transport()}
+        labels={workEn}
+      />,
+    );
+    expect(screen.queryByRole("heading", { name: "No area" })).toBeNull();
+    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Offert/ })).toBeInTheDocument();
+  });
+
   it("lists a group whose Domain is not on the page without a heading", () => {
     render(
       <HierarchyView

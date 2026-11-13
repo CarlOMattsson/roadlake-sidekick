@@ -88,7 +88,12 @@ describe("journal room: a day without entries", () => {
     );
     render(<JournalRoom mode="inline" transport={transport} />);
 
-    expect(await screen.findByText("0 entries")).toBeInTheDocument();
+    // One line for an empty today, with no "0 entries" count and no "no summary" line beside it.
+    expect(
+      await screen.findByText("Nothing written yet today."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("0 entries")).not.toBeInTheDocument();
+    expect(screen.queryByText(journalEn.noSummary)).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

@@ -279,7 +279,7 @@ describe("Gjort section", () => {
         onTellClaude={vi.fn()}
       />,
     );
-    const fold = screen.getByRole("button", { name: /^Done/ });
+    const fold = screen.getByRole("button", { name: /^Completed/ });
     expect(plain(fold.textContent ?? "")).toContain("1 task");
     expect(
       document.querySelector(".journal-empty-state")?.nextElementSibling,

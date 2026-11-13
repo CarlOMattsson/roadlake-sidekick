@@ -51,7 +51,7 @@ def server_instructions(enabled: Collection[str]) -> str:
             "It is the system of record; you may read all of it.",
             "'Agenda', 'my tasks', 'to-do', 'due' mean Work tasks, not calendar events.",
             "Data model: Domain → Project or Process → Task → Step → Action; Steps and "
-            "Actions are ordered.",
+            "Actions are ordered. The app shows a Domain as an Area; use that word with the user.",
             "A Project requires a Domain (pass domain_id, or ask which). A Task may stand "
             "alone or sit under a Project or Process.",
             "create_task takes domain_id and contact_ids in one call.",

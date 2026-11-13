@@ -89,11 +89,16 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    const label = container.querySelector("p.work-compact-group");
+    // Both groups are named: "Today" over today's row, "Overdue" over the overdue rows.
+    const groups = container.querySelectorAll("p.work-compact-group");
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toHaveTextContent("Today");
+    const label = groups[1];
     expect(label).toHaveTextContent("Overdue");
     const lists = container.querySelectorAll("ul.work-compact-rows");
     expect(lists).toHaveLength(2);
-    // Today's row, then the label, then the overdue rows.
+    // Today's label, today's row, then the label, then the overdue rows.
+    expect(groups[0]?.nextElementSibling).toBe(lists[0]);
     expect(lists[0]).toHaveTextContent("Skriv offerten");
     expect(lists[0]?.querySelectorAll("li")).toHaveLength(1);
     expect(label?.previousElementSibling).toBe(lists[0]);
@@ -107,9 +112,9 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(container.querySelector("p.work-compact-group")).toHaveTextContent(
-      "Försenade",
-    );
+    expect(
+      container.querySelectorAll("p.work-compact-group")[1],
+    ).toHaveTextContent("Försenade");
     rerender(
       <AgendaSummary
         page={{ items: agendaItems.slice(0, 2), next_cursor: null }}
@@ -146,7 +151,10 @@ describe("inline agenda summary", () => {
     expect(lists[0]).toHaveTextContent("Skriv offerten");
     expect(lists[0]).toHaveTextContent("Skicka fakturan");
     expect(lists[0]).not.toHaveTextContent("Betala faktura");
-    const label = container.querySelector("p.work-compact-group");
+    const groups = container.querySelectorAll("p.work-compact-group");
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toHaveTextContent("Idag");
+    const label = groups[1];
     expect(label).toHaveTextContent("Försenade");
     expect(label?.previousElementSibling).toBe(lists[0]);
     expect(lists[1]?.querySelectorAll("li")).toHaveLength(1);
@@ -356,7 +364,7 @@ describe("inline agenda summary", () => {
     expect(screen.queryByText(/upcoming/)).toBeNull();
   });
 
-  it("lists today's record first and then the overdue ones, as rows with their due words and no headings", () => {
+  it("lists today's record first and then the overdue ones, as rows with their due words under the labels Today and Overdue", () => {
     const { container } = render(
       <AgendaSummary
         page={{ items: agendaItems, next_cursor: null }}
@@ -369,7 +377,7 @@ describe("inline agenda summary", () => {
     ].map((node) => node.textContent);
     // A Task due today stands first, then the overdue records oldest first.
     expect(titles).toEqual(["Skriv offerten", "Betala faktura", "Ring Anna"]);
-    // Overdue due words are red; today's reads "today" in lower case.
+    // Overdue due words are red. Today's row says nothing of the day: the label "Today" over it says so.
     expect(screen.getByText("5 days overdue")).toHaveAttribute(
       "data-tone",
       "overdue",
@@ -378,11 +386,15 @@ describe("inline agenda summary", () => {
       "data-tone",
       "overdue",
     );
-    expect(screen.getByText("today")).toHaveAttribute("data-tone", "today");
-    // No group headings and no status glyphs.
+    expect(container.querySelector('time[data-tone="today"]')).toBeNull();
+    expect(
+      [...container.querySelectorAll("p.work-compact-group")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(["Today", "Overdue"]);
+    // No status glyphs and no other headings.
     expect(screen.queryByText("Start with")).toBeNull();
     expect(screen.queryByText("More overdue")).toBeNull();
-    expect(screen.queryByText("Today")).toBeNull();
     expect(container.querySelector(".work-agenda-glyph")).toBeNull();
   });
 
@@ -402,10 +414,15 @@ describe("inline agenda summary", () => {
       "data-tone",
       "overdue",
     );
-    expect(screen.getByText("idag")).toHaveAttribute("data-tone", "today");
+    // Today's row names no day: the label "Idag" over it stands instead.
+    expect(container.querySelector('time[data-tone="today"]')).toBeNull();
+    expect(
+      [...container.querySelectorAll("p.work-compact-group")].map(
+        (node) => node.textContent,
+      ),
+    ).toEqual(["Idag", "Försenade"]);
     expect(screen.queryByText("Börja med")).toBeNull();
     expect(screen.queryByText("Fler försenade")).toBeNull();
-    expect(screen.queryByText("Idag")).toBeNull();
   });
 
   it("lists at most three rows, and the title counts all of the overdue records", () => {

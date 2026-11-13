@@ -64,7 +64,7 @@ export function undoButton(item: ShoppingItem, env: RowEnv) {
 
 /**
  * A tap that waits behind the row's running write says so in the row: "Väntar…" in the meta type, muted. A purchase
- * waiting in the phone's outbox says "Väntar på nät" the same way.
+ * waiting in the phone's outbox says "Väntar på anslutning" the same way.
  * The visual mark sits in the row, which is aria-busy; the announcement is one stable status region outside it.
  */
 export function queuedMark(item: ShoppingItem, env: RowEnv) {

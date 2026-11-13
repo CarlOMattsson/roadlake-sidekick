@@ -1,7 +1,5 @@
-import { useEffect, useId, useRef, useState } from "react";
 import type { RecurrenceRecord } from "../../../lib/mcp/tool-results.generated";
-import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
-import { KeyScope, onEscapeKey } from "../../mcp-apps/ui/key-scope";
+import { ChipChoices } from "./chip-choices";
 import type { TaskPlaceLabels } from "./task-place-labels";
 import type { WorkTask, WorkTaskChanges } from "../transport/transport";
 
@@ -31,9 +29,8 @@ export function repeatChanges(value: string): WorkTaskChanges {
 
 /**
  * The Task's own repeat rule as a chip on the place row: "Upprepas varje vecka ⌄". The rule belongs to the Task, not
- * to a Process. A tap unfolds the rules as chips under the row, the current one ticked, as the row menu's Status and
- * Date: not repeating, every day, week, month or year. One tap on another chip is one
- * update_task through `onChoose` and folds the chips away. A rule the chips have no word for (every 2nd week, chosen
+ * to a Process. A tap unfolds the rules as chips under the row (ChipChoices): not repeating, every day, week, month or
+ * year. One tap on another chip is one update_task through `onChoose` and folds the chips away. A rule the chips have no word for (every 2nd week, chosen
  * weekdays, an end date) stands as its own ticked chip, "… (current)", so opening the choices never loses it. Where
  * the host cannot write (the phone), a rule shows as a plain read-only chip and a Task without one shows nothing.
  * Escape folds the chips and returns focus to the chip; opening them puts focus on the ticked one.
@@ -53,17 +50,6 @@ export function TaskRepeat({
   busy: boolean;
   onChoose: (changes: WorkTaskChanges) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-  const chip = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  // Opening the choices puts focus on the ticked one, so Enter keeps it and Tab walks the others.
-  useEffect(() => {
-    if (open)
-      panel.current
-        ?.querySelector<HTMLElement>('[aria-pressed="true"]')
-        ?.focus({ preventScroll: true });
-  }, [open]);
   const current = rule ?? null;
   const simple = simpleFrequency(current);
   const text = current ? words.repeats(current) : words.repeatsNot;
@@ -84,57 +70,15 @@ export function TaskRepeat({
       ? [{ value: CURRENT, label: words.repeatCurrent(words.repeats(current)) }]
       : []),
   ];
-  function close() {
-    setOpen(false);
-    chip.current?.focus();
-  }
-  function choose(next: string) {
-    if (next === CURRENT || next === value) return close();
-    setOpen(false);
-    onChoose(repeatChanges(next));
-  }
-
   return (
-    <>
-      <button
-        ref={chip}
-        type="button"
-        className="sk-chip work-prop-chip"
-        aria-label={`${words.changeRepeat}: ${text}`}
-        aria-expanded={open}
-        aria-controls={open ? panelId : undefined}
-        disabled={busy}
-        onClick={() => setOpen(!open)}
-        onKeyDown={(event) => {
-          if (open) onEscapeKey(event, close);
-        }}
-      >
-        <span>{text}</span>
-        <ChevronDownIcon size={16} />
-      </button>
-      {open && (
-        <KeyScope
-          ref={panel}
-          id={panelId}
-          role="group"
-          aria-label={words.repeatPickerFor(title)}
-          className="work-repeat-choices"
-          onEscape={close}
-        >
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              className="sk-chip"
-              aria-pressed={option.value === value}
-              disabled={busy}
-              onClick={() => choose(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </KeyScope>
-      )}
-    </>
+    <ChipChoices
+      name={`${words.changeRepeat}: ${text}`}
+      text={text}
+      groupLabel={words.repeatPickerFor(title)}
+      options={options}
+      value={value}
+      busy={busy}
+      onChoose={(next) => onChoose(repeatChanges(next))}
+    />
   );
 }

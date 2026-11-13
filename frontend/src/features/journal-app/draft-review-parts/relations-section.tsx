@@ -42,6 +42,7 @@ export function RelationsSection({
     <Disclosure
       id={id}
       title={t.relations}
+      foldTitle={t.relationsFold}
       count={count}
       open={open}
       onToggle={onToggle}

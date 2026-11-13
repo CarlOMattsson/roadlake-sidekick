@@ -50,11 +50,16 @@ export function useBoardSections({
   /**
    * The cards of one column as shown: a moving Task leaves its column and is drawn in its target. The columns are the
    * phone's sections (boardSegments): the four Task statuses and one Projekt column, so a Project status such as
-   * "active" never stands as a column of its own beside the Task statuses.
+   * "active" never stands as a column of its own beside the Task statuses. The cards stand in the phone's order
+   * (shownOrder), so a column and its section list the same Tasks the same way.
    */
   function shownItems(segment: BoardSegment) {
     const shown: { item: WorkItemRecord; pending: boolean }[] = [];
-    for (const item of segmentItems(page, segment)) {
+    for (const item of shownOrder(
+      page,
+      segment.key,
+      segmentItems(page, segment),
+    )) {
       if (
         matchesSearch(item) &&
         (!movingCard || cardKey(item) !== cardKey(movingCard))

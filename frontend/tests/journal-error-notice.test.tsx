@@ -108,10 +108,13 @@ describe("journal app error before any view", () => {
       },
     });
     await userEvent.click(screen.getByRole("button", { name: "Try again" }));
-    // Without fullscreen on offer the day shows its glance inline, which counts its entries.
+    // Without fullscreen on offer the day shows its glance inline: an empty today says so in one line, with no count.
     expect(
-      await screen.findByText(journalEn.glanceEntries(0, false)),
+      await screen.findByText(journalEn.noEntriesToday),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByText(journalEn.glanceEntries(0, false)),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

@@ -109,7 +109,7 @@ NOTICES: dict[str, LocalizedText] = {
     },
     "secret_valid": {
         "sv": "Parningshemligheten gäller till {expires} (10 minuter) och kan användas en gång.",
-        "en": "The pairing secret is valid until {expires} (10 minutes) and can be used once.",
+        "en": "The pairing code is valid until {expires} (10 minutes) and can be used once.",
     },
     "device_valid": {
         "sv": "Enhetens inloggning gäller i {days} dagar.",
@@ -117,7 +117,7 @@ NOTICES: dict[str, LocalizedText] = {
     },
     "shown_once": {
         "sv": "Hemligheten visas bara nu:",
-        "en": "The secret is shown only now:",
+        "en": "The pairing code is shown only now:",
     },
 }
 

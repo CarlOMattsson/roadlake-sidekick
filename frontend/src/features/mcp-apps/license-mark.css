@@ -59,13 +59,16 @@
   margin-inline-end: calc((var(--sk-tap) - var(--sk-glyph)) / -2);
 }
 /* With its words (the full view): a quiet button in the meta type and muted, the amber coin leading; its text ends on
-   the content edge (the quiet button's side padding is pulled back), and its target stays 48 high. */
+   the content edge (the quiet button's side padding is pulled back), and its target stays 48 high. The end padding is
+   the frame's own 12, so the pulled-back button ends on the view's edge at the narrowest frame, never past it (−0.9rem
+   stood 2 px past a 375 px phone and let the page pan sideways). */
 .sk-license-foot > .sk-license-mark--text {
   display: inline-flex;
   align-items: center;
   gap: var(--sk-s2);
   min-height: 48px;
-  margin-inline-end: -0.9rem;
+  padding-inline-end: var(--sk-s3);
+  margin-inline-end: calc(var(--sk-s3) * -1);
   color: var(--sk-muted);
   font: var(--sk-type-meta);
 }

@@ -1,4 +1,7 @@
+import { draftConfirmEn, draftConfirmSv } from "./draft-confirm-labels";
+
 export const journalEn = {
+  ...draftConfirmEn,
   title: "Journal",
   dateLocale: "en-GB",
   back: "Back",
@@ -29,7 +32,7 @@ export const journalEn = {
   summaryStale: "The summary may be out of date.",
   summaryFailed: "Couldn’t create the summary.",
   /** Gjort: what was done on the day, a fold row under the summary. */
-  done: "Done",
+  done: "Completed",
   doneTaskCount: (n: number) => `${n} ${n === 1 ? "task" : "tasks"}`,
   doneStepCount: (n: number) => `${n} ${n === 1 ? "step" : "steps"}`,
   donePurchaseCount: (n: number) => `${n} ${n === 1 ? "item" : "items"} bought`,
@@ -81,17 +84,15 @@ export const journalEn = {
   },
   untitledDraft: "Untitled draft",
   draft: "Draft",
-  draftNote: "Not saved yet. Save it as a journal entry to keep it.",
+  draftNote: "Not saved yet. Save it as an entry to keep it.",
   titleLabel: "Title",
   summaryLabel: "Summary",
   noDraftSummary: "No summary.",
   originalUnchanged: "Original, unchanged",
-  suggestedByAi: "Suggested by AI",
   chosenByUser: "Chosen by you",
   aiDraft: "AI draft",
   approve: "Approve",
   decline: "Decline",
-  decisionOpen: "No decision yet",
   decisionApproved: "Approved",
   decisionDeclined: "Declined",
   decisionFor: (name: string) => `Decision for ${name}`,
@@ -106,9 +107,12 @@ export const journalEn = {
     "Editing was closed because some suggestions are now hidden.",
   keyPointFixed: "A key point had an unsupported type and is shown as a fact.",
   relations: "Suggested links",
+  /** The inline fold row's shorter name, so it stays on one line at 320 px; the heading in fullscreen is the long one. */
+  relationsFold: "Links",
   relationsNote: "Nothing is linked until you approve it.",
   noRelations: "No projects, tasks, or contacts to link.",
   proposals: "Suggested task changes",
+  proposalsFold: "Task changes",
   proposalsNote: "No task is created or changed until you approve it.",
   noProposals: "No task suggestions.",
   createTaskProposal: (title: string) => `Create task: ${title}`,
@@ -118,6 +122,8 @@ export const journalEn = {
   taskChipFallback: "Task",
   /** The accessible name of a linked Task's chip: it opens the Task. */
   openTaskNamed: (title: string) => `Open task ${title}`,
+  /** A linked Task whose title could not be read: its chip's name, without repeating the fallback word. */
+  openLinkedTask: "Open linked task",
   newTitle: "New title",
   newDescription: "Description",
   newStatus: "Status",
@@ -155,12 +161,8 @@ export const journalEn = {
   rejectYes: "Yes, reject draft",
   keepDraft: "Keep draft",
   rejected: "Draft rejected.",
-  finalize: "Save as journal entry",
-  finalizeConfirm: (links: number, created: number, updated: number) =>
-    `This saves 1 journal entry with ${links} ${links === 1 ? "link" : "links"}. It creates ${created} ${created === 1 ? "task" : "tasks"} and updates ${updated} ${updated === 1 ? "task" : "tasks"}.`,
+  finalize: "Save as entry",
   finalizeYes: "Yes, save entry",
-  entrySaved: (created: number, updated: number) =>
-    `Journal entry saved. ${created} ${created === 1 ? "task" : "tasks"} created, ${updated} updated.`,
   openTask: "Open task",
   terminalDraft: "This draft has already been handled.",
   conflict:
@@ -211,11 +213,11 @@ export const journalEn = {
   cardOpening: "Opening…",
   cardNoLinks: "Not linked to anything yet",
   cardSaved: "saved",
-  cardSavedToday: (time?: string) => (time ? `saved ${time}` : "saved today"),
-  cardSavedYesterday: (time?: string) =>
-    time ? `saved yesterday ${time}` : "saved yesterday",
-  cardSavedAt: (date: string, time?: string) =>
-    time ? `saved ${date} ${time}` : `saved ${date}`,
+  cardWhenToday: (time?: string) => (time ? `today ${time}` : "today"),
+  cardWhenYesterday: (time?: string) =>
+    time ? `yesterday ${time}` : "yesterday",
+  cardWhenAt: (date: string, time?: string) =>
+    time ? `${date} ${time}` : date,
   cardSummarized: "Summarized by Claude",
   cardContacts: (n: number) => `${n} ${n === 1 ? "contact" : "contacts"}`,
   cardTasks: (n: number) => `${n} ${n === 1 ? "task" : "tasks"}`,
@@ -268,6 +270,7 @@ export const journalEn = {
 export type JournalLabels = typeof journalEn;
 
 export const journalSv: JournalLabels = {
+  ...draftConfirmSv,
   title: "Dagbok",
   dateLocale: "sv-SE",
   back: "Tillbaka",
@@ -335,7 +338,7 @@ export const journalSv: JournalLabels = {
   language: "Språk",
   pending: "Väntar på granskning",
   pendingNote:
-    "Öppna ett utkast för att granska det. Inget sparas förrän du väljer det.",
+    "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
   pendingEmpty: "Inget väntar på granskning.",
   pendingMore: (n: number) => `+${n} fler · Visa alla`,
   pendingLess: "Visa färre",
@@ -347,22 +350,20 @@ export const journalSv: JournalLabels = {
   },
   untitledDraft: "Utkast utan titel",
   draft: "Utkast",
-  draftNote: "Inget sparas förrän du sparar det som journalpost.",
+  draftNote: "Inget sparas förrän du sparar det som anteckning.",
   titleLabel: "Titel",
   summaryLabel: "Sammanfattning",
   noDraftSummary: "Ingen sammanfattning.",
   originalUnchanged: "Original, oförändrat",
-  suggestedByAi: "Föreslaget av AI",
   chosenByUser: "Vald av dig",
   aiDraft: "AI-utkast",
   approve: "Godkänn",
   decline: "Avslå",
-  decisionOpen: "Inget beslut ännu",
   decisionApproved: "Godkänd",
   decisionDeclined: "Avslagen",
   decisionFor: (name: string) => `Beslut för ${name}`,
-  unknownCandidate: "Okänd anteckning",
-  unknownItem: "Okänd anteckning – kan inte väljas",
+  unknownCandidate: "Okänd post",
+  unknownItem: "Okänd post – kan inte väljas",
   hideOriginal: "Dölj originaltext",
   readMore: "Läs mer",
   showLess: "Visa mindre",
@@ -372,9 +373,11 @@ export const journalSv: JournalLabels = {
   keyPointFixed:
     "En huvudpunkt hade en typ som inte stöds och visas som fakta.",
   relations: "Föreslagna kopplingar",
+  relationsFold: "Kopplingar",
   relationsNote: "Inget kopplas förrän du godkänner det.",
   noRelations: "Det finns inga projekt, uppgifter eller kontakter att koppla.",
   proposals: "Föreslagna uppgiftsändringar",
+  proposalsFold: "Uppgiftsändringar",
   proposalsNote: "Ingen uppgift skapas eller ändras förrän du godkänner den.",
   noProposals: "Det finns inga uppgiftsförslag.",
   createTaskProposal: (title: string) => `Skapa uppgift: ${title}`,
@@ -382,6 +385,7 @@ export const journalSv: JournalLabels = {
   unknownTask: "en befintlig uppgift",
   taskChipFallback: "Uppgift",
   openTaskNamed: (title: string) => `Öppna uppgiften ${title}`,
+  openLinkedTask: "Öppna kopplad uppgift",
   newTitle: "Ny titel",
   newDescription: "Beskrivning",
   newStatus: "Status",
@@ -418,12 +422,8 @@ export const journalSv: JournalLabels = {
   rejectYes: "Ja, avvisa utkastet",
   keepDraft: "Behåll utkastet",
   rejected: "Utkastet avvisades.",
-  finalize: "Spara som journalpost",
-  finalizeConfirm: (links: number, created: number, updated: number) =>
-    `Det här skapar 1 journalpost med ${links} ${links === 1 ? "koppling" : "kopplingar"}. ${created} ${created === 1 ? "uppgift skapas" : "uppgifter skapas"} och ${updated} ${updated === 1 ? "uppgift uppdateras" : "uppgifter uppdateras"}.`,
-  finalizeYes: "Ja, spara journalposten",
-  entrySaved: (created: number, updated: number) =>
-    `Journalposten sparades. ${created} ${created === 1 ? "uppgift" : "uppgifter"} skapades, ${updated} uppdaterades.`,
+  finalize: "Spara som anteckning",
+  finalizeYes: "Ja, spara anteckningen",
   openTask: "Öppna uppgiften",
   terminalDraft: "Utkastet är redan hanterat.",
   conflict:
@@ -473,11 +473,10 @@ export const journalSv: JournalLabels = {
   cardOpening: "Öppnar…",
   cardNoLinks: "Inte kopplad till något än",
   cardSaved: "sparad",
-  cardSavedToday: (time?: string) => (time ? `sparad ${time}` : "sparad idag"),
-  cardSavedYesterday: (time?: string) =>
-    time ? `sparad igår ${time}` : "sparad igår",
-  cardSavedAt: (date: string, time?: string) =>
-    time ? `sparad ${date} ${time}` : `sparad ${date}`,
+  cardWhenToday: (time?: string) => (time ? `idag ${time}` : "idag"),
+  cardWhenYesterday: (time?: string) => (time ? `igår ${time}` : "igår"),
+  cardWhenAt: (date: string, time?: string) =>
+    time ? `${date} ${time}` : date,
   cardSummarized: "Sammanfattad av Claude",
   cardContacts: (n: number) => `${n} ${n === 1 ? "kontakt" : "kontakter"}`,
   cardTasks: (n: number) => `${n} ${n === 1 ? "uppgift" : "uppgifter"}`,

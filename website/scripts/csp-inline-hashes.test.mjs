@@ -25,12 +25,20 @@ test('pages without a CSP meta tag are returned unchanged', () => {
   assert.equal(addInlineHashes(html), html);
 });
 
-import { rootAsDefault } from '../integrations/sitemap-root-default.mjs';
+import { headDefaultsToRoot, rootAsDefault } from '../integrations/root-as-default.mjs';
 
 test('sitemap: the site root becomes x-default, the language pages keep their language', () => {
   const xml = '<xhtml:link hreflang="en" href="https://x.test/"/><xhtml:link hreflang="en" href="https://x.test/en/"/><xhtml:link hreflang="sv" href="https://x.test/sv/"/>';
   assert.equal(
     rootAsDefault(xml, 'https://x.test/'),
     '<xhtml:link hreflang="x-default" href="https://x.test/"/><xhtml:link hreflang="en" href="https://x.test/en/"/><xhtml:link hreflang="sv" href="https://x.test/sv/"/>',
+  );
+});
+
+test('page head: the x-default alternate of a language home page points at the site root', () => {
+  const head = '<link rel="alternate" hreflang="en" href="https://x.test/en/"/><link rel="alternate" hreflang="x-default" href="https://x.test/en/"/>';
+  assert.equal(
+    headDefaultsToRoot(head, 'https://x.test/'),
+    '<link rel="alternate" hreflang="en" href="https://x.test/en/"/><link rel="alternate" hreflang="x-default" href="https://x.test/"/>',
   );
 });

@@ -698,7 +698,7 @@ describe("the inline board card's kicker, title and row meta", () => {
     ).toHaveTextContent(/^1 försenad av 3 öppna$/);
   });
 
-  it("gives a Task the same meta text on the agenda card (01) and the board card (19)", () => {
+  it("gives a Task the time and the status in that order on the board card (19), and the agenda card (01) drops the day its Idag group names", () => {
     const pending = task(
       6,
       "in_progress",
@@ -721,8 +721,8 @@ describe("the inline board card's kicker, title and row meta", () => {
     const agendaMeta = agendaCard.container.querySelector(
       ".work-compact-row-meta",
     );
-    // The time first, then the status: the same order on both cards.
-    expect(agendaMeta?.textContent).toBe("today In progress");
+    // Under the group Today the day is not repeated: the agenda's meta is the status only.
+    expect(agendaMeta?.textContent).toBe("In progress");
     agendaCard.unmount();
 
     const boardCard = render(
@@ -735,12 +735,13 @@ describe("the inline board card's kicker, title and row meta", () => {
         onOpen={vi.fn()}
       />,
     );
+    // The board has no group, so the time stands first, then the status.
     expect(
       boardCard.container.querySelector(".work-compact-row-meta")?.textContent,
-    ).toBe(agendaMeta?.textContent);
+    ).toBe("Today In progress");
     expect(
       screen.getByRole("button", {
-        name: "Skriv offerten, today, In progress",
+        name: "Skriv offerten, Today, In progress",
       }),
     ).toBeInTheDocument();
   });

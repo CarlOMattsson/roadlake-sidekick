@@ -40,9 +40,7 @@ describe("journal draft review", () => {
     const transport = transportMock({ getDraft, finalizeDraft });
     renderDraft(transport);
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await screen.findByText(journalEn.conflict);
     await user.click(screen.getByRole("button", { name: "Reload" }));
@@ -63,9 +61,7 @@ describe("journal draft review", () => {
     const transport = transportMock({ finalizeDraft });
     renderDraft(transport);
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await user.dblClick(
       screen.getByRole("button", { name: journalEn.saveWithoutThem }),
     );
@@ -109,13 +105,60 @@ describe("journal draft review", () => {
     ).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "Behåll utkastet" }));
     await user.click(
-      screen.getByRole("button", { name: "Spara som journalpost" }),
+      screen.getByRole("button", { name: "Spara som anteckning" }),
     );
     expect(
-      screen.getByText(
-        "Det här skapar 1 journalpost med 0 kopplingar. 0 uppgifter skapas och 0 uppgifter uppdateras.",
-      ),
+      screen.getByText("Det här skapar en anteckning."),
     ).toBeInTheDocument();
+  });
+
+  it("leaves a part of the confirmation out when its count is zero, in English", async () => {
+    const user = userEvent.setup();
+    renderDraft(transportMock(), journalEn);
+    await screen.findByRole("heading", { level: 2, name: OFFERTEN });
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
+
+    expect(screen.getByText("This saves an entry.")).toBeInTheDocument();
+    expect(screen.queryByText(/0 tasks|journal entry/i)).toBeNull();
+  });
+
+  it("words the confirmation and the saved note from the nonzero counts only, in both languages", () => {
+    expect(journalEn.finalizeConfirm(2, 1, 0)).toBe(
+      "This saves an entry with 2 links. It creates 1 task.",
+    );
+    expect(journalEn.finalizeConfirm(1, 0, 2)).toBe(
+      "This saves an entry with 1 link. It updates 2 tasks.",
+    );
+    expect(journalEn.finalizeConfirm(0, 0, 2)).toBe(
+      "This saves an entry. It updates 2 tasks.",
+    );
+    expect(journalEn.finalizeConfirm(0, 0, 0)).toBe("This saves an entry.");
+    expect(journalEn.entrySaved(1, 0)).toBe("Entry saved. 1 task created.");
+    expect(journalEn.entrySaved(0, 3)).toBe("Entry saved. 3 tasks updated.");
+    expect(journalEn.entrySaved(2, 1)).toBe(
+      "Entry saved. 2 tasks created. 1 task updated.",
+    );
+    expect(journalEn.entrySaved(0, 0)).toBe("Entry saved.");
+
+    expect(journalSv.finalizeConfirm(2, 1, 0)).toBe(
+      "Det här skapar en anteckning med 2 kopplingar. 1 uppgift skapas.",
+    );
+    expect(journalSv.finalizeConfirm(1, 0, 2)).toBe(
+      "Det här skapar en anteckning med 1 koppling. 2 uppgifter uppdateras.",
+    );
+    expect(journalSv.finalizeConfirm(0, 0, 0)).toBe(
+      "Det här skapar en anteckning.",
+    );
+    expect(journalSv.entrySaved(1, 0)).toBe(
+      "Anteckningen sparades. 1 uppgift skapades.",
+    );
+    expect(journalSv.entrySaved(0, 2)).toBe(
+      "Anteckningen sparades. 2 uppgifter uppdaterades.",
+    );
+    expect(journalSv.entrySaved(2, 1)).toBe(
+      "Anteckningen sparades. 2 uppgifter skapades. 1 uppgift uppdaterades.",
+    );
+    expect(journalSv.entrySaved(0, 0)).toBe("Anteckningen sparades.");
   });
 
   it("unticks a proposal that changed during a reload and says so", async () => {
@@ -191,9 +234,7 @@ describe("journal draft review", () => {
     expect(unknown).toHaveLength(2);
     expect(decisionButton("Unknown item")).toBeDisabled();
     expect(decisionButton("Update task: an existing task")).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await waitFor(() => expect(transport.finalizeDraft).toHaveBeenCalled());
     expect(transport.finalizeDraft.mock.calls[0]![2]).toMatchObject({
@@ -252,9 +293,7 @@ describe("journal draft review", () => {
     await user.click(project);
     await user.click(decisionButton("Create task: Ring kunden"));
 
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await screen.findByText(journalEn.conflict);
     await user.click(screen.getByRole("button", { name: "Reload" }));
@@ -305,10 +344,8 @@ describe("journal draft review", () => {
     for (const contact of contacts.slice(0, 25))
       await user.click(screen.getByRole("checkbox", { name: contact.label }));
     expect(screen.getByRole("checkbox", { name: "Kontakt 26" })).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
-    const group = screen.getByRole("group", { name: "Save as journal entry" });
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
+    const group = screen.getByRole("group", { name: "Save as entry" });
     expect(within(group).getByText("Kontakt 10")).toBeInTheDocument();
     expect(within(group).queryByText("Kontakt 11")).not.toBeInTheDocument();
     expect(within(group).getByText("+15 more")).toBeInTheDocument();
@@ -346,9 +383,7 @@ describe("journal draft review", () => {
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
     await user.click(screen.getByRole("checkbox", { name: "Eget projekt" }));
     await user.click(screen.getByRole("checkbox", { name: "Egen uppgift" }));
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await waitFor(() => expect(transport.finalizeDraft).toHaveBeenCalled());
     expect(
@@ -409,9 +444,7 @@ describe("journal draft review", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Fact: Något nytt.")).toBeInTheDocument();
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await waitFor(() => expect(transport.finalizeDraft).toHaveBeenCalled());
     expect(transport.finalizeDraft.mock.calls[0]![2]).toMatchObject({

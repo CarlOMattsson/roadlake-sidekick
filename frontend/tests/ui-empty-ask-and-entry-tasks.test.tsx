@@ -60,14 +60,31 @@ describe("EntryTasks", () => {
     const chip = await screen.findByRole("button", {
       name: journalSv.openTaskNamed("Ring Anna om offerten"),
     });
-    // A Task whose title could not be read keeps a neutral name and still opens.
-    expect(
-      screen.getByRole("button", {
-        name: journalSv.openTaskNamed(journalSv.taskChipFallback),
-      }),
-    ).toBeInTheDocument();
+    // A Task whose title could not be read keeps a neutral name, without repeating the fallback word, and still opens.
+    const unnamed = screen.getByRole("button", {
+      name: "Öppna kopplad uppgift",
+    });
+    expect(unnamed).toHaveTextContent(journalSv.taskChipFallback);
+    await userEvent.setup().click(unnamed);
+    expect(onOpenTask).toHaveBeenCalledWith("b");
     await userEvent.setup().click(chip);
     expect(onOpenTask).toHaveBeenCalledWith("a");
+  });
+
+  it("names an unreadable Task as a linked task in English too", async () => {
+    const getTaskTitle = vi.fn(() => Promise.reject(new Error("gone")));
+    render(
+      <EntryTasks
+        taskIds={["b"]}
+        labels={journalEn}
+        getTaskTitle={getTaskTitle}
+        onOpenTask={vi.fn()}
+      />,
+    );
+    const chip = await screen.findByRole("button", {
+      name: "Open linked task",
+    });
+    expect(chip).toHaveTextContent(journalEn.taskChipFallback);
   });
 
   it("keeps the count on a host that cannot read Tasks", () => {

@@ -365,7 +365,7 @@ export function frameFor(item: WorkItemRecord): WorkFrame | undefined {
 }
 
 /**
- * A section of the phone's Status list in the order it shows: by due date, so the overdue come
+ * A Status column (or the phone's section) in the order it shows: by due date, so the overdue come
  * first and the oldest first, the undated last in the server's order; a column the user has ordered (`manually_ordered`)
  * keeps the server's order, which is the user's. Infinity − Infinity is NaN, which sort reads as equal.
  */

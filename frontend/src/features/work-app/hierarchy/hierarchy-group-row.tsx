@@ -121,7 +121,10 @@ export function GroupRow({
   );
 }
 
-/** The Domain's colour dot before its name, when it has one; decoration only. */
+/**
+ * The Domain's colour before its name, when it has one: the 3 px line its Tasks carry on their left edge in Agenda and
+ * Status, drawn as tall as the name, so the heading and the rows read as one colour. Decoration only.
+ */
 export function DomainAccent({ node }: { node: WorkHierarchyNode }) {
   const accent = domainAccentOf(node.accent);
   return accent ? (
@@ -129,8 +132,6 @@ export function DomainAccent({ node }: { node: WorkHierarchyNode }) {
       className="work-accent hierarchy-accent"
       data-accent={accent}
       aria-hidden="true"
-    >
-      ●
-    </span>
+    />
   ) : null;
 }

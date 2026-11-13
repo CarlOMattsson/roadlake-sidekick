@@ -62,6 +62,14 @@ export const order = {
   'docs/maintainers': ['index', 'release', 'release-drill', 'verification', 'website-domain'],
 };
 
+// Page titles that replace the heading of the source document: page slug -> title per locale. Used where the heading
+// already contains the site name, which Starlight appends to every page title.
+export const titles = {
+  'docs/index': { en: 'Documentation', sv: 'Dokumentation' },
+  'docs/license': { en: 'License', sv: 'Licens' },
+  'docs/maintainers/release': { en: 'Release checklist', sv: 'Release-checklista' },
+};
+
 // Generated pages: page slug -> the generator that produces them (used for the report-a-problem link).
 export const generated = {};
 

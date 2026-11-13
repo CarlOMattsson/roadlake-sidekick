@@ -18,7 +18,7 @@ type Params = {
  * place with its Undo (`held`) until the server's reply replaces the row.
  *
  * Offline (the mobile app): a purchase that got no answer waits in the phone's outbox (`waiting`, item id → the state
- * that will be sent). The row keeps that state and says "Väntar på nät" instead of going back; it takes no new tap until
+ * that will be sent). The row keeps that state and says "Väntar på anslutning" instead of going back; it takes no new tap until
  * the outbox has sent it. When the outbox has run and the row has left it, the list is read again.
  */
 export function usePurchases({ transport, read, writes, onWritten }: Params) {

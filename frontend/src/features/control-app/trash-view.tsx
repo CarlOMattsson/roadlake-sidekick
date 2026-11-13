@@ -31,6 +31,7 @@ export function TrashView({
   now = () => new Date(),
   onData,
   onModelContext,
+  full = false,
   expanded,
   onExpandedChange,
 }: {
@@ -42,6 +43,8 @@ export function TrashView({
   onData?: (data: TrashList) => void;
   /** Called once a restore is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
+  /** The full view lists every row read so far; the inline card lists three behind "Show all". */
+  full?: boolean;
   /** Whether "Show all" is open; the card keeps it across tabs. */
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
@@ -190,7 +193,9 @@ export function TrashView({
         {labels.trashTitle}
       </h2>
       {items.length > 0 ? (
-        <p className="control-meta">{labels.trashMeta(items.length)}</p>
+        <p className="control-meta">
+          {labels.trashMeta(items.length, list.has_more)}
+        </p>
       ) : null}
       {notice?.tone === "error" ? (
         <div ref={noticeRef} tabIndex={-1}>
@@ -204,8 +209,9 @@ export function TrashView({
           items={items}
           keyOf={(item) => item.id}
           label={labels.trashTitle}
-          showAll={labels.showAll}
+          showAll={(count) => labels.showAll(count, list.has_more)}
           showFewer={labels.showFewer}
+          full={full}
           expanded={expanded}
           onExpandedChange={onExpandedChange}
           renderRow={(item) => {

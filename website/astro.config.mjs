@@ -3,7 +3,7 @@ import { defineConfig, passthroughImageService } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 import cspInlineHashes from './integrations/csp-inline-hashes.mjs';
-import sitemapRootDefault from './integrations/sitemap-root-default.mjs';
+import rootAsDefault from './integrations/root-as-default.mjs';
 import { lightTheme, darkTheme } from './src/styles/code-theme.mjs';
 
 import { SITE_URL, SITE_BASE, REPO_URL } from './site-config.mjs';
@@ -115,6 +115,6 @@ export default defineConfig({
     }),
     // Must come after Starlight: adds the hashes of Starlight's inline scripts to the CSP meta tag.
     cspInlineHashes(),
-    sitemapRootDefault(new URL(base.endsWith('/') ? base : `${base}/`, site).href),
+    rootAsDefault(new URL(base.endsWith('/') ? base : `${base}/`, site).href),
   ],
 });

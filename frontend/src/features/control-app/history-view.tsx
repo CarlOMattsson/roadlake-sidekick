@@ -36,6 +36,7 @@ export function HistoryView({
   onData,
   sendMessage,
   onModelContext,
+  full = false,
   expanded,
   onExpandedChange,
 }: {
@@ -50,6 +51,8 @@ export function HistoryView({
   sendMessage?: (text: string) => Promise<boolean>;
   /** Called once an undo is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
+  /** The full view lists every row read; the inline card lists three behind "Show all". */
+  full?: boolean;
   /** Whether "Show all" is open; the card keeps it across tabs. */
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
@@ -237,6 +240,7 @@ export function HistoryView({
           label={labels.views.history}
           showAll={labels.showAll}
           showFewer={labels.showFewer}
+          full={full}
           expanded={expanded}
           onExpandedChange={onExpandedChange}
           renderRow={({ change, entry, at }) => {

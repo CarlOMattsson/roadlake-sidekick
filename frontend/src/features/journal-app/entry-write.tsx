@@ -269,12 +269,8 @@ export function EntryTextForm({
           >
             {isNew ? t.saveEntry : t.appendTextSave}
           </button>
-          <button
-            type="button"
-            className="sk-btn--quiet"
-            disabled={busy}
-            onClick={cancel}
-          >
+          {/* The secondary form beside Save, as Avbryt is in every other form of the family (Inköp, Arbete). */}
+          <button type="button" disabled={busy} onClick={cancel}>
             {t.cancel}
           </button>
         </div>

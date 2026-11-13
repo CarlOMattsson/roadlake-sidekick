@@ -281,7 +281,7 @@ describe("record meta shows only the parts the record has", () => {
     };
     // With the agenda's group: no time for today, but the Project stands. Without a group the time shows too.
     expect(metaParts(today, workEn, { group: "today" })).toEqual(["Kök"]);
-    expect(metaParts(today, workEn)).toEqual(["today", "Kök"]);
+    expect(metaParts(today, workEn)).toEqual(["Today", "Kök"]);
     const overdue: WorkItemRecord = {
       ...today,
       due_at: "2026-10-23T09:00:00Z",

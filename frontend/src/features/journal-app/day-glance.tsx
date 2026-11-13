@@ -1,4 +1,5 @@
 import { formatDayHeading, formatTime } from "./dates";
+import { doneCountLine } from "./done-section";
 import type { JournalLabels } from "./labels";
 import type { JournalDay } from "./transport";
 import { CardFoot } from "../mcp-apps/ui/card";
@@ -13,9 +14,11 @@ const glanceEntryLimit = 3;
 /**
  * Inline day glance, shown inline: the weekday and date, the day's overview (at most three lines), the
  * first entries (each a button that opens that entry, at most three), the number of entries, a "Review N
- * drafts" button when drafts wait, and one action. The action asks the host for fullscreen when it is
- * offered, otherwise it expands the day inline; with more than three entries it reads "Show all". Zero
- * drafts are not mentioned. The glance reads nothing and writes nothing.
+ * drafts" button when drafts wait, what was done on the day as one muted count line («Gjort · 1 uppgift · 1 steg»,
+ * read-only; the fold with its rows is in the day view), and one action. A day with nothing written and no summary
+ * says so in one sentence instead of a count of zero. The action asks the host for fullscreen when it is offered,
+ * otherwise it expands the day inline; with more than three entries it reads "Show all". Zero drafts are not
+ * mentioned. The glance reads nothing and writes nothing.
  */
 export function DayGlance({
   day,
@@ -47,6 +50,8 @@ export function DayGlance({
   const overview = day.summary.content?.overview?.trim() || undefined;
   const shown = day.entries.slice(0, glanceEntryLimit);
   const more = day.entries.length > glanceEntryLimit;
+  const empty = day.entries.length === 0;
+  const doneLine = day.done ? doneCountLine(day.done, t) : "";
   return (
     <section className="sidekick-journal" aria-label={t.title}>
       <article className="journal-card sk-card">
@@ -54,12 +59,15 @@ export function DayGlance({
         <h2 className="sk-card__title">
           {formatDayHeading(day.journal_date, t.dateLocale, today)}
         </h2>
-        {/* With entries, no "no summary" line: the entries are the content of the glance. */}
+        {/* With entries, no "no summary" line: the entries are the content of the glance. An empty day says it in one
+            sentence, so no second line counts zero entries. */}
         {overview ? (
           <p className="journal-summary journal-card-summary">{overview}</p>
         ) : (
-          day.entries.length === 0 && (
-            <p className="journal-muted">{t.noSummary}</p>
+          empty && (
+            <p className="journal-muted">
+              {day.journal_date === today ? t.noEntriesToday : t.noEntries}
+            </p>
           )
         )}
         {shown.length > 0 && (
@@ -86,9 +94,16 @@ export function DayGlance({
             ))}
           </ul>
         )}
-        <p className="journal-muted">
-          {t.glanceEntries(day.entries.length, day.next_cursor !== null)}
-        </p>
+        {!empty && (
+          <p className="journal-muted">
+            {t.glanceEntries(day.entries.length, day.next_cursor !== null)}
+          </p>
+        )}
+        {doneLine && (
+          <p className="journal-muted journal-glance-done">
+            {t.done} · {doneLine}
+          </p>
+        )}
         <CardFoot>
           <div className="journal-actions sk-card__actions">
             <button

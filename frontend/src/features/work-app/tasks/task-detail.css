@@ -252,9 +252,25 @@
 }
 /* A Step row is the label alone, the whole width (no ⋯ and no line around the label; a long press, a right click or
    Shift+F10 opens the row's menu of Up, Down and Archive under the title). */
-/* The menu sits under the title, indented past the checkbox. */
+/* The menu sits under the title, indented past the checkbox: one row of buttons, Up, Down, Archive and "Visa
+   åtgärder" alike (the list controls' frame and size, manage.css), and × at the row's end. */
 .sidekick-work .work-step-menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0 0 0.4rem 1.85rem;
+}
+.sidekick-work .work-step-menu > .work-manage-controls {
+  display: contents;
+}
+.sidekick-work .work-step-menu > .work-step-actions-open {
+  min-width: 2.75rem;
+  padding-inline: 0.7rem;
+  font-size: 0.9rem;
+}
+.sidekick-work .work-step-menu > .work-step-menu-close {
+  margin-inline-start: auto;
 }
 /* A checked Step is drawn in the muted colour (AA on both schemes), so the open Steps read first; no strike-through and
    no black box (§4 Tillstånd "Klar"): its square is a tick in outline (status-glyph.css). */
@@ -338,9 +354,9 @@
   padding-inline-start: calc(var(--sk-icon) + var(--sk-s3));
 }
 
-/* The repeat rules as chips under the place row, the current one ticked, as the row menu's Status and Datum.
-   A row of their own across the whole width, so they wrap together and never beside the chips above. */
-.sidekick-work .work-repeat-choices {
+/* A chip's choices (the repeat rules, the priorities) under the place row, the current one ticked, as the row menu's
+   Status and Datum. A row of their own across the whole width, so they wrap together and never beside the chips above. */
+.sidekick-work .work-chip-choices {
   flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;

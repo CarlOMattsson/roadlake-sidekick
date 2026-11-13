@@ -506,7 +506,8 @@
 }
 /* The high-priority marker: the word carries it; the warning text and weight only make it stand out a little. */
 .sidekick-work .work-card-meta > .work-card-priority,
-.sidekick-work .work-chip > .work-card-priority {
+.sidekick-work .work-chip > .work-card-priority,
+.sidekick-work .work-prop-chip .work-card-priority[data-priority="high"] {
   white-space: nowrap;
   color: var(--work-warning-fg);
   font-weight: 600;
@@ -634,8 +635,12 @@
 }
 .sidekick-work .hierarchy-accent {
   flex: none;
-  color: var(--row-accent);
-  line-height: 1;
+  align-self: stretch;
+  width: 3px;
+  min-height: 1em;
+  margin-block: 0.15em;
+  border-radius: 1.5px;
+  background: var(--row-accent);
 }
 
 /* The columns layout's card: the title gets ≥ 75 % of the card. The ring stands on the title's first line,
@@ -679,10 +684,54 @@
   flex-basis: var(--work-card-lead);
   align-items: flex-start;
   width: var(--work-card-lead);
+  /* As tall as the ring on the title's first line, not 44: a 44 box made a one-line card 15 taller under its title
+     than a two-line one. The 44 target is the handle's ::after below. */
+  height: auto;
+  min-height: 0;
   /* The ring's middle on the title's first line: the title's 4 of padding and half its line. */
   padding-top: calc(
     0.25rem + var(--sk-type-row-line) / 2 - var(--sk-ring-glyph) / 2
   );
+}
+/* The card's targets: the title's cover spans the whole card (the title itself is only as tall as its text), and the
+   grip, the open move group and Ångra lie above that cover. */
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card {
+  position: relative;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button:not(.work-drag-handle) {
+  min-height: 0;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > button:not(.work-drag-handle)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > :is(.work-card-actions, .work-agenda-undo),
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > .work-drag-handle {
+  position: relative;
+  z-index: 1;
 }
 .sidekick-work
   .work-board:not([data-layout="single"])
@@ -692,7 +741,8 @@
   > .work-drag-handle::after {
   content: "";
   position: absolute;
-  inset: 0 -4px;
+  /* 44 high around the ring, 4 past the box on each side. */
+  inset: calc((100% - 44px) / 2) -4px;
 }
 .sidekick-work
   .work-board:not([data-layout="single"])

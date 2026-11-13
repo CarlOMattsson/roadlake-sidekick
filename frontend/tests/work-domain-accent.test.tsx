@@ -134,12 +134,12 @@ describe("hierarchy Domain shows an accent dot", () => {
     );
   }
 
-  it("draws a hidden dot with data-accent in the Domain heading before a valid accent", () => {
+  it("draws an empty accent span with data-accent in the Domain heading before a valid accent, the colour line being CSS", () => {
     const { container } = tree("teal");
     const dot = container.querySelector("h3 .hierarchy-accent");
     expect(dot).toHaveAttribute("data-accent", "teal");
     expect(dot).toHaveAttribute("aria-hidden", "true");
-    expect(dot?.textContent).toBe("●");
+    expect(dot?.textContent).toBe("");
   });
 
   it("draws no dot when the accent is null", () => {

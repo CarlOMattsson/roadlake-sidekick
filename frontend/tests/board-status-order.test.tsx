@@ -24,7 +24,7 @@ import type {
 /*
  * The phone's Status list (the "single" layout) sorts each section by due date, the overdue first and the undated
  * last in the server's order. A section the user has ordered (`manually_ordered`) keeps the server's order,
- * which is the user's. The tavla (columns) and drag-and-drop keep the server's order. jsdom has no layout, so the
+ * which is the user's. The columns layout shows the same order (board-kanban-cards.test.tsx). jsdom has no layout, so the
  * layout is forced with the `layout` prop.
  */
 

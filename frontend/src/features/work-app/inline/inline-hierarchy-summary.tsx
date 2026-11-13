@@ -4,6 +4,7 @@ import {
   hierarchyItems,
   hierarchyProgress,
 } from "../hierarchy/hierarchy-view";
+import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import type {
   WorkHierarchyFrame,
@@ -25,10 +26,12 @@ function isEnded(node: WorkHierarchyNode): boolean {
 
 /**
  * Inline hierarchy: the number of open Projects (active or paused), of open Processes when there are any, and of
- * Tasks in the frame, then up to three Projects by name, open ones first. An ended Project is not counted and
- * comes last in the list, marked with its status word ("Avslutat"); a paused one is marked "Pausat". A Project gets
- * its progress bar when the frame carries its Tasks (get_work_hierarchy with include_tasks); without them the
- * Tasks line and the bars are left out rather than shown as zero. A tree the server cut is marked with "+".
+ * Tasks in the frame, then up to three Projects by name, open ones first, each in the rows' one template: the name,
+ * and under it the meta line. An ended Project is not counted and comes last in the list, marked with its status word
+ * ("Avslutat"); a paused one is marked "Pausat". A Project gets its progress ("0 av 1 klara" and the bar), or "Inga
+ * uppgifter än", when the frame carries its Tasks (get_work_hierarchy with include_tasks); without them the Tasks line
+ * and the progress are left out rather than shown as zero. The rows are text, not buttons, so they carry no ›: "Visa
+ * alla" opens the Projects. A tree the server cut is marked with "+".
  */
 export function HierarchySummary({
   frame,
@@ -49,6 +52,7 @@ export function HierarchySummary({
   const listed = [...projects].sort(
     (a, b) => Number(isEnded(a)) - Number(isEnded(b)),
   );
+  const dl = hierarchyDetailLabelsFor(labels.dateLocale);
   const items = hierarchyItems(frame);
   const children = hierarchyChildren(items);
   const lines: CountLine[] = [
@@ -80,41 +84,42 @@ export function HierarchySummary({
     <ListSummary
       labels={labels}
       kindLabel={labels.kind.hierarchy}
+      className="work-compact-hierarchy"
       lines={lines}
       onOpen={onOpen}
-      openLabel={labels.showAll(
-        openProjects.length + openProcesses.length,
-        frame.truncated,
-      )}
+      openLabel={labels.showAll}
     >
-      {listed.slice(0, SUMMARY_PROJECTS).map((node) => {
-        const progress = hierarchyProgress(node, children);
-        const mark =
-          node.status && node.status !== "active"
-            ? statusLabel(labels, "project", node.status)
-            : undefined;
-        return (
-          <p key={node.id} className="work-compact-status">
-            <span>{node.title}</span>
-            {mark ? (
-              <>
-                {" "}
-                <span className="work-compact-mark">· {mark}</span>
-              </>
-            ) : null}
-            {progress ? (
-              <>
-                {" "}
-                <Progress
-                  done={progress.done}
-                  total={progress.total}
-                  label={labels.progressOf(progress.done, progress.total)}
-                />
-              </>
-            ) : null}
-          </p>
-        );
-      })}
+      <ul className="work-compact-rows">
+        {listed.slice(0, SUMMARY_PROJECTS).map((node) => {
+          const progress = hierarchyProgress(node, children);
+          const mark =
+            node.status && node.status !== "active"
+              ? statusLabel(labels, "project", node.status)
+              : undefined;
+          // Without the frame's Tasks nothing is known of the progress, so the line says nothing rather than "none".
+          const empty = frame.tasks && !progress ? dl.noTasks : undefined;
+          return (
+            <li key={node.id} className="work-compact-row">
+              <span className="work-compact-row-title">{node.title}</span>
+              {mark || progress || empty ? (
+                <span className="work-compact-row-meta">
+                  {mark ? (
+                    <span className="work-compact-mark">{mark}</span>
+                  ) : null}
+                  {progress ? (
+                    <Progress
+                      done={progress.done}
+                      total={progress.total}
+                      label={labels.progressOf(progress.done, progress.total)}
+                    />
+                  ) : null}
+                  {empty ? <span>{empty}</span> : null}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
     </ListSummary>
   );
 }

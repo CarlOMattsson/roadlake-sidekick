@@ -137,3 +137,32 @@ describe("Control tab meta lines", () => {
     expect(controlEn).not.toHaveProperty("trashCount");
   });
 });
+
+describe("Control deleted-items wording", () => {
+  it("calls the tab's contents the deleted, not the trash, in both languages", () => {
+    expect(controlSv.trashEmpty).toBe("Inget borttaget.");
+    expect(controlSv.trashEmptyHint).toMatch(
+      /^Det du tar bort hamnar här först/,
+    );
+    expect(controlEn.trashEmpty).toBe("Nothing deleted.");
+    expect(controlEn.trashEmptyHint).toMatch(
+      /^What you delete lands here first/,
+    );
+  });
+
+  it("does not state an exact count when more rows exist", () => {
+    expect(controlSv.trashMeta(30, true)).toBe(
+      "30+ borttagna · kan återställas",
+    );
+    expect(controlEn.trashMeta(30, true)).toBe("30+ deleted · can be restored");
+    expect(controlSv.trashMeta(1)).toBe("1 borttagen · kan återställas");
+    expect(controlSv.showAll(30, true)).toBe("Visa alla (30+)");
+    expect(controlEn.showAll(30, true)).toBe("Show all (30+)");
+    expect(controlEn.showAll(30)).toBe("Show all (30)");
+  });
+
+  it("says Claude asks Sidekick about the memory", () => {
+    expect(controlSv.memoryExplain).toMatch(/Claude kan fråga Sidekick om det/);
+    expect(controlEn.memoryExplain).toMatch(/Claude can ask Sidekick about it/);
+  });
+});

@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { workEn } from "@/features/work-app/shared/labels";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { WorkFullscreen } from "@/features/work-app/fullscreen/work-fullscreen";
 import type {
   WorkAgendaPage,
@@ -297,7 +298,9 @@ describe("Rensa sökningen in the fullscreen Work app", () => {
 
       await user.type(await openSearch(user), "k");
       await screen.findByText("Boka tandläkare");
-      await user.click(screen.getByRole("button", { name: workEn.more }));
+      await user.click(
+        screen.getByRole("button", { name: boardLabelsEn.showMore }),
+      );
 
       expect(fake.getWorkBoard).toHaveBeenLastCalledWith({ q: "k" }, "hits-2");
       expect(await screen.findByText("Köp mjölk")).toBeInTheDocument();

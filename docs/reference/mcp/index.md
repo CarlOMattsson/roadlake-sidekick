@@ -21,7 +21,7 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 - [`update_task`](tasks.md#update_task): Update explicit fields of one owned task at its current version; retry-safe with the same idempotency key. (write)
 - [`complete_task`](tasks.md#complete_task): Mark one owned task complete using its current version. (write)
 - [`reschedule_tasks`](tasks.md#reschedule_tasks): Use this when the user wants to move 1 to 20 tasks at once, for example to tomorrow, next week (Monday), a given date, or to clear the due date. (write)
-- [`get_work_board`](tasks.md#get_work_board): Use this for the status board: one bounded page of Work records in manual order, grouped into status columns. (read)
+- [`get_work_board`](tasks.md#get_work_board): Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns. (read)
 - [`get_work_agenda`](tasks.md#get_work_agenda): Use this for one bounded page of dated Work records, grouped as overdue, today, upcoming or scheduled later. (read)
 
 ### [Steps and actions](steps-and-actions.md)
@@ -75,8 +75,8 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 - [`get_journal_day`](journal.md#get_journal_day): Use this for bounded entries and summary status on one explicit date. (read)
 - [`get_journal_source`](journal.md#get_journal_source): Use this for one known owned source UUID to read its immutable provenance: type, dates, language, replacement link, and fingerprint. (read)
 - [`list_pending_journal`](journal.md#list_pending_journal): Use this for a bounded list of preserved sources on one explicit date range that still await manual or AI-assisted review, with draft state and no source text. (read)
-- [`write_journal_entry`](journal.md#write_journal_entry): Use this when the user asks to write or save a journal entry (e.g. "skriv dagbok"). (write)
-- [`update_journal_entry`](journal.md#update_journal_entry): Use this to add to, correct or relink an existing journal entry (e.g. 'lägg till i dagens dagbok'); read it first and send its current version. (write)
+- [`write_journal_entry`](journal.md#write_journal_entry): Use this when the user asks to write or save a journal entry (e.g. "write my journal"). (write)
+- [`update_journal_entry`](journal.md#update_journal_entry): Use this to add to, correct or relink an existing journal entry (e.g. 'add to today's journal'); read it first and send its current version. (write)
 - [`set_daily_journal_summary`](journal.md#set_daily_journal_summary): Use this when the user asks you to write or replace the daily journal summary for one explicit date. (write)
 - [`get_journal_draft`](journal.md#get_journal_draft): Use this only when the user wants to review one known owned AI-derived journal draft UUID. (read)
 

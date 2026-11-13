@@ -159,12 +159,12 @@ export function approvedSuggestions(draft: JournalDraft, base: Plan): Plan {
   return { picked, picks };
 }
 
-/** The chosen state in text, so it never relies on colour alone. */
+/** The chosen state in text, so it never relies on colour alone. Nothing while undecided: the unpressed pair says that. */
 export function decisionStatus(
   decision: Decision | null,
   t: JournalLabels,
-): string {
+): string | undefined {
   if (decision === "approve") return t.decisionApproved;
   if (decision === "decline") return t.decisionDeclined;
-  return t.decisionOpen;
+  return undefined;
 }

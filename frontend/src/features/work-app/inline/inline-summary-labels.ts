@@ -66,6 +66,8 @@ export const inlineSummaryLabelsEn = {
   agendaEmpty: "Nothing overdue or due today.",
   /** The label before the agenda card's first overdue row, after today's. */
   agendaOverdueLabel: "Overdue",
+  /** The label over today's rows when overdue rows follow them. */
+  agendaTodayLabel: "Today",
   projectCount: "Projects",
   processCount: "Processes",
   taskCount: "Tasks",
@@ -86,10 +88,10 @@ export const inlineSummaryLabelsEn = {
   loading: "Loading…",
   empty: "Nothing to show.",
   retry: "Try again",
-  /** Opens a summary's full view: "Show all (25)", "Show task", "Show project", "Show more" on a Task. */
+  /** Opens a summary's full view: "Show all", "Show task", "Show project", "Show more" on a Task. */
   open: "Open",
-  showAll: (count: number, more: boolean) =>
-    `Show all (${count}${more ? "+" : ""})`,
+  /** The foot of a list card; its title already says how many ("12 contacts"), so the button does not repeat it. */
+  showAll: "Show all",
   /** The Open button of the agenda card; the counts stand in its kicker. */
   openAgenda: "Open Agenda",
   showMore: "Show more",
@@ -169,6 +171,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     hidden > 0 ? `${hidden}${more ? "+" : ""} fler` : "",
   agendaEmpty: "Inget försenat och inget för idag.",
   agendaOverdueLabel: "Försenade",
+  agendaTodayLabel: "Idag",
   projectCount: "Projekt",
   processCount: "Processer",
   taskCount: "Uppgifter",
@@ -187,8 +190,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   empty: "Inget att visa.",
   retry: "Försök igen",
   open: "Öppna",
-  showAll: (count: number, more: boolean) =>
-    `Visa alla (${count}${more ? "+" : ""})`,
+  showAll: "Visa alla",
   /** The "Öppna" button on the agenda card; the counts stand in the kicker. */
   openAgenda: "Öppna Agenda",
   showMore: "Visa mer",

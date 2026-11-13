@@ -16,11 +16,11 @@ def flat(value: str, limit: int | None = None) -> str:
 
 
 def rows_text(header: str, rows: Sequence[str]) -> str:
-    """A header line, then at most MAX_ROWS rows, then `… N till` for the rows not shown."""
+    """A header line, then at most MAX_ROWS rows, then `… N more` for the rows not shown."""
 
     lines = [header, *rows[:MAX_ROWS]]
     if len(rows) > MAX_ROWS:
-        lines.append(f"… {len(rows) - MAX_ROWS} till")
+        lines.append(f"… {len(rows) - MAX_ROWS} more")
     return "\n".join(lines)
 
 

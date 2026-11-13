@@ -205,7 +205,7 @@ describe("control entry before and at the first answer", () => {
   it("shows the failure as an alert when the first answer is an error", async () => {
     deliver({ code: "forbidden" }, true, "list_trash");
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Papperskorgen kunde inte hämtas",
+      "Det borttagna kunde inte hämtas",
     );
   });
 
@@ -223,7 +223,7 @@ describe("control entry before and at the first answer", () => {
     });
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Papperskorgen kunde inte hämtas",
+      "Det borttagna kunde inte hämtas",
     );
     expect(screen.getByRole("alert")).not.toHaveTextContent("upstream detail");
     expect(

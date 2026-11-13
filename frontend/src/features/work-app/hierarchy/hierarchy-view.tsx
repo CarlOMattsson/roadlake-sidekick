@@ -183,9 +183,29 @@ export function HierarchyView({
         <div ref={listRef} className="work-tree">
           {sections.map((section) =>
             section.domain === null ? (
-              <ul key="orphans" className="work-list">
-                {section.groups.map((node) => row(node))}
-              </ul>
+              // Beside Domains, the Projects outside them are a group of their own with a heading ("Utan domän");
+              // without any Domain the list has no headings at all (progressive concepts: Domains show once made).
+              sections.length > 1 ? (
+                <section
+                  key="orphans"
+                  className="work-tree-domain"
+                  aria-labelledby="work-tree-orphans"
+                >
+                  <h3
+                    id="work-tree-orphans"
+                    className="work-agenda-group work-tree-heading work-tree-heading-none"
+                  >
+                    {dl.noDomain}
+                  </h3>
+                  <ul className="work-list">
+                    {section.groups.map((node) => row(node))}
+                  </ul>
+                </section>
+              ) : (
+                <ul key="orphans" className="work-list">
+                  {section.groups.map((node) => row(node))}
+                </ul>
+              )
             ) : (
               <section
                 key={section.domain.id}

@@ -70,7 +70,7 @@ _KIND_WORDS: dict[str, str] = {
 
 
 # Spoken verbs for actions that do not read well as the stored action name.
-_ACTION_WORDS: dict[str, str] = {"purchased": "bought", "reopened": "put back"}
+_ACTION_WORDS: dict[str, str] = {"purchased": "bought"}
 # Links can only be removed in the app; the unlink tools are app-only, so no row names them.
 _LINK_KINDS = frozenset({"contact_task_link", "contact_project_link", "external_reference_link"})
 # The first line names at most this many changes, then "and N more".

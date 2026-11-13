@@ -38,6 +38,7 @@ export function ProposalsSection({
     <Disclosure
       id={id}
       title={t.proposals}
+      foldTitle={t.proposalsFold}
       count={draft.task_proposal_count}
       open={open}
       onToggle={onToggle}
@@ -49,7 +50,8 @@ export function ProposalsSection({
       {hidden && <p role="status">{t.hiddenProposals}</p>}
       {draft.task_proposals.length > 0 && (
         <fieldset className="journal-fieldset">
-          <legend>{t.proposals}</legend>
+          {/* The group keeps its name for a screen reader; the heading above already shows it. */}
+          <legend className="journal-visually-hidden">{t.proposals}</legend>
           {draft.task_proposals.map((proposal) => (
             <ProposalCheck
               key={proposal.proposal_id}

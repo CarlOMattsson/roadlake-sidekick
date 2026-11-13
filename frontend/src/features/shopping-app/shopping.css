@@ -357,6 +357,12 @@
   overflow-wrap: anywhere;
   font-size: 0.9rem;
 }
+/* "+N more" under the listed items: muted, in the same size as the items. */
+.sidekick-shopping .shopping-card-more {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--sk-muted);
+}
 /* The card's Open is a text button (sk-btn--open, family.css): it keeps its own width in the card's column. */
 .shopping-card-open {
   align-self: flex-start;

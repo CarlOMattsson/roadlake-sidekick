@@ -77,6 +77,12 @@
   color: var(--sk-overdue-fg);
 }
 
+/* The hierarchy card's rows keep the agenda card's template: the name (two lines at most), the meta line always under
+   it, never beside a short name. They are text, so they have no › and no button. */
+.sidekick-work .work-compact-hierarchy .work-compact-row {
+  display: block;
+}
+
 /* The empty sentence: --sk-type-body, muted. */
 .sidekick-work .work-compact-agenda > .work-compact-status {
   font-size: var(--sk-type-body-size);

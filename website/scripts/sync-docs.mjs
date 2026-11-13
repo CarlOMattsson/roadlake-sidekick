@@ -187,6 +187,7 @@ export function run(opts = {}) {
   for (const [dir, names] of Object.entries(map.order ?? {})) {
     for (const n of names) if (!urls.has(`${dir}/${n}`.replace(/\/index$/, ''))) missing.push(`order: ${dir}/${n}`);
   }
+  for (const slug of Object.keys(map.titles ?? {})) if (!urls.has(slug.replace(/\/index$/, ''))) missing.push(`titles: ${slug}`);
   for (const a of map.assets ?? []) if (!source.isDir(a.replace(/\/$/, ''))) missing.push(`assets: ${a}`);
   for (const gen of Object.keys(map.generated ?? {})) if (!urls.has(gen)) missing.push(`generated: ${gen}`);
   if (opts.verifyOnly) return { pages, missing, errors: missing.map((m) => `Missing source in content-map.mjs: ${m}`), warnings };
@@ -368,7 +369,9 @@ export function run(opts = {}) {
   };
 
   for (const page of pages) {
-    const { title, description, body } = convert(page);
+    const converted = convert(page);
+    const { description, body } = converted;
+    const title = map.titles?.[page.slug]?.[page.locale] ?? converted.title;
     const order = orderOf(page);
     const fm = ['---', `title: ${yamlStr(title)}`, `description: ${yamlStr(description)}`];
     if (order !== null) fm.push('sidebar:', `  order: ${order}`);

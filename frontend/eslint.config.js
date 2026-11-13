@@ -50,7 +50,7 @@ const MAX_FILE_LINES = 500;
 // never raise a number.
 const OVERSIZED_FILES = {
   "src/features/journal-app/day-frame.tsx": 520,
-  "src/features/journal-app/labels.ts": 520,
+  "src/features/journal-app/labels.ts": 515,
   "src/features/journal-app/transport.ts": 510,
   "src/features/work-app/contacts/contacts-list.tsx": 600,
   "src/features/work-app/shared/labels.ts": 550,

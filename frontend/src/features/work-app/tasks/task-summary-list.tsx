@@ -129,7 +129,7 @@ export function TaskSummaryList({
                     <p role="status" className="work-card-meta">
                       {statusText}
                     </p>
-                  ) : (
+                  ) : showDue || showStatus || done ? (
                     <p className="work-card-meta">
                       {showDue && task.due_at && (
                         <span className="work-card-due">
@@ -139,7 +139,8 @@ export function TaskSummaryList({
                       {showStatus && <span>{statusText}</span>}
                       {done && <span>{statusText}</span>}
                     </p>
-                  )}
+                  ) : // No meta to show: no empty line under the title, so a one-line row is as tall as the Agenda's.
+                  null}
                 </div>
                 {entry?.undo ? (
                   <RowUndo

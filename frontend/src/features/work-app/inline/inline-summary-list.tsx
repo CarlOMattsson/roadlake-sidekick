@@ -186,14 +186,16 @@ export function InlineRow({
 /**
  * An inline row's meta: the time and the status on one line, "9 dagar försenad · Pågår", from the builder of
  * the fullscreen rows (`rowStatus`, `rowDue`), so the agenda and the board say the same of the same Task. No Project: the card is short.
+ * Under a group that says the day (`group` "today", the agenda card's "Idag"), the row does not say it again.
  */
 export function inlineMeta(
   item: WorkItemRecord,
   now: Date,
   locale: string,
   word: (status: string) => string,
+  group?: string,
 ): InlineMetaPart[] {
-  const due = rowDue(item, now, locale);
+  const due = rowDue(item, now, locale, group);
   return [
     { text: due?.text ?? "", tone: due?.tone },
     { text: rowStatus(item, word) ?? "" },

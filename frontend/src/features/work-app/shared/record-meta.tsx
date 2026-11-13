@@ -19,7 +19,9 @@ export function rowStatus(
 }
 
 /**
- * The time of a row: "9 dagar försenad" when overdue, else the date as a sentence part ("fre 6 nov", "idag").
+ * The time of a row: "9 dagar försenad" when overdue, else the date ("Fre 6 nov", "Idag"). It starts the meta line, so
+ * it starts with a capital, as every line of the app does and as a Contact's or Project's Task rows (TaskDue) write it:
+ * "Idag · Pågår", "Today · In progress".
  * None for a done or cancelled record, and none under "Idag" for a Task due today, as the group says it; an overdue
  * time always stands.
  */
@@ -43,9 +45,7 @@ export function rowDue(
   if (!due.text || (group === "today" && due.tone === "today")) return null;
   return {
     text:
-      due.tone === "overdue"
-        ? due.text
-        : workDate(item.due_at, now, locale, { inline: true }),
+      due.tone === "overdue" ? due.text : workDate(item.due_at, now, locale),
     tone: due.tone,
     at: item.due_at,
   };

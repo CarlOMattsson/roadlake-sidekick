@@ -103,7 +103,7 @@ Returns: `ContactResult` with `contact` (ContactRecord).
 | `changes.phone` | string | no | up to 64 characters; may be null |
 | `changes.relationship` | string | no | up to 80 characters; may be null |
 | `changes.role` | string | no | up to 120 characters; may be null |
-| `changes.tags` | array of string | no | up to 10 items; Complete tag set, e.g. 'viktig', 'vänta', 'familj'; replaces the current set, [] clears it. |
+| `changes.tags` | array of string | no | up to 10 items; Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it. |
 | `contact_id` | uuid | yes | - |
 | `expected_version` | integer | yes | - |
 | `idempotency_key` | string | yes | 8 to 128 characters |

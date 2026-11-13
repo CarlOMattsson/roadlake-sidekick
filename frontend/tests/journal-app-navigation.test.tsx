@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { journalEn, journalSv } from "@/features/journal-app/labels";
 import { JournalView } from "@/features/journal-app/journal-view";
-import type { JournalFrame } from "@/features/journal-app/transport";
+import type {
+  JournalFrame,
+  JournalPendingItem,
+} from "@/features/journal-app/transport";
 import {
   entryId,
   sourceId,
@@ -505,8 +508,9 @@ describe("journal app navigation", () => {
         "Open a draft to review it. Nothing is saved until you save it.",
       ),
     ).toBeInTheDocument();
+    // The row is one button: its name is the title and the meta line.
     expect(
-      screen.getByRole("button", { name: "Utkast om offerten" }),
+      screen.getByRole("button", { name: /^Utkast om offerten/ }),
     ).toBeInTheDocument();
     expect(screen.getAllByRole("button")).toHaveLength(1);
   });
@@ -521,9 +525,11 @@ describe("journal app navigation", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Draft 2" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Draft 3" }),
+      screen.getByRole("button", { name: /^Draft 2/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /^Draft 3/ }),
     ).not.toBeInTheDocument();
     const more = screen.getByRole("button", {
       name: journalEn.pendingMore(7),
@@ -532,7 +538,9 @@ describe("journal app navigation", () => {
     expect(more.style.minHeight).toBe("44px");
 
     await userEvent.click(more);
-    expect(screen.getByRole("button", { name: "Draft 9" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Draft 9/ }),
+    ).toBeInTheDocument();
     const less = screen.getByRole("button", { name: journalEn.pendingLess });
     expect(less).toHaveAttribute("aria-expanded", "true");
   });
@@ -547,7 +555,9 @@ describe("journal app navigation", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Draft 9" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Draft 9/ }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: journalEn.pendingMore(7) }),
     ).not.toBeInTheDocument();
@@ -564,7 +574,7 @@ describe("journal app navigation", () => {
 
     expect(
       screen.getByText(
-        "Öppna ett utkast för att granska det. Inget sparas förrän du väljer det.",
+        "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(journalSv.pendingEmpty)).toBeInTheDocument();
@@ -595,12 +605,14 @@ describe("journal app navigation", () => {
       />,
     );
 
+    // A source without a draft is named by its state, so the meta line does not repeat it; the row is no button.
     expect(
-      screen.getByText("26 okt. 2026 · Transkription"),
+      screen.getByText("Utkast som väntar på granskning"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Utkast som väntar på granskning · 1 840 tecken"),
+      screen.getByText("26 okt. 2026 · Transkription · 1 840 tecken"),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
     expect(
       screen.queryByText(/transcript_text|draft_pending_review/),
     ).toBeNull();
@@ -631,9 +643,11 @@ describe("journal app navigation", () => {
         labels={journalSv}
       />,
     );
+    expect(screen.getByText("Sparad, ej granskad")).toBeInTheDocument();
     expect(
-      screen.getByText("Sparad, ej granskad · 90 tecken"),
+      screen.getByText("26 okt. 2026 · Egen text · 90 tecken"),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText(/source_saved/)).toBeNull();
     unmount();
 
@@ -644,10 +658,85 @@ describe("journal app navigation", () => {
         labels={journalEn}
       />,
     );
+    expect(screen.getByText("Saved, not reviewed")).toBeInTheDocument();
     expect(
-      screen.getByText("Saved, not reviewed · 90 characters"),
+      screen.getByText("26 Oct 2026 · Typed text · 90 characters"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/source_saved/)).toBeNull();
+  });
+
+  it("leaves the state out of the meta line for a draft awaiting review and shows it for any other state", () => {
+    const item = (
+      n: number,
+      state: JournalPendingItem["state"],
+      draftTitle: string | null,
+    ): JournalPendingItem => ({
+      ...(pendingRows(1)[0] as JournalPendingItem),
+      source_id: `${sourceId}-state-${n}`,
+      state,
+      draft_id: `draft-state-${n}`,
+      draft_title: draftTitle,
+    });
+    render(
+      <JournalView
+        transport={transportMock()}
+        initial={{
+          kind: "pending",
+          page: {
+            items: [
+              item(1, "draft_pending_review", "Awaiting one"),
+              item(2, "source_saved", "Saved one"),
+              item(3, "draft_pending_review", null),
+            ],
+          },
+        }}
+        labels={journalEn}
+      />,
+    );
+
+    // The spans carry no space between them in the computed name, so the title and the meta are matched apart.
+    expect(
+      screen.getByRole("button", {
+        name: /^Awaiting one.*24 Oct 2026 · Typed text · 42 characters$/,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: /^Saved one.*24 Oct 2026 · Saved, not reviewed · Typed text · 42 characters$/,
+      }),
+    ).toBeInTheDocument();
+    // A draft without a title is still a button, named "Untitled draft", and awaiting review is not repeated.
+    expect(
+      screen.getByRole("button", {
+        name: /^Untitled draft.*24 Oct 2026 · Typed text · 42 characters$/,
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Draft awaiting review/)).toBeNull();
+  });
+
+  it("makes a source without a draft and without a title a plain row named by its state", () => {
+    render(
+      <JournalView
+        transport={transportMock()}
+        initial={{
+          kind: "pending",
+          page: {
+            items: [
+              {
+                ...(pendingRows(1)[0] as JournalPendingItem),
+                state: "source_saved",
+                draft_id: null,
+                draft_title: null,
+              },
+            ],
+          },
+        }}
+        labels={journalEn}
+      />,
+    );
+
+    expect(screen.getByText("Saved, not reviewed")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("lists only the linked kinds that have entries in an entry view", async () => {

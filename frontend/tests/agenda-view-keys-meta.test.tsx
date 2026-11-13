@@ -137,8 +137,8 @@ it("a due date reads relative to now, with the board's wording and tone", () => 
   expect(overdue).toHaveAttribute("datetime", "2026-10-24");
   // The row under "Idag" names no date: its group heading already says the day.
   expect(rowOf(other.title).querySelector("time")).toBeNull();
-  // Inside a meta line the next day reads in lower case, as on the board.
-  const tomorrow = screen.getByText("tomorrow", { selector: "time" });
+  // At the start of a meta line the next day reads with a capital, as on the board.
+  const tomorrow = screen.getByText("Tomorrow", { selector: "time" });
   expect(tomorrow).toHaveAttribute("data-tone", "soon");
   expect(tomorrow).toHaveAttribute("datetime", "2026-10-27");
   // The exact "Due: date" form is replaced by the relative one.

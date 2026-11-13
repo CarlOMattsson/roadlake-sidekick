@@ -12,6 +12,7 @@ import {
   type BoardNotice,
 } from "./board-notice";
 import type { BoardUndo } from "./board-columns";
+import { boardLabelsFor } from "./board-labels";
 import {
   useBoardLayout,
   useColumnsOverflow,
@@ -184,7 +185,7 @@ export function BoardView({
   );
   const more = page.next_cursor && (
     <button type="button" disabled={disabled} onClick={loadMore}>
-      {t.more}
+      {boardLabelsFor(t.dateLocale).showMore}
     </button>
   );
   // One article for both layouts, so the measured root and the columns row survive a change of layout.

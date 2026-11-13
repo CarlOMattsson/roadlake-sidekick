@@ -880,8 +880,8 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { project: projectRecord },
     replies: workReplies,
-    // The compact card shows no Edit: open the full Project with "Visa projektet", where Edit is a button.
-    steps: chain(buttonText(SHOW_PROJECT), buttonText(/^(Redigera|Edit)$/)),
+    // The compact card shows no Edit: open the full Project with "Visa projektet"; Edit is in its ⋯.
+    steps: chain(buttonText(SHOW_PROJECT), menuEntry(/^(Redigera|Edit)$/)),
   },
   // ----- Work: cards and contacts -----
   {

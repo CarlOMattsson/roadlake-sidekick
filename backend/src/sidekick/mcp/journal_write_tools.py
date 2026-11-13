@@ -166,7 +166,8 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
     @mcp.tool(
         name="write_journal_entry",
         description=(
-            'Use this when the user asks to write or save a journal entry (e.g. "skriv dagbok"). '
+            "Use this when the user asks to write or save a journal entry "
+            '(e.g. "write my journal"). '
             "It saves the user's own words as an immutable source and creates the entry in one "
             "step: supply the date, title, summary, key points and, only when named, related "
             "project, task or contact ids. Do not look up or create a source first, or call "
@@ -228,8 +229,8 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
     @mcp.tool(
         name="update_journal_entry",
         description=(
-            "Use this to add to, correct or relink an existing journal entry (e.g. 'lägg till i "
-            "dagens dagbok'); read it first and send its current version. To add, send "
+            "Use this to add to, correct or relink an existing journal entry (e.g. 'add to "
+            "today's journal'); read it first and send its current version. To add, send "
             "append_key_points and/or append_text (her own words, a new source). To correct, send "
             "title and key_points, which replace title, summary and key points. To fix its links, "
             "send add_/remove_contact_ids or add_/remove_project_ids, or tags (the complete tag "

@@ -75,7 +75,7 @@ const errorSv: typeof errorEn = {
     "contacts:compact": "Kontakten kunde inte hämtas",
     shopping: "Inköpslistan kunde inte hämtas",
     "shopping:lists": "Listorna kunde inte hämtas",
-    control: "Papperskorgen kunde inte hämtas",
+    control: "Det borttagna kunde inte hämtas",
     "control:history": "Historiken kunde inte hämtas",
     "control:memory": "Minnesinställningarna kunde inte hämtas",
   },

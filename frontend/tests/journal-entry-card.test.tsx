@@ -287,12 +287,13 @@ describe("journal entry card", () => {
     ).toBeInTheDocument();
   });
 
-  it("says saved with the date and the time the result carries, without 'at'", () => {
+  it("names the day and time the entry is filed under, with no 'saved' and no 'at'", () => {
     deliver({ entry: { ...created, occurred_at: "2026-10-24T14:05:00" } });
-    expect(screen.getByText("saved 24 Oct 14:05")).toBeInTheDocument();
+    expect(screen.getByText("24 Oct 14:05")).toBeInTheDocument();
+    expect(screen.getByRole("status")).not.toHaveTextContent(/saved/);
   });
 
-  it("says saved with the time for today, saved yesterday with the time, and the date only for other days", () => {
+  it("says today with the time, yesterday with the time, and the date only for other days", () => {
     deliver({
       entry: {
         ...created,
@@ -300,7 +301,7 @@ describe("journal entry card", () => {
         occurred_at: "2026-11-03T12:30:00",
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^saved 12:30$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^today 12:30$/);
 
     deliver({
       entry: {
@@ -309,21 +310,33 @@ describe("journal entry card", () => {
         occurred_at: "2026-11-02T18:05:00",
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /^saved yesterday 18:05$/,
-    );
+    expect(screen.getByRole("status")).toHaveTextContent(/^yesterday 18:05$/);
 
     deliver({
       entry: { ...created, journal_date: "2025-12-31", occurred_at: null },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^saved 31 Dec 2025$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^31 Dec 2025$/);
   });
 
-  it("says saved today without a time when the result carries none", () => {
+  it("says today without a time when the result carries none", () => {
     deliver({
       entry: { ...created, journal_date: "2026-11-03", occurred_at: null },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^saved today$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^today$/);
+  });
+
+  it("says only saved when the result carries no journal date", () => {
+    deliver({
+      entry: { ...created, journal_date: undefined, occurred_at: null },
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(/^saved$/);
+  });
+
+  it("puts the Open button straight into the card foot, with no actions wrapper around it", () => {
+    deliver({ entry: created });
+    const open = screen.getByRole("button", { name: "Open entry" });
+    expect(open.closest(".journal-actions")).toBeNull();
+    expect(open.parentElement).toBe(open.closest("article"));
   });
 
   it("does not repeat a summary that is the title again, ignoring case and spaces", () => {

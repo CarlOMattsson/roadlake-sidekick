@@ -37,6 +37,24 @@ describe("Fold, the one fold row", () => {
     expect(fold).toHaveAttribute("aria-expanded", "true");
     expect(fold.querySelector(".sk-fold-meta")).toBeNull();
   });
+
+  it("names the region it opens through aria-controls when given one, and leaves the attribute out otherwise", () => {
+    const { rerender } = render(
+      <Fold
+        text="Links (3)"
+        open={false}
+        onToggle={vi.fn()}
+        controls="body-1"
+      />,
+    );
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "aria-controls",
+      "body-1",
+    );
+
+    rerender(<Fold text="Links (3)" open={false} onToggle={vi.fn()} />);
+    expect(screen.getByRole("button")).not.toHaveAttribute("aria-controls");
+  });
 });
 
 describe("the fold row and the action row in CSS", () => {

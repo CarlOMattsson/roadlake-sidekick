@@ -107,12 +107,13 @@ describe("journal entry card in Swedish", () => {
     );
   });
 
-  it("says sparad in Swedish with the date and the time, and no kl.", () => {
+  it("names the day and time in Swedish without sparad and without kl.", () => {
     deliver({ entry: { ...created, occurred_at: "2026-10-24T14:05:00" } });
-    expect(screen.getByText("sparad 24 okt 14:05")).toBeInTheDocument();
+    expect(screen.getByText("24 okt 14:05")).toBeInTheDocument();
+    expect(screen.getByRole("status")).not.toHaveTextContent(/sparad/);
   });
 
-  it("says sparad with the time for an entry from today", () => {
+  it("says idag with the time for an entry from today", () => {
     deliver({
       entry: {
         ...created,
@@ -120,14 +121,32 @@ describe("journal entry card in Swedish", () => {
         occurred_at: "2026-11-03T12:30:00",
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^sparad 12:30$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^idag 12:30$/);
   });
 
-  it("says sparad idag for an entry from today without a time", () => {
+  it("says igår with the time for an entry from yesterday", () => {
+    deliver({
+      entry: {
+        ...created,
+        journal_date: "2026-11-02",
+        occurred_at: "2026-11-02T18:05:00",
+      },
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(/^igår 18:05$/);
+  });
+
+  it("says idag for an entry from today without a time", () => {
     deliver({
       entry: { ...created, journal_date: "2026-11-03", occurred_at: null },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^sparad idag$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^idag$/);
+  });
+
+  it("says only sparad when the result carries no journal date", () => {
+    deliver({
+      entry: { ...created, journal_date: undefined, occurred_at: null },
+    });
+    expect(screen.getByRole("status")).toHaveTextContent(/^sparad$/);
   });
 
   it("shows Sammanfattad av Claude in the Swedish meta line, not the saved note, and no Visa originaltext in the card", () => {

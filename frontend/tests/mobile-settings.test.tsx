@@ -128,7 +128,7 @@ describe("SettingsPanel: Aviseringar", () => {
     panel(native);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Aviseringarnas läge kunde inte läsas.",
+      "Aviseringarnas status kunde inte läsas.",
     );
     await user.click(screen.getByRole("button", { name: "Försök igen" }));
     expect(await screen.findByText("Aviseringar är på.")).toBeVisible();
@@ -333,7 +333,7 @@ describe("SettingsPanel: Den här telefonen", () => {
     expect(screen.getByText("Kopplad sedan sön 1 nov")).toBeVisible();
     expect(
       screen.getByText(
-        "Inloggningen förnyas automatiskt. Giltig till sön 15 nov.",
+        "Kopplingen förnyas automatiskt. Giltig till sön 15 nov.",
       ),
     ).toBeVisible();
   });
@@ -344,7 +344,9 @@ describe("SettingsPanel: Den här telefonen", () => {
     expect(await screen.findByText("Connected since Sun 1 Nov")).toBeVisible();
     expect(screen.getByText("Server: sidekick.example")).toBeVisible();
     expect(
-      screen.getByText("Sign-in renews automatically. Valid until Sun 15 Nov."),
+      screen.getByText(
+        "The connection renews automatically. Valid until Sun 15 Nov.",
+      ),
     ).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Disconnect this phone" }),
@@ -358,7 +360,7 @@ describe("SettingsPanel: Den här telefonen", () => {
 
     expect(await screen.findByText("Telefon utan namn")).toBeVisible();
     expect(screen.queryByText(/^Kopplad sedan/)).toBeNull();
-    expect(screen.getByText("Inloggningen förnyas automatiskt.")).toBeVisible();
+    expect(screen.getByText("Kopplingen förnyas automatiskt.")).toBeVisible();
   });
 
   it("shows a failed read with a retry", async () => {
@@ -557,7 +559,7 @@ describe("the settings in the mobile app", () => {
 
     expect(
       await screen.findByText(
-        "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen under Kontroll i Claude, eller be den som sköter servern.",
+        "Telefonen är frånkopplad, men servern kunde inte bekräfta det. Be den som sköter servern spärra telefonen, eller koppla den på nytt.",
       ),
     ).toBeVisible();
   });

@@ -18,12 +18,13 @@ import { useUnsavedGuard } from "../../mcp-apps/unsaved-guard";
 
 /** The priorities the form offers; a Task with urgent keeps that value, shown as an extra option. */
 type PriorityChoice = NonNullable<WorkTaskChanges["priority"]>;
-const PRIORITY_CHOICES = [
+/** The priorities a Task can be given here; the editor and the priority chip offer these. */
+export const PRIORITY_CHOICES = [
   "low",
   "normal",
   "high",
 ] as const satisfies readonly PriorityChoice[];
-function isPriorityChoice(value: string): value is PriorityChoice {
+export function isPriorityChoice(value: string): value is PriorityChoice {
   return (PRIORITY_CHOICES as readonly string[]).includes(value);
 }
 

@@ -52,7 +52,7 @@ export const queueNoticeLabelsSv: QueueNoticeLabels = {
 };
 
 export const queueNoticeLabelsEn: QueueNoticeLabels = {
-  failed: "Shopping that wasn’t sent",
+  failed: "Shopping items that weren’t sent",
   items: "items",
   more: (names, count) => `${names} and ${count} more`,
   bought: "Marking an item as bought",
@@ -63,8 +63,8 @@ export const queueNoticeLabelsEn: QueueNoticeLabels = {
   remove: "Remove",
   actionFailed: "That didn’t work. Try again in a moment.",
   notRetried:
-    "It could not be put back in the queue. Remove it and add it again.",
-  notRemoved: "It could not be removed. Try again in a moment.",
+    "It couldn’t be put back in the queue. Remove it and add it again.",
+  notRemoved: "It couldn’t be removed. Try again in a moment.",
 };
 
 export function queueNoticeLabelsFor(locale: AppLocale): QueueNoticeLabels {

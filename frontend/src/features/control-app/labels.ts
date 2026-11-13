@@ -46,7 +46,9 @@ export const controlEn = {
   locale: "en" as const,
   loading: "Loading…",
   retry: "Try again",
-  showAll: (count: number) => `Show all (${count})`,
+  /** `more`: the server holds rows beyond the ones read, so the count is "at least". */
+  showAll: (count: number, more = false) =>
+    `Show all (${count}${more ? "+" : ""})`,
   showFewer: "Show fewer",
   views: {
     trash: "Deleted",
@@ -57,16 +59,16 @@ export const controlEn = {
    * The first content of a tab in the full view, one meta line (the sentences under the tabs became
    * a meta line or went). No retention period exists, so none is named.
    */
-  trashMeta: (count: number) =>
-    `${count === 1 ? "1 deleted" : `${count} deleted`} · can be restored`,
+  trashMeta: (count: number, more = false) =>
+    `${more ? `${count}+ deleted` : count === 1 ? "1 deleted" : `${count} deleted`} · can be restored`,
   historyMeta: "What you and Claude have done, newest first",
   /** The meta of "Memory is on": how many of the sources are on. */
   sourcesOn: (on: number, all: number) => `${on} of ${all} sources`,
   sourcesTitle: "Sources",
   // Trash
   trashTitle: "Deleted",
-  trashEmpty: "The trash is empty.",
-  trashEmptyHint: "Things you delete land here first and can be restored.",
+  trashEmpty: "Nothing deleted.",
+  trashEmptyHint: "What you delete lands here first and can be restored.",
   trashMore: "Show more",
   trashMoreFailed: "Could not load more. Try again.",
   hiddenTitle: "Title hidden",
@@ -143,7 +145,7 @@ export const controlEn = {
   memoryFailed: "Couldn’t save. Try again.",
   /** Where memory text goes: to the model the owner connected (Hindsight's LLM), the facts stay on the owner's server. */
   memoryExplain:
-    "Sidekick remembers context between your conversations, and Claude can ask it. The text of records that are included goes to the language model you connected to memory, which picks out facts. The facts are stored on your Sidekick server.",
+    "Sidekick remembers context between your conversations, and Claude can ask Sidekick about it. The text of records that are included goes to the language model you connected to memory, which picks out facts. The facts are stored on your Sidekick server.",
   // What Sidekick remembers: a read only sample per source, a free text search and "Forget this"
   recallShow: "Show what Sidekick remembers",
   recallHide: "Hide",
@@ -251,21 +253,21 @@ export const controlSv: ControlLabels = {
   locale: "sv",
   loading: "Laddar…",
   retry: "Försök igen",
-  showAll: (count) => `Visa alla (${count})`,
+  showAll: (count, more = false) => `Visa alla (${count}${more ? "+" : ""})`,
   showFewer: "Visa färre",
   views: {
     trash: "Borttaget",
     history: "Historik",
     memory: "Sidekicks minne",
   },
-  trashMeta: (count) =>
-    `${count === 1 ? "1 borttagen" : `${count} borttagna`} · kan återställas`,
+  trashMeta: (count, more = false) =>
+    `${more ? `${count}+ borttagna` : count === 1 ? "1 borttagen" : `${count} borttagna`} · kan återställas`,
   historyMeta: "Det du och Claude har gjort, senaste först",
   sourcesOn: (on, all) => `${on} av ${all} källor`,
   sourcesTitle: "Källor",
   trashTitle: "Borttaget",
-  trashEmpty: "Papperskorgen är tom.",
-  trashEmptyHint: "Det du slänger hamnar här först och kan återställas.",
+  trashEmpty: "Inget borttaget.",
+  trashEmptyHint: "Det du tar bort hamnar här först och kan återställas.",
   trashMore: "Visa fler",
   trashMoreFailed: "Det gick inte att hämta fler. Försök igen.",
   hiddenTitle: "Titeln är dold",
@@ -335,7 +337,7 @@ export const controlSv: ControlLabels = {
   memoryForbidden: "Du saknar behörighet att ändra det.",
   memoryFailed: "Det gick inte att spara. Försök igen.",
   memoryExplain:
-    "Sidekick minns sammanhang mellan dina samtal, och Claude kan fråga det. Texten i poster som är med skickas till den språkmodell du har kopplat till minnet, som plockar ut fakta. Fakta sparas på din Sidekick-server.",
+    "Sidekick minns sammanhang mellan dina samtal, och Claude kan fråga Sidekick om det. Texten i poster som är med skickas till den språkmodell du har kopplat till minnet, som plockar ut fakta. Fakta sparas på din Sidekick-server.",
   recallShow: "Visa vad Sidekick minns",
   recallHide: "Dölj",
   recallShowLabel: (name) => `Visa vad Sidekick minns från ${name}`,

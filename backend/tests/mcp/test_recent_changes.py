@@ -237,7 +237,7 @@ def test_purchase_and_put_back_are_spoken_with_their_own_verbs_and_name_the_undo
     first_line, bought_row, put_back_row = text.splitlines()
     assert first_line == (
         'Your last 2 changes: bought shopping item "Mjölk" today, '
-        'put back shopping item "Smör" today.'
+        'reopened shopping item "Smör" today.'
     )
     assert "version 3" in bought_row
     assert bought_row.endswith("undo with set_shopping_item_purchased purchased=false")
@@ -716,7 +716,7 @@ async def test_purchase_and_put_back_show_with_the_version_the_undo_needs() -> N
     assert by_id[milk["id"]]["undo_tool"] == "set_shopping_item_purchased"
     text = _text(call_result)
     first_line = text.splitlines()[0]
-    assert 'put back shopping item "Smör"' in first_line
+    assert 'reopened shopping item "Smör"' in first_line
     assert 'bought shopping item "Mjölk"' in first_line
     assert "move_to_trash" not in text
     assert "unlink" not in text

@@ -130,8 +130,8 @@ describe("inline agenda summary", () => {
     expect(titles).toEqual(["Sen hög", "Tidig normal"]);
   });
 
-  it("lists a single record due today, with its due word in lower case", () => {
-    render(
+  it("lists a single record due today without its day word, as the group Today already says it, with its status only", () => {
+    const { container } = render(
       <AgendaSummary
         page={{ items: agendaItems.slice(2, 3), next_cursor: null }}
         labels={inlineSummaryLabelsEn}
@@ -139,13 +139,13 @@ describe("inline agenda summary", () => {
       />,
     );
     expect(screen.getByText("1 today")).toBeInTheDocument();
-    // The row's meta is the time and the status: the day first, then the in-progress Task's status.
+    // The row's meta is the in-progress Task's status alone: a row under "Today" names no day.
     expect(
       screen.getByRole("button", {
-        name: "Skriv offerten, today, In progress",
+        name: "Skriv offerten, In progress",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText("today")).toHaveAttribute("data-tone", "today");
+    expect(container.querySelector("time")).toBeNull();
   });
 
   it("opens the record when a row is pressed, or the agenda when no record opener is given", async () => {
@@ -312,7 +312,7 @@ describe("inline hierarchy summary", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: inlineSummaryLabelsEn.showAll(2, false),
+        name: inlineSummaryLabelsEn.showAll,
       }),
     );
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -451,7 +451,7 @@ describe("inline hierarchy summary ended and open work", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: inlineSummaryLabelsEn.showAll(3, false),
+        name: inlineSummaryLabelsEn.showAll,
       }),
     ).toBeInTheDocument();
   });
@@ -467,10 +467,18 @@ describe("inline hierarchy summary ended and open work", () => {
     expect(title(inlineSummaryLabelsSv)).toHaveTextContent(
       "2 projekt · 1 process",
     );
+    // Each Project is one row: its title, and under it a meta line holding only the status word (no "· " in the DOM).
     const rows = Array.from(
-      document.querySelectorAll(".work-compact-status"),
-    ).map((row) => row.textContent);
-    expect(rows).toEqual(["Köket", "Altanen · Pausat", "Gammalt · Avslutat"]);
+      document.querySelectorAll("li.work-compact-row"),
+    ).map((row) => [
+      row.querySelector(".work-compact-row-title")?.textContent,
+      row.querySelector(".work-compact-row-meta")?.textContent ?? null,
+    ]);
+    expect(rows).toEqual([
+      ["Köket", null],
+      ["Altanen", "Pausat"],
+      ["Gammalt", "Avslutat"],
+    ]);
   });
 
   it("shows no Process line when there is no open Process", () => {

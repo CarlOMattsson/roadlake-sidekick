@@ -257,6 +257,6 @@ export function dueChoiceOf(item: WorkItemRecord, now: Date, t: WorkLabels) {
           ? t.triageTomorrow
           : dueShortcut === "nextWeek"
             ? t.triageNextWeek
-            : workDate(item.due_at, now, t.dateLocale, { inline: true });
+            : workDate(item.due_at, now, t.dateLocale);
   return { dueDay, dueShortcut, dueMeta };
 }

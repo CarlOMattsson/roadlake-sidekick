@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CloseIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { UndoMeta } from "../agenda/agenda-undo";
@@ -7,6 +8,7 @@ import type { ManageLabels } from "../shared/manage-labels";
 import { StepActions } from "../steps/step-actions";
 import {
   RowMenuButton,
+  menuButtonOf,
   rowMenuHandlers,
   rowMenuHint,
 } from "../shared/row-menu";
@@ -36,9 +38,10 @@ function StepReadMark({ done, label }: { done: boolean; label: string }) {
 
 /**
  * One Step of the list: the checkbox and the title, and the Step's Actions under the title. A long press (touch), a
- * right click, Shift+F10 or the menu key on the Step opens its Up, Down and Archive buttons (as Work's rows;
- * the ⋯ is gone), and the check says so to a screen reader (aria-keyshortcuts, aria-description). The menu stays open
- * after a move, so the focus rule keeps the moved row's Up or Down button.
+ * right click, Shift+F10 or the menu key on the Step opens its menu (as Work's rows; the ⋯ is gone): one row of
+ * buttons under the title, Up, Down, Archive and "Visa åtgärder", and × at its end, which closes it as Escape does.
+ * The check says so to a screen reader (aria-keyshortcuts, aria-description). The menu stays open after a move, so
+ * the focus rule keeps the moved row's Up or Down button.
  */
 export function StepRow({
   step,
@@ -147,13 +150,29 @@ export function StepRow({
           {actions && (
             <button
               type="button"
-              className="sk-btn sk-btn--quiet work-step-actions-open"
+              className="work-step-actions-open"
               aria-expanded={actionsOpen}
               onClick={() => setActionsOpen((value) => !value)}
             >
               {actionsOpen ? s.hide : s.show}
             </button>
           )}
+          <button
+            type="button"
+            className="sk-iconbtn work-step-menu-close"
+            aria-label={t.closeMenu}
+            onClick={(event) => {
+              // The close button unmounts with the menu: the focus goes where Escape sends it.
+              const row = event.currentTarget.closest("li");
+              (
+                menuButtonOf(row) ??
+                row?.querySelector<HTMLElement>("input, button")
+              )?.focus();
+              setOpen(false);
+            }}
+          >
+            <CloseIcon />
+          </button>
         </div>
       )}
       {actions && (

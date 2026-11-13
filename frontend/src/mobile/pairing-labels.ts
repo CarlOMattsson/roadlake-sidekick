@@ -107,7 +107,7 @@ export const pairingLabelsSv: PairingLabels = {
   lost: "Kopplingen har upphört. Koppla igen.",
   unpaired: "Telefonen är frånkopplad.",
   unpairedUnconfirmed:
-    "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen under Kontroll i Claude, eller be den som sköter servern.",
+    "Telefonen är frånkopplad, men servern kunde inte bekräfta det. Be den som sköter servern spärra telefonen, eller koppla den på nytt.",
   linkIgnored:
     "Telefonen är redan kopplad till {host}. Koppla från i Inställningar för att byta.",
   linkIgnoredNoHost:
@@ -169,7 +169,7 @@ export const pairingLabelsEn: PairingLabels = {
   lost: "The connection has ended. Connect again.",
   unpaired: "This phone is disconnected.",
   unpairedUnconfirmed:
-    "This phone is disconnected, but the server couldn’t confirm it. Revoke the phone in Control in Claude, or ask whoever runs the server.",
+    "This phone is disconnected, but the server couldn’t confirm it. Ask whoever runs the server to revoke the phone, or connect it again.",
   linkIgnored:
     "This phone is already connected to {host}. Disconnect in Settings to switch.",
   linkIgnoredNoHost:

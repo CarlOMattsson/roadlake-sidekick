@@ -42,7 +42,9 @@ describe("journal draft review", () => {
       },
     });
 
-    await user.click(screen.getByRole("button", { name: OFFERTEN }));
+    await user.click(
+      screen.getByRole("button", { name: new RegExp(`^${OFFERTEN}`) }),
+    );
     expect(transport.getDraft).toHaveBeenCalledWith(draftId);
     expect(
       await screen.findByRole("heading", { level: 2, name: OFFERTEN }),
@@ -179,7 +181,9 @@ describe("journal draft review", () => {
         ],
       },
     });
-    await user.click(screen.getByRole("button", { name: OFFERTEN }));
+    await user.click(
+      screen.getByRole("button", { name: new RegExp(`^${OFFERTEN}`) }),
+    );
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
 
     await user.click(screen.getByRole("button", { name: "Reject draft" }));
@@ -201,11 +205,11 @@ describe("journal draft review", () => {
     ]);
     expect(await screen.findByText("Draft rejected.")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Save as journal entry" }),
+      screen.queryByRole("button", { name: "Save as entry" }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(
-      screen.queryByRole("button", { name: OFFERTEN }),
+      screen.queryByRole("button", { name: new RegExp(`^${OFFERTEN}`) }),
     ).not.toBeInTheDocument();
     expect(screen.getByText(journalEn.pendingEmpty)).toBeInTheDocument();
   });
@@ -219,14 +223,10 @@ describe("journal draft review", () => {
     await user.click(decisionButton("Projekt Offert"));
     await user.click(screen.getByRole("checkbox", { name: "Bo Berg" }));
     await user.click(decisionButton("Create task: Ring kunden"));
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     expect(transport.finalizeDraft).not.toHaveBeenCalled();
     expect(
-      screen.getByText(
-        "This saves 1 journal entry with 2 links. It creates 1 task and updates 0 tasks.",
-      ),
+      screen.getByText("This saves an entry with 2 links. It creates 1 task."),
     ).toBeInTheDocument();
     // Suggestions are still undecided, so the confirmation offers the three choices, not a plain Yes.
     expect(
@@ -260,7 +260,7 @@ describe("journal draft review", () => {
     ).toHaveFocus();
     expect(transport.getEntry).toHaveBeenCalledWith(savedEntryId);
     expect(
-      screen.getByText("Journal entry saved. 1 task created, 0 updated."),
+      screen.getByText("Entry saved. 1 task created."),
     ).toBeInTheDocument();
     // The saved entry replaced the draft: Back has nothing handled to return to.
     expect(
@@ -273,9 +273,7 @@ describe("journal draft review", () => {
     const transport = transportMock();
     renderDraft(transport);
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
-    await user.click(
-      screen.getByRole("button", { name: "Save as journal entry" }),
-    );
+    await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await waitFor(() =>
       expect(transport.finalizeDraft).toHaveBeenCalledTimes(1),
@@ -424,7 +422,7 @@ describe("journal draft review", () => {
       screen.queryByRole("button", { name: "Edit" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Save as journal entry" }),
+      screen.queryByRole("button", { name: "Save as entry" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Reject draft" }),

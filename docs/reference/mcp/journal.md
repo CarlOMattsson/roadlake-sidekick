@@ -91,7 +91,7 @@ Returns: `PendingJournalPageResult` with `items` (array of PendingJournalItemRec
 
 ## `write_journal_entry`
 
-Use this when the user asks to write or save a journal entry (e.g. "skriv dagbok").
+Use this when the user asks to write or save a journal entry (e.g. "write my journal").
 
 Access: write
 
@@ -120,7 +120,7 @@ A nested field is listed under its parent as `parent.field`; `parent[].field` is
 
 ## `update_journal_entry`
 
-Use this to add to, correct or relink an existing journal entry (e.g. 'lägg till i dagens dagbok'); read it first and send its current version.
+Use this to add to, correct or relink an existing journal entry (e.g. 'add to today's journal'); read it first and send its current version.
 
 Access: write
 

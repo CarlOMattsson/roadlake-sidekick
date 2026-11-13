@@ -58,7 +58,8 @@ export function EntryTasks({
   return (
     <ul className="journal-chips journal-task-chips" aria-label={t.tasks}>
       {taskIds.map((id) => {
-        const name = titles[id] ?? t.taskChipFallback;
+        const title = titles[id];
+        const name = title ?? t.taskChipFallback;
         return (
           <li key={id} className="journal-chip">
             {onOpenTask ? (
@@ -66,7 +67,7 @@ export function EntryTasks({
                 type="button"
                 className="journal-chip-name"
                 title={name}
-                aria-label={t.openTaskNamed(name)}
+                aria-label={title ? t.openTaskNamed(title) : t.openLinkedTask}
                 onClick={() => onOpenTask(id)}
               >
                 {name}

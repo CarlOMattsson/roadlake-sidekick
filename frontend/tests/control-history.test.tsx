@@ -557,6 +557,25 @@ describe("HistoryView merges changes and activity", () => {
     ).toBeInTheDocument();
   });
 
+  it("lists every row in the full view, with no Show all", () => {
+    const items = Array.from({ length: 7 }, (_, index) =>
+      entry({ id: `row-${index}`, summary: `Rad ${index}` }),
+    );
+    render(
+      <HistoryView
+        changes={{ changes: [] }}
+        activity={{ items, next_cursor: null }}
+        transport={makeTransport()}
+        labels={controlSv}
+        now={now}
+        full
+      />,
+    );
+
+    expect(screen.getByText("Rad 6")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
+  });
+
   it("says the list is cut only when there is a next cursor", () => {
     const { unmount } = renderChanges({ changes: [] }, makeTransport(), {
       items: [entry()],

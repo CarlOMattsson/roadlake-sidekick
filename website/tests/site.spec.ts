@@ -386,6 +386,13 @@ test.describe('page titles and descriptions', () => {
     expect(sitemap).toMatch(/hreflang="x-default" href="[^"]+\/"/);
     expect(sitemap).not.toMatch(/hreflang="en" href="https?:\/\/[^/"]+\/"/);
   });
+
+  test('the language home pages name the site root as x-default, like the sitemap', () => {
+    for (const locale of ['sv', 'en']) {
+      const html = fs.readFileSync(path.join(distDir, locale, 'index.html'), 'utf8');
+      expect(html).toMatch(/<link rel="alternate" hreflang="x-default" href="https?:\/\/[^/"]+\/"\/?>/);
+    }
+  });
 });
 
 test('the skip link is a 44 px target when it has focus', async ({ page }) => {

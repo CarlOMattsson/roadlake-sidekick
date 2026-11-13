@@ -413,14 +413,6 @@ export function TaskFrame({
               )}
             </>
           )}
-          {task.priority === "high" && (
-            <p className="work-chip">
-              {t.priority}:{" "}
-              <span className="work-card-priority" data-priority="high">
-                {t.priorityLevel.high}
-              </span>
-            </p>
-          )}
           <WriteStatus
             write={write}
             conflict={t.conflict}

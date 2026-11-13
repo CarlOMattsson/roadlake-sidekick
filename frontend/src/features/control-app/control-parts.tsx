@@ -60,8 +60,9 @@ export function ControlRow({
 }
 
 /**
- * The first INLINE_ROWS rows, with "Show all (N)" for the rest. The expansion grows the card in the
- * flow; there is no inner scroll. `renderRow` builds one row. The choice belongs to the card
+ * The first INLINE_ROWS rows, with "Show all (N)" for the rest; in the full view (`full`) every row is
+ * listed and there is no toggle. The expansion grows the card in the flow; there is no inner scroll.
+ * `renderRow` builds one row. The choice belongs to the card
  * (`expanded` with `onExpandedChange`), so it survives a switch to another tab and back. Without
  * them the list keeps the choice itself.
  */
@@ -72,6 +73,7 @@ export function RowList<T>({
   showAll,
   showFewer,
   label,
+  full = false,
   expanded: controlled,
   onExpandedChange,
 }: {
@@ -81,12 +83,14 @@ export function RowList<T>({
   showAll: (count: number) => string;
   showFewer: string;
   label: string;
+  /** The full view lists every row it holds; the three row limit is for the inline card. */
+  full?: boolean;
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
 }) {
   const [own, setOwn] = useState(false);
   const expanded = controlled ?? own;
-  const shown = expanded ? items : items.slice(0, INLINE_ROWS);
+  const shown = full || expanded ? items : items.slice(0, INLINE_ROWS);
   return (
     <>
       <ul className="control-list" aria-label={label}>
@@ -94,7 +98,7 @@ export function RowList<T>({
           <Fragment key={keyOf(item)}>{renderRow(item)}</Fragment>
         ))}
       </ul>
-      {items.length > INLINE_ROWS ? (
+      {!full && items.length > INLINE_ROWS ? (
         <button
           type="button"
           className="control-more sk-btn--quiet"

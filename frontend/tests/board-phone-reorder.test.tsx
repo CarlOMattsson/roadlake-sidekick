@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import type {
   WorkBoardPage,
   WorkItemRecord,
@@ -68,8 +69,10 @@ it("offers no reorder buttons when the column is not whole on the board", async 
   ).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: workEn.moveUp })).toBeNull();
   expect(screen.queryByRole("button", { name: workEn.moveDown })).toBeNull();
-  // Visa fler sits in the foot, and the refresh icon beside it.
-  expect(screen.getByRole("button", { name: workEn.more })).toBeInTheDocument();
+  // "Show more tasks" sits in the foot, and the refresh icon beside it.
+  expect(
+    screen.getByRole("button", { name: boardLabelsEn.showMore }),
+  ).toBeInTheDocument();
 });
 
 it("offers no Flytta buttons in a section whose rows are not in the column's order while a row's Ångra lasts", async () => {

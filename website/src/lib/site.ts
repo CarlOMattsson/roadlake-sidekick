@@ -14,11 +14,10 @@ export const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 /** The product version, read at build time from the same file as tools/check-version-sync.py. */
 export function productVersion(): string {
-  try {
-    return JSON.parse(fs.readFileSync(path.resolve(websiteDir, '..', 'frontend/package.json'), 'utf8')).version ?? 'unknown';
-  } catch {
-    return 'unknown';
-  }
+  const file = path.resolve(websiteDir, '..', 'frontend/package.json');
+  const version: unknown = JSON.parse(fs.readFileSync(file, 'utf8')).version;
+  if (typeof version !== 'string' || !version) throw new Error(`${file} has no version; the site cannot state which version it describes.`);
+  return version;
 }
 
 let ids: Set<string> | undefined;

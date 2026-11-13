@@ -357,35 +357,33 @@ export function DraftFrame({
           <OriginalText source={source} labels={t} />
           {pending && (
             <>
-              <div className="journal-disclosure-pair">
-                <RelationsSection
-                  id={`${baseId}-relations`}
-                  draft={draft}
-                  count={review.suggestionCount}
-                  open={opened.relations}
-                  onToggle={() => toggleSection("relations")}
-                  picked={picked}
-                  declined={declined}
-                  locked={busy || confirm !== undefined}
-                  onPick={togglePicked}
-                  onDeclinedChange={choices.setDeclinedFor}
-                  labels={t}
-                />
-                <ProposalsSection
-                  id={`${baseId}-proposals`}
-                  draft={draft}
-                  open={opened.proposals}
-                  onToggle={() => toggleSection("proposals")}
-                  hidden={hiddenProposals}
-                  proposalPicks={proposalPicks}
-                  declined={declined}
-                  locked={busy || confirm !== undefined}
-                  taskLabel={review.taskLabel}
-                  onToggleProposal={toggleProposal}
-                  onDeclinedChange={choices.setDeclinedFor}
-                  labels={t}
-                />
-              </div>
+              <RelationsSection
+                id={`${baseId}-relations`}
+                draft={draft}
+                count={review.suggestionCount}
+                open={opened.relations}
+                onToggle={() => toggleSection("relations")}
+                picked={picked}
+                declined={declined}
+                locked={busy || confirm !== undefined}
+                onPick={togglePicked}
+                onDeclinedChange={choices.setDeclinedFor}
+                labels={t}
+              />
+              <ProposalsSection
+                id={`${baseId}-proposals`}
+                draft={draft}
+                open={opened.proposals}
+                onToggle={() => toggleSection("proposals")}
+                hidden={hiddenProposals}
+                proposalPicks={proposalPicks}
+                declined={declined}
+                locked={busy || confirm !== undefined}
+                taskLabel={review.taskLabel}
+                onToggleProposal={toggleProposal}
+                onDeclinedChange={choices.setDeclinedFor}
+                labels={t}
+              />
               <DecisionBar
                 confirm={confirm}
                 disabled={busy || editing}

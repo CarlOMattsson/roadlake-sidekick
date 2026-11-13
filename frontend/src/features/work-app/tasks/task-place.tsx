@@ -13,6 +13,7 @@ import { GroupSelect } from "../hierarchy/group-select";
 import { groupSelectLabelsFor } from "../hierarchy/group-select-labels";
 import type { WorkLabels } from "../shared/labels";
 import { taskPlaceLabelsFor } from "./task-place-labels";
+import { TaskPriority } from "./task-priority";
 import { TaskRepeat } from "./task-repeat";
 import type {
   WorkFrame,
@@ -22,12 +23,14 @@ import type {
 } from "../transport/transport";
 
 /**
- * The Task's place and repeat rule, one row of chips under the date and status chips (design system §3, property chip).
+ * The Task's place, repeat rule and priority, one row of chips under the date and status chips (design system §3,
+ * property chip).
  * "Plats: Renovering av köket ⌄" says where the Task belongs (a Project, a Process, a Domain or "Att sortera"); a
  * tap opens a panel with the place picker, and a choice is one update_task through `onChoose`. The same panel holds
  * "Öppna Renovering av köket ›" for a Project or Process. Where the host cannot write the place (the phone), the
- * panel keeps only the open link, and a place with neither is plain text. The repeat rule is the Task's own chip next to
- * it (TaskRepeat): a picker where the host can write, a read-only chip where it cannot.
+ * panel keeps only the open link, and a place with neither is plain text. The repeat rule (TaskRepeat) and the priority
+ * (TaskPriority) are the Task's own chips next to it: a picker where the host can write, a read-only chip where it
+ * cannot.
  * Escape closes the panel and returns focus to the chip.
  */
 export function TaskPlace({
@@ -85,6 +88,9 @@ export function TaskPlace({
   const repeatWritable = offers("update_task", {
     changes: { recurrence: null },
   });
+  const priorityWritable = offers("update_task", {
+    changes: { priority: "normal" },
+  });
 
   function close(refocus: boolean) {
     setOpen(false);
@@ -128,6 +134,13 @@ export function TaskPlace({
         title={task.title}
         words={words}
         writable={repeatWritable}
+        busy={busy}
+        onChoose={onChoose}
+      />
+      <TaskPriority
+        task={task}
+        labels={t}
+        writable={priorityWritable}
         busy={busy}
         onChoose={onChoose}
       />

@@ -43,6 +43,15 @@
  * item of this row: an open menu wraps onto a full-width line of its own under the row, and the "⋯" that opened it
  * stays in place. The tools take the same width on every tab (an unused slot is an empty 44 px box), so the tabs
  * never move when the tab changes. */
+/* Status in columns takes the frame's whole width, so its tab row does too: the tabs and tools line up with the
+   board's edges. The tabs share the row about the same middle, so the tab just pressed stays under the pointer. */
+.sk-shell[data-detail="closed"]:has(
+    .sk-shell-list:not([hidden]) .work-board:not([data-layout="single"])
+  )
+  > .sk-shell-tabs {
+  --sk-tabs-inset: 0px;
+}
+
 .sk-shell-tabs--with-end {
   display: flex;
   flex-wrap: wrap;

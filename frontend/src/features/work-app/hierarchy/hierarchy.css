@@ -17,8 +17,10 @@
   overflow-wrap: break-word;
   hyphens: manual;
 }
-.sidekick-hierarchy .work-tree-heading .hierarchy-accent {
-  font-size: 0.75em;
+/* "Utan domän" over the Projects outside every Domain: a heading of the same rank, in the muted colour, as it names
+   no Domain of the user's. */
+.sidekick-hierarchy .work-tree-heading-none {
+  color: var(--sk-muted);
 }
 .sidekick-hierarchy .work-tree-heading-status {
   font: var(--sk-type-meta);

@@ -33,7 +33,11 @@ it("shows the Project's editor in place of its values, not under them", async ()
   const user = userEvent.setup();
   render(rootProject(transport({})));
   expect(await screen.findByText(projectA.description!)).toBeInTheDocument();
-  await user.click(await screen.findByRole("button", { name: workEn.edit }));
+  // Edit sits in the ⋯ menu of the header row now.
+  await user.click(
+    await screen.findByRole("button", { name: workEn.moreActions }),
+  );
+  await user.click(screen.getByRole("button", { name: workEn.edit }));
   // The description is a field of the editor now, not a paragraph above it as well.
   expect(screen.getByLabelText(workEn.description)).toHaveValue(
     projectA.description,

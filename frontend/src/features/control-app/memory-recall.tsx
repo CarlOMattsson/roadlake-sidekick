@@ -4,6 +4,7 @@ import { ErrorNotice } from "../mcp-apps/ui/states";
 import { kindName, type ControlLabels } from "./labels";
 import { ControlRow, NoticeLine, type Notice } from "./control-parts";
 import {
+  DOMAIN_KIND,
   domainOfKind,
   writeFailure,
   type ControlTransport,
@@ -26,6 +27,27 @@ export function recallTools(
 /** The record a fact came from, as one key. The id never reaches the screen. */
 const sourceKey = (fact: RecalledFact) =>
   `${fact.source.kind}:${fact.source.id}`;
+
+/**
+ * The facts of a recall that can be drawn. A fact of the wrong shape (no text, no source, a kind the memory does not
+ * know) is dropped quietly, so one bad fact does not take the whole list down.
+ */
+export function drawableFacts(result: RecallResult): RecalledFact[] {
+  const facts: unknown = result.facts;
+  if (!Array.isArray(facts)) return [];
+  return facts.filter((fact): fact is RecalledFact => {
+    if (typeof fact !== "object" || fact === null) return false;
+    const { text, source } = fact as Partial<RecalledFact>;
+    return (
+      typeof text === "string" &&
+      typeof source === "object" &&
+      source !== null &&
+      typeof source.id === "string" &&
+      (Object.values(DOMAIN_KIND) as unknown[]).includes(source.kind) &&
+      (source.title == null || typeof source.title === "string")
+    );
+  });
+}
 
 type Load =
   | { state: "loading" }
@@ -170,7 +192,7 @@ export function RecallResults({
       </p>
     );
 
-  const facts = load.result.facts.filter(
+  const facts = drawableFacts(load.result).filter(
     (fact) => !gone.includes(sourceKey(fact)),
   );
 

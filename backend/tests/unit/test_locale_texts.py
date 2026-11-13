@@ -55,7 +55,7 @@ def test_an_empty_day_reads_in_both_languages() -> None:
         "Dagboken är tom idag. Inga öppna inköpslistor."
     )
     assert _summary_text(parts, "en") == (
-        "You have no overdue tasks and no tasks today, and no tasks in the next 7 days. "
+        "You have no overdue tasks, no tasks due today, and no tasks due in the next 7 days. "
         "Your journal is empty today. No open shopping lists."
     )
 
@@ -73,12 +73,12 @@ def test_english_uses_the_singular_for_one_and_the_plural_otherwise() -> None:
     }
 
     assert _summary_text(one, "en") == (
-        "You have 1 overdue task and 1 task today, and 1 task in the next 7 days. "
+        "You have 1 overdue task, 1 task due today, and 1 task due in the next 7 days. "
         "Your journal has 1 entry today, with a daily summary. "
         "You have 1 open shopping list with 1 item left to buy."
     )
     assert _summary_text(many, "en") == (
-        "You have 2 overdue tasks and 3 tasks today, and 4 tasks in the next 7 days. "
+        "You have 2 overdue tasks, 3 tasks due today, and 4 tasks due in the next 7 days. "
         "Your journal has 2 entries today, without a daily summary. "
         "You have 2 open shopping lists with 5 items left to buy."
     )

@@ -167,7 +167,7 @@ const inlineOnlyContactList: Surface = {
   structuredContent: fullContacts,
   hostContext: inlineOnlyContext,
   openSummary: (app) =>
-    app.getByRole("button", { name: "Show all (3)", exact: true }),
+    app.getByRole("button", { name: "Show all", exact: true }),
   replies: {
     get_contact_context: {
       structuredContent: {
@@ -206,14 +206,13 @@ const surfaces: Surface[] = [
     effect: { kind: "fullscreen" },
   },
   {
-    // Inline with fullscreen offered, the Contact list is a summary (count and "Show all (N)"), not the list.
+    // Inline with fullscreen offered, the Contact list is a summary (count and "Show all"), not the list.
     // The inline context lists fullscreen in availableDisplayModes, so this is the variant that ships.
     name: "contact list summary",
     resource: "work",
     structuredContent: contacts,
     ready: (app) => app.locator(".work-compact-card"),
-    target: (app) =>
-      app.getByRole("button", { name: "Show all (2)", exact: true }),
+    target: (app) => app.getByRole("button", { name: "Show all", exact: true }),
     effect: { kind: "fullscreen" },
   },
   {
@@ -375,7 +374,7 @@ for (const viewport of viewports) {
       );
       // Show all has expanded the full list inline: no summary Show all is left, and no fullscreen was asked for.
       await expect(
-        app.getByRole("button", { name: "Show all (3)", exact: true }),
+        app.getByRole("button", { name: "Show all", exact: true }),
       ).toHaveCount(0);
       expect((await simulatedHostState(page)).displayModeRequests).toEqual([]);
       // With 15 Contacts or fewer the list has no letter headings (LETTER_HEADINGS_ABOVE in contacts-list.tsx).

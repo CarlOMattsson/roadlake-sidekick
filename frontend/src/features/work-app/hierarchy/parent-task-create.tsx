@@ -6,6 +6,7 @@ import {
   type TitleProblem,
 } from "../shared/fields";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
+import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { dueAtFromDateInput } from "../tasks/task-edit";
 import {
   writeFailure,
@@ -92,12 +93,13 @@ export function CreateParentTask({
   if (!open)
     return (
       <div>
+        {/* The add row of the room's lists ("+ Lägg till steg"): the + in the rings' column, the words on the titles' x. */}
         <button
           type="button"
-          className="sk-btn sk-btn--quiet work-add-trigger"
+          className="work-add-row sk-action-row"
           onClick={() => setOpen(true)}
         >
-          <span aria-hidden="true">+ </span>
+          <PlusIcon />
           {t.newTask}
         </button>
       </div>

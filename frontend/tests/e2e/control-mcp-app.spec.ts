@@ -80,7 +80,7 @@ test("Control app lists the trash and restores an item through the host on a mob
     "Återställd: “Skicka offert”",
   );
   await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0);
-  await expect(app.getByText("Papperskorgen är tom.")).toBeVisible();
+  await expect(app.getByText("Inget borttaget.")).toBeVisible();
   const { calls } = await simulatedHostState(page);
   const restore = calls.find((call) => call.name === "restore_from_trash");
   expect(restore?.arguments).toMatchObject({

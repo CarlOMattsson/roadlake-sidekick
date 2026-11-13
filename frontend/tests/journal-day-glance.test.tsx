@@ -226,8 +226,8 @@ describe("DayGlance", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("says so when the day has no overview and no entries", () => {
-    render(
+  it("says so in one line when the day has no overview and no entries", () => {
+    const { container } = render(
       <DayGlance
         today={TODAY}
         onOpenEntry={vi.fn()}
@@ -242,7 +242,134 @@ describe("DayGlance", () => {
       />,
     );
 
-    expect(screen.getByText(journalEn.noSummary)).toBeInTheDocument();
+    expect(screen.getByText(journalEn.noEntries)).toBeInTheDocument();
+    expect(screen.queryByText(journalEn.noSummary)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^0 entries/)).not.toBeInTheDocument();
+    expect(container.querySelectorAll("p.journal-muted")).toHaveLength(1);
+  });
+
+  it("says nothing is written yet today, in Swedish too, for an empty today", () => {
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{
+          ...day,
+          journal_date: TODAY,
+          entries: [],
+          summary: { ...day.summary, content: null },
+        }}
+        labels={journalSv}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Inget skrivet ännu idag.")).toBeInTheDocument();
+    expect(screen.queryByText(/0 anteckningar/)).not.toBeInTheDocument();
+    expect(screen.queryByText(journalSv.noSummary)).not.toBeInTheDocument();
+  });
+
+  it("says nothing is written yet today in English for an empty today", () => {
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{
+          ...day,
+          journal_date: TODAY,
+          entries: [],
+          summary: { ...day.summary, content: null },
+        }}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Nothing written yet today.")).toBeInTheDocument();
+  });
+
+  it("shows what was completed as one muted count line, in English and Swedish", () => {
+    const withDone: JournalDay = {
+      ...day,
+      done: {
+        tasks: [],
+        steps: [],
+        purchases: [],
+        counts: { tasks: 1, steps: 1, purchases: 0 },
+        truncated: false,
+      },
+    };
+    const { unmount } = render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={withDone}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    const line = document.querySelector(".journal-glance-done");
+    expect(line).toHaveClass("journal-muted");
+    // The parts are joined with no-break spaces so that a part never breaks inside.
+    expect(line?.textContent?.replace(/\u00a0/g, " ")).toBe(
+      "Completed · 1 task · 1 step",
+    );
+    unmount();
+
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={withDone}
+        labels={journalSv}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(
+      document
+        .querySelector(".journal-glance-done")
+        ?.textContent?.replace(/\u00a0/g, " "),
+    ).toBe("Gjort · 1 uppgift · 1 steg");
+  });
+
+  it("shows no completed line when every count is zero or the day has no done", () => {
+    const { unmount } = render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{
+          ...day,
+          done: {
+            tasks: [],
+            steps: [],
+            purchases: [],
+            counts: { tasks: 0, steps: 0, purchases: 0 },
+            truncated: false,
+          },
+        }}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(document.querySelector(".journal-glance-done")).toBeNull();
+    unmount();
+
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={day}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(document.querySelector(".journal-glance-done")).toBeNull();
   });
 
   it("hides the no-summary line when the day has entries", () => {

@@ -5,6 +5,7 @@ import { HostToolError } from "@/features/mcp-apps/bridge";
 import { elementWithText } from "./helpers/exact-text";
 import { WorkView } from "@/features/work-app/view/work-view";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   rootFromToolResult,
   type WorkAgendaPage,
@@ -450,7 +451,9 @@ it("shows more board cards with the cursor and the filters of the root", async (
       { status: "todo" },
     ),
   );
-  await user.click(screen.getByRole("button", { name: workEn.more }));
+  await user.click(
+    screen.getByRole("button", { name: boardLabelsEn.showMore }),
+  );
   expect(getWorkBoard).toHaveBeenCalledWith({ status: "todo" }, "cursor-2");
   const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
   expect(
@@ -459,7 +462,9 @@ it("shows more board cards with the cursor and the filters of the root", async (
   expect(
     within(todo).getByRole("button", { name: boardTask.title }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: workEn.more })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: boardLabelsEn.showMore }),
+  ).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.refresh }));
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
   expect(getWorkBoard).toHaveBeenLastCalledWith({ status: "todo" });

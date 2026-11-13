@@ -131,8 +131,11 @@ site-search button[data-open-modal]:hover { background: var(--sk-surface); }
 .notice p { margin: var(--sk-s1) 0 0; }
 .tiers { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--sk-s5); align-items: start; }
 .tiers[data-tiers='2'] { grid-template-columns: 1fr; max-width: 32rem; }
-/* The organisation key is a secondary option: under the personal key, smaller and without its own frame weight. */
+/* The organisation key is a secondary option: smaller and without its own frame weight. With all three tiers it sits under
+   the free tier, so the personal key beside them spans both rows and no column is left with a gap. */
 .tier--secondary { grid-column: -2; background: var(--sk-surface); }
+.tiers[data-tiers='3'] .tier--main { grid-column: 2; grid-row: 1 / span 2; }
+.tiers[data-tiers='3'] .tier--secondary { grid-column: 1; grid-row: 2; }
 .tier--secondary h2 { margin-bottom: var(--sk-s1); }
 .tier--secondary .price { font-size: 1.5rem; }
 .tier { border: 1px solid var(--sk-line); border-radius: var(--sk-radius-card); padding: var(--sk-s5); background: var(--sk-bg); }
@@ -178,7 +181,7 @@ site-search button[data-open-modal]:hover { background: var(--sk-surface); }
   .ctas .btn { flex: 1 1 auto; }
   .ctas .btn--tertiary { flex-basis: 100%; }
   .steps, .facts, .split, .tiers, .tiers[data-tiers='2'], .does { grid-template-columns: 1fr; }
-  .tier--secondary { grid-column: auto; }
+  .tier--secondary, .tiers[data-tiers='3'] .tier--main, .tiers[data-tiers='3'] .tier--secondary { grid-column: auto; grid-row: auto; }
   .rooms { grid-template-columns: 1fr 1fr; gap: var(--sk-s5) var(--sk-s3); }
   .sec { padding-block: var(--site-s7); }
   .ftr__cols { grid-template-columns: 1fr 1fr; }

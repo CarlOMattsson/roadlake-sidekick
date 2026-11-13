@@ -67,7 +67,7 @@ export const shoppingEn = {
   next: "Next page",
   previous: "Previous page",
   page: "Page",
-  hint: "Keep everyday shopping, future IKEA visits, and gift ideas in separate lists. Dates are optional.",
+  hint: "Keep one list per purpose: groceries, furniture, gifts. Dates are optional.",
   offerHint:
     "A noted observation, not a live price check. Clear the price to remove the offer.",
   recipientHint:
@@ -89,7 +89,7 @@ export const shoppingEn = {
   newItemPrefix: "Added:",
   /** The receipt of an add the phone queued without a network: the items are sent when it is back. */
   addQueued: (names: string) =>
-    `Waiting for network: ${names}. Sent when you’re back online.`,
+    `Waiting for connection: ${names}. Sent when you’re back online.`,
   /**
    * The value of a receipt line after the item's name and colon: the outcome, "Milk:
    * updated to 2 l". "merged" is said only when the result itself says the input was folded into an existing item.
@@ -110,7 +110,7 @@ export const shoppingEn = {
   undoPurchase: "Undo",
   queued: "Waiting…",
   /** A purchase made without a network: it waits on the phone and is sent once there is one. */
-  waitingForNetwork: "Waiting for network",
+  waitingForNetwork: "Waiting for connection",
   /** Over a list read from the phone's offline copy, with when it was last fetched: "No connection · last fetched 14:02". */
   offlineCopy: (time: string) => `No connection · last fetched ${time}`,
   /** The meta line of a bought row while its Undo holds: "Bought · Undo". */
@@ -131,7 +131,7 @@ export const shoppingEn = {
   lists: "Lists",
   newListPlaceholder: "New list, e.g. Groceries",
   /** One line under "No lists yet." in the empty picker. */
-  pickerHint: "One list per purpose: groceries, IKEA, gifts.",
+  pickerHint: "One list per purpose: groceries, furniture, gifts.",
   /** The meta line of a list row: "7 left · updated today". */
   listLeft: (count: number) => (count === 0 ? "Nothing left" : `${count} left`),
   listUpdated: (day: string) => `updated ${day}`,
@@ -207,7 +207,7 @@ export const shoppingSv: ShoppingLabels = {
   next: "Nästa sida",
   previous: "Föregående sida",
   page: "Sida",
-  hint: "Ha egna listor för vardagsinköp, framtida IKEA-besök och presentidéer. Datum är valfria.",
+  hint: "Ha en lista per syfte: vardag, möbler, presenter. Datum är valfria.",
   offerHint:
     "En noterad observation, ingen livekontroll av pris. Töm priset för att ta bort erbjudandet.",
   recipientHint:
@@ -225,7 +225,7 @@ export const shoppingSv: ShoppingLabels = {
   listFallback: "Inköpslista",
   newItemPrefix: "Tillagd:",
   addQueued: (names: string) =>
-    `Väntar på nät: ${names}. Skickas när nätet är tillbaka.`,
+    `Väntar på anslutning: ${names}. Skickas när du är ansluten igen.`,
   updatedPrefix: "Uppdaterad:",
   existedPrefix: "Fanns redan:",
   nowAmount: (amount: string) => `nu ${amount}`,
@@ -239,7 +239,7 @@ export const shoppingSv: ShoppingLabels = {
   storeRemaining: (store: string, open: number) => `${store} · ${open} kvar`,
   undoPurchase: "Ångra",
   queued: "Väntar…",
-  waitingForNetwork: "Väntar på nät",
+  waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,
   bought: "Köpt",
   markBought: (name: string) => `Markera ${name} som köpt`,
@@ -252,7 +252,7 @@ export const shoppingSv: ShoppingLabels = {
     count === 1 ? "1 ifyllt" : `${count} ifyllda`,
   lists: "Listor",
   newListPlaceholder: "Ny lista, t.ex. Veckohandling",
-  pickerHint: "En lista per syfte: vardag, IKEA, presenter.",
+  pickerHint: "En lista per syfte: vardag, möbler, presenter.",
   listLeft: (count: number) => (count === 0 ? "Inget kvar" : `${count} kvar`),
   listUpdated: (day: string) =>
     `uppdaterad ${day.charAt(0).toLocaleLowerCase("sv") + day.slice(1)}`,

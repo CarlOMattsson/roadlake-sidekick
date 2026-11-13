@@ -162,7 +162,7 @@ describe("journal entry view: tasks created by a saved draft", () => {
     ).not.toBeInTheDocument();
     // The saved notice itself still shows, as before.
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Journal entry saved. 4 tasks created, 0 updated.",
+      "Entry saved. 4 tasks created.",
     );
   });
 });

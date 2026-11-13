@@ -131,6 +131,53 @@ describe("TrashView rows", () => {
     ).toBeInTheDocument();
   });
 
+  it("lists every row it holds in the full view, with no Visa alla", () => {
+    const items: TrashItem[] = Array.from({ length: 7 }, (_, index) => ({
+      ...task,
+      id: `019f0000-0000-7000-8000-00000000022${index}`,
+      label: `Post ${index + 1}`,
+    }));
+    render(
+      <TrashView
+        initial={{ items, has_more: false, next_cursor: null }}
+        transport={makeTransport()}
+        labels={controlSv}
+        now={now}
+        full
+      />,
+    );
+
+    expect(
+      within(screen.getByRole("list", { name: "Borttaget" })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(7);
+    expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Visa färre" })).toBeNull();
+  });
+
+  it("does not claim an exact count while the server holds more rows", () => {
+    const items: TrashItem[] = Array.from({ length: 5 }, (_, index) => ({
+      ...task,
+      id: `019f0000-0000-7000-8000-00000000023${index}`,
+      label: `Post ${index + 1}`,
+    }));
+    const { container } = renderTrash(
+      { items, has_more: true, next_cursor: "page-2" },
+      makeTransport(),
+    );
+
+    expect(container.querySelector("p.control-meta")).toHaveTextContent(
+      "5+ borttagna · kan återställas",
+    );
+    expect(
+      screen.getByRole("button", { name: "Visa alla (5+)" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Visa fler" }),
+    ).toBeInTheDocument();
+  });
+
   it("drops Visa alla once a restore leaves the rows at the limit", async () => {
     const items: TrashItem[] = Array.from({ length: 4 }, (_, index) => ({
       ...task,
@@ -158,7 +205,7 @@ describe("TrashView rows", () => {
     const transport = makeTransport();
     renderTrash({ items: [], has_more: false, next_cursor: null }, transport);
 
-    expect(screen.getByText("Papperskorgen är tom.")).toBeInTheDocument();
+    expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Återställ/ })).toBeNull();
   });
 
@@ -394,7 +441,7 @@ describe("TrashView heading", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "Borttaget" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Papperskorgen är tom.")).toBeInTheDocument();
+    expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
   });
 });
 

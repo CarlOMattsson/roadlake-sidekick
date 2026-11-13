@@ -3,6 +3,7 @@ import { formatCalendarDate, formatCount } from "./dates";
 import { labelFor } from "./labels";
 import type { JournalLabels } from "./labels";
 import type { JournalFrame, JournalPendingItem } from "./transport";
+import { Row } from "../mcp-apps/ui/row";
 
 /**
  * Inline, the pending list shows this many items; "+N more · Show all" opens the rest in place. Three
@@ -39,31 +40,37 @@ export function PendingFrame({
       </h2>
       <p>{t.pendingNote}</p>
       {items.length === 0 && <p>{t.pendingEmpty}</p>}
-      <ul className="journal-list journal-pending-list">
-        {shownItems.map((item) => (
-          <li key={item.source_id}>
-            <p>
-              {formatCalendarDate(item.journal_date, t.dateLocale)} ·{" "}
-              {labelFor(t.sourceType, item.source_type)}
-            </p>
-            {item.draft_id ? (
-              <button
-                type="button"
-                onClick={() =>
-                  onOpen({ kind: "draft", id: item.draft_id as string })
-                }
-              >
-                {item.draft_title ?? t.untitledDraft}
-              </button>
-            ) : (
-              item.draft_title && <p>{item.draft_title}</p>
-            )}
-            <p className="journal-muted">
-              {labelFor(t.pendingState, item.state)} ·{" "}
-              {formatCount(item.character_count, t.dateLocale)} {t.characters}
-            </p>
-          </li>
-        ))}
+      {/* The row template: the draft's title opens it (›), one meta line "28 okt · Egen text · 1 020 tecken". A draft
+          awaiting review names no state (the heading says it); any other state follows the date. */}
+      <ul className="journal-pending-list">
+        {shownItems.map((item) => {
+          const draftId = item.draft_id;
+          const state = labelFor(t.pendingState, item.state);
+          // A source without a draft or a title is named by its state, which the meta then does not repeat.
+          const title =
+            item.draft_title ?? (draftId ? t.untitledDraft : undefined);
+          const meta = [
+            formatCalendarDate(item.journal_date, t.dateLocale),
+            title === undefined || item.state === "draft_pending_review"
+              ? undefined
+              : state,
+            labelFor(t.sourceType, item.source_type),
+            `${formatCount(item.character_count, t.dateLocale)} ${t.characters}`,
+          ].filter((part) => part !== undefined);
+          return (
+            <Row
+              key={item.source_id}
+              primary={title ?? state}
+              secondary={meta.join(" · ")}
+              navigates={Boolean(draftId)}
+              onOpen={
+                draftId
+                  ? () => onOpen({ kind: "draft", id: draftId })
+                  : undefined
+              }
+            />
+          );
+        })}
       </ul>
       {!fullscreen && items.length > inlinePendingLimit && (
         <p>

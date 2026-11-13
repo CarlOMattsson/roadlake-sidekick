@@ -73,6 +73,47 @@ it("shows the list name, the open count and only the first four open items as te
   expect(screen.getByText("Shelf · 2 l")).toBeInTheDocument();
   expect(screen.queryByText(/^Lamp/)).not.toBeInTheDocument();
   expect(screen.queryByText(/^Coffee/)).not.toBeInTheDocument();
+  expect(screen.getByText(shoppingEn.moreItems(2))).toBeInTheDocument();
+});
+
+it("says nothing about hidden items when all open items are listed", () => {
+  render(
+    <ShoppingCard
+      detail={{
+        shopping_list: list,
+        evaluated_on: "2026-10-24",
+        next_offset: null,
+        items: names.slice(0, 4).map((name, index) =>
+          item({
+            id: `019f0000-0000-7000-8000-0000000000${index + 10}`,
+            name,
+          }),
+        ),
+      }}
+      labels={shoppingSv}
+      onOpen={vi.fn()}
+    />,
+  );
+  expect(screen.getAllByRole("listitem")).toHaveLength(4);
+  expect(screen.queryByText(/^\+\d+ fler$/)).not.toBeInTheDocument();
+});
+
+it("draws no progress line for an empty list", () => {
+  render(
+    <ShoppingCard
+      detail={{
+        shopping_list: list,
+        evaluated_on: "2026-10-24",
+        next_offset: null,
+        items: [],
+      }}
+      labels={shoppingSv}
+      onOpen={vi.fn()}
+    />,
+  );
+  expect(screen.getByText(shoppingSv.empty)).toBeInTheDocument();
+  expect(screen.queryByText(shoppingSv.boughtOf(0, 0))).not.toBeInTheDocument();
+  expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 
 it("Open asks for fullscreen through the callback", async () => {

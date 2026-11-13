@@ -393,6 +393,52 @@ describe("the repeat chip of the Task page", () => {
   });
 });
 
+describe("the priority chip of the Task page", () => {
+  it("unfolds Låg, Normal and Hög with Hög ticked, and choosing Normal writes one update_task", async () => {
+    const { work, updateTask } = makeTransport(makeTask({ priority: "high" }));
+    const user = userEvent.setup();
+    renderTask(work);
+
+    const chip = await screen.findByRole("button", {
+      name: "Ändra prioritet: Hög",
+    });
+    expect(chip).toHaveTextContent("Prioritet: Hög");
+    await user.click(chip);
+    const group = within(screen.getByRole("group", { name: "Prioritet" }));
+    expect(group.getByRole("button", { name: "Låg" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(group.getByRole("button", { name: "Normal" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(group.getByRole("button", { name: "Hög" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await user.click(group.getByRole("button", { name: "Normal" }));
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+    const [id, version, changes, key] = updateTask.mock.calls[0]!;
+    expect(id).toBe(TASK_ID);
+    expect(version).toBe(4);
+    expect(changes).toEqual({ priority: "normal" });
+    expect(typeof key).toBe("string");
+  });
+
+  it("has no passive 'Prioritet:' chip beside the place where the host can write it", async () => {
+    const { work } = makeTransport(makeTask({ priority: "high" }));
+    const { container } = renderTask(work);
+
+    await screen.findByRole("button", { name: "Ändra prioritet: Hög" });
+    const passive = Array.from(
+      container.querySelectorAll("p.work-chip"),
+    ).filter((chip) => chip.textContent?.includes("Prioritet"));
+    expect(passive).toHaveLength(0);
+  });
+});
+
 describe("the wording of the repeat rule", () => {
   const rule = (
     frequency: "daily" | "weekly" | "monthly" | "yearly",

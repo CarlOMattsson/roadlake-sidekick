@@ -10,7 +10,7 @@ import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
 import "./shopping.css";
 
-/** Open items named in the inline card. The rest are counted in "N left of M", not listed. */
+/** Open items named in the inline card. The rest are counted in a muted "+N more" line, not listed. */
 export const CARD_ITEM_COUNT = 4;
 
 /**
@@ -57,9 +57,9 @@ export function cardItemText(item: ShoppingItem, locale: string): string {
 }
 
 /**
- * Compact inline card for a shopping list. It names the list, shows "N left of M" and the first
- * open items as text, and offers Open, which asks the host for fullscreen. The card sizes to its
- * content and has no inner scroll. The host decides the frame; the card is only shown when fullscreen
+ * Compact inline card for a shopping list. It names the list, shows "N of M bought" and the first
+ * open items as text (with "+N more" when some are not listed), and offers Open, which asks the host for
+ * fullscreen. The card sizes to its content and has no inner scroll. The host decides the frame; the card is only shown when fullscreen
  * can be offered.
  */
 export function ShoppingCard({
@@ -85,11 +85,13 @@ export function ShoppingCard({
           <h2 className="shopping-card-title sk-card__title">
             {detail.shopping_list.name}
           </h2>
-          <Progress
-            done={total - open.length}
-            total={total}
-            label={t.boughtOf(total - open.length, total)}
-          />
+          {total > 0 ? (
+            <Progress
+              done={total - open.length}
+              total={total}
+              label={t.boughtOf(total - open.length, total)}
+            />
+          ) : null}
           {total === 0 ? (
             <EmptyState
               title={t.empty}
@@ -102,13 +104,20 @@ export function ShoppingCard({
           ) : open.length === 0 ? (
             <p className="shopping-card-status">{t.allBought}</p>
           ) : (
-            <ul className="shopping-card-items">
-              {shown.map((item) => (
-                <li key={item.id} className="shopping-card-item">
-                  {cardItemText(item, t.dateLocale)}
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="shopping-card-items">
+                {shown.map((item) => (
+                  <li key={item.id} className="shopping-card-item">
+                    {cardItemText(item, t.dateLocale)}
+                  </li>
+                ))}
+              </ul>
+              {open.length > shown.length ? (
+                <p className="shopping-card-more">
+                  {t.moreItems(open.length - shown.length)}
+                </p>
+              ) : null}
+            </>
           )}
           <CardFoot>
             <button

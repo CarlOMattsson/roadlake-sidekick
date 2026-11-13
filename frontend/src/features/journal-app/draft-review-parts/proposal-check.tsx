@@ -68,11 +68,8 @@ export function ProposalCheck({
   }
   return (
     <div className="journal-check journal-check-flat">
-      <p className="journal-choice">
-        {name}
-        {" · "}
-        <span className="journal-tag">{t.suggestedByAi}</span>
-      </p>
+      {/* Every row here is Claude's proposal (the section says so), so the row names no source. */}
+      <p className="journal-choice">{name}</p>
       <Segmented
         label={t.decisionFor(name)}
         options={decisionOptions(t)}
@@ -83,7 +80,9 @@ export function ProposalCheck({
         }}
         disabled={disabled || !known}
       />
-      <p className="journal-muted">{decisionStatus(decision, t)}</p>
+      {decision && (
+        <p className="journal-muted">{decisionStatus(decision, t)}</p>
+      )}
       {!known && <p className="journal-muted">{t.unknownItem}</p>}
       {details.length > 0 && (
         <p className="journal-muted">{details.join(" · ")}</p>

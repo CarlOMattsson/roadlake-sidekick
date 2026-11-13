@@ -501,13 +501,18 @@
   border-top: var(--sk-hairline) solid var(--sk-border);
 }
 /* Each row is a button that opens its entry: the whole row is the touch target, at least 44 px high. */
+/* Time and title share a baseline, and the line sits in the middle of the 44: a single-line flex row on baselines
+   hugs the top and leaves the air under a one-line title, so the row is a wrapping flex (align-content applies) whose
+   title starts from 0 and never wraps under the time. */
 .sidekick-journal .journal-glance-row {
   display: flex;
+  flex-wrap: wrap;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 44px;
   justify-content: flex-start;
   align-items: baseline;
+  align-content: center;
   gap: 0.5rem;
   padding: 0.2rem 0;
   font-size: inherit;
@@ -518,26 +523,21 @@
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
 }
-/* Inline pending rows (not fullscreen): tighter padding, and the meta line (state and size) on one line, cut
-   with an ellipsis. The full line stays in the markup and shows in fullscreen. */
-.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li {
-  padding: 0.35rem 0;
-}
-.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li > p {
+/* The pending list: rows of the row template (row.css .sk-row), parted by their air. The family gives every button in
+   the view a frame and centred text (family.css); the reset here wins by specificity, as in Arbete's contact list. */
+.sidekick-journal .journal-pending-list {
+  list-style: none;
   margin: 0;
+  padding: 0;
 }
-.sidekick-journal:not(.journal-fullscreen) .journal-pending-list > li > button {
-  padding-block: 0.25rem;
-  line-height: 1.3;
-}
-.sidekick-journal:not(.journal-fullscreen)
-  .journal-pending-list
-  > li
-  > .journal-muted {
-  margin-top: 0.125rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.sidekick-journal .journal-pending-list .sk-row-open {
+  min-height: var(--sk-row-min);
+  justify-content: flex-start;
+  padding: var(--sk-row-pad) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  text-align: start;
 }
 /* Timeline entry (entry-row.tsx, designsystem §3 Anteckningsrad): the row template's excerpt variant:
    no frame, no surface, no hairlines and no icon; rows are parted by air. The title (row
@@ -624,6 +624,7 @@ button.journal-entry-card {
   color: var(--sk-muted);
 }
 .sidekick-journal .journal-glance-title {
+  flex: 1 1 0;
   min-width: 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -889,7 +890,7 @@ button.journal-entry-card {
     grid-column: 1 / -1;
   }
 }
-/* Draft review decision bar (Spara som journalpost, Avvisa utkast). In flow at 400 px and under, where a sticky
+/* Draft review decision bar (Spara som anteckning, Avvisa utkast). In flow at 400 px and under, where a sticky
    bar would cover the draft text on narrow screens. Above 400 px it is sticky at the bottom of the review, so the
    primary action stays in reach while a long draft scrolls. Its background is the card surface (--sk-surface),
    opaque, so the content passes under it. In fullscreen it rests on the foot reserve, above the host's reply
@@ -936,18 +937,7 @@ button.journal-entry-card {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.sidekick-journal .journal-disclosure-toggle {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  min-height: 44px;
-  padding-inline: 0;
-  text-align: start;
-  font-weight: 600;
-  border-bottom: var(--sk-hairline) solid var(--sk-border);
-}
+/* The section's fold row (row.css .sk-fold) inline; fullscreen shows the heading and the body instead. */
 .sidekick-journal.journal-fullscreen .journal-disclosure-toggle,
 .sidekick-journal.journal-fullscreen .journal-summary-more {
   display: none;
@@ -998,29 +988,13 @@ button.journal-entry-card {
 }
 
 /* Inline draft: Approve all must not make the card taller than one screen. The summary sentence stays for screen
-   readers only, "Choose yourself" is dropped (the two closed section rows are right below it), the two section
-   rows share one line, and an open section takes the whole line. Fullscreen shows all of it as written. */
+   readers only, and "Choose yourself" is dropped (the two closed section rows are right below it). Each section row is
+   a fold row on a line of its own, so its name never breaks inside a word. Fullscreen shows all of it as written. */
 .sidekick-journal:not(.journal-fullscreen) .journal-choose-yourself {
   display: none;
 }
 .sidekick-journal:not(.journal-fullscreen) .journal-approve-all {
   margin: 0;
-}
-.sidekick-journal:not(.journal-fullscreen) .journal-disclosure-pair {
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: 0.75rem;
-}
-.sidekick-journal:not(.journal-fullscreen)
-  .journal-disclosure-pair
-  > .journal-disclosure {
-  flex: 1 1 9rem;
-  min-width: 0;
-}
-.sidekick-journal:not(.journal-fullscreen)
-  .journal-disclosure-pair
-  > .journal-disclosure[data-open="true"] {
-  flex-basis: 100%;
 }
 
 /* Deleting an entry: its ⋯ on its own row when no shell Back row holds it, the danger item of the menu (the overdue
@@ -1070,6 +1044,17 @@ button.journal-entry-card {
 }
 .sidekick-journal .journal-write-self {
   min-height: var(--sk-tap-lg);
+}
+/* A chip that is only its open button: the button is the whole chip (its padding is the chip's), so a short name
+   ("Uppgift") is still at least 44 wide to tap. */
+.sidekick-journal .journal-chip:has(> button.journal-chip-name:only-child) {
+  padding-inline: 0;
+}
+.sidekick-journal .journal-chip > button.journal-chip-name:only-child {
+  min-width: var(--sk-tap);
+  padding-inline: 0.6rem;
+  border-radius: inherit;
+  text-align: center;
 }
 /* A linked Task's chip: a title is longer than a name, so it may take the whole line before
    it is cut. The full title is its tooltip and part of its accessible name. */

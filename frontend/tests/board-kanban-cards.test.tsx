@@ -121,8 +121,8 @@ describe("due chip on a card", () => {
       workDate(overdue.due_at, now, workEn.dateLocale, { relative: false }),
     );
 
-    // Inside a meta line "today" is lower case, as the agenda's and the board's lines have it.
-    const today = screen.getByText("today", { selector: "time" });
+    // At the start of a meta line "Today" has a capital, as the agenda's and the board's lines have it.
+    const today = screen.getByText("Today", { selector: "time" });
     expect(today).toHaveAttribute("data-tone", "today");
     expect(today).toHaveAttribute("datetime", dueToday.due_at);
   });
@@ -195,6 +195,84 @@ describe("meta line of a card in a Project", () => {
       "lang",
       "sv",
     );
+  });
+});
+
+describe("the Status columns in the order of the phone's list", () => {
+  // Due dates in 2099 so the order never drifts with the clock; the overdue one is in 2020.
+  const card = (
+    n: string,
+    title: string,
+    due_at: string | null,
+  ): WorkItemRecord => ({
+    kind: "task",
+    id: `019f0000-0000-7000-8000-0000000000${n}`,
+    title,
+    status: "todo",
+    due_at,
+    version: 1,
+  });
+  const undated = card("f1", "Beställ skåp", null);
+  const later = card("f2", "Betala skatten", "2099-01-20T09:00:00Z");
+  const earlier = card("f3", "Ring Anna", "2099-01-10T09:00:00Z");
+  const overdue = card("f4", "Betala hyran", "2020-01-05T09:00:00Z");
+  // The server's order: the undated first, then the rest in no date order.
+  const serverOrder = [undated, later, earlier, overdue];
+
+  function boardOf(
+    todo: WorkItemRecord[],
+    layout: "columns" | "single",
+    manually_ordered?: string[],
+  ) {
+    return (
+      <BoardView
+        frame={{
+          kind: "board",
+          filters: {},
+          page: {
+            columns: {
+              todo,
+              in_progress: [],
+              completed: [],
+              active: [],
+              paused: [],
+            },
+            next_cursor: null,
+            ...(manually_ordered ? { manually_ordered } : {}),
+          },
+        }}
+        onChange={() => undefined}
+        transport={transport()}
+        labels={workEn}
+        moves={0}
+        onOpen={() => undefined}
+        layout={layout}
+      />
+    );
+  }
+
+  /** The ids of the To do column's cards, in the order they are drawn. */
+  function todoIds(): (string | null)[] {
+    const column = screen.getByRole("region", {
+      name: workEn.taskStatus.todo,
+    });
+    return Array.from(column.querySelectorAll("[data-card-id]"), (el) =>
+      el.getAttribute("data-card-id"),
+    );
+  }
+
+  it("lists the To do column by due date, the overdue first and the undated last, as the phone does", () => {
+    const columns = render(boardOf(serverOrder, "columns"));
+    expect(todoIds()).toEqual([overdue.id, earlier.id, later.id, undated.id]);
+    columns.unmount();
+
+    render(boardOf(serverOrder, "single"));
+    expect(todoIds()).toEqual([overdue.id, earlier.id, later.id, undated.id]);
+  });
+
+  it("keeps the server's order in a column the user has ordered (manually_ordered)", () => {
+    render(boardOf(serverOrder, "columns", ["todo"]));
+    expect(todoIds()).toEqual(serverOrder.map((item) => item.id));
   });
 });
 

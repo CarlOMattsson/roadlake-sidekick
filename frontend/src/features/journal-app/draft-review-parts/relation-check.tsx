@@ -38,11 +38,9 @@ export function RelationCheck({
     >
       {option.suggested ? (
         <>
-          <p className="journal-choice">
-            {option.label}
-            {" · "}
-            <span className="journal-tag">{t.suggestedByAi}</span>
-          </p>
+          {/* Claude's suggestion is told by its Godkänn/Avslå pair (a candidate of the owner's own has a checkbox) and
+              by the summary line "Claude föreslår …", so the row names no source. */}
+          <p className="journal-choice">{option.label}</p>
           <Segmented
             label={t.decisionFor(option.label)}
             options={decisionOptions(t)}
@@ -53,7 +51,9 @@ export function RelationCheck({
             }}
             disabled={disabled || !option.known}
           />
-          <p className="journal-muted">{decisionStatus(decision, t)}</p>
+          {decision && (
+            <p className="journal-muted">{decisionStatus(decision, t)}</p>
+          )}
         </>
       ) : (
         <label>

@@ -226,7 +226,7 @@ export function useBoardWrites({
     status: TaskStatusValue,
     source: WorkBoardFrame = frame,
   ) {
-    return wholeColumn(source, status, single);
+    return wholeColumn(source, status);
   }
   /**
    * A drop inside one column. The order is written only for a complete column; an incomplete one
@@ -240,7 +240,7 @@ export function useBoardWrites({
     const key = `reorder:${status}`;
     queueWrite(key, async () => {
       if (!(await replayUnsure(key))) return;
-      const items = reorderedColumn(status, taskId, to, latest.current, single);
+      const items = reorderedColumn(status, taskId, to, latest.current);
       if (!items) return;
       const signature = JSON.stringify([
         status,

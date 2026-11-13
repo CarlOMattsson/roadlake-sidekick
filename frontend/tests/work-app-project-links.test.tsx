@@ -38,6 +38,14 @@ const carl: WorkContact = {
   display_name: "Carl Nilsson",
 };
 
+/** Opens the Project's editor: the ⋯ in its header row holds "Edit", which is the way in (a tap on the title also edits). */
+async function startEditing(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    await screen.findByRole("button", { name: workEn.moreActions }),
+  );
+  await user.click(screen.getByRole("button", { name: workEn.edit }));
+}
+
 /** Opens the quiet "+ New task" line of a Project, which shows the Task form. */
 async function openTaskForm(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: workEn.newTask }));
@@ -148,7 +156,7 @@ it("saves only the changed Project fields, with dates as YYYY-MM-DD", async () =
   });
   const work = transport({ updateProject });
   render(rootProject(work));
-  await user.click(await screen.findByRole("button", { name: workEn.edit }));
+  await startEditing(user);
   const title = screen.getByLabelText(workEn.titleLabel);
   await user.clear(title);
   await user.type(title, "Ny titel");
@@ -183,10 +191,10 @@ it("sends a cleared description as null and an untouched Project as no write", a
   });
   const work = transport({ updateProject });
   render(rootProject(work));
-  await user.click(await screen.findByRole("button", { name: workEn.edit }));
+  await startEditing(user);
   await user.click(screen.getByRole("button", { name: workEn.save }));
   expect(updateProject).not.toHaveBeenCalled();
-  await user.click(screen.getByRole("button", { name: workEn.edit }));
+  await startEditing(user);
   await user.clear(screen.getByLabelText(workEn.description));
   await user.click(screen.getByRole("button", { name: workEn.save }));
   await waitFor(() => expect(updateProject).toHaveBeenCalledTimes(1));
@@ -203,7 +211,7 @@ it("blocks Save of a Project while a date is an incomplete entry", async () => {
   const updateProject = vi.fn();
   const work = transport({ updateProject });
   render(rootProject(work));
-  await user.click(await screen.findByRole("button", { name: workEn.edit }));
+  await startEditing(user);
   const start = screen.getByLabelText(workEn.startDate);
   Object.defineProperty(start, "validity", {
     value: { badInput: true },
@@ -231,7 +239,7 @@ it("shows a conflict banner for a Project, reloads the latest version and keeps 
     });
   const work = transport({ getProject, updateProject });
   render(rootProject(work));
-  await user.click(await screen.findByRole("button", { name: workEn.edit }));
+  await startEditing(user);
   const title = screen.getByLabelText(workEn.titleLabel);
   await user.clear(title);
   await user.type(title, "Offert idag");

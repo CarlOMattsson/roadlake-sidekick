@@ -266,6 +266,7 @@ export function ControlApp({
               now={now}
               onData={onTrash}
               onModelContext={onModelContext}
+              full={heading}
               {...expandedOf("trash")}
             />
           ) : view === "history" ? (
@@ -278,6 +279,7 @@ export function ControlApp({
               onData={onChanges}
               sendMessage={sendMessage}
               onModelContext={onModelContext}
+              full={heading}
               {...expandedOf("history")}
             />
           ) : view === "memory" && data.memory ? (

@@ -701,6 +701,30 @@ describe("step progress, undo of a check and the quiet forms", () => {
     ).toHaveFocus();
   });
 
+  it("closes the menu with its Stäng button, and the focus goes to the Step's checkbox", async () => {
+    const user = userEvent.setup();
+    const { transport } = mockTransport({});
+    renderSteps(transport);
+    const check = await screen.findByRole("checkbox", { name: stepB.title });
+
+    await openMenu(stepB.title);
+    expect(
+      screen.getByRole("button", { name: sv.moveUpFor(stepB.title) }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: workSv.closeMenu }));
+
+    expect(
+      screen.queryByRole("button", { name: sv.moveUpFor(stepB.title) }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: sv.moveDownFor(stepB.title) }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: sv.archiveFor(stepB.title) }),
+    ).not.toBeInTheDocument();
+    expect(check).toHaveFocus();
+  });
+
   it("draws no Actions button under a Step, only the Visa åtgärder in the Step's menu", async () => {
     const { transport } = mockTransport({});
     renderSteps(transport);
@@ -711,8 +735,13 @@ describe("step progress, undo of a check and the quiet forms", () => {
     ).not.toBeInTheDocument();
     await openMenu(stepA.title);
     const show = screen.getByRole("button", { name: "Visa åtgärder" });
-    expect(show).toHaveClass("sk-btn", "sk-btn--quiet");
+    expect(show).toHaveClass("work-step-actions-open");
+    expect(show).not.toHaveClass("sk-btn--quiet");
     expect(show).toHaveAttribute("aria-expanded", "false");
+    // The menu has its own close button, labelled as the menu's close.
+    expect(
+      screen.getByRole("button", { name: workSv.closeMenu }),
+    ).toBeInTheDocument();
     expect(transport.listStepActions).not.toHaveBeenCalled();
   });
 });

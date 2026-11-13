@@ -164,7 +164,7 @@ A nested field is listed under its parent as `parent.field`; `parent[].field` is
 
 ## `get_work_board`
 
-Use this for the status board: one bounded page of Work records in manual order, grouped into status columns.
+Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns.
 
 Access: read
 

@@ -41,14 +41,13 @@ export function findTaskCard(
 
 /**
  * The column's Tasks in their order with versions, or undefined when the column is not whole on the board
- * (a next page, a filter, or a record that is not a Task with a version). On the phone (`single`) the order is the
- * one shown: Flytta upp/ned in a section sorted by date writes what the user sees, with the one row moved a step,
- * so nothing else jumps.
+ * (a next page, a filter, or a record that is not a Task with a version). The order is the one shown (shownOrder, the
+ * same in both layouts): a drag or Flytta upp/ned in a column sorted by date writes what the user sees, with the one
+ * card moved, so nothing else jumps.
  */
 export function completeColumn(
   source: WorkBoardFrame,
   status: TaskStatusValue,
-  single: boolean,
 ): WorkBoardPlacementItem[] | undefined {
   const filtered = Object.values(source.filters).some((value) =>
     typeof value === "string" ? value !== "" : value.length > 0,
@@ -56,9 +55,7 @@ export function completeColumn(
   if (source.page.next_cursor || filtered || source.search) return undefined;
   const items: WorkBoardPlacementItem[] = [];
   const column = source.page.columns[status] ?? [];
-  for (const item of single
-    ? shownOrder(source.page, status, column)
-    : column) {
+  for (const item of shownOrder(source.page, status, column)) {
     if (item.kind !== "task" || typeof item.version !== "number")
       return undefined;
     items.push({ taskId: item.id, version: item.version });
@@ -76,9 +73,8 @@ export function reorderedColumn(
   taskId: string,
   to: ReorderTo,
   source: WorkBoardFrame,
-  single: boolean,
 ): WorkBoardPlacementItem[] | undefined {
-  const items = completeColumn(source, status, single);
+  const items = completeColumn(source, status);
   if (!items) return undefined;
   const from = items.findIndex((item) => item.taskId === taskId);
   if (from === -1) return undefined;

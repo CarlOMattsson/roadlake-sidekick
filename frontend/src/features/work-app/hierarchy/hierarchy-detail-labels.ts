@@ -18,6 +18,8 @@ export const hierarchyDetailLabelsSv = {
   overdue: (n: number) => `${n} ${n === 1 ? "försenad" : "försenade"}`,
   /** A Domain with no Project or Process yet, under its heading. */
   noGroups: "Inga projekt eller processer än.",
+  /** The heading over the Projects and Processes outside every Domain, drawn only when there are Domains. */
+  noDomain: "Utan domän",
   /** The title filter's label, the same frame as the agenda's filter. */
   filter: "Filtrera projekt och processer",
   /** Shown instead of the tree when the title filter matches nothing. */
@@ -30,6 +32,8 @@ export const hierarchyDetailLabelsSv = {
   dueTomorrow: "Imorgon",
   /** The Task's status chip (design system §3, egenskapschip): its name is "Ändra status: Att göra". */
   changeStatus: "Ändra status",
+  /** The Task's priority chip: its name is "Ändra prioritet: Hög". */
+  changePriority: "Ändra prioritet",
   /** The Contact's note as a paragraph under "Om Anna" (design system §3, Kontaktvyn). */
   aboutContact: (first: string) => `Om ${first}`,
   /** The closed section with e-mail, phone and address. */
@@ -51,6 +55,7 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
     n === 0 ? "No open tasks" : n === 1 ? "1 open task" : `${n} open tasks`,
   overdue: (n) => `${n} overdue`,
   noGroups: "No projects or processes yet.",
+  noDomain: "No area",
   filter: "Filter projects and processes",
   noMatches: "No matches.",
   noMatchesLoaded:
@@ -58,6 +63,7 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
   completedGroup: (count) => `Completed (${count})`,
   dueTomorrow: "Tomorrow",
   changeStatus: "Change status",
+  changePriority: "Change priority",
   aboutContact: (first) => `About ${first}`,
   waysToReach: "Contact details",
   wayWords: ["email", "phone", "address"],

@@ -19,7 +19,7 @@ import type { NativeRequest, NativeResponse } from "@/mobile/sidekick-native";
 import { fakeNative, nativeError, ok } from "./helpers/fake-native";
 
 // Grupp A (Android UX review): in a shop without coverage a ticked item must not jump back. A purchase that gets no
-// answer waits in the phone's outbox ("Waiting for network"), the list opens from the phone's offline copy with when it
+// answer waits in the phone's outbox ("Waiting for connection"), the list opens from the phone's offline copy with when it
 // was fetched, and a failure of the connection says so instead of "Sidekick did not answer".
 
 const LIST_ID = "019f0000-0000-7000-8000-000000000001";
@@ -593,11 +593,11 @@ describe("the Shopping room in a shop without coverage", () => {
 
 describe("the offline texts", () => {
   it("are written in Swedish first and in English", () => {
-    expect(shoppingSv.waitingForNetwork).toBe("Väntar på nät");
+    expect(shoppingSv.waitingForNetwork).toBe("Väntar på anslutning");
     expect(shoppingSv.offlineCopy("14:02")).toBe(
       "Ingen anslutning · senast hämtad 14:02",
     );
-    expect(shoppingEn.waitingForNetwork).toBe("Waiting for network");
+    expect(shoppingEn.waitingForNetwork).toBe("Waiting for connection");
     expect(shoppingEn.offlineCopy("14:02")).toBe(
       "No connection · last fetched 14:02",
     );

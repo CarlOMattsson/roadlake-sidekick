@@ -1,9 +1,11 @@
-import { useCallback, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { workDate } from "../../mcp-apps/ui/due";
 import { Progress } from "../../mcp-apps/ui/progress";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { projectStatusLabel } from "../shared/labels";
+import { ContactMenu } from "../contacts/contact-edit";
+import { MoreIcon } from "../tasks/task-detail-controls";
 import { ProjectEditor } from "./project-edit";
 import { CreateParentTask } from "./parent-task-create";
 import type {
@@ -39,6 +41,10 @@ export function ProjectFrame({
   // or create a Task here yet.
   const offers = useToolSupport(transport);
   const editOffered = offers("update_project");
+  // The ⋯ in the Back row holds "Redigera", as a Task's and a Contact's do; a tap on the title edits too.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuId = useId();
+  const moreButton = useRef<HTMLButtonElement>(null);
   const createOffered = offers("create_task");
   const domainName = useDomainName(transport, project?.domain_id);
   useFrameRead(
@@ -66,6 +72,7 @@ export function ProjectFrame({
     ]);
   }
   function startEdit() {
+    setMenuOpen(false);
     frame.setWrite({ kind: "idle" });
     frame.setEditing(true);
   }
@@ -100,10 +107,52 @@ export function ProjectFrame({
       <DetailBar
         back={back}
         kicker={phase !== "gone" ? t.project : undefined}
+        actions={
+          phase === "ready" && project && editOffered ? (
+            <button
+              ref={moreButton}
+              type="button"
+              className="sk-iconbtn work-detail-action"
+              aria-label={t.moreActions}
+              aria-expanded={menuOpen}
+              aria-controls={menuOpen ? menuId : undefined}
+              disabled={write.kind === "busy" || editing}
+              onClick={() => setMenuOpen(!menuOpen)}
+            >
+              <MoreIcon />
+            </button>
+          ) : undefined
+        }
       />
-      <h2 ref={heading} tabIndex={-1} className="work-detail-title">
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events -- a pointer shortcut for editing; the keyboard route to the same action is the Edit item in the header menu. */}
+      <h2
+        ref={heading}
+        tabIndex={-1}
+        className="work-detail-title"
+        onClick={
+          phase === "ready" &&
+          project &&
+          editOffered &&
+          !editing &&
+          write.kind !== "busy"
+            ? startEdit
+            : undefined
+        }
+      >
         {phase === "ready" && project ? project.title : t.project}
       </h2>
+      {phase === "ready" && project && editOffered && menuOpen && (
+        <ContactMenu
+          id={menuId}
+          busy={write.kind === "busy" || editing}
+          edit={{ label: t.edit, onChoose: startEdit }}
+          onClose={() => {
+            setMenuOpen(false);
+            moreButton.current?.focus();
+          }}
+          labels={t}
+        />
+      )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
         <section className="sk-card">
@@ -178,16 +227,6 @@ export function ProjectFrame({
               onCancel={frame.stopEdit}
               labels={t}
             />
-          ) : editOffered ? (
-            <p>
-              <button
-                type="button"
-                disabled={write.kind === "busy"}
-                onClick={startEdit}
-              >
-                {t.edit}
-              </button>
-            </p>
           ) : null}
           <h3>{t.tasks}</h3>
           {tasks.phase === "loading" && <p role="status">{t.loading}</p>}

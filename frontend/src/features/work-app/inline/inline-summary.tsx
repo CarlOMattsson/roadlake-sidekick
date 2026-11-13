@@ -387,7 +387,7 @@ export function ContactsSummary({
         },
       ]}
       onOpen={onOpen}
-      openLabel={labels.showAll(count, more)}
+      openLabel={labels.showAll}
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">

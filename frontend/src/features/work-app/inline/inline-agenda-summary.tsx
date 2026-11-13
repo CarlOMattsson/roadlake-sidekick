@@ -114,7 +114,7 @@ function WaitingSummary({
       ]}
       empty={rows.length === 0 && !more ? words.empty : undefined}
       onOpen={onOpen}
-      openLabel={labels.showAll(rows.length, more)}
+      openLabel={labels.showAll}
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">
@@ -252,30 +252,33 @@ function DatedAgendaSummary({
       aside={rows.length > 0 ? hiddenText : undefined}
     >
       {rows.length > 0 ? (
-        // Every row of today's, then "Försenade" before the first overdue row: the two groups have a
-        // border. The rows are drawn by their own group: which rows are chosen is above (today's first
-        // row, then the overdue), but a second row of today's never stands under the "Försenade" label. Without a row
-        // of today's the card's title already says what the rows are, and the label is left out.
+        // "Idag" over today's rows, then "Försenade" over the overdue: with both groups each is named, so a card
+        // titled "4 idag, 3 försenade" that shows one of today's says which row that is. The rows are drawn by their own
+        // group: which rows are chosen is above (today's first row, then the overdue), but a second row of today's
+        // never stands under "Försenade". With one group only, the card's title already says what the rows are.
         (shownToday > 0 && overdue.length > 0
           ? [
-              rows.filter((row) => today.includes(row)),
-              rows.filter((row) => overdue.includes(row)),
+              {
+                label: labels.agendaTodayLabel,
+                part: rows.filter((row) => today.includes(row)),
+              },
+              {
+                label: labels.agendaOverdueLabel,
+                part: rows.filter((row) => overdue.includes(row)),
+              },
             ]
-          : [rows]
+          : [{ label: undefined, part: rows }]
         )
-          .filter((part) => part.length > 0)
-          .map((part, at) => (
+          .filter(({ part }) => part.length > 0)
+          .map(({ label, part }, at) => (
             <Fragment key={at}>
-              {at > 0 && (
-                <p className="work-compact-group">
-                  {labels.agendaOverdueLabel}
-                </p>
-              )}
+              {label && <p className="work-compact-group">{label}</p>}
               <ul className="work-compact-rows">
                 {part.map((item) => (
                   <AgendaRow
                     key={cardKey(item)}
                     item={item}
+                    group={today.includes(item) ? "today" : undefined}
                     now={now}
                     labels={labels}
                     onOpen={() => (onOpenItem ? onOpenItem(item) : onOpen())}
@@ -291,14 +294,16 @@ function DatedAgendaSummary({
   );
 }
 
-/** One row of the inline agenda: the title, and its meta under it. */
+/** One row of the inline agenda: the title, and its meta under it; a row of today's does not say "Idag" again. */
 function AgendaRow({
   item,
+  group,
   now,
   labels,
   onOpen,
 }: {
   item: WorkItemRecord;
+  group?: string;
   now: Date;
   labels: InlineSummaryLabels;
   onOpen: () => void;
@@ -306,8 +311,12 @@ function AgendaRow({
   return (
     <InlineRow
       title={item.title}
-      meta={inlineMeta(item, now, labels.dateLocale, (s) =>
-        statusLabel(labels, "task", s),
+      meta={inlineMeta(
+        item,
+        now,
+        labels.dateLocale,
+        (s) => statusLabel(labels, "task", s),
+        group,
       )}
       onOpen={onOpen}
     />

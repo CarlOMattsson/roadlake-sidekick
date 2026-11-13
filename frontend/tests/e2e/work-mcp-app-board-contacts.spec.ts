@@ -694,7 +694,7 @@ test("sandboxed Work App opens the Contact list from list_contacts, searches, op
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Show all (2)", exact: true }).click();
+  await app.getByRole("button", { name: "Show all", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Contacts" }),
   ).toBeVisible();

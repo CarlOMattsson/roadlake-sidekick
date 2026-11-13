@@ -124,6 +124,14 @@ test('root files become pages, and the order list sets sidebar order', () => {
   assert.match(read('en', 'docs/guide/a'), /^lastUpdated: false$/m);
 });
 
+test('a title from the map replaces the heading of the source, and only in the locale it names', () => {
+  const { read } = sync();
+  assert.match(read('en', 'docs/guide/b'), /^title: "Title from the map"$/m);
+  assert.doesNotMatch(read('sv', 'docs/guide/b'), /Title from the map/);
+  const bad = run({ map: { ...map, titles: { 'docs/ghost': { en: 'X' } } }, sourceRoot: FIXTURE, outDir: tmp(), verifyOnly: true });
+  assert.deepEqual(bad.errors, ['Missing source in content-map.mjs: titles: docs/ghost']);
+});
+
 const MERMAID = (extra = '') => `flowchart LR\n  accTitle: Flow\n  accDescr: A goes to B.${extra}\n  A --> B\n`;
 
 test('a mermaid block with rendered SVGs becomes a figure', () => {

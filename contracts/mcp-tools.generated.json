@@ -992,7 +992,7 @@
         "tags": {
           "anyOf": [
             {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -1320,7 +1320,7 @@
               "default": null
             },
             "tags": {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -5283,7 +5283,7 @@
         "tags": {
           "anyOf": [
             {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -5540,7 +5540,7 @@
       "readOnlyHint": false,
       "title": "Skriv dagbok"
     },
-    "description": "Use this when the user asks to write or save a journal entry (e.g. \"skriv dagbok\"). It saves the user's own words as an immutable source and creates the entry in one step: supply the date, title, summary, key points and, only when named, related project, task or contact ids. Do not look up or create a source first, or call get_journal_entry afterwards. Retrying with the same idempotency_key returns the same entry. When the app card opens, reply in one or two sentences without repeating it. It invokes no AI and cannot create or update Tasks.",
+    "description": "Use this when the user asks to write or save a journal entry (e.g. \"write my journal\"). It saves the user's own words as an immutable source and creates the entry in one step: supply the date, title, summary, key points and, only when named, related project, task or contact ids. Do not look up or create a source first, or call get_journal_entry afterwards. Retrying with the same idempotency_key returns the same entry. When the app card opens, reply in one or two sentences without repeating it. It invokes no AI and cannot create or update Tasks.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -5669,7 +5669,7 @@
         "tags": {
           "anyOf": [
             {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -5930,7 +5930,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra dagboksinl\u00e4gg"
     },
-    "description": "Use this to add to, correct or relink an existing journal entry (e.g. 'l\u00e4gg till i dagens dagbok'); read it first and send its current version. To add, send append_key_points and/or append_text (her own words, a new source). To correct, send title and key_points, which replace title, summary and key points. To fix its links, send add_/remove_contact_ids or add_/remove_project_ids, or tags (the complete tag set), alone or with the above. A stale version or an archived entry conflicts. When the card opens, reply in one or two sentences.",
+    "description": "Use this to add to, correct or relink an existing journal entry (e.g. 'add to today's journal'); read it first and send its current version. To add, send append_key_points and/or append_text (her own words, a new source). To correct, send title and key_points, which replace title, summary and key points. To fix its links, send add_/remove_contact_ids or add_/remove_project_ids, or tags (the complete tag set), alone or with the above. A stale version or an archived entry conflicts. When the card opens, reply in one or two sentences.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -6119,7 +6119,7 @@
         "tags": {
           "anyOf": [
             {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -8828,7 +8828,7 @@
         "tags": {
           "anyOf": [
             {
-              "description": "Complete tag set, e.g. 'viktig', 'v\u00e4nta', 'familj'; replaces the current set, [] clears it.",
+              "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
               "items": {
                 "type": "string"
               },
@@ -20479,7 +20479,7 @@
       "readOnlyHint": true,
       "title": "Visa tavlan"
     },
-    "description": "Use this for the status board: one bounded page of Work records in manual order, grouped into status columns. For what is due, use get_work_agenda. Read-only. project_id (from list_projects) shows one project; q matches task text only. When the app card opens, reply in one or two sentences, no repeated list or table. Card edits are invisible until you re-read.",
+    "description": "Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns. For what is due, use get_work_agenda. Read-only. project_id (from list_projects) shows one project; q matches task text only. When the app card opens, reply in one or two sentences, no repeated list or table. Card edits are invisible until you re-read.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

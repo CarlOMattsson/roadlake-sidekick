@@ -185,7 +185,7 @@ export interface SidekickNativePlugin {
   status(): Promise<PairingStatus>;
   /**
    * Revokes this device on the server and clears the credential and cache on the phone. The phone is always cleared;
-   * `serverRevoked` is false when the server could not confirm (the owner then revokes the device in Control).
+   * `serverRevoked` is false when the server could not confirm (whoever runs the server then revokes the device there).
    */
   unpair(): Promise<{ serverRevoked: boolean }>;
   /**

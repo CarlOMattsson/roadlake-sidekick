@@ -235,7 +235,7 @@ class CompanionClient(
 
     /**
      * Removes this device on the server and everything stored here. The phone is always cleared; the result says whether
-     * the server confirmed the revocation (so the page can tell the owner to revoke the device in Control when not).
+     * the server confirmed the revocation (so the page can tell the owner to have the server revoke the device when not).
      */
     fun unpair(): Boolean {
         val pairing = store.load() ?: return false
