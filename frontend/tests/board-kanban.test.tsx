@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   act,
   fireEvent,
@@ -307,7 +308,7 @@ describe("keyboard", () => {
       name: workEn.taskStatus.in_progress,
     });
     const moved = await within(doing).findByRole("button", {
-      name: workEn.dragTaskFor(taskA.title),
+      name: boardLabelsEn.dragTaskFor(taskA.title),
     });
     await waitFor(() => expect(moved).toHaveFocus());
     expect(moved.closest("li")).toHaveAttribute("data-card-id", taskA.id);
@@ -324,7 +325,7 @@ describe("keyboard", () => {
     expect(updateTask).not.toHaveBeenCalled();
     expect(
       screen.queryByRole("button", {
-        name: workEn.dragTaskFor(projectCard.title),
+        name: boardLabelsEn.dragTaskFor(projectCard.title),
       }),
     ).toBeNull();
   });
@@ -341,7 +342,7 @@ it("a refused drag shows the conflict banner and puts the Task back in its colum
   pointer(handle, "pointerup", 150, 60);
 
   const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.boardConflict);
+  expect(banner).toHaveTextContent(boardLabelsEn.conflict);
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   expect(
     within(

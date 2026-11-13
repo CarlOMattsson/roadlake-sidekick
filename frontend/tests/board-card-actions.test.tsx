@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -65,7 +66,7 @@ const titleOf = (title: string) => screen.getByText(title);
 /** The card's own list item, found by its title. */
 const rowOf = (title: string) => titleOf(title).closest("li") as HTMLElement;
 const groupOf = (title: string) =>
-  screen.getByRole("group", { name: workEn.moveListFor(title) });
+  screen.getByRole("group", { name: boardLabelsEn.moveListFor(title) });
 
 /** Opens the group the way a keyboard user does: focus on the title, then Shift+F10. */
 async function openFromKeyboard(
@@ -82,7 +83,7 @@ describe("columns layout", () => {
     renderCard({ drag: handlers });
 
     const handle = screen.getByRole("button", {
-      name: workEn.dragTaskFor(task.title),
+      name: boardLabelsEn.dragTaskFor(task.title),
     });
     expect(handle).toHaveClass("work-drag-handle");
     expect(handle.style.touchAction).toBe("none");
@@ -100,7 +101,7 @@ describe("columns layout", () => {
     renderCard({ drag: dragHandlers() });
 
     const handle = screen.getByRole("button", {
-      name: workEn.dragTaskFor(task.title),
+      name: boardLabelsEn.dragTaskFor(task.title),
     });
     expect(fireEvent.contextMenu(handle)).toBe(false);
     expect(screen.queryByRole("group")).toBeNull();
@@ -309,8 +310,12 @@ describe("the quick choices of a card", () => {
     renderCard();
 
     await openFromKeyboard(user, task.title);
-    expect(screen.queryByRole("button", { name: workEn.moveUp })).toBeNull();
-    expect(screen.queryByRole("button", { name: workEn.moveDown })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: boardLabelsEn.moveUp }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: boardLabelsEn.moveDown }),
+    ).toBeNull();
   });
 
   it("with onReorder, Flytta upp calls onReorder(card, -1) and is disabled at the top", async () => {
@@ -319,8 +324,8 @@ describe("the quick choices of a card", () => {
     renderCard({ onReorder, canMoveUp: false, canMoveDown: true });
 
     fireEvent.contextMenu(rowOf(task.title));
-    const up = screen.getByRole("button", { name: workEn.moveUp });
-    const down = screen.getByRole("button", { name: workEn.moveDown });
+    const up = screen.getByRole("button", { name: boardLabelsEn.moveUp });
+    const down = screen.getByRole("button", { name: boardLabelsEn.moveDown });
     expect(up).toBeDisabled();
     expect(down).toBeEnabled();
 
@@ -335,10 +340,12 @@ describe("the quick choices of a card", () => {
 
     await openFromKeyboard(user, task.title);
     expect(
-      screen.getByRole("button", { name: workEn.moveDown }),
+      screen.getByRole("button", { name: boardLabelsEn.moveDown }),
     ).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: workEn.moveUp }));
+    await user.click(
+      screen.getByRole("button", { name: boardLabelsEn.moveUp }),
+    );
     expect(onReorder).toHaveBeenCalledWith(task, -1);
   });
 
@@ -386,7 +393,9 @@ describe("one group at a time", () => {
     fireEvent.contextMenu(rowOf(other.title));
     expect(groupOf(other.title)).toBeInTheDocument();
     expect(
-      screen.queryByRole("group", { name: workEn.moveListFor(task.title) }),
+      screen.queryByRole("group", {
+        name: boardLabelsEn.moveListFor(task.title),
+      }),
     ).toBeNull();
     expect(screen.getAllByRole("group")).toHaveLength(1);
   });

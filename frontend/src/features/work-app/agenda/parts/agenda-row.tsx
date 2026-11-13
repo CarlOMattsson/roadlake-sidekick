@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { workStatusLabel } from "../../shared/labels";
 import { StatusGlyph } from "../../../mcp-apps/ui/status-glyph";
+import { agendaLabelsFor } from "../agenda-labels";
 import { UndoMeta, fillLabel } from "../agenda-undo";
 import {
   RowMenuButton,
@@ -112,6 +113,7 @@ export function AgendaRow({
     offers,
     writes,
   } = ctx;
+  const a = agendaLabelsFor(t.dateLocale);
   const drawn = rows.current(record);
   // A tick that waits in the phone's outbox (the widget's too) is drawn done, with "Skickas…" for its meta line.
   const sending =
@@ -138,7 +140,7 @@ export function AgendaRow({
     if (entry?.due) return fillLabel(t.movedTo, { status: entry.due.label });
     if (entry?.to === "completed")
       return ctx.boardAvailable
-        ? t.agendaDoneInStatus
+        ? a.doneInStatus
         : workStatusLabel(t, "completed");
     return workStatusLabel(t, entry?.to ?? "");
   }
@@ -217,6 +219,7 @@ export function AgendaRow({
           ) : entry || writing ? (
             <UndoMeta
               text={undoText()}
+              title={item.title}
               moving={!entry}
               labels={t}
               disabled={disabled}
@@ -226,7 +229,7 @@ export function AgendaRow({
           ) : (
             <>
               {parentDone ? (
-                <p className="work-card-meta">{t.agendaParentDone}</p>
+                <p className="work-card-meta">{a.parentDone}</p>
               ) : (
                 <RecordMeta item={item} labels={t} now={now} group={group} />
               )}

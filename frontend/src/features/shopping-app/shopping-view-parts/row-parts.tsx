@@ -79,7 +79,7 @@ export function undoButton(
       type="button"
       className="sk-btn--secondary sk-btn--compact sk-undo-time shopping-undo"
       disabled={env.archived || item.id in env.waiting}
-      aria-label={`${t.undoPurchase}: ${item.name}`}
+      aria-label={t.undoPurchaseNamed(item.name, item.purchased)}
       data-held={hold.held ? "" : undefined}
       onClick={() => env.onToggle(item)}
       {...hold.handlers}
@@ -140,7 +140,7 @@ export function rowFailure(item: ShoppingItem, env: RowEnv) {
       retry={env.failedWrite ?? undefined}
       busy={env.busy}
       placement="row"
-      brief={env.editing?.id !== item.id}
+      brief={env.editing?.id !== item.id ? item : undefined}
       onRefresh={env.onRefresh}
     />
   );

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { WorkLabels } from "../shared/labels";
+import { agendaLabelsFor } from "./agenda-labels";
 
 /**
  * Undo in the fullscreen views (designsystem §3): every status change and date move in the
@@ -137,6 +138,7 @@ export function useNearest<T extends HTMLElement>(key?: unknown) {
  */
 export function UndoMeta({
   text,
+  title,
   moving = false,
   labels: t,
   disabled,
@@ -145,6 +147,8 @@ export function UndoMeta({
 }: {
   /** What the change did, in the meta line's words: "Klar", "Flyttad till imorgon". */
   text: string;
+  /** The title of the row, which names the button for a screen reader ("Ångra Städa garaget"). */
+  title: string;
   /** The change is being written: the line says so and offers no Undo. */
   moving?: boolean;
   labels: WorkLabels;
@@ -168,13 +172,14 @@ export function UndoMeta({
       {...handlers}
     >
       <p role="status" ref={nearest}>
-        {done ? text : t.agendaMoving}
+        {done ? text : agendaLabelsFor(t.dateLocale).moving}
       </p>
       {done && onUndo && (
         <button
           type="button"
           className="sk-btn--secondary sk-btn--compact sk-undo-time"
           disabled={disabled}
+          aria-label={`${t.agendaUndo} ${title}`}
           onClick={onUndo}
           ref={(button) => {
             // A title that wraps beside the button (taller than one line) sends it down to the meta line (data-low).

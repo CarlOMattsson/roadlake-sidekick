@@ -144,11 +144,13 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
   // compact secondary button in the row (`li .shopping-undo`). "Bought (n)" does not count it until the time is up.
   const heldRow = app
     .getByRole("listitem")
-    .filter({ has: app.getByRole("button", { name: /^Undo:/ }) });
+    .filter({ has: app.getByRole("button", { name: /^Undo bought / }) });
   await expect(heldRow).toHaveCount(1);
   await expect(app.getByText("Bought (1)", { exact: true })).toHaveCount(0);
   // The folded inline row shows the name, the Undo and no status line (.shopping-items--folded hides it).
-  await expect(heldRow.getByRole("button", { name: /^Undo:/ })).toBeVisible();
+  await expect(
+    heldRow.getByRole("button", { name: /^Undo bought / }),
+  ).toBeVisible();
   await expect(heldRow.getByRole("checkbox")).toBeChecked();
   // Enter in the add field (one line in the inline view) adds the items. The App iframe has no allow-forms, so a form submit would be blocked.
   const addField = app.getByRole("textbox", { name: "Items", exact: true });
@@ -230,7 +232,7 @@ test("the store view's Undo takes a tap 3 px outside its drawn box, so its targe
   await opened.app
     .getByRole("button", { name: "Mark Mjölk as bought" })
     .click();
-  const undo = opened.app.getByRole("button", { name: /^Undo:/ });
+  const undo = opened.app.getByRole("button", { name: /^Undo bought / });
   await expect(undo).toBeVisible();
   const reach = await undo.evaluate((button) => {
     const box = button.getBoundingClientRect();

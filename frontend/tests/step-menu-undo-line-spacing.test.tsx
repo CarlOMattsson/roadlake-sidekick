@@ -257,6 +257,7 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
       <div>
         <span>Skicka offert</span>
         <UndoMeta
+          title="Skicka offert"
           text="Klar"
           labels={workSv}
           disabled={false}
@@ -270,7 +271,7 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
   it("sets data-held while the pointer is over the line, and removes it when the pointer leaves", () => {
     render(undoRow());
     const wrapper = screen.getByRole("button", {
-      name: workSv.agendaUndo,
+      name: `${workSv.agendaUndo} Skicka offert`,
     }).parentElement as HTMLElement;
     expect(wrapper).toHaveClass("work-agenda-undo");
     expect(wrapper).not.toHaveAttribute("data-held");
@@ -284,7 +285,9 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
 
   it("sets data-held while focus is in the line, and removes it on blur", () => {
     render(undoRow());
-    const button = screen.getByRole("button", { name: workSv.agendaUndo });
+    const button = screen.getByRole("button", {
+      name: `${workSv.agendaUndo} Skicka offert`,
+    });
     const wrapper = button.parentElement as HTMLElement;
 
     act(() => button.focus());
@@ -296,7 +299,9 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
 
   it("stays held while focus is in the line after the pointer has left", () => {
     render(undoRow());
-    const button = screen.getByRole("button", { name: workSv.agendaUndo });
+    const button = screen.getByRole("button", {
+      name: `${workSv.agendaUndo} Skicka offert`,
+    });
     const wrapper = button.parentElement as HTMLElement;
 
     fireEvent.pointerEnter(wrapper);
@@ -315,6 +320,7 @@ describe("the Ångra time line, drawn from undo.css", () => {
       <div>
         <span>Skicka offert</span>
         <UndoMeta
+          title="Skicka offert"
           text="Klar"
           labels={workSv}
           disabled={false}
@@ -323,7 +329,9 @@ describe("the Ångra time line, drawn from undo.css", () => {
         />
       </div>,
     );
-    const button = screen.getByRole("button", { name: workSv.agendaUndo });
+    const button = screen.getByRole("button", {
+      name: `${workSv.agendaUndo} Skicka offert`,
+    });
     return { button, wrapper: button.parentElement as HTMLElement };
   }
 

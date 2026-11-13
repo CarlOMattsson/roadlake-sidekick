@@ -1,3 +1,5 @@
+import { agendaLabelsSv } from "@/features/work-app/agenda/agenda-labels";
+import { boardLabelsSv } from "@/features/work-app/board/board-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, type Mock } from "vitest";
@@ -125,7 +127,7 @@ function updateCall(
 
 /** The Undo button of the sorted row, once its write has settled (the row is disabled while it runs). */
 async function undoButton() {
-  const button = await screen.findByRole("button", { name: workSv.agendaUndo });
+  const button = await screen.findByRole("button", { name: /^Ångra/ });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
 }
@@ -204,7 +206,7 @@ describe("UnsortedView (Att sortera)", () => {
 
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: workSv.agendaUndo }),
+        screen.queryByRole("button", { name: /^Ångra/ }),
       ).not.toBeInTheDocument(),
     );
     expect(mock.updateTask).toHaveBeenCalledTimes(2);
@@ -257,7 +259,7 @@ describe("UnsortedView (Att sortera)", () => {
       expect(button).toBeEnabled(),
     );
     // The first sort has no Undo line yet, so no "Moving…" line either.
-    expect(screen.queryByText(workSv.agendaMoving)).not.toBeInTheDocument();
+    expect(screen.queryByText(agendaLabelsSv.moving)).not.toBeInTheDocument();
 
     await user.click(domainButtons("Ring försäkringsbolaget")[1]!);
 
@@ -276,16 +278,16 @@ describe("UnsortedView (Att sortera)", () => {
     // in its status line with no Undo button, until the second reply lands too.
     replies[0]!();
     await waitFor(() =>
-      expect(screen.getByText(workSv.agendaMoving)).toBeInTheDocument(),
+      expect(screen.getByText(agendaLabelsSv.moving)).toBeInTheDocument(),
     );
-    expect(screen.getByText(workSv.agendaMoving).parentElement).toHaveClass(
+    expect(screen.getByText(agendaLabelsSv.moving).parentElement).toHaveClass(
       "work-agenda-undo",
     );
-    expect(screen.getByText(workSv.agendaMoving).closest("li")).toHaveClass(
+    expect(screen.getByText(agendaLabelsSv.moving).closest("li")).toHaveClass(
       "work-unsorted-row",
     );
     expect(
-      screen.queryByRole("button", { name: workSv.agendaUndo }),
+      screen.queryByRole("button", { name: /^Ångra/ }),
     ).not.toBeInTheDocument();
 
     replies[1]!();
@@ -304,7 +306,9 @@ describe("UnsortedView (Att sortera)", () => {
     await screen.findByText("Köp ny dammsugare");
 
     await user.click(domainButtons("Köp ny dammsugare")[0]!);
-    expect(await screen.findByText(workSv.moveFailed)).toBeInTheDocument();
+    expect(
+      await screen.findByText(boardLabelsSv.moveFailed),
+    ).toBeInTheDocument();
     // Tap the failed row again: the same signature reuses the key.
     await user.click(domainButtons("Köp ny dammsugare")[0]!);
     await undoButton();
@@ -321,7 +325,9 @@ describe("UnsortedView (Att sortera)", () => {
 
     await user.click(domainButtons("Köp ny dammsugare")[1]!);
 
-    expect(await screen.findByText(workSv.moveFailed)).toBeInTheDocument();
+    expect(
+      await screen.findByText(boardLabelsSv.moveFailed),
+    ).toBeInTheDocument();
     expect(screen.getByText("Köp ny dammsugare")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: workSv.retry }));
@@ -343,7 +349,7 @@ describe("UnsortedView (Att sortera)", () => {
     await user.click(domainButtons("Köp ny dammsugare")[0]!);
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      workSv.boardConflict,
+      boardLabelsSv.conflict,
     );
     expect(screen.getByText("Köp ny dammsugare")).toBeInTheDocument();
     expect(mock.listUnsortedTasks).toHaveBeenCalledTimes(1);

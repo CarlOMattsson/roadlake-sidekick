@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   render,
   screen,
@@ -229,10 +230,10 @@ describe("the phone's Status list in due-date order", () => {
     // (late, early, undated) moved early down would give late, undated, early, so the test tells them apart.
     fireEvent.contextMenu(rowOf(early.title));
     const group = screen.getByRole("group", {
-      name: workEn.moveListFor(early.title),
+      name: boardLabelsEn.moveListFor(early.title),
     });
     await user.click(
-      within(group).getByRole("button", { name: workEn.moveDown }),
+      within(group).getByRole("button", { name: boardLabelsEn.moveDown }),
     );
     expect(reorderBoardColumn).toHaveBeenCalledWith(
       "todo",

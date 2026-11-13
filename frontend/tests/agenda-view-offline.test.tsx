@@ -1,3 +1,7 @@
+import {
+  agendaLabelsEn,
+  agendaLabelsSv,
+} from "@/features/work-app/agenda/agenda-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { AgendaView } from "@/features/work-app/agenda/agenda";
@@ -143,7 +147,7 @@ it("gives a Step its own muted square in the glyph column, and says the Task is 
   expect(glyph).not.toBeNull();
   expect(glyph?.querySelector(".sk-status-glyph")).not.toBeNull();
   expect(row).toHaveAttribute("data-muted");
-  expect(within(row).getByText(workSv.agendaParentDone)).toBeVisible();
+  expect(within(row).getByText(agendaLabelsSv.parentDone)).toBeVisible();
 });
 
 it("leaves a Step of an open Task unmuted, with its own meta", () => {
@@ -152,14 +156,14 @@ it("leaves a Step of an open Task unmuted, with its own meta", () => {
   renderWith([task, open], transport, workEn);
   const row = rowOf(open.title);
   expect(row).not.toHaveAttribute("data-muted");
-  expect(within(row).queryByText(workEn.agendaParentDone)).toBeNull();
+  expect(within(row).queryByText(agendaLabelsEn.parentDone)).toBeNull();
 });
 
 it("has the offline words in both languages", () => {
   expect(workSv.sending).toBe("Skickas…");
   expect(workEn.sending).toBe("Sending…");
-  expect(workSv.agendaParentDone).toBe("Uppgiften är klar");
-  expect(workEn.agendaParentDone).toBe("Task done");
+  expect(agendaLabelsSv.parentDone).toBe("Uppgiften är klar");
+  expect(agendaLabelsEn.parentDone).toBe("Task done");
   expect(workSv.offlineCopy("08:05")).toContain("08:05");
   expect(workEn.offlineCopy("08:05")).toContain("08:05");
 });

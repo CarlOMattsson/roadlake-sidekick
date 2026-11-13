@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
+import { boardLabelsFor } from "./board-labels";
 import { writeFailure } from "../transport/transport";
 
 /**
@@ -67,12 +68,13 @@ export function NoticeView({
     if (notice?.kind === "conflict") banner.current?.focus();
   }, [notice]);
   if (!notice) return null;
+  const b = boardLabelsFor(t.dateLocale);
   if (notice.kind === "conflict")
     return (
       <div role="alert" tabIndex={-1} ref={banner} className="work-banner">
-        <p>{t.boardConflict}</p>
+        <p>{b.conflict}</p>
         <button type="button" onClick={onReload}>
-          {t.boardConflictAction}
+          {b.conflictAction}
         </button>
       </div>
     );
@@ -92,19 +94,19 @@ export function NoticeView({
         notice.kind === "forbidden"
           ? writing
             ? t.forbiddenWrite
-            : t.boardForbidden
+            : b.forbidden
           : notice.kind === "invalid"
             ? t.invalidChange
             : notice.kind === "not_found"
               ? t.notFound
               : notice.action === "move"
                 ? notice.row
-                  ? t.rowChangeFailed(notice.row.title)
-                  : t.moveFailed
+                  ? b.rowChangeFailed(notice.row.title)
+                  : b.moveFailed
                 : notice.action === "moveAll"
                   ? t.moveAllFailed
                   : notice.action === "more"
-                    ? t.moreFailed
+                    ? b.moreFailed
                     : undefined
       }
       onRetry={failed ? () => onRetry(notice.action) : undefined}

@@ -1,3 +1,7 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -78,14 +82,14 @@ describe("empty Status card", () => {
         <BoardSummary page={empty} labels={workSv} onOpen={onOpen} />
       </RoomMessageContext.Provider>,
     );
-    expect(screen.getByText(workSv.boardEmpty)).toBeVisible();
-    expect(screen.getByText(workSv.boardEmptyHint)).toBeVisible();
+    expect(screen.getByText(boardLabelsSv.empty)).toBeVisible();
+    expect(screen.getByText(boardLabelsSv.emptyHint)).toBeVisible();
     expect(container.textContent).not.toMatch(noCount);
     expect(screen.queryByRole("img")).toBeNull();
     await user.click(screen.getByRole("button", { name: /Påminn mig/ }));
     expect(send).toHaveBeenCalledWith(workSv.workEmptyAsk);
     await user.click(
-      screen.getByRole("button", { name: new RegExp(workSv.openBoard) }),
+      screen.getByRole("button", { name: new RegExp(boardLabelsSv.openBoard) }),
     );
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
@@ -112,7 +116,7 @@ describe("empty Status card", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.queryByText(workEn.boardEmpty)).toBeNull();
+    expect(screen.queryByText(boardLabelsEn.empty)).toBeNull();
   });
 });
 

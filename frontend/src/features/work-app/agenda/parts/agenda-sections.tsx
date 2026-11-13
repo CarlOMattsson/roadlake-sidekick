@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Fold } from "../../../mcp-apps/ui/fold";
+import { agendaLabelsFor } from "../agenda-labels";
 import { Counted } from "../../../mcp-apps/ui/count";
 import type { WorkItemRecord } from "../../transport/transport";
 import { RecordTitle } from "../../board/board-card";
@@ -135,17 +136,17 @@ export function DoneTodaySection({
   open: boolean;
   onToggle: () => void;
 }) {
-  const { labels: t } = ctx;
+  const a = agendaLabelsFor(ctx.labels.dateLocale);
   return (
     <section
       className="work-column"
-      aria-label={t.agendaDoneToday}
+      aria-label={a.doneToday}
       data-agenda-done=""
     >
       <h3>
         <Fold
-          text={`${t.agendaDoneToday} (${done.length})`}
-          meta={t.agendaDoneSince}
+          text={`${a.doneToday} (${done.length})`}
+          meta={a.doneSince}
           open={open}
           onToggle={onToggle}
         />

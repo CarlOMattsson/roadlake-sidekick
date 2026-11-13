@@ -10,7 +10,7 @@ import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
 import "./shopping.css";
 
-/** Open items named in the inline card. The rest are counted after "Open the shopping list", not listed. */
+/** Open items named in the inline card. The rest are counted after "Open list", not listed. */
 export const CARD_ITEM_COUNT = 4;
 
 /**
@@ -58,7 +58,7 @@ export function cardItemText(item: ShoppingItem, locale: string): string {
 }
 
 /**
- * The card foot's "Open the shopping list · 2 more": a text button that opens the list, with the count of the items the
+ * The card foot's "Open list · 2 more": a text button that opens the list, with the count of the items the
  * card leaves out after its name.
  */
 export function OpenListButton({

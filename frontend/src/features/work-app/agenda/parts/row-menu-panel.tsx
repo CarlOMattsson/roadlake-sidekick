@@ -4,6 +4,7 @@ import { workDate } from "../../../mcp-apps/ui/due";
 import { triageDueAt, type AgendaBucket } from "../../shared/work-items";
 import { TASK_STATUSES, type WorkItemRecord } from "../../transport/transport";
 import { CloseIcon } from "../agenda-icons";
+import { agendaLabelsFor } from "../agenda-labels";
 import { DateChip } from "./date-chip";
 import { DUE_SHORTCUTS, dueChoiceOf, epochDayIso } from "./agenda-helpers";
 import { RowMenu } from "./row-menu";
@@ -150,25 +151,26 @@ function DueChoices({
   const { labels: t, now, menu, disabled, writes } = ctx;
   const { largeText, menuGroup } = menu;
   const { dueDay, dueShortcut, dueMeta } = dueChoiceOf(item, now, t);
+  const a = agendaLabelsFor(t.dateLocale);
   return (
     <div className="work-agenda-menu-row">
       {largeText ? (
         <Fold
           className="work-agenda-menu-fold"
-          text={t.rescheduleRow}
+          text={a.rescheduleRow}
           meta={menuGroup === "due" ? undefined : dueMeta}
           open={menuGroup === "due"}
           onToggle={() => menu.foldGroup("due")}
         />
       ) : (
         <span className="work-agenda-menu-label" aria-hidden="true">
-          {t.rescheduleRow}
+          {a.rescheduleRow}
         </span>
       )}
       {(!largeText || menuGroup === "due" || !statusChoicesShown) && (
         <div
           role="group"
-          aria-label={t.rescheduleGroup}
+          aria-label={a.rescheduleGroup}
           className="work-agenda-choices"
         >
           {/* The Task's own date is chosen: one of the three shortcuts, or a fifth chip
@@ -191,14 +193,14 @@ function DueChoices({
               }}
             >
               {target === "today"
-                ? t.agendaGroup.today
+                ? a.group.today
                 : target === "tomorrow"
-                  ? t.triageTomorrow
-                  : t.triageNextWeek}
+                  ? a.triageTomorrow
+                  : a.triageNextWeek}
             </button>
           ))}
           <DateChip
-            text={t.rescheduleChoose}
+            text={a.rescheduleChoose}
             label={t.rescheduleDate}
             value={dueDay === null ? "" : epochDayIso(dueDay)}
             disabled={disabled || moved}

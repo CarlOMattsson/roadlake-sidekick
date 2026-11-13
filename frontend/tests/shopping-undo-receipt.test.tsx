@@ -94,8 +94,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const undoName = (name: string) =>
-  new RegExp(`^${shoppingEn.undoPurchase}: ${name}$`);
+const undoName = (name: string) => new RegExp(`^Undo (not )?bought ${name}$`);
 
 function renderView(
   transport: ShoppingTransport,
@@ -147,6 +146,8 @@ describe.each([
     expect(screen.getByRole("status")).toHaveTextContent(
       `${shoppingEn.bought}: Milk`,
     );
+    expect(undo).toHaveAccessibleName("Undo bought Milk");
+    expect(undo).toHaveTextContent(/^Undo$/);
     await user.click(undo);
     await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
     const [first, firstKey] = vi.mocked(transport.purchase).mock.calls[0]!;
@@ -257,6 +258,24 @@ describe("ticking a bought item back to open", () => {
     const [back] = vi.mocked(transport.purchase).mock.calls[1]!;
     expect(back).toMatchObject({ id: eggs.id, purchased: false, version: 2 });
     await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+  });
+
+  it("names Ångra after the item and what it takes back, while its visible text stays 'Undo'", async () => {
+    const user = userEvent.setup();
+    renderView(server([eggs]), [eggs]);
+    await settle();
+    await user.click(elementWithText(shoppingEn.boughtCount(1), "button"));
+    await user.click(screen.getByRole("checkbox", { name: /^Eggs/ }));
+    const undo = await screen.findByRole("button", {
+      name: "Undo not bought Eggs",
+    });
+    expect(undo).toHaveTextContent(/^Undo$/);
+    expect(shoppingSv.undoPurchaseNamed("Mjölk", true)).toBe(
+      "Ångra köpt Mjölk",
+    );
+    expect(shoppingSv.undoPurchaseNamed("Mjölk", false)).toBe(
+      "Ångra inte köpt Mjölk",
+    );
   });
 
   it("in Swedish the receipt is 'Inte köpt'", () => {

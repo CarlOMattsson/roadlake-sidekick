@@ -1,3 +1,4 @@
+import { boardLabelsSv } from "@/features/work-app/board/board-labels";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -146,14 +147,16 @@ describe("Status card", () => {
     expect(button.parentElement?.tagName).toBe("LI");
     await user.click(button);
     const group = screen.getByRole("group", {
-      name: workSv.moveListFor(task.title),
+      name: boardLabelsSv.moveListFor(task.title),
     });
     expect(within(group).getAllByRole("button")[0]).toHaveFocus();
     expect(document.documentElement.dataset.rowMenu).toBe("1");
 
     await user.keyboard("{Escape}");
     expect(
-      screen.queryByRole("group", { name: workSv.moveListFor(task.title) }),
+      screen.queryByRole("group", {
+        name: boardLabelsSv.moveListFor(task.title),
+      }),
     ).not.toBeInTheDocument();
     expect(button).toHaveFocus();
   });

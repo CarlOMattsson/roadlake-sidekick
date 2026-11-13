@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
@@ -103,7 +104,7 @@ it("a failed move says so in its own words and Try again moves again", async () 
   reschedule.mockRejectedValueOnce(new Error("network"));
   await moveAll(user);
   expect(await screen.findByText(workEn.moveAllFailed)).toBeInTheDocument();
-  expect(screen.queryByText(workEn.moveFailed)).toBeNull();
+  expect(screen.queryByText(boardLabelsEn.moveFailed)).toBeNull();
   // A failed change is the family's write error row, not the refresh row of a failed read.
   expect(screen.getByRole("alert")).toHaveClass("sk-error--row");
   await user.click(screen.getByRole("button", { name: workEn.retry }));

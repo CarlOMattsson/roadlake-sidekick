@@ -5,6 +5,8 @@ export const shoppingEn = {
   /** The recipient's name when the server sent none. */
   linkedContact: "Linked contact",
   chooseContact: "Choose contact",
+  /** The ✕ of the open contact search: it leaves the recipient as it was. */
+  cancelContactSearch: "Cancel search",
   changeRecipient: "Change",
   removeRecipient: "Remove",
   noContactFound: "No contact found.",
@@ -21,8 +23,9 @@ export const shoppingEn = {
   loading: "Loading…",
   failed: "Something went wrong. Refresh the list, or try again.",
   retry: "Try again",
-  /** The one-line failure under a row whose bought mark could not be saved. */
-  markFailed: "Couldn’t save that change.",
+  /** The one-line failure under a row whose bought mark could not be saved: it names the item and what was tried. */
+  markFailed: (name: string, bought: boolean) =>
+    `Couldn’t mark “${name}” as ${bought ? "bought" : "not bought"}.`,
   batch: "Add items (separated by commas or one per line, up to 50)",
   batchShort: "Items",
   batchPlaceholder: "Add items, e.g. milk, eggs",
@@ -87,7 +90,7 @@ export const shoppingEn = {
     "A price you noted, not a live price check. Clear the price to remove the offer.",
   evaluated: "Offers as of",
   invalidBatch: "Enter between 1 and 50 items.",
-  openList: "Open the shopping list",
+  openList: "Open list",
   editList: "Edit list",
   /** The progress line, counted as the bar fills: bought items of all ("1 of 7 bought"). */
   boughtOf: (bought: number, total: number) => `${bought} of ${total} bought`,
@@ -113,7 +116,7 @@ export const shoppingEn = {
   existedPrefix: "Already there:",
   nowAmount: (amount: string) => `now ${amount}`,
   moreItems: (count: number) => `+${count} more`,
-  /** After "Open the shopping list · ": the open items the card leaves out. */
+  /** After "Open list · ": the open items the card leaves out. */
   hiddenItems: (count: number) => `${count} more`,
   /** The same after the batch card's foot, where the items left out are the ones just added, not the open ones. */
   hiddenAdded: (count: number) => `${count} more added`,
@@ -124,6 +127,9 @@ export const shoppingEn = {
   otherStore: "No store",
   storeRemaining: (store: string, open: number) => `${store} · ${open} left`,
   undoPurchase: "Undo",
+  /** The name of a held row's Undo for assistive technology, the visible text staying "Undo". */
+  undoPurchaseNamed: (name: string, bought: boolean) =>
+    `Undo ${bought ? "bought" : "not bought"} ${name}`,
   queued: "Waiting…",
   /** A purchase made without a network: it waits on the phone and is sent once there is one. */
   waitingForNetwork: "Waiting for connection",
@@ -169,6 +175,7 @@ export const shoppingSv: ShoppingLabels = {
   contactQuery: "Kontaktens namn",
   linkedContact: "Kopplad kontakt",
   chooseContact: "Välj kontakt",
+  cancelContactSearch: "Avbryt sökning",
   changeRecipient: "Byt",
   removeRecipient: "Ta bort",
   noContactFound: "Ingen kontakt hittades.",
@@ -184,7 +191,8 @@ export const shoppingSv: ShoppingLabels = {
   loading: "Laddar…",
   failed: "Något gick fel. Uppdatera listan eller försök igen.",
   retry: "Försök igen",
-  markFailed: "Ändringen kunde inte sparas.",
+  markFailed: (name: string, bought: boolean) =>
+    `Det gick inte att markera ”${name}” som ${bought ? "köpt" : "inte köpt"}.`,
   batch: "Lägg till varor (komma eller en per rad, högst 50)",
   batchShort: "Varor",
   batchPlaceholder: "Lägg till, t.ex. mjölk, ägg",
@@ -245,7 +253,7 @@ export const shoppingSv: ShoppingLabels = {
     "Ett pris du noterat, inte ett aktuellt pris. Töm priset för att ta bort erbjudandet.",
   evaluated: "Erbjudanden per",
   invalidBatch: "Ange mellan 1 och 50 varor.",
-  openList: "Öppna inköpslistan",
+  openList: "Öppna listan",
   editList: "Redigera lista",
   boughtOf: (bought: number, total: number) => `${bought} av ${total} köpta`,
   allBought: "Allt är köpt.",
@@ -270,6 +278,8 @@ export const shoppingSv: ShoppingLabels = {
   otherStore: "Utan butik",
   storeRemaining: (store: string, open: number) => `${store} · ${open} kvar`,
   undoPurchase: "Ångra",
+  undoPurchaseNamed: (name: string, bought: boolean) =>
+    `Ångra ${bought ? "köpt" : "inte köpt"} ${name}`,
   queued: "Väntar…",
   waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,

@@ -1,5 +1,6 @@
 import { fillLabel } from "../agenda-undo";
 import type { WorkLabels } from "../../shared/labels";
+import { agendaLabelsFor } from "../agenda-labels";
 
 /**
  * A search with no hit (designsystem §3 "Tomt"): "Inga uppgifter matchar ”{q}”." and the text button "Rensa
@@ -14,12 +15,13 @@ export function SearchNoMatch({
   labels: WorkLabels;
   onClear?: () => void;
 }) {
+  const a = agendaLabelsFor(t.dateLocale);
   return (
     <div className="work-agenda-nomatch">
-      <p role="status">{fillLabel(t.agendaNoMatch, { q: query.trim() })}</p>
+      <p role="status">{fillLabel(a.noMatch, { q: query.trim() })}</p>
       {onClear && (
         <button type="button" className="work-agenda-clear" onClick={onClear}>
-          {t.agendaClearSearch}
+          {a.clearSearch}
         </button>
       )}
     </div>

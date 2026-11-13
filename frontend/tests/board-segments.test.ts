@@ -1,3 +1,7 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import { describe, expect, it } from "vitest";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
@@ -208,10 +212,10 @@ describe("defaultBoardSegment", () => {
 
 describe("board segment labels", () => {
   it("have Swedish and English texts for the single-column board", () => {
-    expect(workSv.moveUp).toBe("Flytta upp");
-    expect(workSv.moveDown).toBe("Flytta ned");
-    expect(workEn.moveUp).toBe("Move up");
-    expect(workEn.moveDown).toBe("Move down");
+    expect(boardLabelsSv.moveUp).toBe("Flytta upp");
+    expect(boardLabelsSv.moveDown).toBe("Flytta ned");
+    expect(boardLabelsEn.moveUp).toBe("Move up");
+    expect(boardLabelsEn.moveDown).toBe("Move down");
     expect(workSv.moreActions).toBe("Fler val");
     expect(workEn.moreActions).toBe("More options");
   });

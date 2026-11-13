@@ -245,12 +245,30 @@ describe("the recipient of a gift item", () => {
     expect(
       await screen.findByText(shoppingEn.noContactFound),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: shoppingEn.close }));
+    // The search is left by its own ✕, so the change form around it keeps the one Cancel.
+    expect(screen.queryByRole("button", { name: shoppingEn.close })).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.cancelContactSearch }),
+    );
     expect(within(recipient()).getByText("Astrid Ek")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(onSave.mock.calls[0]![0].recipient_contact_id).toBe(
       linked.recipient_contact_id,
     );
+  });
+
+  it("Escape leaves the search and keeps the change form open", async () => {
+    const user = userEvent.setup();
+    renderGift(item({ ...linked, recipient_contact_name: "Astrid Ek" }));
+    await user.click(screen.getByRole("button", { name: /^More fields/ }));
+    await user.click(screen.getByRole("button", { name: "Change" }));
+    await user.type(
+      screen.getByLabelText(shoppingEn.contactQuery),
+      "Zed{Escape}",
+    );
+    expect(screen.queryByLabelText(shoppingEn.contactQuery)).toBeNull();
+    expect(within(recipient()).getByText("Astrid Ek")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
   });
 
   it("Remove clears the recipient and saves none", async () => {

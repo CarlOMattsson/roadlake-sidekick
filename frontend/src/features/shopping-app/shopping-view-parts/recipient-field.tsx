@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { ShoppingItem, ShoppingTransport } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { onEnterKey } from "../../mcp-apps/ui/enter-key";
+import { CloseIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 
 type Contact = { id: string; display_name: string };
@@ -122,7 +123,14 @@ export function RecipientField({
                 maxLength={200}
                 ref={queryField}
                 onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => onEnterKey(event, () => void search())}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    // Only the search closes, not the change form around it.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    stopPicking();
+                  } else onEnterKey(event, () => void search());
+                }}
               />
             </label>
             <button
@@ -131,6 +139,14 @@ export function RecipientField({
               onClick={() => void search()}
             >
               {t.searchContact}
+            </button>
+            <button
+              type="button"
+              className="sk-btn--quiet shopping-recipient-cancel"
+              aria-label={t.cancelContactSearch}
+              onClick={stopPicking}
+            >
+              <CloseIcon />
             </button>
           </div>
           {failed ? (
@@ -158,9 +174,6 @@ export function RecipientField({
               ))}
             </ul>
           ) : null}
-          <button type="button" className="sk-btn--quiet" onClick={stopPicking}>
-            {t.close}
-          </button>
         </div>
       ) : null}
     </div>

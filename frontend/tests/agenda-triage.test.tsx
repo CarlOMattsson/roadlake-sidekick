@@ -1,4 +1,8 @@
 import {
+  agendaLabelsEn,
+  agendaLabelsSv,
+} from "@/features/work-app/agenda/agenda-labels";
+import {
   act,
   fireEvent,
   screen,
@@ -40,10 +44,10 @@ it("an overdue Task keeps Tomorrow, Next week and Done off its row; its quick ch
   renderAgenda([overdue, todayTask], transport);
   const row = within(rowOf(overdue.title));
   expect(
-    row.queryByRole("button", { name: workEn.triageTomorrow }),
+    row.queryByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   ).not.toBeInTheDocument();
   expect(
-    row.queryByRole("button", { name: workEn.triageNextWeek }),
+    row.queryByRole("button", { name: agendaLabelsEn.triageNextWeek }),
   ).not.toBeInTheDocument();
   // Done is the status choice "Done" (taskStatus.completed) in the quick choices, not a row button of its own.
   expect(
@@ -51,10 +55,10 @@ it("an overdue Task keeps Tomorrow, Next week and Done off its row; its quick ch
   ).not.toBeInTheDocument();
   const { status, dates } = await openMenu(overdue.title);
   expect(
-    dates.getByRole("button", { name: workEn.triageTomorrow }),
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   ).toBeEnabled();
   expect(
-    dates.getByRole("button", { name: workEn.triageNextWeek }),
+    dates.getByRole("button", { name: agendaLabelsEn.triageNextWeek }),
   ).toBeEnabled();
   expect(
     status.getByRole("button", { name: workEn.taskStatus.completed }),
@@ -66,7 +70,9 @@ it("Tomorrow writes 23:59 local time tomorrow at the version the row shows, and 
   const { transport, updateTask } = makeTransport();
   renderAgenda([overdue], transport);
   const { dates } = await openMenu(overdue.title);
-  await user.click(dates.getByRole("button", { name: workEn.triageTomorrow }));
+  await user.click(
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+  );
   await waitFor(() =>
     expect(updateTask).toHaveBeenCalledWith(
       TASK_ID,
@@ -84,7 +90,9 @@ it("Next week writes 23:59 on the Monday of next week, which is 2 November from 
   const { transport, updateTask } = makeTransport();
   renderAgenda([overdue], transport);
   const { dates } = await openMenu(overdue.title);
-  await user.click(dates.getByRole("button", { name: workEn.triageNextWeek }));
+  await user.click(
+    dates.getByRole("button", { name: agendaLabelsEn.triageNextWeek }),
+  );
   await waitFor(() =>
     expect(updateTask).toHaveBeenCalledWith(
       TASK_ID,
@@ -102,7 +110,9 @@ it("a due move keeps the row in its group, muted with its new date, and its date
   const { transport, getWorkAgenda } = makeTransport();
   renderAgenda([overdue], transport);
   const { dates } = await openMenu(overdue.title);
-  await user.click(dates.getByRole("button", { name: workEn.triageTomorrow }));
+  await user.click(
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+  );
   // The row stays in Försenade, under the group's line: its Undo line says the new date, with Undo beside it,
   // and the row is muted.
   const line = await undoLineOf(overdue.title);
@@ -111,10 +121,10 @@ it("a due move keeps the row in its group, muted with its new date, and its date
   // The move closed the menu; opened again, its date choices are off.
   const again = (await openMenu(overdue.title)).dates;
   expect(
-    again.getByRole("button", { name: workEn.triageTomorrow }),
+    again.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   ).toBeDisabled();
   expect(
-    again.getByRole("button", { name: workEn.triageNextWeek }),
+    again.getByRole("button", { name: agendaLabelsEn.triageNextWeek }),
   ).toBeDisabled();
   expect(again.getByLabelText(workEn.rescheduleDate)).toBeDisabled();
   // The list reads again: the row is no longer muted and the date choices are on again.
@@ -124,7 +134,7 @@ it("a due move keeps the row in its group, muted with its new date, and its date
   await waitFor(() =>
     expect(
       within(rowOf(overdue.title)).getByRole("button", {
-        name: workEn.triageTomorrow,
+        name: agendaLabelsEn.triageTomorrow,
       }),
     ).toBeEnabled(),
   );
@@ -144,10 +154,10 @@ it("Done in the quick choices leaves the row in its group, muted, with Undo besi
   expect(rowOf(overdue.title)).toHaveClass("work-agenda-row-moved");
   const { dates } = await openMenu(overdue.title);
   expect(
-    dates.getByRole("button", { name: workEn.triageTomorrow }),
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   ).toBeDisabled();
   expect(
-    dates.getByRole("button", { name: workEn.triageNextWeek }),
+    dates.getByRole("button", { name: agendaLabelsEn.triageNextWeek }),
   ).toBeDisabled();
 });
 
@@ -156,13 +166,15 @@ it("Undo of a due move turns the row back: no note, and its date choices are on 
   const { transport } = makeTransport();
   renderAgenda([overdue], transport);
   const { dates } = await openMenu(overdue.title);
-  await user.click(dates.getByRole("button", { name: workEn.triageTomorrow }));
+  await user.click(
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+  );
   await user.click(await undoButton());
   // Undo closes the menu; opened again, its date choices are on.
   const again = (await openMenu(overdue.title)).dates;
   await waitFor(() =>
     expect(
-      again.getByRole("button", { name: workEn.triageTomorrow }),
+      again.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
     ).toBeEnabled(),
   );
   expect(rowOf(overdue.title).querySelector(".work-agenda-moved")).toBeNull();
@@ -175,8 +187,8 @@ it("when its Undo time is up, a due move's row keeps the new date as its note, m
   fireEvent.contextMenu(rowOf(overdue.title));
   fireEvent.click(
     within(
-      screen.getByRole("group", { name: workEn.rescheduleGroup }),
-    ).getByRole("button", { name: workEn.triageTomorrow }),
+      screen.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
+    ).getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   );
   // Lets the write settle under fake timers; waitFor would hang here because it polls with timers.
   await act(async () => {
@@ -187,7 +199,7 @@ it("when its Undo time is up, a due move's row keeps the new date as its note, m
     vi.advanceTimersByTime(UNDO_MS);
   });
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
   expect(rowOf(overdue.title)).toHaveClass("work-agenda-row-moved");
   expect(
@@ -202,7 +214,7 @@ it("the Undo line of a due move reads 'Flyttad till imorgon' in Swedish, with th
   renderAgenda([overdue], transport, workSv);
   const { dates } = await openMenu(overdue.title, workSv);
   await user.click(dates.getByRole("button", { name: "Imorgon" }));
-  await screen.findByRole("button", { name: workSv.agendaUndo });
+  await screen.findByRole("button", { name: /^Ångra/ });
   const line = within(rowOf(overdue.title)).getByRole("status");
   expect(line).toHaveTextContent("Flyttad till imorgon");
 });
@@ -264,7 +276,9 @@ it("Undo of a due move writes the old due date back at the version the move left
   const { transport, updateTask } = makeTransport();
   renderAgenda([overdue], transport);
   const { dates } = await openMenu(overdue.title);
-  await user.click(dates.getByRole("button", { name: workEn.triageTomorrow }));
+  await user.click(
+    dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+  );
   await user.click(await undoButton());
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
   expect(updateTask).toHaveBeenLastCalledWith(
@@ -277,7 +291,7 @@ it("Undo of a due move writes the old due date back at the version the move left
   expect((second as unknown[])[3]).not.toBe((first as unknown[])[3]);
   await waitFor(() =>
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument(),
   );
 });
@@ -297,17 +311,17 @@ it("the quick choices carry Imorgon, Nästa vecka and Klar in Swedish, and the r
 });
 
 it("the English and Swedish triage labels are set in labels.ts", () => {
-  expect(workEn.triageTomorrow).toBe("Tomorrow");
-  expect(workEn.triageNextWeek).toBe("Next week");
-  expect(workSv.triageTomorrow).toBe("Imorgon");
-  expect(workSv.triageNextWeek).toBe("Nästa vecka");
+  expect(agendaLabelsEn.triageTomorrow).toBe("Tomorrow");
+  expect(agendaLabelsEn.triageNextWeek).toBe("Next week");
+  expect(agendaLabelsSv.triageTomorrow).toBe("Imorgon");
+  expect(agendaLabelsSv.triageNextWeek).toBe("Nästa vecka");
   // The quick choices name their two rows "Status" and "Datum"/"Date"; "Välj datum …" opens the date field.
-  expect(workEn.rescheduleGroup).toBe("New date");
-  expect(workEn.rescheduleRow).toBe("Date");
-  expect(workEn.rescheduleChoose).toBe("Choose date…");
-  expect(workSv.rescheduleGroup).toBe("Nytt datum");
-  expect(workSv.rescheduleRow).toBe("Datum");
-  expect(workSv.rescheduleChoose).toBe("Välj datum …");
+  expect(agendaLabelsEn.rescheduleGroup).toBe("New date");
+  expect(agendaLabelsEn.rescheduleRow).toBe("Date");
+  expect(agendaLabelsEn.rescheduleChoose).toBe("Choose date…");
+  expect(agendaLabelsSv.rescheduleGroup).toBe("Nytt datum");
+  expect(agendaLabelsSv.rescheduleRow).toBe("Datum");
+  expect(agendaLabelsSv.rescheduleChoose).toBe("Välj datum …");
   expect(workSv.rescheduleDate).toBe("Välj datum");
 });
 
@@ -317,16 +331,18 @@ it("the quick choices of a Task that is not overdue offer New date: Tomorrow wri
   renderAgenda([todayTask], transport);
   openRow(todayTask.title);
   const menu = within(
-    screen.getByRole("group", { name: workEn.rescheduleGroup }),
+    screen.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
   );
   expect(
-    menu.getByRole("button", { name: workEn.triageTomorrow }),
+    menu.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
   ).toBeEnabled();
   expect(
-    menu.getByRole("button", { name: workEn.triageNextWeek }),
+    menu.getByRole("button", { name: agendaLabelsEn.triageNextWeek }),
   ).toBeEnabled();
   expect(menu.getByLabelText(workEn.rescheduleDate)).toBeEnabled();
-  await user.click(menu.getByRole("button", { name: workEn.triageTomorrow }));
+  await user.click(
+    menu.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+  );
   await waitFor(() =>
     expect(updateTask).toHaveBeenCalledWith(
       OTHER_ID,
@@ -339,7 +355,7 @@ it("the quick choices of a Task that is not overdue offer New date: Tomorrow wri
   expect(line).toHaveTextContent("Moved to tomorrow");
   // The move closes the quick choices, as a status change does.
   expect(
-    screen.queryByRole("group", { name: workEn.rescheduleGroup }),
+    screen.queryByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
   ).not.toBeInTheDocument();
 });
 
@@ -348,7 +364,7 @@ it("the Choose date… chip is the date input itself, laid over the chip, and a 
   renderAgenda([todayTask], transport);
   openRow(todayTask.title);
   const menu = within(
-    screen.getByRole("group", { name: workEn.rescheduleGroup }),
+    screen.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
   );
   // No click first: the input is there from the start, over the chip, which is not a button of its own.
   const input = menu.getByLabelText(workEn.rescheduleDate);
@@ -356,9 +372,9 @@ it("the Choose date… chip is the date input itself, laid over the chip, and a 
   expect(input).toHaveClass("work-agenda-date-input");
   const chip = input.closest(".work-agenda-date-chip") as HTMLElement;
   expect(chip).toHaveClass("sk-chip");
-  expect(chip).toHaveTextContent(workEn.rescheduleChoose);
+  expect(chip).toHaveTextContent(agendaLabelsEn.rescheduleChoose);
   expect(
-    menu.queryByRole("button", { name: workEn.rescheduleChoose }),
+    menu.queryByRole("button", { name: agendaLabelsEn.rescheduleChoose }),
   ).not.toBeInTheDocument();
   fireEvent.input(input, {
     target: { value: "2026-11-05" },
@@ -496,9 +512,9 @@ it("the date group always shows Idag, Imorgon, Nästa vecka and Välj datum …;
   const buttons = dates.getAllByRole("button");
   expect(buttons.map((button) => button.textContent)).toEqual([
     "tis 27 okt",
-    workSv.agendaGroup.today,
-    workSv.triageTomorrow,
-    workSv.triageNextWeek,
+    agendaLabelsSv.group.today,
+    agendaLabelsSv.triageTomorrow,
+    agendaLabelsSv.triageNextWeek,
   ]);
   // The Task's own date is the one chosen chip; the shortcuts are not. Välj datum … is the date input over a chip
   // (not a button), holding the Task's date.
@@ -511,7 +527,7 @@ it("the date group always shows Idag, Imorgon, Nästa vecka and Välj datum …;
   const choose = dates.getByLabelText(workSv.rescheduleDate);
   expect(choose).toHaveValue("2026-10-27");
   expect(choose.closest(".work-agenda-date-chip")).toHaveTextContent(
-    workSv.rescheduleChoose,
+    agendaLabelsSv.rescheduleChoose,
   );
   await userEvent.click(buttons[0] as HTMLElement);
   expect(updateTask).not.toHaveBeenCalled();
@@ -528,21 +544,21 @@ it("a Task due on one of the shortcuts has that chip chosen and no fifth chip; t
   expect(
     dates.getAllByRole("button").map((button) => button.textContent),
   ).toEqual([
-    workSv.agendaGroup.today,
-    workSv.triageTomorrow,
-    workSv.triageNextWeek,
+    agendaLabelsSv.group.today,
+    agendaLabelsSv.triageTomorrow,
+    agendaLabelsSv.triageNextWeek,
   ]);
-  const idag = dates.getByRole("button", { name: workSv.agendaGroup.today });
+  const idag = dates.getByRole("button", { name: agendaLabelsSv.group.today });
   expect(idag).toHaveAttribute("aria-pressed", "true");
   expect(idag).toHaveClass("sk-chip");
   expect(
-    dates.getByRole("button", { name: workSv.triageTomorrow }),
+    dates.getByRole("button", { name: agendaLabelsSv.triageTomorrow }),
   ).toHaveAttribute("aria-pressed", "false");
   await userEvent.click(idag);
   expect(updateTask).not.toHaveBeenCalled();
   // Another shortcut still moves the date.
   await userEvent.click(
-    dates.getByRole("button", { name: workSv.triageTomorrow }),
+    dates.getByRole("button", { name: agendaLabelsSv.triageTomorrow }),
   );
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
 });
@@ -562,7 +578,7 @@ it("a Task without a date has Idag as a plain choice and no chosen chip", async 
   renderAgenda([overdue, todayTask], transport, workSv);
   const { dates } = await openMenu(todayTask.title, workSv);
   expect(
-    dates.getByRole("button", { name: workSv.agendaGroup.today }),
+    dates.getByRole("button", { name: agendaLabelsSv.group.today }),
   ).toHaveAttribute("aria-pressed", "false");
   expect(dates.getAllByRole("button")).toHaveLength(3);
   expect(dates.queryAllByRole("button", { pressed: true })).toHaveLength(0);

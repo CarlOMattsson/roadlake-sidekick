@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   act,
   fireEvent,
@@ -89,7 +90,7 @@ function Phone({ work, page }: { work: WorkTransport; page: WorkBoardPage }) {
 }
 
 const handle = (card: WorkItemRecord) =>
-  screen.getByRole("button", { name: workEn.dragTaskFor(card.title) });
+  screen.getByRole("button", { name: boardLabelsEn.dragTaskFor(card.title) });
 const column = (status: string) =>
   screen.getByRole("region", { name: workEn.taskStatus[status as "todo"] });
 const stepRight = (card: WorkItemRecord) =>
@@ -130,7 +131,7 @@ describe("board card write queue", () => {
     await waitFor(() =>
       expect(
         within(column("blocked")).getByRole("button", {
-          name: workEn.dragTaskFor(taskA.title),
+          name: boardLabelsEn.dragTaskFor(taskA.title),
         }),
       ).toBeInTheDocument(),
     );
@@ -160,7 +161,7 @@ describe("board card write queue", () => {
     expect(screen.queryByText(workEn.queued)).toBeNull();
     expect(
       within(column("in_progress")).getByRole("button", {
-        name: workEn.dragTaskFor(taskB.title),
+        name: boardLabelsEn.dragTaskFor(taskB.title),
       }),
     ).toBeEnabled();
   });
@@ -177,16 +178,14 @@ describe("board card write queue", () => {
     await waitFor(() =>
       expect(
         within(column("in_progress")).getByRole("button", {
-          name: workEn.dragTaskFor(taskA.title),
+          name: boardLabelsEn.dragTaskFor(taskA.title),
         }),
       ).toBeInTheDocument(),
     );
     // The board read is still open: the card did not wait for it.
     await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
     expect(updateTask).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole("button", { name: workEn.agendaUndo }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
     expect(handle(taskA).closest("li")).not.toHaveAttribute("aria-busy");
 
     await act(async () => {
@@ -251,12 +250,12 @@ describe("board card write queue", () => {
     await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
     expect(
       within(column("in_progress")).getByRole("button", {
-        name: workEn.dragTaskFor(taskB.title),
+        name: boardLabelsEn.dragTaskFor(taskB.title),
       }),
     ).toBeInTheDocument();
     expect(
       within(column("todo")).queryByRole("button", {
-        name: workEn.dragTaskFor(taskB.title),
+        name: boardLabelsEn.dragTaskFor(taskB.title),
       }),
     ).toBeNull();
   });
@@ -296,12 +295,12 @@ describe("board card write queue", () => {
     await new Promise((done) => setTimeout(done, 30));
     expect(
       within(column("in_progress")).getByRole("button", {
-        name: workEn.dragTaskFor(taskA.title),
+        name: boardLabelsEn.dragTaskFor(taskA.title),
       }),
     ).toBeInTheDocument();
     expect(
       within(column("todo")).queryByRole("button", {
-        name: workEn.dragTaskFor(taskA.title),
+        name: boardLabelsEn.dragTaskFor(taskA.title),
       }),
     ).toBeNull();
   });
@@ -319,11 +318,11 @@ describe("board card write queue", () => {
     });
 
     stepRight(taskA);
-    await screen.findByRole("button", { name: workEn.agendaUndo });
+    await screen.findByRole("button", { name: /^Undo/ });
     // A further move is running when Undo is tapped: the Undo waits and then carries the version that move left.
     stepRight(taskA);
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
-    fireEvent.click(screen.getByRole("button", { name: workEn.agendaUndo }));
+    fireEvent.click(screen.getByRole("button", { name: /^Undo/ }));
     await act(async () => {
       second.resolve(written(taskA, "blocked", 3));
       await Promise.resolve();
@@ -382,7 +381,7 @@ describe("board card write queue", () => {
       />,
     );
     const moveDown = async () => {
-      const name = workEn.moveListFor(taskA.title);
+      const name = boardLabelsEn.moveListFor(taskA.title);
       // The quick choices stay open after a choice; if they closed, the card's menu opens again.
       if (!screen.queryByRole("group", { name }))
         fireEvent.contextMenu(
@@ -392,7 +391,7 @@ describe("board card write queue", () => {
         );
       const group = await screen.findByRole("group", { name });
       fireEvent.click(
-        within(group).getByRole("button", { name: workEn.moveDown }),
+        within(group).getByRole("button", { name: boardLabelsEn.moveDown }),
       );
     };
 
@@ -497,9 +496,11 @@ describe("board card write queue", () => {
         .closest("li") as HTMLElement,
     );
     const group = await screen.findByRole("group", {
-      name: workEn.moveListFor(taskA.title),
+      name: boardLabelsEn.moveListFor(taskA.title),
     });
-    const down = within(group).getByRole("button", { name: workEn.moveDown });
+    const down = within(group).getByRole("button", {
+      name: boardLabelsEn.moveDown,
+    });
     fireEvent.click(down);
     fireEvent.click(down);
     await act(async () => {
@@ -530,19 +531,17 @@ describe("board card write queue", () => {
     });
 
     stepRight(taskA);
-    await screen.findByRole("button", { name: workEn.agendaUndo });
+    await screen.findByRole("button", { name: /^Undo/ });
     stepRight(taskA);
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
-    fireEvent.click(screen.getByRole("button", { name: workEn.agendaUndo }));
+    fireEvent.click(screen.getByRole("button", { name: /^Undo/ }));
     await act(async () => {
       second.resolve(written(taskA, "blocked", 3));
       await Promise.resolve();
     });
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(3));
     await new Promise((done) => setTimeout(done, 30));
-    expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
   });
 
   it("(N4) a read asked for by a new refreshKey while another read runs is made when that one ends", async () => {
@@ -622,7 +621,7 @@ describe("board card write queue", () => {
     await new Promise((done) => setTimeout(done, 30));
     expect(
       within(column("completed")).getByRole("button", {
-        name: workEn.dragTaskFor(taskB.title),
+        name: boardLabelsEn.dragTaskFor(taskB.title),
       }),
     ).toBeInTheDocument();
   });
@@ -640,7 +639,7 @@ describe("board card write queue", () => {
     fireEvent.click(await screen.findByRole("button", { name: workEn.retry }));
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
     expect(
-      await screen.findByRole("button", { name: workEn.agendaUndo }),
+      await screen.findByRole("button", { name: /^Undo/ }),
     ).toBeInTheDocument();
   });
 
@@ -661,9 +660,7 @@ describe("board card write queue", () => {
       getWorkBoard: vi.fn(() => new Promise<WorkBoardPage>(() => undefined)),
     });
     stepRight(taskA);
-    fireEvent.click(
-      await screen.findByRole("button", { name: workEn.agendaUndo }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: /^Undo/ }));
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
     // A move is asked for while the Undo is unanswered; the Undo then fails with no answer.
     stepRight(taskA);

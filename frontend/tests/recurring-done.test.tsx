@@ -118,7 +118,9 @@ describe("Agenda: done on a recurring Task", () => {
         expect.any(String),
       );
 
-      await user.click(row.getByRole("button", { name: workEn.agendaUndo }));
+      await user.click(
+        row.getByRole("button", { name: `${workEn.agendaUndo} ${rent.title}` }),
+      );
       await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
       expect(updateTask.mock.calls[1]?.[2]).toEqual({
         due_at: DUE,

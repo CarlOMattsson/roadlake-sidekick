@@ -58,7 +58,7 @@ describe("a Step's Ångra", () => {
     );
     await user.click(await screen.findByRole("checkbox", { name: open.title }));
 
-    const undo = await screen.findByRole("button", { name: "Ångra" });
+    const undo = await screen.findByRole("button", { name: /^Ångra/ });
     const row = screen.getByRole("checkbox").closest("li");
     expect(undo.closest("li")).toBe(row);
     expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");
@@ -81,11 +81,11 @@ describe("a Step's Ångra", () => {
     await user.click(await screen.findByRole("checkbox", { name: open.title }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Reopened");
-    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS + 100);
     });
-    expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
   });
 });
 

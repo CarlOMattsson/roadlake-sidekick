@@ -258,6 +258,7 @@ export function UnsortedView({
       <p className="work-unsorted-title">{undo.task.title}</p>
       <UndoMeta
         text={fillLabel(t.movedTo, { status: undo.label })}
+        title={undo.task.title}
         moving={moving}
         labels={t}
         disabled={disabled}

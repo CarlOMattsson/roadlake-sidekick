@@ -1,8 +1,12 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { AgendaView } from "@/features/work-app/agenda/agenda";
-import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,
@@ -43,7 +47,7 @@ it("a failed tick stands in its own row, names the Task and puts focus on Try ag
   await user.click(glyphOf(task.title));
   const alert = await screen.findByRole("alert");
   expect(rowOf(task.title)).toContainElement(alert);
-  expect(alert).toHaveTextContent(workEn.rowChangeFailed(task.title));
+  expect(alert).toHaveTextContent(boardLabelsEn.rowChangeFailed(task.title));
   expect(alert).toHaveClass("sk-error--row");
   const retry = within(alert).getByRole("button", { name: workEn.retry });
   expect(retry).toHaveFocus();
@@ -55,10 +59,10 @@ it("a failed tick stands in its own row, names the Task and puts focus on Try ag
 });
 
 it("a failed tick names the Task in Swedish too", () => {
-  expect(workSv.rowChangeFailed("Skicka offert")).toBe(
+  expect(boardLabelsSv.rowChangeFailed("Skicka offert")).toBe(
     "Det gick inte att ändra ”Skicka offert”.",
   );
-  expect(workEn.rowChangeFailed("Send quote")).toBe(
+  expect(boardLabelsEn.rowChangeFailed("Send quote")).toBe(
     "Couldn’t change “Send quote”.",
   );
 });
@@ -122,7 +126,7 @@ it("a failed Visa fler says so under the button, not as a failed refresh, and Tr
   const more = screen.getByRole("button", { name: workEn.more });
   await user.click(more);
   const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent(workEn.moreFailed);
+  expect(alert).toHaveTextContent(boardLabelsEn.moreFailed);
   expect(alert).not.toHaveTextContent(workEn.agendaUndo);
   expect(alert).toHaveClass("sk-error--row");
   expect(more.compareDocumentPosition(alert)).toBe(
@@ -136,5 +140,5 @@ it("a failed Visa fler says so under the button, not as a failed refresh, and Tr
 });
 
 it("words a failed Visa fler in Swedish", () => {
-  expect(workSv.moreFailed).toBe("Det gick inte att hämta fler.");
+  expect(boardLabelsSv.moreFailed).toBe("Det gick inte att hämta fler.");
 });

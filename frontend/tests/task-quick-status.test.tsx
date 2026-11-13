@@ -9,6 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
 import {
   workEn,
   workSv,
@@ -232,7 +233,7 @@ describe("TaskFrame Markera klar", () => {
     );
   });
 
-  it("writes Klar through the status write, with the shown version and key, and shows Återöppna then", async () => {
+  it("writes Klar through the status write, with the shown version and key, and shows Ångra in its place", async () => {
     const work = transport();
     renderTask(work);
 
@@ -254,9 +255,13 @@ describe("TaskFrame Markera klar", () => {
         screen.queryByRole("button", { name: workEn.markDone }),
       ).not.toBeInTheDocument(),
     );
+    // Until the time to undo is up, Ångra stands where Återöppna will.
     expect(
-      screen.getByRole("button", { name: workEn.reopenTask }),
+      screen.getByRole("button", { name: workEn.agendaUndo }),
     ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: workEn.reopenTask }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("group", { name: workEn.status }),
     ).not.toBeInTheDocument();
@@ -280,9 +285,11 @@ describe("TaskFrame Markera klar", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveClass("sk-error--row");
-    expect(alert).toHaveTextContent(workEn.saveFailed);
+    // The same words as the inline card, and focus on Try again where the press was.
+    expect(alert).toHaveTextContent(inlineSummaryLabelsEn.doneFailed);
+    expect(screen.getByRole("button", { name: workEn.retry })).toHaveFocus();
     // The family's row: a line and a text button, so the sentence does not say the button's words again.
-    expect(workEn.saveFailed).not.toMatch(/try again/i);
+    expect(inlineSummaryLabelsEn.doneFailed).not.toMatch(/try again/i);
     // It stands with the controls it came from, before the title's description and the other sections.
     expect(
       screen
@@ -293,7 +300,7 @@ describe("TaskFrame Markera klar", () => {
     await user.click(screen.getByRole("button", { name: workEn.retry }));
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: workEn.reopenTask }),
+        screen.getByRole("button", { name: workEn.agendaUndo }),
       ).toBeVisible(),
     );
     expect(screen.queryByRole("alert")).toBeNull();

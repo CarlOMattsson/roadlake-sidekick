@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
-import { boardLabelsEn } from "@/features/work-app/board/board-labels";
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import type {
   WorkBoardPage,
   WorkItemRecord,
@@ -33,13 +36,13 @@ it("Flytta ned writes the whole column in its new order, and Flytta upp is disab
   // A right click on the card opens the same group as Shift+F10.
   fireEvent.contextMenu(rowOf(a.title));
   const group = screen.getByRole("group", {
-    name: workEn.moveListFor(a.title),
+    name: boardLabelsEn.moveListFor(a.title),
   });
   expect(
-    within(group).getByRole("button", { name: workEn.moveUp }),
+    within(group).getByRole("button", { name: boardLabelsEn.moveUp }),
   ).toBeDisabled();
   await user.click(
-    within(group).getByRole("button", { name: workEn.moveDown }),
+    within(group).getByRole("button", { name: boardLabelsEn.moveDown }),
   );
   expect(reorderBoardColumn).toHaveBeenCalledWith(
     "todo",
@@ -65,10 +68,14 @@ it("offers no reorder buttons when the column is not whole on the board", async 
   );
   await openGroup(user, a.title);
   expect(
-    screen.getByRole("group", { name: workEn.moveListFor(a.title) }),
+    screen.getByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: workEn.moveUp })).toBeNull();
-  expect(screen.queryByRole("button", { name: workEn.moveDown })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: boardLabelsEn.moveUp }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: boardLabelsEn.moveDown }),
+  ).toBeNull();
   // "Show more tasks" sits in the foot, and the refresh icon beside it.
   expect(
     screen.getByRole("button", { name: boardLabelsEn.showMore }),
@@ -116,31 +123,31 @@ it("offers no Flytta buttons in a section whose rows are not in the column's ord
   await openGroup(user, b.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(b.title) }),
+      screen.getByRole("group", { name: boardLabelsEn.moveListFor(b.title) }),
     ).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
-  await screen.findByRole("button", { name: workEn.agendaUndo });
+  await screen.findByRole("button", { name: /^Undo/ });
   // The column neighbour of "Beställ skåp" is the place of "Skicka faktura", not the row shown above it: no step is offered.
   await openGroup(user, e.title);
   const lower = screen.getByRole("group", {
-    name: workEn.moveListFor(e.title),
+    name: boardLabelsEn.moveListFor(e.title),
   });
   expect(
-    within(lower).queryByRole("button", { name: workEn.moveUp }),
+    within(lower).queryByRole("button", { name: boardLabelsEn.moveUp }),
   ).toBeNull();
   expect(
-    within(lower).queryByRole("button", { name: workEn.moveDown }),
+    within(lower).queryByRole("button", { name: boardLabelsEn.moveDown }),
   ).toBeNull();
   // "Boka målare" has "Skicka faktura" between it and "Bygg webbplatsen" in the column, but not on the screen.
   await openGroup(user, f.title);
   const upper = screen.getByRole("group", {
-    name: workEn.moveListFor(f.title),
+    name: boardLabelsEn.moveListFor(f.title),
   });
   expect(
-    within(upper).queryByRole("button", { name: workEn.moveUp }),
+    within(upper).queryByRole("button", { name: boardLabelsEn.moveUp }),
   ).toBeNull();
   expect(
-    within(upper).queryByRole("button", { name: workEn.moveDown }),
+    within(upper).queryByRole("button", { name: boardLabelsEn.moveDown }),
   ).toBeNull();
 });
 
@@ -154,7 +161,7 @@ it("a conflict keeps the banner and the sections", async () => {
       name: fillLabel(workEn.agendaComplete, { title: a.title }),
     }),
   );
-  expect(await screen.findByText(workEn.boardConflict)).toBeInTheDocument();
+  expect(await screen.findByText(boardLabelsEn.conflict)).toBeInTheDocument();
   expect(
     elementWithText(`${workEn.taskStatus.todo} (2)`, "h3"),
   ).toBeInTheDocument();
@@ -249,10 +256,10 @@ it("uses Swedish labels for the section headings, the fold and the move list", a
   ).toBeInTheDocument();
   await openGroup(user, a.title);
   const group = screen.getByRole("group", {
-    name: workSv.moveListFor(a.title),
+    name: boardLabelsSv.moveListFor(a.title),
   });
   fireEvent.keyDown(group, { key: "Escape" });
   expect(
-    screen.queryByRole("group", { name: workSv.moveListFor(a.title) }),
+    screen.queryByRole("group", { name: boardLabelsSv.moveListFor(a.title) }),
   ).toBeNull();
 });

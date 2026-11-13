@@ -1,3 +1,7 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
@@ -187,7 +191,7 @@ describe("meta line of a card in a Project", () => {
     const { container } = renderMetaBoard(workSv);
 
     const card = screen
-      .getByRole("button", { name: workSv.dragTaskFor(inProject.title) })
+      .getByRole("button", { name: boardLabelsSv.dragTaskFor(inProject.title) })
       .closest("li");
     expect(card?.querySelector(".work-card-meta")).toBeNull();
     expect(card).not.toHaveTextContent("Projekt");
@@ -363,7 +367,7 @@ describe("card and Shift+arrow", () => {
     await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
 
     const banner = await screen.findByRole("alert");
-    expect(banner).toHaveTextContent(workEn.boardConflict);
+    expect(banner).toHaveTextContent(boardLabelsEn.conflict);
     await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
     expect(
       within(

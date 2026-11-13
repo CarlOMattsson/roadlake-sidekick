@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   act,
   fireEvent,
@@ -101,7 +102,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
 
     const undo = await screen.findByRole("button", {
-      name: workEn.agendaUndo,
+      name: /^Undo/,
     });
     await waitFor(() => expect(undo).toBeEnabled());
     const wrap = undo.closest(".work-agenda-undo");
@@ -131,7 +132,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     await user.keyboard("{Shift>}{F10}{/Shift}");
 
     const menu = screen.getByRole("group", {
-      name: workEn.moveListFor(taskA.title),
+      name: boardLabelsEn.moveListFor(taskA.title),
     });
     // The group is part of the card's own flow, not a floating menu over the board.
     expect(handleOf(taskA.title).closest("li")).toContainElement(menu);
@@ -315,20 +316,16 @@ describe("fullscreen board: Undo time", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(getWorkBoard).toHaveBeenCalledTimes(1);
-    expect(
-      screen.getByRole("button", { name: workEn.agendaUndo }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS - 1);
     });
-    expect(
-      screen.getByRole("button", { name: workEn.agendaUndo }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(1);
     });
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -339,7 +336,7 @@ describe("fullscreen board: Undo time", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    const undo = screen.getByRole("button", { name: workEn.agendaUndo });
+    const undo = screen.getByRole("button", { name: /^Undo/ });
     // The pause sits on the Undo line's wrapper, which holds both the status text and the button.
     const line = undo.closest(".work-agenda-undo");
     if (!line) throw new Error("no Undo line");
@@ -360,7 +357,7 @@ describe("fullscreen board: Undo time", () => {
       vi.advanceTimersByTime(1);
     });
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,11 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
+import {
+  agendaLabelsEn,
+  agendaLabelsSv,
+} from "@/features/work-app/agenda/agenda-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
@@ -169,9 +177,9 @@ it("a read shows Loading as an absolutely placed status line, so the rows do not
 });
 
 it("the refused-change notice names no view: the agenda, the board and To sort share it", () => {
-  expect(workSv.boardConflict).toBe("Listan har lästs om, försök igen.");
-  expect(workEn.boardConflict).toBe("The list was reloaded. Try again.");
-  expect(workSv.boardConflict).not.toMatch(/Tavlan/);
+  expect(boardLabelsSv.conflict).toBe("Listan har lästs om, försök igen.");
+  expect(boardLabelsEn.conflict).toBe("The list was refreshed. Try again.");
+  expect(boardLabelsSv.conflict).not.toMatch(/Tavlan/);
 });
 
 it("the Swedish Undo line of a status change reads 'Flyttad till {status}' and names no Task", () => {
@@ -200,8 +208,8 @@ it("the labels of the new row menu hint and the overdue move count are set in la
 it("has Swedish and English agenda labels in labels.ts and fills their placeholders", () => {
   expect(workSv.agendaUndo).toBe("Ångra");
   expect(workEn.agendaUndo).toBe("Undo");
-  expect(workSv.agendaMoving).toBe("Flyttar…");
-  expect(workEn.agendaMoving).toBe("Moving…");
+  expect(agendaLabelsSv.moving).toBe("Flyttar…");
+  expect(agendaLabelsEn.moving).toBe("Moving…");
   expect(fillLabel("Hej {name}, {missing}", { name: "Anna" })).toBe(
     "Hej Anna, {missing}",
   );

@@ -337,7 +337,10 @@ test("sandboxed Work board opens from get_work_board, moves a card to In progres
   const undoLine = todo.locator(".work-agenda-undo");
   await expect(undoLine.getByRole("status")).toHaveText("Pågår");
   await expect(
-    undoLine.getByRole("button", { name: "Ångra", exact: true }),
+    undoLine.getByRole("button", {
+      name: "Ångra Ring Anna om offerten",
+      exact: true,
+    }),
   ).toBeVisible();
   // The section count says where the card is now: it left "Att göra" at once, while its row stands here
   // for its Ångra.

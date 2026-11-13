@@ -1,4 +1,8 @@
 import {
+  agendaLabelsEn,
+  agendaLabelsSv,
+} from "@/features/work-app/agenda/agenda-labels";
+import {
   act,
   fireEvent,
   screen,
@@ -68,8 +72,8 @@ it("a row done from Försenade stands on its place for its Undo: the count waits
   // The row stays on its place, in the same list, and the count follows the open rows at once (it is the
   // number "Flytta n" moves; a row under Ångra is not counted).
   expect(line).toHaveTextContent("Done · in Status");
-  expect(workEn.agendaDoneInStatus).toBe("Done · in Status");
-  expect(workSv.agendaDoneInStatus).toBe("Klar · finns i Status");
+  expect(agendaLabelsEn.doneInStatus).toBe("Done · in Status");
+  expect(agendaLabelsSv.doneInStatus).toBe("Klar · finns i Status");
   expect(lists()).toHaveLength(1);
   expect(titlesOf()).toEqual([older.title, newer.title]);
   expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("(1)");
@@ -83,7 +87,7 @@ it("a row done from Försenade stands on its place for its Undo: the count waits
   );
   // Undo gives the empty ring and the meta line back, and the row counts again.
   await user.click(
-    within(rowOf(older.title)).getByRole("button", { name: workEn.agendaUndo }),
+    within(rowOf(older.title)).getByRole("button", { name: /^Undo/ }),
   );
   await waitFor(() =>
     expect(rowOf(older.title)).not.toHaveAttribute("data-undo"),
@@ -123,10 +127,12 @@ it("a date move of an overdue row stands on its place for its Undo, and the coun
     fireEvent.contextMenu(rowOf(older.title));
     const dates = within(
       within(rowOf(older.title)).getByRole("group", {
-        name: workEn.rescheduleGroup,
+        name: agendaLabelsEn.rescheduleGroup,
       }),
     );
-    fireEvent.click(dates.getByRole("button", { name: workEn.triageTomorrow }));
+    fireEvent.click(
+      dates.getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -363,7 +369,7 @@ it("Undo of a reopen from Klar idag puts the row back in Klar idag, not in its o
     });
     expect(screen.queryByText(/Done here/)).not.toBeInTheDocument();
     // Ångra: the Task is done again and stands in Klar idag, not in Overdue.
-    fireEvent.click(screen.getByRole("button", { name: workEn.agendaUndo }));
+    fireEvent.click(screen.getByRole("button", { name: /^Undo/ }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -455,8 +461,8 @@ it("the Undo of a due move on a Task already done does not fold its row away whe
     openRow(done.title);
     fireEvent.click(
       within(
-        screen.getByRole("group", { name: workEn.rescheduleGroup }),
-      ).getByRole("button", { name: workEn.triageTomorrow }),
+        screen.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
+      ).getByRole("button", { name: agendaLabelsEn.triageTomorrow }),
     );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
@@ -464,7 +470,7 @@ it("the Undo of a due move on a Task already done does not fold its row away whe
     expect(updateTask).toHaveBeenCalledTimes(1);
     expect(
       within(rowOf(done.title)).getByRole("button", {
-        name: workEn.agendaUndo,
+        name: /^Undo/,
       }),
     ).toBeInTheDocument();
     act(() => {

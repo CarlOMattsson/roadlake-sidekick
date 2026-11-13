@@ -226,7 +226,7 @@ describe("compact inline view (a host without fullscreen)", () => {
     );
     await user.click((await screen.findAllByRole("checkbox"))[0]!);
     const undo = await screen.findByRole("button", {
-      name: `${shoppingEn.undoPurchase}: Vara 1`,
+      name: shoppingEn.undoPurchaseNamed("Vara 1", true),
     });
     // The row holds in its place: its status line says "Bought", and Undo is a tonal button in the toolbar where
     // Edit stood. No meta line (.shopping-held) is used in the inline view.
@@ -242,7 +242,7 @@ describe("compact inline view (a host without fullscreen)", () => {
     await waitFor(() =>
       expect(
         screen.queryByRole("button", {
-          name: `${shoppingEn.undoPurchase}: Vara 1`,
+          name: shoppingEn.undoPurchaseNamed("Vara 1", true),
         }),
       ).not.toBeInTheDocument(),
     );

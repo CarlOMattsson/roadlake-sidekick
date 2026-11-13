@@ -1,3 +1,5 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   act,
   fireEvent,
@@ -102,19 +104,23 @@ it("the search filters the titles without regard to case, and says so when nothi
   // A filter is active: a Task's move list offers no Move up or Move down.
   await openGroup(user, a.title);
   expect(
-    screen.getByRole("group", { name: workEn.moveListFor(a.title) }),
+    screen.getByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: workEn.moveUp })).toBeNull();
-  expect(screen.queryByRole("button", { name: workEn.moveDown })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: boardLabelsEn.moveUp }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: boardLabelsEn.moveDown }),
+  ).toBeNull();
   rerender(search(work, "zzz"));
   // A search with no hit names the text; the "Rensa sökningen" button comes only with a clear from the shell.
   // The text rests 300 ms before the board reads with it, and the line shows once that read has answered. A read
   // for an earlier text can land first on a loaded machine, so wait for this one instead of looking straight away.
   expect(
-    await screen.findByText(fillLabel(workEn.agendaNoMatch, { q: "zzz" })),
+    await screen.findByText(fillLabel(agendaLabelsEn.noMatch, { q: "zzz" })),
   ).toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: workEn.agendaClearSearch }),
+    screen.queryByRole("button", { name: agendaLabelsEn.clearSearch }),
   ).toBeNull();
   expect(
     screen.queryByRole("region", { name: workEn.taskStatus.todo }),
@@ -149,7 +155,7 @@ it("the glyph marks a Task done with update_task, its version and a key; the car
     expect.stringMatching(KEY),
   );
   expect(getWorkBoard).toHaveBeenCalledWith({});
-  const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const undo = await screen.findByRole("button", { name: /^Undo/ });
   // The card stays in To do, where it was, and its line says the new status in place of the meta line.
   const card = rowOf(a.title);
   const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
@@ -241,9 +247,9 @@ it("while a move is written, the single layout shows no status line above the li
   );
   expect(updateTask).toHaveBeenCalledTimes(1);
   // The card keeps its place and no "Moving" or "Loading" line is added above the rows.
-  expect(screen.queryByText(workEn.agendaMoving)).toBeNull();
+  expect(screen.queryByText(agendaLabelsEn.moving)).toBeNull();
   expect(screen.queryByText(workEn.loading)).toBeNull();
-  expect(screen.queryByRole("button", { name: workEn.agendaUndo })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
   expect(rowOf(a.title)).toBeInTheDocument();
 });
 
@@ -279,7 +285,7 @@ it("a status picked in the expanded group is written, and the card's own status 
   render(<Harness work={transport({ updateTask })} />);
   await openGroup(user, a.title);
   const group = screen.getByRole("group", {
-    name: workEn.moveListFor(a.title),
+    name: boardLabelsEn.moveListFor(a.title),
   });
   await user.click(
     within(group).getByRole("button", { name: workEn.taskStatus.todo }),
@@ -324,10 +330,10 @@ it("a card moved to an empty status section shows that section with its new coun
   await openGroup(user, a.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(a.title) }),
+      screen.getByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
     ).getByRole("button", { name: workEn.taskStatus.blocked }),
   );
-  await screen.findByRole("button", { name: workEn.agendaUndo });
+  await screen.findByRole("button", { name: /^Undo/ });
   // The card stands in To do for its Ångra, but the new number is seen where it went.
   expect(
     elementWithText(`${workEn.taskStatus.blocked} (1)`, "h3"),
@@ -352,11 +358,11 @@ it("a status picked in the row menu keeps the focus: on the hidden menu button w
   );
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(a.title) }),
+      screen.getByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
     ).getByRole("button", { name: workEn.taskStatus.blocked }),
   );
   expect(
-    screen.queryByRole("group", { name: workEn.moveListFor(a.title) }),
+    screen.queryByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
   ).toBeNull();
   expect(
     within(rowOf(a.title)).getByRole("button", {
@@ -372,12 +378,12 @@ it("a status picked in a menu opened by the keyboard returns the focus to the ro
   await openGroup(user, b.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(b.title) }),
+      screen.getByRole("group", { name: boardLabelsEn.moveListFor(b.title) }),
     ).getByRole("button", { name: workEn.taskStatus.blocked }),
   );
   expect(updateTask).toHaveBeenCalledTimes(1);
   expect(
-    screen.queryByRole("group", { name: workEn.moveListFor(b.title) }),
+    screen.queryByRole("group", { name: boardLabelsEn.moveListFor(b.title) }),
   ).toBeNull();
   expect(document.activeElement).not.toBe(document.body);
   expect(rowOf(b.title).contains(document.activeElement)).toBe(true);

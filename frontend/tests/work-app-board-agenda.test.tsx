@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
@@ -154,7 +155,7 @@ it("moves a Task through its status list with update_task, its version and a key
   render(rootBoard(work));
   await openBoardGroup(user, boardTask.title);
   const list = screen.getByRole("group", {
-    name: workEn.moveListFor(boardTask.title),
+    name: boardLabelsEn.moveListFor(boardTask.title),
   });
   // All four statuses are listed; the Task's own status is pressed and picking it writes nothing.
   const current = within(list).getByRole("button", {
@@ -175,7 +176,7 @@ it("moves a Task through its status list with update_task, its version and a key
   );
   expect(getWorkBoard).toHaveBeenCalledTimes(1);
   expect(getWorkBoard).toHaveBeenCalledWith({});
-  const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const undo = await screen.findByRole("button", { name: /^Undo/ });
   expect(
     within(undo.parentElement as HTMLElement).getByRole("status"),
   ).toHaveTextContent(workEn.taskStatus.in_progress);
@@ -208,12 +209,12 @@ it("a board move offers Undo, which writes the previous status at the new versio
   render(rootBoard(work));
   await openBoardGroup(user, boardTask.title);
   const list = screen.getByRole("group", {
-    name: workEn.moveListFor(boardTask.title),
+    name: boardLabelsEn.moveListFor(boardTask.title),
   });
   await user.click(
     within(list).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
-  const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const undo = await screen.findByRole("button", { name: /^Undo/ });
   await waitFor(() => expect(undo).toBeEnabled());
   expect(
     within(undo.parentElement as HTMLElement).getByRole("status"),
@@ -235,7 +236,7 @@ it("a board move offers Undo, which writes the previous status at the new versio
   ).toBeInTheDocument();
   await waitFor(() =>
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument(),
   );
 });
@@ -255,7 +256,9 @@ it("keeps a card in its column until the server answers the move", async () => {
   await openBoardGroup(user, boardTask.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(boardTask.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(boardTask.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
   expect(
@@ -293,7 +296,9 @@ it("reads the Task version with get_task when the card has none", async () => {
   await openBoardGroup(user, taskA.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(taskA.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(taskA.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.completed }),
   );
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
@@ -314,7 +319,9 @@ it("sends one move for a double-clicked status", async () => {
   await openBoardGroup(user, boardTask.title);
   await user.dblClick(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(boardTask.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(boardTask.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
   expect(updateTask).toHaveBeenCalledTimes(1);
@@ -332,11 +339,13 @@ it("reuses the key when a failed move is retried, and reads nothing on a failure
   await openBoardGroup(user, boardTask.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(boardTask.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(boardTask.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.blocked }),
   );
   const alert = await screen.findByRole("alert");
-  expect(alert).toHaveTextContent(workEn.moveFailed);
+  expect(alert).toHaveTextContent(boardLabelsEn.moveFailed);
   expect(getWorkBoard).not.toHaveBeenCalled();
   await user.click(within(alert).getByRole("button", { name: workEn.retry }));
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
@@ -369,11 +378,13 @@ it("shows a move conflict as a banner, reads the board again and keeps the banne
   await openBoardGroup(user, boardTask.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(boardTask.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(boardTask.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
   const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.boardConflict);
+  expect(banner).toHaveTextContent(boardLabelsEn.conflict);
   expect(banner).toHaveFocus();
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   expect(
@@ -381,9 +392,9 @@ it("shows a move conflict as a banner, reads the board again and keeps the banne
       screen.getByRole("region", { name: workEn.taskStatus.completed }),
     ).getByRole("button", { name: boardTask.title }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("alert")).toHaveTextContent(workEn.boardConflict);
+  expect(screen.getByRole("alert")).toHaveTextContent(boardLabelsEn.conflict);
   await user.click(
-    within(banner).getByRole("button", { name: workEn.boardConflictAction }),
+    within(banner).getByRole("button", { name: boardLabelsEn.conflictAction }),
   );
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
   expect(screen.queryByRole("alert")).toBeNull();
@@ -398,7 +409,9 @@ it("shows a refused move as calm text without retry or a read", async () => {
   await openBoardGroup(user, boardTask.title);
   await user.click(
     within(
-      screen.getByRole("group", { name: workEn.moveListFor(boardTask.title) }),
+      screen.getByRole("group", {
+        name: boardLabelsEn.moveListFor(boardTask.title),
+      }),
     ).getByRole("button", { name: workEn.taskStatus.blocked }),
   );
   expect(await screen.findByText(workEn.forbiddenWrite)).toBeInTheDocument();
@@ -413,7 +426,7 @@ it("lists the statuses as plain buttons in the Tab order, and Escape closes the 
   const move = screen.getByRole("button", { name: boardTask.title });
   await openBoardGroup(user, boardTask.title);
   const list = screen.getByRole("group", {
-    name: workEn.moveListFor(boardTask.title),
+    name: boardLabelsEn.moveListFor(boardTask.title),
   });
   await user.tab();
   expect(
@@ -493,20 +506,20 @@ it("opens an agenda grouped by its agenda groups, opens a Task and goes back to 
   // The count is its own element (.sk-count), so the heading is found by its full text.
   await waitFor(() =>
     expect(
-      elementWithText(`${workEn.agendaGroup.overdue} (1)`, "h3"),
+      elementWithText(`${agendaLabelsEn.group.overdue} (1)`, "h3"),
     ).toBeInTheDocument(),
   );
   expect(
     screen.getByRole("heading", {
       level: 3,
-      name: new RegExp(`^${workEn.agendaGroup.today}, .+$`),
+      name: new RegExp(`^${agendaLabelsEn.group.today}, .+$`),
     }),
   ).toBeInTheDocument();
   // The domain has no due date, so it falls under "No date", not "Upcoming".
   expect(
     screen.getByRole("heading", {
       level: 3,
-      name: workEn.agendaGroup.undated,
+      name: agendaLabelsEn.group.undated,
     }),
   ).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: agendaDomain.title })).toBeNull();
@@ -542,7 +555,7 @@ it("lists agenda records in the order they arrived when none carries a group", (
   expect(
     screen.getByRole("heading", {
       level: 3,
-      name: workEn.agendaGroup.undated,
+      name: agendaLabelsEn.group.undated,
     }),
   ).toBeInTheDocument();
   const titles = screen

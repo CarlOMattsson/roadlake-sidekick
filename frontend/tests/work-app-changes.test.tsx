@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
@@ -166,12 +167,12 @@ it("a Project board keeps its project_id on every re-read: after a move, after U
   render(rootBoard(work, boardPage, filters));
   await openBoardGroup(user, boardTask.title);
   const list = screen.getByRole("group", {
-    name: workEn.moveListFor(boardTask.title),
+    name: boardLabelsEn.moveListFor(boardTask.title),
   });
   await user.click(
     within(list).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
-  const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const undo = await screen.findByRole("button", { name: /^Undo/ });
   await waitFor(() => expect(undo).toBeEnabled());
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   expect(getWorkBoard).toHaveBeenLastCalledWith(filters);
@@ -334,7 +335,7 @@ it("shows no more-menu and no remove link in a Contact's Task row, and its ring 
     }),
   );
   expect(
-    await within(row).findByRole("button", { name: workEn.agendaUndo }),
+    await within(row).findByRole("button", { name: /^Undo/ }),
   ).toBeInTheDocument();
   expect(updateTask).toHaveBeenCalledTimes(1);
   expect(updateTask).toHaveBeenCalledWith(

@@ -1,3 +1,4 @@
+import { agendaLabelsFor } from "@/features/work-app/agenda/agenda-labels";
 import {
   fireEvent,
   render,
@@ -107,7 +108,11 @@ export async function openMenu(title: string, labels: WorkLabels = workEn) {
   fireEvent.contextMenu(rowOf(title));
   return {
     status: within(row.getByRole("group", { name: labels.status })),
-    dates: within(row.getByRole("group", { name: labels.rescheduleGroup })),
+    dates: within(
+      row.getByRole("group", {
+        name: agendaLabelsFor(labels.dateLocale).rescheduleGroup,
+      }),
+    ),
   };
 }
 
@@ -118,7 +123,7 @@ export function openRow(title: string) {
 
 /** The Undo button once the write behind it has settled (the row is disabled while it runs). */
 export async function undoButton() {
-  const button = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const button = await screen.findByRole("button", { name: /^Undo/ });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
 }

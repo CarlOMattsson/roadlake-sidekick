@@ -326,7 +326,7 @@ it("keeps a ticked Action in its place with Klar and Ångra, and Ångra writes t
   expect(await screen.findByText("Klar")).toBeInTheDocument();
   expect(row).toHaveClass("work-step-undoing");
 
-  await user.click(screen.getByRole("button", { name: workSv.agendaUndo }));
+  await user.click(screen.getByRole("button", { name: /^Ångra/ }));
   expect(transport.reopenStepAction).toHaveBeenCalledWith(
     open.id,
     5,
@@ -337,7 +337,7 @@ it("keeps a ticked Action in its place with Klar and Ångra, and Ångra writes t
   );
   // Undoing offers no second Ångra.
   expect(
-    screen.queryByRole("button", { name: workSv.agendaUndo }),
+    screen.queryByRole("button", { name: /^Ångra/ }),
   ).not.toBeInTheDocument();
   expect(
     screen.getByRole("checkbox", { name: "Ring receptionen" }),

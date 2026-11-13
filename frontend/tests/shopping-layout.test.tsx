@@ -107,7 +107,7 @@ describe("a bought row holds its Ångra in place", () => {
     );
     await user.click(screen.getByRole("button", { name: /^Mark Milk as/ }));
     const undo = await screen.findByRole("button", {
-      name: `${shoppingEn.undoPurchase}: Milk`,
+      name: shoppingEn.undoPurchaseNamed("Milk", true),
     });
     expect(undo.tagName).toBe("BUTTON");
     expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");

@@ -73,9 +73,9 @@ it("shows the list name, the open count and only the first four open items as te
   expect(screen.getByText("Shelf · 2 l")).toBeInTheDocument();
   expect(screen.queryByText(/^Lamp/)).not.toBeInTheDocument();
   expect(screen.queryByText(/^Coffee/)).not.toBeInTheDocument();
-  // What the card leaves out is counted in the foot link, after its name: "Open the shopping list · 2 more".
+  // What the card leaves out is counted in the foot link, after its name: "Open list · 2 more".
   expect(
-    screen.getByRole("button", { name: /^Open the shopping list\s*· 2 more$/ }),
+    screen.getByRole("button", { name: /^Open list\s*· 2 more$/ }),
   ).toHaveTextContent(`${shoppingEn.openList} · ${shoppingEn.hiddenItems(2)}`);
   expect(screen.queryByText(shoppingEn.moreItems(2))).not.toBeInTheDocument();
 });
@@ -122,13 +122,13 @@ it("counts the hidden open items in the foot link, in both languages", () => {
     <ShoppingCard detail={detail} labels={shoppingSv} onOpen={vi.fn()} />,
   );
   expect(
-    screen.getByRole("button", { name: /^Öppna inköpslistan\s*· 2 fler$/ }),
-  ).toHaveTextContent("Öppna inköpslistan · 2 fler");
+    screen.getByRole("button", { name: /^Öppna listan\s*· 2 fler$/ }),
+  ).toHaveTextContent("Öppna listan · 2 fler");
   unmount();
   render(<ShoppingCard detail={detail} labels={shoppingEn} onOpen={vi.fn()} />);
   expect(
-    screen.getByRole("button", { name: /^Open the shopping list\s*· 2 more$/ }),
-  ).toHaveTextContent("Open the shopping list · 2 more");
+    screen.getByRole("button", { name: /^Open list\s*· 2 more$/ }),
+  ).toHaveTextContent("Open list · 2 more");
 });
 
 it("draws no progress line for an empty list", () => {

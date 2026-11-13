@@ -221,16 +221,21 @@
 }
 .sidekick-shopping .shopping-recipient-current {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 0 var(--sk-s2);
   min-height: 2.75rem;
 }
+/* The name takes what the two buttons leave and wraps inside it; the buttons keep their words on one line beside it,
+   so "Ta bort" never drops to a line of its own. */
 .sidekick-shopping .shopping-recipient-name {
-  flex: 1 1 8rem;
+  flex: 1 1 0;
   min-width: 0;
   overflow-wrap: anywhere;
   font: var(--sk-type-body);
+}
+.sidekick-shopping .shopping-recipient-current > button {
+  flex: none;
+  white-space: nowrap;
 }
 .sidekick-shopping .shopping-recipient-choose {
   justify-self: start;
@@ -248,6 +253,20 @@
   align-items: end;
   gap: var(--sk-s2);
   width: 100%;
+}
+.sidekick-shopping .shopping-recipient-query > label {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.sidekick-shopping .shopping-recipient-query > button {
+  flex: none;
+}
+/* The ✕ that leaves the search stands in the search row, a 44 target, so it is not a second "Close" over the form's Cancel. */
+.sidekick-shopping .shopping-recipient-cancel {
+  display: inline-grid;
+  place-items: center;
+  width: var(--sk-tap);
+  padding: 0;
 }
 .sidekick-shopping .shopping-recipient-hits {
   display: flex;
@@ -279,6 +298,14 @@
 }
 /* The failure notice (role="alert") takes its box from the family (family.css): one error box, at the row or in the card.
    Its actions go on their own row. */
+/* A failed bought mark stands under its row in the title's column (past the ring), as the agenda's notice does, and its
+   two text buttons keep a gap that is more than their touch padding, so a tap lands on the one it meant. */
+.sidekick-shopping .shopping-store-item > .shopping-failure {
+  padding-inline-start: calc(var(--sk-lead-hang) + var(--sk-lead-w) + 2px);
+}
+.sidekick-shopping .shopping-failure .sk-error__actions {
+  column-gap: var(--sk-s5);
+}
 .sidekick-shopping .shopping-failure-actions {
   display: flex;
   flex-wrap: wrap;
@@ -437,9 +464,17 @@
   min-width: 0;
   text-align: start;
 }
-/* The card's Open is a text button (sk-btn--open, family.css): it keeps its own width in the card's column. */
-.shopping-card-open {
+/* The card's Open is a text button (sk-btn--open, family.css): it keeps its own width in the card's column. Its words
+   may wrap rather than push the license coin out of the card: "Open the shopping list · 11 more added" is longer than
+   the room beside the coin on a narrow phone. */
+.sidekick-shopping button.shopping-card-open {
   align-self: flex-start;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+.sidekick-shopping .shopping-card-open > svg {
+  flex: none;
 }
 
 /* Small inline card after an add or update: the card grows with its content. The rows are capped in

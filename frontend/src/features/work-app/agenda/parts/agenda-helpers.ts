@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
-import { agendaGroupLabel, type WorkLabels } from "../../shared/labels";
+import type { WorkLabels } from "../../shared/labels";
+import { agendaGroupLabel, agendaLabelsFor } from "../agenda-labels";
 import { fillLabel } from "../agenda-undo";
 import { parseDueDay, workDate } from "../../../mcp-apps/ui/due";
 import {
@@ -73,11 +74,12 @@ export function recurringDoneText(
   next: string | null | undefined,
   now: Date,
 ): string {
+  const a = agendaLabelsFor(t.dateLocale);
   return next
-    ? fillLabel(t.recurringDone, {
+    ? fillLabel(a.recurringDone, {
         date: workDate(next, now, t.dateLocale, { inline: true }),
       })
-    : t.recurringDoneNoDate;
+    : a.recurringDoneNoDate;
 }
 
 /** The row menu's date shortcuts, in their order (Idag first). */
@@ -195,7 +197,7 @@ export function sectionHeading(
   now: Date,
   count: number,
 ): string {
-  const name = agendaGroupLabel(t, section.group);
+  const name = agendaGroupLabel(agendaLabelsFor(t.dateLocale), section.group);
   const head =
     section.group === "today"
       ? `${name}, ${headingDay(now, t.dateLocale)}`
@@ -248,15 +250,16 @@ export function dueChoiceOf(item: WorkItemRecord, now: Date, t: WorkLabels) {
       : DUE_SHORTCUTS.find(
           (target) => parseDueDay(triageDueAt(now, target)) === dueDay,
         );
+  const a = agendaLabelsFor(t.dateLocale);
   const dueMeta =
     dueDay === null
       ? undefined
       : dueShortcut === "today"
-        ? t.agendaGroup.today
+        ? a.group.today
         : dueShortcut === "tomorrow"
-          ? t.triageTomorrow
+          ? a.triageTomorrow
           : dueShortcut === "nextWeek"
-            ? t.triageNextWeek
+            ? a.triageNextWeek
             : workDate(item.due_at, now, t.dateLocale);
   return { dueDay, dueShortcut, dueMeta };
 }

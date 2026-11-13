@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
@@ -120,7 +121,7 @@ afterEach(() => {
 });
 
 const handleOf = (title: string) =>
-  screen.getByRole("button", { name: workEn.dragTaskFor(title) });
+  screen.getByRole("button", { name: boardLabelsEn.dragTaskFor(title) });
 
 /** Dispatches a pointer event on the handle; jsdom has no PointerEvent, so the type is set by hand. */
 function pointer(
@@ -213,7 +214,7 @@ it("a refused order shows the conflict banner and puts the Tasks back in the ord
   dragTaskABelowTaskB();
 
   const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.boardConflict);
+  expect(banner).toHaveTextContent(boardLabelsEn.conflict);
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   await waitFor(() =>
     expect(

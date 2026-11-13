@@ -53,7 +53,6 @@ const OVERSIZED_FILES = {
   "src/features/journal-app/labels.ts": 515,
   "src/features/journal-app/transport.ts": 510,
   "src/features/work-app/contacts/contacts-list.tsx": 600,
-  "src/features/work-app/shared/labels.ts": 547,
   "src/features/work-app/saved-views/saved-views-bar.tsx": 530,
   "src/features/work-app/tasks/task-steps.tsx": 660,
   "src/mobile/companion-transport.ts": 610,

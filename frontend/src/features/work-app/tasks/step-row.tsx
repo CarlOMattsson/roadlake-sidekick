@@ -137,6 +137,7 @@ export function StepRow({
         <UndoMeta
           key={`${undo.id}:${undo.version}`}
           text={undo.done ? t.stepDone : t.stepReopened}
+          title={step.title}
           labels={t}
           disabled={listBusy}
           onUndo={onUndo}

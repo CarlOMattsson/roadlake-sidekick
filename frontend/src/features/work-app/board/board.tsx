@@ -174,6 +174,7 @@ export function BoardView({
       entry && (
         <UndoMeta
           text={entry.due ? entry.due.label : workStatusLabel(t, entry.to)}
+          title={item.title}
           labels={t}
           disabled={disabled}
           onUndo={() => writes.undoMove(entry)}
@@ -201,6 +202,7 @@ export function BoardView({
   const refresh = headingHidden ? null : (
     <RefreshButton label={t.refresh} disabled={disabled} onClick={reload} />
   );
+  const words = boardLabelsFor(t.dateLocale);
   const more = page.next_cursor && (
     <button
       type="button"
@@ -208,7 +210,7 @@ export function BoardView({
       disabled={disabled}
       onClick={loadMore}
     >
-      {boardLabelsFor(t.dateLocale).showMore}
+      {words.showMore}
     </button>
   );
   // One article for both layouts, so the measured root and the columns row survive a change of layout.
@@ -244,7 +246,7 @@ export function BoardView({
           {waitingCards.map((item) => `${item.title}: ${t.queued}`).join("; ")}
         </p>
         {!anyCard && !needle && chosenTags.length === 0 ? (
-          <WorkEmpty title={t.boardEmpty} hint={t.boardEmptyHint} labels={t} />
+          <WorkEmpty title={words.empty} hint={words.emptyHint} labels={t} />
         ) : !anyShown &&
           (needle ? searchSettled : single || chosenTags.length > 0) ? (
           needle ? (

@@ -1,3 +1,5 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import {
   act,
   fireEvent,
@@ -46,9 +48,9 @@ it("a glyph tap marks the Task done at its version and offers Undo beside the st
   expect(line.parentElement).toHaveClass("work-agenda-undo");
   expect(
     within(line.parentElement as HTMLElement).getByRole("button", {
-      name: workEn.agendaUndo,
+      name: `Undo ${task.title}`,
     }),
-  ).toBeInTheDocument();
+  ).toHaveTextContent(/^Undo$/);
 });
 
 it("a long Task title stays whole in its row, and its Undo line names only the status", async () => {
@@ -90,7 +92,7 @@ it("Undo writes the previous status against the new version with a new key", asy
   expect(secondKey).not.toBe(firstKey);
   await waitFor(() =>
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument(),
   );
 });
@@ -105,10 +107,10 @@ it("an Undo refused as a conflict shows the conflict notice and keeps the done s
     Object.assign(new Error("conflict"), { code: "conflict" }),
   );
   await user.click(undo);
-  expect(await screen.findByText(workEn.boardConflict)).toBeInTheDocument();
+  expect(await screen.findByText(boardLabelsEn.conflict)).toBeInTheDocument();
   // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
   expect(
-    screen.getByRole("button", { name: workEn.boardConflictAction }),
+    screen.getByRole("button", { name: boardLabelsEn.conflictAction }),
   ).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
     1,
@@ -166,20 +168,16 @@ it("the Undo line stays for fifteen seconds, then ends", async () => {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0);
   });
-  expect(
-    screen.getByRole("button", { name: workEn.agendaUndo }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
   act(() => {
     vi.advanceTimersByTime(UNDO_MS - 1);
   });
-  expect(
-    screen.getByRole("button", { name: workEn.agendaUndo }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
   act(() => {
     vi.advanceTimersByTime(1);
   });
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
 });
 
@@ -209,30 +207,26 @@ it("the Undo time starts when the server has answered, not at the click, and the
   await act(async () => {
     await vi.advanceTimersByTimeAsync(5000);
   });
-  expect(screen.getByText(workEn.agendaMoving)).toBeInTheDocument();
+  expect(screen.getByText(agendaLabelsEn.moving)).toBeInTheDocument();
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
   await act(async () => {
     answer();
     await vi.advanceTimersByTimeAsync(0);
   });
-  expect(screen.queryByText(workEn.agendaMoving)).not.toBeInTheDocument();
-  expect(
-    screen.getByRole("button", { name: workEn.agendaUndo }),
-  ).toBeInTheDocument();
+  expect(screen.queryByText(agendaLabelsEn.moving)).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
   // Fifteen seconds count from the answer, so the line is still there 14.9 s after it.
   act(() => {
     vi.advanceTimersByTime(UNDO_MS - 1);
   });
-  expect(
-    screen.getByRole("button", { name: workEn.agendaUndo }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
   act(() => {
     vi.advanceTimersByTime(1);
   });
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
 });
 
@@ -244,7 +238,7 @@ it("the pointer over the Undo line pauses its time, and it runs on with the time
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0);
   });
-  const undo = screen.getByRole("button", { name: workEn.agendaUndo });
+  const undo = screen.getByRole("button", { name: /^Undo/ });
   // The pause sits on the Undo line's wrapper, which holds both the status text and the button.
   const line = undo.closest(".work-agenda-undo");
   if (!line) throw new Error("no Undo line");
@@ -267,7 +261,7 @@ it("the pointer over the Undo line pauses its time, and it runs on with the time
     vi.advanceTimersByTime(1);
   });
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
 });
 
@@ -279,7 +273,7 @@ it("focus in the Undo line pauses its time as well, until focus leaves it", asyn
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0);
   });
-  const undo = screen.getByRole("button", { name: workEn.agendaUndo });
+  const undo = screen.getByRole("button", { name: /^Undo/ });
   act(() => {
     undo.focus();
   });
@@ -298,7 +292,7 @@ it("focus in the Undo line pauses its time as well, until focus leaves it", asyn
     vi.advanceTimersByTime(1);
   });
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
 });
 
@@ -310,16 +304,16 @@ it("a refused change shows the board's conflict notice and keeps the status", as
   );
   renderAgenda([task], transport);
   await user.click(glyphOf(task.title));
-  expect(await screen.findByText(workEn.boardConflict)).toBeInTheDocument();
+  expect(await screen.findByText(boardLabelsEn.conflict)).toBeInTheDocument();
   // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
   expect(
-    screen.getByRole("button", { name: workEn.boardConflictAction }),
+    screen.getByRole("button", { name: boardLabelsEn.conflictAction }),
   ).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
     1,
   );
   expect(
-    screen.queryByRole("button", { name: workEn.agendaUndo }),
+    screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
   // Still not done, so the glyph action still says "mark done".
   expect(glyphOf(task.title)).toBeInTheDocument();
@@ -390,7 +384,7 @@ it("Undo after a status change from the quick choices writes the previous status
   );
   await waitFor(() =>
     expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument(),
   );
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { relativeDue } from "../../mcp-apps/ui/due";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { inlineSummaryLabelsFor } from "../inline/inline-summary-labels";
 import { ContactMenu } from "../contacts/contact-edit";
 import { MoreIcon, TaskProps } from "./task-detail-controls";
 import { useLinkUndo } from "./task-contacts";
@@ -10,7 +11,11 @@ import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
 import { isRecurringCycle } from "../agenda/parts/agenda-helpers";
-import { TaskDoneReceipt, type DoneReceipt } from "./task-cycle";
+import {
+  TaskDoneControl,
+  TaskDoneReceipt,
+  type DoneReceipt,
+} from "./task-cycle";
 import {
   isTaskStatus,
   type TaskStatusValue,
@@ -27,6 +32,7 @@ import {
   useFrameRead,
   usePagedSection,
 } from "../view/parts/use-detail-frame";
+import { useFocusRetry } from "./use-focus-retry";
 import { useTaskOffers } from "./use-task-offers";
 import { useCutText } from "./use-cut-text";
 import { WriteStatus } from "../view/parts/write-status";
@@ -84,7 +90,9 @@ export function TaskFrame({
   // replays it.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
   // Which of them the failure line names.
-  const [writeWhat, setWriteWhat] = useState<"trash" | "save">("trash");
+  const [writeWhat, setWriteWhat] = useState<"trash" | "save" | "done">(
+    "trash",
+  );
   const tags = useWorkTags(transport, "task");
   const menuOffered = editOffered || trashOffered;
   useFrameRead(
@@ -135,8 +143,9 @@ export function TaskFrame({
   }
   /**
    * Writes only the changed fields against the version the view holds; the key follows the action. Every write ends
-   * the receipt line of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply gets a line of
-   * its own with Ångra, so no plain "Sparat" stands beside it.
+   * the receipt of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply is shown by the
+   * controls themselves (a "Klar" receipt with Ångra, or the controls put back by Ångra), so no plain "Sparat" stands
+   * beside it.
    */
   function saveTask(
     changes: WorkTaskChanges,
@@ -150,7 +159,7 @@ export function TaskFrame({
     }
     setReceipt(undefined);
     retryWrite.current = () => saveTask(changes, then, receipt);
-    setWriteWhat("save");
+    setWriteWhat(receipt && changes.status === "completed" ? "done" : "save");
     frame.sendWrite(
       JSON.stringify([task.id, task.version, changes]),
       "save",
@@ -234,6 +243,10 @@ export function TaskFrame({
       (result) => setTask(result.task),
     );
   }
+  /** The Ångra of a "Markera klar": the status and the button go back in place, with no "Sparat" beside them. */
+  function undoDone(changes: WorkTaskChanges) {
+    saveTask(changes, undefined, true);
+  }
   /** A quick status choice writes through saveTask, the same path as Spara. Off while the editor is open. */
   function chooseStatus(status: TaskStatusValue) {
     if (!task || task.status === status) return;
@@ -252,6 +265,13 @@ export function TaskFrame({
       status === "completed",
     );
   }
+  // A failed "Markera klar" puts focus on its Försök igen, where the press was, not on the page.
+  useFocusRetry(
+    write.kind === "failed" &&
+      write.action !== "reload" &&
+      writeWhat === "done",
+    heading,
+  );
   // A deleted Task shows only its title, the line that it is in the trash and Ångra.
   if (trashed && task)
     return (
@@ -353,25 +373,16 @@ export function TaskFrame({
             sentence={task.due_at ? detailDate(task.due_at, t) : undefined}
             done={
               doneShown && (
-                // The screen's one primary: compact ink, last in the control row beside the
-                // values it belongs with. A done Task shows "Återöppna" in the same place as a secondary, which sets it
-                // back to "Att göra". Both go through chooseStatus.
-                <button
-                  type="button"
-                  className={
-                    task.status !== "completed"
-                      ? "sk-btn--primary sk-btn--compact work-task-done"
-                      : "sk-btn--secondary sk-btn--compact work-task-done"
-                  }
+                <TaskDoneControl
+                  task={task}
+                  receipt={receipt}
+                  offers={offers}
+                  labels={t}
                   disabled={write.kind === "busy" || editing}
-                  onClick={() =>
-                    chooseStatus(
-                      task.status !== "completed" ? "completed" : "todo",
-                    )
-                  }
-                >
-                  {task.status !== "completed" ? t.markDone : t.reopenTask}
-                </button>
+                  onChoose={chooseStatus}
+                  onUndo={undoDone}
+                  onExpire={endReceipt}
+                />
               )
             }
           >
@@ -391,18 +402,24 @@ export function TaskFrame({
           <ErrorNotice
             placement="row"
             locale={t.dateLocale}
-            message={writeWhat === "trash" ? t.taskTrashFailed : t.saveFailed}
+            message={
+              writeWhat === "trash"
+                ? t.taskTrashFailed
+                : writeWhat === "done"
+                  ? inlineSummaryLabelsFor(t.dateLocale).doneFailed
+                  : t.saveFailed
+            }
             onRetry={() => retryWrite.current?.()}
           />
         )}
-      {phase === "ready" && task && receipt && (
+      {phase === "ready" && task && receipt?.kind === "cycle" && (
         <TaskDoneReceipt
           receipt={receipt}
           task={task}
           labels={t}
           disabled={write.kind === "busy" || editing}
           offers={offers}
-          save={saveTask}
+          save={undoDone}
           onExpire={endReceipt}
         />
       )}

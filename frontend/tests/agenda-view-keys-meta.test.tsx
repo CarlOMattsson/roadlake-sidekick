@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
@@ -73,7 +74,7 @@ it("the filter narrows the list by title and says when nothing matches", async (
   const user = userEvent.setup();
   const { transport } = makeTransport();
   renderAgenda([task, other], transport);
-  const search = screen.getByRole("searchbox", { name: workEn.agendaFilter });
+  const search = screen.getByRole("searchbox", { name: agendaLabelsEn.filter });
   await user.type(search, "målare");
   expect(
     screen.queryByRole("button", { name: task.title }),
@@ -82,11 +83,11 @@ it("the filter narrows the list by title and says when nothing matches", async (
   await user.clear(search);
   await user.type(search, "zzz");
   expect(
-    screen.getByText(fillLabel(workEn.agendaNoMatch, { q: "zzz" })),
+    screen.getByText(fillLabel(agendaLabelsEn.noMatch, { q: "zzz" })),
   ).toBeInTheDocument();
   // The text button under the sentence empties the search and brings the rows back.
   await user.click(
-    screen.getByRole("button", { name: workEn.agendaClearSearch }),
+    screen.getByRole("button", { name: agendaLabelsEn.clearSearch }),
   );
   expect(search).toHaveValue("");
   expect(screen.getByRole("button", { name: task.title })).toBeInTheDocument();
@@ -97,7 +98,7 @@ it("group headings stick to the top, and a Project has a glyph but no quick acti
   renderAgenda([task, other, project], transport);
   // The heading row sticks as one: the heading and the overdue button stay together.
   expect(
-    elementWithText(`${workEn.agendaGroup.overdue} (1)`, "h3").closest(
+    elementWithText(`${agendaLabelsEn.group.overdue} (1)`, "h3").closest(
       ".work-agenda-group-head",
     ),
   ).toHaveStyle({ position: "sticky" });

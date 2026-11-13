@@ -15,6 +15,7 @@ import {
   type WorkLabels,
 } from "../shared/labels";
 import { RecordMeta } from "../shared/record-meta";
+import { boardLabelsFor } from "./board-labels";
 import {
   RowMenuButton,
   menuButtonOf,
@@ -145,6 +146,7 @@ export function BoardCard({
   const accent = domainAccentOf(item.domain_accent);
   const single = layout === "single";
   const task = item.kind === "task";
+  const b = boardLabelsFor(t.dateLocale);
   // A Step in the single layout (Status) is a row of the Task list: its square check in the ring's column, the title on
   // the titles' x, and one meta line that names its Task.
   const step = item.kind === "step" && single;
@@ -222,8 +224,8 @@ export function BoardCard({
             type="button"
             className="work-drag-handle"
             disabled={disabled}
-            aria-label={t.dragTaskFor(item.title)}
-            title={t.dragTaskFor(item.title)}
+            aria-label={b.dragTaskFor(item.title)}
+            title={b.dragTaskFor(item.title)}
             aria-keyshortcuts="ArrowLeft ArrowRight Shift+ArrowLeft Shift+ArrowRight"
             style={handleStyle}
             onPointerDown={drag?.onPointerDown}
@@ -277,7 +279,7 @@ export function BoardCard({
         <div
           className="work-card-actions"
           role="group"
-          aria-label={t.moveListFor(item.title)}
+          aria-label={b.moveListFor(item.title)}
         >
           <div className="work-card-choices">
             {TASK_STATUSES.map((status) => (
@@ -299,14 +301,14 @@ export function BoardCard({
                 disabled={disabled || !canMoveUp}
                 onClick={() => onReorder(item, -1)}
               >
-                {t.moveUp}
+                {b.moveUp}
               </button>
               <button
                 type="button"
                 disabled={disabled || !canMoveDown}
                 onClick={() => onReorder(item, 1)}
               >
-                {t.moveDown}
+                {b.moveDown}
               </button>
             </div>
           )}

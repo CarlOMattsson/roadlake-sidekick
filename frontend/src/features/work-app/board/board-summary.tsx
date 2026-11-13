@@ -14,6 +14,7 @@ import {
 } from "../inline/inline-summary";
 import "../inline/inline-summary.css";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
+import { boardLabelsFor } from "./board-labels";
 import {
   cardKey,
   boardColumns,
@@ -82,7 +83,10 @@ export function summaryText(
   const projectPart = projects
     ? `; ${projects.label.toLocaleLowerCase(t.dateLocale)}: ${projects.count}`
     : "";
-  if (more) parts.push(t.boardMore.toLocaleLowerCase(t.dateLocale));
+  if (more)
+    parts.push(
+      boardLabelsFor(t.dateLocale).more.toLocaleLowerCase(t.dateLocale),
+    );
   return `${t.board}: ${parts.join(", ")}${projectPart}`;
 }
 
@@ -104,6 +108,7 @@ export function BoardSummary({
   /** Sends the counts to the host model once per shown summary; a no-op without host support. */
   onModelContext?: (summary: string) => void;
 }) {
+  const b = boardLabelsFor(t.dateLocale);
   const rows = summaryRows(page, t);
   const more = Boolean(page.next_cursor);
   const text = summaryText(rows, t, more);
@@ -155,17 +160,17 @@ export function BoardSummary({
         <InlineEmpty
           locale={t.dateLocale}
           text={{
-            title: t.boardEmpty,
-            hint: t.boardEmptyHint,
+            title: b.empty,
+            hint: b.emptyHint,
             example: t.workEmptyAsk,
           }}
           onOpen={onOpen}
-          openLabel={t.openBoard}
+          openLabel={b.openBoard}
         />
       ) : (
         <>
           <p className="work-compact-title sk-card__title">
-            {t.boardHeadline(overdue, open.length, more)}
+            {b.headline(overdue, open.length, more)}
           </p>
           <CountsBar label={t.status} segments={segments} />
           {projectRow ? (
@@ -178,8 +183,8 @@ export function BoardSummary({
               {nearest.every(
                 (item) => rowDue(item, now, t.dateLocale)?.tone === "overdue",
               )
-                ? t.boardNearestOverdue
-                : t.boardNearest}
+                ? b.nearestOverdue
+                : b.nearest}
             </p>
           ) : null}
           {nearest.length > 0 ? (
@@ -202,12 +207,12 @@ export function BoardSummary({
           <OpenFoot
             aside={
               hiddenCount > 0
-                ? t.boardHiddenCount.replace("{count}", String(hiddenCount))
+                ? b.hiddenCount.replace("{count}", String(hiddenCount))
                 : more
-                  ? t.boardMore
+                  ? b.more
                   : undefined
             }
-            label={t.openBoard}
+            label={b.openBoard}
             onOpen={onOpen}
           />
         </>

@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
@@ -73,7 +74,7 @@ it("reads again in place when refreshKey changes: the filter stays, old rows sta
   );
 
   await user.type(
-    screen.getByRole("searchbox", { name: workEn.agendaFilter }),
+    screen.getByRole("searchbox", { name: agendaLabelsEn.filter }),
     "Skicka",
   );
   rerender(<Harness transport={transport} initial={initial} refreshKey={1} />);
@@ -95,6 +96,6 @@ it("reads again in place when refreshKey changes: the filter stays, old rows sta
     screen.getByRole("button", { name: skicka.title }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("searchbox", { name: workEn.agendaFilter }),
+    screen.getByRole("searchbox", { name: agendaLabelsEn.filter }),
   ).toHaveValue("Skicka");
 });

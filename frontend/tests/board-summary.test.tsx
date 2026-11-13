@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -15,7 +16,7 @@ import type {
 } from "@/features/work-app/transport/transport";
 
 /** The open button's name is the label and, after " · ", what the card leaves out (§7), so match the start. */
-const openBoardName = new RegExp(`^${workEn.openBoard}`);
+const openBoardName = new RegExp(`^${boardLabelsEn.openBoard}`);
 
 const todoA: WorkItemRecord = {
   kind: "task",
@@ -364,7 +365,7 @@ it("counts the open Tasks in the legend, without Projects or Done, and says more
   // Tasks (none has a due date, so none is listed). The Done Task is not open. The text to the model still says that
   // more records exist.
   expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
-  expect(screen.queryByText(workEn.boardMore)).toBeNull();
+  expect(screen.queryByText(boardLabelsEn.more)).toBeNull();
   const [summary] = onModelContext.mock.calls[0] as [string];
   expect(summary).toBe(
     "Status: 2 to do, 1 in progress, 0 blocked, 1 done, more not shown; projects: 1",
@@ -425,7 +426,7 @@ it("says more records exist when every loaded Task is listed but the page has a 
       fullscreen={vi.fn()}
     />,
   );
-  expect(screen.getByText(`· ${workEn.boardMore}`)).toHaveClass(
+  expect(screen.getByText(`· ${boardLabelsEn.more}`)).toHaveClass(
     "work-compact-more",
   );
   expect(screen.queryByText(/^\+\d+ more$/)).toBeNull();
@@ -519,8 +520,8 @@ describe("the inline board card's kicker, title and row meta", () => {
       next_cursor: null,
     };
     const cases = [
-      [workEn, withOverdue, workEn.boardNearestOverdue],
-      [workEn, mixed, workEn.boardNearest],
+      [workEn, withOverdue, boardLabelsEn.nearestOverdue],
+      [workEn, mixed, boardLabelsEn.nearest],
       [workSv, withOverdue, "Äldst försenade"],
       [workSv, mixed, "Närmast i tid"],
     ] as const;
@@ -532,7 +533,7 @@ describe("the inline board card's kicker, title and row meta", () => {
       expect(label?.nextElementSibling).toHaveClass("work-compact-rows");
       unmount();
     }
-    expect(workEn.boardNearestOverdue).not.toBe(workEn.boardNearest);
+    expect(boardLabelsEn.nearestOverdue).not.toBe(boardLabelsEn.nearest);
   });
 
   it("draws no rows label when the card lists no row", () => {

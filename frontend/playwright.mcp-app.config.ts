@@ -6,6 +6,7 @@ export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: [
     "shopping-mcp-app.spec.ts",
+    "shopping-narrow-mcp-app.spec.ts",
     "work-mcp-app.spec.ts",
     "work-mcp-app-board-contacts.spec.ts",
     "work-mcp-app-narrow.spec.ts",

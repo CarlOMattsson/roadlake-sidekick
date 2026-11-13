@@ -666,7 +666,9 @@ describe("step progress, undo of a check and the quiet forms", () => {
       expect.stringMatching(KEY),
     );
     // Ångra stands in the Step's own row, and the row's meta line says "Klar".
-    const undo = await screen.findByRole("button", { name: sv.undo });
+    const undo = await screen.findByRole("button", {
+      name: `${sv.undo} ${stepA.title}`,
+    });
     expect(undo.closest("li")).toBe(await stepRow(stepA.title));
     expect(screen.getByRole("status")).toHaveTextContent("Klar");
     await user.click(undo);

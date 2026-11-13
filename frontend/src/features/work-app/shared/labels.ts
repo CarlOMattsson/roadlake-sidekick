@@ -52,8 +52,6 @@ export const workEn = {
   sending: "Sending…",
   /** Over an agenda read from the phone's offline copy, with when it was last fetched. */
   offlineCopy: (time: string) => `No connection · last fetched ${time}`,
-  /** The meta line of a Step whose Task is done. */
-  agendaParentDone: "Task done",
   steps: "Steps",
   stepsForbidden: "You don’t have access to steps.",
   stepConflict:
@@ -194,26 +192,6 @@ export const workEn = {
   taskTrashFailed: "Couldn’t delete the task.",
   taskRestoreFailed: "Couldn’t undo the deletion.",
   undo: "Undo",
-  noCards: "Nothing here.",
-  boardEmpty: "No tasks yet.",
-  /** The empty Status: what the view is for, under "No tasks yet." */
-  boardEmptyHint:
-    "Your tasks by status: to do, in progress, blocked, and done.",
-  boardForbidden: "You don’t have access to Status.",
-  openBoard: "Open Status",
-  boardNearestOverdue: "Longest overdue",
-  boardNearest: "Due soonest",
-  /** Under the inline board summary, and last in the text to the model, when the page has more records. */
-  boardMore: "More not shown",
-  /** The inline board summary's one line for records the nearest-due list does not show; {count} is the number. */
-  boardHiddenCount: "{count} more",
-  /** The inline board card's title: "5 overdue of 13 open", "13 open" with none overdue; "+" after the counts while more pages exist. */
-  boardHeadline: (overdue: number, open: number, more: boolean) => {
-    const plus = more ? "+" : "";
-    return overdue
-      ? `${overdue}${plus} overdue of ${open}${plus} open`
-      : `${open}${plus} open`;
-  },
   /** The inline card's Open button while the host answers the fullscreen request. */
   opening: "Opening…",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
@@ -229,18 +207,10 @@ export const workEn = {
   /** The same two for a Step in the Task: its ⋯ is gone; a long press opens its menu. */
   stepMenuHint: "Touch and hold a step for more options.",
   stepMenuKeys: "Right-click a step or press Shift+F10 for more options.",
-  /** Moves a card one place up in its Task status column. */
-  moveUp: "Move up",
-  /** Moves a card one place down in its Task status column. */
-  moveDown: "Move down",
-  moveListFor: (title: string) => `Choose a status for ${title}`,
   /** The row menu's button for a screen reader (not drawn), on a row of Work and on a Step. */
   rowMenuButton: (title: string) => `More options for ${title}`,
-  dragTaskFor: (title: string) =>
-    `Drag ${title}, or use the left and right arrow keys to move it to the next column`,
   /** "Moved to {status}" after a status change; the Undo button follows it. */
   movedTo: "Moved to {status}",
-  moveFailed: "Couldn’t change the status.",
   agendaEmpty: "Nothing on the agenda.",
   /** The empty Agenda: what the view is for, under "Nothing on the agenda." */
   agendaEmptyHint: "What you have to do, sorted by when.",
@@ -249,40 +219,12 @@ export const workEn = {
   /** The empty Agenda's and Status's own way to start: it opens the tab row's new-Task field, as + does. */
   emptyAddTask: "Add a task",
   agendaUndo: "Undo",
-  /** The Undo line while a status move is written and read again; it has no Undo button then. */
-  agendaMoving: "Moving…",
-  /** The Undo line of a Task marked done in the Agenda: where it went. Status says only "Done". */
-  agendaDoneInStatus: "Done · in Status",
-  /** A recurring Task marked done: the server reopened it for its next date. Its Undo line, and its row once Undo
-   *  has run out: "Done · next: Fri 27 Nov". */
-  recurringDone: "Done · next: {date}",
-  /** The same, when the rule gives no next date in the reply. */
-  recurringDoneNoDate: "Done · repeats",
-  /** The fold last in the Agenda: the Tasks marked done here since the list was read; the count follows ("Done here (2)"),
-   *  and the meta line under it says what "here" is. */
-  agendaDoneToday: "Done here",
-  agendaDoneSince: "Since you opened the agenda",
-  /** The visible label above the agenda's search field; it is also the field's accessible name. */
-  agendaFilter: "Filter tasks",
   agendaNoMatches: "No tasks match the filter.",
-  /** An agenda search with no hit, naming the search text. */
-  agendaNoMatch: "No tasks match “{q}”.",
-  /** Text button under an empty search result: empties the search field. */
-  agendaClearSearch: "Clear search",
   /** Glyph action of a task that is not done. */
   agendaComplete: "Mark {title} as done",
   stepOf: "Step in: {title}",
   /** Glyph action of a task that is done. */
   agendaReopen: "Mark {title} as not done",
-  /** Triage: moves an overdue Task to 23:59 tomorrow. */
-  triageTomorrow: "Tomorrow",
-  /** Triage: moves an overdue Task to 23:59 on next Monday. */
-  triageNextWeek: "Next week",
-  /** Names the date choices in a Task's ⋯ menu in the agenda: Tomorrow, Next week and Choose … */
-  rescheduleGroup: "New date",
-  /** The date chip of a row's quick choices; the platform's date input lies invisibly over it and opens the picker for any day. */
-  rescheduleChoose: "Choose date…",
-  rescheduleRow: "Date",
   /** Closes a row's quick choices; "Klar" would read as the status. */
   closeMenu: "Close",
   /** The accessible name of that date input. */
@@ -297,15 +239,6 @@ export const workEn = {
   unsortedNoDomains: "No areas yet.",
   /** Names the row of one Task in the sorting view: its Domain buttons are grouped under this name. */
   unsortedRowFor: (title: string) => `Sort ${title}`,
-  /** Agenda group headings, in display order; the dates of a group follow the heading. */
-  agendaGroup: {
-    overdue: "Overdue",
-    today: "Today",
-    thisWeek: "This week",
-    nextWeek: "Next week",
-    later: "Later",
-    undated: "No date",
-  },
   kindName: {
     task: "Task",
     project: "Project",
@@ -364,7 +297,6 @@ export const workSv: WorkLabels = {
   queued: "Väntar…",
   sending: "Skickas…",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,
-  agendaParentDone: "Uppgiften är klar",
   steps: "Steg",
   stepsForbidden: "Du har inte behörighet att se steg.",
   stepConflict:
@@ -496,24 +428,6 @@ export const workSv: WorkLabels = {
   taskTrashFailed: "Det gick inte att ta bort uppgiften.",
   taskRestoreFailed: "Det gick inte att ångra borttagningen.",
   undo: "Ångra",
-  noCards: "Inget här.",
-  boardEmpty: "Inga uppgifter här än.",
-  boardEmptyHint:
-    "Dina uppgifter efter status: att göra, pågår, blockerad och klar.",
-  boardForbidden: "Du har inte behörighet att se Status.",
-  openBoard: "Öppna Status",
-  boardNearestOverdue: "Äldst försenade",
-  boardNearest: "Närmast i tid",
-  /** Under the inline board summary, and last in the text to the model, when the page has more records. */
-  boardMore: "Fler finns",
-  /** The inline board summary's one line for records the nearest-due list does not show; {count} is the number. */
-  boardHiddenCount: "{count} fler",
-  boardHeadline: (overdue, open, more) => {
-    const plus = more ? "+" : "";
-    return overdue
-      ? `${overdue}${plus} försenad${overdue > 1 ? "e" : ""} av ${open}${plus} öppna`
-      : `${open}${plus} öppna`;
-  },
   /** The inline card's Open button while the host answers the fullscreen request. */
   opening: "Öppnar…",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
@@ -526,52 +440,21 @@ export const workSv: WorkLabels = {
   rowMenuKeys: "Högerklicka på en uppgift eller tryck Shift+F10 för fler val.",
   stepMenuHint: "Håll inne ett steg för fler val.",
   stepMenuKeys: "Högerklicka på ett steg eller tryck Shift+F10 för fler val.",
-  /** Names the board's columns in the single-column layout (the visually hidden heading of a segment). */
-  /** Moves a card one place up in its Task status column. */
-  moveUp: "Flytta upp",
-  /** Moves a card one place down in its Task status column. */
-  moveDown: "Flytta ned",
-  moveListFor: (title: string) => `Välj status för ${title}`,
   /** The row menu's button for screen readers (not drawn), on a row in the Work room and on a Step. */
   rowMenuButton: (title: string) => `Fler val för ${title}`,
-  dragTaskFor: (title: string) =>
-    `Dra ${title}, eller använd vänster- och högerpilen för att flytta till kolumnen bredvid`,
   /** "Flyttad till {status}" after a status change; "Ångra" follows. */
   movedTo: "Flyttad till {status}",
-  moveFailed: "Det gick inte att ändra status.",
   agendaEmpty: "Inget på agendan.",
   agendaEmptyHint: "Det du ska göra, sorterat efter när.",
   workEmptyAsk: "Påminn mig att betala hyran på fredag",
   emptyAddTask: "Lägg till en uppgift",
   agendaUndo: "Ångra",
-  /** The undo line while a move is written and read back; there is no "Ångra" button then. */
-  agendaMoving: "Flyttar…",
-  agendaDoneInStatus: "Klar · finns i Status",
-  recurringDone: "Klar · nästa: {date}",
-  recurringDoneNoDate: "Klar · upprepas",
-  agendaDoneToday: "Klara här",
-  agendaDoneSince: "Sedan du öppnade agendan",
-  /** The visible label above the agenda's search field; it is also the field's accessible name. */
-  agendaFilter: "Filtrera uppgifter",
   agendaNoMatches: "Inga uppgifter matchar filtret.",
-  /** An agenda search with no match; the search text stands in quotation marks. */
-  agendaNoMatch: "Inga uppgifter matchar ”{q}”.",
-  /** Text button under a search with no match: empties the search field. */
-  agendaClearSearch: "Rensa sökningen",
   /** Glyph action of a task that is not done. */
   agendaComplete: "Markera {title} som klar",
   stepOf: "Steg i: {title}",
   /** Glyph action of a task that is done. */
   agendaReopen: "Markera {title} som inte klar",
-  /** Triage: moves an overdue Task to 23:59 tomorrow. */
-  triageTomorrow: "Imorgon",
-  /** Triage: moves an overdue Task to 23:59 next Monday. */
-  triageNextWeek: "Nästa vecka",
-  /** Names the date choices in a Task's ⋯ menu in the agenda: "Imorgon", "Nästa vecka" and "Välj …". */
-  rescheduleGroup: "Nytt datum",
-  /** The date chip in a row's quick choices; the platform's date field lies invisibly over it and opens the picker for any day. */
-  rescheduleChoose: "Välj datum …",
-  rescheduleRow: "Datum",
   closeMenu: "Stäng",
   /** The accessible name of the date input. */
   rescheduleDate: "Välj datum",
@@ -585,15 +468,6 @@ export const workSv: WorkLabels = {
   unsortedNoDomains: "Inga domäner än.",
   /** Names the row of a Task in the "Att sortera" view: its Domain buttons are grouped under that name. */
   unsortedRowFor: (title: string) => `Sortera ${title}`,
-  /** Agenda group headings, in display order; the dates of a group follow the heading. */
-  agendaGroup: {
-    overdue: "Försenade",
-    today: "Idag",
-    thisWeek: "Denna vecka",
-    nextWeek: "Nästa vecka",
-    later: "Senare",
-    undated: "Utan datum",
-  },
   kindName: {
     task: "Uppgift",
     project: "Projekt",
@@ -659,9 +533,4 @@ export function hierarchyStatusLabel(
 /** Translated kind of a Work record (Task, Project, Domain, Process, Step or Action). */
 export function workKindLabel(t: WorkLabels, value: string): string {
   return knownLabel(t.kindName, value);
-}
-
-/** Translated agenda group heading. */
-export function agendaGroupLabel(t: WorkLabels, value: string): string {
-  return knownLabel(t.agendaGroup, value);
 }

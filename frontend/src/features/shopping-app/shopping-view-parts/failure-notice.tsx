@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { ShoppingLabels } from "../labels";
+import type { ShoppingItem } from "../transport";
 
 /**
  * The notice after a refused write or a failed read. In the card it is the full message with "Try again" (when the
@@ -13,7 +14,7 @@ export function FailureNotice({
   retry,
   busy,
   placement,
-  brief = false,
+  brief,
   onRefresh,
 }: {
   labels: ShoppingLabels;
@@ -21,8 +22,8 @@ export function FailureNotice({
   busy: boolean;
   /** "row" when the failed write belongs to one row; "card" for the list-level notice. */
   placement: "row" | "card";
-  /** A row whose bought mark failed: the short line instead of the full message. */
-  brief?: boolean;
+  /** The row whose bought mark failed: the short line naming it instead of the full message. */
+  brief?: ShoppingItem;
   onRefresh: () => void;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -35,7 +36,8 @@ export function FailureNotice({
         <ErrorNotice
           locale={t.dateLocale}
           placement="row"
-          message={t.markFailed}
+          // The item still holds the state before the tap, so what failed is the other one.
+          message={t.markFailed(brief.name, !brief.purchased)}
           onRetry={retry}
           retrying={busy}
         >

@@ -149,9 +149,7 @@ it("one 'done' tap is one update_task and no read of the agenda", async () => {
   expect(updateTask).toHaveBeenCalledTimes(1);
   expect(getWorkAgenda).not.toHaveBeenCalled();
   expect(getTask).not.toHaveBeenCalled();
-  expect(
-    screen.getByRole("button", { name: workEn.agendaUndo }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
 });
 
 it("a read asked for while a row write runs waits for it instead of being dropped", async () => {
@@ -240,7 +238,7 @@ it("(N2b) a tap queued behind an Undo that got no answer replays the Undo first,
   renderAgenda([first], { updateTask } as unknown as WorkTransport);
   fireEvent.click(glyph(first.title));
   await settle();
-  fireEvent.click(screen.getByRole("button", { name: workEn.agendaUndo }));
+  fireEvent.click(screen.getByRole("button", { name: /^Undo/ }));
   await settle();
   // The row still shows "done" while the Undo has no answer; the tap is decided when it runs, after the replay.
   fireEvent.click(

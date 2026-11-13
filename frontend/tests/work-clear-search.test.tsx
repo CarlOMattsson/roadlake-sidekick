@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
@@ -141,7 +142,7 @@ describe("Rensa sökningen in the fullscreen Work app", () => {
       expect(screen.queryByText("Agenda-uppgift")).not.toBeInTheDocument();
 
       await user.click(
-        screen.getByRole("button", { name: workEn.agendaClearSearch }),
+        screen.getByRole("button", { name: agendaLabelsEn.clearSearch }),
       );
       // The search closes in a later render, not within the click itself, so wait for it instead of assuming it.
       await waitFor(() =>
@@ -178,12 +179,12 @@ describe("Rensa sökningen in the fullscreen Work app", () => {
       await waitFor(() => {
         expect(screen.queryByText(workEn.loading)).not.toBeInTheDocument();
         expect(
-          screen.getByRole("button", { name: workEn.agendaClearSearch }),
+          screen.getByRole("button", { name: agendaLabelsEn.clearSearch }),
         ).toBeInTheDocument();
       });
 
       await user.click(
-        screen.getByRole("button", { name: workEn.agendaClearSearch }),
+        screen.getByRole("button", { name: agendaLabelsEn.clearSearch }),
       );
       // The search closes in a later render, not within the click itself, so wait for it instead of assuming it.
       await waitFor(() =>
@@ -292,7 +293,7 @@ describe("Rensa sökningen in the fullscreen Work app", () => {
       const box = await openSearch(user);
       await user.type(box, "zzz");
       expect(
-        await screen.findByText(workEn.agendaNoMatch.replace("{q}", "zzz")),
+        await screen.findByText(agendaLabelsEn.noMatch.replace("{q}", "zzz")),
       ).toBeInTheDocument();
 
       await user.clear(box);

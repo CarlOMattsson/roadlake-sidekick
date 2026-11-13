@@ -119,7 +119,7 @@ export function rowOf(title: string): HTMLElement {
 
 /** The Undo button once the write behind it has settled (the row is disabled while it runs). */
 export async function undoButton() {
-  const button = await screen.findByRole("button", { name: workEn.agendaUndo });
+  const button = await screen.findByRole("button", { name: /^Undo/ });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
 }

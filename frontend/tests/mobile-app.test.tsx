@@ -742,7 +742,7 @@ describe("MobileApp Step checks", () => {
     expect(typeof complete?.idempotencyKey).toBe("string");
     expect(complete?.idempotencyKey?.length).toBeGreaterThanOrEqual(8);
     // The check shows its result in its own row: "Klar" and Ångra beside the title.
-    expect(await screen.findByRole("button", { name: "Ångra" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: /^Ångra/ })).toBeVisible();
   });
 
   it("takes the tick back with Ångra through the Step reopen route, against the version the tick left", async () => {
@@ -753,7 +753,7 @@ describe("MobileApp Step checks", () => {
       await screen.findByRole("checkbox", { name: "Boka flyttbil" }),
     );
 
-    await user.click(await screen.findByRole("button", { name: "Ångra" }));
+    await user.click(await screen.findByRole("button", { name: /^Ångra/ }));
 
     await waitFor(() => expect(posts(native)).toHaveLength(2));
     const [complete, reopen] = posts(native);

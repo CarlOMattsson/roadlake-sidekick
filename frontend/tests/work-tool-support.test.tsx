@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import {
   cleanup,
   fireEvent,
@@ -324,7 +325,7 @@ describe("the Agenda where the host writes only the tick", () => {
     const row = within(rowOf(today.title));
     expect(row.getByRole("group", { name: workEn.status })).toBeVisible();
     expect(
-      row.getByRole("group", { name: workEn.rescheduleGroup }),
+      row.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeVisible();
     expect(
       row.getAllByRole("button", { name: /Mark .* (done|status)/i }).length,
@@ -344,7 +345,7 @@ describe("the Agenda where the host writes only the tick", () => {
       status.getAllByRole("button").map((button) => button.textContent),
     ).toEqual([workEn.taskStatus.completed]);
     expect(
-      row.queryByRole("group", { name: workEn.rescheduleGroup }),
+      row.queryByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeNull();
     // The tick writes the completing change and then names it, with an Undo that reopens the Task.
     await userEvent.click(
@@ -354,10 +355,8 @@ describe("the Agenda where the host writes only the tick", () => {
     );
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
     expect(updateTask.mock.calls[0]?.[2]).toEqual({ status: "completed" });
-    expect(await screen.findByText(workEn.agendaDoneInStatus)).toBeVisible();
-    await userEvent.click(
-      await screen.findByRole("button", { name: workEn.agendaUndo }),
-    );
+    expect(await screen.findByText(agendaLabelsEn.doneInStatus)).toBeVisible();
+    await userEvent.click(await screen.findByRole("button", { name: /^Undo/ }));
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
     expect(updateTask.mock.calls[1]?.[1]).toBe(2);
     expect(updateTask.mock.calls[1]?.[2]).toEqual({ status: "todo" });
@@ -370,10 +369,8 @@ describe("the Agenda where the host writes only the tick", () => {
         name: `Mark ${today.title} as done`,
       }),
     );
-    expect(await screen.findByText(workEn.agendaDoneInStatus)).toBeVisible();
-    expect(
-      screen.queryByRole("button", { name: workEn.agendaUndo }),
-    ).toBeNull();
+    expect(await screen.findByText(agendaLabelsEn.doneInStatus)).toBeVisible();
+    expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
   });
 
   it("reopens a done row with its glyph, which writes todo", async () => {
@@ -480,13 +477,13 @@ describe("the done line after a tick, with and without the Status tab", () => {
 
   it("points at Status when the host serves the Status tab (Claude)", async () => {
     await tick();
-    expect(await screen.findByText(workEn.agendaDoneInStatus)).toBeVisible();
+    expect(await screen.findByText(agendaLabelsEn.doneInStatus)).toBeVisible();
   });
 
   it("says only Done when the host serves no Status tab (the Android app)", async () => {
     await tick(["agenda"]);
     expect(await screen.findByText(workEn.taskStatus.completed)).toBeVisible();
-    expect(screen.queryByText(workEn.agendaDoneInStatus)).toBeNull();
+    expect(screen.queryByText(agendaLabelsEn.doneInStatus)).toBeNull();
   });
 });
 

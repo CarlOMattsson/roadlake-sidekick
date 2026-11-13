@@ -1,3 +1,4 @@
+import { agendaLabelsEn } from "@/features/work-app/agenda/agenda-labels";
 import {
   act,
   fireEvent,
@@ -39,7 +40,7 @@ it("the row menu shows Status and Datum as open groups side by side at normal te
     const row = within(rowOf(dated.title));
     const status = row.getByRole("button", { name: /^Status/ });
     const date = row.getByRole("button", {
-      name: new RegExp(`^${workEn.rescheduleRow}`),
+      name: new RegExp(`^${agendaLabelsEn.rescheduleRow}`),
     });
     expect(status).toHaveClass("sk-fold");
     expect(date).toHaveClass("sk-fold");
@@ -56,7 +57,7 @@ it("the row menu shows Status and Datum as open groups side by side at normal te
     );
     expect(row.getByRole("group", { name: workEn.status })).toBeInTheDocument();
     expect(
-      row.queryByRole("group", { name: workEn.rescheduleGroup }),
+      row.queryByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeNull();
     await user.click(date);
     expect(date).toHaveAttribute("aria-expanded", "true");
@@ -64,7 +65,7 @@ it("the row menu shows Status and Datum as open groups side by side at normal te
     expect(date.querySelector(".sk-fold-meta")).toBeNull();
     expect(status.querySelector(".sk-fold-meta")).not.toBeNull();
     expect(
-      row.getByRole("group", { name: workEn.rescheduleGroup }),
+      row.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeInTheDocument();
     expect(row.queryByRole("group", { name: workEn.status })).toBeNull();
   } finally {
@@ -129,7 +130,7 @@ it("the row menu follows a change of the text size that fires no resize: 110 % t
     expect(rowOf(task.title).querySelector(".sk-fold")).toBeNull();
     expect(menu().getByRole("group", { name: workEn.status })).toBeVisible();
     expect(
-      menu().getByRole("group", { name: workEn.rescheduleGroup }),
+      menu().getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeVisible();
     // The root font grows: no resize event, only the observer of the probe reports.
     document.documentElement.style.fontSize = "32px";
@@ -137,13 +138,13 @@ it("the row menu follows a change of the text size that fires no resize: 110 % t
     expect(rowOf(task.title).querySelectorAll(".sk-fold")).toHaveLength(2);
     expect(menu().getByRole("group", { name: workEn.status })).toBeVisible();
     expect(
-      menu().queryByRole("group", { name: workEn.rescheduleGroup }),
+      menu().queryByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeNull();
     document.documentElement.style.fontSize = "16px";
     observed();
     expect(rowOf(task.title).querySelector(".sk-fold")).toBeNull();
     expect(
-      menu().getByRole("group", { name: workEn.rescheduleGroup }),
+      menu().getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
     ).toBeVisible();
   });
 });
@@ -167,14 +168,14 @@ it("at large text the groups are a fold: one open at a time, the date input goes
       const atOpen = asked();
       expect(atOpen).toBeGreaterThan(0);
       const date = row.getByRole("button", {
-        name: new RegExp(`^${workEn.rescheduleRow}`),
+        name: new RegExp(`^${agendaLabelsEn.rescheduleRow}`),
       });
       await user.click(date);
       expect(asked()).toBeGreaterThan(atOpen);
       // Open Datum: the Task's own date as the fifth chip (also at large text), the three shortcuts and the
       // Choose date… chip, which is the date input (no button of its own); an open group has no meta.
       const choices = row.getByRole("group", {
-        name: workEn.rescheduleGroup,
+        name: agendaLabelsEn.rescheduleGroup,
       });
       expect(within(choices).getAllByRole("button")).toHaveLength(4);
       expect(within(choices).getByLabelText(workEn.rescheduleDate)).toHaveValue(
@@ -209,7 +210,9 @@ it("at large text the date input is a focusable control of the row, and a chosen
     fireEvent.contextMenu(rowOf(task.title));
     const row = within(rowOf(task.title));
     await user.click(
-      row.getByRole("button", { name: new RegExp(`^${workEn.rescheduleRow}`) }),
+      row.getByRole("button", {
+        name: new RegExp(`^${agendaLabelsEn.rescheduleRow}`),
+      }),
     );
     // No click on a chip first: the input is there, over the chip, and takes the focus from the keys like any control.
     const field = row.getByLabelText(workEn.rescheduleDate);
@@ -236,7 +239,7 @@ it("the Task's own date is a chip in Datum at normal text, and the date input ho
     renderAgenda([dated, other], transport);
     fireEvent.contextMenu(rowOf(dated.title));
     const choices = within(rowOf(dated.title)).getByRole("group", {
-      name: workEn.rescheduleGroup,
+      name: agendaLabelsEn.rescheduleGroup,
     });
     // The date chip, Today, Tomorrow, Next week; Choose date… is the input, not a button.
     expect(within(choices).getAllByRole("button")).toHaveLength(4);
@@ -253,7 +256,7 @@ it("the row menu at normal text has no fold rows: both groups are open", () => {
   const row = within(rowOf(task.title));
   expect(row.getByRole("group", { name: workEn.status })).toBeInTheDocument();
   expect(
-    row.getByRole("group", { name: workEn.rescheduleGroup }),
+    row.getByRole("group", { name: agendaLabelsEn.rescheduleGroup }),
   ).toBeInTheDocument();
   expect(rowOf(task.title).querySelector(".sk-fold")).toBeNull();
 });
@@ -284,6 +287,7 @@ function undoRow(moving: boolean) {
     <div>
       <span>{task.title}</span>
       <UndoMeta
+        title={task.title}
         text="Klar"
         labels={workEn}
         disabled={false}

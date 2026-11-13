@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { WorkLabels } from "../../shared/labels";
 import { BoardCard } from "../board-card";
+import { boardLabelsFor } from "../board-labels";
 import { ColumnSection, SingleSection } from "../board-sections";
 import type { BoardUndo } from "../board-columns";
 import type { BoardDragState } from "../board-drag";
@@ -129,7 +130,7 @@ export function ColumnsLayout({
       segment={segment}
       items={items}
       target={drag.phase === "dragging" && drag.column === segment.key}
-      emptyText={t.noCards}
+      emptyText={boardLabelsFor(t.dateLocale).noCards}
       renderCard={(item) => (
         <BoardCard
           key={cardKey(item)}

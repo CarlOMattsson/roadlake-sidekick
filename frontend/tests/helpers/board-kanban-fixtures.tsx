@@ -1,3 +1,4 @@
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 import { act, fireEvent, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { workEn } from "@/features/work-app/shared/labels";
@@ -104,7 +105,7 @@ export function rect(left: number, top: number, width: number, height: number) {
 }
 
 export const handleOf = (title: string) =>
-  screen.getByRole("button", { name: workEn.dragTaskFor(title) });
+  screen.getByRole("button", { name: boardLabelsEn.dragTaskFor(title) });
 
 /** Dispatches a pointer event on the handle; jsdom has no PointerEvent, so the type is set by hand. */
 export function pointer(

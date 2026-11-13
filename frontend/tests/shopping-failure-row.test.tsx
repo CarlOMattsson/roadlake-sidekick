@@ -101,9 +101,14 @@ describe("a failed row write shows its notice in that row", () => {
     );
 
     const paragraph = alert.querySelector("p");
-    expect(paragraph).toHaveTextContent(shoppingEn.markFailed);
+    expect(paragraph).toHaveTextContent(shoppingEn.markFailed("Item 5", true));
     expect(alert).not.toHaveTextContent(shoppingEn.failed);
-    expect(shoppingSv.markFailed).toBe("Ändringen kunde inte sparas.");
+    expect(shoppingSv.markFailed("Item 5", true)).toBe(
+      "Det gick inte att markera ”Item 5” som köpt.",
+    );
+    expect(shoppingSv.markFailed("Item 5", false)).toBe(
+      "Det gick inte att markera ”Item 5” som inte köpt.",
+    );
     const retry = within(alert).getByRole("button", { name: shoppingEn.retry });
     expect(paragraph).not.toContainElement(retry);
     expect(retry).toHaveClass("sk-error-retry--text");
@@ -147,7 +152,7 @@ describe("a failed row write shows its notice in that row", () => {
     await waitFor(() =>
       expect(alert.closest(".shopping-failure")).toHaveFocus(),
     );
-    expect(alert).toHaveTextContent(shoppingEn.markFailed);
+    expect(alert).toHaveTextContent(shoppingEn.markFailed("Item 5", true));
     expect(
       within(alert).getByRole("button", { name: shoppingEn.retry }),
     ).toBeInTheDocument();

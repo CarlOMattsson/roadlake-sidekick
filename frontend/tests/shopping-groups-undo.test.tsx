@@ -104,7 +104,9 @@ function adapter(read: ShoppingDetail): ShoppingTransport {
 async function groupUndo(name: string): Promise<HTMLElement> {
   return waitFor(() => {
     const undo = screen
-      .getAllByRole("button", { name: `${shoppingEn.undoPurchase}: ${name}` })
+      .getAllByRole("button", {
+        name: shoppingEn.undoPurchaseNamed(name, true),
+      })
       .find((button) => button.closest(".shopping-group"));
     if (!undo) throw new Error(`no Undo for ${name} in its group`);
     return undo;
@@ -231,7 +233,7 @@ it("ticking an item holds the row in its place as 'Bought · Undo'; Undo marks i
   await waitFor(() =>
     expect(
       screen.queryAllByRole("button", {
-        name: new RegExp(`^${shoppingEn.undoPurchase}: `),
+        name: /^Undo (not )?bought /,
       }),
     ).toHaveLength(0),
   );
@@ -265,7 +267,7 @@ it("a refused Undo shows Try again in its row, and Try again repeats the same wr
   await waitFor(() => expect(undoButton).toBeEnabled());
   await user.click(undoButton);
   const alert = await within(groupOf(undoButton)).findByRole("alert");
-  expect(alert).toHaveTextContent(shoppingEn.markFailed);
+  expect(alert).toHaveTextContent(shoppingEn.markFailed("Milk", false));
   await user.click(
     within(groupOf(undoButton)).getByRole("button", {
       name: shoppingEn.retry,
@@ -381,7 +383,7 @@ it("a purchase the server answers as still open is a failure, not a bought item"
   expect(await screen.findByRole("alert")).toBeInTheDocument();
   expect(
     screen.queryAllByRole("button", {
-      name: new RegExp(`^${shoppingEn.undoPurchase}: `),
+      name: /^Undo (not )?bought /,
     }),
   ).toHaveLength(0);
   expect(container.querySelector(".shopping-held")).toBeNull();

@@ -1,4 +1,8 @@
 import {
+  agendaLabelsEn,
+  agendaLabelsSv,
+} from "@/features/work-app/agenda/agenda-labels";
+import {
   fireEvent,
   render,
   screen,
@@ -185,7 +189,7 @@ it("hides the move-all button while a search narrows the agenda, and shows it ag
   const moveAll = () =>
     screen.queryByRole("button", { name: workEn.moveAllOverdue(1) });
   expect(moveAll()).toBeInTheDocument();
-  const filter = screen.getByRole("searchbox", { name: workEn.agendaFilter });
+  const filter = screen.getByRole("searchbox", { name: agendaLabelsEn.filter });
   // The search still finds the overdue Task: its row shows, but the bulk move does not.
   await userEvent.type(filter, task.title.slice(0, 4));
   expect(rowOf(task.title)).toBeInTheDocument();
@@ -207,7 +211,7 @@ it("puts the move button of Försenade after the group's last row, after the han
   // Two open overdue Tasks and one done overdue Task (the handled list, which sinks to the group's end).
   renderAgenda([task, second, done], transport, false, now);
   const section = elementWithText(
-    `${workEn.agendaGroup.overdue} (2)`,
+    `${agendaLabelsEn.group.overdue} (2)`,
     "h3",
   ).closest("section") as HTMLElement;
   const moveAll = within(section).getByRole("button", {
@@ -244,13 +248,13 @@ it("a glyph tap that marks an overdue Task done drops it from the Försenade cou
   };
   renderAgenda([task, second], transport);
   expect(
-    elementWithText(`${workEn.agendaGroup.overdue} (2)`, "h3"),
+    elementWithText(`${agendaLabelsEn.group.overdue} (2)`, "h3"),
   ).toBeInTheDocument();
   await user.click(glyphOf(task.title));
   await undoButton();
   // The heading counts open rows only, so it is the number the button moves.
   expect(
-    elementWithText(`${workEn.agendaGroup.overdue} (1)`, "h3"),
+    elementWithText(`${agendaLabelsEn.group.overdue} (1)`, "h3"),
   ).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: workEn.moveAllOverdue(1) }),
@@ -260,7 +264,7 @@ it("a glyph tap that marks an overdue Task done drops it from the Försenade cou
   expect(line).toHaveTextContent("Done · in Status");
   expect(
     within(line.parentElement as HTMLElement).getByRole("button", {
-      name: workEn.agendaUndo,
+      name: /^Undo/,
     }),
   ).toBeInTheDocument();
   // The other overdue row is still open and has no Undo of its own.
@@ -273,7 +277,7 @@ it("the filter row carries the Refresh icon, and no row has a ⋯ button: its ti
   const { transport } = makeTransport();
   renderAgenda([task, other], transport);
   const toolbar = screen
-    .getByRole("searchbox", { name: workEn.agendaFilter })
+    .getByRole("searchbox", { name: agendaLabelsEn.filter })
     .closest(".work-agenda-toolbar");
   expect(toolbar).not.toBeNull();
   expect(
@@ -325,13 +329,13 @@ it("a row's quick choices open with Shift+F10 from its title and close with the 
 it("the filter field has a visible label above its input, in the view's language", () => {
   const { transport } = makeTransport();
   renderAgenda([task, other], transport);
-  const label = screen.getByText(workEn.agendaFilter);
+  const label = screen.getByText(agendaLabelsEn.filter);
   expect(label).not.toHaveClass("work-visually-hidden");
   expect(label.closest("label")).toHaveClass("work-agenda-filter");
   expect(
     within(label.closest("label") as HTMLElement).getByRole("searchbox"),
   ).toBeInTheDocument();
-  expect(workSv.agendaFilter).toBe("Filtrera uppgifter");
+  expect(agendaLabelsSv.filter).toBe("Filtrera uppgifter");
 });
 
 const ROOM = { room: "sidekick-work" };

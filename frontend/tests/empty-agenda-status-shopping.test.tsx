@@ -1,3 +1,7 @@
+import {
+  boardLabelsEn,
+  boardLabelsSv,
+} from "@/features/work-app/board/board-labels";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -32,8 +36,8 @@ describe("Empty Agenda and Status", () => {
       <RoomMessageContext.Provider value={send}>
         <WorkNewTaskContext.Provider value={newTask}>
           <WorkEmpty
-            title={workSv.boardEmpty}
-            hint={workSv.boardEmptyHint}
+            title={boardLabelsSv.empty}
+            hint={boardLabelsSv.emptyHint}
             labels={workSv}
           />
         </WorkNewTaskContext.Provider>
@@ -48,8 +52,8 @@ describe("Empty Agenda and Status", () => {
   it("offers no New task button without a tab row to create in", () => {
     render(
       <WorkEmpty
-        title={workEn.boardEmpty}
-        hint={workEn.boardEmptyHint}
+        title={boardLabelsEn.empty}
+        hint={boardLabelsEn.emptyHint}
         labels={workEn}
       />,
     );

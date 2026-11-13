@@ -229,7 +229,7 @@ function BatchCard({
   onOpen?: () => void;
 }) {
   const count = summary.items.length;
-  // With an Open button the names left out are counted in its foot ("Open the shopping list · 4 more"); without one the
+  // With an Open button the names left out are counted in its foot ("Open list · 4 more"); without one the
   // last row says "+4 more" instead.
   const shown = summary.items.slice(
     0,
