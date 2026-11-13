@@ -145,3 +145,31 @@ class TaskContactRow(Base):
     task_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     contact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ContactTagRow(Base):
+    """A link from a Contact to a tag of the owner's vocabulary (`work_tags`)."""
+
+    __tablename__ = "contact_tags"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["tag_id", "owner_id"],
+            [f"{SCHEMA}.work_tags.id", f"{SCHEMA}.work_tags.owner_id"],
+            name="fk_contact_tags_tag_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["contact_id", "owner_id"],
+            [f"{SCHEMA}.contacts.id", f"{SCHEMA}.contacts.owner_id"],
+            name="fk_contact_tags_target_owner",
+            ondelete="CASCADE",
+        ),
+        Index("ix_contact_tags_reverse", "owner_id", "contact_id", "tag_id"),
+        {"schema": SCHEMA},
+    )
+    owner_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"), primary_key=True
+    )
+    tag_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    contact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

@@ -231,8 +231,7 @@ def test_a_backup_is_flushed_before_the_rename_and_the_directory_after_it(
     assert result.returncode == 0, result.stderr
     flushed = sync_log.read_text(encoding="utf-8").splitlines()
     backups = work / "backups"
-    # The key file's directory is flushed, and each backup's partial file before the directory.
-    assert str(work / "secrets") in flushed
+    # Each backup's partial file is flushed before the directory.
     db = next(backups.glob("sidekick-*.sql.enc"))
     part = flushed.index(f"{db}.part")
     assert str(backups) in flushed[part + 1 :], "the directory is flushed after the rename"

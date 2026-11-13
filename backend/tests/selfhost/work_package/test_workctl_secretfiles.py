@@ -340,3 +340,37 @@ def test_set_line_and_drop_line_treat_a_missing_file_as_empty(tmp_path: Path) ->
     dropped = tmp_path / "dropped.env"
     secretfiles.drop_line(dropped, "KEY")
     assert dropped.read_text(encoding="utf-8") == ""
+
+
+def test_write_rooms_env_writes_one_line_with_mode_600(tmp_path: Path) -> None:
+    secretfiles.write_rooms_env(tmp_path, "work,journal")
+    target = tmp_path / "rooms.env"
+    assert target.read_text(encoding="utf-8") == "SIDEKICK_ENABLED_ROOMS=work,journal\n"
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+
+
+def test_write_rooms_env_with_no_rooms_removes_the_file(tmp_path: Path) -> None:
+    (tmp_path / "rooms.env").write_text("SIDEKICK_ENABLED_ROOMS=work\n", encoding="utf-8")
+    secretfiles.write_rooms_env(tmp_path, "")
+    secretfiles.write_rooms_env(tmp_path, "")
+    assert not (tmp_path / "rooms.env").exists()
+
+
+def test_write_private_replaces_a_file_atomically_with_mode_600(tmp_path: Path) -> None:
+    target = tmp_path / "x.env"
+    target.write_text("old", encoding="utf-8")
+    target.chmod(0o644)
+    secretfiles.write_private(target, "new\n")
+    assert target.read_text(encoding="utf-8") == "new\n"
+    assert stat.S_IMODE(target.stat().st_mode) == 0o600
+    assert [entry.name for entry in tmp_path.iterdir()] == ["x.env"]
+
+
+def test_write_private_flushes_the_file_and_then_the_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    flushed: list[int] = []
+    real_fsync = os.fsync
+    monkeypatch.setattr(os, "fsync", lambda fd: (flushed.append(fd), real_fsync(fd))[1])
+    secretfiles.write_private(tmp_path / "x.env", "v\n")
+    assert len(flushed) == 2

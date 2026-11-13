@@ -13,6 +13,7 @@ from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.base import Output
 from sidekick.structured.contacts import ContactSummaryRecord
+from sidekick.structured.tags import TagMatch, TagsInput
 
 
 class ContactPageResult(Output):
@@ -21,6 +22,8 @@ class ContactPageResult(Output):
     # The search this page answered, so a view shows and repeats the same filters with its cursor.
     q: str | None = None
     include_archived: bool = False
+    tags: list[str] = Field(default_factory=list)
+    tag_match: TagMatch = "any"
 
 
 class ContactAliasRecord(Output):
@@ -42,6 +45,7 @@ class ContactRecord(Output):
     # content, within the token's scopes).
     address: str | None = None
     aliases: list[ContactAliasRecord]
+    tags: list[str] = Field(default_factory=list)
     archived: bool
     created_at: datetime
     updated_at: datetime
@@ -148,6 +152,7 @@ class ContactChanges(Output):
     organization: Organization = None
     role: Role = None
     address: Address = None
+    tags: TagsInput = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_change(self) -> ContactChanges:
@@ -158,7 +163,9 @@ class ContactChanges(Output):
         return self
 
 
-def contact_result(contact: Any) -> dict[str, Any]:
+def contact_result(contact: Any, tags: list[str]) -> dict[str, Any]:
+    """The result of a Contact tool: the Contact as stored and its tag slugs."""
+
     return ContactResult(
-        contact=ContactRecord.model_validate(contact_public_data(contact))
+        contact=ContactRecord.model_validate({**contact_public_data(contact), "tags": tags})
     ).model_dump(mode="json")

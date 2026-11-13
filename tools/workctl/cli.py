@@ -7,17 +7,21 @@ Exit codes: 0 success, 1 the input was rejected (the reason is on stderr, one li
 from __future__ import annotations
 
 import argparse
+import getpass
+import os
 import sys
 from pathlib import Path
 
 from . import (
     addresses,
     autostart,
+    backupkey,
     derive,
     desktopconfig,
     diagnose,
     generated,
     messages,
+    modelserver,
     owner,
     prompts,
     restore,
@@ -54,11 +58,30 @@ def _cmd_allowlist(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_autostart_render(args: argparse.Namespace) -> int:
-    if args.kind == "launchd":
-        sys.stdout.write(autostart.render_launchd(args.label, args.script, args.log))
-    else:
-        sys.stdout.write(autostart.render_systemd(args.script))
+def _cmd_autostart(args: argparse.Namespace) -> int:
+    managed = not os.environ.get("SIDEKICK_WORK_AUTOSTART_DIR")
+    file = autostart.unit_file(
+        args.platform,
+        os.environ.get("SIDEKICK_WORK_AUTOSTART_DIR", ""),
+        Path.home(),
+        os.environ.get("XDG_CONFIG_HOME", ""),
+    )
+    try:
+        if args.action == "on":
+            autostart.enable(file, args.platform, args.script, args.log, managed)
+            if args.platform == "Darwin":
+                print(messages.fill(args.lang, "as_launchd", file))
+            else:
+                print(messages.fill(args.lang, "as_systemd", file, getpass.getuser()))
+        elif args.action == "off":
+            autostart.disable(file, args.platform, managed)
+            print(messages.text(args.lang, "as_off"))
+        elif file.is_file():
+            print(messages.fill(args.lang, "as_state_on", file))
+        else:
+            print(messages.text(args.lang, "as_state_off"))
+    except autostart.AutostartError as error:
+        return _fail(str(error))
     return 0
 
 
@@ -83,6 +106,11 @@ def _cmd_model_key_show(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_rooms_env(args: argparse.Namespace) -> int:
+    secretfiles.write_rooms_env(args.secrets_dir, workenv.env_value(args.env_file, secretfiles.ROOMS_NAME))
+    return 0
+
+
 def _cmd_render_gateway(args: argparse.Namespace) -> int:
     entries = generated.parse_allow_lines(args.allow)
     generated.write_gateway_files(args.template, args.out_dir, entries)
@@ -97,6 +125,19 @@ def _cmd_text(args: argparse.Namespace) -> int:
 
 def _cmd_env_value(args: argparse.Namespace) -> int:
     print(workenv.env_value(args.env_file, args.key))
+    return 0
+
+
+def _cmd_env_set(args: argparse.Namespace) -> int:
+    try:
+        workenv.set_value(args.env_file, args.key, args.value)
+    except ValueError as error:
+        return _fail(str(error))
+    return 0
+
+
+def _cmd_env_unset(args: argparse.Namespace) -> int:
+    workenv.unset_value(args.env_file, args.key)
     return 0
 
 
@@ -144,12 +185,22 @@ def _cmd_claude_config(args: argparse.Namespace) -> int:
     )
 
 
-def _cmd_model_ids(_args: argparse.Namespace) -> int:
+def _cmd_models_list(args: argparse.Namespace) -> int:
     try:
-        ids = desktopconfig.parse_model_ids(sys.stdin.read())
+        ids = modelserver.fetch_model_ids(args.base_url, sys.stdin.read().rstrip("\n"))
     except ValueError:
         return 1
     print("\n".join(ids))
+    return 0
+
+
+def _cmd_backup_key(args: argparse.Namespace) -> int:
+    try:
+        created = backupkey.ensure_key(args.key_file, args.backups_dir, args.generate)
+    except backupkey.KeyProblem as problem:
+        return _fail(messages.render(args.lang, problem.key, *problem.values))
+    if created:
+        print(messages.render(args.lang, "bk_key_new", args.key_file))
     return 0
 
 
@@ -229,11 +280,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--model-port", type=int, required=True)
     sub.add_argument("allow")
 
-    sub = add("autostart-render", _cmd_autostart_render, "print the launchd plist or systemd unit")
-    sub.add_argument("--kind", choices=("launchd", "systemd"), required=True)
+    sub = add("autostart", _cmd_autostart, "switch the start at login on or off, or show its state")
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--platform", required=True, help="uname -s: Darwin means launchd, anything else systemd")
     sub.add_argument("--script", required=True)
-    sub.add_argument("--log", default="")
-    sub.add_argument("--label", default="")
+    sub.add_argument("--log", required=True)
+    sub.add_argument("action", choices=("on", "off", "status"))
 
     sub = add("generate-secrets", _cmd_generate_secrets, "create db.env, sidekick.env, hindsight.env")
     sub.add_argument("--secrets-dir", type=Path, required=True)
@@ -250,6 +302,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = add("model-key-show", _cmd_model_key_show, "print the stored model key (empty = none)")
     sub.add_argument("--secrets-dir", type=Path, required=True)
 
+    sub = add("rooms-env", _cmd_rooms_env, "write secrets/rooms.env from work.env (removed when no rooms are set)")
+    sub.add_argument("--env-file", type=Path, required=True)
+    sub.add_argument("--secrets-dir", type=Path, required=True)
+
     sub = add("render-gateway", _cmd_render_gateway, "write gateway.haproxy.cfg and allow.compose.yaml")
     sub.add_argument("--template", type=Path, required=True)
     sub.add_argument("--out-dir", type=Path, required=True)
@@ -260,6 +316,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("key")
 
     sub = add("env-value", _cmd_env_value, "print one value of work.env (last assignment wins, quotes stripped)")
+    sub.add_argument("--env-file", type=Path, required=True)
+    sub.add_argument("key")
+
+    sub = add("env-set", _cmd_env_set, "set KEY=value in work.env (replaces the first KEY or # KEY line, else appends)")
+    sub.add_argument("--env-file", type=Path, required=True)
+    sub.add_argument("key")
+    sub.add_argument("value")
+
+    sub = add("env-unset", _cmd_env_unset, "comment out the active KEY lines of work.env")
     sub.add_argument("--env-file", type=Path, required=True)
     sub.add_argument("key")
 
@@ -352,7 +417,20 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_argument("--old", required=True)
 
-    add("model-ids", _cmd_model_ids, "print the ids of a /models answer read from stdin; exit 1 if it is not one")
+    sub = add(
+        "models-list",
+        _cmd_models_list,
+        "print the model ids the server lists (API key on stdin); exit 1 when it cannot be asked",
+    )
+    sub.add_argument("--base-url", required=True)
+
+    sub = add(
+        "backup-key", _cmd_backup_key, "check the backup key file; create it with --generate when no backup exists"
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--key-file", type=Path, required=True)
+    sub.add_argument("--backups-dir", type=Path, required=True)
+    sub.add_argument("--generate", action="store_true")
     return parser
 
 

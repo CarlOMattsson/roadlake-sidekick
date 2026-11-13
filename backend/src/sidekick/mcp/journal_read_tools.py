@@ -25,6 +25,7 @@ from sidekick.mcp.journal_text import (
     entry_row,
     links_row,
     summary_phrase,
+    tags_row,
 )
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
@@ -42,6 +43,7 @@ from sidekick.structured.journal import (
     journal_source_structured,
     summary_record,
 )
+from sidekick.structured.tags import TagFilter, TagMatch
 
 
 def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> None:
@@ -52,8 +54,8 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
             "days of the authenticated user's journal entries, oldest first. For the latest "
             "entry of a day, make one call with limit=50 and take the last row; do not also call "
             "get_journal_entry unless the user asks to see it. Each entry carries its summary "
-            "and key points unless include_content is false; do not use it for another user "
-            "or unbounded history."
+            "and key points unless include_content is false; tags lists only entries with them. "
+            "Do not use it for another user or unbounded history."
         ),
         output_schema=output_schema(JournalEntryPageResult),
         annotations=READ,
@@ -64,6 +66,8 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
         to_date: date | None = None,
         include_archived: bool = False,
         include_content: bool = True,
+        tags: TagFilter | None = None,
+        tag_match: TagMatch = "any",
         limit: Annotated[int, Field(ge=1, le=50)] = 10,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
     ) -> Any:
@@ -74,6 +78,8 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
             to_date=to_date,
             include_archived=include_archived,
             include_content=include_content,
+            tags=tuple(tags or ()),
+            tag_match=tag_match,
             limit=limit,
             cursor=cursor,
         )
@@ -121,7 +127,11 @@ def _register_get_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None:
             structured,
             rows_text(
                 f'The journal entry "{title}" from {day}.',
-                [f"Entry {record['id']} v{record['version']}.", *links_row(record)],
+                [
+                    f"Entry {record['id']} v{record['version']}.",
+                    *links_row(record),
+                    *tags_row(record),
+                ],
             ),
         )
 

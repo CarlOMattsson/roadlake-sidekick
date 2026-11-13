@@ -72,6 +72,7 @@ const linked: JournalEntry = {
     { kind: "contact", id: contactAnna, label: "Anna Berg" },
     { kind: "contact", id: contactNoName, label: null },
   ],
+  tags: [],
   archived: false,
   version: 2,
 };

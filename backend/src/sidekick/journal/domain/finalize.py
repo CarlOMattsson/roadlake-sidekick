@@ -18,6 +18,7 @@ class FinalizeCommand:
     key_points: tuple[KeyPoint, ...]
     relation_selection: dict[str, tuple[tuple[UUID, str], ...]]
     task_proposals: tuple[TaskProposal, ...]
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

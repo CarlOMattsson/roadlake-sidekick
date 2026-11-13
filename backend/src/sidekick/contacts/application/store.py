@@ -14,9 +14,10 @@ from sidekick.shared.types import (
     TxSession,
 )
 from sidekick.tasks.domain import Task
+from sidekick.work.domain.tag_assignment import RecordTagStore
 
 
-class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
+class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTagStore, Protocol):
     """Concrete port needed for atomic Contact and idempotency operations."""
 
     def contact_display_names(
@@ -30,6 +31,8 @@ class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol)
         q: str | None = None,
         include_archived: bool = False,
         after: tuple[KeyValue, ...] | None = None,
+        tags: tuple[str, ...] = (),
+        tag_match: str = "any",
     ) -> list[Contact]: ...
     def phonetic_contacts(
         self,

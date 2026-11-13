@@ -32,7 +32,11 @@ CHARS_PER_TOKEN = 3.5
 # 2026-11-11: raised to 18 850 for the 8-to-128-character bound on the `idempotency_key` of the five
 # model-visible Contact write tools (about 54 tokens in all), the bound every other write tool has;
 # measured 18 804, rounded up.
-TOKEN_BUDGET = 18_850
+# 2026-11-13: raised to 19 350 for the owner's tags on Contacts and Journal entries: a `tags` input
+# on `create_contact`, `update_contact`, `write_journal_entry` and `update_journal_entry`, and a
+# `tags` and `tag_match` filter on `list_contacts` and `list_journal_entries` (about 450 tokens in
+# all); measured 19 305, rounded up.
+TOKEN_BUDGET = 19_350
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550

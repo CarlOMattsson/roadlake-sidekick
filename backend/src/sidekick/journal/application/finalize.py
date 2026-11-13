@@ -6,6 +6,7 @@ one already-open transaction to the concrete store; FastAPI and MCP never call i
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Protocol, TypeVar
@@ -19,6 +20,7 @@ from sidekick.projects.domain import Project
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.types import Actor, Clock, IdempotentStore, TransactionalStore, TxSession
 from sidekick.tasks.domain import Task
+from sidekick.work.domain.planning import normalize_tag_selection
 
 T = TypeVar("T")
 
@@ -67,6 +69,7 @@ class JournalFinalizeService:
         correlation_id: str | None = None,
     ) -> FinalizeResult:
         actor.require("journal:write")
+        command = dataclasses.replace(command, tags=normalize_tag_selection(list(command.tags)))
         if command.relation_selection["projects"] or any(
             _proposal_project_ids(proposal) for proposal in command.task_proposals
         ):
@@ -244,7 +247,7 @@ def _proposal_contact_ids(proposal: TaskProposal) -> bool:
 
 
 def finalize_command_data(command: FinalizeCommand) -> dict[str, Any]:
-    return {
+    data: dict[str, Any] = {
         "draft_id": str(command.draft_id),
         "expected_version": command.expected_version,
         "title": command.title,
@@ -259,3 +262,6 @@ def finalize_command_data(command: FinalizeCommand) -> dict[str, Any]:
             for proposal in command.task_proposals
         ],
     }
+    if command.tags:
+        data["tags"] = list(command.tags)
+    return data

@@ -24,9 +24,10 @@ from sidekick.shared.types import (
     TxSession,
 )
 from sidekick.tasks.domain import Task
+from sidekick.work.domain.tag_assignment import RecordTagStore
 
 
-class JournalStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
+class JournalStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTagStore, Protocol):
     """Journal-focused persistence operations used by the manual application service."""
 
     def save_journal_source(self, session: TxSession, source: JournalSource) -> None: ...
@@ -51,6 +52,8 @@ class JournalStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol)
         include_archived: bool = False,
         limit: int = 100,
         after: tuple[KeyValue, ...] | None = None,
+        tags: tuple[str, ...] = (),
+        tag_match: str = "any",
     ) -> list[JournalEntry]: ...
 
     def list_pending_journal_items(

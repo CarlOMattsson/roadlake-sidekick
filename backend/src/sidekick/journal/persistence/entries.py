@@ -27,6 +27,7 @@ from sidekick.shared.persistence.models import (
 )
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.types import KeyValue, utc_now
+from sidekick.work.persistence.tags import tag_condition
 
 
 class JournalEntryStore:
@@ -159,8 +160,13 @@ class JournalEntryStore:
         include_archived: bool = False,
         limit: int = 100,
         after: tuple[KeyValue, ...] | None = None,
+        tags: tuple[str, ...] = (),
+        tag_match: str = "any",
     ) -> list[JournalEntry]:
-        """Entries in day order; `after` is the `entry_page_key` of the last entry already read."""
+        """Entries in day order; `after` is the `entry_page_key` of the last entry already read.
+
+        With `tags` only entries carrying any (or, with `tag_match="all"`, every) tag are listed.
+        """
 
         # An entry with neither time sorts last: the sentinel replaces NULL so the whole key is
         # non-null and a keyset position can be compared against it.
@@ -192,6 +198,10 @@ class JournalEntryStore:
         )
         if not include_archived:
             statement = statement.where(JournalEntryRow.archived_at.is_(None))
+        if tags:
+            statement = statement.where(
+                tag_condition("journal_entry", JournalEntryRow.id, owner_id, tags, tag_match)
+            )
         if after is not None:
             statement = statement.where(
                 rows_after(

@@ -119,8 +119,10 @@ def historical_reference_source(row: Mapping[str, Any], field: str) -> str | Non
 
 
 def document_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The rows of every collection; one an older format lacks is empty."""
+
     collections = cast(Mapping[str, Any], document["collections"])
-    return {name: collections[name] for name in SOURCES_BY_NAME}
+    return {name: collections.get(name, []) for name in SOURCES_BY_NAME}
 
 
 def uuid_or_none(value: Any) -> UUID | None:

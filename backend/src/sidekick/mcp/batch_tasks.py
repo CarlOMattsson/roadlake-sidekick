@@ -104,7 +104,7 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     ) -> Any:
         actor = ctx.actor_provider()
         # The reply lists each task's tags (projects:read), so refuse before anything is written.
-        ctx.container.work_tags.require_record_tags_readable(actor)
+        ctx.container.work_tags.require_record_tags_readable(actor, "task")
         zone = ctx.container.settings.owner_zone
         batch = ctx.container.task_bulk.create_batch(
             actor,

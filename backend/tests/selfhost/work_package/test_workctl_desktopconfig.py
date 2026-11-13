@@ -1,5 +1,5 @@
 """The Claude Desktop configuration of tools/workctl: the entry file written by start, the guarded
-merge into the user's own file, and the model id list."""
+merge into the user's own file."""
 
 import io
 import json
@@ -64,21 +64,6 @@ def test_write_desktop_config_tightens_the_mode_of_an_existing_file(tmp_path: Pa
     desktopconfig.write_desktop_config(out_file, "/usr/bin/docker", "api-1", "user-1")
     assert stat.S_IMODE(out_file.stat().st_mode) == 0o600
     assert "old" not in out_file.read_text(encoding="utf-8")
-
-
-def test_parse_model_ids_returns_the_ids_in_order() -> None:
-    body = json.dumps({"data": [{"id": "a"}, {"id": "b/c"}, {"object": "x"}, "text"]})
-    assert desktopconfig.parse_model_ids(body) == ["a", "b/c"]
-
-
-def test_parse_model_ids_without_data_is_empty() -> None:
-    assert desktopconfig.parse_model_ids("{}") == []
-
-
-@pytest.mark.parametrize("body", ["", "not json", "[]", '{"data": 5}', "null"])
-def test_parse_model_ids_rejects_something_that_is_not_a_model_list(body: str) -> None:
-    with pytest.raises(ValueError):
-        desktopconfig.parse_model_ids(body)
 
 
 def test_merge_adds_the_entry_to_a_new_file_without_a_backup(tmp_path: Path) -> None:

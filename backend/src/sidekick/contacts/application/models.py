@@ -19,6 +19,7 @@ class CreateContactCommand:
     organization: str | None = None
     role: str | None = None
     address: str | None = None
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +32,8 @@ class UpdateContactCommand:
     organization: str | None | UnsetType = UNSET
     role: str | None | UnsetType = UNSET
     address: str | None | UnsetType = UNSET
+    # The complete intended tag set; tags are not a column, so they stay out of `changes()`.
+    tags: tuple[str, ...] | UnsetType = UNSET
 
     def changes(self) -> dict[str, Any]:
         return {

@@ -15,20 +15,21 @@
       {
         "archived": false,
         "contact_ids": [],
-        "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+        "id": "01a1d260-6331-7edb-8f38-8e4f174ae3f2",
         "journal_date": "2026-11-10",
         "key_points": [],
         "links": [],
         "occurred_at": null,
         "project_ids": [],
-        "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+        "source_id": "01a1d260-62ff-70e0-8126-9e964fdfda48",
         "summary": null,
+        "tags": [],
         "task_ids": [],
         "title": "Promenad på Södermalm",
         "version": 1
       }
     ],
-    "entry_fingerprint": "737b538d0ceabf59a13b1fb8d56ca438f36901357c892cf28d9dd1b537618831",
+    "entry_fingerprint": "efd001113e5c0da48cbfe49fea56b3623968f4891f6e147ef0ed2f3c3ad57b7a",
     "journal_date": "2026-11-10",
     "next_cursor": null,
     "owner_timezone": "Europe/Stockholm",
@@ -43,7 +44,7 @@
       "status": null,
       "version": null
     },
-    "today": "2026-11-11"
+    "today": "2026-11-13"
   },
   "emptyDay": {
     "done": {
@@ -73,20 +74,21 @@
       "status": null,
       "version": null
     },
-    "today": "2026-11-11"
+    "today": "2026-11-13"
   },
   "entry": {
     "entry": {
       "archived": false,
       "contact_ids": [],
-      "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+      "id": "01a1d260-6331-7edb-8f38-8e4f174ae3f2",
       "journal_date": "2026-11-10",
       "key_points": [],
       "links": [],
       "occurred_at": null,
       "project_ids": [],
-      "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "source_id": "01a1d260-62ff-70e0-8126-9e964fdfda48",
       "summary": null,
+      "tags": [],
       "task_ids": [],
       "title": "Promenad på Södermalm",
       "version": 1
@@ -95,8 +97,8 @@
   "source": {
     "source": {
       "content_fingerprint": "4ad8c64250122729885ff5d247493f71ac34c095a9d1c89bdfb403ad01a6a529",
-      "created_at": "2026-11-11T13:07:25.805581Z",
-      "id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "created_at": "2026-11-13T00:48:14.591997Z",
+      "id": "01a1d260-62ff-70e0-8126-9e964fdfda48",
       "journal_date": "2026-11-10",
       "language": null,
       "occurred_at": null,
@@ -110,14 +112,15 @@
     "entry": {
       "archived": false,
       "contact_ids": [],
-      "id": "01a1cab8-69f6-7bff-bddc-e54e95e4713e",
+      "id": "01a1d260-6331-7edb-8f38-8e4f174ae3f2",
       "journal_date": "2026-11-10",
       "key_points": [],
       "links": [],
       "occurred_at": null,
       "project_ids": [],
-      "source_id": "01a1cab8-69ed-788f-9963-8e90d72f14f4",
+      "source_id": "01a1d260-62ff-70e0-8126-9e964fdfda48",
       "summary": null,
+      "tags": [],
       "task_ids": [],
       "title": "Promenad på Södermalm",
       "version": 1

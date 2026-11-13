@@ -32,12 +32,19 @@ def validate_list_bounds(start_date: date, end_date: date, limit: int) -> None:
     validate_limit(limit, maximum=100, error=ValidationError)
 
 
-def journal_list_cursor_key(start_date: date, end_date: date, include_archived: bool) -> str:
-    return (
+def journal_list_cursor_key(
+    start_date: date,
+    end_date: date,
+    include_archived: bool,
+    tags: tuple[str, ...] = (),
+    tag_match: str = "any",
+) -> str:
+    key = (
         "journal:entries:v1:"
         f"from={start_date.isoformat()}:to={end_date.isoformat()}:"
         f"archived={str(include_archived).lower()}"
     )
+    return f"{key}:tags={','.join(tags)}:match={tag_match}" if tags else key
 
 
 def journal_day_cursor_key(journal_date: date, include_archived: bool) -> str:

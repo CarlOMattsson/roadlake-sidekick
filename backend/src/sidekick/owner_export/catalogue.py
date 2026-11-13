@@ -20,6 +20,7 @@ from sidekick.shared.persistence.models import (
     ActivityEntryRow,
     ContactAliasRow,
     ContactRow,
+    ContactTagRow,
     DailyJournalSummaryEntryRow,
     DailyJournalSummaryRow,
     DomainEventRow,
@@ -29,6 +30,7 @@ from sidekick.shared.persistence.models import (
     JournalEntryContactRow,
     JournalEntryProjectRow,
     JournalEntryRow,
+    JournalEntryTagRow,
     JournalEntryTaskRow,
     JournalProcessingRunRow,
     JournalSourceRow,
@@ -52,12 +54,17 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 5
+EXPORT_FORMAT_VERSION = 6
+# Format 5 (written at migration 106) has no tag links for Contacts and Journal entries; migration
+# 107 added them. A format 5 export is still read: those two collections are simply absent and
+# restore as empty.
+FORMAT_WITHOUT_TAG_LINKS = 5
+COLLECTIONS_ADDED_IN_FORMAT_6: frozenset[str] = frozenset({"contact_tags", "journal_entry_tags"})
 # Format 4 also carried four collections of the retired automation engine. Migration 106 dropped
 # their tables, which were empty on every installation. A format 4 export is still read: it must
 # hold exactly these collections, all empty, and they are ignored. One that holds a row is refused
-# rather than silently losing it.
-PREVIOUS_EXPORT_FORMAT_VERSION = 4
+# rather than silently losing it. It has no tag links either.
+FORMAT_WITH_RETIRED_COLLECTIONS = 4
 RETIRED_COLLECTIONS: frozenset[str] = frozenset(
     {
         "assistant_automation_policies",
@@ -73,6 +80,7 @@ RETIRED_COLLECTIONS: frozenset[str] = frozenset(
 SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("100_schema_baseline_0_1_0", False),
     ("106_drop_retired_automation_tables", False),
+    ("107_contact_and_journal_entry_tags", False),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -102,10 +110,12 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 
 
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
-# baseline or at a head of the folded chain; a format 5 export at migration 106 or later.
+# baseline or at a head of the folded chain, a format 5 export at migration 106 and a format 6
+# export at migration 107 or later.
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
-    PREVIOUS_EXPORT_FORMAT_VERSION: FOLDED_CHAIN_HEADS | {SCHEMA_CHAIN[0][0]},
+    FORMAT_WITHOUT_TAG_LINKS: frozenset({"106_drop_retired_automation_tables"}),
+    FORMAT_WITH_RETIRED_COLLECTIONS: FOLDED_CHAIN_HEADS | {SCHEMA_CHAIN[0][0]},
 }
 
 
@@ -141,6 +151,8 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("process_tags", ProcessTagRow),
     ExportSource("project_tags", ProjectTagRow),
     ExportSource("task_tags", TaskTagRow),
+    ExportSource("contact_tags", ContactTagRow),
+    ExportSource("journal_entry_tags", JournalEntryTagRow),
     ExportSource("saved_work_views", SavedViewRow),
     ExportSource("domain_events", DomainEventRow),
     ExportSource("activity_entries", ActivityEntryRow),

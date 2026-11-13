@@ -28,7 +28,7 @@ Run Sidekick in Docker on your work laptop, with an optional private memory, and
 - Your user must be able to run `docker` **without `sudo`**: Claude Desktop starts Sidekick with `docker exec`, which
   cannot ask for a password. On Linux: `sudo usermod -aG docker "$USER"`, then log out and in again and check with
   `docker ps` (without `sudo`). Docker Desktop on Mac needs nothing extra.
-- `git`, `openssl`, `python3` and `curl` (all standard on Ubuntu and macOS).
+- `git`, `python3` and `curl` (all standard on Ubuntu and macOS).
 - Claude Desktop. Node.js is not needed: Claude Desktop starts Sidekick's stdio server directly in the container.
 - Only if you want the memory: the address of the company model server (a vLLM base URL ending in `/v1`) and, if it needs one, its API key. The model server is optional; without the memory Sidekick runs entirely on the laptop and needs none.
 

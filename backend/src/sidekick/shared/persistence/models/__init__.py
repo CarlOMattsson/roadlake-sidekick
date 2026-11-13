@@ -34,7 +34,13 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from .audit import ActivityEntryRow, AuditEventRow, DomainEventRow, IdempotencyRow
 from .base import RETAINED_UNMAPPED_TABLES, SCHEMA, Base
 from .companion import CompanionPairingRow, PushOutboxRow, PushReminderRow, PushSubscriptionRow
-from .contacts import ContactAliasRow, ContactRow, ProjectContactRow, TaskContactRow
+from .contacts import (
+    ContactAliasRow,
+    ContactRow,
+    ContactTagRow,
+    ProjectContactRow,
+    TaskContactRow,
+)
 from .identity import PersonalAccessTokenRow, UserRow
 from .journal import (
     DailyJournalSummaryEntryRow,
@@ -43,6 +49,7 @@ from .journal import (
     JournalEntryContactRow,
     JournalEntryProjectRow,
     JournalEntryRow,
+    JournalEntryTagRow,
     JournalEntryTaskRow,
     JournalProcessingRunRow,
     JournalSourceRow,
@@ -87,6 +94,7 @@ __all__ = [
     "Computed",
     "ContactAliasRow",
     "ContactRow",
+    "ContactTagRow",
     "DailyJournalSummaryEntryRow",
     "DailyJournalSummaryRow",
     "Date",
@@ -105,6 +113,7 @@ __all__ = [
     "JournalEntryContactRow",
     "JournalEntryProjectRow",
     "JournalEntryRow",
+    "JournalEntryTagRow",
     "JournalEntryTaskRow",
     "JournalProcessingRunRow",
     "JournalSourceRow",

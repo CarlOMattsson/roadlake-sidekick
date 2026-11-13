@@ -52,6 +52,7 @@ export const entry: JournalEntry = {
   project_ids: ["019f0000-0000-7000-8000-0000000000p1"],
   task_ids: [],
   contact_ids: ["019f0000-0000-7000-8000-0000000000c1"],
+  tags: [],
   archived: false,
   version: 1,
 };

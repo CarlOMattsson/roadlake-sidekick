@@ -25,7 +25,7 @@ from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
-from tests.support.export_format4 import BASELINE_HEAD, as_format_4
+from tests.support.older_export_formats import BASELINE_HEAD, as_format_4
 from tests.support.settings import make_settings
 
 

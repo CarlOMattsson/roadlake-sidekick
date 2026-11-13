@@ -18,9 +18,12 @@ GATEWAY = "gateway.work.lan"
 WORKCTL_SOURCES = sorted(WORKCTL_DIR.glob("*.py"))
 
 
-def _workctl(cwd: Path, *args: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
+def _workctl(
+    cwd: Path, *args: str, stdin: str = "", extra_env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     """Run ``python -m workctl`` as work.sh does: package on PYTHONPATH, no other environment."""
     env = {
+        **(extra_env or {}),
         "PATH": os.environ.get("PATH", ""),
         "PYTHONPATH": str(REPO_ROOT / "tools"),
         "PYTHONDONTWRITEBYTECODE": "1",
@@ -91,13 +94,24 @@ def test_allowlist_rejects_a_bad_entry(tmp_path: Path, raw: str, reason: str) ->
     assert result.stderr == reason + "\n"
 
 
-def test_autostart_render_prints_the_systemd_unit(tmp_path: Path) -> None:
+def test_autostart_on_writes_the_systemd_unit_into_the_override_directory(tmp_path: Path) -> None:
     result = _workctl(
-        tmp_path, "autostart-render", "--kind", "systemd", "--script", "/opt/work/tools/work.sh"
+        tmp_path,
+        "autostart",
+        "--platform",
+        "Linux",
+        "--script",
+        "/opt/work/tools/work.sh",
+        "--log",
+        "/opt/work/autostart.log",
+        "on",
+        extra_env={"SIDEKICK_WORK_AUTOSTART_DIR": str(tmp_path / "units")},
     )
+    unit = (tmp_path / "units" / "sidekick-work.service").read_text(encoding="utf-8")
     assert result.returncode == 0
-    assert result.stdout.startswith("[Unit]\n")
-    assert 'ExecStart=/bin/bash "/opt/work/tools/work.sh" start --wait-docker\n' in result.stdout
+    assert unit.startswith("[Unit]\n")
+    assert 'ExecStart=/bin/bash "/opt/work/tools/work.sh" start --wait-docker\n' in unit
+    assert result.stdout.startswith("Autostart på (systemd --user): ")
     assert result.stderr == ""
 
 
@@ -291,16 +305,6 @@ def test_claude_config_without_the_entry_file_exits_1(tmp_path: Path) -> None:
     )
     assert result.returncode == 1
     assert result.stderr == "The Sidekick entry is missing. First run: bash tools/work.sh start\n"
-
-
-def test_model_ids_prints_one_id_per_line(tmp_path: Path) -> None:
-    result = _workctl(tmp_path, "model-ids", stdin='{"data":[{"id":"a"},{"id":"b"}]}')
-    assert (result.returncode, result.stdout, result.stderr) == (0, "a\nb\n", "")
-
-
-def test_model_ids_rejects_something_that_is_not_a_model_list(tmp_path: Path) -> None:
-    result = _workctl(tmp_path, "model-ids", stdin="<html>")
-    assert (result.returncode, result.stdout, result.stderr) == (1, "", "")
 
 
 @pytest.mark.parametrize(

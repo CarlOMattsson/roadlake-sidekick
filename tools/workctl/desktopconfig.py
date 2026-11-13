@@ -82,15 +82,6 @@ def write_desktop_config(out_file: Path, docker_bin: str, container: str, owner:
     os.chmod(out_file, 0o600)
 
 
-def parse_model_ids(body: str) -> list[str]:
-    """The ids of an OpenAI-compatible ``/models`` answer; ``ValueError`` when it is not one."""
-    try:
-        data = json.loads(body).get("data", [])
-        return [model["id"] for model in data if isinstance(model, dict) and "id" in model]
-    except (ValueError, AttributeError, TypeError) as error:
-        raise ValueError("not a model list") from error
-
-
 def _load(source: Path, target: Path) -> tuple[dict[str, Any], bytes | None, dict[str, Any]]:
     """The entry to merge, the target's current bytes and its parsed configuration.
 

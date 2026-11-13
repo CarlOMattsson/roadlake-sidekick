@@ -119,6 +119,16 @@ class Contact:
             version=self.version + 1,
         )
 
+    def retag(self, *, now: datetime) -> "Contact":
+        """Advance the version for a change of the Contact's tags, which live outside the record.
+
+        Tags are part of a Contact's optimistic-concurrency surface, so a change of them takes the
+        caller's expected version and gives the Contact a new one.
+        """
+        if self.archived:
+            raise ValidationError("archived contact cannot be updated")
+        return replace(self, updated_at=now, version=self.version + 1)
+
     def archive(self, *, now: datetime) -> "Contact":
         """Reversibly archive this Contact."""
         if self.archived:

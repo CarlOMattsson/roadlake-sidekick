@@ -31,6 +31,7 @@ from sidekick.shared.persistence.stores.keyset import rows_after, text_key
 from sidekick.shared.types import KeyValue, utc_now
 from sidekick.tasks.domain import Task
 from sidekick.tasks.persistence import task_from_row
+from sidekick.work.persistence.tags import tag_condition
 
 
 def contact_from_row(row: ContactRow, aliases: list[ContactAliasRow]) -> Contact:
@@ -175,8 +176,13 @@ class ContactStore:
         q: str | None = None,
         include_archived: bool = False,
         after: tuple[KeyValue, ...] | None = None,
+        tags: tuple[str, ...] = (),
+        tag_match: str = "any",
     ) -> list[Contact]:
-        """By name; `after` is the (display_name_key, id) of the last Contact already read."""
+        """By name; `after` is the (display_name_key, id) of the last Contact already read.
+
+        With `tags` only Contacts carrying any (or, with `tag_match="all"`, every) tag are listed.
+        """
 
         statement = select(ContactRow).where(ContactRow.owner_id == owner_id)
         statement = statement.where(ContactRow.trashed_at.is_(None))
@@ -210,6 +216,10 @@ class ContactStore:
             except ValidationError:
                 pass
             statement = statement.where(or_(*predicates))
+        if tags:
+            statement = statement.where(
+                tag_condition("contact", ContactRow.id, owner_id, tags, tag_match)
+            )
 
         if after is not None:
             statement = statement.where(

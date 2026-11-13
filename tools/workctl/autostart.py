@@ -1,12 +1,28 @@
-"""Text of the login-start files: a launchd agent (macOS) and a systemd user unit (Linux).
+"""Start at login. Linux: a systemd user unit that brings the stack up at login (containers also come back on their
+own when the Docker service starts, unless they were stopped with ``stop``). macOS: a launchd agent that waits for
+Docker Desktop.
 
-Pure rendering: ``work.sh`` decides where the file goes and runs launchctl/systemctl. Paths are escaped for
-their target syntax (XML for the plist; backslash, quote, ``%`` and ``$`` for a systemd ExecStart word).
+The file is rendered here, with its paths escaped for the target syntax (XML for the plist; backslash, quote, ``%``
+and ``$`` for a systemd ExecStart word), and written with mode 600. ``launchctl`` / ``systemctl`` are run only when
+the file lives in its real place: an override directory (tests) skips them.
 """
 
 from __future__ import annotations
 
+import os
+import subprocess
+from collections.abc import Sequence
+from pathlib import Path
 from xml.sax.saxutils import escape
+
+from .secretfiles import write_private
+
+LABEL = "local.sidekick.work"
+UNIT = "sidekick-work.service"
+
+
+class AutostartError(Exception):
+    """launchctl or systemctl failed (or is not installed)."""
 
 
 def xml_escape(text: str) -> str:
@@ -55,3 +71,59 @@ def render_systemd(script: str) -> str:
         "[Install]\n"
         "WantedBy=default.target\n"
     )
+
+
+def unit_file(platform: str, override_dir: str, home: Path, config_home: str) -> Path:
+    """Where the login-start file lives: in ``override_dir`` when given, else the user's own location."""
+    darwin = platform == "Darwin"
+    name = f"{LABEL}.plist" if darwin else UNIT
+    if override_dir:
+        return Path(override_dir) / name
+    if darwin:
+        return home / "Library" / "LaunchAgents" / name
+    return Path(config_home or home / ".config") / "systemd" / "user" / name
+
+
+def _run(argv: Sequence[str], *, quiet: bool = False, check: bool = True, hide_errors: bool = True) -> None:
+    """Run a command. ``quiet`` hides its output; with ``hide_errors`` False its error output stays visible."""
+    out = subprocess.DEVNULL if quiet else None
+    err = subprocess.DEVNULL if quiet and hide_errors else None
+    try:
+        result = subprocess.run(argv, stdout=out, stderr=err, check=False)  # noqa: S603 - fixed arguments
+    except OSError as error:
+        if check:
+            raise AutostartError(f"{argv[0]}: {error}") from error
+        return
+    if check and result.returncode != 0:
+        raise AutostartError(f"{argv[0]} failed with exit code {result.returncode}")
+
+
+def _launchd_target() -> str:
+    return f"gui/{os.getuid()}/{LABEL}"
+
+
+def enable(file: Path, platform: str, script: str, log: str, managed: bool) -> None:
+    """Write the file and, when ``managed``, tell launchd / systemd about it."""
+    file.parent.mkdir(parents=True, exist_ok=True)
+    if platform == "Darwin":
+        write_private(file, render_launchd(LABEL, script, log))
+        if managed:
+            _run(["launchctl", "bootout", _launchd_target()], quiet=True, check=False)
+            _run(["launchctl", "bootstrap", f"gui/{os.getuid()}", str(file)])
+    else:
+        write_private(file, render_systemd(script))
+        if managed:
+            _run(["systemctl", "--user", "daemon-reload"])
+            _run(["systemctl", "--user", "enable", UNIT], quiet=True, hide_errors=False)
+
+
+def disable(file: Path, platform: str, managed: bool) -> None:
+    """Switch the login start off and remove the file; a missing registration is not an error."""
+    if managed:
+        if platform == "Darwin":
+            _run(["launchctl", "bootout", _launchd_target()], quiet=True, check=False)
+        else:
+            _run(["systemctl", "--user", "disable", UNIT], quiet=True, check=False)
+    file.unlink(missing_ok=True)
+    if managed and platform != "Darwin":
+        _run(["systemctl", "--user", "daemon-reload"], quiet=True, check=False)

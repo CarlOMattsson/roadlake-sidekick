@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+from collections.abc import Sequence
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -154,10 +155,13 @@ class ManualJournalStore(InMemoryStore):
         start_date: date,
         end_date: date,
         include_archived: bool = False,
+        tags: Sequence[str] = (),
+        tag_match: str = "any",
         limit: int = 100,
         after: tuple[Any, ...] | None = None,
     ) -> list[Any]:
-        del session
+        del session, tag_match
+        assert not tags, "this fake keeps no tags"
         entries = [
             entry
             for entry in self.journal_entries.values()

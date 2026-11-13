@@ -54,6 +54,7 @@ const created: JournalEntry = {
     "019f0000-0000-7000-8000-0000000000c1",
     "019f0000-0000-7000-8000-0000000000c2",
   ],
+  tags: [],
   archived: false,
   version: 1,
 };

@@ -28,6 +28,7 @@ from sidekick.mcp.text import flat
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import UNSET
+from sidekick.structured.tags import TagsInput
 
 
 def _update_command(changes: ContactChanges) -> UpdateContactCommand:
@@ -45,17 +46,28 @@ def _update_command(changes: ContactChanges) -> UpdateContactCommand:
         organization=sent("organization"),
         role=sent("role"),
         address=sent("address"),
+        tags=tuple(changes.tags) if "tags" in changes.model_fields_set else UNSET,
     )
+
+
+def _contact_result(ctx: ToolContext, contact: Any) -> dict[str, Any]:
+    """The tool result for a just-written Contact, with its tags.
+
+    Every Contact write tool needs `contacts:read` for its reply (`reply_scopes`), which is also
+    what reading a Contact's tags takes.
+    """
+
+    tags = ctx.container.work_tags.for_record(ctx.actor_provider(), "contact", contact.id)
+    return contact_result(contact, [tag.slug for tag in tags])
 
 
 def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="create_contact",
         description=(
-            "Use this only when the user has asked to create one Contact. Optional aliases "
-            "and metadata are stored only in Sidekick; no message or external lookup occurs. "
-            "Safe to retry with the "
-            "same key and payload."
+            "Use this only when the user has asked to create one Contact. Optional aliases, "
+            "metadata and tags are stored only in Sidekick; no message or external lookup "
+            "occurs. Safe to retry with the same key and payload."
         ),
         output_schema=output_schema(ContactResult),
         annotations=WRITE,
@@ -73,6 +85,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         organization: Organization = None,
         role: Role = None,
         address: Address = None,
+        tags: TagsInput | None = None,
     ) -> Any:
         cmd = CreateContactCommand(
             display_name=display_name,
@@ -84,6 +97,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             organization=organization,
             role=role,
             address=address,
+            tags=tuple(tags or ()),
         )
         contact = ctx.container.contacts.create(
             ctx.actor_provider(),
@@ -91,7 +105,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = contact_result(contact)
+        structured = _contact_result(ctx, contact)
         record = structured["contact"]
         return result(
             structured,
@@ -105,8 +119,8 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         description=(
             "Use this for explicit edits to one known owned active Contact. Supply the "
             "observed version; omitted fields stay unchanged and explicit null clears "
-            "optional metadata. Do not use this "
-            "for aliases or work links."
+            "optional metadata. tags replaces the tag set, [] clears it, null is refused. Do "
+            "not use this for aliases or work links."
         ),
         output_schema=output_schema(ContactResult),
         annotations=WRITE,
@@ -127,7 +141,7 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = contact_result(contact)
+        structured = _contact_result(ctx, contact)
         record = structured["contact"]
         return result(
             structured,
@@ -156,7 +170,7 @@ def _register_archive_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = contact_result(contact)
+        structured = _contact_result(ctx, contact)
         # The version changes on archive, so the id and new version stay in the text for restore.
         record = structured["contact"]
         return result(
@@ -191,7 +205,7 @@ def _register_restore_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = contact_result(contact)
+        structured = _contact_result(ctx, contact)
         record = structured["contact"]
         return result(
             structured,
@@ -223,7 +237,7 @@ def _register_add_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = contact_result(contact)
+        structured = _contact_result(ctx, contact)
         record = structured["contact"]
         return result(
             structured,
@@ -255,7 +269,7 @@ def _register_remove_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(contact_result(contact), "Removed the Contact alias.")
+        return result(_contact_result(ctx, contact), "Removed the Contact alias.")
 
 
 def register_contact_write_tools(mcp: FastMCP, ctx: ToolContext) -> None:

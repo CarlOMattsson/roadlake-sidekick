@@ -19,6 +19,8 @@ from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
 from sidekick.structured.base import Output
+from sidekick.structured.tags import TagMatch
+from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD, normalize_tag_selection
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
@@ -54,6 +56,8 @@ class JournalEntryRecord(Output):
     ]
     # The Projects and Contacts above with their names, so a card or Claude can say who and what.
     links: Annotated[list[JournalEntryLink], Field(max_length=50)]
+    # The entry's tags (slugs of the owner's tag vocabulary); they are the owner's own words.
+    tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS_PER_RECORD)
     archived: bool
     version: Annotated[int, Field(ge=1)]
 
@@ -170,6 +174,7 @@ def entry_record(
     *,
     include_content: bool,
     labels: RelationLabels | None = None,
+    tags: Sequence[str] = (),
 ) -> JournalEntryRecord:
     names = labels or RelationLabels(projects={}, contacts={})
     links = [
@@ -201,6 +206,7 @@ def entry_record(
         task_ids=list(relations.task_ids),
         contact_ids=list(relations.contact_ids),
         links=links,
+        tags=list(tags),
         archived=entry.archived_at is not None,
         version=entry.version,
     )
@@ -283,7 +289,10 @@ def entry_with_relations(
     include_content: bool,
 ) -> JournalEntryRecord:
     relations = container.journal_relations.get_entry_relations(actor, entry.id)
-    return labeled_entry_record(container, actor, entry, relations, include_content=include_content)
+    tags = [tag.slug for tag in container.work_tags.for_record(actor, "journal_entry", entry.id)]
+    return labeled_entry_record(
+        container, actor, entry, relations, tags, include_content=include_content
+    )
 
 
 def entry_records_with_relations(
@@ -299,12 +308,14 @@ def entry_records_with_relations(
     relations = container.journal_relations.get_entries_relations(
         actor, tuple(entry.id for entry in entries), with_labels=include_content
     )
+    tags = container.work_tags.slugs_for(actor, "journal_entry", [entry.id for entry in entries])
     return [
         entry_record(
             entry,
             relations[entry.id][0],
             include_content=include_content,
             labels=relations[entry.id][1],
+            tags=tags.get(entry.id, ()),
         )
         for entry in entries
     ]
@@ -315,18 +326,22 @@ def labeled_entry_record(
     actor: Actor,
     entry: Any,
     relations: EntryRelations,
+    tags: Sequence[str],
     *,
     include_content: bool,
 ) -> JournalEntryRecord:
     """The entry record with its links named; names need the kind's read scope (D-060: Claude reads
-    the owner's own text within its scope)."""
+    the owner's own text within its scope).
+
+    `tags` are the entry's tag slugs, which the caller already holds or has read.
+    """
 
     labels = (
         container.journal_relations.get_relation_labels(actor, relations)
         if include_content
         else None
     )
-    return entry_record(entry, relations, include_content=include_content, labels=labels)
+    return entry_record(entry, relations, include_content=include_content, labels=labels, tags=tags)
 
 
 def _owner_today(container: Container) -> date:
@@ -345,6 +360,8 @@ def journal_entries_structured(
     include_content: bool,
     limit: int,
     cursor: str | None,
+    tags: Sequence[str] = (),
+    tag_match: TagMatch = "any",
 ) -> dict[str, Any]:
     """The structured content of `list_journal_entries`; a missing bound is the other, or today."""
 
@@ -354,6 +371,8 @@ def journal_entries_structured(
         start_date=from_date or to_date or today,
         end_date=to_date or from_date or today,
         include_archived=include_archived,
+        tags=tags,
+        tag_match=tag_match,
         limit=limit,
         cursor=cursor,
     )
@@ -458,6 +477,7 @@ def write_journal_entry_structured(
     contact_ids: list[UUID] | None = None,
     occurred_at: datetime | None = None,
     language: str | None = None,
+    tags: Sequence[str] | None = None,
     correlation_id: str | None = None,
 ) -> dict[str, Any]:
     """Save the owner's own words as a source and its entry in one step; the structured content
@@ -481,11 +501,16 @@ def write_journal_entry_structured(
         project_ids=relations.project_ids,
         task_ids=relations.task_ids,
         contact_ids=relations.contact_ids,
+        tags=tuple(tags or ()),
         idempotency_key=idempotency_key,
         correlation_id=correlation_id,
     )
+    # A write-only caller may not read the entry back, so the tags are the ones just written.
+    written = normalize_tag_selection(list(tags or ()))
     return JournalEntryResult(
-        entry=labeled_entry_record(container, actor, entry, relations, include_content=True)
+        entry=labeled_entry_record(
+            container, actor, entry, relations, written, include_content=True
+        )
     ).model_dump(mode="json")
 
 
@@ -505,9 +530,10 @@ def update_journal_entry_structured(
     remove_contact_ids: list[UUID] | None = None,
     add_project_ids: list[UUID] | None = None,
     remove_project_ids: list[UUID] | None = None,
+    tags: Sequence[str] | None = None,
     correlation_id: str | None = None,
 ) -> tuple[dict[str, Any], EntryRelations | None]:
-    """Add to, replace or relink one entry; the structured content of `update_journal_entry`.
+    """Add to, replace, relink or retag one entry; the structured content of `update_journal_entry`.
 
     The second value is the entry's links before the write, set only when links changed (the MCP
     tool's summary line names the difference). Version check, idempotency and audit are the use
@@ -544,14 +570,21 @@ def update_journal_entry_structured(
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             relation_change=change,
+            tags=tags,
         )
-    elif title is None and key_points is None and summary is None and not change.is_empty():
-        # Links only: the content stays and the entry gets a new version.
+    elif (
+        title is None
+        and key_points is None
+        and summary is None
+        and not (change.is_empty() and tags is None)
+    ):
+        # Links and tags only: the content stays and the entry gets a new version.
         entry = container.journal.change_entry_relations(
             actor,
             entry_id=entry_id,
             expected_version=expected_version,
             change=change,
+            tags=tags,
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
         )
@@ -560,7 +593,7 @@ def update_journal_entry_structured(
         if title is None or key_points is None:
             raise ValidationError(
                 "send title and key_points to replace, append_key_points/append_text to add, "
-                "or only link changes"
+                "or only link or tag changes"
             )
         entry = container.journal.update_entry(
             actor,
@@ -572,6 +605,7 @@ def update_journal_entry_structured(
             idempotency_key=idempotency_key,
             correlation_id=correlation_id,
             relation_change=change,
+            tags=tags,
         )
     structured = JournalEntryResult(
         entry=entry_with_relations(container, actor, entry, include_content=True)

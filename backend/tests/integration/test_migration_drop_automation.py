@@ -17,6 +17,7 @@ from tests.support.migration_baseline import (
     BASELINE,
     DROP_AUTOMATION,
     MIGRATIONS_PATH,
+    TAG_LINKS,
     _admin_url,
     _applied_ids,
     _apply,
@@ -118,8 +119,9 @@ def test_empty_retired_tables_are_dropped_and_nothing_else_is(tmp_path: Path) ->
 
     _apply(MIGRATIONS_PATH)
 
-    assert _tables_now() == before - set(RETIRED)
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION}
+    # The retired tables go; migration 107 adds the two tag link tables.
+    assert _tables_now() == (before - set(RETIRED)) | {"contact_tags", "journal_entry_tags"}
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
     # The ledger keeps its history of automation runs.
     engine = create_engine(_admin_url())
     try:

@@ -35,6 +35,7 @@ class CreateManualEntryCommand:
     project_ids: tuple[UUID, ...] = ()
     task_ids: tuple[UUID, ...] = ()
     contact_ids: tuple[UUID, ...] = ()
+    tags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,7 +96,7 @@ def source_command_data(command: CreateSourceCommand) -> dict[str, Any]:
 
 
 def manual_entry_command_data(command: CreateManualEntryCommand) -> dict[str, Any]:
-    return {
+    data: dict[str, Any] = {
         "source_id": str(command.source_id),
         "title": command.title,
         "summary": command.summary,
@@ -106,3 +107,7 @@ def manual_entry_command_data(command: CreateManualEntryCommand) -> dict[str, An
         "task_ids": [str(value) for value in command.task_ids],
         "contact_ids": [str(value) for value in command.contact_ids],
     }
+    # Only a given tag set is hashed, so a replay recorded before tags existed still matches.
+    if command.tags:
+        data["tags"] = list(command.tags)
+    return data

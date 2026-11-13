@@ -17,6 +17,8 @@ from pathlib import Path
 DB_FILE = "db.env"
 APP_FILE = "sidekick.env"
 HINDSIGHT_FILE = "hindsight.env"
+ROOMS_FILE = "rooms.env"
+ROOMS_NAME = "SIDEKICK_ENABLED_ROOMS"
 MODEL_KEY_NAME = "WORK_MODEL_API_KEY"
 HINDSIGHT_KEY_NAME = "HINDSIGHT_API_LLM_API_KEY"
 # Hindsight insists on a value even when the server does not check it (upstream's own local-LLM example).
@@ -96,9 +98,36 @@ def generate_secrets(secrets_dir: Path, hindsight_example: Path, gateway_name: s
         raise
 
 
+def fsync_path(path: Path) -> None:
+    """Make a file, or a directory entry, durable, so a power loss cannot leave a name that points at data that
+    was never written."""
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def write_private(path: Path, text: str) -> None:
+    """Write ``text`` to ``path`` through a 600 temporary file (``mkstemp`` creates it so) in the same directory and
+    an atomic rename, flushed to disk before and after, so a reader never sees a half-written file and a power loss
+    keeps either the old or the new content."""
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=".tmp.")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", errors="surrogateescape", newline="") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(tmp_name, path)
+    except BaseException:
+        if os.path.exists(tmp_name):
+            os.unlink(tmp_name)
+        raise
+    fsync_path(path.parent)
+
+
 def _rewrite(path: Path, keep: str, append: str | None) -> None:
-    """Rewrite ``path`` without the lines that start with ``keep`` (a "KEY=" prefix), then append a line,
-    through a 600 temporary file in the same directory and an atomic rename."""
+    """Rewrite ``path`` without the lines that start with ``keep`` (a "KEY=" prefix), then append a line."""
     # A missing file counts as empty (the line is added to a new file), as the shell version did.
     text = path.read_text(encoding="utf-8") if path.exists() else ""
     lines = text.split("\n")
@@ -107,16 +136,7 @@ def _rewrite(path: Path, keep: str, append: str | None) -> None:
     lines = [line for line in lines if not line.startswith(keep)]
     if append is not None:
         lines.append(append)
-    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=".tmp.")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            handle.write("".join(f"{line}\n" for line in lines))
-        os.chmod(tmp_name, 0o600)
-        os.replace(tmp_name, path)
-    except BaseException:
-        if os.path.exists(tmp_name):
-            os.unlink(tmp_name)
-        raise
+    write_private(path, "".join(f"{line}\n" for line in lines))
 
 
 def set_line(path: Path, key: str, value: str) -> None:
@@ -139,6 +159,16 @@ def apply_model_key(secrets_dir: Path, key: str) -> None:
     else:
         drop_line(secrets_dir / APP_FILE, MODEL_KEY_NAME)
         set_line(secrets_dir / HINDSIGHT_FILE, HINDSIGHT_KEY_NAME, NO_KEY)
+
+
+def write_rooms_env(secrets_dir: Path, rooms: str) -> None:
+    """SIDEKICK_ENABLED_ROOMS goes into the api container environment only when work.env sets it, so a release
+    without that setting still starts: an empty value removes the file."""
+    target = secrets_dir / ROOMS_FILE
+    if rooms:
+        write_private(target, f"{ROOMS_NAME}={rooms}\n")
+    else:
+        target.unlink(missing_ok=True)
 
 
 def stored_model_key(secrets_dir: Path) -> str:

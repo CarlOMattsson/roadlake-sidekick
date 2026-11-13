@@ -215,7 +215,7 @@ A nested field is listed under its parent as `parent.field`; `parent[].field` is
 
 ## `list_tags`
 
-List the authenticated user's own tag vocabulary as a bounded page.
+List the authenticated user's own tag vocabulary as a bounded page, with its use per kind (only kinds you may read).
 
 Access: read
 

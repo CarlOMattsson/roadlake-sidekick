@@ -33,6 +33,7 @@ from tests.support.migration_baseline import (
     DROP_AUTOMATION,
     MIGRATIONS_PATH,
     OLD_NAME,
+    TAG_LINKS,
     _admin_url,
     _applied_ids,
     _apply,
@@ -102,6 +103,7 @@ APP_PRIVILEGES = {
     "audit_events": "SI",
     "companion_pairings": "SIU",
     "contact_aliases": "SIUD",
+    "contact_tags": "SIUD",
     "contacts": "SIUD",
     "daily_journal_summaries": "SIU",
     "daily_journal_summary_entries": "SID",
@@ -115,6 +117,7 @@ APP_PRIVILEGES = {
     "journal_entries": "SIU",
     "journal_entry_contacts": "SID",
     "journal_entry_projects": "SID",
+    "journal_entry_tags": "SIUD",
     "journal_entry_tasks": "SID",
     "journal_processing_runs": "SIU",
     "journal_sources": "SI",
@@ -165,7 +168,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
     _reset_schema()
     _apply(MIGRATIONS_PATH)
 
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION}
+    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
     engine = create_engine(_admin_url())
     try:
         with engine.connect() as connection:
@@ -366,13 +369,18 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
     _reset_schema()
     _apply(MIGRATIONS_PATH)
     _insert_owner()
-    _stamp_as_folded_chain(FOLDED_HEAD)
     before = _snapshot()
+    # A database on the folded chain has not applied the tag links of migration 107 either.
+    _run(
+        "SET LOCAL ROLE sidekick_owner; "
+        "DROP TABLE sidekick.contact_tags, sidekick.journal_entry_tags"
+    )
+    _stamp_as_folded_chain(FOLDED_HEAD)
 
     _apply(MIGRATIONS_PATH)
 
     assert _snapshot() == before
-    assert _applied_ids() == {*FOLDED_CHAIN, BASELINE, DROP_AUTOMATION}
+    assert _applied_ids() == {*FOLDED_CHAIN, BASELINE, DROP_AUTOMATION, TAG_LINKS}
     engine = create_engine(_admin_url())
     try:
         with engine.connect() as connection:
@@ -387,7 +395,7 @@ def _stamp(ids: list[str]) -> None:
     """Replace the record of the new migrations with `ids`; the migrations after the baseline are
     forgotten too, because a database on the folded chain has not applied them."""
 
-    for migration_id in (BASELINE, DROP_AUTOMATION):
+    for migration_id in (BASELINE, DROP_AUTOMATION, TAG_LINKS):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:
         _run(

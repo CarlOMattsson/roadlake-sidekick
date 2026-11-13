@@ -4,9 +4,13 @@ Resolution is owner-scoped by construction: an unknown slug becomes a new vocabu
 the acting owner, never a reference to somebody else's tag, and the composite owner-consistent
 foreign keys remain the last line of defence. Record assignment lives in
 `sidekick.work.domain.tag_assignment`.
+
+The vocabulary is one for the owner, whatever the tagged kind. Reading the tags of one record
+needs the read scope of that record's kind (`tag_read_scope`), so a token that may read Contacts
+sees Contact tags without being able to read Work.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Protocol, TypedDict, TypeVar
 from uuid import UUID
 
@@ -32,6 +36,24 @@ T = TypeVar("T")
 
 MAX_TAG_PAGE = 100
 
+# The read scope of the tags on a record of a kind; the Work kinds are read with `projects:read`.
+TAGGED_KINDS = ("domain", "process", "project", "task", "contact", "journal_entry")
+"""Every kind of record that carries tags (the keys of the persistence `TAG_LINKS`)."""
+_TAG_READ_SCOPES = {"contact": "contacts:read", "journal_entry": "journal:read"}
+_WORK_TAG_READ_SCOPE = "projects:read"
+
+
+def tag_read_scope(kind: str) -> str:
+    """The scope that lets an actor read the tags on a record of `kind`."""
+
+    return _TAG_READ_SCOPES.get(kind, _WORK_TAG_READ_SCOPE)
+
+
+def readable_tag_kinds(actor: Actor) -> list[str]:
+    """The kinds of record whose tags the actor may read."""
+
+    return [kind for kind in TAGGED_KINDS if tag_read_scope(kind) in actor.scopes]
+
 
 class TagStore(TransactionalStore, IdempotentStore, Protocol):
     def get_work_tag(self, session: TxSession, owner_id: UUID, tag_id: UUID) -> WorkTag: ...
@@ -45,6 +67,7 @@ class TagStore(TransactionalStore, IdempotentStore, Protocol):
         limit: int,
         after: tuple[KeyValue, ...] | None = None,
         include_archived: bool = False,
+        readable_kinds: Sequence[str] | None = None,
     ) -> list[WorkTag]: ...
     def save_work_tag(
         self, session: TxSession, tag: WorkTag, expected_version: int | None = None
@@ -61,8 +84,15 @@ class TagStore(TransactionalStore, IdempotentStore, Protocol):
         self, session: TxSession, owner_id: UUID, kind: str, record_id: UUID
     ) -> list[WorkTag]: ...
     def record_tag_slugs(
-        self, session: TxSession, owner_id: UUID, limit: int = 5000
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        limit: int = 5000,
+        record_ids: Mapping[str, Sequence[UUID]] | None = None,
     ) -> dict[tuple[str, UUID], tuple[str, ...]]: ...
+    def tag_usage(
+        self, session: TxSession, owner_id: UUID, tag_ids: Sequence[UUID], kinds: Sequence[str]
+    ) -> dict[UUID, dict[str, int]]: ...
 
 
 class WorkTagService:
@@ -98,9 +128,10 @@ class WorkTagService:
         )
         key = f"work-tags:v1:archived={include_archived}"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, key, kinds=NAMED_KEY)
+        kinds = readable_tag_kinds(actor)
         rows = self.store.transaction(
             lambda session: self.store.list_work_tags(
-                session, actor.user_id, limit + 1, after, include_archived
+                session, actor.user_id, limit + 1, after, include_archived, kinds
             )
         )
         return Page(
@@ -120,26 +151,53 @@ class WorkTagService:
         )
 
     def slug_map(self, actor: Actor) -> dict[tuple[str, UUID], tuple[str, ...]]:
-        """All tag slugs per tagged record, for bounded list projections."""
+        """All tag slugs per tagged Work record, for bounded list projections."""
 
-        actor.require("projects:read")
+        actor.require(tag_read_scope("task"))
         return self.store.transaction(
             lambda session: self.store.record_tag_slugs(session, actor.user_id)
         )
 
-    def require_record_tags_readable(self, actor: Actor) -> None:
-        """Refuse an actor that may not read record tags.
+    def slugs_for(
+        self, actor: Actor, kind: str, record_ids: Sequence[UUID]
+    ) -> dict[UUID, tuple[str, ...]]:
+        """The tag slugs of the named records of one kind, for the page of a list."""
+
+        actor.require(tag_read_scope(kind))
+        if not record_ids:
+            return {}
+        found = self.store.transaction(
+            lambda session: self.store.record_tag_slugs(
+                session, actor.user_id, record_ids={kind: record_ids}
+            )
+        )
+        return {record_id: slugs for (_, record_id), slugs in found.items()}
+
+    def usage(self, actor: Actor, tag_ids: Sequence[UUID]) -> dict[UUID, dict[str, int]]:
+        """How many listed records of each kind carry each tag, for the vocabulary list.
+
+        Only the kinds the actor may read are counted and named: a count of Contacts or Journal
+        entries would otherwise tell a caller without that scope how much of it there is.
+        """
+
+        kinds = readable_tag_kinds(actor)
+        return self.store.transaction(
+            lambda session: self.store.tag_usage(session, actor.user_id, tag_ids, kinds)
+        )
+
+    def require_record_tags_readable(self, actor: Actor, kind: str) -> None:
+        """Refuse an actor that may not read the tags on a record of `kind`.
 
         A write tool answers with the written record's tags (`for_record`), so it calls this
         before the write: the refusal then leaves nothing committed.
         """
 
-        actor.require("projects:read")
+        actor.require(tag_read_scope(kind))
 
     def for_record(self, actor: Actor, kind: str, record_id: UUID) -> "list[WorkTag]":
         """The tags linked to one owned record, for detail projections."""
 
-        self.require_record_tags_readable(actor)
+        self.require_record_tags_readable(actor, kind)
         return self.store.transaction(
             lambda session: self.store.list_record_tags(session, actor.user_id, kind, record_id)
         )

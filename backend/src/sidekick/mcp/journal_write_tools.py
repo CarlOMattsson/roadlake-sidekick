@@ -28,6 +28,7 @@ from sidekick.mcp.journal_text import (
     JournalToolContext,
     empty_summary_content,
     links_row,
+    tags_row,
     update_entry_text,
 )
 from sidekick.mcp.results import output_schema, result
@@ -43,6 +44,8 @@ from sidekick.structured.journal import (
     update_journal_entry_structured,
     write_journal_entry_structured,
 )
+from sidekick.structured.tags import TagsInput
+from sidekick.work.domain.planning import normalize_tag_selection
 
 
 def _register_create_journal_source(mcp: FastMCP, ctx: JournalToolContext) -> None:
@@ -111,6 +114,7 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
         task_ids: RelationIds,
         contact_ids: RelationIds,
         idempotency_key: IdempotencyKey,
+        tags: TagsInput | None = None,
     ) -> Any:
         container = ctx.container
         actor = ctx.actor_provider()
@@ -123,6 +127,7 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
             project_ids=tuple(project_ids),
             task_ids=tuple(task_ids),
             contact_ids=tuple(contact_ids),
+            tags=tuple(tags or ()),
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
@@ -132,14 +137,26 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
             contact_ids=tuple(contact_ids),
         )
         structured = JournalEntryResult(
-            entry=labeled_entry_record(container, actor, entry, relations, include_content=True)
+            entry=labeled_entry_record(
+                container,
+                actor,
+                entry,
+                relations,
+                # A write-only caller may not read the entry back: these are the tags just written.
+                normalize_tag_selection(list(tags or ())),
+                include_content=True,
+            )
         ).model_dump(mode="json")
         created = structured["entry"]
         return result(
             structured,
             rows_text(
                 f"Created a manual entry from {ctx.spoken_day(created['journal_date'])}.",
-                [f"Entry {created['id']} v{created['version']}.", *links_row(created)],
+                [
+                    f"Entry {created['id']} v{created['version']}.",
+                    *links_row(created),
+                    *tags_row(created),
+                ],
             ),
         )
 
@@ -173,6 +190,7 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
         contact_ids: RelationIds | None = None,
         occurred_at: datetime | None = None,
         language: Annotated[str | None, Field(min_length=2, max_length=35)] = None,
+        tags: TagsInput | None = None,
     ) -> Any:
         structured = write_journal_entry_structured(
             ctx.container,
@@ -188,6 +206,7 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
             contact_ids=contact_ids,
             occurred_at=occurred_at,
             language=language,
+            tags=tags,
             correlation_id=request_correlation_id_or_new(),
         )
         record = structured["entry"]
@@ -195,7 +214,11 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
             structured,
             rows_text(
                 f"Saved the journal entry from {ctx.spoken_day(record['journal_date'])}.",
-                [f"Entry {record['id']} v{record['version']}.", *links_row(record)],
+                [
+                    f"Entry {record['id']} v{record['version']}.",
+                    *links_row(record),
+                    *tags_row(record),
+                ],
             ),
         )
 
@@ -208,7 +231,8 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
             "dagens dagbok'); read it first and send its current version. To add, send "
             "append_key_points and/or append_text (her own words, a new source). To correct, send "
             "title and key_points, which replace title, summary and key points. To fix its links, "
-            "send add_/remove_contact_ids or add_/remove_project_ids, alone or with the above. A "
+            "send add_/remove_contact_ids or add_/remove_project_ids, or tags (the complete tag "
+            "set), alone or with the above. A "
             "stale version or an archived entry conflicts. When the card opens, reply in one or "
             "two sentences."
         ),
@@ -245,6 +269,7 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
         remove_contact_ids: RelationIds | None = None,
         add_project_ids: RelationIds | None = None,
         remove_project_ids: RelationIds | None = None,
+        tags: TagsInput | None = None,
     ) -> Any:
         structured, before = update_journal_entry_structured(
             ctx.container,
@@ -261,6 +286,7 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
             remove_contact_ids=remove_contact_ids,
             add_project_ids=add_project_ids,
             remove_project_ids=remove_project_ids,
+            tags=tags,
             correlation_id=request_correlation_id_or_new(),
         )
         text = update_entry_text(

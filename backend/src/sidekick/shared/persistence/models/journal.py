@@ -439,6 +439,34 @@ class JournalEntryContactRow(Base):
     entry: Mapped[JournalEntryRow] = relationship(back_populates="contacts")
 
 
+class JournalEntryTagRow(Base):
+    """A link from a Journal entry to a tag of the owner's vocabulary (`work_tags`)."""
+
+    __tablename__ = "journal_entry_tags"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["tag_id", "owner_id"],
+            [f"{SCHEMA}.work_tags.id", f"{SCHEMA}.work_tags.owner_id"],
+            name="fk_journal_entry_tags_tag_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["journal_entry_id", "owner_id"],
+            [f"{SCHEMA}.journal_entries.id", f"{SCHEMA}.journal_entries.owner_id"],
+            name="fk_journal_entry_tags_target_owner",
+            ondelete="CASCADE",
+        ),
+        Index("ix_journal_entry_tags_reverse", "owner_id", "journal_entry_id", "tag_id"),
+        {"schema": SCHEMA},
+    )
+    owner_id: Mapped[UUID] = mapped_column(
+        ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"), primary_key=True
+    )
+    tag_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    journal_entry_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class DailyJournalSummaryRow(Base):
     __tablename__ = "daily_journal_summaries"
     __table_args__ = (

@@ -21,6 +21,8 @@ Returns: `JournalEntryPageResult` with `entries` (array of JournalEntryRecord), 
 | `include_archived` | boolean | no | default `false` |
 | `include_content` | boolean | no | default `true` |
 | `limit` | integer | no | default `10`; 1 to 50 |
+| `tag_match` | string | no | default `"any"`; one of `any`, `all` |
+| `tags` | array of string | no | up to 5 items; may be null |
 | `to_date` | date | no | ISO 8601 date; may be null |
 
 ## `get_journal_entry`
@@ -111,6 +113,7 @@ Returns: `JournalEntryResult` with `entry` (JournalEntryRecord).
 | `occurred_at` | date-time | no | ISO 8601 date and time; may be null |
 | `project_ids` | array of uuid | no | up to 25 items; unique; may be null |
 | `summary` | string | no | up to 10000 characters; may be null |
+| `tags` | array of string | no | up to 10 items; may be null |
 | `task_ids` | array of uuid | no | up to 25 items; unique; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
@@ -142,6 +145,7 @@ Returns: `JournalEntryResult` with `entry` (JournalEntryRecord).
 | `remove_contact_ids` | array of uuid | no | up to 25 items; unique; may be null |
 | `remove_project_ids` | array of uuid | no | up to 25 items; unique; may be null |
 | `summary` | string | no | up to 10000 characters; may be null |
+| `tags` | array of string | no | up to 10 items; may be null |
 | `title` | string | no | 1 to 200 characters; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.

@@ -73,6 +73,7 @@ const entry: JournalEntry = {
   project_ids: [],
   task_ids: [],
   contact_ids: [],
+  tags: [],
   archived: false,
   version: 1,
 };

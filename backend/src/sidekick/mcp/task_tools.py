@@ -131,7 +131,7 @@ def _register_create_task(mcp: FastMCP, ctx: ToolContext) -> None:
         container = ctx.container
         actor = ctx.actor_provider()
         # The reply lists the tags (projects:read), so refuse before anything is written.
-        container.work_tags.require_record_tags_readable(actor)
+        container.work_tags.require_record_tags_readable(actor, "task")
         # Task and contact links share one transaction in the service: an unknown Contact
         # fails the whole call with not-found and leaves no Task behind.
         task = container.tasks.create(

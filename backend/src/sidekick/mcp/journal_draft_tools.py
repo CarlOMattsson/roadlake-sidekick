@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -37,6 +38,8 @@ from sidekick.structured.journal import (
     labeled_entry_record,
     source_read_record,
 )
+from sidekick.structured.tags import TagsInput
+from sidekick.work.domain.planning import normalize_tag_selection
 
 
 def _analysis_key_points(points: list[JournalKeyPointInput]) -> tuple[AnalysisKeyPoint, ...]:
@@ -58,6 +61,7 @@ def _finalize_command(
     key_points: list[JournalKeyPointInput],
     relation_selection: RelationSelection,
     task_proposals: list[TaskProposalInput],
+    tags: Sequence[str] | None = None,
 ) -> FinalizeCommand:
     return FinalizeCommand(
         draft_id=draft_id,
@@ -71,6 +75,7 @@ def _finalize_command(
             "contacts": _relation_selection(relation_selection.contact_ids),
         },
         task_proposals=tuple(proposal.to_domain() for proposal in task_proposals),
+        tags=tuple(tags or ()),
     )
 
 
@@ -197,10 +202,10 @@ def _register_finalize_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> N
         name="finalize_journal_draft",
         description=(
             "Use this only when the user explicitly approves one pending journal draft as "
-            "reviewed. It creates the journal entry from the supplied fields and selected "
-            "relations, and applies only the Task proposals the user kept, which may create "
-            "Tasks or change existing ones. It is terminal and invokes no AI. A stale version "
-            "or a draft that is no longer pending conflicts."
+            "reviewed. It creates the journal entry from the supplied fields, selected "
+            "relations and optional tags, and applies only the Task proposals the user kept, "
+            "which may create Tasks or change existing ones. It is terminal and invokes no AI. "
+            "A stale version or a draft that is no longer pending conflicts."
         ),
         output_schema=output_schema(JournalFinalizeResult),
         annotations=DESTRUCTIVE,
@@ -216,6 +221,7 @@ def _register_finalize_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> N
         relation_selection: RelationSelection,
         task_proposals: TaskProposals,
         idempotency_key: IdempotencyKey,
+        tags: TagsInput | None = None,
     ) -> Any:
         container = ctx.container
         actor = ctx.actor_provider()
@@ -229,6 +235,7 @@ def _register_finalize_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> N
                 key_points=key_points,
                 relation_selection=relation_selection,
                 task_proposals=task_proposals,
+                tags=tags,
             ),
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
@@ -240,7 +247,13 @@ def _register_finalize_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> N
         )
         structured = JournalFinalizeResult(
             entry=labeled_entry_record(
-                container, actor, outcome.entry, relations, include_content=True
+                container,
+                actor,
+                outcome.entry,
+                relations,
+                # A write-only caller may not read the entry back: these are the tags just written.
+                normalize_tag_selection(list(tags or ())),
+                include_content=True,
             ),
             created_task_ids=list(outcome.created_task_ids),
             updated_task_ids=list(outcome.updated_task_ids),

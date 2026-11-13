@@ -16,6 +16,8 @@ from sidekick.journal.domain.entry import JournalEntry, KeyPoint
 from sidekick.journal.domain.source import JournalSource, SourceType, replacement_source
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.types import Actor, Clock, TxSession, new_uuid7
+from sidekick.work.domain.planning import normalize_tag_selection
+from sidekick.work.domain.tag_assignment import apply_record_tags
 
 
 class JournalCaptureService:
@@ -143,6 +145,7 @@ class JournalCaptureService:
         project_ids: tuple[UUID, ...] = (),
         task_ids: tuple[UUID, ...] = (),
         contact_ids: tuple[UUID, ...] = (),
+        tags: tuple[str, ...] = (),
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> JournalEntry:
@@ -161,6 +164,7 @@ class JournalCaptureService:
             project_ids=bounded_unique_ids(project_ids, "project_ids"),
             task_ids=bounded_unique_ids(task_ids, "task_ids"),
             contact_ids=bounded_unique_ids(contact_ids, "contact_ids"),
+            tags=normalize_tag_selection(tags),
         )
         payload = manual_entry_command_data(command)
 
@@ -223,6 +227,16 @@ class JournalCaptureService:
             task_ids=command.task_ids,
             contact_ids=command.contact_ids,
         )
+        if command.tags:
+            apply_record_tags(
+                self.store,
+                session,
+                owner_id=actor.user_id,
+                kind="journal_entry",
+                record_id=entry.id,
+                values=command.tags,
+                now=now,
+            )
         stale_marker = getattr(self.store, "mark_daily_journal_summary_stale", None)
         if stale_marker is not None:
             stale_marker(session, actor.user_id, entry.journal_date)
@@ -252,6 +266,7 @@ class JournalCaptureService:
         project_ids: tuple[UUID, ...] = (),
         task_ids: tuple[UUID, ...] = (),
         contact_ids: tuple[UUID, ...] = (),
+        tags: tuple[str, ...] = (),
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> tuple[JournalSource, JournalEntry]:
@@ -280,6 +295,7 @@ class JournalCaptureService:
         bounded_projects = bounded_unique_ids(project_ids, "project_ids")
         bounded_tasks = bounded_unique_ids(task_ids, "task_ids")
         bounded_contacts = bounded_unique_ids(contact_ids, "contact_ids")
+        wanted_tags = normalize_tag_selection(tags)
         source_payload = source_command_data(source_command)
 
         def operation(session: TxSession) -> tuple[JournalSource, JournalEntry]:
@@ -300,6 +316,7 @@ class JournalCaptureService:
                 project_ids=bounded_projects,
                 task_ids=bounded_tasks,
                 contact_ids=bounded_contacts,
+                tags=wanted_tags,
             )
             entry_result = self.store.idempotent(
                 session,

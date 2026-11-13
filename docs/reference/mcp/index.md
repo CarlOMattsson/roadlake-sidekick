@@ -53,7 +53,7 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 - [`get_project`](work-hierarchy.md#get_project): Get one owned project by its Sidekick UUID, including its current fields. (read)
 - [`create_project`](work-hierarchy.md#create_project): Use this when the user wants a new project. (write)
 - [`update_project`](work-hierarchy.md#update_project): Update explicit fields of one owned project at its current version; retry-safe with the same idempotency key. (write)
-- [`list_tags`](work-hierarchy.md#list_tags): List the authenticated user's own tag vocabulary as a bounded page. (read)
+- [`list_tags`](work-hierarchy.md#list_tags): List the authenticated user's own tag vocabulary as a bounded page, with its use per kind (only kinds you may read). (read)
 
 ### [Contacts](contacts.md)
 

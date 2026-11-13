@@ -33,6 +33,7 @@ const before: JournalEntry = {
     { kind: "project", id: projectOffer, label: "Offert Norr" },
     { kind: "contact", id: contactAnna, label: "Anna Berg" },
   ],
+  tags: [],
   archived: false,
   version: 3,
 };

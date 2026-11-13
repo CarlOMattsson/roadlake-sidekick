@@ -100,17 +100,17 @@ ADDITIVE_OUTPUT_FIELDS: dict[str, tuple[str, ...]] = {
 }
 
 
-# The entry record names its links. Only the journal tools that return the
+# The entry record names its links and its tags. Only the journal tools that return the
 # record are listed, and each field is removed only from objects that carry the record's own
 # fields, so the same name on another object in those tools is still checked.
 ADDITIVE_RECORD_FIELDS: dict[str, tuple[str, ...]] = {
-    "list_journal_entries": ("links",),
-    "get_journal_entry": ("links",),
-    "get_journal_day": ("links",),
-    "create_manual_journal_entry": ("links",),
-    "write_journal_entry": ("links",),
-    "update_journal_entry": ("links",),
-    "finalize_journal_draft": ("links",),
+    "list_journal_entries": ("links", "tags"),
+    "get_journal_entry": ("links", "tags"),
+    "get_journal_day": ("links", "tags"),
+    "create_manual_journal_entry": ("links", "tags"),
+    "write_journal_entry": ("links", "tags"),
+    "update_journal_entry": ("links", "tags"),
+    "finalize_journal_draft": ("links", "tags"),
 }
 ENTRY_RECORD_FIELDS = frozenset({"journal_date", "key_points", "contact_ids"})
 

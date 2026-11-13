@@ -281,6 +281,8 @@ def clean_database(factory: sessionmaker[Session]) -> None:
         "process_tags",
         "project_tags",
         "task_tags",
+        "contact_tags",
+        "journal_entry_tags",
         "work_tags",
         "actions",
         "steps",

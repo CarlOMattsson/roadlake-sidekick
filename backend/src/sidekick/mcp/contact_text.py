@@ -27,17 +27,26 @@ def _profile_suffix(contact: dict[str, Any]) -> str:
     return f" | {', '.join(parts)}" if parts else ""
 
 
+def _tags_text(contact: dict[str, Any]) -> str:
+    """The Contact's tags as `a, b`; empty without any."""
+    return ", ".join(flat(tag, limit=60) for tag in contact.get("tags", ()))
+
+
 # Model-facing summary lines (block 1) carry the ids the model needs for the next call.
 def contact_row(contact: dict[str, Any]) -> str:
+    tags = _tags_text(contact)
     return (
         f"- {contact['id']} | {flat(contact['display_name'])} | v{contact['version']}"
-        f"{_profile_suffix(contact)}"
+        f"{_profile_suffix(contact)}{f' | tags: {tags}' if tags else ''}"
     )
 
 
 # The spoken sentence (name, no id) comes first; line 2 keeps the id and version for the next call.
 def contact_summary(sentence: str, contact: dict[str, Any]) -> str:
-    return f"{sentence}\nContact {contact['id']} v{contact['version']}."
+    tags = _tags_text(contact)
+    return f"{sentence}\nContact {contact['id']} v{contact['version']}." + (
+        f" Tags: {tags}." if tags else ""
+    )
 
 
 _TASK_PRIORITY_RANK = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
@@ -166,6 +175,8 @@ def contact_context_text(
             lines.append(f"{label}: {flat(contact[key], limit=200)}")
     if contact["context_note"]:
         lines.append(f"Context: {flat(contact['context_note'], limit=500)}")
+    if contact.get("tags"):
+        lines.append(f"Tags: {_tags_text(contact)}")
     lines.extend(f"- alias {alias['id']} | {flat(alias['value'])}" for alias in contact["aliases"])
     lines.append(f"Projects: {len(projects)}")
     lines.extend(

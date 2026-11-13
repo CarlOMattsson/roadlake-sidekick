@@ -75,7 +75,7 @@ def _tag_safe_patch(ctx: ToolContext, actor: Actor, changes: BaseModel) -> dict[
     The reply lists the record's tags (projects:read), so the actor must be able to read them.
     """
 
-    ctx.container.work_tags.require_record_tags_readable(actor)
+    ctx.container.work_tags.require_record_tags_readable(actor, "project")
     patch = changes.model_dump(exclude_unset=True)
     if "tags" in patch:
         patch["tags"] = tuple(patch["tags"] or ())
@@ -186,7 +186,7 @@ def _register_create_project(mcp: FastMCP, ctx: ToolContext) -> None:
     ) -> Any:
         actor = ctx.actor_provider()
         # The reply lists the record's tags (projects:read); refuse before anything is written.
-        ctx.container.work_tags.require_record_tags_readable(actor)
+        ctx.container.work_tags.require_record_tags_readable(actor, "project")
         project = ctx.container.projects.create(
             actor,
             title=title,

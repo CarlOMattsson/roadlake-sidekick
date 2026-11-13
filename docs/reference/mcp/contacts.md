@@ -12,7 +12,7 @@ Access: read
 
 Scopes: requires `contacts:read`.
 
-Returns: `ContactPageResult` with `contacts` (array of ContactSummaryRecord), `include_archived` (boolean), `next_cursor` (string or null), `q` (string or null).
+Returns: `ContactPageResult` with `contacts` (array of ContactSummaryRecord), `include_archived` (boolean), `next_cursor` (string or null), `q` (string or null), `tag_match` (string), `tags` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -20,6 +20,8 @@ Returns: `ContactPageResult` with `contacts` (array of ContactSummaryRecord), `i
 | `include_archived` | boolean | no | default `false` |
 | `limit` | integer | no | default `25`; 1 to 100 |
 | `q` | string | no | 1 to 200 characters; may be null |
+| `tag_match` | string | no | default `"any"`; one of `any`, `all` |
+| `tags` | array of string | no | up to 5 items; may be null |
 
 ## `get_contact_context`
 
@@ -78,6 +80,7 @@ Returns: `ContactResult` with `contact` (ContactRecord).
 | `phone` | string | no | may be null |
 | `relationship` | string | no | up to 80 characters; may be null |
 | `role` | string | no | up to 120 characters; may be null |
+| `tags` | array of string | no | up to 10 items; may be null |
 
 ## `update_contact`
 
@@ -100,6 +103,7 @@ Returns: `ContactResult` with `contact` (ContactRecord).
 | `changes.phone` | string | no | up to 64 characters; may be null |
 | `changes.relationship` | string | no | up to 80 characters; may be null |
 | `changes.role` | string | no | up to 120 characters; may be null |
+| `changes.tags` | array of string | no | up to 10 items; Complete tag set, e.g. 'viktig', 'vänta', 'familj'; replaces the current set, [] clears it. |
 | `contact_id` | uuid | yes | - |
 | `expected_version` | integer | yes | - |
 | `idempotency_key` | string | yes | 8 to 128 characters |

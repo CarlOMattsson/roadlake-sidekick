@@ -71,6 +71,7 @@ const created: JournalEntry = {
     { kind: "contact", id: contactLars, label: "Lars Ek" },
     { kind: "project", id: projectOffice, label: "Kontor" },
   ],
+  tags: [],
   archived: false,
   version: 3,
 };

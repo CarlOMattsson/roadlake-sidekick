@@ -46,6 +46,13 @@ def links_row(record: dict[str, Any]) -> list[str]:
     return [f"Linked to {text}."]
 
 
+def tags_row(record: dict[str, Any]) -> list[str]:
+    """One plain row with the entry's tags, so Claude can read and repeat them."""
+
+    tags = [flat(tag, 60) for tag in record.get("tags", ())]
+    return [f"Tags: {', '.join(tags)}."] if tags else []
+
+
 def _relation_change_phrase(added: int, removed: int) -> str:
     """Words for a change of links, like Added 2 links and removed 1 link; empty for none."""
 
@@ -64,7 +71,8 @@ def entry_row(entry: dict[str, Any], *, include_content: bool) -> str:
     row = f"- {entry['id']} | {entry['journal_date']} | {status} | v{entry['version']}"
     if include_content:
         row += f" | {flat(entry['title'])}"
-    return row
+    tags = [flat(tag, 60) for tag in entry.get("tags", ())]
+    return f"{row} | tags: {', '.join(tags)}" if tags else row
 
 
 SPOKEN_TITLE_LIMIT = 80
@@ -146,7 +154,7 @@ def update_entry_text(
         )
     elif not edited_fields:
         day = ctx.spoken_day(updated["journal_date"])
-        first_line = f"Changed the links of the journal entry from {day}."
+        first_line = f"Changed the links or tags of the journal entry from {day}."
     else:
         first_line = f"Updated the journal entry from {ctx.spoken_day(updated['journal_date'])}."
     rows = [f"Entry {updated['id']} v{updated['version']}."]
@@ -156,6 +164,7 @@ def update_entry_text(
         changed = _relation_change_phrase(len(now - was), len(was - now))
         rows.append(changed or "No link changed.")
     rows.extend(links_row(updated))
+    rows.extend(tags_row(updated))
     return rows_text(first_line, rows)
 
 

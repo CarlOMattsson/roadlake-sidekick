@@ -461,6 +461,8 @@ export type ToolResults = {
     include_archived: boolean;
     next_cursor: string | null;
     q: string | null;
+    tag_match: "any" | "all";
+    tags: Array<string>;
   };
   list_domains: {
     domains: Array<DomainRecord>;
@@ -555,6 +557,14 @@ export type ToolResults = {
       label: string;
       slug: string;
       updated_at: string;
+      usage: {
+        contact: number | null;
+        domain: number | null;
+        journal_entry: number | null;
+        process: number | null;
+        project: number | null;
+        task: number | null;
+      };
       version: number;
     }>;
   };
@@ -833,6 +843,7 @@ export type ToolInputs = {
     phone?: string | null;
     relationship?: string | null;
     role?: string | null;
+    tags?: Array<string> | null;
   };
   create_domain: {
     accent?:
@@ -869,6 +880,7 @@ export type ToolInputs = {
     project_ids: Array<string>;
     source_id: string;
     summary: string | null;
+    tags?: Array<string> | null;
     task_ids: Array<string>;
     title: string;
   };
@@ -993,6 +1005,7 @@ export type ToolInputs = {
       }>;
     };
     summary: string | null;
+    tags?: Array<string> | null;
     task_proposals: Array<
       | {
           contact_ids: Array<string>;
@@ -1157,6 +1170,8 @@ export type ToolInputs = {
     include_archived?: boolean;
     limit?: number;
     q?: string | null;
+    tag_match?: "any" | "all";
+    tags?: Array<string> | null;
   };
   list_domains: {
     cursor?: string | null;
@@ -1168,6 +1183,8 @@ export type ToolInputs = {
     include_archived?: boolean;
     include_content?: boolean;
     limit?: number;
+    tag_match?: "any" | "all";
+    tags?: Array<string> | null;
     to_date?: string | null;
   };
   list_pending_journal: {
@@ -1412,6 +1429,7 @@ export type ToolInputs = {
       phone?: string | null;
       relationship?: string | null;
       role?: string | null;
+      tags?: Array<string>;
     };
     contact_id: string;
     expected_version: number;
@@ -1500,6 +1518,7 @@ export type ToolInputs = {
     remove_contact_ids?: Array<string> | null;
     remove_project_ids?: Array<string> | null;
     summary?: string | null;
+    tags?: Array<string> | null;
     title?: string | null;
   };
   update_process: {
@@ -1674,6 +1693,7 @@ export type ToolInputs = {
     project_ids?: Array<string> | null;
     source_text: string;
     summary?: string | null;
+    tags?: Array<string> | null;
     task_ids?: Array<string> | null;
     title: string;
   };
@@ -1723,6 +1743,7 @@ export type ContactRecord = {
   phone: string | null;
   relationship: string | null;
   role: string | null;
+  tags: Array<string>;
   updated_at: string;
   version: number;
 };
@@ -1738,6 +1759,7 @@ export type ContactSummaryRecord = {
   organization: string | null;
   relationship: string | null;
   role: string | null;
+  tags: Array<string>;
   updated_at: string;
   version: number;
 };
@@ -1841,6 +1863,7 @@ export type JournalEntryRecord = {
   project_ids: Array<string>;
   source_id: string;
   summary: string | null;
+  tags: Array<string>;
   task_ids: Array<string>;
   title: string;
   version: number;

@@ -7,11 +7,13 @@ import pytest
 
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
+    COLLECTIONS_ADDED_IN_FORMAT_6,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT_VERSION,
     EXPORT_SOURCES,
     FOLDED_CHAIN_HEADS,
-    PREVIOUS_EXPORT_FORMAT_VERSION,
+    FORMAT_WITH_RETIRED_COLLECTIONS,
+    FORMAT_WITHOUT_TAG_LINKS,
     RETIRED_COLLECTIONS,
     SCHEMA_CHAIN,
     SCHEMA_HEAD,
@@ -33,7 +35,12 @@ from sidekick.shared.persistence.models import (
     TaskStatusHistoryRow,
 )
 from sidekick.shared.types import Actor
-from tests.support.export_format4 import BASELINE_HEAD, as_format_4
+from tests.support.older_export_formats import (
+    BASELINE_HEAD,
+    DROP_AUTOMATION_HEAD,
+    as_format_4,
+    as_format_5,
+)
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
 # Tables with a generated `search_vector` (0.1.0 baseline); it is derived, never exported.
@@ -392,12 +399,13 @@ def reseal(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
-def test_current_export_is_format_five_at_the_chain_head() -> None:
+def test_current_export_is_format_six_at_the_chain_head() -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    assert document["format_version"] == EXPORT_FORMAT_VERSION == 5
+    assert document["format_version"] == EXPORT_FORMAT_VERSION == 6
     assert document["schema_head"] == SCHEMA_HEAD
+    assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_6
     assert "external_references" in document["collections"]
     assert "task_external_references" in document["collections"]
     assert "memory_settings" in document["collections"]
@@ -440,7 +448,7 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     (the owner's installation carries 105). It differs from the current format only by four empty
     collections of the retired automation engine, which are ignored."""
 
-    assert head in ACCEPTED_SCHEMA_HEADS_BY_FORMAT[PREVIOUS_EXPORT_FORMAT_VERSION]
+    assert head in ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITH_RETIRED_COLLECTIONS]
     assert head not in ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION]
 
     verification = verify_export(as_format_4(_current_document(), head))
@@ -450,9 +458,42 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_current_head_is_the_drop_of_the_retired_automation_tables() -> None:
-    assert SCHEMA_HEAD == "106_drop_retired_automation_tables"
+def test_the_current_head_is_the_tag_links_of_contacts_and_journal_entries() -> None:
+    assert SCHEMA_HEAD == "107_contact_and_journal_entry_tags"
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+
+
+def test_a_format_5_export_from_migration_106_is_still_accepted_without_tag_links() -> None:
+    """Format 5 was written at migration 106, before Contacts and Journal entries had tags. It
+    differs from the current format only by the two tag link collections, which restore empty."""
+
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_TAG_LINKS] == {DROP_AUTOMATION_HEAD}
+    document = as_format_5(_current_document())
+    assert not COLLECTIONS_ADDED_IN_FORMAT_6 & set(document["collections"])
+
+    verification = verify_export(document)
+
+    assert verification.owner_id == OWNER_ID
+    assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
+
+
+def test_a_format_5_export_cannot_carry_a_tag_link_collection() -> None:
+    document = as_format_5(_current_document())
+    document["collections"]["contact_tags"] = []
+    document["manifest"]["collection_counts"]["contact_tags"] = 0
+
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(document))
+
+
+@pytest.mark.parametrize("name", sorted(COLLECTIONS_ADDED_IN_FORMAT_6))
+def test_a_format_6_export_must_carry_every_tag_link_collection(name: str) -> None:
+    document = _current_document()
+    del document["collections"][name]
+    del document["manifest"]["collection_counts"][name]
+
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(document))
 
 
 @pytest.mark.parametrize("name", sorted(RETIRED_COLLECTIONS))
@@ -472,7 +513,7 @@ def test_a_format_4_export_must_carry_every_retired_collection() -> None:
         verify_export(reseal(document))
 
 
-def test_a_format_5_export_cannot_carry_a_retired_collection() -> None:
+def test_a_format_6_export_cannot_carry_a_retired_collection() -> None:
     document = _current_document()
     document["collections"]["assistant_automation_runs"] = []
     document["manifest"]["collection_counts"]["assistant_automation_runs"] = 0
@@ -511,7 +552,7 @@ def test_any_other_schema_head_is_refused(head: object) -> None:
 
 
 def test_an_export_written_before_the_baseline_is_refused() -> None:
-    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 and 5 are."""
+    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 6 are."""
 
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -574,7 +615,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
     assert document["collections"]["contacts"][0]["relationship"] == "syster"
 
 
-@pytest.mark.parametrize("version", [0, 1, 3, 6, "5", True, None, [5]])
+@pytest.mark.parametrize("version", [0, 1, 3, 7, "6", True, None, [6]])
 def test_a_format_version_that_the_head_never_wrote_is_refused(version: object) -> None:
     current = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)

@@ -239,7 +239,7 @@ def complete_task_structured(
     the use case's own."""
 
     # The reply lists the record's tags (projects:read); refuse before anything is written.
-    container.work_tags.require_record_tags_readable(actor)
+    container.work_tags.require_record_tags_readable(actor, "task")
     task = container.tasks.complete(
         actor,
         task_id,
@@ -270,7 +270,7 @@ def update_task_structured(
     """
 
     # The reply lists the record's tags (projects:read); refuse before anything is written.
-    container.work_tags.require_record_tags_readable(actor)
+    container.work_tags.require_record_tags_readable(actor, "task")
     patch = changes.model_dump(exclude_unset=True)
     if "due_at" in patch:
         patch["due_at"] = end_of_day_due_at(patch["due_at"], container.settings.owner_zone)

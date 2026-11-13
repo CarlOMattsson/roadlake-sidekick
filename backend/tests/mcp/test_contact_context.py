@@ -131,7 +131,7 @@ async def test_list_task_contacts_pages_only_the_contacts_linked_to_that_task() 
             second.structured_content["items"][0],
         ]
         assert {item["id"] for item in returned} == set(linked_ids)
-        # A summary carries the short profile fields but never the sensitive address.
+        # A summary carries the short profile fields and the tags, never the sensitive address.
         assert set(returned[0]) == {
             "id",
             "display_name",
@@ -141,6 +141,7 @@ async def test_list_task_contacts_pages_only_the_contacts_linked_to_that_task() 
             "relationship",
             "organization",
             "role",
+            "tags",
         }
 
 

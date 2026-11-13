@@ -346,8 +346,22 @@ class ActionOutput(Output):
     action: ActionRecord
 
 
+class TagUsage(Output):
+    """How many listed records of each kind carry a tag.
+
+    A kind the caller may not read is left out, not shown as 0.
+    """
+
+    domain: int | None = None
+    process: int | None = None
+    project: int | None = None
+    task: int | None = None
+    contact: int | None = None
+    journal_entry: int | None = None
+
+
 class TagRecord(Output):
-    """One owner-scoped vocabulary entry."""
+    """One owner-scoped vocabulary entry, used by records of any kind."""
 
     id: UUID
     slug: str
@@ -356,6 +370,7 @@ class TagRecord(Output):
     updated_at: datetime
     archived_at: datetime | None = None
     version: int
+    usage: TagUsage
 
 
 class TagPageOutput(Output):

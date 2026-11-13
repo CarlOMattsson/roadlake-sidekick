@@ -13,10 +13,12 @@ from uuid import UUID
 
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
+    COLLECTIONS_ADDED_IN_FORMAT_6,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT,
     EXPORT_FORMAT_VERSION,
-    PREVIOUS_EXPORT_FORMAT_VERSION,
+    FORMAT_WITH_RETIRED_COLLECTIONS,
+    FORMAT_WITHOUT_TAG_LINKS,
     RETIRED_COLLECTIONS,
     SCHEMA_HEAD,
     SOURCES_BY_NAME,
@@ -154,15 +156,21 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
         raise ExportRefused("collections must be an object")
     collections = cast(Mapping[str, Any], collections_value)
     retired: frozenset[str] = (
-        RETIRED_COLLECTIONS if format_version == PREVIOUS_EXPORT_FORMAT_VERSION else frozenset()
+        RETIRED_COLLECTIONS if format_version == FORMAT_WITH_RETIRED_COLLECTIONS else frozenset()
     )
-    if set(collections) != set(SOURCES_BY_NAME) | retired:
+    # A document of an older format does not have the collections added since; they restore empty.
+    not_yet: frozenset[str] = (
+        COLLECTIONS_ADDED_IN_FORMAT_6 if format_version <= FORMAT_WITHOUT_TAG_LINKS else frozenset()
+    )
+    if set(collections) != (set(SOURCES_BY_NAME) - not_yet) | retired:
         raise ExportRefused("export collection catalogue does not match format")
     for name in sorted(retired):
         if collections[name] != []:
             raise ExportRefused(f"collection {name} of a retired feature must be empty")
 
     for name, source in SOURCES_BY_NAME.items():
+        if name in not_yet:
+            continue
         rows_value = collections[name]
         if not isinstance(rows_value, list):
             raise ExportRefused(f"collection {name} must be an array")
@@ -190,7 +198,7 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
     counts = manifest.get("collection_counts")
     if counts != {name: len(collections[name]) for name in collections}:
         raise ExportRefused("manifest counts do not match collections")
-    document_counts = {name: len(collections[name]) for name in SOURCES_BY_NAME}
+    document_counts = {name: len(collections.get(name, ())) for name in SOURCES_BY_NAME}
     checksum = manifest.get("sha256")
     if not isinstance(checksum, str) or checksum != export_checksum(document):
         raise ExportRefused("export checksum mismatch")

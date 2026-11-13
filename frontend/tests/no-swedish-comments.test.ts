@@ -111,7 +111,8 @@ describe("frontend comments are English", () => {
       hits,
       `Swedish comments (write English):\n${hits.join("\n")}`,
     ).toEqual([]);
-  });
+    // Parses every source file with the TypeScript compiler: seconds alone, longer on a loaded runner.
+  }, 60_000);
 
   it("finds Swedish comments but not strings, template literals or JSX text", () => {
     const sample = [

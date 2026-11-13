@@ -1,7 +1,7 @@
 """Transport-neutral queries and edits of existing manual Journal entries."""
 
-from collections.abc import Callable
-from datetime import date
+from collections.abc import Callable, Sequence
+from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -31,6 +31,20 @@ from sidekick.journal.domain.records import PendingJournalItem
 from sidekick.journal.domain.source import JournalSource, replacement_source
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.types import Actor, Clock, CursorCodec, Page, TxSession, new_uuid7, paginate
+from sidekick.work.domain.planning import normalize_tag_filter, normalize_tag_selection
+from sidekick.work.domain.tag_assignment import apply_record_tags
+
+
+def _wanted_tags(tags: Sequence[str] | None) -> tuple[str, ...] | None:
+    """The normalized tag set a write asks for; None when it sends none (tags stay as they are)."""
+
+    return None if tags is None else normalize_tag_selection(list(tags))
+
+
+def _tags_payload(tags: tuple[str, ...] | None) -> dict[str, list[str]]:
+    """The tag set for the idempotency fingerprint; empty when none was sent."""
+
+    return {} if tags is None else {"tags": list(tags)}
 
 
 class JournalService:
@@ -48,12 +62,17 @@ class JournalService:
         start_date: date,
         end_date: date,
         include_archived: bool = False,
+        tags: Sequence[str] = (),
+        tag_match: str = "any",
         limit: int = 100,
         cursor: str | None = None,
     ) -> Page[JournalEntry]:
         actor.require("journal:read")
         validate_list_bounds(start_date, end_date, limit)
-        query_key = journal_list_cursor_key(start_date, end_date, include_archived)
+        wanted_tags, tag_match = normalize_tag_filter(list(tags), tag_match)
+        query_key = journal_list_cursor_key(
+            start_date, end_date, include_archived, wanted_tags, tag_match
+        )
         after = decode_cursor(self.cursor_codec, actor.user_id, cursor, query_key)
         entries = self.store.transaction(
             lambda session: self.store.list_journal_entries(
@@ -64,6 +83,8 @@ class JournalService:
                 include_archived=include_archived,
                 limit=limit + 1,
                 after=after,
+                tags=wanted_tags,
+                tag_match=tag_match,
             )
         )
         return Page(
@@ -109,19 +130,25 @@ class JournalService:
         entry_id: UUID,
         expected_version: int,
         change: RelationChange,
+        tags: Sequence[str] | None = None,
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> JournalEntry:
-        """Add and remove links to Projects and Contacts on an entry; it gets a new version."""
+        """Add and remove links to Projects and Contacts and set the tags of an entry.
+
+        The content stays; the entry gets a new version. `tags` is the complete intended tag set.
+        """
 
         actor.require("journal:write")
         change = checked_relation_change(actor, change)
-        if change.is_empty():
-            raise ValidationError("a relation change is required")
+        wanted_tags = _wanted_tags(tags)
+        if change.is_empty() and wanted_tags is None:
+            raise ValidationError("a relation or tag change is required")
         payload = {
             "entry_id": str(entry_id),
             "expected_version": expected_version,
             **change.payload(),
+            **_tags_payload(wanted_tags),
         }
         return self._mutate_entry(
             actor,
@@ -135,6 +162,7 @@ class JournalService:
             ),
             correlation_id=correlation_id,
             relation_change=change,
+            tags=wanted_tags,
             relations_only=True,
         )
 
@@ -150,9 +178,11 @@ class JournalService:
         idempotency_key: str,
         correlation_id: str | None = None,
         relation_change: RelationChange | None = None,
+        tags: Sequence[str] | None = None,
     ) -> JournalEntry:
         actor.require("journal:write")
         change = checked_relation_change(actor, relation_change or RelationChange())
+        wanted_tags = _wanted_tags(tags)
         payload = {
             "entry_id": str(entry_id),
             "expected_version": expected_version,
@@ -160,6 +190,7 @@ class JournalService:
             "summary": summary,
             "key_points": [{"kind": point.kind.value, "text": point.text} for point in key_points],
             **change.payload(),
+            **_tags_payload(wanted_tags),
         }
         return self._mutate_entry(
             actor,
@@ -178,6 +209,7 @@ class JournalService:
             ),
             correlation_id=correlation_id,
             relation_change=change,
+            tags=wanted_tags,
         )
 
     def append_to_entry(
@@ -193,6 +225,7 @@ class JournalService:
         idempotency_key: str,
         correlation_id: str | None = None,
         relation_change: RelationChange | None = None,
+        tags: Sequence[str] | None = None,
     ) -> JournalEntry:
         """Add to an entry without resending it.
 
@@ -204,6 +237,7 @@ class JournalService:
 
         actor.require("journal:write")
         change = checked_relation_change(actor, relation_change or RelationChange())
+        wanted_tags = _wanted_tags(tags)
         if not append_key_points and append_text is None:
             raise ValidationError("append_key_points or append_text is required")
         payload = {
@@ -216,6 +250,7 @@ class JournalService:
             ],
             "append_text": append_text,
             **change.payload(),
+            **_tags_payload(wanted_tags),
         }
 
         def operation(session: TxSession) -> JournalEntry:
@@ -236,6 +271,7 @@ class JournalService:
                     append_text,
                     correlation_id,
                     change,
+                    wanted_tags,
                 ),
             )
             return self.store.get_journal_entry(session, actor.user_id, UUID(result["entry_id"]))
@@ -254,6 +290,7 @@ class JournalService:
         append_text: str | None,
         correlation_id: str | None,
         relation_change: RelationChange,
+        tags: tuple[str, ...] | None,
     ) -> dict[str, Any]:
         current = self.store.get_journal_entry(session, actor.user_id, entry_id)
         if len(current.key_points) + len(append_key_points) > 50:
@@ -310,6 +347,7 @@ class JournalService:
         )
         if not relation_change.is_empty():
             apply_relation_change(self.store, session, actor, updated.id, relation_change)
+        self._apply_tags(session, actor, updated.id, tags, now)
         self.store.mark_daily_journal_summary_stale(session, actor.user_id, updated.journal_date)
         self.store.append_audit(
             session,
@@ -368,6 +406,27 @@ class JournalService:
             correlation_id=correlation_id,
         )
 
+    def _apply_tags(
+        self,
+        session: TxSession,
+        actor: Actor,
+        entry_id: UUID,
+        tags: tuple[str, ...] | None,
+        now: datetime,
+    ) -> None:
+        """Replace the entry's tags with the complete intended set, when one was sent."""
+
+        if tags is not None:
+            apply_record_tags(
+                self.store,
+                session,
+                owner_id=actor.user_id,
+                kind="journal_entry",
+                record_id=entry_id,
+                values=tags,
+                now=now,
+            )
+
     def _mutate_entry(
         self,
         actor: Actor,
@@ -380,6 +439,7 @@ class JournalService:
         transition: Callable[[JournalEntry], JournalEntry],
         correlation_id: str | None,
         relation_change: RelationChange | None = None,
+        tags: tuple[str, ...] | None = None,
         relations_only: bool = False,
     ) -> JournalEntry:
         def operation_fn(session: TxSession) -> JournalEntry:
@@ -397,6 +457,7 @@ class JournalService:
                     transition,
                     correlation_id,
                     relation_change,
+                    tags,
                     relations_only=relations_only,
                 ),
             )
@@ -413,6 +474,7 @@ class JournalService:
         transition: Callable[[JournalEntry], JournalEntry],
         correlation_id: str | None,
         relation_change: RelationChange | None = None,
+        tags: tuple[str, ...] | None = None,
         *,
         relations_only: bool = False,
     ) -> dict[str, Any]:
@@ -423,6 +485,7 @@ class JournalService:
             raise ConflictError(str(error)) from error
         if (
             relations_only
+            and tags is None
             and relation_change is not None
             and not changes_links(self.store, session, actor, entry_id, relation_change)
         ):
@@ -434,6 +497,7 @@ class JournalService:
         )
         if relation_change is not None and not relation_change.is_empty():
             apply_relation_change(self.store, session, actor, updated.id, relation_change)
+        self._apply_tags(session, actor, updated.id, tags, self.clock.now())
         self.store.mark_daily_journal_summary_stale(session, actor.user_id, updated.journal_date)
         self.store.append_audit(
             session,

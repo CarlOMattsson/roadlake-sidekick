@@ -54,6 +54,14 @@ tabellen utpekad och utan ändringar, om någon av dem innehåller en rad, och d
 `domain_events.automation_run_id` och huvudbokens typ `automation_run` finns kvar. Ägarexporten tappade också de fyra
 samlingarna (format 5); en export i format 4 läses fortfarande, och vägras om någon av de samlingarna inte är tom.
 
+## Migrering 107: taggar på kontakter och dagboksposter
+
+`107_contact_and_journal_entry_tags.py` är en additiv (expand) migrering. Den skapar länktabellerna `contact_tags` och
+`journal_entry_tags`, formade som `task_tags`: en rad per tagg och post, där taggen och posten har samma ägare
+(sammansatta främmande nycklar) och försvinner med någon av dem. Taggordlistan `work_tags` delas av alla sorters poster.
+En återrullning tar bara bort de två länktabellerna. Ägarexporten bär dem som två nya samlingar (format 6); en export i
+format 5 har inga och återställs utan taggar.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

@@ -28,7 +28,7 @@ Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och anv
 - Din användare måste kunna köra `docker` **utan `sudo`**: Claude Desktop startar Sidekick med `docker exec`, och det
   kan inte be om ett lösenord. På Linux: `sudo usermod -aG docker "$USER"`, logga sedan ut och in igen och kontrollera
   med `docker ps` (utan `sudo`). Med Docker Desktop på Mac behövs inget extra.
-- `git`, `openssl`, `python3` och `curl` (finns som standard på Ubuntu och macOS).
+- `git`, `python3` och `curl` (finns som standard på Ubuntu och macOS).
 - Claude Desktop. Node.js behövs inte: Claude Desktop startar Sidekicks stdio-server direkt i containern.
 - Bara om du vill ha minnet: adressen till företagets modellserver (en vLLM-adress som slutar på `/v1`) och, om den kräver en, dess API-nyckel. Modellservern är valfri; utan minnet körs Sidekick helt på datorn och behöver ingen.
 

@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
+from pydantic import Field
+
 from sidekick.shared.types import Actor
 from sidekick.structured.base import Output
 
@@ -23,6 +25,7 @@ class ContactSummaryRecord(Output):
     relationship: str | None = None
     organization: str | None = None
     role: str | None = None
+    tags: list[str] = Field(default_factory=list)
 
 
 class TaskContactPageRecord(Output):
@@ -45,6 +48,7 @@ def task_contacts_structured(
     page = container.contact_relations.list_task_contacts(
         actor, task_id, limit=limit, cursor=cursor
     )
+    tags = container.work_tags.slugs_for(actor, "contact", [item.id for item in page.items])
     return TaskContactPageRecord(
         items=[
             ContactSummaryRecord(
@@ -56,6 +60,7 @@ def task_contacts_structured(
                 relationship=item.relationship,
                 organization=item.organization,
                 role=item.role,
+                tags=list(tags.get(item.id, ())),
             )
             for item in page.items
         ],

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Annotated, Any
 from uuid import UUID
@@ -42,9 +42,10 @@ from sidekick.structured.contacts import (
     TaskContactPageRecord,
     task_contacts_structured,
 )
+from sidekick.structured.tags import TagFilter, TagMatch
 
 
-def _summary_record(item: Any) -> ContactSummaryRecord:
+def _summary_record(item: Any, tags: Sequence[str] = ()) -> ContactSummaryRecord:
     return ContactSummaryRecord(
         id=item.id,
         display_name=item.display_name,
@@ -54,7 +55,15 @@ def _summary_record(item: Any) -> ContactSummaryRecord:
         relationship=item.relationship,
         organization=item.organization,
         role=item.role,
+        tags=list(tags),
     )
+
+
+def _page_records(ctx: ToolContext, items: Sequence[Any]) -> list[ContactSummaryRecord]:
+    """The Contacts of a page as summaries, each with its tags (one read for the page)."""
+
+    tags = ctx.container.work_tags.slugs_for(ctx.actor_provider(), "contact", [i.id for i in items])
+    return [_summary_record(item, tags.get(item.id, ())) for item in items]
 
 
 def _closest_contacts(ctx: ToolContext, q: str) -> list[Any]:
@@ -66,9 +75,11 @@ def _closest_contacts(ctx: ToolContext, q: str) -> list[Any]:
     ]
 
 
-def _closest_reply(structured: dict[str, Any], closest: list[Any]) -> Any:
+def _closest_reply(ctx: ToolContext, structured: dict[str, Any], closest: list[Any]) -> Any:
     """A misheard name ("Elijas" for "Elias"): the same word-level search as `search`."""
-    structured["contacts"] = [_summary_record(item).model_dump(mode="json") for item in closest]
+    structured["contacts"] = [
+        record.model_dump(mode="json") for record in _page_records(ctx, closest)
+    ]
     names = [item.display_name for item in closest]
     label = "Closest match" if len(names) == 1 else "Closest matches"
     header = f"{label}: {spoken_names(names, total=len(names))}?"
@@ -136,7 +147,7 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
             "use its id. If several match, ask the user which one, briefly naming the candidates. "
             'If no match, try search with kinds=["contacts"] before creating; create the Contact '
             "only when the user is describing a new person. "
-            "Duplicate candidates are returned separately."
+            "Duplicate candidates are returned separately. tags lists only Contacts with them."
         ),
         output_schema=output_schema(ContactPageResult),
         annotations=READ,
@@ -145,6 +156,8 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
     def list_contacts(
         q: Annotated[str | None, Field(min_length=1, max_length=200)] = None,
         include_archived: bool = False,
+        tags: TagFilter | None = None,
+        tag_match: TagMatch = "any",
         limit: Annotated[int, Field(ge=1, le=100)] = 25,
         cursor: Cursor = None,
     ) -> Any:
@@ -152,18 +165,22 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
             ctx.actor_provider(),
             q=q,
             include_archived=include_archived,
+            tags=tuple(tags or ()),
+            tag_match=tag_match,
             limit=limit,
             cursor=cursor,
         )
         structured = ContactPageResult(
-            contacts=[_summary_record(item) for item in page.items],
+            contacts=_page_records(ctx, page.items),
             next_cursor=page.next_cursor,
             q=q,
             include_archived=include_archived,
+            tags=list(tags or ()),
+            tag_match=tag_match,
         ).model_dump(mode="json")
         closest = _closest_contacts(ctx, q) if not page.items and q and cursor is None else []
         if closest:
-            return _closest_reply(structured, closest)
+            return _closest_reply(ctx, structured, closest)
         if page.items:
             names = spoken_names([item.display_name for item in page.items], total=len(page.items))
             header = f"{count_phrase(len(page.items), 'contact', 'contacts')}: {names}."
@@ -210,8 +227,11 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
             task_cursor=task_cursor,
             include_completed=include_completed,
         )
+        contact_tags = container.work_tags.for_record(ctx.actor_provider(), "contact", contact_id)
         structured = ContactContextResult(
-            contact=ContactRecord.model_validate(contact_public_data(res["contact"])),
+            contact=ContactRecord.model_validate(
+                {**contact_public_data(res["contact"]), "tags": [tag.slug for tag in contact_tags]}
+            ),
             projects=_project_context_page(res["projects"]),
             tasks=_task_context_page(res["tasks"], res["task_marks"]),
             journal_entries=_journal_context(res["journal_entries"]),

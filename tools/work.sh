@@ -107,31 +107,10 @@ envval() {
 
 # Replace the first "KEY=..." or "# KEY=..." line of work.env with "KEY=value" (or append). Rewrites only that
 # line, so every other setting and comment survives a second run of the guide.
-set_env() {
-  local key="$1" value="$2" tmp
-  tmp="$(mktemp "$WORK/.env.XXXXXX")"
-  awk -v k="$key" -v v="$value" '
-    BEGIN { done = 0 }
-    {
-      if ($0 ~ ("^" k "=") || $0 ~ ("^# ?" k "=")) {
-        if (!done) { print k "=" v; done = 1 }
-        next
-      }
-      print
-    }
-    END { if (!done) print k "=" v }' "$WORK_ENV" >"$tmp"
-  chmod 600 "$tmp"
-  mv "$tmp" "$WORK_ENV"
-}
+set_env() { workctl env-set --env-file "$WORK_ENV" -- "$1" "$2"; }
 
 # Turn an active "KEY=..." line into a comment (the setting is then off).
-unset_env() {
-  local key="$1" tmp
-  tmp="$(mktemp "$WORK/.env.XXXXXX")"
-  awk -v k="$key" '{ if ($0 ~ ("^" k "=")) print "# " $0; else print }' "$WORK_ENV" >"$tmp"
-  chmod 600 "$tmp"
-  mv "$tmp" "$WORK_ENV"
-}
+unset_env() { workctl env-unset --env-file "$WORK_ENV" -- "$1"; }
 
 # Split SIDEKICK_WORK_MODEL_BASE_URL into scheme, host, port, path, is_ip (one per line); exit 2 with a reason.
 parse_base_url() {
@@ -263,16 +242,7 @@ generate_secrets() {
 # SIDEKICK_ENABLED_ROOMS goes into the api container environment only when set in work.env, so a release without
 # that setting still starts. The stdio process Claude Desktop starts runs inside the api container (docker exec)
 # and so sees the same value.
-write_rooms_env() {
-  local rooms
-  rooms="$(envval SIDEKICK_ENABLED_ROOMS)"
-  if [ -n "$rooms" ]; then
-    printf 'SIDEKICK_ENABLED_ROOMS=%s\n' "$rooms" >"$SECRETS/rooms.env"
-    chmod 600 "$SECRETS/rooms.env"
-  else
-    rm -f "$SECRETS/rooms.env"
-  fi
-}
+write_rooms_env() { workctl rooms-env --env-file "$WORK_ENV" --secrets-dir "$SECRETS"; }
 
 container_id() { compose ps -q "$1" 2>/dev/null || true; }
 
@@ -294,15 +264,7 @@ confirm() {
 }
 
 # GET <base>/models with the key passed on stdin (never on a command line). Prints the model ids, one per line.
-list_models() {
-  local base="$1" key="$2" body
-  if [ -n "$key" ]; then
-    body="$(printf 'header = "Authorization: Bearer %s"\n' "$key" | curl -s -f -m 15 -K - "$base/models" 2>/dev/null)" || return 1
-  else
-    body="$(curl -s -f -m 15 "$base/models" 2>/dev/null)" || return 1
-  fi
-  printf '%s' "$body" | workctl model-ids || return 1
-}
+list_models() { printf '%s' "$2" | workctl models-list --base-url "$1"; }
 
 # Pick from a numbered list or take a typed id. $1 variable, $2 prompt key, $3 default id, rest: the ids.
 pick_model() {
@@ -314,7 +276,7 @@ pick_model() {
 # ---------------------------------------------------------------------------------------------------------
 
 cmd_init() {
-  need_docker; need_tool openssl
+  need_docker
   mkdir -p "$SECRETS"
   chmod 700 "$SECRETS"
   ensure_work_env || true
@@ -509,7 +471,7 @@ cmd_stop() {
     [ "$answer" = "$(msg purge_yes)" ] || { say aborted; exit 1; }
     compose down -v >>"$LOG" 2>&1 || { errf down_fail "$LOG"; exit 1; }
     rm -rf "$SECRETS" "$BACKUPS" "$GEN"
-    autostart_remove
+    cmd_autostart off >/dev/null
     say purged
   else
     compose down >>"$LOG" 2>&1 || { errf down_fail "$LOG"; exit 1; }
@@ -570,65 +532,12 @@ cmd_status() {
 }
 
 # ---------------------------------------------------------------------------------------------------------
-# Autostart. Linux: a systemd user unit that brings the stack up at login (containers also come back on their own
-# when the Docker service starts, unless they were stopped with `stop`). macOS: a launchd LaunchAgent that waits
-# for Docker Desktop. SIDEKICK_WORK_AUTOSTART_DIR redirects the unit file (tests) and skips systemctl/launchctl.
-AUTOSTART_LABEL=local.sidekick.work
-
-autostart_file() {
-  if [ -n "${SIDEKICK_WORK_AUTOSTART_DIR:-}" ]; then
-    if [ "$(uname -s)" = Darwin ]; then echo "$SIDEKICK_WORK_AUTOSTART_DIR/$AUTOSTART_LABEL.plist"; else echo "$SIDEKICK_WORK_AUTOSTART_DIR/sidekick-work.service"; fi
-  elif [ "$(uname -s)" = Darwin ]; then
-    echo "$HOME/Library/LaunchAgents/$AUTOSTART_LABEL.plist"
-  else
-    echo "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/sidekick-work.service"
-  fi
-}
-
-autostart_on() {
-  local file text; file="$(autostart_file)"
-  mkdir -p "$(dirname "$file")"
-  if [ "$(uname -s)" = Darwin ]; then
-    text="$(workctl autostart-render --kind launchd --label "$AUTOSTART_LABEL" --script "$REPO/tools/work.sh" \
-      --log "$WORK/autostart.log")" || exit 1
-    printf '%s\n' "$text" >"$file"
-    if [ -z "${SIDEKICK_WORK_AUTOSTART_DIR:-}" ]; then
-      launchctl bootout "gui/$(id -u)/$AUTOSTART_LABEL" >/dev/null 2>&1 || true
-      launchctl bootstrap "gui/$(id -u)" "$file"
-    fi
-    sayf as_launchd "$file"
-  else
-    text="$(workctl autostart-render --kind systemd --script "$REPO/tools/work.sh")" || exit 1
-    printf '%s\n' "$text" >"$file"
-    if [ -z "${SIDEKICK_WORK_AUTOSTART_DIR:-}" ]; then
-      systemctl --user daemon-reload
-      systemctl --user enable sidekick-work.service >/dev/null
-    fi
-    sayf as_systemd "$file" "$USER"
-  fi
-}
-
-autostart_remove() {
-  local file; file="$(autostart_file)"
-  if [ -z "${SIDEKICK_WORK_AUTOSTART_DIR:-}" ]; then
-    if [ "$(uname -s)" = Darwin ]; then
-      launchctl bootout "gui/$(id -u)/$AUTOSTART_LABEL" >/dev/null 2>&1 || true
-    else
-      systemctl --user disable sidekick-work.service >/dev/null 2>&1 || true
-    fi
-  fi
-  rm -f "$file"
-  if [ -z "${SIDEKICK_WORK_AUTOSTART_DIR:-}" ] && [ "$(uname -s)" != Darwin ]; then
-    systemctl --user daemon-reload >/dev/null 2>&1 || true
-  fi
-  return 0
-}
-
+# Autostart: a systemd user unit (Linux) or a launchd LaunchAgent (macOS), see tools/workctl/autostart.py.
+# SIDEKICK_WORK_AUTOSTART_DIR redirects the unit file (tests) and skips systemctl/launchctl.
 cmd_autostart() {
   case "${1:-}" in
-    on) autostart_on ;;
-    off) autostart_remove; say as_off ;;
-    status) if [ -f "$(autostart_file)" ]; then sayf as_state_on "$(autostart_file)"; else say as_state_off; fi ;;
+    on|off|status) workctl autostart --lang "$L" --platform "$(uname -s)" --script "$REPO/tools/work.sh" \
+      --log "$WORK/autostart.log" "$1" ;;
     *) errf as_usage; exit 2 ;;
   esac
 }
@@ -660,8 +569,6 @@ backup_crypto() {
     python -I -c "$(cat "$CRYPTO_SCRIPT")" "$1" 2>>"$LOG"
 }
 
-backup_files_exist() { ls "$BACKUPS"/*.enc >/dev/null 2>&1; }
-
 # Makes a file, or a directory entry, durable: `sync PATH` (coreutils) flushes that one file or directory to disk,
 # older or other implementations ignore the argument and flush everything. Used on a finished backup file before it is
 # renamed into place and on the directory after the rename (and after pruning), so a power loss cannot leave a name
@@ -671,25 +578,7 @@ fsync_path() { sync "$1" 2>/dev/null || sync; }
 # Fails closed (exit 1, nothing changed) unless a usable key file exists. A missing key is never replaced silently while
 # encrypted backups exist: a new key would make them unreadable. $1 = generate: create the key when there is no backup.
 require_backup_key() {
-  local key tmp dir
-  case "$BACKUP_KEY_FILE" in "$BACKUPS"/*) errf bk_key_inside "$BACKUP_KEY_FILE" "$BACKUPS"; exit 1 ;; esac
-  if [ ! -e "$BACKUP_KEY_FILE" ]; then
-    if [ "${1:-}" != generate ] || backup_files_exist; then errf bk_key_missing "$BACKUP_KEY_FILE" "$BACKUPS"; exit 1; fi
-    dir="$(dirname "$BACKUP_KEY_FILE")"
-    mkdir -p "$dir"
-    tmp="$(mktemp "$dir/.tmp.XXXXXX")"
-    # A Fernet key is 32 random bytes as URL-safe base64.
-    openssl rand -base64 32 | tr '+/' '-_' | tr -d '\n' >"$tmp"
-    printf '\n' >>"$tmp"
-    chmod 600 "$tmp"
-    fsync_path "$tmp"
-    mv "$tmp" "$BACKUP_KEY_FILE"
-    fsync_path "$dir"
-    sayf bk_key_new "$BACKUP_KEY_FILE"
-  fi
-  key="$(tr -d '[:space:]' <"$BACKUP_KEY_FILE" 2>/dev/null || true)"
-  [[ "$key" =~ ^[A-Za-z0-9_-]{43}=$ ]] || { errf bk_key_bad "$BACKUP_KEY_FILE"; exit 1; }
-  chmod 600 "$BACKUP_KEY_FILE" 2>/dev/null || true
+  workctl backup-key --lang "$L" --key-file "$BACKUP_KEY_FILE" --backups-dir "$BACKUPS" ${1:+--generate} || exit 1
 }
 
 # The proof that a backup is usable: decrypt it again (Fernet authenticates the whole file, so a damaged or wrongly
@@ -1410,7 +1299,7 @@ cmd_setup() {
   say intro
   echo
   missing=""
-  for t in docker openssl curl; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
+  for t in docker curl; do command -v "$t" >/dev/null 2>&1 || missing="$missing $t"; done
   if [ -n "$missing" ]; then errf need "${missing# }"; exit 1; fi
   if ! docker compose version >/dev/null 2>&1; then errf compose_old; exit 1; fi
 

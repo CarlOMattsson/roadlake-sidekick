@@ -1,7 +1,12 @@
-"""Text of the login-start files in tools/workctl: XML and systemd escaping, exact output."""
+"""The login-start files of tools/workctl: escaping, exact output, location, writing and removal."""
 
+import os
 import plistlib
+import stat
+import subprocess
+from pathlib import Path
 
+import pytest
 from tools.workctl import autostart
 
 # Space, &, <, $, %, and a double quote: every character the two escaping schemes must handle.
@@ -99,3 +104,106 @@ def test_render_launchd_escapes_knepig_paths_and_parses_as_plist() -> None:
     assert plist["RunAtLoad"] is True
     assert plist["StandardOutPath"] == log
     assert plist["StandardErrorPath"] == log
+
+
+HOME = Path("/home/someone")
+
+
+def test_the_unit_file_lives_in_the_override_directory_when_one_is_given() -> None:
+    assert autostart.unit_file("Linux", "/x", HOME, "") == Path("/x/sidekick-work.service")
+    assert autostart.unit_file("Darwin", "/x", HOME, "") == Path("/x/local.sidekick.work.plist")
+
+
+def test_the_unit_file_lives_in_the_users_own_location_otherwise() -> None:
+    assert (
+        autostart.unit_file("Linux", "", HOME, "")
+        == HOME / ".config/systemd/user/sidekick-work.service"
+    )
+    assert autostart.unit_file("Linux", "", HOME, "/cfg") == Path(
+        "/cfg/systemd/user/sidekick-work.service"
+    )
+    assert autostart.unit_file("Darwin", "", HOME, "") == (
+        HOME / "Library/LaunchAgents/local.sidekick.work.plist"
+    )
+
+
+def test_enable_writes_the_unit_with_mode_600_and_runs_nothing_when_not_managed(
+    tmp_path: Path,
+) -> None:
+    file = tmp_path / "units" / "sidekick-work.service"
+    autostart.enable(file, "Linux", "/a/work.sh", "/a/log", managed=False)
+    assert file.read_text(encoding="utf-8") == autostart.render_systemd("/a/work.sh")
+    assert stat.S_IMODE(file.stat().st_mode) == 0o600
+
+
+def test_enable_writes_the_plist_on_macos(tmp_path: Path) -> None:
+    file = tmp_path / "local.sidekick.work.plist"
+    autostart.enable(file, "Darwin", "/a/work.sh", "/a/log", managed=False)
+    assert file.read_text(encoding="utf-8") == autostart.render_launchd(
+        autostart.LABEL, "/a/work.sh", "/a/log"
+    )
+
+
+def test_enable_registers_the_unit_with_systemd_when_managed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(autostart, "_run", lambda argv, **_kw: calls.append(list(argv)))
+    autostart.enable(tmp_path / "u.service", "Linux", "/a/work.sh", "/a/log", managed=True)
+    assert calls == [
+        ["systemctl", "--user", "daemon-reload"],
+        ["systemctl", "--user", "enable", "sidekick-work.service"],
+    ]
+
+
+def test_enable_registers_the_agent_with_launchd_when_managed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(autostart, "_run", lambda argv, **_kw: calls.append(list(argv)))
+    file = tmp_path / "a.plist"
+    autostart.enable(file, "Darwin", "/a/work.sh", "/a/log", managed=True)
+    assert [call[:2] for call in calls] == [["launchctl", "bootout"], ["launchctl", "bootstrap"]]
+    assert calls[1][2:] == [f"gui/{os.getuid()}", str(file)]
+
+
+def test_disable_removes_the_file_and_is_fine_when_it_is_gone(tmp_path: Path) -> None:
+    file = tmp_path / "sidekick-work.service"
+    file.write_text("x", encoding="utf-8")
+    autostart.disable(file, "Linux", managed=False)
+    autostart.disable(file, "Linux", managed=False)
+    assert not file.exists()
+
+
+def test_disable_ignores_a_missing_systemctl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PATH", str(tmp_path))
+    file = tmp_path / "sidekick-work.service"
+    file.write_text("x", encoding="utf-8")
+    autostart.disable(file, "Linux", managed=True)
+    assert not file.exists()
+
+
+def test_enable_fails_with_an_error_when_systemctl_is_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PATH", str(tmp_path))
+    with pytest.raises(autostart.AutostartError):
+        autostart.enable(tmp_path / "u.service", "Linux", "/a/work.sh", "/a/log", managed=True)
+
+
+def test_systemctl_enable_hides_only_its_output_so_errors_stay_visible(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: dict[tuple[str, ...], dict[str, object]] = {}
+
+    def fake_run(argv: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        seen[tuple(argv)] = kwargs
+        return subprocess.CompletedProcess(argv, 0)
+
+    monkeypatch.setattr(autostart.subprocess, "run", fake_run)
+    autostart.enable(tmp_path / "u.service", "Linux", "/a/work.sh", "/a/log", managed=True)
+    enable = seen[("systemctl", "--user", "enable", "sidekick-work.service")]
+    assert enable["stdout"] == subprocess.DEVNULL
+    assert enable["stderr"] is None

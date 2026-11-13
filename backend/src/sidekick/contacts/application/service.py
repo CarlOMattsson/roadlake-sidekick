@@ -26,10 +26,13 @@ from sidekick.shared.types import (
     CursorCodec,
     Page,
     TxSession,
+    UnsetType,
     new_uuid7,
     paginate,
     validate_limit,
 )
+from sidekick.work.domain.planning import normalize_tag_filter, normalize_tag_selection
+from sidekick.work.domain.tag_assignment import apply_record_tags
 
 
 class ContactService:
@@ -55,23 +58,35 @@ class ContactService:
         *,
         q: str | None = None,
         include_archived: bool = False,
+        tags: Sequence[str] = (),
+        tag_match: str = "any",
         limit: int = 25,
         cursor: str | None = None,
     ) -> Page[Contact]:
         actor.require("contacts:read")
         validate_limit(limit, maximum=100)
 
+        wanted_tags, tag_match = normalize_tag_filter(list(tags), tag_match)
         normalized_query = normalize_name(q)[1] if q else "*"
         query_fingerprint = hashlib.sha256(normalized_query.encode()).hexdigest()
         query_key = f"contacts:v2:q={query_fingerprint}:archived={include_archived}"
+        if wanted_tags:
+            query_key += f":tags={','.join(wanted_tags)}:match={tag_match}"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=NAMED_KEY)
 
         contacts = self.store.transaction(
             lambda session: self.store.list_contacts(
-                session, actor.user_id, limit + 1, q, include_archived, after
+                session,
+                actor.user_id,
+                limit + 1,
+                q,
+                include_archived,
+                after,
+                wanted_tags,
+                tag_match,
             )
         )
-        if q and not contacts and after is None:
+        if q and not contacts and after is None and not wanted_tags:
             # A misheard name ("Shell" for "Kjell") finds nothing by name or alias: one bounded
             # phonetic page, without a cursor, so the list never pages through fallback hits.
             phonetic = self.store.transaction(
@@ -117,6 +132,9 @@ class ContactService:
         for field in ("relationship", "organization", "role", "address"):
             if getattr(command, field) is not None:
                 payload[field] = getattr(command, field)
+        tags = normalize_tag_selection(command.tags)
+        if tags:
+            payload["tags"] = list(tags)
 
         def operation(session: TxSession) -> Contact:
             result = self.store.idempotent(
@@ -126,7 +144,7 @@ class ContactService:
                 key=idempotency_key,
                 payload=payload,
                 replay=id_replay_record,
-                execute=lambda: self._create(session, actor, command, correlation_id),
+                execute=lambda: self._create(session, actor, command, tags, correlation_id),
             )
             return self._replayed(session, actor, result)
 
@@ -137,6 +155,7 @@ class ContactService:
         session: TxSession,
         actor: Actor,
         command: CreateContactCommand,
+        tags: tuple[str, ...],
         correlation_id: str | None,
     ) -> dict[str, Any]:
         now = self.clock.now()
@@ -189,6 +208,16 @@ class ContactService:
             version=1,
         )
         self.store.save_contact(session, contact)
+        if tags:
+            apply_record_tags(
+                self.store,
+                session,
+                owner_id=actor.user_id,
+                kind="contact",
+                record_id=contact.id,
+                values=tags,
+                now=now,
+            )
         self.store.append_audit(
             session,
             actor_id=actor.user_id,
@@ -212,6 +241,8 @@ class ContactService:
         actor.require("contacts:write")
         changes = command.changes()
         payload = {"contact_id": str(contact_id), "expected_version": expected_version, **changes}
+        if not isinstance(command.tags, UnsetType):
+            payload["tags"] = list(normalize_tag_selection(command.tags))
 
         def operation(session: TxSession) -> Contact:
             result = self.store.idempotent(
@@ -239,8 +270,21 @@ class ContactService:
         correlation_id: str | None,
     ) -> dict[str, Any]:
         contact = self.store.get_contact(session, actor.user_id, contact_id)
-        updated = contact.update(now=self.clock.now(), **command.changes())
+        now = self.clock.now()
+        changes = command.changes()
+        # Tags are relations, but part of the Contact's version: a tags-only update advances it too.
+        updated = contact.update(now=now, **changes) if changes else contact.retag(now=now)
         self.store.save_contact(session, updated, expected_version=expected_version)
+        if not isinstance(command.tags, UnsetType):
+            apply_record_tags(
+                self.store,
+                session,
+                owner_id=actor.user_id,
+                kind="contact",
+                record_id=contact.id,
+                values=command.tags,
+                now=now,
+            )
         self.store.append_audit(
             session,
             actor_id=actor.user_id,

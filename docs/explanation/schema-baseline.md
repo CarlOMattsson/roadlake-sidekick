@@ -55,6 +55,14 @@ refuses, with the table named and nothing changed, if one of them holds a row, a
 column `domain_events.automation_run_id` and the ledger type `automation_run` stay. The owner export dropped the four
 collections too (format 5); a format 4 export is still read, and is refused if one of those collections is not empty.
 
+## Migration 107: tags on Contacts and Journal entries
+
+`107_contact_and_journal_entry_tags.py` is an additive (expand) migration. It creates the link tables `contact_tags` and
+`journal_entry_tags`, shaped like `task_tags`: one row per tag and record, the tag and the record both owned by the same
+owner (composite foreign keys), removed with either. The tag vocabulary `work_tags` is shared by every kind of record.
+Rolling it back drops only the two link tables. The owner export carries them as two new collections (format 6); a
+format 5 export has none and restores without tags.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

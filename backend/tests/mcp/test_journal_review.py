@@ -431,6 +431,52 @@ async def test_finalize_creates_one_entry_applies_kept_proposals_and_is_terminal
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+async def test_finalize_can_tag_the_entry_and_a_replay_does_not_tag_twice() -> None:
+    harness = await make_harness("review-finalize-tags")
+    async with harness.client() as client:
+        owned = await read_draft(client, harness.draft_id)
+        arguments = finalize_args(owned, "review-finalize-tags-1", tags=["Viktig", "familj"])
+
+        finalized = await call(client, "finalize_journal_draft", arguments)
+
+        assert not finalized.is_error, finalized.structured_content
+        entry = finalized.structured_content["entry"]
+        assert sorted(entry["tags"]) == ["familj", "viktig"]
+        replay = await call(client, "finalize_journal_draft", arguments)
+        assert replay.structured_content == finalized.structured_content
+        read_back = await client.call_tool(
+            "get_journal_entry", {"entry_id": entry["id"], "include_content": False}
+        )
+        assert sorted(read_back.structured_content["entry"]["tags"]) == ["familj", "viktig"]
+        # The same payload without tags is a different request, not a replay.
+        untagged = await call(
+            client,
+            "finalize_journal_draft",
+            {key: value for key, value in arguments.items() if key != "tags"},
+        )
+        assert untagged.is_error and untagged.structured_content["code"] == "conflict"
+    assert count(harness.container, "journal_entry_tags", harness.actor.user_id) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_finalize_refuses_too_many_tags_and_writes_nothing() -> None:
+    harness = await make_harness("review-finalize-many-tags")
+    async with harness.client() as client:
+        owned = await read_draft(client, harness.draft_id)
+        arguments = finalize_args(
+            owned, "review-finalize-many-1", tags=[f"tagg{n}" for n in range(11)]
+        )
+
+        refused = await call(client, "finalize_journal_draft", arguments)
+
+        assert refused.is_error
+    assert count(harness.container, "journal_entries", harness.actor.user_id) == 0
+    assert count(harness.container, "work_tags", harness.actor.user_id) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_finalize_refuses_unknown_relations_and_unkept_snapshot_escapes() -> None:
     harness = await make_harness("review-relations-owner")
     async with harness.client() as client:

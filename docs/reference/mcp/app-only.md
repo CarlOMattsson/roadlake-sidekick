@@ -410,6 +410,7 @@ Returns: `JournalEntryResult` with `entry` (JournalEntryRecord).
 | `summary` | string | yes | up to 10000 characters; may be null |
 | `task_ids` | array of uuid | yes | up to 25 items; unique |
 | `title` | string | yes | 1 to 200 characters |
+| `tags` | array of string | no | up to 10 items; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 
@@ -520,6 +521,7 @@ Returns: `JournalFinalizeResult` with `created_task_ids` (array of uuid), `entry
 | `task_proposals[type=update_task].status` | string | no | one of `todo`, `in_progress`, `blocked`, `completed`; may be null |
 | `task_proposals[type=update_task].title` | string | no | 1 to 200 characters; may be null |
 | `title` | string | yes | 1 to 200 characters |
+| `tags` | array of string | no | up to 10 items; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

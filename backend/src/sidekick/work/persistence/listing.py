@@ -22,8 +22,6 @@ from sqlalchemy import (
     case,
     cast,
     collate,
-    distinct,
-    exists,
     false,
     func,
     literal,
@@ -44,7 +42,6 @@ from sidekick.shared.persistence.models import (
     ProjectRow,
     StepRow,
     TaskRow,
-    WorkTagRow,
 )
 from sidekick.shared.persistence.stores.keyset import text_key
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
@@ -65,7 +62,7 @@ from sidekick.work.persistence.mappers import (
     process_from_row,
     step_from_row,
 )
-from sidekick.work.persistence.tags import TAG_LINKS
+from sidekick.work.persistence.tags import tag_condition
 
 _TIMESTAMP = DateTime(timezone=True)
 _PRIORITY_RANK = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
@@ -345,27 +342,6 @@ def _action_branch(owner_id: UUID, include_archived: bool) -> _Branch:
     return _Branch(cols, ActionRow, join, where)
 
 
-def _tag_condition(
-    kind: str, record_id: Any, owner_id: UUID, tags: tuple[str, ...], match: str
-) -> ColumnElement[bool]:
-    """Whether the record carries any (or every) wanted tag; Steps and Actions carry none."""
-
-    if kind not in TAG_LINKS:
-        return false()
-    link_row, column = TAG_LINKS[kind]
-    linked = (
-        link_row.owner_id == owner_id,
-        getattr(link_row, column) == record_id,
-        WorkTagRow.id == link_row.tag_id,
-        WorkTagRow.owner_id == link_row.owner_id,
-        WorkTagRow.slug.in_(tags),
-    )
-    if match == "all":
-        wanted = select(func.count(distinct(WorkTagRow.slug))).where(*linked).scalar_subquery()
-        return wanted == len(tags)
-    return exists(select(1).where(*linked))
-
-
 def _predicates(owner_id: UUID, cols: _Cols, spec: WorkListSpec) -> list[ColumnElement[bool]]:
     """The list's filters over one branch's columns; a missing value never satisfies a filter."""
 
@@ -385,7 +361,7 @@ def _predicates(owner_id: UUID, cols: _Cols, spec: WorkListSpec) -> list[ColumnE
     if spec.archive != "all":
         found.append(cols.archived.is_(spec.archive == "archived"))
     if spec.tags:
-        found.append(_tag_condition(cols.kind, cols.id, owner_id, spec.tags, spec.tag_match))
+        found.append(tag_condition(cols.kind, cols.id, owner_id, spec.tags, spec.tag_match))
     not_yet = and_(cols.earliest_start.is_not(None), cols.earliest_start > spec.now)
     if spec.actionable == "now":
         found.append(~not_yet)

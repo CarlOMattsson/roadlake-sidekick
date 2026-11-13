@@ -44,6 +44,8 @@ from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import new_uuid7
 from sidekick.tasks.domain import Priority, Task, TaskStatus
 from sidekick.tasks.persistence import ProjectTaskStore, task_from_row
+from sidekick.work.domain.tag_assignment import apply_record_tags
+from sidekick.work.persistence.tags import WorkTagStore
 
 
 class JournalDraftStore:
@@ -202,6 +204,16 @@ class JournalDraftStore:
             task_ids=tuple(identifier for identifier, _origin in selection["tasks"]),
             contact_ids=tuple(identifier for identifier, _origin in selection["contacts"]),
         )
+        if command.tags:
+            apply_record_tags(
+                WorkTagStore,
+                session,
+                owner_id=owner_id,
+                kind="journal_entry",
+                record_id=entry.id,
+                values=command.tags,
+                now=now,
+            )
         draft.state = "finalized"
         draft.version += 1
         draft.updated_at = now
