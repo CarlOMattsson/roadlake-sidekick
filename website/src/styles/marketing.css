@@ -110,6 +110,8 @@ site-search button[data-open-modal]:hover { background: var(--sk-surface); }
 .sec__more + .facts__more { margin-top: var(--sk-s2); }
 .card p.card__follow { margin: var(--sk-s4) 0 0; }
 .facts__more a, .sec__more + p a { display: inline-flex; align-items: center; min-height: 48px; }
+/* A link standing alone on its line: a comfortable touch target. */
+.card__follow a, .sec p > a:only-child:not(.btn) { display: inline-block; padding-block: 0.625rem; }
 
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sk-s5); }
 .card { border: 1px solid var(--sk-line); border-radius: var(--sk-radius-card); padding: var(--sk-s5); background: var(--sk-bg); }

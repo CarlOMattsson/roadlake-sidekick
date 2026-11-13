@@ -123,7 +123,7 @@ Red is only for overdue, errors and deletion; "Idag" is `--sk-muted`, never ambe
 | overdue | `--sk-overdue-fg` | #b42318 / #ff8a80 | text only |
 | error | `--sk-danger-*` | tokens.css | error icon, destructive menu text |
 | skeleton | `--sk-skeleton` | 11 % `--sk-fg` in `--sk-bg` | the page's own grey |
-| focus ring | `--sk-ring` | #2563eb / #7aa7ff | one ring everywhere: 2 px, 2 outside |
+| focus ring | `--sk-ring` | #2563eb / #7aa7ff | one ring everywhere: 2 px, 2 outside; inside the box where the box meets an edge (room tabs, icon buttons, ⋯ menu entries) |
 
 An accent palette (`--sk-accent-<name>-line`, eight names) exists for domain colours; only the line is defined.
 
@@ -159,7 +159,10 @@ title row. Links are removed in ⋯ as "Ta bort koppling till {name}", one item 
 
 **Icon button (Ikonknapp).** No frame; a 44 × 44 box with a 24 glyph, 48 target (`::after`). Glyphs come from
 `ui/icons.tsx`, so there is one ⋯ and one ›. Everything trailing ends on the content edge (a 24 glyph is centred
-28 from the right). Row chevrons use `--sk-chevron` = clamp(24 px, 1rem, 32 px). `aria-label` is required.
+28 from the right). Row chevrons use `--sk-chevron` = clamp(24 px, 1rem, 32 px). `aria-label` is required. An
+open ⋯ or search has no fill of its own (its box reaches 10 into the side margin, past the panel under it); the
+panel or field it opened shows the state. In the ⋯ panel each entry reaches 12 into the panel's padding, so its
+ring lies inside the entry, 8 clear of the text and under the hairline above.
 
 **Buttons (Knappar).** All radius 8.
 - *Primary* `.sk-btn--primary`: the inverse pair, 600. At most one per screen, none inline. Full: 48 high,

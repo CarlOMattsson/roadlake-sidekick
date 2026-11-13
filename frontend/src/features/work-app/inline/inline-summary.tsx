@@ -136,7 +136,7 @@ function focusOnMount(button: HTMLButtonElement | null) {
 }
 
 /**
- * "Done · Undo" in the card's foot. The text is a polite live region; Undo is a button as tall as the other
+ * "Undo" in the card's foot, with the time line under it. "Done" is a polite live region (the status row shows it); Undo is a button as tall as the other
  * actions (44 px on a coarse pointer). It takes focus from Done, which it replaces. When the time is up and
  * focus is still in it, focus moves to Open, so it never falls to the page.
  */
@@ -149,7 +149,7 @@ function UndoLine({
 }) {
   const box = useRef<HTMLSpanElement>(null);
   // Undo takes focus when it shows, so only the pointer holds the time: a focus hold would never let it run out.
-  const { handlers } = useUndoHold(true, () => {
+  const { held, handlers } = useUndoHold(true, () => {
     const node = box.current;
     if (node?.contains(document.activeElement))
       node
@@ -162,13 +162,17 @@ function UndoLine({
     <span
       ref={box}
       className="work-compact-undo"
+      data-held={held ? "" : undefined}
       onPointerEnter={handlers.onPointerEnter}
       onPointerLeave={handlers.onPointerLeave}
     >
-      <span role="status">{labels.taskStatus.completed}</span>
+      {/* The status row above already says "Klar"; the live region only announces it. */}
+      <span role="status" className="work-visually-hidden">
+        {labels.taskStatus.completed}
+      </span>
       <button
         type="button"
-        className="work-compact-action sk-btn--secondary"
+        className="work-compact-action sk-btn--secondary sk-undo-time"
         onClick={undo.onUndo}
         disabled={undo.busy}
         aria-busy={undo.busy || undefined}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toolOffered } from "../../mcp-apps/tool-support";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { mergeHierarchyPage } from "./hierarchy-tree";
 import type { WorkHierarchyFrame, WorkTransport } from "../transport/transport";
 
@@ -29,7 +30,7 @@ export function useHierarchyRefresh({
   const withTasks =
     transport !== undefined &&
     toolOffered(transport, "get_work_hierarchy", { include_tasks: true });
-  const reading = useRef(false);
+  const reading = useSingleFlight();
   // A request that comes while a read is on its way is not dropped: one read follows the one in flight (the way the
   // board and the agenda read again), however many requests came meanwhile.
   const again = useRef(false);
@@ -38,13 +39,12 @@ export function useHierarchyRefresh({
   useEffect(() => {
     read.current = () => {
       if (!transport || !onChange) return;
-      if (reading.current) {
+      if (!reading.enter()) {
         again.current = true;
         return;
       }
-      reading.current = true;
       const finish = () => {
-        reading.current = false;
+        reading.leave();
         if (again.current && alive.current) {
           again.current = false;
           read.current();
@@ -107,21 +107,26 @@ export function useHierarchyMore({
     transport !== undefined &&
     toolOffered(transport, "get_work_hierarchy", { include_tasks: true });
   const cursor = frame.next_cursor;
+  // One "Show more" page per refresh, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   function loadMore() {
-    if (!transport || !onChange || !cursor || more === "busy") return;
     const key = refreshKey;
+    if (!transport || !onChange || !cursor || !pages.enter(key)) return;
     setState({ key, phase: "busy" });
-    transport.getWorkHierarchy({ includeTasks: withTasks, cursor }).then(
-      (page) => {
-        if (latest.current.refreshKey !== key) return;
-        onChange(mergeHierarchyPage(latest.current.frame, page));
-        setState({ key, phase: "idle" });
-      },
-      () => {
-        if (latest.current.refreshKey === key)
-          setState({ key, phase: "failed" });
-      },
-    );
+    transport
+      .getWorkHierarchy({ includeTasks: withTasks, cursor })
+      .then(
+        (page) => {
+          if (latest.current.refreshKey !== key) return;
+          onChange(mergeHierarchyPage(latest.current.frame, page));
+          setState({ key, phase: "idle" });
+        },
+        () => {
+          if (latest.current.refreshKey === key)
+            setState({ key, phase: "failed" });
+        },
+      )
+      .finally(() => pages.leave(key));
   }
   return { more, loadMore, offered: transport && onChange && cursor };
 }

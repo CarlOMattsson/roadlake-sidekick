@@ -9,6 +9,7 @@ import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import type { WorkLabels } from "../shared/labels";
 import { focusControl, focusUndoIn, moveItem } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { useWorkWrite } from "../shared/use-work-write";
 import {
   isForbidden,
@@ -52,17 +53,19 @@ export function useTaskSteps(
   t: WorkLabels,
 ) {
   const [state, dispatch] = useReducer(stepsReducer, initialStepsState);
-  const { steps, notice, nextCursor, more, attempt } = state;
+  const { steps, notice, nextCursor, attempt } = state;
   const banner = useRef<HTMLDivElement>(null);
   // Bumped by every list request and by every successful write. A list response that is not the
   // newest request, or that crosses a successful write, is stale and must not overwrite the list.
   const ticket = useRef(0);
   // Synchronous guard: a second click in the same tick must not start a second write.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   const pending = useRef(new Map<string, PendingKey>());
   const mounted = useRef(true);
   // Move, archive and restore: one write at a time, one key per action, the refusal sorted out.
   const write = useWorkWrite();
+  // One "Show more" page per read generation, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   const manage = manageLabelsFor(t.dateLocale);
   const expireStepUndo = useCallback(
     () => dispatch({ type: "stepUndoSet", stepUndo: undefined }),
@@ -177,11 +180,10 @@ export function useTaskSteps(
     complete: boolean,
     onDone: (result: WorkStep) => void,
   ) {
-    if (writing.current) return;
+    if (!flight.enter()) return;
     const signature = JSON.stringify([step.id, step.version, complete]);
     const pendingKey = keyFor(pending.current.get(step.id), signature);
     pending.current.set(step.id, pendingKey);
-    writing.current = true;
     dispatch({ type: "checkStarted", id: step.id });
     const request = complete
       ? transport.completeTaskStep(step.id, step.version, pendingKey.key)
@@ -216,7 +218,7 @@ export function useTaskSteps(
           });
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
         dispatch({ type: "checkSettled" });
       });
   }
@@ -282,8 +284,8 @@ export function useTaskSteps(
 
   /** Reads the next page of Steps and adds it to the list; a failed read keeps the list and the button. */
   function loadMore() {
-    if (!nextCursor || more === "busy") return;
     const current = ticket.current;
+    if (!nextCursor || !pages.enter(current)) return;
     dispatch({ type: "moreStarted" });
     transport
       .listTaskSteps(taskId, nextCursor)
@@ -298,7 +300,8 @@ export function useTaskSteps(
       .catch(() => {
         if (mounted.current && current === ticket.current)
           dispatch({ type: "moreFailed" });
-      });
+      })
+      .finally(() => pages.leave(current));
   }
 
   /** Archives the Step (nothing is deleted) and offers Undo; focus goes to the row that took its place. */

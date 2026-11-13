@@ -3,7 +3,7 @@ import type { ShoppingItem } from "../transport";
 import { isDefaultAmount, quantityText } from "../shopping-card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { boughtOnText, holdUsed, itemMeta } from "./helpers";
+import { boughtOnText, buyAgainUsed, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import {
   heldStatus,
@@ -63,6 +63,7 @@ export function StoreRow({
           onClick={() => {
             // The tip names the ring too: the first tap on one has taught it.
             holdUsed();
+            if (item.purchased) buyAgainUsed();
             env.onToggle(item);
           }}
         >

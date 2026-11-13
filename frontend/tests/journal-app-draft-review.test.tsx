@@ -21,6 +21,12 @@ import {
   OFFERTEN,
 } from "./helpers/journal-app-fixtures";
 
+/** The "Claude’s draft" line: a tag and the day, in one paragraph. */
+const draftLine = (text: string) =>
+  screen.findByText(
+    (_, element) => element?.tagName === "P" && element.textContent === text,
+  );
+
 describe("journal draft review", () => {
   it("opens a draft from the pending list with nothing chosen by default", async () => {
     const user = userEvent.setup();
@@ -102,9 +108,8 @@ describe("journal draft review", () => {
       ),
     });
     const { unmount } = renderDraft(sameYear);
-    expect(
-      await screen.findByText(/^Day: 2 Jan\. Not saved yet/),
-    ).toBeVisible();
+    expect(await draftLine("Claude’s draft · 2 Jan")).toBeVisible();
+    expect(screen.getByText(journalEn.draftNote)).toBeVisible();
     unmount();
     renderDraft(
       transportMock({
@@ -117,10 +122,9 @@ describe("journal draft review", () => {
       }),
     );
     expect(
-      await screen.findByText(
-        `Day: 28 Dec ${lastYear}. Not saved yet. Save it as an entry to keep it.`,
-      ),
+      await draftLine(`Claude’s draft · 28 Dec ${lastYear}`),
     ).toBeVisible();
+    expect(screen.getByText(journalEn.draftNote)).toBeVisible();
   });
 
   it("edits only through update with the changed field and the held version", async () => {
@@ -373,7 +377,7 @@ describe("journal draft review", () => {
     expect(banner).toHaveTextContent(journalEn.conflict);
     await waitFor(() => expect(banner).toHaveFocus());
 
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(getDraft).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(screen.queryByRole("alert")).not.toBeInTheDocument(),

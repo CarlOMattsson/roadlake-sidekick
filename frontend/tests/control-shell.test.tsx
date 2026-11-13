@@ -381,7 +381,7 @@ describe("ControlApp keeps what the owner changed in a view", () => {
     );
     // Leave the tab as soon as the restore is saved, with no wait for a frame or a timer: the view tells the card in the
     // same step that removes the row, so the change follows it to the other tab and back.
-    await screen.findByText(controlSv.restored);
+    await screen.findByText("Uppgift · återställd");
     await user.click(viewButton("Historik"));
     await screen.findByRole("heading", { name: "Historik" });
     await user.click(viewButton("Borttaget"));

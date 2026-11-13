@@ -16,6 +16,7 @@ import {
   type TaskPlace,
 } from "../hierarchy/group-choices";
 import type { WorkLabels } from "../shared/labels";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { taskPlaceLabelsFor } from "../tasks/task-place-labels";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
@@ -74,7 +75,7 @@ export function UnsortedView({
     offers("get_work_hierarchy");
   // Synchronous guards before React re-renders: one read at a time (reload / more), and one write per
   // Task. Writes of different Tasks run side by side; a read and a write never overlap.
-  const reading = useRef(false);
+  const reading = useSingleFlight();
   const writes = useRef(new Set<string>());
   // The Task ids whose write is in flight; their rows are shown busy and their buttons disabled.
   const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
@@ -103,12 +104,11 @@ export function UnsortedView({
 
   /** A read; it waits for no write, but is dropped while a write or another read runs. */
   function run(action: BoardAction, work: () => Promise<void>) {
-    if (reading.current || writes.current.size > 0) return;
-    reading.current = true;
+    if (writes.current.size > 0 || !reading.enter()) return;
     setBusy(action);
     setNotice(undefined);
     void work().finally(() => {
-      reading.current = false;
+      reading.leave();
       if (mounted.current) setBusy("idle");
     });
   }
@@ -160,7 +160,7 @@ export function UnsortedView({
    * the same Task is being written.
    */
   function write(id: string, work: () => Promise<void>) {
-    if (reading.current || writes.current.has(id)) return false;
+    if (reading.isRunning() || writes.current.has(id)) return false;
     writes.current.add(id);
     setWriting(new Set(writes.current));
     setNotice(undefined);

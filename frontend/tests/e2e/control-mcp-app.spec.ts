@@ -1,6 +1,7 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   deliverToolResult,
+  effectiveTargetSize,
   openSimulatedApp,
   readBuiltApp,
   simulatedHostState,
@@ -77,7 +78,7 @@ test("Control app lists the trash and restores an item through the host on a mob
   await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
   await app.getByRole("button", { name: "Återställ Skicka offert" }).click();
   // The row stays on its place with a receipt for a few seconds, then it goes.
-  await expect(app.getByRole("status")).toHaveText("Återställd");
+  await expect(app.getByRole("status")).toHaveText("Uppgift · återställd");
   await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
   await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0, {
     timeout: 8000,
@@ -503,4 +504,120 @@ test("Control app searches memory on Enter and on Sök in a sandbox without allo
 
   expect(failures).toEqual([]);
   expect(networkRequests()).toBe(0);
+});
+
+const recalledFact = {
+  text: "Promenad längs älven med Anna och hunden, ända till bron",
+  occurred: null,
+  source: {
+    kind: "journal_entry",
+    id: "019f0000-0000-7000-8000-0000000000b1",
+    title: "Söndag",
+    date: "2025-11-01",
+    archived: false,
+  },
+};
+
+async function openRecall(page: Page, width: number) {
+  const opened = await openSimulatedApp(page, {
+    resource: readBuiltApp("control"),
+    width,
+    height: 844,
+    hostContext: { ...hostContext, displayMode: "fullscreen" },
+    replies: {
+      recall_memory: {
+        structuredContent: {
+          status: "ok",
+          facts: [recalledFact],
+          truncated: false,
+        },
+      },
+    },
+  });
+  await waitForAppInitialized(page);
+  await deliverToolResult(page, memoryStatus);
+  await opened.app
+    .getByRole("button", { name: "Visa vad Sidekick minns", exact: false })
+    .click();
+  await expect(
+    opened.app.getByRole("button", { name: /^Glöm anteckningen/ }),
+  ).toBeVisible();
+  return opened;
+}
+
+test("a recalled fact keeps its text on a phone: Glöm anteckningen stands under it, on its left edge", async ({
+  page,
+}) => {
+  const { app, failures } = await openRecall(page, 375);
+  const row = app.locator(".control-recall .control-row");
+  const text = await row.locator(".control-row-primary").boundingBox();
+  const meta = await row.locator(".control-row-secondary").boundingBox();
+  const forget = await row
+    .getByRole("button", { name: /^Glöm anteckningen/ })
+    .boundingBox();
+  // Under the text, not beside it, so the text has the whole row.
+  expect(forget!.y).toBeGreaterThanOrEqual(meta!.y + meta!.height);
+  expect(forget!.x).toBeCloseTo(text!.x, 0);
+  expect(text!.width).toBeGreaterThan(forget!.width * 1.5);
+  // The meta line is not cut and does not leave the month alone on a line: it is one or two lines of the meta type.
+  expect(meta!.height).toBeLessThan(40);
+  expect(failures).toEqual([]);
+});
+
+test("a recalled fact keeps Glöm anteckningen beside its text on a wide card", async ({
+  page,
+}) => {
+  const { app } = await openRecall(page, 720);
+  const row = app.locator(".control-recall .control-row");
+  const text = await row.locator(".control-row-primary").boundingBox();
+  const forget = await row
+    .getByRole("button", { name: /^Glöm anteckningen/ })
+    .boundingBox();
+  expect(forget!.x).toBeGreaterThan(text!.x + text!.width - 1);
+});
+
+test("Control app buttons have a touch target of at least 44 px on a phone", async ({
+  page,
+}) => {
+  const { app } = await openRecall(page, 375);
+  const targets = [
+    ...(await app.getByRole("button", { name: /Dölj|Glöm/ }).all()),
+    ...(await app.getByRole("switch").all()),
+    ...(await app.locator(".sk-segmented__option").all()),
+  ];
+  expect(targets.length).toBeGreaterThanOrEqual(5);
+  for (const target of targets) {
+    const size = await effectiveTargetSize(target);
+    expect(size!.height).toBeGreaterThanOrEqual(44);
+    expect(size!.width).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test("the Restore button of the trash has a touch target of at least 44 px", async ({
+  page,
+}) => {
+  const trashedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { app } = await openSimulatedApp(page, {
+    resource: readBuiltApp("control"),
+    ...phone,
+    hostContext,
+    replies: {},
+  });
+  await waitForAppInitialized(page);
+  await deliverToolResult(page, {
+    items: [
+      {
+        kind: "task",
+        id: taskId,
+        label: "Skicka offert",
+        trashed_at: trashedAt,
+        version: 3,
+      },
+    ],
+    has_more: false,
+  });
+  const restore = app.getByRole("button", { name: "Återställ Skicka offert" });
+  const size = await effectiveTargetSize(restore);
+  expect(size!.height).toBeGreaterThanOrEqual(44);
+  expect(size!.width).toBeGreaterThanOrEqual(44);
 });

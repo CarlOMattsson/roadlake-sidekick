@@ -14,7 +14,8 @@ export const journalEn = {
   tellClaudeMessage:
     "I’d like to tell you about my day so you can save it in my journal.",
   /** Under both buttons: what the tap does; it sends a message in the chat. */
-  tellClaudeHint: "Claude asks about your day and saves it to your journal.",
+  tellClaudeHint:
+    "Claude asks about your day and saves your answers in your journal.",
   /** What an empty earlier day sends to Claude, naming the day. */
   tellClaudeDayMessage: (day: string) =>
     `I’d like to tell you about ${day} so you can save it in my journal.`,
@@ -31,7 +32,7 @@ export const journalEn = {
   summaryStale: "The summary may be out of date.",
   summaryFailed: "Couldn’t create the summary.",
   /** Gjort: what was done on the day, a fold row under the summary. */
-  done: "Completed",
+  done: "Done",
   doneTaskCount: (n: number) => `${n} ${n === 1 ? "task" : "tasks"}`,
   doneStepCount: (n: number) => `${n} ${n === 1 ? "step" : "steps"}`,
   donePurchaseCount: (n: number) => `${n} ${n === 1 ? "item" : "items"} bought`,
@@ -71,7 +72,8 @@ export const journalEn = {
   sourceRecorded: "Recorded",
   language: "Language",
   pending: "Awaiting review",
-  pendingNote: "Open a draft to review it. Nothing is saved until you save it.",
+  pendingNote:
+    "Open a draft to review it. Nothing is saved until you save the draft.",
   pendingEmpty: "Nothing to review.",
   pendingEmptyHint: "Drafts from Claude wait here until you save them.",
   /** A list cut to its first rows (Awaiting review inline, a kind in «Gjort»): the button that shows the rest. */
@@ -87,9 +89,8 @@ export const journalEn = {
   },
   untitledDraft: "Untitled draft",
   draft: "Draft",
-  /** Under the "Claude’s draft" tag: the day the draft is saved on, and that nothing is saved yet. */
-  draftNote: (day: string) =>
-    `Day: ${day}. Not saved yet. Save it as an entry to keep it.`,
+  /** Under the "Claude’s draft" line, which carries the day the draft is saved on: that nothing is saved yet. */
+  draftNote: "Nothing is saved until you save the draft as an entry.",
   titleLabel: "Title",
   summaryLabel: "Summary",
   noDraftSummary: "No summary.",
@@ -172,8 +173,8 @@ export const journalEn = {
   openTask: "Open task",
   terminalDraft: "This draft has already been handled.",
   conflict:
-    "This draft was changed elsewhere or has already been handled. Reload to see the latest version. Your edits are kept.",
-  reload: "Reload",
+    "This draft was changed elsewhere or has already been handled. Refresh to see the latest version. Your edits are kept.",
+  reload: "Refresh",
   invalidChange: "That change wasn’t accepted. Check the values.",
   forbiddenWrite: "You don’t have permission to change this.",
   saveFailed: "Couldn’t save.",
@@ -288,7 +289,7 @@ export const journalSv: JournalLabels = {
   tellClaude: "Berätta för Claude om dagen",
   tellClaudeMessage:
     "Jag vill berätta om min dag så att det sparas i dagboken.",
-  tellClaudeHint: "Claude frågar om dagen och sparar det i dagboken.",
+  tellClaudeHint: "Claude frågar om dagen och sparar dina svar i dagboken.",
   tellClaudeDayMessage: (day: string) =>
     `Jag vill berätta om ${day} så att det sparas i dagboken.`,
   tellClaudeMoreMessage: (day?: string) =>
@@ -343,7 +344,7 @@ export const journalSv: JournalLabels = {
   language: "Språk",
   pending: "Väntar på granskning",
   pendingNote:
-    "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
+    "Öppna ett utkast för att granska det. Inget sparas förrän du sparar utkastet.",
   pendingEmpty: "Inget väntar på granskning.",
   pendingEmptyHint: "Utkast från Claude väntar här tills du sparar dem.",
   moreShowAll: (n: number) => `Visa alla (${n})`,
@@ -357,8 +358,7 @@ export const journalSv: JournalLabels = {
   },
   untitledDraft: "Utkast utan titel",
   draft: "Utkast",
-  draftNote: (day) =>
-    `Dag: ${day}. Inget sparas förrän du sparar utkastet som anteckning.`,
+  draftNote: "Inget sparas förrän du sparar utkastet som anteckning.",
   titleLabel: "Titel",
   summaryLabel: "Sammanfattning",
   noDraftSummary: "Ingen sammanfattning.",
@@ -435,8 +435,8 @@ export const journalSv: JournalLabels = {
   openTask: "Öppna uppgiften",
   terminalDraft: "Utkastet är redan hanterat.",
   conflict:
-    "Utkastet ändrades någon annanstans eller är redan hanterat. Ladda om för att se den senaste versionen. Dina ändringar behålls.",
-  reload: "Ladda om",
+    "Utkastet ändrades någon annanstans eller är redan hanterat. Uppdatera för att se den senaste versionen. Dina ändringar behålls.",
+  reload: "Uppdatera",
   invalidChange: "Ändringen godtogs inte. Kontrollera värdena.",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
   saveFailed: "Det gick inte att spara.",

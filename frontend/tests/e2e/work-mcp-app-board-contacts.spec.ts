@@ -532,7 +532,7 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
   const banner = app.getByRole("alert");
   await expect(banner).toContainText("This contact was changed elsewhere");
   await expect(banner).toBeFocused();
-  await banner.getByRole("button", { name: "Reload" }).click();
+  await banner.getByRole("button", { name: "Refresh" }).click();
   await expect(app.getByRole("alert")).toHaveCount(0);
   await expect(app.getByLabel("Note", { exact: true })).toHaveValue(
     "Ny anteckning",

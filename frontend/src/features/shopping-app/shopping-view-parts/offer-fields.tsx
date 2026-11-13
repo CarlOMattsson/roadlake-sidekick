@@ -3,12 +3,43 @@ import type { ShoppingItem } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { localDay } from "../transport";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
-import { offerSummary } from "./helpers";
+import { formatPriceNumber, offerSummary, parsePriceInput } from "./helpers";
 
-/** A stored price without empty decimals ("199.00" reads "199", "199.50" reads "199.5"), still a plain number the field accepts. */
-function plainPrice(value: string | null | undefined): string {
-  if (!value) return "";
-  return value.includes(".") ? value.replace(/\.?0+$/, "") : value;
+/**
+ * A price field as text, so the decimal comma works in Swedish: it shows the stored price in the list's style and
+ * accepts a comma or a point. The browser's own number field would follow the browser's language instead.
+ */
+function PriceField({
+  name,
+  label,
+  stored,
+  labels: t,
+}: {
+  name: string;
+  label: string;
+  stored: string | null | undefined;
+  labels: ShoppingLabels;
+}) {
+  return (
+    <label>
+      {label}
+      <input
+        name={name}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        defaultValue={stored ? formatPriceNumber(stored, t.dateLocale) : ""}
+        onInput={(event) => {
+          const field = event.currentTarget;
+          field.setCustomValidity(
+            field.value.trim() === "" || parsePriceInput(field.value)
+              ? ""
+              : t.priceInvalid,
+          );
+        }}
+      />
+    </label>
+  );
 }
 
 /**
@@ -43,28 +74,18 @@ export function OfferFields({
       <div id={bodyId} role="group" aria-label={t.offer} hidden={!open}>
         <p>{t.offerHint}</p>
         <div className="shopping-grid">
-          <label>
-            {t.price}
-            <input
-              name="price"
-              type="number"
-              min="0.01"
-              max="99999999.99"
-              step="0.01"
-              defaultValue={plainPrice(item.offer?.price)}
-            />
-          </label>
-          <label>
-            {t.regular}
-            <input
-              name="regular_price"
-              type="number"
-              min="0.01"
-              max="99999999.99"
-              step="0.01"
-              defaultValue={plainPrice(item.offer?.regular_price)}
-            />
-          </label>
+          <PriceField
+            name="price"
+            label={t.price}
+            stored={item.offer?.price}
+            labels={t}
+          />
+          <PriceField
+            name="regular_price"
+            label={t.regular}
+            stored={item.offer?.regular_price}
+            labels={t}
+          />
           <label>
             {t.currency}
             <input

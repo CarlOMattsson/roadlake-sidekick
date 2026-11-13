@@ -52,7 +52,9 @@ for (const width of widths) {
       await expect(strip(app)).toBeVisible();
       await expect(h2(app, "Ring Anna om offerten")).toBeVisible();
       await app.getByRole("button", { name: "Markera klar" }).click();
-      await expect(app.getByText("Sparat", { exact: true })).toBeVisible();
+      // The receipt stands by the button, with Ångra; no plain "Sparat" line.
+      await expect(app.getByRole("button", { name: "Ångra" })).toBeVisible();
+      await expect(app.getByText("Sparat", { exact: true })).toHaveCount(0);
       await setHostContext(page, { displayMode: "inline" });
       await expect(strip(app)).toHaveCount(0);
       // The card reads the task again: it says Klar, and the Done button is gone.

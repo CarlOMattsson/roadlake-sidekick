@@ -41,18 +41,21 @@ export function NoticeLine({
 /**
  * One row: a title, a quiet second line, and at most one visible action at the end. The action is a
  * sibling of the text, never inside it, so the whole row is not a button. A `receipt` (what a saved write
- * did) takes the place of the second line as a status and of the action: the row stays where it is.
+ * did) takes the place of the second line as a status and of the action: the row stays where it is. A
+ * `receiptAction` (a link to the record the write was on) stands at the end of the row while the receipt does.
  */
 export function ControlRow({
   primary,
   secondary,
   receipt,
+  receiptAction,
   action,
   below,
 }: {
   primary: string;
   secondary?: string;
   receipt?: string;
+  receiptAction?: ReactNode;
   action?: ReactNode;
   /** Full-width content under the row's text and action (a confirmation, a panel). */
   below?: ReactNode;
@@ -77,7 +80,11 @@ export function ControlRow({
           </span>
         ) : null}
       </div>
-      {action && !receipt ? (
+      {receipt ? (
+        receiptAction ? (
+          <div className="control-row-action">{receiptAction}</div>
+        ) : null
+      ) : action ? (
         <div className="control-row-action">{action}</div>
       ) : null}
       {below ? <div className="control-row-below">{below}</div> : null}
@@ -87,7 +94,8 @@ export function ControlRow({
 
 /**
  * The first INLINE_ROWS rows, with "Show all (N)" for the rest; in the full view (`full`) every row is
- * listed and there is no toggle. The expansion grows the card in the flow; there is no inner scroll.
+ * listed and there is no toggle. Only real rows count toward the limit and N: a receipt row (`isReceipt`, a
+ * "Restored" line standing in a place) is always shown where it stands and never opens the toggle. The expansion grows the card in the flow; there is no inner scroll.
  * `renderRow` builds one row. The choice belongs to the card
  * (`expanded` with `onExpandedChange`), so it survives a switch to another tab and back. Without
  * them the list keeps the choice itself.
@@ -103,13 +111,17 @@ export function RowList<T>({
   expanded: controlled,
   onExpandedChange,
   wrapMeta = false,
+  isReceipt = () => false,
 }: {
   items: readonly T[];
   keyOf: (item: T) => string;
   renderRow: (item: T) => ReactNode;
+  /** Builds the toggle's label from the number of real rows (receipt rows not counted). */
   showAll: (count: number) => string;
   showFewer: string;
   label: string;
+  /** A row that is only a receipt: shown on its place at all times, outside the row limit. */
+  isReceipt?: (item: T) => boolean;
   /** The full view lists every row it holds; the three row limit is for the inline card. */
   full?: boolean;
   expanded?: boolean;
@@ -119,7 +131,12 @@ export function RowList<T>({
 }) {
   const [own, setOwn] = useState(false);
   const expanded = controlled ?? own;
-  const shown = full || expanded ? items : items.slice(0, INLINE_ROWS);
+  const realCount = items.filter((item) => !isReceipt(item)).length;
+  let realSeen = 0;
+  const shown =
+    full || expanded
+      ? items
+      : items.filter((item) => isReceipt(item) || realSeen++ < INLINE_ROWS);
   return (
     <>
       <ul
@@ -130,7 +147,7 @@ export function RowList<T>({
           <Fragment key={keyOf(item)}>{renderRow(item)}</Fragment>
         ))}
       </ul>
-      {!full && items.length > INLINE_ROWS ? (
+      {!full && realCount > INLINE_ROWS ? (
         <button
           type="button"
           className="control-more sk-more"
@@ -140,7 +157,7 @@ export function RowList<T>({
             onExpandedChange?.(!expanded);
           }}
         >
-          {expanded ? showFewer : showAll(items.length)}
+          {expanded ? showFewer : showAll(realCount)}
         </button>
       ) : null}
     </>

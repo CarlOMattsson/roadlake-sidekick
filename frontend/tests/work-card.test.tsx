@@ -229,6 +229,7 @@ describe("WorkCard", () => {
         labels={cardLabelsEn}
         appTitle="Work"
         locale="en-GB"
+        subject="work"
         onRetry={onRetry}
       />,
     );
@@ -243,6 +244,29 @@ describe("WorkCard", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ["en-GB", cardLabelsEn, "work:hierarchy", "Couldn’t load your projects"],
+    ["en-GB", cardLabelsEn, "contacts", "Couldn’t load your contacts"],
+    ["sv-SE", cardLabelsSv, "work:hierarchy", "Projekten kunde inte hämtas"],
+    ["sv-SE", cardLabelsSv, "contacts", "Kontakterna kunde inte hämtas"],
+  ])(
+    "names what Try again reads in the heading (%s, %s)",
+    (locale, labels, subject, heading) => {
+      render(
+        <WorkCard
+          state="error"
+          labels={labels}
+          appTitle="Work"
+          locale={locale}
+          subject={subject}
+          onRetry={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByRole("alert")).toHaveTextContent(heading);
+    },
+  );
+
   it("omits the retry button when no retry is given", () => {
     render(
       <WorkCard
@@ -250,6 +274,7 @@ describe("WorkCard", () => {
         labels={cardLabelsEn}
         appTitle="Work"
         locale="en-GB"
+        subject="work"
       />,
     );
 
@@ -282,6 +307,7 @@ describe("WorkCard", () => {
           labels={cardLabelsEn}
           appTitle="Work"
           locale="en-GB"
+          subject="work"
           {...callbacks}
         />,
       ),

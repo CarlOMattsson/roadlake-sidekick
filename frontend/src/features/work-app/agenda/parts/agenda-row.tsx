@@ -13,6 +13,7 @@ import { RecordTitle } from "../../board/board-card";
 import { RecordMeta } from "../../shared/record-meta";
 import { OpenChevron } from "../../tasks/task-detail-controls";
 import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
+import { AgendaNotice, rowSpot } from "./agenda-notice";
 import { RowMenuPanel } from "./row-menu-panel";
 import type { AgendaRowContext } from "./row-context";
 
@@ -147,13 +148,16 @@ export function AgendaRow({
     if (cycle)
       return offers.offers("update_task", { changes: { due_at: null } })
         ? () =>
-            writes.undoWrite({ ...entry, due: { from: cycle.from, label: "" } })
+            writes.undoWrite(
+              { ...entry, due: { from: cycle.from, label: "" } },
+              item.title,
+            )
         : undefined;
     const offered = offers.offers("update_task", {
       changes: entry.due ? { due_at: null } : { status: entry.from },
       ...(entry.due ? {} : { from_status: entry.to }),
     });
-    return offered ? () => writes.undoWrite(entry) : undefined;
+    return offered ? () => writes.undoWrite(entry, item.title) : undefined;
   }
   const writing = rowQueue.pending(key) > 0;
   const queued = rowQueue.queued(key);
@@ -235,6 +239,8 @@ export function AgendaRow({
         {/* Every row that opens a view ends in › (§3, Chevronregeln); Ångra takes its place. */}
         {!(entry || writing) && <OpenChevron />}
       </div>
+      {/* A failed write of this row says so here, with its Try again, and not at the top of the list. */}
+      <AgendaNotice spot={rowSpot(key)} source={ctx.notice} labels={t} />
       {choices && open && (
         <RowMenuPanel
           ctx={ctx}

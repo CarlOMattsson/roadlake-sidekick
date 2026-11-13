@@ -102,7 +102,7 @@ describe("Empty shopping list", () => {
     expect(container.querySelector(".shopping-progress")).toBeNull();
     const box = container.querySelector(".sk-empty") as HTMLElement;
     await user.click(
-      within(box).getByRole("button", { name: shoppingEn.emptyAddItem }),
+      within(box).getByRole("button", { name: shoppingEn.addItem }),
     );
     expect(
       screen.getByRole("textbox", { name: shoppingEn.addItem }),

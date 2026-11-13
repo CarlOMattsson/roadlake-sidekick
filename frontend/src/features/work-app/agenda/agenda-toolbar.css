@@ -15,9 +15,6 @@
 .sidekick-work .sk-menu-panel .work-saved-views {
   margin: 0;
 }
-.sidekick-work .sk-menu-panel .work-saved-views-toggle {
-  padding: 0;
-}
 .sidekick-work .sk-menu-panel .work-saved-views-toggle::after {
   content: "⌄";
   margin-inline-start: var(--sk-s2);

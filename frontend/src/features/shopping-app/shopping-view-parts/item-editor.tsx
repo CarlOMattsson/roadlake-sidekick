@@ -8,8 +8,13 @@ import type {
 import type { ShoppingLabels } from "../labels";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
-import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { OfferFields } from "./offer-fields";
+import { RecipientField } from "./recipient-field";
+import {
+  formatQuantityNumber,
+  parsePriceInput,
+  parseQuantityInput,
+} from "./helpers";
 
 /** How many of the fields behind "Fler fält" hold a value, so the closed toggle can say that something is there. */
 function filledExtras(item: ShoppingItem): number {
@@ -52,27 +57,9 @@ export function ItemEditor({
     // The form opens under its row: Save and Cancel are brought into view, without a jump when they already show.
     form.current?.scrollIntoView?.({ block: "nearest" });
   }, [focusFirst]);
-  const [query, setQuery] = useState("");
-  const [candidates, setCandidates] = useState<
-    { id: string; display_name: string }[]
-  >([]);
-  const [contactError, setContactError] = useState(false);
-  const [searching, setSearching] = useState(false);
   // A host without a contact search (the mobile app) keeps a recipient that is already set, and offers no way to find one.
-  const canSearch = contacts !== undefined;
-  const showRecipient = canSearch || item.recipient_contact_id != null;
-  async function search() {
-    if (!contacts) return;
-    setSearching(true);
-    setContactError(false);
-    try {
-      setCandidates((await contacts(query)).contacts);
-    } catch {
-      setContactError(true);
-    } finally {
-      setSearching(false);
-    }
-  }
+  const showRecipient =
+    contacts !== undefined || item.recipient_contact_id != null;
   // Runs from the Save button's click, not from a submit event (no allow-forms in the App iframe).
   function save() {
     if (!form.current) return;
@@ -92,9 +79,14 @@ export function ItemEditor({
       return typeof entry === "string" ? entry.trim() : "";
     };
     const nullable = (name: string) => value(name) || null;
+    // The quantity checks itself as it is typed, like the prices; it goes out with a point.
+    const quantity = parseQuantityInput(value("quantity"));
+    if (quantity === null) return;
+    // The price fields check themselves as they are typed, so a value that gets here is a price; it goes out with a point.
+    const price = (name: string) => parsePriceInput(value(name));
     onSave({
       name: value("name"),
-      quantity: value("quantity"),
+      quantity,
       unit: nullable("unit"),
       store: nullable("store"),
       note: nullable("note"),
@@ -102,10 +94,10 @@ export function ItemEditor({
       recipient_contact_id: nullable("recipient_contact_id"),
       occasion: nullable("occasion"),
       target_date: nullable("target_date"),
-      offer: value("price")
+      offer: price("price")
         ? {
-            price: value("price"),
-            regular_price: nullable("regular_price"),
+            price: price("price") ?? "",
+            regular_price: price("regular_price"),
             currency: value("currency"),
             valid_from: value("valid_from"),
             valid_until: value("valid_until"),
@@ -142,13 +134,17 @@ export function ItemEditor({
             {t.quantity}
             <input
               name="quantity"
-              defaultValue={item.quantity}
-              type="number"
+              type="text"
               inputMode="decimal"
-              min="0.001"
-              max="999999.999"
-              step="0.001"
+              autoComplete="off"
+              defaultValue={formatQuantityNumber(item.quantity, t.dateLocale)}
               required
+              onInput={(event) => {
+                const field = event.currentTarget;
+                field.setCustomValidity(
+                  parseQuantityInput(field.value) ? "" : t.quantityInvalid,
+                );
+              }}
             />
           </label>
           <label>
@@ -208,59 +204,9 @@ export function ItemEditor({
               />
             </label>
             {showRecipient && (
-              <label>
-                {t.recipient}
-                <select
-                  name="recipient_contact_id"
-                  defaultValue={item.recipient_contact_id ?? ""}
-                >
-                  <option value="">{t.noRecipient}</option>
-                  {item.recipient_contact_id &&
-                    !candidates.some(
-                      (entry) => entry.id === item.recipient_contact_id,
-                    ) && (
-                      <option value={item.recipient_contact_id}>
-                        {item.recipient_contact_name ?? t.linkedContact}
-                      </option>
-                    )}
-                  {candidates.map((entry) => (
-                    <option value={entry.id} key={entry.id}>
-                      {entry.display_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {canSearch && (
-              <>
-                <label>
-                  {t.contactQuery}
-                  <input
-                    value={query}
-                    maxLength={200}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </label>
-                <button
-                  type="button"
-                  disabled={searching || !query.trim()}
-                  onClick={() => void search()}
-                >
-                  {t.searchContact}
-                </button>
-                {contactError && (
-                  <ErrorNotice
-                    placement="row"
-                    locale={t.dateLocale}
-                    message={t.contactSearchFailed}
-                    retrying={searching}
-                    onRetry={() => void search()}
-                  />
-                )}
-              </>
+              <RecipientField item={item} labels={t} contacts={contacts} />
             )}
           </div>
-          {canSearch && <p>{t.recipientHint}</p>}
           <label>
             {t.note}
             <textarea

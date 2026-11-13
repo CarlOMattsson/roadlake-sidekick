@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { keyFor } from "../../../mcp-apps/idempotency";
 import { ownerEndOfDay, workDate } from "../../../mcp-apps/ui/due";
 import type { AgendaUndo } from "../agenda-undo";
-import { failureNotice } from "../../board/board";
+import { failureNotice, type NoticeRow } from "../../board/board-notice";
 import { isCompleteDate } from "../../shared/fields";
 import type { WorkLabels } from "../../shared/labels";
 import {
@@ -47,7 +47,9 @@ export function useRowWrites({
   const { reading, pending, armRetry, setNotice, enqueueRow } = session;
   // A change by row whose delivery is unknown (no answer): the server may have applied it. The row's next write
   // replays it with its own key first and shows its answer, so the next change is judged against what the server holds.
-  const unsure = useRef(new Map<string, { replay: () => Promise<void> }>());
+  const unsure = useRef(
+    new Map<string, { replay: () => Promise<void>; row: NoticeRow }>(),
+  );
 
   /**
    * One change against the version the row holds when the write runs (read with get_task when it has none). The write
@@ -64,7 +66,7 @@ export function useRowWrites({
     triage = false,
   ) {
     // A bulk write or a read in progress owns the whole list: a key press meanwhile is not queued.
-    if (reading.current) return;
+    if (reading.isRunning()) return;
     const key = cardKey(record);
     keepFocus(key);
     const due = dueLabel !== undefined;
@@ -72,6 +74,7 @@ export function useRowWrites({
     enqueueRow(key, async () => {
       if (!(await settleUnsure(key))) return;
       const item = rows.latest(record);
+      const row = { key, title: item.title };
       const wanted = typeof changes === "function" ? changes(item) : changes;
       let replay: (() => Promise<void>) | undefined;
       try {
@@ -118,7 +121,7 @@ export function useRowWrites({
         await replay();
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(key);
-        else if (replay) unsure.current.set(key, { replay });
+        else if (replay) unsure.current.set(key, { replay, row });
         if (!mounted.current) return;
         // "Try again" repeats the write that failed last: the unsure one is only replayed, never made twice.
         armRetry(() =>
@@ -126,7 +129,7 @@ export function useRowWrites({
             ? enqueueRow(key, async () => void (await settleUnsure(key)))
             : send(record, changes, dueLabel, triage),
         );
-        setNotice(failureNotice(error, "move"));
+        setNotice(failureNotice(error, "move", row));
       }
     });
   }
@@ -147,7 +150,7 @@ export function useRowWrites({
       armRetry(() =>
         enqueueRow(key, async () => void (await settleUnsure(key))),
       );
-      if (mounted.current) setNotice(failureNotice(error, "move"));
+      if (mounted.current) setNotice(failureNotice(error, "move", earlier.row));
       return false;
     }
   }
@@ -189,7 +192,8 @@ export function useRowWrites({
    * Undo: the previous status or due date, written against the version the change left. It gets its
    * own key, so it never replays the change it reverts.
    */
-  function undoWrite(entry: AgendaUndo) {
+  function undoWrite(entry: AgendaUndo, title: string) {
+    const row = { key: entry.key, title };
     const changes: WorkTaskChanges | undefined = entry.due
       ? {
           due_at: entry.due.from,
@@ -200,7 +204,7 @@ export function useRowWrites({
       : isTaskStatus(entry.from)
         ? { status: entry.from }
         : undefined;
-    if (!changes || reading.current) return;
+    if (!changes || reading.isRunning()) return;
     const due = entry.due !== undefined;
     const undoKey = `undo:${entry.key}`;
     keepFocus(entry.key);
@@ -249,7 +253,7 @@ export function useRowWrites({
         await replay();
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(undoKey);
-        else if (!answered) unsure.current.set(entry.key, { replay });
+        else if (!answered) unsure.current.set(entry.key, { replay, row });
         if (!mounted.current) return;
         // "Try again" repeats the Undo that failed last: an unsure one is only replayed, never made twice.
         armRetry(() =>
@@ -258,9 +262,9 @@ export function useRowWrites({
                 entry.key,
                 async () => void (await settleUnsure(entry.key)),
               )
-            : undoWrite(entry),
+            : undoWrite(entry, title),
         );
-        setNotice(failureNotice(error, "move"));
+        setNotice(failureNotice(error, "move", row));
       }
     });
   }

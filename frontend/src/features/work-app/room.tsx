@@ -17,6 +17,7 @@ import type { RoomProps } from "../mcp-apps/room-types";
 import { createWorkTransport } from "./transport/work-transport";
 import { UnsortedView } from "./unsorted/unsorted-view";
 import { rootFromToolResult, type WorkFrame } from "./transport/transport";
+import { firstReadFor } from "./shared/first-read";
 import type { WorkTab } from "./shell/work-shell";
 
 /**
@@ -186,20 +187,22 @@ export function WorkRoom(props: RoomProps) {
   }
 
   /**
-   * Try again after an error result, which names no record: the list is what can be read again (the agenda, as the
-   * fullscreen shell reads its first tab). A failure keeps the error card with what the new failure says.
+   * Try again after an error result, which names no tool and no record: what can be read again is the first list of
+   * the card's view (the Projects or the agenda, as the fullscreen shell reads its first tab), and the heading says so.
+   * A failure keeps the error card with what the new failure says.
    */
+  const firstRead = firstReadFor(props.view);
   function retryFirstList() {
     if (state.retrying) return;
     setState((prev) => ({ ...prev, retrying: true }));
-    transport
-      .getWorkAgenda({})
-      .then((page) =>
+    firstRead
+      .read(transport)
+      .then((next) =>
         setState((prev) =>
           prev.frame?.kind === "error"
             ? {
                 ...prev,
-                frame: { kind: "agenda", filters: {}, page },
+                frame: next,
                 cause: undefined,
                 retrying: false,
                 resultNumber: prev.resultNumber + 1,
@@ -293,6 +296,7 @@ export function WorkRoom(props: RoomProps) {
           frame?.kind === "error"
             ? {
                 cause: state.cause,
+                subject: firstRead.subject,
                 onRetry: retryFirstList,
                 retrying: state.retrying,
               }

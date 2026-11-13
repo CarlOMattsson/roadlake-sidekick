@@ -9,17 +9,14 @@ import { TaskPlace } from "./task-place";
 import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
+import { isRecurringCycle } from "../agenda/parts/agenda-helpers";
+import { TaskDoneReceipt, type DoneReceipt } from "./task-cycle";
 import {
-  isRecurringCycle,
-  recurringDoneText,
-  type RecurringCycle,
-} from "../agenda/parts/agenda-helpers";
-import { TaskCycleLine } from "./task-cycle";
-import type {
-  TaskStatusValue,
-  WorkContact,
-  WorkTask,
-  WorkTaskChanges,
+  isTaskStatus,
+  type TaskStatusValue,
+  type WorkContact,
+  type WorkTask,
+  type WorkTaskChanges,
 } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
 import { detailDate } from "../view/parts/detail-date";
@@ -78,9 +75,9 @@ export function TaskFrame({
     contactsOn,
     unlinkOffered,
   } = useTaskOffers(transport, task);
-  // "Markera klar" recorded a cycle of a recurring Task: the line under the button and the due date its Ångra puts back.
-  const [cycle, setCycle] = useState<RecurringCycle>();
-  const endCycle = useCallback(() => setCycle(undefined), []);
+  // What the last "Markera klar" left to undo: the line under the button and the earlier value its Ångra puts back.
+  const [receipt, setReceipt] = useState<DoneReceipt>();
+  const endReceipt = useCallback(() => setReceipt(undefined), []);
   // Set once "Ta bort uppgift" has moved the Task to the trash: the trash record's version, which Ångra needs.
   const [trashed, setTrashed] = useState<{ version: number }>();
   // Runs the last failed trash, Ångra, quick change or tag change again; the same action keeps its key, so the server
@@ -138,16 +135,21 @@ export function TaskFrame({
   }
   /**
    * Writes only the changed fields against the version the view holds; the key follows the action. Every write ends
-   * the line of a recorded cycle; `then` sees the reply once it is shown.
+   * the receipt line of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply gets a line of
+   * its own with Ångra, so no plain "Sparat" stands beside it.
    */
-  function saveTask(changes: WorkTaskChanges, then?: (next: WorkTask) => void) {
-    if (!task || frame.writing.current) return;
+  function saveTask(
+    changes: WorkTaskChanges,
+    then?: (next: WorkTask) => void,
+    receipt = false,
+  ) {
+    if (!task || frame.flight.isRunning()) return;
     if (Object.keys(changes).length === 0) {
       frame.stopEdit();
       return;
     }
-    setCycle(undefined);
-    retryWrite.current = () => saveTask(changes, then);
+    setReceipt(undefined);
+    retryWrite.current = () => saveTask(changes, then, receipt);
     setWriteWhat("save");
     frame.sendWrite(
       JSON.stringify([task.id, task.version, changes]),
@@ -161,6 +163,7 @@ export function TaskFrame({
         onSaved();
         heading.current?.focus();
       },
+      receipt,
     );
   }
   /**
@@ -168,10 +171,10 @@ export function TaskFrame({
    * runs once it is stored. A failure keeps the typed tag and offers Försök igen.
    */
   function setTags(next: string[], done: () => void) {
-    if (!task || frame.writing.current) return;
+    if (!task || frame.flight.isRunning()) return;
     retryWrite.current = () => setTags(next, done);
     setWriteWhat("save");
-    setCycle(undefined);
+    setReceipt(undefined);
     frame.sendWrite(
       JSON.stringify(["tags", task.id, task.version, next]),
       "write",
@@ -187,7 +190,7 @@ export function TaskFrame({
   }
   /** Moves the Task to the trash at the version the view holds; no question first, since Ångra undoes it. */
   function trashTask() {
-    if (!task || frame.writing.current) return;
+    if (!task || frame.flight.isRunning()) return;
     setMenuOpen(false);
     retryWrite.current = trashTask;
     setWriteWhat("trash");
@@ -205,7 +208,7 @@ export function TaskFrame({
   }
   /** Takes the Task out of the trash and reads it again, so the view holds the version the restore left. */
   function restoreTask() {
-    if (!trashed || frame.writing.current) return;
+    if (!trashed || frame.flight.isRunning()) return;
     retryWrite.current = restoreTask;
     setWriteWhat("trash");
     frame.sendWrite(
@@ -237,10 +240,17 @@ export function TaskFrame({
     // Done on a recurring Task: the reply is the Task open again with its next date (see isRecurringCycle).
     const before = task.due_at ?? null;
     const lastCompleted = task.last_completed_at ?? null;
-    saveTask({ status }, (next) => {
-      if (status === "completed" && isRecurringCycle(next, before))
-        setCycle({ from: before, lastCompleted });
-    });
+    const was = task.status;
+    saveTask(
+      { status },
+      (next) => {
+        if (status !== "completed") return;
+        if (isRecurringCycle(next, before))
+          setReceipt({ kind: "cycle", from: before, lastCompleted });
+        else if (isTaskStatus(was)) setReceipt({ kind: "finished", was });
+      },
+      status === "completed",
+    );
   }
   // A deleted Task shows only its title, the line that it is in the trash and Ångra.
   if (trashed && task)
@@ -385,23 +395,15 @@ export function TaskFrame({
             onRetry={() => retryWrite.current?.()}
           />
         )}
-      {phase === "ready" && task && cycle && (
-        <TaskCycleLine
-          text={recurringDoneText(t, task.due_at, new Date())}
+      {phase === "ready" && task && receipt && (
+        <TaskDoneReceipt
+          receipt={receipt}
+          task={task}
           labels={t}
           disabled={write.kind === "busy" || editing}
-          onUndo={
-            dueOffered
-              ? () =>
-                  saveTask({
-                    due_at: cycle.from,
-                    ...(cycle.lastCompleted !== undefined
-                      ? { last_completed_at: cycle.lastCompleted }
-                      : {}),
-                  })
-              : undefined
-          }
-          onExpire={endCycle}
+          offers={offers}
+          save={saveTask}
+          onExpire={endReceipt}
         />
       )}
       {/* Where the Task belongs and how it repeats; a place choice is one update_task through saveTask. */}

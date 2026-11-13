@@ -104,7 +104,7 @@ test("a task changed on the server after it was read is refused, shown as a conf
     "todo",
   );
 
-  await banner.getByRole("button", { name: "Reload" }).click();
+  await banner.getByRole("button", { name: "Refresh" }).click();
   await expect(app.getByRole("alert")).toHaveCount(0);
   await expect(
     app.getByRole("heading", { level: 2, name: changed, exact: true }),

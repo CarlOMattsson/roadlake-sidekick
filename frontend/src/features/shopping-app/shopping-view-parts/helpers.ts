@@ -34,31 +34,54 @@ export function emptyAsk(
   };
 }
 
+/**
+ * A fact kept for good: in the frame's storage when the host allows it, otherwise in a `data-` attribute of the
+ * document for the session. Returns the function that records it and the one that reads it.
+ */
+function onceFlag(
+  storageKey: string,
+  dataName: string,
+): [mark: () => void, wasMarked: () => boolean] {
+  const data = document.documentElement.dataset;
+  const mark = () => {
+    data[dataName] = "1";
+    try {
+      localStorage[storageKey] = "1";
+    } catch {
+      // No storage in this frame: the document keeps the answer for the session.
+    }
+  };
+  const wasMarked = () => {
+    let used = data[dataName];
+    try {
+      used ||= localStorage[storageKey];
+    } catch {
+      // No storage: only this session's answer counts.
+    }
+    return Boolean(used);
+  };
+  return [mark, wasMarked];
+}
+
 /*
  * The tip of the store view (designsystem §3 "Listrad", one once-only tip): "Tryck på
  * ringen för att markera köpt, på varan för att ändra." stands after the last shop until a ring is first tapped or a
  * row's change form is first opened (tap, long press or Shift+F10), and is gone for good after that. The frame's storage keeps it when the host allows it; the document's `data-shopping-hold`
  * keeps it for the session when not, and hides a tip that is still drawn (shopping.css).
  */
-const HOLD_KEY = "sidekick.shoppingHoldUsed";
-const holdSeen = document.documentElement.dataset;
-export function holdUsed() {
-  holdSeen.shoppingHold = "1";
-  try {
-    localStorage[HOLD_KEY] = "1";
-  } catch {
-    // No storage in this frame: the document keeps the answer for the session.
-  }
-}
-export function wasHoldUsed(): boolean {
-  let used = holdSeen.shoppingHold;
-  try {
-    used ||= localStorage[HOLD_KEY];
-  } catch {
-    // No storage: only this session's answer counts.
-  }
-  return Boolean(used);
-}
+export const [holdUsed, wasHoldUsed] = onceFlag(
+  "sidekick.shoppingHoldUsed",
+  "shoppingHold",
+);
+
+/**
+ * The bought list's tip ("Tap the circle to buy again") is said until an item has been bought again once; after that it
+ * is gone for good, the same way (the document's `data-shopping-buy-again` hides a tip that is still drawn).
+ */
+export const [buyAgainUsed, wasBuyAgainUsed] = onceFlag(
+  "sidekick.shoppingBuyAgainUsed",
+  "shoppingBuyAgain",
+);
 
 const STORE_COLLATOR = new Intl.Collator("sv");
 
@@ -128,6 +151,64 @@ function formatShortDate(value: string, locale: string): string {
     .replace(/\.$/, "");
 }
 
+/**
+ * A stored price as plain digits in the locale's decimal style, for a field and for the detail lines: "19.9" reads
+ * "19,90" in Swedish and "19.90" in English, a whole price reads "199". Not a decimal: returned unchanged.
+ */
+export function formatPriceNumber(value: string, locale: string): string {
+  const match = /^\d+(?:\.(\d+))?$/.exec(value);
+  if (!match) return value;
+  const decimals = (match[1] ?? "").replace(/0+$/, "").length;
+  return new Intl.NumberFormat(locale, {
+    useGrouping: false,
+    minimumFractionDigits: decimals === 0 ? 0 : 2,
+    maximumFractionDigits: Math.max(2, decimals),
+  }).format(Number(value));
+}
+
+/** The least and the most a price may be (the tool's limits). */
+const PRICE_MIN = 0.01;
+const PRICE_MAX = 99999999.99;
+
+/**
+ * A typed price as the server takes it: a decimal comma or point, at most two decimals, within the tool's limits.
+ * "19,9" gives "19.9". Anything else gives null.
+ */
+export function parsePriceInput(text: string): string | null {
+  const plain = text.trim().replace(",", ".");
+  if (!/^\d+(?:\.\d{1,2})?$/.test(plain)) return null;
+  const number = Number(plain);
+  return number >= PRICE_MIN && number <= PRICE_MAX ? plain : null;
+}
+
+/**
+ * A stored quantity as plain digits in the locale's decimal style, for a field: the server's "2.000" reads "2" and
+ * "1.500" reads "1,5" in Swedish and "1.5" in English, with no thousands separator. Not a decimal: returned unchanged.
+ */
+export function formatQuantityNumber(value: string, locale: string): string {
+  const match = /^\d+(?:\.(\d+))?$/.exec(value);
+  if (!match) return value;
+  return new Intl.NumberFormat(locale, {
+    useGrouping: false,
+    maximumFractionDigits: Math.min((match[1] ?? "").length, 20),
+  }).format(Number(value));
+}
+
+/** The least and the most a quantity may be (the tool's limits); it has at most three decimals. */
+const QUANTITY_MIN = 0.001;
+const QUANTITY_MAX = 999999.999;
+
+/**
+ * A typed quantity as the server takes it: a decimal comma or point, at most three decimals, within the tool's limits.
+ * "1,5" gives "1.5". Anything else gives null.
+ */
+export function parseQuantityInput(text: string): string | null {
+  const plain = text.trim().replace(",", ".");
+  if (!/^\d+(?:\.\d{1,3})?$/.test(plain)) return null;
+  const number = Number(plain);
+  return number >= QUANTITY_MIN && number <= QUANTITY_MAX ? plain : null;
+}
+
 /** A price in the locale's currency format without empty decimals: "199 kr" in Swedish, "SEK 199" in English. */
 function formatPrice(value: string, currency: string, locale: string): string {
   const number = Number(value);
@@ -153,7 +234,11 @@ export function boughtOnText(
   now = new Date(),
 ): string {
   if (!item.purchased) return "";
-  const day = workDate(item.purchased_at, now, t.dateLocale, { inline: true });
+  // "yesterday" and a plain date; a weekday inside a week is noise on a list of what was bought.
+  const day = workDate(item.purchased_at, now, t.dateLocale, {
+    inline: true,
+    weekday: false,
+  });
   return day ? t.boughtOn(day) : "";
 }
 

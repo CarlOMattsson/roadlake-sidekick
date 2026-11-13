@@ -138,11 +138,11 @@ describe("ErrorNotice placement", () => {
   it("puts extra actions beside the retry", () => {
     render(
       <ErrorNotice locale="sv" onRetry={() => undefined}>
-        <button type="button">Ladda om</button>
+        <button type="button">Uppdatera</button>
       </ErrorNotice>,
     );
     expect(screen.getByRole("button", { name: "Försök igen" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Ladda om" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Uppdatera" })).toBeVisible();
   });
 });
 

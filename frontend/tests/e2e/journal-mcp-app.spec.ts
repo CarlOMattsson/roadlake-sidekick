@@ -282,7 +282,7 @@ test("sandboxed Journal App shows a pending source without a draft as plain text
   ).toBeVisible();
   await expect(
     app.getByText(
-      "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
+      "Öppna ett utkast för att granska det. Inget sparas förrän du sparar utkastet.",
     ),
   ).toBeVisible();
   await expect(app.getByRole("button")).toHaveCount(0);
@@ -468,7 +468,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
   await app.getByRole("button", { name: "Yes, save the entry" }).click();
   const banner = app.getByRole("alert");
   await expect(banner).toBeFocused();
-  await app.getByRole("button", { name: "Reload" }).click();
+  await app.getByRole("button", { name: "Refresh" }).click();
   await expect(app.getByRole("alert")).toHaveCount(0);
   // The chosen link survives the reload.
   await expect(link).toHaveAttribute("aria-pressed", "true");
@@ -834,7 +834,7 @@ test("sandboxed Journal App day heading shortens its weekday where the long form
 });
 
 // Inline, the draft's tag field shares the row under the summary with "Read more", so the card gets no row for it;
-// both keep a 44 px target. A simulated host, not a real Claude or Android host.
+// both keep a 44 px target and the card still fits the screen. A simulated host, not a real Claude or Android host.
 test("sandboxed Journal App inline draft offers tags beside Read more at 320 px", async ({
   page,
 }) => {
@@ -877,6 +877,8 @@ test("sandboxed Journal App inline draft offers tags beside Read more at 320 px"
   expect(Math.abs(more!.y - tag!.y)).toBeLessThanOrEqual(2);
   expect(tag!.x).toBeGreaterThan(more!.x + more!.width);
   expect(Math.min(more!.height, tag!.height)).toBeGreaterThanOrEqual(44);
+  const card = await app.locator(".sidekick-journal").boundingBox();
+  expect(card!.height).toBeLessThanOrEqual(700);
   expect(failures).toEqual([]);
 });
 

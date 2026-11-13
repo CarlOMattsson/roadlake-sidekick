@@ -43,7 +43,7 @@ describe("journal draft review", () => {
     await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await screen.findByText(journalEn.conflict);
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     expect(
       await screen.findByText("This draft has already been handled."),
     ).toBeInTheDocument();
@@ -187,7 +187,7 @@ describe("journal draft review", () => {
     await user.click(screen.getByRole("button", { name: "Reject draft" }));
     await user.click(screen.getByRole("button", { name: "Yes, reject draft" }));
     await screen.findByText(journalEn.conflict);
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     expect(
       await screen.findByText("A suggestion changed and was deselected."),
     ).toBeInTheDocument();
@@ -265,7 +265,7 @@ describe("journal draft review", () => {
     await user.type(screen.getByLabelText("Title"), "!");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText(journalEn.conflict);
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     expect(
       await screen.findByText(
         "Editing was closed because some suggestions are now hidden.",
@@ -296,7 +296,7 @@ describe("journal draft review", () => {
     await user.click(screen.getByRole("button", { name: "Save as entry" }));
     await clickSave(user);
     await screen.findByText(journalEn.conflict);
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(getDraft).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(screen.queryByText(journalEn.conflict)).not.toBeInTheDocument(),
@@ -310,7 +310,7 @@ describe("journal draft review", () => {
     await user.click(screen.getByRole("button", { name: "Reject draft" }));
     await user.click(screen.getByRole("button", { name: "Yes, reject draft" }));
     await screen.findByText(journalEn.conflict);
-    await user.click(screen.getByRole("button", { name: "Reload" }));
+    await user.click(screen.getByRole("button", { name: "Refresh" }));
     await waitFor(() => expect(getDraft).toHaveBeenCalledTimes(3));
     await waitFor(() =>
       expect(screen.queryByText(journalEn.conflict)).not.toBeInTheDocument(),

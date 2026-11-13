@@ -6,6 +6,7 @@ import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { CreateField } from "../../mcp-apps/ui/create-field";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { WriteFailureRow } from "../shared/write-failure-row";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import {
   writeFailure,
@@ -45,7 +46,7 @@ export function NewContact({
   const openButton = useRef<HTMLButtonElement>(null);
   const lastName = useRef("");
   // Synchronous guard against a second create before React re-renders.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   // The key of each name whose delivery is not settled: the same name again reuses its own key.
   const pendingWrite = useRef(new Map<string, PendingKey>());
   // What the create field holds now: a retry that succeeds empties it only if it still holds the retried name.
@@ -82,7 +83,7 @@ export function NewContact({
   }
   /** true when the Contact was created; false when the write was refused or failed (the create field keeps the name). */
   function submit(name: string): Promise<boolean> {
-    if (writing.current) return Promise.resolve(false);
+    if (flight.isRunning()) return Promise.resolve(false);
     lastName.current = name;
     if (titleProblem(name) === "tooLong") {
       dispatch({ type: "problem", text: t.nameTooLong });
@@ -93,7 +94,7 @@ export function NewContact({
       JSON.stringify([name]),
     );
     pendingWrite.current.set(name, pendingKey);
-    writing.current = true;
+    flight.enter();
     dispatch({ type: "submitStarted" });
     return transport
       .createContact({ display_name: name }, pendingKey.key)
@@ -110,7 +111,7 @@ export function NewContact({
         return false;
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
         if (mounted.current) dispatch({ type: "submitSettled" });
       });
   }

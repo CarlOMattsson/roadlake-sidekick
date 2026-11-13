@@ -3,6 +3,7 @@ guard, who may set the key, and that neither logs nor audit carry the key."""
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 
 import pytest
@@ -389,7 +390,13 @@ def test_one_wrong_jump_forward_in_the_clock_does_not_lock_a_valid_key_out(
         assert licensed.view().state == "expired"
     ahead = [r for r in caplog.records if r.getMessage() == "license_clock_ahead"]
     assert ahead and getattr(ahead[0], "license_reason", None) == "clock_jump_ignored"
-    assert "2036" not in " ".join(r.getMessage() + str(vars(r)) for r in ahead)
+    # Only the message and the fields the service added: the record's own timestamps may hold the
+    # digits by chance.
+    standard = vars(logging.LogRecord("", 0, "", 0, "", None, None)).keys() | {"message"}
+    extras = [
+        f"{key}={value}" for r in ahead for key, value in vars(r).items() if key not in standard
+    ]
+    assert "2036" not in " ".join([*(r.getMessage() for r in ahead), *extras])
     with factory() as session:
         row = session.get(InstanceLicenseRow, 1)
         assert row is not None and row.max_seen_on == date(2026, 11, 9)

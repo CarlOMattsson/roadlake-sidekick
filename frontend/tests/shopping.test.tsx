@@ -1,8 +1,14 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
-import { shoppingEn } from "@/features/shopping-app/labels";
+import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
+import {
+  formatPriceNumber,
+  formatQuantityNumber,
+  parsePriceInput,
+  parseQuantityInput,
+} from "@/features/shopping-app/shopping-view-parts/helpers";
 import type {
   ShoppingDetail,
   ShoppingItem,
@@ -251,4 +257,82 @@ it("adds the batch when Enter is pressed in the field, and Shift+Enter keeps a l
   await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
   expect(add.mock.calls[0]![1]).toEqual(["Shelf", "Lamp"]);
   await waitFor(() => expect(batch).toHaveValue(""));
+});
+
+it("writes the offer's prices in the list's decimal style in the detail lines", () => {
+  const withOffer: ShoppingDetail = {
+    ...detail,
+    items: [
+      item({
+        name: "Mjölk",
+        offer_status: "current",
+        offer: {
+          price: "14.9",
+          regular_price: "17.90",
+          currency: "SEK",
+          valid_from: "2026-10-23",
+          valid_until: "2026-10-30",
+          checked_on: "2026-10-25",
+          source: "ICA",
+          source_url: null,
+        },
+      }),
+    ],
+  };
+  render(
+    <ShoppingView
+      transport={adapter()}
+      labels={shoppingSv}
+      initial={withOffer}
+    />,
+  );
+  expect(screen.getByText(/14,90 SEK/)).toBeInTheDocument();
+  expect(screen.getByText(/Ordinarie pris: 17,90/)).toBeInTheDocument();
+});
+
+describe("price text helpers", () => {
+  it("formats a stored price in the locale's decimal style", () => {
+    expect(formatPriceNumber("19.9", "sv-SE")).toBe("19,90");
+    expect(formatPriceNumber("19.9", "en-GB")).toBe("19.90");
+    expect(formatPriceNumber("199.00", "sv-SE")).toBe("199");
+    expect(formatPriceNumber("1234.5", "sv-SE")).toBe("1234,50");
+    expect(formatPriceNumber("n/a", "sv-SE")).toBe("n/a");
+  });
+
+  it("reads a typed price with a comma or a point, within the limits", () => {
+    expect(parsePriceInput("19,90")).toBe("19.90");
+    expect(parsePriceInput(" 19.9 ")).toBe("19.9");
+    expect(parsePriceInput("199")).toBe("199");
+    expect(parsePriceInput("0")).toBeNull();
+    expect(parsePriceInput("1,234")).toBeNull();
+    expect(parsePriceInput("1,2,3")).toBeNull();
+    expect(parsePriceInput("-5")).toBeNull();
+    expect(parsePriceInput("100000000")).toBeNull();
+    expect(parsePriceInput("")).toBeNull();
+  });
+});
+
+describe("quantity text helpers", () => {
+  it("formats a stored quantity without empty decimals, in the locale's style", () => {
+    expect(formatQuantityNumber("2.000", "sv-SE")).toBe("2");
+    expect(formatQuantityNumber("1.500", "sv-SE")).toBe("1,5");
+    expect(formatQuantityNumber("1.500", "en-GB")).toBe("1.5");
+    expect(formatQuantityNumber("0.125", "sv-SE")).toBe("0,125");
+    expect(formatQuantityNumber("12000.000", "sv-SE")).toBe("12000");
+    expect(formatQuantityNumber("n/a", "sv-SE")).toBe("n/a");
+  });
+
+  it("reads a typed quantity with a comma or a point, within the limits", () => {
+    expect(parseQuantityInput("1,5")).toBe("1.5");
+    expect(parseQuantityInput(" 2.25 ")).toBe("2.25");
+    expect(parseQuantityInput("12")).toBe("12");
+    expect(parseQuantityInput("0.001")).toBe("0.001");
+    expect(parseQuantityInput("999999.999")).toBe("999999.999");
+    expect(parseQuantityInput("0")).toBeNull();
+    expect(parseQuantityInput("1,2345")).toBeNull();
+    expect(parseQuantityInput("1,2,3")).toBeNull();
+    expect(parseQuantityInput("-1")).toBeNull();
+    expect(parseQuantityInput("1000000")).toBeNull();
+    expect(parseQuantityInput("")).toBeNull();
+  });
 });

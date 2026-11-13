@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { useSingleFlight } from "../shared/use-single-flight";
 import "./saved-views.css";
 
 /**
@@ -20,12 +21,18 @@ export function SavedViewReceipt({
 }) {
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const flight = useSingleFlight();
   async function clear() {
+    // A second press before the button re-renders disabled must not clear twice.
+    if (!flight.enter()) return;
     setBusy(true);
     setFailed(false);
-    const done = await onClear();
-    setBusy(false);
-    setFailed(!done);
+    try {
+      setFailed(!(await onClear()));
+    } finally {
+      flight.leave();
+      setBusy(false);
+    }
   }
   return (
     <p role="status" className="work-saved-view-receipt">

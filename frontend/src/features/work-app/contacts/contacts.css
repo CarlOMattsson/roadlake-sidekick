@@ -102,11 +102,6 @@
   > :is(.work-contacts-add, .work-contacts-more)::after {
   inset: -2px;
 }
-.sidekick-work
-  .work-contacts-head
-  > .sk-iconbtn[aria-expanded="true"]:not(.sk-iconbtn--primary) {
-  background: var(--sk-surface);
-}
 /* The create field folds out 8 under the head, on a line of its own, with 12 under it before the first row: it is the
    head's field, not a row of the list. */
 .sidekick-work .work-contacts-create {
@@ -132,12 +127,6 @@
    row in --sk-type-title; there is no kind kicker above it. A root frame's row shows the kind as a muted kicker. */
 /* The icon buttons themselves are sk-icon-btn (family.css) and the Back row's action rule (back-header.css); in
    fullscreen they are portalled into the shell's Back row, outside .sidekick-work, so these extras are unscoped. */
-.work-detail-action[aria-expanded="true"],
-.sk-back-header
-  .sk-back-header__actions
-  .work-detail-action[aria-expanded="true"] {
-  background: var(--sk-surface);
-}
 .work-detail-action:disabled {
   cursor: default;
   opacity: 0.5;

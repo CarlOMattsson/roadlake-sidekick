@@ -9,6 +9,7 @@ import {
   type Phase,
   type WriteState,
 } from "./frame-types";
+import { useSingleFlight } from "../../shared/use-single-flight";
 import { useMounted } from "../../../mcp-apps/ui/use-mounted";
 
 /**
@@ -35,7 +36,7 @@ export function useDetailFrame({
   const ticket = useRef(0);
   const mounted = useMounted();
   // Synchronous guard against a second write (double click) before React re-renders.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   const pendingWrite = useRef<PendingKey | undefined>(undefined);
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
@@ -61,18 +62,19 @@ export function useDetailFrame({
   }
   /**
    * One durable write. The signature names the action and the version it was based on, so a retry of the
-   * same action reuses its key and any other action gets a fresh one. `apply` stores the answer.
+   * same action reuses its key and any other action gets a fresh one. `apply` stores the answer. `receipt` says the
+   * frame draws its own receipt for this write (a "Klar" line with Ångra), so no plain "Sparat" stands beside it.
    */
   function sendWrite<R>(
     signature: string,
     action: "save" | "write",
     send: (key: string) => Promise<R>,
     apply: (result: R) => void,
+    receipt = false,
   ) {
-    if (writing.current) return;
+    if (!flight.enter()) return;
     const pendingKey = keyFor(pendingWrite.current, signature);
     pendingWrite.current = pendingKey;
-    writing.current = true;
     setWrite({ kind: "busy" });
     send(pendingKey.key)
       .then((result) => {
@@ -83,13 +85,13 @@ export function useDetailFrame({
         ticket.current++;
         setPhase("ready");
         apply(result);
-        setWrite({ kind: "saved" });
+        setWrite({ kind: receipt ? "idle" : "saved" });
       })
       .catch((error: unknown) => {
         if (mounted.current) setWrite(failureState(error, action));
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
       });
   }
   /**
@@ -101,9 +103,8 @@ export function useDetailFrame({
     apply: (result: R) => void,
     answered?: () => void,
   ) {
-    if (writing.current) return;
+    if (!flight.enter()) return;
     const current = ++ticket.current;
-    writing.current = true;
     setWrite({ kind: "busy" });
     fetch()
       .then((result) => {
@@ -121,7 +122,7 @@ export function useDetailFrame({
         if (mounted.current) setWrite(failureState(error, "reload"));
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
       });
   }
   return {
@@ -140,7 +141,7 @@ export function useDetailFrame({
     takeTicket,
     isLatest,
     dropReads,
-    writing,
+    flight,
     retry,
     stopEdit,
     sendWrite,
@@ -222,9 +223,11 @@ export function usePagedSection<T>({
   const [more, setMore] = useState<MorePhase>("idle");
   const [attempt, setAttempt] = useState(0);
   const ticket = useRef(0);
+  // One "Show more" page per read generation, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   function loadMore() {
-    if (!nextCursor || more === "busy") return;
     const current = ticket.current;
+    if (!nextCursor || !pages.enter(current)) return;
     setMore("busy");
     list(nextCursor)
       .then((page) => {
@@ -236,7 +239,8 @@ export function usePagedSection<T>({
       })
       .catch(() => {
         if (current === ticket.current) setMore("failed");
-      });
+      })
+      .finally(() => pages.leave(current));
   }
   useEffect(() => {
     if (!enabled) return undefined;

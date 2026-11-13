@@ -505,7 +505,7 @@ describe("journal app navigation", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Open a draft to review it. Nothing is saved until you save it.",
+        "Open a draft to review it. Nothing is saved until you save the draft.",
       ),
     ).toBeInTheDocument();
     // The row is one button: its name is the title and the meta line.

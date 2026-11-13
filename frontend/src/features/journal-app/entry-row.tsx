@@ -6,6 +6,7 @@ import { formatShortDateWithYear, formatTime } from "./dates";
 import { linkName, summaryRest } from "./entry-card";
 import type { JournalLabels } from "./labels";
 import type { JournalEntry } from "./transport";
+import { useWideFrame } from "./use-wide-frame";
 import "./journal.css";
 
 /** What one row shows of an entry. The link fields are optional: a missing count is not shown. */
@@ -38,6 +39,9 @@ export type EntryRowProps = {
 
 /** How many linked names the meta line names; the rest are counted ("och 1 till"). */
 const ROW_LINK_LIMIT = 2;
+/** The tags a row names before it counts the rest: two on a phone, four where the frame is wide. */
+const ROW_TAGS_NARROW = 2;
+const ROW_TAGS_WIDE = 4;
 
 /**
  * One Journal entry in a day's timeline (designsystem §3, Anteckningsrad): a row with no frame, no surface and no
@@ -52,6 +56,7 @@ export function EntryRow({
   tagVocabulary,
   dated = false,
 }: EntryRowProps) {
+  const wide = useWideFrame();
   const time =
     dated && entry.journal_date ? (
       <time dateTime={entry.journal_date}>
@@ -88,11 +93,11 @@ export function EntryRow({
               {meta}
             </span>
           ) : null}
-          {/* Two tags at most close the meta line; the text before them gives way first (tags.css). */}
+          {/* A few tags close the meta line; the text before them gives way first (tags.css). */}
           <TagChips
             tags={tags}
             known={tagVocabulary}
-            max={2}
+            max={wide ? ROW_TAGS_WIDE : ROW_TAGS_NARROW}
             locale={t.dateLocale}
           />
         </span>

@@ -209,3 +209,9 @@ describe("Control deleted-items wording", () => {
     expect(controlEn.memoryExplain).toMatch(/Claude can ask Sidekick about it/);
   });
 });
+
+describe("Swedish empty states say ännu, not än", () => {
+  it.each([controlSv.historyEmpty, controlSv.recallEmpty])("%s", (text) => {
+    expect(text).toMatch(/ ännu\.$/);
+  });
+});

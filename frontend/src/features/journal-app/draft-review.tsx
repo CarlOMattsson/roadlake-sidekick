@@ -56,6 +56,7 @@ export function DraftFrame({
   transport,
   labels: t,
   moves,
+  fullscreen,
   onRejected,
   onFinalized,
 }: {
@@ -63,6 +64,8 @@ export function DraftFrame({
   transport: JournalTransport;
   labels: JournalLabels;
   moves: number;
+  /** Fullscreen shows every section open and draws the tags as a section of their own, after "Redigera". */
+  fullscreen: boolean;
   /** The draft was rejected: the pending list should stop offering it. */
   onRejected: (draftId: string) => void;
   /** The draft became a journal entry: the view shows that entry next. */
@@ -334,19 +337,21 @@ export function DraftFrame({
       )}
       {phase === "ready" && draft && (
         <>
-          <p className="journal-draft-tag">
+          <p className="journal-muted journal-draft-tag">
             <span className="journal-tag">{t.aiDraft}</span>
-          </p>
-          {pending ? (
-            <p className="journal-muted journal-draft-note">
-              {t.draftNote(
-                formatShortDateWithYear(
+            {pending && (
+              <>
+                {" · "}
+                {formatShortDateWithYear(
                   draft.journal_date,
                   t.dateLocale,
                   ownerToday(),
-                ),
-              )}
-            </p>
+                )}
+              </>
+            )}
+          </p>
+          {pending ? (
+            <p className="journal-muted journal-draft-note">{t.draftNote}</p>
           ) : (
             <p role="status">
               {draft.state === "rejected" && write.kind === "saved"
@@ -380,6 +385,7 @@ export function DraftFrame({
             <DraftReading
               draft={draft}
               tags={pending ? tagField : null}
+              fullscreen={fullscreen}
               original={original}
               pending={pending}
               editDisabled={busy || hiddenProposals || confirm !== undefined}

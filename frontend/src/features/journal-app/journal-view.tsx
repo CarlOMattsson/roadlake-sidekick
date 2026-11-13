@@ -192,6 +192,7 @@ export function JournalView({
           transport={transport}
           labels={t}
           moves={moves}
+          fullscreen={fullscreen}
           onRejected={draftHandled}
           onFinalized={(draftId, result) => {
             draftHandled(draftId);

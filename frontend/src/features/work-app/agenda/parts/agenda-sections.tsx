@@ -15,6 +15,7 @@ import {
   type WaitingRow,
 } from "../../shared/waiting";
 import { sectionHeading, stickyHeading } from "./agenda-helpers";
+import { AgendaNotice, rowSpot } from "./agenda-notice";
 import { AgendaRow } from "./agenda-row";
 import { MoveAllOverdue } from "./move-all-overdue";
 import type { AgendaRowContext } from "./row-context";
@@ -110,6 +111,10 @@ export function AgendaSection({
           disabled={disabled}
           onMove={() => onMoveAll(section.items)}
         />
+      )}
+      {/* A failed "Flytta alla" or its Ångra says so under the button, with its Try again. */}
+      {overdue && (
+        <AgendaNotice spot="moveAll" source={ctx.notice} labels={t} />
       )}
     </section>
   );
@@ -230,6 +235,11 @@ function WaitingRowView({
       <div className="work-agenda-body">
         <RecordTitle item={item} disabled={disabled} onOpen={ctx.onOpen} />
       </div>
+      <AgendaNotice
+        spot={rowSpot(key)}
+        source={ctx.notice}
+        labels={ctx.labels}
+      />
       {item.kind === "task" &&
         offers.offers("update_task", { changes: { follow_up_at: null } }) && (
           <div className="work-waiting-actions">

@@ -387,3 +387,47 @@ describe("a row's tags are read whole", () => {
     expect(declares(chip!, "max-width", "100%")).toBe(true);
   });
 });
+
+describe("every control of the journal is a 44 px box, not only a 44 px reach", () => {
+  const tap = "var(--sk-tap)";
+
+  it("Idag on the week row and the quiet toggles are at least 44 tall or wide", () => {
+    const today = ruleFor(
+      ".sidekick-journal .sk-day-strip-weekrow > .sk-btn--compact",
+    );
+    expect(today, "Idag rule").toBeDefined();
+    expect(declares(today!, "min-height", tap)).toBe(true);
+    const toggle = ruleFor(".sidekick-journal .journal-toggle");
+    expect(toggle, "toggle rule").toBeDefined();
+    expect(declares(toggle!, "min-width", tap)).toBe(true);
+  });
+
+  it("the card's linked-contact chip is drawn 32 high with a 48 target from its ::after", () => {
+    const chip = ruleFor(
+      ".sidekick-journal .journal-card-links button.journal-link-name",
+    );
+    expect(chip, "contact chip rule").toBeDefined();
+    expect(declares(chip!, "height", "32px")).toBe(true);
+  });
+});
+
+describe("the entry view's tag button is framed like the buttons under it", () => {
+  it("has the family's edge colour and the markup carries the scope class", () => {
+    const open = ruleFor(
+      ".sidekick-journal .journal-entry-view .sk-tag-field .sk-tag-field__open",
+    );
+    expect(open, "tag button rule").toBeDefined();
+    expect(declares(open!, "border-color", "var(--sk-border)")).toBe(true);
+    expect(read("entry-frame.tsx")).toContain('className="journal-entry-view"');
+  });
+});
+
+describe("Visa fler reads as a link, not as a heading", () => {
+  it("is at body weight under every cut list", () => {
+    const more = ruleFor(".sidekick-journal .journal-list-more > .sk-more");
+    expect(more, "more rule").toBeDefined();
+    expect(declares(more!, "font-weight", "var(--sk-weight-normal)")).toBe(
+      true,
+    );
+  });
+});

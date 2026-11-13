@@ -6,6 +6,7 @@ import {
   type BoardAction,
   type BoardNotice,
 } from "../../board/board";
+import { useSingleFlight } from "../../shared/use-single-flight";
 import { appendAgendaPage } from "../../shared/work-items";
 import type {
   WorkAgendaFrame,
@@ -46,7 +47,7 @@ export function useAgendaSession({
   const [notice, setNotice] = useState<BoardNotice>();
   // Synchronous guard against a second read or bulk write before React re-renders. Row writes do not take it: they
   // queue per row (a performance measure), so a tap during a write waits instead of being dropped.
-  const reading = useRef(false);
+  const reading = useSingleFlight();
   const rowQueue = useRowQueue();
   // The row writes still running or waiting; a read waits for them (never the other way round).
   const inflight = useRef(new Set<Promise<void>>());
@@ -77,20 +78,21 @@ export function useAgendaSession({
     inflight.current.add(done);
   }
 
-  function run(action: BoardAction, work: () => Promise<void>) {
-    if (reading.current) return;
-    reading.current = true;
+  /** Starts `work` unless a read or bulk write runs; false when it was dropped. */
+  function run(action: BoardAction, work: () => Promise<void>): boolean {
+    if (!reading.enter()) return false;
     setBusy(action);
     setNotice(undefined);
     const started = inflight.current.size > 0 ? rowsQuiet().then(work) : work();
     void started.finally(() => {
-      reading.current = false;
+      reading.leave();
       if (mounted.current) setBusy("idle");
       if (rereadAgain.current && mounted.current) {
         rereadAgain.current = false;
         rereadNow.current();
       }
     });
+    return true;
   }
   /** Shows a page just read as the list now is: no triage mark, no folding or left row, and the caller told. */
   function showRead(next: WorkAgendaFrame["page"]) {
@@ -101,17 +103,14 @@ export function useAgendaSession({
   }
   /** Reads the agenda again and shows it as the list now is. */
   function reread() {
-    if (reading.current) {
-      rereadAgain.current = true;
-      return;
-    }
-    run("reload", async () => {
+    const started = run("reload", async () => {
       try {
         showRead(await transport.getWorkAgenda(filters.current));
       } catch (error) {
         if (mounted.current) setNotice(failureNotice(error, "reload"));
       }
     });
+    if (!started) rereadAgain.current = true;
   }
   function loadMore() {
     const cursor = page.next_cursor;

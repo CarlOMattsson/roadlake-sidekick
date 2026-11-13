@@ -15,6 +15,7 @@ import {
   vi,
 } from "vitest";
 import type { JournalEntry } from "@/features/journal-app/transport";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -101,6 +102,10 @@ async function openEntryView(entry: JournalEntry) {
   deliver({ entry: { id: entry.id } });
   await screen.findByRole("heading", { level: 3, name: "Linked" });
 }
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 afterAll(() => {
   document.head.innerHTML = "";

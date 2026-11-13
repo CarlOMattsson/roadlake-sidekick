@@ -346,9 +346,13 @@ export function WorkFullscreen({
   }
 
   // The Work frame (.sidekick-work) holds the tab strip too, so the strip gets the app's font and colours.
-  // The quiet row after the agenda shows only while some Task is unsorted and no Task is open over the list.
+  // The quiet row after the agenda shows only while some Task is unsorted and no Task is open over the list; not under
+  // the error box of an agenda that could not be read, which it would contradict.
   const sortRow =
-    unsorted && unsorted.count > 0 && !agendaOpen ? (
+    unsorted &&
+    unsorted.count > 0 &&
+    !agendaOpen &&
+    entries.agenda?.status !== "error" ? (
       <UnsortedOpenRow
         count={unsorted.count}
         more={unsorted.more}

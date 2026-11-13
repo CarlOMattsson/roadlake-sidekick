@@ -570,6 +570,8 @@ it("archives at once, shows the receipt with Undo, and restores the Contact from
     screen.queryByRole("button", { name: workEn.archiveContact }),
   ).toBeNull();
   expect(screen.getByText(workEn.archivedReadOnly)).toBeInTheDocument();
+  // The receipt already says it was saved: no plain "Saved" line beside it.
+  expect(screen.queryByText(workEn.saved)).toBeNull();
   expect(screen.queryByLabelText(workEn.aliasValue)).toBeNull();
   expect(archiveContact).toHaveBeenCalledWith(
     anna.id,

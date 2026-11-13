@@ -132,13 +132,10 @@ describe("Shopping: the recipient search", () => {
     render(<ShoppingRoom mode="full" transport={transport} />);
     await openEditor();
 
-    expect(screen.getByLabelText("Contact name")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Find contact" }),
+      screen.getByRole("button", { name: "Choose contact" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Gift recipient (optional)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Gift recipient (optional)")).toBeInTheDocument();
   });
 
   it("offers no recipient field and no search in the app for an item without a recipient", async () => {
@@ -146,9 +143,8 @@ describe("Shopping: the recipient search", () => {
     render(<ShoppingRoom mode="full" transport={transport} />);
     await openEditor();
 
-    expect(screen.queryByLabelText("Contact name")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Find contact" })).toBeNull();
-    expect(screen.queryByLabelText("Gift recipient (optional)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Choose contact" })).toBeNull();
+    expect(screen.queryByText("Gift recipient (optional)")).toBeNull();
     expect(call.mock.calls.map(([name]) => name)).not.toContain(
       "list_contacts",
     );
@@ -159,11 +155,10 @@ describe("Shopping: the recipient search", () => {
     render(<ShoppingRoom mode="full" transport={transport} />);
     await openEditor();
 
-    expect(screen.getByLabelText("Gift recipient (optional)")).toHaveValue(
-      CONTACT_ID,
-    );
-    expect(screen.getByText("Current recipient")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Find contact" })).toBeNull();
+    expect(screen.getByText("Linked contact")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Choose contact" })).toBeNull();
     expect(call.mock.calls.map(([name]) => name)).not.toContain(
       "list_contacts",
     );

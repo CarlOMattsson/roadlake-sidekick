@@ -7,11 +7,13 @@ import { DraftSummary } from "./draft-summary";
 /**
  * The draft as the owner reads it: summary, the tags for the entry (`tags`), the way into the editor beside the
  * original (`original`), then key points. Edit and the original sit under the summary they belong to, so the fold rows
- * (key points, links, task changes) follow each other with nothing between them.
+ * (key points, links, task changes) follow each other with nothing between them. Fullscreen puts "Redigera" right
+ * under the summary and the tags, a section of their own, after it: inline the tags share the summary's row.
  */
 export function DraftReading({
   draft,
   tags,
+  fullscreen,
   original,
   pending,
   editDisabled,
@@ -24,6 +26,7 @@ export function DraftReading({
 }: {
   draft: JournalDraft;
   tags: ReactNode;
+  fullscreen: boolean;
   original: ReactNode;
   pending: boolean;
   editDisabled: boolean;
@@ -37,11 +40,15 @@ export function DraftReading({
   return (
     <>
       {draft.summary ? (
-        <DraftSummary text={draft.summary} after={tags} labels={t} />
+        <DraftSummary
+          text={draft.summary}
+          after={fullscreen ? null : tags}
+          labels={t}
+        />
       ) : (
         <>
           <p className="journal-muted">{t.noDraftSummary}</p>
-          {tags}
+          {fullscreen ? null : tags}
         </>
       )}
       {pending && (
@@ -56,6 +63,7 @@ export function DraftReading({
           </button>
         </p>
       )}
+      {fullscreen ? tags : null}
       {original}
       {pending && hiddenProposals && (
         <p className="journal-muted">{t.editBlockedHidden}</p>

@@ -163,3 +163,34 @@ describe("EntryRow", () => {
     );
   });
 });
+
+describe("how many tags a row names", () => {
+  const tags = ["kund", "viktig", "familj", "hus", "resa"];
+
+  function withWidth(width: number) {
+    const before = window.innerWidth;
+    Object.defineProperty(window, "innerWidth", {
+      value: width,
+      configurable: true,
+    });
+    return () =>
+      Object.defineProperty(window, "innerWidth", {
+        value: before,
+        configurable: true,
+      });
+  }
+
+  it("names two and counts the rest on a phone", () => {
+    const restore = withWidth(375);
+    renderRow({}, journalEn, { tags });
+    restore();
+    expect(screen.getByText("+3")).toBeInTheDocument();
+  });
+
+  it("names four on a wide frame", () => {
+    const restore = withWidth(1280);
+    renderRow({}, journalEn, { tags });
+    restore();
+    expect(screen.getByText("+1")).toBeInTheDocument();
+  });
+});

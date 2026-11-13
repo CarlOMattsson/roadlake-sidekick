@@ -41,7 +41,7 @@ Resten fyller du i efteråt, eller ber Claude om.
 
 Öppna kontakten, välj ⋯ och sedan "Redigera". Du kan också trycka på namnet. I formuläret lägger du också till andra namn under "Även kallad", så att Claude hittar rätt person när du använder ett.
 
-"Arkivera" i samma ⋯-meny döljer en kontakt som du inte längre vill se i listan, efter att du har bekräftat. En arkiverad kontakt har "Återställ" där i stället.
+"Arkivera" i samma ⋯-meny döljer en kontakt som du inte längre vill se i listan. Det sker direkt, utan fråga. Sidan säger sedan "Kontakten är arkiverad." med "Ångra", som tar tillbaka kontakten. En arkiverad kontakt är skrivskyddad och har "Återställ" i menyn i stället.
 
 ## Öppna e-post eller telefon
 

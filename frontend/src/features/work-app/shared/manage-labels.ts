@@ -13,7 +13,7 @@ export const manageLabelsEn = {
   restore: "Restore",
   undo: "Undo",
   removeLink: "Remove link",
-  reload: "Reload",
+  reload: "Refresh",
   retry: "Try again",
   moveUpFor: (title: string) => `Move up: ${title}`,
   moveDownFor: (title: string) => `Move down: ${title}`,
@@ -25,10 +25,10 @@ export const manageLabelsEn = {
   archived: (title: string) => `Archived “${title}”.`,
   restored: (title: string) => `“${title}” is restored.`,
   conflict:
-    "This was changed elsewhere. Reload to see the latest version, then try again.",
+    "This was changed elsewhere. Refresh to see the latest version, then try again.",
   forbidden: "You don’t have permission to make this change.",
   notFound: "This no longer exists. It may have been deleted elsewhere.",
-  invalid: "That change wasn’t accepted. Reload and try again.",
+  invalid: "That change wasn’t accepted. Refresh and try again.",
   failed: "Couldn’t save the change.",
 };
 export type ManageLabels = typeof manageLabelsEn;
@@ -41,7 +41,7 @@ export const manageLabelsSv: ManageLabels = {
   restore: "Återställ",
   undo: "Ångra",
   removeLink: "Ta bort koppling",
-  reload: "Ladda om",
+  reload: "Uppdatera",
   retry: "Försök igen",
   moveUpFor: (title) => `Flytta upp: ${title}`,
   moveDownFor: (title) => `Flytta ned: ${title}`,
@@ -53,10 +53,10 @@ export const manageLabelsSv: ManageLabels = {
   archived: (title) => `Arkiverade ”${title}”.`,
   restored: (title) => `”${title}” är återställd.`,
   conflict:
-    "Det här ändrades någon annanstans efter att du läste det. Ladda om, så ser du det senaste läget, och försök sedan igen.",
+    "Det här ändrades någon annanstans efter att du läste det. Uppdatera, så ser du det senaste läget, och försök sedan igen.",
   forbidden: "Du har inte behörighet att göra den här ändringen.",
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
-  invalid: "Ändringen godtogs inte. Ladda om och försök igen.",
+  invalid: "Ändringen godtogs inte. Uppdatera och försök igen.",
   failed: "Ändringen kunde inte sparas.",
 };
 

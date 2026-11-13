@@ -2,7 +2,12 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 
-import { controlSv } from "@/features/control-app/labels";
+import {
+  controlEn,
+  controlSv,
+  type ControlLabels,
+} from "@/features/control-app/labels";
+import type { RoomTarget } from "@/features/mcp-apps/room-types";
 import { RESTORED_MS } from "@/features/control-app/use-receipts";
 import { TrashView } from "@/features/control-app/trash-view";
 import type {
@@ -59,13 +64,19 @@ function makeTransport(
   return transport;
 }
 
-function renderTrash(initial: TrashList, transport: ControlTransport) {
+function renderTrash(
+  initial: TrashList,
+  transport: ControlTransport,
+  onOpen?: (target: RoomTarget) => void,
+  labels: ControlLabels = controlSv,
+) {
   return render(
     <TrashView
       initial={initial}
       transport={transport}
-      labels={controlSv}
+      labels={labels}
       now={now}
+      onOpen={onOpen}
     />,
   );
 }
@@ -236,6 +247,51 @@ describe("TrashView rows", () => {
     expect(screen.queryByRole("button", { name: "Visa alla (5)" })).toBeNull();
   });
 
+  it("shows no Visa alla while the real rows fit and a receipt makes one more row stand", async () => {
+    const items: TrashItem[] = Array.from({ length: 4 }, (_, index) => ({
+      ...task,
+      id: `019f0000-0000-7000-8000-00000000024${index}`,
+      label: `Post ${index + 1}`,
+    }));
+    renderTrash({ items, has_more: false, next_cursor: null }, makeTransport());
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Återställ Post 1" }));
+    await screen.findByRole("status");
+
+    // Three rows are in the trash and the receipt stands before them: four rows, no toggle.
+    expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
+    expect(
+      within(screen.getByRole("list", { name: "Borttaget" })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(4);
+    expect(screen.getByText("Post 1")).toBeInTheDocument();
+  });
+
+  it("keeps a receipt on its place in the folded list, outside the three row limit", async () => {
+    const items: TrashItem[] = Array.from({ length: 5 }, (_, index) => ({
+      ...task,
+      id: `019f0000-0000-7000-8000-00000000025${index}`,
+      label: `Post ${index + 1}`,
+    }));
+    renderTrash({ items, has_more: false, next_cursor: null }, makeTransport());
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Återställ Post 3" }));
+    await screen.findByRole("status");
+
+    // Post 1 and 2, the receipt of Post 3 on its place, then Post 4; Post 5 is the one folded away.
+    const list = screen.getByRole("list", { name: "Borttaget" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(4);
+    expect(screen.getByText("Post 3")).toBeInTheDocument();
+    expect(screen.getByText("Post 4")).toBeInTheDocument();
+    expect(screen.queryByText("Post 5")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Visa alla (4)" }),
+    ).toBeInTheDocument();
+  });
+
   it("says the trash is empty when there are no rows", () => {
     const transport = makeTransport();
     renderTrash({ items: [], has_more: false, next_cursor: null }, transport);
@@ -279,7 +335,7 @@ describe("TrashView restore", () => {
 
     // The row stays on its place: its meta line is the receipt, and it has no button any more.
     const status = await screen.findByRole("status");
-    expect(status).toHaveTextContent("Återställd");
+    expect(status).toHaveTextContent("Uppgift · återställd");
     const row = status.closest("li");
     expect(row).toHaveTextContent("Förbered pitchen");
     expect(within(row as HTMLElement).queryByRole("button")).toBeNull();
@@ -304,7 +360,9 @@ describe("TrashView restore", () => {
       screen.getByRole("button", { name: "Återställ Titeln är dold" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Uppgift · återställd",
+    );
     expect(screen.getByText(controlSv.hiddenTitle)).toBeInTheDocument();
   });
 
@@ -409,7 +467,9 @@ describe("TrashView restore", () => {
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Uppgift · återställd",
+    );
     expect(restore).toHaveBeenCalledTimes(2);
     expect(restore.mock.calls[0]?.[0]).toEqual(task);
     expect(restore.mock.calls[1]?.[0]).toEqual(task);
@@ -501,7 +561,9 @@ describe("TrashView receipt", () => {
     await user.click(
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Uppgift · återställd",
+    );
 
     act(() => {
       vi.advanceTimersByTime(RESTORED_MS - 100);
@@ -550,6 +612,103 @@ describe("TrashView receipt", () => {
       vi.advanceTimersByTime(3000);
     });
     expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
+  });
+});
+
+describe("TrashView restored receipt", () => {
+  const project: TrashItem = {
+    ...task,
+    kind: "project",
+    id: "019f0000-0000-7000-8000-000000000103",
+    label: "Köksrenovering",
+  };
+  const step: TrashItem = {
+    ...task,
+    kind: "step",
+    id: "019f0000-0000-7000-8000-000000000104",
+    label: "Köp färg",
+  };
+
+  async function restoreRow(
+    items: TrashItem[],
+    title: string,
+    onOpen?: (target: RoomTarget) => void,
+    labels?: ControlLabels,
+    restoreLabel = `Återställ ${title}`,
+  ) {
+    renderTrash(
+      { items, has_more: false, next_cursor: null },
+      makeTransport(),
+      onOpen,
+      labels,
+    );
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: restoreLabel }));
+    return screen.findByRole("status");
+  }
+
+  it("keeps the kind in the receipt, in the kind's own gender", async () => {
+    expect(await restoreRow([project], "Köksrenovering")).toHaveTextContent(
+      "Projekt · återställt",
+    );
+  });
+
+  it("keeps the kind in the receipt in English", async () => {
+    expect(
+      await restoreRow(
+        [task],
+        "Förbered pitchen",
+        undefined,
+        controlEn,
+        "Restore Förbered pitchen",
+      ),
+    ).toHaveTextContent("Task · restored");
+  });
+
+  it("offers Öppna to the restored record's room while the receipt stands", async () => {
+    const onOpen = vi.fn();
+    const status = await restoreRow([task, note], "Förbered pitchen", onOpen);
+    const open = within(status.closest("li") as HTMLElement).getByRole(
+      "button",
+      { name: "Öppna Förbered pitchen" },
+    );
+    await userEvent.setup().click(open);
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith({
+      room: "work",
+      view: "task",
+      id: task.id,
+      label: "Förbered pitchen",
+    });
+  });
+
+  it("opens a restored journal entry without carrying its title", async () => {
+    const onOpen = vi.fn();
+    const status = await restoreRow([note], "Kort dagbok", onOpen);
+    await userEvent.setup().click(
+      within(status.closest("li") as HTMLElement).getByRole("button", {
+        name: "Öppna Kort dagbok",
+      }),
+    );
+    expect(onOpen).toHaveBeenCalledExactlyOnceWith({
+      room: "journal",
+      view: "entry",
+      id: note.id,
+    });
+  });
+
+  it("has no link for a record no room opens", async () => {
+    const stepStatus = await restoreRow([step], "Köp färg", vi.fn());
+    expect(
+      within(stepStatus.closest("li") as HTMLElement).queryByRole("button"),
+    ).toBeNull();
+  });
+
+  it("has no link without a room to navigate with", async () => {
+    const status = await restoreRow([task], "Förbered pitchen");
+    expect(
+      within(status.closest("li") as HTMLElement).queryByRole("button"),
+    ).toBeNull();
   });
 });
 
@@ -659,7 +818,9 @@ describe("TrashView focus after a write", () => {
     await user.click(
       within(alert).getByRole("button", { name: "Försök igen" }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Uppgift · återställd",
+    );
     expect(restore).toHaveBeenCalledTimes(2);
     expect(restore.mock.calls[1]?.[1]).toBe(restore.mock.calls[0]?.[1]);
   });

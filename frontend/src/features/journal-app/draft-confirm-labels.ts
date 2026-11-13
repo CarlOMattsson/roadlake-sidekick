@@ -1,7 +1,8 @@
 /**
  * The sentences that confirm saving a draft as an entry, before and after: "Det här skapar en anteckning med 6
  * kopplingar. 8 uppgifter skapas." and "Anteckningen sparades. 8 uppgifter skapades." A count of zero is left out, so no
- * sentence names "0 uppgifter". Spread into journalEn and journalSv (labels.ts).
+ * sentence names "0 uppgifter". The lead over the candidates Claude did not suggest, in the same link list, is kept here too.
+ * Spread into journalEn and journalSv (labels.ts).
  */
 
 /** The parts that are not left out, as one text. */
@@ -13,6 +14,7 @@ const tasks = (n: number) => `${n} ${n === 1 ? "task" : "tasks"}`;
 const uppgifter = (n: number) => `${n} ${n === 1 ? "uppgift" : "uppgifter"}`;
 
 export const draftConfirmEn = {
+  otherCandidates: "Maybe also: tick to link",
   finalizeConfirm: (links: number, created: number, updated: number) =>
     sentences(
       links > 0
@@ -30,6 +32,7 @@ export const draftConfirmEn = {
 };
 
 export const draftConfirmSv: typeof draftConfirmEn = {
+  otherCandidates: "Kanske också: kryssa i för att koppla",
   finalizeConfirm: (links, created, updated) =>
     sentences(
       links > 0

@@ -20,8 +20,8 @@ export const cardLabelsEn = {
   connections: "Links",
   statusGroup: "Change status",
   statusConflict:
-    "This task was changed elsewhere. Reload to see the latest version.",
-  reread: "Reload",
+    "This task was changed elsewhere. Refresh to see the latest version.",
+  reread: "Refresh",
   statusFailed: "Couldn’t save the status.",
   /** A change to a Task that no longer exists: no Try again, since it cannot come back. */
   notFound: "This no longer exists. It may have been deleted elsewhere.",
@@ -66,8 +66,8 @@ export const cardLabelsSv: CardLabels = {
   connections: "Kopplingar",
   statusGroup: "Ändra status",
   statusConflict:
-    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  reread: "Ladda om",
+    "Uppgiften ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
+  reread: "Uppdatera",
   statusFailed: "Kunde inte spara statusen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",

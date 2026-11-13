@@ -134,6 +134,9 @@ describe("the shopping item editor's failed contact search", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: labels.moreFields }));
+      await user.click(
+        screen.getByRole("button", { name: labels.chooseContact }),
+      );
       await user.type(screen.getByLabelText(labels.contactQuery), "Anna");
       await user.click(
         screen.getByRole("button", { name: labels.searchContact }),

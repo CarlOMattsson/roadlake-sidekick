@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useReducer, useRef } from "react";
+import { useSingleFlight } from "../shared/use-single-flight";
 import {
   isForbidden,
   type WorkContactsFrame,
@@ -135,10 +136,12 @@ export function useContactsList({
     if (matches(latest.current, query)) return;
     read(query);
   }
+  // One "Show more" page per read generation, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   function loadMore() {
     const shown = latest.current.page;
-    if (!shown?.next_cursor || more === "busy") return;
     const current = ticket.current;
+    if (!shown?.next_cursor || !pages.enter(current)) return;
     dispatch({ type: "moreStarted" });
     transport
       .listContacts(
@@ -167,7 +170,8 @@ export function useContactsList({
       })
       .catch(() => {
         if (current === ticket.current) dispatch({ type: "moreFailed" });
-      });
+      })
+      .finally(() => pages.leave(current));
   }
   /** The list read before does not have a new Contact: it is read again when it is shown next. */
   function forgetPage() {

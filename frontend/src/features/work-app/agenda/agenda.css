@@ -927,3 +927,8 @@
     box-shadow: 0 1px 0 0 var(--sk-border);
   }
 }
+
+/* A failed write of a row says so under its line, in the title's column (the ring's width in), with its Try again. */
+.sidekick-work .work-agenda-row > .work-agenda-notice {
+  padding-inline-start: 2.75rem;
+}

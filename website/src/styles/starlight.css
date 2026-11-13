@@ -145,6 +145,7 @@ mobile-starlight-toc summary { min-height: 48px; }
 .expressive-code .frame .header { min-height: 44px; }
 .expressive-code .frame .copy button { width: 44px; height: 44px; border-radius: var(--sk-radius); }
 .expressive-code pre { white-space: pre; overflow-x: auto; }
+.expressive-code pre:focus-visible { outline-offset: -2px; }
 
 /* Pagination and report link */
 .docfoot { margin-top: var(--site-s7); padding-top: var(--sk-s5); border-top: 1px solid var(--sk-line); display: block; }

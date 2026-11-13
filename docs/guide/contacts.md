@@ -41,7 +41,7 @@ You fill in the rest afterwards, or ask Claude to.
 
 Open the contact, choose ⋯ and then "Redigera" (Edit). You can also tap the name. In the form you also add other names under "Även kallad" (Nicknames), so that Claude finds the right person when you use one.
 
-"Arkivera" (Archive) in the same ⋯ menu hides a contact you no longer want to see in the list, after you confirm. An archived contact has "Återställ" (Restore) there instead.
+"Arkivera" (Archive) in the same ⋯ menu hides a contact you no longer want to see in the list. It happens at once, without a question. The page then says "Kontakten är arkiverad." (The contact is archived.) with "Ångra" (Undo), which brings the contact back. An archived contact is read-only and has "Återställ" (Restore) in the menu instead.
 
 ## Open an email address or phone number
 

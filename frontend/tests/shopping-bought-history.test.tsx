@@ -77,6 +77,8 @@ function transport(items: ShoppingItem[]): ShoppingTransport {
 }
 
 beforeEach(() => {
+  localStorage.clear();
+  delete document.documentElement.dataset.shoppingBuyAgain;
   // The day labels read against today: a fixed clock keeps "3 Nov" a plain date.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-11-20T12:00:00Z"));
@@ -97,6 +99,16 @@ describe("the day an item was bought", () => {
         now,
       ),
     ).toBe("bought yesterday");
+  });
+
+  it("leaves out the weekday inside a week: a list of what was bought has no use for it", () => {
+    const now = new Date("2026-11-20T12:00:00Z");
+    const threeDaysAgo = item(7, {
+      purchased: true,
+      purchased_at: "2026-11-17T10:00:00Z",
+    });
+    expect(boughtOnText(threeDaysAgo, shoppingEn, now)).toBe("bought 17 Nov");
+    expect(boughtOnText(threeDaysAgo, shoppingSv, now)).toBe("köpt 17 nov");
   });
 
   it("is nothing for an open item or one with no recorded day", () => {
@@ -147,6 +159,64 @@ describe.each([
     });
   },
 );
+
+it("stops saying that the ring buys again once an item has been bought again", async () => {
+  const user = userEvent.setup({ advanceTimers: () => undefined });
+  const reply = { ...bought[1]!, purchased: false, version: 2 };
+  const source = transport(bought);
+  vi.mocked(source.purchase).mockResolvedValue({ item: reply });
+  const view = render(
+    <ShoppingView
+      transport={source}
+      labels={shoppingEn}
+      initial={detail(bought)}
+      fullscreen
+    />,
+  );
+  await user.click(elementWithText(shoppingEn.boughtCount(4), "button"));
+  expect(screen.getByText(shoppingEn.buyAgainTip)).toBeInTheDocument();
+  // Opening the fold taught nothing: the tip stands until a ring has bought an item again.
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.markOpen("Item 2") }),
+  );
+  expect(localStorage["sidekick.shoppingBuyAgainUsed"]).toBe("1");
+  view.unmount();
+
+  render(
+    <ShoppingView
+      transport={transport(bought)}
+      labels={shoppingEn}
+      initial={detail(bought)}
+      fullscreen
+    />,
+  );
+  await user.click(elementWithText(shoppingEn.boughtCount(4), "button"));
+  expect(screen.queryByText(shoppingEn.buyAgainTip)).toBeNull();
+});
+
+it("says click, not tap, to buy again when the pointer is a mouse or trackpad", async () => {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({ matches: query === "(pointer: fine)" })),
+  );
+  try {
+    const user = userEvent.setup({ advanceTimers: () => undefined });
+    render(
+      <ShoppingView
+        transport={transport(bought)}
+        labels={shoppingEn}
+        initial={detail(bought)}
+        fullscreen
+      />,
+    );
+    await user.click(elementWithText(shoppingEn.boughtCount(4), "button"));
+    expect(screen.getByText("Click the circle to buy again.")).toBeVisible();
+    expect(screen.queryByText(shoppingEn.buyAgainTip)).toBeNull();
+    expect(shoppingSv.buyAgainKeys).toBe("Klicka på ringen för att köpa igen.");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
 
 it("the list view shows the day too, but not the ring's tip", async () => {
   const user = userEvent.setup({ advanceTimers: () => undefined });

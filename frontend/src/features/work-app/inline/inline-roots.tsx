@@ -21,6 +21,7 @@ import {
   type WorkTaskChanges,
   type WorkTransport,
 } from "../transport/transport";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { readFailurePhase, type Phase } from "../view/parts/frame-types";
 import {
   contactLinkCounts,
@@ -64,6 +65,8 @@ export function InlineRootSummary({
   announce?: (summary: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  // Done and Undo share one flight: a second press before the card re-renders does not start a second write.
+  const flight = useSingleFlight();
   const [notice, setNotice] = useState<InlineSummaryNotice>();
   // One key per attempt: a retry of the same write against the same version reuses it.
   const pendingDone = useRef<PendingKey | undefined>(undefined);
@@ -123,6 +126,7 @@ export function InlineRootSummary({
   function showFailure(
     error: unknown,
     pending: { current: PendingKey | undefined },
+    failedText: string,
     retry: () => void,
   ) {
     const failure = writeFailure(error);
@@ -135,7 +139,7 @@ export function InlineRootSummary({
       });
     } else if (failure === "failed") {
       setNotice({
-        message: labels.saveFailed,
+        message: failedText,
         actionLabel: labels.retry,
         action: retry,
       });
@@ -144,7 +148,7 @@ export function InlineRootSummary({
       setNotice({ message: labels.notFound });
     } else {
       pending.current = undefined;
-      setNotice({ message: labels.saveFailed });
+      setNotice({ message: failedText });
     }
   }
   /**
@@ -153,7 +157,7 @@ export function InlineRootSummary({
    * Undo for `UNDO_MS` (see `undoDone`).
    */
   async function complete() {
-    if (busy || summary?.version === undefined) return;
+    if (summary?.version === undefined || !flight.enter()) return;
     const { version } = summary;
     setBusy(true);
     setNotice(undefined);
@@ -175,8 +179,15 @@ export function InlineRootSummary({
       pendingUndo.current = undefined;
       announce?.(labels.completedNote);
     } catch (error) {
-      if (alive.current) showFailure(error, pendingDone, () => void complete());
+      if (alive.current)
+        showFailure(
+          error,
+          pendingDone,
+          labels.doneFailed,
+          () => void complete(),
+        );
     } finally {
+      flight.leave();
       if (alive.current) setBusy(false);
     }
   }
@@ -186,7 +197,7 @@ export function InlineRootSummary({
    * failure with "Try again", never a card that says it is undone.
    */
   async function undoDone(entry: DoneUndo) {
-    if (busy) return;
+    if (!flight.enter()) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -212,8 +223,14 @@ export function InlineRootSummary({
       announce?.(labels.undoneNote);
     } catch (error) {
       if (alive.current)
-        showFailure(error, pendingUndo, () => void undoDone(entry));
+        showFailure(
+          error,
+          pendingUndo,
+          labels.undoFailed,
+          () => void undoDone(entry),
+        );
     } finally {
+      flight.leave();
       if (alive.current) setBusy(false);
     }
   }

@@ -279,7 +279,7 @@ describe("Gjort section", () => {
         onTellClaude={vi.fn()}
       />,
     );
-    const fold = screen.getByRole("button", { name: /^Completed/ });
+    const fold = screen.getByRole("button", { name: /^Done/ });
     expect(plain(fold.textContent ?? "")).toContain("1 task");
     expect(
       document.querySelector(".journal-empty-state")?.nextElementSibling,
@@ -479,7 +479,7 @@ describe("Gjort rows per kind", () => {
         fullscreen
       />,
     );
-    await user.click(screen.getByRole("button", { name: /^Completed/ }));
+    await user.click(screen.getByRole("button", { name: /^Done/ }));
     await user.click(
       screen.getByRole("button", { name: journalEn.moreShowAll(6) }),
     );

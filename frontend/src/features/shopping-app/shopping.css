@@ -204,6 +204,59 @@
 .sidekick-shopping .shopping-editor-offer > div > p {
   margin: 0;
 }
+/* The gift recipient is one control: its name with Change and Remove, or one button that opens the contact search.
+   Its label is set like the labels around it, and the open search takes the grid's whole width. */
+.sidekick-shopping .shopping-recipient {
+  display: grid;
+  gap: var(--sk-s1);
+  align-content: start;
+  min-width: 0;
+}
+.sidekick-shopping .shopping-recipient[data-picking] {
+  grid-column: 1 / -1;
+}
+.sidekick-shopping .shopping-recipient-label {
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+.sidekick-shopping .shopping-recipient-current {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--sk-s2);
+  min-height: 2.75rem;
+}
+.sidekick-shopping .shopping-recipient-name {
+  flex: 1 1 8rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font: var(--sk-type-body);
+}
+.sidekick-shopping .shopping-recipient-choose {
+  justify-self: start;
+}
+.sidekick-shopping .shopping-recipient-search {
+  display: grid;
+  gap: var(--sk-s2);
+  justify-items: start;
+}
+.sidekick-shopping .shopping-recipient-search > * {
+  max-width: 100%;
+}
+.sidekick-shopping .shopping-recipient-query {
+  display: flex;
+  align-items: end;
+  gap: var(--sk-s2);
+  width: 100%;
+}
+.sidekick-shopping .shopping-recipient-hits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
 /* A select draws its text 4 px further in than an input with the same padding: take that back so every value starts on
    the same x. */
 .sidekick-shopping .shopping-editor select {
@@ -803,6 +856,7 @@
   font: var(--sk-type-meta);
   color: var(--sk-muted);
 }
-[data-shopping-hold] .shopping-hold-tip {
+[data-shopping-hold] .shopping-hold-tip,
+[data-shopping-buy-again] .shopping-buy-again-tip {
   display: none;
 }

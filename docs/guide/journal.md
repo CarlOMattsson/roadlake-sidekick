@@ -42,7 +42,7 @@ An empty day shows the button "Berätta om dagen" (Tell me about the day). Claud
 
 Open the entry and tap "Lägg till tagg" (Add tag), or "Ändra taggar" (Edit tags) if it already has some. Type a tag and press Return, or tap one of "Dina taggar" (Your tags) to reuse one. An archived entry shows its tags but cannot be changed. A draft can be tagged while you review it.
 
-Tap one or more tags in "Filtrera på tagg", at most five at once, and the day is replaced by "Taggade anteckningar" (Tagged entries): the entries that have all the chosen tags from the last 12 months, sorted by their day with the newest day first. Within a day, an entry without a time comes last. The list shows 50 entries at a time. "Visa fler" (Show more) shows the next 50, and once all are shown it adds the 12 months before the oldest year shown. "Rensa (N)" (Clear (N)), where N is the number of tags chosen, returns to the day.
+Tap one or more tags in "Filtrera på tagg", at most five at once, and the day is replaced by "Taggade anteckningar" (Tagged entries): the entries that have all the chosen tags from the last 12 months, sorted by their day with the newest day first. Within a day, an entry without a time comes last. The list shows 50 entries at a time. "Visa fler" (Show more) shows the next 50 (if that fails, "Det gick inte att hämta fler." (Couldn't load more.) stands under the list with "Försök igen" (Try again), and the entries already shown stay), and once all are shown it adds the 12 months before the oldest year shown. "Rensa (N)" (Clear (N)), where N is the number of tags chosen, returns to the day.
 
 ## Review a draft
 

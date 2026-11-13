@@ -149,7 +149,9 @@ describe("trash: a saved restore tells the host model once", () => {
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Uppgift · återställd",
+    );
   });
 });
 

@@ -231,7 +231,7 @@ export function EntryFrame({
           : undefined;
 
   return (
-    <article>
+    <article className="journal-entry-view">
       <h2 ref={heading} tabIndex={-1}>
         {phase === "ready" && entry ? entry.title : t.entry}
       </h2>

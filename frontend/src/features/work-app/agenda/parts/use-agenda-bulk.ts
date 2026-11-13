@@ -53,7 +53,7 @@ export function useAgendaBulk({
    * it comes back to the owner as a follow-up then. The key is kept for a retry of the same write.
    */
   function remind(record: WorkItemRecord) {
-    if (reading.current) return;
+    if (reading.isRunning()) return;
     const key = cardKey(record);
     const changes: WorkTaskChanges = { follow_up_at: remindAt(now) };
     setNotice(undefined);
@@ -75,7 +75,7 @@ export function useAgendaBulk({
         if (writeFailure(error) !== "failed") pending.current.delete(key);
         if (!mounted.current) return;
         retryWrite.current = () => remind(record);
-        setNotice(failureNotice(error, "move"));
+        setNotice(failureNotice(error, "move", { key, title: record.title }));
       }
     });
   }
@@ -87,7 +87,7 @@ export function useAgendaBulk({
    * notice; "Try again" repeats the move.
    */
   function moveAllOverdue(records: WorkItemRecord[]) {
-    if (reading.current) return;
+    if (reading.isRunning()) return;
     const openRows = () =>
       records
         .map(rows.latest)

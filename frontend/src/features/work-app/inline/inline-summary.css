@@ -218,6 +218,10 @@
   align-items: center;
   gap: var(--sk-s2);
 }
+/* The time line under Ångra (undo.css) is drawn inside the button, so the button is its box. */
+.sidekick-work .work-compact-undo .sk-undo-time {
+  position: relative;
+}
 
 .sidekick-work .work-compact-segments {
   display: flex;

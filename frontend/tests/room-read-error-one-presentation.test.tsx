@@ -1,6 +1,8 @@
 // One read-error presentation for a whole room. Journal, Shopping and Contacts show the shared notice under the
 // room's own chrome (no card with an eyebrow), always with the cause line and "Try again"; the place picker uses the
-// notice's row variant. Work keeps its tab row around the notice; Control names the failed view. These are simulated-host tests (the room components with a plain transport), not a real Claude host.
+// notice's row variant. Work keeps its tab row around the notice; Control names the failed view. The heading names what
+// Try again reads (an error result names no tool and no record), and every Contacts card has that Try again. These are
+// simulated-host tests (the room components with a plain transport), not a real Claude host.
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -115,6 +117,119 @@ describe("Work room, first result is an error", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(call).toHaveBeenCalledWith("get_work_agenda", expect.anything());
   });
+});
+
+describe("Work room, an error result in a card of the Projects view", () => {
+  it.each([
+    ["en", "Couldn’t load your projects", "Try again"],
+    ["sv", "Projekten kunde inte hämtas", "Försök igen"],
+  ])(
+    "names the Projects, and Try again reads them (%s)",
+    async (lang, heading, retryName) => {
+      document.head.innerHTML = `<meta name="sidekick-app-locale" content="${lang}">`;
+      const call = vi.fn((name: string) =>
+        name === "get_work_hierarchy"
+          ? Promise.resolve({ nodes: [], truncated: false })
+          : new Promise(() => undefined),
+      );
+      render(
+        <WorkRoom
+          mode="inline"
+          transport={
+            { ...transport, call } as unknown as RoomProps["transport"]
+          }
+          view="hierarchy"
+          {...failedResult}
+        />,
+      );
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent(heading);
+      await userEvent.click(screen.getByRole("button", { name: retryName }));
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      expect(call).toHaveBeenCalledWith(
+        "get_work_hierarchy",
+        expect.anything(),
+      );
+      expect(call).not.toHaveBeenCalledWith(
+        "get_work_agenda",
+        expect.anything(),
+      );
+    },
+  );
+
+  it.each(["task", "project", "agenda"])(
+    "falls back to the agenda for the %s view, which has no argument to read again, and says so",
+    async (view) => {
+      const call = vi.fn((name: string) =>
+        name === "get_work_agenda"
+          ? Promise.resolve({ items: [], next_cursor: null })
+          : new Promise(() => undefined),
+      );
+      render(
+        <WorkRoom
+          mode="inline"
+          transport={
+            { ...transport, call } as unknown as RoomProps["transport"]
+          }
+          view={view}
+          {...failedResult}
+        />,
+      );
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Couldn’t load your tasks",
+      );
+      await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+      expect(call).toHaveBeenCalledWith("get_work_agenda", expect.anything());
+    },
+  );
+});
+
+describe("Contacts room, inline card, first result is an error", () => {
+  it.each([
+    [
+      "en",
+      "Couldn’t load your contacts",
+      "Sidekick didn’t respond.",
+      "Try again",
+    ],
+    [
+      "sv",
+      "Kontakterna kunde inte hämtas",
+      "Sidekick svarade inte.",
+      "Försök igen",
+    ],
+  ])(
+    "names the contacts, gives the cause line and a Try again that reads the list (%s)",
+    async (lang, heading, hint, retryName) => {
+      document.head.innerHTML = `<meta name="sidekick-app-locale" content="${lang}">`;
+      const call = vi.fn((name: string) =>
+        name === "list_contacts"
+          ? Promise.resolve({ contacts: [], next_cursor: null })
+          : new Promise(() => undefined),
+      );
+      render(
+        <ContactsRoom
+          mode="inline"
+          transport={
+            { ...transport, call } as unknown as RoomProps["transport"]
+          }
+          view="contact"
+          {...failedResult}
+        />,
+      );
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent(heading);
+      expect(alert).not.toHaveTextContent(/tasks|Uppgift/);
+      expect(alert.querySelector(".sk-error-hint")).toHaveTextContent(hint);
+      expect(alert.closest(".sk-card")).not.toBeNull();
+      await userEvent.click(screen.getByRole("button", { name: retryName }));
+      await waitFor(() =>
+        expect(call).toHaveBeenCalledWith("list_contacts", expect.anything()),
+      );
+      await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    },
+  );
 });
 
 describe("Control room, first result is an error", () => {

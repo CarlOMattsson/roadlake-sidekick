@@ -1,6 +1,7 @@
 import { act, screen } from "@testing-library/react";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { shoppingEn } from "@/features/shopping-app/labels";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -60,6 +61,10 @@ const detail = {
   next_offset: null,
   items: [milk],
 };
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 afterAll(() => {
   document.head.innerHTML = "";

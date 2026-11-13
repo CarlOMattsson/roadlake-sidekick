@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkLabels } from "../shared/labels";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { useWorkWrite } from "../shared/use-work-write";
 import { CloseIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
@@ -109,13 +110,16 @@ export function LinkContact({
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   // Bumped by every query change and every search request; only the newest answer is applied.
   const ticket = useRef(0);
+  // One "Show more" page per query, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   // The trimmed query the shown results belong to, so Show more pages the same search.
   const searched = useRef("");
   // The last write, run again by Försök igen with the same key.
   const again = useRef<() => void>(undefined);
   // A Contact created here whose link has not gone through yet: a retry links it instead of creating a second one.
   const created = useRef<{ name: string; contact: WorkContact }>(undefined);
-  const writing = useRef(false);
+  // One link or create at a time, claimed before React re-renders.
+  const writes = useSingleFlight();
   const pending = useRef(new Map<string, PendingKey>());
   const mounted = useRef(true);
   useEffect(() => {
@@ -172,8 +176,8 @@ export function LinkContact({
   }
 
   function loadMore() {
-    if (!nextCursor || more === "busy") return;
     const current = ticket.current;
+    if (!nextCursor || !pages.enter(current)) return;
     setMore("busy");
     transport
       .searchContacts(searched.current, nextCursor)
@@ -191,16 +195,16 @@ export function LinkContact({
       })
       .catch(() => {
         if (current === ticket.current) setMore("failed");
-      });
+      })
+      .finally(() => pages.leave(current));
   }
 
   function link(contact: WorkContact) {
-    if (writing.current) return;
+    if (!writes.enter()) return;
     again.current = () => link(contact);
     const signature = JSON.stringify(["link", taskId, contact.id]);
     const pendingKey = keyFor(pending.current.get(contact.id), signature);
     pending.current.set(contact.id, pendingKey);
-    writing.current = true;
     setBusyId(contact.id);
     setFailed(undefined);
     transport
@@ -215,13 +219,13 @@ export function LinkContact({
           setFailed({ failure: writeFailure(error), action: "link" });
       })
       .finally(() => {
-        writing.current = false;
+        writes.leave();
         if (mounted.current) setBusyId(undefined);
       });
   }
 
   function createAndLink(name: string) {
-    if (writing.current) return;
+    if (writes.isRunning()) return;
     if (created.current?.name === name) {
       link(created.current.contact);
       return;
@@ -230,19 +234,19 @@ export function LinkContact({
     const signature = JSON.stringify(["create", name]);
     const pendingKey = keyFor(pending.current.get(signature), signature);
     pending.current.set(signature, pendingKey);
-    writing.current = true;
+    writes.enter();
     setBusyId(CREATE_ROW);
     setFailed(undefined);
     transport.createContact({ display_name: name }, pendingKey.key).then(
       ({ contact }) => {
         pending.current.delete(signature);
         created.current = { name, contact };
-        writing.current = false;
+        writes.leave();
         // Linked even when the view has gone meanwhile, so the new Contact does not end up unlinked.
         link(contact);
       },
       (error: unknown) => {
-        writing.current = false;
+        writes.leave();
         if (!mounted.current) return;
         setBusyId(undefined);
         setFailed({ failure: writeFailure(error), action: "create" });
@@ -251,7 +255,7 @@ export function LinkContact({
   }
 
   function close() {
-    if (writing.current) return;
+    if (writes.isRunning()) return;
     // Closing drops the search, so the next opening starts clean.
     changeQuery("");
     returnFocus.current = true;

@@ -42,7 +42,7 @@ En tom dag visar knappen "Berätta om dagen". Då frågar Claude om dagen och sp
 
 Öppna anteckningen och tryck på "Lägg till tagg", eller "Ändra taggar" om den redan har några. Skriv en tagg och tryck på Retur, eller tryck på någon av "Dina taggar" för att återanvända en. En arkiverad anteckning visar sina taggar men kan inte ändras. Ett utkast kan taggas medan du granskar det.
 
-Tryck på en eller flera taggar i "Filtrera på tagg", högst fem åt gången, så ersätts dagen av "Taggade anteckningar": anteckningarna som har alla valda taggar från de senaste 12 månaderna, sorterade på sin dag med den nyaste dagen först. Inom en dag kommer en anteckning utan klockslag sist. Listan visar 50 anteckningar åt gången. "Visa fler" visar nästa 50, och när alla visas lägger den till de 12 månaderna före det äldsta året som visas. "Rensa (N)", där N är antalet valda taggar, går tillbaka till dagen.
+Tryck på en eller flera taggar i "Filtrera på tagg", högst fem åt gången, så ersätts dagen av "Taggade anteckningar": anteckningarna som har alla valda taggar från de senaste 12 månaderna, sorterade på sin dag med den nyaste dagen först. Inom en dag kommer en anteckning utan klockslag sist. Listan visar 50 anteckningar åt gången. "Visa fler" visar nästa 50 (misslyckas det står "Det gick inte att hämta fler." under listan med "Försök igen", och de poster som redan visas ligger kvar), och när alla visas lägger den till de 12 månaderna före det äldsta året som visas. "Rensa (N)", där N är antalet valda taggar, går tillbaka till dagen.
 
 ## Granska ett utkast
 

@@ -9,6 +9,7 @@ import {
   vi,
 } from "vitest";
 import type { JournalEntry } from "@/features/journal-app/transport";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -88,6 +89,10 @@ function deliver(structuredContent: unknown, isError = false) {
 function metaLine(): string | null {
   return document.querySelector("p.journal-card-links")?.textContent ?? null;
 }
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 afterAll(() => {
   document.head.innerHTML = "";

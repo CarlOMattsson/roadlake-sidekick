@@ -428,6 +428,23 @@
   font: var(--sk-type-button);
 }
 
+/* "Öppna ›" on a restored row's receipt: a text link at the row's end, its text on the content edge (the 12 of
+   padding hangs into the margin, as the row's other actions do). */
+.sidekick-control .control-row-action > .sk-btn--open {
+  margin-inline: 0 calc(-1 * var(--sk-s3));
+}
+
+/* A recalled fact is a sentence, and "Glöm anteckningen" is as wide as a third of a phone: beside it the text gets about
+   a half of the row and its meta line breaks ("Promenad längs älven · 1 / nov"). Under 420 px the button stands under the
+   text, on the text's left edge, and the text has the whole row. */
+@container sk-control (max-width: 26.25rem) {
+  .sidekick-control .control-recall .control-row-action {
+    grid-area: 3 / 1 / 4 / -1;
+    justify-self: start;
+    margin-block-start: var(--sk-s1);
+  }
+}
+
 /* A tab's meta line ("3 borttagna · kan återställas", "Det du och Claude har gjort, senaste först"):
    the view's first content, one line in the meta type and colour, cut with an ellipsis. */
 .sidekick-control .control-meta {

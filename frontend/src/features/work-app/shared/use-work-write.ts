@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { writeFailure, type WriteFailure } from "../transport/transport";
+import { useSingleFlight } from "./use-single-flight";
 
 export type WorkWrite = {
   /** True while a write is in flight. Controls that start a write are disabled meanwhile. */
@@ -31,7 +32,7 @@ export function useWorkWrite(): WorkWrite {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<WriteFailure>();
   // Synchronous guard: a second click in the same tick must not start a second write.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   const pending = useRef<PendingKey | undefined>(undefined);
   const mounted = useRef(true);
   useEffect(() => {
@@ -46,10 +47,9 @@ export function useWorkWrite(): WorkWrite {
       signature: string,
       send: (idempotencyKey: string) => Promise<T>,
     ): Promise<T | undefined> => {
-      if (writing.current) return undefined;
+      if (!flight.enter()) return undefined;
       const key = keyFor(pending.current, signature);
       pending.current = key;
-      writing.current = true;
       setBusy(true);
       setFailure(undefined);
       try {
@@ -63,11 +63,11 @@ export function useWorkWrite(): WorkWrite {
         if (mounted.current) setFailure(kind);
         return undefined;
       } finally {
-        writing.current = false;
+        flight.leave();
         if (mounted.current) setBusy(false);
       }
     },
-    [],
+    [flight],
   );
   const clear = useCallback(() => setFailure(undefined), []);
   return { busy, failure, run, clear };

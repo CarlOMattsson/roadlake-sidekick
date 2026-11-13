@@ -350,7 +350,7 @@ it("reuses the key when a failed move is retried, and reads nothing on a failure
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
 });
 
-it("shows a move conflict as a banner, reads the board again and keeps the banner until Reload", async () => {
+it("shows a move conflict as a banner, reads the board again and keeps the banner until Refresh", async () => {
   const user = userEvent.setup();
   const updateTask = vi
     .fn()

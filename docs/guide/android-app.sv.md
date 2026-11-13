@@ -48,7 +48,7 @@ Alla kommandon står i driftsguiden. [Läs hur du installerar och parar ihop And
 
 ## Hitta Inställningar
 
-Inställningar ligger sist i menyn ⋯ i varje rum. Där ser du om aviseringarna fungerar, och där kan du skicka en testavisering.
+Inställningar ligger sist i menyn ⋯ i varje rum. Där ser du om aviseringarna fungerar, och där kan du skicka en testavisering. En rad om låsskärmen, att den visar titlar bara om telefonen tillåter känsligt innehåll där, visas bara när aviseringarna är på.
 
 ## Koppla från en telefon
 

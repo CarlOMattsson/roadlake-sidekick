@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { useLinkUndo } from "../tasks/task-contacts";
 import {
   journalEntriesOf,
@@ -49,9 +50,11 @@ export function useContactRecord({
       : transport.unlinkContactFromProject(id, projectId, key),
   );
 
+  // One "Show more" page per read generation, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   function loadMore() {
-    if (!nextCursor || more === "busy") return;
     const current = frame.ticket.current;
+    if (!nextCursor || !pages.enter(current)) return;
     setMore("busy");
     transport
       .getContactContext(id, nextCursor)
@@ -63,7 +66,8 @@ export function useContactRecord({
       })
       .catch(() => {
         if (current === frame.ticket.current) setMore("failed");
-      });
+      })
+      .finally(() => pages.leave(current));
   }
   /** Stores a read context: the Contact, its Projects, the first page of Tasks and the Journal entries. */
   function applyContext(result: WorkContactContext) {
@@ -85,23 +89,31 @@ export function useContactRecord({
   }
   /**
    * One Contact write. The signature names the action and the version it was based on, so a retry
-   * of the same action reuses its key and any other action gets a fresh one.
+   * of the same action reuses its key and any other action gets a fresh one. `receipt`: the page draws its own receipt
+   * for this write, so no plain "Sparat" stands beside it.
    */
   function runWrite(
     signature: string,
     action: "save" | "write",
     send: (key: string) => Promise<{ contact: WorkContactRecord }>,
     done?: () => void,
+    receipt = false,
   ) {
-    if (!contact || frame.writing.current) return;
-    retryWrite.current = () => runWrite(signature, action, send, done);
-    frame.sendWrite(signature, action, send, (result) => {
-      retryWrite.current = undefined;
-      // A "Show more" page still on its way was dropped with the read: its busy state is cleared here.
-      setMore("idle");
-      setContact(result.contact);
-      done?.();
-    });
+    if (!contact || frame.flight.isRunning()) return;
+    retryWrite.current = () => runWrite(signature, action, send, done, receipt);
+    frame.sendWrite(
+      signature,
+      action,
+      send,
+      (result) => {
+        retryWrite.current = undefined;
+        // A "Show more" page still on its way was dropped with the read: its busy state is cleared here.
+        setMore("idle");
+        setContact(result.contact);
+        done?.();
+      },
+      receipt,
+    );
   }
   function leaveEditor() {
     frame.setEditing(false);
@@ -109,7 +121,7 @@ export function useContactRecord({
   }
   /** Writes only the changed fields against the version the view holds; the key follows the action. */
   function saveContact(changes: WorkContactChanges) {
-    if (!contact || frame.writing.current) return;
+    if (!contact || frame.flight.isRunning()) return;
     if (Object.keys(changes).length === 0) {
       frame.stopEdit();
       return;
@@ -175,6 +187,8 @@ export function useContactRecord({
         setArchivedHere(archive);
         leaveEditor();
       },
+      // Archive is answered by its receipt ("Kontakten är arkiverad" with Ångra); Restore has none.
+      archive,
     );
   }
   /** Fetches the latest Contact and its first page of Tasks; the open editor keeps the typed values. */

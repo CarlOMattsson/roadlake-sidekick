@@ -117,6 +117,7 @@ function renderFrame(transport: JournalTransport, labels: JournalLabels) {
       transport={transport}
       labels={labels}
       moves={0}
+      fullscreen={false}
       onRejected={vi.fn()}
       onFinalized={vi.fn()}
     />,

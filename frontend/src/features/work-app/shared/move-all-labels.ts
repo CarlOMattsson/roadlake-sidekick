@@ -1,7 +1,9 @@
 /**
  * Words of the agenda's "move all overdue" action, spread into `workEn` and `workSv` (labels.ts): the button (it
  * moves every open overdue Task to tomorrow with one call, and always states the count), the question that replaces it, the confirming button, the line after the move beside Ångra, and the failure of the move or of
- * its Ångra. The Swedish and English key sets must stay identical (`WorkLabels` is derived from the English set).
+ * its Ångra. It also holds the agenda's notices that stand where the action was made: a failed change to one row,
+ * which names its Task, and a failed "Visa fler". The Swedish and English key sets must stay identical (`WorkLabels` is
+ * derived from the English set).
  */
 
 /** The count with its noun: "1 task", "5 tasks". */
@@ -14,6 +16,8 @@ export const moveAllEn = {
   moveAllConfirmYes: "Move",
   moveAllDone: (n: number) => `Moved ${taskCountEn(n)} to tomorrow`,
   moveAllFailed: "Couldn’t move the overdue tasks.",
+  rowChangeFailed: (title: string) => `Couldn’t change “${title}”.`,
+  moreFailed: "Couldn’t load more.",
 };
 
 export const moveAllSv: typeof moveAllEn = {
@@ -24,4 +28,6 @@ export const moveAllSv: typeof moveAllEn = {
   moveAllDone: (n: number) =>
     `${n} ${n === 1 ? "flyttad" : "flyttade"} till imorgon`,
   moveAllFailed: "Det gick inte att flytta de försenade.",
+  rowChangeFailed: (title: string) => `Det gick inte att ändra ”${title}”.`,
+  moreFailed: "Det gick inte att hämta fler.",
 };

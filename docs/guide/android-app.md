@@ -48,7 +48,7 @@ Every command is in the operations guide. [Read how to install and pair the Andr
 
 ## Find Settings
 
-Settings is the last item in the ⋯ menu of every room. There you see whether notifications work, and you can send a test notification.
+Settings is the last item in the ⋯ menu of every room. There you see whether notifications work, and you can send a test notification. A line about the lock screen, saying that it shows titles only if your phone allows sensitive content there, is shown only when notifications are on.
 
 ## Disconnect a phone
 

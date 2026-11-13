@@ -5,6 +5,7 @@ import { knownLabel, type WorkLabels } from "../shared/labels";
 import { linksLabelsFor } from "../shared/links-labels";
 import { manageLabelsFor } from "../shared/manage-labels";
 import { UndoLine, WriteNotice, focusUndoIn } from "../shared/manage-controls";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { useWorkWrite } from "../shared/use-work-write";
 import type {
   WorkExternalReference,
@@ -36,6 +37,8 @@ export function TaskReferences({
   labels: t,
 }: TaskReferencesProps) {
   const write = useWorkWrite();
+  // One "Show more" page per read generation, claimed before React re-renders the button.
+  const pages = useSingleFlight();
   // Removing a pointer needs the unlink and, for its Undo, the link tool; a host without them shows the pointers only.
   const offers = useToolSupport(transport);
   const removable =
@@ -119,8 +122,8 @@ export function TaskReferences({
   }, [items]);
 
   function loadMore() {
-    if (!nextCursor || more === "busy") return;
     const current = ticket.current;
+    if (!nextCursor || !pages.enter(current)) return;
     setMore("busy");
     transport
       .listTaskExternalReferences(taskId, nextCursor)
@@ -135,7 +138,8 @@ export function TaskReferences({
       })
       .catch(() => {
         if (current === ticket.current) setMore("failed");
-      });
+      })
+      .finally(() => pages.leave(current));
   }
 
   function remove(reference: WorkExternalReference) {

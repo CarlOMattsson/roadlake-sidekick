@@ -9,6 +9,7 @@ import {
   it,
   vi,
 } from "vitest";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -152,6 +153,10 @@ const memoryOff = {
   provider: "hindsight",
   sources: [],
 };
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 afterAll(() => {
   document.head.innerHTML = "";

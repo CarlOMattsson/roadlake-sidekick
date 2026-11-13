@@ -5,7 +5,7 @@
  * First "Språk": Svenska | English, the app's language (app-language.ts; the widget follows it). Then two sections,
  * each read on its own from the native side, each with its own reading line, failure and retry:
  * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), "Skicka testavisering" with one calm line per outcome, and one sentence
- *   on the lock screen (see docs/decisions/log.md D-079: it follows the phone's own setting).
+ *   on the lock screen, shown only while notifications are on (see docs/decisions/log.md D-079: it follows the phone's own setting).
  * - "Den här telefonen": the device label, the server it is paired to, when it was paired, and that the sign-in renews itself before it expires,
  *   and "Koppla från den här telefonen", which asks first (it clears the phone). After it, the pairing gate takes over.
  *
@@ -187,6 +187,13 @@ export function pushStateText(labels: SettingsLabels, status: PushStatus) {
   return labels.push.on;
 }
 
+/** Whether notifications reach this phone: the app is there, allowed and registered. */
+export function pushIsOn(status: PushStatus) {
+  return (
+    status.distributor && status.permission === "granted" && status.registered
+  );
+}
+
 /** What the owner can do about the push state, if anything: the one button under the state line. */
 export type PushFix = "getNtfy" | "openSettings" | "allow";
 
@@ -253,6 +260,9 @@ function PushSection({
     status.phase === "ready" && !serverOff
       ? pushFixFor(status.value)
       : undefined;
+  // The lock-screen sentence is only about notifications that arrive: it is left out while they are off or not allowed.
+  const showLockScreenNote =
+    status.phase === "ready" && !serverOff && pushIsOn(status.value);
 
   /** A fix leaves the app (a store page, the phone's settings) or asks the system: the state is read again after it. */
   function applyFix(which: PushFix) {
@@ -301,7 +311,9 @@ function PushSection({
             : pushStateText(labels, status.value)}
         </p>
       )}
-      <p className="mobile-settings__meta">{labels.lockScreen}</p>
+      {showLockScreenNote ? (
+        <p className="mobile-settings__meta">{labels.lockScreen}</p>
+      ) : null}
       <div className="mobile-settings__actions">
         {fix ? (
           <Button variant="secondary" onClick={() => applyFix(fix)}>

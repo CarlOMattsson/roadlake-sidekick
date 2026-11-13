@@ -1,6 +1,7 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { workEn } from "@/features/work-app/shared/labels";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -32,6 +33,10 @@ vi.mock("@/features/mcp-apps/bridge", () => ({
     onTeardown: () => undefined,
   }),
 }));
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 beforeAll(async () => {
   document.body.innerHTML = '<div id="root"></div>';

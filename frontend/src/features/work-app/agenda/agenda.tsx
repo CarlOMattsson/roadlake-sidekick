@@ -9,7 +9,6 @@ import {
   type WorkFrame,
   type WorkTransport,
 } from "../transport/transport";
-import { NoticeView } from "../board/board";
 import { isWaitingFilter, waitingLabelsFor } from "../shared/waiting";
 import {
   filterTags,
@@ -19,6 +18,7 @@ import {
   WorkTagFilter,
 } from "../shared/work-tags";
 import { AgendaFilterRow } from "./parts/agenda-filter-row";
+import { AgendaNotice, type NoticeSource } from "./parts/agenda-notice";
 import {
   AgendaSection,
   DoneTodaySection,
@@ -182,6 +182,15 @@ export function AgendaView({
       doneTasks.add(item.id.toLowerCase());
   }
 
+  const notice: NoticeSource = {
+    notice: session.notice,
+    onReload: session.reread,
+    onRetry: session.retry,
+  };
+  // The Overdue group shows the notice of a failed "Flytta alla"; without the group (its Ångra failed) it stands above the groups.
+  const overdueShown =
+    !waitingView && layout.sections.some((s) => s.group === "overdue");
+
   const ctx: AgendaRowContext = {
     labels: t,
     now,
@@ -194,6 +203,7 @@ export function AgendaView({
     offers,
     writes,
     onOpen,
+    notice,
     sending,
     doneTasks,
   };
@@ -233,12 +243,7 @@ export function AgendaView({
             {t.offlineCopy(copyTime(copiedAt, t.dateLocale))}
           </p>
         )}
-        <NoticeView
-          notice={session.notice}
-          labels={t}
-          onReload={session.reread}
-          onRetry={session.retry}
-        />
+        <AgendaNotice spot="top" source={notice} labels={t} />
         {disabled && (
           <p role="status" className="work-agenda-loading">
             {t.loading}
@@ -280,6 +285,9 @@ export function AgendaView({
           />
         )}
         {/* Ångra of "Flytta N till imorgon": the moved Tasks have left the group, so it stands above the groups. */}
+        {!overdueShown && (
+          <AgendaNotice spot="moveAll" source={notice} labels={t} />
+        )}
         {!waitingView && bulk.moveUndo && (
           <MoveAllUndo
             labels={t}
@@ -316,6 +324,7 @@ export function AgendaView({
             {t.more}
           </button>
         )}
+        <AgendaNotice spot="more" source={notice} labels={t} />
         {!waitingView && visible.some(offers.rowHasChoices) && (
           <RowMenuTip labels={t} />
         )}

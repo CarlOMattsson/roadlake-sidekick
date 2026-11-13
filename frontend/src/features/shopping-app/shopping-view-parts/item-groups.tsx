@@ -1,5 +1,7 @@
 import { Fold } from "../../mcp-apps/ui/fold";
+import { finePointer } from "../../mcp-apps/ui/shortcuts";
 import type { ShoppingItem } from "../transport";
+import { wasBuyAgainUsed } from "./helpers";
 import { ListRow } from "./list-row";
 import { StoreRow } from "./store-row";
 import type { RowEnv } from "./row-parts";
@@ -136,8 +138,10 @@ export function PurchasedFold({
         open={open}
         onToggle={onToggle}
       />
-      {open && storeMode && (
-        <p className="shopping-buy-again-tip">{env.labels.buyAgainTip}</p>
+      {open && storeMode && !wasBuyAgainUsed() && (
+        <p className="shopping-buy-again-tip">
+          {finePointer() ? env.labels.buyAgainKeys : env.labels.buyAgainTip}
+        </p>
       )}
       {open && (
         <ul className="shopping-items">

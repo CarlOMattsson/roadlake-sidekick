@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { EmptyState } from "../mcp-apps/ui/states";
-import { kindName, trashedWhen, type ControlLabels } from "./labels";
+import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import type { RoomTarget } from "../mcp-apps/room-types";
+import {
+  actionName,
+  kindName,
+  trashedWhen,
+  type ControlLabels,
+} from "./labels";
 import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
 import { focusRowNear } from "./focus-row";
+import { openTargetOf } from "./open-target";
 import {
   writeFailure,
   type ControlTransport,
@@ -19,8 +27,9 @@ import { whenText } from "./when";
  * version the list showed). A stale version or a vanished item reads the list again and says so.
  * There is no way to empty the trash or delete anything for good from here.
  *
- * A restore that is saved leaves the row on its place and its meta line says "Återställd" (a status, no button) for
- * RESTORED_MS, then the row goes. It has no Undo: no tool puts an item back in the trash. A failure stays in its row
+ * A restore that is saved leaves the row on its place and its meta line says what happened ("Uppgift · återställd", a
+ * status, no Restore button) for RESTORED_MS, then the row goes. When the room can open the record, "Öppna ›" stands at
+ * the end of the row meanwhile. It has no Undo: no tool puts an item back in the trash. A failure stays in its row
  * until the next action.
  */
 export function TrashView({
@@ -30,6 +39,7 @@ export function TrashView({
   now = () => new Date(),
   onData,
   onModelContext,
+  onOpen,
   full = false,
   expanded,
   onExpandedChange,
@@ -42,6 +52,8 @@ export function TrashView({
   onData?: (data: TrashList) => void;
   /** Called once a restore is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
+  /** Opens a restored record in its room; absent: the receipt offers no link. */
+  onOpen?: (target: RoomTarget) => void;
   /** The full view lists every row read so far; the inline card lists three behind "Show all". */
   full?: boolean;
   /** Whether "Show all" is open; the card keeps it across tabs. */
@@ -209,7 +221,8 @@ export function TrashView({
           items={shown}
           keyOf={(item) => item.id}
           label={labels.trashTitle}
-          showAll={() => labels.showAll(items.length, list.has_more)}
+          isReceipt={(item) => receipts.has(item.id)}
+          showAll={(count) => labels.showAll(count, list.has_more)}
           showFewer={labels.showFewer}
           full={full}
           expanded={expanded}
@@ -217,11 +230,29 @@ export function TrashView({
           renderRow={(item) => {
             const title = item.label ?? labels.hiddenTitle;
             const when = whenText(item.trashed_at, now(), labels.locale);
+            const target = onOpen && openTargetOf(item);
             return (
               <ControlRow
                 primary={title}
                 secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
-                receipt={receipts.has(item.id) ? labels.restored : undefined}
+                receipt={
+                  receipts.has(item.id)
+                    ? `${kindName(labels, item.kind)} · ${actionName(labels, "restored", item.kind)}`
+                    : undefined
+                }
+                receiptAction={
+                  target ? (
+                    <button
+                      type="button"
+                      className="sk-btn--open"
+                      aria-label={labels.openLabel(title)}
+                      onClick={() => onOpen(target)}
+                    >
+                      {labels.open}
+                      <ChevronRightIcon />
+                    </button>
+                  ) : undefined
+                }
                 action={
                   <button
                     type="button"

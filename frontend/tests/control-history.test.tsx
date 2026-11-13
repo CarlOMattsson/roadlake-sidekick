@@ -189,7 +189,7 @@ describe("HistoryView rows", () => {
     expect(screen.queryByRole("button", { name: /Ångra/ })).toBeNull();
   });
 
-  it("shows Restore, and no Undo, for a trashed row, and says it is now in the trash", () => {
+  it("shows Restore, and no Undo, for a trashed row, and says it is now in Deleted", () => {
     const transport = makeTransport();
     const trashedBought: ChangeRecord = {
       ...bought,
@@ -210,7 +210,7 @@ describe("HistoryView rows", () => {
     );
     expect(
       screen.getByText(
-        metaLine("Inköpsvara · köpt · igår 14:30 · ligger nu i papperskorgen"),
+        metaLine("Inköpsvara · köpt · igår 14:30 · ligger nu i Borttaget"),
       ),
     ).toBeInTheDocument();
   });
@@ -273,7 +273,7 @@ describe("HistoryView rows", () => {
     expect(
       screen.getByText(metaLine("Inköpsvara · borttagen · igår 14:30")),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/ligger nu i papperskorgen/)).toBeNull();
+    expect(screen.queryByText(/ligger nu i Borttaget/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Ångra/ })).toBeNull();
   });
 
@@ -351,6 +351,39 @@ describe("HistoryView undo", () => {
         screen.getByRole("button", { name: "Visa alla (4)" }),
       ).toBeInTheDocument(),
     );
+    expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
+  });
+
+  it("shows no Visa alla while the listed changes fit and the receipt of a row the list no longer holds makes one more", async () => {
+    const newer: ChangeRecord[] = Array.from({ length: 3 }, (_, index) => ({
+      ...other,
+      id: `019f0000-0000-7000-8000-0000000003d${index}`,
+      title: `Ändring ${index + 1}`,
+      occurred_at: `2026-11-01T08:0${index}:00Z`,
+    }));
+    const transport = makeTransport();
+    transport.changes.mockResolvedValueOnce({ changes: newer });
+    const latest = { ...bought, occurred_at: "2026-11-01T09:00:00Z" };
+    renderChanges({ changes: [latest, ...newer] }, transport);
+    expect(
+      screen.getByRole("button", { name: "Visa alla (4)" }),
+    ).toBeInTheDocument();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Ångra Mjölk" }));
+    await screen.findByRole("status");
+    await waitFor(() => expect(transport.changes).toHaveBeenCalledTimes(1));
+
+    // Three changes are left and the receipt stands before them: four rows, no toggle.
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull(),
+    );
+    expect(
+      within(screen.getByRole("list", { name: "Historik" })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(4);
     expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
   });
 
@@ -515,7 +548,7 @@ describe("HistoryView focus after a write", () => {
     );
   });
 
-  it("keeps focus on the same row's button after a failed undo", async () => {
+  it("moves focus to the Try again of the row's failed undo", async () => {
     const undoPurchase = vi.fn<UndoPurchase>(() =>
       Promise.reject(fail("internal_error")),
     );
@@ -526,10 +559,46 @@ describe("HistoryView focus after a write", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      controlSv.undoFailed,
+      controlSv.undoFailed("Mjölk"),
     );
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Ångra Mjölk" })).toHaveFocus(),
+      expect(
+        within(screen.getByRole("alert")).getByRole("button", {
+          name: "Försök igen",
+        }),
+      ).toHaveFocus(),
+    );
+  });
+
+  it("shows a failed undo in the row it was on, naming what failed, and retries with the same key", async () => {
+    const reopened: ChangeRecord = {
+      ...bought,
+      id: "019f0000-0000-7000-8000-0000000003d2",
+      title: "Smör",
+      action: "reopened",
+    };
+    const undoPurchase = vi
+      .fn<UndoPurchase>()
+      .mockRejectedValueOnce(fail("internal_error"))
+      .mockResolvedValueOnce({});
+    renderChanges({ changes: [bought, reopened] }, makeTransport(undoPurchase));
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Ångra Smör" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-error--row");
+    expect(alert).toHaveTextContent("Det gick inte att ångra ”Smör”.");
+    expect(alert.closest("li")).toHaveTextContent("Smör");
+    expect(alert.closest("li")).not.toHaveTextContent("Mjölk");
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+
+    await user.click(
+      within(alert).getByRole("button", { name: "Försök igen" }),
+    );
+    expect(undoPurchase).toHaveBeenCalledTimes(2);
+    expect(undoPurchase.mock.calls[1]?.[1]).toBe(
+      undoPurchase.mock.calls[0]?.[1],
     );
   });
 });

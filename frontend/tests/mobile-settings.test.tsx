@@ -121,6 +121,35 @@ describe("SettingsPanel: Aviseringar", () => {
     ).toBeVisible();
   });
 
+  it.each([
+    [
+      "notifications are not allowed",
+      { distributor: true, registered: true, permission: "denied" },
+      undefined,
+    ],
+    [
+      "ntfy is missing",
+      { distributor: false, registered: false, permission: "prompt" },
+      undefined,
+    ],
+    [
+      "the server sends none",
+      { distributor: true, registered: true, permission: "granted" },
+      false,
+    ],
+  ] as const)(
+    "leaves the lock screen sentence out when %s",
+    async (_case, state, pushEnabled) => {
+      const native = fakeNative(answer, { pushEnabled });
+      native.pushStatus.mockResolvedValue(state);
+      panel(native);
+      await screen.findByText("Den här telefonen");
+      await waitFor(() => expect(native.pushStatus).toHaveBeenCalled());
+      await screen.findByRole("button", { name: "Skicka testavisering" });
+      expect(screen.queryByText(/Låsskärmen visar titlar/)).toBeNull();
+    },
+  );
+
   it("shows a failed read with a retry that reads again", async () => {
     const user = userEvent.setup();
     const native = fakeNative(answer);

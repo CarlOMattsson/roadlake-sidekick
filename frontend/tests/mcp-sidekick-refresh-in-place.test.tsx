@@ -101,9 +101,11 @@ it("keeps the typed shopping text when the shell reads the room again after a lo
     expect(screen.queryByText(shoppingEn.loading)).not.toBeInTheDocument(),
   );
   expect(reads()).toBe(0);
-  // The list is empty: "+ Add item" opens the create field in the list. The field is the textbox, not the row
-  // button that shares its label.
-  await user.click(screen.getByRole("button", { name: shoppingEn.addItem }));
+  // The list is empty: "+ Add item" opens the create field in the list. Both the + in the Back row and the empty
+  // state's own row carry that name; the field is the textbox that shares it.
+  await user.click(
+    screen.getAllByRole("button", { name: shoppingEn.addItem })[0]!,
+  );
   const quick = screen.getByRole("textbox", { name: shoppingEn.addItem });
   await user.type(quick, "Bröd");
   const before = reads();

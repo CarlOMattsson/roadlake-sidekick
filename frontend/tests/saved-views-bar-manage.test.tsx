@@ -166,7 +166,7 @@ describe("SavedViewsBar: rename, archive and restore", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(manageLabelsSv.conflict);
-    await user.click(within(alert).getByRole("button", { name: "Ladda om" }));
+    await user.click(within(alert).getByRole("button", { name: "Uppdatera" }));
     expect(fake.listSavedWorkViews).toHaveBeenCalledTimes(2);
   });
 });

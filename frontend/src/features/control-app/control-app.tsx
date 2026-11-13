@@ -9,6 +9,7 @@ import { ErrorNotice, Skeleton } from "../mcp-apps/ui/states";
 import { Segmented } from "../mcp-apps/ui/segmented";
 import { LicenseRow } from "../mcp-apps/license-mark";
 import { UpdateReminderRow } from "../mcp-apps/update-reminder";
+import type { RoomTarget } from "../mcp-apps/room-types";
 import type { ControlLabels } from "./labels";
 import { HistoryView } from "./history-view";
 import { MemoryView } from "./memory-view";
@@ -111,6 +112,7 @@ export function ControlApp({
   now,
   sendMessage,
   onModelContext,
+  onOpen,
   titled = true,
   heading = false,
 }: {
@@ -141,6 +143,8 @@ export function ControlApp({
    * Never a title or content (see docs/decisions/log.md D-058: logs and telemetry never carry user content). Without a host that supports it, this does nothing.
    */
   onModelContext?: (summary: string) => void;
+  /** A link to a record in another room (room-types `onNavigate`); absent: the card offers no links. */
+  onOpen?: (target: RoomTarget) => void;
 }) {
   const [view, setView] = useState(initialView);
   const [data, setData] = useState(initialData);
@@ -276,6 +280,7 @@ export function ControlApp({
               now={now}
               onData={onTrash}
               onModelContext={onModelContext}
+              onOpen={onOpen}
               full={heading}
               {...expandedOf("trash")}
             />

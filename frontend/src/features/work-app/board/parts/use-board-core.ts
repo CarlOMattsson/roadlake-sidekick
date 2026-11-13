@@ -12,6 +12,7 @@ import type {
 } from "../../transport/transport";
 import { useRowQueue } from "../../../mcp-apps/ui/row-queue";
 import { appendBoardPage } from "../../shared/work-items";
+import { useSingleFlight } from "../../shared/use-single-flight";
 import {
   failureNotice,
   type BoardAction,
@@ -46,7 +47,7 @@ export function useBoardCore({
   const [busy, setBusy] = useState<Busy>("idle");
   const [notice, setNotice] = useState<BoardNotice>();
   // Synchronous guard: a second click before React re-renders must not start a second read.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   // Card writes queue per card (a tap during a running write waits, it is not dropped); other cards run at once.
   const rowQueue = useRowQueue();
   // Writes running or waiting; the writes that succeeded (the one generation every read and write of the board shares:
@@ -86,19 +87,20 @@ export function useBoardCore({
     commit(next);
     setNotice(done);
   }
-  function run(action: BoardAction, work: () => Promise<void>) {
-    if (writing.current) return;
-    writing.current = true;
+  /** Starts `work` unless a read or write runs; false when it was dropped. */
+  function run(action: BoardAction, work: () => Promise<void>): boolean {
+    if (!flight.enter()) return false;
     setBusy(action);
     setNotice(undefined);
     void work().finally(() => {
-      writing.current = false;
+      flight.leave();
       if (mounted.current) setBusy("idle");
       if (reloadAgain.current && mounted.current) {
         reloadAgain.current = false;
         reloadNow.current();
       }
     });
+    return true;
   }
   /** Reads the board again with the same filters; `done` is the notice a successful read leaves. */
   async function reread(done?: BoardNotice) {
@@ -116,11 +118,7 @@ export function useBoardCore({
     }
   }
   function reload() {
-    if (writing.current) {
-      reloadAgain.current = true;
-      return;
-    }
-    run("reload", () => reread());
+    if (!run("reload", () => reread())) reloadAgain.current = true;
   }
   function loadMore() {
     const cursor = frame.page.next_cursor;

@@ -35,7 +35,7 @@ You can also open the task and tap the date or the status under the title.
 
 ## Move overdue tasks to tomorrow
 
-When the agenda has overdue tasks, the row "Flytta … försenade till imorgon" (Move … overdue to tomorrow) sits under the Overdue heading. One tap moves them all at once.
+When the agenda has overdue tasks, the row "Flytta … försenade till imorgon" (Move … overdue to tomorrow) sits under the Overdue heading. Tap it and confirm the question "Flytta N till imorgon?" (Move N to tomorrow?) with "Flytta" (Move); "Avbryt" (Cancel) leaves it. The tasks move together, and a line "N flyttade till imorgon" with "Ångra" (Undo) stays for a short while, so you can put them back.
 
 ## Split a task into steps
 
@@ -63,7 +63,7 @@ When any task or project has a tag, Agenda and Status show a row "Filtrera på t
 
 ## Saved views
 
-In the full-screen Work room, "Sparade vyer" (Saved views) sits above Agenda and Status. "Spara nuvarande vy" (Save current view) stores the filters the list shows right now, including the tags you chose, under a name of up to 120 characters. You can open, rename and archive a view later, and show the archived ones again with "Visa arkiverade". A single project's board cannot be saved as a view.
+In the full-screen Work room, "Sparade vyer" (Saved views) is the first item in the ⋯ menu ("Fler val", More options) at the end of the tab row. "Spara nuvarande vy" (Save current view) stores the filters the list shows right now, including the tags you chose, under a name of up to 120 characters. You can open, rename and archive a view later, and show the archived ones again with "Visa arkiverade". A single project's board cannot be saved as a view.
 
 ## Edit a task, its place or how it repeats
 

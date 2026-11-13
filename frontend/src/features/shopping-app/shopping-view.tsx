@@ -394,7 +394,7 @@ export function ShoppingView({
             <p className="shopping-hold-tip">{holdTip}</p>
           )}
           {/* An empty list says what it is for and how to fill it (§3 Tomt); in fullscreen, where + sits in the
-              Back row, "+ Lägg till en vara" opens the same field here. Gone while the field is open. */}
+              Back row, "+ Lägg till vara" opens the same field here. Gone while the field is open. */}
           {!detail.items.length && !panels.addOpen && (
             <EmptyState
               title={t.empty}
@@ -412,7 +412,7 @@ export function ShoppingView({
                   onClick={forms.openAddField}
                 >
                   <PlusIcon />
-                  {t.emptyAddItem}
+                  {t.addItem}
                 </button>
               )}
             </EmptyState>

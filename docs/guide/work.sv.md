@@ -35,7 +35,7 @@ Du kan också öppna uppgiften och trycka på datumet eller statusen under titel
 
 ## Flytta försenade uppgifter till imorgon
 
-När agendan har försenade uppgifter finns raden "Flytta … försenade till imorgon" under rubriken Försenade. Ett tryck flyttar alla på en gång.
+När agendan har försenade uppgifter finns raden "Flytta … försenade till imorgon" under rubriken Försenade. Tryck på den och bekräfta frågan "Flytta N till imorgon?" med "Flytta"; "Avbryt" lämnar den. Uppgifterna flyttas tillsammans, och en rad "N flyttade till imorgon" med "Ångra" ligger kvar en kort stund, så att du kan lägga tillbaka dem.
 
 ## Dela upp en uppgift i steg
 
@@ -63,7 +63,7 @@ När någon uppgift eller något projekt har en tagg visar Agenda och Status rad
 
 ## Sparade vyer
 
-I fullskärmsläget av Arbete finns "Sparade vyer" ovanför Agenda och Status. "Spara nuvarande vy" sparar de filter som listan visar just nu, också de taggar du valt, under ett namn på högst 120 tecken. En vy kan du senare öppna, byta namn på och arkivera, och de arkiverade visas igen med "Visa arkiverade". Ett enskilt projekts bräde kan inte sparas som vy.
+I fullskärmsläget av Arbete är "Sparade vyer" första valet i menyn ⋯ ("Fler val") sist i flikraden. "Spara nuvarande vy" sparar de filter som listan visar just nu, också de taggar du valt, under ett namn på högst 120 tecken. En vy kan du senare öppna, byta namn på och arkivera, och de arkiverade visas igen med "Visa arkiverade". Ett enskilt projekts bräde kan inte sparas som vy.
 
 ## Ändra en uppgift, dess plats eller hur den upprepas
 

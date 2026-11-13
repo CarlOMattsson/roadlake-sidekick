@@ -15,7 +15,9 @@ Deleting something, in a room or through Claude, only moves it to the trash. It 
 
 ## See what changed
 
-The History tab lists the changes and what Claude has done, newest first. The rows have "Ångra" (Undo) or "Återställ" (Restore) where that is possible.
+The History tab lists the changes and what Claude has done, newest first. The rows have "Ångra" (Undo) or "Återställ" (Restore) where that is possible. After an Undo or a Restore the row says what happened ("Återställd", Restored) in the place where it stood. If an Undo fails, the message "Det gick inte att ångra …" (Couldn't undo …) stands in that row, with "Försök igen" (Try again).
+
+Each list shows the first rows and then "Visa alla (N)" (Show all (N)). N counts only real rows; the lines that report a restore are not counted and are always shown.
 
 ## How memory works
 

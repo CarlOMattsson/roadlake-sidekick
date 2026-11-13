@@ -1,7 +1,8 @@
 import { act, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
-import { shoppingEn } from "@/features/shopping-app/labels";
+import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -70,6 +71,10 @@ const detail = {
   items: [milk],
 };
 
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
+
 afterAll(() => {
   document.head.innerHTML = "";
 });
@@ -121,8 +126,11 @@ it("a long batch with Open shows three names and counts the rest in the Open foo
   // The count of the names left out stands after the button's name, not as a row of its own.
   expect(
     screen.getByRole("button", { name: new RegExp(`^${shoppingEn.openList}`) }),
-  ).toHaveTextContent(`${shoppingEn.openList} · ${shoppingEn.hiddenItems(7)}`);
+  ).toHaveTextContent(`${shoppingEn.openList} · 7 more added`);
   expect(screen.queryByText(shoppingEn.moreItems(7))).not.toBeInTheDocument();
+  // The count is of the items just added, which the list card's "open items" count is not: the words say so.
+  expect(shoppingSv.hiddenAdded(11)).toBe("11 fler tillagda");
+  expect(shoppingEn.hiddenAdded(11)).toBe("11 more added");
 });
 
 it("Open on an add card opens fullscreen with that list selected and read", async () => {

@@ -1,6 +1,14 @@
 // Playwright runs this file outside Vitest: it reads the bundled app HTML (and font files) from disk to serve them to the simulated host.
 import { readFileSync } from "node:fs";
-import { withAppLocale } from "./mcp-host-fixture";
+import {
+  deliverToolResult,
+  openSimulatedApp,
+  readBuiltApp,
+  settled,
+  waitForAppInitialized,
+  withAppLocale,
+} from "./mcp-host-fixture";
+import { sItem, sList } from "./one-screen-fixtures";
 import { test, expect } from "@playwright/test";
 
 test("sandboxed MCP App initializes, reads and writes through the host on a mobile viewport", async ({
@@ -179,4 +187,73 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
   expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewport);
   expect(failures).toEqual([]);
   expect(networkRequests).toBe(0);
+});
+
+// A simulated host, not a real Claude or Android run. The drawn Undo is 40 high; its tap target is the 48 the ::after
+// gives it, so a tap a few pixels above, below or beside the drawn button still lands on it and on no other control.
+test("the store view's Undo takes a tap 3 px outside its drawn box, so its target is at least 44 high", async ({
+  page,
+}) => {
+  const milk = sItem(1, "Mjölk", { quantity: "2", unit: "l", store: "ICA" });
+  const detail = {
+    shopping_list: sList,
+    items: [milk, sItem(2, "Bröd", { store: "ICA" })],
+    next_offset: null,
+    evaluated_on: "2026-11-13",
+  };
+  const opened = await openSimulatedApp(page, {
+    resource: readBuiltApp("shopping", "en"),
+    width: 375,
+    height: 800,
+    hostContext: {
+      locale: "en",
+      theme: "light",
+      displayMode: "fullscreen",
+      availableDisplayModes: ["inline", "fullscreen"],
+    },
+    replies: {
+      list_shopping_lists: {
+        structuredContent: { lists: [sList], next_offset: null },
+      },
+      get_shopping_list: { structuredContent: detail },
+      set_shopping_item_purchased: {
+        structuredContent: {
+          item: { ...milk, purchased: true, version: 2 },
+          evaluated_on: "2026-11-13",
+        },
+      },
+    },
+  });
+  await waitForAppInitialized(page);
+  await deliverToolResult(page, detail);
+  await settled(opened.app);
+  await opened.app
+    .getByRole("button", { name: "Mark Mjölk as bought" })
+    .click();
+  const undo = opened.app.getByRole("button", { name: /^Undo:/ });
+  await expect(undo).toBeVisible();
+  const reach = await undo.evaluate((button) => {
+    const box = button.getBoundingClientRect();
+    const hit = (x: number, y: number) => {
+      const found = document.elementFromPoint(x, y)?.closest("button");
+      return found === button;
+    };
+    const middle = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    return {
+      above: hit(middle.x, box.top - 3),
+      below: hit(middle.x, box.bottom + 3),
+      left: hit(box.left - 3, middle.y),
+      right: hit(box.right + 3, middle.y),
+      drawnHeight: box.height,
+    };
+  });
+  expect(reach).toMatchObject({
+    above: true,
+    below: true,
+    left: true,
+    right: true,
+  });
+  // The tap covers 3 px past the drawn box above and below: 44 and more.
+  expect(reach.drawnHeight + 3 + 3).toBeGreaterThanOrEqual(44);
+  expect(opened.failures).toEqual([]);
 });

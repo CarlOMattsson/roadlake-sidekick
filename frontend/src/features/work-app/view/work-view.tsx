@@ -261,6 +261,7 @@ export function WorkView({
           appTitle={t.title}
           locale={t.dateLocale}
           cause={failure?.cause}
+          subject={failure?.subject ?? "work"}
           onRetry={failure?.onRetry}
           retrying={failure?.retrying}
         />

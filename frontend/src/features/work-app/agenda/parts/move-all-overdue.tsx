@@ -89,8 +89,9 @@ export function MoveAllOverdue({
 
 /**
  * The line after a move-all, "3 flyttade till imorgon" with Ångra beside it, for `UNDO_MS`. The time stands still while
- * the pointer is over it or focus is in it. It is a polite live region and scrolls into view when it shows; when focus
- * was lost with the confirm button, Ångra takes it once the write is done.
+ * the pointer is over it. Focus does not hold it: Ångra takes focus when the confirm button's was lost, and a hold by
+ * focus would never let the time run out. It is a polite live region and scrolls into view when it shows. When the
+ * time is up with focus in it, focus goes to the Overdue group's button, or to the heading.
  */
 export function MoveAllUndo({
   labels: t,
@@ -105,7 +106,18 @@ export function MoveAllUndo({
   onUndo: () => void;
   onExpire: () => void;
 }) {
-  const { held, handlers } = useUndoHold(true, onExpire);
+  const box = useRef<HTMLDivElement>(null);
+  const { held, handlers } = useUndoHold(true, () => {
+    const node = box.current;
+    if (node?.contains(document.activeElement)) {
+      const view = node.closest("article");
+      (
+        view?.querySelector<HTMLElement>(".work-agenda-move-all") ??
+        view?.querySelector<HTMLElement>("h2")
+      )?.focus({ preventScroll: true });
+    }
+    onExpire();
+  });
   const nearest = useNearest<HTMLParagraphElement>();
   const button = useRef<HTMLButtonElement>(null);
   const focusChecked = useRef(false);
@@ -117,10 +129,12 @@ export function MoveAllUndo({
   }, [disabled]);
   return (
     <div
+      ref={box}
       className="work-agenda-move-undo"
       // The time line under Ångra stands still while the countdown does.
       data-held={held ? "" : undefined}
-      {...handlers}
+      onPointerEnter={handlers.onPointerEnter}
+      onPointerLeave={handlers.onPointerLeave}
     >
       <p role="status" ref={nearest}>
         {t.moveAllDone(count)}

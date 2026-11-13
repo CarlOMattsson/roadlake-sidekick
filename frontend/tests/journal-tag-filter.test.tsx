@@ -286,7 +286,12 @@ describe("the tag filter of the day view", () => {
     renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
     await user.click(await screen.findByRole("button", { name: "Viktig" }));
     await screen.findByText("Post 0");
-    const rows = () => screen.getAllByRole("button", { name: /^Post/ });
+    // Counts the rows by their text: a role query computes the accessible name of every button, which took seconds
+    // for 100 rows on a loaded runner.
+    const rows = () =>
+      Array.from(document.querySelectorAll("button")).filter((button) =>
+        button.textContent?.startsWith("Post"),
+      );
 
     expect(rows()).toHaveLength(50);
     expect(screen.queryByText(/^Showing the newest/)).toBeNull();

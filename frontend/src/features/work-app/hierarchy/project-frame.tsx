@@ -83,7 +83,7 @@ export function ProjectFrame({
   }
   /** Writes only the changed fields against the version the view holds; the key follows the action. */
   function saveProject(changes: WorkProjectChanges) {
-    if (!project || frame.writing.current) return;
+    if (!project || frame.flight.isRunning()) return;
     if (Object.keys(changes).length === 0) {
       frame.stopEdit();
       return;
@@ -102,7 +102,7 @@ export function ProjectFrame({
   }
   /** Writes the Project's whole tag set (update_project changes.tags) in place; `done` runs once it is stored. */
   function setTags(next: string[], done: () => void) {
-    if (!project || frame.writing.current) return;
+    if (!project || frame.flight.isRunning()) return;
     retryTags.current = () => setTags(next, done);
     frame.sendWrite(
       JSON.stringify(["tags", project.id, project.version, next]),

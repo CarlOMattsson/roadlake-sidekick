@@ -6,7 +6,7 @@ import { workEn } from "@/features/work-app/shared/labels";
 
 /*
  * The Ångra line after "Flytta N till imorgon" counts down with the family's hold (undo-hold.ts): the same time,
- * paused while the pointer or focus is on it, and cancelled when it goes. Simulated host: this proves the line's
+ * paused while the pointer is on it (not focus: Ångra takes focus itself), and cancelled when it goes. Simulated host: this proves the line's
  * wiring, not a real Claude or Android host.
  */
 
@@ -30,19 +30,11 @@ function renderLine(onExpire = vi.fn()) {
   return { onExpire, ...view };
 }
 
-/** Ångra takes focus when focus was lost with the confirm button, and focus holds the time; let it go. */
-function releaseFocus() {
-  act(() => {
-    button().blur();
-  });
-}
-
 const button = () => screen.getByRole("button", { name: workEn.agendaUndo });
 const line = () => button().parentElement!;
 
 it("expires after the family's Undo time, not before", () => {
   const { onExpire } = renderLine();
-  releaseFocus();
   act(() => {
     vi.advanceTimersByTime(UNDO_MS - 1);
   });
@@ -55,7 +47,6 @@ it("expires after the family's Undo time, not before", () => {
 
 it("stands still while the pointer is over it and runs on with the time left", () => {
   const { onExpire } = renderLine();
-  releaseFocus();
   act(() => {
     vi.advanceTimersByTime(UNDO_MS - 4000);
   });
@@ -77,13 +68,37 @@ it("stands still while the pointer is over it and runs on with the time left", (
   expect(onExpire).toHaveBeenCalledTimes(1);
 });
 
-it("stands still while focus is in it", () => {
-  const { onExpire } = renderLine();
+it("runs out although Ångra has focus, and focus then goes to the group's button", () => {
+  const onExpire = vi.fn();
+  render(
+    <article>
+      <h2 tabIndex={-1}>{workEn.agenda}</h2>
+      <button type="button" className="work-agenda-move-all">
+        {workEn.moveAllOverdue(2)}
+      </button>
+      <MoveAllUndo
+        labels={workEn}
+        count={3}
+        disabled={false}
+        onUndo={vi.fn()}
+        onExpire={onExpire}
+      />
+    </article>,
+  );
+  // The line puts focus on Ångra itself, and a tap with the finger moves it there too.
+  expect(button()).toHaveFocus();
   fireEvent.focus(button());
   act(() => {
-    vi.advanceTimersByTime(UNDO_MS * 2);
+    vi.advanceTimersByTime(UNDO_MS - 1);
   });
   expect(onExpire).not.toHaveBeenCalled();
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(onExpire).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByRole("button", { name: workEn.moveAllOverdue(2) }),
+  ).toHaveFocus();
 });
 
 it("never expires once it has been unmounted", () => {

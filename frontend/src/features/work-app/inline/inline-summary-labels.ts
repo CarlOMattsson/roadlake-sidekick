@@ -138,14 +138,16 @@ export const inlineSummaryLabelsEn = {
   undo: workEn.agendaUndo,
   undoneNote: "Undone. The task is open again.",
   conflict: workEn.conflict,
-  saveFailed: "Couldn’t save.",
+  /** The Done or its Undo could not be written; the line says which change failed. */
+  doneFailed: "Couldn’t mark it as done.",
+  undoFailed: "Couldn’t undo.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
   notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Task, Project or Contact that is gone when it is read: a calm line, with no Try again. */
   goneTask: "This task no longer exists",
   goneProject: "This project no longer exists",
   goneContact: "This contact no longer exists",
-  reread: "Reload",
+  reread: "Refresh",
 };
 
 export type InlineSummaryLabels = typeof inlineSummaryLabelsEn;
@@ -256,15 +258,16 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   undo: workSv.agendaUndo,
   undoneNote: "Ångrat. Uppgiften är öppen igen.",
   conflict:
-    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  saveFailed: "Kunde inte spara.",
+    "Uppgiften ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
+  doneFailed: "Kunde inte markera som klar.",
+  undoFailed: "Kunde inte ångra.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Task, Project or Contact that no longer exists when it is read: a calm line, without "Försök igen". */
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",
   goneContact: "Kontakten finns inte längre",
-  reread: "Ladda om",
+  reread: "Uppdatera",
 };
 
 /** Summary labels for a host locale; anything that is not Swedish gets English, as in the Work app. */

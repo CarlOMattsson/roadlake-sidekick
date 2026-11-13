@@ -84,10 +84,6 @@
 .sidekick-work .sk-shell-tabs-end .work-tab-tool::after {
   inset-inline: -2px;
 }
-/* An open tool (search, ⋯) is drawn held: the surface, never a grey fill of its own. */
-.sidekick-work .work-tab-tool[aria-expanded="true"] {
-  background: var(--sk-surface);
-}
 /* + and search while the list loads or could not be read: tertiary, and a tap does nothing. */
 .sidekick-work .work-tab-tool[aria-disabled="true"] {
   background: none;

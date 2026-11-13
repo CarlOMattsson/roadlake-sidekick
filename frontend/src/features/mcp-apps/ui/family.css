@@ -353,16 +353,34 @@
 .sk-menu-item {
   display: flex;
   align-items: center;
-  width: 100%;
+  box-sizing: border-box;
+  /* The entry reaches 12 into the panel's 16 of side padding and pads itself by as much, so its text stays on the
+     panel's text edge while the focus ring (below) has room inside the box, clear of the text. */
+  width: calc(100% + 2 * var(--sk-s3));
+  max-width: none;
   min-height: var(--sk-tap);
-  margin: 0;
-  padding: 0;
+  margin: 0 calc(-1 * var(--sk-s3));
+  padding: 0 var(--sk-s3);
   border: 0;
+  /* The hairline between entries (border-top, below and in a room's own rule) stays on the text edges: the border
+     is painted by this image, clear over the 12 of padding on each side. */
+  border-image: linear-gradient(
+      to right,
+      transparent var(--sk-s3),
+      var(--sk-line) var(--sk-s3) calc(100% - var(--sk-s3)),
+      transparent calc(100% - var(--sk-s3))
+    )
+    1 0 0 0;
   border-radius: 0;
   background: transparent;
   color: var(--sk-fg);
   font: var(--sk-type-menu);
   text-align: start;
+}
+/* The ring lies inside the entry: 8 clear of its text on the left and 1 under the hairline above, so it neither
+   crowds the label nor covers the line. */
+.sk-menu-item:focus-visible {
+  outline-offset: -4px;
 }
 /* The hairline between entries, as Work's ⋯: above the button rule's border: 0 in specificity. */
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
@@ -465,6 +483,12 @@
 .sk-iconbtn svg {
   width: var(--sk-icon);
   height: var(--sk-icon);
+}
+/* The ring lies on the box's own edge, as in the Back row: an icon button at the end of a head reaches 10 into the side
+   margin, and a ring 2 outside its box would stand past a panel under it or be cut by the screen's edge at 375. An
+   open icon button (⋯, search) has no fill of its own: the panel or field it opened right under it shows the state. */
+.sk-iconbtn:focus-visible {
+  outline-offset: -2px;
 }
 /* The + of a list view: the screen's primary as a round ink button, 32 drawn
    (--sk-plus) in the 44 box and 48 to tap. While its create field is open the field's own + is the primary, so the
@@ -582,7 +606,8 @@
   color: var(--sk-danger-fg);
   font: var(--sk-type-meta);
 }
-.sk-error--row .sk-error-message {
+/* Doubled class: it must beat the general `[role="alert"] > p` bottom margin, which would lift the text above the button. */
+.sk-error.sk-error--row .sk-error-message {
   margin: 0;
 }
 /* The buttons keep their words on one line: when the message and they do not fit one line, they go under the message

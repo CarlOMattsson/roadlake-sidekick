@@ -290,7 +290,12 @@ function BatchCard({
           </ul>
           {onOpen ? (
             <CardFoot>
-              <OpenListButton labels={t} hidden={more} onOpen={onOpen} />
+              <OpenListButton
+                labels={t}
+                hidden={more}
+                hiddenText={t.hiddenAdded}
+                onOpen={onOpen}
+              />
             </CardFoot>
           ) : null}
         </div>

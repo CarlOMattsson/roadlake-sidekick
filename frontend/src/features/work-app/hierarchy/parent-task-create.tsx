@@ -8,6 +8,7 @@ import {
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { WriteFailureRow } from "../shared/write-failure-row";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { dueAtFromDateInput } from "../tasks/task-edit";
 import {
   writeFailure,
@@ -66,7 +67,7 @@ export function CreateParentTask({
   const titleErrorId = useId();
   const dueErrorId = useId();
   // Synchronous guard against a second create before React re-renders.
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   const pendingWrite = useRef<PendingKey | undefined>(undefined);
   const mounted = useRef(true);
   useEffect(() => {
@@ -109,7 +110,7 @@ export function CreateParentTask({
   // Save runs from the button's click, not the form's submit event: the App iframe is sandboxed
   // without allow-forms, where the browser never dispatches submit. Enter still clicks the button.
   function submit() {
-    if (writing.current) return;
+    if (flight.isRunning()) return;
     const titleFound = titleProblem(title);
     if (titleFound) {
       setProblem(titleFound);
@@ -129,7 +130,7 @@ export function CreateParentTask({
     const signature = JSON.stringify([body.title, body.due_at]);
     const pendingKey = keyFor(pendingWrite.current, signature);
     pendingWrite.current = pendingKey;
-    writing.current = true;
+    flight.enter();
     setBusy(true);
     setProblem(undefined);
     setNotice(undefined);
@@ -150,7 +151,7 @@ export function CreateParentTask({
           setNotice({ kind: "failed", failure: writeFailure(error) });
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
         if (mounted.current) setBusy(false);
       });
   }

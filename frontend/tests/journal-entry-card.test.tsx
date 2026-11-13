@@ -15,6 +15,7 @@ import type {
   JournalDay,
   JournalEntry,
 } from "@/features/journal-app/transport";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -106,6 +107,10 @@ function setHostContext(context: {
     for (const listener of host.hostContext) listener(context);
   });
 }
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 afterAll(() => {
   document.head.innerHTML = "";

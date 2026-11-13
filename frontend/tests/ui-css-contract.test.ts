@@ -358,6 +358,50 @@ describe("MCP-app UI CSS contract (D28)", () => {
     expect(valueOf(ring?.body ?? "", "outline-offset")).toBe("-2px");
   });
 
+  it("the ⋯ menu's ring lies inside its entry, an open icon button has no fill, and a full frame paints its page", () => {
+    // The entry reaches 12 into the panel's padding and pads itself back, so its text keeps the panel's text edge and
+    // the ring, 4 inside the box, stands 8 clear of the text and 1 under the hairline above.
+    const family = readCss("mcp-apps/ui/family.css");
+    const item = ruleBody(
+      "mcp-apps/ui/family.css",
+      ":is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control) button.sk-menu-item, .sk-menu-item",
+    );
+    expect(valueOf(item, "margin")).toBe("0 calc(-1 * var(--sk-s3))");
+    expect(valueOf(item, "padding")).toBe("0 var(--sk-s3)");
+    expect(valueOf(item, "max-width")).toBe("none");
+    const ringOf = (selector: string) =>
+      valueOf(
+        cssRules(family).find((rule) => rule.selector === selector)?.body ?? "",
+        "outline-offset",
+      );
+    expect(ringOf(".sk-menu-item:focus-visible")).toBe("-4px");
+    // An icon button's ring lies on its own box: the last one in a head reaches 10 into the side margin.
+    expect(ringOf(".sk-iconbtn:focus-visible")).toBe("-2px");
+    // No room draws an open icon button with a fill of its own: the panel it opened shows the state.
+    const heldFill = files.filter((file) =>
+      cssRules(file.css).some(
+        (rule) =>
+          /\[aria-expanded="true"\]/.test(rule.selector) &&
+          /(work-tab-tool|work-detail-action|sk-iconbtn)(?![\w-])/.test(
+            rule.selector,
+          ) &&
+          !/sk-iconbtn--primary\[/.test(rule.selector) &&
+          /^var\(--sk-surface\)$/.test(valueOf(rule.body, "background") ?? ""),
+      ),
+    );
+    expect(heldFill.map((file) => file.rel)).toEqual([]);
+    // A full frame paints the page in the same colour as the room strip's bar, so no band shows under the head.
+    const page = cssRules(readCss("mcp-apps/ui/layout.css")).find(
+      (rule) => rule.selector === ':root:has(.sk-frame[data-mode="full"])',
+    );
+    const bar = cssRules(readCss("mcp-apps/sidekick-shell.css")).find(
+      (rule) => rule.selector === ".sk-rooms__bar",
+    );
+    expect(valueOf(page?.body ?? "", "background")).toBe(
+      valueOf(bar?.body ?? "", "background"),
+    );
+  });
+
   it("Kontroll's title is a visible h2 under the Back row, not the old screen-reader heading", () => {
     const title = ruleBody(
       "control-app/control.css",

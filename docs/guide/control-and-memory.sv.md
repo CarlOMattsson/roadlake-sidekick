@@ -15,7 +15,9 @@ Att ta bort något, i ett rum eller genom Claude, flyttar det bara till pappersk
 
 ## Se vad som ändrats
 
-Fliken Historik visar ändringarna och det Claude har gjort, de senaste först. På raderna finns "Ångra" eller "Återställ" där det går.
+Fliken Historik visar ändringarna och det Claude har gjort, de senaste först. På raderna finns "Ångra" eller "Återställ" där det går. Efter en ångring eller en återställning säger raden vad som hände ("Återställd") på den plats där den stod. Om en ångring misslyckas står meddelandet "Det gick inte att ångra …" i just den raden, med "Försök igen".
+
+Varje lista visar de första raderna och sedan "Visa alla (N)". N räknar bara riktiga rader; de rader som berättar om en återställning räknas inte och visas alltid.
 
 ## Så fungerar minnet
 

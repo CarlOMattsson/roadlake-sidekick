@@ -2,8 +2,12 @@ export const shoppingEn = {
   searchContact: "Find contact",
   contactSearchFailed: "Couldn’t search your contacts.",
   contactQuery: "Contact name",
-  linkedContact: "Current recipient",
-  noRecipient: "No recipient",
+  /** The recipient's name when the server sent none. */
+  linkedContact: "Linked contact",
+  chooseContact: "Choose contact",
+  changeRecipient: "Change",
+  removeRecipient: "Remove",
+  noContactFound: "No contact found.",
   title: "Shopping",
   select: "Choose list",
   create: "Create list",
@@ -14,8 +18,6 @@ export const shoppingEn = {
   empty: "No items yet.",
   /** Under "No items yet.": what a list is for. */
   emptyHint: "What to buy. Tick items off as you shop.",
-  /** The empty list's own way to start in fullscreen: it opens the create field, as the Back row's + does. */
-  emptyAddItem: "Add an item",
   loading: "Loading…",
   failed: "Something went wrong. Refresh the list, or try again.",
   retry: "Try again",
@@ -52,8 +54,9 @@ export const shoppingEn = {
   untilDate: (date: string) => `by ${date}`,
   /** A bought item's meta line, in "Bought": the day it was ticked off. */
   boughtOn: (date: string) => `bought ${date}`,
-  /** Said once above the bought items when their ring is a way back to the open list. */
-  buyAgainTip: "Tap the ring to buy again.",
+  /** Said once above the bought items when their circle is a way back to the open list; with a fine pointer it says click. */
+  buyAgainTip: "Tap the circle to buy again.",
+  buyAgainKeys: "Click the circle to buy again.",
   /** The closed offer fold's line: "Offer: SEK 199 until 30 Nov" (the end of the offer is left out when unknown). */
   offerSummary: (price: string, until: string) =>
     until ? `Offer: ${price} until ${until}` : `Offer: ${price}`,
@@ -78,10 +81,10 @@ export const shoppingEn = {
   previous: "Previous page",
   page: "Page",
   hint: "Keep one list per purpose: groceries, furniture, gifts. Dates are optional.",
+  priceInvalid: "Enter a price like 19.90.",
+  quantityInvalid: "Enter an amount like 2 or 1.5 (at most three decimals).",
   offerHint:
     "A price you noted, not a live price check. Clear the price to remove the offer.",
-  recipientHint:
-    "Claude can find the right Sidekick contact and link it once you choose. The current recipient stays until you pick another.",
   evaluated: "Offers as of",
   invalidBatch: "Enter between 1 and 50 items.",
   openList: "Open the shopping list",
@@ -112,11 +115,12 @@ export const shoppingEn = {
   moreItems: (count: number) => `+${count} more`,
   /** After "Open the shopping list · ": the open items the card leaves out. */
   hiddenItems: (count: number) => `${count} more`,
+  /** The same after the batch card's foot, where the items left out are the ones just added, not the open ones. */
+  hiddenAdded: (count: number) => `${count} more added`,
   showAll: (count: number) => `Show all (${count})`,
   showFewer: "Show fewer",
   boughtCount: (count: number) => `Bought (${count})`,
-  conflict:
-    "The list was changed elsewhere and has been refreshed. Tap the circle to try again.",
+  conflict: "The list was changed elsewhere and has been refreshed. Try again.",
   otherStore: "No store",
   storeRemaining: (store: string, open: number) => `${store} · ${open} left`,
   undoPurchase: "Undo",
@@ -129,7 +133,7 @@ export const shoppingEn = {
   bought: "Bought",
   /** The meta line of an item ticked off as not bought while its Undo holds: "Not bought · Undo". */
   notBought: "Not bought",
-  /** The ring's name: the ring ticks, the rest of the row opens the change form. */
+  /** The circle's name: the circle ticks, the rest of the row opens the change form. */
   markBought: (name: string) => `Mark ${name} as bought`,
   markOpen: (name: string) => `Mark ${name} as not bought`,
   /** The tip last in the store view's list, until a row's change form is first opened. */
@@ -163,8 +167,11 @@ export const shoppingSv: ShoppingLabels = {
   searchContact: "Sök kontakt",
   contactSearchFailed: "Det gick inte att söka bland kontakterna.",
   contactQuery: "Kontaktens namn",
-  linkedContact: "Nuvarande mottagare",
-  noRecipient: "Ingen mottagare",
+  linkedContact: "Kopplad kontakt",
+  chooseContact: "Välj kontakt",
+  changeRecipient: "Byt",
+  removeRecipient: "Ta bort",
+  noContactFound: "Ingen kontakt hittades.",
   title: "Inköp",
   select: "Välj lista",
   create: "Skapa lista",
@@ -174,7 +181,6 @@ export const shoppingSv: ShoppingLabels = {
   refresh: "Uppdatera",
   empty: "Inga varor än.",
   emptyHint: "Det du ska handla. Bocka av varorna i butiken.",
-  emptyAddItem: "Lägg till en vara",
   loading: "Laddar…",
   failed: "Något gick fel. Uppdatera listan eller försök igen.",
   retry: "Försök igen",
@@ -209,6 +215,7 @@ export const shoppingSv: ShoppingLabels = {
   untilDate: (date: string) => `till ${date}`,
   boughtOn: (date: string) => `köpt ${date}`,
   buyAgainTip: "Tryck på ringen för att köpa igen.",
+  buyAgainKeys: "Klicka på ringen för att köpa igen.",
   offerSummary: (price: string, until: string) =>
     until ? `Erbjudande: ${price} t.o.m. ${until}` : `Erbjudande: ${price}`,
   dateLocale: "sv-SE",
@@ -232,10 +239,10 @@ export const shoppingSv: ShoppingLabels = {
   previous: "Föregående sida",
   page: "Sida",
   hint: "Ha en lista per syfte: vardag, möbler, presenter. Datum är valfria.",
+  priceInvalid: "Ange ett pris som 19,90.",
+  quantityInvalid: "Ange ett antal som 2 eller 1,5 (högst tre decimaler).",
   offerHint:
     "Ett pris du noterat, inte ett aktuellt pris. Töm priset för att ta bort erbjudandet.",
-  recipientHint:
-    "Claude kan hitta rätt Sidekick-kontakt och koppla den efter ditt val. Befintlig mottagare behålls tills du väljer en annan.",
   evaluated: "Erbjudanden per",
   invalidBatch: "Ange mellan 1 och 50 varor.",
   openList: "Öppna inköpslistan",
@@ -255,11 +262,11 @@ export const shoppingSv: ShoppingLabels = {
   nowAmount: (amount: string) => `nu ${amount}`,
   moreItems: (count: number) => `+${count} fler`,
   hiddenItems: (count: number) => `${count} fler`,
+  hiddenAdded: (count: number) => `${count} fler tillagda`,
   showAll: (count: number) => `Visa alla (${count})`,
   showFewer: "Visa färre",
   boughtCount: (count: number) => `Köpta (${count})`,
-  conflict:
-    "Listan har ändrats på annat håll och är uppdaterad. Tryck på ringen igen för att försöka igen.",
+  conflict: "Listan har ändrats på annat håll och är uppdaterad. Försök igen.",
   otherStore: "Utan butik",
   storeRemaining: (store: string, open: number) => `${store} · ${open} kvar`,
   undoPurchase: "Ångra",

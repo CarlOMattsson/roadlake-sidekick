@@ -125,10 +125,10 @@ describe("Shopping with the Contact and Control rooms off", () => {
     render(<ShoppingRoom mode="full" transport={transport} />);
     await openEditor();
 
-    expect(screen.getByLabelText("Contact name")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Find contact" }),
+      screen.getByRole("button", { name: "Choose contact" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Gift recipient (optional)")).toBeInTheDocument();
   });
 
   it("has no recipient search and no contact call when contacts is off", async () => {
@@ -137,9 +137,8 @@ describe("Shopping with the Contact and Control rooms off", () => {
     render(<ShoppingRoom mode="full" transport={transport} />);
     await openEditor();
 
-    expect(screen.queryByLabelText("Contact name")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Find contact" })).toBeNull();
-    expect(screen.queryByLabelText("Gift recipient (optional)")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Choose contact" })).toBeNull();
+    expect(screen.queryByText("Gift recipient (optional)")).toBeNull();
     expect(called(call)).not.toContain("list_contacts");
   });
 

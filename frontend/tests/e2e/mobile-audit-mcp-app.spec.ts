@@ -1271,12 +1271,48 @@ function measureInFrame() {
     );
   const interactiveSel =
     "button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=checkbox], [role=switch], [tabindex]:not([tabindex='-1'])";
+  // The tap target, not only the drawn box: a control drawn 32 or 40 with a ::after that reaches past it (the room
+  // strip's tabs, compact buttons, chips) is tapped wherever a tap lands on it. Walk out from the box's middle while
+  // a tap still reaches the element (document.elementFromPoint, as a finger's hit test). Only in the viewport; a
+  // control outside it, or one whose middle a tap does not reach (a checkbox under its label), is measured by its
+  // box and marked "(box)".
+  const vh = window.innerHeight;
+  const reaches = (el: Element, x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= vw || y >= vh) return false;
+    const hit = document.elementFromPoint(x, y);
+    return hit !== null && (hit === el || el.contains(hit));
+  };
+  const span = (el: Element, x: number, y: number, dx: number, dy: number) => {
+    let n = 0;
+    while (n < 64 && reaches(el, x + dx * (n + 1), y + dy * (n + 1))) n++;
+    return n;
+  };
+  const tapSize = (el: Element, r: DOMRect) => {
+    // Partly outside the viewport, the walk would stop at its edge: measure the box instead.
+    if (r.top < 8 || r.bottom > vh - 8 || r.left < 0 || r.right > vw)
+      return null;
+    const x = Math.floor(r.left + r.width / 2);
+    const y = Math.floor(r.top + r.height / 2);
+    if (!reaches(el, x, y)) return null;
+    return {
+      w: span(el, x, y, -1, 0) + span(el, x, y, 1, 0) + 1,
+      h: span(el, x, y, 0, -1) + span(el, x, y, 0, 1) + 1,
+    };
+  };
   const smallTargets: string[] = [];
   const seen = new Set<Element>();
   for (const el of document.querySelectorAll(interactiveSel)) {
     if (seen.has(el) || !isVisible(el)) continue;
     seen.add(el);
     const r = el.getBoundingClientRect();
+    if (r.width < 44 || r.height < 44) {
+      const tap = tapSize(el, r);
+      if (tap) {
+        if (tap.w < 44 || tap.h < 44)
+          smallTargets.push(`${describe(el)} ${tap.w}x${tap.h}`);
+        continue;
+      }
+    }
     // A checkbox hidden under a larger label counts as the label's box.
     let target: Element = el;
     if (
@@ -1289,7 +1325,7 @@ function measureInFrame() {
     const tr = target.getBoundingClientRect();
     const w = Math.round(Math.max(r.width, target === el ? 0 : tr.width));
     const h = Math.round(Math.max(r.height, target === el ? 0 : tr.height));
-    if (w < 44 || h < 44) smallTargets.push(`${describe(el)} ${w}x${h}`);
+    if (w < 44 || h < 44) smallTargets.push(`${describe(el)} ${w}x${h} (box)`);
   }
   const smallText: { text: string; size: number }[] = [];
   const textSeen = new Set<string>();

@@ -273,6 +273,7 @@ export function ControlRoom(props: RoomProps) {
       onModelContext={(sentence) =>
         void props.transport.updateModelContext(sentence)
       }
+      onOpen={props.onNavigate}
     />
   );
 }

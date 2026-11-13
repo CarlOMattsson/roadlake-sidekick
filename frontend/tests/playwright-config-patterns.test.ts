@@ -2,6 +2,9 @@
 // A pattern for a file that is missing (or not shipped) otherwise passes silently:
 // Playwright just runs fewer specs. Configs that are not in this checkout are skipped.
 import path from "node:path";
+// Every config imports Playwright's runtime, a large package whose first load took over 15 s on a busy machine and
+// timed out the first config's test. Loading it here keeps that cost in file collection, which has no timeout.
+import "@playwright/test";
 import { describe, expect, it } from "vitest";
 
 import {

@@ -17,6 +17,7 @@ import {
   type WorkItemRecord,
   type WorkTransport,
 } from "../transport/transport";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { cardKey, frameFor } from "../shared/work-items";
 
 /** Rows the card shows; the rest of the server's list is counted in "+N". */
@@ -48,6 +49,8 @@ export type WorkCardProps =
       locale: string;
       /** The failure, when the caller has it: decides the notice's second line. */
       cause?: unknown;
+      /** The notice subject that names what Try again reads ("work", "work:hierarchy", "contacts"). */
+      subject: string;
       onRetry?: () => void;
       retrying?: boolean;
     }
@@ -93,8 +96,8 @@ export function WorkCard(props: WorkCardProps) {
         <p className="sk-eyebrow">{props.appTitle}</p>
         <ErrorNotice
           locale={props.locale}
-          // An error result names no record, and Try again reads the agenda: the heading says what that read is.
-          subject="work"
+          // An error result names no record: the heading names what Try again reads.
+          subject={props.subject}
           cause={props.cause}
           onRetry={props.onRetry}
           retrying={props.retrying}
@@ -142,6 +145,8 @@ function ReadyCard({
   const [seen, setSeen] = useState(frame);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [busy, setBusy] = useState<string>();
+  // A status change and a re-read share one flight: a second press before the card re-renders does not start another.
+  const flight = useSingleFlight();
   const [notice, setNotice] = useState<InlineSummaryNotice>();
   // True once a younger copy of this card exists. Read by async code, so it is also a ref.
   const [superseded, setSuperseded] = useState(false);
@@ -193,7 +198,7 @@ function ReadyCard({
     to: TaskStatusValue,
     w: CardStatusWriter,
   ) {
-    if (busy !== undefined || supersededRef.current) return;
+    if (supersededRef.current || !flight.enter()) return;
     const key = cardKey(item);
     setBusy(key);
     setNotice(undefined);
@@ -246,13 +251,14 @@ function ReadyCard({
         setNotice({ message: labels.statusFailed });
       }
     } finally {
+      flight.leave();
       setBusy(undefined);
     }
   }
 
   /** Reads the latest Task so the row shows its current status and version. */
   async function reread(item: WorkItemRecord, w: CardStatusWriter) {
-    if (busy !== undefined) return;
+    if (!flight.enter()) return;
     const key = cardKey(item);
     setBusy(key);
     setNotice(undefined);
@@ -269,6 +275,7 @@ function ReadyCard({
         action: () => void reread(item, w),
       });
     } finally {
+      flight.leave();
       setBusy(undefined);
     }
   }

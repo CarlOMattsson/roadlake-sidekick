@@ -33,6 +33,8 @@ export default mergeConfig(
     },
     test: {
       include: ["tests/**/*.test.tsx"],
+      // Added to the base config's setup file: it makes Preact's after-paint effects safe at jsdom teardown.
+      setupFiles: ["./tests/preact/setup.ts"],
       // Merged with the base config's excludes. The mobile shell renders with real React (vite.mobile.config.ts),
       // so Preact says nothing about its tests.
       exclude: ["tests/mobile-*.test.tsx"],

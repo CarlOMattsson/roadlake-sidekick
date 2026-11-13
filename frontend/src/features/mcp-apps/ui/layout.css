@@ -25,6 +25,14 @@
   padding-left: var(--sk-frame-pad-left);
 }
 
+/* A full frame paints the whole page in the host's page colour, the same colour the room strip's bar and Work's tab
+   row paint while they stick. Without it the page is transparent and shows whatever the host draws behind the frame,
+   which on a host whose own background is another shade (or one that sends no style variables) read as a band of
+   another colour under the head. An inline card stays transparent: the host draws it. */
+:root:has(.sk-frame[data-mode="full"]) {
+  background: var(--color-background-primary, Canvas);
+}
+
 /* Fullscreen: the host's reply field covers the foot, so the bottom uses the foot reserve (tokens.css). */
 .sk-frame[data-mode="full"] > .sk-frame__body {
   --sk-frame-pad: 16px;

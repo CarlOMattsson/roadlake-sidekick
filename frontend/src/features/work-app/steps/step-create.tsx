@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { type WorkLabels } from "../shared/labels";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { titleProblem } from "../shared/fields";
+import { useSingleFlight } from "../shared/use-single-flight";
 import { CreateField } from "../../mcp-apps/ui/create-field";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
@@ -44,7 +45,7 @@ export function StepCreate({
   const returnFocus = useRef(false);
   // What the field holds now, so a retry that succeeds empties it only if it still holds the retried title.
   const draft = useRef("");
-  const writing = useRef(false);
+  const flight = useSingleFlight();
   const pendingWrite = useRef<PendingKey | undefined>(undefined);
   const mounted = useRef(true);
   useEffect(() => {
@@ -72,7 +73,7 @@ export function StepCreate({
   /** Resolves true when the Step was created, so the field empties; false keeps the text. */
   function create(text: string): Promise<boolean> {
     const cleanTitle = text.trim();
-    if (writing.current || !cleanTitle) return Promise.resolve(false);
+    if (flight.isRunning() || !cleanTitle) return Promise.resolve(false);
     if (titleProblem(cleanTitle)) {
       setFailure({ title: cleanTitle, kind: "tooLong" });
       return Promise.resolve(false);
@@ -82,7 +83,7 @@ export function StepCreate({
       JSON.stringify([cleanTitle]),
     );
     pendingWrite.current = pendingKey;
-    writing.current = true;
+    flight.enter();
     setFailure(undefined);
     onWriteStart();
     return transport
@@ -98,7 +99,7 @@ export function StepCreate({
         return false;
       })
       .finally(() => {
-        writing.current = false;
+        flight.leave();
       });
   }
 

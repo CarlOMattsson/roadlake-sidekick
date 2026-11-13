@@ -157,8 +157,9 @@ export function ContactsRoom(props: RoomProps) {
       : props.fullscreenAvailable === true
         ? requestFullscreen
         : expandInline;
-  // A failed first result in the full view: the family's read error with Retry, which reads the list afresh (the error
-  // result names no record, so the list is what can be read again). Inline, the card's own error stays.
+  // A failed first result: the error result names no tool and no record, so Try again reads the list afresh and the
+  // heading names that read ("Kontakterna"), whichever Contact tool failed.
+  const retryList = () => setState((prev) => ({ ...prev, frame: START_FRAME }));
   if (fullscreen && state.frame.kind === "error")
     return (
       // In the room's own frame (padding, type), where its list would stand.
@@ -167,7 +168,7 @@ export function ContactsRoom(props: RoomProps) {
           locale={locale}
           subject="contacts"
           cause={state.cause}
-          onRetry={() => setState((prev) => ({ ...prev, frame: START_FRAME }))}
+          onRetry={retryList}
         />
       </section>
     );
@@ -176,6 +177,16 @@ export function ContactsRoom(props: RoomProps) {
       <WorkView
         transport={transport}
         initial={state.frame}
+        failure={
+          state.frame.kind === "error"
+            ? {
+                cause: state.cause,
+                subject: "contacts",
+                onRetry: retryList,
+                retrying: false,
+              }
+            : undefined
+        }
         labels={names.labels}
         cardLabels={names.cardLabels}
         inlineLabels={names.inlineLabels}

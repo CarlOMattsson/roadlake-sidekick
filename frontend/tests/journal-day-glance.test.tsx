@@ -16,6 +16,7 @@ import type {
   JournalDay,
   JournalEntry,
 } from "@/features/journal-app/transport";
+import { preloadSidekickApp } from "./helpers/preload-sidekick-app";
 
 type ToolResultListener = (result: {
   structuredContent: unknown;
@@ -318,7 +319,7 @@ describe("DayGlance", () => {
     expect(line).toHaveClass("journal-muted");
     // The parts are joined with no-break spaces so that a part never breaks inside.
     expect(line?.textContent?.replace(/\u00a0/g, " ")).toBe(
-      "Completed · 1 task · 1 step",
+      "Done · 1 task · 1 step",
     );
     unmount();
 
@@ -474,6 +475,10 @@ describe("DayGlance", () => {
     expect(busy).toHaveAttribute("aria-busy", "true");
   });
 });
+
+// The app's modules load at collection time, which has no timeout; the entry import in beforeAll then only
+// runs the entry itself.
+await preloadSidekickApp();
 
 describe("journal day glance in the app", () => {
   beforeAll(async () => {

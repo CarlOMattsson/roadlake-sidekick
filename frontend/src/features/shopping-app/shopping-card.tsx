@@ -64,10 +64,13 @@ export function cardItemText(item: ShoppingItem, locale: string): string {
 export function OpenListButton({
   labels: t,
   hidden,
+  hiddenText,
   onOpen,
 }: {
   labels: ShoppingLabels;
   hidden: number;
+  /** Says what the count after the name stands for: open items (the list card) or added ones (the batch card). */
+  hiddenText: (count: number) => string;
   onOpen: () => void;
 }) {
   return (
@@ -79,7 +82,7 @@ export function OpenListButton({
       <span className="shopping-card-open-text">
         {t.openList}
         {hidden > 0 ? (
-          <span className="shopping-card-more">{` · ${t.hiddenItems(hidden)}`}</span>
+          <span className="shopping-card-more">{` · ${hiddenText(hidden)}`}</span>
         ) : null}
       </span>
       <ChevronRightIcon />
@@ -148,7 +151,12 @@ export function ShoppingCard({
             </>
           )}
           <CardFoot>
-            <OpenListButton labels={t} hidden={hidden} onOpen={onOpen} />
+            <OpenListButton
+              labels={t}
+              hidden={hidden}
+              hiddenText={t.hiddenItems}
+              onOpen={onOpen}
+            />
           </CardFoot>
         </div>
       </AppFrame>

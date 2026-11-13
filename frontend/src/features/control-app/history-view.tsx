@@ -63,6 +63,8 @@ export function HistoryView({
   const [list, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
+  // The row a failed write was on: its notice stands in that row, where the owner is looking, not at the top of the list.
+  const [failedRow, setFailedRow] = useState<string | null>(null);
   // The rows a saved Undo or Restore was on, by row key: each says what happened in its meta line for a while. The
   // change is kept so the row stays even when the list read again no longer holds it.
   const [receipts, showReceipt] = useReceipts<{
@@ -88,6 +90,14 @@ export function HistoryView({
       !root.contains(active)
     )
       return;
+    // A failure that can be repeated stands in its row: focus goes to its "Try again".
+    const retry = root.querySelector<HTMLElement>(
+      "li.control-row [role='alert'] button",
+    );
+    if (retry) {
+      retry.focus();
+      return;
+    }
     focusRowNear(root, index, noticeRef.current ?? headingRef.current);
   }, [busy, list]);
 
@@ -132,6 +142,7 @@ export function HistoryView({
     focusIndex.current = rows.findIndex((row) => row.key === rowId);
     setBusy(rowId);
     setNotice(undefined);
+    setFailedRow(null);
     pending.current = keyFor(
       pending.current,
       `${change.kind}:${change.id}:${change.version}:${change.action}`,
@@ -149,6 +160,7 @@ export function HistoryView({
       });
       await reload();
     } catch (error) {
+      setFailedRow(rowId);
       const failure = writeFailure(error);
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
@@ -161,7 +173,9 @@ export function HistoryView({
         setNotice({
           tone: "error",
           text:
-            failure === "forbidden" ? labels.undoForbidden : labels.undoFailed,
+            failure === "forbidden"
+              ? labels.undoForbidden
+              : labels.undoFailed(change.title),
           retry: failure === "forbidden" ? undefined : () => void undo(change),
         });
       }
@@ -177,6 +191,7 @@ export function HistoryView({
     focusIndex.current = rows.findIndex((row) => row.key === rowId);
     setBusy(rowId);
     setNotice(undefined);
+    setFailedRow(null);
     pending.current = keyFor(
       pending.current,
       `${change.kind}:${change.id}:${change.version}`,
@@ -197,6 +212,7 @@ export function HistoryView({
       showReceipt(rowId, { text: labels.restored, change });
       await reload();
     } catch (error) {
+      setFailedRow(rowId);
       const failure = writeFailure(error);
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
@@ -224,6 +240,11 @@ export function HistoryView({
     }
   }
 
+  // A failure stays at the top only when its row is gone (the list was read again and no longer holds it).
+  const failureInRow =
+    notice?.tone === "error" &&
+    failedRow !== null &&
+    rows.some((row) => row.key === failedRow);
   return (
     <div className="control-view" ref={rootRef}>
       {/* Where focus rests when the row it was on has no button left (a receipt stands in its place). */}
@@ -234,7 +255,7 @@ export function HistoryView({
       {rows.length > 0 ? (
         <p className="control-meta">{labels.historyMeta}</p>
       ) : null}
-      {notice ? (
+      {notice && !failureInRow ? (
         <div ref={noticeRef} tabIndex={-1}>
           <NoticeLine notice={notice} locale={labels.locale} />
         </div>
@@ -257,7 +278,8 @@ export function HistoryView({
           keyOf={(row) => row.key}
           label={labels.views.history}
           wrapMeta
-          showAll={() => labels.showAll(rows.length - receiptOnly.length)}
+          isReceipt={(row) => receiptOnly.some(([key]) => key === row.key)}
+          showAll={(count) => labels.showAll(count)}
           showFewer={labels.showFewer}
           full={full}
           expanded={expanded}
@@ -316,6 +338,11 @@ export function HistoryView({
                     >
                       {isBusy ? labels.restoring : labels.restore}
                     </button>
+                  ) : undefined
+                }
+                below={
+                  failureInRow && failedRow === key ? (
+                    <NoticeLine notice={notice} locale={labels.locale} />
                   ) : undefined
                 }
               />

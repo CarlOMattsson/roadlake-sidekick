@@ -315,6 +315,27 @@ describe("workDate in the Work app", () => {
     ).toBe("Mon 26 Oct");
   });
 
+  it("weekday false leaves the weekday out and keeps the relative words", () => {
+    expect(
+      workDate("2026-10-30", now, "sv-SE", { inline: true, weekday: false }),
+    ).toBe("30 okt");
+    expect(workDate("2026-10-23", now, "sv-SE", { weekday: false })).toBe(
+      "23 okt",
+    );
+    expect(
+      workDate("2026-10-30", now, "en-GB", { inline: true, weekday: false }),
+    ).toBe("30 Oct");
+    expect(
+      workDate("2026-10-24", now, "en-GB", { inline: true, weekday: false }),
+    ).toBe("yesterday");
+    expect(
+      workDate("2026-10-25", now, "sv-SE", { relative: false, weekday: false }),
+    ).toBe("25 okt");
+    expect(workDate("2027-01-05", now, "en-GB", { weekday: false })).toBe(
+      "5 Jan 2027",
+    );
+  });
+
   it("English reads the same rules; only the relative words are in lower case inline", () => {
     expect(workDate("2026-10-25", now, "en-GB")).toBe("Today");
     expect(workDate("2026-10-26", now, "en-GB")).toBe("Tomorrow");

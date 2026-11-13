@@ -1,7 +1,7 @@
 import type { ShoppingItem } from "../transport";
 import { cardItemText } from "../shopping-card";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { boughtOnText, formatCalendarDate } from "./helpers";
+import { boughtOnText, formatCalendarDate, formatPriceNumber } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import {
   heldStatus,
@@ -101,12 +101,15 @@ export function ListRow({
       {item.offer && (
         <div className={`shopping-offer shopping-offer-${item.offer_status}`}>
           <strong>
-            {t[item.offer_status]} · {item.offer.price} {item.offer.currency}
+            {t[item.offer_status]} ·{" "}
+            {formatPriceNumber(item.offer.price, t.dateLocale)}{" "}
+            {item.offer.currency}
           </strong>
           {item.offer.regular_price && (
             <span>
               {" "}
-              ({t.regularPrice}: {item.offer.regular_price})
+              ({t.regularPrice}:{" "}
+              {formatPriceNumber(item.offer.regular_price, t.dateLocale)})
             </span>
           )}
           <p>

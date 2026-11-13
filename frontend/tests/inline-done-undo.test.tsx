@@ -177,7 +177,7 @@ it("shows a failed Undo with Try again, which repeats it with the same key", asy
   await click(en.complete);
   await click(en.undo);
 
-  expect(screen.getByRole("alert")).toHaveTextContent(en.saveFailed);
+  expect(screen.getByRole("alert")).toHaveTextContent(en.undoFailed);
   // The Undo line stays while there is time, so it can be pressed again too.
   expect(screen.getByRole("button", { name: en.undo })).toBeInTheDocument();
   await click(en.retry);
@@ -202,9 +202,9 @@ it.each([
     // The row, not the read error's two-column box, whose first column is the narrow icon column.
     expect(alert).toHaveClass("sk-error--row");
     expect(alert).not.toHaveClass("sk-error--card");
-    expect(alert).toHaveTextContent(labels.saveFailed);
+    expect(alert).toHaveTextContent(labels.doneFailed);
     // The sentence is one line of text and the button says Try again, so the sentence does not.
-    expect(labels.saveFailed).not.toMatch(/försök igen|try again/i);
+    expect(labels.doneFailed).not.toMatch(/försök igen|try again/i);
     expect(
       screen.getByRole("button", { name: labels.retry }),
     ).toBeInTheDocument();
@@ -224,7 +224,7 @@ it("treats a reply that does not show the earlier status as a failure, not as un
   await click(en.complete);
   await click(en.undo);
 
-  expect(screen.getByRole("alert")).toHaveTextContent(en.saveFailed);
+  expect(screen.getByRole("alert")).toHaveTextContent(en.undoFailed);
   expect(screen.queryByRole("button", { name: en.complete })).toBeNull();
   expect(screen.getByRole("button", { name: en.retry })).toBeInTheDocument();
 });

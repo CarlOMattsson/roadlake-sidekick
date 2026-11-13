@@ -83,11 +83,14 @@ export const controlEn = {
   restore: "Restore",
   restoreLabel: (title: string) => `Restore ${title}`,
   restoring: "Restoring…",
-  /** The row's receipt after a restore (in the trash and in the history). */
+  /** The history row's receipt after a restore; a trash row's receipt is its kind and `actions.restored`. */
   restored: "Restored",
+  /** Opens a restored record in its room; the label names the record for a screen reader. */
+  open: "Open",
+  openLabel: (title: string) => `Open ${title}`,
   restoreConflict: (title: string | null) =>
     `${title ? `“${title}”` : "This item"} was changed elsewhere. The list is up to date. Choose Restore again.`,
-  restoreGone: "That item is no longer in the trash. Reloading the list.",
+  restoreGone: "That item is no longer in Deleted. Refreshing the list.",
   restoreForbidden: "You don’t have permission to restore this.",
   restoreFailed: "Couldn’t restore.",
   // History: changes (with Undo/Restore) and activity (read only) in one list
@@ -95,7 +98,7 @@ export const controlEn = {
   historyEmptyHint: "Changes made by you or Claude show up here.",
   /** The empty History's example for Claude (a change made now shows up here). */
   historyAskExample: "Add milk to my shopping list",
-  nowTrashed: "now in the trash",
+  nowTrashed: "now in Deleted",
   undo: "Undo",
   undoLabel: (verb: string, title: string) => `${verb} ${title}`,
   undoing: "Saving…",
@@ -105,7 +108,7 @@ export const controlEn = {
   undoConflict: (title: string | null) =>
     `${title ? `“${title}”` : "This item"} was changed elsewhere. The list is up to date. Try again.`,
   undoForbidden: "You don’t have permission to undo this.",
-  undoFailed: "Couldn’t undo.",
+  undoFailed: (title: string) => `Couldn’t undo “${title}”.`,
   activityTruncated:
     "This list is shortened. Only the most recent items are shown.",
   // Memory
@@ -148,7 +151,7 @@ export const controlEn = {
   confirmNo: "Cancel",
   memoryBusy: "Saving…",
   memorySaved: "Saved.",
-  memoryConflict: "Memory settings were changed elsewhere. Reloading.",
+  memoryConflict: "Memory settings were changed elsewhere. Refreshing.",
   memoryForbidden: "You don’t have permission to change this.",
   memoryFailed: "Couldn’t save.",
   /** Where memory text goes: to the model the owner connected (Hindsight's LLM), the facts stay on the owner's server. */
@@ -249,7 +252,7 @@ export const controlEn = {
   actions: {
     created: "created",
     updated: "updated",
-    completed: "completed",
+    completed: "done",
     archived: "archived",
     restored: "restored",
     trashed: "deleted",
@@ -289,15 +292,17 @@ export const controlSv: ControlLabels = {
   restoreLabel: (title) => `Återställ ${title}`,
   restoring: "Återställer…",
   restored: "Återställd",
+  open: "Öppna",
+  openLabel: (title) => `Öppna ${title}`,
   restoreConflict: (title) =>
     `${title ? `”${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.`,
-  restoreGone: "Posten ligger inte längre i papperskorgen. Listan läses om.",
+  restoreGone: "Posten ligger inte längre i Borttaget. Listan uppdateras.",
   restoreForbidden: "Du saknar behörighet att återställa den.",
   restoreFailed: "Det gick inte att återställa.",
   historyEmpty: "Ingen historik ännu.",
   historyEmptyHint: "Det du eller Claude ändrar visas här.",
   historyAskExample: "Lägg till mjölk på inköpslistan",
-  nowTrashed: "ligger nu i papperskorgen",
+  nowTrashed: "ligger nu i Borttaget",
   undo: "Ångra",
   undoLabel: (verb, title) => `${verb} ${title}`,
   undoing: "Sparar…",
@@ -306,7 +311,7 @@ export const controlSv: ControlLabels = {
   undoConflict: (title) =>
     `${title ? `”${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck igen.`,
   undoForbidden: "Du saknar behörighet att ångra det.",
-  undoFailed: "Det gick inte att ångra.",
+  undoFailed: (title) => `Det gick inte att ångra ”${title}”.`,
   activityTruncated: "Listan är avkortad. Bara de senaste posterna visas.",
   memoryOn: "Minnet är på",
   memoryPaused: "Minnet är pausat",
@@ -346,7 +351,7 @@ export const controlSv: ControlLabels = {
   memoryBusy: "Sparar…",
   memorySaved: "Sparat.",
   memoryConflict:
-    "Minnesinställningarna har ändrats på annat håll. De läses om.",
+    "Minnesinställningarna har ändrats på annat håll. De uppdateras.",
   memoryForbidden: "Du saknar behörighet att ändra det.",
   memoryFailed: "Det gick inte att spara.",
   memoryExplain:
@@ -358,7 +363,7 @@ export const controlSv: ControlLabels = {
   recallProbe: "senaste och viktigaste",
   recallSample: "Ett urval av vad Sidekick minns, inte allt.",
   recallLooking: "Letar…",
-  recallEmpty: "Sidekick minns inget härifrån än.",
+  recallEmpty: "Sidekick minns inget härifrån ännu.",
   recallNothing: "Hittade inget i minnet om det.",
   recallPaused: "Minnet är pausat, så det går inte att slå upp något.",
   recallOff: "Minnet är av, så det går inte att slå upp något.",

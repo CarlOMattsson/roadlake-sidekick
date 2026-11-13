@@ -67,6 +67,8 @@ export function useTabReads({
   const readAt = useRef<PerTab<number>>({});
   // Tabs that a saved view has shown. A first read still in flight for such a tab must not replace it.
   const viewApplied = useRef(new Set<WorkTab>());
+  // The newest saved-view call of each tab (open or leave). Only that call's answer may replace the frame.
+  const viewCalls = useRef<PerTab<number>>({});
 
   const load = useCallback(
     (tab: WorkTab) => {
@@ -118,20 +120,52 @@ export function useTabReads({
   );
 
   /**
+   * Replaces a tab's frame with the answer of `read`, for a saved view opened or left. Calls are ordered by when they
+   * were made, not by when the answers arrive: an answer that a later call for the same tab has replaced is dropped
+   * (it resolves true, since nothing failed and the later call reports). A failed read keeps what the tab shows.
+   */
+  const replaceTab = useCallback(
+    async (
+      tab: SavedViewTab,
+      read: () => Promise<WorkTabFrame>,
+      shown: () => void,
+    ): Promise<boolean> => {
+      const startedAt = (order.current += 1);
+      const call = (viewCalls.current[tab] = (viewCalls.current[tab] ?? 0) + 1);
+      const isCurrent = () => viewCalls.current[tab] === call;
+      try {
+        const frame = await read();
+        if (!aliveRef.current) return false;
+        if (!isCurrent()) return true;
+        readAt.current[tab] = startedAt;
+        setEntries((current) => ({
+          ...current,
+          [tab]: { status: "ready", frame },
+        }));
+        shown();
+        return true;
+      } catch {
+        return !isCurrent();
+      }
+    },
+    [aliveRef],
+  );
+
+  /**
    * Opens a saved view in the agenda or the board: reads its first page with the view's filters and
    * shows it in place of the tab's frame. The old view stays when the read fails. Resolves whether
    * the tab shows the view now.
    */
   const applyView = useCallback(
-    async (
+    (
       tab: SavedViewTab,
       definition: WorkSavedViewDefinition,
       name: string,
     ): Promise<boolean> => {
       const filters = definitionToFilters(definition);
-      const startedAt = (order.current += 1);
-      try {
-        const frame: WorkTabFrame =
+      return replaceTab(
+        tab,
+        async (): Promise<WorkTabFrame> =>
           tab === "agenda"
             ? {
                 kind: "agenda",
@@ -142,21 +176,14 @@ export function useTabReads({
                 kind: "board",
                 filters,
                 page: await transport.getWorkBoard(filters),
-              };
-        if (!aliveRef.current) return false;
-        viewApplied.current.add(tab);
-        readAt.current[tab] = startedAt;
-        setEntries((current) => ({
-          ...current,
-          [tab]: { status: "ready", frame },
-        }));
-        onViewApplied(tab, namesSeveralPriorities(definition), name);
-        return true;
-      } catch {
-        return false;
-      }
+              },
+        () => {
+          viewApplied.current.add(tab);
+          onViewApplied(tab, namesSeveralPriorities(definition), name);
+        },
+      );
     },
-    [transport, aliveRef, onViewApplied],
+    [transport, replaceTab, onViewApplied],
   );
 
   /**
@@ -164,24 +191,16 @@ export function useTabReads({
    * read fails. Resolves whether the tab shows its own list now.
    */
   const clearView = useCallback(
-    async (tab: SavedViewTab): Promise<boolean> => {
-      const startedAt = (order.current += 1);
-      try {
-        const frame = await readTab(transport, tab, false);
-        if (!aliveRef.current) return false;
-        viewApplied.current.delete(tab);
-        readAt.current[tab] = startedAt;
-        setEntries((current) => ({
-          ...current,
-          [tab]: { status: "ready", frame },
-        }));
-        onViewCleared(tab);
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    [transport, aliveRef, onViewCleared],
+    (tab: SavedViewTab): Promise<boolean> =>
+      replaceTab(
+        tab,
+        () => readTab(transport, tab, false),
+        () => {
+          viewApplied.current.delete(tab);
+          onViewCleared(tab);
+        },
+      ),
+    [transport, replaceTab, onViewCleared],
   );
 
   return {

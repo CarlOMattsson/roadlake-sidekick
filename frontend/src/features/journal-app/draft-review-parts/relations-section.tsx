@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { JournalLabels } from "../labels";
 import type { JournalDraft } from "../transport";
 import {
@@ -57,23 +58,30 @@ export function RelationsSection({
         return (
           <fieldset key={kind} className="journal-fieldset">
             <legend>{t[kind]}</legend>
-            {options.map((option) => (
-              <RelationCheck
-                key={option.id}
-                option={option}
-                checked={picked[kind].includes(option.id)}
-                declined={declined[linkKey(kind, option.id)] === true}
-                onDeclinedChange={(value) =>
-                  onDeclinedChange(linkKey(kind, option.id), value)
-                }
-                disabled={
-                  locked ||
-                  (!picked[kind].includes(option.id) &&
-                    picked[kind].length >= MAX_RELATIONS)
-                }
-                onChange={(on) => onPick(kind, option.id, on)}
-                labels={t}
-              />
+            {options.map((option, index) => (
+              <Fragment key={option.id}>
+                {/* Two kinds of control share this list: say what the checkboxes are. */}
+                {!option.suggested && options[index - 1]?.suggested && (
+                  <p className="journal-muted journal-check-lead">
+                    {t.otherCandidates}
+                  </p>
+                )}
+                <RelationCheck
+                  option={option}
+                  checked={picked[kind].includes(option.id)}
+                  declined={declined[linkKey(kind, option.id)] === true}
+                  onDeclinedChange={(value) =>
+                    onDeclinedChange(linkKey(kind, option.id), value)
+                  }
+                  disabled={
+                    locked ||
+                    (!picked[kind].includes(option.id) &&
+                      picked[kind].length >= MAX_RELATIONS)
+                  }
+                  onChange={(on) => onPick(kind, option.id, on)}
+                  labels={t}
+                />
+              </Fragment>
             ))}
           </fieldset>
         );

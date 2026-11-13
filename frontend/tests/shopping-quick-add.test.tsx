@@ -373,14 +373,16 @@ it("an empty list shows + Add item, keeps the field closed until a click, and sa
   const user = userEvent.setup();
   render(storeView(transport, empty));
   await waitLoaded();
-  expect(addRow()).toBeInTheDocument();
+  // The + in the Back row and the empty state's own row carry the same name: one action, one word.
+  const adders = screen.getAllByRole("button", { name: shoppingEn.addItem });
+  expect(adders).toHaveLength(2);
   expect(
     screen.queryByRole("textbox", { name: shoppingEn.addItem }),
   ).not.toBeInTheDocument();
-  // The empty state says what the list is for, with its own "+ Add an item".
+  // The empty state says what the list is for.
   expect(screen.getByText(shoppingEn.empty)).toBeInTheDocument();
   expect(screen.getByText(shoppingEn.emptyHint)).toBeInTheDocument();
-  await user.click(addRow());
+  await user.click(adders[1]!);
   expect(quickField()).toHaveFocus();
 });
 

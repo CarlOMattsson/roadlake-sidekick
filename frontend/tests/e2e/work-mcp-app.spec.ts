@@ -348,8 +348,8 @@ test("sandboxed Work App resets its stack on a new root and shows an error frame
   ).toBeVisible();
   await expect(app.getByRole("button", { name: "Back" })).toBeVisible();
   // A result flagged as an error opens the error frame: it replaces the stack, says what failed and keeps no
-  // Contact data. The frame holds no tool name, so Try again reads the agenda, and the heading names that read
-  // ("your tasks"), whichever tool failed. A heading has no full stop (designsystem §1.6); the muted line says
+  // Contact data. The frame holds no tool name and no record, so Try again reads the first list of the card's view (here
+  // the agenda, as the host named no Projects or Contacts view), and the heading names that read ("your tasks"). A heading has no full stop (designsystem §1.6); the muted line says
   // only what the frame knows of the failure: a result without Sidekick's own error code may be the connection.
   await push({ ...contactResult(bo), isError: true });
   await expect(
@@ -495,7 +495,7 @@ test("sandboxed Work App recovers from a stale Task version by reloading and sav
   const banner = app.getByRole("alert");
   await expect(banner).toContainText("This task was changed elsewhere");
   await expect(banner).toBeFocused();
-  await banner.getByRole("button", { name: "Reload" }).click();
+  await banner.getByRole("button", { name: "Refresh" }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna (annan)" }),
   ).toBeVisible();
@@ -674,7 +674,7 @@ test("sandboxed Work App opens a Task's Project, recovers from a stale Project v
   const banner = app.getByRole("alert");
   await expect(banner).toContainText("This project was changed elsewhere");
   await expect(banner).toBeFocused();
-  await banner.getByRole("button", { name: "Reload" }).click();
+  await banner.getByRole("button", { name: "Refresh" }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Offert (annan)" }),
   ).toBeVisible();

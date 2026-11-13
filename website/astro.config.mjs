@@ -3,6 +3,7 @@ import { defineConfig, passthroughImageService } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightLinksValidator from 'starlight-links-validator';
 import cspInlineHashes from './integrations/csp-inline-hashes.mjs';
+import focusableCodeBlocks from './integrations/focusable-code-blocks.mjs';
 import rootAsDefault from './integrations/root-as-default.mjs';
 import { lightTheme, darkTheme } from './src/styles/code-theme.mjs';
 
@@ -65,7 +66,10 @@ export default defineConfig({
         { tag: 'link', attrs: { rel: 'manifest', href: `${base === '/' ? '' : base}/site.webmanifest` } },
         { tag: 'meta', attrs: { name: 'theme-color', content: '#0f766e' } },
         { tag: 'meta', attrs: { property: 'og:image', content: `${site}${base === '/' ? '' : base}/og.png` } },
+        { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+        { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+        { tag: 'meta', attrs: { name: 'twitter:image', content: `${site}${base === '/' ? '' : base}/og.png` } },
       ],
       expressiveCode: {
         themes: [darkTheme, lightTheme],
@@ -115,6 +119,7 @@ export default defineConfig({
     }),
     // Must come after Starlight: adds the hashes of Starlight's inline scripts to the CSP meta tag.
     cspInlineHashes(),
+    focusableCodeBlocks(),
     rootAsDefault(new URL(base.endsWith('/') ? base : `${base}/`, site).href),
   ],
 });

@@ -57,7 +57,7 @@ export const workEn = {
   steps: "Steps",
   stepsForbidden: "You don’t have access to steps.",
   stepConflict:
-    "A step was changed elsewhere. Reload to see the latest version.",
+    "A step was changed elsewhere. Refresh to see the latest version.",
   stepSaveFailed: "Couldn’t update the step.",
   stepsShowMore: "Show more steps",
   stepsReadMoreFailed: "Couldn’t load more steps.",
@@ -84,8 +84,8 @@ export const workEn = {
   descriptionMore: "Show more",
   descriptionLess: "Show less",
   conflict:
-    "This task was changed elsewhere. Reload to see the latest version.",
-  reload: "Reload",
+    "This task was changed elsewhere. Refresh to see the latest version.",
+  reload: "Refresh",
   forbiddenWrite: "You don’t have permission to change this.",
   saveFailed: "Couldn’t save.",
   project: "Project",
@@ -95,7 +95,7 @@ export const workEn = {
     completed: "Completed",
   },
   projectConflict:
-    "This project was changed elsewhere. Reload to see the latest version.",
+    "This project was changed elsewhere. Refresh to see the latest version.",
   description: "Description",
   descriptionTooLong: "The description can be up to 10,000 characters.",
   startDate: "Start date",
@@ -131,7 +131,7 @@ export const workEn = {
   contactSearchHint: "Type at least two characters to search.",
   noContactMatches: (q: string) => `No contact matches “${q}”.`,
   contactConflict:
-    "The contact links were changed elsewhere. Reload to see the latest list.",
+    "The contact links were changed elsewhere. Refresh to see the latest list.",
   contactWriteFailed: "Couldn’t update the link.",
   /** The example in the empty search field of the link sheet. */
   contactSearchPlaceholder: "Search by name",
@@ -161,7 +161,7 @@ export const workEn = {
   phoneTooLong: "The phone number can be up to 64 characters.",
   contextNoteTooLong: "The note can be up to 10,000 characters.",
   contactEditConflict:
-    "This contact was changed elsewhere. Reload to see the latest version.",
+    "This contact was changed elsewhere. Refresh to see the latest version.",
   contactSaveFailed: "Couldn’t save the contact.",
   archivedLabel: "Archived",
   archivedReadOnly: "Archived contacts are read-only.",
@@ -370,7 +370,7 @@ export const workSv: WorkLabels = {
   steps: "Steg",
   stepsForbidden: "Du har inte behörighet att se steg.",
   stepConflict:
-    "Ett steg ändrades någon annanstans. Ladda om för att se den senaste versionen.",
+    "Ett steg ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   stepSaveFailed: "Det gick inte att uppdatera steget.",
   stepsShowMore: "Visa fler steg",
   stepsReadMoreFailed: "Det gick inte att läsa fler steg.",
@@ -398,8 +398,8 @@ export const workSv: WorkLabels = {
   descriptionMore: "Visa mer",
   descriptionLess: "Visa mindre",
   conflict:
-    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  reload: "Ladda om",
+    "Uppgiften ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
+  reload: "Uppdatera",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
   saveFailed: "Det gick inte att spara.",
   project: "Projekt",
@@ -409,7 +409,7 @@ export const workSv: WorkLabels = {
     completed: "Avslutat",
   },
   projectConflict:
-    "Projektet ändrades någon annanstans. Ladda om för att se den senaste versionen.",
+    "Projektet ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   description: "Beskrivning",
   descriptionTooLong: "Beskrivningen får vara högst 10 000 tecken.",
   startDate: "Startdatum",
@@ -441,7 +441,7 @@ export const workSv: WorkLabels = {
   contactSearchHint: "Skriv minst två tecken för att söka.",
   noContactMatches: (q: string) => `Ingen kontakt matchar ”${q}”.`,
   contactConflict:
-    "Kopplingarna ändrades någon annanstans. Ladda om för att se den senaste listan.",
+    "Kopplingarna ändrades någon annanstans. Uppdatera för att se den senaste listan.",
   contactWriteFailed: "Det gick inte att ändra kopplingen.",
   contactSearchPlaceholder: "Sök på namn",
   closeContactSearch: "Stäng",
@@ -467,7 +467,7 @@ export const workSv: WorkLabels = {
   phoneTooLong: "Telefonnumret får vara högst 64 tecken.",
   contextNoteTooLong: "Anteckningen får vara högst 10 000 tecken.",
   contactEditConflict:
-    "Kontakten ändrades någon annanstans. Ladda om för att se den senaste versionen.",
+    "Kontakten ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   contactSaveFailed: "Det gick inte att ändra kontakten.",
   archivedLabel: "Arkiverad",
   archivedReadOnly: "Arkiverade kontakter är skrivskyddade.",

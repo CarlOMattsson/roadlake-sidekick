@@ -29,6 +29,8 @@ export interface WorkDateOptions {
   inline?: boolean;
   /** `false`: no "idag", "igår" or "imorgon", only the weekday and the date. */
   relative?: boolean;
+  /** `false`: never a weekday, only the date ("5 nov"). "idag", "igår" and "imorgon" still read as words. */
+  weekday?: boolean;
 }
 
 /** Days ahead (2..SOON_DAYS) that still count as "soon"; 1 day is "Imorgon". */
@@ -212,7 +214,7 @@ function capitalize(text: string): string {
  * The one date label of the Work app, for a `YYYY-MM-DD` date or an ISO datetime (`Z` or offset),
  * relative to `now` in the owner zone:
  * - the days next to today read "idag", "imorgon" and "igår" (not with `relative: false`);
- * - a day within a week reads with its weekday: "tors 5 nov";
+ * - a day within a week reads with its weekday: "tors 5 nov" (not with `weekday: false`);
  * - any other day reads as "5 nov", with the year only when it is not the current year.
  * `locale` is a work label locale ("sv-SE", "en-GB"); Swedish reads in Swedish, anything else in English.
  * Missing or invalid input gives an empty label.
@@ -246,7 +248,7 @@ export function workDate(
   const date = new Date(due * DAY_MS);
   const day = `${date.getUTCDate()} ${MONTHS[lang][date.getUTCMonth()]}`;
   const named =
-    Math.abs(diff) <= WEEKDAY_DAYS
+    options.weekday !== false && Math.abs(diff) <= WEEKDAY_DAYS
       ? `${WEEKDAYS[lang][date.getUTCDay()]} ${day}`
       : day;
   const text =
