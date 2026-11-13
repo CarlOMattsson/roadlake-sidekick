@@ -17,7 +17,7 @@ from sidekick.contacts.domain.normalization import (
     normalize_phone,
     normalize_profile_text,
 )
-from sidekick.shared.errors import InvalidInputError, NotFoundError, ValidationError
+from sidekick.shared.errors import NotFoundError, ValidationError
 from sidekick.shared.replay import id_replay_record
 from sidekick.shared.types import (
     NAMED_KEY,
@@ -27,6 +27,8 @@ from sidekick.shared.types import (
     Page,
     TxSession,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 
 
@@ -57,8 +59,7 @@ class ContactService:
         cursor: str | None = None,
     ) -> Page[Contact]:
         actor.require("contacts:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
 
         normalized_query = normalize_name(q)[1] if q else "*"
         query_fingerprint = hashlib.sha256(normalized_query.encode()).hexdigest()
@@ -80,8 +81,11 @@ class ContactService:
             )
             return Page(items=phonetic, next_cursor=None)
         return Page(
-            items=contacts[:limit],
-            next_cursor=contact_cursor(self.cursor_codec, actor, contacts, limit, query_key),
+            *paginate(
+                contacts,
+                limit,
+                lambda last: contact_cursor(self.cursor_codec, actor, last, query_key),
+            )
         )
 
     def get(self, actor: Actor, contact_id: UUID) -> Contact:

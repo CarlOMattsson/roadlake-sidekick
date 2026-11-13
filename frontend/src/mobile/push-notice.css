@@ -28,7 +28,7 @@
   display: flex;
   margin-inline-end: -0.9rem;
 }
-/* "Inte nu" is the lesser of the two: muted, at the regular weight. */
+/* "Dölj" is the lesser of the two: muted, at the regular weight. */
 .mobile-push-notice .mobile-push-notice__dismiss {
   color: var(--sk-muted);
   font-weight: var(--sk-weight-normal);

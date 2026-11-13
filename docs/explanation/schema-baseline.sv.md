@@ -2,7 +2,7 @@
 
 [English](schema-baseline.md)
 
-<!-- description: Sidekick 0.1.0 skapar databasen från en enda baslinje. Här står vad det betyder för nya installationer och varför äldre installationer inte uppgraderas på plats. -->
+<!-- description: Sidekick 0.1.0 skapar databasen från en enda baslinje. Vad det betyder för nya installationer och varför äldre inte uppgraderas på plats. -->
 
 Sidekick 0.1.0 skapar databasen från en enda baslinje. Här står vad det betyder för nya installationer och varför äldre installationer inte uppgraderas på plats.
 

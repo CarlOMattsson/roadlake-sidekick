@@ -209,9 +209,11 @@ describe("Task view: the Contact row's own menu removes its link, and Undo write
       await screen.findByRole("button", { name: anna.display_name })
     ).closest("li") as HTMLElement;
     await user.click(await openLinkedRowMenu(row));
-    expect(
-      await within(row).findByRole("button", { name: workEn.agendaUndo }),
-    ).toHaveFocus();
+    const undo = await within(row).findByRole("button", {
+      name: workEn.agendaUndo,
+    });
+    // The focus follows in an effect, which Preact runs after the paint that drew Undo.
+    await waitFor(() => expect(undo).toHaveFocus());
   });
 });
 

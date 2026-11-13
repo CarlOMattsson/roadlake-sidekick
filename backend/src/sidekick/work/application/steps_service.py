@@ -26,6 +26,8 @@ from sidekick.shared.types import (
     TxSession,
     UnsetType,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.work.domain import Action, ActionStatus, Step
@@ -126,8 +128,7 @@ class StepsService:
         """Continue active Steps in position/id order; a reorder invalidates what was read."""
 
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         query_key = f"steps:v1:task={task_id}"
         after = self._decode_position(actor, cursor, query_key)
         rows = self.store.transaction(
@@ -208,8 +209,7 @@ class StepsService:
         """Continue active Actions in position/id order; a reorder invalidates what was read."""
 
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         query_key = f"actions:v1:step={step_id}"
         after = self._decode_position(actor, cursor, query_key)
         rows = self.store.transaction(
@@ -234,15 +234,15 @@ class StepsService:
     def _page[Item: (Step, Action)](
         self, actor: Actor, rows: list[Item], limit: int, query_key: str
     ) -> Page[Item]:
-        items = rows[:limit]
-        next_cursor = (
-            self.cursor_codec.encode_position(
-                actor.user_id, f"{items[-1].position}:{items[-1].id}", query_key
+        return Page(
+            *paginate(
+                rows,
+                limit,
+                lambda last: self.cursor_codec.encode_position(
+                    actor.user_id, f"{last.position}:{last.id}", query_key
+                ),
             )
-            if len(rows) > limit
-            else None
         )
-        return Page(items, next_cursor)
 
     def get_action(self, actor: Actor, action_id: UUID) -> Action:
         actor.require("tasks:read")

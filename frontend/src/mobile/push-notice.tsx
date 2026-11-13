@@ -4,7 +4,7 @@
  * is drawn only when the server sends notifications at all (`pushEnabled` of the pairing: a server with push off has
  * nothing for ntfy to bring) and the distributor is missing; a denied notification permission or a registration
  * the server has not accepted yet is not the owner's to fix with this line. A refused or failed read draws nothing.
- * "Inte nu" puts it away for good on this phone; Inställningar keep the same fix.
+ * "Dölj" puts it away for good on this phone; Inställningar keep the same fix.
  */
 import { useEffect, useState } from "react";
 
@@ -18,27 +18,29 @@ export type PushNoticeLabels = {
   missing: string;
   /** The button that opens ntfy's page in the app store. */
   install: string;
-  /** Puts the note away on this phone (Inställningar keep the fix). */
+  /** Puts the note away for good on this phone (Inställningar keep the fix). */
   dismiss: string;
 };
 
 export const pushNoticeLabelsSv: PushNoticeLabels = {
-  missing: "Installera ntfy för aviseringar.",
+  missing:
+    "Aviseringar levereras av den gratis appen ntfy. Installera den för att få dem.",
   install: "Hämta ntfy",
-  dismiss: "Inte nu",
+  dismiss: "Dölj",
 };
 
 export const pushNoticeLabelsEn: PushNoticeLabels = {
-  missing: "Install ntfy for notifications.",
+  missing:
+    "Notifications are delivered by the free ntfy app. Install it to get them.",
   install: "Get ntfy",
-  dismiss: "Not now",
+  dismiss: "Hide",
 };
 
 export function pushNoticeLabelsFor(locale: AppLocale): PushNoticeLabels {
   return locale === "en" ? pushNoticeLabelsEn : pushNoticeLabelsSv;
 }
 
-/** Where "Inte nu" is kept: in the page's own storage, so it outlives a restart and goes with the app's data. */
+/** Where "Dölj" is kept: in the page's own storage, so it outlives a restart and goes with the app's data. */
 export const PUSH_NOTICE_DISMISSED_KEY = "sidekick.pushNotice.dismissed";
 
 function dismissedBefore(): boolean {

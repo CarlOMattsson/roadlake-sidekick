@@ -74,7 +74,7 @@ body { font: var(--site-type-prose); -webkit-font-smoothing: antialiased; }
 .wrap a:not([class]) { text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
 .sl-markdown-content a:not(.sl-anchor-link):hover { text-decoration-thickness: 2px; }
 
-.sl-skip-link:focus { background: var(--sk-inverse-bg); color: var(--sk-inverse-fg); border-radius: var(--sk-radius); font: var(--sk-type-label-strong); }
+.sl-skip-link:focus { min-height: 44px; display: inline-flex; align-items: center; background: var(--sk-inverse-bg); color: var(--sk-inverse-fg); border-radius: var(--sk-radius); font: var(--sk-type-label-strong); }
 
 /* ---------- header ---------- */
 header.header { padding: 0; border-bottom: 1px solid var(--sk-line); background: var(--sk-bg); }

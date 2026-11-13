@@ -16,7 +16,7 @@ from sidekick.journal.domain.records import DaySummaryStatus
 from sidekick.journal.domain.summary import DailySummary, SummaryContent, entry_fingerprint
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
 from sidekick.shared.errors import NotFoundError, ValidationError
-from sidekick.shared.types import Actor, Clock, CursorCodec, TxSession
+from sidekick.shared.types import Actor, Clock, CursorCodec, TxSession, paginate, validate_limit
 
 DEFAULT_OWNER_ZONE = parse_owner_timezone(DEFAULT_OWNER_TIMEZONE)
 
@@ -114,8 +114,7 @@ class JournalDayService:
         """One diary day. `include_done` false skips the done read for callers that ignore it."""
 
         actor.require("journal:read")
-        if not 1 <= limit <= 100:
-            raise ValidationError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100, error=ValidationError)
         query_key = journal_day_cursor_key(journal_date, include_archived)
         after = decode_cursor(self.cursor_codec, actor.user_id, cursor, query_key)
 
@@ -164,13 +163,14 @@ class JournalDayService:
             )
             return entries, summary_status, summary, active, done
 
-        entries, summary_status, summary, active, done = self.store.transaction(read)
+        rows, summary_status, summary, active, done = self.store.transaction(read)
+        entries, next_cursor = paginate(
+            rows, limit, lambda last: entry_cursor(self.cursor_codec, actor, last, query_key)
+        )
         return JournalDay(
             journal_date=journal_date,
-            entries=tuple(entries[:limit]),
-            next_cursor=entry_cursor(self.cursor_codec, actor, entries[limit - 1], query_key)
-            if len(entries) > limit
-            else None,
+            entries=tuple(entries),
+            next_cursor=next_cursor,
             summary_status=summary_status,
             entry_fingerprint=entry_fingerprint(active),
             summary=summary,

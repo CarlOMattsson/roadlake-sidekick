@@ -15,12 +15,19 @@ from . import (
     autostart,
     derive,
     desktopconfig,
+    diagnose,
     generated,
     messages,
+    owner,
+    prompts,
+    restore,
     secretfiles,
     status,
     workenv,
 )
+
+# Exit code of ``first-start-table``: the table exists, so ask for its row count.
+COUNT_NEEDED = 10
 
 
 def _fail(message: str) -> int:
@@ -146,6 +153,64 @@ def _cmd_model_ids(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_first_start_evidence(_args: argparse.Namespace) -> int:
+    # stdin: the evidence, a NUL byte, the postgres log.
+    evidence, _, postgres_log = sys.stdin.buffer.read().decode("utf-8", errors="replace").partition("\0")
+    return 0 if diagnose.has_failure_evidence(evidence, postgres_log) else 1
+
+
+def _cmd_first_start_table(args: argparse.Namespace) -> int:
+    if diagnose.count_needed(args.table):
+        return COUNT_NEEDED
+    return 0 if diagnose.nothing_applied(args.table, "") else 1
+
+
+def _cmd_first_start_hint(args: argparse.Namespace) -> int:
+    hint = diagnose.volume_hint(args.lang, args.project, args.volume, args.table, args.count)
+    if hint:
+        print(hint, file=sys.stderr)
+    return 0 if hint else 1
+
+
+def _cmd_is_uuid(args: argparse.Namespace) -> int:
+    return 0 if owner.is_uuid(args.value) else 1
+
+
+def _cmd_is_yes(args: argparse.Namespace) -> int:
+    return 0 if prompts.is_yes(args.answer) else 1
+
+
+def _cmd_pick(args: argparse.Namespace) -> int:
+    print(prompts.pick_choice(args.answer, args.choices))
+    return 0
+
+
+def _cmd_backup_sets(args: argparse.Namespace) -> int:
+    stamps = restore.complete_sets(args.dir, args.memory == "on")
+    if not stamps:
+        print(messages.fill(args.lang, "rs_no_sets", args.dir))
+        return 0
+    print(messages.fill(args.lang, "rs_sets", args.dir))
+    for stamp in stamps:
+        print(f"  {stamp}")
+    return 0
+
+
+def _cmd_restore_ref(args: argparse.Namespace) -> int:
+    ref = restore.parse_reference(args.reference, args.backups)
+    if ref is None:
+        print(messages.render(args.lang, "rs_bad_name", args.reference), file=sys.stderr)
+        return 2
+    print(ref.directory)
+    print(ref.timestamp)
+    return 0
+
+
+def _cmd_rollback_action(args: argparse.Namespace) -> int:
+    print(restore.rollback_action(sys.stdin.read().split(), args.old))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="workctl", description="Logic behind tools/work.sh.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -235,6 +300,57 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
     sub.add_argument("--source", type=Path, required=True)
     sub.add_argument("--target", type=Path, required=True)
+
+    add(
+        "first-start-evidence",
+        _cmd_first_start_evidence,
+        "exit 0 when the logs (stdin: evidence NUL postgres) show a role failure",
+    )
+
+    sub = add(
+        "first-start-table",
+        _cmd_first_start_table,
+        "exit 0 when the yoyo table is absent, 10 to ask for its count, 1 otherwise",
+    )
+    sub.add_argument("--table", required=True)
+
+    sub = add(
+        "first-start-hint",
+        _cmd_first_start_hint,
+        "print the failed-first-start hint on stderr; exit 1 when none applies",
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--project", required=True)
+    sub.add_argument("--volume", required=True)
+    sub.add_argument("--table", required=True)
+    sub.add_argument("--count", default="")
+
+    sub = add("is-uuid", _cmd_is_uuid, "exit 0 when the value is a well-formed UUID")
+    sub.add_argument("value")
+
+    sub = add("is-yes", _cmd_is_yes, "exit 0 when the answer counts as a yes (j, y, ja, yes)")
+    sub.add_argument("answer")
+
+    sub = add("pick", _cmd_pick, "print the numbered choice the answer names, else the answer itself")
+    sub.add_argument("--answer", required=True)
+    sub.add_argument("choices", nargs="*")
+
+    sub = add("backup-sets", _cmd_backup_sets, "list the complete backup sets of a directory")
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--dir", type=Path, required=True)
+    sub.add_argument("--memory", choices=("on", "off"), required=True)
+
+    sub = add(
+        "restore-ref", _cmd_restore_ref, "print the directory and time stamp a restore argument names; exit 2 if none"
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--backups", required=True, help="the directory a bare time stamp refers to")
+    sub.add_argument("reference")
+
+    sub = add(
+        "rollback-action", _cmd_rollback_action, "print keep, rename-back or fail for the database names on stdin"
+    )
+    sub.add_argument("--old", required=True)
 
     add("model-ids", _cmd_model_ids, "print the ids of a /models answer read from stdin; exit 1 if it is not one")
     return parser

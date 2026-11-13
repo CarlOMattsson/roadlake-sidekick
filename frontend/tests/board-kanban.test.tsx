@@ -87,7 +87,7 @@ it("drags a Task with the mouse into another status and writes it with its versi
     { status: "in_progress" },
     expect.stringMatching(KEY),
   );
-  expect(getWorkBoard).toHaveBeenCalledTimes(1);
+  await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   const doing = screen.getByRole("region", {
     name: workEn.taskStatus.in_progress,
   });

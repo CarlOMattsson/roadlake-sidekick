@@ -1,24 +1,18 @@
-"""Framework-free Work planning vocabulary: cadence, estimates, waiting, and tags.
+"""Framework-free Work planning vocabulary: review cadence and tags.
 
 Every rule here is a pure function of stored values and an explicit `now`. Nothing
-in this module writes, schedules, or reacts to a passing timestamp: earliest start,
-follow-up, and review cadence are read by derivation only.
+in this module writes, schedules, or reacts to a passing timestamp: review cadence
+is read by derivation only.
 """
 
 import unicodedata
 from dataclasses import dataclass, replace
-from datetime import datetime, timedelta
-from enum import StrEnum
+from datetime import datetime
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import UNSET, UnsetType
-
-MAX_ESTIMATED_MINUTES = 12_000
-"""One working month. An estimate above this is a plan, not an estimate."""
-
-ESTIMATE_PRESETS: tuple[int, ...] = (5, 15, 30, 60, 120, 240)
-"""Approximate interface shortcuts. Storage is always whole minutes."""
 
 MAX_TAGS_PER_RECORD = 10
 MAX_TAG_LABEL_LENGTH = 40
@@ -29,81 +23,7 @@ MAX_STEP_INSTRUCTION_LENGTH = 2_000
 MAX_ACTION_NOTE_LENGTH = 500
 
 
-@dataclass(frozen=True, slots=True)
-class EstimateTotals:
-    """A server-computed estimate summary for one explicitly bounded Task set."""
-
-    scope: str
-    task_count: int
-    estimated_minutes_total: int
-    overdue_minutes: int
-    unestimated_count: int
-    calculated_at: datetime
-
-    def to_data(self) -> dict[str, object]:
-        return {
-            "scope": self.scope,
-            "task_count": self.task_count,
-            "estimated_minutes_total": self.estimated_minutes_total,
-            "overdue_minutes": self.overdue_minutes,
-            "unestimated_count": self.unestimated_count,
-            "calculated_at": self.calculated_at,
-        }
-
-
 TAG_MATCH_MODES = frozenset({"any", "all"})
-
-
-class Cadence(StrEnum):
-    """Declared rhythm, shared by Domain review cadence and Process run cadence."""
-
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    BIWEEKLY = "biweekly"
-    MONTHLY = "monthly"
-    QUARTERLY = "quarterly"
-    YEARLY = "yearly"
-
-    @property
-    def interval(self) -> timedelta:
-        """Fixed documented interval, so derivation needs no calendar library."""
-
-        return timedelta(days=_CADENCE_DAYS[self])
-
-
-_CADENCE_DAYS: dict[Cadence, int] = {
-    Cadence.DAILY: 1,
-    Cadence.WEEKLY: 7,
-    Cadence.BIWEEKLY: 14,
-    Cadence.MONTHLY: 30,
-    Cadence.QUARTERLY: 90,
-    Cadence.YEARLY: 365,
-}
-
-
-def parse_cadence(value: str | Cadence | None) -> Cadence | None:
-    if value is None or isinstance(value, Cadence):
-        return value
-    try:
-        return Cadence(value)
-    except ValueError as error:
-        raise ValidationError("unsupported cadence value") from error
-
-
-def validate_estimated_minutes(value: int | None) -> int | None:
-    if value is None:
-        return None
-    if isinstance(value, bool):
-        raise ValidationError("estimate must be whole minutes")
-    if value <= 0 or value > MAX_ESTIMATED_MINUTES:
-        raise ValidationError(f"estimate must be between 1 and {MAX_ESTIMATED_MINUTES} minutes")
-    return value
-
-
-def is_actionable_now(earliest_start: datetime | None, now: datetime) -> bool:
-    """True when nothing schedules the record for later."""
-
-    return earliest_start is None or earliest_start <= now
 
 
 def is_review_due(
@@ -193,30 +113,6 @@ def matches_tag_filter(
     if match == "all":
         return set(wanted) <= present
     return any(slug in present for slug in wanted)
-
-
-def validate_waiting(
-    *,
-    waiting_since: datetime | None,
-    follow_up_at: datetime | None,
-    waiting_on_contact_id: UUID | None,
-) -> None:
-    """Follow-up time and waiting Contact exist only while the Task is waiting."""
-
-    if waiting_since is None and (follow_up_at is not None or waiting_on_contact_id is not None):
-        raise ValidationError("follow-up time and waiting contact require a waiting state")
-
-
-def is_waiting(*, waiting_since: datetime | None, completed: bool) -> bool:
-    return waiting_since is not None and not completed
-
-
-def is_follow_up_due(
-    *, waiting_since: datetime | None, follow_up_at: datetime | None, completed: bool, now: datetime
-) -> bool:
-    if not is_waiting(waiting_since=waiting_since, completed=completed):
-        return False
-    return follow_up_at is not None and follow_up_at <= now
 
 
 @dataclass(frozen=True, slots=True)

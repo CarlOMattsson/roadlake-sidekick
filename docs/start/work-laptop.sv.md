@@ -2,7 +2,7 @@
 
 [English](work-laptop.md)
 
-<!-- description: Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och använd det från Claude Desktop, utan publik adress. Slår du på minnet når Sidekicks containrar bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude. -->
+<!-- description: Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och använd det från Claude Desktop utan publik adress. -->
 
 Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och använd det från Claude Desktop, utan publik adress. Slår du på minnet når Sidekicks containrar bara företagets egen modellserver; det du gör i Claude Desktop delas ändå med Claude.
 

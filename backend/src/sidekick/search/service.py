@@ -43,6 +43,8 @@ from sidekick.shared.types import (
     CursorCodec,
     TransactionalStore,
     TxSession,
+    paginate,
+    validate_limit,
 )
 
 LOGGER = logging.getLogger("sidekick.search")
@@ -173,8 +175,7 @@ class SearchService:
         selected = resolve_kinds(kinds, actor.scopes)
         for kind in selected:
             actor.require(KIND_SCOPE[kind])
-        if not MIN_LIMIT <= limit <= MAX_LIMIT:
-            raise ValidationError("limit must be between 1 and 25")
+        validate_limit(limit, minimum=MIN_LIMIT, maximum=MAX_LIMIT, error=ValidationError)
         if not MIN_QUERY_LENGTH <= len(query) <= MAX_QUERY_LENGTH:
             raise ValidationError("search query must be 2-100 characters")
         try:
@@ -242,12 +243,13 @@ class SearchService:
         rows = self.store.search_tasks(
             session, actor_id, query.terms, limit=limit + 1, offset=offset
         )
+        page, next_cursor = self._page(rows, actor_id, Kind.TASK, query, limit, offset)
         return TaskSearchPage(
             hits=[
                 TaskHitRecord(id=row.id, title=row.title, status=row.status, version=row.version)
-                for row in rows[:limit]
+                for row in page
             ],
-            next_cursor=self._next_cursor(actor_id, Kind.TASK, query, limit, offset, len(rows)),
+            next_cursor=next_cursor,
         )
 
     def _projects(
@@ -256,12 +258,13 @@ class SearchService:
         rows = self.store.search_projects(
             session, actor_id, query.terms, limit=limit + 1, offset=offset
         )
+        page, next_cursor = self._page(rows, actor_id, Kind.PROJECT, query, limit, offset)
         return ProjectSearchPage(
             hits=[
                 ProjectHitRecord(id=row.id, title=row.title, status=row.status, version=row.version)
-                for row in rows[:limit]
+                for row in page
             ],
-            next_cursor=self._next_cursor(actor_id, Kind.PROJECT, query, limit, offset, len(rows)),
+            next_cursor=next_cursor,
         )
 
     def _contacts(
@@ -287,12 +290,13 @@ class SearchService:
                 ],
                 next_cursor=None,
             )
+        page, next_cursor = self._page(rows, actor_id, Kind.CONTACT, query, limit, offset)
         return ContactSearchPage(
             hits=[
                 ContactHitRecord(id=row.id, display_name=row.display_name, version=row.version)
-                for row in rows[:limit]
+                for row in page
             ],
-            next_cursor=self._next_cursor(actor_id, Kind.CONTACT, query, limit, offset, len(rows)),
+            next_cursor=next_cursor,
         )
 
     def _journal(
@@ -301,6 +305,7 @@ class SearchService:
         rows = self.store.search_journal(
             session, actor_id, query.terms, limit=limit + 1, offset=offset
         )
+        page, next_cursor = self._page(rows, actor_id, Kind.JOURNAL, query, limit, offset)
         return JournalSearchPage(
             hits=[
                 JournalHitRecord(
@@ -310,20 +315,24 @@ class SearchService:
                     matched_in=row.matched_in,
                     title=row.title,
                 )
-                for row in rows[:limit]
+                for row in page
             ],
-            next_cursor=self._next_cursor(actor_id, Kind.JOURNAL, query, limit, offset, len(rows)),
+            next_cursor=next_cursor,
         )
 
-    def _next_cursor(
+    def _page[Row](
         self,
+        rows: Sequence[Row],
         actor_id: UUID,
         kind: Kind,
         query: SearchQuery,
         limit: int,
         offset: int,
-        fetched: int,
-    ) -> str | None:
-        if fetched <= limit:
-            return None
-        return self.cursor_codec.encode(actor_id, offset + limit, _query_key(kind, query))
+    ) -> tuple[list[Row], str | None]:
+        """One page of rows read with `limit + 1`, and the cursor holding the next offset."""
+
+        return paginate(
+            rows,
+            limit,
+            lambda _: self.cursor_codec.encode(actor_id, offset + limit, _query_key(kind, query)),
+        )

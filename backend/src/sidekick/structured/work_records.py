@@ -14,18 +14,18 @@ from uuid import UUID
 from pydantic import BeforeValidator, Field, model_validator
 
 from sidekick.projects.domain import ProjectStatus
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
 from sidekick.structured.base import Output
 from sidekick.tasks.domain import Priority, RecurrenceRule, TaskStatus
+from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.domain import DomainStatus, ProcessStatus
 from sidekick.work.domain.planning import (
     MAX_ACTION_NOTE_LENGTH,
     MAX_DEFINITION_OF_DONE_LENGTH,
-    MAX_ESTIMATED_MINUTES,
     MAX_STEP_INSTRUCTION_LENGTH,
     MAX_TAGS_PER_RECORD,
-    Cadence,
 )
 
 if TYPE_CHECKING:

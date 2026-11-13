@@ -77,9 +77,11 @@ it("opens a Task's Project and a Task of the Project, and goes back one step at 
   await user.click(
     await screen.findByRole("button", { name: `Open ${projectA.title}` }),
   );
-  expect(
-    await screen.findByRole("heading", { level: 2, name: projectA.title }),
-  ).toHaveFocus();
+  const projectHeading = await screen.findByRole("heading", {
+    level: 2,
+    name: projectA.title,
+  });
+  await waitFor(() => expect(projectHeading).toHaveFocus());
   expect(work.getProject).toHaveBeenCalledWith(projectA.id);
   await user.click(
     await screen.findByRole("button", { name: projectTask.title }),
@@ -151,7 +153,7 @@ it("saves only the changed Project fields, with dates as YYYY-MM-DD", async () =
   await user.clear(title);
   await user.type(title, "Ny titel");
   await user.selectOptions(screen.getByLabelText(workEn.status), "paused");
-  fireEvent.change(screen.getByLabelText(workEn.startDate), {
+  fireEvent.input(screen.getByLabelText(workEn.startDate), {
     target: { value: "2026-10-05" },
   });
   await user.click(
@@ -207,7 +209,7 @@ it("blocks Save of a Project while a date is an incomplete entry", async () => {
     value: { badInput: true },
     configurable: true,
   });
-  fireEvent.change(start, { target: { value: "" } });
+  fireEvent.input(start, { target: { value: "" } });
   await user.click(screen.getByRole("button", { name: workEn.save }));
   expect(screen.getByText(workEn.dateIncomplete)).toBeInTheDocument();
   expect(start).toHaveAttribute("aria-invalid", "true");
@@ -236,7 +238,7 @@ it("shows a conflict banner for a Project, reloads the latest version and keeps 
   await user.click(screen.getByRole("button", { name: workEn.save }));
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.projectConflict);
-  expect(banner).toHaveFocus();
+  await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   expect(
     await screen.findByRole("heading", { level: 2, name: latest.title }),
@@ -324,7 +326,7 @@ it("sends a due date as 23:59 on its Stockholm day and a new key when the values
   await screen.findByRole("button", { name: projectTask.title });
   await openTaskForm(user);
   await user.type(screen.getByLabelText(workEn.newTaskTitle), "Ring");
-  fireEvent.change(screen.getByLabelText(workEn.newTaskDue), {
+  fireEvent.input(screen.getByLabelText(workEn.newTaskDue), {
     target: { value: "2026-11-02" },
   });
   await user.click(screen.getByRole("button", { name: workEn.createTask }));
@@ -352,13 +354,13 @@ it("blocks an empty Task title and an incomplete date on the client", async () =
   expect(create).not.toHaveBeenCalled();
   await user.type(screen.getByLabelText(workEn.newTaskTitle), "Ring");
   const due = screen.getByLabelText(workEn.newTaskDue);
-  fireEvent.change(due, { target: { value: "2026-11-02" } });
+  fireEvent.input(due, { target: { value: "2026-11-02" } });
   // A partial entry reads as "" with badInput set; it must block the create, not clear the date.
   Object.defineProperty(due, "validity", {
     value: { badInput: true },
     configurable: true,
   });
-  fireEvent.change(due, { target: { value: "" } });
+  fireEvent.input(due, { target: { value: "" } });
   await user.click(screen.getByRole("button", { name: workEn.createTask }));
   expect(await screen.findByText(workEn.dueIncomplete)).toBeInTheDocument();
   expect(create).not.toHaveBeenCalled();
@@ -536,9 +538,11 @@ it("links a searched contact, reads the contact list again and returns focus to 
   expect(
     await screen.findByRole("button", { name: carl.display_name }),
   ).toBeInTheDocument();
-  expect(
-    screen.getByRole("heading", { level: 3, name: workEn.contacts }),
-  ).toHaveFocus();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("heading", { level: 3, name: workEn.contacts }),
+    ).toHaveFocus(),
+  );
   // The contact list is read again, which draws the search line anew: it is closed again.
   expect(screen.queryByLabelText(workEn.linkContact)).toBeNull();
   expect(
@@ -621,7 +625,7 @@ it("shows a link conflict as a banner that reads the contact list again", async 
   );
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.contactConflict);
-  expect(banner).toHaveFocus();
+  await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
   expect(screen.queryByRole("alert")).toBeNull();

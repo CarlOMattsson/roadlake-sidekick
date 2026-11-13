@@ -38,6 +38,8 @@ from sidekick.shared.types import (
     KeyValue,
     TransactionalStore,
     TxSession,
+    paginate,
+    validate_limit,
 )
 
 LOGGER = logging.getLogger("sidekick.references")
@@ -244,8 +246,12 @@ class ExternalReferenceService:
         self, actor: Actor, task_id: UUID, *, limit: int = 25, cursor: str | None = None
     ) -> dict[str, Any]:
         actor.require("tasks:read")
-        if not 1 <= limit <= MAX_REFERENCES_PER_TASK:
-            raise ValidationError("invalid external reference page bounds")
+        validate_limit(
+            limit,
+            maximum=MAX_REFERENCES_PER_TASK,
+            message="invalid external reference page bounds",
+            error=ValidationError,
+        )
         query_key = f"task:{task_id}:external-references"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=TIMED_KEY)
 
@@ -254,14 +260,17 @@ class ExternalReferenceService:
             rows = self.store.list_for_task(
                 session, actor.user_id, task_id, limit=limit + 1, after=after
             )
+            page, next_cursor = paginate(
+                rows,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last[1], last[0].id), query_key
+                ),
+            )
             return ReferencePage(
                 task_id=task_id,
-                items=[reference_data(row, linked_at) for row, linked_at in rows[:limit]],
-                next_cursor=self.cursor_codec.encode_keyset(
-                    actor.user_id, (rows[limit - 1][1], rows[limit - 1][0].id), query_key
-                )
-                if len(rows) > limit
-                else None,
+                items=[reference_data(row, linked_at) for row, linked_at in page],
+                next_cursor=next_cursor,
             ).model_dump(mode="json")
 
         return self.store.transaction(read)

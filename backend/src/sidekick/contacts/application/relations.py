@@ -12,8 +12,18 @@ from sidekick.contacts.application.paging import contact_cursor
 from sidekick.contacts.application.store import ContactStore
 from sidekick.contacts.domain.contact import Contact
 from sidekick.projects.domain import ProjectStatus
-from sidekick.shared.errors import InvalidInputError, NotFoundError, ValidationError
-from sidekick.shared.types import NAMED_KEY, TIMED_KEY, Actor, Clock, CursorCodec, Page, TxSession
+from sidekick.shared.errors import NotFoundError, ValidationError
+from sidekick.shared.types import (
+    NAMED_KEY,
+    TIMED_KEY,
+    Actor,
+    Clock,
+    CursorCodec,
+    Page,
+    TxSession,
+    paginate,
+    validate_limit,
+)
 from sidekick.tasks.domain import TaskStatus
 
 
@@ -248,8 +258,7 @@ class ContactRelationService:
     ) -> Page[Contact]:
         actor.require("contacts:read")
         actor.require("projects:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
 
         query_key = f"project:{project_id}:contacts"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=NAMED_KEY)
@@ -262,8 +271,11 @@ class ContactRelationService:
 
         contacts = self.store.transaction(operation)
         return Page(
-            items=contacts[:limit],
-            next_cursor=contact_cursor(self.cursor_codec, actor, contacts, limit, query_key),
+            *paginate(
+                contacts,
+                limit,
+                lambda last: contact_cursor(self.cursor_codec, actor, last, query_key),
+            )
         )
 
     def list_task_contacts(
@@ -275,8 +287,7 @@ class ContactRelationService:
     ) -> Page[Contact]:
         actor.require("contacts:read")
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
 
         query_key = f"task:{task_id}:contacts"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=NAMED_KEY)
@@ -287,8 +298,11 @@ class ContactRelationService:
 
         contacts = self.store.transaction(operation)
         return Page(
-            items=contacts[:limit],
-            next_cursor=contact_cursor(self.cursor_codec, actor, contacts, limit, query_key),
+            *paginate(
+                contacts,
+                limit,
+                lambda last: contact_cursor(self.cursor_codec, actor, last, query_key),
+            )
         )
 
     def get_contact_context(
@@ -305,8 +319,10 @@ class ContactRelationService:
         actor.require("contacts:read")
         actor.require("projects:read")
         actor.require("tasks:read")
-        if not 1 <= project_limit <= 25 or not 1 <= task_limit <= 25:
-            raise InvalidInputError("context limits must be between 1 and 25")
+        for context_limit in (project_limit, task_limit):
+            validate_limit(
+                context_limit, maximum=25, message="context limits must be between 1 and 25"
+            )
 
         project_query_key = f"contact-context:{contact_id}:projects:completed={include_completed}"
         task_query_key = f"contact-context:{contact_id}:tasks:completed={include_completed}"
@@ -341,24 +357,22 @@ class ContactRelationService:
             )
 
             project_page = Page(
-                items=projects[:project_limit],
-                next_cursor=self.cursor_codec.encode_keyset(
-                    actor.user_id,
-                    (projects[project_limit - 1].updated_at, projects[project_limit - 1].id),
-                    project_query_key,
+                *paginate(
+                    projects,
+                    project_limit,
+                    lambda last: self.cursor_codec.encode_keyset(
+                        actor.user_id, (last.updated_at, last.id), project_query_key
+                    ),
                 )
-                if len(projects) > project_limit
-                else None,
             )
             task_page = Page(
-                items=tasks[:task_limit],
-                next_cursor=self.cursor_codec.encode_keyset(
-                    actor.user_id,
-                    (tasks[task_limit - 1].updated_at, tasks[task_limit - 1].id),
-                    task_query_key,
+                *paginate(
+                    tasks,
+                    task_limit,
+                    lambda last: self.cursor_codec.encode_keyset(
+                        actor.user_id, (last.updated_at, last.id), task_query_key
+                    ),
                 )
-                if len(tasks) > task_limit
-                else None,
             )
 
             readable = "journal:read" in actor.scopes
@@ -372,12 +386,13 @@ class ContactRelationService:
                 if readable
                 else []
             )
+            linked, more = paginate(journal_rows, JOURNAL_CONTEXT_LIMIT, lambda _: True)
             journal_entries = LinkedJournalEntries(
                 items=[
                     LinkedJournalEntry(id=entry_id, journal_date=entry_date, title=title)
-                    for entry_id, entry_date, title in journal_rows[:JOURNAL_CONTEXT_LIMIT]
+                    for entry_id, entry_date, title in linked
                 ],
-                has_more=len(journal_rows) > JOURNAL_CONTEXT_LIMIT,
+                has_more=bool(more),
                 readable=readable,
             )
 

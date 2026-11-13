@@ -8,6 +8,7 @@ from datetime import datetime, tzinfo
 from typing import Any
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence, parse_cadence
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
 from sidekick.shared.errors import ConflictError, InvalidInputError
 from sidekick.shared.replay import id_replay_record
@@ -21,6 +22,8 @@ from sidekick.shared.types import (
     TxSession,
     UnsetType,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 from sidekick.tasks.application.models import TaskDetailRead, UpdateTaskCommand
 from sidekick.tasks.application.serialization import task_to_data
@@ -34,7 +37,6 @@ from sidekick.tasks.domain import (
     TaskStatusHistory,
     derive_domain_id,
 )
-from sidekick.work.domain.planning import Cadence, parse_cadence
 from sidekick.work.domain.tag_assignment import apply_record_tags
 
 DEFAULT_OWNER_ZONE = parse_owner_timezone(DEFAULT_OWNER_TIMEZONE)
@@ -101,8 +103,7 @@ class TaskService:
         unsorted: bool = False,
     ) -> Page[Task]:
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         # The cursor is bound to the whole filter set, so adding the Process context
         # invalidates a cursor issued for another one. The unsorted suffix is added only when
         # set, so cursors issued before it existed stay valid.
@@ -128,12 +129,13 @@ class TaskService:
             )
         )
         return Page(
-            items=tasks[:limit],
-            next_cursor=self.cursor_codec.encode_keyset(
-                actor.user_id, (tasks[limit - 1].updated_at, tasks[limit - 1].id), query_key
+            *paginate(
+                tasks,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.updated_at, last.id), query_key
+                ),
             )
-            if len(tasks) > limit
-            else None,
         )
 
     def get(self, actor: Actor, task_id: UUID) -> Task:
@@ -518,8 +520,7 @@ class TaskService:
 
     def history(self, actor: Actor, task_id: UUID, *, limit: int = 100) -> list[TaskStatusHistory]:
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("history limit must be between 1 and 100")
+        validate_limit(limit, maximum=100, message="history limit must be between 1 and 100")
         return self.store.transaction(
             lambda session: self.store.list_task_status_history(
                 session, actor.user_id, task_id, limit

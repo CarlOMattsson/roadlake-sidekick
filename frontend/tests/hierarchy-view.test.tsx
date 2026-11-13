@@ -501,7 +501,7 @@ describe("HierarchyView", () => {
       const field = screen.getByRole("searchbox", {
         name: hierarchyDetailLabelsSv.filter,
       });
-      fireEvent.change(field, { target: { value: "  SEMESTER " } });
+      fireEvent.input(field, { target: { value: "  SEMESTER " } });
       expect(buttonTitles()).toEqual(["Semesterplan, Projekt"]);
       expect(
         screen.queryByRole("heading", { level: 3, name: "Hälsa" }),
@@ -512,7 +512,7 @@ describe("HierarchyView", () => {
       render(
         <HierarchyView frame={frame} transport={transport()} labels={workSv} />,
       );
-      fireEvent.change(screen.getByRole("searchbox"), {
+      fireEvent.input(screen.getByRole("searchbox"), {
         target: { value: "ekonomi" },
       });
       expect(buttonTitles()).toHaveLength(2);
@@ -522,7 +522,7 @@ describe("HierarchyView", () => {
       render(
         <HierarchyView frame={frame} transport={transport()} labels={workSv} />,
       );
-      fireEvent.change(screen.getByRole("searchbox"), {
+      fireEvent.input(screen.getByRole("searchbox"), {
         target: { value: "zzz" },
       });
       expect(

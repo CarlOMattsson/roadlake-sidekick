@@ -2,7 +2,7 @@
 
 [English](overview.md)
 
-<!-- description: Så hänger Sidekicks delar ihop: Claude och Android-appen på ena sidan, en server med en uppsättning regler i mitten och din PostgreSQL-databas som det som gäller. -->
+<!-- description: Så hänger Sidekicks delar ihop: Claude och Android-appen, en server med en uppsättning regler och din PostgreSQL-databas som det som gäller. -->
 
 Så hänger Sidekicks delar ihop: Claude och Android-appen på ena sidan, en server med en uppsättning regler i mitten och din PostgreSQL-databas som det som gäller.
 
@@ -40,7 +40,8 @@ flowchart LR
 - **Claude är huvudgränssnittet.** Claude anropar ett kurerat urval MCP-verktyg. Rummen (Arbete, Dagbok,
   Kontakter, Inköp, Kontroll) är MCP-appar som Claude visar i en sandlåda och som bara når servern via värdens
   brygga. Sidekick har inget eget webbgränssnitt. Se
-  [MCP Apps as Sidekick's product frontend](architecture/mcp-apps.md) (engelska).
+  [MCP Apps as Sidekick's product frontend](architecture/mcp-apps.md) (engelska). Varje verktyg, med sina behörigheter och parametrar, finns i
+  [referensen för MCP-verktygen](../reference/mcp/index.md) (engelska).
 - **En backend, en uppsättning regler.** FastMCP är monterat i en FastAPI-app. MCP-verktygen och Android-appens
   companion-vägar anropar samma användningsfall, som äger behörighet, ägarfiltrering, versioner och
   idempotens. PostgreSQL har de auktoritativa posterna.

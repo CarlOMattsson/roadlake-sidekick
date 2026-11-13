@@ -7,10 +7,12 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
-from sidekick.shared.types import UNSET, UnsetType
+from sidekick.shared.types import UNSET, UnsetType, validate_limit
+from sidekick.tasks.domain.planning import validate_estimated_minutes
 from sidekick.work.domain import DomainStatus, ProcessStatus
-from sidekick.work.domain.planning import Cadence, normalize_tag_filter, validate_estimated_minutes
+from sidekick.work.domain.planning import normalize_tag_filter
 from sidekick.work.listing import AgendaGroup
 
 
@@ -96,8 +98,12 @@ class WorkQuery:
     """Agenda only: also list open, actionable Tasks without a due date (grouped as upcoming)."""
 
     def validate(self) -> "WorkQuery":
-        if not 1 <= self.limit <= 100:
-            raise ValidationError("Work page size must be between 1 and 100")
+        validate_limit(
+            self.limit,
+            maximum=100,
+            message="Work page size must be between 1 and 100",
+            error=ValidationError,
+        )
         if self.attention not in {"all", "requested"}:
             raise ValidationError("invalid Work attention filter")
         if self.archive not in {"active", "archived", "all"}:

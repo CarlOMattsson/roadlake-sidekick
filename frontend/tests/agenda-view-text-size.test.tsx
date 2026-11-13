@@ -216,7 +216,7 @@ it("at large text the date input is a focusable control of the row, and a chosen
     expect(field).not.toHaveAttribute("tabindex", "-1");
     act(() => field.focus());
     expect(field).toHaveFocus();
-    fireEvent.change(field, { target: { value: "2030-01-15" } });
+    fireEvent.input(field, { target: { value: "2030-01-15" } });
     // The move closes the menu: the input goes with it and the focus is handed to a control that stays.
     await waitFor(() =>
       expect(row.queryByLabelText(workEn.rescheduleDate)).toBeNull(),

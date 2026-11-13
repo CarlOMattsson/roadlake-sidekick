@@ -119,7 +119,7 @@ export const shoppingEn = {
   markBought: (name: string) => `Mark ${name} as bought`,
   markOpen: (name: string) => `Mark ${name} as not bought`,
   /** The tip last in the store view's list, until a row's change form is first opened. */
-  holdTip: "Tap the ring when you’ve bought an item.",
+  holdTip: "Tap the ring when you’ve bought an item, or the item to edit it.",
   /** The same tip with a fine pointer (mouse, trackpad), also the row's aria-description there. */
   holdKeys: "Click an item or press Shift+F10 to edit it.",
   /** Under the create field when the add failed; the typed text stays. */
@@ -244,7 +244,7 @@ export const shoppingSv: ShoppingLabels = {
   bought: "Köpt",
   markBought: (name: string) => `Markera ${name} som köpt`,
   markOpen: (name: string) => `Markera ${name} som ej köpt`,
-  holdTip: "Tryck på ringen när du köpt något.",
+  holdTip: "Tryck på ringen när du köpt något, eller på varan för att ändra.",
   holdKeys: "Klicka på en vara eller tryck Shift+F10 för att ändra.",
   saveFailed: "Det gick inte att spara. Försök igen.",
   moreFields: "Fler fält",

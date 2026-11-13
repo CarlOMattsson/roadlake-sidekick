@@ -271,3 +271,58 @@ def test_there_are_no_new_package_boundary_violations() -> None:
 def test_the_debt_list_has_no_stale_entries() -> None:
     stale = sorted(_flatten(DEBT) - _flatten(_violations()))
     assert stale == [], "Fixed violations still listed in DEBT (delete them):\n" + "\n".join(stale)
+
+
+def _domain_context_edges() -> dict[str, set[str]]:
+    """Which context's domain package imports which other context's domain package."""
+
+    edges: dict[str, set[str]] = {}
+    for path in sorted(SRC.rglob("*.py")):
+        module, _ = _module_name(path)
+        parts = module.split(".")
+        if len(parts) < 3 or parts[1] not in CONTEXTS or parts[2] != "domain":
+            continue
+        for target in _imported_modules(path):
+            dst = target.split(".")
+            if len(dst) > 2 and dst[1] in CONTEXTS and dst[2] == "domain" and dst[1] != parts[1]:
+                edges.setdefault(parts[1], set()).add(dst[1])
+    return edges
+
+
+def _find_cycle(edges: dict[str, set[str]]) -> list[str] | None:
+    """One import cycle as a closed path of contexts, or None when the graph is acyclic."""
+
+    done: set[str] = set()
+
+    def visit(node: str, trail: list[str]) -> list[str] | None:
+        if node in trail:
+            return [*trail[trail.index(node) :], node]
+        if node in done:
+            return None
+        for nxt in sorted(edges.get(node, ())):
+            found = visit(nxt, [*trail, node])
+            if found:
+                return found
+        done.add(node)
+        return None
+
+    for start in sorted(edges):
+        found = visit(start, [])
+        if found:
+            return found
+    return None
+
+
+def test_the_cycle_finder_reports_a_cycle() -> None:
+    assert _find_cycle({"a": {"b"}, "b": {"c"}, "c": {"a"}}) == ["a", "b", "c", "a"]
+    assert _find_cycle({"a": {"b", "c"}, "b": {"c"}}) is None
+    assert _find_cycle({}) is None
+
+
+def test_the_domain_packages_of_the_contexts_do_not_import_each_other_in_a_cycle() -> None:
+    cycle = _find_cycle(_domain_context_edges())
+    assert cycle is None, (
+        "Domain packages import each other in a cycle: "
+        + " -> ".join(cycle or [])
+        + ". Move the shared part to the context that owns it or to `sidekick.shared`."
+    )

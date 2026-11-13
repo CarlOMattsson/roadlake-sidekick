@@ -43,10 +43,8 @@ from sidekick.structured.work_records import (
 )
 from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority
-from sidekick.work.domain.planning import (
-    MAX_ESTIMATED_MINUTES,
-    MAX_TAGS_PER_RECORD,
-)
+from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
+from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 
 # Parameter types shared by several tools; the JSON schema each produces is pinned by the contract.
 _Version = Annotated[int, Field(ge=1)]

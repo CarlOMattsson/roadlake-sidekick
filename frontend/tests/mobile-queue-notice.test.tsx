@@ -73,20 +73,19 @@ describe("QueueNotice", () => {
 
   it("says in Swedish which add could not be sent and why", async () => {
     mount(nativeWith(REJECTED_ADD, EXPIRED_ADD));
-    expect(
-      await screen.findByText(/Kunde inte skickas: Mjölk, Ost/),
-    ).toBeVisible();
+    expect(await screen.findByText(/Mjölk, Ost\./)).toBeVisible();
     expect(screen.getByText(/Servern tog inte emot den\./)).toBeVisible();
-    expect(screen.getByText(/Kunde inte skickas: Bröd/)).toBeVisible();
+    expect(screen.getByText(/Bröd\./)).toBeVisible();
     expect(screen.getByText(/Den låg i kön i över 7 dagar\./)).toBeVisible();
+    expect(
+      screen.getByRole("list", { name: "Inköp som inte skickades" }),
+    ).toBeVisible();
   });
 
   it("has an English text of its own", async () => {
     mount(nativeWith(REJECTED_ADD), "en");
-    expect(
-      await screen.findByText(/Could not be sent: Mjölk, Ost/),
-    ).toBeVisible();
-    expect(screen.getByText(/The server did not accept it\./)).toBeVisible();
+    expect(await screen.findByText(/Mjölk, Ost\./)).toBeVisible();
+    expect(screen.getByText(/The server didn’t accept it\./)).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Try again: Mjölk, Ost" }),
     ).toBeVisible();
@@ -105,10 +104,8 @@ describe("QueueNotice", () => {
     expect(native.retryQueuedWrite).toHaveBeenCalledWith({
       key: "add-key-0002",
     });
-    await waitFor(() =>
-      expect(screen.queryByText(/Kunde inte skickas: Bröd/)).toBeNull(),
-    );
-    expect(screen.getByText(/Kunde inte skickas: Mjölk, Ost/)).toBeVisible();
+    await waitFor(() => expect(screen.queryByText(/Bröd\./)).toBeNull());
+    expect(screen.getByText(/Mjölk, Ost\./)).toBeVisible();
   });
 
   it("removes a write for good", async () => {
@@ -126,16 +123,14 @@ describe("QueueNotice", () => {
 
   it("offers only 'Ta bort' for a refused purchase, which would be refused again", async () => {
     mount(nativeWith(REJECTED_PURCHASE));
-    expect(
-      await screen.findByText(/Kunde inte skickas: en vara markerad som köpt/),
-    ).toBeVisible();
+    expect(await screen.findByText(/Köp av en vara\./)).toBeVisible();
     expect(screen.queryByRole("button", { name: /Försök igen/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Ta bort/ })).toBeVisible();
   });
 
   it("offers only 'Ta bort' for a write whose key is older than the server's idempotency window", async () => {
     mount(nativeWith({ ...EXPIRED_ADD, retryable: false }));
-    expect(await screen.findByText(/Kunde inte skickas: Bröd/)).toBeVisible();
+    expect(await screen.findByText(/Bröd\./)).toBeVisible();
     expect(screen.queryByRole("button", { name: /Försök igen/ })).toBeNull();
     expect(screen.getByRole("button", { name: /Ta bort/ })).toBeVisible();
   });
@@ -151,7 +146,7 @@ describe("QueueNotice", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       queueNoticeLabelsSv.notRetried,
     );
-    expect(screen.getByText(/Kunde inte skickas: Mjölk, Ost/)).toBeVisible();
+    expect(screen.getByText(/Mjölk, Ost\./)).toBeVisible();
   });
 
   it("says so, in English, when the phone answers that the write was not removed (removed: false)", async () => {
@@ -186,7 +181,7 @@ describe("QueueNotice", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       queueNoticeLabelsSv.actionFailed,
     );
-    expect(screen.getByText(/Kunde inte skickas: Mjölk, Ost/)).toBeVisible();
+    expect(screen.getByText(/Mjölk, Ost\./)).toBeVisible();
     expect(screen.getByRole("button", { name: /Försök igen/ })).toBeEnabled();
   });
 
@@ -199,9 +194,7 @@ describe("QueueNotice", () => {
     native.failedWrites.set(REJECTED_ADD.key, REJECTED_ADD);
     act(() => native.runOutbox([]));
 
-    expect(
-      await screen.findByText(/Kunde inte skickas: Mjölk, Ost/),
-    ).toBeVisible();
+    expect(await screen.findByText(/Mjölk, Ost\./)).toBeVisible();
   });
 
   it("reads again when the app comes back", async () => {
@@ -212,9 +205,7 @@ describe("QueueNotice", () => {
 
     view.rerender(<QueueNotice native={native} locale="sv" refreshKey={1} />);
 
-    expect(
-      await screen.findByText(/Kunde inte skickas: Mjölk, Ost/),
-    ).toBeVisible();
+    expect(await screen.findByText(/Mjölk, Ost\./)).toBeVisible();
   });
 
   it("names a long add by three items and the count of the rest", () => {
@@ -267,8 +258,6 @@ describe("QueueNotice in the mobile app", () => {
         native={native}
       />,
     );
-    expect(
-      await screen.findByText(/Kunde inte skickas: Mjölk, Ost/),
-    ).toBeVisible();
+    expect(await screen.findByText(/Mjölk, Ost\./)).toBeVisible();
   });
 });

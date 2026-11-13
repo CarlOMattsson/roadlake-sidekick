@@ -4,9 +4,9 @@
  *
  * First "Språk": Svenska | English, the app's language (app-language.ts; the widget follows it). Then two sections,
  * each read on its own from the native side, each with its own reading line, failure and retry:
- * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), "Skicka testnotis" with one calm line per outcome, and one sentence
+ * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), "Skicka testavisering" with one calm line per outcome, and one sentence
  *   on the lock screen (see docs/decisions/log.md D-079: it follows the phone's own setting).
- * - "Den här telefonen": the device label, when it was paired, that the sign-in renews itself and until when it holds,
+ * - "Den här telefonen": the device label, the server it is paired to, when it was paired, that the sign-in renews itself and until when it holds,
  *   and "Koppla från den här telefonen", which asks first (it clears the phone). After it, the pairing gate takes over.
  *
  * It fits one phone screen at 320 px and 110 % text: no list, no scroll. Nothing here reaches the network but through
@@ -38,6 +38,7 @@ export type SettingsNative = Pick<
   SidekickNativePlugin,
   | "pushStatus"
   | "deviceStatus"
+  | "status"
   | "sendTestPush"
   | "unpair"
   | "openNotificationSettings"
@@ -112,6 +113,11 @@ export function SettingsPanel({
   // The pairing is read once: its section shows it, and Aviseringar learn from it whether the server sends any.
   const readDevice = useCallback(() => native.deviceStatus(), [native]);
   const [device, retryDevice] = useNativeRead(readDevice, refreshKey);
+  // Which server the phone is paired to; a failed read only leaves that line out.
+  const readServer = useCallback(() => native.status(), [native]);
+  const [pairing] = useNativeRead(readServer, refreshKey);
+  const serverHost =
+    pairing.phase === "ready" ? pairing.value.serverHost : undefined;
   // The settings replace the room on screen: the focus moves to them, as the shell moves it to a new layer.
   useEffect(() => {
     root.current?.focus();
@@ -158,6 +164,7 @@ export function SettingsPanel({
         <DeviceSection
           native={native}
           device={device}
+          serverHost={serverHost}
           retry={retryDevice}
           labels={labels}
           locale={locale}
@@ -190,14 +197,14 @@ export function pushFixFor(status: PushStatus): PushFix | undefined {
   return undefined;
 }
 
-/** "Max 5 i timmen – försök igen om N min": whole minutes, at least 1. */
+/** "Högst 5 testaviseringar i timmen. Försök igen om N min": whole minutes, at least 1. */
 function retryMinutes(seconds: number | undefined): number | undefined {
   if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0)
     return undefined;
   return Math.max(1, Math.ceil(seconds / 60));
 }
 
-/** The line under "Skicka testnotis": a sent one is a success, a refusal plain information, no answer a failure. */
+/** The line under "Skicka testavisering": a sent one is a success, a refusal plain information, no answer a failure. */
 type Feedback = { tone: "ok" | "info" | "error"; text: string };
 
 export function testPushFeedback(
@@ -334,6 +341,7 @@ function PushSection({
 function DeviceSection({
   native,
   device,
+  serverHost,
   retry,
   labels,
   locale,
@@ -342,6 +350,7 @@ function DeviceSection({
 }: {
   native: SettingsNative;
   device: Read<DeviceStatus>;
+  serverHost: string | undefined;
   retry: () => void;
   labels: SettingsLabels;
   locale: AppLocale;
@@ -367,7 +376,12 @@ function DeviceSection({
     return <p className="mobile-settings__text">{labels.notPaired}</p>;
   return (
     <div className="mobile-settings__block">
-      <DeviceLines device={device.value} labels={labels} now={now} />
+      <DeviceLines
+        device={device.value}
+        serverHost={serverHost}
+        labels={labels}
+        now={now}
+      />
       <Unpair
         native={native}
         labels={labels}
@@ -380,10 +394,12 @@ function DeviceSection({
 
 function DeviceLines({
   device,
+  serverHost,
   labels,
   now = new Date(),
 }: {
   device: DeviceStatus;
+  serverHost: string | undefined;
   labels: SettingsLabels;
   now?: Date;
 }) {
@@ -399,6 +415,9 @@ function DeviceLines({
       <p className="mobile-settings__name">
         {device.name?.trim() || labels.unnamed}
       </p>
+      {serverHost ? (
+        <p className="mobile-settings__meta">{labels.server(serverHost)}</p>
+      ) : null}
       {since ? (
         <p className="mobile-settings__meta">{labels.pairedSince(since)}</p>
       ) : null}

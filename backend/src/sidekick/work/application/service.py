@@ -18,7 +18,10 @@ from sidekick.shared.types import (
     Page,
     TxSession,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
+from sidekick.tasks.domain.planning import EstimateTotals
 from sidekick.work.application.models import HierarchyNode, UpdateContextCommand
 from sidekick.work.application.serialization import (
     domain_hierarchy_node,
@@ -27,7 +30,6 @@ from sidekick.work.application.serialization import (
 )
 from sidekick.work.application.store import ContextStore
 from sidekick.work.domain import Domain, DomainStatus, Process, ProcessStatus
-from sidekick.work.domain.planning import EstimateTotals
 from sidekick.work.domain.tag_assignment import apply_record_tags
 
 HIERARCHY_KINDS = ("domain", "process", "project")
@@ -76,20 +78,20 @@ class ContextService:
         self, actor: Actor, *, limit: int = 25, cursor: str | None = None
     ) -> Page[Domain]:
         actor.require("projects:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         key = "domains:v1"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, key, kinds=TIMED_KEY)
         rows = self.store.transaction(
             lambda s: self.store.list_domains(s, actor.user_id, limit + 1, after)
         )
         return Page(
-            rows[:limit],
-            self.cursor_codec.encode_keyset(
-                actor.user_id, (rows[limit - 1].updated_at, rows[limit - 1].id), key
+            *paginate(
+                rows,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.updated_at, last.id), key
+                ),
             )
-            if len(rows) > limit
-            else None,
         )
 
     def list_processes(
@@ -101,20 +103,20 @@ class ContextService:
         cursor: str | None = None,
     ) -> Page[Process]:
         actor.require("projects:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         key = f"processes:v1:domain={domain_id or '*'}"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, key, kinds=TIMED_KEY)
         rows = self.store.transaction(
             lambda s: self.store.list_processes(s, actor.user_id, limit + 1, domain_id, after)
         )
         return Page(
-            rows[:limit],
-            self.cursor_codec.encode_keyset(
-                actor.user_id, (rows[limit - 1].updated_at, rows[limit - 1].id), key
+            *paginate(
+                rows,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.updated_at, last.id), key
+                ),
             )
-            if len(rows) > limit
-            else None,
         )
 
     def hierarchy_page(
@@ -129,8 +131,7 @@ class ContextService:
         needed plus one, so an overflow is detectable without a count query.
         """
         actor.require("projects:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         after = self.cursor_codec.decode_keyset(
             actor.user_id, cursor, HIERARCHY_CURSOR_KEY, kinds=(int, datetime, UUID)
         )
@@ -184,13 +185,12 @@ class ContextService:
             return entries
 
         entries = self.store.transaction(query)
-        page = entries[:limit]
-        next_cursor = (
-            self.cursor_codec.encode_keyset(
-                actor.user_id, (page[-1][0], page[-1][1], page[-1][2]), HIERARCHY_CURSOR_KEY
-            )
-            if len(entries) > limit
-            else None
+        page, next_cursor = paginate(
+            entries,
+            limit,
+            lambda last: self.cursor_codec.encode_keyset(
+                actor.user_id, (last[0], last[1], last[2]), HIERARCHY_CURSOR_KEY
+            ),
         )
         return [entry[3] for entry in page], next_cursor
 

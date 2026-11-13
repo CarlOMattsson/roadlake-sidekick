@@ -170,8 +170,10 @@ export function NewTaskInput({
       id={id}
       className="work-new-task"
       hidden={hidden}
-      onChange={(event) => {
-        // The place picker's change bubbles here too; only the title field is the draft.
+      onInput={(event) => {
+        // Listens for `input`, not `change`: Preact fires a text field's onChange on input, so only the
+        // bubbling input event reaches a wrapper while typing. The place picker bubbles here too; only the title
+        // field is the draft.
         if (event.target instanceof HTMLInputElement)
           draft.current = event.target.value;
       }}

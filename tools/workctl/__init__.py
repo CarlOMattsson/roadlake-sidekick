@@ -34,12 +34,16 @@ Moved:
 * ``status``     : the version line and the translation of the gateway probe in ``status``;
   ``probe_egress`` and ``probe_gateway`` are the two scripts ``status`` runs *inside* the containers
   (passed to ``python -c``, so each is a plain file with a ``__main__`` guard).
+* ``diagnose``   : the decisions of the hint after a failed first start (log evidence, table state, volume
+  name); ``work.sh`` only gathers the logs and runs the read-only queries.
+* ``restore``    : the complete backup sets of a directory, what a typed ``restore`` argument names and what
+  undoing a half-done database swap has to do.
+* ``prompts``    : what counts as a yes and the choice of a number from a list in the guide.
+* ``owner``      : the UUID check for the user Claude Desktop acts as.
 
 Still in ``work.sh`` (candidates to move next, in order of value):
 
-1. ``diagnose_first_start``: the log evidence tests, the table state and the volume name check (pure decisions
-   between docker calls); ``cmd_status`` keeps only the container loop and the docker calls.
-2. Backup, restore and update orchestration (docker, traps, locks, pause/resume of writers): thin shell
+1. Backup, restore and update orchestration (docker, traps, locks, pause/resume of writers): thin shell
    around compose calls, last to move; its pieces first (``backup_space``, set listing, prune).
-3. ``setup``, the interactive guide.
+2. ``setup``, the interactive guide.
 """

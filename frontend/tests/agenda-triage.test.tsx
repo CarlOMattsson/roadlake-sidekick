@@ -359,7 +359,7 @@ it("the Choose date… chip is the date input itself, laid over the chip, and a 
   expect(
     menu.queryByRole("button", { name: workEn.rescheduleChoose }),
   ).not.toBeInTheDocument();
-  fireEvent.change(input, {
+  fireEvent.input(input, {
     target: { value: "2026-11-05" },
   });
   await waitFor(() =>
@@ -429,7 +429,7 @@ describe("the date chip writes only an intended choice", () => {
 
   it("a picked date (a change with no key before it) writes at once, and the field shows the Task's date again until the write lands", async () => {
     const { input, updateTask } = await prefilled();
-    fireEvent.change(input, { target: { value: "2026-12-24" } });
+    fireEvent.input(input, { target: { value: "2026-12-24" } });
     expect(input).toHaveValue("2026-10-27");
     await waitFor(() =>
       expect(updateTask).toHaveBeenCalledWith(

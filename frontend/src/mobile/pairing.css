@@ -71,9 +71,14 @@
   font: var(--sk-type-meta);
   color: var(--sk-danger-fg);
 }
+/* The code's hint stays readable as a line of its own under a refusal, not run into it. */
+.mobile-pairing__error + .mobile-pairing__hint {
+  margin-top: var(--sk-s1);
+}
+/* The help reads at the intro's size: it is the way out for someone who has no code. */
 .mobile-pairing__help {
   color: var(--sk-muted);
-  font: var(--sk-type-meta);
+  font: var(--sk-type-body);
 }
 .mobile-pairing__help > summary {
   min-height: var(--sk-tap);
@@ -90,6 +95,7 @@
 }
 .mobile-pairing__help > summary::before {
   content: "▸";
+  font-size: 1.25em;
   text-decoration: none;
 }
 .mobile-pairing__help[open] > summary::before {

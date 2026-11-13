@@ -386,7 +386,7 @@ it("shows a conflict on save, reloads the latest Contact and keeps the typed not
   await user.click(screen.getByRole("button", { name: workEn.save }));
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.contactEditConflict);
-  expect(banner).toHaveFocus();
+  await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   await waitFor(() => expect(getContactContext).toHaveBeenCalledTimes(2));
   expect(screen.getByLabelText(workEn.contextNote)).toHaveValue(

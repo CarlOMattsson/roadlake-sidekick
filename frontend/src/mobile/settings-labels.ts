@@ -41,6 +41,8 @@ export type SettingsLabels = {
   phoneHeading: string;
   /** The device label is empty. */
   unnamed: string;
+  /** The host name of the server the phone is paired to. */
+  server: (host: string) => string;
   pairedSince: (date: string) => string;
   renews: string;
   validUntil: (date: string) => string;
@@ -61,7 +63,8 @@ export const settingsLabelsSv: SettingsLabels = {
   languageHeading: "Språk",
   push: {
     on: "Aviseringar är på.",
-    install: "Installera appen ntfy för att få aviseringar.",
+    install:
+      "Aviseringar levereras av den gratis appen ntfy. Installera den för att få dem.",
     denied:
       "Aviseringar är avstängda för Sidekick. Slå på dem i telefonens inställningar.",
     registering: "Aviseringar kopplas in…",
@@ -73,24 +76,25 @@ export const settingsLabelsSv: SettingsLabels = {
   },
   pushFailed: "Aviseringarnas läge kunde inte läsas.",
   loading: "Läser…",
-  sendTest: "Skicka testnotis",
+  sendTest: "Skicka testavisering",
   sending: "Skickar…",
   outcomes: {
-    queued: "Testnotis skickad.",
+    queued: "Testavisering skickad.",
     no_subscription: "Aviseringar är inte kopplade än.",
     disabled: "Aviseringar är avstängda på servern.",
     offline: "Servern kunde inte nås. Försök igen när telefonen har nät.",
     unpaired: "Telefonen är inte kopplad längre.",
-    failed: "Testnotisen kunde inte skickas.",
+    failed: "Testaviseringen kunde inte skickas.",
   },
   rateLimited: (minutes) =>
     minutes === undefined
-      ? "Max 5 i timmen – försök igen senare."
-      : `Max 5 i timmen – försök igen om ${minutes} min.`,
+      ? "Högst 5 testaviseringar i timmen. Försök igen senare."
+      : `Högst 5 testaviseringar i timmen. Försök igen om ${minutes}\u00a0min.`,
   lockScreen:
     "Låsskärmen visar titlar bara om telefonen tillåter känsligt innehåll där.",
   phoneHeading: "Den här telefonen",
   unnamed: "Telefon utan namn",
+  server: (host) => `Server: ${host}`,
   pairedSince: (date) => `Kopplad sedan ${date}`,
   renews: "Inloggningen förnyas automatiskt.",
   validUntil: (date) => `Giltig till ${date}.`,
@@ -112,7 +116,8 @@ export const settingsLabelsEn: SettingsLabels = {
   languageHeading: "Language",
   push: {
     on: "Notifications are on.",
-    install: "Install the ntfy app to get notifications.",
+    install:
+      "Notifications are delivered by the free ntfy app. Install it to get them.",
     denied:
       "Notifications are off for Sidekick. Turn them on in your phone’s settings.",
     registering: "Setting up notifications…",
@@ -136,12 +141,13 @@ export const settingsLabelsEn: SettingsLabels = {
   },
   rateLimited: (minutes) =>
     minutes === undefined
-      ? "Up to 5 per hour. Try again later."
-      : `Up to 5 per hour. Try again in ${minutes} min.`,
+      ? "Up to 5 test notifications per hour. Try again later."
+      : `Up to 5 test notifications per hour. Try again in ${minutes}\u00a0min.`,
   lockScreen:
     "The lock screen shows titles only if your phone allows sensitive content there.",
   phoneHeading: "This phone",
   unnamed: "Unnamed phone",
+  server: (host) => `Server: ${host}`,
   pairedSince: (date) => `Connected since ${date}`,
   renews: "Sign-in renews automatically.",
   validUntil: (date) => `Valid until ${date}.`,

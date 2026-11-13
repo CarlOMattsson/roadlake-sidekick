@@ -12,6 +12,7 @@ from sidekick.shared.types import (
     KeyValue,
     Page,
     TxSession,
+    paginate,
 )
 from sidekick.tasks.domain import Task, derive_domain_id
 from sidekick.work.application.models import WorkQuery, WorkRow, WorkToday
@@ -107,20 +108,21 @@ class WorkListService:
 
         def read(
             session: TxSession,
-        ) -> tuple[list[WorkRow], tuple[KeyValue, ...] | None, dict[str, int]]:
+        ) -> tuple[list[WorkRow], str | None, dict[str, int]]:
             keys = self.store.work_list_keys(
                 session, actor.user_id, spec, after=after, limit=limit + 1
             )
             counts = self.store.work_agenda_group_counts(session, actor.user_id, spec)
-            items = self._work_items(session, actor.user_id, keys[:limit], now)
-            return items, keys[limit - 1].position if len(keys) > limit else None, counts
-
-        items, more_after, counts = self.store.transaction(read)
-        next_cursor = None
-        if more_after is not None:
-            next_cursor = self.cursor_codec.encode_keyset(
-                actor.user_id, more_after, "today:v1:" + query.key()
+            page, next_cursor = paginate(
+                keys,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, last.position, "today:v1:" + query.key()
+                ),
             )
+            return self._work_items(session, actor.user_id, page, now), next_cursor, counts
+
+        items, next_cursor, counts = self.store.transaction(read)
         return WorkToday(
             items=items,
             next_cursor=next_cursor,
@@ -212,22 +214,20 @@ class WorkListService:
 
         def read(
             session: TxSession,
-        ) -> tuple[list[WorkRow], tuple[KeyValue, ...] | None]:
+        ) -> tuple[list[WorkRow], str | None]:
             keys = self.store.work_list_keys(
                 session, actor.user_id, spec, after=after, limit=query.limit + 1
             )
-            return (
-                self._work_items(session, actor.user_id, keys[: query.limit], now),
-                keys[query.limit - 1].position if len(keys) > query.limit else None,
+            page, next_cursor = paginate(
+                keys,
+                query.limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, last.position, key_prefix + query.key()
+                ),
             )
+            return self._work_items(session, actor.user_id, page, now), next_cursor
 
-        items, more_after = self.store.transaction(read)
-        next_cursor = None
-        if more_after is not None:
-            next_cursor = self.cursor_codec.encode_keyset(
-                actor.user_id, more_after, key_prefix + query.key()
-            )
-        return Page(items, next_cursor)
+        return Page(*self.store.transaction(read))
 
     def _page_position(
         self, actor: Actor, query: WorkQuery, spec: WorkListSpec, *, key_prefix: str

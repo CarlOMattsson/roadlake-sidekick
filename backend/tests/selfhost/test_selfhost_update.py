@@ -204,6 +204,7 @@ class Harness:
         shutil.copy(SELFHOST / "compose.yaml", directory / "compose.yaml")
         shutil.copy(SELFHOST / "snapshot_crypto.py", directory / "snapshot_crypto.py")
         shutil.copy(SELFHOST / "backup_space.sh", directory / "backup_space.sh")
+        shutil.copy(SELFHOST / "update_policy.py", directory / "update_policy.py")
         # A placeholder, not a secret: update.sh only checks that the variable is present.
         (directory / "selfhost.env").write_text(
             "SIDEKICK_BACKUP_ENCRYPTION_KEY=placeholder-for-the-test\n", encoding="utf-8"
@@ -1426,3 +1427,105 @@ def test_the_release_pointer_is_flushed_before_the_rename_and_its_directory_afte
     tmp = str(harness.directory / "release.env.tmp")
     assert tmp in flushed
     assert str(harness.directory) in flushed[flushed.index(tmp) + 1 :]
+
+
+def test_an_update_without_its_decision_file_is_refused_before_anything_runs(
+    harness: Harness,
+) -> None:
+    (harness.directory / "update_policy.py").unlink()
+    result = harness.apply()
+    assert result.returncode == 1
+    assert "update_policy.py not found next to this script" in result.stderr
+    assert harness.calls() == []
+    assert not (harness.directory / "update-state" / "journal.log").exists()
+
+
+def test_a_failing_decision_file_never_lets_the_update_go_on(harness: Harness) -> None:
+    (harness.directory / "update_policy.py").write_text("raise SystemExit(7)\n", encoding="utf-8")
+    result = harness.apply()
+    assert result.returncode == 1
+    assert stops(harness.calls()) == []
+    assert not any(is_migrate(call) for call in harness.calls())
+    assert all(harness.running_now().values())
+    assert harness.running_image() == PREVIOUS
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        "raise SystemExit(1)",  # what a Python traceback exits with
+        "raise SystemExit(2)",  # what an argparse usage error exits with
+        "raise MemoryError",
+        "print('inactive'); raise SystemExit(1)",
+        "raise SystemExit(0)",  # success without any answer
+    ],
+)
+def test_no_answer_about_a_container_aborts_before_anything_is_stopped(
+    harness: Harness, failure: str
+) -> None:
+    # As for a failing `compose ps`: guessing could leave a writer running through the snapshot.
+    real = SELFHOST / "update_policy.py"
+    (harness.directory / "update_policy.py").write_text(
+        "import runpy, sys\n"
+        'if sys.argv[1] == "container-active":\n'
+        f"    {failure}\n"
+        f'runpy.run_path({str(real)!r}, run_name="__main__")\n',
+        encoding="utf-8",
+    )
+    result = harness.apply()
+    assert result.returncode == 1
+    assert stops(harness.calls()) == []
+    assert not any(is_migrate(call) for call in harness.calls())
+    assert harness.journal_states()[-1] == "ABORTED"
+    assert all(harness.running_now().values())
+
+
+def test_an_update_without_python3_is_refused_before_anything_runs(
+    harness: Harness, tmp_path: Path
+) -> None:
+    tools = tmp_path / "tools-without-python"
+    tools.mkdir()
+    for name in (
+        "bash",
+        "env",
+        "sed",
+        "awk",
+        "tail",
+        "head",
+        "grep",
+        "cat",
+        "date",
+        "mkdir",
+        "rm",
+        "mv",
+        "chmod",
+        "flock",
+        "tr",
+        "dirname",
+        "basename",
+        "cut",
+        "sort",
+        "cp",
+        "ls",
+        "tee",
+        "sleep",
+        "mktemp",
+        "id",
+        "uname",
+        "wc",
+        "cmp",
+        "find",
+        "readlink",
+        "stat",
+        "touch",
+        "true",
+        "false",
+    ):
+        found = shutil.which(name)
+        if found:
+            (tools / name).symlink_to(found)
+    path = f"{harness.directory / 'bin'}{os.pathsep}{tools}"
+    result = harness.apply(PATH=path)
+    assert result.returncode == 1
+    assert "python3 not found" in result.stderr
+    assert harness.calls() == []

@@ -53,10 +53,10 @@ describe("the entry form and a text over the byte budget", () => {
     ["English", journalEn],
   ])("says so in %s and writes nothing", (_name, labels) => {
     const submit = setup(labels);
-    fireEvent.change(screen.getByLabelText(labels.titleLabel), {
+    fireEvent.input(screen.getByLabelText(labels.titleLabel), {
       target: { value: "Lång" },
     });
-    fireEvent.change(screen.getByLabelText(labels.entryTextLabel), {
+    fireEvent.input(screen.getByLabelText(labels.entryTextLabel), {
       target: { value: "漢".repeat(90_000) },
     });
     fireEvent.click(screen.getByRole("button", { name: labels.saveEntry }));
@@ -70,10 +70,10 @@ describe("the entry form and a text over the byte budget", () => {
 
   it("submits a long but fitting text", () => {
     const submit = setup(journalSv);
-    fireEvent.change(screen.getByLabelText(journalSv.titleLabel), {
+    fireEvent.input(screen.getByLabelText(journalSv.titleLabel), {
       target: { value: "Lång" },
     });
-    fireEvent.change(screen.getByLabelText(journalSv.entryTextLabel), {
+    fireEvent.input(screen.getByLabelText(journalSv.entryTextLabel), {
       target: { value: "ö".repeat(TEXT_MAX) },
     });
     fireEvent.click(screen.getByRole("button", { name: journalSv.saveEntry }));

@@ -2,7 +2,7 @@
 
 [Svenska](languages.sv.md)
 
-<!-- description: The rooms and the Android app each have their own language setting, with Swedish as the default and English as the alternative. This page also covers which language the server's commands use. -->
+<!-- description: The rooms and the Android app each have their own language setting: Swedish by default, English as the alternative. Also which language the server uses. -->
 
 The rooms and the Android app each have their own language setting, with Swedish as the default and English as the alternative. This page also covers which language the server's commands use.
 

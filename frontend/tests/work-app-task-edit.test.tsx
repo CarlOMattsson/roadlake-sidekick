@@ -353,7 +353,7 @@ it("shows a conflict banner, reloads the latest version and keeps the typed valu
   await user.click(screen.getByRole("button", { name: workEn.save }));
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.conflict);
-  expect(banner).toHaveFocus();
+  await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
   expect(getTask).toHaveBeenLastCalledWith(taskA.id);
@@ -530,7 +530,7 @@ it("blocks Save with a short text while the date is an incomplete entry", async 
     value: { badInput: true },
     configurable: true,
   });
-  fireEvent.change(due, { target: { value: "" } });
+  fireEvent.input(due, { target: { value: "" } });
   await user.click(screen.getByRole("button", { name: workEn.save }));
   expect(screen.getByText(workEn.dueIncomplete)).toBeInTheDocument();
   expect(updateTask).not.toHaveBeenCalled();
@@ -611,7 +611,7 @@ it("shows a step conflict banner, disables steps until the re-read arrives, then
   await user.click(await screen.findByRole("checkbox", { name: step.title }));
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.stepConflict);
-  expect(banner).toHaveFocus();
+  await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   const checkbox = await screen.findByRole("checkbox", { name: step.title });
   await waitFor(() => expect(checkbox).toBeDisabled());

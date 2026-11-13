@@ -106,9 +106,9 @@ export function discover(source, map) {
   const include = map.include ?? ['docs/'];
   const exclude = map.exclude ?? [];
   const pages = [];
-  const add = (rel, slug, root) => {
+  const add = (rel, slug, root, description) => {
     const locale = rel.endsWith('.sv.md') ? 'sv' : 'en';
-    pages.push({ rel, stem: stemOf(rel), locale, slug, isRoot: root, url: slug.replace(/(^|\/)index$/, '') });
+    pages.push({ rel, stem: stemOf(rel), locale, slug, isRoot: root, description, url: slug.replace(/(^|\/)index$/, '') });
   };
   for (const rel of source.walk('docs')) {
     if (!rel.endsWith('.md')) continue;
@@ -118,7 +118,7 @@ export function discover(source, map) {
     add(rel, segs.join('/'), false);
   }
   for (const rf of map.rootFiles ?? []) {
-    for (const rel of [`${rf.src}.md`, `${rf.src}.sv.md`]) if (source.exists(rel)) add(rel, rf.slug, true);
+    for (const rel of [`${rf.src}.md`, `${rf.src}.sv.md`]) if (source.exists(rel)) add(rel, rf.slug, true, rf.description);
   }
   const seen = new Map();
   for (const p of pages) {
@@ -354,7 +354,7 @@ export function run(opts = {}) {
       }
     }
     if (!title) title = page.stem.split('/').pop();
-    if (!description) description = truncateWords(descFallback ?? '', 160);
+    if (!description) description = page.description ?? truncateWords(descFallback ?? '', 160);
     return { title, description, body: outLines.join('\n').replace(/\n{3,}/g, '\n\n').trim() + '\n' };
   }
 

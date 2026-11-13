@@ -12,6 +12,7 @@ import uvicorn
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from sidekick.shared.observability import (
+    HTTP_CLIENT_LOGGERS,
     harden_third_party_logging,
 )
 from tests.support.polling import wait_until
@@ -36,6 +37,7 @@ def restored_logging() -> Iterator[None]:
         name: (list(logging.getLogger(name).handlers), logging.getLogger(name).propagate)
         for name in LOGGER_NAMES
     }
+    client_levels = {name: logging.getLogger(name).level for name in HTTP_CLIENT_LOGGERS}
     access = logging.getLogger("uvicorn.access")
     access_state = (access.disabled, list(access.filters))
     showwarning = warnings.showwarning
@@ -43,6 +45,8 @@ def restored_logging() -> Iterator[None]:
     for name, (handlers, propagate) in saved.items():
         logging.getLogger(name).handlers = handlers
         logging.getLogger(name).propagate = propagate
+    for name, level in client_levels.items():
+        logging.getLogger(name).setLevel(level)
     access.disabled, access.filters = access_state[0], access_state[1]
     warnings.showwarning = showwarning
 

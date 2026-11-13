@@ -7,6 +7,7 @@ import hmac
 import json
 import secrets
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -41,6 +42,40 @@ class Actor:
 class Page[T]:
     items: list[T]
     next_cursor: str | None
+
+
+def validate_limit(
+    limit: int,
+    *,
+    maximum: int,
+    minimum: int = 1,
+    message: str | None = None,
+    error: Callable[[str], Exception] = InvalidInputError,
+) -> int:
+    """Return `limit` when it lies in `minimum..maximum`, else raise `error` with `message`.
+
+    The default message and error are what a list read answers for a page size out of bounds;
+    pass `message` or `error` where a surface words or classifies the rejection differently.
+    """
+
+    if not minimum <= limit <= maximum:
+        raise error(message or f"limit must be between {minimum} and {maximum}")
+    return limit
+
+
+def paginate[Row, Cursor](
+    rows: Sequence[Row], limit: int, cursor_for: Callable[[Row], Cursor]
+) -> tuple[list[Row], Cursor | None]:
+    """Cut `rows`, read with `limit + 1`, to one page and the cursor of the page after it.
+
+    `cursor_for` receives the last row served and is called only when the extra row shows that
+    more exist; the cursor is `None` on the last page.
+    """
+
+    page = list(rows[:limit])
+    if len(rows) <= limit:
+        return page, None
+    return page, cursor_for(page[-1])
 
 
 type KeyValue = None | int | str | datetime | UUID

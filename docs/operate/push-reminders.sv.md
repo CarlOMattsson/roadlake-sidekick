@@ -14,7 +14,7 @@ Slå på påminnelser till telefonen. Servern skickar väckningar utan innehåll
    värd står i `SIDEKICK_PUSH_ALLOWED_HOSTS`.
 3. Workern skickar en liten väckning utan innehåll till den ändpunkten. Telefonen vaknar, hämtar det som är
    aktuellt från servern och visar aviseringen. Låsskärmen följer telefonens inställning för känsligt innehåll.
-4. Kontrollera i appen: Inställningar, "Skicka testnotis" (högst 5 i timmen).
+4. Kontrollera i appen: Inställningar, "Skicka testavisering" (högst 5 i timmen).
 
 Morgonsammanfattningen köas från den inställda tiden och under ett fönster på två timmar, och bara om något
 ska göras idag eller är försenat. En påminnelse om en uppgift skickas `SIDEKICK_PUSH_DUE_LEAD_MINUTES` före
@@ -37,4 +37,4 @@ så telefonen måste logga in:
 3. Lägg i telefonens ntfy-app till `https://<din-domän>` som server med användaren `phone` och lösenordet från
    `ntfy-secrets/phone-password`, och gör den till standardserver. Öppna Sidekick igen så att den registrerar sig mot
    den servern.
-4. I Sidekick: Inställningar, "Skicka testnotis". Om inget kommer fram, se Felsökning.
+4. I Sidekick: Inställningar, "Skicka testavisering". Om inget kommer fram, se Felsökning.

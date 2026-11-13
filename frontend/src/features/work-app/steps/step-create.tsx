@@ -142,9 +142,9 @@ export function StepCreate({
   return (
     <div
       className="work-new-task"
-      onChange={(event) => {
+      onInput={(event) => {
         draft.current = (event.target as HTMLInputElement).value;
-        // A title over the limit is told until it is edited.
+        // A title over the limit is told until it is edited. `input` bubbles on Preact too, where onChange does not.
         setFailure((now) => (now?.kind === "tooLong" ? undefined : now));
       }}
     >

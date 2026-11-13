@@ -467,7 +467,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     expect(question).toHaveTextContent(
       "Vill du ha minnet tillbaka måste det byggas upp igen.",
     );
-    expect(question).toHaveFocus();
+    await waitFor(() => expect(question).toHaveFocus());
     // The other controls wait while the question is open.
     expect(
       screen.getByRole("switch", { name: "Kontakter: av" }),
@@ -527,6 +527,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     );
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
     const question = screen.getByRole("group", { name: "Slå av dagboken?" });
+    await waitFor(() => expect(question).toHaveFocus());
     expect(
       within(question)
         .getAllByRole("button")

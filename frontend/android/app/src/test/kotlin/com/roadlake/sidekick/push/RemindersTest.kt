@@ -19,13 +19,13 @@ import java.util.TimeZone
 private const val TASK = "3f2b8c1e-4d5a-4b6c-9d7e-8f9a0b1c2d3e"
 
 private class FakeTexts : ReminderTexts {
-    override fun summary(today: Int, overdue: Int) = "$today idag · $overdue försenade"
+    override fun summary(today: Int, overdue: Int) = "$today uppgifter idag · $overdue försenade uppgifter"
 
     override fun dueAt(clock: String) = "förfaller $clock"
 
-    override fun test() = "Testnotis från Sidekick"
+    override fun test() = "Testavisering från Sidekick"
 
-    override fun publicTitle(count: Int) = "Sidekick · $count påminnelser"
+    override fun publicTitle(count: Int) = "Sidekick · $count aviseringar"
 }
 
 private fun body(items: String = "", summary: String = "null", zone: String? = null) =
@@ -146,7 +146,7 @@ class ReminderNoticesTest {
         val notices = plan(due("r1", "Hemligt") + "," + due("r2", "Också hemligt"), """{"id":"s1","today":2,"overdue":0}""")
         assertEquals(3, notices.size)
         for (notice in notices) {
-            assertEquals("Sidekick · 3 påminnelser", notice.publicTitle)
+            assertEquals("Sidekick · 3 aviseringar", notice.publicTitle)
             assertFalse(notice.publicTitle.contains("hemligt", ignoreCase = true))
         }
     }
@@ -154,14 +154,21 @@ class ReminderNoticesTest {
     @Test
     fun theSummaryOpensToday() {
         val notice = plan("", """{"id":"s1","today":3,"overdue":2}""").single()
-        assertEquals("3 idag · 2 försenade", notice.title)
+        assertEquals("3 uppgifter idag · 2 försenade uppgifter", notice.title)
         assertEquals("sidekick://open?view=today", notice.deepLink)
+    }
+
+    @Test
+    fun aSummaryOfNothingIsNotShownAndDoesNotCountOnTheLockScreen() {
+        assertTrue(plan("", """{"id":"s1","today":0,"overdue":0}""").isEmpty())
+        val notices = plan(due("r1", "A"), """{"id":"s1","today":0,"overdue":0}""")
+        assertEquals("Sidekick · 1 aviseringar", notices.single().publicTitle)
     }
 
     @Test
     fun aTestReminderSaysSo() {
         val notice = plan("""{"id":"t1","kind":"test","title":"","task_id":null,"due_at":null}""").single()
-        assertEquals("Testnotis från Sidekick", notice.title)
+        assertEquals("Testavisering från Sidekick", notice.title)
         assertEquals(ReminderTarget.Today, notice.target)
     }
 

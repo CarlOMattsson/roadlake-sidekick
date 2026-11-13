@@ -6,7 +6,7 @@ from uuid import UUID
 from sidekick.journal.application.models import MAX_JOURNAL_RANGE_DAYS
 from sidekick.journal.domain.entry import ENTRY_PAGE_KEY, JournalEntry, entry_page_key
 from sidekick.shared.errors import ValidationError
-from sidekick.shared.types import Actor, CursorCodec, KeyValue
+from sidekick.shared.types import Actor, CursorCodec, KeyValue, validate_limit
 
 
 def decode_cursor(
@@ -29,8 +29,7 @@ def validate_list_bounds(start_date: date, end_date: date, limit: int) -> None:
         raise ValidationError("end_date cannot precede start_date")
     if (end_date - start_date).days >= MAX_JOURNAL_RANGE_DAYS:
         raise ValidationError("journal range must span at most 366 inclusive days")
-    if not 1 <= limit <= 100:
-        raise ValidationError("limit must be between 1 and 100")
+    validate_limit(limit, maximum=100, error=ValidationError)
 
 
 def journal_list_cursor_key(start_date: date, end_date: date, include_archived: bool) -> str:

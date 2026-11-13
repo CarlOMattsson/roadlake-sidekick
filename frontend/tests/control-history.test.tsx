@@ -612,7 +612,9 @@ describe("HistoryView empty state and who acted", () => {
       />,
     );
 
-    expect(screen.getByText("Tell Claude:")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ask Claude in the Claude app:"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("“Add milk to my shopping list”"),
     ).toBeInTheDocument();

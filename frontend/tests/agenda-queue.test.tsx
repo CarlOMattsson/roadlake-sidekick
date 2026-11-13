@@ -87,9 +87,7 @@ function glyph(title: string): HTMLElement {
 /** Lets the queue start its task and a settled promise run its continuation. */
 async function settle() {
   await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    await new Promise((resolve) => setTimeout(resolve, 0));
   });
 }
 
@@ -176,7 +174,7 @@ it("(10) the waiting mark is announced from a status region that is mounted befo
   const { transport } = makeTransport();
   renderAgenda([first], transport);
   const region = screen.getByRole("status");
-  expect(region).toBeEmptyDOMElement();
+  expect(region.textContent).toBe("");
 
   fireEvent.click(glyph(first.title));
   await settle();

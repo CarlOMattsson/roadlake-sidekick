@@ -6,11 +6,11 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import Actor
 from sidekick.tasks.application import TaskService
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus
-from sidekick.work.domain.planning import Cadence
 from tests.support.fakes import InMemoryStore, make_cursor_codec
 
 NOW = datetime(2026, 8, 21, 10, tzinfo=UTC)

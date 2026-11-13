@@ -8,11 +8,8 @@ from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
 from sidekick.tasks.domain import Priority
-from sidekick.work.domain.planning import (
-    MAX_ACTION_NOTE_LENGTH,
-    MAX_STEP_INSTRUCTION_LENGTH,
-    validate_estimated_minutes,
-)
+from sidekick.tasks.domain.planning import validate_estimated_minutes
+from sidekick.work.domain.planning import MAX_ACTION_NOTE_LENGTH, MAX_STEP_INSTRUCTION_LENGTH
 
 if TYPE_CHECKING:
     from .context import Process

@@ -296,9 +296,17 @@ it("without storage the document keeps the answer for the session", async () => 
 
 it("the tip is shown in Swedish with the Swedish labels", async () => {
   await open(shoppingSv);
-  expect(screen.getByText("Tryck på ringen när du köpt något.")).toBeVisible();
-  expect(shoppingSv.holdTip).toBe("Tryck på ringen när du köpt något.");
-  expect(shoppingEn.holdTip).toBe("Tap the ring when you’ve bought an item.");
+  expect(
+    screen.getByText(
+      "Tryck på ringen när du köpt något, eller på varan för att ändra.",
+    ),
+  ).toBeVisible();
+  expect(shoppingSv.holdTip).toBe(
+    "Tryck på ringen när du köpt något, eller på varan för att ändra.",
+  );
+  expect(shoppingEn.holdTip).toBe(
+    "Tap the ring when you’ve bought an item, or the item to edit it.",
+  );
 });
 
 it("a store row ends with a decorative chevron, hidden from assistive tech", async () => {

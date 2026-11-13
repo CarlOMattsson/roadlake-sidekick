@@ -60,12 +60,10 @@ from sidekick.structured.work_records import (
     WorkItemPageOutput,
 )
 from sidekick.tasks.domain import Priority, TaskStatus
+from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.tags_service import tag_public_data
-from sidekick.work.domain.planning import (
-    MAX_ESTIMATED_MINUTES,
-    MAX_TAG_FILTER_VALUES,
-)
+from sidekick.work.domain.planning import MAX_TAG_FILTER_VALUES
 
 
 def saved_view_record(item: Any) -> SavedViewRecord:

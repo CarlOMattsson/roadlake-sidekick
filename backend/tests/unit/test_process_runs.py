@@ -6,12 +6,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ConflictError
 from sidekick.shared.types import Actor, new_uuid7
 from sidekick.tasks.domain import Priority
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.domain import (
-    Cadence,
     Process,
     ProcessRun,
     ProcessRunActionTemplate,

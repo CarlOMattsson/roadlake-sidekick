@@ -70,6 +70,8 @@ describe("the Contacts room's first steps", () => {
   it("shows the example as text when the host takes no messages", async () => {
     render(<ContactsRoom mode="full" transport={host()} />);
     expect(await screen.findByText(`”${t.emptyAsk}”`)).toBeInTheDocument();
+    expect(screen.getByText(/Claude app:$|Claude-appen:$/)).toBeInTheDocument();
+    expect(screen.queryByText(/^(Tell|Säg till) Claude:$/)).toBeNull();
     expect(
       screen.queryByRole("button", { name: new RegExp(t.emptyAsk) }),
     ).toBeNull();

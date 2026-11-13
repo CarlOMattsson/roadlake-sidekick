@@ -64,11 +64,12 @@ describe("a hand-written journal entry on the phone", () => {
     await user.click(
       await screen.findByRole("button", { name: journalSv.addEntry }),
     );
-    await user.type(screen.getByLabelText(journalSv.titleLabel), TITLE);
-    await user.type(
-      screen.getByLabelText(journalSv.entryTextLabel),
-      TEXT.replaceAll("\n", "{Enter}"),
-    );
+    // Pasted, not typed key by key: a hundred keystrokes re-render the whole phone shell each and make the test
+    // depend on how busy the machine is, while the round trip it checks starts at the saved text.
+    await user.click(screen.getByLabelText(journalSv.titleLabel));
+    await user.paste(TITLE);
+    await user.click(screen.getByLabelText(journalSv.entryTextLabel));
+    await user.paste(TEXT);
     await user.click(screen.getByRole("button", { name: journalSv.saveEntry }));
 
     // Save: the server holds the words in the source; the entry itself has no summary.

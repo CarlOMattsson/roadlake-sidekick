@@ -2,7 +2,7 @@
 
 [Svenska](overview.sv.md)
 
-<!-- description: How Sidekick's parts fit together: Claude and the Android app on one side, one server with one set of rules in the middle, and your PostgreSQL database as the source of truth. -->
+<!-- description: How Sidekick's parts fit together: Claude and the Android app, one server with one set of rules, and your PostgreSQL database as the source of truth. -->
 
 How Sidekick's parts fit together: Claude and the Android app on one side, one server with one set of rules in the middle, and your PostgreSQL database as the source of truth.
 

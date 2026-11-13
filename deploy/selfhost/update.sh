@@ -2,7 +2,8 @@
 # Update a self-hosted Sidekick installation to a signed, digest-pinned api image.
 #
 # Default is --dry-run: the script only inspects local files and prints what --apply would do.
-# It calls neither docker nor the network in that mode. --apply needs an explicit --image
+# It calls neither docker nor the network in that mode. --apply needs python3 and update_policy.py (the decisions:
+# versions, migration class, rollback, recovery) next to this script, and an explicit --image
 # <registry/repo@sha256:digest>; a tag alone is refused.
 # --check is read-only too, but does call docker and cosign: current pinned digest, signature
 # status and schema head (image label versus applied migrations). It changes nothing.
@@ -82,7 +83,10 @@ IMAGE_RE='^[a-z0-9][a-z0-9._:/-]*@sha256:[0-9a-f]{64}$'
 LABEL_CLASS="io.sidekick.migration-class"
 LABEL_VERSION="org.opencontainers.image.version"
 LABEL_MIN_FROM="io.sidekick.min-upgrade-from"
-VERSION_RE='^[0-9]+\.[0-9]+\.[0-9]+$'
+# The decisions (versions, migration class, rollback, recovery after a kill, container states) are update_policy.py, next
+# to this script; it needs the host's python3. Its exit status and output are read here, nothing is decided in bash.
+POLICY_PY="$SCRIPT_DIR/update_policy.py"
+policy() { python3 -I "$POLICY_PY" "$@"; }
 # Every Sidekick worker that runs from the api image, as "profile:service" (see compose.yaml; an empty profile
 # means the service runs by default, with no profile). This is the one
 # list the updater uses to find which are running, stop them before the migration, start them again with the new
@@ -252,43 +256,6 @@ installed_image_ref() { # the image the api container actually runs, else what c
   printf '%s\n' "${ref:-$previous_ref}"
 }
 
-version_lt() { # $1 < $2 for plain X.Y.Z versions
-  local -a a b
-  local i
-  IFS=. read -r -a a <<<"$1"
-  IFS=. read -r -a b <<<"$2"
-  for i in 0 1 2; do
-    if ((10#${a[i]} < 10#${b[i]})); then return 0; fi
-    if ((10#${a[i]} > 10#${b[i]})); then return 1; fi
-  done
-  return 1
-}
-
-# Sets compat_kind (ok | unknown | refused) and compat_message for installed=$1, new=$2, minimum upgrade-from=$3.
-compat_kind="ok"
-compat_message=""
-check_upgrade_path() {
-  local installed="$1" new="$2" min_from="$3"
-  compat_kind="ok"
-  compat_message=""
-  if ! [[ "$installed" =~ $VERSION_RE ]]; then
-    compat_kind="unknown"
-    compat_message="the installed version cannot be determined (the running image has no valid $LABEL_VERSION label; a local build or a pre-release image). The upgrade path cannot be verified."
-  elif ! [[ "$new" =~ $VERSION_RE ]]; then
-    compat_kind="unknown"
-    compat_message="the new image has no valid $LABEL_VERSION label, so its version cannot be checked."
-  elif ! [[ "$min_from" =~ $VERSION_RE ]]; then
-    compat_kind="unknown"
-    compat_message="the new image declares no valid $LABEL_MIN_FROM label (installed $installed, new $new); it cannot say which versions it can be updated from."
-  elif version_lt "$installed" "$min_from"; then
-    compat_kind="refused"
-    compat_message="installed version $installed is older than $min_from, the oldest version release $new can be updated from. Update to a release between $min_from and $new first (a stepping-stone), then run this update again. Nothing was changed."
-  elif version_lt "$new" "$installed"; then
-    compat_kind="refused"
-    compat_message="the new image ($new) is older than the installed version ($installed). update.sh does not downgrade; use the pre-update snapshot restore steps in README.md instead. Nothing was changed."
-  fi
-}
-
 backup_key_present() { # presence only; the value is never read into the script
   [ -f "$ENV_FILE" ] || return 1
   grep -q '^SIDEKICK_BACKUP_ENCRYPTION_KEY=.\+' "$ENV_FILE" && return 0
@@ -441,6 +408,8 @@ fi
 [ -n "$image" ] || die "--apply requires --image REF@sha256:DIGEST"
 [ -n "$identity" ] || die "--apply requires --cert-identity (the exact release workflow identity)"
 command -v docker >/dev/null 2>&1 || die "docker not found"
+command -v python3 >/dev/null 2>&1 || die "python3 not found, refusing to update: the update decisions run in update_policy.py (python3 3.9 or newer, standard library only)"
+[ -f "$POLICY_PY" ] || die "update_policy.py not found next to this script"
 if ! command -v cosign >/dev/null 2>&1; then
   die "cosign not found, refusing to update (fail closed). Install cosign from https://docs.sigstore.dev/cosign/system_config/installation/ and re-run; do not skip verification"
 fi
@@ -541,10 +510,7 @@ worker_ready() { # $1 = a WORKERS entry; ready = running, and healthy where the 
   cid="$(compose $(worker_profile_args "$entry") ps -q "${entry#*:}" 2>/dev/null)" || return 1
   [ -n "$cid" ] || return 1
   state="$(docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null)" || return 1
-  case "$state" in
-    "running healthy" | "running none") return 0 ;;
-    *) return 1 ;;
-  esac
+  policy worker-ready --inspect-line="$state"
 }
 
 # ready = the api runs the expected image and passes the readiness check, AND every worker start_api started (see
@@ -575,7 +541,7 @@ worker_profile_args() { # $1 = a WORKERS entry; prints "--profile NAME", or noth
 }
 
 live_containers() { # $1 = a WORKERS entry; prints the id of every container of the service that is or may become active
-  local entry="$1" cids cid line policy
+  local entry="$1" cids cid line answer
   # Every status counts, not only "running": a worker in a restart loop is "restarting" between two attempts and
   # Docker would start it again during the backup, the snapshot or the migration.
   # worker_profile_args prints "--profile" and the name on two lines (or nothing): the splitting is wanted.
@@ -583,12 +549,12 @@ live_containers() { # $1 = a WORKERS entry; prints the id of every container of 
   cids="$(compose $(worker_profile_args "$entry") ps -a -q "${entry#*:}" 2>/dev/null)" || return 1
   for cid in $cids; do
     line="$(docker inspect -f '{{.State.Status}} {{.HostConfig.RestartPolicy.Name}}' "$cid" 2>/dev/null)" || return 1
-    case "$line" in
-      running\ * | restarting\ * | paused\ *) echo "$cid" ;;
-      created\ *)
-        policy="${line#created }" # a created container is only started by Docker when it has a restart policy
-        if [ -n "$policy" ] && [ "$policy" != no ]; then echo "$cid"; fi
-        ;;
+    # Only the word "inactive" means not active; a crash, a usage error or no output is no answer, never "not active".
+    answer="$(policy container-active --inspect-line="$line")" || return 1
+    case "$answer" in
+      active) echo "$cid" ;;
+      inactive) ;;
+      *) return 1 ;;
     esac
   done
 }
@@ -609,17 +575,12 @@ detect_running_workers() { # fills running_workers from WORKERS (running, restar
 }
 
 merge_resumed_workers() { # adds the workers a killed earlier run had stopped; only names that are in WORKERS count
-  local name entry known known_entry
-  for name in ${resumed_workers//,/ }; do
-    for entry in "${WORKERS[@]}"; do
-      [ "$entry" = "$name" ] || continue
-      known=0
-      for known_entry in ${running_workers[@]+"${running_workers[@]}"}; do
-        [ "$known_entry" = "$entry" ] && known=1
-      done
-      [ "$known" -eq 1 ] || running_workers+=("$entry")
-    done
-  done
+  local merged entry
+  merged="$(policy merge-workers --known "${WORKERS[@]}" --running ${running_workers[@]+"${running_workers[@]}"} --resumed "$resumed_workers")" || return 1
+  running_workers=()
+  while IFS= read -r entry; do
+    [ -z "$entry" ] || running_workers+=("$entry")
+  done <<<"$merged"
 }
 
 stop_workers() { # stops every running worker, also after a failure; non-zero if any stop failed
@@ -723,7 +684,7 @@ fail_apply() { # $1 = phase
   journal ROLLING_BACK "phase=$1"
   local after entry
   after="$(migration_count)"
-  if [ "$migration_class" = expand ] || { [ "$before_count" != unknown ] && [ "$before_count" = "$after" ]; }; then
+  if policy rollback-allowed --class "$migration_class" --before "$before_count" --after "$after"; then
     echo "update.sh: starting the previous image $previous_ref" >&2
     if start_api "$previous_ref" && wait_healthy "$previous_ref"; then
       if [ -f "$RELEASE_FILE" ] && [ -n "$current_pin" ]; then
@@ -753,25 +714,25 @@ fail_apply() { # $1 = phase
 # the process that wrote the last state is gone. Before MIGRATING nothing but the stop of the writers can have
 # happened, and the journal carries the list of workers that run stopped (or was about to stop): resume.
 state="$(last_journal_state)"
-case "$state" in
-  "" | DONE | ROLLED_BACK | ABORTED) ;;
-  STARTED | STOPPING_WRITERS | RESUMING)
-    echo "update.sh: an earlier update was killed in state $state before the migration; resuming" >&2
-    last_line="$(tail -n 1 "$JOURNAL")"
-    # A "workers=" key (even an empty one) means the earlier run had begun to stop the writers; a plain STARTED,
-    # written before that, means nothing was stopped.
-    case "$state:$last_line" in
-      STOPPING_WRITERS:* | *\ workers=*)
-        resumed_workers="$(printf '%s\n' "$last_line" | sed -n 's/.* workers=\([^ ]*\).*/\1/p')"
-        resume_note=" workers=$resumed_workers"
-        merge_resumed_workers # running_workers = the saved list, so every failure below can start them again
-        writers_stopped=1 # a failure or an interrupt must start them again, never journal "untouched"
-        ;;
-    esac
+last_line=""
+if [ -f "$JOURNAL" ]; then last_line="$(tail -n 1 "$JOURNAL")"; fi
+recovery_rc=0
+recovery_plan="$(policy recovery --state "$state" --last-line="$last_line" --journal "$JOURNAL")" || recovery_rc=$?
+case "$recovery_rc" in
+  0) ;;
+  20)
+    # The plan lists writers_stopped= and workers=; a stopped writer set is carried on in the journal.
+    resumed_workers="$(sed -n 's/^workers=//p' <<<"$recovery_plan")"
+    if [ "$(sed -n 's/^writers_stopped=//p' <<<"$recovery_plan")" = 1 ]; then
+      resume_note=" workers=$resumed_workers"
+      merge_resumed_workers # running_workers = the saved list, so every failure below can start them again
+      writers_stopped=1 # a failure or an interrupt must start them again, never journal "untouched"
+    fi
     rm -f "$STATE_DIR"/snapshots/*.partial "$RELEASE_FILE.tmp"
     journal RESUMING "from=$state$resume_note"
     ;;
-  *) die "previous update ended in state $state (see $JOURNAL); resolve it by hand before a new update" ;;
+  1) exit 1 ;;
+  *) die "update_policy.py failed (status $recovery_rc); nothing was changed" ;;
 esac
 
 apply_running=1
@@ -784,33 +745,30 @@ cosign verify "$image" --certificate-identity "$identity" --certificate-oidc-iss
 
 echo "update.sh: 2/7 pulling the image, reading its migration class and checking the upgrade path"
 docker pull "$image" >/dev/null || fail_apply "pull"
-migration_class="$(docker image inspect -f "{{ index .Config.Labels \"$LABEL_CLASS\" }}" "$image" 2>/dev/null || true)"
-case "$migration_class" in
-  expand) ;;
-  breaking) [ "$allow_breaking" -eq 1 ] || fail_apply "migration-class-breaking-not-allowed" ;;
-  *)
-    migration_class="unknown"
-    [ "$allow_unknown" -eq 1 ] || fail_apply "migration-class-missing-not-allowed"
-    ;;
+class_args=()
+if [ "$allow_breaking" -eq 1 ]; then class_args+=(--allow-breaking); fi
+if [ "$allow_unknown" -eq 1 ]; then class_args+=(--allow-unknown); fi
+class_label="$(docker image inspect -f "{{ index .Config.Labels \"$LABEL_CLASS\" }}" "$image" 2>/dev/null || true)"
+class_rc=0
+migration_class="$(policy migration-class --label="$class_label" ${class_args[@]+"${class_args[@]}"})" || class_rc=$?
+case "$class_rc" in
+  0) ;;
+  12) fail_apply "migration-class-breaking-not-allowed" ;;
+  13) fail_apply "migration-class-missing-not-allowed" ;;
+  *) migration_class="unknown"; fail_apply "migration-class-check" ;;
 esac
 installed_version="$(image_label "$(installed_image_ref)" "$LABEL_VERSION")"
 new_version="$(image_label "$image" "$LABEL_VERSION")"
-check_upgrade_path "$installed_version" "$new_version" "$(image_label "$image" "$LABEL_MIN_FROM")"
-case "$compat_kind" in
-  ok) echo "update.sh: upgrade path ok: $installed_version -> $new_version" ;;
-  unknown)
-    echo "update.sh: $compat_message" >&2
-    if [ "$allow_unknown_version" -eq 1 ]; then
-      echo "update.sh: continuing because of --allow-unknown-version" >&2
-    else
-      echo "update.sh: refusing. Re-run with --allow-unknown-version only if you know this installation is at or above the new image's minimum version." >&2
-      fail_apply "version-compat-unknown"
-    fi
-    ;;
-  *)
-    echo "update.sh: $compat_message" >&2
-    fail_apply "version-compat-refused"
-    ;;
+path_args=()
+if [ "$allow_unknown_version" -eq 1 ]; then path_args+=(--allow-unknown); fi
+path_rc=0
+policy upgrade-path --installed="$installed_version" --new="$new_version" --min-from="$(image_label "$image" "$LABEL_MIN_FROM")" \
+  ${path_args[@]+"${path_args[@]}"} || path_rc=$?
+case "$path_rc" in
+  0) ;;
+  10) fail_apply "version-compat-unknown" ;;
+  11) fail_apply "version-compat-refused" ;;
+  *) fail_apply "version-compat-check" ;;
 esac
 
 # Room for the snapshot is checked now, while the installation still runs: a full disk found after the stop would

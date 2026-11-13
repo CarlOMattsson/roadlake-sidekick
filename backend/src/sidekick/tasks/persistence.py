@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from sidekick.projects.domain import Project, ProjectStatus
 from sidekick.projects.persistence import project_from_row, project_to_row
+from sidekick.shared.cadence import parse_cadence
 from sidekick.shared.errors import (
     ConflictError,
     NotFoundError,
@@ -25,7 +26,6 @@ from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
 from sidekick.shared.types import KeyValue, new_uuid7
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus, TaskStatusHistory
-from sidekick.work.domain.planning import parse_cadence
 
 
 def task_from_row(row: TaskRow) -> Task:

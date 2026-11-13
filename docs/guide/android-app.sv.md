@@ -16,7 +16,7 @@ Appen används dagligen på en riktig telefon mot en riktig server. Den byggs oc
 - **Inköp:** listor och varor. Du kan skapa listor, lägga till, ändra, bocka av och ångra.
 - **Dagbok:** läs dagar och inlägg, och skriv eller ändra inlägg för hand.
 - **Idag-widgeten:** dagens uppgifter på hemskärmen. [Läs om widgeten och påminnelserna](today-widget.sv.md).
-- **Inställningar:** status för aviseringar, en testnotis, appens språk, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
+- **Inställningar:** status för aviseringar, en testavisering, appens språk, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
 
 ## Det här gör appen inte
 
@@ -47,7 +47,7 @@ Alla kommandon står i driftsguiden. [Läs hur du installerar och parar ihop And
 
 ## Hitta Inställningar
 
-Inställningar ligger sist i menyn ⋯ i varje rum. Där ser du om aviseringarna fungerar, och där kan du skicka en testnotis.
+Inställningar ligger sist i menyn ⋯ i varje rum. Där ser du om aviseringarna fungerar, och där kan du skicka en testavisering.
 
 ## Koppla från en telefon
 

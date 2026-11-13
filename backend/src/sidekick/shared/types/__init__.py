@@ -16,7 +16,9 @@ from .core import (
     SystemClock,
     UnsetType,
     new_uuid7,
+    paginate,
     utc_now,
+    validate_limit,
 )
 from .ports import AuditingStore, IdempotentStore, TransactionalStore
 from .tx import TxSession
@@ -41,5 +43,7 @@ __all__ = [
     "TxSession",
     "UnsetType",
     "new_uuid7",
+    "paginate",
     "utc_now",
+    "validate_limit",
 ]

@@ -1,14 +1,21 @@
-/* The lines about writes the phone could not send (queue-notice.tsx). Design tokens only; the bottom inset is the one
-   insets.ts publishes, so the last line clears the gesture bar. */
+/* The card about writes the phone could not send (queue-notice.tsx). Design tokens only; the bottom inset is the one
+   insets.ts publishes, so the card clears the gesture bar. */
 .mobile-queue-notice {
   box-sizing: border-box;
-  margin: 0;
-  padding: var(--sk-s2) calc(var(--sk-s4) + var(--host-safe-right, 0px))
+  margin: var(--sk-s2) calc(var(--sk-s4) + var(--host-safe-right, 0px))
     calc(var(--sk-s2) + var(--host-safe-bottom, 0px))
     calc(var(--sk-s4) + var(--host-safe-left, 0px));
-  background: var(--sk-bg);
+  padding: var(--sk-s2) var(--sk-s3);
+  border: 1px solid var(--sk-line);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
   color: var(--sk-fg);
   font: var(--sk-type-meta);
+}
+
+.mobile-queue-notice__heading {
+  margin: 0 0 var(--sk-s1);
+  font-weight: var(--sk-weight-semibold);
 }
 
 .mobile-queue-notice__list {
@@ -17,27 +24,25 @@
   list-style: none;
 }
 
-.mobile-queue-notice__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  column-gap: var(--sk-s3);
+.mobile-queue-notice__row + .mobile-queue-notice__row {
+  margin-top: var(--sk-s2);
+  padding-top: var(--sk-s2);
+  border-top: 1px solid var(--sk-line);
 }
 
 .mobile-queue-notice__text {
-  flex: 1 1 12rem;
-  min-width: 0;
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.mobile-queue-notice__why {
-  color: var(--sk-muted);
+/* Two fixed columns, retry then remove: "Ta bort" keeps its place whether or not "Försök igen" is offered. */
+.mobile-queue-notice__actions {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  justify-content: end;
+  gap: var(--sk-s1);
 }
 
-.mobile-queue-notice__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sk-s1);
+.mobile-queue-notice__actions > :last-child {
+  grid-column: 2;
 }

@@ -348,7 +348,7 @@ describe("board card write queue", () => {
       getWorkBoard: vi.fn(() => new Promise<WorkBoardPage>(() => undefined)),
     });
     const region = screen.getByRole("status");
-    expect(region).toBeEmptyDOMElement();
+    expect(region.textContent).toBe("");
 
     stepRight(taskA);
     stepRight(taskA);

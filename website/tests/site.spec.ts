@@ -354,3 +354,45 @@ test('language selector on /sv/docs/operate/ leads to /en/docs/operate/', async 
   await page.locator('starlight-lang-select select:visible').selectOption({ label: 'English' });
   await page.waitForURL('**/en/docs/operate/');
 });
+
+// Search results show the title and the description: every built page needs a title that does not repeat the site
+// name and a description short enough not to be cut off.
+test.describe('page titles and descriptions', () => {
+  const htmlFiles = (dir: string): string[] =>
+    fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? htmlFiles(path.join(dir, e.name)) : e.name === 'index.html' ? [path.join(dir, e.name)] : []));
+  const decode = (s: string) => s.replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+  test('every page has a title without a repeated segment and a description of at most 160 characters', () => {
+    const problems: string[] = [];
+    for (const file of htmlFiles(distDir)) {
+      const html = fs.readFileSync(file, 'utf8');
+      const rel = path.relative(distDir, file);
+      const title = html.match(/<title>([^<]*)<\/title>/)?.[1];
+      const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1];
+      if (!title) problems.push(`${rel}: no title`);
+      else {
+        const parts = decode(title).split(' | ');
+        if (new Set(parts).size !== parts.length) problems.push(`${rel}: repeated title segment "${decode(title)}"`);
+      }
+      if (!description) problems.push(`${rel}: no description`);
+      else if (decode(description).length > 160) problems.push(`${rel}: description is ${decode(description).length} characters`);
+    }
+    expect(problems).toEqual([]);
+  });
+
+  test('robots.txt points to the sitemap and the sitemap marks the root as x-default', () => {
+    expect(fs.readFileSync(path.join(distDir, 'robots.txt'), 'utf8')).toMatch(/^Sitemap: https?:\/\/\S+\/sitemap-index\.xml$/m);
+    const sitemap = fs.readFileSync(path.join(distDir, 'sitemap-0.xml'), 'utf8');
+    expect(sitemap).toMatch(/hreflang="x-default" href="[^"]+\/"/);
+    expect(sitemap).not.toMatch(/hreflang="en" href="https?:\/\/[^/"]+\/"/);
+  });
+});
+
+test('the skip link is a 44 px target when it has focus', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto(`${base}sv/pricing/`);
+  await ready(page);
+  await page.keyboard.press('Tab');
+  const box = await page.locator('.sl-skip-link:focus').boundingBox();
+  expect(box?.height).toBeGreaterThanOrEqual(44);
+});

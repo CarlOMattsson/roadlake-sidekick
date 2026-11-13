@@ -13,9 +13,10 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import UNSET, UnsetType
-from sidekick.work.domain.planning import Cadence, is_review_due
+from sidekick.work.domain.planning import is_review_due
 
 
 class DomainStatus(StrEnum):

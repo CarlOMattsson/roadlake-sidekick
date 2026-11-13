@@ -1,5 +1,6 @@
 """Row to domain mappers for domains, processes, runs, steps and actions."""
 
+from sidekick.shared.cadence import parse_cadence
 from sidekick.shared.persistence.models import (
     ActionRow,
     DomainRow,
@@ -23,7 +24,6 @@ from sidekick.work.domain import (
     Step,
     run_steps_from_data,
 )
-from sidekick.work.domain.planning import parse_cadence
 
 
 def domain_from_row(row: DomainRow) -> Domain:

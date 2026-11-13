@@ -7,9 +7,9 @@ from uuid import UUID
 
 from sidekick.projects.domain import Project
 from sidekick.tasks.domain import Task
+from sidekick.tasks.domain.planning import is_actionable_now
 from sidekick.work.application.models import HierarchyNode, WorkRow
 from sidekick.work.domain import Action, Domain, DomainStatus, Process, ProcessStatus, Step
-from sidekick.work.domain.planning import is_actionable_now
 from sidekick.work.listing import project_due_at, project_earliest_start
 
 

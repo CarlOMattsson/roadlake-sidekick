@@ -2,7 +2,7 @@
 
 [Svenska](work-laptop.sv.md)
 
-<!-- description: Run Sidekick in Docker on your work laptop, with an optional private memory, and use it from Claude Desktop, with no public address. If you turn the memory on, Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude. -->
+<!-- description: Run Sidekick in Docker on your work laptop, with an optional private memory, and use it from Claude Desktop with no public address. -->
 
 Run Sidekick in Docker on your work laptop, with an optional private memory, and use it from Claude Desktop, with no public address. If you turn the memory on, Sidekick's containers can reach only your company's own model server; what you do in Claude Desktop is still shared with Claude.
 

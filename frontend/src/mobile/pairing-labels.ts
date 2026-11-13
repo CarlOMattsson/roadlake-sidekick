@@ -73,8 +73,7 @@ export type PairingLabels = {
 export const pairingLabelsSv: PairingLabels = {
   title: "Koppla till din Sidekick",
   language: "Språk",
-  intro:
-    "Skriv adressen till din server och kopplingskoden du fick när du skapade kopplingen.",
+  intro: "Skriv serverns adress och kopplingskoden från din server.",
   serverLabel: "Serveradress",
   serverPlaceholder: "https://din-server.example",
   secretLabel: "Kopplingskod",
@@ -108,7 +107,7 @@ export const pairingLabelsSv: PairingLabels = {
   lost: "Kopplingen har upphört. Koppla igen.",
   unpaired: "Telefonen är frånkopplad.",
   unpairedUnconfirmed:
-    "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen på servern också.",
+    "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen under Kontroll i Claude, eller be den som sköter servern.",
   linkIgnored:
     "Telefonen är redan kopplad till {host}. Koppla från i Inställningar för att byta.",
   linkIgnoredNoHost:
@@ -136,8 +135,7 @@ export const pairingLabelsSv: PairingLabels = {
 export const pairingLabelsEn: PairingLabels = {
   title: "Connect to your Sidekick",
   language: "Language",
-  intro:
-    "Enter your server’s address and the pairing code you got when you set up the connection.",
+  intro: "Enter your server’s address and the pairing code from your server.",
   serverLabel: "Server address",
   serverPlaceholder: "https://your-server.example",
   secretLabel: "Pairing code",
@@ -171,7 +169,7 @@ export const pairingLabelsEn: PairingLabels = {
   lost: "The connection has ended. Connect again.",
   unpaired: "This phone is disconnected.",
   unpairedUnconfirmed:
-    "This phone is disconnected, but the server couldn’t confirm it. Revoke the phone on the server too.",
+    "This phone is disconnected, but the server couldn’t confirm it. Revoke the phone in Control in Claude, or ask whoever runs the server.",
   linkIgnored:
     "This phone is already connected to {host}. Disconnect in Settings to switch.",
   linkIgnoredNoHost:

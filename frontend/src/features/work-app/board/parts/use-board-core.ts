@@ -1,4 +1,10 @@
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import type {
   WorkBoardFrame,
   WorkTask,
@@ -174,7 +180,9 @@ export function useBoardCore({
     if (next) commit({ ...latest.current, page: next });
   }
 
-  useEffect(() => {
+  // A layout effect, so the board's own writes never meet a stale frame: Preact runs a passive effect after paint,
+  // which can overwrite what a write has just committed with the frame of the render before it.
+  useLayoutEffect(() => {
     latest.current = frame;
     reloadNow.current = reload;
   });

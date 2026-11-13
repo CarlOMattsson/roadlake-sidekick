@@ -22,6 +22,8 @@ from sidekick.shared.types import (
     TxSession,
     UnsetType,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 from sidekick.work.domain import Domain
 from sidekick.work.domain.planning import WorkTag
@@ -125,8 +127,7 @@ class ProjectService:
         include_archived: bool = False,
     ) -> Page[Project]:
         actor.require("projects:read")
-        if not 1 <= limit <= 100:
-            raise InvalidInputError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100)
         query_key = (
             f"projects:v2:status={status.value if status else '*'}:archived={include_archived}"
         )
@@ -137,14 +138,13 @@ class ProjectService:
             )
         )
         return Page(
-            items=projects[:limit],
-            next_cursor=self.cursor_codec.encode_keyset(
-                actor.user_id,
-                (projects[limit - 1].updated_at, projects[limit - 1].id),
-                query_key,
+            *paginate(
+                projects,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.updated_at, last.id), query_key
+                ),
             )
-            if len(projects) > limit
-            else None,
         )
 
     def get(self, actor: Actor, project_id: UUID) -> Project:

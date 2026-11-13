@@ -1,7 +1,7 @@
 /**
  * What the phone could not send of what the user did without a network: a shopping write that waited longer than
- * seven days, or that the server refused. Each one stays as a short line, "Kunde inte skickas: Mjölk, Ost", with the
- * way out: "Försök igen" puts it back in the outbox, "Ta bort" removes it. Nothing the user queued disappears
+ * seven days, or that the server refused. They stand in a card headed "Inköp som inte skickades", each as a short
+ * line, "Mjölk, Ost. Den låg i kön i över 7 dagar.", with the way out: "Försök igen" puts it back in the outbox, "Ta bort" removes it. Nothing the user queued disappears
  * unseen. Drawn over the rooms (it is the phone's own, like the push note), only while something failed. A refused read
  * draws nothing; a refused retry or remove says so on its line and leaves it where it is.
  */
@@ -13,7 +13,7 @@ import type { FailedWrite, SidekickNativePlugin } from "./sidekick-native";
 import "./queue-notice.css";
 
 export type QueueNoticeLabels = {
-  /** The start of the line; the write follows after a colon. */
+  /** The heading of the card: what kind of writes these are. */
   failed: string;
   /** What an add of items without a name reads as. */
   items: string;
@@ -36,11 +36,11 @@ export type QueueNoticeLabels = {
 };
 
 export const queueNoticeLabelsSv: QueueNoticeLabels = {
-  failed: "Kunde inte skickas",
+  failed: "Inköp som inte skickades",
   items: "varor",
   more: (names, count) => `${names} och ${count} till`,
-  bought: "en vara markerad som köpt",
-  putBack: "en vara som lagts tillbaka",
+  bought: "Köp av en vara",
+  putBack: "En vara som lades tillbaka på listan",
   expired: "Den låg i kön i över 7 dagar.",
   rejected: "Servern tog inte emot den.",
   retry: "Försök igen",
@@ -52,16 +52,16 @@ export const queueNoticeLabelsSv: QueueNoticeLabels = {
 };
 
 export const queueNoticeLabelsEn: QueueNoticeLabels = {
-  failed: "Could not be sent",
+  failed: "Shopping that wasn’t sent",
   items: "items",
   more: (names, count) => `${names} and ${count} more`,
-  bought: "an item marked as bought",
-  putBack: "an item put back",
+  bought: "Marking an item as bought",
+  putBack: "Putting an item back on the list",
   expired: "It waited in the queue for over 7 days.",
-  rejected: "The server did not accept it.",
+  rejected: "The server didn’t accept it.",
   retry: "Try again",
   remove: "Remove",
-  actionFailed: "That did not work. Try again in a moment.",
+  actionFailed: "That didn’t work. Try again in a moment.",
   notRetried:
     "It could not be put back in the queue. Remove it and add it again.",
   notRemoved: "It could not be removed. Try again in a moment.",
@@ -70,6 +70,8 @@ export const queueNoticeLabelsEn: QueueNoticeLabels = {
 export function queueNoticeLabelsFor(locale: AppLocale): QueueNoticeLabels {
   return locale === "en" ? queueNoticeLabelsEn : queueNoticeLabelsSv;
 }
+
+const HEADING_ID = "mobile-queue-notice-heading";
 
 /** At most this many names are listed; the rest are counted. */
 const NAMES_SHOWN = 3;
@@ -180,19 +182,17 @@ export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
   const labels = queueNoticeLabelsFor(locale);
   return (
     <div className="mobile-queue-notice" lang={locale} role="status">
-      <ul className="mobile-queue-notice__list">
+      <p id={HEADING_ID} className="mobile-queue-notice__heading">
+        {labels.failed}
+      </p>
+      <ul className="mobile-queue-notice__list" aria-labelledby={HEADING_ID}>
         {failed.map((write) => {
           const what = describeWrite(write, labels);
           return (
             <li key={write.key} className="mobile-queue-notice__row">
               <p className="mobile-queue-notice__text">
-                {labels.failed}: {what}
-                <span className="mobile-queue-notice__why">
-                  {" "}
-                  {write.reason === "expired"
-                    ? labels.expired
-                    : labels.rejected}
-                </span>
+                {what}.{" "}
+                {write.reason === "expired" ? labels.expired : labels.rejected}
               </p>
               {refused?.key === write.key ? (
                 <p role="alert" className="mobile-queue-notice__text">

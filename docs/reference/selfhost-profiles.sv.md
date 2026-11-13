@@ -37,4 +37,5 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `restore-ownership.sql` | Ger varje objekt tillbaka sin ägare efter att en vanlig SQL-dump har återställts. |
 | `backup_space.sh` | Kontrollerar ledigt utrymme före en backup och rensar färdiga backupfiler. Delas med jobbpaketet. |
 | `snapshot_crypto.py` | Krypterar och dekrypterar de databasögonblicksbilder som `update.sh` tar. |
+| `update_policy.py` | Besluten i `update.sh` (versioner, migreringsklass, återställning, återupptagning). Kräver värdens `python3`. |
 | `min-upgrade-from.txt` | Den äldsta version som en ny release kan uppdateras från. |

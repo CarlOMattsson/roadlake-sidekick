@@ -52,20 +52,14 @@ PROJECT_PREFIX="sk-drill-"
 # Reserved ports: the drill must never touch these (long-running databases and their API ports, plus the test pool's 55433).
 # SIDEKICK_RESERVED_PORTS (comma-separated) only adds to this list.
 RESERVED_PORTS=(55432 55433 55434 55436 8100 8101)
+# The checks are tools/drill_policy.py (the host's python3); what the cleanup may remove stays in this file.
+drill_policy() { python3 -I "$REPO/tools/drill_policy.py" "$@"; }
 if [ -n "${SIDEKICK_RESERVED_PORTS:-}" ]; then
-  # Validate the whole value (newlines included), then normalise each port to a decimal integer.
-  _bad_reserved() { echo "SIDEKICK_RESERVED_PORTS must be comma-separated TCP ports (1-65535)" >&2; exit 2; }
-  case "$SIDEKICK_RESERVED_PORTS" in *[!0-9,\ ]*) _bad_reserved ;; esac
-  IFS=',' read -r -a _extra_reserved <<<"${SIDEKICK_RESERVED_PORTS}"
-  for _p in "${_extra_reserved[@]}"; do
-    _p="${_p// /}"
-    [ -z "$_p" ] && continue
-    _p=$((10#$_p))
-    { [ "$_p" -ge 1 ] && [ "$_p" -le 65535 ]; } || _bad_reserved
-    RESERVED_PORTS+=("$_p")
-  done
+  extra_reserved="$(drill_policy reserved-ports "$SIDEKICK_RESERVED_PORTS")" || exit 2
+  while IFS= read -r _p; do
+    [ -z "$_p" ] || RESERVED_PORTS+=("$_p")
+  done <<<"$extra_reserved"
 fi
-IMAGE_RE='^[a-z0-9][a-z0-9._:/-]*@sha256:[0-9a-f]{64}$'
 
 # Nothing from the caller's shell may steer the stacks of the drill.
 unset SIDEKICK_API_IMAGE SIDEKICK_API_IMAGE_PREVIOUS SIDEKICK_WORK_API_IMAGE SIDEKICK_WORK_PROJECT \
@@ -147,18 +141,7 @@ if [ "$dry" = 1 ]; then
   identity="${identity:-drill@example.invalid}"
 fi
 if [ "$local_images" = 0 ]; then
-  if [ -z "$from_image" ] || [ -z "$to_image" ]; then
-    echo "drill: --from-image and --to-image (or DRILL_FROM_IMAGE and DRILL_TO_IMAGE) are required, or --local-images" >&2
-    exit 2
-  fi
-  if ! [[ "$from_image" =~ $IMAGE_RE ]] || ! [[ "$to_image" =~ $IMAGE_RE ]]; then
-    echo "drill: images must be pinned by digest (REGISTRY/REPO@sha256:<64 hex>); update.sh refuses a tag" >&2
-    exit 2
-  fi
-  if [ "$from_image" = "$to_image" ]; then
-    echo "drill: --from-image and --to-image must differ" >&2
-    exit 2
-  fi
+  drill_policy image-pair --from "$from_image" --to "$to_image" || exit 2
 fi
 if [ "$scenario" != work ] && [ -z "$identity" ]; then
   echo "drill: selfhost needs --cert-identity (or DRILL_CERT_IDENTITY): update.sh verifies the real signature" >&2
@@ -650,33 +633,13 @@ rand_secret() { python3 -c 'import secrets, sys; print(secrets.token_urlsafe(int
 rand_hex() { python3 -c 'import secrets; print(secrets.token_hex(32))'; }
 fernet_key() { python3 -c 'import base64, os; print(base64.urlsafe_b64encode(os.urandom(32)).decode())'; }
 
-in_reserved() {
-  local port="$1" reserved
-  for reserved in "${RESERVED_PORTS[@]}"; do
-    [ "$port" = "$reserved" ] && return 0
-  done
-  return 1
-}
-
 USED_PORTS=()
 # Sets PICKED to a random port in 20000-39999 that is not reserved, not picked before and not listening on
 # 127.0.0.1. Not run in a command substitution: USED_PORTS must survive the call.
 PICKED=""
 pick_port() {
-  local port used
-  for _ in $(seq 1 50); do
-    port=$(((RANDOM * 32768 + RANDOM) % 20000 + 20000))
-    in_reserved "$port" && continue
-    for used in ${USED_PORTS[@]+"${USED_PORTS[@]}"}; do
-      [ "$used" = "$port" ] && continue 2
-    done
-    if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then continue; fi
-    USED_PORTS+=("$port")
-    PICKED="$port"
-    return 0
-  done
-  echo "drill: no free port found" >&2
-  return 1
+  PICKED="$(drill_policy pick-port --reserved "${RESERVED_PORTS[*]}" --used "${USED_PORTS[*]-}")" || return 1
+  USED_PORTS+=("$PICKED")
 }
 
 # The deploy files a scenario needs, without env files and secrets of the repository (a developer's own are never copied).
@@ -822,9 +785,7 @@ local_images_build() {
     sleep 1
   done
   # The release workflow's inputs, from the same files: the version of the source, the newest migration, the stepping stone.
-  versions="$(python3 -I -c 'import sys, tomllib
-major, minor, patch = tomllib.load(open(sys.argv[1], "rb"))["project"]["version"].split(".")
-print(f"{major}.{minor}.{patch} {major}.{minor}.{int(patch) + 1}")' "$REPO/backend/pyproject.toml")"
+  versions="$(drill_policy release-versions "$REPO/backend/pyproject.toml")"
   version="${versions% *}"
   next="${versions#* }"
   head="$(find "$REPO/migrations" -maxdepth 1 -name '[0-9]*.py' -printf '%f\n' | sort | tail -n 1)"
@@ -840,8 +801,8 @@ print(f"{major}.{minor}.{patch} {major}.{minor}.{int(patch) + 1}")' "$REPO/backe
       --build-arg SIDEKICK_MIGRATION_CLASS=expand --build-arg "SIDEKICK_SCHEMA_HEAD=$head" \
       --build-arg "SIDEKICK_MIN_UPGRADE_FROM=$min" --label "org.opencontainers.image.version=$ver" "$REPO" >/dev/null
     out="$(docker push "$tag" 2>&1)"
-    digest="$(printf '%s\n' "$out" | sed -n 's/.*digest: \(sha256:[0-9a-f]\{64\}\).*/\1/p' | tail -n 1)"
-    [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || { printf '%s\n' "$out" >&2; echo "no digest from the push of $tag" >&2; return 1; }
+    digest="$(printf '%s\n' "$out" | drill_policy pushed-digest)" \
+      || { printf '%s\n' "$out" >&2; echo "no digest from the push of $tag" >&2; return 1; }
     echo "$REG_ADDR/sidekick@$digest" >>"$TMP/kv/local_refs"
     kv_set "${role}_image" "$REG_ADDR/sidekick@$digest"
     echo "built $tag as version $ver: $REG_ADDR/sidekick@$digest"

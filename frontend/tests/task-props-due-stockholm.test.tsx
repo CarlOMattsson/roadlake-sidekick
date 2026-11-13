@@ -53,13 +53,13 @@ describe("TaskProps due choices in Stockholm time", () => {
       screen.getByRole("button", { name: workEn.rescheduleDate }),
     );
     const input = screen.getByLabelText(workEn.rescheduleDate);
-    fireEvent.change(input, { target: { value: "2026-03-29" } });
+    fireEvent.input(input, { target: { value: "2026-03-29" } });
     expect(onDue).toHaveBeenLastCalledWith("2026-03-29T21:59:00.000Z");
     fireEvent.click(screen.getByRole("button", { name: workEn.addDue }));
     fireEvent.click(
       screen.getByRole("button", { name: workEn.rescheduleDate }),
     );
-    fireEvent.change(screen.getByLabelText(workEn.rescheduleDate), {
+    fireEvent.input(screen.getByLabelText(workEn.rescheduleDate), {
       target: { value: "2026-10-25" },
     });
     expect(onDue).toHaveBeenLastCalledWith("2026-10-25T22:59:00.000Z");

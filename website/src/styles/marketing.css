@@ -183,6 +183,9 @@ site-search button[data-open-modal]:hover { background: var(--sk-surface); }
   .sec { padding-block: var(--site-s7); }
   .ftr__cols { grid-template-columns: 1fr 1fr; }
   .ftr__brand { grid-column: 1 / -1; }
+  /* On a phone the footer links have a 44 px box of their own instead of an invisible overlay. */
+  .ftr li a { min-height: 44px; }
+  .ftr li a::after { content: none; }
 }
 
 /* Marketing pages (splash template) draw their own sections: no Starlight panel padding, borders or empty title panel. */

@@ -450,10 +450,12 @@ def _check_coverage(by_name: dict[str, dict[str, Any]]) -> None:
         )
 
 
-def _header(title: str) -> list[str]:
+def _header(title: str, description: str | None = None) -> list[str]:
+    summary = [f"<!-- description: {description} -->", ""] if description else []
     return [
         f"# {title}",
         "",
+        *summary,
         f"{GENERATED_MARKER} from `contracts/mcp-tools.generated.json`. Do not edit by hand. -->",
         "",
     ]
@@ -475,7 +477,11 @@ def _area_page(area: Area, tools: list[dict[str, Any]]) -> str:
 def _app_only_page(groups: list[tuple[Area, list[dict[str, Any]]]]) -> str:
     total = sum(len(tools) for _, tools in groups)
     lines = [
-        *_header("MCP tools: app-only"),
+        *_header(
+            "MCP tools: app-only",
+            "The MCP tools that only the MCP App rooms call to show and edit records. "
+            "Claude cannot see or call them, and they check the same scopes as every other tool.",
+        ),
         f"[MCP tool reference](index.md) | {total} tools.",
         "",
         'These tools are declared with `visibility: ["app"]`. The MCP App rooms call them to '

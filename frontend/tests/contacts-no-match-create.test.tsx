@@ -94,7 +94,9 @@ describe("Contacts, search with no match", () => {
     expect(
       screen.queryByRole("button", { name: /Create contact/ }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Tell Claude:")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ask Claude in the Claude app:"),
+    ).toBeInTheDocument();
   });
 
   it("has the new texts in both languages", () => {

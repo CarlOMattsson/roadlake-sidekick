@@ -14453,7 +14453,7 @@
               "blocked_reminder_cadence": {
                 "anyOf": [
                   {
-                    "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                     "enum": [
                       "daily",
                       "weekly",
@@ -16571,7 +16571,7 @@
             "review_cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",
@@ -16921,7 +16921,7 @@
             "cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",
@@ -19784,7 +19784,7 @@
               "blocked_reminder_cadence": {
                 "anyOf": [
                   {
-                    "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                     "enum": [
                       "daily",
                       "weekly",
@@ -20326,7 +20326,7 @@
                 "blocked_reminder_cadence": {
                   "anyOf": [
                     {
-                      "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                      "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                       "enum": [
                         "daily",
                         "weekly",
@@ -20365,7 +20365,7 @@
                 "cadence": {
                   "anyOf": [
                     {
-                      "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                      "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                       "enum": [
                         "daily",
                         "weekly",
@@ -20617,7 +20617,7 @@
                 "review_cadence": {
                   "anyOf": [
                     {
-                      "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                      "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                       "enum": [
                         "daily",
                         "weekly",
@@ -21042,7 +21042,7 @@
               "blocked_reminder_cadence": {
                 "anyOf": [
                   {
-                    "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                     "enum": [
                       "daily",
                       "weekly",
@@ -21081,7 +21081,7 @@
               "cadence": {
                 "anyOf": [
                   {
-                    "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                     "enum": [
                       "daily",
                       "weekly",
@@ -21333,7 +21333,7 @@
               "review_cadence": {
                 "anyOf": [
                   {
-                    "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                     "enum": [
                       "daily",
                       "weekly",
@@ -23855,7 +23855,7 @@
             "blocked_reminder_cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",
@@ -24400,7 +24400,7 @@
             "blocked_reminder_cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",
@@ -25068,7 +25068,7 @@
             "blocked_reminder_cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",
@@ -25466,7 +25466,7 @@
             "blocked_reminder_cadence": {
               "anyOf": [
                 {
-                  "description": "Declared rhythm, shared by Domain review cadence and Process run cadence.",
+                  "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
                   "enum": [
                     "daily",
                     "weekly",

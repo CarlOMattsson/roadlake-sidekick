@@ -48,7 +48,7 @@ Det som skickas är en väckning utan innehåll. Telefonen vaknar, hämtar det s
 1. Be den som sköter servern att slå på påminnelser. [Läs hur du ställer in påminnelser via ntfy](../operate/push-reminders.sv.md).
 2. Installera appen ntfy på telefonen och öppna den en gång.
 3. Tillåt aviseringar för Sidekick. Android 13 och senare frågar en gång, när telefonen har kopplats.
-4. Öppna Inställningar i Sidekick och välj "Skicka testnotis".
+4. Öppna Inställningar i Sidekick och välj "Skicka testavisering".
 
 På nyare Android-versioner behöver ntfy få använda batteriet utan begränsning. Annars kan väckningarna bli försenade.
 

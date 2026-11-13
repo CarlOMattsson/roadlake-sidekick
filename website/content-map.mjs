@@ -21,11 +21,16 @@ export const include = [
 export const exclude = ['docs/images/', 'docs/contracts/'];
 
 // Root files rendered as pages: source stem (SECURITY covers SECURITY.md and SECURITY.sv.md) and page slug.
+// An optional description is used when the file has no description comment of its own.
 export const rootFiles = [
   { src: 'CONTRIBUTING', slug: 'docs/contribute/index' },
   { src: 'CODE_OF_CONDUCT', slug: 'docs/contribute/code-of-conduct' },
   { src: 'CLA', slug: 'docs/contribute/cla' },
-  { src: 'LICENSE', slug: 'docs/license' },
+  {
+    src: 'LICENSE',
+    slug: 'docs/license',
+    description: 'The Roadlake Sidekick Source Available License: what you may do with the source code, and the additional terms.',
+  },
   { src: 'SECURITY', slug: 'docs/security-policy' },
   { src: 'CHANGELOG', slug: 'docs/changelog' },
 ];

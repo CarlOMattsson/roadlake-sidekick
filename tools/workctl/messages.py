@@ -29,3 +29,8 @@ def text(lang: str, key: str) -> str:
 def fill(lang: str, key: str, *values: object) -> str:
     """``text`` with its ``%s`` filled in; the texts used this way have no other ``printf`` directive."""
     return text(lang, key) % values
+
+
+def render(lang: str, key: str, *values: object) -> str:
+    """``fill`` for the texts with ``\\n`` escapes: ``printf`` expanded those in the format (not in the values)."""
+    return text(lang, key).replace("\\n", "\n") % values

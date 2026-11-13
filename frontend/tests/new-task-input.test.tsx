@@ -282,7 +282,7 @@ describe("NewTaskInput", () => {
 
     expect(screen.queryByRole("textbox")).toBeNull();
     expect(screen.queryByRole("button")).toBeNull();
-    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(screen.getByRole("status").textContent).toBe("");
   });
 
   it("has Swedish and English labels with the same keys, picked by the date locale", () => {

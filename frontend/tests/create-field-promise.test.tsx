@@ -85,7 +85,7 @@ describe("NewContact keeps the name unless the Contact was created (A)", () => {
     renderContacts(createContact);
     await user.click(screen.getByRole("button", { name: workEn.newContact }));
     const name = screen.getByRole("textbox", { name: workEn.newContact });
-    fireEvent.change(name, { target: { value: "x".repeat(201) } });
+    fireEvent.input(name, { target: { value: "x".repeat(201) } });
 
     await user.click(screen.getByRole("button", { name: dl.add }));
 

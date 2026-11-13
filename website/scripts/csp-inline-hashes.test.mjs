@@ -24,3 +24,13 @@ test('pages without a CSP meta tag are returned unchanged', () => {
   const html = '<html><body><script>x()</script></body></html>';
   assert.equal(addInlineHashes(html), html);
 });
+
+import { rootAsDefault } from '../integrations/sitemap-root-default.mjs';
+
+test('sitemap: the site root becomes x-default, the language pages keep their language', () => {
+  const xml = '<xhtml:link hreflang="en" href="https://x.test/"/><xhtml:link hreflang="en" href="https://x.test/en/"/><xhtml:link hreflang="sv" href="https://x.test/sv/"/>';
+  assert.equal(
+    rootAsDefault(xml, 'https://x.test/'),
+    '<xhtml:link hreflang="x-default" href="https://x.test/"/><xhtml:link hreflang="en" href="https://x.test/en/"/><xhtml:link hreflang="sv" href="https://x.test/sv/"/>',
+  );
+});

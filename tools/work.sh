@@ -290,8 +290,7 @@ confirm() {
   local key="$1" default="$2" ans=""
   printf '%s: ' "$(msg "$key")" >&2
   IFS= read -r ans || ans=""
-  ans="${ans:-$default}"
-  case "$ans" in j|J|y|Y|ja|JA|yes|YES|Yes) return 0 ;; *) return 1 ;; esac
+  workctl is-yes -- "${ans:-$default}"
 }
 
 # GET <base>/models with the key passed on stdin (never on a command line). Prints the model ids, one per line.
@@ -309,11 +308,7 @@ list_models() {
 pick_model() {
   local var="$1" key="$2" def="$3" ans; shift 3
   ask ans "$key" "$def"
-  case "$ans" in
-    ''|*[!0-9]*) ;;
-    *) if [ "$ans" -ge 1 ] && [ "$ans" -le "$#" ]; then ans="$(eval "printf '%s' \"\${$ans}\"")"; fi ;;
-  esac
-  printf -v "$var" '%s' "$ans"
+  printf -v "$var" '%s' "$(workctl pick --answer="$ans" -- "$@" || printf '%s' "$ans")"
 }
 
 # ---------------------------------------------------------------------------------------------------------
@@ -342,7 +337,7 @@ check_stdio_entry() {
   compose exec -T api python -c "import sidekick.mcp.stdio" >>"$LOG" 2>&1 || { errf old_image; exit 1; }
 }
 
-is_uuid() { printf '%s' "$1" | grep -Eqi '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; }
+is_uuid() { workctl is-uuid -- "$1"; }
 
 # One value from the database, whitespace removed. Fails (never "empty") when the database cannot be asked.
 db_scalar() {
@@ -419,35 +414,26 @@ cmd_claude_config() {
   workctl claude-config --lang "$L" --source "$SECRETS/claude_desktop_config.json" --target "$target"
 }
 
-# Read-only diagnosis after a failed start. Logs are inspected in memory, never echoed (they may contain URLs).
-# An absent/empty yoyo table must be confirmed over the local superuser socket; an unknown state is never empty.
+# Read-only diagnosis after a failed start: the shell gathers the evidence, workctl (diagnose) decides what it means.
+# Logs are inspected in memory, never echoed (they may contain URLs). An absent/empty yoyo table must be confirmed over
+# the local superuser socket; an unknown state is never empty.
 diagnose_first_start() {
-  local start_line="$1" migration_log postgres_log evidence table count volume command stop_command
+  local start_line="$1" migration_log postgres_log table count="" volume rc=0
   migration_log="$(compose logs --no-color --tail 80 migrate 2>/dev/null || true)"
   postgres_log="$(compose logs --no-color --tail 120 postgres 2>/dev/null || true)"
-  # Here-strings, not pipes into grep -q: under pipefail grep exits at the first match, the writer can then die of
-  # SIGPIPE, and the whole test reads as "no evidence" at random.
-  evidence="$(printf '%s\n' "$migration_log"; sed -n "$((start_line + 1)),\$p" "$LOG")" || true
-  if ! grep -Eiq '(password authentication failed|authentication failed|role .* does not exist).*sidekick_migrator|sidekick_migrator.*(password authentication failed|authentication failed|does not exist)' <<<"$evidence" \
-      && ! grep -Eiq 'initdb\.d.*[Pp]ermission denied' <<<"$postgres_log"; then
-    return 0
-  fi
+  # stdin of the check: the evidence, a NUL byte, the postgres log (the check reads all of it).
+  { printf '%s\n' "$migration_log"; sed -n "$((start_line + 1)),\$p" "$LOG"; printf '\0%s' "$postgres_log"; } \
+    | workctl first-start-evidence || return 0
   table="$(db_scalar "select coalesce(to_regclass('public._yoyo_migration')::text, 'absent')")" || return 0
-  case "$table" in
-    absent) ;;
-    _yoyo_migration|public._yoyo_migration)
-      count="$(db_scalar 'select count(*) from public._yoyo_migration')" || return 0
-      [ "$count" = 0 ] || return 0
-      ;;
+  workctl first-start-table --table "$table" || rc=$?
+  case "$rc" in
+    0) ;;
+    10) count="$(db_scalar 'select count(*) from public._yoyo_migration')" || return 0 ;;
     *) return 0 ;;
   esac
   volume="$(docker volume ls -q --filter "label=com.docker.compose.project=$PROJECT" \
     --filter 'label=com.docker.compose.volume=pgdata' 2>/dev/null)" || return 0
-  # Exactly one Docker volume name; never interpolate unchecked output into a suggested shell command.
-  [[ "$volume" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || return 0
-  printf -v command 'docker volume rm %q' "$volume"
-  printf -v stop_command 'SIDEKICK_WORK_PROJECT=%q bash tools/work.sh stop' "$PROJECT"
-  errf first_start_volume "$volume" "$stop_command" "$command"
+  workctl first-start-hint --lang "$L" --project "$PROJECT" --volume "$volume" --table "$table" --count "$count" || true
 }
 
 cmd_start() {
@@ -1234,17 +1220,7 @@ RESTORE_SAFETY_MEM=""
 
 # Prints the time stamps that have both files in $BACKUPS, oldest first (the names sort by time).
 list_backup_sets() {
-  local f ts found=0
-  for f in "$BACKUPS"/sidekick-*.sql.enc; do
-    [ -e "$f" ] || continue
-    ts="${f##*/sidekick-}"; ts="${ts%.sql.enc}"
-    if [ "$MEMORY" = 0 ] || [ -s "$BACKUPS/hindsight-$ts.tar.gz.enc" ]; then
-      [ "$found" = 1 ] || sayf rs_sets "$BACKUPS"
-      found=1
-      printf '  %s\n' "$ts"
-    fi
-  done
-  [ "$found" = 1 ] || sayf rs_no_sets "$BACKUPS"
+  workctl backup-sets --lang "$L" --dir "$BACKUPS" --memory "$([ "$MEMORY" = 0 ] && echo off || echo on)"
 }
 
 # Both files present and whole, read with the key: decrypted again, the dump ends with pg_dump's end marker and the
@@ -1296,12 +1272,14 @@ rollback_database() {
   [ -n "$RESTORE_OLD_DB" ] || return 0
   local names
   names="$(pg_admin -d postgres -tAc "SELECT datname FROM pg_database WHERE datname IN ('sidekick', '$RESTORE_OLD_DB')" 2>>"$LOG")" || return 1
-  if printf '%s\n' "$names" | grep -qx "$RESTORE_OLD_DB"; then
-    pg_admin -d postgres -c "$NO_OTHER_SESSIONS" -c "DROP DATABASE IF EXISTS sidekick" \
-      -c "ALTER DATABASE $RESTORE_OLD_DB RENAME TO sidekick" >>"$LOG" 2>&1 || return 1
-  elif ! printf '%s\n' "$names" | grep -qx sidekick; then
-    return 1
-  fi
+  case "$(workctl rollback-action --old "$RESTORE_OLD_DB" <<<"$names")" in
+    rename-back)
+      pg_admin -d postgres -c "$NO_OTHER_SESSIONS" -c "DROP DATABASE IF EXISTS sidekick" \
+        -c "ALTER DATABASE $RESTORE_OLD_DB RENAME TO sidekick" >>"$LOG" 2>&1 || return 1
+      ;;
+    keep) ;;
+    *) return 1 ;;
+  esac
   RESTORE_OLD_DB=""
 }
 
@@ -1335,7 +1313,7 @@ abort_restore() {
 sync_owner_id() {
   local id tmp
   id="$(pg_admin -d sidekick -tAc "select id from sidekick.users where username = 'jobb'" 2>>"$LOG" | tr -d '[:space:]' || true)"
-  if printf '%s' "$id" | grep -Eqi '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+  if is_uuid "$id"; then
     tmp="$(mktemp "$SECRETS/.tmp.XXXXXX")"
     printf '%s\n' "$id" >"$tmp"
     chmod 600 "$tmp"
@@ -1347,7 +1325,7 @@ sync_owner_id() {
 }
 
 cmd_restore() {
-  local apply=0 arg="" dir ts base db mem answer
+  local apply=0 arg="" ref dir ts db mem answer
   while [ "$#" -gt 0 ]; do
     case "$1" in
       --apply) apply=1 ;;
@@ -1361,15 +1339,9 @@ cmd_restore() {
   ensure_secrets
   derive
   if [ -z "$arg" ]; then errf rs_usage; list_backup_sets >&2; exit 2; fi
-  case "$arg" in
-    */*|*.sql.enc|*.tar.gz.enc)
-      base="${arg##*/}"
-      dir="$(dirname "$arg")"
-      ts="${base#sidekick-}"; ts="${ts#hindsight-}"; ts="${ts%.sql.enc}"; ts="${ts%.tar.gz.enc}"
-      ;;
-    *) dir="$BACKUPS"; ts="$arg" ;;
-  esac
-  [[ "$ts" =~ ^[0-9]{8}-[0-9]{6}$ ]] || { errf rs_bad_name "$arg"; exit 2; }
+  ref="$(workctl restore-ref --lang "$L" --backups "$BACKUPS" -- "$arg")" || exit 2
+  dir="${ref%%$'\n'*}"
+  ts="${ref#*$'\n'}"
   db="$dir/sidekick-$ts.sql.enc"
   mem="$dir/hindsight-$ts.tar.gz.enc"
   check_backup_set "$db" "$mem" || exit 1

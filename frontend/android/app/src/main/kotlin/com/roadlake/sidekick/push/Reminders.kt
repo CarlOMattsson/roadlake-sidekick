@@ -127,7 +127,7 @@ interface ReminderTexts {
 
     fun test(): String
 
-    /** The lock-screen version: "Sidekick · N påminnelser". Never a title. */
+    /** The lock-screen version: "Sidekick · N aviseringar". Never a title. */
     fun publicTitle(count: Int): String
 }
 
@@ -157,11 +157,12 @@ class ReminderNotice(val id: String, val title: String, val text: String?, val t
     }
 }
 
-/** The morning summary as one line: only the parts that are not zero ("3 idag", "1 försenad", "3 idag · 1 försenade"). */
+/** The morning summary as one line: only the parts that are not zero ("3 uppgifter idag", "1 försenad uppgift", both joined). */
 object ReminderSummaryText {
     /**
-     * Zero overdue leaves the overdue part out and zero today the today part, so the line never says "0 försenade". With
-     * nothing in either the line is the (zero) today part, never empty. The parts come from plural resources.
+     * Zero overdue leaves the overdue part out and zero today the today part, so the line never says "0 försenade
+     * uppgifter". With nothing in either the line is the (zero) today part, never empty; [ReminderNotices.plan] draws no
+     * summary at all then. The parts come from plural resources.
      */
     fun compose(
         today: Int,
@@ -177,12 +178,15 @@ object ReminderSummaryText {
 }
 
 object ReminderNotices {
-    /** The notifications of [pending]: the summary first, then one per reminder. */
+    /**
+     * The notifications of [pending]: the summary first, then one per reminder. A summary of nothing due and nothing
+     * overdue says nothing worth a notification and is left out (it is still acknowledged with the rest).
+     */
     fun plan(pending: PendingReminders, texts: ReminderTexts, zone: TimeZone): List<ReminderNotice> {
-        val count = pending.ids.size
-        val publicTitle = texts.publicTitle(count)
+        val summary = pending.summary?.takeIf { it.today > 0 || it.overdue > 0 }
+        val publicTitle = texts.publicTitle(pending.items.size + if (summary != null) 1 else 0)
         val notices = ArrayList<ReminderNotice>()
-        pending.summary?.let {
+        summary?.let {
             notices += ReminderNotice(it.id, texts.summary(it.today, it.overdue), null, ReminderTarget.Today, publicTitle)
         }
         for (item in pending.items) {

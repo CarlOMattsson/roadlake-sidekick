@@ -13,7 +13,16 @@ from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.idempotent_operation import run_idempotent_operation
 from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.replay import id_replay_record
-from sidekick.shared.types import UNSET, Actor, Clock, TxSession, UnsetType, new_uuid7
+from sidekick.shared.types import (
+    UNSET,
+    Actor,
+    Clock,
+    TxSession,
+    UnsetType,
+    new_uuid7,
+    paginate,
+    validate_limit,
+)
 from sidekick.shopping.application.schemas import (
     BatchItem,
     ItemRecord,
@@ -171,11 +180,11 @@ class ShoppingService:
                 offset=offset,
                 limit=limit + 1,
             )
-            page = rows[:limit]
+            page, next_offset = paginate(rows, limit, lambda _: offset + limit)
             counts = self.store.open_counts(session, actor.user_id, [row.id for row in page])
             return {
                 "lists": [{**list_data(row), "open_count": counts.get(row.id, 0)} for row in page],
-                "next_offset": offset + limit if len(rows) > limit else None,
+                "next_offset": next_offset,
             }
 
         return self.store.transaction(read)
@@ -208,10 +217,11 @@ class ShoppingService:
                 offset=offset,
                 limit=limit + 1,
             )
+            page, next_offset = paginate(rows, limit, lambda _: offset + limit)
             return {
                 "shopping_list": list_data(row),
-                "items": [item_data(item, evaluated) for item in rows[:limit]],
-                "next_offset": offset + limit if len(rows) > limit else None,
+                "items": [item_data(item, evaluated) for item in page],
+                "next_offset": next_offset,
                 "evaluated_on": evaluated.isoformat(),
                 "store": store_filter,
             }
@@ -730,7 +740,10 @@ class ShoppingService:
 
     @staticmethod
     def _bounds(limit: int, offset: int) -> None:
-        if not 1 <= limit <= 100 or not 0 <= offset <= 10000:
+        validate_limit(
+            limit, maximum=100, message="invalid shopping page bounds", error=ValidationError
+        )
+        if not 0 <= offset <= 10000:
             raise ValidationError("invalid shopping page bounds")
 
     @staticmethod

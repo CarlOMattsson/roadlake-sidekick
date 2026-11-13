@@ -444,7 +444,7 @@ it("does nothing on an empty Enter and refuses a name over the limit before any 
   await user.keyboard("{Enter}");
   expect(screen.queryByRole("alert")).toBeNull();
   expect(create).not.toHaveBeenCalled();
-  fireEvent.change(name, { target: { value: "x".repeat(201) } });
+  fireEvent.input(name, { target: { value: "x".repeat(201) } });
   await user.click(screen.getByRole("button", { name: dl.add }));
   expect(screen.getByRole("alert")).toHaveTextContent(workEn.nameTooLong);
   expect(create).not.toHaveBeenCalled();

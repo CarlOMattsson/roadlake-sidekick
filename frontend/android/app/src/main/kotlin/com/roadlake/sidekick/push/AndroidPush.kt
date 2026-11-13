@@ -95,7 +95,7 @@ class AndroidNotificationGate(private val context: Context, private val foregrou
 }
 
 /**
- * The two notification channels (D-078): "Påminnelser" for the visible reminders, "Synk" for the quiet
+ * The two notification channels (D-078): "Aviseringar" for the visible reminders, "Synk" for the quiet
  * sync, which shows no notification of its own. The lock screen shows no content on either (the notification builder,
  * a later step, uses the private visibility too). Creating a channel again changes nothing.
  */

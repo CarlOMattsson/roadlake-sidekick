@@ -2,7 +2,7 @@
 
 [Svenska](schema-baseline.sv.md)
 
-<!-- description: Sidekick 0.1.0 creates the database from a single baseline. This page explains what that means for new installations and why older installations are not upgraded in place. -->
+<!-- description: Sidekick 0.1.0 creates the database from a single baseline. What that means for new installations, and why older ones are not upgraded in place. -->
 
 Sidekick 0.1.0 creates the database from a single baseline. This page explains what that means for new installations and why older installations are not upgraded in place.
 

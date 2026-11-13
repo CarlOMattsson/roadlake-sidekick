@@ -133,7 +133,7 @@ export function NewContact({
         <div
           className="work-contacts-create"
           aria-busy={busy}
-          onChange={(event) => {
+          onInput={(event) => {
             draft.current = (event.target as HTMLInputElement).value;
           }}
         >

@@ -45,8 +45,9 @@ from sidekick.structured.work import (
     work_hierarchy_structured,
 )
 from sidekick.tasks.domain import Priority, TaskStatus
+from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.application.models import WorkToday
-from sidekick.work.domain import MAX_ESTIMATED_MINUTES, MAX_TAG_FILTER_VALUES
+from sidekick.work.domain import MAX_TAG_FILTER_VALUES
 
 DEFAULT_TODAY_LIMIT = 20
 MAX_TODAY_LIMIT = 50

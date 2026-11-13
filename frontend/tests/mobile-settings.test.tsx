@@ -91,7 +91,7 @@ describe("SettingsPanel: Aviseringar", () => {
     ],
     [
       { distributor: false, registered: false, permission: "prompt" },
-      "Installera appen ntfy för att få aviseringar.",
+      "Aviseringar levereras av den gratis appen ntfy. Installera den för att få dem.",
     ],
     [
       { distributor: true, registered: true, permission: "denied" },
@@ -136,16 +136,19 @@ describe("SettingsPanel: Aviseringar", () => {
   });
 
   it.each<[TestPushResult, string]>([
-    [{ outcome: "queued" }, "Testnotis skickad."],
+    [{ outcome: "queued" }, "Testavisering skickad."],
     [
       { outcome: "rate_limited", retryAfterSeconds: 1500 },
-      "Max 5 i timmen – försök igen om 25 min.",
+      "Högst 5 testaviseringar i timmen. Försök igen om 25 min.",
     ],
     [
       { outcome: "rate_limited", retryAfterSeconds: 20 },
-      "Max 5 i timmen – försök igen om 1 min.",
+      "Högst 5 testaviseringar i timmen. Försök igen om 1 min.",
     ],
-    [{ outcome: "rate_limited" }, "Max 5 i timmen – försök igen senare."],
+    [
+      { outcome: "rate_limited" },
+      "Högst 5 testaviseringar i timmen. Försök igen senare.",
+    ],
     [{ outcome: "no_subscription" }, "Aviseringar är inte kopplade än."],
     [{ outcome: "disabled" }, "Aviseringar är avstängda på servern."],
     [{ outcome: "unpaired" }, "Telefonen är inte kopplad längre."],
@@ -156,7 +159,7 @@ describe("SettingsPanel: Aviseringar", () => {
     panel(native);
 
     await user.click(
-      await screen.findByRole("button", { name: "Skicka testnotis" }),
+      await screen.findByRole("button", { name: "Skicka testavisering" }),
     );
 
     expect(await screen.findByText(text)).toBeVisible();
@@ -173,7 +176,7 @@ describe("SettingsPanel: Aviseringar", () => {
     panel(native);
 
     await user.click(
-      await screen.findByRole("button", { name: "Skicka testnotis" }),
+      await screen.findByRole("button", { name: "Skicka testavisering" }),
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -188,11 +191,11 @@ describe("SettingsPanel: Aviseringar", () => {
     panel(native);
 
     await user.click(
-      await screen.findByRole("button", { name: "Skicka testnotis" }),
+      await screen.findByRole("button", { name: "Skicka testavisering" }),
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Testnotisen kunde inte skickas.",
+      "Testaviseringen kunde inte skickas.",
     );
   });
 
@@ -208,7 +211,7 @@ describe("SettingsPanel: Aviseringar", () => {
     panel(native);
 
     await user.click(
-      await screen.findByRole("button", { name: "Skicka testnotis" }),
+      await screen.findByRole("button", { name: "Skicka testavisering" }),
     );
     const busy = screen.getByRole("button", { name: "Skickar…" });
     expect(busy).toHaveAttribute("aria-disabled", "true");
@@ -216,7 +219,7 @@ describe("SettingsPanel: Aviseringar", () => {
     expect(native.sendTestPush).toHaveBeenCalledTimes(1);
 
     finish({ outcome: "queued" });
-    expect(await screen.findByText("Testnotis skickad.")).toBeVisible();
+    expect(await screen.findByText("Testavisering skickad.")).toBeVisible();
   });
 });
 
@@ -326,6 +329,7 @@ describe("SettingsPanel: Den här telefonen", () => {
     panel(fakeNative(answer));
 
     expect(await screen.findByText("Samsung")).toBeVisible();
+    expect(screen.getByText("Server: sidekick.example")).toBeVisible();
     expect(screen.getByText("Kopplad sedan sön 1 nov")).toBeVisible();
     expect(
       screen.getByText(
@@ -338,6 +342,7 @@ describe("SettingsPanel: Den här telefonen", () => {
     panel(fakeNative(answer), { locale: "en" });
 
     expect(await screen.findByText("Connected since Sun 1 Nov")).toBeVisible();
+    expect(screen.getByText("Server: sidekick.example")).toBeVisible();
     expect(
       screen.getByText("Sign-in renews automatically. Valid until Sun 15 Nov."),
     ).toBeVisible();
@@ -552,7 +557,7 @@ describe("the settings in the mobile app", () => {
 
     expect(
       await screen.findByText(
-        "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen på servern också.",
+        "Telefonen är frånkopplad, men servern kunde inte bekräfta. Spärra telefonen under Kontroll i Claude, eller be den som sköter servern.",
       ),
     ).toBeVisible();
   });

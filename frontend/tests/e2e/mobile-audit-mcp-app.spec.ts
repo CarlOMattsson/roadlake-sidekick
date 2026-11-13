@@ -2,8 +2,9 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import type { CDPSession, FrameLocator, Page } from "@playwright/test";
+import type { CDPSession, FrameLocator, Locator, Page } from "@playwright/test";
 import { assertAuditClean } from "./mobile-audit-gate";
+import { goRoom } from "./app-navigation-fixtures";
 import {
   deliverToolResult,
   openSimulatedApp,
@@ -625,6 +626,8 @@ type Scenario = {
   name: string;
   resource: "work" | "journal" | "shopping";
   host: (theme: string) => Record<string, unknown>;
+  /** hostCapabilities of the simulated host; without them the app shows no room strip. */
+  capabilities?: Record<string, unknown>;
   result: unknown;
   replies: Record<string, unknown>;
   /** Interactions after the result is delivered, before measuring. */
@@ -672,6 +675,26 @@ const buttonText =
     await settle(600);
   };
 
+/** The ⋯ of the record on screen, then one of its entries: Edit lives there, not on the compact inline card. */
+const menuEntry =
+  (entry: RegExp): Step =>
+  async (app) => {
+    await app
+      .getByRole("button", { name: /^(Fler alternativ|More options)$/ })
+      .last()
+      .click({ timeout: 8000 });
+    await settle(300);
+    await app
+      .getByRole("button", { name: entry })
+      .first()
+      .click({ timeout: 8000 });
+    await settle(600);
+  };
+/** The compact inline Task/Project/Contact card opens the full record in place through its own button. */
+const SHOW_MORE = /^(Visa mer|Show more)/;
+const SHOW_PROJECT = /^(Visa projektet|Show project)/;
+const OPEN_CONTACT = /^(Öppna|Open)$/;
+
 const scenarios: Scenario[] = [
   // ----- Work: board / kanban -----
   {
@@ -682,11 +705,23 @@ const scenarios: Scenario[] = [
     replies: workReplies,
   },
   {
-    name: "work-02-tavla-inline-hel-vardsaknar-helskarm",
+    // Inline, a host without fullscreen shows the board as a summary: the oldest overdue rows and an
+    // "Öppna Status · N fler" button. There are no board cards to probe here, so this scenario measures
+    // the summary's tap targets; work-02b measures the full board the summary opens in place.
+    name: "work-02-tavla-inline-sammanfattning-utan-helskarm",
     resource: "work",
     host: hostInline,
     result: board,
     replies: workReplies,
+    probe: summaryProbe(),
+  },
+  {
+    name: "work-02b-tavla-inline-oppnad-hel",
+    resource: "work",
+    host: hostInline,
+    result: board,
+    replies: workReplies,
+    steps: buttonText(/^(Öppna Status|Open Status)/),
     probe: boardProbe(),
   },
   {
@@ -817,7 +852,8 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { task: fullTask },
     replies: workReplies,
-    steps: buttonText(/^(Redigera|Edit)/),
+    // The compact card has no Edit: open the full Task with "Visa mer", then Edit from its ⋯ menu.
+    steps: chain(buttonText(SHOW_MORE), menuEntry(/^(Redigera|Edit)$/)),
   },
   {
     name: "work-16-uppgift-ny-konakt-lank",
@@ -825,7 +861,11 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { task: fullTask },
     replies: workReplies,
-    steps: buttonText(/Länka kontakt|Link contact/),
+    // "Länka kontakt" is now "Koppla kontakt" and sits on the opened Task, not on the compact card.
+    steps: chain(
+      buttonText(SHOW_MORE),
+      buttonText(/Koppla kontakt|Link contact/),
+    ),
   },
   {
     name: "work-17-projekt-detalj",
@@ -840,7 +880,8 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { project: projectRecord },
     replies: workReplies,
-    steps: buttonText(/^(Redigera|Edit)/),
+    // The compact card shows no Edit: open the full Project with "Visa projektet", where Edit is a button.
+    steps: chain(buttonText(SHOW_PROJECT), buttonText(/^(Redigera|Edit)$/)),
   },
   // ----- Work: cards and contacts -----
   {
@@ -892,7 +933,8 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: contactContext,
     replies: workReplies,
-    steps: buttonText(/^(Redigera|Edit)/),
+    // The compact card shows no Edit: open the full Contact with "Öppna", then Edit from its ⋯ menu.
+    steps: chain(buttonText(OPEN_CONTACT), menuEntry(/^(Redigera|Edit)$/)),
   },
   {
     name: "work-26-kontakt-kort",
@@ -907,11 +949,17 @@ const scenarios: Scenario[] = [
     host: hostFull,
     result: agenda,
     replies: workReplies,
+    // Work has the tabs Agenda, Status and Projekt. Contacts is its own room, reached through the
+    // room strip (or its picker on a narrow screen), which the host only gets with serverTools.
+    capabilities: { serverTools: {}, message: {} },
     fullscreen: true,
     steps: chain(
-      tab(/Tavla|Board/),
-      tab(/Projekt|Projects/),
-      tab(/Kontakter|Contacts/),
+      tab(/^(Status|Board)$/),
+      tab(/^(Projekt|Projects)$/),
+      async (app) => {
+        await goRoom(app, "Kontakter");
+        await settle(700);
+      },
     ),
   },
   {
@@ -1041,6 +1089,36 @@ const scenarios: Scenario[] = [
     replies: shoppingReplies,
   },
 ];
+
+/** Inline summary probe: the tap targets of the rows and of the open button, found by accessible name. */
+function summaryProbe(): Step {
+  return async (app) => {
+    const rect = async (locator: Locator) => {
+      const box = await locator.first().boundingBox({ timeout: 8000 });
+      return box
+        ? { w: Math.round(box.width), h: Math.round(box.height) }
+        : null;
+    };
+    const openName = /^(Öppna Status|Open Status)/;
+    const openButton = app.getByRole("button", { name: openName });
+    const rows = app.getByRole("button", {
+      name: /^(?!Öppna Status|Open Status)/,
+    });
+    writeFileSync(
+      `${OUT}/metrics/_probe-${probeName}.json`,
+      JSON.stringify(
+        {
+          rows: await rows.count(),
+          rowRect: await rect(rows),
+          openRect: await rect(openButton),
+          openLabel: await openButton.first().textContent(),
+        },
+        null,
+        2,
+      ),
+    );
+  };
+}
 
 /**
  * Board probe (single layout, one column at a time): the card's controls, then a long press on the card
@@ -1264,6 +1342,7 @@ for (const scenario of scenarios) {
           width: size.width,
           height: size.height,
           hostContext: scenario.host(theme),
+          hostCapabilities: scenario.capabilities,
           replies: scenario.replies,
         });
         await waitForAppInitialized(page);

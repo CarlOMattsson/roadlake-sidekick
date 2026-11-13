@@ -308,7 +308,7 @@ describe("step list refusals", () => {
     );
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent(sv.conflict);
-    expect(alert).toHaveFocus();
+    await waitFor(() => expect(alert).toHaveFocus());
 
     await user.click(within(alert).getByRole("button", { name: sv.reload }));
 

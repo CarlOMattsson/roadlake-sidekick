@@ -195,6 +195,11 @@ export function Skeleton({
 }
 
 const askLead = { en: "Tell Claude:", sv: "Säg till Claude:" };
+// Where the example cannot be sent (the phone app has no chat), the lead says where to say it.
+const askLeadAway = {
+  en: "Ask Claude in the Claude app:",
+  sv: "Be Claude i Claude-appen:",
+};
 const askSend = {
   en: (example: string) => `Send to Claude: ${example}`,
   sv: (example: string) => `Skicka till Claude: ${example}`,
@@ -205,6 +210,7 @@ export function emptyAskLabelsFor(locale: string) {
   const sv = locale.startsWith("sv");
   return {
     lead: sv ? askLead.sv : askLead.en,
+    leadAway: sv ? askLeadAway.sv : askLeadAway.en,
     send: sv ? askSend.sv : askSend.en,
   };
 }
@@ -222,7 +228,7 @@ export type EmptyAsk = {
  * The family's one empty state (designsystem §3 Tillstånd), the same in every room: line 1 says what is missing
  * ("Inga listor ännu."), an optional muted line says what the list is for, then "Säg till Claude:" with one example
  * sentence. With a host that offers messages the example is a button that sends it, as "Berätta om dagen" does; a host
- * without one (the phone) shows it as text, still the main thing to learn. `children` adds a secondary way to do it
+ * without one (the phone) shows it as text under "Be Claude i Claude-appen:", still the main thing to learn. `children` adds a secondary way to do it
  * by hand. Start-aligned on the content edge, like the rows that will come.
  */
 export function EmptyState({
@@ -248,7 +254,9 @@ export function EmptyState({
       {hint ? <p className="sk-empty-hint">{hint}</p> : null}
       {ask && labels ? (
         <div className="sk-empty-ask">
-          <p className="sk-empty-ask-lead">{labels.lead}</p>
+          <p className="sk-empty-ask-lead">
+            {ask.onSend ? labels.lead : labels.leadAway}
+          </p>
           {ask.onSend ? (
             <button
               type="button"

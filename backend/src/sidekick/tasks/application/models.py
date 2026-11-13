@@ -7,10 +7,11 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.types import UNSET, UnsetType
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus
 from sidekick.work.domain import Step
-from sidekick.work.domain.planning import Cadence, WorkTag
+from sidekick.work.domain.planning import WorkTag
 
 
 @dataclass(frozen=True, slots=True)

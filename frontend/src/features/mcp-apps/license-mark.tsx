@@ -304,7 +304,7 @@ export function LicenseRow({
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            spellCheck={false}
+            spellCheck="false"
             value={key}
             onChange={(event) => setKey(event.target.value)}
           />

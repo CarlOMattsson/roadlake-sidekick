@@ -45,7 +45,7 @@ from sidekick.memory.ports import (
     MemoryProviderError,
 )
 from sidekick.shared.errors import InvalidInputError
-from sidekick.shared.types import TxSession
+from sidekick.shared.types import TxSession, paginate, validate_limit
 
 LOGGER = logging.getLogger("sidekick.memory.recall")
 
@@ -140,8 +140,12 @@ def recall_verified(
     the verification after the call runs in a fresh transaction. The caller's session may be reused.
     """
 
-    if not MIN_LIMIT <= limit <= MAX_LIMIT:
-        raise InvalidInputError(f"recall limit must be between {MIN_LIMIT} and {MAX_LIMIT}")
+    validate_limit(
+        limit,
+        minimum=MIN_LIMIT,
+        maximum=MAX_LIMIT,
+        message=f"recall limit must be between {MIN_LIMIT} and {MAX_LIMIT}",
+    )
     text = query.strip()
     if not MIN_QUERY_LENGTH <= len(text) <= MAX_QUERY_LENGTH:
         raise InvalidInputError("recall query length is out of bounds")
@@ -214,11 +218,11 @@ def recall_verified(
             continue
         verified.append(_recalled(fact, kind, source_id, source.archived))
 
-    facts = tuple(verified[:limit])
+    served, more = paginate(verified, limit, lambda _: True)
     result = RecallResult(
-        status="ok" if facts else "empty",
-        facts=facts,
-        truncated=len(verified) > limit,
+        status="ok" if served else "empty",
+        facts=tuple(served),
+        truncated=bool(more),
     )
     _log_counts(owner_id, correlation_id, result, len(provider_facts), dropped)
     return result

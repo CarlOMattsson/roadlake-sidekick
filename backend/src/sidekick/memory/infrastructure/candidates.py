@@ -32,7 +32,6 @@ from sidekick.memory.domain import (
     is_memory_candidate,
 )
 from sidekick.projects.domain import ProjectStatus
-from sidekick.shared.errors import InvalidInputError
 from sidekick.shared.persistence.models import (
     ContactAliasRow,
     ContactRow,
@@ -47,6 +46,7 @@ from sidekick.shared.persistence.models import (
     TaskContactRow,
     TaskRow,
 )
+from sidekick.shared.types import validate_limit
 
 _FLAG_BY_KIND: dict[MemoryKind, InstrumentedAttribute[bool]] = {
     MemoryKind.JOURNAL_ENTRY: MemorySettingsRow.journal,
@@ -127,9 +127,9 @@ def tombstone_page(
 
 
 def _checked_limit(limit: int) -> int:
-    if not 1 <= limit <= MAX_PAGE_SIZE:
-        raise InvalidInputError(f"page limit must be between 1 and {MAX_PAGE_SIZE}")
-    return limit
+    return validate_limit(
+        limit, maximum=MAX_PAGE_SIZE, message=f"page limit must be between 1 and {MAX_PAGE_SIZE}"
+    )
 
 
 def _after(column: InstrumentedAttribute[UUID], after: UUID | None) -> list[ColumnElement[bool]]:

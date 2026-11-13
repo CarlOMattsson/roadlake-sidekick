@@ -521,7 +521,7 @@ describe("TaskFrame due date", () => {
     const input = screen.getByLabelText(workEn.rescheduleDate, {
       selector: "input",
     });
-    fireEvent.change(input, { target: { value: "2031-05-17" } });
+    fireEvent.input(input, { target: { value: "2031-05-17" } });
 
     await waitFor(() =>
       expect(work.updateTask).toHaveBeenCalledWith(

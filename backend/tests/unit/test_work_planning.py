@@ -9,9 +9,16 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from sidekick.projects.domain import Project, ProjectStatus
+from sidekick.shared.cadence import Cadence, parse_cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import new_uuid7
 from sidekick.tasks.domain import Priority, Task, TaskStatus
+from sidekick.tasks.domain.planning import (
+    ESTIMATE_PRESETS,
+    MAX_ESTIMATED_MINUTES,
+    is_actionable_now,
+    validate_estimated_minutes,
+)
 from sidekick.work.domain import (
     Action,
     ActionStatus,
@@ -22,20 +29,14 @@ from sidekick.work.domain import (
     Step,
 )
 from sidekick.work.domain.planning import (
-    ESTIMATE_PRESETS,
-    MAX_ESTIMATED_MINUTES,
     MAX_TAG_FILTER_VALUES,
     MAX_TAGS_PER_RECORD,
-    Cadence,
     WorkTag,
-    is_actionable_now,
     is_review_due,
     matches_tag_filter,
     normalize_tag_filter,
     normalize_tag_selection,
     normalize_tag_slug,
-    parse_cadence,
-    validate_estimated_minutes,
 )
 
 NOW = datetime(2026, 7, 25, 12, 0, tzinfo=UTC)

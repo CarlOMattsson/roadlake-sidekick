@@ -26,6 +26,8 @@ from sidekick.shared.types import (
     Page,
     TransactionalStore,
     TxSession,
+    paginate,
+    validate_limit,
 )
 
 CHANGE_MAX_SCAN = 200
@@ -222,8 +224,12 @@ class RecordLifecycleService:
         """
 
         actor.require(_READ_SCOPE[kind] if kind else "projects:read")
-        if not 1 <= limit <= 100:
-            raise ValidationError("trash limit must be between 1 and 100")
+        validate_limit(
+            limit,
+            maximum=100,
+            message="trash limit must be between 1 and 100",
+            error=ValidationError,
+        )
         # The readable kinds are narrowed in the query, so rows of an unreadable kind can never
         # fill the page and hide readable records behind the limit. `within` narrows the same way
         # for callers that expose only a subset of kinds (e.g. the MCP surface).
@@ -240,15 +246,15 @@ class RecordLifecycleService:
                 session, actor.user_id, kinds=kinds, limit=limit + 1, after=after
             )
         )
-        page = items[:limit]
-        next_cursor = (
-            self.cursor_codec.encode_position(
-                actor.user_id, TrashPosition.of(page[-1]).to_token(), query_key
+        return Page(
+            *paginate(
+                items,
+                limit,
+                lambda last: self.cursor_codec.encode_position(
+                    actor.user_id, TrashPosition.of(last).to_token(), query_key
+                ),
             )
-            if len(items) > limit
-            else None
         )
-        return Page(page, next_cursor)
 
     def _decode_position(
         self, actor: Actor, cursor: str | None, query_key: str
@@ -268,8 +274,12 @@ class RecordLifecycleService:
         several edits of one record do not fill the limit.
         """
 
-        if not 1 <= limit <= 20:
-            raise ValidationError("change limit must be between 1 and 20")
+        validate_limit(
+            limit,
+            maximum=20,
+            message="change limit must be between 1 and 20",
+            error=ValidationError,
+        )
         readable = frozenset(
             kind
             for kind, scopes in _CHANGE_SCOPE.items()

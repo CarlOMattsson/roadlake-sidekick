@@ -23,6 +23,8 @@ from sidekick.shared.types import (
     TransactionalStore,
     TxSession,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 from sidekick.work.domain.planning import WorkTag, normalize_tag_slug
 
@@ -88,8 +90,12 @@ class WorkTagService:
         include_archived: bool = False,
     ) -> Page[WorkTag]:
         actor.require("projects:read")
-        if not 1 <= limit <= MAX_TAG_PAGE:
-            raise ValidationError(f"tag page size must be between 1 and {MAX_TAG_PAGE}")
+        validate_limit(
+            limit,
+            maximum=MAX_TAG_PAGE,
+            message=f"tag page size must be between 1 and {MAX_TAG_PAGE}",
+            error=ValidationError,
+        )
         key = f"work-tags:v1:archived={include_archived}"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, key, kinds=NAMED_KEY)
         rows = self.store.transaction(
@@ -98,12 +104,13 @@ class WorkTagService:
             )
         )
         return Page(
-            rows[:limit],
-            self.cursor_codec.encode_keyset(
-                actor.user_id, (rows[limit - 1].label, rows[limit - 1].id), key
+            *paginate(
+                rows,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.label, last.id), key
+                ),
             )
-            if len(rows) > limit
-            else None,
         )
 
     def get(self, actor: Actor, tag_id: UUID) -> WorkTag:

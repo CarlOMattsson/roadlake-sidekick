@@ -2,7 +2,7 @@
 
 [English](languages.md)
 
-<!-- description: Rummen och Android-appen har var sin språkinställning, med svenska som förval och engelska som alternativ. Här står också vilket språk serverns kommandon använder. -->
+<!-- description: Rummen och Android-appen har var sin språkinställning: svenska som förval, engelska som alternativ. Också vilket språk serverns kommandon använder. -->
 
 Rummen och Android-appen har var sin språkinställning, med svenska som förval och engelska som alternativ. Här står också vilket språk serverns kommandon använder.
 

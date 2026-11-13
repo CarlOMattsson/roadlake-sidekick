@@ -6,12 +6,33 @@
  * would render with React. This module offers the subset the tests use (`render`, `renderHook`, `cleanup`, `act`, plus everything
  * `@testing-library/dom` exports) on top of `preact/compat`, which is what the shipped bundle renders with.
  */
-import { configure, getQueriesForElement } from "@testing-library/dom";
+import {
+  configure,
+  fireEvent as domFireEvent,
+  getQueriesForElement,
+} from "@testing-library/dom";
 import { createElement, type ReactElement } from "react";
 import { act as preactAct } from "preact/test-utils";
 import { render as preactRender } from "preact";
 
 export * from "@testing-library/dom";
+
+// Like the real package, a blur or focus also fires the bubbling focusout or focusin: a browser always does, and
+// Preact's onBlur and onFocus listen for those.
+export const fireEvent: typeof domFireEvent = Object.assign(
+  (...args: Parameters<typeof domFireEvent>) => domFireEvent(...args),
+  domFireEvent,
+  {
+    blur: (node: Element | Window | Document, init?: object) => {
+      domFireEvent.focusOut(node, init);
+      return domFireEvent.blur(node, init);
+    },
+    focus: (node: Element | Window | Document, init?: object) => {
+      domFireEvent.focusIn(node, init);
+      return domFireEvent.focus(node, init);
+    },
+  },
+);
 
 // Preact's act flushes a synchronous callback synchronously, as React's does.
 export const act = preactAct;

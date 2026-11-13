@@ -30,11 +30,11 @@ from sidekick.owner_export.restore_remap import (
     POLYMORPHIC_SOURCE_NAMES,
     restore_id,
 )
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.persistence.models import ActivityEntryRow, DomainEventRow, TaskRow
 from sidekick.shared.types import Actor
 from sidekick.store import SqlAlchemyStore
 from sidekick.work.application.models import UpdateContextCommand
-from sidekick.work.domain.planning import Cadence
 from tests.db import database_factory
 from tests.support.settings import make_settings
 

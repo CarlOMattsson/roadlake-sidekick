@@ -94,7 +94,9 @@ describe("the push note in the mobile app", () => {
     native.pushStatus.mockResolvedValue(NO_DISTRIBUTOR);
     mount(native, platformFor());
     expect(
-      await screen.findByText("Installera ntfy för aviseringar."),
+      await screen.findByText(
+        "Aviseringar levereras av den gratis appen ntfy. Installera den för att få dem.",
+      ),
     ).toBeVisible();
   });
 
@@ -170,12 +172,12 @@ describe("the push note in the mobile app", () => {
     }
   });
 
-  it("goes away for good with Inte nu", async () => {
+  it("goes away for good with Dölj", async () => {
     const user = userEvent.setup();
     const native = fakeNative(() => ok(AGENDA), PUSH_ON);
     native.pushStatus.mockResolvedValue(NO_DISTRIBUTOR);
     mount(native, platformFor());
-    await user.click(await screen.findByRole("button", { name: "Inte nu" }));
+    await user.click(await screen.findByRole("button", { name: "Dölj" }));
     expect(screen.queryByText(pushNoticeLabelsSv.missing)).toBeNull();
     expect(localStorage.getItem(PUSH_NOTICE_DISMISSED_KEY)).toBe("1");
     cleanup();

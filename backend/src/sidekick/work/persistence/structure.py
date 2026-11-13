@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import (
     ConflictError,
     NotFoundError,
@@ -32,7 +33,6 @@ from sidekick.work.domain import (
     ProcessRunTemplate,
     ProcessStatus,
 )
-from sidekick.work.domain.planning import Cadence
 from sidekick.work.domain.saved_view import SavedView, SavedViewDefinition
 from sidekick.work.persistence.mappers import (
     domain_from_row,

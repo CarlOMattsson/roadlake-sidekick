@@ -30,14 +30,11 @@ from sidekick.companion.push_subscription_store import record_device_event
 from sidekick.shared.persistence.models import PushReminderRow, PushSubscriptionRow, TaskRow
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
 from sidekick.shared.types import new_uuid7
+from sidekick.tasks.domain import TaskStatus
 
 
 def _open_live_task() -> list[ColumnElement[bool]]:
     """A task that is neither completed, trashed, archived nor under a trashed parent."""
-
-    # Imported here: `sidekick.tasks.domain` and `sidekick.work.domain` import each other, and
-    # this module may be the first to be imported.
-    from sidekick.tasks.domain import TaskStatus
 
     return [
         TaskRow.status != TaskStatus.COMPLETED.value,

@@ -39,11 +39,11 @@ internal class AndroidReminderTexts(context: Context) : ReminderTexts {
 }
 
 /**
- * Draws the reminders on the "Påminnelser" channel. Every notification is VISIBILITY_PRIVATE with a public version that
- * says only "Sidekick · N påminnelser" (D-079). The notification id comes from the reminder id, so showing a
+ * Draws the reminders on the "Aviseringar" channel. Every notification is VISIBILITY_PRIVATE with a public version that
+ * says only "Sidekick · N aviseringar" (D-079). The notification id comes from the reminder id, so showing a
  * reminder twice replaces it. The group notification is posted or updated when two or more of the app's reminder
  * notifications are on screen in total (counted with [ReminderGrouping]), not only when one batch holds several, so
- * reminders that arrive one by one in separate pushes still end up under "Sidekick · N påminnelser".
+ * reminders that arrive one by one in separate pushes still end up under "Sidekick · N aviseringar".
  */
 internal class AndroidReminderDisplay(private val context: Context) : ReminderDisplay {
     // POST_NOTIFICATIONS is checked first by permitted(); lint cannot see through the helper.

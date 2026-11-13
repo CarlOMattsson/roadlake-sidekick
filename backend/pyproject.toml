@@ -108,6 +108,7 @@ max-complexity = 22
 "tests/selfhost/test_secrets_to_files.py" = ["S603", "S607"]
 "tests/selfhost/test_selfhost_ntfy.py" = ["S603", "S607"]
 "tests/selfhost/test_selfhost_update.py" = ["S603", "S607"]
+"tests/selfhost/test_update_policy.py" = ["S603"]
 "tests/selfhost/work_package/*.py" = ["S506", "S603", "S607", "S608"]
 "tests/unit/test_private_endpoint.py" = ["S104"]
 "tests/unit/test_test_database_connection_guard.py" = ["S108"]

@@ -30,7 +30,7 @@ from sidekick.journal.domain.entry import (
 from sidekick.journal.domain.records import PendingJournalItem
 from sidekick.journal.domain.source import JournalSource, replacement_source
 from sidekick.shared.errors import ConflictError, ValidationError
-from sidekick.shared.types import Actor, Clock, CursorCodec, Page, TxSession, new_uuid7
+from sidekick.shared.types import Actor, Clock, CursorCodec, Page, TxSession, new_uuid7, paginate
 
 
 class JournalService:
@@ -67,10 +67,11 @@ class JournalService:
             )
         )
         return Page(
-            items=entries[:limit],
-            next_cursor=entry_cursor(self.cursor_codec, actor, entries[limit - 1], query_key)
-            if len(entries) > limit
-            else None,
+            *paginate(
+                entries,
+                limit,
+                lambda last: entry_cursor(self.cursor_codec, actor, last, query_key),
+            )
         )
 
     def list_pending_items(

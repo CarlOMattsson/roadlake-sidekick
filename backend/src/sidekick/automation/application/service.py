@@ -27,6 +27,8 @@ from sidekick.shared.types import (
     TransactionalStore,
     TxSession,
     new_uuid7,
+    paginate,
+    validate_limit,
 )
 
 T = TypeVar("T")
@@ -294,8 +296,7 @@ class AutomationPolicyService:
         state: str | None = None,
     ) -> Page[ActivityEntry]:
         actor.require("tasks:read")
-        if not 1 <= limit <= 100:
-            raise ValidationError("limit must be between 1 and 100")
+        validate_limit(limit, maximum=100, error=ValidationError)
         visible_types = _visible_activity_aggregate_types(actor)
         visible_key = "*" if visible_types is None else ",".join(visible_types) or "-"
         query_key = (
@@ -316,10 +317,11 @@ class AutomationPolicyService:
 
         items = self.store.transaction(operation)
         return Page(
-            items=items[:limit],
-            next_cursor=self.cursor_codec.encode_keyset(
-                actor.user_id, (items[limit - 1].occurred_at, items[limit - 1].id), query_key
+            *paginate(
+                items,
+                limit,
+                lambda last: self.cursor_codec.encode_keyset(
+                    actor.user_id, (last.occurred_at, last.id), query_key
+                ),
             )
-            if len(items) > limit
-            else None,
         )
