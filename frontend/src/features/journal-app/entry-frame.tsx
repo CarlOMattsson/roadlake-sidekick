@@ -220,6 +220,15 @@ export function EntryFrame({
   }
   const canEdit =
     phase === "ready" && entry && !entry.archived && mode === "view";
+  // A refused edit explains itself; a failed save is the editor's own row with Försök igen.
+  const refusal =
+    editFailure === "conflict"
+      ? t.entryEditConflict
+      : editFailure === "invalid"
+        ? t.entryInvalid
+        : editFailure === "forbidden"
+          ? t.forbiddenWrite
+          : undefined;
 
   return (
     <article>
@@ -305,15 +314,19 @@ export function EntryFrame({
             locale={t.dateLocale}
           />
           {tagFailure && (
-            <p role="alert" className="journal-banner">
-              {tagFailure === "conflict"
-                ? t.tagsConflict
-                : tagFailure === "invalid"
-                  ? t.tagsInvalid
-                  : tagFailure === "forbidden"
-                    ? t.forbiddenWrite
-                    : t.tagsFailed}
-            </p>
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              message={
+                tagFailure === "conflict"
+                  ? t.tagsConflict
+                  : tagFailure === "invalid"
+                    ? t.tagsInvalid
+                    : tagFailure === "forbidden"
+                      ? t.forbiddenWrite
+                      : t.tagsFailed
+              }
+            />
           )}
           {changedNote && <p role="status">{changedNote}</p>}
           {canEdit && (transport.updateEntry || transport.appendEntryText) && (
@@ -346,14 +359,12 @@ export function EntryFrame({
           )}
           {mode === "edit" && transport.updateEntry && (
             <>
-              {editFailure === "conflict" && (
-                <p role="alert">{t.entryEditConflict}</p>
-              )}
-              {editFailure === "invalid" && (
-                <p role="alert">{t.entryInvalid}</p>
-              )}
-              {editFailure === "forbidden" && (
-                <p role="alert">{t.forbiddenWrite}</p>
+              {refusal && (
+                <ErrorNotice
+                  placement="row"
+                  locale={t.dateLocale}
+                  message={refusal}
+                />
               )}
               <FieldsEditor
                 draft={entry}

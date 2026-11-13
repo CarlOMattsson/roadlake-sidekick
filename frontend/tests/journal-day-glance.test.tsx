@@ -226,7 +226,7 @@ describe("DayGlance", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("says so in one line when the day has no overview and no entries", () => {
+  it("says so in the empty state when the day has no overview and no entries", () => {
     const { container } = render(
       <DayGlance
         today={TODAY}
@@ -245,7 +245,10 @@ describe("DayGlance", () => {
     expect(screen.getByText(journalEn.noEntries)).toBeInTheDocument();
     expect(screen.queryByText(journalEn.noSummary)).not.toBeInTheDocument();
     expect(screen.queryByText(/^0 entries/)).not.toBeInTheDocument();
-    expect(container.querySelectorAll("p.journal-muted")).toHaveLength(1);
+    expect(container.querySelectorAll("p.journal-muted")).toHaveLength(0);
+    expect(container.querySelector(".sk-empty-title")).toHaveTextContent(
+      journalEn.noEntries,
+    );
   });
 
   it("says nothing is written yet today, in Swedish too, for an empty today", () => {
@@ -265,7 +268,7 @@ describe("DayGlance", () => {
       />,
     );
 
-    expect(screen.getByText("Inget skrivet ännu idag.")).toBeInTheDocument();
+    expect(screen.getByText("Inget skrivet idag än.")).toBeInTheDocument();
     expect(screen.queryByText(/0 anteckningar/)).not.toBeInTheDocument();
     expect(screen.queryByText(journalSv.noSummary)).not.toBeInTheDocument();
   });

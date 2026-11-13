@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { priorityLabel, type WorkLabels } from "../shared/labels";
 import {
   isCompleteDate,
@@ -347,14 +348,15 @@ export function TaskEditor({
       </div>
       {problem === "dueIncomplete" && <p id={dueErrorId}>{t.dueIncomplete}</p>}
       {saveFailed && (
-        <p role="alert">
-          {t.saveFailed}{" "}
-          <button type="button" disabled={busy} onClick={() => submit()}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.saveFailed}
+          retrying={busy}
+          onRetry={() => submit()}
+        />
       )}
-      <div className="work-actions">
+      <div className="sk-form-actions">
         <button
           type="submit"
           disabled={busy}
@@ -365,7 +367,12 @@ export function TaskEditor({
         >
           {t.save}
         </button>
-        <button type="button" disabled={busy} onClick={onCancel}>
+        <button
+          type="button"
+          className="sk-btn--quiet"
+          disabled={busy}
+          onClick={onCancel}
+        >
           {t.cancel}
         </button>
       </div>

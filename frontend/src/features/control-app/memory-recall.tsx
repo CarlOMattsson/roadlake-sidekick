@@ -224,6 +224,10 @@ export function RecallResults({
           writeFailure(error) === "forbidden"
             ? labels.forgetForbidden
             : labels.forgetFailed,
+        retry:
+          writeFailure(error) === "forbidden"
+            ? undefined
+            : () => void forget(fact),
       });
     } finally {
       setBusy(false);
@@ -234,7 +238,7 @@ export function RecallResults({
     <div className="control-recall">
       {notice ? (
         <div ref={noticeRef} tabIndex={-1}>
-          <NoticeLine notice={notice} />
+          <NoticeLine notice={notice} locale={labels.locale} />
         </div>
       ) : null}
       {facts.length === 0 ? (

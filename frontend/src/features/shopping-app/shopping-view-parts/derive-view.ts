@@ -44,9 +44,11 @@ export function deriveView({
     ) ?? [];
   const open = items.filter((item) => !item.purchased);
   const purchased = items.filter((item) => item.purchased);
-  // The rows of the open groups: the open items, and the bought ones whose Undo still holds, in the list's order.
+  // The rows of the open groups: the open items, and the bought ones whose Undo still holds ("Köpt"), in the list's order.
   // "Köpta (n)" counts and lists every bought item at once, so it never disagrees with "2 av 7 köpta".
-  const rows = items.filter((item) => !item.purchased || held[item.id]);
+  const rows = items.filter(
+    (item) => !item.purchased || held[item.id]?.purchased,
+  );
   // The store view is shown in fullscreen until "Edit list" opens the forms; it needs a list to show.
   const storeMode =
     (fullscreen || Boolean(store)) && Boolean(list) && !editOpen;

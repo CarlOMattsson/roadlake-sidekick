@@ -38,6 +38,8 @@ export function useContactRecord({
   const [journal, setJournal] = useState<WorkJournalEntries>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [more, setMore] = useState<MorePhase>("idle");
+  // Set once Archive in this view has written: the page then shows its receipt with Undo until the Contact is restored.
+  const [archivedHere, setArchivedHere] = useState(false);
   // Runs the last failed write again; the same action keeps its key, so the server replays it.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
   // "Ta bort koppling till {projekt}" in the ⋯: the Project row stays with its Ångra until the view is read again.
@@ -155,6 +157,7 @@ export function useContactRecord({
         ),
     );
   }
+  /** Archive and Restore write at once (no question first): Restore undoes Archive, so the receipt carries Undo. */
   function setArchived(archive: boolean) {
     if (!contact) return;
     runWrite(
@@ -168,7 +171,10 @@ export function useContactRecord({
         archive
           ? transport.archiveContact(contact.id, contact.version, key)
           : transport.restoreContact(contact.id, contact.version, key),
-      leaveEditor,
+      () => {
+        setArchivedHere(archive);
+        leaveEditor();
+      },
     );
   }
   /** Fetches the latest Contact and its first page of Tasks; the open editor keeps the typed values. */
@@ -191,6 +197,7 @@ export function useContactRecord({
     journal,
     nextCursor,
     more,
+    archivedHere,
     unlinks,
     loadMore,
     retry,

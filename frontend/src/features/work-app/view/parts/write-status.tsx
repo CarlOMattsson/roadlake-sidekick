@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { ErrorNotice } from "../../../mcp-apps/ui/states";
 import type { WorkLabels } from "../../shared/labels";
 import type { WriteState } from "./frame-types";
 
@@ -27,15 +28,15 @@ export function WriteStatus({
         </div>
       )}
       {write.kind === "forbidden" && <p>{t.forbiddenWrite}</p>}
-      {write.kind === "invalid" && <p role="alert">{t.invalidChange}</p>}
-      {write.kind === "notFound" && <p role="alert">{t.notFound}</p>}
+      {(write.kind === "invalid" || write.kind === "notFound") && (
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={write.kind === "invalid" ? t.invalidChange : t.notFound}
+        />
+      )}
       {write.kind === "failed" && write.action === "reload" && (
-        <p role="alert">
-          {t.failed}{" "}
-          <button type="button" onClick={onReload}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice placement="row" locale={t.dateLocale} onRetry={onReload} />
       )}
       {write.kind === "saved" && <p role="status">{t.saved}</p>}
     </>

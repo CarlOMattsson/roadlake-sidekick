@@ -645,27 +645,7 @@
 .sidekick-work .work-agenda-undo:not([data-low]) > button::after {
   inset: 0 -4px -6px;
 }
-/* The time left to undo, a 2 px line of the button's text colour along its whole foot, 2 inside the
-   bottom edge and 4 in from the rounded corners, that
-   shrinks to nothing in the same 15 s as the timer (UNDO_MS) and stands still while the timer does (pointer over it,
-   focus in it: data-held). A new change mounts a new button and starts it again. None with reduced motion. */
-.sidekick-work .work-agenda-undo > button::before {
-  content: "";
-  position: absolute;
-  inset: auto var(--sk-s1) 2px;
-  height: 2px;
-  background: currentColor;
-  transform-origin: left;
-  animation: sk-undo-time 15s linear forwards;
-}
-.sidekick-work .work-agenda-undo[data-held] > button::before {
-  animation-play-state: paused;
-}
-@keyframes sk-undo-time {
-  to {
-    scale: 0 1;
-  }
-}
+/* The time line under Ångra (.sk-undo-time) is the family's own: mcp-apps/ui/undo.css. */
 .sidekick-work
   :is(.work-agenda-body, .work-unsorted-row):has(> .work-agenda-undo) {
   display: grid;
@@ -871,9 +851,6 @@
 @media (prefers-reduced-motion: reduce) {
   .sidekick-work .work-agenda-row[data-leaving] {
     animation: none;
-  }
-  .sidekick-work .work-agenda-undo > button::before {
-    content: none;
   }
 }
 

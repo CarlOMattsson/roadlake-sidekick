@@ -11,6 +11,7 @@ import {
   inlineSummaryLabelsSv,
 } from "./inline/inline-summary-labels";
 import { appLocale } from "../mcp-apps/app-locale";
+import { toolResultCause } from "../mcp-apps/ui/states";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import type { RoomProps } from "../mcp-apps/room-types";
 import { createWorkTransport } from "./transport/work-transport";
@@ -29,6 +30,10 @@ type RoomState = {
   /** Until the first tool result of this room; a room mounted hidden has none and reads for itself. */
   received: boolean;
   frame?: WorkFrame;
+  /** The error result that opened an error frame, shaped as the bridge throws it: why the read failed. */
+  cause?: Error;
+  /** Set while Try again reads the first list again after an error result. */
+  retrying: boolean;
   /** Counts the tool results that opened a frame; WorkFullscreen is keyed by it so its first tab is re-read. */
   resultNumber: number;
   /** Set while the host answers the fullscreen request; the inline Open shows it is busy, and a second press waits. */
@@ -42,6 +47,7 @@ type RoomState = {
 
 const NO_RESULT: RoomState = {
   received: false,
+  retrying: false,
   resultNumber: 0,
   opening: false,
   expandedInline: false,
@@ -72,6 +78,8 @@ function applyResult(prev: RoomState, props: RoomProps): RoomState {
   return {
     ...seen,
     frame: next,
+    cause: next.kind === "error" ? toolResultCause(props.initial) : undefined,
+    retrying: false,
     expandedInline: false,
     resultNumber: prev.resultNumber + 1,
   };
@@ -177,6 +185,37 @@ export function WorkRoom(props: RoomProps) {
       .finally(() => setState((prev) => ({ ...prev, opening: false })));
   }
 
+  /**
+   * Try again after an error result, which names no record: the list is what can be read again (the agenda, as the
+   * fullscreen shell reads its first tab). A failure keeps the error card with what the new failure says.
+   */
+  function retryFirstList() {
+    if (state.retrying) return;
+    setState((prev) => ({ ...prev, retrying: true }));
+    transport
+      .getWorkAgenda({})
+      .then((page) =>
+        setState((prev) =>
+          prev.frame?.kind === "error"
+            ? {
+                ...prev,
+                frame: { kind: "agenda", filters: {}, page },
+                cause: undefined,
+                retrying: false,
+                resultNumber: prev.resultNumber + 1,
+              }
+            : { ...prev, retrying: false },
+        ),
+      )
+      .catch((cause: unknown) =>
+        setState((prev) => ({
+          ...prev,
+          cause: cause instanceof Error ? cause : prev.cause,
+          retrying: false,
+        })),
+      );
+  }
+
   // The "To sort" page is a step on the shell's stack (no Back of its own); it holds no result.
   if (fullscreen && onRoute && props.view === "unsorted") {
     return (
@@ -193,7 +232,9 @@ export function WorkRoom(props: RoomProps) {
     (!state.received ||
       frame?.kind === "agenda" ||
       frame?.kind === "board" ||
-      frame?.kind === "hierarchy");
+      frame?.kind === "hierarchy" ||
+      // An error result keeps the tab row: the start tab shows the read error under it.
+      frame?.kind === "error");
   if (fullscreenTab) {
     return (
       <RoomMessageContext.Provider value={props.sendMessage}>
@@ -201,6 +242,7 @@ export function WorkRoom(props: RoomProps) {
           key={state.resultNumber}
           transport={transport}
           initial={frame}
+          failure={frame?.kind === "error" ? { cause: state.cause } : undefined}
           startTab={startTabOf(props.view)}
           tabs={tabsOf(props.availableViews)}
           labels={labels}
@@ -231,13 +273,15 @@ export function WorkRoom(props: RoomProps) {
     // Inline: the hierarchy is only summarised here, Open asks for fullscreen or expands it. Expanded, the work view
     // below shows the Projects list, and a Project or Process opens on its stack.
     return (
-      <section className="sidekick-work" aria-label={labels.title}>
-        <HierarchySummary
-          frame={frame}
-          labels={inlineLabels}
-          onOpen={openAction}
-        />
-      </section>
+      <RoomMessageContext.Provider value={props.sendMessage}>
+        <section className="sidekick-work" aria-label={labels.title}>
+          <HierarchySummary
+            frame={frame}
+            labels={inlineLabels}
+            onOpen={openAction}
+          />
+        </section>
+      </RoomMessageContext.Provider>
     );
   }
   return (
@@ -245,6 +289,15 @@ export function WorkRoom(props: RoomProps) {
       <WorkView
         transport={transport}
         initial={frame}
+        failure={
+          frame?.kind === "error"
+            ? {
+                cause: state.cause,
+                onRetry: retryFirstList,
+                retrying: state.retrying,
+              }
+            : undefined
+        }
         labels={labels}
         cardLabels={cardLabels}
         inlineLabels={inlineLabels}

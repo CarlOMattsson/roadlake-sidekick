@@ -5,6 +5,8 @@
  * waitingLabelsFor does. The Swedish and English key sets must stay identical (manage-controls.test.tsx).
  */
 export const manageLabelsEn = {
+  /** Picks the family's error row words. */
+  dateLocale: "en-GB",
   up: "Up",
   down: "Down",
   archive: "Archive",
@@ -21,7 +23,7 @@ export const manageLabelsEn = {
   moved: (title: string, place: number, total: number) =>
     `Moved “${title}” to position ${place} of ${total}.`,
   archived: (title: string) => `Archived “${title}”.`,
-  restored: (title: string) => `Restored “${title}”.`,
+  restored: (title: string) => `“${title}” is restored.`,
   conflict:
     "This was changed elsewhere. Reload to see the latest version, then try again.",
   forbidden: "You don’t have permission to make this change.",
@@ -32,6 +34,7 @@ export const manageLabelsEn = {
 export type ManageLabels = typeof manageLabelsEn;
 
 export const manageLabelsSv: ManageLabels = {
+  dateLocale: "sv-SE",
   up: "Upp",
   down: "Ned",
   archive: "Arkivera",
@@ -48,7 +51,7 @@ export const manageLabelsSv: ManageLabels = {
   moved: (title, place, total) =>
     `Flyttade ”${title}” till plats ${place} av ${total}.`,
   archived: (title) => `Arkiverade ”${title}”.`,
-  restored: (title) => `Återställde ”${title}”.`,
+  restored: (title) => `”${title}” är återställd.`,
   conflict:
     "Det här ändrades någon annanstans efter att du läste det. Ladda om, så ser du det senaste läget, och försök sedan igen.",
   forbidden: "Du har inte behörighet att göra den här ändringen.",

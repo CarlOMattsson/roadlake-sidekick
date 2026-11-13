@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { CreateField } from "../../mcp-apps/ui/create-field";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import {
   placeTitle,
@@ -80,7 +81,6 @@ export function NewTaskInput({
   const [place, setPlace] = useState<TaskPlace | null>(null);
   // The places are read when the field first opens with the row, not before.
   const choices = useGroupChoices(transport, placeChoice && open);
-  const errorId = useId();
   const placeId = useId();
   const domains = choices.phase === "ready" ? choices.domains : [];
   // The key of each title whose delivery is not settled (it failed, or has no answer yet), by trimmed title: the same
@@ -210,21 +210,16 @@ export function NewTaskInput({
         </div>
       ) : null}
       {failureText !== undefined && (
-        <p id={errorId} role="alert" className="work-new-task-error">
-          {failureText}
-          {kind === "failed" && (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="work-new-task-retry"
-                onClick={() => retry(failure!.title, failure!.place)}
-              >
-                {wt.retry}
-              </button>
-            </>
-          )}
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={wt.dateLocale}
+          message={failureText}
+          onRetry={
+            kind === "failed"
+              ? () => retry(failure!.title, failure!.place)
+              : undefined
+          }
+        />
       )}
       <p
         role="status"

@@ -1,9 +1,10 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, type Mock } from "vitest";
 
 import { controlEn, controlSv } from "@/features/control-app/labels";
 import { HistoryView } from "@/features/control-app/history-view";
+import { RESTORED_MS } from "@/features/control-app/use-receipts";
 import type {
   ActivityList,
   ActivityRecord,
@@ -242,6 +243,11 @@ describe("HistoryView rows", () => {
       expect.any(String),
     );
     expect(transport.undoPurchase).not.toHaveBeenCalled();
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Återställd");
+    expect(
+      within(status.closest("li") as HTMLElement).queryByRole("button"),
+    ).toBeNull();
   });
 
   it("shows nothing at the end of a row with no action", () => {
@@ -308,12 +314,39 @@ describe("HistoryView undo", () => {
       expect.any(String),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "“Mjölk” är inte längre köpt.",
-    );
+    // The row stays on its place with a receipt and no button, even though the list read again no longer holds it.
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Inte längre köpt");
+    const row = status.closest("li") as HTMLElement;
+    expect(row).toHaveTextContent("Mjölk");
+    expect(within(row).queryByRole("button")).toBeNull();
     expect(transport.changes).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("Ring Anna")).toBeInTheDocument();
-    expect(screen.queryByText("Mjölk")).not.toBeInTheDocument();
+    expect(screen.getByText("Mjölk")).toBeInTheDocument();
+  });
+
+  it("takes the receipt away after RESTORED_MS and the row goes with it when the list no longer holds it", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const transport = makeTransport();
+      transport.changes.mockResolvedValueOnce({ changes: [other] });
+      renderChanges({ changes: [bought] }, transport);
+
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
+      await screen.findByText("Ring Anna");
+      expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
+
+      act(() => {
+        vi.advanceTimersByTime(RESTORED_MS + 100);
+      });
+
+      expect(screen.queryByRole("status")).toBeNull();
+      expect(screen.queryByText("Mjölk")).not.toBeInTheDocument();
+      expect(screen.getByText("Ring Anna")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("puts a change back with the same tool and says it is bought again", async () => {
@@ -329,9 +362,7 @@ describe("HistoryView undo", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     expect(transport.undoPurchase.mock.calls[0]?.[0]).toEqual(reopened);
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "“Mjölk” är köpt igen.",
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Köpt igen");
     expect(transport.changes).toHaveBeenCalledTimes(1);
   });
 
@@ -379,7 +410,7 @@ describe("HistoryView undo", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "“Mjölk” är inte längre köpt.",
+      "Inte längre köpt",
     );
     expect(transport.changes).toHaveBeenCalledTimes(1);
     const list = screen.getByRole("list", { name: "Historik" });
@@ -397,7 +428,7 @@ describe("HistoryView undo", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "“Mjölk” har ändrats på annat håll. Listan är uppdaterad – tryck igen.",
+      "”Mjölk” har ändrats på annat håll. Listan är uppdaterad – tryck igen.",
     );
   });
 });
@@ -442,7 +473,7 @@ describe("HistoryView focus after a write", () => {
     );
   });
 
-  it("moves focus to the notice when no row with an undo button is left", async () => {
+  it("moves focus to the heading when no row with a button is left", async () => {
     const transport = makeTransport();
     transport.changes.mockResolvedValueOnce({ changes: [other] });
     renderChanges({ changes: [bought, other] }, transport);
@@ -451,7 +482,7 @@ describe("HistoryView focus after a write", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("status").parentElement).toHaveFocus(),
+      expect(screen.getByRole("heading", { name: "Historik" })).toHaveFocus(),
     );
   });
 

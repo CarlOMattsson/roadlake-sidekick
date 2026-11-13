@@ -16,6 +16,7 @@ import {
 } from "@/features/work-app/steps/step-actions-labels";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
 import { workSv } from "@/features/work-app/shared/labels";
+import { errorLabelsFor } from "@/features/mcp-apps/ui/states";
 import type {
   WorkAction,
   WorkActionPage,
@@ -320,7 +321,7 @@ it("archives an Action, offers Undo, and Undo restores it and reads the list aga
     await screen.findByRole("checkbox", { name: "Ring receptionen" }),
   ).toHaveFocus();
   expect(
-    screen.getByText("Återställde ”Ring receptionen”."),
+    screen.getByText("”Ring receptionen” är återställd."),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Ångra" }),
@@ -359,7 +360,7 @@ it("restores an archived Action from the archived list and puts focus on its row
     await screen.findByRole("checkbox", { name: "Ring receptionen" }),
   ).toHaveFocus();
   expect(
-    screen.getByText("Återställde ”Ring receptionen”."),
+    screen.getByText("”Ring receptionen” är återställd."),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("region", { name: "Arkiverade (1)" }),
@@ -469,7 +470,7 @@ it("shows a failed read with Try again, which reads the list again", async () =>
   await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Det gick inte att läsa. Försök igen.",
+    errorLabelsFor("sv-SE").message,
   );
   await user.click(screen.getByRole("button", { name: "Försök igen" }));
   expect(await screen.findByText("Ring receptionen")).toBeInTheDocument();

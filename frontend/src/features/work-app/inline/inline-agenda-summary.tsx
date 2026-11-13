@@ -50,7 +50,8 @@ export type InlineAgendaWrite = {
  * Inline agenda (designsystem §3, inline card): the kicker "Arbete · ons 4 nov", the counts as the title in the
  * rows' order ("1 idag, 2 försenade"), then at most three rows, today first and then overdue. No headings and no status glyphs: a row is the title and its due words ("Ring Anna om offerten ·
  * 5 dagar försenad", red when overdue), and the whole row opens its record (`onOpenItem`; without it, the agenda).
- * With nothing overdue or due today the title is "Agenda" over one sentence. "Öppna agendan" shows the rest.
+ * With nothing overdue or due today the title is "Agenda" over one sentence. "Öppna agendan" shows the rest. An
+ * Agenda with no record at all is the room's empty state (its sentence and the example to say to Claude) and the link.
  */
 export function AgendaSummary({
   page,
@@ -214,6 +215,7 @@ function DatedAgendaSummary({
     .reduce((total, section) => total + section.items.length, 0);
   const more = page.next_cursor !== null;
   const listed = overdue.length + today.length;
+  const blank = page.items.length === 0 && !more;
   // The card answers "today" first: with a Task due today the first row is today's, then the oldest overdue (the title once said
   // "1 idag" over three overdue rows).
   const rows = (
@@ -222,7 +224,7 @@ function DatedAgendaSummary({
   const shownToday = rows.filter((row) => today.includes(row)).length;
   // What the rows leave out of the Agenda the foot opens, every group of it ("3 fler" read against the
   // Agenda's 10 rows). With another page to read the count is a floor: "7+ fler". The fullscreen Agenda lists every record of the page.
-  const hiddenText = labels.agendaHidden(
+  const hiddenText = labels.moreRows(
     hiddenRows(page.items.length, rows.length),
     more,
   );
@@ -246,8 +248,10 @@ function DatedAgendaSummary({
           : []
       }
       empty={listed === 0 ? labels.agendaEmpty : undefined}
-      // Without an Open button when there is nothing to open: the empty sentence stands alone.
-      onOpen={listed + hidden > 0 || more ? onOpen : undefined}
+      // An Agenda with no record at all is the empty state with the way into the room; one with only upcoming
+      // records keeps its sentence and its Open link.
+      blank={blank ? labels.blank.agenda : undefined}
+      onOpen={blank || listed + hidden > 0 || more ? onOpen : undefined}
       openLabel={labels.openAgenda}
       aside={rows.length > 0 ? hiddenText : undefined}
     >

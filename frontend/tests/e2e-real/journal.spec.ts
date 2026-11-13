@@ -27,7 +27,7 @@ test("a note written in the day view is stored under that day", async ({
   const form = app.getByRole("group", { name: "Ny anteckning" });
   await form.getByLabel("Titel").fill(title);
   await form.getByLabel("Din text").fill(text);
-  await form.getByRole("button", { name: "Spara anteckningen" }).click();
+  await form.getByRole("button", { name: "Spara" }).click();
   await expect(app.getByText("Anteckningen sparades.")).toBeVisible();
 
   const day = await callTool("get_journal_day", { journal_date: today });

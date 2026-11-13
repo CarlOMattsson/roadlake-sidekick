@@ -76,10 +76,12 @@ test("Control app lists the trash and restores an item through the host on a mob
   await expect(app.getByText("1 borttagen · kan återställas")).toBeVisible();
   await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
   await app.getByRole("button", { name: "Återställ Skicka offert" }).click();
-  await expect(app.getByRole("status")).toHaveText(
-    "Återställd: “Skicka offert”",
-  );
-  await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0);
+  // The row stays on its place with a receipt for a few seconds, then it goes.
+  await expect(app.getByRole("status")).toHaveText("Återställd");
+  await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
+  await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0, {
+    timeout: 8000,
+  });
   await expect(app.getByText("Inget borttaget.")).toBeVisible();
   const { calls } = await simulatedHostState(page);
   const restore = calls.find((call) => call.name === "restore_from_trash");

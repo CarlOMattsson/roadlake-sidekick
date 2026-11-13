@@ -5,9 +5,10 @@ import type { JournalLabels } from "./labels";
 import type { JournalFrame, JournalPendingItem } from "./transport";
 import { ownerToday } from "../mcp-apps/app-timezone";
 import { Row } from "../mcp-apps/ui/row";
+import { EmptyState } from "../mcp-apps/ui/states";
 
 /**
- * Inline, the pending list shows this many items; "+N more · Show all" opens the rest in place. Three
+ * Inline, the pending list shows this many items; "Show all (N)" opens the rest in place. Three
  * is what fits a 560 px card at 320 px wide (measured): each row has a two-line title and a meta line.
  */
 const inlinePendingLimit = 3;
@@ -40,8 +41,12 @@ export function PendingFrame({
       <h2 ref={heading} tabIndex={-1}>
         {t.pending}
       </h2>
-      <p>{t.pendingNote}</p>
-      {items.length === 0 && <p>{t.pendingEmpty}</p>}
+      {/* The note asks to open a draft, so it stands only when there is one; an empty list is the family's empty state. */}
+      {items.length === 0 ? (
+        <EmptyState title={t.pendingEmpty} hint={t.pendingEmptyHint} />
+      ) : (
+        <p>{t.pendingNote}</p>
+      )}
       {/* The row template: the draft's title opens it (›), one meta line "28 okt · Egen text · 1 020 tecken". A draft
           awaiting review names no state (the heading says it); any other state follows the date. */}
       <ul className="journal-pending-list">
@@ -78,14 +83,12 @@ export function PendingFrame({
         <p className="journal-list-more">
           <button
             type="button"
-            className="sk-btn--quiet"
+            className="sk-more"
             aria-expanded={expanded}
             onClick={() => setExpanded((open) => !open)}
             style={touchStyle}
           >
-            {expanded
-              ? t.showFewer
-              : t.moreShowAll(items.length - inlinePendingLimit)}
+            {expanded ? t.showFewer : t.moreShowAll(items.length)}
           </button>
         </p>
       )}

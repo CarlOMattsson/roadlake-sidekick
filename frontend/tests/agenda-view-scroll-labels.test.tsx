@@ -194,7 +194,7 @@ it("the labels of the new row menu hint and the overdue move count are set in la
   expect(workSv.moveAllOverdue(1)).toBe("Flytta 1 försenad till imorgon");
   expect(workSv.moveAllOverdue(5)).toBe("Flytta 5 försenade till imorgon");
   expect(workEn.moreActions).toBe("More options");
-  expect(workSv.moreActions).toBe("Fler alternativ");
+  expect(workSv.moreActions).toBe("Fler val");
 });
 
 it("has Swedish and English agenda labels in labels.ts and fills their placeholders", () => {

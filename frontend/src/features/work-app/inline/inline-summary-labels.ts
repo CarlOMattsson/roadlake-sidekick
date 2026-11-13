@@ -1,3 +1,11 @@
+import {
+  contactsRoomLabelsEn,
+  contactsRoomLabelsSv,
+} from "../contacts/contacts-room-labels";
+import {
+  hierarchyDetailLabelsEn,
+  hierarchyDetailLabelsSv,
+} from "../hierarchy/hierarchy-detail-labels";
 import { workEn, workSv } from "../shared/labels";
 
 /**
@@ -59,11 +67,31 @@ export const inlineSummaryLabelsEn = {
       ...(upcoming ? [`${upcoming} upcoming`] : []),
       ...(more ? ["more on the agenda"] : []),
     ].join(", "),
-  /** After "Open Agenda · ": every row of the Agenda the card leaves out, "7 more". With another page
-   * to read (`more`) the count is a floor, "7+ more", never an exact number. */
-  agendaHidden: (hidden: number, more = false) =>
+  /** After "Open Agenda · ", "Open Projects · ", "Open contacts · ": every row of the view the card leaves out,
+   * "7 more". With another page to read (`more`) the count is a floor, "7+ more", never an exact number. */
+  moreRows: (hidden: number, more = false) =>
     hidden > 0 ? `${hidden}${more ? "+" : ""} more` : "",
   agendaEmpty: "Nothing overdue or due today.",
+  /** The empty card of a room, in the words of its full view: what is missing, what the room is for, and the
+   * one sentence to say to Claude. Contacts without a match have a sentence of their own. */
+  blank: {
+    agenda: {
+      title: workEn.agendaEmpty,
+      hint: workEn.agendaEmptyHint,
+      example: workEn.workEmptyAsk,
+    },
+    hierarchy: {
+      title: workEn.hierarchyEmpty,
+      hint: hierarchyDetailLabelsEn.emptyHint,
+      example: hierarchyDetailLabelsEn.emptyAsk,
+    },
+    contacts: {
+      title: workEn.noAnyContacts,
+      hint: contactsRoomLabelsEn.emptyHint,
+      example: contactsRoomLabelsEn.emptyAsk,
+    },
+  },
+  noContactMatches: workEn.noContactMatches,
   /** The label before the agenda card's first overdue row, after today's. */
   agendaOverdueLabel: "Overdue",
   /** The label over today's rows when overdue rows follow them. */
@@ -94,6 +122,9 @@ export const inlineSummaryLabelsEn = {
   showAll: "Show all",
   /** The Open button of the agenda card; the counts stand in its kicker. */
   openAgenda: "Open Agenda",
+  /** The Open links of the Projects and Contacts cards: they open that view in fullscreen. */
+  openHierarchy: "Open Projects",
+  openContacts: "Open contacts",
   showTask: "Open task",
   showProject: "Open project",
   showContact: "Open contact",
@@ -107,7 +138,7 @@ export const inlineSummaryLabelsEn = {
   undo: workEn.agendaUndo,
   undoneNote: "Undone. The task is open again.",
   conflict: workEn.conflict,
-  saveFailed: "Couldn’t save. Try again.",
+  saveFailed: "Couldn’t save.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
   notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Task, Project or Contact that is gone when it is read: a calm line, with no Try again. */
@@ -167,11 +198,29 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
       ...(upcoming ? [`${upcoming} kommande`] : []),
       ...(more ? ["fler på agendan"] : []),
     ].join(", "),
-  /** After "Öppna Agenda · ": every Agenda row the card does not show, "7 fler". When there is another page
-   * to read (`more`) the count is a floor, "7+ fler", never an exact number. */
-  agendaHidden: (hidden: number, more = false) =>
+  /** After "Öppna Agenda · ", "Öppna Projekt · ", "Öppna kontakterna · ": every row of the view the card does not
+   * show, "7 fler". When there is another page to read (`more`) the count is a floor, "7+ fler", never an exact number. */
+  moreRows: (hidden: number, more = false) =>
     hidden > 0 ? `${hidden}${more ? "+" : ""} fler` : "",
   agendaEmpty: "Inget försenat och inget för idag.",
+  blank: {
+    agenda: {
+      title: workSv.agendaEmpty,
+      hint: workSv.agendaEmptyHint,
+      example: workSv.workEmptyAsk,
+    },
+    hierarchy: {
+      title: workSv.hierarchyEmpty,
+      hint: hierarchyDetailLabelsSv.emptyHint,
+      example: hierarchyDetailLabelsSv.emptyAsk,
+    },
+    contacts: {
+      title: workSv.noAnyContacts,
+      hint: contactsRoomLabelsSv.emptyHint,
+      example: contactsRoomLabelsSv.emptyAsk,
+    },
+  },
+  noContactMatches: workSv.noContactMatches,
   agendaOverdueLabel: "Försenade",
   agendaTodayLabel: "Idag",
   projectCount: "Projekt",
@@ -195,6 +244,8 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   showAll: "Visa alla",
   /** The "Öppna" button on the agenda card; the counts stand in the kicker. */
   openAgenda: "Öppna Agenda",
+  openHierarchy: "Öppna Projekt",
+  openContacts: "Öppna kontakterna",
   showTask: "Öppna uppgiften",
   showProject: "Öppna projektet",
   showContact: "Öppna kontakten",
@@ -206,7 +257,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   undoneNote: "Ångrat. Uppgiften är öppen igen.",
   conflict:
     "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  saveFailed: "Kunde inte spara. Försök igen.",
+  saveFailed: "Kunde inte spara.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Task, Project or Contact that no longer exists when it is read: a calm line, without "Försök igen". */

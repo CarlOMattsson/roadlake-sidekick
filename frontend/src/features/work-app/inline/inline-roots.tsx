@@ -74,6 +74,8 @@ export function InlineRootSummary({
   const [focusDone, setFocusDone] = useState(false);
   const alive = useMounted();
   const [phase, setPhase] = useState<Phase>(initial ? "ready" : "loading");
+  // Why the last read failed, for the error card's second line.
+  const [cause, setCause] = useState<unknown>();
   const [summary, setSummary] = useState<InlineSummaryData | undefined>(
     initial,
   );
@@ -98,7 +100,9 @@ export function InlineRootSummary({
         setPhase("ready");
       })
       .catch((error: unknown) => {
-        if (live) setPhase(readFailurePhase(error));
+        if (!live) return;
+        setCause(error);
+        setPhase(readFailurePhase(error));
       });
     return () => {
       live = false;
@@ -230,6 +234,8 @@ export function InlineRootSummary({
         state="error"
         labels={labels}
         kindLabel={labels.kind[kind]}
+        subject={`work:${kind}`}
+        cause={cause}
         onRetry={reload}
       />
     );
@@ -380,6 +386,8 @@ export function ContactsRootSummary({
     contacts: contactNames(frame.page?.items ?? []),
   }));
   const [attempt, setAttempt] = useState(0);
+  // Why the last read failed, for the error card's second line.
+  const [cause, setCause] = useState<unknown>();
   useEffect(() => {
     // A frame that already holds its page needs no read; a retry reads the first page again.
     if (frame.page && attempt === 0) return;
@@ -399,8 +407,10 @@ export function ContactsRootSummary({
         });
         setPhase("ready");
       })
-      .catch(() => {
-        if (live) setPhase("error");
+      .catch((error: unknown) => {
+        if (!live) return;
+        setCause(error);
+        setPhase("error");
       });
     return () => {
       live = false;
@@ -416,6 +426,8 @@ export function ContactsRootSummary({
         state="error"
         labels={labels}
         kindLabel={labels.kind.contacts}
+        subject="contacts"
+        cause={cause}
         onRetry={reload}
       />
     );

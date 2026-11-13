@@ -9,6 +9,7 @@ import {
 import { MoreIcon } from "../mcp-apps/ui/icons";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
 import { KeyScope } from "../mcp-apps/ui/key-scope";
+import { ErrorNotice } from "../mcp-apps/ui/states";
 import type { JournalLabels } from "./labels";
 import {
   writeFailure,
@@ -136,7 +137,7 @@ export function EntryMenu({
       {open && (
         <KeyScope
           id={panelId}
-          className="journal-more-panel"
+          className="sk-menu-panel"
           onEscape={() => {
             setOpen(false);
             button.current?.focus();
@@ -144,7 +145,7 @@ export function EntryMenu({
         >
           <button
             type="button"
-            className="journal-more-item journal-more-item--danger"
+            className="sk-menu-item sk-menu-item--danger"
             onClick={() => {
               setOpen(false);
               onTrash();
@@ -192,9 +193,15 @@ export function EntryTrashed({
         </p>
       )}
       {failed && (
-        <p role="alert" className="journal-banner">
-          {failed.how === "forbidden" ? t.forbiddenWrite : t.entryRestoreFailed}
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={
+            failed.how === "forbidden" ? t.forbiddenWrite : t.entryRestoreFailed
+          }
+          retrying={state.busy}
+          onRetry={failed.how === "forbidden" ? undefined : onRestore}
+        />
       )}
     </div>
   );
@@ -213,24 +220,18 @@ export function EntryTrashFailure({
   onRetry: () => void;
 }) {
   return (
-    <div className="journal-undo">
-      <p role="alert" className="journal-banner">
-        {how === "forbidden"
+    <ErrorNotice
+      placement="row"
+      locale={t.dateLocale}
+      message={
+        how === "forbidden"
           ? t.forbiddenWrite
           : how === "conflict"
             ? t.entryReloadedConflict
-            : t.entryTrashFailed}
-      </p>
-      {how !== "forbidden" && (
-        <button
-          type="button"
-          className="sk-btn--secondary"
-          disabled={busy}
-          onClick={onRetry}
-        >
-          {t.retry}
-        </button>
-      )}
-    </div>
+            : t.entryTrashFailed
+      }
+      retrying={busy}
+      onRetry={how === "forbidden" ? undefined : onRetry}
+    />
   );
 }

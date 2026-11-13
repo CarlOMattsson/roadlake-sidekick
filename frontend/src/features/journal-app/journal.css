@@ -101,13 +101,6 @@
 .sidekick-journal .journal-done .journal-list-more {
   margin: 0;
 }
-/* "Visa fler" and "Visa färre" read as links under their list, not as headings of their own: regular weight, underlined. */
-.sidekick-journal .journal-list-more > button {
-  padding-inline: 0;
-  font-weight: var(--sk-weight-normal);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
 .sidekick-journal .journal-done-more {
   margin: 0;
   font: var(--sk-type-meta);
@@ -787,31 +780,6 @@ button.journal-entry-card {
   margin: 0 0 var(--sk-day-week-reach) var(--sk-s2);
 }
 /* The ⋯ menu as Work's: a card under the head in the surface colour, its items 44 rows of label text. */
-.sidekick-journal .journal-more-panel {
-  display: flex;
-  flex-direction: column;
-  margin: var(--sk-s2) 0 0;
-  padding: var(--sk-s1) var(--sk-s4);
-  border-radius: var(--sk-radius-card);
-  background: var(--sk-surface);
-}
-.sidekick-journal .journal-more-panel[hidden] {
-  display: none;
-}
-.sidekick-journal .journal-more-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: var(--sk-tap);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--sk-fg);
-  font: var(--sk-type-menu);
-  text-align: start;
-}
 /* "Idag" is a secondary compact button (family.css: 40, a 48 target), 8 after › on the week row. ‹ and › are
    .sk-iconbtn (family.css). On today › is aria-disabled in --sk-border (≥ 3:1 against the page in both
    themes, lighter than the inked ‹; 38 % ink was 2,5:1), never hidden (a lone ‹ read as Back). */
@@ -1093,10 +1061,6 @@ button.journal-entry-card {
 .sidekick-journal .journal-entry-bar {
   display: flex;
   justify-content: flex-end;
-}
-/* The menu's weight, as Work's danger items ("Ta bort koppling", "Arkivera"): the red says it, not the weight. */
-.sidekick-journal .journal-more-item--danger {
-  color: var(--sk-overdue-fg);
 }
 .sidekick-journal .journal-trashed > .journal-muted {
   margin: var(--sk-s2) 0 0;

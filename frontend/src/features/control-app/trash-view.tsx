@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
-import { Notice as StatusNotice } from "../mcp-apps/ui/notice";
 import { EmptyState } from "../mcp-apps/ui/states";
 import { kindName, trashedWhen, type ControlLabels } from "./labels";
 import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
@@ -11,19 +10,17 @@ import {
   type TrashItem,
   type TrashList,
 } from "./transport";
+import { useReceipts } from "./use-receipts";
 import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
-
-/** How long the "Restored" line stays, in milliseconds (a snackbar stays 5 s). */
-export const RESTORED_MS = 5000;
 
 /**
  * Trash as an inline card. Each row has a visible Restore button (restore_from_trash with the
  * version the list showed). A stale version or a vanished item reads the list again and says so.
  * There is no way to empty the trash or delete anything for good from here.
  *
- * A restore that is saved shows the family's sticky status line at the foot of the list ("Återställd: …") for
- * RESTORED_MS, then it goes. It has no Undo: no tool puts an item back in the trash. A failure stays under the heading
+ * A restore that is saved leaves the row on its place and its meta line says "Återställd" (a status, no button) for
+ * RESTORED_MS, then the row goes. It has no Undo: no tool puts an item back in the trash. A failure stays in its row
  * until the next action.
  */
 export function TrashView({
@@ -62,22 +59,18 @@ export function TrashView({
   const [notice, setNotice] = useState<Notice | undefined>();
   // The row a failed restore was on: its notice stands in that row, where the owner is looking, not at the top of the list.
   const [failedRow, setFailedRow] = useState<string | null>(null);
+  // Restored rows: gone from the list (and from the card's data) at once, shown on their place until the receipt ends.
+  // `index` is how many rows of the list stood before the item.
+  const [receipts, showReceipt] = useReceipts<{
+    item: TrashItem;
+    index: number;
+  }>();
+  // The list with the restored rows put back on their places, for as long as their receipts stand.
+  const shown = withReceiptRows(list.items, receipts);
   const pending = useRef<PendingKey | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
-
-  // The "Restored" line goes after RESTORED_MS. If focus rests on it then (the last row was restored), it moves
-  // to the heading, so it is not lost with the line.
-  useEffect(() => {
-    if (notice?.tone !== "ok") return;
-    const timer = setTimeout(() => {
-      if (noticeRef.current?.contains(document.activeElement))
-        headingRef.current?.focus();
-      setNotice(undefined);
-    }, RESTORED_MS);
-    return () => clearTimeout(timer);
-  }, [notice]);
   /** The row a write was on. Focus moves there once the write is over, since its button may be gone. */
   const focusIndex = useRef<number | null>(null);
 
@@ -93,7 +86,7 @@ export function TrashView({
       !root.contains(active)
     )
       return;
-    focusRowNear(root, index, noticeRef.current);
+    focusRowNear(root, index, noticeRef.current ?? headingRef.current);
   }, [busy, list]);
 
   async function reload() {
@@ -134,7 +127,7 @@ export function TrashView({
 
   async function restore(item: TrashItem) {
     if (busy) return;
-    focusIndex.current = list.items.findIndex((row) => row.id === item.id);
+    focusIndex.current = shown.findIndex((row) => row.id === item.id);
     setBusy(item.id);
     setNotice(undefined);
     setFailedRow(null);
@@ -146,14 +139,17 @@ export function TrashView({
       await transport.restore(item, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.restored);
+      showReceipt(item.id, {
+        item,
+        index: Math.max(
+          0,
+          list.items.findIndex((row) => row.id === item.id),
+        ),
+      });
       change((current) => ({
         ...current,
         items: current.items.filter((row) => row.id !== item.id),
       }));
-      setNotice({
-        tone: "ok",
-        text: item.label ? labels.restored(item.label) : labels.restoredHidden,
-      });
     } catch (error) {
       setFailedRow(item.id);
       const failure = writeFailure(error);
@@ -174,6 +170,7 @@ export function TrashView({
             failure === "forbidden"
               ? labels.restoreForbidden
               : labels.restoreFailed,
+          retry: failure === "forbidden" ? undefined : () => void restore(item),
         });
       }
     } finally {
@@ -202,14 +199,14 @@ export function TrashView({
       ) : null}
       {notice?.tone === "error" && !failureInRow ? (
         <div ref={noticeRef} tabIndex={-1}>
-          <NoticeLine notice={notice} />
+          <NoticeLine notice={notice} locale={labels.locale} />
         </div>
       ) : null}
-      {items.length === 0 ? (
+      {shown.length === 0 ? (
         <EmptyState title={labels.trashEmpty} hint={labels.trashEmptyHint} />
       ) : (
         <RowList
-          items={items}
+          items={shown}
           keyOf={(item) => item.id}
           label={labels.trashTitle}
           showAll={(count) => labels.showAll(count, list.has_more)}
@@ -224,6 +221,7 @@ export function TrashView({
               <ControlRow
                 primary={title}
                 secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
+                receipt={receipts.has(item.id) ? labels.restored : undefined}
                 action={
                   <button
                     type="button"
@@ -237,7 +235,7 @@ export function TrashView({
                 }
                 below={
                   failureInRow && failedRow === item.id ? (
-                    <NoticeLine notice={notice} />
+                    <NoticeLine notice={notice} locale={labels.locale} />
                   ) : undefined
                 }
               />
@@ -249,12 +247,17 @@ export function TrashView({
         <div className="control-page-more">
           {more === "failed" ? (
             <NoticeLine
-              notice={{ tone: "error", text: labels.trashMoreFailed }}
+              locale={labels.locale}
+              notice={{
+                tone: "error",
+                text: labels.trashMoreFailed,
+                retry: () => void loadMore(),
+              }}
             />
           ) : null}
           <button
             type="button"
-            className="control-more sk-btn--quiet"
+            className="control-more sk-more"
             disabled={more === "busy"}
             onClick={() => void loadMore()}
           >
@@ -262,16 +265,25 @@ export function TrashView({
           </button>
         </div>
       ) : null}
-      {notice?.tone === "ok" ? (
-        <div ref={noticeRef} tabIndex={-1} className="control-snackbar">
-          <StatusNotice
-            tone="success"
-            className="control-notice control-notice-ok"
-          >
-            {notice.text}
-          </StatusNotice>
-        </div>
-      ) : null}
     </div>
   );
+}
+
+/** `items` with each restored row back where it stood: after the `index` rows that stood before it. */
+function withReceiptRows(
+  items: readonly TrashItem[],
+  receipts: ReadonlyMap<string, { item: TrashItem; index: number }>,
+): TrashItem[] {
+  if (receipts.size === 0) return [...items];
+  const restored = [...receipts.values()].sort((a, b) => a.index - b.index);
+  const at = (position: number) =>
+    restored
+      .filter(({ index }) =>
+        position === items.length ? index >= position : index === position,
+      )
+      .map(({ item }) => item);
+  return [
+    ...items.flatMap((row, position) => [...at(position), row]),
+    ...at(items.length),
+  ];
 }

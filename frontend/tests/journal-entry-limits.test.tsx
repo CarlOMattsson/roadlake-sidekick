@@ -59,7 +59,7 @@ describe("the entry form and a text over the byte budget", () => {
     fireEvent.input(screen.getByLabelText(labels.entryTextLabel), {
       target: { value: "漢".repeat(90_000) },
     });
-    fireEvent.click(screen.getByRole("button", { name: labels.saveEntry }));
+    fireEvent.click(screen.getByRole("button", { name: labels.save }));
     expect(screen.getByRole("alert").textContent).toBe(labels.entryTooLong);
     expect(submit).not.toHaveBeenCalled();
     expect(screen.getByLabelText(labels.entryTextLabel)).toHaveAttribute(
@@ -76,7 +76,7 @@ describe("the entry form and a text over the byte budget", () => {
     fireEvent.input(screen.getByLabelText(journalSv.entryTextLabel), {
       target: { value: "ö".repeat(TEXT_MAX) },
     });
-    fireEvent.click(screen.getByRole("button", { name: journalSv.saveEntry }));
+    fireEvent.click(screen.getByRole("button", { name: journalSv.save }));
     expect(submit).toHaveBeenCalledTimes(1);
   });
 });

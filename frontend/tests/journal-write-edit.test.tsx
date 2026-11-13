@@ -125,7 +125,7 @@ describe("writing a new entry", () => {
       "Dagens text",
     );
     await user.click(
-      within(form).getByRole("button", { name: journalSv.saveEntry }),
+      within(form).getByRole("button", { name: journalSv.save }),
     );
     expect(await within(form).findByRole("alert")).toHaveTextContent(
       journalSv.titleRequired,
@@ -137,7 +137,7 @@ describe("writing a new entry", () => {
       "Rubrik",
     );
     await user.click(
-      within(form).getByRole("button", { name: journalSv.saveEntry }),
+      within(form).getByRole("button", { name: journalSv.save }),
     );
     await waitFor(() => expect(writeEntry).toHaveBeenCalledTimes(1));
     const [input, key] = writeEntry.mock.calls[0]!;
@@ -168,14 +168,14 @@ describe("writing a new entry", () => {
     await user.click(screen.getByRole("button", { name: journalEn.addEntry }));
     await user.type(screen.getByLabelText(journalEn.titleLabel), "Title");
     await user.type(screen.getByLabelText(journalEn.entryTextLabel), "Words");
-    await user.click(screen.getByRole("button", { name: journalEn.saveEntry }));
+    await user.click(screen.getByRole("button", { name: journalEn.save }));
     expect(
       await screen.findByText(journalEn.entryCreateFailed),
     ).toBeInTheDocument();
     expect(screen.getByLabelText(journalEn.entryTextLabel)).toHaveValue(
       "Words",
     );
-    await user.click(screen.getByRole("button", { name: journalEn.saveEntry }));
+    await user.click(screen.getByRole("button", { name: journalEn.save }));
     await waitFor(() => expect(writeEntry).toHaveBeenCalledTimes(2));
     expect(writeEntry.mock.calls[1]![1]).toBe(writeEntry.mock.calls[0]![1]);
   });
@@ -223,9 +223,7 @@ describe("changing an entry by hand", () => {
     const title = screen.getByLabelText(journalSv.titleLabel);
     await user.clear(title);
     await user.type(title, "Ny titel");
-    await user.click(
-      screen.getByRole("button", { name: journalSv.saveChanges }),
-    );
+    await user.click(screen.getByRole("button", { name: journalSv.save }));
     await waitFor(() => expect(updateEntry).toHaveBeenCalledTimes(1));
     const [id, version, fields, key] = updateEntry.mock.calls[0]!;
     expect(id).toBe(entryId);
@@ -253,9 +251,7 @@ describe("changing an entry by hand", () => {
     await user.click(
       await screen.findByRole("button", { name: journalEn.editEntry }),
     );
-    await user.click(
-      screen.getByRole("button", { name: journalEn.saveChanges }),
-    );
+    await user.click(screen.getByRole("button", { name: journalEn.save }));
     expect(updateEntry).not.toHaveBeenCalled();
     expect(
       await screen.findByRole("button", { name: journalEn.editEntry }),
@@ -290,9 +286,7 @@ describe("changing an entry by hand", () => {
     const title = screen.getByLabelText(journalSv.titleLabel);
     await user.clear(title);
     await user.type(title, "Ny titel");
-    await user.click(
-      screen.getByRole("button", { name: journalSv.saveChanges }),
-    );
+    await user.click(screen.getByRole("button", { name: journalSv.save }));
     expect(
       await screen.findByText(journalSv.entryEditConflict),
     ).toBeInTheDocument();
@@ -302,9 +296,7 @@ describe("changing an entry by hand", () => {
       "Annan sammanfattning.",
     );
 
-    await user.click(
-      screen.getByRole("button", { name: journalSv.saveChanges }),
-    );
+    await user.click(screen.getByRole("button", { name: journalSv.save }));
     await waitFor(() => expect(updateEntry).toHaveBeenCalledTimes(2));
     expect(updateEntry.mock.calls[1]![1]).toBe(5);
     expect(updateEntry.mock.calls[1]![3]).not.toBe(

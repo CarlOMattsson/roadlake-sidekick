@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * the glyph in --sk-fg, or --sk-muted in a row. Decorative: the button's aria-label names the action.
  */
 
-/** Three dots: "Fler alternativ" in the room head and the ⋯ of a row. */
+/** Three dots: "Fler val" in the room head and the ⋯ of a row. */
 export function MoreIcon() {
   return (
     <svg

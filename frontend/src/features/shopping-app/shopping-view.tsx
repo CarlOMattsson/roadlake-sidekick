@@ -198,6 +198,7 @@ export function ShoppingView({
     registerRow: editor.registerRow,
     contacts: transport.contacts,
     onToggle: togglePurchase,
+    onRelease: purchases.release,
     onRefresh: () => void reload(),
     onOpenEditor: editor.openEditor,
     onCloseEditor: editor.closeEditor,
@@ -238,6 +239,7 @@ export function ShoppingView({
         onBack={() => chooseList("")}
         onToggleAdd={forms.toggleAddField}
         onToggleMore={() => setPanel("moreOpen", !panels.moreOpen)}
+        onCloseMore={() => setPanel("moreOpen", false)}
         onToggleEdit={() => {
           if (!panels.editOpen && list) forms.setRenameName(list.name);
           setPanel("editOpen", !panels.editOpen);
@@ -277,7 +279,7 @@ export function ShoppingView({
           onListsExpanded={(value) => setPanel("listsExpanded", value)}
           onNewOpen={(value) => setPanel("newOpen", value)}
           sendMessage={sendMessage}
-          control={hostSettings}
+          control={control}
         />
       )}
       {/* Edit list (fullscreen): the field renames the open list with update_shopping_list. No create form, no picker. */}

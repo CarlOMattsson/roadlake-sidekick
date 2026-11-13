@@ -177,19 +177,16 @@ export function ProjectFrame({
             setMenuOpen(false);
             moreButton.current?.focus();
           }}
-          labels={t}
         />
       )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
-        <section className="sk-card">
-          <p className="sk-eyebrow">{t.title}</p>
-          <ErrorNotice
-            locale={t.dateLocale}
-            cause={frame.readError}
-            onRetry={frame.retry}
-          />
-        </section>
+        <ErrorNotice
+          locale={t.dateLocale}
+          subject="work:project"
+          cause={frame.readError}
+          onRetry={frame.retry}
+        />
       )}
       {phase === "gone" && <p role="status">{t.goneProject}</p>}
       {phase === "ready" && project && (
@@ -266,12 +263,12 @@ export function ProjectFrame({
             </>
           )}
           {write.kind === "failed" && write.action === "write" && (
-            <p role="alert">
-              {t.saveFailed}{" "}
-              <button type="button" onClick={() => retryTags.current?.()}>
-                {t.retry}
-              </button>
-            </p>
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              message={t.saveFailed}
+              onRetry={() => retryTags.current?.()}
+            />
           )}
           <WriteStatus
             write={write}
@@ -294,12 +291,11 @@ export function ProjectFrame({
           {tasks.phase === "loading" && <p role="status">{t.loading}</p>}
           {tasks.phase === "forbidden" && <p>{t.tasksForbidden}</p>}
           {tasks.phase === "error" && (
-            <p role="alert">
-              {t.failed}{" "}
-              <button type="button" onClick={tasks.retry}>
-                {t.retry}
-              </button>
-            </p>
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              onRetry={tasks.retry}
+            />
           )}
           {tasks.phase === "ready" && (
             <>

@@ -86,7 +86,7 @@ function transport(overrides: Partial<WorkTransport> = {}): WorkTransport {
 /** The ⋯ buttons that sit inside a list row (none may exist there). */
 function moreButtonsInRows() {
   return screen
-    .queryAllByRole("button", { name: /Fler alternativ|More options/u })
+    .queryAllByRole("button", { name: /Fler val|More options/u })
     .filter(
       (button) =>
         button.closest("li") !== null &&

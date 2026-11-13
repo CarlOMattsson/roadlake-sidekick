@@ -78,18 +78,18 @@ export const controlEn = {
   trashEmpty: "Nothing deleted.",
   trashEmptyHint: "What you delete lands here first and can be restored.",
   trashMore: "Show more",
-  trashMoreFailed: "Couldn’t load more. Try again.",
+  trashMoreFailed: "Couldn’t load more.",
   hiddenTitle: "Title hidden",
   restore: "Restore",
   restoreLabel: (title: string) => `Restore ${title}`,
   restoring: "Restoring…",
-  restored: (title: string) => `Restored: “${title}”`,
-  restoredHidden: "Restored",
+  /** The row's receipt after a restore (in the trash and in the history). */
+  restored: "Restored",
   restoreConflict: (title: string | null) =>
     `${title ? `“${title}”` : "This item"} was changed elsewhere. The list is up to date. Choose Restore again.`,
   restoreGone: "That item is no longer in the trash. Reloading the list.",
   restoreForbidden: "You don’t have permission to restore this.",
-  restoreFailed: "Couldn’t restore. Try again.",
+  restoreFailed: "Couldn’t restore.",
   // History: changes (with Undo/Restore) and activity (read only) in one list
   historyEmpty: "No history yet.",
   historyEmptyHint: "Changes made by you or Claude show up here.",
@@ -99,13 +99,13 @@ export const controlEn = {
   undo: "Undo",
   undoLabel: (verb: string, title: string) => `${verb} ${title}`,
   undoing: "Saving…",
-  undoneUnbought: (title: string) =>
-    `“${title}” is no longer marked as bought.`,
-  undoneBought: (title: string) => `“${title}” is marked as bought again.`,
+  /** The history row's receipt after an Undo of a purchase / of a put-back. */
+  undoneUnbought: "No longer bought",
+  undoneBought: "Bought again",
   undoConflict: (title: string | null) =>
     `${title ? `“${title}”` : "This item"} was changed elsewhere. The list is up to date. Try again.`,
   undoForbidden: "You don’t have permission to undo this.",
-  undoFailed: "Couldn’t undo. Try again.",
+  undoFailed: "Couldn’t undo.",
   activityTruncated:
     "This list is shortened. Only the most recent items are shown.",
   // Memory
@@ -150,7 +150,7 @@ export const controlEn = {
   memorySaved: "Saved.",
   memoryConflict: "Memory settings were changed elsewhere. Reloading.",
   memoryForbidden: "You don’t have permission to change this.",
-  memoryFailed: "Couldn’t save. Try again.",
+  memoryFailed: "Couldn’t save.",
   /** Where memory text goes: to the model the owner connected (Hindsight's LLM), the facts stay on the owner's server. */
   memoryExplain:
     "Sidekick remembers context between your conversations, and Claude can ask Sidekick about it. The text of records that are included goes to the language model you connected to memory, which picks out facts. The facts are stored on your Sidekick server.",
@@ -191,7 +191,7 @@ export const controlEn = {
   forgotten: (domain: MemoryDomain, title: string | null) =>
     `Sidekick has forgotten ${title ? `“${title}”` : `the ${EN_RECORD_NOUNS[domain][0]}`}. The ${EN_RECORD_NOUNS[domain][0]} itself won’t change. It can take a few minutes before it stops showing up in search.`,
   forgetForbidden: "You don’t have permission to change memory.",
-  forgetFailed: "Couldn’t forget it. Try again.",
+  forgetFailed: "Couldn’t forget it.",
   domains: {
     journal: "Journal",
     contacts: "Contacts",
@@ -283,18 +283,17 @@ export const controlSv: ControlLabels = {
   trashEmpty: "Inget borttaget.",
   trashEmptyHint: "Det du tar bort hamnar här först och kan återställas.",
   trashMore: "Visa fler",
-  trashMoreFailed: "Det gick inte att hämta fler. Försök igen.",
+  trashMoreFailed: "Det gick inte att hämta fler.",
   hiddenTitle: "Titeln är dold",
   restore: "Återställ",
   restoreLabel: (title) => `Återställ ${title}`,
   restoring: "Återställer…",
-  restored: (title) => `Återställd: “${title}”`,
-  restoredHidden: "Återställd",
+  restored: "Återställd",
   restoreConflict: (title) =>
-    `${title ? `“${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.`,
+    `${title ? `”${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.`,
   restoreGone: "Posten ligger inte längre i papperskorgen. Listan läses om.",
   restoreForbidden: "Du saknar behörighet att återställa den.",
-  restoreFailed: "Det gick inte att återställa. Försök igen.",
+  restoreFailed: "Det gick inte att återställa.",
   historyEmpty: "Ingen historik ännu.",
   historyEmptyHint: "Det du eller Claude ändrar visas här.",
   historyAskExample: "Lägg till mjölk på inköpslistan",
@@ -302,12 +301,12 @@ export const controlSv: ControlLabels = {
   undo: "Ångra",
   undoLabel: (verb, title) => `${verb} ${title}`,
   undoing: "Sparar…",
-  undoneUnbought: (title) => `“${title}” är inte längre köpt.`,
-  undoneBought: (title) => `“${title}” är köpt igen.`,
+  undoneUnbought: "Inte längre köpt",
+  undoneBought: "Köpt igen",
   undoConflict: (title) =>
-    `${title ? `“${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck igen.`,
+    `${title ? `”${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck igen.`,
   undoForbidden: "Du saknar behörighet att ångra det.",
-  undoFailed: "Det gick inte att ångra. Försök igen.",
+  undoFailed: "Det gick inte att ångra.",
   activityTruncated: "Listan är avkortad. Bara de senaste posterna visas.",
   memoryOn: "Minnet är på",
   memoryPaused: "Minnet är pausat",
@@ -349,7 +348,7 @@ export const controlSv: ControlLabels = {
   memoryConflict:
     "Minnesinställningarna har ändrats på annat håll. De läses om.",
   memoryForbidden: "Du saknar behörighet att ändra det.",
-  memoryFailed: "Det gick inte att spara. Försök igen.",
+  memoryFailed: "Det gick inte att spara.",
   memoryExplain:
     "Sidekick minns sammanhang mellan dina samtal, och Claude kan fråga Sidekick om det. Texten i poster som är med skickas till den språkmodell du har kopplat till minnet, som plockar ut fakta. Fakta sparas på din Sidekick-server.",
   recallShow: "Visa vad Sidekick minns",
@@ -359,7 +358,7 @@ export const controlSv: ControlLabels = {
   recallProbe: "senaste och viktigaste",
   recallSample: "Ett urval av vad Sidekick minns, inte allt.",
   recallLooking: "Letar…",
-  recallEmpty: "Sidekick minns inget härifrån ännu.",
+  recallEmpty: "Sidekick minns inget härifrån än.",
   recallNothing: "Hittade inget i minnet om det.",
   recallPaused: "Minnet är pausat, så det går inte att slå upp något.",
   recallOff: "Minnet är av, så det går inte att slå upp något.",
@@ -383,7 +382,7 @@ export const controlSv: ControlLabels = {
   forgotten: (domain, title) =>
     `Sidekick har glömt ${title ? `”${title}”` : SV_RECORD_DEFINITE[domain]}. Själva ${SV_RECORD_DEFINITE[domain]} ändras inte. Det kan ta några minuter innan det försvinner ur sökningen.`,
   forgetForbidden: "Du saknar behörighet att ändra minnet.",
-  forgetFailed: "Det gick inte att glömma den. Försök igen.",
+  forgetFailed: "Det gick inte att glömma den.",
   domains: {
     journal: "Dagbok",
     contacts: "Kontakter",

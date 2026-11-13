@@ -149,7 +149,7 @@ type Surface = {
   replies?: Record<string, unknown>;
   /**
    * The summary's Open, pressed once the result is shown. A host without fullscreen gets the summary
-   * first, and Show all expands the full view inline; the checks then run on the expanded view.
+   * first, and Open contacts expands the full view inline; the checks then run on the expanded view.
    */
   openSummary?: (app: FrameLocator) => Locator;
   /** Visible once the result is shown (and after openSummary, when given). */
@@ -159,7 +159,7 @@ type Surface = {
   effect: Effect;
 };
 
-// Inline-only host: the Contact list is a summary with Show all, and Show all expands the full list inline
+// Inline-only host: the Contact list is a summary with Open contacts, and it expands the full list inline
 // (section letters and one row per Contact). No fullscreen is requested.
 const inlineOnlyContactList: Surface = {
   name: "contact list inline-only host",
@@ -167,7 +167,7 @@ const inlineOnlyContactList: Surface = {
   structuredContent: fullContacts,
   hostContext: inlineOnlyContext,
   openSummary: (app) =>
-    app.getByRole("button", { name: "Show all", exact: true }),
+    app.getByRole("button", { name: "Open contacts", exact: true }),
   replies: {
     get_contact_context: {
       structuredContent: {
@@ -206,13 +206,14 @@ const surfaces: Surface[] = [
     effect: { kind: "fullscreen" },
   },
   {
-    // Inline with fullscreen offered, the Contact list is a summary (count and "Show all"), not the list.
+    // Inline with fullscreen offered, the Contact list is a summary (count and "Open contacts"), not the list.
     // The inline context lists fullscreen in availableDisplayModes, so this is the variant that ships.
     name: "contact list summary",
     resource: "work",
     structuredContent: contacts,
     ready: (app) => app.locator(".work-compact-card"),
-    target: (app) => app.getByRole("button", { name: "Show all", exact: true }),
+    target: (app) =>
+      app.getByRole("button", { name: "Open contacts", exact: true }),
     effect: { kind: "fullscreen" },
   },
   {
@@ -372,9 +373,9 @@ for (const viewport of viewports) {
         inlineOnlyContactList,
         viewport,
       );
-      // Show all has expanded the full list inline: no summary Show all is left, and no fullscreen was asked for.
+      // The summary expanded the full list inline: its Open contacts is gone, and no fullscreen was asked for.
       await expect(
-        app.getByRole("button", { name: "Show all", exact: true }),
+        app.getByRole("button", { name: "Open contacts", exact: true }),
       ).toHaveCount(0);
       expect((await simulatedHostState(page)).displayModeRequests).toEqual([]);
       // With 15 Contacts or fewer the list has no letter headings (LETTER_HEADINGS_ABOVE in contacts-list.tsx).

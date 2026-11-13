@@ -18,6 +18,10 @@ export const hierarchyDetailLabelsSv = {
   overdue: (n: number) => `${n} ${n === 1 ? "försenad" : "försenade"}`,
   /** A Domain with no Project or Process yet, under its heading. */
   noGroups: "Inga projekt eller processer än.",
+  /** The empty Projects tab: what the tab is for, and the one sentence to say to Claude (the inline card says the same). */
+  emptyHint:
+    "Ett projekt har ett slut, en process pågår. Båda samlar uppgifter.",
+  emptyAsk: "Starta ett projekt som heter Renovera köket",
   /** The heading over the Projects and Processes outside every Domain, drawn only when there are Domains. */
   noDomain: "Utan domän",
   /** The title filter's label, the same frame as the agenda's filter. */
@@ -55,6 +59,8 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
     n === 0 ? "No open tasks" : n === 1 ? "1 open task" : `${n} open tasks`,
   overdue: (n) => `${n} overdue`,
   noGroups: "No projects or processes yet.",
+  emptyHint: "A project has an end, a process goes on. Both hold tasks.",
+  emptyAsk: "Start a project called Renovate the kitchen",
   noDomain: "Not in an area",
   filter: "Filter projects and processes",
   noMatches: "No matches.",

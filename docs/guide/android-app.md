@@ -23,6 +23,7 @@ The app is in daily use on a real phone against a real server. It is also built 
 - It does not create tasks or projects. You do that in Claude.
 - It runs no AI and does not talk to Claude.
 - It does not show Contacts or Control.
+- It does not change tags and has no tag filter, and it does not show the actions on a step.
 - It has no QR scanner and does not ask for the camera.
 - It does not back up its connection or transfer it to a new phone.
 

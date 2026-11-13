@@ -28,15 +28,15 @@ your own PostgreSQL database.
 
 | Area | Capabilities |
 | --- | --- |
-| **Work** | Agenda, status board, domains, processes, projects, tasks and steps; dates, priorities, tags, estimates, waiting context and recurring work. |
+| **Work** | Agenda, status board, domains, processes, projects, tasks, steps and their actions; dates, priorities, tags, estimates, waiting context and recurring work. |
 | **Journal** | Several entries per day, manual writing and editing, entries and summaries written by Claude, tags, linked context. |
 | **Contacts** | People, organisations, roles, contact channels, relationship notes and tags, linked to tasks, projects and journal entries. |
-| **Shopping** | Lists, quantities, store groups, purchase ticks and undo. |
+| **Shopping** | Lists, quantities, store groups, purchase ticks and undo, gift recipients from your contacts. |
 | **Control** | Trash and restore, recent changes, and controls for Sidekick's memory. Permanent deletion is not a public tool. |
 | **Memory** | Optional Hindsight memory derived from your records, with per-source switches, pause and per-record exclusion. |
 | **Android** | Pairing, a Today widget, Work, Journal and Shopping rooms, reminders over UnifiedPush (ntfy). |
 
-The MCP apps' labels are Swedish by default (Arbete = Work, Dagbok = Journal, Inköp = Shopping, Kontroll = Control).
+The MCP apps' labels are Swedish by default (Arbete = Work, Dagbok = Journal, Inköp = Shopping, Minne och kontroll = Memory and control).
 Set `SIDEKICK_MCP_APP_LOCALE=en` on the server for English. The Android app has its own language setting; see
 [Languages](docs/reference/languages.md#the-android-app).
 

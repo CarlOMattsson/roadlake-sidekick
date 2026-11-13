@@ -235,7 +235,7 @@ describe("WorkCard", () => {
 
     expect(screen.getByText("Work")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Couldn’t load this right now",
+      "Couldn’t load your tasks",
     );
     await userEvent.click(
       screen.getByRole("button", { name: cardLabelsEn.retry }),

@@ -23,6 +23,7 @@ Appen används dagligen på en riktig telefon mot en riktig server. Den byggs oc
 - Den skapar inte uppgifter eller projekt. Det gör du i Claude.
 - Den kör ingen AI och pratar inte med Claude.
 - Den visar inte Kontakter eller Kontroll.
+- Den ändrar inte taggar och har inget taggfilter, och den visar inte åtgärderna på ett steg.
 - Den har ingen QR-läsare och ber inte om kameran.
 - Den säkerhetskopierar inte sin anslutning och flyttar den inte till en ny telefon.
 

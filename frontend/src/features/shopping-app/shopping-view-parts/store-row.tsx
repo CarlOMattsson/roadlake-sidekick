@@ -5,7 +5,15 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
-import { queuedMark, rowFailure, undoButton } from "./row-parts";
+import {
+  heldStatus,
+  heldWord,
+  isHolding,
+  queuedMark,
+  rowFailure,
+  undoButton,
+  useRowUndo,
+} from "./row-parts";
 import type { RowEnv } from "./row-parts";
 
 /**
@@ -24,7 +32,8 @@ export function StoreRow({
   env: RowEnv;
 }) {
   const { labels: t, held, rowQueue } = env;
-  const holding = inPlace && item.purchased && Boolean(held[item.id]);
+  const holding = isHolding(item, env, inPlace);
+  const hold = useRowUndo(item, env, holding);
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
@@ -92,8 +101,10 @@ export function StoreRow({
             <span className="shopping-store-text">
               <span className="shopping-store-name">{item.name}</span>
               {holding ? (
-                <span className="shopping-held">
-                  {amount ? `${t.bought} · ${amount}` : t.bought}
+                <span className="shopping-held" aria-hidden="true">
+                  {amount
+                    ? `${heldWord(item, env)} · ${amount}`
+                    : heldWord(item, env)}
                 </span>
               ) : (
                 amount && <span className="shopping-store-qty">{amount}</span>
@@ -111,7 +122,8 @@ export function StoreRow({
           )}
         </button>
       </div>
-      {holding && undoButton(item, env)}
+      {holding && undoButton(item, env, hold)}
+      {holding && heldStatus(item, env)}
       {(inPlace || !held[item.id]) && rowFailure(item, env)}
       {env.editing?.id === item.id && (
         <ItemEditor

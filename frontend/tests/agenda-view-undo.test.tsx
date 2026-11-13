@@ -9,9 +9,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import {
   shortTitle,
-  UNDO_MS,
   UNDO_TITLE_MAX,
 } from "@/features/work-app/agenda/agenda-undo";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { workEn } from "@/features/work-app/shared/labels";
 import {
   TASK_ID,

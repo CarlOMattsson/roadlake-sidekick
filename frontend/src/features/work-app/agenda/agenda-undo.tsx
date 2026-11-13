@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { WorkLabels } from "../shared/labels";
 
 /**
  * Undo in the fullscreen views (designsystem §3): every status change and date move in the
- * agenda, the board and To sort can be undone from its own row for `UNDO_MS`. Undo writes the previous value with
+ * agenda, the board and To sort can be undone from its own row for `UNDO_MS` (mcp-apps/ui/undo-hold.ts). Undo writes the previous value with
  * a new key, against the version the change left.
  */
-
-/** How long a status change can be undone once it is done (at least fifteen seconds, the same in agenda and board). */
-export const UNDO_MS = 15000;
 
 /** The last status change of one record: the status it had, the status it got, and the version it has now. */
 export type AgendaUndo = {
@@ -155,38 +153,19 @@ export function UndoMeta({
   onUndo?: () => void;
   onExpire: () => void;
 }) {
-  const [pointer, setPointer] = useState(false);
-  const [focused, setFocused] = useState(false);
   const done = !moving;
-  // The time left to undo. It only runs down while the change is done and the Undo is not held.
-  const left = useRef(UNDO_MS);
-  const held = pointer || focused;
+  // The time to undo only runs down while the change is done, and stands still while the Undo is held.
+  const { held, handlers } = useUndoHold(done, onExpire);
   // The line and its Ångra come into view when it shows: the line is the row's lowest part, and the button
   // stands beside the title or, when it moved down, on the line itself.
   const nearest = useNearest<HTMLParagraphElement>(done);
-  useEffect(() => {
-    if (!done) {
-      left.current = UNDO_MS;
-      return undefined;
-    }
-    if (held) return undefined;
-    const since = Date.now();
-    const timer = setTimeout(onExpire, left.current);
-    return () => {
-      clearTimeout(timer);
-      left.current -= Date.now() - since;
-    };
-  }, [done, held, onExpire]);
 
   return (
     <div
       className="work-agenda-undo"
       // The time line under Ångra stands still while the timer does.
       data-held={held ? "" : undefined}
-      onPointerEnter={() => setPointer(true)}
-      onPointerLeave={() => setPointer(false)}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
+      {...handlers}
     >
       <p role="status" ref={nearest}>
         {done ? text : t.agendaMoving}
@@ -194,7 +173,7 @@ export function UndoMeta({
       {done && onUndo && (
         <button
           type="button"
-          className="sk-btn--secondary sk-btn--compact"
+          className="sk-btn--secondary sk-btn--compact sk-undo-time"
           disabled={disabled}
           onClick={onUndo}
           ref={(button) => {

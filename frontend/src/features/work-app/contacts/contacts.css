@@ -174,8 +174,9 @@
   margin-top: calc(-1 * var(--sk-s1));
 }
 
-/* The Contact's ⋯ panel, under the title and its meta line: a surface box with one 44 px text button per entry,
-   "Lägg till smeknamn" in the text colour and Archive (Restore) in the danger text colour. */
+/* The ⋯ panel under a detail view's title: a surface box with one 44 px text button per entry. In a Contact, Task and
+   Project view the entries are sk-menu-item (family.css); the .work-contact-menu-item rules below serve the Contacts
+   list's panel, the Task's status menu and a linked row's remove menu. */
 .sidekick-work .work-contact-menu {
   display: flex;
   flex-direction: column;
@@ -185,14 +186,7 @@
   border-radius: var(--sk-radius-card);
   background: var(--sk-surface);
 }
-.sidekick-work .work-contact-menu .work-row-actions {
-  margin: 0;
-}
-.sidekick-work .work-contact-menu > .work-contact-menu-item,
-.sidekick-work
-  .work-contact-menu
-  .work-row-actions
-  > .sk-btn--quiet:first-child {
+.sidekick-work .work-contact-menu > .work-contact-menu-item {
   display: flex;
   align-items: center;
   justify-content: flex-start;

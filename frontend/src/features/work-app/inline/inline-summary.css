@@ -231,14 +231,6 @@
   outline-offset: -2px;
 }
 
-/* The notice is the family's error box (sk-error sk-error--card): only its row layout is set here. */
-.sidekick-work .work-compact-notice {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 /* The card's link row: 44 drawn (--sk-tap), as every other control a finger meets in the card, with a 48 target. */
 .sidekick-work .work-compact-card > .work-compact-action.sk-btn--open,
 .sidekick-work

@@ -29,10 +29,10 @@ PostgreSQL-databas.
 
 | Område | Funktioner |
 | --- | --- |
-| **Arbete** | Agenda, statustavla, domäner, processer, projekt, uppgifter och steg; datum, prioritet, taggar, uppskattning, väntar-på och återkommande arbete. |
+| **Arbete** | Agenda, statustavla, domäner, processer, projekt, uppgifter, steg och deras åtgärder; datum, prioritet, taggar, uppskattning, väntar-på och återkommande arbete. |
 | **Dagbok** | Flera anteckningar per dag, egen skrivning och redigering, anteckningar och sammanfattningar skrivna av Claude, taggar, länkad kontext. |
 | **Kontakter** | Personer, organisationer, roller, kontaktvägar, relationsanteckningar och taggar, länkade till uppgifter, projekt och dagboksanteckningar. |
-| **Inköp** | Listor, mängder, butiksgrupper, avprickning och ångra. |
+| **Inköp** | Listor, mängder, butiksgrupper, avprickning och ångra, presentmottagare bland dina kontakter. |
 | **Kontroll** | Papperskorg och återställning, senaste ändringar och kontroller för Sidekicks minne. Permanent radering är inget publikt verktyg. |
 | **Minne** | Valfritt Hindsight-minne härlett från dina poster, med omkopplare per källa, paus och undantag per post. |
 | **Android** | Parkoppling, en Idag-widget, rummen Arbete, Dagbok och Inköp, påminnelser via UnifiedPush (ntfy). |

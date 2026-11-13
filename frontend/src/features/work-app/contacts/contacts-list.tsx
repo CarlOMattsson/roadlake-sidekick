@@ -270,7 +270,8 @@ export function ContactsView({
                   : undefined,
               }}
             >
-              {query && offers("create_contact") && (
+              {/* The hand-made way next to "Säg till Claude": it opens the create field as + does, with the search text as the name. */}
+              {offers("create_contact") && (
                 <button
                   type="button"
                   className="work-add-row sk-action-row"
@@ -282,7 +283,7 @@ export function ContactsView({
                   }
                 >
                   <PlusIcon />
-                  {words.createNamed(query)}
+                  {query ? words.createNamed(query) : words.addContact}
                 </button>
               )}
             </EmptyState>
@@ -310,6 +311,7 @@ export function ContactsView({
       {fresh && page.next_cursor && (
         <button
           type="button"
+          className="sk-more"
           disabled={more === "busy"}
           onClick={list.loadMore}
         >

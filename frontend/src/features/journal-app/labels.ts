@@ -73,8 +73,9 @@ export const journalEn = {
   pending: "Awaiting review",
   pendingNote: "Open a draft to review it. Nothing is saved until you save it.",
   pendingEmpty: "Nothing to review.",
+  pendingEmptyHint: "Drafts from Claude wait here until you save them.",
   /** A list cut to its first rows (Awaiting review inline, a kind in «Gjort»): the button that shows the rest. */
-  moreShowAll: (n: number) => `+${n} more · Show all`,
+  moreShowAll: (n: number) => `Show all (${n})`,
   /** The same button when the server sent only part of the list: the rest it shows is still not all. */
   moreShowMore: (n: number) => `+${n} more · Show more`,
   showFewer: "Show fewer",
@@ -150,7 +151,8 @@ export const journalEn = {
   editBlockedHidden:
     "This draft can’t be edited here while some suggestions are hidden.",
   edit: "Edit",
-  saveChanges: "Save changes",
+  /** Save in every form (a new entry, a draft's fields): the one word, as in every room. */
+  save: "Save",
   cancel: "Cancel",
   titleRequired: "Enter a title.",
   keyPointRequired: "A key point can’t be empty.",
@@ -174,7 +176,7 @@ export const journalEn = {
   reload: "Reload",
   invalidChange: "That change wasn’t accepted. Check the values.",
   forbiddenWrite: "You don’t have permission to change this.",
-  saveFailed: "Couldn’t save. Try again.",
+  saveFailed: "Couldn’t save.",
   saved: "Saved",
   working: "Working…",
   characters: "characters",
@@ -187,7 +189,6 @@ export const journalEn = {
   newEntryDay: (day: string) => `Saves to ${day}`,
   entryTextLabel: "Your text",
   entryTextRequired: "Write something first.",
-  saveEntry: "Save entry",
   entryCreated: "Entry saved.",
   entryCreateFailed:
     "Couldn’t save the entry. Your text is still here. Try again.",
@@ -246,8 +247,8 @@ export const journalEn = {
   entryTrashed: "Entry deleted.",
   entryTrashedWhere: (control: string) =>
     `You can also restore it in ${control} › Deleted.`,
-  entryTrashFailed: "Couldn’t delete the entry. Try again.",
-  entryRestoreFailed: "Couldn’t undo the deletion. Try again.",
+  entryTrashFailed: "Couldn’t delete the entry.",
+  entryRestoreFailed: "Couldn’t undo the deletion.",
   entryRestored: "Entry restored.",
   /** Says how many it approves, so the inline card needs no line of its own for the count. */
   approveAll: (n: number) =>
@@ -283,7 +284,7 @@ export const journalSv: JournalLabels = {
   empty: "Ingen dag, anteckning eller väntande punkt att visa.",
   entries: "Anteckningar",
   noEntries: "Inget skrivet den här dagen.",
-  noEntriesToday: "Inget skrivet ännu idag.",
+  noEntriesToday: "Inget skrivet idag än.",
   tellClaude: "Berätta för Claude om dagen",
   tellClaudeMessage:
     "Jag vill berätta om min dag så att det sparas i dagboken.",
@@ -344,14 +345,15 @@ export const journalSv: JournalLabels = {
   pendingNote:
     "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
   pendingEmpty: "Inget väntar på granskning.",
-  moreShowAll: (n: number) => `+${n} fler · Visa alla`,
+  pendingEmptyHint: "Utkast från Claude väntar här tills du sparar dem.",
+  moreShowAll: (n: number) => `Visa alla (${n})`,
   moreShowMore: (n: number) => `+${n} fler · Visa fler`,
   showFewer: "Visa färre",
   pendingState: {
     source_saved: "Sparad, ej granskad",
     draft_pending_review: "Utkast som väntar på granskning",
     draft_ready: "Utkast klart",
-    no_draft: "Inget utkast ännu",
+    no_draft: "Inget utkast än",
   },
   untitledDraft: "Utkast utan titel",
   draft: "Utkast",
@@ -413,7 +415,7 @@ export const journalSv: JournalLabels = {
   editBlockedHidden:
     "Utkastet kan inte redigeras här så länge vissa förslag är dolda.",
   edit: "Redigera",
-  saveChanges: "Spara ändringar",
+  save: "Spara",
   cancel: "Avbryt",
   titleRequired: "Ange en titel.",
   keyPointRequired: "En huvudpunkt kan inte vara tom.",
@@ -437,7 +439,7 @@ export const journalSv: JournalLabels = {
   reload: "Ladda om",
   invalidChange: "Ändringen godtogs inte. Kontrollera värdena.",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
-  saveFailed: "Det gick inte att spara. Försök igen.",
+  saveFailed: "Det gick inte att spara.",
   saved: "Sparat",
   working: "Arbetar…",
   characters: "tecken",
@@ -449,7 +451,6 @@ export const journalSv: JournalLabels = {
   newEntryDay: (day: string) => `Sparas på ${day}`,
   entryTextLabel: "Din text",
   entryTextRequired: "Skriv något i anteckningen.",
-  saveEntry: "Spara anteckningen",
   entryCreated: "Anteckningen sparades.",
   entryCreateFailed:
     "Det gick inte att spara anteckningen. Din text finns kvar. Försök igen.",
@@ -505,8 +506,8 @@ export const journalSv: JournalLabels = {
   entryTrashed: "Anteckningen är borttagen.",
   entryTrashedWhere: (control: string) =>
     `Du kan också återställa den i ${control} › Borttaget.`,
-  entryTrashFailed: "Det gick inte att ta bort anteckningen. Försök igen.",
-  entryRestoreFailed: "Det gick inte att ångra borttagningen. Försök igen.",
+  entryTrashFailed: "Det gick inte att ta bort anteckningen.",
+  entryRestoreFailed: "Det gick inte att ångra borttagningen.",
   entryRestored: "Anteckningen är återställd.",
   approveAll: (n: number) =>
     n === 1 ? "Godkänn förslaget" : `Godkänn alla ${n} förslag`,

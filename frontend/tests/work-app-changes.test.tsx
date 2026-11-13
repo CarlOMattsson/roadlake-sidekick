@@ -321,7 +321,7 @@ it("shows no more-menu and no remove link in a Contact's Task row, and its ring 
   ).closest("li") as HTMLElement;
   // The Task's link is removed from the Task view, so the Contact's row has no ⋯ and no "Remove link".
   expect(
-    within(row).queryByRole("button", { name: /More options|Fler alternativ/ }),
+    within(row).queryByRole("button", { name: /More options|Fler val/ }),
   ).toBeNull();
   expect(
     within(row).queryByRole("button", {

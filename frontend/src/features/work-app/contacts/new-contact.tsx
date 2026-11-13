@@ -4,6 +4,8 @@ import { titleProblem } from "../shared/fields";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { CreateField } from "../../mcp-apps/ui/create-field";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { WriteFailureRow } from "../shared/write-failure-row";
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import {
   writeFailure,
@@ -154,23 +156,21 @@ export function NewContact({
             }
             onClose={close}
           />
-          {problem && <p role="alert">{problem}</p>}
-          {failure === "conflict" && <p role="alert">{t.createConflict}</p>}
-          {failure === "forbidden" && <p>{t.forbiddenWrite}</p>}
-          {failure === "invalid" && <p role="alert">{t.invalidChange}</p>}
-          {failure === "not_found" && <p role="alert">{t.notFound}</p>}
-          {failure === "failed" && (
-            <p role="alert">
-              {t.contactCreateFailed}{" "}
-              <button
-                type="button"
-                className="sk-btn--quiet sk-btn--compact"
-                disabled={busy}
-                onClick={retry}
-              >
-                {t.retry}
-              </button>
-            </p>
+          {problem && (
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              message={problem}
+            />
+          )}
+          {failure && (
+            <WriteFailureRow
+              failure={failure}
+              failedMessage={t.contactCreateFailed}
+              labels={t}
+              retrying={busy}
+              onRetry={retry}
+            />
           )}
         </div>
       )}

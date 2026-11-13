@@ -502,7 +502,7 @@ describe("MobileApp views", () => {
     mount(native, platformFor());
     await screen.findByText("Skicka offert");
 
-    await user.click(screen.getByRole("button", { name: "Fler alternativ" }));
+    await user.click(screen.getByRole("button", { name: "Fler val" }));
 
     expect(screen.getByRole("button", { name: "Uppdatera" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Sparade vyer" })).toBeNull();
@@ -527,7 +527,7 @@ describe("MobileApp views", () => {
     render(<MobileApp transport={open} platform={platformFor()} locale="sv" />);
     await screen.findByText("Skicka offert");
 
-    await user.click(screen.getByRole("button", { name: "Fler alternativ" }));
+    await user.click(screen.getByRole("button", { name: "Fler val" }));
 
     expect(screen.getByRole("button", { name: "Sparade vyer" })).toBeDefined();
     expect(
@@ -558,7 +558,7 @@ describe("MobileApp views", () => {
     for (const name of [
       /^Lägg till datum|^Ändra datum/,
       /^Ändra status/,
-      "Fler alternativ",
+      "Fler val",
       "Lägg till steg",
       "Koppla kontakt",
     ])

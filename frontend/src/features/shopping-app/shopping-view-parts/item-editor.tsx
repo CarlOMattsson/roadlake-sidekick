@@ -9,6 +9,7 @@ import type { ShoppingLabels } from "../labels";
 import { localDay } from "../transport";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 
 /** How many of the fields behind "Fler fält" hold a value, so the closed toggle can say that something is there. */
 function filledExtras(item: ShoppingItem): number {
@@ -248,7 +249,15 @@ export function ItemEditor({
                 >
                   {t.searchContact}
                 </button>
-                {contactError && <p role="alert">{t.failed}</p>}
+                {contactError && (
+                  <ErrorNotice
+                    placement="row"
+                    locale={t.dateLocale}
+                    message={t.contactSearchFailed}
+                    retrying={searching}
+                    onRetry={() => void search()}
+                  />
+                )}
               </>
             )}
           </div>
@@ -341,11 +350,11 @@ export function ItemEditor({
             </div>
           </fieldset>
         </div>
-        <div className="shopping-toolbar shopping-editor-actions">
+        <div className="sk-form-actions">
           <button type="button" className="sk-btn--primary" onClick={save}>
             {t.save}
           </button>
-          <button type="button" onClick={onCancel}>
+          <button type="button" className="sk-btn--quiet" onClick={onCancel}>
             {t.cancel}
           </button>
         </div>

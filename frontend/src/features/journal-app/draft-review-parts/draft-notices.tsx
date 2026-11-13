@@ -43,7 +43,13 @@ export function DraftNotices({
         </div>
       )}
       {write.kind === "forbidden" && <p>{t.forbiddenWrite}</p>}
-      {write.kind === "invalid" && <p role="alert">{t.invalidChange}</p>}
+      {write.kind === "invalid" && (
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.invalidChange}
+        />
+      )}
       {write.kind === "failed" && write.action === "reload" && (
         <ErrorNotice locale={t.dateLocale} onRetry={onReload} />
       )}

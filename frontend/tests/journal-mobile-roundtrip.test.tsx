@@ -72,7 +72,7 @@ describe("a hand-written journal entry on the phone", () => {
     await user.paste(TITLE);
     await user.click(screen.getByLabelText(journalSv.entryTextLabel));
     await user.paste(TEXT);
-    await user.click(screen.getByRole("button", { name: journalSv.saveEntry }));
+    await user.click(screen.getByRole("button", { name: journalSv.save }));
 
     // Save: the server holds the words in the source; the entry itself has no summary.
     const row = await screen.findByRole("button", {

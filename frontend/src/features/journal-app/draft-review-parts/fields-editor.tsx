@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { DiscardAsk, keepVisible } from "../entry-write";
 import { useUnsavedGuard } from "../../mcp-apps/unsaved-guard";
 import { labelFor, type JournalLabels } from "../labels";
@@ -206,12 +207,13 @@ export function FieldsEditor({
         </button>
       </p>
       {saveFailed && (
-        <p role="alert">
-          {t.saveFailed}{" "}
-          <button type="button" disabled={busy} onClick={submit}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.saveFailed}
+          retrying={busy}
+          onRetry={submit}
+        />
       )}
       {asking ? (
         <DiscardAsk
@@ -220,14 +222,14 @@ export function FieldsEditor({
           onKeep={() => setAsking(false)}
         />
       ) : (
-        <div className="journal-actions">
+        <div className="journal-actions sk-form-actions">
           <button
             type="button"
             className="sk-btn--primary"
             disabled={busy}
             onClick={submit}
           >
-            {t.saveChanges}
+            {t.save}
           </button>
           <button
             type="button"

@@ -202,7 +202,12 @@ export function BoardView({
     <RefreshButton label={t.refresh} disabled={disabled} onClick={reload} />
   );
   const more = page.next_cursor && (
-    <button type="button" disabled={disabled} onClick={loadMore}>
+    <button
+      type="button"
+      className="sk-more"
+      disabled={disabled}
+      onClick={loadMore}
+    >
       {boardLabelsFor(t.dateLocale).showMore}
     </button>
   );

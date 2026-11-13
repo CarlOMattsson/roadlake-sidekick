@@ -16,7 +16,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { BoardView } from "@/features/work-app/board/board";
 import { InlineSummary } from "@/features/work-app/inline/inline-summary";
 import { inlineSummaryLabelsSv } from "@/features/work-app/inline/inline-summary-labels";

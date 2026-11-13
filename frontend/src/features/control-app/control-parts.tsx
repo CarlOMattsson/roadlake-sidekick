@@ -1,19 +1,36 @@
 import { Fragment, useState, type ReactNode } from "react";
 import { Notice as StatusNotice } from "../mcp-apps/ui/notice";
+import { ErrorNotice } from "../mcp-apps/ui/states";
 
 /** Rows an inline card lists before the rest is behind "Show all". The card never scrolls. */
 export const INLINE_ROWS = 3;
 
-/** A message under the heading. Success is a polite status; a failure is an alert. */
-export type Notice = { tone: "ok" | "error"; text: string };
+/**
+ * A message under the heading. Success is a polite status; a failure is an alert, with `retry` when the failed write can
+ * be repeated.
+ */
+export type Notice = {
+  tone: "ok" | "error";
+  text: string;
+  retry?: (() => void) | undefined;
+};
 
-/** Success is the family's status line; a failure is the family's alert box (role="alert"). */
-export function NoticeLine({ notice }: { notice: Notice | undefined }) {
+/** Success is the family's status line; a failure is the family's write error row (role="alert"). */
+export function NoticeLine({
+  notice,
+  locale,
+}: {
+  notice: Notice | undefined;
+  locale: string;
+}) {
   if (!notice) return null;
   return notice.tone === "error" ? (
-    <p role="alert" className="control-notice control-notice-error">
-      {notice.text}
-    </p>
+    <ErrorNotice
+      placement="row"
+      locale={locale}
+      message={notice.text}
+      onRetry={notice.retry}
+    />
   ) : (
     <StatusNotice tone="success" className="control-notice control-notice-ok">
       {notice.text}
@@ -23,16 +40,19 @@ export function NoticeLine({ notice }: { notice: Notice | undefined }) {
 
 /**
  * One row: a title, a quiet second line, and at most one visible action at the end. The action is a
- * sibling of the text, never inside it, so the whole row is not a button.
+ * sibling of the text, never inside it, so the whole row is not a button. A `receipt` (what a saved write
+ * did) takes the place of the second line as a status and of the action: the row stays where it is.
  */
 export function ControlRow({
   primary,
   secondary,
+  receipt,
   action,
   below,
 }: {
   primary: string;
   secondary?: string;
+  receipt?: string;
   action?: ReactNode;
   /** Full-width content under the row's text and action (a confirmation, a panel). */
   below?: ReactNode;
@@ -42,7 +62,11 @@ export function ControlRow({
       <div className="control-row-text">
         <span className="control-row-primary">{primary}</span>
         {/* One meta line, cut with an ellipsis at its end; each "·" part is its own span. */}
-        {secondary ? (
+        {receipt ? (
+          <span role="status" className="control-row-secondary">
+            {receipt}
+          </span>
+        ) : secondary ? (
           <span className="control-row-secondary">
             {secondary.split(" · ").map((part, i) => (
               <Fragment key={i}>
@@ -53,7 +77,9 @@ export function ControlRow({
           </span>
         ) : null}
       </div>
-      {action ? <div className="control-row-action">{action}</div> : null}
+      {action && !receipt ? (
+        <div className="control-row-action">{action}</div>
+      ) : null}
       {below ? <div className="control-row-below">{below}</div> : null}
     </li>
   );
@@ -107,7 +133,7 @@ export function RowList<T>({
       {!full && items.length > INLINE_ROWS ? (
         <button
           type="button"
-          className="control-more sk-btn--quiet"
+          className="control-more sk-more"
           aria-expanded={expanded}
           onClick={() => {
             setOwn(!expanded);

@@ -37,6 +37,7 @@ import "../tasks/task-detail.css";
 export function WorkView({
   transport,
   initial,
+  failure,
   labels: t,
   cardLabels = cardLabelsEn,
   inlineLabels = inlineSummaryLabelsEn,
@@ -253,12 +254,15 @@ export function WorkView({
         />
       )}
       {top?.kind === "error" && (
-        // The error frame holds no data and no tool name, so there is nothing to read again: no retry.
+        // The error frame holds no data and no tool name: only the room knows what can be read again.
         <WorkCard
           state="error"
           labels={cards}
           appTitle={t.title}
           locale={t.dateLocale}
+          cause={failure?.cause}
+          onRetry={failure?.onRetry}
+          retrying={failure?.retrying}
         />
       )}
       {top?.kind === "project" && fullscreen && summaryRoot && (

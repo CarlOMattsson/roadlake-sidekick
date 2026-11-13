@@ -5,6 +5,7 @@ import { HostToolError } from "@/features/mcp-apps/bridge";
 import { WorkView } from "@/features/work-app/view/work-view";
 import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
+import { errorLabelsFor } from "@/features/mcp-apps/ui/states";
 import {
   rootFromToolResult,
   type WorkContactContext,
@@ -138,7 +139,7 @@ it("shows a retryable error without leaking the backend message", async () => {
   });
   render(rootTask(work));
   expect(await screen.findByRole("alert")).toHaveTextContent(
-    "Couldn’t load this right now",
+    "Couldn’t load the task",
   );
   expect(screen.queryByText("PRIVATE_BACKEND_MESSAGE")).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.retry }));
@@ -300,7 +301,9 @@ it("retries only the contacts when they fail while the Task loads", async () => 
   expect(
     await screen.findByRole("heading", { level: 2, name: taskA.title }),
   ).toBeInTheDocument();
-  expect(await screen.findByRole("alert")).toHaveTextContent(workEn.failed);
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    errorLabelsFor("en-GB").message,
+  );
   expect(screen.queryByText("PRIVATE_BACKEND_MESSAGE")).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.retry }));
   expect(

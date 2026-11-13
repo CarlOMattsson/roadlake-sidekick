@@ -1,6 +1,7 @@
 import type { WorkLabels } from "../shared/labels";
 import "./new-task-input.css";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { RowMenuTip } from "../shared/row-menu";
 import type { WorkTransport } from "../transport/transport";
@@ -42,6 +43,13 @@ export function TaskSteps({
     notice?.kind === "failed"
       ? state.steps.find((step) => step.id === notice.stepId)
       : undefined;
+  // The write the Task refused, in words; a failed tick has its own line with Försök igen.
+  const refusal =
+    notice?.kind === "invalid"
+      ? t.invalidChange
+      : notice?.kind === "notFound"
+        ? t.notFound
+        : undefined;
   // The checkboxes and the list controls wait while any write runs or the list is re-read.
   const listBusy = state.busyId !== undefined || write.busy || state.refreshing;
   const doneCount = state.steps.filter(
@@ -88,25 +96,25 @@ export function TaskSteps({
         </div>
       )}
       {notice?.kind === "forbidden" && <p>{t.forbiddenWrite}</p>}
-      {notice?.kind === "invalid" && <p role="alert">{t.invalidChange}</p>}
-      {notice?.kind === "notFound" && <p role="alert">{t.notFound}</p>}
+      {refusal && (
+        <ErrorNotice placement="row" locale={t.dateLocale} message={refusal} />
+      )}
       {failedStep && (
-        <p role="alert">
-          {t.stepSaveFailed}{" "}
-          <button type="button" onClick={() => steps.toggle(failedStep)}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.stepSaveFailed}
+          onRetry={() => steps.toggle(failedStep)}
+        />
       )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "forbidden" && <p>{t.stepsForbidden}</p>}
       {phase === "error" && (
-        <p role="alert">
-          {t.failed}{" "}
-          <button type="button" onClick={steps.retryLoad}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          onRetry={steps.retryLoad}
+        />
       )}
       {/* No "Inga steg än.": "+ Lägg till steg" under the heading already says the list is empty (§3, Tomt). */}
       {phase === "ready" && state.steps.length > 0 && (

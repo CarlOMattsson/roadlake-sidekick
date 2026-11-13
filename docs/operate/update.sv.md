@@ -40,8 +40,10 @@ i körningens jobbsammanfattning: raden `Digest:`, raden `Signer identity:` (på
 `https://github.com/<owner>/<repo>/.github/workflows/release-image.yml@<ref>`) och kommandot `cosign verify`
 med båda. Använd de två värdena exakt. Ange dessutom `--cert-issuer` bara om imagen inte signerades av GitHub
 Actions (förvalet är `https://token.actions.githubusercontent.com`). `update.sh` kräver `cosign` och vägrar
-fortsätta utan det. Det kräver också `python3` (3.9 eller nyare, inget extra installerat) och filen
-`update_policy.py` som följer med, eftersom besluten i uppdateringen finns där; `--apply` vägrar utan båda.
+fortsätta utan det. Alla lägen utom `--decrypt-snapshot`, också torrkörningen och `--check`, kräver dessutom
+`python3` (3.9 eller nyare, inget extra installerat) och `tools/workctl` från samma utcheckning, som läser
+uppdateringens tillståndsfiler, och vägrar utan dem. `--apply` kräver också filen `update_policy.py` som följer med
+skriptet, eftersom besluten i uppdateringen finns där.
 
 När `--apply` har körts står den låsta imagen i `release.env`. Skicka med den som en andra `--env-file` till
 varje senare compose-kommando: `docker compose --env-file selfhost.env --env-file release.env up -d`. Huvudet

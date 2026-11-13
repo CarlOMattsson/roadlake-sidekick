@@ -68,7 +68,7 @@ export function DayMorePanel({
   return (
     <KeyScope
       id={more.panelId}
-      className="journal-more-panel"
+      className="sk-menu-panel"
       hidden={!more.open}
       onEscape={() => {
         more.setOpen(false);
@@ -78,7 +78,7 @@ export function DayMorePanel({
       {control && (
         <button
           type="button"
-          className="journal-more-item"
+          className="sk-menu-item"
           onClick={() => {
             more.setOpen(false);
             control.onOpen();

@@ -104,6 +104,8 @@ it("a failed move says so in its own words and Try again moves again", async () 
   await moveAll(user);
   expect(await screen.findByText(workEn.moveAllFailed)).toBeInTheDocument();
   expect(screen.queryByText(workEn.moveFailed)).toBeNull();
+  // A failed change is the family's write error row, not the refresh row of a failed read.
+  expect(screen.getByRole("alert")).toHaveClass("sk-error--row");
   await user.click(screen.getByRole("button", { name: workEn.retry }));
   await waitFor(() => expect(reschedule).toHaveBeenCalledTimes(2));
   expect(await screen.findByText(workEn.moveAllDone(2))).toBeInTheDocument();
@@ -132,10 +134,6 @@ it("words the question, the confirming button and the done line in Swedish and E
   expect(workSv.moveAllDone(3)).toBe("3 flyttade till imorgon");
   expect(workSv.moveAllDone(1)).toBe("1 flyttad till imorgon");
   expect(workEn.moveAllDone(3)).toBe("Moved 3 tasks to tomorrow");
-  expect(workSv.moveAllFailed).toBe(
-    "Det gick inte att flytta de försenade. Försök igen.",
-  );
-  expect(workEn.moveAllFailed).toBe(
-    "Couldn’t move the overdue tasks. Try again.",
-  );
+  expect(workSv.moveAllFailed).toBe("Det gick inte att flytta de försenade.");
+  expect(workEn.moveAllFailed).toBe("Couldn’t move the overdue tasks.");
 });

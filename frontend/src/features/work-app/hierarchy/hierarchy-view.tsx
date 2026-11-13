@@ -10,6 +10,7 @@ import {
   projectsLayout,
 } from "./hierarchy-tree";
 import { hierarchyStatusLabel, type WorkLabels } from "../shared/labels";
+import { WorkEmpty } from "../shared/work-empty";
 import type {
   WorkFrame,
   WorkHierarchyFrame,
@@ -171,13 +172,16 @@ export function HierarchyView({
           </label>
         </div>
       )}
-      {nothing ? (
+      {nothing && !needle ? (
+        <WorkEmpty
+          title={t.hierarchyEmpty}
+          hint={dl.emptyHint}
+          example={dl.emptyAsk}
+          labels={t}
+        />
+      ) : nothing ? (
         <p className="work-tree-empty">
-          {needle
-            ? paging.offered
-              ? dl.noMatchesLoaded
-              : dl.noMatches
-            : t.hierarchyEmpty}
+          {paging.offered ? dl.noMatchesLoaded : dl.noMatches}
         </p>
       ) : (
         <div ref={listRef} className="work-tree">

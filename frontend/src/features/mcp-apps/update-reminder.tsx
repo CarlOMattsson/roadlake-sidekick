@@ -15,7 +15,7 @@ export const UPDATE_COMMAND = "tools/work.sh update";
 
 /**
  * What a room's ⋯ button adds while the update reminder stands: a small calm dot, drawn inside the button, and a
- * suffix on its accessible name ("Fler alternativ – uppdatering finns att hämta"), so the dot is said and not only
+ * suffix on its accessible name ("Fler val – uppdatering finns att hämta"), so the dot is said and not only
  * seen. No banner and no modal: the dot leads to the ⋯ menu. With the Control room on, its "Kontroll" entry holds
  * the row; with Control off (SIDEKICK_ENABLED_ROOMS=work) the menu holds the row itself (`MenuUpdateReminder`), and
  * `inMenu` tells a room whose ⋯ exists only for Control that it needs the button anyway. `inMenu` stays true after

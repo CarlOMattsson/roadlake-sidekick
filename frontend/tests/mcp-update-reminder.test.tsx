@@ -113,18 +113,16 @@ function Probe({ label }: { label: string }) {
 describe("the ⋯ button", () => {
   it("has no dot and keeps its name while no reminder stands", () => {
     declare({ ageDays: 2 });
-    const { container } = render(<Probe label="Fler alternativ" />);
-    expect(
-      screen.getByRole("button", { name: "Fler alternativ" }),
-    ).toBeTruthy();
+    const { container } = render(<Probe label="Fler val" />);
+    expect(screen.getByRole("button", { name: "Fler val" })).toBeTruthy();
     expect(container.querySelector(".sk-update-dot")).toBeNull();
   });
 
   it("gets a calm dot and says it in its accessible name", () => {
     declare();
-    const { container } = render(<Probe label="Fler alternativ" />);
+    const { container } = render(<Probe label="Fler val" />);
     const button = screen.getByRole("button", {
-      name: "Fler alternativ – uppdatering finns att hämta",
+      name: "Fler val – uppdatering finns att hämta",
     });
     const dot = container.querySelector(".sk-update-dot");
     expect(button.contains(dot)).toBe(true);
@@ -175,19 +173,17 @@ describe("the ⋯ button", () => {
 
   it("keeps its dot when the Control room is off, since the ⋯ menu holds the row there", () => {
     declare({ rooms: "work,journal" });
-    const { container } = render(<Probe label="Fler alternativ" />);
+    const { container } = render(<Probe label="Fler val" />);
     expect(container.querySelector(".sk-update-dot")).not.toBeNull();
   });
 
   it("loses its dot at once when the reminder is dismissed for this commit", () => {
     declare();
-    const { container } = render(<Probe label="Fler alternativ" />);
+    const { container } = render(<Probe label="Fler val" />);
     expect(container.querySelector(".sk-update-dot")).not.toBeNull();
     act(() => dismissUpdateNotice("abc1234"));
     expect(container.querySelector(".sk-update-dot")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "Fler alternativ" }),
-    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Fler val" })).toBeTruthy();
   });
 });
 
@@ -248,7 +244,7 @@ describe("the row in Control", () => {
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    const { container } = render(<Probe label="Fler alternativ" />);
+    const { container } = render(<Probe label="Fler val" />);
     act(() => dismissUpdateNotice("abc1234"));
     expect(container.querySelector(".sk-update-dot")).toBeNull();
     vi.restoreAllMocks();

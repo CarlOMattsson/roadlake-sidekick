@@ -133,13 +133,13 @@ describe("journal draft review", () => {
     const title = screen.getByLabelText("Title");
     expect(title).toHaveFocus();
     // Saving without a change is not a write.
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     expect(transport.updateDraft).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Offerten klar");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(transport.updateDraft).toHaveBeenCalledTimes(1));
     const [id, version, fields, key] = transport.updateDraft.mock.calls[0]! as [
       string,
@@ -176,7 +176,7 @@ describe("journal draft review", () => {
 
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.click(screen.getByRole("button", { name: "Add key point" }));
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.getByText(journalEn.keyPointRequired)).toBeInTheDocument();
     expect(transport.updateDraft).not.toHaveBeenCalled();
     await user.selectOptions(
@@ -184,7 +184,7 @@ describe("journal draft review", () => {
       "decision",
     );
     await user.type(screen.getByLabelText("Key point 2"), "Vi tar offerten.");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(transport.updateDraft).toHaveBeenCalledTimes(1));
     expect(transport.updateDraft.mock.calls[0]![2]).toMatchObject({
       title: OFFERTEN,
@@ -368,7 +368,7 @@ describe("journal draft review", () => {
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Title"));
     await user.type(screen.getByLabelText("Title"), "Mitt eget");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     const banner = await screen.findByRole("alert");
     expect(banner).toHaveTextContent(journalEn.conflict);
     await waitFor(() => expect(banner).toHaveFocus());
@@ -383,7 +383,7 @@ describe("journal draft review", () => {
     expect(screen.getByLabelText("Summary")).toHaveValue(
       "Ändrad någon annanstans.",
     );
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(updateDraft).toHaveBeenCalledTimes(2));
     expect(updateDraft.mock.calls[1]![1]).toBe(5);
     expect(updateDraft.mock.calls[1]![2]).toMatchObject({
@@ -408,7 +408,7 @@ describe("journal draft review", () => {
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.type(screen.getByLabelText("Title"), "!");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText(/Couldn’t save/);
     await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(updateDraft).toHaveBeenCalledTimes(2));

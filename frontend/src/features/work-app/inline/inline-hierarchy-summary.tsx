@@ -30,8 +30,9 @@ function isEnded(node: WorkHierarchyNode): boolean {
  * and under it the meta line. An ended Project is not counted and comes last in the list, marked with its status word
  * ("Avslutat"); a paused one is marked "Pausat". A Project gets its progress ("0 av 1 klara" and the bar), or "Inga
  * uppgifter än", when the frame carries its Tasks (get_work_hierarchy with include_tasks); without them the Tasks line
- * and the progress are left out rather than shown as zero. The rows are text, not buttons, so they carry no ›: "Visa
- * alla" opens the Projects. A tree the server cut is marked with "+".
+ * and the progress are left out rather than shown as zero. The rows are text, not buttons, so they carry no ›: "Öppna
+ * Projekt" opens the Projects. A tree the server cut is marked with "+". Without a single Project, Process or Domain the card is
+ * the room's empty state and its link, with no counts.
  */
 export function HierarchySummary({
   frame,
@@ -55,6 +56,7 @@ export function HierarchySummary({
   const dl = hierarchyDetailLabelsFor(labels.dateLocale);
   const items = hierarchyItems(frame);
   const children = hierarchyChildren(items);
+  const blank = frame.nodes.length === 0 && !frame.truncated;
   const lines: CountLine[] = [
     {
       key: "projects",
@@ -86,8 +88,13 @@ export function HierarchySummary({
       kindLabel={labels.kind.hierarchy}
       className="work-compact-hierarchy"
       lines={lines}
+      blank={blank ? labels.blank.hierarchy : undefined}
       onOpen={onOpen}
-      openLabel={labels.showAll}
+      openLabel={labels.openHierarchy}
+      aside={labels.moreRows(
+        Math.max(0, listed.length - SUMMARY_PROJECTS),
+        frame.truncated,
+      )}
     >
       <ul className="work-compact-rows">
         {listed.slice(0, SUMMARY_PROJECTS).map((node) => {

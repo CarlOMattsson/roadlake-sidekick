@@ -12,29 +12,6 @@
   margin-block-start: var(--sk-s2);
 }
 
-/* A failed create: the reason under the row in the danger text colour, with "Try again" as a 44 px text button. */
-.sidekick-work .work-new-task-error {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  column-gap: var(--sk-s2);
-  margin: var(--sk-s1) 0 0;
-  font: var(--sk-type-meta);
-  color: var(--work-danger-fg);
-}
-.sidekick-work .work-new-task-retry {
-  min-height: var(--sk-tap);
-  margin: 0;
-  padding: 0 var(--sk-s1);
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: var(--sk-weight-semibold);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
 /* The Board's "… tillagd i Att sortera" line: 14 px muted text under the row. Empty, it takes no height. */
 .sidekick-work .work-new-task-added {
   margin: var(--sk-s1) 0 0;

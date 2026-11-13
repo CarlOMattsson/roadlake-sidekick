@@ -1,5 +1,6 @@
 export const shoppingEn = {
   searchContact: "Find contact",
+  contactSearchFailed: "Couldn’t search your contacts.",
   contactQuery: "Contact name",
   linkedContact: "Current recipient",
   noRecipient: "No recipient",
@@ -76,7 +77,7 @@ export const shoppingEn = {
     "Claude can find the right Sidekick contact and link it once you choose. The current recipient stays until you pick another.",
   evaluated: "Offers as of",
   invalidBatch: "Enter between 1 and 50 items.",
-  openList: "Open shopping list",
+  openList: "Open the shopping list",
   editList: "Edit list",
   /** The progress line, counted as the bar fills: bought items of all ("1 of 7 bought"). */
   boughtOf: (bought: number, total: number) => `${bought} of ${total} bought`,
@@ -102,6 +103,8 @@ export const shoppingEn = {
   existedPrefix: "Already there:",
   nowAmount: (amount: string) => `now ${amount}`,
   moreItems: (count: number) => `+${count} more`,
+  /** After "Open the shopping list · ": the open items the card leaves out. */
+  hiddenItems: (count: number) => `${count} more`,
   showAll: (count: number) => `Show all (${count})`,
   showFewer: "Show fewer",
   boughtCount: (count: number) => `Bought (${count})`,
@@ -117,6 +120,8 @@ export const shoppingEn = {
   offlineCopy: (time: string) => `No connection · last fetched ${time}`,
   /** The meta line of a bought row while its Undo holds: "Bought · Undo". */
   bought: "Bought",
+  /** The meta line of an item ticked off as not bought while its Undo holds: "Not bought · Undo". */
+  notBought: "Not bought",
   /** The ring's name: the ring ticks, the rest of the row opens the change form. */
   markBought: (name: string) => `Mark ${name} as bought`,
   markOpen: (name: string) => `Mark ${name} as not bought`,
@@ -148,6 +153,7 @@ export const shoppingEn = {
 export type ShoppingLabels = typeof shoppingEn;
 export const shoppingSv: ShoppingLabels = {
   searchContact: "Sök kontakt",
+  contactSearchFailed: "Det gick inte att söka bland kontakterna.",
   contactQuery: "Kontaktens namn",
   linkedContact: "Nuvarande mottagare",
   noRecipient: "Ingen mottagare",
@@ -155,10 +161,10 @@ export const shoppingSv: ShoppingLabels = {
   select: "Välj lista",
   create: "Skapa lista",
   newList: "Ny lista",
-  noLists: "Inga listor ännu.",
+  noLists: "Inga listor än.",
   listName: "Listans namn",
   refresh: "Uppdatera",
-  empty: "Inga varor ännu.",
+  empty: "Inga varor än.",
   emptyHint: "Det du ska handla. Bocka av varorna i butiken.",
   emptyAddItem: "Lägg till en vara",
   loading: "Laddar…",
@@ -236,6 +242,7 @@ export const shoppingSv: ShoppingLabels = {
   existedPrefix: "Fanns redan:",
   nowAmount: (amount: string) => `nu ${amount}`,
   moreItems: (count: number) => `+${count} fler`,
+  hiddenItems: (count: number) => `${count} fler`,
   showAll: (count: number) => `Visa alla (${count})`,
   showFewer: "Visa färre",
   boughtCount: (count: number) => `Köpta (${count})`,
@@ -248,6 +255,7 @@ export const shoppingSv: ShoppingLabels = {
   waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,
   bought: "Köpt",
+  notBought: "Inte köpt",
   markBought: (name: string) => `Markera ${name} som köpt`,
   markOpen: (name: string) => `Markera ${name} som ej köpt`,
   holdTip: "Tryck på ringen när du köpt något, eller på varan för att ändra.",

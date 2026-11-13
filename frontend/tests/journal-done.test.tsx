@@ -413,7 +413,7 @@ describe("Gjort in the transport", () => {
 });
 
 describe("Gjort rows per kind", () => {
-  /** Six tasks: three more than a kind shows before "+N fler · Visa alla". */
+  /** Six tasks: three more than a kind shows before "Visa alla (6)". */
   function busy(): JournalDone {
     const base = done();
     const extra = ["Ring Bo", "Skicka offerten", "Boka hantverkare"].map(
@@ -445,7 +445,7 @@ describe("Gjort rows per kind", () => {
     const tasks = within(section).getByRole("list", { name: "Uppgifter" });
     expect(within(tasks).getAllByRole("listitem")).toHaveLength(3);
     const more = within(section).getByRole("button", {
-      name: journalSv.moreShowAll(3),
+      name: journalSv.moreShowAll(6),
     });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(more).toHaveAttribute("aria-controls", tasks.id);
@@ -481,7 +481,7 @@ describe("Gjort rows per kind", () => {
     );
     await user.click(screen.getByRole("button", { name: /^Completed/ }));
     await user.click(
-      screen.getByRole("button", { name: journalEn.moreShowAll(3) }),
+      screen.getByRole("button", { name: journalEn.moreShowAll(6) }),
     );
     expect(
       within(screen.getByRole("list", { name: "Tasks" })).getAllByRole(
@@ -501,7 +501,7 @@ describe("Gjort rows per kind", () => {
       ).toHaveLength(3),
     );
     expect(
-      screen.getByRole("button", { name: journalEn.moreShowAll(3) }),
+      screen.getByRole("button", { name: journalEn.moreShowAll(6) }),
     ).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -524,7 +524,7 @@ describe("Gjort rows per kind", () => {
     expect(screen.queryByText("+54 fler")).toBeNull();
     // The server sent part of the kind, so the button does not promise all of it.
     expect(
-      screen.queryByRole("button", { name: journalSv.moreShowAll(3) }),
+      screen.queryByRole("button", { name: journalSv.moreShowAll(6) }),
     ).toBeNull();
     await user.click(
       screen.getByRole("button", { name: journalSv.moreShowMore(3) }),

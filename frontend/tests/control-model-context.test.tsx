@@ -149,9 +149,7 @@ describe("trash: a saved restore tells the host model once", () => {
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
 
-    expect(
-      await screen.findByText("Återställd: “Förbered pitchen”"),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
   });
 });
 
@@ -200,7 +198,7 @@ describe("changes: a saved undo tells the host model once", () => {
 
     expect(
       await screen.findByText(
-        "“Milk” har ändrats på annat håll. Listan är uppdaterad – tryck igen.",
+        "”Milk” har ändrats på annat håll. Listan är uppdaterad – tryck igen.",
       ),
     ).toBeInTheDocument();
     expect(onModelContext).not.toHaveBeenCalled();

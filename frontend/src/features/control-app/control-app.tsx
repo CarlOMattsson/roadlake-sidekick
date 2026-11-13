@@ -34,9 +34,14 @@ export type ControlData = {
 
 const VIEW_ORDER: readonly ControlViewName[] = ["trash", "history", "memory"];
 
-/** The view a room target names ("memory", "history", "trash"); an unknown or missing name gives undefined. */
+/**
+ * The view a room target names: the tab names ("memory", "history", "trash") and the tools' own, where
+ * list_recent_changes ("changes") and list_assistant_activity ("activity") both open History. An unknown or missing
+ * name gives undefined.
+ */
 export function controlViewNamed(name: string | undefined) {
-  return VIEW_ORDER.find((view) => view === name);
+  const tab = name === "changes" || name === "activity" ? "history" : name;
+  return VIEW_ORDER.find((view) => view === tab);
 }
 
 /**

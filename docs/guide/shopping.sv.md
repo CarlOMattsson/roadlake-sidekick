@@ -32,7 +32,11 @@ Tryck på "Ångra" på raden direkt efter att du bockat av. Senare öppnar du K�
 
 ## Ändra antal eller butik
 
-Tryck på varans rad, bredvid ringen. Då öppnas varans formulär, där du ändrar namn, antal och butik.
+Tryck på varans rad, bredvid ringen. Då öppnas varans formulär, där du ändrar namn, antal och butik. Under "Fler fält" finns resten, till exempel anteckning, erbjudandepris och presentmottagare.
+
+## Markera en vara som present
+
+Under "Fler fält" kopplar "Presentmottagare (valfritt)" varan till en av dina kontakter. Sök fram kontakten med "Sök kontakt" och välj den. Formuläret visar mottagarens namn när sessionen får läsa kontakter (`contacts:read`), annars står det "Nuvarande mottagare". Sökningen kräver rummet Kontakter och finns inte i Android-appen, som behåller en mottagare som redan är satt.
 
 ## Skapa, byt namn på eller arkivera en lista
 
@@ -55,3 +59,4 @@ En scope är en behörighet som servern kontrollerar vid varje anrop.
 | --- | --- |
 | Läsa | `shopping:read` |
 | Lägga till, ändra och bocka av | `shopping:write` |
+| Hitta och visa namnet på en presentmottagare | dessutom `contacts:read` |

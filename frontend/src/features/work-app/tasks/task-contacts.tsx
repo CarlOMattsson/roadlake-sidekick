@@ -4,6 +4,8 @@ import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { useWorkWrite } from "../shared/use-work-write";
 import { CloseIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { WriteFailureRow } from "../shared/write-failure-row";
 import { initialsOf } from "../contacts/contact-card";
 import {
   isForbidden,
@@ -35,7 +37,7 @@ function ContactFailure({
   onRetry,
 }: {
   failure: WriteFailure;
-  /** The line for a failed write ("Det gick inte att …"), followed by Försök igen. */
+  /** The line for a failed write ("Det gick inte att …"); Försök igen is the notice's own button. */
   message: string;
   labels: WorkLabels;
   onReload: () => void;
@@ -54,16 +56,13 @@ function ContactFailure({
         </button>
       </div>
     );
-  if (failure === "forbidden") return <p>{t.forbiddenWrite}</p>;
-  if (failure === "invalid") return <p role="alert">{t.invalidChange}</p>;
-  if (failure === "not_found") return <p role="alert">{t.notFound}</p>;
   return (
-    <p role="alert" className="work-contact-sheet-error">
-      {message}{" "}
-      <button type="button" onClick={onRetry}>
-        {t.retry}
-      </button>
-    </p>
+    <WriteFailureRow
+      failure={failure}
+      failedMessage={message}
+      labels={t}
+      onRetry={onRetry}
+    />
   );
 }
 
@@ -325,18 +324,14 @@ export function LinkContact({
           <p className="work-contact-sheet-note">{t.contactsForbidden}</p>
         )}
         {phase === "error" && (
-          <p role="alert" className="work-contact-sheet-error">
-            {t.failed}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setPhase("loading");
-                runSearch(searched.current);
-              }}
-            >
-              {t.retry}
-            </button>
-          </p>
+          <ErrorNotice
+            placement="row"
+            locale={t.dateLocale}
+            onRetry={() => {
+              setPhase("loading");
+              runSearch(searched.current);
+            }}
+          />
         )}
         {phase === "ready" && results.length > 0 && (
           <ul className="work-contact-sheet-list">
@@ -397,12 +392,11 @@ export function LinkContact({
           </p>
         )}
         {phase === "ready" && more === "failed" && (
-          <p role="alert" className="work-contact-sheet-error">
-            {t.failed}{" "}
-            <button type="button" onClick={loadMore}>
-              {t.retry}
-            </button>
-          </p>
+          <ErrorNotice
+            placement="row"
+            locale={t.dateLocale}
+            onRetry={loadMore}
+          />
         )}
         {phase === "ready" && nextCursor && more !== "failed" && (
           <button

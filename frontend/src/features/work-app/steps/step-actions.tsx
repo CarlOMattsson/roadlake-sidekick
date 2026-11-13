@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import type { WorkLabels } from "../shared/labels";
 import {
@@ -301,12 +302,11 @@ export function StepActions({
         {reading && <p role="status">{t.loading}</p>}
         {!reading && phase === "forbidden" && <p>{s.forbidden}</p>}
         {!reading && phase === "error" && (
-          <p role="alert">
-            {t.failed}{" "}
-            <button type="button" onClick={loadActions}>
-              {t.retry}
-            </button>
-          </p>
+          <ErrorNotice
+            placement="row"
+            locale={t.dateLocale}
+            onRetry={loadActions}
+          />
         )}
         {phase === "ready" &&
           (actions.length ? (

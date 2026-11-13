@@ -7,7 +7,9 @@ import {
   Skeleton,
   SkeletonRows,
   errorLabelsFor,
+  readErrorHeading,
 } from "@/features/mcp-apps/ui/states";
+import { ROOM_IDS, TOOL_ROUTES } from "@/features/mcp-apps/router";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 
@@ -434,6 +436,67 @@ describe("ErrorNotice heading by subject", () => {
     expect(Object.keys(errorLabelsFor("sv").subjects)).toEqual(
       Object.keys(errorLabelsFor("en").subjects),
     );
+  });
+});
+
+describe("the heading of a failed read, for every view a tool can open", () => {
+  // What each room:view of the router says could not be read (the room's own heading where a view has none of its
+  // own). A route added to the router fails here until its heading has been chosen.
+  const expected: Record<string, string> = {
+    "work:agenda": "Uppgifterna kunde inte hämtas",
+    "work:board": "Uppgifterna kunde inte hämtas",
+    "work:changes": "Uppgifterna kunde inte hämtas",
+    "work:hierarchy": "Projekten kunde inte hämtas",
+    "work:task": "Uppgiften kunde inte hämtas",
+    "work:project": "Projektet kunde inte hämtas",
+    "work:process": "Processen kunde inte hämtas",
+    "journal:day": "Dagboken kunde inte hämtas",
+    "journal:pending": "Dagboken kunde inte hämtas",
+    "journal:entry": "Anteckningen kunde inte hämtas",
+    "journal:card": "Anteckningen kunde inte hämtas",
+    "journal:draft": "Utkastet kunde inte hämtas",
+    "contacts:list": "Kontakterna kunde inte hämtas",
+    "contacts:contact": "Kontakten kunde inte hämtas",
+    "contacts:compact": "Kontakten kunde inte hämtas",
+    "shopping:list": "Inköpslistan kunde inte hämtas",
+    "shopping:batch": "Inköpslistan kunde inte hämtas",
+    "shopping:lists": "Listorna kunde inte hämtas",
+    "control:trash": "Det borttagna kunde inte hämtas",
+    "control:changes": "Historiken kunde inte hämtas",
+    "control:activity": "Historiken kunde inte hämtas",
+    "control:memory": "Minnesinställningarna kunde inte hämtas",
+  };
+  const routes = [
+    ...new Set(
+      Object.values(TOOL_ROUTES).map(({ room, view }) => `${room}:${view}`),
+    ),
+  ];
+
+  it("has a chosen heading for every route of the router", () => {
+    expect([...routes].sort()).toEqual(Object.keys(expected).sort());
+  });
+
+  it.each(routes)(
+    "%s names what could not be read, in both languages",
+    (key) => {
+      expect(readErrorHeading("sv", key)).toBe(expected[key]);
+      // Never the general sentence, which names nothing.
+      for (const locale of ["sv", "en"]) {
+        const general = errorLabelsFor(locale).message.slice(0, -1);
+        expect(readErrorHeading(locale, key)).not.toBe(general);
+      }
+    },
+  );
+
+  it("has no subject that no room can show", () => {
+    const known = new Set([
+      ...routes,
+      ...ROOM_IDS,
+      // The tabs of Control, which names them as it reads them.
+      "control:history",
+    ]);
+    for (const subject of Object.keys(errorLabelsFor("sv").subjects))
+      expect(known.has(subject), subject).toBe(true);
   });
 });
 

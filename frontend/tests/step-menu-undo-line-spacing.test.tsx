@@ -16,6 +16,7 @@ import { readStylesheet, type Stylesheet } from "./helpers/stylesheet";
 const ROOM = { room: "sidekick-work" };
 const REDUCED_MOTION = "@media (prefers-reduced-motion: reduce)";
 const agendaCss = readStylesheet("features/work-app/agenda/agenda.css");
+const undoCss = readStylesheet("features/mcp-apps/ui/undo.css");
 
 // The Step menu and its tip, Ångra's time line held while the pointer or focus is in it, and the spacing.
 // The CSS rules are read from the stylesheets and resolved against the rendered markup (helpers/stylesheet.ts).
@@ -305,9 +306,9 @@ describe("Ångra's time line stands still while the pointer or focus is in it", 
   });
 });
 
-describe("the Ångra time line, drawn from agenda.css", () => {
-  const css = agendaCss;
-  const BEFORE = { ...ROOM, pseudo: "::before" };
+describe("the Ångra time line, drawn from undo.css", () => {
+  const css = undoCss;
+  const BEFORE = { pseudo: "::before" };
 
   function renderUndo() {
     render(

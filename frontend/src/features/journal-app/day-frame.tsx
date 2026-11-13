@@ -320,7 +320,7 @@ export function DayFrame({
             <p className="journal-list-more">
               <button
                 type="button"
-                className="sk-btn--quiet"
+                className="sk-more"
                 onClick={() => setExpandedDate(page.journal_date)}
               >
                 {t.showAllEntries(page.entries.length)}

@@ -32,7 +32,11 @@ Tap "Ångra" (Undo) on the row right after you ticked it off. Later, open Bought
 
 ## Change quantity or store
 
-Tap the item's row, next to the ring. This opens the item's form, where you change the name, quantity and store.
+Tap the item's row, next to the ring. This opens the item's form, where you change the name, quantity and store. "Fler fält" (More fields) holds the rest, such as a note, an offer price and a gift recipient.
+
+## Mark an item as a gift
+
+Under "Fler fält", "Presentmottagare (valfritt)" (Gift recipient, optional) links the item to one of your contacts. Search for the contact with "Sök kontakt" (Find contact) and choose it. The form shows the recipient's name when the session may read contacts (`contacts:read`); otherwise it says "Nuvarande mottagare" (Current recipient). The search needs the Contacts room and is not in the Android app, which keeps a recipient that is already set.
 
 ## Create, rename or archive a list
 
@@ -55,3 +59,4 @@ A scope is a permission that the server checks on every call.
 | --- | --- |
 | Read | `shopping:read` |
 | Add, edit and tick off | `shopping:write` |
+| Find and name a gift recipient | `contacts:read` as well |

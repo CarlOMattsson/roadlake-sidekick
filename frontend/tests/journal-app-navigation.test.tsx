@@ -532,7 +532,7 @@ describe("journal app navigation", () => {
       screen.queryByRole("button", { name: /^Draft 3/ }),
     ).not.toBeInTheDocument();
     const more = screen.getByRole("button", {
-      name: journalEn.moreShowAll(7),
+      name: journalEn.moreShowAll(10),
     });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(more.style.minHeight).toBe("44px");
@@ -559,11 +559,11 @@ describe("journal app navigation", () => {
       screen.getByRole("button", { name: /^Draft 9/ }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: journalEn.moreShowAll(7) }),
+      screen.queryByRole("button", { name: journalEn.moreShowAll(10) }),
     ).not.toBeInTheDocument();
   });
 
-  it("renders the Swedish pending note for the Swedish host locale", () => {
+  it("renders the empty pending list as the family's empty state, without the note that asks to open a draft", () => {
     render(
       <JournalView
         transport={transportMock()}
@@ -572,12 +572,11 @@ describe("journal app navigation", () => {
       />,
     );
 
-    expect(
-      screen.getByText(
-        "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByText(journalSv.pendingEmpty)).toBeInTheDocument();
+    expect(screen.queryByText(journalSv.pendingNote)).not.toBeInTheDocument();
+    expect(screen.getByText(journalSv.pendingEmpty)).toHaveClass(
+      "sk-empty-title",
+    );
+    expect(screen.getByText(journalSv.pendingEmptyHint)).toBeInTheDocument();
   });
 
   it("shows readable source and state labels and a grouped character count", () => {

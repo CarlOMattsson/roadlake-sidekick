@@ -73,7 +73,11 @@ it("shows the list name, the open count and only the first four open items as te
   expect(screen.getByText("Shelf · 2 l")).toBeInTheDocument();
   expect(screen.queryByText(/^Lamp/)).not.toBeInTheDocument();
   expect(screen.queryByText(/^Coffee/)).not.toBeInTheDocument();
-  expect(screen.getByText(shoppingEn.moreItems(2))).toBeInTheDocument();
+  // What the card leaves out is counted in the foot link, after its name: "Open the shopping list · 2 more".
+  expect(
+    screen.getByRole("button", { name: /^Open the shopping list\s*· 2 more$/ }),
+  ).toHaveTextContent(`${shoppingEn.openList} · ${shoppingEn.hiddenItems(2)}`);
+  expect(screen.queryByText(shoppingEn.moreItems(2))).not.toBeInTheDocument();
 });
 
 it("says nothing about hidden items when all open items are listed", () => {
@@ -95,7 +99,36 @@ it("says nothing about hidden items when all open items are listed", () => {
     />,
   );
   expect(screen.getAllByRole("listitem")).toHaveLength(4);
-  expect(screen.queryByText(/^\+\d+ fler$/)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: shoppingSv.openList }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/ fler$/)).not.toBeInTheDocument();
+});
+
+it("counts the hidden open items in the foot link, in both languages", () => {
+  const many = Array.from({ length: 6 }, (_, index) =>
+    item({
+      id: `019f0000-0000-7000-8000-0000000000${index + 20}`,
+      name: "Ost",
+    }),
+  );
+  const detail = {
+    shopping_list: list,
+    evaluated_on: "2026-10-24",
+    next_offset: null,
+    items: many,
+  };
+  const { unmount } = render(
+    <ShoppingCard detail={detail} labels={shoppingSv} onOpen={vi.fn()} />,
+  );
+  expect(
+    screen.getByRole("button", { name: /^Öppna inköpslistan\s*· 2 fler$/ }),
+  ).toHaveTextContent("Öppna inköpslistan · 2 fler");
+  unmount();
+  render(<ShoppingCard detail={detail} labels={shoppingEn} onOpen={vi.fn()} />);
+  expect(
+    screen.getByRole("button", { name: /^Open the shopping list\s*· 2 more$/ }),
+  ).toHaveTextContent("Open the shopping list · 2 more");
 });
 
 it("draws no progress line for an empty list", () => {

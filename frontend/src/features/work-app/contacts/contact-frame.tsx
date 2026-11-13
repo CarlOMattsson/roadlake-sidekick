@@ -43,14 +43,12 @@ export function ContactFrame({
       />
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
-        <section className="sk-card">
-          <p className="sk-eyebrow">{t.title}</p>
-          <ErrorNotice
-            locale={t.dateLocale}
-            cause={frame.readError}
-            onRetry={record.retry}
-          />
-        </section>
+        <ErrorNotice
+          locale={t.dateLocale}
+          subject="contacts:contact"
+          cause={frame.readError}
+          onRetry={record.retry}
+        />
       )}
       {phase === "gone" && <p role="status">{t.goneContact}</p>}
       {phase === "ready" && contact && (

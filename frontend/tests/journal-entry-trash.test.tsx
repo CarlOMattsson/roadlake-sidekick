@@ -164,6 +164,9 @@ describe("deleting an entry", () => {
     );
     await openMenuAndDelete(user, journalEn);
     expect(await screen.findByText(journalEn.entryTrashFailed)).toBeVisible();
+    // The family's write error row: the sentence, then Try again as its text button (the sentence does not repeat it).
+    expect(screen.getByRole("alert")).toHaveClass("sk-error--row");
+    expect(journalEn.entryTrashFailed).not.toMatch(/try again/i);
     // The entry is still there, so nothing is lost.
     expect(
       screen.getByRole("button", { name: journalEn.editEntry }),

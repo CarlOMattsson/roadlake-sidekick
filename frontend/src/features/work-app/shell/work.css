@@ -965,9 +965,6 @@
   background-image: linear-gradient(var(--work-bg), var(--work-bg));
   box-shadow: 0 -2px 6px rgb(0 0 0 / 0.12);
 }
-.sidekick-work .work-actions-sticky button {
-  min-height: 2.75rem;
-}
 
 /* A row with quick choices opens them with a long press: the press must not select text or open the host's own
    callout. A row whose change can still be undone keeps its place with its title muted. */

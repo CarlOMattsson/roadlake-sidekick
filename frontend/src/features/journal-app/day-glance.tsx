@@ -1,9 +1,10 @@
-import { formatDayHeading, formatTime } from "./dates";
+import { formatDayHeading, formatLongDate, formatTime } from "./dates";
 import { doneCountLine } from "./done-section";
 import type { JournalLabels } from "./labels";
 import type { JournalDay } from "./transport";
 import { CardFoot } from "../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import { EmptyState } from "../mcp-apps/ui/states";
 import "./journal.css";
 
 /** Touch target for the one action (44 px, HIG and WCAG 2.5.5). */
@@ -16,7 +17,7 @@ const glanceEntryLimit = 3;
  * first entries (each a button that opens that entry, at most three), the number of entries, a "Review N
  * drafts" button when drafts wait, what was done on the day as one muted count line («Gjort · 1 uppgift · 1 steg»,
  * read-only; the fold with its rows is in the day view), and one action. A day with nothing written and no summary
- * says so in one sentence instead of a count of zero. The action asks the host for fullscreen when it is offered,
+ * is the family's empty state (one sentence and what to say to Claude) instead of a count of zero. The action asks the host for fullscreen when it is offered,
  * otherwise it expands the day inline; with more than three entries it reads "Show all". Zero drafts are not
  * mentioned. The glance reads nothing and writes nothing.
  */
@@ -28,6 +29,7 @@ export function DayGlance({
   onOpen,
   onOpenEntry,
   onReviewDrafts,
+  onTellClaude,
   opening = false,
 }: {
   day: JournalDay;
@@ -44,6 +46,8 @@ export function DayGlance({
   onOpenEntry: (id: string) => void;
   /** Opens the day's drafts awaiting review in the app. */
   onReviewDrafts: () => void;
+  /** Sends the empty day's example to Claude; absent where the host offers no messages (the example is then shown as text). */
+  onTellClaude?: (text?: string) => void;
   /** True while the host answers the fullscreen request; the button is busy and cannot be pressed. */
   opening?: boolean;
 }) {
@@ -52,6 +56,13 @@ export function DayGlance({
   const more = day.entries.length > glanceEntryLimit;
   const empty = day.entries.length === 0;
   const doneLine = day.done ? doneCountLine(day.done, t) : "";
+  const isToday = day.journal_date === today;
+  // Nothing written and no summary: the day says so, however much was done.
+  const blank = empty && !overview;
+  // What the empty day says to Claude: today's own message, or the day it is about.
+  const dayMessage = isToday
+    ? t.tellClaudeMessage
+    : t.tellClaudeDayMessage(formatLongDate(day.journal_date, t.dateLocale));
   return (
     <section className="sidekick-journal" aria-label={t.title}>
       <article className="journal-card sk-card">
@@ -59,15 +70,23 @@ export function DayGlance({
         <h2 className="sk-card__title">
           {formatDayHeading(day.journal_date, t.dateLocale, today)}
         </h2>
-        {/* With entries, no "no summary" line: the entries are the content of the glance. An empty day says it in one
-            sentence, so no second line counts zero entries. */}
+        {/* With entries, no "no summary" line: the entries are the content of the glance. A day with nothing at all is
+            the family's empty state, as the day view has it: the sentence and what to say to Claude; no line counts
+            zero entries. */}
         {overview ? (
           <p className="journal-summary journal-card-summary">{overview}</p>
         ) : (
-          empty && (
-            <p className="journal-muted">
-              {day.journal_date === today ? t.noEntriesToday : t.noEntries}
-            </p>
+          blank && (
+            <EmptyState
+              title={isToday ? t.noEntriesToday : t.noEntries}
+              ask={{
+                locale: t.dateLocale,
+                example: dayMessage,
+                onSend: onTellClaude
+                  ? () => onTellClaude(dayMessage)
+                  : undefined,
+              }}
+            />
           )
         )}
         {shown.length > 0 && (

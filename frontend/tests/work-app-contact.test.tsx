@@ -538,7 +538,7 @@ it("removes an alias only after a confirmation and names the button after the al
   );
 });
 
-it("archives after a confirmation, shows Archived read-only and restores the Contact", async () => {
+it("archives at once, shows the receipt with Undo, and restores the Contact from the menu", async () => {
   const user = userEvent.setup();
   const archiveContact = vi.fn().mockResolvedValue({
     contact: {
@@ -557,9 +557,18 @@ it("archives after a confirmation, shows Archived read-only and restores the Con
   await user.click(
     await screen.findByRole("button", { name: workEn.archiveContact }),
   );
-  expect(archiveContact).not.toHaveBeenCalled();
-  await user.click(screen.getByRole("button", { name: workEn.confirmChange }));
-  expect(await screen.findByText(workEn.archivedLabel)).toBeInTheDocument();
+  // No question first: the write goes out and the menu closes.
+  expect(
+    await screen.findByText(workEn.contactArchived, {
+      selector: "[role=status]",
+    }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: workEn.confirmChange }),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: workEn.archiveContact }),
+  ).toBeNull();
   expect(screen.getByText(workEn.archivedReadOnly)).toBeInTheDocument();
   expect(screen.queryByLabelText(workEn.aliasValue)).toBeNull();
   expect(archiveContact).toHaveBeenCalledWith(
@@ -567,13 +576,17 @@ it("archives after a confirmation, shows Archived read-only and restores the Con
     1,
     expect.stringMatching(KEY),
   );
+  // The keyboard stays on the page, on the receipt's Undo.
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: workEn.undo })).toHaveFocus(),
+  );
   await openMoreMenu(user);
   expect(screen.queryByRole("button", { name: workEn.edit })).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.restoreContact }));
-  await user.click(screen.getByRole("button", { name: workEn.confirmChange }));
   await waitFor(() =>
-    expect(screen.queryByText(workEn.archivedLabel)).toBeNull(),
+    expect(screen.queryByText(workEn.contactArchived)).toBeNull(),
   );
+  expect(screen.queryByText(workEn.archivedReadOnly)).toBeNull();
   expect(restoreContact).toHaveBeenCalledWith(
     anna.id,
     2,
@@ -581,6 +594,58 @@ it("archives after a confirmation, shows Archived read-only and restores the Con
   );
   await openMoreMenu(user);
   expect(screen.getByRole("button", { name: workEn.edit })).toBeInTheDocument();
+});
+
+it("Undo on the archive receipt restores the Contact at the version the archive left, and a failed Undo says so and can be retried", async () => {
+  const user = userEvent.setup();
+  const archiveContact = vi.fn().mockResolvedValue({
+    contact: { ...anna, archived: true, version: 2 },
+  });
+  const restoreContact = vi
+    .fn()
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValue({ contact: { ...anna, version: 3 } });
+  const work = transport({ archiveContact, restoreContact });
+  render(contactRoot(work));
+  await openMoreMenu(user);
+  await user.click(
+    await screen.findByRole("button", { name: workEn.archiveContact }),
+  );
+  await user.click(await screen.findByRole("button", { name: workEn.undo }));
+  const failed = await screen.findByText(workEn.contactSaveFailed, {
+    exact: false,
+  });
+  expect(failed).toBeInTheDocument();
+  // The receipt stays while the Contact is still archived.
+  expect(screen.getByText(workEn.contactArchived)).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: workEn.retry }));
+  await waitFor(() =>
+    expect(screen.queryByText(workEn.contactArchived)).toBeNull(),
+  );
+  expect(restoreContact).toHaveBeenCalledTimes(2);
+  expect(restoreContact).toHaveBeenNthCalledWith(
+    1,
+    anna.id,
+    2,
+    expect.stringMatching(KEY),
+  );
+  // The retry replays the same action, so it carries the same key.
+  expect(restoreContact.mock.calls[1]?.[2]).toBe(
+    restoreContact.mock.calls[0]?.[2],
+  );
+});
+
+it("shows the archive receipt in Swedish", async () => {
+  const user = userEvent.setup();
+  render(contactRoot(transport(), workSv));
+  await user.click(
+    await screen.findByRole("button", { name: workSv.moreActions }),
+  );
+  await user.click(screen.getByRole("button", { name: workSv.archiveContact }));
+  expect(
+    await screen.findByText("Kontakten är arkiverad."),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Ångra" })).toBeInTheDocument();
 });
 
 it("puts Edit and the archive action behind the ⋯ menu on the heading row, with no pen", async () => {
@@ -617,7 +682,6 @@ it("shows a refused archive as calm text without retry", async () => {
   await user.click(
     await screen.findByRole("button", { name: workEn.archiveContact }),
   );
-  await user.click(screen.getByRole("button", { name: workEn.confirmChange }));
   expect(await screen.findByText(workEn.forbiddenWrite)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: workEn.retry })).toBeNull();
   expect(archiveContact).toHaveBeenCalledTimes(1);

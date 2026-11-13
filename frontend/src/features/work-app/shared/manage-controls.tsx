@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { UndoNotice } from "../../mcp-apps/ui/notice";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { ManageLabels } from "./manage-labels";
 import type { WriteFailure } from "../transport/transport";
 import "./manage.css";
@@ -202,18 +203,20 @@ export function WriteNotice({
         </button>
       </div>
     );
-  if (failure === "forbidden") return <p role="alert">{labels.forbidden}</p>;
-  // The record is gone: the text only explains, with no retry button.
-  if (failure === "not_found") return <p role="alert">{labels.notFound}</p>;
+  // The record is gone or not yours to change: the text only explains, with no retry button.
+  const message =
+    failure === "forbidden"
+      ? labels.forbidden
+      : failure === "not_found"
+        ? labels.notFound
+        : labels.failed;
   return (
-    <p role="alert">
-      {labels.failed}{" "}
-      {onRetry ? (
-        <button type="button" onClick={onRetry}>
-          {labels.retry}
-        </button>
-      ) : null}
-    </p>
+    <ErrorNotice
+      placement="row"
+      locale={labels.dateLocale}
+      message={message}
+      onRetry={failure === "failed" ? onRetry : undefined}
+    />
   );
 }
 

@@ -57,6 +57,11 @@ export type WorkFullscreenProps = {
    * kind starts on Agenda, which is read on mount. Read once, so the caller changes `key` per result.
    */
   initial?: WorkFrame;
+  /**
+   * The tool result that opened the room was an error: the start tab shows the read error (with Try again, which reads
+   * the tab) under the tab row, the way a failed read of that tab would. Read once, like `initial`.
+   */
+  failure?: { cause: unknown };
   /** The tab to start on when `initial` is absent or is not a tab frame (a room mounted hidden). Agenda when absent. */
   startTab?: WorkTab;
   /**
@@ -100,6 +105,7 @@ export type WorkFullscreenProps = {
 export function WorkFullscreen({
   transport,
   initial,
+  failure,
   startTab = "agenda",
   tabs: offeredTabs,
   labels,
@@ -146,6 +152,7 @@ export function WorkFullscreen({
     offers,
     initialTab,
     firstFrame,
+    failure,
     onViewApplied,
     onViewCleared,
   });

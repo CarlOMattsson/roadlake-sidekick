@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
+import { ErrorNotice } from "../mcp-apps/ui/states";
 import { useUnsavedGuard } from "../mcp-apps/unsaved-guard";
 import { entryFitsBody, TEXT_MAX, TITLE_MAX } from "./entry-limits";
 import type { JournalLabels } from "./labels";
@@ -251,7 +252,13 @@ export function EntryTextForm({
         </p>
       )}
       {!isNew && <p className="journal-muted">{t.appendTextNote}</p>}
-      {failureText && <p role="alert">{failureText}</p>}
+      {failureText && (
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={failureText}
+        />
+      )}
       {asking ? (
         <DiscardAsk
           labels={t}
@@ -259,7 +266,7 @@ export function EntryTextForm({
           onKeep={() => setAsking(false)}
         />
       ) : (
-        <div className="journal-actions">
+        <div className="journal-actions sk-form-actions">
           <button
             type="button"
             className="sk-btn--primary"
@@ -267,10 +274,15 @@ export function EntryTextForm({
             aria-busy={busy || undefined}
             onClick={save}
           >
-            {isNew ? t.saveEntry : t.appendTextSave}
+            {isNew ? t.save : t.appendTextSave}
           </button>
-          {/* The secondary form beside Save, as Avbryt is in every other form of the family (Inköp, Arbete). */}
-          <button type="button" disabled={busy} onClick={cancel}>
+          {/* Avbryt is the quiet text button beside Save, as in every form of the family. */}
+          <button
+            type="button"
+            className="sk-btn--quiet"
+            disabled={busy}
+            onClick={cancel}
+          >
             {t.cancel}
           </button>
         </div>

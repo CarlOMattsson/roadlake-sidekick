@@ -1,7 +1,10 @@
-import { Fragment, type ReactNode } from "react";
+import { Fragment, useContext, type ReactNode } from "react";
 import type { DueTone } from "../../mcp-apps/ui/due";
 import { CardFoot } from "../../mcp-apps/ui/card";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
+import { EmptyState } from "../../mcp-apps/ui/states";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import { knownLabel } from "../shared/labels";
 import type { WorkItemRecord } from "../transport/transport";
@@ -16,6 +19,32 @@ export type InlineSummaryNotice = {
   actionLabel?: string;
   action?: () => void;
 };
+
+/**
+ * The notice of a card as the family's write error row: the message on one line at the card's full width, and the
+ * action (read again, retry) as its text button under it when the line is long.
+ */
+export function NoticeRow({
+  notice,
+  locale,
+}: {
+  notice: InlineSummaryNotice;
+  locale: string;
+}) {
+  return (
+    <ErrorNotice placement="row" locale={locale} message={notice.message}>
+      {notice.action ? (
+        <button
+          type="button"
+          className="sk-error-retry sk-error-retry--text"
+          onClick={notice.action}
+        >
+          {notice.actionLabel}
+        </button>
+      ) : null}
+    </ErrorNotice>
+  );
+}
 
 /**
  * One count of a list summary. `more` is set when the read was partial (another page, or a tree
@@ -63,6 +92,53 @@ export function OpenFoot({
 }
 
 /**
+ * What an inline card says when its room holds nothing: the room's sentence, an optional line on what the room is
+ * for, and the example to say to Claude (absent when there is nothing to create, e.g. a search without a match).
+ */
+export type InlineEmptyText = {
+  title: string;
+  hint?: string;
+  example?: string;
+};
+
+/**
+ * The body of an empty inline card, the same in every room: the family's empty state, whose example is sent through
+ * the host's message function where there is one (shown as text where not), then the room's open link. No counts.
+ */
+export function InlineEmpty({
+  locale,
+  text,
+  onOpen,
+  openLabel,
+}: {
+  locale: string;
+  text: InlineEmptyText;
+  onOpen?: () => void;
+  openLabel: string;
+}) {
+  const send = useContext(RoomMessageContext);
+  const { example } = text;
+  return (
+    <>
+      <EmptyState
+        title={text.title}
+        hint={text.hint}
+        ask={
+          example
+            ? {
+                locale,
+                example,
+                onSend: send ? () => void send(example) : undefined,
+              }
+            : undefined
+        }
+      />
+      {onOpen ? <OpenFoot label={openLabel} onOpen={onOpen} /> : null}
+    </>
+  );
+}
+
+/**
  * The shell of the list summaries: a title, one line of counts (or `empty` in their place), a few
  * plain-text rows and "Open", which asks the host for fullscreen. No inner scroll and no menus; the
  * full view is only shown in fullscreen. The rows never carry buttons.
@@ -72,6 +148,7 @@ export function ListSummary({
   kindLabel,
   lines,
   empty,
+  blank,
   onOpen,
   openLabel,
   kicker,
@@ -88,11 +165,13 @@ export function ListSummary({
   /** An extra class on the card, e.g. the agenda's own layout. */
   className?: string;
   lines: CountLine[];
-  /** Shown instead of the counts when there is nothing to count. */
+  /** Shown instead of the counts when there is nothing to count here but the view holds more. */
   empty?: string;
+  /** The room holds nothing at all: the card is the empty state and its open link, with no counts and no rows. */
+  blank?: InlineEmptyText;
   /** Without it there is no Open button, e.g. when the agenda has nothing to open. */
   onOpen?: () => void;
-  /** The words of the Open button ("Visa alla (25)"); without it the button says "Open". */
+  /** The words of the Open button ("Öppna Agenda"); without it the button says "Open". */
   openLabel?: string;
   /** Optional rows between the count line and "Open", e.g. the Projects of a hierarchy. */
   children?: ReactNode;
@@ -107,32 +186,43 @@ export function ListSummary({
       aria-label={kindLabel}
     >
       <p className="work-compact-kind sk-eyebrow">{kicker ?? labels.appName}</p>
-      {empty ? (
-        <>
-          <p className="work-compact-title sk-card__title">{kindLabel}</p>
-          <p className="work-compact-status">{empty}</p>
-        </>
-      ) : lines.length === 0 ? null : (
-        <p className="work-compact-title sk-card__title">
-          {lines.map((line, index) => (
-            <Fragment key={line.key}>
-              {index > 0 ? " · " : null}
-              <span>
-                {line.text ??
-                  `${line.label}: ${line.count}${line.more ? "+" : ""}`}
-              </span>
-            </Fragment>
-          ))}
-        </p>
-      )}
-      {children}
-      {onOpen ? (
-        <OpenFoot
-          aside={aside}
-          label={openLabel ?? labels.open}
+      {blank ? (
+        <InlineEmpty
+          locale={labels.dateLocale}
+          text={blank}
           onOpen={onOpen}
+          openLabel={openLabel ?? labels.open}
         />
-      ) : null}
+      ) : (
+        <>
+          {empty ? (
+            <>
+              <p className="work-compact-title sk-card__title">{kindLabel}</p>
+              <p className="work-compact-status">{empty}</p>
+            </>
+          ) : lines.length === 0 ? null : (
+            <p className="work-compact-title sk-card__title">
+              {lines.map((line, index) => (
+                <Fragment key={line.key}>
+                  {index > 0 ? " · " : null}
+                  <span>
+                    {line.text ??
+                      `${line.label}: ${line.count}${line.more ? "+" : ""}`}
+                  </span>
+                </Fragment>
+              ))}
+            </p>
+          )}
+          {children}
+          {onOpen ? (
+            <OpenFoot
+              aside={aside}
+              label={openLabel ?? labels.open}
+              onOpen={onOpen}
+            />
+          ) : null}
+        </>
+      )}
     </section>
   );
 }

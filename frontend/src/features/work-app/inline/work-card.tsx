@@ -7,6 +7,7 @@ import { RecordTitle } from "../board/board-card";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { NoticeRow, type InlineSummaryNotice } from "./inline-summary-list";
 import {
   TASK_STATUSES,
   writeFailure,
@@ -45,7 +46,10 @@ export type WorkCardProps =
       appTitle: string;
       /** Locale of the notice text: the work labels' dateLocale, as elsewhere in Work. */
       locale: string;
+      /** The failure, when the caller has it: decides the notice's second line. */
+      cause?: unknown;
       onRetry?: () => void;
+      retrying?: boolean;
     }
   | {
       state: "ready";
@@ -87,7 +91,14 @@ export function WorkCard(props: WorkCardProps) {
     return (
       <section className="work-compact-card sk-card">
         <p className="sk-eyebrow">{props.appTitle}</p>
-        <ErrorNotice locale={props.locale} onRetry={props.onRetry} />
+        <ErrorNotice
+          locale={props.locale}
+          // An error result names no record, and Try again reads the agenda: the heading says what that read is.
+          subject="work"
+          cause={props.cause}
+          onRetry={props.onRetry}
+          retrying={props.retrying}
+        />
       </section>
     );
   }
@@ -108,8 +119,6 @@ export function WorkCard(props: WorkCardProps) {
 
 /** A row's status as this card last saw or wrote it, after a successful change or a re-read. */
 type Override = { status: string; version: number };
-/** The message under the rows; an action, when present, runs the next step (retry or re-read). */
-type Notice = { message: string; actionLabel?: string; action?: () => void };
 
 function ReadyCard({
   labels,
@@ -133,7 +142,7 @@ function ReadyCard({
   const [seen, setSeen] = useState(frame);
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
   const [busy, setBusy] = useState<string>();
-  const [notice, setNotice] = useState<Notice>();
+  const [notice, setNotice] = useState<InlineSummaryNotice>();
   // True once a younger copy of this card exists. Read by async code, so it is also a ref.
   const [superseded, setSuperseded] = useState(false);
   const supersededRef = useRef(false);
@@ -333,23 +342,7 @@ function ReadyCard({
           })}
         </ul>
       )}
-      {notice ? (
-        <div
-          role="alert"
-          className="work-compact-notice sk-error sk-error--card"
-        >
-          <p>{notice.message}</p>
-          {notice.action ? (
-            <button
-              type="button"
-              className="work-compact-action"
-              onClick={notice.action}
-            >
-              {notice.actionLabel}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      {notice ? <NoticeRow notice={notice} locale={labels.dateLocale} /> : null}
       {/* What the list leaves out, only when the card cannot open the list: "Visa alla (11)" already says it. */}
       {hidden > 0 && !onOpen ? (
         <p className="work-compact-more">

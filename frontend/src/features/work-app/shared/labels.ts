@@ -58,7 +58,7 @@ export const workEn = {
   stepsForbidden: "You don’t have access to steps.",
   stepConflict:
     "A step was changed elsewhere. Reload to see the latest version.",
-  stepSaveFailed: "Couldn’t update the step. Try again.",
+  stepSaveFailed: "Couldn’t update the step.",
   stepsShowMore: "Show more steps",
   stepsReadMoreFailed: "Couldn’t load more steps.",
   noSteps: "No steps yet.",
@@ -87,7 +87,7 @@ export const workEn = {
     "This task was changed elsewhere. Reload to see the latest version.",
   reload: "Reload",
   forbiddenWrite: "You don’t have permission to change this.",
-  saveFailed: "Couldn’t save. Try again.",
+  saveFailed: "Couldn’t save.",
   project: "Project",
   projectStatus: {
     active: "Active",
@@ -109,7 +109,7 @@ export const workEn = {
   newTaskDue: "Due date",
   createTask: "Create task",
   taskCreated: "Task created.",
-  taskCreateFailed: "Couldn’t create the task. Try again.",
+  taskCreateFailed: "Couldn’t create the task.",
   createConflict:
     "Something was changed elsewhere. Check the list and try again.",
   stepTitle: "Step name",
@@ -126,13 +126,13 @@ export const workEn = {
   /** The meta line of a Step just checked or unchecked, beside its Undo. */
   stepDone: "Done",
   stepReopened: "Reopened",
-  stepCreateFailed: "Couldn’t add the step. Try again.",
+  stepCreateFailed: "Couldn’t add the step.",
   linkContact: "Link contact",
   contactSearchHint: "Type at least two characters to search.",
   noContactMatches: (q: string) => `No contact matches “${q}”.`,
   contactConflict:
     "The contact links were changed elsewhere. Reload to see the latest list.",
-  contactWriteFailed: "Couldn’t update the link. Try again.",
+  contactWriteFailed: "Couldn’t update the link.",
   /** The example in the empty search field of the link sheet. */
   contactSearchPlaceholder: "Search by name",
   /** The accessible name of × in the link sheet's search field. */
@@ -147,7 +147,7 @@ export const workEn = {
   noAnyContacts: "No contacts yet.",
   newContact: "New contact",
   createContact: "Create contact",
-  contactCreateFailed: "Couldn’t create the contact. Try again.",
+  contactCreateFailed: "Couldn’t create the contact.",
   nameLabel: "Name",
   email: "Email",
   phone: "Phone",
@@ -162,11 +162,12 @@ export const workEn = {
   contextNoteTooLong: "The note can be up to 10,000 characters.",
   contactEditConflict:
     "This contact was changed elsewhere. Reload to see the latest version.",
-  contactSaveFailed: "Couldn’t save the contact. Try again.",
+  contactSaveFailed: "Couldn’t save the contact.",
   archivedLabel: "Archived",
   archivedReadOnly: "Archived contacts are read-only.",
   archiveContact: "Archive",
   restoreContact: "Restore",
+  contactArchived: "The contact is archived.",
   confirmChange: "Confirm",
   /** Before the other names under a Contact's name: "Also known as Annie, AB". */
   aliasLabel: (): string => "Also known as",
@@ -190,8 +191,8 @@ export const workEn = {
   taskTrashed: "Task deleted.",
   taskTrashedWhere: (control: string) =>
     `You can also restore it in ${control} › Deleted.`,
-  taskTrashFailed: "Couldn’t delete the task. Try again.",
-  taskRestoreFailed: "Couldn’t undo the deletion. Try again.",
+  taskTrashFailed: "Couldn’t delete the task.",
+  taskRestoreFailed: "Couldn’t undo the deletion.",
   undo: "Undo",
   noCards: "Nothing here.",
   boardEmpty: "No tasks yet.",
@@ -323,7 +324,7 @@ export const workSv: WorkLabels = {
   back: "Tillbaka",
   empty: "Ingen uppgift eller kontakt att visa.",
   hierarchy: "Projekt",
-  hierarchyEmpty: "Inga domäner, processer eller projekt ännu.",
+  hierarchyEmpty: "Inga domäner, processer eller projekt än.",
   hierarchyTruncated: "Det finns fler än de som visas.",
   hierarchyMore: (count: number) => `+${count}`,
   hierarchyMoreLabel: (count: number) => `${count} fler`,
@@ -370,7 +371,7 @@ export const workSv: WorkLabels = {
   stepsForbidden: "Du har inte behörighet att se steg.",
   stepConflict:
     "Ett steg ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  stepSaveFailed: "Det gick inte att uppdatera steget. Försök igen.",
+  stepSaveFailed: "Det gick inte att uppdatera steget.",
   stepsShowMore: "Visa fler steg",
   stepsReadMoreFailed: "Det gick inte att läsa fler steg.",
   noSteps: "Inga steg än.",
@@ -400,7 +401,7 @@ export const workSv: WorkLabels = {
     "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   reload: "Ladda om",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
-  saveFailed: "Det gick inte att spara. Försök igen.",
+  saveFailed: "Det gick inte att spara.",
   project: "Projekt",
   projectStatus: {
     active: "Aktivt",
@@ -422,7 +423,7 @@ export const workSv: WorkLabels = {
   newTaskDue: "Klart senast",
   createTask: "Skapa uppgift",
   taskCreated: "Uppgiften skapades.",
-  taskCreateFailed: "Det gick inte att skapa uppgiften. Försök igen.",
+  taskCreateFailed: "Det gick inte att skapa uppgiften.",
   createConflict:
     "Något ändrades någon annanstans. Kontrollera listan och försök igen.",
   stepTitle: "Stegets namn",
@@ -435,13 +436,13 @@ export const workSv: WorkLabels = {
   tasksProgress: (done: number, total: number) => `${done} av ${total} klara`,
   stepDone: "Klar",
   stepReopened: "Öppen igen",
-  stepCreateFailed: "Det gick inte att lägga till steget. Försök igen.",
+  stepCreateFailed: "Det gick inte att lägga till steget.",
   linkContact: "Koppla kontakt",
   contactSearchHint: "Skriv minst två tecken för att söka.",
   noContactMatches: (q: string) => `Ingen kontakt matchar ”${q}”.`,
   contactConflict:
     "Kopplingarna ändrades någon annanstans. Ladda om för att se den senaste listan.",
-  contactWriteFailed: "Det gick inte att ändra kopplingen. Försök igen.",
+  contactWriteFailed: "Det gick inte att ändra kopplingen.",
   contactSearchPlaceholder: "Sök på namn",
   closeContactSearch: "Stäng",
   contactAlreadyLinked: "Redan kopplad",
@@ -452,7 +453,7 @@ export const workSv: WorkLabels = {
   noAnyContacts: "Inga kontakter än.",
   newContact: "Ny kontakt",
   createContact: "Skapa kontakt",
-  contactCreateFailed: "Det gick inte att skapa kontakten. Försök igen.",
+  contactCreateFailed: "Det gick inte att skapa kontakten.",
   nameLabel: "Namn",
   email: "E-post",
   phone: "Telefon",
@@ -467,11 +468,12 @@ export const workSv: WorkLabels = {
   contextNoteTooLong: "Anteckningen får vara högst 10 000 tecken.",
   contactEditConflict:
     "Kontakten ändrades någon annanstans. Ladda om för att se den senaste versionen.",
-  contactSaveFailed: "Det gick inte att ändra kontakten. Försök igen.",
+  contactSaveFailed: "Det gick inte att ändra kontakten.",
   archivedLabel: "Arkiverad",
   archivedReadOnly: "Arkiverade kontakter är skrivskyddade.",
   archiveContact: "Arkivera",
   restoreContact: "Återställ",
+  contactArchived: "Kontakten är arkiverad.",
   confirmChange: "Bekräfta",
   aliasLabel: () => "Även kallad",
   aliasesHeading: "Även kallad",
@@ -487,14 +489,14 @@ export const workSv: WorkLabels = {
   agenda: "Agenda",
   refresh: "Uppdatera",
   /** The "⋯" button in the agenda's row; it opens "Sparade vyer" and "Uppdatera". */
-  moreActions: "Fler alternativ",
+  moreActions: "Fler val",
   /** Deleting a Task (move to the trash, with Undo): the ⋯ entry, the line after it and the failures. */
   deleteTask: "Ta bort uppgift",
   taskTrashed: "Uppgiften är borttagen.",
   taskTrashedWhere: (control: string) =>
     `Du kan också återställa den i ${control} › Borttaget.`,
-  taskTrashFailed: "Det gick inte att ta bort uppgiften. Försök igen.",
-  taskRestoreFailed: "Det gick inte att ångra borttagningen. Försök igen.",
+  taskTrashFailed: "Det gick inte att ta bort uppgiften.",
+  taskRestoreFailed: "Det gick inte att ångra borttagningen.",
   undo: "Ångra",
   noCards: "Inget här.",
   boardEmpty: "Inga uppgifter här än.",
@@ -584,7 +586,7 @@ export const workSv: WorkLabels = {
   /** The "Att sortera" view has no Task left to sort. */
   unsortedEmpty: "Inget att sortera.",
   /** The "Att sortera" view has no Domain to sort into. */
-  unsortedNoDomains: "Inga domäner ännu.",
+  unsortedNoDomains: "Inga domäner än.",
   /** Names the row of a Task in the "Att sortera" view: its Domain buttons are grouped under that name. */
   unsortedRowFor: (title: string) => `Sortera ${title}`,
   /** Agenda group headings, in display order; the dates of a group follow the heading. */

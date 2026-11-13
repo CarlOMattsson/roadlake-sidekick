@@ -4,6 +4,8 @@
  * stay identical; work-card.test.tsx checks that.
  */
 export const cardLabelsEn = {
+  /** The locale of the shared notices a card draws (ErrorNotice). */
+  dateLocale: "en-GB",
   /** The card's sentence title is this word and the count: "Changes (2)". */
   title: "Changes",
   /** The eyebrow above the title: the app's name. */
@@ -51,6 +53,7 @@ export const cardLabelsEn = {
 export type CardLabels = typeof cardLabelsEn;
 
 export const cardLabelsSv: CardLabels = {
+  dateLocale: "sv-SE",
   /** The heading is the word and the count: "Ändringar (2)". */
   title: "Ändringar",
   appName: "Arbete",

@@ -20,6 +20,7 @@ import {
   type ControlTransport,
   type TrashItem,
 } from "./transport";
+import { useReceipts } from "./use-receipts";
 import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
@@ -62,9 +63,16 @@ export function HistoryView({
   const [list, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
+  // The rows a saved Undo or Restore was on, by row key: each says what happened in its meta line for a while. The
+  // change is kept so the row stays even when the list read again no longer holds it.
+  const [receipts, showReceipt] = useReceipts<{
+    text: string;
+    change: ChangeRecord;
+  }>();
   const pending = useRef<PendingKey | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   /** The row a write was on. Focus moves there once the write is over, since its button may be gone. */
   const focusIndex = useRef<number | null>(null);
 
@@ -80,16 +88,25 @@ export function HistoryView({
       !root.contains(active)
     )
       return;
-    focusRowNear(root, index, noticeRef.current);
+    focusRowNear(root, index, noticeRef.current ?? headingRef.current);
   }, [busy, list]);
 
+  const changes = list?.changes ?? [];
   const rows = [
-    ...(list?.changes ?? []).map((change) => ({
+    ...changes.map((change) => ({
       key: `c:${rowKey(change)}`,
       at: change.occurred_at,
       change,
       entry: undefined,
     })),
+    ...[...receipts.entries()]
+      .filter(([key]) => !changes.some((row) => `c:${rowKey(row)}` === key))
+      .map(([key, { change }]) => ({
+        key,
+        at: change.occurred_at,
+        change,
+        entry: undefined,
+      })),
     ...(activity?.items ?? []).map((entry) => ({
       key: `a:${entry.id}`,
       at: entry.occurred_at,
@@ -121,12 +138,12 @@ export function HistoryView({
       await transport.undoPurchase(change, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.undone);
-      setNotice({
-        tone: "ok",
+      showReceipt(rowId, {
         text:
           change.action === "purchased"
-            ? labels.undoneUnbought(change.title)
-            : labels.undoneBought(change.title),
+            ? labels.undoneUnbought
+            : labels.undoneBought,
+        change,
       });
       await reload();
     } catch (error) {
@@ -143,6 +160,7 @@ export function HistoryView({
           tone: "error",
           text:
             failure === "forbidden" ? labels.undoForbidden : labels.undoFailed,
+          retry: failure === "forbidden" ? undefined : () => void undo(change),
         });
       }
     } finally {
@@ -174,7 +192,7 @@ export function HistoryView({
       await transport.restore(item, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.restored);
-      setNotice({ tone: "ok", text: labels.restored(change.title) });
+      showReceipt(rowId, { text: labels.restored, change });
       await reload();
     } catch (error) {
       const failure = writeFailure(error);
@@ -195,6 +213,8 @@ export function HistoryView({
             failure === "forbidden"
               ? labels.restoreForbidden
               : labels.restoreFailed,
+          retry:
+            failure === "forbidden" ? undefined : () => void restore(change),
         });
       }
     } finally {
@@ -204,14 +224,17 @@ export function HistoryView({
 
   return (
     <div className="control-view" ref={rootRef}>
-      <h2 className="control-sr-only">{labels.views.history}</h2>
+      {/* Where focus rests when the row it was on has no button left (a receipt stands in its place). */}
+      <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
+        {labels.views.history}
+      </h2>
       {/* The tab's one meta line, as the view's first content. */}
       {rows.length > 0 ? (
         <p className="control-meta">{labels.historyMeta}</p>
       ) : null}
       {notice ? (
         <div ref={noticeRef} tabIndex={-1}>
-          <NoticeLine notice={notice} />
+          <NoticeLine notice={notice} locale={labels.locale} />
         </div>
       ) : null}
       {rows.length === 0 ? (
@@ -237,7 +260,7 @@ export function HistoryView({
           full={full}
           expanded={expanded}
           onExpandedChange={onExpandedChange}
-          renderRow={({ change, entry, at }) => {
+          renderRow={({ key, change, entry, at }) => {
             const when = whenText(at, now(), labels.locale);
             if (entry) {
               // "applied" is the normal case, so only the other states are named.
@@ -264,11 +287,12 @@ export function HistoryView({
             ];
             if (change.state === "trashed" && change.action !== "trashed")
               parts.push(labels.nowTrashed);
-            const isBusy = busy === `c:${rowKey(change)}`;
+            const isBusy = busy === key;
             return (
               <ControlRow
                 primary={change.title}
                 secondary={parts.filter(Boolean).join(" · ")}
+                receipt={receipts.get(key)?.text}
                 action={
                   canUndo(change) ? (
                     <button

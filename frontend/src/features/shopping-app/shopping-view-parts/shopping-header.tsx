@@ -4,11 +4,11 @@ import type { ShoppingList } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { BackHeader } from "../../mcp-apps/ui/back-header";
 import { MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
-import { MenuUpdateReminder } from "../../mcp-apps/update-reminder";
+import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
 import type { useMoreMark } from "../../mcp-apps/update-reminder";
-import { MenuLicenseRow } from "../../mcp-apps/license-mark";
 import type { HostSettingsEntry } from "../../mcp-apps/room-types";
 import { RoomSurfaceContext } from "../../mcp-apps/ui/room-context";
+import { MoreMenu } from "./more-menu";
 
 /**
  * The head of the view: the title, the way back to the picker with the + and ⋯ of the fullscreen view, the ⋯ menu
@@ -33,6 +33,7 @@ export function ShoppingHeader({
   onBack,
   onToggleAdd,
   onToggleMore,
+  onCloseMore,
   onToggleEdit,
 }: {
   labels: ShoppingLabels;
@@ -54,6 +55,7 @@ export function ShoppingHeader({
   onBack: () => void;
   onToggleAdd: () => void;
   onToggleMore: () => void;
+  onCloseMore: () => void;
   onToggleEdit: () => void;
 }) {
   const { framed } = useContext(RoomSurfaceContext);
@@ -99,6 +101,9 @@ export function ShoppingHeader({
                   aria-label={moreMark.label}
                   aria-expanded={moreOpen}
                   onClick={onToggleMore}
+                  onKeyDown={(event) => {
+                    if (moreOpen) onEscapeKey(event, onCloseMore);
+                  }}
                 >
                   <MoreIcon />
                   {moreMark.dot}
@@ -109,18 +114,23 @@ export function ShoppingHeader({
         />
       )}
       {moreOpen && fullscreen && list && (
-        <div className="shopping-more-menu">
-          <button type="button" aria-expanded={editOpen} onClick={onToggleEdit}>
+        <MoreMenu
+          control={control}
+          onClose={onCloseMore}
+          onEscape={() => {
+            onCloseMore();
+            moreButton.current?.focus();
+          }}
+        >
+          <button
+            type="button"
+            className="sk-menu-item"
+            aria-expanded={editOpen}
+            onClick={onToggleEdit}
+          >
             {t.editList}
           </button>
-          {control && (
-            <button type="button" onClick={control.onOpen}>
-              {control.label}
-            </button>
-          )}
-          <MenuUpdateReminder />
-          <MenuLicenseRow />
-        </div>
+        </MoreMenu>
       )}
       {showHint && <p>{t.hint}</p>}
     </header>

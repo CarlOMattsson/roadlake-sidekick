@@ -3,7 +3,15 @@ import { cardItemText } from "../shopping-card";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { formatCalendarDate } from "./helpers";
 import { ItemEditor } from "./item-editor";
-import { queuedMark, rowFailure, undoButton } from "./row-parts";
+import {
+  heldStatus,
+  heldWord,
+  isHolding,
+  queuedMark,
+  rowFailure,
+  undoButton,
+  useRowUndo,
+} from "./row-parts";
 import type { RowEnv } from "./row-parts";
 
 /**
@@ -22,7 +30,8 @@ export function ListRow({
   env: RowEnv;
 }) {
   const { labels: t, held, rowQueue } = env;
-  const holding = inPlace && item.purchased && Boolean(held[item.id]);
+  const holding = isHolding(item, env, inPlace);
+  const hold = useRowUndo(item, env, holding);
   return (
     <li
       className={holding ? "shopping-held-item" : undefined}
@@ -43,11 +52,14 @@ export function ListRow({
           {/* The status sits in the text column under the name, not as a flex sibling of the row. */}
           <span className="shopping-item-text">
             <span>{cardItemText(item, t.dateLocale)}</span>
-            {/* A bought row needs no status line (its ticked box and the purchased section say it), except "Köpt" while
-                  its Undo holds. */}
+            {/* A bought row needs no status line (its ticked box and the purchased section say it), except "Köpt" (or
+                  "Inte köpt") while its Undo holds; the row's status below says it to assistive technology. */}
             {(!item.purchased || holding) && (
-              <span className="shopping-status">
-                {holding ? t.bought : t.wanted}
+              <span
+                className="shopping-status"
+                aria-hidden={holding || undefined}
+              >
+                {holding ? heldWord(item, env) : t.wanted}
               </span>
             )}
             {queuedMark(item, env)}
@@ -55,7 +67,7 @@ export function ListRow({
         </label>
         {/* Folded, the row is the name only; Edit is reached through "Show all". A held row has Undo instead. */}
         {holding
-          ? undoButton(item, env)
+          ? undoButton(item, env, hold)
           : !env.folded && (
               <button
                 disabled={env.busy || env.archived || item.id in env.waiting}
@@ -65,6 +77,7 @@ export function ListRow({
               </button>
             )}
       </div>
+      {holding && heldStatus(item, env)}
       {(inPlace || !held[item.id]) && rowFailure(item, env)}
       {item.store && !grouped && (
         <p>

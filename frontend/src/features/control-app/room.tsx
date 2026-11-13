@@ -8,7 +8,7 @@
 import { useMemo, useState } from "react";
 import type { RoomProps, RoomTransport } from "../mcp-apps/room-types";
 import { appLocale } from "../mcp-apps/app-locale";
-import { ErrorNotice } from "../mcp-apps/ui/states";
+import { ErrorNotice, toolResultCause } from "../mcp-apps/ui/states";
 import {
   ControlApp,
   controlViewNamed,
@@ -122,7 +122,12 @@ function afterResult(
   const found = initialError ? undefined : viewOf(initial);
   if (!found) {
     // An error answer for the first call leaves nothing to show; later errors keep the card.
-    return { ...prev, failed: Object.keys(prev.known).length === 0 };
+    return {
+      ...prev,
+      failed: Object.keys(prev.known).length === 0,
+      // The error answer's own fields, so the notice says whether Sidekick answered (its closed code) or not.
+      ...(initialError ? { cause: toolResultCause(initial) } : {}),
+    };
   }
   return {
     failed: false,

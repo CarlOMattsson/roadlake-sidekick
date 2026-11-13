@@ -453,11 +453,17 @@ describe("InlineSummary other states", () => {
         state="error"
         labels={inlineSummaryLabelsSv}
         kindLabel={inlineSummaryLabelsSv.kind.task}
+        subject="work:task"
+        cause={new Error("offline")}
         onRetry={onRetry}
       />,
     );
+    // What could not be read, then what the failure says: the same read error as every room.
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Det gick inte att läsa just nu",
+      "Uppgiften kunde inte hämtas",
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Sidekick svarade inte.",
     );
     expect(
       screen.getByText(inlineSummaryLabelsSv.kind.task),
@@ -472,10 +478,11 @@ describe("InlineSummary other states", () => {
         state="error"
         labels={inlineSummaryLabelsEn}
         kindLabel={inlineSummaryLabelsEn.kind.project}
+        subject="work:project"
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Couldn’t load this right now",
+      "Couldn’t load the project",
     );
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });

@@ -32,8 +32,9 @@ export function failureNotice(
 }
 
 /**
- * The notice of a board or agenda action, with its banner focus and calm text. Every notice but the conflict is the
- * family's refresh row (ErrorNotice): ⚠, the text and, for a failure that can be repeated, a secondary "Försök igen".
+ * The notice of a board or agenda action, with its banner focus and calm text. A failed read keeps the list and is the
+ * family's refresh row (ErrorNotice): ⚠, the text and a secondary "Försök igen". A failed change is the family's write
+ * error row: the line in the danger tone and "Försök igen" as a text button.
  */
 export function NoticeView({
   notice,
@@ -61,9 +62,14 @@ export function NoticeView({
       </div>
     );
   const failed = notice.kind === "failed";
+  const change =
+    notice.kind === "invalid" ||
+    notice.kind === "not_found" ||
+    notice.action === "move" ||
+    notice.action === "moveAll";
   return (
     <ErrorNotice
-      placement="refresh"
+      placement={change ? "row" : "refresh"}
       locale={t.dateLocale}
       cause={failed ? notice.cause : undefined}
       // A failed read keeps the family's "Kunde inte uppdatera"; the record that is gone only explains.

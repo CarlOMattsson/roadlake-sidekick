@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
@@ -163,6 +163,33 @@ it("shows a failed Undo with Try again, which repeats it with the same key", asy
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByRole("button", { name: en.complete })).toBeInTheDocument();
 });
+
+it.each([
+  ["en", inlineSummaryLabelsEn],
+  ["sv", inlineSummaryLabelsSv],
+] as const)(
+  "shows a failed Done as the family's write error row at the card's full width, not a box in a narrow column (%s)",
+  async (_lang, labels) => {
+    const updateTask = vi.fn().mockRejectedValueOnce(new Error("offline"));
+    renderCard(updateTask, labels);
+    await click(labels.complete);
+
+    const alert = screen.getByRole("alert");
+    // The row, not the read error's two-column box, whose first column is the narrow icon column.
+    expect(alert).toHaveClass("sk-error--row");
+    expect(alert).not.toHaveClass("sk-error--card");
+    expect(alert).toHaveTextContent(labels.saveFailed);
+    // The sentence is one line of text and the button says Try again, so the sentence does not.
+    expect(labels.saveFailed).not.toMatch(/försök igen|try again/i);
+    expect(
+      screen.getByRole("button", { name: labels.retry }),
+    ).toBeInTheDocument();
+    // The card no longer sets a layout of its own on the notice (it squeezed the text beside the button).
+    expect(
+      readStylesheet("features/work-app/inline/inline-summary.css"),
+    ).not.toContain("work-compact-notice");
+  },
+);
 
 it("treats a reply that does not show the earlier status as a failure, not as undone", async () => {
   const updateTask = vi

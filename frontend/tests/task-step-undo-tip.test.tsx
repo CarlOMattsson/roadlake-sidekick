@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RowMenuTip } from "@/features/work-app/shared/row-menu";
-import { UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import { TaskSteps } from "@/features/work-app/tasks/task-steps";
 import type {

@@ -23,7 +23,7 @@ villkor, index, behörigheter och standardbehörigheter, med Sidekicks namn på 
 
 ## Den invikta utvecklingskedjan
 
-Före första releasen byggdes schemat av `100_baseline_0_1_0.py` följd av fem migreringar: `101` (två index på `tasks`),
+Före första releasen byggdes schemat av `100_baseline_0_1_0` följd av fem migreringar: `101` (två index på `tasks`),
 `102` (händelseloggen och aktivitetsprojektionen blev append-only för appens roll), `103` (raderingsrätt på `domains`
 och `processes`), `104` (`audit_events.source`) och `105_drop_sessions_and_password_hash` (inloggningsresterna). De
 viktes in i den här baslinjen, som alltså bygger det schema de slutade i; ett test binder det till det incheckade

@@ -13,7 +13,7 @@ export const moveAllEn = {
   moveAllConfirm: (n: number) => `Move ${taskCountEn(n)} to tomorrow?`,
   moveAllConfirmYes: "Move",
   moveAllDone: (n: number) => `Moved ${taskCountEn(n)} to tomorrow`,
-  moveAllFailed: "Couldn’t move the overdue tasks. Try again.",
+  moveAllFailed: "Couldn’t move the overdue tasks.",
 };
 
 export const moveAllSv: typeof moveAllEn = {
@@ -23,5 +23,5 @@ export const moveAllSv: typeof moveAllEn = {
   moveAllConfirmYes: "Flytta",
   moveAllDone: (n: number) =>
     `${n} ${n === 1 ? "flyttad" : "flyttade"} till imorgon`,
-  moveAllFailed: "Det gick inte att flytta de försenade. Försök igen.",
+  moveAllFailed: "Det gick inte att flytta de försenade.",
 };

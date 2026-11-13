@@ -351,7 +351,7 @@ describe("control entry actions call the existing tools with exact arguments", (
       idempotency_key: ANY_KEY,
     });
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "“Milk” är inte längre köpt.",
+      "Inte längre köpt",
     );
   });
 

@@ -15,7 +15,8 @@ Journal (Dagbok) is the room for what you want to remember. It shows one day at 
 - **The date** as the heading, with a strip for the days of the week below it. A dot under a day means the day has notes.
 - **Dagen i korthet** (The day in brief), a summary of the day when there is one.
 - **Anteckningar** (Notes), the day's entries.
-- **Gjort** (Done), a folded row with what you finished that day: tasks, steps and items bought.
+- **Gjort** (Done), a folded row with what you finished that day: tasks, steps and items bought. Open, each kind shows its first three rows, and "+N fler · Visa alla" (+N more · Show all) opens the rest of that kind.
+- **Filtrera på tagg** (Filter by tag), a row under the week strip. It shows once any entry has a tag.
 
 ## Change day
 
@@ -36,6 +37,12 @@ Open the entry, choose ⋯ and then "Redigera" (Edit). You can also tap the titl
 ## Tell Claude about your day
 
 An empty day shows the button "Berätta om dagen" (Tell me about the day). Claude then asks about the day and saves it in the journal. You can also write straight in the conversation, for example "write in my journal that …".
+
+## Tag an entry and find entries by tag
+
+Open the entry and tap "Lägg till tagg" (Add tag), or "Ändra taggar" (Edit tags) if it already has some. Type a tag and press Return, or tap one of "Dina taggar" (Your tags) to reuse one. An archived entry shows its tags but cannot be changed. A draft can be tagged while you review it.
+
+Tap one or more tags in "Filtrera på tagg", at most five at once, and the day is replaced by "Taggade anteckningar" (Tagged entries): the entries that have all the chosen tags from the last 12 months, sorted by their day with the newest day first. Within a day, an entry without a time comes last. The list shows 50 entries at a time. "Visa fler" (Show more) shows the next 50, and once all are shown it adds the 12 months before the oldest year shown. "Rensa (N)" (Clear (N)), where N is the number of tags chosen, returns to the day.
 
 ## Review a draft
 

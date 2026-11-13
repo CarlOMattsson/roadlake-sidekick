@@ -40,6 +40,12 @@ export function ContactHeader({
     setMenuOpen(false);
     onEdit();
   }
+  // Archive (Restore for an archived Contact) writes at once; the page shows the receipt with Undo.
+  function archive() {
+    if (!ready) return;
+    setMenuOpen(false);
+    record.setArchived(!ready.archived);
+  }
   function closeMenu() {
     setMenuOpen(false);
     moreButton.current?.focus();
@@ -86,17 +92,14 @@ export function ContactHeader({
       )}
       {ready && menuOpen && (
         <ContactMenu
-          key={ready.archived ? "archived" : "active"}
           id={menuId}
-          archived={ready.archived}
           busy={busy || editing || unlinks.busy}
-          onConfirm={() => {
-            setMenuOpen(false);
-            record.setArchived(!ready.archived);
-          }}
           edit={ready.archived ? undefined : { label: t.edit, onChoose: edit }}
+          archive={{
+            label: ready.archived ? t.restoreContact : t.archiveContact,
+            onChoose: archive,
+          }}
           onClose={closeMenu}
-          labels={t}
         />
       )}
     </>

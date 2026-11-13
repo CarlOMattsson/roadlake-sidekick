@@ -23,9 +23,9 @@ Det effektivaste sättet att använda Sidekick är att prata med Claude i röstl
 
 ## Rummen visar och låter dig klicka
 
-Det finns fyra rum, Arbete, Dagbok, Kontakter och Inköp, och dessutom Kontroll. Ett rum är en vy som Claude visar inne i samtalet. Där bockar du av, byter datum, skriver för hand och bläddrar mellan poster.
+Det finns fyra rum, Arbete, Dagbok, Kontakter och Inköp, och dessutom Kontroll, med rubriken "Minne och kontroll". Ett rum är en vy som Claude visar inne i samtalet. Där bockar du av, byter datum, skriver för hand och bläddrar mellan poster.
 
-Överst i varje rum finns en remsa med de fyra rummen, så du kan byta rum utan att fråga Claude. Kontroll ligger sist i menyn ⋯ i varje rum.
+Överst i varje rum finns en remsa med de fyra rummen, så du kan byta rum utan att fråga Claude. "Minne och kontroll", sist i menyn ⋯ i varje rum, öppnar Kontroll på Sidekicks minne.
 
 ## Kort i samtalet och helskärm
 
@@ -55,7 +55,7 @@ Rummens etiketter är svenska som förval. Sätt `SIDEKICK_MCP_APP_LOCALE=en` p�
 | Dagbok | Journal |
 | Kontakter | Contacts |
 | Inköp | Shopping |
-| Kontroll | Control |
+| Minne och kontroll | Memory and control |
 
 Android-appen har en egen språkinställning. [Läs mer om språk i rummen, appen och servern](../reference/languages.sv.md).
 

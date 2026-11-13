@@ -76,14 +76,12 @@ export function ProcessFrame({
       </h2>
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
-        <section className="sk-card">
-          <p className="sk-eyebrow">{t.title}</p>
-          <ErrorNotice
-            locale={t.dateLocale}
-            cause={frame.readError}
-            onRetry={frame.retry}
-          />
-        </section>
+        <ErrorNotice
+          locale={t.dateLocale}
+          subject="work:process"
+          cause={frame.readError}
+          onRetry={frame.retry}
+        />
       )}
       {phase === "gone" && <p role="status">{pl.gone}</p>}
       {phase === "ready" && process && (
@@ -113,12 +111,11 @@ export function ProcessFrame({
             <p>{pl.tasksForbidden}</p>
           )}
           {tasksOffered && tasks.phase === "error" && (
-            <p role="alert">
-              {t.failed}{" "}
-              <button type="button" onClick={tasks.retry}>
-                {t.retry}
-              </button>
-            </p>
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              onRetry={tasks.retry}
+            />
           )}
           {tasksOffered && tasks.phase === "ready" && (
             <>

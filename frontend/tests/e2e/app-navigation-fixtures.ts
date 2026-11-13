@@ -135,9 +135,8 @@ export async function callNames(p: Page) {
 export const openTask = (app: FrameLocator) =>
   app.getByRole("button", { name: "Ring Anna om offerten", exact: true });
 // A task has no pen. Redigera is the first entry of the ⋯ menu in the Back row (a tap on the title edits too).
-// The ⋯ is labelled "Fler alternativ" (was "Fler åtgärder").
 export async function editTask(app: FrameLocator) {
-  await app.getByRole("button", { name: "Fler alternativ" }).click();
+  await app.getByRole("button", { name: "Fler val", exact: true }).click();
   await app.getByRole("button", { name: "Redigera" }).click();
 }
 // The Status view shows every status as a section; the column chip row is gone. Status is a tab of the view tabs.

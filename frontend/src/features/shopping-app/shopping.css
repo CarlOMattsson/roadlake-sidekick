@@ -202,13 +202,6 @@
 .sidekick-shopping .shopping-editor select {
   padding-inline-start: calc(0.6rem - 4px);
 }
-.sidekick-shopping .shopping-editor-actions {
-  margin-top: var(--sk-s3);
-}
-/* Save and Cancel stand as one pair: the same 48 px height. */
-.sidekick-shopping .shopping-editor-actions > button {
-  min-height: var(--sk-tap-lg);
-}
 .shopping-offer {
   border-left: 0.25rem solid var(--work-muted);
   padding: 0.5rem 0.75rem;
@@ -375,11 +368,14 @@
   overflow-wrap: anywhere;
   font-size: 0.9rem;
 }
-/* "+N more" under the listed items: muted, in the same size as the items. */
+/* What the card leaves out, after the link's name in the same row: " · 26 fler" in the meta type and colour. */
 .sidekick-shopping .shopping-card-more {
-  margin: 0;
-  font-size: 0.9rem;
+  font: var(--sk-type-meta);
   color: var(--sk-muted);
+}
+.sidekick-shopping .shopping-card-open-text {
+  min-width: 0;
+  text-align: start;
 }
 /* The card's Open is a text button (sk-btn--open, family.css): it keeps its own width in the card's column. */
 .shopping-card-open {
@@ -698,13 +694,10 @@
 .sidekick-shopping .sk-back-header {
   flex: 0 0 100%;
 }
-/* The ⋯ menu under the header row (fullscreen): one row of buttons; "Kontroll" is last. The trigger is the family's
-   icon button with the shared ⋯ glyph. */
-.sidekick-shopping .shopping-more-menu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sk-s2);
-  margin: 0.25rem 0 0.5rem;
+/* The ⋯ trigger is the family's icon button with the shared ⋯ glyph; its menu is the family's panel (.sk-menu-panel),
+   which takes the full line of the header. */
+.sidekick-shopping .shopping-head > .sk-menu-panel {
+  flex: 0 0 100%;
 }
 /* The fullscreen progress is neutral and quiet: the muted text colour, not ink (ink is the primary action). */
 .sidekick-shopping .shopping-progress .sk-progress__fill {

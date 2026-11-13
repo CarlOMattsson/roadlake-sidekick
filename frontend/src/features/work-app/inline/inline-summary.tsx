@@ -13,10 +13,11 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import { KnownTags } from "../shared/work-tags";
-import { UNDO_MS } from "../agenda/agenda-undo";
+import { UNDO_MS } from "../../mcp-apps/ui/undo-hold";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
   ListSummary,
+  NoticeRow,
   statusLabel,
   type InlineSummaryKind,
   type InlineSummaryNotice,
@@ -26,6 +27,7 @@ import {
 export { AgendaSummary, type InlineAgendaWrite } from "./inline-agenda-summary";
 export { HierarchySummary } from "./inline-hierarchy-summary";
 export {
+  InlineEmpty,
   InlineRow,
   OpenFoot,
   inlineMeta,
@@ -108,6 +110,10 @@ export type InlineSummaryProps =
       labels: InlineSummaryLabels;
       /** The overrubrik: the kind of record that could not be read. */
       kindLabel: string;
+      /** What could not be read ("work:task"), for the notice's heading; the card's `kindLabel` says it above. */
+      subject: string;
+      /** The failure, when the caller has it: decides the notice's second line. */
+      cause?: unknown;
       onRetry?: () => void;
     }
   | {
@@ -220,7 +226,12 @@ export function InlineSummary(props: InlineSummaryProps) {
     return (
       <section className="work-compact-card sk-card">
         <p className="sk-eyebrow">{props.kindLabel}</p>
-        <ErrorNotice locale={labels.dateLocale} onRetry={props.onRetry} />
+        <ErrorNotice
+          locale={labels.dateLocale}
+          subject={props.subject}
+          cause={props.cause}
+          onRetry={props.onRetry}
+        />
       </section>
     );
   }
@@ -330,26 +341,8 @@ export function InlineSummary(props: InlineSummaryProps) {
           </div>
         </CardFoot>
       ) : null}
-      {notice ? <NoticeBlock notice={notice} /> : null}
+      {notice ? <NoticeRow notice={notice} locale={labels.dateLocale} /> : null}
     </section>
-  );
-}
-
-/** A message under a summary with an optional action (read again or retry), as the Task summary shows it. */
-function NoticeBlock({ notice }: { notice: InlineSummaryNotice }) {
-  return (
-    <div role="alert" className="work-compact-notice sk-error sk-error--card">
-      <p>{notice.message}</p>
-      {notice.action ? (
-        <button
-          type="button"
-          className="work-compact-action"
-          onClick={notice.action}
-        >
-          {notice.actionLabel}
-        </button>
-      ) : null}
-    </div>
   );
 }
 
@@ -358,7 +351,7 @@ export type ContactName = { id: string; name: string };
 
 /**
  * Inline Contact list: how many Contacts match, counted on the page read so far, then the first
- * three names. `more` marks a page with a next cursor, so the count is shown with "+". A name equal
+ * three names; with no Contact at all the card is the room's empty state. `more` marks a page with a next cursor, so the count is shown with "+". A name equal
  * to `query` (ignoring case and surrounding spaces) is listed first; the rest keep the order read.
  */
 export function ContactsSummary({
@@ -384,6 +377,13 @@ export function ContactsSummary({
   const shown = [...contacts]
     .sort((a, b) => Number(isExact(b)) - Number(isExact(a)))
     .slice(0, CONTACT_ROWS);
+  // No Contact at all: the room's empty state; a search with no match says so and offers no example.
+  const blank =
+    count === 0 && !more
+      ? wanted === ""
+        ? labels.blank.contacts
+        : { title: labels.noContactMatches(query.trim()) }
+      : undefined;
   return (
     <ListSummary
       labels={labels}
@@ -398,8 +398,10 @@ export function ContactsSummary({
           text: wanted === "" ? labels.contactCount(count, more) : undefined,
         },
       ]}
+      blank={blank}
       onOpen={onOpen}
-      openLabel={labels.showAll}
+      openLabel={labels.openContacts}
+      aside={labels.moreRows(count - shown.length, more)}
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">

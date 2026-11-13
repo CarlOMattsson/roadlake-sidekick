@@ -263,7 +263,7 @@ describe("journal draft review", () => {
     await screen.findByRole("heading", { level: 2, name: OFFERTEN });
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.type(screen.getByLabelText("Title"), "!");
-    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText(journalEn.conflict);
     await user.click(screen.getByRole("button", { name: "Reload" }));
     expect(

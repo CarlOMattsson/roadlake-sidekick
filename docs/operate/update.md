@@ -40,8 +40,10 @@ it, and prints the digest and the signer identity in the job summary of the run:
 `Signer identity:` (of the form `https://github.com/<owner>/<repo>/.github/workflows/release-image.yml@<ref>`) and the
 `cosign verify` command with both. Use those two values exactly. Also give `--cert-issuer` only if the image was not
 signed by GitHub Actions (the default is `https://token.actions.githubusercontent.com`). `update.sh` needs `cosign`
-and refuses to go on without it. It also needs `python3` (3.9 or newer, nothing installed on top) and the
-`update_policy.py` that ships next to it, because the update decisions live there; `--apply` refuses without both.
+and refuses to go on without it. Every mode except `--decrypt-snapshot`, the dry run and `--check` included, also needs
+`python3` (3.9 or newer, nothing installed on top) and `tools/workctl` from the same checkout, which reads the update
+state files, and refuses without them. `--apply` also needs the `update_policy.py` that ships next to the script,
+because the update decisions live there.
 
 Once `--apply` has run, the pinned image is recorded in `release.env`; pass it as a second `--env-file` to every later
 compose command: `docker compose --env-file selfhost.env --env-file release.env up -d`. See the header of `update.sh`

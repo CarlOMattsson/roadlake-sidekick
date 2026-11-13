@@ -1,0 +1,29 @@
+/* The time left to undo (designsystem §3 Ångra): a 2 px line of the button's text colour along its whole foot, 2 inside
+   the bottom edge and 4 in from the rounded corners, that shrinks to nothing in the same 15 s as the countdown
+   (UNDO_MS, undo-hold.ts) and stands still while the countdown does (pointer over it, focus in it: `data-held` on the
+   button or on the element around it). A new change mounts a new button and starts it again. None with reduced motion.
+   The button is a compact one, which is the line's positioned box. */
+.sk-undo-time::before {
+  content: "";
+  position: absolute;
+  inset: auto var(--sk-s1) 2px;
+  height: 2px;
+  background: currentColor;
+  transform-origin: left;
+  animation: sk-undo-time 15s linear forwards;
+}
+.sk-undo-time[data-held]::before,
+[data-held] .sk-undo-time::before {
+  animation-play-state: paused;
+}
+@keyframes sk-undo-time {
+  to {
+    scale: 0 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-undo-time::before {
+    content: none;
+    animation: none;
+  }
+}

@@ -347,21 +347,21 @@ test("sandboxed Work App resets its stack on a new root and shows an error frame
     app.getByRole("heading", { level: 2, name: "Anna Andersson" }),
   ).toBeVisible();
   await expect(app.getByRole("button", { name: "Back" })).toBeVisible();
-  // A result flagged as an error opens the error frame (inline-kort-och-kanban-design): it
-  // replaces the stack, says what failed and keeps no Contact data. It has no "Try again": the
-  // frame holds no tool name, so a retry would have nothing to read again.
+  // A result flagged as an error opens the error frame: it replaces the stack, says what failed and keeps no
+  // Contact data. The frame holds no tool name, so Try again reads the agenda, and the heading names that read
+  // ("your tasks"), whichever tool failed. A heading has no full stop (designsystem §1.6); the muted line says
+  // only what the frame knows of the failure: a result without Sidekick's own error code may be the connection.
   await push({ ...contactResult(bo), isError: true });
-  // The heading names what could not be read: the room the error replaces (the task). A heading has no full stop
-  // (designsystem §1.6). A failure without Sidekick's own error code may be the connection, so the card adds one muted
-  // line only when the frame knows it is offline; online it is the heading alone ("Try again in a moment."
-  // repeated the button and is gone). The card holds no retry (see below).
   await expect(
-    app.getByRole("alert").getByText("Couldn’t load the task", { exact: true }),
+    app
+      .getByRole("alert")
+      .getByText("Couldn’t load your tasks", { exact: true }),
   ).toBeVisible();
   await expect(app.getByRole("alert").locator("p")).toHaveText([
-    "Couldn’t load the task",
+    "Couldn’t load your tasks",
+    "Sidekick didn’t respond.",
   ]);
-  await expect(app.getByRole("button", { name: "Try again" })).toHaveCount(0);
+  await expect(app.getByRole("button", { name: "Try again" })).toHaveCount(1);
   await expect(
     app.getByRole("heading", { level: 2, name: "Anna Andersson" }),
   ).toHaveCount(0);

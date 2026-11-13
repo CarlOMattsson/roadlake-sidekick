@@ -290,11 +290,90 @@
   font: var(--sk-type-label-strong);
   cursor: pointer;
 }
+/* The open link never wraps or shrinks: "Öppna projektet ›" stands on one line in every card, whatever sits beside it. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-btn--open,
+.sk-btn--open {
+  flex: none;
+  white-space: nowrap;
+}
 .sk-btn--open > svg {
   flex: none;
   width: var(--sk-glyph);
   height: var(--sk-glyph);
   margin-inline-start: var(--sk-s1);
+}
+
+/* ---- Form actions (designsystem §3): every form ends with the same pair, "Spara" as the primary and "Avbryt" as a
+   quiet text button beside it, both 48 high so their text stands on one line. ---- */
+.sk-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  margin-top: var(--sk-s3);
+}
+.sk-form-actions.sk-form-actions > button {
+  min-height: var(--sk-tap-lg);
+}
+
+/* ---- "Visa fler" (designsystem §3): the next page of a list, a quiet text button on the list's start edge, 44 high,
+   the same in every room. It says what it fetches when that is not plain ("Visa fler uppgifter"). ---- */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-more,
+.sk-more {
+  display: block;
+  margin: var(--sk-s2) 0 0;
+  margin-inline-start: calc(var(--sk-s3) * -1);
+  padding: 0 var(--sk-s3);
+  border-color: transparent;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-label-strong);
+  text-align: start;
+}
+
+/* ---- The ⋯ menu (designsystem §3): a card on the surface under the head, one 44 row per entry, the menu's 16/20 at
+   500, a hairline between entries. The same panel in every room. ---- */
+.sk-menu-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: var(--sk-s2) 0 0;
+  padding: var(--sk-s1) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sk-menu-panel[hidden] {
+  display: none;
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-menu-item,
+.sk-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-menu);
+  text-align: start;
+}
+/* The hairline between entries, as Work's ⋯: above the button rule's border: 0 in specificity. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-menu-item
+  + .sk-menu-item {
+  border-top: var(--sk-hairline) solid var(--sk-line);
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-menu-item--danger,
+.sk-menu-item--danger {
+  color: var(--sk-overdue-fg);
 }
 
 /* ---- Notice: one status line, and the Undo line. Message, then the action. ---- */
@@ -505,6 +584,14 @@
 }
 .sk-error--row .sk-error-message {
   margin: 0;
+}
+/* The buttons keep their words on one line: when the message and they do not fit one line, they go under the message
+   as a whole, never squeezed beside it. */
+.sk-error--row .sk-error__actions {
+  flex: none;
+}
+.sk-error--row .sk-error-retry {
+  white-space: nowrap;
 }
 
 /* Buttons of an error or notice share one row under the message. */

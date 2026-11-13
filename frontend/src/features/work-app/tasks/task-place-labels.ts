@@ -63,7 +63,7 @@ export const taskPlaceLabelsSv = {
   choosePlace: "Välj plats…",
   /** Replaces the "Att sortera" intro: the Domain buttons and the picker. */
   unsortedIntro:
-    "Ingen plats ännu. Tryck på en domän, eller välj ett projekt eller en process.",
+    "Ingen plats än. Tryck på en domän, eller välj ett projekt eller en process.",
   /** The repeat chip's accessible name, before its text: "Ändra upprepning: Upprepas varje vecka". */
   changeRepeat: "Ändra upprepning",
   /** The repeat chip of a Task that does not repeat (only drawn where the host can set a rule). */

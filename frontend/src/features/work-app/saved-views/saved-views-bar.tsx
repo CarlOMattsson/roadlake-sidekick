@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { onEnterKey, preventSubmit } from "../../mcp-apps/ui/enter-key";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
 import type { WorkLabels } from "../shared/labels";
 import type { ManageLabels } from "../shared/manage-labels";
@@ -92,17 +93,14 @@ export function SavedViewsBar({
       <div className="work-saved-views-status">
         {status?.kind === "opening" && <p role="status">{s.openingView}</p>}
         {status?.kind === "failed" && (
-          <p role="alert">
-            {s.openFailed}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                void openView(status.view);
-              }}
-            >
-              {manage.retry}
-            </button>
-          </p>
+          <ErrorNotice
+            placement="row"
+            locale={manage.dateLocale}
+            message={s.openFailed}
+            onRetry={() => {
+              void openView(status.view);
+            }}
+          />
         )}
       </div>
       <div id={panelId} className="work-saved-views-panel" hidden={!open}>
@@ -182,12 +180,12 @@ function SavedViewsPanel({
     <div ref={panelRef} className="work-saved-views-body">
       {listPhase === "loading" && <p role="status">{s.listLoading}</p>}
       {listPhase === "error" ? (
-        <p role="alert">
-          {s.listFailed}{" "}
-          <button type="button" onClick={() => panel.readViews(showArchived)}>
-            {manage.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={manage.dateLocale}
+          message={s.listFailed}
+          onRetry={() => panel.readViews(showArchived)}
+        />
       ) : views === undefined ? null : active.length > 0 ? (
         <ul className="work-saved-views-list">
           {active.map((view) => {

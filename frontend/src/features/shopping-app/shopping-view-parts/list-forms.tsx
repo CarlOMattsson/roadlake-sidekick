@@ -5,9 +5,10 @@ import type { ShoppingLabels } from "../labels";
 import { COMPACT_ROWS, emptyAsk, isEnter } from "./helpers";
 import { ChevronRightIcon, MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { CreateField } from "../../mcp-apps/ui/create-field";
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
 import { EmptyState } from "../../mcp-apps/ui/states";
 import { workDate } from "../../mcp-apps/ui/due";
+import { MoreMenu } from "./more-menu";
 
 /**
  * A one-field form that names a list (new list, or Edit list). Enter and the button submit through the
@@ -140,8 +141,8 @@ export function ListPicker({
   control,
 }: Omit<ListsView, "listName" | "onListName" | "onCreate"> & {
   /**
-   * The host's own settings (the phone): the picker's head then ends with ⋯, which holds them, so they are one tap
-   * away also before any list exists. Absent: no ⋯ (Claude's Control is in a list's ⋯).
+   * The last entry of the picker's ⋯: "Minne och kontroll", or the host's own settings (the phone). The ⋯ holds it,
+   * so it is one tap away also before any list exists. Absent: no ⋯ (the room cannot open Control).
    */
   control?: HostSettingsEntry;
   /** Sends a message to Claude; absent when the host offers none (the empty state then shows its example as text). */
@@ -196,29 +197,23 @@ export function ListPicker({
             aria-label={t.moreActions}
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(!moreOpen)}
+            onKeyDown={(event) => {
+              if (moreOpen) onEscapeKey(event, () => setMoreOpen(false));
+            }}
           >
             <MoreIcon />
           </button>
         )}
       </div>
       {control && fullscreen && moreOpen && (
-        <KeyScope
-          className="shopping-more-menu"
+        <MoreMenu
+          control={control}
+          onClose={() => setMoreOpen(false)}
           onEscape={() => {
             setMoreOpen(false);
             moreButton.current?.focus();
           }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              setMoreOpen(false);
-              control.onOpen();
-            }}
-          >
-            {control.label}
-          </button>
-        </KeyScope>
+        />
       )}
       {newOpen && (
         <div className="shopping-create">

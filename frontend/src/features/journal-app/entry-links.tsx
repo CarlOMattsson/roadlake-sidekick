@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ErrorNotice } from "../mcp-apps/ui/states";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { linkName } from "./entry-card";
@@ -227,13 +228,17 @@ export function EntryLinks({
             </div>
           )}
           {failure && (
-            <p role="alert" className="journal-banner">
-              {failure === "conflict"
-                ? t.entryReloadedConflict
-                : failure === "remove"
-                  ? t.linkRemoveFailed
-                  : t.linkRestoreFailed}
-            </p>
+            <ErrorNotice
+              placement="row"
+              locale={t.dateLocale}
+              message={
+                failure === "conflict"
+                  ? t.entryReloadedConflict
+                  : failure === "remove"
+                    ? t.linkRemoveFailed
+                    : t.linkRestoreFailed
+              }
+            />
           )}
         </>
       )}

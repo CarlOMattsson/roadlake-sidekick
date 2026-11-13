@@ -145,6 +145,12 @@ export function JournalRoom(props: JournalRoomProps) {
       />
     );
   }
+  // The day's "tell Claude": the glance and the day view send the same message, only where the host takes messages.
+  const tellClaude = props.sendMessage
+    ? (text?: string) => {
+        void props.sendMessage?.(text ?? labels.tellClaudeMessage);
+      }
+    : undefined;
   if (glance) {
     return (
       <DayGlance
@@ -159,6 +165,7 @@ export function JournalRoom(props: JournalRoomProps) {
         onOpen={openDay}
         onOpenEntry={openGlanceEntry}
         onReviewDrafts={openDrafts}
+        onTellClaude={tellClaude}
         opening={state.dayOpening}
       />
     );
@@ -176,13 +183,7 @@ export function JournalRoom(props: JournalRoomProps) {
       onRoute={props.onNavigate}
       refreshKey={props.refreshKey}
       hostSettings={fullscreen ? props.hostSettings : undefined}
-      onTellClaude={
-        props.sendMessage
-          ? (text?: string) => {
-              void props.sendMessage?.(text ?? labels.tellClaudeMessage);
-            }
-          : undefined
-      }
+      onTellClaude={tellClaude}
       onOpenContact={
         navigate && canOpenContact
           ? (link) =>

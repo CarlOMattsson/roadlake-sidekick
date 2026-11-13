@@ -3,7 +3,8 @@ import { ContactWays } from "./contact-card";
 import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
-import { EmptyState } from "../../mcp-apps/ui/states";
+import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
+import { ContactArchived } from "./contact-archived";
 import { ContactEditor } from "./contact-edit";
 import { ContactProjects } from "./contact-projects";
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
@@ -77,8 +78,20 @@ export function ContactBody({
   ] as const;
   return (
     <>
-      {contact.archived && <p>{t.archivedLabel}</p>}
-      {contact.archived && <p>{t.archivedReadOnly}</p>}
+      {contact.archived && record.archivedHere ? (
+        <ContactArchived
+          labels={t}
+          busy={write.kind === "busy"}
+          onRestore={() => record.setArchived(false)}
+        />
+      ) : (
+        contact.archived && (
+          <>
+            <p>{t.archivedLabel}</p>
+            <p>{t.archivedReadOnly}</p>
+          </>
+        )
+      )}
       <WriteStatus
         write={write}
         conflict={t.contactEditConflict}
@@ -87,12 +100,12 @@ export function ContactBody({
         labels={t}
       />
       {write.kind === "failed" && write.action === "write" && (
-        <p role="alert">
-          {t.contactSaveFailed}{" "}
-          <button type="button" onClick={record.retryLastWrite}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.contactSaveFailed}
+          onRetry={record.retryLastWrite}
+        />
       )}
       {/* While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
       {!editing && (
@@ -189,6 +202,7 @@ export function ContactBody({
       {nextCursor && (
         <button
           type="button"
+          className="sk-more"
           disabled={more === "busy"}
           onClick={record.loadMore}
         >

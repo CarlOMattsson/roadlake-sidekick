@@ -37,6 +37,8 @@ export function TabPanel({
     return (
       <ErrorNotice
         locale={locale}
+        // The tab names what could not be read, whichever tool opened the room.
+        subject={`work:${tab}`}
         cause={entry.cause}
         retrying={entry.retrying}
         onRetry={() => onRetry(tab)}

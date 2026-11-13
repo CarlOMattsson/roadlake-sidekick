@@ -146,6 +146,10 @@ export function MemoryView({
             failure === "forbidden"
               ? labels.memoryForbidden
               : labels.memoryFailed,
+          retry:
+            failure === "forbidden"
+              ? undefined
+              : () => void send(change, version),
         });
       }
     } finally {
@@ -221,7 +225,7 @@ export function MemoryView({
           {providerNote}
         </p>
       ) : null}
-      <NoticeLine notice={notice} />
+      <NoticeLine notice={notice} locale={labels.locale} />
       <h3 className="control-section">{labels.sourcesTitle}</h3>
       <ul
         className={

@@ -146,7 +146,7 @@ it("the ⋯ menu ends with Control, which asks the host for the Control room's m
   expect(more).not.toHaveTextContent("⋯");
   await user.click(more);
   const entries = within(
-    document.querySelector<HTMLElement>(".shopping-more-menu")!,
+    document.querySelector<HTMLElement>(".sk-menu-panel")!,
   ).getAllByRole("button");
   expect(entries.map((entry) => entry.textContent)).toEqual([
     shoppingEn.editList,

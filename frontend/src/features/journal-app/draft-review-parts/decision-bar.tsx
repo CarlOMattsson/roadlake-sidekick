@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { JournalLabels } from "../labels";
 import type { Confirm } from "./use-draft-confirm";
 import type { WriteState } from "./use-draft-writes";
@@ -51,12 +52,14 @@ export function DecisionBar({
       {confirm === undefined && editing && (
         <p className="journal-muted">{t.finishEditFirst}</p>
       )}
-      {write.kind === "failed" && write.action === "finalize" && (
-        <p role="alert">{t.saveFailed}</p>
-      )}
-      {write.kind === "failed" && write.action === "reject" && (
-        <p role="alert">{t.saveFailed}</p>
-      )}
+      {write.kind === "failed" &&
+        (write.action === "finalize" || write.action === "reject") && (
+          <ErrorNotice
+            placement="row"
+            locale={t.dateLocale}
+            message={t.saveFailed}
+          />
+        )}
     </>
   );
 }

@@ -120,7 +120,15 @@ describe("a bought row holds its Ångra in place", () => {
       undo.closest("li")!.querySelector(".shopping-held"),
     ).toHaveTextContent(`${shoppingEn.bought} · 2 l`);
     expect(undo.closest(".sk-notice")).toBeNull();
-    expect(container.querySelector('[role="status"]')).toBeNull();
+    // The visible line is for the eye; the row's one status (role="status") tells assistive technology what happened.
+    expect(undo.closest("li")!.querySelector(".shopping-held")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
+    expect(container.querySelector('[role="status"]')).toHaveTextContent(
+      `${shoppingEn.bought}: Milk`,
+    );
     expect(container.querySelector(".shopping-undo-item")).toBeNull();
   });
 

@@ -1,8 +1,9 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi, type Mock } from "vitest";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 
 import { controlSv } from "@/features/control-app/labels";
+import { RESTORED_MS } from "@/features/control-app/use-receipts";
 import { TrashView } from "@/features/control-app/trash-view";
 import type {
   ControlTransport,
@@ -178,27 +179,38 @@ describe("TrashView rows", () => {
     ).toBeInTheDocument();
   });
 
-  it("drops Visa alla once a restore leaves the rows at the limit", async () => {
-    const items: TrashItem[] = Array.from({ length: 4 }, (_, index) => ({
-      ...task,
-      id: `019f0000-0000-7000-8000-00000000021${index}`,
-      label: `Post ${index + 1}`,
-    }));
-    const transport = makeTransport();
-    renderTrash({ items, has_more: false, next_cursor: null }, transport);
+  it("drops Visa alla once the receipt of a restore has gone and the rows are at the limit", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const items: TrashItem[] = Array.from({ length: 4 }, (_, index) => ({
+        ...task,
+        id: `019f0000-0000-7000-8000-00000000021${index}`,
+        label: `Post ${index + 1}`,
+      }));
+      const transport = makeTransport();
+      renderTrash({ items, has_more: false, next_cursor: null }, transport);
 
-    expect(
-      screen.getByRole("button", { name: "Visa alla (4)" }),
-    ).toBeInTheDocument();
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Återställ Post 1" }));
+      expect(
+        screen.getByRole("button", { name: "Visa alla (4)" }),
+      ).toBeInTheDocument();
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await user.click(
+        screen.getByRole("button", { name: "Återställ Post 1" }),
+      );
+      await screen.findByRole("status");
+      act(() => {
+        vi.advanceTimersByTime(RESTORED_MS + 100);
+      });
 
-    expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
-    expect(
-      within(screen.getByRole("list", { name: "Borttaget" })).getAllByRole(
-        "listitem",
-      ),
-    ).toHaveLength(3);
+      expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
+      expect(
+        within(screen.getByRole("list", { name: "Borttaget" })).getAllByRole(
+          "listitem",
+        ),
+      ).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("says the trash is empty when there are no rows", () => {
@@ -226,7 +238,7 @@ describe("TrashView rows", () => {
 });
 
 describe("TrashView restore", () => {
-  it("restores the exact item the list showed and removes its row", async () => {
+  it("restores the exact item the list showed and answers in its row", async () => {
     const transport = makeTransport();
     renderTrash(
       { items: [task, note], has_more: false, next_cursor: null },
@@ -242,11 +254,17 @@ describe("TrashView restore", () => {
     expect(transport.restore.mock.calls[0]?.[0]).toEqual(task);
     expect(transport.restore.mock.calls[0]?.[1]).toEqual(expect.any(String));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Återställd: “Förbered pitchen”",
-    );
-    expect(screen.queryByText("Förbered pitchen")).not.toBeInTheDocument();
-    expect(screen.getByText("Kort dagbok")).toBeInTheDocument();
+    // The row stays on its place: its meta line is the receipt, and it has no button any more.
+    const status = await screen.findByRole("status");
+    expect(status).toHaveTextContent("Återställd");
+    const row = status.closest("li");
+    expect(row).toHaveTextContent("Förbered pitchen");
+    expect(within(row as HTMLElement).queryByRole("button")).toBeNull();
+    const rows = screen.getAllByRole("listitem");
+    expect(rows[0]).toBe(row);
+    expect(rows[1]).toHaveTextContent("Kort dagbok");
+    // The count is of the rows still in the trash.
+    expect(screen.getByText("1 borttagen · kan återställas")).toBeVisible();
     expect(transport.trash).not.toHaveBeenCalled();
   });
 
@@ -264,6 +282,7 @@ describe("TrashView restore", () => {
     );
 
     expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(screen.getByText(controlSv.hiddenTitle)).toBeInTheDocument();
   });
 
   it("on a conflict says so, reads the list again and shows the new list", async () => {
@@ -367,9 +386,7 @@ describe("TrashView restore", () => {
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Återställd: “Förbered pitchen”",
-    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
     expect(restore).toHaveBeenCalledTimes(2);
     expect(restore.mock.calls[0]?.[0]).toEqual(task);
     expect(restore.mock.calls[1]?.[0]).toEqual(task);
@@ -391,7 +408,7 @@ describe("TrashView restore", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "“Förbered pitchen” har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.",
+      "”Förbered pitchen” har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.",
     );
   });
 
@@ -445,6 +462,74 @@ describe("TrashView heading", () => {
   });
 });
 
+describe("TrashView receipt", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("takes the restored row away after RESTORED_MS and shows the empty state when it was the last", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderTrash(
+      { items: [task], has_more: false, next_cursor: null },
+      makeTransport(),
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+
+    act(() => {
+      vi.advanceTimersByTime(RESTORED_MS - 100);
+    });
+    expect(screen.getByRole("status")).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("Förbered pitchen")).not.toBeInTheDocument();
+    expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
+  });
+
+  it("keeps each restored row on its place while the next ones are restored", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderTrash(
+      { items: [task, note], has_more: false, next_cursor: null },
+      makeTransport(),
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Återställ Kort dagbok" }),
+    );
+    await screen.findByRole("status");
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
+    );
+    await waitFor(() => expect(screen.getAllByRole("status")).toHaveLength(2));
+    const titles = () =>
+      screen
+        .getAllByRole("listitem")
+        .map((row) => row.querySelector(".control-row-primary")?.textContent);
+    expect(titles()).toEqual(["Förbered pitchen", "Kort dagbok"]);
+
+    // The first receipt ends 2 s before the second.
+    act(() => {
+      vi.advanceTimersByTime(2100);
+    });
+    expect(titles()).toEqual(["Förbered pitchen"]);
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
+  });
+});
+
 describe("TrashView focus after a write", () => {
   it("moves focus to the Restore button of the row that took its place", async () => {
     const transport = makeTransport();
@@ -484,7 +569,7 @@ describe("TrashView focus after a write", () => {
     );
   });
 
-  it("moves focus to the notice when no row is left", async () => {
+  it("moves focus to the heading when no row with a button is left", async () => {
     const transport = makeTransport();
     renderTrash(
       { items: [task], has_more: false, next_cursor: null },
@@ -497,7 +582,9 @@ describe("TrashView focus after a write", () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole("status").parentElement).toHaveFocus(),
+      expect(
+        screen.getByRole("heading", { level: 2, name: "Borttaget" }),
+      ).toHaveFocus(),
     );
   });
 
@@ -524,6 +611,34 @@ describe("TrashView focus after a write", () => {
         screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
       ).toHaveFocus(),
     );
+  });
+
+  it("says a failed restore in the family's write error row, with a Försök igen that restores again", async () => {
+    const restore = vi
+      .fn<Restore>()
+      .mockRejectedValueOnce(fail("internal_error"))
+      .mockResolvedValueOnce({});
+    renderTrash(
+      { items: [task], has_more: false, next_cursor: null },
+      makeTransport(restore),
+    );
+
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-error--row");
+    expect(alert).toHaveTextContent(controlSv.restoreFailed);
+    // The line is the sentence and the button says the rest: the sentence does not.
+    expect(controlSv.restoreFailed).not.toMatch(/försök igen/i);
+    await user.click(
+      within(alert).getByRole("button", { name: "Försök igen" }),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("Återställd");
+    expect(restore).toHaveBeenCalledTimes(2);
+    expect(restore.mock.calls[1]?.[1]).toBe(restore.mock.calls[0]?.[1]);
   });
 
   it("shows a failed restore in the row it was on, not at the top of the list", async () => {

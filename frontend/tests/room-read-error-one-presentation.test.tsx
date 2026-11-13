@@ -1,12 +1,14 @@
 // One read-error presentation for a whole room. Journal, Shopping and Contacts show the shared notice under the
 // room's own chrome (no card with an eyebrow), always with the cause line and "Try again"; the place picker uses the
-// notice's row variant. These are simulated-host tests (the room components with a plain transport), not a real Claude host.
-import { render, screen } from "@testing-library/react";
+// notice's row variant. Work keeps its tab row around the notice; Control names the failed view. These are simulated-host tests (the room components with a plain transport), not a real Claude host.
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JournalRoom } from "@/features/journal-app/room";
 import { ShoppingRoom } from "@/features/shopping-app/room";
 import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
+import { ControlRoom } from "@/features/control-app/room";
+import { WorkRoom } from "@/features/work-app/room";
 import { GroupSelect } from "@/features/work-app/hierarchy/group-select";
 import {
   groupSelectLabelsEn,
@@ -58,6 +60,90 @@ describe.each([
     expect(alert.closest(".sk-card")).toBeNull();
     expect(document.querySelector(".sk-eyebrow")).toBeNull();
   });
+});
+
+describe("Work room, first result is an error", () => {
+  it("keeps the tab row in the full view and shows the notice with the cause line and Try again, which reads the tab", async () => {
+    const call = vi.fn((name: string) =>
+      name === "get_work_agenda"
+        ? Promise.resolve({ items: [], next_cursor: null })
+        : new Promise(() => undefined),
+    );
+    render(
+      <WorkRoom
+        mode="full"
+        transport={{ ...transport, call } as unknown as RoomProps["transport"]}
+        {...failedResult}
+      />,
+    );
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-error--card");
+    expect(alert).toHaveTextContent("Couldn’t load your tasks");
+    expect(alert.querySelector(".sk-error-hint")).toHaveTextContent(
+      "Sidekick didn’t respond.",
+    );
+    // The tabs stay, so another view is one press away, and the notice has no card of its own around it.
+    expect(
+      screen.getByRole("button", { name: "Projects" }),
+    ).toBeInTheDocument();
+    expect(alert.closest(".sk-card")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(call).toHaveBeenCalledWith("get_work_agenda", expect.anything());
+  });
+
+  it("shows the same notice inline, and Try again reads the agenda", async () => {
+    const call = vi.fn((name: string) =>
+      name === "get_work_agenda"
+        ? Promise.resolve({ items: [], next_cursor: null })
+        : new Promise(() => undefined),
+    );
+    render(
+      <WorkRoom
+        mode="inline"
+        transport={{ ...transport, call } as unknown as RoomProps["transport"]}
+        {...failedResult}
+      />,
+    );
+    const alert = await screen.findByRole("alert");
+    // Try again reads the agenda, so that is what the heading names, whichever tool failed.
+    expect(alert).toHaveTextContent("Couldn’t load your tasks");
+    expect(alert.querySelector(".sk-error-hint")).toHaveTextContent(
+      "Sidekick didn’t respond.",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(call).toHaveBeenCalledWith("get_work_agenda", expect.anything());
+  });
+});
+
+describe("Control room, first result is an error", () => {
+  it.each([
+    ["list_trash", "trash", "Couldn’t load deleted items"],
+    ["list_recent_changes", "changes", "Couldn’t load the history"],
+    ["list_assistant_activity", "activity", "Couldn’t load the history"],
+    ["get_memory_status", "memory", "Couldn’t load the memory settings"],
+  ])(
+    "names what %s could not read, with the cause line and Try again",
+    async (_tool, view, heading) => {
+      render(
+        <ControlRoom
+          mode="full"
+          transport={transport}
+          view={view}
+          {...failedResult}
+        />,
+      );
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent(heading);
+      expect(alert.querySelector(".sk-error-hint")).toHaveTextContent(
+        "Sidekick didn’t respond.",
+      );
+      expect(
+        screen.getByRole("button", { name: "Try again" }),
+      ).toBeInTheDocument();
+    },
+  );
 });
 
 describe("Journal and Shopping inline", () => {

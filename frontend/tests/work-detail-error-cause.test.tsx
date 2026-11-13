@@ -45,7 +45,7 @@ describe("the second line of a failed Task read", () => {
     );
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("Det gick inte att läsa just nu");
+    expect(alert).toHaveTextContent("Uppgiften kunde inte hämtas");
     expect(
       screen.queryByText("Försök igen om en stund."),
     ).not.toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("the second line of a failed Task read", () => {
       );
 
       const alert = await screen.findByRole("alert");
-      expect(alert).toHaveTextContent("Det gick inte att läsa just nu");
+      expect(alert).toHaveTextContent("Uppgiften kunde inte hämtas");
       expect(
         screen.queryByText("Försök igen om en stund."),
       ).not.toBeInTheDocument();
@@ -111,4 +111,39 @@ describe("the second line of a failed Task read", () => {
       onLine.mockRestore();
     }
   });
+});
+
+describe("the heading of a failed read of a record and the box around it", () => {
+  const failing = () =>
+    transportWith({
+      getTask: vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+      getProject: vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
+      getContactContext: vi
+        .fn()
+        .mockRejectedValue(new TypeError("Failed to fetch")),
+    });
+
+  it.each([
+    [{ kind: "task", id: TASK_ID }, "Uppgiften kunde inte hämtas"],
+    [{ kind: "project", id: TASK_ID }, "Projektet kunde inte hämtas"],
+    [{ kind: "contact", id: TASK_ID }, "Kontakten kunde inte hämtas"],
+  ] as const)(
+    "%j says which record could not be read, in the full view with no card or room name around it",
+    async (initial, heading) => {
+      render(
+        <WorkView
+          transport={failing()}
+          initial={initial}
+          labels={workSv}
+          chrome={false}
+        />,
+      );
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveTextContent(heading);
+      expect(alert.closest(".sk-card")).toBeNull();
+      expect(document.querySelector(".sk-eyebrow")).not.toHaveTextContent(
+        workSv.title,
+      );
+    },
+  );
 });

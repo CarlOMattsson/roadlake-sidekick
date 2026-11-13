@@ -29,9 +29,10 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
   // at once; the server's reply replaces it, a refusal takes it back.
   const rowQueue = useRowQueue();
   const [wanted, setWanted] = useState<Record<string, boolean>>({});
-  // Items bought in this view, as each purchase write returned them (with the new version). While Undo holds,
-  // the row stays in its place with "Bought · Undo" (designsystem §3 Ångra): each purchase has its own
-  // Undo. They hold until a change of list or page; a reload and other writes keep them.
+  // Items ticked off or back in this view, as each purchase write returned them (with the new version; `purchased` is
+  // what the row's line says: "Bought" or "Not bought"). While Undo holds, the row stays in its place with that line
+  // and its Ångra (designsystem §3 Ångra): each change has its own Undo, which runs out after UNDO_MS (`release`).
+  // They hold until then or a change of list or page; a reload and other writes keep them.
   const [held, setHeld] = useState<Record<string, ShoppingItem>>({});
   const purchaseKeys = useRef(new Map<string, string>());
   const [waiting, setWaiting] = useState<Record<string, boolean>>({});
@@ -96,9 +97,12 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
     // A row waiting in the outbox is sent as it is; a new tap would race it with a version it does not know yet.
     if (id in waitingNow.current) return;
     const buying = !row.purchased;
-    // Buying holds the row in place with its Undo; Undo (or the ring of a held row) is the opposite write.
+    // A tap on a row that holds its Undo (Undo itself, or the ring of the row) takes the change back; any other tap
+    // holds the row in its place with the line of what happened and its Undo.
+    const undoing = id in held;
     setWanted((before) => ({ ...before, [id]: buying }));
-    if (buying) setHeld((before) => ({ ...before, [id]: row }));
+    if (!undoing)
+      setHeld((before) => ({ ...before, [id]: { ...row, purchased: buying } }));
     setConflict(null);
     setError(null);
     const settle = () => {
@@ -110,7 +114,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
         });
     };
     const back = () => {
-      if (rowQueue.pending(id) <= 1 && buying)
+      if (rowQueue.pending(id) <= 1 && !undoing)
         setHeld((before) => {
           const rest = { ...before };
           delete rest[id];
@@ -123,6 +127,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
       want: boolean,
       key: string,
       fingerprint: string,
+      takesBack: boolean,
     ) => {
       let reply: { item: ShoppingItem };
       try {
@@ -155,10 +160,12 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
             ),
           },
       );
+      // A row whose time ran out, or whose list was left, is not held again by a late reply.
       setHeld((before) => {
+        if (!(id in before)) return before;
         const next = { ...before };
-        if (want) next[id] = result;
-        else delete next[id];
+        if (takesBack) delete next[id];
+        else next[id] = result;
         return next;
       });
     };
@@ -171,6 +178,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
             replay.buying,
             replay.key,
             replay.fingerprint,
+            false,
           );
         const known = detailNow.current?.items.find((entry) => entry.id === id);
         const own = written.get(id);
@@ -190,7 +198,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
         ]);
         const key = purchaseKeys.current.get(fingerprint) ?? writeKey();
         purchaseKeys.current.set(fingerprint, key);
-        await send(base, buying, key, fingerprint);
+        await send(base, buying, key, fingerprint, undoing);
         settle();
       } catch (caught) {
         const queued = queuedPurchase(caught);
@@ -228,12 +236,22 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
       }
     });
   }
+  /** The time to undo of a row is up: the row goes where it belongs (the open rows, or "Köpta"). */
+  const release = useCallback((id: string) => {
+    setHeld((before) => {
+      if (!(id in before)) return before;
+      const rest = { ...before };
+      delete rest[id];
+      return rest;
+    });
+  }, []);
   return {
     rowQueue,
     wanted,
     waiting,
     held,
     setHeld,
+    release,
     resetPurchases,
     togglePurchase,
   };

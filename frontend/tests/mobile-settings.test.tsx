@@ -481,7 +481,7 @@ describe("the settings in the mobile app", () => {
 
   async function openSettings(user: ReturnType<typeof userEvent.setup>) {
     await screen.findByText("Skicka offert");
-    await user.click(screen.getByRole("button", { name: "Fler alternativ" }));
+    await user.click(screen.getByRole("button", { name: "Fler val" }));
     // In Kontroll's place: the companion has no list_trash, so Kontroll is not offered.
     expect(screen.queryByRole("button", { name: "Kontroll" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Inställningar" }));
@@ -502,9 +502,7 @@ describe("the settings in the mobile app", () => {
 
     expect(screen.queryByRole("heading", { name: "Inställningar" })).toBeNull();
     expect(screen.getByText("Skicka offert")).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Fler alternativ" }),
-    ).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Fler val" })).toHaveFocus();
   });
 
   it("closes with system Back before the shell gets it", async () => {
@@ -578,7 +576,7 @@ describe("the settings exist only in the mobile app", () => {
       />,
     );
     await screen.findByText("Skicka offert");
-    await user.click(screen.getByRole("button", { name: "Fler alternativ" }));
+    await user.click(screen.getByRole("button", { name: "Fler val" }));
 
     expect(screen.queryByRole("button", { name: "Inställningar" })).toBeNull();
   });

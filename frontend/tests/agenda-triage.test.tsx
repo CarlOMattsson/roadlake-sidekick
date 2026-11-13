@@ -7,7 +7,8 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fillLabel, UNDO_MS } from "@/features/work-app/agenda/agenda-undo";
+import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { triageDueAt } from "@/features/work-app/shared/work-items";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type { WorkItemRecord } from "@/features/work-app/transport/transport";

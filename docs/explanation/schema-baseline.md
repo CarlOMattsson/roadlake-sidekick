@@ -24,7 +24,7 @@ Sidekick (`sidekick`, `sidekick_owner`, `sidekick_migrator`, `sidekick_app`). Ne
 
 ## The folded development chain
 
-Before the first release the schema was built by `100_baseline_0_1_0.py` followed by five migrations: `101` (two
+Before the first release the schema was built by `100_baseline_0_1_0` followed by five migrations: `101` (two
 indexes on `tasks`), `102` (the event ledger and the activity projection became append-only for the app role), `103`
 (delete grants on `domains` and `processes`), `104` (`audit_events.source`) and `105_drop_sessions_and_password_hash`
 (the sign-in leftovers). They were folded into this baseline, so it builds the schema they ended in; a test pins that

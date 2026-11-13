@@ -107,13 +107,6 @@
   display: flex;
 }
 
-/* Buttons take the family look (family.css). "Show all" has no side padding, so its text starts on the titles' x. */
-.sidekick-control .control-more {
-  min-height: 2.75rem;
-  min-width: 2.75rem;
-  padding: 0;
-}
-
 /* The action of a row ("Återställ", "Ångra") is tertiary text: the row type at 500, no edge and no
    surface at rest (held, the surface), in the row's end column centred on the row,
    48 × 48 to tap, its text ending on the content edge (the 12 of padding hangs into the margin). It is in text-2:
@@ -251,23 +244,6 @@
 /* A status line sits flush in the card (the card's gap spaces it). Its tone and frame come from sk-notice. */
 .sidekick-control .control-notice {
   margin: 0;
-}
-
-/* The "Restored" line of the trash (a snackbar for 5 s): the family's success line at the foot of the list. The wrapper
-   is sticky, so in a long list it rests at the foot of the view (above the host's reply field in fullscreen,
-   --sk-notice-bottom), and lifts off the rows with the family's shadow. */
-.sidekick-control .control-snackbar {
-  position: sticky;
-  bottom: var(--sk-notice-bottom, 0px);
-  z-index: 2;
-}
-
-.sidekick-control .control-snackbar .sk-notice {
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.16);
-}
-
-.sidekick-control .control-snackbar:focus-visible {
-  border-radius: var(--sk-radius);
 }
 
 /* Memory with a provider that is off or a test one: the headline is a warning (the note uses sk-notice--warning). */

@@ -43,7 +43,27 @@ When the agenda has overdue tasks, the row "Flytta … försenade till imorgon" 
 2. Tap "+ Lägg till steg" (Add step).
 3. Type the step and press Return.
 
-You check steps off inside the task, one at a time.
+You check steps off inside the task, one at a time. Press and hold a step (on a computer, right-click or press Shift+F10) to move it up or down or archive it.
+
+## Actions on a step
+
+A step can have actions (åtgärder), smaller things to do within the step. A step that has actions says how many under its title, for example "2 åtgärder" (2 actions), and once any is done "1 av 2 åtgärder klara" (1 of 2 actions done). Tap that line to show or hide the actions.
+
+- Tick the box in front of an action to mark it done, and untick it to open it again. The row stays for a short while with "Ångra" (Undo).
+- Under the title an action shows its due day, red once it has passed, and its note.
+- Press and hold an action (on a computer, right-click or press Shift+F10) to move it up or down or archive it.
+
+You add actions and set their due day and note by asking Claude.
+
+## Tags and tag filters
+
+Tasks and projects can carry tags. Chips show on the rows, and under the title of an open task or project you tap "Lägg till tagg" (Add tag), or "Ändra taggar" (Edit tags) if it already has some, to change them in place. Type a tag and press Return, or tap one of "Dina taggar" (Your tags) to reuse one.
+
+When any task or project has a tag, Agenda and Status show a row "Filtrera på tagg" (Filter by tag). Tap one or more tags, at most five at once, to narrow the list to the items that have all of them. "Rensa (N)" (Clear (N)), where N is the number of tags chosen, takes you back.
+
+## Saved views
+
+In the full-screen Work room, "Sparade vyer" (Saved views) sits above Agenda and Status. "Spara nuvarande vy" (Save current view) stores the filters the list shows right now, including the tags you chose, under a name of up to 120 characters. You can open, rename and archive a view later, and show the archived ones again with "Visa arkiverade". A single project's board cannot be saved as a view.
 
 ## Edit a task, its place or how it repeats
 
@@ -59,6 +79,7 @@ Open the task and tap "+ Koppla kontakt" (Link contact). The link then shows bot
 - Setting up projects, domains and processes.
 - Repeating on given weekdays or at other intervals.
 - Setting tags and time estimates.
+- Adding actions to a step, with a due day or a note.
 - Moving many tasks to a given date.
 - Finding a task when you only remember roughly what it was about.
 

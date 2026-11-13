@@ -42,7 +42,7 @@ function byList(purchases: JournalDonePurchase[]) {
   return [...lists.entries()].map(([id, list]) => ({ id, ...list }));
 }
 
-/** Open, each kind shows this many rows; "+N fler · Visa alla" opens the rest of that kind in place. */
+/** Open, each kind shows this many rows; "Visa alla (N)" opens the rest of that kind in place. */
 const doneRowLimit = 3;
 
 type DoneKind = "tasks" | "steps" | "purchases";
@@ -85,7 +85,7 @@ function DoneGroup({
         <p className="journal-list-more">
           <button
             type="button"
-            className="sk-btn--quiet"
+            className="sk-more"
             aria-expanded={whole}
             aria-controls={id}
             onClick={onWhole}
@@ -94,7 +94,7 @@ function DoneGroup({
               ? t.showFewer
               : unsent > 0
                 ? t.moreShowMore(hidden)
-                : t.moreShowAll(hidden)}
+                : t.moreShowAll(rows.length)}
           </button>
         </p>
       )}
@@ -110,7 +110,7 @@ function DoneGroup({
  * (`Fold`, as «Kontaktvägar») in the section's place: «Gjort ⌄» with the count line as its meta, folded by default.
  * Open: a muted label per kind («Uppgifter», «Steg», «Köpta varor»), then rows of the row template without a button
  * (title, one meta line «14:20 · project»), the bought items as one row per list with the items as its text. Each
- * kind shows its first three rows and "+N fler · Visa alla" for the rest, so an open section on a busy day does not
+ * kind shows its first three rows and "Visa alla (N)" for the rest, so an open section on a busy day does not
  * push «Anteckningar» far under the first screen. A list the server cut says how many more there are. Nothing when
  * every count is zero. The day view mounts it per day, so a kind shown in full is back to three on the next day.
  */

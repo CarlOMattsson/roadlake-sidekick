@@ -37,7 +37,7 @@ export const savedViewsLabelsSv = {
   renamed: (name: string) => `Bytte namn till ”${name}”.`,
   archivedView: (name: string) => `Arkiverade vyn ”${name}”.`,
   restoredView: (name: string) => `Återställde vyn ”${name}”.`,
-  empty: "Inga sparade vyer ännu.",
+  empty: "Inga sparade vyer än.",
   listLoading: "Läser sparade vyer…",
   listFailed: "De sparade vyerna kunde inte läsas.",
   showArchived: "Visa arkiverade",

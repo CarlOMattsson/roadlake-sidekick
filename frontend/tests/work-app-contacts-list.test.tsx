@@ -275,6 +275,10 @@ it("shows more Contacts with the cursor of the shown search and removes the butt
   render(
     contactsRoot(work, { contacts: [listAnna, listBo], next_cursor: "p2" }),
   );
+  // Show more is the family's quiet text button.
+  expect(screen.getByRole("button", { name: workEn.more })).toHaveClass(
+    "sk-more",
+  );
   await user.click(screen.getByRole("button", { name: workEn.more }));
   expect(
     await screen.findByRole("button", { name: archivedRowName }),

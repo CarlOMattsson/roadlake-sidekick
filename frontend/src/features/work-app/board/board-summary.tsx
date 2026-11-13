@@ -6,7 +6,12 @@ import {
 } from "../../mcp-apps/ui/counts-bar";
 import { workDate } from "../../mcp-apps/ui/due";
 import { rowDue } from "../shared/record-meta";
-import { InlineRow, OpenFoot, inlineMeta } from "../inline/inline-summary";
+import {
+  InlineEmpty,
+  InlineRow,
+  OpenFoot,
+  inlineMeta,
+} from "../inline/inline-summary";
 import "../inline/inline-summary.css";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import {
@@ -84,7 +89,7 @@ export function summaryText(
 /**
  * Inline board view: counts per status, the nearest due Tasks, and one action that asks the host
  * for fullscreen. The full board is shown only in fullscreen, so drag and scroll never happen
- * inline.
+ * inline. A board with no record at all is the room's empty state and its link, with no counts.
  */
 export function BoardSummary({
   page,
@@ -132,6 +137,9 @@ export function BoardSummary({
   useEffect(() => {
     onModelContext?.(text);
   }, [text, onModelContext]);
+  // No record on any column and no further page: the room's empty state, with no counts.
+  const blank =
+    !more && Object.values(page.columns).every((list) => list.length === 0);
   return (
     // The card is named as the view it opens, "Status" ("Tavla" once opened "Status").
     <section
@@ -143,52 +151,67 @@ export function BoardSummary({
       <h2 tabIndex={-1} className="work-compact-kind sk-eyebrow">
         {`${t.title} · ${t.status} · ${workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false })}`}
       </h2>
-      <p className="work-compact-title sk-card__title">
-        {t.boardHeadline(overdue, open.length, more)}
-      </p>
-      <CountsBar label={t.status} segments={segments} />
-      {projectRow ? (
-        <p className="work-compact-status">{`${projectRow.label}: ${projectRow.count}`}</p>
-      ) : null}
-      {nearest.length > 0 ? (
-        // What the rows are, as a meta label over them: "Äldst försenade" when all three are
-        // late, else "Närmast i tid".
-        <p className="work-compact-group">
-          {nearest.every(
-            (item) => rowDue(item, now, t.dateLocale)?.tone === "overdue",
-          )
-            ? t.boardNearestOverdue
-            : t.boardNearest}
-        </p>
-      ) : null}
-      {nearest.length > 0 ? (
-        // The rows of the agenda card (01), with the status before the due words: "Pågår · 11 dagar försenad".
-        <ul className="work-compact-rows">
-          {nearest.map((item) => (
-            <InlineRow
-              key={cardKey(item)}
-              title={item.title}
-              meta={inlineMeta(item, now, t.dateLocale, (s) =>
-                workStatusLabel(t, s),
-              )}
-              onOpen={onOpen}
-            />
-          ))}
-        </ul>
-      ) : null}
-      {/* "Öppna status ›", as "Öppna agendan ›" on the agenda card: an inline card has no ink button. What
+      {blank ? (
+        <InlineEmpty
+          locale={t.dateLocale}
+          text={{
+            title: t.boardEmpty,
+            hint: t.boardEmptyHint,
+            example: t.workEmptyAsk,
+          }}
+          onOpen={onOpen}
+          openLabel={t.openBoard}
+        />
+      ) : (
+        <>
+          <p className="work-compact-title sk-card__title">
+            {t.boardHeadline(overdue, open.length, more)}
+          </p>
+          <CountsBar label={t.status} segments={segments} />
+          {projectRow ? (
+            <p className="work-compact-status">{`${projectRow.label}: ${projectRow.count}`}</p>
+          ) : null}
+          {nearest.length > 0 ? (
+            // What the rows are, as a meta label over them: "Äldst försenade" when all three are
+            // late, else "Närmast i tid".
+            <p className="work-compact-group">
+              {nearest.every(
+                (item) => rowDue(item, now, t.dateLocale)?.tone === "overdue",
+              )
+                ? t.boardNearestOverdue
+                : t.boardNearest}
+            </p>
+          ) : null}
+          {nearest.length > 0 ? (
+            // The rows of the agenda card (01), with the status before the due words: "Pågår · 11 dagar försenad".
+            <ul className="work-compact-rows">
+              {nearest.map((item) => (
+                <InlineRow
+                  key={cardKey(item)}
+                  title={item.title}
+                  meta={inlineMeta(item, now, t.dateLocale, (s) =>
+                    workStatusLabel(t, s),
+                  )}
+                  onOpen={onOpen}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {/* "Öppna status ›", as "Öppna agendan ›" on the agenda card: an inline card has no ink button. What
           the list leaves out stands at the end of its line; with nothing hidden but more pages, "Fler finns". */}
-      <OpenFoot
-        aside={
-          hiddenCount > 0
-            ? t.boardHiddenCount.replace("{count}", String(hiddenCount))
-            : more
-              ? t.boardMore
-              : undefined
-        }
-        label={t.openBoard}
-        onOpen={onOpen}
-      />
+          <OpenFoot
+            aside={
+              hiddenCount > 0
+                ? t.boardHiddenCount.replace("{count}", String(hiddenCount))
+                : more
+                  ? t.boardMore
+                  : undefined
+            }
+            label={t.openBoard}
+            onOpen={onOpen}
+          />
+        </>
+      )}
     </section>
   );
 }

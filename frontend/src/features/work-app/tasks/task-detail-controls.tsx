@@ -7,7 +7,7 @@ import { ChevronDownIcon, ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { ownerEndOfDay } from "../../mcp-apps/ui/due";
 import { triageDueAt } from "../shared/work-items";
-import { UNDO_MS } from "../agenda/agenda-undo";
+import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 
 /** The ⋯ is the one shared glyph of mcp-apps/ui/icons.tsx. */
 export { MoreIcon } from "../../mcp-apps/ui/icons";
@@ -201,32 +201,6 @@ export function OpenChevron() {
 }
 
 /**
- * The time to undo (UNDO_MS) of an Ångra: `onExpire` runs when it is up. The time stops while the pointer is over the
- * element that gets the returned handlers or focus is in it, and runs on with the time left when both leave.
- */
-export function useUndoHold(onExpire: () => void) {
-  const [pointer, setPointer] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const held = pointer || focused;
-  const left = useRef(UNDO_MS);
-  useEffect(() => {
-    if (held) return undefined;
-    const since = Date.now();
-    const timer = setTimeout(onExpire, left.current);
-    return () => {
-      clearTimeout(timer);
-      left.current -= Date.now() - since;
-    };
-  }, [held, onExpire]);
-  return {
-    onPointerEnter: () => setPointer(true),
-    onPointerLeave: () => setPointer(false),
-    onFocus: () => setFocused(true),
-    onBlur: () => setFocused(false),
-  };
-}
-
-/**
  * The Ångra of a detail row (design system §3, Tillstånd, Ångra): a compact secondary button in the row's trailing
  * slot, level with the title line, while the meta line says what happened ("Klar", "Kopplingen borttagen").
  */
@@ -247,7 +221,7 @@ export function RowUndo({
       className="sk-btn--secondary sk-btn--compact"
       disabled={disabled}
       onClick={onUndo}
-      {...useUndoHold(onExpire)}
+      {...useUndoHold(true, onExpire).handlers}
     >
       {label}
     </button>

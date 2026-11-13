@@ -13,6 +13,11 @@ import type {
 export type WorkViewProps = {
   transport: WorkTransport;
   initial?: WorkFrame;
+  /**
+   * What the card of an error result (frame kind "error") says and does: why it failed, and Try again, which the
+   * room answers by reading its first list. Absent: the card names the failure and offers nothing to repeat.
+   */
+  failure?: { cause: unknown; onRetry: () => void; retrying: boolean };
   labels: WorkLabels;
   /** Labels for the compact cards; the host passes the set for its locale. */
   cardLabels?: CardLabels;

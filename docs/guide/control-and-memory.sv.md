@@ -4,7 +4,7 @@
 
 <!-- description: Kontroll samlar papperskorgen, historiken och Sidekicks minne. Så återställer du, ser vad som ändrats och styr vad minnet får innehålla. -->
 
-Kontroll är platsen där du ser vad som hänt och bestämmer över minnet. Du öppnar Kontroll sist i menyn ⋯ i varje rum. Det har tre flikar: Borttaget, Historik och Sidekicks minne.
+Kontroll är platsen där du ser vad som hänt och bestämmer över minnet. Rubriken är "Minne och kontroll". Du öppnar det med "Minne och kontroll", sist i menyn ⋯ i varje rum, och det öppnas på fliken Sidekicks minne. Det har tre flikar: Borttaget, Historik och Sidekicks minne.
 
 ## Återställ något ur papperskorgen
 
@@ -39,11 +39,11 @@ Under varje källa som är på trycker du på "Visa vad Sidekick minns" för ett
 
 ## Håll en enskild post utanför minnet
 
-Tryck på "Glöm anteckningen" (för en kontakt, ett projekt eller en uppgift heter knappen efter den posten) vid ett faktum. Allt minnet har från hela den posten, inte bara det faktumet, tas bort, och posten själv ändras inte. Du kan också be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
+Tryck på "Glöm anteckningen" (för en kontakt, ett projekt eller en uppgift heter knappen efter den posten) vid ett faktum, och bekräfta med "Ja, glöm …". Allt minnet har från hela den posten, inte bara det faktumet, tas bort, och posten själv ändras inte. Det kan ta några minuter innan det försvinner ur sökningen. Du kan också be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
 
 ## Ange en licensnyckel
 
-Licensraden står längst ned i Kontroll. Välj "Ange licensnyckel", klistra in nyckeln och välj "Spara". [Läs mer om att ange en licensnyckel](../operate/license-key.sv.md).
+Licensraden står längst ned i Kontroll. Utan nyckel står det "Gratisversion" där. Tills licensnycklar börjar säljas står det i stället för en köpknapp att licenser snart kan köpas. Välj "Ange licensnyckel", klistra in nyckeln i fältet "Licensnyckel", som visar hur en nyckel ser ut som ledtråd, och välj "Spara". [Läs mer om att ange en licensnyckel](../operate/license-key.sv.md).
 
 ## Det här går inte härifrån
 

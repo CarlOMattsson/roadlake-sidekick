@@ -162,13 +162,18 @@ describe("week strip fits seven days at 320 px, without scrolling", () => {
     expect(
       declares(ruleFor(".sidekick-journal .sk-day-strip")!, "margin-top", "0"),
     ).toBe(true);
-    // The ⋯ panel is a card under the head, its one item 44 high (Work's ⋯ form).
-    const panel = ruleFor(".sidekick-journal .journal-more-panel");
+    // The ⋯ panel is the family's menu card under the head, its items 44 high (family.css, the same in every room).
+    const family = cssRules(readCss("mcp-apps/ui/family.css"));
+    const panel = findRule(family, ".sk-menu-panel");
     expect(panel, "more panel rule").toBeDefined();
     expect(declares(panel!, "background", "var(--sk-surface)")).toBe(true);
-    const item = ruleFor(".sidekick-journal .journal-more-item");
+    const item = family.find((rule) =>
+      /button\.sk-menu-item,\s*\.sk-menu-item$/.test(rule.selector),
+    );
     expect(item, "more item rule").toBeDefined();
     expect(declares(item!, "min-height", "var(--sk-tap)")).toBe(true);
+    expect(read("day-more.tsx")).toContain('className="sk-menu-panel"');
+    expect(ruleFor(".sidekick-journal .journal-more-panel")).toBeUndefined();
     // The arrows are the family icon buttons: journal.css has no rule of its own for them, only the today state.
     expect(
       ruleFor(".sidekick-journal .sk-day-strip-arrow"),

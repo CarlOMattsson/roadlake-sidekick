@@ -43,7 +43,27 @@ När agendan har försenade uppgifter finns raden "Flytta … försenade till im
 2. Tryck på "+ Lägg till steg".
 3. Skriv steget och tryck på Retur.
 
-Steg bockar du av i uppgiften, ett i taget.
+Steg bockar du av i uppgiften, ett i taget. Tryck och håll på ett steg (på en dator högerklickar du eller trycker Skift+F10) för att flytta det upp eller ned eller arkivera det.
+
+## Åtgärder på ett steg
+
+Ett steg kan ha åtgärder, mindre saker att göra inom steget. Ett steg som har åtgärder visar hur många under sin titel, till exempel "2 åtgärder", och när någon är klar "1 av 2 åtgärder klara". Tryck på den raden för att visa eller dölja åtgärderna.
+
+- Bocka i rutan framför en åtgärd för att markera den som klar, och bocka ur den för att öppna den igen. Raden står kvar en kort stund med "Ångra".
+- Under titeln visar en åtgärd sin förfallodag, röd när den har passerat, och sin anteckning.
+- Tryck och håll på en åtgärd (på en dator högerklickar du eller trycker Skift+F10) för att flytta den upp eller ned eller arkivera den.
+
+Åtgärder lägger du till, och sätter deras förfallodag och anteckning, genom att be Claude.
+
+## Taggar och taggfilter
+
+Uppgifter och projekt kan ha taggar. Brickor visas på raderna, och under titeln på en öppen uppgift eller ett öppet projekt trycker du på "Lägg till tagg", eller "Ändra taggar" om det redan har några, för att ändra dem på plats. Skriv en tagg och tryck på Retur, eller tryck på någon av "Dina taggar" för att återanvända en.
+
+När någon uppgift eller något projekt har en tagg visar Agenda och Status raden "Filtrera på tagg". Tryck på en eller flera taggar, högst fem åt gången, för att begränsa listan till det som har alla. "Rensa (N)", där N är antalet valda taggar, tar dig tillbaka.
+
+## Sparade vyer
+
+I fullskärmsläget av Arbete finns "Sparade vyer" ovanför Agenda och Status. "Spara nuvarande vy" sparar de filter som listan visar just nu, också de taggar du valt, under ett namn på högst 120 tecken. En vy kan du senare öppna, byta namn på och arkivera, och de arkiverade visas igen med "Visa arkiverade". Ett enskilt projekts bräde kan inte sparas som vy.
 
 ## Ändra en uppgift, dess plats eller hur den upprepas
 
@@ -59,6 +79,7 @@ Steg bockar du av i uppgiften, ett i taget.
 - Lägga upp projekt, domäner och processer.
 - Upprepa på vissa veckodagar eller med andra intervall.
 - Sätta taggar och tidsuppskattningar.
+- Lägga till åtgärder på ett steg, med förfallodag eller anteckning.
 - Flytta många uppgifter till ett visst datum.
 - Hitta en uppgift när du bara minns ungefär vad den handlade om.
 

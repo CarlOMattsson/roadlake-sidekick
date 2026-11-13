@@ -1,6 +1,7 @@
 import { appLocale } from "../../mcp-apps/app-locale";
 import { roomEnabled } from "../../mcp-apps/enabled-rooms";
 import { controlEntry } from "../../mcp-apps/ui/control-entry";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 
 /**
@@ -37,7 +38,15 @@ export function TaskTrashed({
           {t.taskTrashedWhere(controlEntry(appLocale()).label)}
         </p>
       )}
-      {failed && <p role="alert">{t.taskRestoreFailed}</p>}
+      {failed && (
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.taskRestoreFailed}
+          retrying={busy}
+          onRetry={onRestore}
+        />
+      )}
     </div>
   );
 }

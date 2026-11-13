@@ -300,18 +300,20 @@ describe("inline agenda summary", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows no Open button when the agenda has no overdue, today, upcoming or further record", () => {
+  it("is the room's empty state with its Open link when the agenda holds no record at all", async () => {
+    const user = userEvent.setup();
+    const onOpen = vi.fn();
     render(
       <AgendaSummary
         page={{ items: [], next_cursor: null }}
         labels={inlineSummaryLabelsEn}
-        onOpen={vi.fn()}
+        onOpen={onOpen}
       />,
     );
-    expect(
-      screen.getByText("Nothing overdue or due today."),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button")).toBeNull();
+    expect(screen.getByText("Nothing on the agenda.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing overdue or due today.")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Open Agenda" }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
   it("lists every overdue or today record as a row, with the Open button beside the rows", async () => {
@@ -535,10 +537,10 @@ describe("inline agenda summary", () => {
     // Three rows shown: one today record and the two overdue ones are left out, 3 in all.
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(3);
     expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
-    expect(inlineSummaryLabelsEn.agendaHidden(3)).toBe("3 more");
-    expect(inlineSummaryLabelsSv.agendaHidden(3)).toBe("3 fler");
-    expect(inlineSummaryLabelsEn.agendaHidden(0)).toBe("");
-    expect(inlineSummaryLabelsSv.agendaHidden(0)).toBe("");
+    expect(inlineSummaryLabelsEn.moreRows(3)).toBe("3 more");
+    expect(inlineSummaryLabelsSv.moreRows(3)).toBe("3 fler");
+    expect(inlineSummaryLabelsEn.moreRows(0)).toBe("");
+    expect(inlineSummaryLabelsSv.moreRows(0)).toBe("");
     expect(inlineSummaryLabelsEn.openAgenda).toBe("Open Agenda");
     expect(inlineSummaryLabelsSv.openAgenda).toBe("Öppna Agenda");
   });
@@ -625,8 +627,8 @@ describe("inline agenda summary", () => {
       />,
     );
     expect(screen.getByText("· 7+ fler")).toHaveClass("work-compact-more");
-    expect(inlineSummaryLabelsEn.agendaHidden(7, true)).toBe("7+ more");
-    expect(inlineSummaryLabelsSv.agendaHidden(7, true)).toBe("7+ fler");
-    expect(inlineSummaryLabelsSv.agendaHidden(0, true)).toBe("");
+    expect(inlineSummaryLabelsEn.moreRows(7, true)).toBe("7+ more");
+    expect(inlineSummaryLabelsSv.moreRows(7, true)).toBe("7+ fler");
+    expect(inlineSummaryLabelsSv.moreRows(0, true)).toBe("");
   });
 });

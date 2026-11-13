@@ -1,4 +1,4 @@
-import { useUndoHold } from "./task-detail-controls";
+import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { WorkLabels } from "../shared/labels";
 
 /**
@@ -22,7 +22,7 @@ export function TaskCycleLine({
   onExpire: () => void;
 }) {
   return (
-    <div className="work-task-cycle" {...useUndoHold(onExpire)}>
+    <div className="work-task-cycle" {...useUndoHold(true, onExpire).handlers}>
       <p role="status">{text}</p>
       {onUndo && (
         <button

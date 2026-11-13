@@ -680,7 +680,7 @@ const menuEntry =
   (entry: RegExp): Step =>
   async (app) => {
     await app
-      .getByRole("button", { name: /^(Fler alternativ|More options)$/ })
+      .getByRole("button", { name: /^(Fler val|More options)$/ })
       .last()
       .click({ timeout: 8000 });
     await settle(300);

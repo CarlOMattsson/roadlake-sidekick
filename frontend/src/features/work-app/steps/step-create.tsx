@@ -4,6 +4,7 @@ import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { titleProblem } from "../shared/fields";
 import { CreateField } from "../../mcp-apps/ui/create-field";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import {
   writeFailure,
   type WorkStep,
@@ -164,21 +165,12 @@ export function StepCreate({
         onClose={close}
       />
       {failureText !== undefined && (
-        <p role="alert" className="work-new-task-error">
-          {failureText}
-          {kind === "failed" && (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="work-new-task-retry"
-                onClick={() => retry(failure!.title)}
-              >
-                {t.retry}
-              </button>
-            </>
-          )}
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={failureText}
+          onRetry={kind === "failed" ? () => retry(failure!.title) : undefined}
+        />
       )}
     </div>
   );

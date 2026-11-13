@@ -23,9 +23,9 @@ The most effective way to use Sidekick is a conversation with Claude in voice mo
 
 ## The rooms show and let you tap
 
-There are four rooms, Work (Arbete), Journal (Dagbok), Contacts (Kontakter) and Shopping (Inköp), plus Control (Kontroll). A room is a view that Claude shows inside the conversation. There you check things off, change dates, write by hand and move between records.
+There are four rooms, Work (Arbete), Journal (Dagbok), Contacts (Kontakter) and Shopping (Inköp), plus Control, with the heading "Minne och kontroll" (Memory and control). A room is a view that Claude shows inside the conversation. There you check things off, change dates, write by hand and move between records.
 
-At the top of every room is a strip with the four rooms, so you can switch rooms without asking Claude. Control is the last item in the ⋯ menu of every room.
+At the top of every room is a strip with the four rooms, so you can switch rooms without asking Claude. "Minne och kontroll", the last item in the ⋯ menu of every room, opens Control on Sidekick's memory.
 
 ## Cards in the conversation and full screen
 
@@ -55,7 +55,7 @@ The rooms' labels are Swedish by default. Set `SIDEKICK_MCP_APP_LOCALE=en` on th
 | Dagbok | Journal |
 | Kontakter | Contacts |
 | Inköp | Shopping |
-| Kontroll | Control |
+| Minne och kontroll | Memory and control |
 
 The Android app has its own language setting. [Read more about language in the rooms, the app and the server](../reference/languages.md).
 

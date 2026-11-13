@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { WriteNotice } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
@@ -60,12 +61,11 @@ export function TaskContactsSection({
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "forbidden" && <p>{t.contactsForbidden}</p>}
       {phase === "error" && (
-        <p role="alert">
-          {t.failed}{" "}
-          <button type="button" onClick={contacts.retry}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          onRetry={contacts.retry}
+        />
       )}
       {phase === "ready" && (
         <>

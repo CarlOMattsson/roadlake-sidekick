@@ -25,6 +25,8 @@ type Options = {
   /** The tab that is shown first, and its frame when the tool result gave one. */
   initialTab: WorkTab;
   firstFrame: WorkTabFrame | undefined;
+  /** The tool result that opened the room was an error: the first tab starts as a failed read, which Try again reads. */
+  failure: { cause: unknown } | undefined;
   /** A saved view was opened in a tab: the caller restarts the tab's view and sets its notice. */
   onViewApplied: (tab: SavedViewTab, several: boolean, name: string) => void;
   /** A tab went back from its saved view to its own list. */
@@ -41,17 +43,24 @@ export function useTabReads({
   offers,
   initialTab,
   firstFrame,
+  failure,
   onViewApplied,
   onViewCleared,
 }: Options) {
   // False after unmount, so a late answer does not write into a gone view.
   const aliveRef = useMounted();
   const [entries, setEntries] = useState<TabEntries>(() =>
-    firstFrame ? { [initialTab]: { status: "ready", frame: firstFrame } } : {},
+    firstFrame
+      ? { [initialTab]: { status: "ready", frame: firstFrame } }
+      : failure
+        ? { [initialTab]: { status: "error", cause: failure.cause } }
+        : {},
   );
-  // Tabs whose first read has started, or that already hold the first frame. A failed tab is
+  // Tabs whose first read has started, or that already hold the first frame or the failure. A failed tab is
   // removed again by retry only.
-  const started = useRef(new Set<WorkTab>(firstFrame ? [initialTab] : []));
+  const started = useRef(
+    new Set<WorkTab>(firstFrame || failure ? [initialTab] : []),
+  );
   // One order for every read and every invalidation: a tab is up to date when the read that gave its frame started
   // after the tab was last marked out of date (`readAt` > its stale mark).
   const order = useRef(0);

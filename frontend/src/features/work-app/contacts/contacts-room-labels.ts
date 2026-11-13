@@ -10,6 +10,8 @@ export const contactsRoomLabelsSv = {
   bareTitle: (first: string) => `Inget sparat om ${first} än.`,
   bareAsk: (name: string) =>
     `Jag vill berätta vad jag vet om ${name} så att det sparas på kontakten.`,
+  /** The empty list's own way to start, next to "Säg till Claude": it opens the create field as + does. */
+  addContact: "Lägg till en kontakt",
   /** A search with no match: the row that creates a Contact with the searched name. */
   createNamed: (name: string) => `Skapa kontakt ”${name}”`,
   /** What a search with no match says to Claude: one sentence, also the message that is sent. */
@@ -34,6 +36,7 @@ export const contactsRoomLabelsEn: ContactsRoomLabels = {
   bareTitle: (first) => `Nothing saved about ${first} yet.`,
   bareAsk: (name) =>
     `I’d like to tell you what I know about ${name} so you can save it on the contact.`,
+  addContact: "Add a contact",
   createNamed: (name) => `Create contact “${name}”`,
   createNamedAsk: (name) => `Save ${name} as a contact`,
   noContactsWithTags: (tags, search) =>

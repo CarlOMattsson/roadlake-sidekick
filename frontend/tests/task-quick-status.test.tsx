@@ -262,6 +262,47 @@ describe("TaskFrame Markera klar", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("says so when the write fails, in the write error row under the controls, and Try again repeats it with the same key", async () => {
+    const work = transport({
+      updateTask: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValueOnce({
+          task: { ...taskA, status: "completed", version: 2 },
+        }),
+    });
+    renderTask(work);
+
+    const user = userEvent.setup();
+    await user.click(
+      await screen.findByRole("button", { name: workEn.markDone }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-error--row");
+    expect(alert).toHaveTextContent(workEn.saveFailed);
+    // The family's row: a line and a text button, so the sentence does not say the button's words again.
+    expect(workEn.saveFailed).not.toMatch(/try again/i);
+    // It stands with the controls it came from, before the title's description and the other sections.
+    expect(
+      screen
+        .getByRole("button", { name: workEn.markDone })
+        .compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: workEn.retry }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: workEn.reopenTask }),
+      ).toBeVisible(),
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(work.updateTask).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(work.updateTask).mock.calls[1]?.[3]).toBe(
+      vi.mocked(work.updateTask).mock.calls[0]?.[3],
+    );
+  });
+
   it("is not shown for a Task that is already Klar; Återöppna writes Att göra instead", async () => {
     const done = { ...taskA, status: "completed", version: 3 };
     const work = transport({

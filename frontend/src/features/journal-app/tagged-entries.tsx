@@ -197,7 +197,7 @@ export function TaggedEntries({
           <p className="journal-list-more">
             <button
               type="button"
-              className="sk-btn--quiet"
+              className="sk-more"
               disabled={read.more === "busy"}
               onClick={showMore}
             >

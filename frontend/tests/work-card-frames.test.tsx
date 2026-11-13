@@ -109,7 +109,7 @@ describe("error result", () => {
     expect(rootFromToolResult(changes, true)).toEqual({ kind: "error" });
   });
 
-  it("shows the shared error text under the app's name and no Try again, since the frame holds nothing to read again", () => {
+  it("shows the shared error under the app's name and no Try again when the room gives none (the view alone cannot read anything again)", () => {
     render(
       <WorkView
         transport={noReads}
@@ -123,7 +123,7 @@ describe("error result", () => {
     const card = screen.getByRole("alert").parentElement;
     expect(card?.querySelector(".sk-eyebrow")).toHaveTextContent(workEn.title);
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "Couldn’t load this right now",
+      "Couldn’t load your tasks",
     );
     expect(
       screen.queryByRole("button", { name: cardLabelsEn.retry }),
@@ -145,7 +145,7 @@ describe("error result", () => {
     expect(alert.parentElement?.querySelector(".sk-eyebrow")).toHaveTextContent(
       workSv.title,
     );
-    expect(alert).toHaveTextContent("Det gick inte att läsa just nu");
+    expect(alert).toHaveTextContent("Uppgifterna kunde inte hämtas");
     expect(alert.textContent).not.toMatch(/ändringar/i);
     expect(
       screen.queryByRole("button", { name: cardLabelsSv.retry }),

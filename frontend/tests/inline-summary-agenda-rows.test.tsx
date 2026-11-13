@@ -312,7 +312,7 @@ describe("inline hierarchy summary", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: inlineSummaryLabelsEn.showAll,
+        name: inlineSummaryLabelsEn.openHierarchy,
       }),
     );
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -451,7 +451,7 @@ describe("inline hierarchy summary ended and open work", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: inlineSummaryLabelsEn.showAll,
+        name: inlineSummaryLabelsEn.openHierarchy,
       }),
     ).toBeInTheDocument();
   });

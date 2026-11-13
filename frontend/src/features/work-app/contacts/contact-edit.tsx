@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { keepEdits, titleProblem } from "../shared/fields";
 import { useUnsavedGuard } from "../../mcp-apps/unsaved-guard";
@@ -320,14 +321,15 @@ export function ContactEditor({
       />
       {noteBad && <p id={noteErrorId}>{t.contextNoteTooLong}</p>}
       {saveFailed && (
-        <p role="alert">
-          {t.contactSaveFailed}{" "}
-          <button type="button" disabled={busy} onClick={() => submit()}>
-            {t.retry}
-          </button>
-        </p>
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.contactSaveFailed}
+          retrying={busy}
+          onRetry={() => submit()}
+        />
       )}
-      <div className="work-actions work-actions-sticky">
+      <div className="sk-form-actions work-actions-sticky">
         <button
           type="submit"
           disabled={busy}
@@ -338,7 +340,12 @@ export function ContactEditor({
         >
           {t.save}
         </button>
-        <button type="button" disabled={busy} onClick={onCancel}>
+        <button
+          type="button"
+          className="sk-btn--quiet"
+          disabled={busy}
+          onClick={onCancel}
+        >
           {t.cancel}
         </button>
       </div>
@@ -346,131 +353,58 @@ export function ContactEditor({
   );
 }
 
-/**
- * Archives an active Contact or restores an archived one. The first click asks for a confirmation;
- * the confirm button takes focus, and Cancel returns focus to the action button.
- */
-export function ContactArchiveToggle({
-  archived,
-  busy,
-  onConfirm,
-  labels: t,
-}: {
-  archived: boolean;
-  busy: boolean;
-  onConfirm: () => void;
-  labels: WorkLabels;
-}) {
-  const [confirming, setConfirming] = useState(false);
-  const actionButton = useRef<HTMLButtonElement>(null);
-  const confirmButton = useRef<HTMLButtonElement>(null);
-  const restoreFocus = useRef(false);
-  useEffect(() => {
-    if (confirming) confirmButton.current?.focus();
-    else if (restoreFocus.current) {
-      restoreFocus.current = false;
-      actionButton.current?.focus();
-    }
-  }, [confirming]);
-  const label = archived ? t.restoreContact : t.archiveContact;
-  if (!confirming)
-    return (
-      <div className="work-row-actions">
-        <button
-          ref={actionButton}
-          type="button"
-          className="sk-btn--quiet"
-          disabled={busy}
-          onClick={() => setConfirming(true)}
-        >
-          {label}
-        </button>
-      </div>
-    );
-  return (
-    <div className="work-row-actions">
-      <button
-        ref={confirmButton}
-        type="button"
-        className="sk-btn--primary"
-        disabled={busy}
-        onClick={onConfirm}
-      >
-        {t.confirmChange}
-      </button>
-      <button
-        type="button"
-        className="sk-btn--quiet"
-        disabled={busy}
-        onClick={() => {
-          restoreFocus.current = true;
-          setConfirming(false);
-        }}
-      >
-        {t.cancel}
-      </button>
-    </div>
-  );
-}
+type MenuChoice = { label: string; onChoose: () => void };
 
 /**
  * The panel of a detail view's ⋯ button (the button sits in the Back row, see work-view.tsx ContactFrame and TaskFrame).
  * It opens under the title with "Redigera" first (design system §3, Tillbakarad; nicknames are edited there too),
- * then Archive (Restore for an archived one) in the text colour, since Restore undoes it (only a deletion is drawn in the
- * danger colour); the confirming step opens in the same panel. A Task passes no `archived`, so it has no archive entry. Escape closes it.
+ * then Archive (Restore for an archived one) in the text colour: Restore undoes it, so it writes at once and the page
+ * shows its receipt. Only a deletion is drawn in the danger colour. A Task has no archive entry. Escape closes it.
  */
 export function ContactMenu({
   id,
-  archived,
   busy,
-  onConfirm,
   edit,
+  archive,
   remove,
   onClose,
-  labels: t,
 }: {
   id: string;
-  archived?: boolean;
   busy: boolean;
-  onConfirm?: () => void;
   /** "Redigera", first in the menu; left out for an archived (read-only) Contact. */
-  edit?: { label: string; onChoose: () => void };
+  edit?: MenuChoice;
+  /** A Contact's "Arkivera", or "Återställ" for an archived one; no question first, because Restore and Ångra undo it. */
+  archive?: MenuChoice;
   /** A Task's "Ta bort uppgift" in the danger colour; no question first, because the trash and Ångra undo it. */
-  remove?: { label: string; onChoose: () => void };
+  remove?: MenuChoice;
   onClose: () => void;
-  labels: WorkLabels;
 }) {
   return (
     <KeyScope id={id} className="work-contact-menu" onEscape={onClose}>
-      {edit && (
-        <button
-          type="button"
-          className="work-contact-menu-item"
-          disabled={busy}
-          onClick={edit.onChoose}
-        >
-          {edit.label}
-        </button>
-      )}
-      {remove && (
-        <button
-          type="button"
-          className="work-contact-menu-item"
-          data-danger
-          disabled={busy}
-          onClick={remove.onChoose}
-        >
-          {remove.label}
-        </button>
-      )}
-      {onConfirm && (
-        <ContactArchiveToggle
-          archived={archived === true}
-          busy={busy}
-          onConfirm={onConfirm}
-          labels={t}
-        />
-      )}
+      {edit && <MenuItem choice={edit} busy={busy} />}
+      {archive && <MenuItem choice={archive} busy={busy} />}
+      {remove && <MenuItem choice={remove} busy={busy} danger />}
     </KeyScope>
+  );
+}
+
+function MenuItem({
+  choice,
+  busy,
+  danger = false,
+}: {
+  choice: MenuChoice;
+  busy: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      className={danger ? "sk-menu-item sk-menu-item--danger" : "sk-menu-item"}
+      disabled={busy}
+      onClick={choice.onChoose}
+    >
+      {choice.label}
+    </button>
   );
 }

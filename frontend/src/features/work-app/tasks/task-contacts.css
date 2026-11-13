@@ -104,12 +104,6 @@
   font: var(--sk-type-body);
   color: var(--sk-muted);
 }
-.sidekick-work .work-contact-sheet-error {
-  margin: 0;
-  padding-block: var(--sk-s1);
-  font: var(--sk-type-body);
-  color: var(--sk-danger-fg);
-}
 /* "+ Skapa kontakt ”…”" is the list's action row; on the sheet's surface a held row takes the page colour. */
 .sidekick-work .work-contact-sheet-create.sk-action-row:active:not(:disabled) {
   background: var(--sk-bg);

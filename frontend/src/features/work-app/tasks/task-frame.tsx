@@ -83,10 +83,11 @@ export function TaskFrame({
   const endCycle = useCallback(() => setCycle(undefined), []);
   // Set once "Ta bort uppgift" has moved the Task to the trash: the trash record's version, which Ångra needs.
   const [trashed, setTrashed] = useState<{ version: number }>();
-  // Runs the last failed trash, Ångra or tag change again; the same action keeps its key, so the server replays it.
+  // Runs the last failed trash, Ångra, quick change or tag change again; the same action keeps its key, so the server
+  // replays it.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
   // Which of them the failure line names.
-  const [writeWhat, setWriteWhat] = useState<"trash" | "tags">("trash");
+  const [writeWhat, setWriteWhat] = useState<"trash" | "save">("trash");
   const tags = useWorkTags(transport, "task");
   const menuOffered = editOffered || trashOffered;
   useFrameRead(
@@ -146,11 +147,14 @@ export function TaskFrame({
       return;
     }
     setCycle(undefined);
+    retryWrite.current = () => saveTask(changes, then);
+    setWriteWhat("save");
     frame.sendWrite(
       JSON.stringify([task.id, task.version, changes]),
       "save",
       (key) => transport.updateTask(task.id, task.version, changes, key),
       (result) => {
+        retryWrite.current = undefined;
         setTask(result.task);
         then?.(result.task);
         frame.setEditing(false);
@@ -166,7 +170,7 @@ export function TaskFrame({
   function setTags(next: string[], done: () => void) {
     if (!task || frame.writing.current) return;
     retryWrite.current = () => setTags(next, done);
-    setWriteWhat("tags");
+    setWriteWhat("save");
     setCycle(undefined);
     frame.sendWrite(
       JSON.stringify(["tags", task.id, task.version, next]),
@@ -321,7 +325,6 @@ export function TaskFrame({
             setMenuOpen(false);
             moreButton.current?.focus();
           }}
-          labels={t}
         />
       )}
       {/* The date and status chips; both write through saveTask (update_task). */}
@@ -368,6 +371,20 @@ export function TaskFrame({
             ) : null}
           </TaskProps>
         )}
+      {/* A failed change shows right under the controls it came from, in the family's write error row; the open editor
+          shows its own. */}
+      {phase === "ready" &&
+        task &&
+        write.kind === "failed" &&
+        write.action !== "reload" &&
+        !editing && (
+          <ErrorNotice
+            placement="row"
+            locale={t.dateLocale}
+            message={writeWhat === "trash" ? t.taskTrashFailed : t.saveFailed}
+            onRetry={() => retryWrite.current?.()}
+          />
+        )}
       {phase === "ready" && task && cycle && (
         <TaskCycleLine
           text={recurringDoneText(t, task.due_at, new Date())}
@@ -413,14 +430,12 @@ export function TaskFrame({
       )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
-        <section className="sk-card">
-          <p className="sk-eyebrow">{t.title}</p>
-          <ErrorNotice
-            locale={t.dateLocale}
-            cause={frame.readError}
-            onRetry={frame.retry}
-          />
-        </section>
+        <ErrorNotice
+          locale={t.dateLocale}
+          subject="work:task"
+          cause={frame.readError}
+          onRetry={frame.retry}
+        />
       )}
       {phase === "gone" && <p role="status">{t.goneTask}</p>}
       {phase === "ready" && task && (
@@ -462,14 +477,6 @@ export function TaskFrame({
             banner={banner}
             labels={t}
           />
-          {write.kind === "failed" && write.action === "write" && (
-            <p role="alert">
-              {writeWhat === "tags" ? t.saveFailed : t.taskTrashFailed}{" "}
-              <button type="button" onClick={() => retryWrite.current?.()}>
-                {t.retry}
-              </button>
-            </p>
-          )}
           {editing && (
             <TaskEditor
               task={task}

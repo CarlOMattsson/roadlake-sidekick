@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ControlRoom } from "@/features/control-app/room";
@@ -70,4 +71,41 @@ describe("Control room start view", () => {
     ).toBeInTheDocument();
     expect(call).toHaveBeenCalledWith("list_trash", {});
   });
+});
+
+describe("Control room, a failed answer of the history tools", () => {
+  it.each(["changes", "activity"])(
+    "opens on History, names it, and reads the history again (not the trash) on Try again (%s)",
+    async (view) => {
+      const call = vi.fn<Call>((name) =>
+        name === "list_recent_changes"
+          ? Promise.resolve({ changes: [] })
+          : name === "list_assistant_activity"
+            ? Promise.resolve({ items: [], next_cursor: null })
+            : answer(name),
+      );
+      render(
+        <ControlRoom
+          {...hiddenProps(call, view)}
+          initialError
+          initial={undefined}
+          resultId={1}
+        />,
+      );
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Historiken kunde inte hämtas",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "Försök igen" }),
+      );
+      expect(
+        await screen.findByRole("button", { name: "Historik", pressed: true }),
+      ).toBeInTheDocument();
+      expect(call.mock.calls.map(([name]) => name).sort()).toEqual([
+        "list_assistant_activity",
+        "list_recent_changes",
+      ]);
+    },
+  );
 });

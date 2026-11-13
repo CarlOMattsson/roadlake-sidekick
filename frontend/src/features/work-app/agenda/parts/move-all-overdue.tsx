@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightIcon } from "../../../mcp-apps/ui/icons";
 import type { WorkLabels } from "../../shared/labels";
-import { UNDO_MS, useNearest } from "../agenda-undo";
+import { UNDO_MS } from "../../../mcp-apps/ui/undo-hold";
+import { useNearest } from "../agenda-undo";
 
 /**
  * "Flytta N försenade till imorgon" at the foot of the Overdue group. A tap does not write: the button gives way to a

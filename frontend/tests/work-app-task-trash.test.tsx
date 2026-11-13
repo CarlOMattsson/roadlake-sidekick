@@ -48,7 +48,7 @@ it("puts the delete entry last-but-archive in the danger style and closes the me
   render(rootTask(transport()));
   await openMenu(user);
   const entry = screen.getByRole("button", { name: workEn.deleteTask });
-  expect(entry).toHaveAttribute("data-danger");
+  expect(entry).toHaveClass("sk-menu-item--danger");
   expect(screen.getByRole("button", { name: workEn.edit })).toBeInTheDocument();
   await user.click(entry);
   await screen.findByText(workEn.taskTrashed);

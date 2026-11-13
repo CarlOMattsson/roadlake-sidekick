@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
 import { ContactsView } from "@/features/work-app/contacts/contacts-list";
+import { contactsRoomLabelsEn } from "@/features/work-app/contacts/contacts-room-labels";
 import { workEn } from "@/features/work-app/shared/labels";
 import type {
   WorkContactsFrame,
@@ -183,6 +184,29 @@ it("shows the empty state for no Contacts and for a search without matches", () 
   unmount();
   renderList(frameOf([], "zz"));
   expect(screen.getByText(workEn.noContactMatches("zz"))).toBeInTheDocument();
+});
+
+it("offers the hand-made way next to Tell Claude in the empty list: Add a contact opens the create field", async () => {
+  const user = userEvent.setup();
+  renderList(frameOf([]));
+  await user.click(
+    screen.getByRole("button", { name: contactsRoomLabelsEn.addContact }),
+  );
+  const field = await screen.findByRole("textbox", { name: workEn.newContact });
+  expect(field).toHaveValue("");
+  expect(field).toHaveFocus();
+});
+
+it("leaves out the Add a contact row where the host cannot create a Contact", () => {
+  const work = {
+    listContacts: vi.fn(),
+    supportsTool: (name: string) => name !== "create_contact",
+  } as unknown as WorkTransport;
+  renderList(frameOf([]), work);
+  expect(screen.getByText(workEn.noAnyContacts)).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: contactsRoomLabelsEn.addContact }),
+  ).toBeNull();
 });
 
 it("shows a failed first read and retries it", async () => {

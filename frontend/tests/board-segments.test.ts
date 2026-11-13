@@ -212,7 +212,7 @@ describe("board segment labels", () => {
     expect(workSv.moveDown).toBe("Flytta ned");
     expect(workEn.moveUp).toBe("Move up");
     expect(workEn.moveDown).toBe("Move down");
-    expect(workSv.moreActions).toBe("Fler alternativ");
+    expect(workSv.moreActions).toBe("Fler val");
     expect(workEn.moreActions).toBe("More options");
   });
 

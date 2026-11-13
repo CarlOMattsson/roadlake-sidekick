@@ -4,7 +4,7 @@
 
 <!-- description: Control gathers the trash, the history and Sidekick's memory. How to restore things, see what changed and decide what memory may hold. -->
 
-Control (Kontroll) is where you see what happened and decide over memory. You open Control from the last item in the ⋯ menu of every room. It has three tabs: Deleted (Borttaget), History (Historik) and Sidekick's memory (Sidekicks minne).
+Control is where you see what happened and decide over memory. Its heading is "Minne och kontroll" (Memory and control). You open it with "Minne och kontroll", the last item in the ⋯ menu of every room, and it opens on Sidekick's memory tab. It has three tabs: Deleted (Borttaget), History (Historik) and Sidekick's memory (Sidekicks minne).
 
 ## Restore something from the trash
 
@@ -39,11 +39,11 @@ Under each source that is on, tap "Visa vad Sidekick minns" (Show what Sidekick 
 
 ## Keep a single record out of memory
 
-Tap "Glöm anteckningen" (Forget the entry; for a contact, project or task the button names that record) on a fact. Everything memory holds from that whole record, not just that fact, is removed, and the record itself is unchanged. You can also ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
+Tap "Glöm anteckningen" (Forget the entry; for a contact, project or task the button names that record) on a fact, and confirm with "Ja, glöm …" (Yes, forget …). Everything memory holds from that whole record, not just that fact, is removed, and the record itself is unchanged. It can take a few minutes before it is gone from search. You can also ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
 
 ## Enter a license key
 
-The license row is at the bottom of Control. Choose "Ange licensnyckel" (Enter license key), paste the key and choose "Spara" (Save). [Read more about entering a license key](../operate/license-key.md).
+The license row is at the bottom of Control. Without a key it says "Gratisversion" (Free version). Until license keys go on sale, the row says that they will soon be available to buy in place of a buy button. Choose "Ange licensnyckel" (Enter license key), paste the key into the field labelled "Licensnyckel" (License key), which shows the shape of a key as a hint, and choose "Spara" (Save). [Read more about entering a license key](../operate/license-key.md).
 
 ## What you cannot do from here
 

@@ -15,7 +15,8 @@ Dagbok är rummet för det du vill minnas. Det visar en dag i taget, med flera i
 - **Datumet** som rubrik, med en remsa för veckans dagar under. En prick under en dag betyder att dagen har anteckningar.
 - **Dagen i korthet**, en sammanfattning av dagen när det finns en.
 - **Anteckningar**, dagens inlägg.
-- **Gjort**, en hopfälld rad med det du blev klar med den dagen: uppgifter, steg och köpta varor.
+- **Gjort**, en hopfälld rad med det du blev klar med den dagen: uppgifter, steg och köpta varor. Öppen visar varje sort sina tre första rader, och "+N fler · Visa alla" öppnar resten av den sorten.
+- **Filtrera på tagg**, en rad under veckoremsan. Den visas så snart någon anteckning har en tagg.
 
 ## Byt dag
 
@@ -36,6 +37,12 @@ Det du skriver för hand går inte genom någon AI.
 ## Berätta om dagen för Claude
 
 En tom dag visar knappen "Berätta om dagen". Då frågar Claude om dagen och sparar det i dagboken. Du kan också skriva direkt i samtalet, till exempel "skriv i dagboken att …".
+
+## Tagga en anteckning och hitta anteckningar efter tagg
+
+Öppna anteckningen och tryck på "Lägg till tagg", eller "Ändra taggar" om den redan har några. Skriv en tagg och tryck på Retur, eller tryck på någon av "Dina taggar" för att återanvända en. En arkiverad anteckning visar sina taggar men kan inte ändras. Ett utkast kan taggas medan du granskar det.
+
+Tryck på en eller flera taggar i "Filtrera på tagg", högst fem åt gången, så ersätts dagen av "Taggade anteckningar": anteckningarna som har alla valda taggar från de senaste 12 månaderna, sorterade på sin dag med den nyaste dagen först. Inom en dag kommer en anteckning utan klockslag sist. Listan visar 50 anteckningar åt gången. "Visa fler" visar nästa 50, och när alla visas lägger den till de 12 månaderna före det äldsta året som visas. "Rensa (N)", där N är antalet valda taggar, går tillbaka till dagen.
 
 ## Granska ett utkast
 

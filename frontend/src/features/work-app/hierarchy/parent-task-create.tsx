@@ -7,6 +7,7 @@ import {
 } from "../shared/fields";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
+import { WriteFailureRow } from "../shared/write-failure-row";
 import { dueAtFromDateInput } from "../tasks/task-edit";
 import {
   writeFailure,
@@ -193,25 +194,14 @@ export function CreateParentTask({
         />
         {dueBad && <p id={dueErrorId}>{t.dueIncomplete}</p>}
         {notice?.kind === "created" && <p role="status">{t.taskCreated}</p>}
-        {notice?.kind === "failed" && notice.failure === "conflict" && (
-          <p role="alert">{t.createConflict}</p>
-        )}
-        {notice?.kind === "failed" && notice.failure === "forbidden" && (
-          <p>{t.forbiddenWrite}</p>
-        )}
-        {notice?.kind === "failed" && notice.failure === "invalid" && (
-          <p role="alert">{t.invalidChange}</p>
-        )}
-        {notice?.kind === "failed" && notice.failure === "not_found" && (
-          <p role="alert">{t.notFound}</p>
-        )}
-        {notice?.kind === "failed" && notice.failure === "failed" && (
-          <p role="alert">
-            {t.taskCreateFailed}{" "}
-            <button type="button" disabled={busy} onClick={() => submit()}>
-              {t.retry}
-            </button>
-          </p>
+        {notice?.kind === "failed" && (
+          <WriteFailureRow
+            failure={notice.failure}
+            failedMessage={t.taskCreateFailed}
+            labels={t}
+            retrying={busy}
+            onRetry={() => submit()}
+          />
         )}
         <div className="work-actions">
           <button
