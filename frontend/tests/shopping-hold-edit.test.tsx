@@ -239,6 +239,11 @@ it("an archived list disables both the ring and the row", async () => {
   );
   expect(ring("Milk")).toBeDisabled();
   expect(box("Milk")).toBeDisabled();
+  // A row that cannot be opened has no ›, and is marked so the stylesheet reads it without dimming it.
+  expect(box("Milk").querySelector(".shopping-chevron")).toBeNull();
+  expect(box("Milk").closest("li")).toHaveClass(
+    "shopping-store-item--archived",
+  );
   fireEvent.contextMenu(screen.getByText("Milk"));
   expect(editorLegend("Milk")).not.toBeInTheDocument();
 });

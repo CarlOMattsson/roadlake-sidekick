@@ -46,7 +46,12 @@ export function DraftReading({
       )}
       {pending && (
         <p className="journal-draft-action">
-          <button type="button" disabled={editDisabled} onClick={onEdit}>
+          <button
+            type="button"
+            className="sk-btn--quiet journal-toggle"
+            disabled={editDisabled}
+            onClick={onEdit}
+          >
             {t.edit}
           </button>
         </p>

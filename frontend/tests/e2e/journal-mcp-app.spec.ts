@@ -465,7 +465,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
   await link.click();
   await app.getByRole("button", { name: "Save as entry" }).click();
   await expect(app.getByText("This saves an entry with 1 link.")).toBeVisible();
-  await app.getByRole("button", { name: "Yes, save entry" }).click();
+  await app.getByRole("button", { name: "Yes, save the entry" }).click();
   const banner = app.getByRole("alert");
   await expect(banner).toBeFocused();
   await app.getByRole("button", { name: "Reload" }).click();
@@ -473,7 +473,7 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
   // The chosen link survives the reload.
   await expect(link).toHaveAttribute("aria-pressed", "true");
   await app.getByRole("button", { name: "Save as entry" }).click();
-  await app.getByRole("button", { name: "Yes, save entry" }).click();
+  await app.getByRole("button", { name: "Yes, save the entry" }).click();
   await expect(app.getByText("Entry saved.")).toBeVisible();
   await expect(
     app.getByText("Kunden vill ha offerten före fredag."),

@@ -59,7 +59,6 @@ export function StepRow({
   onMove,
   onArchive,
   actions,
-  actionsDone,
   onActionCount,
 }: {
   step: WorkStep;
@@ -81,8 +80,6 @@ export function StepRow({
   onArchive?: () => void;
   /** False: no Actions under the Step (no count to open them). */
   actions: boolean;
-  /** How many of the Step's Actions are done; unknown until they have been read. */
-  actionsDone?: number;
   /** The Step's Actions were read or changed; `count` is how many are active and `done` how many of them are done. */
   onActionCount: (count: number, done: number) => void;
 }) {
@@ -153,7 +150,7 @@ export function StepRow({
           aria-expanded={actionsOpen}
           onClick={() => setActionsOpen((value) => !value)}
         >
-          {s.countMeta(actionCount, actionsDone)}
+          {s.countMeta(actionCount, step.action_done_count)}
           <ChevronDownIcon size={16} />
         </button>
       )}

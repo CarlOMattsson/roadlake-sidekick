@@ -28,7 +28,7 @@ from .runs import (
     run_steps_from_data,
     run_steps_to_data,
 )
-from .steps import Action, ActionStatus, Step
+from .steps import Action, ActionCounts, ActionStatus, Step
 
 __all__ = [
     "MAX_PROCESS_RUNS",
@@ -37,6 +37,7 @@ __all__ = [
     "MAX_TAGS_PER_RECORD",
     "MAX_TAG_FILTER_VALUES",
     "Action",
+    "ActionCounts",
     "ActionStatus",
     "Domain",
     "DomainStatus",

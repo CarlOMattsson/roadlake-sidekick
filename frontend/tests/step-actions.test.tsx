@@ -407,7 +407,7 @@ it("shows the conflict message on a stale reorder and Read again reads the list 
   expect(await screen.findByText(manageLabelsSv.conflict)).toBeInTheDocument();
   expect(transport.listStepActions).toHaveBeenCalledTimes(1);
 
-  await user.click(screen.getByRole("button", { name: "Läs om" }));
+  await user.click(screen.getByRole("button", { name: "Ladda om" }));
   await waitFor(() =>
     expect(transport.listStepActions).toHaveBeenCalledTimes(2),
   );

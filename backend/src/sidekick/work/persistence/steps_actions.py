@@ -19,6 +19,7 @@ from sidekick.shared.persistence.models import (
 from sidekick.tasks.domain import TaskStatus
 from sidekick.work.domain import (
     Action,
+    ActionCounts,
     ActionStatus,
     Step,
 )
@@ -173,13 +174,17 @@ class StepActionStore:
     @staticmethod
     def count_active_actions_by_step(
         session: Session, owner_id: UUID, step_ids: tuple[UUID, ...]
-    ) -> dict[UUID, int]:
-        """Active Actions per Step among `step_ids`, grouped; Steps with none are absent."""
+    ) -> dict[UUID, ActionCounts]:
+        """Active Actions per Step among `step_ids` and how many are completed; none: absent."""
 
         if not step_ids:
             return {}
         rows = session.execute(
-            select(ActionRow.step_id, func.count())
+            select(
+                ActionRow.step_id,
+                func.count(),
+                func.count().filter(ActionRow.status == ActionStatus.COMPLETED.value),
+            )
             .where(
                 ActionRow.owner_id == owner_id,
                 ActionRow.step_id == any_(bindparam("step_ids", list(step_ids), type_=_UUID_ARRAY)),
@@ -188,7 +193,7 @@ class StepActionStore:
             )
             .group_by(ActionRow.step_id)
         )
-        return {step_id: count for step_id, count in rows}
+        return {step_id: ActionCounts(active, completed) for step_id, active, completed in rows}
 
     @staticmethod
     def lock_step_order(session: Session, owner_id: UUID, task_id: UUID) -> None:

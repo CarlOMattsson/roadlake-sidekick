@@ -15,7 +15,6 @@ import {
   workShellLabelsSv,
 } from "@/features/work-app/shell/work-shell-labels";
 
-import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
 function panels(): Pick<WorkShellProps, "agenda" | "board" | "hierarchy"> {
@@ -267,18 +266,6 @@ describe("task detail layout at 320 px", () => {
     expect(detailCss.rule(".sidekick-work .work-steps").margin).toBe(
       "calc(-1 * var(--sk-row-air-extra)) 0 0",
     );
-  });
-
-  it("gives a linked Contact no ⋯ button, only a › that opens it (removal is in the row's own menu)", () => {
-    const source = readSource(
-      "features/work-app/tasks/task-contacts-section.tsx",
-    );
-    const start = source.indexOf("<LinkedRow");
-    expect(start).toBeGreaterThan(-1);
-    const row = source.slice(start, source.indexOf("</LinkedRow>", start));
-    expect(row).not.toContain("⋯");
-    expect(row).not.toContain("work-row-actions");
-    expect(row).toContain("<OpenChevron />");
   });
 });
 

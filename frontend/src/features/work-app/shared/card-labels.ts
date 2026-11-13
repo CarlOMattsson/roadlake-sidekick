@@ -63,8 +63,8 @@ export const cardLabelsSv: CardLabels = {
   connections: "Kopplingar",
   statusGroup: "Ändra status",
   statusConflict:
-    "Uppgiften ändrades någon annanstans. Läs om för att se senaste versionen.",
-  reread: "Läs om",
+    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
+  reread: "Ladda om",
   statusFailed: "Kunde inte spara statusen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",

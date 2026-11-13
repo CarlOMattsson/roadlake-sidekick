@@ -101,8 +101,12 @@
 .sidekick-journal .journal-done .journal-list-more {
   margin: 0;
 }
+/* "Visa fler" and "Visa färre" read as links under their list, not as headings of their own: regular weight, underlined. */
 .sidekick-journal .journal-list-more > button {
   padding-inline: 0;
+  font-weight: var(--sk-weight-normal);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .sidekick-journal .journal-done-more {
   margin: 0;
@@ -148,6 +152,7 @@
 }
 .sidekick-journal .journal-summary {
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .sidekick-journal .journal-original {
   white-space: pre-wrap;
@@ -381,6 +386,23 @@
 .sidekick-journal .journal-card-links .journal-card-sep {
   display: inline-block;
   width: var(--journal-sep-w);
+}
+/* The card's tags stay on one line, as Arbete's card: two pills share it and a long tag gives way with "…", the "+N" never does. */
+.sidekick-journal .journal-card-links .sk-tags {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.sidekick-journal .journal-card-links .sk-tags > .sk-tag {
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 14em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidekick-journal .journal-card-links .sk-tags > .sk-tag--more {
+  flex: none;
 }
 /* A linked contact is a chip in the meta line : 32 visible, its target 48 (8 out above and
    below, into the card's gaps), the radius of every chip, the name in the text colour at 500; no × (a link is removed

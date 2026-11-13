@@ -9,7 +9,7 @@ import secrets
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from enum import Enum
 from typing import Any, Protocol, cast
 from uuid import UUID
@@ -78,7 +78,7 @@ def paginate[Row, Cursor](
     return page, cursor_for(page[-1])
 
 
-type KeyValue = None | int | str | datetime | UUID
+type KeyValue = None | int | str | date | datetime | UUID
 """One component of a keyset position: the value of a sort column in the last row served."""
 
 
@@ -124,7 +124,7 @@ def pack_key(values: tuple[KeyValue, ...]) -> list[Any]:
 
     return [
         value.isoformat()
-        if isinstance(value, datetime)
+        if isinstance(value, date)  # a datetime too
         else str(value)
         if isinstance(value, UUID)
         else _pack_text(value)
@@ -171,6 +171,11 @@ def unpack_key(
                 if moment.tzinfo is None:
                     raise ValueError
                 values.append(moment)
+            elif kind is date and isinstance(item, str):
+                day = date.fromisoformat(item)
+                if day.isoformat() != item:  # one spelling per day
+                    raise ValueError
+                values.append(day)
             elif kind is UUID and isinstance(item, str):
                 values.append(UUID(item))
             elif kind is str and isinstance(item, str):

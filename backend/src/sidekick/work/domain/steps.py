@@ -3,6 +3,7 @@
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
+from typing import NamedTuple
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
@@ -14,6 +15,13 @@ from sidekick.work.domain.planning import MAX_ACTION_NOTE_LENGTH, MAX_STEP_INSTR
 class ActionStatus(StrEnum):
     OPEN = "open"
     COMPLETED = "completed"
+
+
+class ActionCounts(NamedTuple):
+    """How many active Actions a Step has and how many of them are completed."""
+
+    active: int
+    completed: int
 
 
 @dataclass(frozen=True, slots=True)

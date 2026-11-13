@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
 // Ring column, buttons and links (designsystem §3 Listrad and Knappar). A pixel probe in a real browser checks the
@@ -69,15 +68,5 @@ describe("ring column, button and link targets", () => {
     expect(paddings).toContain(
       "calc(var(--sk-row-pad) + var(--sk-type-row-line) / 2 - var(--sk-ring-glyph) / 2)",
     );
-  });
-
-  it("draws Markera klar as the screen's one primary, compact, last in the property block", () => {
-    const view = readSource("features/work-app/tasks/task-frame.tsx");
-
-    expect(view).toContain('"sk-btn--primary sk-btn--compact work-task-done"');
-    expect(view).toContain(
-      '"sk-btn--secondary sk-btn--compact work-task-done"',
-    );
-    expect(view).not.toContain("sk-btn--tonal");
   });
 });

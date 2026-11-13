@@ -71,6 +71,14 @@
   font: var(--sk-type-meta);
   color: var(--sk-danger-fg);
 }
+/* A refusal that belongs to no field (the server could not be reached, or refused the code) stands in the family's
+   error box, so in the dark theme it reads as an error and not as plain text between two fields. */
+.mobile-pairing__form .sk-error.sk-error.sk-error--row {
+  padding: var(--sk-s2) var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-danger-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-danger-bg);
+}
 /* The code's hint stays readable as a line of its own under a refusal, not run into it. */
 .mobile-pairing__error + .mobile-pairing__hint {
   margin-top: var(--sk-s1);

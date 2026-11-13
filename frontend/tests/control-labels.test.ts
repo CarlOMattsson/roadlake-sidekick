@@ -44,7 +44,7 @@ describe("English memory sentences", () => {
       "Turn off memory for your journal?",
     );
     expect(controlEn.confirmYes("tasks")).toBe(
-      "Yes, delete the memory of your tasks",
+      "Yes, delete what Sidekick remembers about your tasks",
     );
     expect(controlEn.confirmCount("contacts", 2)).toBe(
       "This deletes only what Sidekick remembers about your contacts (2 records). Your contacts won’t change.",

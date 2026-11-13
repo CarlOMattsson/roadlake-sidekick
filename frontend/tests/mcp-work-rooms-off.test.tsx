@@ -151,6 +151,23 @@ describe("the Task detail with the contacts room off", () => {
       screen.getByRole("button", { name: /More options for .*Anna/ }),
     ).toBeInTheDocument();
   });
+
+  it("draws a linked Contact as a row with only a › that opens it and no ⋯ button", async () => {
+    declareRooms();
+    renderTask(taskTransport().transport);
+
+    const open = await screen.findByRole("button", {
+      name: anna.display_name,
+    });
+    const row = open.closest("li");
+    expect(row).not.toBeNull();
+    expect(row?.textContent).not.toContain("⋯");
+    expect(row?.querySelector(".work-row-actions")).toBeNull();
+    expect(row?.querySelector(".work-open-chevron")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
 });
 
 describe("the Contact view with the contacts room off", () => {

@@ -176,7 +176,7 @@ it("names the new-nickname field so it is not read as a rename (Swedish and Engl
   ).toBeInTheDocument();
   expect(workSv.aliasValue).not.toBe(workSv.nameLabel);
   expect(workSv.aliasValue).toMatch(/alternativt/);
-  expect(workEn.aliasValue).toBe("New nickname");
+  expect(workEn.aliasValue).toBe("New alternative name");
 });
 
 it("shows two tags and +N on the inline Contact card, and nothing for a Contact without tags", () => {

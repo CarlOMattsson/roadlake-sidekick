@@ -401,4 +401,9 @@ it("shows the due day under the title, red when it has passed, and the note on t
   // A done Action is not overdue: its day is left out and only the note stays.
   expect(screen.getByText("Skickat")).toHaveClass("work-step-action-meta");
   expect(screen.getAllByText(/overdue/)).toHaveLength(1);
+  // The box is named by the title alone; the day and the note are its description.
+  const box = screen.getByRole("checkbox", { name: withMeta.title });
+  expect(box).toHaveAccessibleDescription(
+    new RegExp(`^${meta.textContent ?? ""}`),
+  );
 });

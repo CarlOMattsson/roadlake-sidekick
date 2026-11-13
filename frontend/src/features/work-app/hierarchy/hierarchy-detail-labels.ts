@@ -55,7 +55,7 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
     n === 0 ? "No open tasks" : n === 1 ? "1 open task" : `${n} open tasks`,
   overdue: (n) => `${n} overdue`,
   noGroups: "No projects or processes yet.",
-  noDomain: "No area",
+  noDomain: "Not in an area",
   filter: "Filter projects and processes",
   noMatches: "No matches.",
   noMatchesLoaded:

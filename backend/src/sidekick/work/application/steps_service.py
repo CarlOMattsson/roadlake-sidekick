@@ -30,7 +30,7 @@ from sidekick.shared.types import (
     validate_limit,
 )
 from sidekick.tasks.domain import Task, TaskStatus
-from sidekick.work.domain import Action, ActionStatus, Step
+from sidekick.work.domain import Action, ActionCounts, ActionStatus, Step
 
 T = TypeVar("T")
 
@@ -53,7 +53,7 @@ class StepsStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
     ) -> list[Step]: ...
     def count_active_actions_by_step(
         self, session: TxSession, owner_id: UUID, step_ids: tuple[UUID, ...]
-    ) -> dict[UUID, int]: ...
+    ) -> dict[UUID, ActionCounts]: ...
     def save_step(
         self, session: TxSession, step: Step, expected_version: int | None = None
     ) -> None: ...
@@ -134,8 +134,8 @@ class StepsService:
 
     def list_steps_with_action_counts(
         self, actor: Actor, task_id: UUID, *, limit: int = 100, cursor: str | None = None
-    ) -> tuple[Page[Step], dict[UUID, int]]:
-        """The page `list_steps` gives and, in the same read, how many active Actions each Step has.
+    ) -> tuple[Page[Step], dict[UUID, ActionCounts]]:
+        """The page `list_steps` gives and, in the same read, each Step's active and done Actions.
 
         The counts come from one grouped query for the whole page, not one per Step; a Step with no
         Actions is absent from the mapping.
@@ -145,13 +145,13 @@ class StepsService:
 
     def _read_steps(
         self, actor: Actor, task_id: UUID, limit: int, cursor: str | None, *, count_actions: bool
-    ) -> tuple[Page[Step], dict[UUID, int]]:
+    ) -> tuple[Page[Step], dict[UUID, ActionCounts]]:
         actor.require("tasks:read")
         validate_limit(limit, maximum=100)
         query_key = f"steps:v1:task={task_id}"
         after = self._decode_position(actor, cursor, query_key)
 
-        def read(session: TxSession) -> tuple[list[Step], dict[UUID, int]]:
+        def read(session: TxSession) -> tuple[list[Step], dict[UUID, ActionCounts]]:
             rows = self.store.list_steps(session, actor.user_id, task_id, limit + 1, after=after)
             if not count_actions:
                 return rows, {}

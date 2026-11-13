@@ -144,7 +144,7 @@ export const controlEn = {
   },
   confirmCost: "To get it back, the memory has to be rebuilt from scratch.",
   confirmYes: (domain: MemoryDomain) =>
-    `Yes, delete the memory of your ${EN_DOMAIN_FORMS[domain].definite}`,
+    `Yes, delete what Sidekick remembers about your ${EN_DOMAIN_FORMS[domain].definite}`,
   confirmNo: "Cancel",
   memoryBusy: "Saving…",
   memorySaved: "Saved.",

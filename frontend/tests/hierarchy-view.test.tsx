@@ -399,7 +399,7 @@ describe("HierarchyView", () => {
     ).not.toContainElement(screen.getByRole("button", { name: /Lös projekt/ }));
   });
 
-  it("draws no 'No area' heading when no Domain is on the page at all", () => {
+  it("draws no 'Not in an area' heading when no Domain is on the page at all", () => {
     render(
       <HierarchyView
         frame={frameOf([project, processNode])}
@@ -407,7 +407,9 @@ describe("HierarchyView", () => {
         labels={workEn}
       />,
     );
-    expect(screen.queryByRole("heading", { name: "No area" })).toBeNull();
+    expect(
+      screen.queryByRole("heading", { name: "Not in an area" }),
+    ).toBeNull();
     expect(screen.queryByRole("heading")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Offert/ })).toBeInTheDocument();
   });

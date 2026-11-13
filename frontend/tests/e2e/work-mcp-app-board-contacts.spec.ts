@@ -540,27 +540,29 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
   await app.getByRole("button", { name: "Save" }).click();
   await expect(app.getByText("Saved", { exact: true })).toBeVisible();
   await expect(app.getByText("Ny anteckning", { exact: true })).toBeVisible();
-  // Without nicknames there is no "Nickname:" line. Nicknames are edited in the editor ("More options" > "Edit"),
-  // in the "Nicknames" group: the "New nickname" field and its own "Add nickname" button.
+  // Without nicknames there is no "Also known as" line. Nicknames are edited in the editor ("More options" > "Edit"),
+  // in the "Also known as" group: the "New alternative name" field and its own "Add another name" button.
   await expect(app.locator("p.work-alias-line")).toHaveCount(0);
   await app.getByRole("button", { name: "More options", exact: true }).click();
   await app.getByRole("button", { name: "Edit", exact: true }).click();
-  const aliasPanel = app.getByRole("group", { name: "Nicknames" });
-  await aliasPanel.getByLabel("New nickname", { exact: true }).fill("Annan A");
+  const aliasPanel = app.getByRole("group", { name: "Also known as" });
   await aliasPanel
-    .getByRole("button", { name: "Add nickname", exact: true })
+    .getByLabel("New alternative name", { exact: true })
+    .fill("Annan A");
+  await aliasPanel
+    .getByRole("button", { name: "Add another name", exact: true })
     .click();
   // While the editor is open the summary line is not drawn; the nickname is in the group, once.
   await expect(
     aliasPanel.getByRole("button", {
-      name: "Remove nickname Annan A",
+      name: "Remove the name Annan A",
       exact: true,
     }),
   ).toBeVisible();
   await expect(app.locator("p.work-alias-line")).toHaveCount(0);
   await app.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(app.locator("p.work-alias-line")).toHaveText(
-    "Nickname: Annan A",
+    "Also known as Annan A",
   );
   await expect(app.locator("a")).toHaveCount(0);
   const calls = await page.evaluate(

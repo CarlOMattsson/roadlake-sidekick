@@ -332,6 +332,7 @@ class ListedStepRecord(StepRecord):
     """A Step as `list_task_steps` returns it, with the number of its active Actions."""
 
     action_count: int = Field(ge=0)
+    action_done_count: int = Field(ge=0, description="How many of the active Actions are done.")
 
 
 class StepPageOutput(Output):

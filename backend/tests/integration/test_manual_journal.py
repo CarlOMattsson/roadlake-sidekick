@@ -227,11 +227,12 @@ def _create_source(
     occurred_at: datetime | None = datetime(2026, 7, 21, 9, tzinfo=UTC),
     source_recorded_at: datetime | None = datetime(2026, 7, 21, 9, 5, tzinfo=UTC),
     key: str = "manual-journal-source-key",
+    journal_date: date = JOURNAL_DATE,
 ) -> Any:
     return service.capture.create_source(
         actor,
         source_type=SourceType.MANUAL_TEXT,
-        journal_date=JOURNAL_DATE,
+        journal_date=journal_date,
         occurred_at=occurred_at,
         source_recorded_at=source_recorded_at,
         raw_text=raw_text,
@@ -759,6 +760,104 @@ def test_descending_list_reverses_timed_entries_keeps_untimed_last_and_pages_bot
         read("desc", 2, asc_cursor)
     with pytest.raises(ValidationError):
         read("asc", 2, desc_cursor)
+
+
+@pytest.mark.integration
+def test_list_orders_by_journal_date_first_in_both_directions_and_refuses_old_cursors(
+    db: DatabaseHarness, journal_service: Any
+) -> None:
+    owner_id = new_uuid7()
+    _seed_user(db, owner_id)
+    actor = _actor(owner_id)
+    monday, tuesday, wednesday = date(2026, 7, 20), date(2026, 7, 21), date(2026, 7, 22)
+
+    def at(day: date, hour: int) -> datetime:
+        return datetime(day.year, day.month, day.day, hour, tzinfo=UTC)
+
+    # Tuesday's untimed entry is written before Wednesday's timed ones, so only the day keeps it
+    # ahead of them; the late entry for Monday carries a time on Tuesday and stays on Monday.
+    specs = (
+        (tuesday, at(tuesday, 15), None, "tue-15"),
+        (monday, at(monday, 9), None, "mon-09"),
+        (tuesday, None, None, "tue-untimed"),
+        (wednesday, at(wednesday, 8), None, "wed-08"),
+        (monday, None, None, "mon-untimed"),
+        (monday, at(tuesday, 7), None, "mon-late"),
+        (tuesday, None, at(tuesday, 10), "tue-recorded"),
+        (wednesday, None, None, "wed-untimed"),
+    )
+    titles: dict[UUID, str] = {}
+    for day, occurred_at, recorded_at, suffix in specs:
+        source = _create_source(
+            journal_service,
+            actor,
+            raw_text=f"Syntetisk dagordningskälla {suffix}",
+            occurred_at=occurred_at,
+            source_recorded_at=recorded_at,
+            key=f"day-order-source-{suffix}",
+            journal_date=day,
+        )
+        entry = _create_manual_entry(
+            journal_service, actor, source.id, title=suffix, key=f"day-order-entry-{suffix}"
+        )
+        titles[entry.id] = suffix
+
+    def read(order: str, limit: int, cursor: str | None = None) -> Any:
+        return journal_service.entries.list_entries(
+            actor,
+            start_date=monday,
+            end_date=wednesday,
+            order=order,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def paged(order: str, limit: int) -> list[str]:
+        seen: list[str] = []
+        cursor = None
+        while True:
+            page = read(order, limit, cursor)
+            seen.extend(titles[entry.id] for entry in page.items)
+            cursor = page.next_cursor
+            if cursor is None:
+                return seen
+
+    ascending = [
+        "mon-09",
+        "mon-late",
+        "mon-untimed",
+        "tue-recorded",
+        "tue-15",
+        "tue-untimed",
+        "wed-08",
+        "wed-untimed",
+    ]
+    descending = [
+        "wed-08",
+        "wed-untimed",
+        "tue-15",
+        "tue-recorded",
+        "tue-untimed",
+        "mon-late",
+        "mon-09",
+        "mon-untimed",
+    ]
+    # `mon-late` occurred on Tuesday morning but belongs to Monday, so it follows Monday's 09:00
+    # entry by its time and ahead of Monday's untimed one.
+    assert [titles[entry.id] for entry in read("asc", 100).items] == ascending
+    assert [titles[entry.id] for entry in read("desc", 100).items] == descending
+    for limit in (1, 2, 3):
+        assert paged("asc", limit) == ascending
+        assert paged("desc", limit) == descending
+
+    # A cursor from before the date-first key (the old query key) is refused, not misread.
+    old_key = "journal:entries:v1:from=2026-07-20:to=2026-07-22:archived=false"
+    codec = journal_service.entries.cursor_codec
+    old_cursor = codec.encode_keyset(
+        owner_id, (at(tuesday, 15), 0, at(tuesday, 15), new_uuid7()), old_key
+    )
+    with pytest.raises(ValidationError):
+        read("asc", 2, old_cursor)
 
 
 @pytest.mark.integration

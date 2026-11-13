@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
+import { formatShortDateWithYear } from "./dates";
 import { TagField } from "../mcp-apps/ui/tags";
 import {
   forgetTagVocabulary,
@@ -336,7 +338,15 @@ export function DraftFrame({
             <span className="journal-tag">{t.aiDraft}</span>
           </p>
           {pending ? (
-            <p className="journal-muted journal-draft-note">{t.draftNote}</p>
+            <p className="journal-muted journal-draft-note">
+              {t.draftNote(
+                formatShortDateWithYear(
+                  draft.journal_date,
+                  t.dateLocale,
+                  ownerToday(),
+                ),
+              )}
+            </p>
           ) : (
             <p role="status">
               {draft.state === "rejected" && write.kind === "saved"
@@ -353,18 +363,6 @@ export function DraftFrame({
             bannerRef={banner}
             labels={t}
           />
-          {pending && review.suggestionTotal > 0 && (
-            <ApproveAllBar
-              allApproved={allApprovedNow}
-              linkCount={review.decidable.links.length}
-              proposalCount={review.decidable.tasks.length}
-              disabled={busy || editing || confirm !== undefined}
-              onApproveAll={approveAllSuggestions}
-              onChooseYourself={openSuggestions}
-              approvedNoteRef={approvedNote}
-              labels={t}
-            />
-          )}
           {editing && pending && !hiddenProposals ? (
             <>
               <FieldsEditor
@@ -393,6 +391,18 @@ export function DraftFrame({
                 setWrite({ kind: "idle" });
                 setEditing(true);
               }}
+              labels={t}
+            />
+          )}
+          {pending && review.suggestionTotal > 0 && (
+            <ApproveAllBar
+              allApproved={allApprovedNow}
+              linkCount={review.decidable.links.length}
+              proposalCount={review.decidable.tasks.length}
+              disabled={busy || editing || confirm !== undefined}
+              onApproveAll={approveAllSuggestions}
+              onChooseYourself={openSuggestions}
+              approvedNoteRef={approvedNote}
               labels={t}
             />
           )}

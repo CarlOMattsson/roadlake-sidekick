@@ -346,7 +346,7 @@ export function TagFilter({
 }) {
   const t = tagLabelsFor(locale);
   const scroller = useRef<HTMLDivElement>(null);
-  // The chip just pressed: it moves in the row when it is chosen, and keeps the focus there.
+  // The chip just pressed (or the first one after "Rensa"): it moves in the row when it is chosen, and keeps the focus there.
   const pressed = useRef<string | undefined>(undefined);
   // A chosen tag the vocabulary no longer lists still shows, so it can be cleared.
   const known = [
@@ -435,7 +435,11 @@ export function TagFilter({
         <button
           type="button"
           className="sk-tag-filter__clear"
-          onClick={() => onChange([])}
+          onClick={() => {
+            // "Rensa" leaves with the press: the focus goes to the first chip, so the place is not lost.
+            pressed.current = known[0]?.slug;
+            onChange([]);
+          }}
         >
           {t.clear(selected.length)}
         </button>

@@ -476,7 +476,7 @@ function Unpair({
           <button
             ref={actionButton}
             type="button"
-            className="sk-btn sk-btn--danger mobile-settings__unpair"
+            className="sk-btn sk-btn--secondary mobile-settings__unpair-open"
             onClick={() => setConfirming(true)}
           >
             {labels.unpair}

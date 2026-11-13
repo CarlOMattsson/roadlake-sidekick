@@ -1,6 +1,6 @@
 """Keyset cursors: sealed sort positions round-trip, stay small and reject every other shape."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import UUID
 
@@ -33,6 +33,19 @@ def test_a_position_round_trips_with_its_types() -> None:
 
     assert codec.decode_keyset(ACTOR, cursor, "q", kinds=TIMED_KEY) == (STAMP, ROW)
     assert codec.decode_keyset(ACTOR, None, "q", kinds=TIMED_KEY) is None
+
+
+def test_a_day_round_trips_and_only_a_canonical_day_is_accepted() -> None:
+    codec = _codec()
+    day = date(2026, 11, 10)
+    kinds = (date, UUID)
+    cursor = codec.encode_keyset(ACTOR, (day, ROW), "q")
+
+    assert codec.decode_keyset(ACTOR, cursor, "q", kinds=kinds) == (day, ROW)
+    for wrong in (STAMP, "20261110", "2026-W46-2", 5):
+        forged = codec.encode_keyset(ACTOR, (wrong, ROW), "q")
+        with pytest.raises(InvalidInputError, match="invalid pagination cursor"):
+            codec.decode_keyset(ACTOR, forged, "q", kinds=kinds)
 
 
 def test_nulls_round_trip_only_where_allowed() -> None:

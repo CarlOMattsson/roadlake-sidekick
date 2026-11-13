@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { relativeDue, type DueLocale } from "../../mcp-apps/ui/due";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { finePointer } from "../../mcp-apps/ui/shortcuts";
@@ -64,6 +64,7 @@ export function StepActionRow({
   const status = action.status === "open" ? "todo" : action.status;
   const toggle = done ? onReopen : onComplete;
   const hasMenu = Boolean(onMove || onArchive);
+  const hasBox = Boolean(onComplete || onReopen);
   // Only a state the check does not say is written out: "Pågår", "Blockerad".
   const state =
     status === "todo" || done ? undefined : taskStatusLabel(t, status);
@@ -73,14 +74,28 @@ export function StepActionRow({
     : "en";
   const due = done ? undefined : relativeDue(action.due_at, new Date(), locale);
   const note = action.note?.trim();
+  const hasMeta = Boolean(due?.text || note);
+  const titleId = useId();
+  const stateId = useId();
+  const metaId = useId();
+  const hintId = useId();
+  // The box is named by the title alone; the state, the due day, the note and the menu hint are its description.
+  const describedBy =
+    [state && stateId, hasMeta && metaId, hasBox && hasMenu && hintId]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const title = (
     <span className="work-step-action-text">
       <span>
-        {action.title}
-        {state && <span className="work-step-action-status">{state}</span>}
+        <span id={titleId}>{action.title}</span>
+        {state && (
+          <span id={stateId} className="work-step-action-status">
+            {state}
+          </span>
+        )}
       </span>
-      {(due?.text || note) && (
-        <span className="work-step-action-meta">
+      {hasMeta && (
+        <span id={metaId} className="work-step-action-meta">
           {due?.text && <span data-tone={due.tone}>{due.text}</span>}
           {due?.text && note ? " · " : null}
           {note}
@@ -99,16 +114,15 @@ export function StepActionRow({
         .join(" ")}
       {...(hasMenu ? rowMenuHandlers(open, setOpen) : {})}
     >
-      {onComplete || onReopen ? (
+      {hasBox ? (
         <label>
           <input
             type="checkbox"
             className="work-step-check"
             data-manage={`${action.id}:more`}
             aria-keyshortcuts={hasMenu ? "Shift+F10" : undefined}
-            {...(hasMenu
-              ? { "aria-description": finePointer() ? s.menuKeys : s.menuHint }
-              : {})}
+            aria-labelledby={titleId}
+            aria-describedby={describedBy}
             checked={done}
             // Without a way to change this state the box stays as it is and says so, instead of looking disabled.
             aria-readonly={!toggle || undefined}
@@ -121,6 +135,11 @@ export function StepActionRow({
           />
           <StatusGlyph kind="step" status={status} />
           {title}
+          {hasMenu && (
+            <span id={hintId} className="work-visually-hidden">
+              {finePointer() ? s.menuKeys : s.menuHint}
+            </span>
+          )}
         </label>
       ) : (
         <div className="work-step-read">

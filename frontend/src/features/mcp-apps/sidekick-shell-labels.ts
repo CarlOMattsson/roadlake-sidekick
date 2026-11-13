@@ -51,7 +51,7 @@ export const sidekickShellLabelsSv: SidekickShellLabels = {
     "work:project": "Projekt",
     "work:process": "Process",
     "contacts:list": "Kontakter",
-    "journal:entry": "Anteckningen",
+    "journal:entry": "Anteckning",
     "shopping:lists": "Listor",
   },
   backTo: (parent) => `Tillbaka till ${parent}`,

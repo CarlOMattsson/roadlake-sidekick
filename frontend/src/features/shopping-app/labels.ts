@@ -187,7 +187,7 @@ export const shoppingSv: ShoppingLabels = {
   recipient: "Presentmottagare (valfritt)",
   occasion: "Tillfälle",
   target: "Önskat datum (valfritt)",
-  offer: "Noterat erbjudande",
+  offer: "Erbjudande",
   price: "Erbjudandepris",
   regular: "Ordinarie pris (valfritt)",
   regularPrice: "Ordinarie pris",

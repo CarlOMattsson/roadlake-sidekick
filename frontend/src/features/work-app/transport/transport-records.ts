@@ -136,8 +136,9 @@ export type WorkProject = WithOptional<
  */
 export type WorkProjectChanges = Inputs["update_project"]["changes"];
 /**
- * One Step as the Step tools return it. `action_count` (the Step's active Actions) comes from
- * list_task_steps only: the Step writes leave it out, and an older server never sends it.
+ * One Step as the Step tools return it. `action_count` (the Step's active Actions) and
+ * `action_done_count` (how many of them are done) come from list_task_steps only: the Step writes
+ * leave them out, and an older server never sends them.
  */
 export type WorkStep = WithOptional<
   Pick<
@@ -150,8 +151,9 @@ export type WorkStep = WithOptional<
     | "position"
     | "archived_at"
     | "action_count"
+    | "action_done_count"
   >,
-  "position" | "archived_at" | "action_count"
+  "position" | "archived_at" | "action_count" | "action_done_count"
 >;
 /** One Action under a Step as list_step_actions and the Action writes return it (ActionRecord). */
 export type WorkAction = WithOptional<

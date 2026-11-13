@@ -165,7 +165,7 @@ describe("the tag filter of the day view", () => {
     await waitFor(() => expect(listTaggedEntries).toHaveBeenCalledTimes(2));
     expect(listTaggedEntries.mock.calls[1]?.[0]).toEqual(["viktig", "familj"]);
     expect(
-      await screen.findByText(journalEn.taggedEmpty(2)),
+      await screen.findByText(journalEn.taggedNone(2, 1)),
     ).toBeInTheDocument();
   });
 
@@ -179,7 +179,7 @@ describe("the tag filter of the day view", () => {
     );
     await user.click(await screen.findByRole("button", { name: "Viktig" }));
     expect(
-      await screen.findByText(journalEn.taggedEmpty(1)),
+      await screen.findByText(journalEn.taggedNone(1, 1)),
     ).toBeInTheDocument();
 
     await user.click(
@@ -196,6 +196,8 @@ describe("the tag filter of the day view", () => {
       "aria-pressed",
       "false",
     );
+    // "Clear" is gone with the press: the focus stays in the filter, on its first tag, not on the page.
+    expect(screen.getByRole("button", { name: "Viktig" })).toHaveFocus();
   });
 
   it("shows a failed read with Try again, which reads once more", async () => {
@@ -231,6 +233,37 @@ describe("the tag filter of the day view", () => {
     ).toBeInTheDocument();
     expect(listTaggedEntries).toHaveBeenCalledTimes(10);
   });
+
+  it("draws 50 entries at a time and says the list was cut only once all of them are drawn", async () => {
+    const user = userEvent.setup();
+    const many = Array.from({ length: 120 }, (_, n) => onDay(n, "2026-09-30"));
+    const listTaggedEntries = vi
+      .fn()
+      .mockResolvedValueOnce(page(many.slice(0, 50), "p2"))
+      .mockResolvedValueOnce(page(many.slice(50, 100), "p3"))
+      .mockResolvedValueOnce(page(many.slice(100), "p4"))
+      .mockImplementation(() => Promise.resolve(page([], "more")));
+    renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText("Post 0");
+    const rows = () => screen.getAllByRole("button", { name: /^Post/ });
+
+    expect(rows()).toHaveLength(50);
+    expect(screen.queryByText(/^Showing the newest/)).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    expect(rows()).toHaveLength(100);
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    expect(rows()).toHaveLength(120);
+    expect(screen.getByText(journalEn.taggedCapped(120))).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: journalEn.taggedMore }),
+    ).toBeNull();
+    // Draws and queries 120 rows by name: a few seconds alone, longer on a loaded runner.
+  }, 60_000);
 
   it("opens an entry of the list, and Back returns to the list with the tag still chosen", async () => {
     const user = userEvent.setup();
@@ -310,7 +343,7 @@ describe("the tag filter of the day view", () => {
     expect(
       await screen.findByRole("heading", { name: journalSv.taggedEntries }),
     ).toBeInTheDocument();
-    expect(screen.getByText(journalSv.taggedEmpty(1))).toBeInTheDocument();
+    expect(screen.getByText(journalSv.taggedNone(1, 1))).toBeInTheDocument();
     expect(
       screen.getByRole("group", { name: "Filtrera på tagg" }),
     ).toBeInTheDocument();
@@ -389,7 +422,7 @@ describe("the tagged list in place of the day", () => {
     ).toBeInTheDocument();
   });
 
-  it("ends the list after two empty years in a row: no Show more, a sentence that nothing is older", async () => {
+  it("ends the list after two empty years in a row: no Show more, a sentence that says how far back it read", async () => {
     const user = userEvent.setup();
     const listTaggedEntries = vi
       .fn()
@@ -406,7 +439,9 @@ describe("the tagged list in place of the day", () => {
     await user.click(
       screen.getByRole("button", { name: journalEn.taggedMore }),
     );
-    expect(await screen.findByText(journalEn.taggedEnd(1))).toBeInTheDocument();
+    expect(
+      await screen.findByText(journalEn.taggedStopped(1)),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: journalEn.taggedMore }),
     ).toBeNull();
@@ -421,11 +456,15 @@ describe("the tagged list in place of the day", () => {
       journalSv,
     );
     await user.click(await screen.findByRole("button", { name: "Viktig" }));
-    await screen.findByText(journalSv.taggedEmpty(1));
+    await screen.findByText(journalSv.taggedNone(1, 1));
     await user.click(
       screen.getByRole("button", { name: journalSv.taggedMore }),
     );
-    expect(await screen.findByText(journalSv.taggedEnd(1))).toBeInTheDocument();
+    // Nothing was found, so the empty line names the two years read and nothing claims there is "no older" entry.
+    expect(
+      await screen.findByText(journalSv.taggedNone(1, 2)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(journalSv.taggedStopped(1))).toBeNull();
     expect(
       screen.queryByRole("button", { name: journalSv.taggedMore }),
     ).toBeNull();

@@ -30,9 +30,13 @@ export function StoreRow({
     : quantityText(item, t.dateLocale);
   // A bought row is done: it keeps its name only.
   const meta = item.purchased ? "" : itemMeta(item, t);
+  // A row that cannot be changed (an archived list, or a change still in the phone's outbox) cannot be opened either.
+  const locked = env.archived || item.id in env.waiting;
   return (
     <li
-      className={`shopping-store-item${holding ? " shopping-held-item" : ""}`}
+      className={`shopping-store-item${holding ? " shopping-held-item" : ""}${
+        env.archived ? " shopping-store-item--archived" : ""
+      }`}
       aria-busy={rowQueue.pending(item.id) > 0 || undefined}
     >
       {/* Arbetes grammar: two sibling buttons, never nested. The ring ticks; the rest of the row opens the
@@ -41,7 +45,7 @@ export function StoreRow({
         <button
           type="button"
           className="shopping-ring"
-          disabled={env.archived || item.id in env.waiting}
+          disabled={locked}
           aria-label={(item.purchased ? t.markOpen : t.markBought)(item.name)}
           onClick={() => {
             // The tip names the ring too: the first tap on one has taught it.
@@ -61,7 +65,7 @@ export function StoreRow({
           ref={(node) => env.registerRow(item.id, node)}
           // A row waiting in the phone's outbox (a queued purchase, or an item added offline that the server has not
           // seen yet) cannot be changed until it is sent.
-          disabled={env.archived || item.id in env.waiting}
+          disabled={locked}
           aria-keyshortcuts="Shift+F10"
           aria-description={env.holdTip}
           // A keyboard activation (detail 0) puts the focus on the form's first field, a tap or click does not.
@@ -99,10 +103,12 @@ export function StoreRow({
             {/* What the shop needs to know without opening the form: occasion, date, offer, note. */}
             {meta && <span className="shopping-store-meta">{meta}</span>}
           </span>
-          {/* The row opens the change form, so it ends in › as Arbetes rows. */}
-          <span className="shopping-chevron" aria-hidden="true">
-            <ChevronRightIcon />
-          </span>
+          {/* The row opens the change form, so it ends in › as Arbetes rows; a row that cannot be opened has none. */}
+          {!locked && (
+            <span className="shopping-chevron" aria-hidden="true">
+              <ChevronRightIcon />
+            </span>
+          )}
         </button>
       </div>
       {holding && undoButton(item, env)}

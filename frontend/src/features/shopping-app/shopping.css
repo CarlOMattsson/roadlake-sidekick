@@ -184,6 +184,24 @@
 .sidekick-shopping .shopping-editor-extra[hidden] {
   display: none;
 }
+/* The fields behind "Fler fält" are spaced like the main ones (12), whatever mix of grid, label and frame they are,
+   and the offer frame's legend is set like the labels. */
+.sidekick-shopping .shopping-editor-extra:not([hidden]) {
+  display: grid;
+  gap: var(--sk-s3);
+}
+.sidekick-shopping .shopping-editor-extra > p {
+  margin: 0;
+}
+.sidekick-shopping .shopping-editor-extra legend {
+  font-size: 0.9rem;
+  font-weight: 550;
+}
+/* A select draws its text 4 px further in than an input with the same padding: take that back so every value starts on
+   the same x. */
+.sidekick-shopping .shopping-editor select {
+  padding-inline-start: calc(0.6rem - 4px);
+}
 .sidekick-shopping .shopping-editor-actions {
   margin-top: var(--sk-s3);
 }
@@ -456,6 +474,16 @@
   color: inherit;
   cursor: default;
 }
+/* An archived list is for reading: its rows keep full opacity (the family dims a disabled button to 0.5, under the
+   contrast for text) and the name takes the muted text tone instead. */
+.sidekick-shopping
+  .shopping-store-item--archived
+  :is(.shopping-ring, .shopping-store-row):disabled {
+  opacity: 1;
+}
+.sidekick-shopping .shopping-store-item--archived .shopping-store-name {
+  color: var(--sk-muted);
+}
 .sidekick-shopping :is(.shopping-ring, .shopping-store-row):focus-visible {
   outline-offset: -2px;
 }
@@ -538,13 +566,17 @@
   gap: var(--sk-s1);
   min-width: 0;
 }
-/* Occasion, date, offer and note on one muted line, cut with an ellipsis; the change form has the whole text. */
+/* Offer, date, occasion and note as muted text on at most two lines, so an item with an offer still shows its occasion
+   and note; what does not fit is cut with an ellipsis, and the change form has the whole text. */
 .sidekick-shopping .shopping-store-meta {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   font: var(--sk-type-meta);
   color: var(--sk-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 /* The name takes the free width and the amount sits at the right end of the same text line: one baseline. */
 .sidekick-shopping .shopping-store-text {

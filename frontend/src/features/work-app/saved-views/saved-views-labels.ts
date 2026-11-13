@@ -60,7 +60,7 @@ export const savedViewsLabelsEn: SavedViewsLabels = {
   showingView: (name) => `Showing view “${name}”`,
   changedFromView: (name) => `Changed from view “${name}”`,
   showAll: "Show all",
-  showAllFailed: "Couldn’t read the list. The view stays.",
+  showAllFailed: "Couldn’t load the list. The view is still shown.",
   savingNow: (summary) => `This saves: ${summary}`,
   allTasks: "All tasks",
   tagsAll: (tags) => `Tags: ${tags}`,

@@ -24,8 +24,8 @@ export const groupSelectLabelsEn: GroupSelectLabels = {
   none: "Nowhere yet (Unsorted)",
   domainOnly: (domain) => `${domain}, no project`,
   processOption: (title) => `${title} (process)`,
-  loading: "Loading areas and projects…",
-  failed: "Couldn’t load areas and projects.",
+  loading: "Loading places…",
+  failed: "Couldn’t load places.",
   locale: "en",
 };
 

@@ -122,9 +122,14 @@
   cursor: pointer;
 }
 
+/* A button held off with aria-disabled (it stays focusable and says why) looks like a disabled one. The icon buttons
+   draw their own held-off state. */
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
   button:disabled,
-.sk-btn:disabled {
+.sk-btn:disabled,
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button[aria-disabled="true"]:not(.sk-iconbtn),
+.sk-btn[aria-disabled="true"]:not(.sk-iconbtn) {
   opacity: 0.5;
   cursor: default;
 }

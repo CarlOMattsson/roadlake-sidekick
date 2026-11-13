@@ -168,17 +168,17 @@ export const workEn = {
   archiveContact: "Archive",
   restoreContact: "Restore",
   confirmChange: "Confirm",
-  /** Before the nicknames under a Contact's name: "Nicknames: Annie, AB". */
-  aliasLabel: (n: number): string => (n === 1 ? "Nickname:" : "Nicknames:"),
-  /** The heading of the nickname list inside the Contact editor. */
-  aliasesHeading: "Nicknames",
-  noAliases: "No nicknames.",
-  aliasValue: "New nickname",
-  aliasRequired: "Enter a nickname.",
-  aliasTooLong: "The nickname can be up to 200 characters.",
-  addAlias: "Add nickname",
+  /** Before the other names under a Contact's name: "Also known as Annie, AB". */
+  aliasLabel: (): string => "Also known as",
+  /** The heading of the alternative-name list inside the Contact editor. */
+  aliasesHeading: "Also known as",
+  noAliases: "No other names.",
+  aliasValue: "New alternative name",
+  aliasRequired: "Enter a name.",
+  aliasTooLong: "The name can be up to 200 characters.",
+  addAlias: "Add another name",
   removeAlias: "Remove",
-  removeAliasFor: (value: string) => `Remove nickname ${value}`,
+  removeAliasFor: (value: string) => `Remove the name ${value}`,
   projects: "Projects",
   board: "Status",
   agenda: "Agenda",
@@ -238,7 +238,7 @@ export const workEn = {
   /** The row menu's button for a screen reader (not drawn), on a row of Work and on a Step. */
   rowMenuButton: (title: string) => `More options for ${title}`,
   dragTaskFor: (title: string) =>
-    `Drag ${title}, or use the left and right arrow keys to move it to the neighboring column`,
+    `Drag ${title}, or use the left and right arrow keys to move it to the next column`,
   /** "Moved to {status}" after a status change; the Undo button follows it. */
   movedTo: "Moved to {status}",
   moveFailed: "Couldn’t change the status.",
@@ -324,7 +324,7 @@ export const workSv: WorkLabels = {
   empty: "Ingen uppgift eller kontakt att visa.",
   hierarchy: "Projekt",
   hierarchyEmpty: "Inga domäner, processer eller projekt ännu.",
-  hierarchyTruncated: "Det finns fler än som visas.",
+  hierarchyTruncated: "Det finns fler än de som visas.",
   hierarchyMore: (count: number) => `+${count}`,
   hierarchyMoreLabel: (count: number) => `${count} fler`,
   progressOf: (done: number, total: number) => `${done} av ${total} klara`,
@@ -369,7 +369,7 @@ export const workSv: WorkLabels = {
   steps: "Steg",
   stepsForbidden: "Du har inte behörighet att se steg.",
   stepConflict:
-    "Ett steg ändrades någon annanstans. Ladda om för att se senaste versionen.",
+    "Ett steg ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   stepSaveFailed: "Det gick inte att uppdatera steget. Försök igen.",
   stepsShowMore: "Visa fler steg",
   stepsReadMoreFailed: "Det gick inte att läsa fler steg.",
@@ -397,7 +397,7 @@ export const workSv: WorkLabels = {
   descriptionMore: "Visa mer",
   descriptionLess: "Visa mindre",
   conflict:
-    "Uppgiften ändrades någon annanstans. Ladda om för att se senaste versionen.",
+    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   reload: "Ladda om",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
   saveFailed: "Det gick inte att spara. Försök igen.",
@@ -408,7 +408,7 @@ export const workSv: WorkLabels = {
     completed: "Avslutat",
   },
   projectConflict:
-    "Projektet ändrades någon annanstans. Ladda om för att se senaste versionen.",
+    "Projektet ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   description: "Beskrivning",
   descriptionTooLong: "Beskrivningen får vara högst 10 000 tecken.",
   startDate: "Startdatum",
@@ -440,7 +440,7 @@ export const workSv: WorkLabels = {
   contactSearchHint: "Skriv minst två tecken för att söka.",
   noContactMatches: (q: string) => `Ingen kontakt matchar ”${q}”.`,
   contactConflict:
-    "Kopplingarna ändrades någon annanstans. Ladda om för att se senaste listan.",
+    "Kopplingarna ändrades någon annanstans. Ladda om för att se den senaste listan.",
   contactWriteFailed: "Det gick inte att ändra kopplingen. Försök igen.",
   contactSearchPlaceholder: "Sök på namn",
   closeContactSearch: "Stäng",
@@ -466,7 +466,7 @@ export const workSv: WorkLabels = {
   phoneTooLong: "Telefonnumret får vara högst 64 tecken.",
   contextNoteTooLong: "Anteckningen får vara högst 10 000 tecken.",
   contactEditConflict:
-    "Kontakten ändrades någon annanstans. Ladda om för att se senaste versionen.",
+    "Kontakten ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   contactSaveFailed: "Det gick inte att ändra kontakten. Försök igen.",
   archivedLabel: "Arkiverad",
   archivedReadOnly: "Arkiverade kontakter är skrivskyddade.",

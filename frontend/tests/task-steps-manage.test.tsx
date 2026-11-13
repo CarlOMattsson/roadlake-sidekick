@@ -295,7 +295,7 @@ describe("step move", () => {
 });
 
 describe("step list refusals", () => {
-  it("shows the conflict warning and Läs om reads the list again", async () => {
+  it("shows the conflict warning and Ladda om reads the list again", async () => {
     const user = userEvent.setup();
     const { work, transport } = mockTransport({
       archiveTaskStep: vi.fn().mockRejectedValue({ code: "conflict" }),

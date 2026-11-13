@@ -49,7 +49,7 @@ def journal_list_cursor_key(
     """The query a cursor belongs to; a cursor of one direction is refused by the other."""
 
     key = (
-        "journal:entries:v1:"
+        "journal:entries:v2:"
         f"from={start_date.isoformat()}:to={end_date.isoformat()}:"
         f"archived={str(include_archived).lower()}"
     )
@@ -60,5 +60,5 @@ def journal_list_cursor_key(
 
 def journal_day_cursor_key(journal_date: date, include_archived: bool) -> str:
     return (
-        f"journal:day:v1:date={journal_date.isoformat()}:archived={str(include_archived).lower()}"
+        f"journal:day:v2:date={journal_date.isoformat()}:archived={str(include_archived).lower()}"
     )

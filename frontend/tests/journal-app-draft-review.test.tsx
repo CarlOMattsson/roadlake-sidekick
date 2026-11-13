@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { journalEn } from "@/features/journal-app/labels";
+import { ownerToday } from "@/features/mcp-apps/app-timezone";
 import {
   savedEntryId,
   sourceId,
@@ -87,6 +88,39 @@ describe("journal draft review", () => {
       screen.queryByText(journalEn.hiddenProposals),
     ).not.toBeInTheDocument();
     expect(transport.finalizeDraft).not.toHaveBeenCalled();
+  });
+
+  it("names the day the draft is saved on, with the year when it is not this year", async () => {
+    const thisYear = ownerToday().slice(0, 4);
+    const lastYear = String(Number(thisYear) - 1);
+    const sameYear = transportMock({
+      getDraft: vi.fn(() =>
+        Promise.resolve({
+          draft: draftFixture({ journal_date: `${thisYear}-01-02` }),
+          source,
+        }),
+      ),
+    });
+    const { unmount } = renderDraft(sameYear);
+    expect(
+      await screen.findByText(/^Day: 2 Jan\. Not saved yet/),
+    ).toBeVisible();
+    unmount();
+    renderDraft(
+      transportMock({
+        getDraft: vi.fn(() =>
+          Promise.resolve({
+            draft: draftFixture({ journal_date: `${lastYear}-12-28` }),
+            source,
+          }),
+        ),
+      }),
+    );
+    expect(
+      await screen.findByText(
+        `Day: 28 Dec ${lastYear}. Not saved yet. Save it as an entry to keep it.`,
+      ),
+    ).toBeVisible();
   });
 
   it("edits only through update with the changed field and the held version", async () => {

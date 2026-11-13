@@ -20,7 +20,12 @@ if (!("CSS" in globalThis)) {
 
 const TASK_ID = "019f0000-0000-7000-8000-0000000000a1";
 
-function step(id: string, title: string, actionCount?: number): WorkStep {
+function step(
+  id: string,
+  title: string,
+  actionCount?: number,
+  actionDoneCount?: number,
+): WorkStep {
   return {
     id,
     title,
@@ -29,10 +34,14 @@ function step(id: string, title: string, actionCount?: number): WorkStep {
     version: 1,
     position: 0,
     ...(actionCount === undefined ? {} : { action_count: actionCount }),
+    ...(actionDoneCount === undefined
+      ? {}
+      : { action_done_count: actionDoneCount }),
   };
 }
 const bare = step("019f0000-0000-7000-8000-0000000000b1", "Ring Anna", 0);
 const busy = step("019f0000-0000-7000-8000-0000000000b2", "Skriv offert", 1);
+const partly = step("019f0000-0000-7000-8000-0000000000b4", "Boka lokal", 2, 1);
 const unknown = step("019f0000-0000-7000-8000-0000000000b3", "Skicka faktura");
 
 const action: WorkAction = {
@@ -212,4 +221,31 @@ it("words how many are done in both languages", () => {
   expect(stepActionsLabelsEn.countMeta(2, 1)).toBe("1 of 2 actions done");
   expect(stepActionsLabelsEn.countMeta(1, 1)).toBe("1 of 1 action done");
   expect(stepActionsLabelsEn.countMeta(2, 0)).toBe("2 actions");
+});
+
+it("says how many are done from the list alone, and keeps it through a check", async () => {
+  const user = userEvent.setup();
+  const work = renderSteps({
+    listTaskSteps: vi.fn().mockResolvedValue({
+      items: [bare, busy, partly],
+      next_cursor: null,
+    }),
+    completeTaskStep: vi.fn().mockResolvedValue({
+      step: { ...partly, version: 2, status: "completed" },
+    }),
+  });
+
+  // No Action has been read: the count and the done count both come with the Step.
+  expect(showButton(await stepRow(partly.title))).toHaveTextContent(
+    "1 av 2 åtgärder klara",
+  );
+  // A Step with no done Actions, or an older server that sends none, reads as before.
+  expect(showButton(await stepRow(busy.title))).toHaveTextContent("1 åtgärd");
+  expect(work.listStepActions).not.toHaveBeenCalled();
+
+  await user.click(await screen.findByRole("checkbox", { name: partly.title }));
+  await screen.findByText(workSv.stepDone);
+  expect(showButton(await stepRow(partly.title))).toHaveTextContent(
+    "1 av 2 åtgärder klara",
+  );
 });

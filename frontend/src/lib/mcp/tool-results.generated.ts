@@ -582,6 +582,7 @@ export type ToolResults = {
   list_task_steps: {
     items: Array<{
       action_count: number;
+      action_done_count: number;
       archived_at: string | null;
       attention_requested: boolean;
       due_at: string | null;

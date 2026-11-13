@@ -37,7 +37,7 @@ export async function clickSave(user: ReturnType<typeof userEvent.setup>) {
     name: journalEn.saveWithoutThem,
   });
   await user.click(
-    without ?? screen.getByRole("button", { name: "Yes, save entry" }),
+    without ?? screen.getByRole("button", { name: "Yes, save the entry" }),
   );
 }
 

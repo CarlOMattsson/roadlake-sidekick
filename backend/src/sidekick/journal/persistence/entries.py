@@ -164,9 +164,11 @@ class JournalEntryStore:
         tag_match: str = "any",
         order: JournalOrder = "asc",
     ) -> list[JournalEntry]:
-        """Entries in day order, or with `order="desc"` newest first.
+        """Entries in day order, or with `order="desc"` newest day first.
 
-        An entry with no time at all is last in both orders.
+        Within the entry's own `journal_date` an entry is placed by its time; one with no time at
+        all is last of its day in both orders. An entry written afterwards for an earlier day
+        stays on that day whatever its time.
 
         `after` is the `entry_page_key` of the last entry already read.
 
@@ -202,7 +204,13 @@ class JournalEntryStore:
             )
         )
         descending = order == "desc"
-        sort_key = (explicit_at, fallback_rank, JournalEntryRow.created_at, JournalEntryRow.id)
+        sort_key = (
+            JournalEntryRow.journal_date,
+            explicit_at,
+            fallback_rank,
+            JournalEntryRow.created_at,
+            JournalEntryRow.id,
+        )
         if not include_archived:
             statement = statement.where(JournalEntryRow.archived_at.is_(None))
         if tags:

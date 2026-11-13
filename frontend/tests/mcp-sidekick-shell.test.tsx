@@ -505,7 +505,7 @@ it("Back from a journal entry's original text names the entry it returns to, not
   ).toBeInTheDocument();
   navigateTo({ room: "journal", view: "source", id: "s1" }, "journal");
   expect(
-    screen.getByRole("button", { name: "Tillbaka till Anteckningen" }),
+    screen.getByRole("button", { name: "Tillbaka till Anteckning" }),
   ).toBeInTheDocument();
 });
 

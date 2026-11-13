@@ -30,4 +30,11 @@ describe("clipAtWord", () => {
   it("gives only the ellipsis when not even the first word fits", () => {
     expect(clipAtWord("extraordinärlångtord och mer", room(5))).toBe("…");
   });
+
+  it("cuts inside a word longer than a word can be, such as a URL", () => {
+    const url = "https://example.com/very/long/path/to/a/page";
+    expect(clipAtWord(`Kunden ringde ${url} igen`, room(30))).toBe(
+      `Kunden ringde ${url.slice(0, 15)}…`,
+    );
+  });
 });

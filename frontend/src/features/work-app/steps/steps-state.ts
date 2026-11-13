@@ -50,8 +50,6 @@ export type StepsState = {
   undo: ArchivedStep | undefined;
   /** The Step checked last, whose row shows Ångra until it runs out, another write, or Undo. */
   stepUndo: StepUndo | undefined;
-  /** How many of each Step's Actions are done, by Step id; known once the Step's Actions have been read. */
-  actionsDone: Record<string, number>;
   /** The status line after a move, a restore or an added Step. */
   status: string | undefined;
 };
@@ -86,15 +84,20 @@ export type StepsAction =
   | { type: "actionsCounted"; stepId: string; count: number; done: number };
 
 /**
- * `step` with the Action count the view already held for it. The Step writes answer without a count,
- * so the count read with the list is carried over rather than lost.
+ * `step` with the Action counts the view already held for it. The Step writes answer without counts,
+ * so the counts read with the list are carried over rather than lost.
  */
 function keepActionCount(
   step: WorkStep,
   known: WorkStep | undefined,
 ): WorkStep {
   const count = step.action_count ?? known?.action_count;
-  return count === undefined ? step : { ...step, action_count: count };
+  const done = step.action_done_count ?? known?.action_done_count;
+  return {
+    ...step,
+    ...(count === undefined ? {} : { action_count: count }),
+    ...(done === undefined ? {} : { action_done_count: done }),
+  };
 }
 
 export const initialStepsState: StepsState = {
@@ -109,7 +112,6 @@ export const initialStepsState: StepsState = {
   archived: [],
   undo: undefined,
   stepUndo: undefined,
-  actionsDone: {},
   status: undefined,
 };
 
@@ -228,17 +230,20 @@ export function stepsReducer(
         steps: [
           ...state.steps.filter((item) => item.id !== action.step.id),
           // A new Step has no Actions yet.
-          { action_count: 0, ...action.step },
+          { action_count: 0, action_done_count: 0, ...action.step },
         ],
         status: action.status,
       };
     case "actionsCounted":
       return {
         ...state,
-        actionsDone: { ...state.actionsDone, [action.stepId]: action.done },
         steps: state.steps.map((item) =>
           item.id === action.stepId
-            ? { ...item, action_count: action.count }
+            ? {
+                ...item,
+                action_count: action.count,
+                action_done_count: action.done,
+              }
             : item,
         ),
       };

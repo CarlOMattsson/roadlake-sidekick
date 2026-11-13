@@ -52,7 +52,7 @@ from sidekick.work.application.serialization import (
     process_hierarchy_node,
     process_public_data,
 )
-from sidekick.work.domain import Action, Step
+from sidekick.work.domain import Action, ActionCounts, Step
 
 if TYPE_CHECKING:
     from sidekick.composition import Container
@@ -306,11 +306,13 @@ def task_steps_structured(
     page, action_counts = container.steps.list_steps_with_action_counts(
         actor, task_id, limit=limit, cursor=cursor
     )
+    no_actions = ActionCounts(0, 0)
     return ListedStepPageOutput(
         items=[
             ListedStepRecord(
                 **step_record(step).model_dump(),
-                action_count=action_counts.get(step.id, 0),
+                action_count=action_counts.get(step.id, no_actions).active,
+                action_done_count=action_counts.get(step.id, no_actions).completed,
             )
             for step in page.items
         ],

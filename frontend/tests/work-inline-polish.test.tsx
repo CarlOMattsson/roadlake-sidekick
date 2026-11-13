@@ -96,7 +96,7 @@ describe("contact aliases show the heading once", () => {
     expect(field.tagName).toBe("INPUT");
     const label = field.closest("div")?.querySelector("label");
     expect(label).not.toHaveClass("work-visually-hidden");
-    expect(label).toHaveTextContent("New nickname");
+    expect(label).toHaveTextContent("New alternative name");
   });
 });
 

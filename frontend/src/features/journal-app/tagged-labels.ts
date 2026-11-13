@@ -15,19 +15,10 @@ export const taggedEn = {
   /** One window came back empty; "Show more" can still reach further back. */
   taggedNoOlder: (tags: number): string =>
     tags === 1
-      ? "No entry with this tag in the year before."
-      : "No entry with all of these tags in the year before.",
-  /** Two windows in a row came back empty: the list stops there. */
-  taggedEnd: (tags: number): string =>
-    tags === 1
-      ? "No older entries with this tag."
-      : "No older entries with all of these tags.",
-  taggedEmpty: (tags: number): string =>
-    tags === 1
-      ? "No entry from the last 12 months has this tag."
-      : "No entry from the last 12 months has all of these tags.",
+      ? "No entries with this tag in the 12 months before that."
+      : "No entries with all of these tags in the 12 months before that.",
   taggedCapped: (n: number) =>
-    `Showing the newest ${n}. Choose another tag to narrow the list.`,
+    `Showing the newest ${n}. Add another tag to narrow the list.`,
   draftTags: "Tags",
   tagsConflict:
     "This entry was changed elsewhere. The latest version is loaded. Check the tags and try again.",
@@ -44,16 +35,8 @@ export const taggedSv: typeof taggedEn = {
   taggedMore: "Visa fler",
   taggedNoOlder: (tags) =>
     tags === 1
-      ? "Ingen anteckning med den här taggen året innan."
-      : "Ingen anteckning med alla de här taggarna året innan.",
-  taggedEnd: (tags) =>
-    tags === 1
-      ? "Inga äldre anteckningar med den här taggen."
-      : "Inga äldre anteckningar med alla de här taggarna.",
-  taggedEmpty: (tags) =>
-    tags === 1
-      ? "Ingen anteckning de senaste 12 månaderna har den här taggen."
-      : "Ingen anteckning de senaste 12 månaderna har alla de här taggarna.",
+      ? "Ingen anteckning med den här taggen under de 12 månaderna före det."
+      : "Ingen anteckning med alla de här taggarna under de 12 månaderna före det.",
   taggedCapped: (n) =>
     `Visar de nyaste ${n}. Välj en tagg till för att begränsa listan.`,
   draftTags: "Taggar",

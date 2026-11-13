@@ -24,7 +24,8 @@ export type DayStripProps = {
   selected: string;
   /**
    * No day is chosen: the view lists entries from many days (a tag filter). No cell is filled or read as selected;
-   * `selected` still picks the week and holds the strip's tab stop, and a tap on a day opens that day.
+   * `selected` still picks the week and holds the strip's tab stop, and a tap on a day opens that day. No dots either:
+   * they mark days with any entry, which in a list of tagged entries would read as hits.
    */
   unmarked?: boolean;
   /** Today, YYYY-MM-DD. Passed in so the strip never reads the clock. */
@@ -146,7 +147,7 @@ export function DayStrip({
   // Where the current touch started, for a swipe that steps one week.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const days = stripDays(selected, today);
-  const marked = new Set(daysWithEntries);
+  const marked = new Set(unmarked ? [] : daysWithEntries);
   // Today when it is in the shown week, otherwise the selected day. Below ~250 px, and at large text in a phone frame,
   // the week scrolls (journal.css); then this day is centred in it. Keyed on this value, so a tap in the same week does not move it.
   const scrollTarget = days.includes(today) ? today : selected;

@@ -37,16 +37,18 @@ test("a nickname and a tag set on a Contact's page are stored on the server", as
     app.getByRole("heading", { level: 2, name, exact: true }),
   ).toBeVisible();
 
-  // Nicknames are edited in the editor, in the "Nicknames" group.
+  // Nicknames are edited in the editor, in the "Also known as" group.
   await app.getByRole("button", { name: "More options", exact: true }).click();
   await app.getByRole("button", { name: "Edit", exact: true }).click();
-  const nicknames = app.getByRole("group", { name: "Nicknames" });
-  await nicknames.getByLabel("New nickname", { exact: true }).fill(nickname);
+  const nicknames = app.getByRole("group", { name: "Also known as" });
   await nicknames
-    .getByRole("button", { name: "Add nickname", exact: true })
+    .getByLabel("New alternative name", { exact: true })
+    .fill(nickname);
+  await nicknames
+    .getByRole("button", { name: "Add another name", exact: true })
     .click();
   await expect(
-    nicknames.getByRole("button", { name: `Remove nickname ${nickname}` }),
+    nicknames.getByRole("button", { name: `Remove the name ${nickname}` }),
   ).toBeVisible();
   await app.getByRole("button", { name: "Cancel", exact: true }).click();
 

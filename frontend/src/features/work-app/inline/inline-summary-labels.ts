@@ -205,7 +205,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   undo: workSv.agendaUndo,
   undoneNote: "Ångrat. Uppgiften är öppen igen.",
   conflict:
-    "Uppgiften ändrades någon annanstans. Läs om för att se senaste versionen.",
+    "Uppgiften ändrades någon annanstans. Ladda om för att se den senaste versionen.",
   saveFailed: "Kunde inte spara. Försök igen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
@@ -213,7 +213,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",
   goneContact: "Kontakten finns inte längre",
-  reread: "Läs om",
+  reread: "Ladda om",
 };
 
 /** Summary labels for a host locale; anything that is not Swedish gets English, as in the Work app. */

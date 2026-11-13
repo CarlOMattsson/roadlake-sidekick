@@ -112,26 +112,28 @@ NO_OCCURRENCE_DESC = datetime(1, 1, 1, tzinfo=UTC)
 
 
 def no_occurrence(order: JournalOrder) -> datetime:
-    """Stands for "no time at all" in the page key: such an entry sorts after every dated one.
+    """Stands for "no time at all" in the page key: such an entry is last of its day.
 
     The stand-in is the latest instant when ascending and the earliest when descending, so an
-    entry without a time is last in both directions.
+    entry without a time is last of its day in both directions.
     """
 
     return NO_OCCURRENCE_DESC if order == "desc" else NO_OCCURRENCE
 
 
-ENTRY_PAGE_KEY = (datetime, int, datetime, UUID)
-"""Kinds of `entry_page_key`: (effective time, fallback rank, created_at, id)."""
+ENTRY_PAGE_KEY = (date, datetime, int, datetime, UUID)
+"""Kinds of `entry_page_key`: (journal date, effective time, fallback rank, created_at, id)."""
 
 
 def entry_page_key(
     entry: JournalEntry, order: JournalOrder = "asc"
-) -> tuple[datetime, int, datetime, UUID]:
+) -> tuple[date, datetime, int, datetime, UUID]:
     """The sort position of an entry in a journal list; the next page starts strictly after it.
 
-    Mirrors the persistence ORDER BY: occurrence, else recorded time, else last; then creation
-    time and the id as unique tiebreak. It does not move when entries are added or removed.
+    Mirrors the persistence ORDER BY: the entry's day first, then within the day its occurrence,
+    else its recorded time, else last; then creation time and the id as unique tiebreak. An entry
+    with no time at all is last of its own day, in both orders. The position does not move when
+    entries are added or removed.
     """
 
     if entry.occurred_at is not None:
@@ -140,7 +142,7 @@ def entry_page_key(
         effective_at, rank = entry.source_recorded_at, 1
     else:
         effective_at, rank = no_occurrence(order), 2
-    return effective_at, rank, entry.created_at, entry.id
+    return entry.journal_date, effective_at, rank, entry.created_at, entry.id
 
 
 def _require_transition(entry: JournalEntry, expected_version: int, changed_at: datetime) -> None:

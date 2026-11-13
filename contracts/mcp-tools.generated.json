@@ -17802,6 +17802,12 @@
                 "title": "Action Count",
                 "type": "integer"
               },
+              "action_done_count": {
+                "description": "How many of the active Actions are done.",
+                "minimum": 0,
+                "title": "Action Done Count",
+                "type": "integer"
+              },
               "archived_at": {
                 "anyOf": [
                   {
@@ -17879,7 +17885,8 @@
               "position",
               "due_at",
               "version",
-              "action_count"
+              "action_count",
+              "action_done_count"
             ],
             "title": "ListedStepRecord",
             "type": "object"

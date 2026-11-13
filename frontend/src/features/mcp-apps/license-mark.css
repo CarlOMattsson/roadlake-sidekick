@@ -102,6 +102,10 @@
   /* The quiet buttons pull their side padding (0.9rem, family.css) back, so their text starts on the row's edge. */
   margin-inline-start: -0.9rem;
 }
+.sk-license-row__actions > .sk-btn--secondary {
+  /* A framed button keeps its edge on the row's edge: it does not take the pull-back the text buttons need. */
+  margin-inline-start: 0.9rem;
+}
 .sk-license-row__actions:empty {
   display: none;
 }

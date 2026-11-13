@@ -90,7 +90,7 @@ it("shows the Contact's note under 'About Anna' and keeps e-mail and phone behin
   expect(screen.queryByText(`${workEn.phone}: ${anna.phone}`)).toBeNull();
   // The aliases are one meta line, "Also known as Annan A", with no button under the name.
   expect(document.querySelector(".work-alias-line")).toHaveTextContent(
-    `${workEn.aliasLabel(1)} ${alias.value}`,
+    `${workEn.aliasLabel()} ${alias.value}`,
   );
   expect(screen.getByText(alias.value)).toBeInTheDocument();
   // Nicknames are edited in the editor: the ⋯ menu has no separate nickname entry.
@@ -141,9 +141,7 @@ it("shows the aliases as one line, 'Also known as X, Y', under the name", async 
     if (!line) throw new Error("no alias line yet");
     return line;
   });
-  expect(row).toHaveTextContent(
-    `${workEn.aliasLabel(2)} ${alias.value}, Annie`,
-  );
+  expect(row).toHaveTextContent(`${workEn.aliasLabel()} ${alias.value}, Annie`);
   expect(row.querySelector("button")).toBeNull();
   expect(
     name.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING,

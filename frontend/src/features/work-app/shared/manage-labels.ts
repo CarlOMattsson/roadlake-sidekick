@@ -38,7 +38,7 @@ export const manageLabelsSv: ManageLabels = {
   restore: "Återställ",
   undo: "Ångra",
   removeLink: "Ta bort koppling",
-  reload: "Läs om",
+  reload: "Ladda om",
   retry: "Försök igen",
   moveUpFor: (title) => `Flytta upp: ${title}`,
   moveDownFor: (title) => `Flytta ned: ${title}`,
@@ -50,10 +50,10 @@ export const manageLabelsSv: ManageLabels = {
   archived: (title) => `Arkiverade ”${title}”.`,
   restored: (title) => `Återställde ”${title}”.`,
   conflict:
-    "Det här ändrades någon annanstans efter att du läste det. Läs om, så ser du senaste läget, och försök sedan igen.",
+    "Det här ändrades någon annanstans efter att du läste det. Ladda om, så ser du det senaste läget, och försök sedan igen.",
   forbidden: "Du har inte behörighet att göra den här ändringen.",
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
-  invalid: "Ändringen godtogs inte. Läs om och försök igen.",
+  invalid: "Ändringen godtogs inte. Ladda om och försök igen.",
   failed: "Ändringen kunde inte sparas.",
 };
 

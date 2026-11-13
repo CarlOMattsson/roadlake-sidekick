@@ -275,6 +275,12 @@ describe("TaskFrame Markera klar", () => {
     const reopen = await screen.findByRole("button", {
       name: workEn.reopenTask,
     });
+    expect(reopen).toHaveClass(
+      "sk-btn--secondary",
+      "sk-btn--compact",
+      "work-task-done",
+    );
+    expect(reopen).not.toHaveClass("sk-btn--primary");
     expect(
       screen.queryByRole("button", { name: workEn.markDone }),
     ).not.toBeInTheDocument();

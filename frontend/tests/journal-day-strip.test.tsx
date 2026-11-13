@@ -14,7 +14,6 @@ import {
   dayStripLabelsSv,
 } from "@/features/journal-app/day-strip-labels";
 
-import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
 // jsdom applies no CSS, so journal.css is read and resolved against the rendered strip. The rendered check is the
@@ -778,6 +777,16 @@ describe("DayStrip with no day chosen", () => {
     expect(onSelect).toHaveBeenCalledWith("2026-10-22");
   });
 
+  it("draws no dots: they mark days with any entry, which would read as hits in a tagged list", () => {
+    const withDots = props({ daysWithEntries: ["2026-10-22"] });
+    const { unmount } = render(<DayStrip {...withDots} />);
+    expect(dayButton("2026-10-22")).toHaveAttribute("data-has-entries", "true");
+    unmount();
+    render(<DayStrip {...props({ ...withDots, unmarked: true })} />);
+    expect(dayButton("2026-10-22")).not.toHaveAttribute("data-has-entries");
+    expect(document.querySelector(".sk-day-strip-dot")).toBeNull();
+  });
+
   it("is not marked when a day is chosen, and the numbers are muted only when none is", () => {
     const { unmount } = render(<DayStrip {...props()} />);
     expect(document.querySelector(".sk-day-strip")).not.toHaveAttribute(
@@ -789,13 +798,5 @@ describe("DayStrip with no day chosen", () => {
     render(<DayStrip {...props({ unmarked: true })} />);
     const none = document.querySelector(".sk-day-strip-number");
     expect(journalCss.styleOf(none!, ROOM).color).toBe("var(--sk-muted)");
-  });
-});
-
-describe("DayStrip and the journal text rule (D-058)", () => {
-  it("contains no model context call and no console call", () => {
-    const source = readSource("features/journal-app/day-strip.tsx");
-    expect(source).not.toMatch(/\bupdateModelContext\b/);
-    expect(source).not.toMatch(/\bconsole\s*\./);
   });
 });

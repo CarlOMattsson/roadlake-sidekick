@@ -10,22 +10,24 @@ import { tagLabelOf, type TagOption } from "../mcp-apps/ui/tag-vocabulary";
 const WINDOW_DAYS = 365;
 /** Pages of 50 followed for one window, so a window holds at most 500 entries. */
 const PAGE_LIMIT = 10;
+/** Entries drawn at once; "Visa fler" draws this many more of those already read before it reads an older window. */
+const ENTRIES_PER_PAGE = 50;
 /** Empty windows in a row after which the list stops reading further back: two years without one such entry. */
 const EMPTY_WINDOWS_TO_STOP = 2;
 
-type Read =
-  | { kind: "loading" }
-  | {
-      kind: "ready";
-      entries: JournalEntry[];
-      capped: boolean;
-      /** Windows of 366 days read back from today; "Visa fler" reads one more. */
-      years: number;
-      more: "idle" | "busy" | "failed" | "empty";
-      /** Windows read in a row, newest last, that held no entry; at EMPTY_WINDOWS_TO_STOP the list ends. */
-      emptyRun: number;
-    }
-  | { kind: "error"; cause: unknown };
+type Ready = {
+  kind: "ready";
+  entries: JournalEntry[];
+  /** How many of `entries` are drawn; the rest follow ENTRIES_PER_PAGE at a time. */
+  visible: number;
+  capped: boolean;
+  /** Windows of 366 days read back from today; "Visa fler" reads one more. */
+  years: number;
+  more: "idle" | "busy" | "failed" | "empty";
+  /** Windows read in a row, newest last, that held no entry; at EMPTY_WINDOWS_TO_STOP the list ends. */
+  emptyRun: number;
+};
+type Read = { kind: "loading" } | Ready | { kind: "error"; cause: unknown };
 
 /**
  * The entries that carry every chosen tag, newest first: the last 12 months, and with "Visa fler" the 366 days before
@@ -87,6 +89,7 @@ export function TaggedEntries({
           setRead({
             kind: "ready",
             entries,
+            visible: ENTRIES_PER_PAGE,
             capped,
             years: 1,
             more: "idle",
@@ -101,10 +104,14 @@ export function TaggedEntries({
       current = false;
     };
   }, [readWindow, attempt, refreshKey]);
-  /** "Visa fler": the 12 months before the oldest read, added under the list. */
-  function readOlder() {
+  /** "Visa fler": the entries already read first, then the 12 months before the oldest read, added under the list. */
+  function showMore() {
     if (read.kind !== "ready" || read.more === "busy") return;
-    const shown = read;
+    if (read.visible < read.entries.length)
+      setRead({ ...read, visible: read.visible + ENTRIES_PER_PAGE });
+    else readOlder(read);
+  }
+  function readOlder(shown: Ready) {
     setRead({ ...shown, more: "busy" });
     readWindow(shown.years).then(
       ({ entries, capped }) => {
@@ -112,6 +119,7 @@ export function TaggedEntries({
         setRead({
           kind: "ready",
           entries: [...shown.entries, ...entries],
+          visible: shown.entries.length + ENTRIES_PER_PAGE,
           capped,
           years: shown.years + 1,
           more: entries.length > 0 ? "idle" : "empty",
@@ -126,6 +134,8 @@ export function TaggedEntries({
 
   const names = tags.map((slug) => tagLabelOf(slug, vocabulary));
   const ended = read.kind === "ready" && read.emptyRun >= EMPTY_WINDOWS_TO_STOP;
+  // Every entry read is drawn: only then do the notes on how far the read went apply.
+  const allShown = read.kind === "ready" && read.visible >= read.entries.length;
   return (
     <section className="journal-tagged" aria-label={t.taggedEntries}>
       <p className="journal-muted">
@@ -143,11 +153,11 @@ export function TaggedEntries({
         />
       )}
       {read.kind === "ready" && read.entries.length === 0 && (
-        <EmptyState title={t.taggedEmpty(tags.length)} />
+        <EmptyState title={t.taggedNone(tags.length, read.years)} />
       )}
       {read.kind === "ready" && read.entries.length > 0 && (
         <ul className="journal-timeline">
-          {read.entries.map((entry) => (
+          {read.entries.slice(0, read.visible).map((entry) => (
             <EntryRow
               key={entry.id}
               entry={entry}
@@ -159,33 +169,40 @@ export function TaggedEntries({
           ))}
         </ul>
       )}
-      {read.kind === "ready" && read.capped && (
+      {read.kind === "ready" && read.capped && allShown && (
         <p className="journal-muted" role="status">
           {t.taggedCapped(read.entries.length)}
         </p>
       )}
-      {read.kind === "ready" && read.more === "empty" && (
-        <p className="journal-muted" role="status">
-          {ended ? t.taggedEnd(tags.length) : t.taggedNoOlder(tags.length)}
-        </p>
-      )}
+      {/* The list ended after empty years: with entries the note says how far the read went; without any, the empty
+          line above has already named the years. */}
+      {read.kind === "ready" &&
+        read.more === "empty" &&
+        allShown &&
+        (read.entries.length === 0 && ended ? null : (
+          <p className="journal-muted" role="status">
+            {ended
+              ? t.taggedStopped(tags.length)
+              : t.taggedNoOlder(tags.length)}
+          </p>
+        ))}
       {read.kind === "ready" && read.more === "busy" && (
         <p role="status">{t.loading}</p>
       )}
       {read.kind === "ready" && read.more === "failed" && (
-        <ErrorNotice locale={t.dateLocale} onRetry={readOlder} />
+        <ErrorNotice locale={t.dateLocale} onRetry={() => readOlder(read)} />
       )}
-      {/* The 12 months before the oldest read; none once a window was cut at the page limit or the list has ended. */}
+      {/* More of what was read, then the 12 months before the oldest read; none once a window was cut at the page limit
+          or the list has ended. */}
       {read.kind === "ready" &&
-        !read.capped &&
-        !ended &&
+        (!allShown || (!read.capped && !ended)) &&
         read.more !== "failed" && (
           <p className="journal-list-more">
             <button
               type="button"
               className="sk-btn--quiet"
               disabled={read.more === "busy"}
-              onClick={readOlder}
+              onClick={showMore}
             >
               {t.taggedMore}
             </button>

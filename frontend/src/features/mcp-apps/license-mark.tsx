@@ -287,7 +287,7 @@ export function LicenseRow({
           <button
             ref={enterButton}
             type="button"
-            className={buttonClass("quiet")}
+            className={buttonClass("secondary")}
             onClick={() => {
               setOutcome(undefined);
               setEditing(true);

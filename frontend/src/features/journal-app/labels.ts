@@ -86,7 +86,9 @@ export const journalEn = {
   },
   untitledDraft: "Untitled draft",
   draft: "Draft",
-  draftNote: "Not saved yet. Save it as an entry to keep it.",
+  /** Under the "Claude’s draft" tag: the day the draft is saved on, and that nothing is saved yet. */
+  draftNote: (day: string) =>
+    `Day: ${day}. Not saved yet. Save it as an entry to keep it.`,
   titleLabel: "Title",
   summaryLabel: "Summary",
   noDraftSummary: "No summary.",
@@ -164,7 +166,7 @@ export const journalEn = {
   keepDraft: "Keep draft",
   rejected: "Draft rejected.",
   finalize: "Save as entry",
-  finalizeYes: "Yes, save entry",
+  finalizeYes: "Yes, save the entry",
   openTask: "Open task",
   terminalDraft: "This draft has already been handled.",
   conflict:
@@ -353,7 +355,8 @@ export const journalSv: JournalLabels = {
   },
   untitledDraft: "Utkast utan titel",
   draft: "Utkast",
-  draftNote: "Inget sparas förrän du sparar det som anteckning.",
+  draftNote: (day) =>
+    `Dag: ${day}. Inget sparas förrän du sparar utkastet som anteckning.`,
   titleLabel: "Titel",
   summaryLabel: "Sammanfattning",
   noDraftSummary: "Ingen sammanfattning.",
@@ -430,7 +433,7 @@ export const journalSv: JournalLabels = {
   openTask: "Öppna uppgiften",
   terminalDraft: "Utkastet är redan hanterat.",
   conflict:
-    "Utkastet ändrades någon annanstans eller är redan hanterat. Ladda om för att se senaste versionen. Dina ändringar behålls.",
+    "Utkastet ändrades någon annanstans eller är redan hanterat. Ladda om för att se den senaste versionen. Dina ändringar behålls.",
   reload: "Ladda om",
   invalidChange: "Ändringen godtogs inte. Kontrollera värdena.",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
