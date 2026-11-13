@@ -26,6 +26,8 @@ vi.mock("@/features/mcp-apps/bridge", () => ({
     call: vi.fn(() => new Promise(() => undefined)),
     requestDisplayMode: vi.fn(() => Promise.resolve("inline")),
     updateModelContext: vi.fn(),
+    onToolInput: () => undefined,
+    onToolCancelled: () => undefined,
     onToolResult: (listener: ToolResultListener) => {
       host.toolResult.push(listener);
     },

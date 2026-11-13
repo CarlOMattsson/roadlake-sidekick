@@ -7,6 +7,7 @@
  * There is no window.history: the state lives in memory only.
  */
 import { ROOM_IDS, type RoomId } from "@/features/mcp-apps/router";
+import type { ToolArgs } from "@/features/mcp-apps/room-types";
 
 /** At most this many entries sit above a room's root; pushing one more drops the oldest. */
 export const STACK_LIMIT = 8;
@@ -29,6 +30,8 @@ export type NavEntry = {
   from?: string;
   data?: unknown;
   isError?: boolean;
+  /** With an error result: the tool and record id of the call, so the room can read that again. */
+  toolArgs?: ToolArgs;
   /** Counts the tool results of the card; a room treats a changed count as a new result (two empty errors in a row). */
   resultId?: number;
 };

@@ -48,6 +48,8 @@ vi.mock("@/features/mcp-apps/bridge", () => ({
       openLinks: false,
     }),
     sendMessage: vi.fn().mockResolvedValue(false),
+    onToolInput: () => undefined,
+    onToolCancelled: () => undefined,
     onToolResult: (listener: ToolResultListener) => {
       host.toolResult.push(listener);
     },

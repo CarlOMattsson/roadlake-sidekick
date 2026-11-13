@@ -72,7 +72,7 @@ export function NoticeView({
       <div role="alert" tabIndex={-1} ref={banner} className="work-banner">
         <p>{t.boardConflict}</p>
         <button type="button" onClick={onReload}>
-          {t.reload}
+          {t.boardConflictAction}
         </button>
       </div>
     );

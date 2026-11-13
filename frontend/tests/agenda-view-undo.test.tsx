@@ -106,9 +106,12 @@ it("an Undo refused as a conflict shows the conflict notice and keeps the done s
   );
   await user.click(undo);
   expect(await screen.findByText(workEn.boardConflict)).toBeInTheDocument();
-  // The notice's button and the toolbar's both read "Refresh".
+  // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
+  expect(
+    screen.getByRole("button", { name: workEn.boardConflictAction }),
+  ).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
-    2,
+    1,
   );
   expect(mock.updateTask).toHaveBeenCalledTimes(2);
   expect(mock.updateTask).toHaveBeenLastCalledWith(
@@ -308,9 +311,12 @@ it("a refused change shows the board's conflict notice and keeps the status", as
   renderAgenda([task], transport);
   await user.click(glyphOf(task.title));
   expect(await screen.findByText(workEn.boardConflict)).toBeInTheDocument();
-  // The notice's button and the toolbar's both read "Refresh".
+  // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
+  expect(
+    screen.getByRole("button", { name: workEn.boardConflictAction }),
+  ).toBeInTheDocument();
   expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
-    2,
+    1,
   );
   expect(
     screen.queryByRole("button", { name: workEn.agendaUndo }),

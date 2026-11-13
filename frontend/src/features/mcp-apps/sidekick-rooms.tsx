@@ -273,6 +273,7 @@ export function RoomAdapter({
       refreshKey={refreshKey}
       initial={initial}
       initialError={initialError || undefined}
+      toolArgs={initialError ? entry.toolArgs : undefined}
       resultId={hasResult ? (entry.resultId ?? 1) : undefined}
       view={entry.view === ROOT_VIEW ? undefined : entry.view}
       mode={full ? "full" : "inline"}

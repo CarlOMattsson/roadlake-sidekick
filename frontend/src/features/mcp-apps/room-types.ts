@@ -1,5 +1,5 @@
 import type { HostBridge } from "./bridge";
-import type { RoomId } from "./router";
+import { routeForTool, toolBareName, type RoomId } from "./router";
 
 /**
  * The room contract of the Sidekick app.
@@ -26,6 +26,33 @@ export type RoomTarget = {
   /** A tool-result-like payload for the target's room, when the caller already holds one (rare). */
   data?: unknown;
 };
+
+/**
+ * What a room needs of the tool call that opened it, to read the same thing again after a failure: the tool and the
+ * id of the record it read. Nothing else of the call's arguments is kept, and none is logged.
+ */
+export type ToolArgs = { tool: string; id?: string };
+
+/** The argument that names the record, per tool that reads one record. */
+const RECORD_ARGUMENT: Readonly<Record<string, string>> = {
+  get_task: "task_id",
+  get_project: "project_id",
+  get_contact_context: "contact_id",
+};
+
+/**
+ * The tool and record id of a call, from the tool name the host reported and the arguments of its tool input. Only a
+ * tool of ours counts: any other name gives undefined, so an error without a known tool reads nothing by guess.
+ */
+export function toolArgsOf(
+  toolName: unknown,
+  input: Record<string, unknown> | undefined,
+): ToolArgs | undefined {
+  if (typeof toolName !== "string" || !routeForTool(toolName)) return undefined;
+  const tool = toolBareName(toolName);
+  const id = input?.[RECORD_ARGUMENT[tool] ?? ""];
+  return typeof id === "string" && id !== "" ? { tool, id } : { tool };
+}
 
 /** `inline` is the card in the conversation, `full` is fullscreen or the expanded inline view. */
 export type RoomMode = "inline" | "full";
@@ -92,6 +119,8 @@ export type RoomProps = {
    * as a new result that re-roots it; this also covers two error results with no content.
    */
   resultId?: number;
+  /** The tool and record id of the call that opened the room, given with an error result so Try again reads that again. */
+  toolArgs?: ToolArgs;
   /** A named start view when the router knows one and `initial` carries none (for example "board"). Unknown names are ignored. */
   view?: string;
   mode: RoomMode;

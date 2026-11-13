@@ -12,6 +12,7 @@ import type { RoomProps } from "../../mcp-apps/room-types";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { ErrorNotice, toolResultCause } from "../../mcp-apps/ui/states";
 import { createWorkTransport } from "../transport/work-transport";
+import { contactFirstRead } from "../shared/first-read";
 import type { HostBridge } from "../../mcp-apps/bridge";
 import { rootFromToolResult, type WorkFrame } from "../transport/transport";
 
@@ -27,6 +28,8 @@ type RoomState = {
   frame: WorkFrame;
   /** What the error frame's result said, for the notice's second line. */
   cause?: unknown;
+  /** Set while Try again reads the Contact or the list again after an error result. */
+  retrying: boolean;
   /** Set while the host answers the fullscreen request; Open shows it is busy, and a second press waits. */
   opening: boolean;
   /** Inline, with no fullscreen on offer, Open expands the full view in place. A new result clears it. */
@@ -42,6 +45,7 @@ const START_FRAME: WorkFrame = {
 
 const NO_RESULT: RoomState = {
   frame: START_FRAME,
+  retrying: false,
   opening: false,
   expandedInline: false,
 };
@@ -96,6 +100,7 @@ function applyResult(prev: RoomState, props: RoomProps): RoomState {
     ...seen,
     frame: next,
     cause: next.kind === "error" ? toolResultCause(props.initial) : undefined,
+    retrying: false,
     expandedInline: false,
   };
 }
@@ -157,18 +162,36 @@ export function ContactsRoom(props: RoomProps) {
       : props.fullscreenAvailable === true
         ? requestFullscreen
         : expandInline;
-  // A failed first result: the error result names no tool and no record, so Try again reads the list afresh and the
-  // heading names that read ("Kontakterna"), whichever Contact tool failed.
-  const retryList = () => setState((prev) => ({ ...prev, frame: START_FRAME }));
+  // A failed first result carries no data: Try again reads the Contact the host named, else the list afresh, and the
+  // heading names that read ("Kontakten", "Kontakterna").
+  const contactRead = contactFirstRead(props.toolArgs);
+  const subject = contactRead?.subject ?? "contacts";
+  function retry() {
+    if (state.retrying) return;
+    setState((prev) => ({ ...prev, retrying: true }));
+    (contactRead?.read(transport) ?? Promise.resolve(START_FRAME))
+      .then((frame) =>
+        setState((prev) => ({
+          ...prev,
+          frame,
+          cause: undefined,
+          retrying: false,
+        })),
+      )
+      .catch((cause: unknown) =>
+        setState((prev) => ({ ...prev, cause, retrying: false })),
+      );
+  }
   if (fullscreen && state.frame.kind === "error")
     return (
       // In the room's own frame (padding, type), where its list would stand.
       <section className="sidekick-work" aria-label={names.labels.title}>
         <ErrorNotice
           locale={locale}
-          subject="contacts"
+          subject={subject}
           cause={state.cause}
-          onRetry={retryList}
+          onRetry={retry}
+          retrying={state.retrying}
         />
       </section>
     );
@@ -181,9 +204,9 @@ export function ContactsRoom(props: RoomProps) {
           state.frame.kind === "error"
             ? {
                 cause: state.cause,
-                subject: "contacts",
-                onRetry: retryList,
-                retrying: false,
+                subject,
+                onRetry: retry,
+                retrying: state.retrying,
               }
             : undefined
         }

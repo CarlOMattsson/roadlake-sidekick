@@ -216,8 +216,6 @@ export const workEn = {
   },
   /** The inline card's Open button while the host answers the fullscreen request. */
   opening: "Opening…",
-  /** A refused change in the board, the agenda or To sort: the text names no view, since all three show it. */
-  boardConflict: "The list was reloaded. Try again.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
   notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Task, Project or Contact that was removed (or never existed) when it is read: calm, with no Try again. */
@@ -518,8 +516,6 @@ export const workSv: WorkLabels = {
   },
   /** The inline card's Open button while the host answers the fullscreen request. */
   opening: "Öppnar…",
-  /** A refused change on the board, the agenda or "Att sortera": the text names no view, since all three show it. */
-  boardConflict: "Listan har lästs om, försök igen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Task, Project or Contact that was deleted (or is missing) when it is read: calm, without "Försök igen". */

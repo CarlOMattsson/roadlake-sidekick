@@ -382,7 +382,9 @@ it("shows a move conflict as a banner, reads the board again and keeps the banne
     ).getByRole("button", { name: boardTask.title }),
   ).toBeInTheDocument();
   expect(screen.getByRole("alert")).toHaveTextContent(workEn.boardConflict);
-  await user.click(within(banner).getByRole("button", { name: workEn.reload }));
+  await user.click(
+    within(banner).getByRole("button", { name: workEn.boardConflictAction }),
+  );
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
   expect(screen.queryByRole("alert")).toBeNull();
 });

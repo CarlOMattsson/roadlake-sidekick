@@ -21,7 +21,7 @@ import {
   type RoomHost,
 } from "./sidekick-rooms";
 import { ROOT_VIEW, type NavEntry } from "./nav-state";
-import { fullscreenOffered, roomModeOf } from "./room-types";
+import { fullscreenOffered, roomModeOf, toolArgsOf } from "./room-types";
 import { routeFor, type Route } from "./router";
 import { StartupError } from "./ui/error-boundary";
 
@@ -41,6 +41,8 @@ let grantedFullscreen = false;
 // A record the room that asked for the full view wants shown at once (an entry of the day glance).
 let openAt: NavEntry | undefined;
 let hostContext: HostContext = {};
+// The arguments of the tool call whose result is still to come (ui/notifications/tool-input).
+let toolInput: Record<string, unknown> | undefined;
 
 /** The route of a result, unless its room is off on this instance (SIDEKICK_ENABLED_ROOMS): that room is not drawn. */
 function routeInEnabledRoom(route: Route | undefined): Route | undefined {
@@ -172,9 +174,20 @@ function licenseHost(): LicenseHost {
 
 // Every tool result reaches the router, errors included. A result the router does not know keeps what
 // is shown; with nothing shown yet, Work answers (an error there reads as the shared notice).
+bridge.onToolInput((args) => {
+  toolInput = args;
+});
+// The input of a call the host stopped belongs to no result.
+bridge.onToolCancelled(() => {
+  toolInput = undefined;
+});
 bridge.onToolResult(({ structuredContent, isError }) => {
+  const toolName = hostContext.toolInfo?.tool?.name;
+  // Only an error result keeps the call's tool and record id (for Try again); the arguments are dropped at once.
+  const toolArgs = isError ? toolArgsOf(toolName, toolInput) : undefined;
+  toolInput = undefined;
   const routed = routeFor({
-    toolName: hostContext.toolInfo?.tool?.name,
+    toolName,
     structuredContent,
     isError,
   });
@@ -187,10 +200,11 @@ bridge.onToolResult(({ structuredContent, isError }) => {
   const room = route?.room ?? start?.room ?? "work";
   const opened: NavEntry = {
     room,
-    // An error with no route keeps the view the card is on, so the room can keep it.
-    view: route?.view ?? (start?.room === room ? start.view : ROOT_VIEW),
+    // An error with no known tool does not inherit the view the card was on: it names nothing to read again.
+    view: route?.view ?? ROOT_VIEW,
     data: ofOffRoom ? undefined : structuredContent,
     isError: ofOffRoom ? undefined : isError,
+    toolArgs: ofOffRoom ? undefined : toolArgs,
     resultId: resultCount + 1,
   };
   // A card on one record knows it by id, so a cross-link back to the same record is a loop, not a new step.
@@ -203,6 +217,12 @@ bridge.onToolResult(({ structuredContent, isError }) => {
 });
 bridge.onHostContext((context) => {
   const before = hostContext.displayMode;
+  // Another call (a new tool id) leaves the arguments of the one before behind.
+  if (
+    context.toolInfo?.id !== undefined &&
+    context.toolInfo.id !== hostContext.toolInfo?.id
+  )
+    toolInput = undefined;
   hostContext = { ...hostContext, ...context };
   // A display mode change that the host reports is the truth again; the local expansion only bridges the gap.
   if (hostContext.displayMode !== before) {

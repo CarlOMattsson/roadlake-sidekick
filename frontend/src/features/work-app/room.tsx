@@ -187,11 +187,11 @@ export function WorkRoom(props: RoomProps) {
   }
 
   /**
-   * Try again after an error result, which names no tool and no record: what can be read again is the first list of
-   * the card's view (the Projects or the agenda, as the fullscreen shell reads its first tab), and the heading says so.
-   * A failure keeps the error card with what the new failure says.
+   * Try again after an error result, which carries no data: what can be read again is the Task or Project the host
+   * named, else the first list of the card's view (the Projects or the agenda, as the fullscreen shell reads its first
+   * tab), and the heading says so. A failure keeps the error card with what the new failure says.
    */
-  const firstRead = firstReadFor(props.view);
+  const firstRead = firstReadFor(props.view, props.toolArgs);
   function retryFirstList() {
     if (state.retrying) return;
     setState((prev) => ({ ...prev, retrying: true }));

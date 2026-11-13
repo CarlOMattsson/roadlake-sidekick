@@ -81,7 +81,7 @@ export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
 };
 
 /** A host may prefix tool names with a server or namespace; the last segment is the tool. */
-function bareName(name: string): string {
+export function toolBareName(name: string): string {
   return name.split(/__|[:/.]/).pop() ?? name;
 }
 
@@ -89,7 +89,7 @@ function bareName(name: string): string {
 export function routeForTool(name: unknown): Route | undefined {
   if (typeof name !== "string" || name === "") return undefined;
   if (Object.hasOwn(TOOL_ROUTES, name)) return TOOL_ROUTES[name];
-  const bare = bareName(name);
+  const bare = toolBareName(name);
   return Object.hasOwn(TOOL_ROUTES, bare) ? TOOL_ROUTES[bare] : undefined;
 }
 
