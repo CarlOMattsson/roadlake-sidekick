@@ -155,3 +155,81 @@ describe("the recipient of a gift item", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("the offer's fields are a fold of their own", () => {
+  const offer = {
+    price: "199.00",
+    regular_price: "289.00",
+    currency: "SEK",
+    valid_from: "2026-11-01",
+    valid_until: "2026-11-30",
+    checked_on: "2026-11-05",
+    source: "ica.se",
+    source_url: null,
+  };
+
+  it("says what is saved on the closed toggle, in English and Swedish", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ItemEditor
+        item={item({ offer, offer_status: "current" })}
+        labels={shoppingEn}
+        busy={false}
+        focusFirst={false}
+        contacts={undefined}
+        onCancel={vi.fn()}
+        onSave={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /^More fields/ }));
+    expect(
+      screen.getByRole("button", { name: /^Offer: SEK\s199 until 30 Nov$/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+    unmount();
+    renderEditor(item({ offer, offer_status: "current" }), shoppingSv);
+    await user.click(screen.getByRole("button", { name: /^Fler fält/ }));
+    expect(
+      screen.getByRole("button", {
+        name: /^Erbjudande: 199\skr t\.o\.m\. 30 nov$/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("is only the word Offer when none is saved, and opens its fields on a tap", async () => {
+    const user = userEvent.setup();
+    renderEditor(item());
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.moreFields }),
+    );
+    const toggle = screen.getByRole("button", { name: shoppingEn.offer });
+    expect(screen.getByLabelText(shoppingEn.price)).not.toBeVisible();
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText(shoppingEn.price)).toBeVisible();
+    await user.click(toggle);
+    expect(screen.getByLabelText(shoppingEn.price)).not.toBeVisible();
+  });
+
+  it("Save with the offer folded still sends it unchanged", async () => {
+    const user = userEvent.setup();
+    const onSave = renderEditor(item({ offer, offer_status: "current" }));
+    await user.click(screen.getByRole("button", { name: shoppingEn.save }));
+    expect(onSave.mock.calls[0]![0]).toMatchObject({
+      offer: { price: "199", currency: "SEK", valid_until: "2026-11-30" },
+    });
+  });
+
+  it("a wrong value in the folded offer opens it on Save", async () => {
+    const user = userEvent.setup();
+    const onSave = renderEditor(item({ offer, offer_status: "current" }));
+    await user.click(screen.getByRole("button", { name: /^More fields/ }));
+    await user.clear(screen.getByLabelText(shoppingEn.currency));
+    await user.type(screen.getByLabelText(shoppingEn.currency), "kr");
+    await user.click(screen.getByRole("button", { name: shoppingEn.save }));
+    expect(onSave).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /^Offer: / })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
+});

@@ -58,6 +58,36 @@ export function cardItemText(item: ShoppingItem, locale: string): string {
 }
 
 /**
+ * The card foot's "Open the shopping list · 2 more": a text button that opens the list, with the count of the items the
+ * card leaves out after its name.
+ */
+export function OpenListButton({
+  labels: t,
+  hidden,
+  onOpen,
+}: {
+  labels: ShoppingLabels;
+  hidden: number;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="shopping-card-open sk-btn--open"
+      onClick={onOpen}
+    >
+      <span className="shopping-card-open-text">
+        {t.openList}
+        {hidden > 0 ? (
+          <span className="shopping-card-more">{` · ${t.hiddenItems(hidden)}`}</span>
+        ) : null}
+      </span>
+      <ChevronRightIcon />
+    </button>
+  );
+}
+
+/**
  * Compact inline card for a shopping list. It names the list, shows "N of M bought" and the first
  * open items as text (with "· N more" in the foot link when some are not listed), and offers Open, which asks the host for
  * fullscreen. The card sizes to its content and has no inner scroll. The host decides the frame; the card is only shown when fullscreen
@@ -118,19 +148,7 @@ export function ShoppingCard({
             </>
           )}
           <CardFoot>
-            <button
-              type="button"
-              className="shopping-card-open sk-btn--open"
-              onClick={onOpen}
-            >
-              <span className="shopping-card-open-text">
-                {t.openList}
-                {hidden > 0 ? (
-                  <span className="shopping-card-more">{` · ${t.hiddenItems(hidden)}`}</span>
-                ) : null}
-              </span>
-              <ChevronRightIcon />
-            </button>
+            <OpenListButton labels={t} hidden={hidden} onOpen={onOpen} />
           </CardFoot>
         </div>
       </AppFrame>

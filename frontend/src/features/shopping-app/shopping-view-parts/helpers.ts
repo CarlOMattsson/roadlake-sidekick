@@ -2,6 +2,7 @@ import type { KeyboardEvent } from "react";
 import type { EmptyAsk } from "../../mcp-apps/ui/states";
 import type { ShoppingItem } from "../transport";
 import type { ShoppingLabels } from "../labels";
+import { workDate } from "../../mcp-apps/ui/due";
 
 /** The most item names one add may carry (the tool's limit). */
 export const MAX_ADD_ITEMS = 50;
@@ -140,6 +141,33 @@ function formatPrice(value: string, currency: string, locale: string): string {
   } catch {
     return `${value} ${currency}`;
   }
+}
+
+/**
+ * "bought 3 Nov": the day a bought item was ticked off, read as every date in the app is ("bought yesterday", "bought
+ * Thu 5 Nov"). Nothing when the server recorded no day.
+ */
+export function boughtOnText(
+  item: ShoppingItem,
+  t: ShoppingLabels,
+  now = new Date(),
+): string {
+  if (!item.purchased) return "";
+  const day = workDate(item.purchased_at, now, t.dateLocale, { inline: true });
+  return day ? t.boughtOn(day) : "";
+}
+
+/**
+ * The closed offer fold's line, "Offer: SEK 199 until 30 Nov": the saved offer's price and the day it ends. The plain
+ * word "Offer" when the item has none.
+ */
+export function offerSummary(item: ShoppingItem, t: ShoppingLabels): string {
+  const { offer } = item;
+  if (!offer) return t.offer;
+  return t.offerSummary(
+    formatPrice(offer.price, offer.currency, t.dateLocale),
+    offer.valid_until ? formatShortDate(offer.valid_until, t.dateLocale) : "",
+  );
 }
 
 /**

@@ -83,7 +83,7 @@ export function SavedViewsBar({
     <div className="work-saved-views">
       <button
         type="button"
-        className="work-saved-views-toggle"
+        className="sk-menu-item work-saved-views-toggle"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((current) => !current)}

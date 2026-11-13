@@ -8,9 +8,8 @@ import { AppFrame } from "../mcp-apps/ui/layout";
 import { ErrorNotice, toolResultCause } from "../mcp-apps/ui/states";
 import { toolOffered } from "../mcp-apps/tool-support";
 import { CardFoot } from "../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../mcp-apps/ui/icons";
 import { shoppingEn, shoppingSv, type ShoppingLabels } from "./labels";
-import { ShoppingCard, quantityText } from "./shopping-card";
+import { OpenListButton, ShoppingCard, quantityText } from "./shopping-card";
 import { ShoppingView } from "./shopping-view";
 import {
   localDay,
@@ -104,8 +103,9 @@ type BatchSummary = {
 };
 
 /**
- * Rows in a batch card (designsystem §3: at most three rows in an inline card's body). A longer batch shows two names
- * and "+N more" as the third row, so the card stays at most 240 px high.
+ * Rows in a batch card (designsystem §3: at most three rows in an inline card's body). A longer batch shows three names
+ * and counts the rest in the Open button's foot ("· N more"); a card with no Open button shows two names and "+N more"
+ * as the third row. Either way the card stays at most 240 px high.
  */
 const BATCH_ITEM_COUNT = 3;
 
@@ -229,9 +229,13 @@ function BatchCard({
   onOpen?: () => void;
 }) {
   const count = summary.items.length;
+  // With an Open button the names left out are counted in its foot ("Open the shopping list · 4 more"); without one the
+  // last row says "+4 more" instead.
   const shown = summary.items.slice(
     0,
-    count > BATCH_ITEM_COUNT ? BATCH_ITEM_COUNT - 1 : count,
+    onOpen || count <= BATCH_ITEM_COUNT
+      ? BATCH_ITEM_COUNT
+      : BATCH_ITEM_COUNT - 1,
   );
   const more = count - shown.length;
   return (
@@ -282,18 +286,11 @@ function BatchCard({
                 </li>
               );
             })}
-            {more > 0 ? <li>{t.moreItems(more)}</li> : null}
+            {more > 0 && !onOpen ? <li>{t.moreItems(more)}</li> : null}
           </ul>
           {onOpen ? (
             <CardFoot>
-              <button
-                type="button"
-                className="shopping-card-open sk-btn--open"
-                onClick={onOpen}
-              >
-                {t.openList}
-                <ChevronRightIcon />
-              </button>
+              <OpenListButton labels={t} hidden={more} onOpen={onOpen} />
             </CardFoot>
           ) : null}
         </div>

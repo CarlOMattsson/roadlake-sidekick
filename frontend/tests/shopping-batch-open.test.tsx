@@ -101,6 +101,30 @@ function deliver(structuredContent: unknown) {
   });
 }
 
+it("a long batch with Open shows three names and counts the rest in the Open foot", () => {
+  deliver({
+    items: Array.from({ length: 10 }, (_, n) => ({
+      client_ref: String(n),
+      item: {
+        ...milk,
+        id: `${milk.id.slice(0, -2)}${n + 10}`,
+        name: `Item ${n + 1}`,
+      },
+    })),
+    evaluated_on: "2026-10-24",
+    list_name: "Veckohandel",
+  });
+  const names = document.querySelector(".shopping-batch-names");
+  expect(names?.querySelectorAll("li")).toHaveLength(3);
+  expect(names).toHaveTextContent("Item 3");
+  expect(names).not.toHaveTextContent("Item 4");
+  // The count of the names left out stands after the button's name, not as a row of its own.
+  expect(
+    screen.getByRole("button", { name: new RegExp(`^${shoppingEn.openList}`) }),
+  ).toHaveTextContent(`${shoppingEn.openList} · ${shoppingEn.hiddenItems(7)}`);
+  expect(screen.queryByText(shoppingEn.moreItems(7))).not.toBeInTheDocument();
+});
+
 it("Open on an add card opens fullscreen with that list selected and read", async () => {
   const user = userEvent.setup();
   deliver({

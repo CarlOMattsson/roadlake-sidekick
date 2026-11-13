@@ -85,14 +85,14 @@
   margin-block-start: var(--sk-s4);
 }
 
-.sk-shell-tabs--with-end :is(.work-agenda-bar-panel, .sk-pick-menu) {
+.sk-shell-tabs--with-end :is(.work-agenda-more .sk-menu-panel, .sk-pick-menu) {
   flex: 0 0 100%;
   order: 1;
 }
 
 /* An open menu lies in the flow under the row (not stuck): while it is open the row scrolls with the page. */
 .sk-shell-tabs:has(
-  .work-agenda-more:not([hidden]) .work-agenda-bar-panel:not([hidden]),
+  .work-agenda-more:not([hidden]) .sk-menu-panel:not([hidden]),
   .sk-pick-menu
 ) {
   position: static;

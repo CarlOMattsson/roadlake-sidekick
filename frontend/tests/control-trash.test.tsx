@@ -213,6 +213,29 @@ describe("TrashView rows", () => {
     }
   });
 
+  it("counts only the rows still in the trash in Visa alla while a restore receipt stands", async () => {
+    const items: TrashItem[] = Array.from({ length: 5 }, (_, index) => ({
+      ...task,
+      id: `019f0000-0000-7000-8000-00000000022${index}`,
+      label: `Post ${index + 1}`,
+    }));
+    renderTrash({ items, has_more: false, next_cursor: null }, makeTransport());
+
+    expect(
+      screen.getByRole("button", { name: "Visa alla (5)" }),
+    ).toBeInTheDocument();
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Återställ Post 1" }));
+    await screen.findByRole("status");
+
+    // Five rows stand on screen (four in the trash and the receipt), but only four are in the trash.
+    expect(
+      screen.getByRole("button", { name: "Visa alla (4)" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Visa alla (5)" })).toBeNull();
+  });
+
   it("says the trash is empty when there are no rows", () => {
     const transport = makeTransport();
     renderTrash({ items: [], has_more: false, next_cursor: null }, transport);

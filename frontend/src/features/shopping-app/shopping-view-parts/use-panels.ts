@@ -9,6 +9,7 @@ import { useReducer } from "react";
  * - `boughtOpen`: the purchased items, folded until opened.
  * - `newOpen`: the "New list" form of the picker.
  * - `listsExpanded`: the picker shows every list row in an inline card.
+ * - `archivedOpen`: the picker's folded group of archived lists.
  * - `addOpen`: the create field behind "+ Add item". It never opens by itself: focus would raise the keyboard.
  */
 export type Panels = {
@@ -18,6 +19,7 @@ export type Panels = {
   boughtOpen: boolean;
   newOpen: boolean;
   listsExpanded: boolean;
+  archivedOpen: boolean;
   addOpen: boolean;
 };
 
@@ -32,6 +34,7 @@ const CLOSED: Panels = {
   boughtOpen: false,
   newOpen: false,
   listsExpanded: false,
+  archivedOpen: false,
   addOpen: false,
 };
 

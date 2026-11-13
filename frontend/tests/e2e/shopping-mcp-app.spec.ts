@@ -133,15 +133,12 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
   );
   await app.getByRole("checkbox").click();
   // A purchased item stays in its place while its Undo holds: the row's meta line says "Bought" and "Undo" is a
-  // compact secondary button in the row (`li .shopping-undo`). The item is also listed in the collapsed "Bought (n)"
-  // group. A closed <details> is not in the accessibility tree, so open the group first.
-  await expect(app.getByText("Bought (1)", { exact: true })).toBeVisible();
-  await app.getByText("Bought (1)", { exact: true }).click();
-  // Two checkboxes now show the item. The one in place is the only row that holds an Undo.
+  // compact secondary button in the row (`li .shopping-undo`). "Bought (n)" does not count it until the time is up.
   const heldRow = app
     .getByRole("listitem")
     .filter({ has: app.getByRole("button", { name: /^Undo:/ }) });
   await expect(heldRow).toHaveCount(1);
+  await expect(app.getByText("Bought (1)", { exact: true })).toHaveCount(0);
   // The folded inline row shows the name, the Undo and no status line (.shopping-items--folded hides it).
   await expect(heldRow.getByRole("button", { name: /^Undo:/ })).toBeVisible();
   await expect(heldRow.getByRole("checkbox")).toBeChecked();

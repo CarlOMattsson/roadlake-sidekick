@@ -170,7 +170,10 @@ for (const width of widths) {
         .getByRole("button", { name: /^Markera .* som köpt$/ })
         .first()
         .click();
-      await expect(app.getByText(/Köpta \(1\)/)).toBeVisible();
+      // The bought row stays among the open ones while its Ångra holds; its ring now offers to undo.
+      await expect(
+        app.getByRole("button", { name: /^Markera .* som ej köpt$/ }),
+      ).toHaveCount(1);
       const reads = async () =>
         (await callNames(page)).filter((name) => name === "get_shopping_list")
           .length;
@@ -180,7 +183,9 @@ for (const width of widths) {
         app.getByText("Ring Anna om offerten", { exact: true }),
       ).toBeVisible();
       await goRoom(app, "Inköp");
-      await expect(app.getByText(/Köpta \(1\)/)).toBeVisible();
+      await expect(
+        app.getByRole("button", { name: /^Markera .* som ej köpt$/ }),
+      ).toHaveCount(1);
       // The room stayed mounted and was not read again.
       expect(await reads()).toBe(before);
       expect(failures).toEqual([]);

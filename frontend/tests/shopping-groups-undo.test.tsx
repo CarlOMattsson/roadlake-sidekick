@@ -499,10 +499,10 @@ it("two purchases hold two rows, each with its own Ångra; each Ångra buys back
   expect(
     container.querySelectorAll(".shopping-group .shopping-undo"),
   ).toHaveLength(2);
-  // "Bought (2)" counts both bought rows at once.
+  // Both rows are still held with their Ångra, so "Bought" does not count them yet.
   expect(
-    elementWithText(shoppingEn.boughtCount(2), "button"),
-  ).toBeInTheDocument();
+    screen.queryByRole("button", { name: /^Bought/ }),
+  ).not.toBeInTheDocument();
 
   await user.click(await groupUndo("Bread"));
   await waitFor(() =>

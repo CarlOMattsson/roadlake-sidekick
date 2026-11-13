@@ -20,9 +20,8 @@
 .sk-pick[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
-/* Work's ⋯ panel (agenda-toolbar.css) is the same card. */
-.sk-pick-menu,
-.sidekick-work .work-agenda-bar-panel {
+/* The ⋯ menu's card (.sk-menu-panel, family.css) is the same card. */
+.sk-pick-menu {
   display: flex;
   flex-direction: column;
   min-width: 0;

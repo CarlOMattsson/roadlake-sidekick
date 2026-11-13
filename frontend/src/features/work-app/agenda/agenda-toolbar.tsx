@@ -224,7 +224,7 @@ export function AgendaMore({
       <button
         ref={more}
         type="button"
-        className="sk-iconbtn work-tab-tool work-agenda-bar-more"
+        className="sk-iconbtn work-tab-tool"
         aria-label={mark.label}
         aria-expanded={open}
         aria-controls={panelId}
@@ -235,14 +235,14 @@ export function AgendaMore({
       </button>
       <KeyScope
         id={panelId}
-        className="work-agenda-bar-panel"
+        className="sk-menu-panel"
         hidden={!open}
         onEscape={close}
       >
         {children}
         <button
           type="button"
-          className="work-agenda-bar-refresh"
+          className="sk-menu-item"
           onClick={() => {
             onRefresh();
             close();
@@ -253,7 +253,7 @@ export function AgendaMore({
         {control ? (
           <button
             type="button"
-            className="work-agenda-bar-refresh"
+            className="sk-menu-item"
             onClick={() => {
               close();
               control.onOpen();

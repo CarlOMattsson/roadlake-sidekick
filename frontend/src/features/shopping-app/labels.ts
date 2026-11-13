@@ -50,6 +50,13 @@ export const shoppingEn = {
   /** The row's meta line: the regular price beside the offer price, and the date the gift is wanted by. */
   regularShort: (price: string) => `was ${price}`,
   untilDate: (date: string) => `by ${date}`,
+  /** A bought item's meta line, in "Bought": the day it was ticked off. */
+  boughtOn: (date: string) => `bought ${date}`,
+  /** Said once above the bought items when their ring is a way back to the open list. */
+  buyAgainTip: "Tap the ring to buy again.",
+  /** The closed offer fold's line: "Offer: SEK 199 until 30 Nov" (the end of the offer is left out when unknown). */
+  offerSummary: (price: string, until: string) =>
+    until ? `Offer: ${price} until ${until}` : `Offer: ${price}`,
   dateLocale: "en-GB",
   currency: "Currency",
   from: "Valid from",
@@ -145,7 +152,8 @@ export const shoppingEn = {
     `updated ${day.charAt(0).toLocaleLowerCase("en") + day.slice(1)}`,
   /** A day and a clock time together: "yesterday at 10:00". */
   dayAt: (day: string, time: string) => `${day} at ${time}`,
-  listArchived: "Archived",
+  /** The folded group of archived lists, last in the picker: "Archived (2)". */
+  archivedLists: (count: number) => `Archived (${count})`,
   /** The example under "No lists yet." and under an empty list: one sentence to say to Claude. */
   emptyListsExample: "Add milk and eggs to my shopping list",
   emptyListExample: (list: string) => `Add coffee to ${list}`,
@@ -199,6 +207,10 @@ export const shoppingSv: ShoppingLabels = {
   regularPrice: "Ordinarie pris",
   regularShort: (price: string) => `ord. ${price}`,
   untilDate: (date: string) => `till ${date}`,
+  boughtOn: (date: string) => `köpt ${date}`,
+  buyAgainTip: "Tryck på ringen för att köpa igen.",
+  offerSummary: (price: string, until: string) =>
+    until ? `Erbjudande: ${price} t.o.m. ${until}` : `Erbjudande: ${price}`,
   dateLocale: "sv-SE",
   currency: "Valuta",
   from: "Gäller från",
@@ -271,7 +283,7 @@ export const shoppingSv: ShoppingLabels = {
   listUpdated: (day: string) =>
     `uppdaterad ${day.charAt(0).toLocaleLowerCase("sv") + day.slice(1)}`,
   dayAt: (day: string, time: string) => `${day} ${time}`,
-  listArchived: "Arkiverad",
+  archivedLists: (count: number) => `Arkiverade (${count})`,
   emptyListsExample: "Lägg till mjölk och ägg på inköpslistan",
   emptyListExample: (list: string) => `Lägg till kaffe på listan ${list}`,
 };

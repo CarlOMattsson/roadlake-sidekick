@@ -1,4 +1,4 @@
-import { Fragment, useContext, useEffect, useRef } from "react";
+import { Fragment, useContext, useRef } from "react";
 import {
   type DueLocale,
   type DueTone,
@@ -13,7 +13,7 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import { KnownTags } from "../shared/work-tags";
-import { UNDO_MS } from "../../mcp-apps/ui/undo-hold";
+import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
   ListSummary,
@@ -148,21 +148,23 @@ function UndoLine({
   undo: InlineSummaryUndo;
 }) {
   const box = useRef<HTMLSpanElement>(null);
-  const { onExpire } = undo;
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const node = box.current;
-      if (node?.contains(document.activeElement))
-        node
-          .closest("section")
-          ?.querySelector<HTMLElement>(".sk-btn--open")
-          ?.focus();
-      onExpire();
-    }, UNDO_MS);
-    return () => clearTimeout(timer);
-  }, [onExpire]);
+  // Undo takes focus when it shows, so only the pointer holds the time: a focus hold would never let it run out.
+  const { handlers } = useUndoHold(true, () => {
+    const node = box.current;
+    if (node?.contains(document.activeElement))
+      node
+        .closest("section")
+        ?.querySelector<HTMLElement>(".sk-btn--open")
+        ?.focus();
+    undo.onExpire();
+  });
   return (
-    <span ref={box} className="work-compact-undo">
+    <span
+      ref={box}
+      className="work-compact-undo"
+      onPointerEnter={handlers.onPointerEnter}
+      onPointerLeave={handlers.onPointerLeave}
+    >
       <span role="status">{labels.taskStatus.completed}</span>
       <button
         type="button"

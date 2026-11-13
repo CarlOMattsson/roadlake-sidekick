@@ -3,7 +3,7 @@ import type { ShoppingItem } from "../transport";
 import { isDefaultAmount, quantityText } from "../shopping-card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { holdUsed, itemMeta } from "./helpers";
+import { boughtOnText, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import {
   heldStatus,
@@ -37,8 +37,12 @@ export function StoreRow({
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
-  // A bought row is done: it keeps its name only.
-  const meta = item.purchased ? "" : itemMeta(item, t);
+  // A bought row is done: it keeps its name, and under "Köpta" the day it was bought.
+  const meta = item.purchased
+    ? inPlace
+      ? ""
+      : boughtOnText(item, t)
+    : itemMeta(item, t);
   // A row that cannot be changed (an archived list, or a change still in the phone's outbox) cannot be opened either.
   const locked = env.archived || item.id in env.waiting;
   return (

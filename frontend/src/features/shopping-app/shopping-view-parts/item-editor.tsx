@@ -6,10 +6,10 @@ import type {
   ShoppingTransport,
 } from "../transport";
 import type { ShoppingLabels } from "../labels";
-import { localDay } from "../transport";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { OfferFields } from "./offer-fields";
 
 /** How many of the fields behind "Fler fält" hold a value, so the closed toggle can say that something is there. */
 function filledExtras(item: ShoppingItem): number {
@@ -21,12 +21,6 @@ function filledExtras(item: ShoppingItem): number {
     item.note,
     item.offer,
   ].filter(Boolean).length;
-}
-
-/** A stored price without empty decimals ("199.00" reads "199", "199.50" reads "199.5"), still a plain number the field accepts. */
-function plainPrice(value: string | null | undefined): string {
-  if (!value) return "";
-  return value.includes(".") ? value.replace(/\.?0+$/, "") : value;
 }
 
 export function ItemEditor({
@@ -50,6 +44,8 @@ export function ItemEditor({
   const extraId = useId();
   // Progressive: the item, its amount and its shop first; the rest waits behind "Fler fält".
   const [extraOpen, setExtraOpen] = useState(false);
+  // The offer's fields are a fold of their own inside it, closed until opened.
+  const [offerOpen, setOfferOpen] = useState(false);
   const filled = filledExtras(item);
   useEffect(() => {
     if (focusFirst) form.current?.querySelector("input")?.focus();
@@ -80,12 +76,15 @@ export function ItemEditor({
   // Runs from the Save button's click, not from a submit event (no allow-forms in the App iframe).
   function save() {
     if (!form.current) return;
-    // A wrong value behind the closed "Fler fält" opens it first, so the browser can point at the field.
+    // A wrong value behind the closed "Fler fält" (or the closed offer) opens it first, so the browser can point at the field.
     const invalid = form.current.querySelector(
       "input:invalid, select:invalid, textarea:invalid",
     );
-    if (invalid?.closest(".shopping-editor-extra") && !extraOpen)
-      flushSync(() => setExtraOpen(true));
+    if (invalid?.closest(".shopping-editor-extra"))
+      flushSync(() => {
+        setExtraOpen(true);
+        if (invalid.closest(".shopping-editor-offer")) setOfferOpen(true);
+      });
     if (!form.current.reportValidity()) return;
     const data = new FormData(form.current);
     const value = (name: string) => {
@@ -270,85 +269,12 @@ export function ItemEditor({
               maxLength={2000}
             />
           </label>
-          <fieldset>
-            <legend>{t.offer}</legend>
-            <p>{t.offerHint}</p>
-            <div className="shopping-grid">
-              <label>
-                {t.price}
-                <input
-                  name="price"
-                  type="number"
-                  min="0.01"
-                  max="99999999.99"
-                  step="0.01"
-                  defaultValue={plainPrice(item.offer?.price)}
-                />
-              </label>
-              <label>
-                {t.regular}
-                <input
-                  name="regular_price"
-                  type="number"
-                  min="0.01"
-                  max="99999999.99"
-                  step="0.01"
-                  defaultValue={plainPrice(item.offer?.regular_price)}
-                />
-              </label>
-              <label>
-                {t.currency}
-                <input
-                  name="currency"
-                  defaultValue={item.offer?.currency ?? "SEK"}
-                  pattern="[A-Z]{3}"
-                  maxLength={3}
-                />
-              </label>
-              <label>
-                {t.from}
-                <input
-                  name="valid_from"
-                  type="date"
-                  defaultValue={item.offer?.valid_from ?? ""}
-                />
-              </label>
-              <label>
-                {t.until}
-                <input
-                  name="valid_until"
-                  type="date"
-                  defaultValue={item.offer?.valid_until ?? ""}
-                />
-              </label>
-              <label>
-                {t.checked}
-                <input
-                  name="checked_on"
-                  type="date"
-                  max={localDay()}
-                  defaultValue={item.offer?.checked_on ?? localDay()}
-                />
-              </label>
-              <label>
-                {t.source}
-                <input
-                  name="source"
-                  maxLength={200}
-                  defaultValue={item.offer?.source ?? ""}
-                />
-              </label>
-              <label>
-                {t.sourceUrl}
-                <input
-                  name="source_url"
-                  type="url"
-                  maxLength={2000}
-                  defaultValue={item.offer?.source_url ?? ""}
-                />
-              </label>
-            </div>
-          </fieldset>
+          <OfferFields
+            item={item}
+            labels={t}
+            open={offerOpen}
+            onToggle={() => setOfferOpen(!offerOpen)}
+          />
         </div>
         <div className="sk-form-actions">
           <button type="button" className="sk-btn--primary" onClick={save}>

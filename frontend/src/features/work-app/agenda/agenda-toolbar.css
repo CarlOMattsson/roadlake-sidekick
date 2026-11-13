@@ -5,51 +5,34 @@
   min-width: 0;
 }
 .sidekick-work .work-agenda-more[hidden],
-.sidekick-work .work-agenda-bar-panel[hidden],
 .sidekick-work .work-search[hidden] {
   display: none;
 }
 
-/* The "⋯" menu: a card under the tab row at full width (radius 12, the surface colour), in the page flow so it
-   never covers a row and never scrolls inside. Its items are 44 px rows of label text in --sk-fg with a hairline
-   between them; each starts at the card's 16 px padding. */
-.sidekick-work .work-agenda-bar-panel .work-saved-views {
+/* The "⋯" menu is the family's panel and items (.sk-menu-panel, .sk-menu-item; family.css). What is Work's own is the
+   saved views bar as its first item: its toggle is a menu item that unfolds in place, so it carries ⌄ right after its
+   label, turned while open (designsystem §3), and the hairline that follows it. */
+.sidekick-work .sk-menu-panel .work-saved-views {
   margin: 0;
 }
-.sidekick-work .work-agenda-bar-refresh,
-.sidekick-work .work-agenda-bar-panel .work-saved-views-toggle {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: var(--sk-tap);
-  margin: 0;
+.sidekick-work .sk-menu-panel .work-saved-views-toggle {
   padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--sk-fg);
-  font: var(--sk-type-menu);
-  text-align: start;
 }
-/* "Sparade vyer" unfolds in place, so it carries ⌄ right after its label, turned while open (designsystem §3). */
-.sidekick-work .work-agenda-bar-panel .work-saved-views-toggle::after {
+.sidekick-work .sk-menu-panel .work-saved-views-toggle::after {
   content: "⌄";
   margin-inline-start: var(--sk-s2);
   line-height: 1;
   transform: translateY(-0.2em);
 }
 .sidekick-work
-  .work-agenda-bar-panel
+  .sk-menu-panel
   .work-saved-views-toggle[aria-expanded="true"]::after {
   transform: translateY(0.2em) rotate(180deg);
 }
-.sidekick-work .work-agenda-bar-panel .work-saved-views-body {
+.sidekick-work .sk-menu-panel .work-saved-views-body {
   margin: 0 0 var(--sk-s3);
 }
-/* A hairline between two items of the menu, never above the first. */
-.sidekick-work
-  .work-agenda-bar-panel
-  > .work-agenda-bar-refresh:not(:first-child) {
+.sidekick-work .sk-menu-panel > .work-saved-views + .sk-menu-item {
   border-top: var(--sk-hairline, 1px) solid var(--sk-line);
 }
 

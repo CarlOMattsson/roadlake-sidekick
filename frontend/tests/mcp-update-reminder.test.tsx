@@ -362,7 +362,7 @@ describe("the row in the ⋯ menu when the Control room is off", () => {
   it("shows the age, the commit, the copyable command and the dismissal in Work's ⋯ panel", () => {
     declare({ rooms: "work" });
     render(<WorkMenu />);
-    const panel = screen.getByText(AGE).closest(".work-agenda-bar-panel");
+    const panel = screen.getByText(AGE).closest(".sk-menu-panel");
     expect(panel).not.toBeNull();
     const code = within(panel as HTMLElement).getByText(UPDATE_COMMAND);
     expect(code.tagName).toBe("CODE");

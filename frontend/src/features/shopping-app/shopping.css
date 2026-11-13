@@ -193,9 +193,16 @@
 .sidekick-shopping .shopping-editor-extra > p {
   margin: 0;
 }
-.sidekick-shopping .shopping-editor-extra legend {
-  font-size: 0.9rem;
-  font-weight: 550;
+/* The offer is a fold of its own inside "Fler fält": its toggle line says what is saved, its fields wait until opened. */
+.sidekick-shopping .shopping-editor-offer > div[hidden] {
+  display: none;
+}
+.sidekick-shopping .shopping-editor-offer > div:not([hidden]) {
+  display: grid;
+  gap: var(--sk-s3);
+}
+.sidekick-shopping .shopping-editor-offer > div > p {
+  margin: 0;
 }
 /* A select draws its text 4 px further in than an input with the same padding: take that back so every value starts on
    the same x. */
@@ -732,6 +739,10 @@
   margin: var(--sk-s2) 0 0;
   padding: 0;
 }
+/* The folded group of archived lists, last in the picker. */
+.sidekick-shopping .shopping-archived-lists {
+  margin-top: var(--sk-s3);
+}
 .shopping-lists > li + li {
   border-top: var(--sk-hairline) solid var(--sk-line);
 }
@@ -780,6 +791,12 @@
 .sidekick-shopping .shopping-all-bought {
   margin: var(--sk-s3) 0 0;
   font: var(--sk-type-body);
+}
+/* Said once above the bought items (store view): the ring buys an item again. */
+.sidekick-shopping .shopping-buy-again-tip {
+  margin: var(--sk-s2) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
 }
 .sidekick-shopping .shopping-hold-tip {
   margin: var(--sk-s5) 0 0;

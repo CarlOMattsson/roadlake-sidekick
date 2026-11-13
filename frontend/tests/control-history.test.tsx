@@ -325,6 +325,35 @@ describe("HistoryView undo", () => {
     expect(screen.getByText("Mjölk")).toBeInTheDocument();
   });
 
+  it("counts only the listed changes in Visa alla while the receipt of a row the list no longer holds stands", async () => {
+    const rest: ChangeRecord[] = Array.from({ length: 4 }, (_, index) => ({
+      ...other,
+      id: `019f0000-0000-7000-8000-0000000003c${index}`,
+      title: `Ändring ${index + 1}`,
+      occurred_at: `2026-10-2${index}T08:00:00Z`,
+    }));
+    const transport = makeTransport();
+    transport.changes.mockResolvedValueOnce({ changes: rest });
+    renderChanges({ changes: [bought, ...rest] }, transport);
+    expect(
+      screen.getByRole("button", { name: "Visa alla (5)" }),
+    ).toBeInTheDocument();
+
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Ångra Mjölk" }));
+    await screen.findByRole("status");
+    await waitFor(() => expect(transport.changes).toHaveBeenCalledTimes(1));
+
+    // Five rows stand on screen (four changes and the receipt), but only four are changes.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Visa alla (4)" }),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
+  });
+
   it("takes the receipt away after RESTORED_MS and the row goes with it when the list no longer holds it", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {

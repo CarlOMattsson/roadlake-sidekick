@@ -5,6 +5,7 @@ import type { RoomProps, RoomTransport } from "@/features/mcp-apps/room-types";
 import { ShoppingRoom } from "@/features/shopping-app/room";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
+import { elementWithText } from "./helpers/exact-text";
 import { itemMeta } from "@/features/shopping-app/shopping-view-parts/helpers";
 import type {
   ShoppingDetail,
@@ -266,7 +267,8 @@ describe("the store view", () => {
 });
 
 describe("the list picker", () => {
-  it("puts archived lists after the active ones", async () => {
+  it("puts archived lists last, behind a fold", async () => {
+    const user = userEvent.setup();
     const entry = (id: string, name: string, archived: boolean) => ({
       ...list,
       id,
@@ -283,13 +285,21 @@ describe("the list picker", () => {
       next_offset: null,
     });
     render(<ShoppingView transport={transport} labels={shoppingEn} />);
-    const rows = await screen.findAllByRole("button", {
+    await screen.findByRole("button", { name: /^Weekly/ });
+    await user.click(elementWithText(shoppingEn.archivedLists(1), "button"));
+    const rows = screen.getAllByRole("button", {
       name: /Weekly|Old gifts/,
     });
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("Weekly"),
       expect.stringContaining("Old gifts"),
     ]);
+    // The fold stands between the active list and the archived one.
+    expect(
+      rows[0]!.compareDocumentPosition(
+        elementWithText(shoppingEn.archivedLists(1), "button"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it("writes 'updated' with a lowercase day in English too", () => {

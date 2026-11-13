@@ -187,7 +187,12 @@ export function TaggedEntries({
         <p role="status">{t.loading}</p>
       )}
       {read.kind === "ready" && read.more === "failed" && (
-        <ErrorNotice locale={t.dateLocale} onRetry={() => readOlder(read)} />
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.taggedMoreFailed}
+          onRetry={() => readOlder(read)}
+        />
       )}
       {/* More of what was read, then the 12 months before the oldest read; none once a window was cut at the page limit
           or the list has ended. */}

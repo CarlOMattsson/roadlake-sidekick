@@ -12,6 +12,8 @@ export const taggedEn = {
     }, newest first`,
   /** Reads the 12 months before the oldest window read. */
   taggedMore: "Show more",
+  /** A later window could not be read; the entries already shown stay, and the notice has Try again. */
+  taggedMoreFailed: "Couldn’t load more.",
   /** One window came back empty; "Show more" can still reach further back. */
   taggedNoOlder: (tags: number): string =>
     tags === 1
@@ -33,6 +35,7 @@ export const taggedSv: typeof taggedEn = {
       years === 1 ? "de senaste 12 månaderna" : `de senaste ${years} åren`
     }, nyast först`,
   taggedMore: "Visa fler",
+  taggedMoreFailed: "Det gick inte att hämta fler.",
   taggedNoOlder: (tags) =>
     tags === 1
       ? "Ingen anteckning med den här taggen under de 12 månaderna före det."

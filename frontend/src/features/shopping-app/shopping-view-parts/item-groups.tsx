@@ -111,7 +111,10 @@ export function ItemGroups({
   );
 }
 
-/** "Köpta (n) ⌄", the fold row, inline and in fullscreen alike. */
+/**
+ * "Köpta (n) ⌄", the fold row, inline and in fullscreen alike. `purchased` is the settled bought items, newest first,
+ * each with the day it was bought; the store view says once, above them, that the ring buys an item again.
+ */
 export function PurchasedFold({
   purchased,
   open,
@@ -133,6 +136,9 @@ export function PurchasedFold({
         open={open}
         onToggle={onToggle}
       />
+      {open && storeMode && (
+        <p className="shopping-buy-again-tip">{env.labels.buyAgainTip}</p>
+      )}
       {open && (
         <ul className="shopping-items">
           {purchased.map((row) => (

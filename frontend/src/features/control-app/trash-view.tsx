@@ -209,7 +209,7 @@ export function TrashView({
           items={shown}
           keyOf={(item) => item.id}
           label={labels.trashTitle}
-          showAll={(count) => labels.showAll(count, list.has_more)}
+          showAll={() => labels.showAll(items.length, list.has_more)}
           showFewer={labels.showFewer}
           full={full}
           expanded={expanded}

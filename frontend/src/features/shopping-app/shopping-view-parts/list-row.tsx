@@ -1,7 +1,7 @@
 import type { ShoppingItem } from "../transport";
 import { cardItemText } from "../shopping-card";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { formatCalendarDate } from "./helpers";
+import { boughtOnText, formatCalendarDate } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import {
   heldStatus,
@@ -32,6 +32,7 @@ export function ListRow({
   const { labels: t, held, rowQueue } = env;
   const holding = isHolding(item, env, inPlace);
   const hold = useRowUndo(item, env, holding);
+  const boughtOn = inPlace ? "" : boughtOnText(item, t);
   return (
     <li
       className={holding ? "shopping-held-item" : undefined}
@@ -62,6 +63,8 @@ export function ListRow({
                 {holding ? heldWord(item, env) : t.wanted}
               </span>
             )}
+            {/* Under "Köpta" the status line is the day it was bought. */}
+            {boughtOn && <span className="shopping-status">{boughtOn}</span>}
             {queuedMark(item, env)}
           </span>
         </label>

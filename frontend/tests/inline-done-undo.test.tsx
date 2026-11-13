@@ -143,6 +143,30 @@ it("takes the Undo away when its time is up, and keeps the card done", async () 
   expect(screen.getByRole("button", { name: en.showTask })).toHaveFocus();
 });
 
+it("holds the Undo time while the pointer is over the line, and runs on with the time left", async () => {
+  renderCard(vi.fn().mockResolvedValue(done(2)));
+  await click(en.complete);
+  const line = screen.getByRole("button", { name: en.undo }).parentElement!;
+
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(UNDO_MS - 4000);
+  });
+  fireEvent.pointerEnter(line);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(UNDO_MS * 3);
+  });
+  expect(screen.getByRole("button", { name: en.undo })).toBeInTheDocument();
+  fireEvent.pointerLeave(line);
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(3999);
+  });
+  expect(screen.getByRole("button", { name: en.undo })).toBeInTheDocument();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(1);
+  });
+  expect(screen.queryByRole("button", { name: en.undo })).toBeNull();
+});
+
 it("shows a failed Undo with Try again, which repeats it with the same key", async () => {
   const updateTask = vi
     .fn()

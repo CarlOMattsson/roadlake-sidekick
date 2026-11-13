@@ -135,7 +135,7 @@ export function AwaitingResult({
             >
               <PlusIcon />
             </span>
-            <span className="sk-iconbtn work-tab-tool work-agenda-bar-more">
+            <span className="sk-iconbtn work-tab-tool">
               <MoreIcon />
             </span>
           </div>

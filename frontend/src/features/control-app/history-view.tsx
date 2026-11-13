@@ -92,6 +92,10 @@ export function HistoryView({
   }, [busy, list]);
 
   const changes = list?.changes ?? [];
+  // Receipts of rows the list read again no longer holds: shown on their place, but not rows of the list.
+  const receiptOnly = [...receipts.entries()].filter(
+    ([key]) => !changes.some((row) => `c:${rowKey(row)}` === key),
+  );
   const rows = [
     ...changes.map((change) => ({
       key: `c:${rowKey(change)}`,
@@ -99,14 +103,12 @@ export function HistoryView({
       change,
       entry: undefined,
     })),
-    ...[...receipts.entries()]
-      .filter(([key]) => !changes.some((row) => `c:${rowKey(row)}` === key))
-      .map(([key, { change }]) => ({
-        key,
-        at: change.occurred_at,
-        change,
-        entry: undefined,
-      })),
+    ...receiptOnly.map(([key, { change }]) => ({
+      key,
+      at: change.occurred_at,
+      change,
+      entry: undefined,
+    })),
     ...(activity?.items ?? []).map((entry) => ({
       key: `a:${entry.id}`,
       at: entry.occurred_at,
@@ -255,7 +257,7 @@ export function HistoryView({
           keyOf={(row) => row.key}
           label={labels.views.history}
           wrapMeta
-          showAll={labels.showAll}
+          showAll={() => labels.showAll(rows.length - receiptOnly.length)}
           showFewer={labels.showFewer}
           full={full}
           expanded={expanded}

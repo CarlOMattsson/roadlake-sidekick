@@ -17,6 +17,10 @@ type Params = {
   expanded: boolean;
 };
 
+/** When an item was bought, in ms; an item with no recorded time counts as the oldest. */
+const boughtAt = (item: ShoppingItem) =>
+  item.purchased_at ? Date.parse(item.purchased_at) || 0 : 0;
+
 /** What the view draws, derived from the list read, the asked purchases and the open panels. */
 export function deriveView({
   labels: t,
@@ -45,10 +49,15 @@ export function deriveView({
   const open = items.filter((item) => !item.purchased);
   const purchased = items.filter((item) => item.purchased);
   // The rows of the open groups: the open items, and the bought ones whose Undo still holds ("Köpt"), in the list's order.
-  // "Köpta (n)" counts and lists every bought item at once, so it never disagrees with "2 av 7 köpta".
   const rows = items.filter(
     (item) => !item.purchased || held[item.id]?.purchased,
   );
+  // "Köpta (n)": the bought items that are settled, the newest first. A bought item still held with its Undo stands in
+  // the open rows and joins the fold only when the time to undo is up, so the count never moves while Undo is offered.
+  // The progress ("2 av 7 köpta") counts every bought item, held ones too.
+  const settled = purchased
+    .filter((item) => !held[item.id]?.purchased)
+    .sort((a, b) => boughtAt(b) - boughtAt(a));
   // The store view is shown in fullscreen until "Edit list" opens the forms; it needs a list to show.
   const storeMode =
     (fullscreen || Boolean(store)) && Boolean(list) && !editOpen;
@@ -86,6 +95,7 @@ export function deriveView({
     list,
     items,
     purchased,
+    settled,
     rows,
     storeMode,
     canAdd,

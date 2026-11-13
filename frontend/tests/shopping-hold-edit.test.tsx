@@ -159,14 +159,13 @@ it("the ring says what a tap does, in both languages, and flips once the item is
   });
   expect(ring("Milk")).toHaveAccessibleName("Mark Milk as bought");
   await user.click(ring("Milk"));
-  // (The bought item stands in its place and, once the "Bought" fold is open, once more under it.)
+  // The bought item stands in its place while its Ångra holds; "Bought" does not list it yet.
   expect(
     screen.getAllByRole("button", { name: "Mark Milk as not bought" }),
   ).toHaveLength(1);
-  await user.click(screen.getByRole("button", { name: /^Bought/ }));
   expect(
-    screen.getAllByRole("button", { name: "Mark Milk as not bought" }),
-  ).toHaveLength(2);
+    screen.queryByRole("button", { name: /^Bought/ }),
+  ).not.toBeInTheDocument();
   expect(shoppingSv.markBought("Mjölk")).toBe("Markera Mjölk som köpt");
   expect(shoppingSv.markOpen("Mjölk")).toBe("Markera Mjölk som ej köpt");
 });

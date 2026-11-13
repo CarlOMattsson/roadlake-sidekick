@@ -6,6 +6,7 @@ import {
   ShoppingView,
 } from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
+import { elementWithText } from "./helpers/exact-text";
 import type {
   ShoppingDetail,
   ShoppingList,
@@ -281,16 +282,48 @@ describe("no list chosen: the lists are rows to tap", () => {
     expect(create.mock.calls[0]![0]).toBe("Garden");
   });
 
-  it("an archived list is named as archived in its row", async () => {
+  it("archived lists wait last behind a folded 'Archived (N)'", async () => {
+    const user = userEvent.setup();
     const lists = [
       listOf(1, "Old list", { archived: true }),
       listOf(2, "Weekly shopping"),
     ];
     render(<ShoppingView transport={adapter(lists)} labels={shoppingEn} />);
+    await row("Weekly shopping");
+    expect(screen.queryByRole("button", { name: /^Old list/ })).toBeNull();
+    const fold = elementWithText(shoppingEn.archivedLists(1), "button");
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+    await user.click(fold);
+    expect(fold).toHaveAttribute("aria-expanded", "true");
+    expect(await row("Old list")).toBeInTheDocument();
+    // The group names them, so the row does not repeat "Archived".
     expect(
-      await screen.findByRole("button", {
-        name: new RegExp(`^Old list.*${shoppingEn.listArchived}`),
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole("button", { name: /^Old list/ }),
+    ).not.toHaveTextContent(/archived/i);
+  });
+
+  it("has no archived group when no list is archived, and says it in Swedish", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ShoppingView
+        transport={adapter([listOf(2, "Weekly shopping"), listOf(3, "Garden")])}
+        labels={shoppingEn}
+      />,
+    );
+    await row("Weekly shopping");
+    expect(screen.queryByText(/^Archived/)).toBeNull();
+    unmount();
+    render(
+      <ShoppingView
+        transport={adapter([
+          listOf(1, "Julklappar", { archived: true }),
+          listOf(2, "Veckohandling"),
+        ])}
+        labels={shoppingSv}
+      />,
+    );
+    await row("Veckohandling");
+    await user.click(elementWithText("Arkiverade (1)", "button"));
+    await row("Julklappar");
   });
 });

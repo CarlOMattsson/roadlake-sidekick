@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightIcon } from "../../../mcp-apps/ui/icons";
 import type { WorkLabels } from "../../shared/labels";
-import { UNDO_MS } from "../../../mcp-apps/ui/undo-hold";
+import { useUndoHold } from "../../../mcp-apps/ui/undo-hold";
 import { useNearest } from "../agenda-undo";
 
 /**
@@ -105,20 +105,10 @@ export function MoveAllUndo({
   onUndo: () => void;
   onExpire: () => void;
 }) {
-  const [held, setHeld] = useState(false);
-  const left = useRef(UNDO_MS);
+  const { held, handlers } = useUndoHold(true, onExpire);
   const nearest = useNearest<HTMLParagraphElement>();
   const button = useRef<HTMLButtonElement>(null);
   const focusChecked = useRef(false);
-  useEffect(() => {
-    if (held) return undefined;
-    const since = Date.now();
-    const timer = setTimeout(onExpire, left.current);
-    return () => {
-      clearTimeout(timer);
-      left.current -= Date.now() - since;
-    };
-  }, [held, onExpire]);
   useEffect(() => {
     if (disabled || focusChecked.current) return;
     focusChecked.current = true;
@@ -128,10 +118,9 @@ export function MoveAllUndo({
   return (
     <div
       className="work-agenda-move-undo"
-      onPointerEnter={() => setHeld(true)}
-      onPointerLeave={() => setHeld(false)}
-      onFocus={() => setHeld(true)}
-      onBlur={() => setHeld(false)}
+      // The time line under Ångra stands still while the countdown does.
+      data-held={held ? "" : undefined}
+      {...handlers}
     >
       <p role="status" ref={nearest}>
         {t.moveAllDone(count)}
@@ -139,7 +128,7 @@ export function MoveAllUndo({
       <button
         ref={button}
         type="button"
-        className="sk-btn--secondary sk-btn--compact"
+        className="sk-btn--secondary sk-btn--compact sk-undo-time"
         disabled={disabled}
         onClick={onUndo}
       >

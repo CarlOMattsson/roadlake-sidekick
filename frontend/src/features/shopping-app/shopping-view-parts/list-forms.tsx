@@ -8,6 +8,7 @@ import { CreateField } from "../../mcp-apps/ui/create-field";
 import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
 import { EmptyState } from "../../mcp-apps/ui/states";
 import { workDate } from "../../mcp-apps/ui/due";
+import { Fold } from "../../mcp-apps/ui/fold";
 import { MoreMenu } from "./more-menu";
 
 /**
@@ -106,12 +107,11 @@ type ListsView = {
   onOffset: (offset: number) => void;
 };
 
-/** "7 kvar · uppdaterad idag" (· Arkiverad): what is left, when the list last changed, and its archived mark. */
+/** "7 kvar · uppdaterad idag": what is left and when the list last changed. */
 function listMeta(t: ShoppingLabels, entry: ShoppingList, now: Date): string {
   return [
     entry.open_count === undefined ? "" : t.listLeft(entry.open_count),
     t.listUpdated(workDate(entry.updated_at, now, t.dateLocale)),
-    entry.archived ? t.listArchived : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -132,10 +132,12 @@ export function ListPicker({
   fullscreen,
   hasError,
   listsExpanded,
+  archivedOpen,
   newOpen,
   onCreateNamed,
   onChoose,
   onListsExpanded,
+  onArchivedOpen,
   onNewOpen,
   sendMessage,
   control,
@@ -150,10 +152,12 @@ export function ListPicker({
   fullscreen: boolean;
   hasError: boolean;
   listsExpanded: boolean;
+  archivedOpen: boolean;
   newOpen: boolean;
   onCreateNamed: (name: string) => Promise<boolean>;
   onChoose: (id: string) => void;
   onListsExpanded: (value: boolean) => void;
+  onArchivedOpen: (value: boolean) => void;
   onNewOpen: (value: boolean) => void;
 }) {
   const addButton = useRef<HTMLButtonElement>(null);
@@ -166,13 +170,29 @@ export function ListPicker({
     addButton.current?.focus();
   }, [newOpen]);
   const now = new Date();
-  // Archived lists stand after the active ones of the page, so the lists in use come first.
-  const ordered = [
-    ...lists.filter((entry) => !entry.archived),
-    ...lists.filter((entry) => entry.archived),
-  ];
+  // The lists in use come first; the archived ones of the page wait last, behind a fold.
+  const active = lists.filter((entry) => !entry.archived);
+  const archived = lists.filter((entry) => entry.archived);
   const shown =
-    fullscreen || listsExpanded ? ordered : ordered.slice(0, COMPACT_ROWS);
+    fullscreen || listsExpanded ? active : active.slice(0, COMPACT_ROWS);
+  const listRow = (entry: ShoppingList) => (
+    <li key={entry.id}>
+      <button
+        type="button"
+        className="shopping-list-row"
+        disabled={busy}
+        onClick={() => onChoose(entry.id)}
+      >
+        <span className="shopping-list-text">
+          <span className="shopping-list-name">{entry.name}</span>
+          <span className="shopping-list-meta">{listMeta(t, entry, now)}</span>
+        </span>
+        <span className="shopping-chevron" aria-hidden="true">
+          <ChevronRightIcon />
+        </span>
+      </button>
+    </li>
+  );
   return (
     <div className="shopping-picker">
       <div className="shopping-picker-head">
@@ -231,40 +251,38 @@ export function ListPicker({
           />
         </div>
       )}
-      {lists.length > 0 && (
+      {shown.length > 0 && (
         <ul className="shopping-lists" aria-label={t.lists}>
-          {shown.map((entry) => (
-            <li key={entry.id}>
-              <button
-                type="button"
-                className="shopping-list-row"
-                disabled={busy}
-                onClick={() => onChoose(entry.id)}
-              >
-                <span className="shopping-list-text">
-                  <span className="shopping-list-name">{entry.name}</span>
-                  <span className="shopping-list-meta">
-                    {listMeta(t, entry, now)}
-                  </span>
-                </span>
-                <span className="shopping-chevron" aria-hidden="true">
-                  <ChevronRightIcon />
-                </span>
-              </button>
-            </li>
-          ))}
+          {shown.map(listRow)}
         </ul>
       )}
       {/* Inline, a card shows COMPACT_ROWS lists; the rest is one "Show all" row. Fullscreen lists them all. */}
-      {!fullscreen && lists.length > COMPACT_ROWS && (
+      {!fullscreen && active.length > COMPACT_ROWS && (
         <div className="shopping-more">
           <button
             type="button"
             aria-expanded={listsExpanded}
             onClick={() => onListsExpanded(!listsExpanded)}
           >
-            {listsExpanded ? t.showFewer : t.showAll(lists.length)}
+            {listsExpanded ? t.showFewer : t.showAll(active.length)}
           </button>
+        </div>
+      )}
+      {archived.length > 0 && (
+        <div className="shopping-archived-lists">
+          <Fold
+            text={t.archivedLists(archived.length)}
+            open={archivedOpen}
+            onToggle={() => onArchivedOpen(!archivedOpen)}
+          />
+          {archivedOpen && (
+            <ul
+              className="shopping-lists"
+              aria-label={t.archivedLists(archived.length)}
+            >
+              {archived.map(listRow)}
+            </ul>
+          )}
         </div>
       )}
       {!busy && lists.length === 0 && !hasError && (
@@ -337,12 +355,15 @@ export function ListSwitcher({
             {!lists.some((entry) => entry.id === list.id) && (
               <option value={list.id}>{list.name}</option>
             )}
-            {lists.map((entry) => (
-              <option key={entry.id} value={entry.id}>
-                {entry.name}
-                {entry.archived ? ` · ${t.archived}` : ""}
-              </option>
-            ))}
+            {/* The archived lists stand last, as in the picker. */}
+            {[...lists]
+              .sort((a, b) => Number(a.archived) - Number(b.archived))
+              .map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                  {entry.archived ? ` · ${t.archived}` : ""}
+                </option>
+              ))}
           </select>
         </label>
         <button disabled={busy} onClick={onRefresh}>

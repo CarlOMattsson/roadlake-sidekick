@@ -134,7 +134,8 @@ export function ShoppingView({
     editOpen: panels.editOpen,
     expanded: panels.expanded,
   });
-  const { list, items, purchased, rows, storeMode, canAdd, folded } = view;
+  const { list, items, purchased, settled, rows, storeMode, canAdd, folded } =
+    view;
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
   const forms = useWriteForms({
@@ -273,10 +274,12 @@ export function ShoppingView({
           fullscreen={fullscreen}
           hasError={Boolean(error)}
           listsExpanded={panels.listsExpanded}
+          archivedOpen={panels.archivedOpen}
           newOpen={panels.newOpen}
           onCreateNamed={forms.createNamed}
           onChoose={chooseList}
           onListsExpanded={(value) => setPanel("listsExpanded", value)}
+          onArchivedOpen={(value) => setPanel("archivedOpen", value)}
           onNewOpen={(value) => setPanel("newOpen", value)}
           sendMessage={sendMessage}
           control={control}
@@ -380,7 +383,7 @@ export function ShoppingView({
               <p className="shopping-all-bought">{t.allBought}</p>
             )}
           <PurchasedFold
-            purchased={purchased}
+            purchased={settled}
             open={panels.boughtOpen}
             storeMode={storeMode}
             env={rowEnv}

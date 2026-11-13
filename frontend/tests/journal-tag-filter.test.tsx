@@ -220,6 +220,46 @@ describe("the tag filter of the day view", () => {
     expect(listTaggedEntries).toHaveBeenCalledTimes(2);
   });
 
+  it.each([
+    ["en", journalEn],
+    ["sv", journalSv],
+  ] as const)(
+    "says a failed Show more in one row with a Try again button that reads the window again (%s)",
+    async (_, labels) => {
+      const user = userEvent.setup();
+      const listTaggedEntries = vi
+        .fn()
+        .mockResolvedValueOnce(page([onDay(1, "2026-09-30")]))
+        .mockRejectedValueOnce(new Error("offline"))
+        .mockResolvedValueOnce(page([onDay(2, "2025-06-01")]));
+      renderDay(
+        transportMock({ listTags: listTagsMock(), listTaggedEntries }),
+        labels,
+      );
+      await user.click(await screen.findByRole("button", { name: "Viktig" }));
+      await screen.findByText("Post 1");
+
+      await user.click(screen.getByRole("button", { name: labels.taggedMore }));
+
+      const alert = await screen.findByRole("alert");
+      expect(alert).toHaveClass("sk-error--row");
+      expect(alert).toHaveTextContent(labels.taggedMoreFailed);
+      // The retry is a button, not text in the sentence.
+      expect(alert.querySelector("p")).not.toHaveTextContent(
+        /try again|försök igen/i,
+      );
+      expect(screen.getByText("Post 1")).toBeInTheDocument();
+
+      await user.click(
+        within(alert).getByRole("button", { name: /Try again|Försök igen/ }),
+      );
+
+      expect(await screen.findByText("Post 2")).toBeInTheDocument();
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(listTaggedEntries).toHaveBeenCalledTimes(3);
+    },
+  );
+
   it("says that the list was cut when it runs past ten pages", async () => {
     const user = userEvent.setup();
     const listTaggedEntries = vi.fn(() =>

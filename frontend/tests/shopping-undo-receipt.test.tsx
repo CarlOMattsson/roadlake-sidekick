@@ -162,12 +162,15 @@ describe.each([
 
   it("holds the row for UNDO_MS, then it moves to Köpta", async () => {
     await buyMilk();
+    // While Ångra holds the row stands in its place, and "Köpta" does not count it yet.
+    expect(screen.queryByRole("button", { name: /^Bought/ })).toBeNull();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS - 1_000);
     });
     expect(
       screen.getByRole("button", { name: undoName("Milk") }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Bought/ })).toBeNull();
     act(() => {
       vi.advanceTimersByTime(1_500);
     });
