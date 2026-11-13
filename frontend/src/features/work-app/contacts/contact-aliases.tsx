@@ -48,7 +48,7 @@ export function ContactAliases({
 
 /**
  * The nicknames (aliases) of one Contact under the name (design system §4, "Alias (09)"): one muted meta line,
- * "Även kallad X, Y"; without nicknames nothing is drawn. Adding and removing nicknames happens in the
+ * "Även kallad X, Y" ("Nicknames: X, Y" in English); without nicknames nothing is drawn. Adding and removing nicknames happens in the
  * Contact's editor (`ContactAliases`), not here.
  */
 export function ContactAliasSummary({
@@ -61,7 +61,7 @@ export function ContactAliasSummary({
   if (aliases.length === 0) return null;
   return (
     <p className="work-alias-line">
-      {t.aliasLabel}{" "}
+      {t.aliasLabel(aliases.length)}{" "}
       <span className="work-alias-values">
         {aliases.map((alias) => alias.value).join(", ")}
       </span>

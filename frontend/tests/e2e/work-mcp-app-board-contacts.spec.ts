@@ -372,13 +372,15 @@ test("sandboxed Work board opens from get_work_board, moves a card to In progres
       ).workTest,
   );
   expect(state.initialized).toBe(true);
-  // The expanded view is the full view: its To sort row counts the unsorted Tasks first.
+  // The expanded view is the full view: the board reads the tag vocabulary for its filter row, and its To sort row
+  // counts the unsorted Tasks.
   expect(state.calls.map((call) => call.name)).toEqual([
+    "list_tags",
     "list_tasks",
     "update_task",
     "get_work_board",
   ]);
-  expect(state.calls[1]?.arguments).toMatchObject({
+  expect(state.calls[2]?.arguments).toMatchObject({
     task_id: "019f0000-0000-7000-8000-000000000001",
     version: 1,
     changes: { status: "in_progress" },
@@ -538,9 +540,9 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
   await app.getByRole("button", { name: "Save" }).click();
   await expect(app.getByText("Saved", { exact: true })).toBeVisible();
   await expect(app.getByText("Ny anteckning", { exact: true })).toBeVisible();
-  // Without nicknames there is no "Also known as" line. Nicknames are edited in the editor ("More options" > "Edit"),
+  // Without nicknames there is no "Nickname:" line. Nicknames are edited in the editor ("More options" > "Edit"),
   // in the "Nicknames" group: the "New nickname" field and its own "Add nickname" button.
-  await expect(app.getByText(/Also known as/)).toHaveCount(0);
+  await expect(app.locator("p.work-alias-line")).toHaveCount(0);
   await app.getByRole("button", { name: "More options", exact: true }).click();
   await app.getByRole("button", { name: "Edit", exact: true }).click();
   const aliasPanel = app.getByRole("group", { name: "Nicknames" });
@@ -549,7 +551,7 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
     .getByRole("button", { name: "Add nickname", exact: true })
     .click();
   await expect(app.locator("p.work-alias-line")).toHaveText(
-    "Also known as Annan A",
+    "Nickname: Annan A",
   );
   await expect(
     aliasPanel.getByRole("button", {

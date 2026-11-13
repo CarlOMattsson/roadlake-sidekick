@@ -33,6 +33,8 @@ import {
 import { useTaskOffers } from "./use-task-offers";
 import { useCutText } from "./use-cut-text";
 import { WriteStatus } from "../view/parts/write-status";
+import { TagField } from "../../mcp-apps/ui/tags";
+import { useWorkTags } from "../shared/work-tags";
 
 export function TaskFrame({
   id,
@@ -71,6 +73,7 @@ export function TaskFrame({
     statusOffered,
     doneShown,
     editOffered,
+    tagsOffered,
     trashOffered,
     contactsOn,
     unlinkOffered,
@@ -80,8 +83,11 @@ export function TaskFrame({
   const endCycle = useCallback(() => setCycle(undefined), []);
   // Set once "Ta bort uppgift" has moved the Task to the trash: the trash record's version, which Ångra needs.
   const [trashed, setTrashed] = useState<{ version: number }>();
-  // Runs the last failed trash or Ångra again; the same action keeps its key, so the server replays it.
-  const retryTrash = useRef<(() => void) | undefined>(undefined);
+  // Runs the last failed trash, Ångra or tag change again; the same action keeps its key, so the server replays it.
+  const retryWrite = useRef<(() => void) | undefined>(undefined);
+  // Which of them the failure line names.
+  const [writeWhat, setWriteWhat] = useState<"trash" | "tags">("trash");
+  const tags = useWorkTags(transport, "task");
   const menuOffered = editOffered || trashOffered;
   useFrameRead(
     frame,
@@ -153,17 +159,40 @@ export function TaskFrame({
       },
     );
   }
+  /**
+   * Writes the Task's whole tag set (update_task changes.tags) in place: the focus stays in the tag field, and `done`
+   * runs once it is stored. A failure keeps the typed tag and offers Försök igen.
+   */
+  function setTags(next: string[], done: () => void) {
+    if (!task || frame.writing.current) return;
+    retryWrite.current = () => setTags(next, done);
+    setWriteWhat("tags");
+    setCycle(undefined);
+    frame.sendWrite(
+      JSON.stringify(["tags", task.id, task.version, next]),
+      "write",
+      (key) => transport.updateTask(task.id, task.version, { tags: next }, key),
+      (result) => {
+        retryWrite.current = undefined;
+        setTask(result.task);
+        onSaved();
+        tags.refresh();
+        done();
+      },
+    );
+  }
   /** Moves the Task to the trash at the version the view holds; no question first, since Ångra undoes it. */
   function trashTask() {
     if (!task || frame.writing.current) return;
     setMenuOpen(false);
-    retryTrash.current = trashTask;
+    retryWrite.current = trashTask;
+    setWriteWhat("trash");
     frame.sendWrite(
       JSON.stringify(["trash", task.id, task.version]),
       "write",
       (key) => transport.trashTask(task.id, task.version, key),
       (result) => {
-        retryTrash.current = undefined;
+        retryWrite.current = undefined;
         setTrashed({ version: result.version });
         onSaved();
         heading.current?.focus();
@@ -173,7 +202,8 @@ export function TaskFrame({
   /** Takes the Task out of the trash and reads it again, so the view holds the version the restore left. */
   function restoreTask() {
     if (!trashed || frame.writing.current) return;
-    retryTrash.current = restoreTask;
+    retryWrite.current = restoreTask;
+    setWriteWhat("trash");
     frame.sendWrite(
       JSON.stringify(["restore", id, trashed.version]),
       "write",
@@ -182,7 +212,7 @@ export function TaskFrame({
           .restoreTask(id, trashed.version, key)
           .then(() => transport.getTask(id)),
       (result) => {
-        retryTrash.current = undefined;
+        retryWrite.current = undefined;
         setTask(result.task);
         setTrashed(undefined);
         onSaved();
@@ -369,6 +399,18 @@ export function TaskFrame({
           onOpen={onOpen}
         />
       )}
+      {/* The tags under where the Task belongs, as on a Contact: the pills and one quiet button that edits them. */}
+      {phase === "ready" && task && (
+        <TagField
+          tags={task.tags ?? []}
+          suggestions={tags.suggestions}
+          editable={tagsOffered}
+          busy={write.kind === "busy" || editing}
+          name={task.title}
+          onChange={setTags}
+          locale={t.dateLocale}
+        />
+      )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
         <section className="sk-card">
@@ -422,8 +464,8 @@ export function TaskFrame({
           />
           {write.kind === "failed" && write.action === "write" && (
             <p role="alert">
-              {t.taskTrashFailed}{" "}
-              <button type="button" onClick={() => retryTrash.current?.()}>
+              {writeWhat === "tags" ? t.saveFailed : t.taskTrashFailed}{" "}
+              <button type="button" onClick={() => retryWrite.current?.()}>
                 {t.retry}
               </button>
             </p>

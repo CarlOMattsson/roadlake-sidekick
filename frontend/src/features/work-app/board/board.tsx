@@ -26,6 +26,13 @@ import { useBoardFocus } from "./parts/use-board-focus";
 import { useBoardSearch } from "./parts/use-board-search";
 import { useBoardSections, type Preview } from "./parts/use-board-sections";
 import { useBoardWrites } from "./parts/use-board-writes";
+import {
+  filterTags,
+  KnownTags,
+  useWorkTags,
+  withFilterTags,
+  WorkTagFilter,
+} from "../shared/work-tags";
 import type {
   WorkBoardFrame,
   WorkFrame,
@@ -131,6 +138,17 @@ export function BoardView({
     setPreview,
   });
   const disabled = busy !== "idle";
+  // The tags in use on Tasks and Projects, for the filter row and the labels of the cards' tags.
+  const tagVocabulary = useWorkTags(transport, ["task", "project"]);
+  const chosenTags = filterTags(frame.filters);
+  /** Reads the board with every chosen tag; the frame takes them at once, so the chip shows pressed. */
+  function chooseTags(tags: string[]) {
+    core.commit({
+      ...core.latest.current,
+      filters: withFilterTags(core.latest.current.filters, tags),
+    });
+    reload();
+  }
   const { drag, handleFor } = useBoardDrag({
     boardRoot,
     single,
@@ -190,74 +208,84 @@ export function BoardView({
   );
   // One article for both layouts, so the measured root and the columns row survive a change of layout.
   return (
-    <article ref={boardRoot} className="work-board" data-layout={layout}>
-      <h2
-        ref={heading}
-        tabIndex={-1}
-        className={headingHidden ? "work-visually-hidden" : undefined}
-      >
-        {t.board}
-      </h2>
-      {single || !refresh ? null : <p>{refresh}</p>}
-      <NoticeView
-        notice={notice}
-        labels={t}
-        onReload={reload}
-        onRetry={writes.retry}
-      />
-      {/* Only a read holds the board: a card write adds no status line above the list, so the rows do not jump. */}
-      {disabled && <p role="status">{t.loading}</p>}
-      {/* The waiting mark of a card sits inside its aria-busy row, where a screen reader may hold the news back: the
+    <KnownTags.Provider value={tagVocabulary.suggestions}>
+      <article ref={boardRoot} className="work-board" data-layout={layout}>
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className={headingHidden ? "work-visually-hidden" : undefined}
+        >
+          {t.board}
+        </h2>
+        {single || !refresh ? null : <p>{refresh}</p>}
+        <WorkTagFilter
+          options={tagVocabulary.options}
+          selected={chosenTags}
+          settled={!disabled}
+          onChange={chooseTags}
+          locale={t.dateLocale}
+        />
+        <NoticeView
+          notice={notice}
+          labels={t}
+          onReload={reload}
+          onRetry={writes.retry}
+        />
+        {/* Only a read holds the board: a card write adds no status line above the list, so the rows do not jump. */}
+        {disabled && <p role="status">{t.loading}</p>}
+        {/* The waiting mark of a card sits inside its aria-busy row, where a screen reader may hold the news back: the
           announcement lives here, in a region that is always mounted and never busy. */}
-      <p role="status" className="work-visually-hidden">
-        {waitingCards.map((item) => `${item.title}: ${t.queued}`).join("; ")}
-      </p>
-      {!anyCard && !needle ? (
-        <WorkEmpty title={t.boardEmpty} hint={t.boardEmptyHint} labels={t} />
-      ) : !anyShown && (needle ? searchSettled : single) ? (
-        needle ? (
-          <SearchNoMatch query={query} labels={t} onClear={clearSearch} />
-        ) : (
-          <p>{t.agendaNoMatches}</p>
-        )
-      ) : null}
-      <div
-        ref={columnsRow}
-        className="work-columns"
-        lang={t.dateLocale.split("-")[0]}
-        data-more={columnsMore && !single ? "end" : undefined}
-      >
-        {single ? (
-          <SingleLayout
-            {...cardProps}
-            sections={sections}
-            needle={needle}
-            undos={undos}
-            doneOpen={doneOpen}
-            onToggleDone={() => setDoneOpen((open) => !open)}
-            completeColumn={writes.completeColumn}
-            taskTitle={(id) => writes.taskCard(id)?.title}
-            toggleDone={writes.toggleDone}
-            toggleStep={writes.toggleStep}
-            stepWithin={writes.stepWithin}
-          />
-        ) : (
-          <ColumnsLayout
-            {...cardProps}
-            columns={columnSections}
-            drag={drag}
-            handleFor={handleFor}
-          />
-        )}
-      </div>
-      {single && (more || refresh) ? (
-        <div className="work-board-foot">
-          {more}
-          {refresh}
+        <p role="status" className="work-visually-hidden">
+          {waitingCards.map((item) => `${item.title}: ${t.queued}`).join("; ")}
+        </p>
+        {!anyCard && !needle && chosenTags.length === 0 ? (
+          <WorkEmpty title={t.boardEmpty} hint={t.boardEmptyHint} labels={t} />
+        ) : !anyShown &&
+          (needle ? searchSettled : single || chosenTags.length > 0) ? (
+          needle ? (
+            <SearchNoMatch query={query} labels={t} onClear={clearSearch} />
+          ) : (
+            <p>{t.agendaNoMatches}</p>
+          )
+        ) : null}
+        <div
+          ref={columnsRow}
+          className="work-columns"
+          lang={t.dateLocale.split("-")[0]}
+          data-more={columnsMore && !single ? "end" : undefined}
+        >
+          {single ? (
+            <SingleLayout
+              {...cardProps}
+              sections={sections}
+              needle={needle}
+              undos={undos}
+              doneOpen={doneOpen}
+              onToggleDone={() => setDoneOpen((open) => !open)}
+              completeColumn={writes.completeColumn}
+              taskTitle={(id) => writes.taskCard(id)?.title}
+              toggleDone={writes.toggleDone}
+              toggleStep={writes.toggleStep}
+              stepWithin={writes.stepWithin}
+            />
+          ) : (
+            <ColumnsLayout
+              {...cardProps}
+              columns={columnSections}
+              drag={drag}
+              handleFor={handleFor}
+            />
+          )}
         </div>
-      ) : null}
-      {single ? null : more}
-      {single && anyShown && <RowMenuTip labels={t} />}
-    </article>
+        {single && (more || refresh) ? (
+          <div className="work-board-foot">
+            {more}
+            {refresh}
+          </div>
+        ) : null}
+        {single ? null : more}
+        {single && anyShown && <RowMenuTip labels={t} />}
+      </article>
+    </KnownTags.Provider>
   );
 }

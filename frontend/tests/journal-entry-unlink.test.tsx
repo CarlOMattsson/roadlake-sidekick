@@ -72,12 +72,14 @@ function Harness({
   labels,
   initial = created,
   onOpenContact,
+  onConflict = () => undefined,
   withWrite = true,
 }: {
   write: Write;
   labels: JournalLabels;
   initial?: JournalEntry;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
+  onConflict?: () => void;
   withWrite?: boolean;
 }) {
   const [entry, setEntry] = useState(initial);
@@ -91,6 +93,7 @@ function Harness({
       transport={transport}
       onOpenContact={onOpenContact}
       onChanged={setEntry}
+      onConflict={onConflict}
     />
   );
 }
@@ -256,6 +259,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
               onChanged(next);
               setEntry(next);
             }}
+            onConflict={() => undefined}
           />
         );
       };
@@ -376,16 +380,20 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
     );
   });
 
-  it("shows the conflict text when the entry changed elsewhere", async () => {
+  it("shows the conflict text and has the entry read again when it changed elsewhere", async () => {
     const write = vi.fn<Write>(() =>
       Promise.reject(
         Object.assign(new Error("conflict"), { code: "conflict" }),
       ),
     );
-    render(<Harness write={write} labels={t} />);
+    const onConflict = vi.fn();
+    render(<Harness write={write} labels={t} onConflict={onConflict} />);
     await removeLink("Anna Berg");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(t.linkConflict);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      t.entryReloadedConflict,
+    );
+    expect(onConflict).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the Undo line and shows an alert when Undo fails", async () => {

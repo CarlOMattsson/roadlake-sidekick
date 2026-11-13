@@ -659,7 +659,9 @@ test("sandboxed Work App opens a Task's Project, recovers from a stale Project v
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();
   // The Project link lives in the place chip's panel: open the chip, then the link.
-  await app.getByRole("button", { name: /^Change what it’s filed under/ }).click();
+  await app
+    .getByRole("button", { name: /^Change what it’s filed under/ })
+    .click();
   await app.getByRole("button", { name: /^Open Offert till Anna/ }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Offert till Anna" }),

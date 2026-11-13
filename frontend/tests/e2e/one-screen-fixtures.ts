@@ -58,6 +58,10 @@ const projects = [
   null,
 ];
 
+/** Tags for the n-th record: none, one, or three (two and "+1" on a row), with a long one. */
+const tagsOf = (n: number): string[] =>
+  [[], ["viktig"], ["kund", "byggprojekt-göteborg", "viktig"]][n % 3]!;
+
 export function task(
   n: number,
   status: string,
@@ -74,6 +78,7 @@ export function task(
     project_title: projects[n % projects.length],
     priority: n % 4 === 0 ? "high" : "normal",
     domain_accent: accents[n % accents.length],
+    tags: tagsOf(n),
     ...options,
   };
 }
@@ -178,29 +183,28 @@ export const contactNames = [
   "Nils Nilsson",
   "Olof Olsson",
 ];
-/** The owner's tag vocabulary (list_tags), used on Contacts and Journal entries alike. */
+/** The owner's tag vocabulary (list_tags), used on Contacts, Journal entries, Tasks and Projects alike. */
 export const tagVocabulary = {
-  tags: [
-    ["viktig", 6, 3],
-    ["kund", 9, 0],
-    ["familj", 4, 2],
-    ["styrelse", 2, 4],
-    ["byggprojekt-göteborg", 3, 1],
-    ["vänta", 1, 2],
-  ].map(([slug, contact, journal_entry], n) => ({
+  tags: (
+    [
+      ["viktig", 6, 3, 8, 0],
+      ["kund", 9, 0, 4, 0],
+      ["familj", 4, 2, 0, 0],
+      ["styrelse", 2, 4, 0, 1],
+      ["byggprojekt-göteborg", 3, 1, 4, 0],
+      ["vänta", 1, 2, 0, 0],
+    ] as const
+  ).map(([slug, contact, journal_entry, task, project], n) => ({
     id: uid(10, n),
     slug,
     label: slug,
     created_at: iso(-40),
     updated_at: iso(-40),
     version: 1,
-    usage: { contact, journal_entry },
+    usage: { contact, journal_entry, task, project },
   })),
   next_cursor: null,
 };
-/** Tags for the n-th Contact or entry: none, one, or three (two and "+1" on a row), with a long one. */
-const tagsOf = (n: number): string[] =>
-  [[], ["viktig"], ["kund", "byggprojekt-göteborg", "viktig"]][n % 3]!;
 export const bigContactList = {
   contacts: range(0, 40).map((n) => ({
     id: uid(4, n),
@@ -267,6 +271,7 @@ export const fullTask = {
   priority: "high",
   due_at: iso(1),
   completed_at: null,
+  tags: ["kund", "byggprojekt-göteborg"],
   created_at: iso(-10),
   updated_at: iso(-1),
   version: 3,
@@ -289,6 +294,7 @@ export const projectRecord = {
   status: "active",
   start_date: "2026-09-01",
   target_date: "2026-12-15",
+  tags: ["styrelse"],
   created_at: iso(-60),
   updated_at: iso(-2),
   version: 2,

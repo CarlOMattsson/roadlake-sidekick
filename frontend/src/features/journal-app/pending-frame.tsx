@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { formatCalendarDate, formatCount } from "./dates";
+import { formatCount, formatShortDateWithYear } from "./dates";
 import { labelFor } from "./labels";
 import type { JournalLabels } from "./labels";
 import type { JournalFrame, JournalPendingItem } from "./transport";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { Row } from "../mcp-apps/ui/row";
 
 /**
@@ -31,6 +32,7 @@ export function PendingFrame({
   useEffect(() => {
     if (moves > 0) heading.current?.focus();
   }, [moves]);
+  const today = ownerToday();
   const limited = !fullscreen && !expanded;
   const shownItems = limited ? items.slice(0, inlinePendingLimit) : items;
   return (
@@ -50,7 +52,7 @@ export function PendingFrame({
           const title =
             item.draft_title ?? (draftId ? t.untitledDraft : undefined);
           const meta = [
-            formatCalendarDate(item.journal_date, t.dateLocale),
+            formatShortDateWithYear(item.journal_date, t.dateLocale, today),
             title === undefined || item.state === "draft_pending_review"
               ? undefined
               : state,

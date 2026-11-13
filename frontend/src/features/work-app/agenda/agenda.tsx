@@ -11,6 +11,13 @@ import {
 } from "../transport/transport";
 import { NoticeView } from "../board/board";
 import { isWaitingFilter, waitingLabelsFor } from "../shared/waiting";
+import {
+  filterTags,
+  KnownTags,
+  useWorkTags,
+  withFilterTags,
+  WorkTagFilter,
+} from "../shared/work-tags";
 import { AgendaFilterRow } from "./parts/agenda-filter-row";
 import {
   AgendaSection,
@@ -140,6 +147,9 @@ export function AgendaView({
   });
 
   const disabled = session.busy !== "idle";
+  // The tags in use on Tasks and Projects, for the filter row and the labels of the rows' tags.
+  const tagVocabulary = useWorkTags(transport, ["task", "project"]);
+  const chosenTags = filterTags(frame.filters);
   const waitingView = isWaitingFilter(frame.filters);
   const wt = waitingLabelsFor(t.dateLocale);
   const layout = useAgendaLayout({
@@ -188,112 +198,127 @@ export function AgendaView({
   };
 
   return (
-    <article ref={root} className="work-agenda">
-      <h2
-        ref={heading}
-        tabIndex={-1}
-        className={headingHidden ? "work-visually-hidden" : undefined}
-      >
-        {t.agenda}
-      </h2>
-      {!controls && (
-        <AgendaFilterRow
-          labels={t}
-          query={query}
-          onQuery={setQuery}
-          disabled={disabled}
-          onRefresh={session.reread}
-        />
-      )}
-      {/* The offline copy: the agenda as it was last read, said with when (the phone had no answer). */}
-      {copiedAt !== null && (
-        <p role="status" className="work-agenda-offline">
-          {t.offlineCopy(copyTime(copiedAt, t.dateLocale))}
-        </p>
-      )}
-      <NoticeView
-        notice={session.notice}
-        labels={t}
-        onReload={session.reread}
-        onRetry={session.retry}
-      />
-      {disabled && (
-        <p role="status" className="work-agenda-loading">
-          {t.loading}
-        </p>
-      )}
-      {/* The waiting mark of a row sits inside its aria-busy row, where a screen reader may hold the news back: the
-          announcement lives here, in a region that is always mounted and never busy. */}
-      <p role="status" className="work-visually-hidden">
-        {visible
-          .filter((record) =>
-            session.rowQueue.queued(cardKey(rows.current(record))),
-          )
-          .map((record) => `${rows.current(record).title}: ${t.queued}`)
-          .join("; ")}
-      </p>
-      {!page.items.length &&
-        (waitingView ? (
-          <p>{wt.empty}</p>
-        ) : (
-          <WorkEmpty
-            title={t.agendaEmpty}
-            hint={t.agendaEmptyHint}
+    <KnownTags.Provider value={tagVocabulary.suggestions}>
+      <article ref={root} className="work-agenda">
+        <h2
+          ref={heading}
+          tabIndex={-1}
+          className={headingHidden ? "work-visually-hidden" : undefined}
+        >
+          {t.agenda}
+        </h2>
+        {!controls && (
+          <AgendaFilterRow
             labels={t}
+            query={query}
+            onQuery={setQuery}
+            disabled={disabled}
+            onRefresh={session.reread}
           />
-        ))}
-      {page.items.length > 0 && !visible.length && (
-        <SearchNoMatch query={query} labels={t} onClear={clearSearch} />
-      )}
-      {waitingView && visible.length > 0 && (
-        <WaitingSection
-          ctx={ctx}
-          labels={wt}
-          records={visible}
-          reminded={bulk.reminded}
-          onRemind={bulk.remind}
+        )}
+        {/* The tag filter reads the agenda again with every chosen tag; the search above narrows what it read. */}
+        <WorkTagFilter
+          options={tagVocabulary.options}
+          selected={chosenTags}
+          settled={!disabled}
+          onChange={(tags) =>
+            session.refilter(withFilterTags(frame.filters, tags))
+          }
+          locale={t.dateLocale}
         />
-      )}
-      {/* Ångra of "Flytta N till imorgon": the moved Tasks have left the group, so it stands above the groups. */}
-      {!waitingView && bulk.moveUndo && (
-        <MoveAllUndo
+        {/* The offline copy: the agenda as it was last read, said with when (the phone had no answer). */}
+        {copiedAt !== null && (
+          <p role="status" className="work-agenda-offline">
+            {t.offlineCopy(copyTime(copiedAt, t.dateLocale))}
+          </p>
+        )}
+        <NoticeView
+          notice={session.notice}
           labels={t}
-          count={bulk.moveUndo.count}
-          disabled={disabled}
-          onUndo={bulk.undoMoveAll}
-          onExpire={bulk.dismissMoveUndo}
+          onReload={session.reread}
+          onRetry={session.retry}
         />
-      )}
-      {/* The Undo (or "Moving…", or "Waiting…") takes the meta line of the row it belongs to, so it covers no row and moves none.
+        {disabled && (
+          <p role="status" className="work-agenda-loading">
+            {t.loading}
+          </p>
+        )}
+        {/* The waiting mark of a row sits inside its aria-busy row, where a screen reader may hold the news back: the
+          announcement lives here, in a region that is always mounted and never busy. */}
+        <p role="status" className="work-visually-hidden">
+          {visible
+            .filter((record) =>
+              session.rowQueue.queued(cardKey(rows.current(record))),
+            )
+            .map((record) => `${rows.current(record).title}: ${t.queued}`)
+            .join("; ")}
+        </p>
+        {!page.items.length &&
+          (waitingView ? (
+            <p>{wt.empty}</p>
+          ) : chosenTags.length > 0 ? (
+            // Nothing carries every chosen tag: the filter row above has Rensa.
+            <p>{t.agendaNoMatches}</p>
+          ) : (
+            <WorkEmpty
+              title={t.agendaEmpty}
+              hint={t.agendaEmptyHint}
+              labels={t}
+            />
+          ))}
+        {page.items.length > 0 && !visible.length && (
+          <SearchNoMatch query={query} labels={t} onClear={clearSearch} />
+        )}
+        {waitingView && visible.length > 0 && (
+          <WaitingSection
+            ctx={ctx}
+            labels={wt}
+            records={visible}
+            reminded={bulk.reminded}
+            onRemind={bulk.remind}
+          />
+        )}
+        {/* Ångra of "Flytta N till imorgon": the moved Tasks have left the group, so it stands above the groups. */}
+        {!waitingView && bulk.moveUndo && (
+          <MoveAllUndo
+            labels={t}
+            count={bulk.moveUndo.count}
+            disabled={disabled}
+            onUndo={bulk.undoMoveAll}
+            onExpire={bulk.dismissMoveUndo}
+          />
+        )}
+        {/* The Undo (or "Moving…", or "Waiting…") takes the meta line of the row it belongs to, so it covers no row and moves none.
           A write with no row of its own ("Flytta 2 till imorgon") shows none; the loading status speaks for it, and the
           Undo of the move is above. */}
-      {(waitingView ? [] : layout.sections).map((section) => (
-        <AgendaSection
-          key={section.group}
-          ctx={ctx}
-          section={section}
-          rows={layout.shown(section)}
-          // Not while a search narrows the list: "Flytta N försenade" would read as moving the hits.
-          moveAllOffered={offers.rescheduleOffered && query.trim() === ""}
-          onMoveAll={bulk.moveAllOverdue}
-        />
-      ))}
-      {layout.doneToday.length > 0 && (
-        <DoneTodaySection
-          ctx={ctx}
-          done={layout.doneToday}
-          open={doneOpen}
-          onToggle={() => setDoneOpen((open) => !open)}
-        />
-      )}
-      {page.next_cursor && (
-        <button type="button" disabled={disabled} onClick={session.loadMore}>
-          {t.more}
-        </button>
-      )}
-      {!waitingView && visible.some(offers.rowHasChoices) && (
-        <RowMenuTip labels={t} />
-      )}
-    </article>
+        {(waitingView ? [] : layout.sections).map((section) => (
+          <AgendaSection
+            key={section.group}
+            ctx={ctx}
+            section={section}
+            rows={layout.shown(section)}
+            // Not while a search narrows the list: "Flytta N försenade" would read as moving the hits.
+            moveAllOffered={offers.rescheduleOffered && query.trim() === ""}
+            onMoveAll={bulk.moveAllOverdue}
+          />
+        ))}
+        {layout.doneToday.length > 0 && (
+          <DoneTodaySection
+            ctx={ctx}
+            done={layout.doneToday}
+            open={doneOpen}
+            onToggle={() => setDoneOpen((open) => !open)}
+          />
+        )}
+        {page.next_cursor && (
+          <button type="button" disabled={disabled} onClick={session.loadMore}>
+            {t.more}
+          </button>
+        )}
+        {!waitingView && visible.some(offers.rowHasChoices) && (
+          <RowMenuTip labels={t} />
+        )}
+      </article>
+    </KnownTags.Provider>
   );
 }

@@ -10,7 +10,7 @@ export const journalEn = {
   entries: "Entries",
   noEntries: "Nothing written on this day.",
   noEntriesToday: "Nothing written yet today.",
-  tellClaude: "Describe your day",
+  tellClaude: "Tell Claude about the day",
   tellClaudeMessage:
     "I’d like to tell you about my day so you can save it in my journal.",
   /** Under both buttons: what the tap does; it sends a message in the chat. */
@@ -18,8 +18,7 @@ export const journalEn = {
   /** What an empty earlier day sends to Claude, naming the day. */
   tellClaudeDayMessage: (day: string) =>
     `I’d like to tell you about ${day} so you can save it in my journal.`,
-  tellClaudeMore: "Tell Claude about the day",
-  /** The message "Tell Claude about the day" sends; names the day unless it is today. */
+  /** The message the same button sends on a day that already has entries; names the day unless it is today. */
   tellClaudeMoreMessage: (day?: string) =>
     day
       ? `I’d like to tell you more about ${day} so you can save it in my journal.`
@@ -90,7 +89,7 @@ export const journalEn = {
   noDraftSummary: "No summary.",
   originalUnchanged: "Original, unchanged",
   chosenByUser: "Chosen by you",
-  aiDraft: "AI draft",
+  aiDraft: "Claude’s draft",
   approve: "Approve",
   decline: "Decline",
   decisionApproved: "Approved",
@@ -166,7 +165,7 @@ export const journalEn = {
   openTask: "Open task",
   terminalDraft: "This draft has already been handled.",
   conflict:
-    "This draft was changed elsewhere or has already been handled. Reload to see the latest. Your edits are kept.",
+    "This draft was changed elsewhere or has already been handled. Reload to see the latest version. Your edits are kept.",
   reload: "Reload",
   invalidChange: "That change wasn’t accepted. Check the values.",
   forbiddenWrite: "You don’t have permission to change this.",
@@ -189,7 +188,7 @@ export const journalEn = {
     "Couldn’t save the entry. Your text is still here. Try again.",
   entryInvalid: "The entry wasn’t accepted. Check the title and text.",
   entryTooLong:
-    "This is too long to save in one go (about 250 KB; characters like å, ä, ö and emoji take more room). Shorten it, or save the rest as a separate entry.",
+    "This is too long to save in one go (about 250 KB; accented letters and emoji take more room). Shorten it, or save the rest as a separate entry.",
   editEntry: "Edit entry",
   entryUpdated: "Entry updated.",
   entryEditConflict:
@@ -213,11 +212,11 @@ export const journalEn = {
   cardOpening: "Opening…",
   cardNoLinks: "Not linked to anything yet",
   cardSaved: "saved",
-  cardWhenToday: (time?: string) => (time ? `today ${time}` : "today"),
+  cardWhenToday: (time?: string) => (time ? `today at ${time}` : "today"),
   cardWhenYesterday: (time?: string) =>
-    time ? `yesterday ${time}` : "yesterday",
+    time ? `yesterday at ${time}` : "yesterday",
   cardWhenAt: (date: string, time?: string) =>
-    time ? `${date} ${time}` : date,
+    time ? `${date} at ${time}` : date,
   cardSummarized: "Summarized by Claude",
   cardContacts: (n: number) => `${n} ${n === 1 ? "contact" : "contacts"}`,
   cardTasks: (n: number) => `${n} ${n === 1 ? "task" : "tasks"}`,
@@ -232,9 +231,10 @@ export const journalEn = {
   linkRemoved: (name: string) => `${name} removed from the entry.`,
   linkRemoveFailed: "Couldn’t remove the link. Try again.",
   linkRestoreFailed: "Couldn’t restore the link. Try again.",
-  linkConflict:
-    "This entry was changed elsewhere. Open it again to see the latest version.",
   undo: "Undo",
+  /** A link or delete write at a stale version: the entry has been read again, so the same tap works next time. */
+  entryReloadedConflict:
+    "This entry was changed elsewhere. The latest version is loaded. Try again.",
   /** Deleting an entry (move to the trash, with Undo): the ⋯ menu, the line after it and the failures. */
   entryMoreActions: "More options for this entry",
   deleteEntry: "Delete entry",
@@ -242,8 +242,6 @@ export const journalEn = {
   entryTrashedWhere: (control: string) =>
     `You can also restore it in ${control} › Deleted.`,
   entryTrashFailed: "Couldn’t delete the entry. Try again.",
-  entryTrashConflict:
-    "This entry was changed elsewhere. The latest version is loaded. Try again.",
   entryRestoreFailed: "Couldn’t undo the deletion. Try again.",
   entryRestored: "Entry restored.",
   approveAll: "Approve all suggestions",
@@ -279,13 +277,12 @@ export const journalSv: JournalLabels = {
   entries: "Anteckningar",
   noEntries: "Inget skrivet den här dagen.",
   noEntriesToday: "Inget skrivet ännu idag.",
-  tellClaude: "Berätta om dagen",
+  tellClaude: "Berätta för Claude om dagen",
   tellClaudeMessage:
     "Jag vill berätta om min dag så att det sparas i dagboken.",
   tellClaudeHint: "Claude frågar om dagen och sparar det i dagboken.",
   tellClaudeDayMessage: (day: string) =>
     `Jag vill berätta om ${day} så att det sparas i dagboken.`,
-  tellClaudeMore: "Berätta för Claude om dagen",
   tellClaudeMoreMessage: (day?: string) =>
     day
       ? `Jag vill berätta mer om ${day} så att det sparas i dagboken.`
@@ -356,7 +353,7 @@ export const journalSv: JournalLabels = {
   noDraftSummary: "Ingen sammanfattning.",
   originalUnchanged: "Original, oförändrat",
   chosenByUser: "Vald av dig",
-  aiDraft: "AI-utkast",
+  aiDraft: "Claudes utkast",
   approve: "Godkänn",
   decline: "Avslå",
   decisionApproved: "Godkänd",
@@ -427,7 +424,7 @@ export const journalSv: JournalLabels = {
   openTask: "Öppna uppgiften",
   terminalDraft: "Utkastet är redan hanterat.",
   conflict:
-    "Utkastet ändrades någon annanstans eller är redan hanterat. Ladda om för att se det senaste. Dina ändringar behålls.",
+    "Utkastet ändrades någon annanstans eller är redan hanterat. Ladda om för att se senaste versionen. Dina ändringar behålls.",
   reload: "Ladda om",
   invalidChange: "Ändringen godtogs inte. Kontrollera värdena.",
   forbiddenWrite: "Du har inte behörighet att ändra det här.",
@@ -491,18 +488,15 @@ export const journalSv: JournalLabels = {
   linkRemoved: (name: string) => `${name} är borttagen från anteckningen.`,
   linkRemoveFailed: "Kunde inte ta bort kopplingen. Försök igen.",
   linkRestoreFailed: "Kunde inte återställa kopplingen. Försök igen.",
-  linkConflict:
-    "Anteckningen ändrades någon annanstans. Öppna den igen för att se den senaste versionen.",
   undo: "Ångra",
-  /** Deleting an entry (move to the trash, with Undo): the ⋯ menu, the line after it and the failures. */
+  entryReloadedConflict:
+    "Anteckningen ändrades någon annanstans. Den senaste versionen är inläst. Försök igen.",
   entryMoreActions: "Fler val för anteckningen",
   deleteEntry: "Ta bort anteckning",
   entryTrashed: "Anteckningen är borttagen.",
   entryTrashedWhere: (control: string) =>
     `Du kan också återställa den i ${control} › Borttaget.`,
   entryTrashFailed: "Det gick inte att ta bort anteckningen. Försök igen.",
-  entryTrashConflict:
-    "Anteckningen ändrades någon annanstans. Den senaste versionen är inläst. Försök igen.",
   entryRestoreFailed: "Det gick inte att ångra borttagningen. Försök igen.",
   entryRestored: "Anteckningen är återställd.",
   approveAll: "Godkänn alla förslag",

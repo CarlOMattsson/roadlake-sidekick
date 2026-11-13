@@ -5,7 +5,7 @@
 export const contactsRoomLabelsSv = {
   /** The empty list's second line: what the room holds. */
   emptyHint: "Namn, hur ni känner varandra och hur du når dem.",
-  emptyAsk: "Spara Anna Andersson som kontakt, hon är min revisor",
+  emptyAsk: "Spara Anna Andersson som kontakt – hon är min revisor",
   /** A Contact with nothing saved but the name. */
   bareTitle: (first: string) => `Inget sparat om ${first} än.`,
   bareAsk: (name: string) =>
@@ -26,8 +26,8 @@ export const contactsRoomLabelsSv = {
 export type ContactsRoomLabels = typeof contactsRoomLabelsSv;
 
 export const contactsRoomLabelsEn: ContactsRoomLabels = {
-  emptyHint: "Names, how you know each other and how to reach them.",
-  emptyAsk: "Save Anna Andersson as a contact, she’s my accountant",
+  emptyHint: "Names, how you know each other, and how to reach them.",
+  emptyAsk: "Save Anna Andersson as a contact – she’s my accountant",
   bareTitle: (first) => `Nothing saved about ${first} yet.`,
   bareAsk: (name) =>
     `I’d like to tell you what I know about ${name} so you can save it on the contact.`,

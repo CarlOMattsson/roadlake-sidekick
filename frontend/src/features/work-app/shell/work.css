@@ -792,6 +792,21 @@
   width: 0.8em;
   text-align: center;
 }
+/* The tags in a column (two pills and "+N"): a pill is its own separator, so only the dot's width stands before them,
+   and the clip that hides a line's first dot leaves the pills whole. They keep one line and give way as the other
+   parts do; agenda.css draws each pill to the meta's line. */
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-column
+  .work-card-meta
+  > .sk-tags::before {
+  content: "";
+  margin-inline-end: calc(-1 * var(--sk-s1));
+}
+.sidekick-work .work-column .work-card-meta > .sk-tags {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
 /* Single-column board (phone). BoardView sets data-layout="single" on .work-board below 640 px. The statuses follow
    each other as sections of one flat list (designsystem §4 "Statusfilter i Arbete"): a section heading "Att göra (4)"
    and rows with a status glyph, the title (never cut) and the meta line, with no ⋯. Klar is folded under its

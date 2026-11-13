@@ -305,8 +305,8 @@ export function DayFrame({
                   ref={addButton}
                   type="button"
                   className="sk-iconbtn sk-iconbtn--primary journal-day-add"
-                  aria-label={canWrite ? t.addEntry : t.tellClaudeMore}
-                  title={canWrite ? t.addEntry : t.tellClaudeMore}
+                  aria-label={canWrite ? t.addEntry : t.tellClaude}
+                  title={canWrite ? t.addEntry : t.tellClaude}
                   aria-expanded={
                     canWrite && tellClaudeAction ? addOpen : undefined
                   }
@@ -393,7 +393,7 @@ export function DayFrame({
                   tellClaudeAction();
                 }}
               >
-                {tellMore ? t.tellClaudeMore : t.tellClaude}
+                {t.tellClaude}
               </button>
               <button
                 type="button"

@@ -186,7 +186,9 @@ describe("deleting an entry", () => {
       />,
     );
     await openMenuAndDelete(user, journalSv);
-    expect(await screen.findByText(journalSv.entryTrashConflict)).toBeVisible();
+    expect(
+      await screen.findByText(journalSv.entryReloadedConflict),
+    ).toBeVisible();
     await waitFor(() => expect(getEntry).toHaveBeenCalledTimes(2));
   });
 

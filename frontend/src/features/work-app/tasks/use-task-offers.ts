@@ -35,6 +35,8 @@ export function useTaskOffers(
     changes: { status: "completed" },
   });
   const editOffered = offers("update_task", { changes: { title: "" } });
+  // A tag change writes the whole set; the phone answers no, so there the tags are shown, not edited.
+  const tagsOffered = offers("update_task", { changes: { tags: [] } });
   // Deleting moves the Task to the trash and Ångra restores it, so both tools must be there.
   const trashOffered =
     offers("move_to_trash", { kind: "task" }) &&
@@ -53,6 +55,7 @@ export function useTaskOffers(
     statusOffered,
     doneShown,
     editOffered,
+    tagsOffered,
     trashOffered,
     contactsOn,
     unlinkOffered,

@@ -426,6 +426,7 @@ export function EntryFrame({
               transport={transport}
               onOpenContact={onOpenContact}
               onChanged={entryChanged}
+              onConflict={reloadEntry}
               removable={mode === "edit"}
             />
           )}

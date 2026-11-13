@@ -7,7 +7,11 @@ import {
   type BoardNotice,
 } from "../../board/board";
 import { appendAgendaPage } from "../../shared/work-items";
-import type { WorkAgendaFrame, WorkTransport } from "../../transport/transport";
+import type {
+  WorkAgendaFrame,
+  WorkFilters,
+  WorkTransport,
+} from "../../transport/transport";
 import type { RowState } from "./use-row-state";
 
 /** True while the view is mounted: a write that outlives it must not set state. */
@@ -65,6 +69,9 @@ export function useAgendaSession({
   // A read asked for while another one runs waits for it (the asker's mark is kept, not dropped).
   const rereadAgain = useRef(false);
   const { page } = frame;
+  // The filters every read asks with: the frame's at mount, then those `refilter` sets. A read that ends after a
+  // refilter shows them, never the filters it was started with.
+  const filters = useRef(frame.filters);
 
   // The newest reread, for a read that waited for the one before it and for the effects below.
   const rereadNow = useRef(() => undefined as void);
@@ -101,7 +108,7 @@ export function useAgendaSession({
   function showRead(next: WorkAgendaFrame["page"]) {
     if (!mounted.current) return;
     rows.resetForRead();
-    onChange({ ...frame, page: next });
+    onChange({ ...frame, filters: filters.current, page: next });
     onRead?.();
   }
   /** Reads the agenda again and shows it as the list now is. */
@@ -112,7 +119,7 @@ export function useAgendaSession({
     }
     run("reload", async () => {
       try {
-        showRead(await transport.getWorkAgenda(frame.filters));
+        showRead(await transport.getWorkAgenda(filters.current));
       } catch (error) {
         if (mounted.current) setNotice(failureNotice(error, "reload"));
       }
@@ -123,13 +130,26 @@ export function useAgendaSession({
     if (!cursor) return;
     run("more", async () => {
       try {
-        const later = await transport.getWorkAgenda(frame.filters, cursor);
+        const later = await transport.getWorkAgenda(filters.current, cursor);
         if (mounted.current)
-          onChange({ ...frame, page: appendAgendaPage(page, later) });
+          onChange({
+            ...frame,
+            filters: filters.current,
+            page: appendAgendaPage(page, later),
+          });
       } catch (error) {
         if (mounted.current) setNotice(failureNotice(error, "more"));
       }
     });
+  }
+  /**
+   * Narrows the agenda to other filters (the tag filter): the frame takes them at once, so the chosen chip shows
+   * pressed, and the agenda is read with them. A read already on its way is followed by one with these filters.
+   */
+  function refilter(next: WorkFilters) {
+    filters.current = next;
+    onChange({ ...frame, filters: next });
+    reread();
   }
   /** Sets the write that "Try again" repeats. */
   function armRetry(again: () => void) {
@@ -181,6 +201,7 @@ export function useAgendaSession({
     reread,
     showRead,
     loadMore,
+    refilter,
     retry,
   };
 }

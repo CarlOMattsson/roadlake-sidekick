@@ -24,6 +24,8 @@ import {
 } from "../view/parts/use-detail-frame";
 import { useDomainName } from "../view/parts/use-domain-name";
 import { WriteStatus } from "../view/parts/write-status";
+import { TagField } from "../../mcp-apps/ui/tags";
+import { KnownTags, useWorkTags } from "../shared/work-tags";
 
 export function ProjectFrame({
   id,
@@ -47,6 +49,9 @@ export function ProjectFrame({
   const moreButton = useRef<HTMLButtonElement>(null);
   const createOffered = offers("create_task");
   const domainName = useDomainName(transport, project?.domain_id);
+  // The vocabulary labels the Project's tags and its Tasks' tags; a failed tag change keeps its retry here.
+  const tags = useWorkTags(transport, "project");
+  const retryTags = useRef<(() => void) | undefined>(undefined);
   useFrameRead(
     frame,
     useCallback(() => transport.getProject(id), [transport, id]),
@@ -92,6 +97,28 @@ export function ProjectFrame({
         setProject(result.project);
         frame.setEditing(false);
         heading.current?.focus();
+      },
+    );
+  }
+  /** Writes the Project's whole tag set (update_project changes.tags) in place; `done` runs once it is stored. */
+  function setTags(next: string[], done: () => void) {
+    if (!project || frame.writing.current) return;
+    retryTags.current = () => setTags(next, done);
+    frame.sendWrite(
+      JSON.stringify(["tags", project.id, project.version, next]),
+      "write",
+      (key) =>
+        transport.updateProject(
+          project.id,
+          project.version,
+          { tags: next },
+          key,
+        ),
+      (result) => {
+        retryTags.current = undefined;
+        setProject(result.project);
+        tags.refresh();
+        done();
       },
     );
   }
@@ -206,10 +233,28 @@ export function ProjectFrame({
                   </time>
                 </p>
               )}
+              {/* The tags under the dates, as on a Task: the pills and one quiet button that edits them in place. */}
+              <TagField
+                tags={project.tags ?? []}
+                suggestions={tags.suggestions}
+                editable={editOffered}
+                busy={write.kind === "busy"}
+                name={project.title}
+                onChange={setTags}
+                locale={t.dateLocale}
+              />
               {project.description && (
                 <p className="work-description">{project.description}</p>
               )}
             </>
+          )}
+          {write.kind === "failed" && write.action === "write" && (
+            <p role="alert">
+              {t.saveFailed}{" "}
+              <button type="button" onClick={() => retryTags.current?.()}>
+                {t.retry}
+              </button>
+            </p>
           )}
           <WriteStatus
             write={write}
@@ -249,14 +294,16 @@ export function ProjectFrame({
                   onCreated={taskCreated}
                 />
               ) : null}
-              <TaskSummaryList
-                tasks={tasks.items}
-                labels={t}
-                empty={t.noProjectTasks}
-                onOpen={onOpen}
-                transport={transport}
-                onReload={reloadProject}
-              />
+              <KnownTags.Provider value={tags.suggestions}>
+                <TaskSummaryList
+                  tasks={tasks.items}
+                  labels={t}
+                  empty={t.noProjectTasks}
+                  onOpen={onOpen}
+                  transport={transport}
+                  onReload={reloadProject}
+                />
+              </KnownTags.Provider>
               {tasks.more === "busy" && <p role="status">{t.loading}</p>}
               {tasks.more === "failed" && <p role="alert">{t.failed}</p>}
               {tasks.nextCursor && (

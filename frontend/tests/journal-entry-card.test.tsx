@@ -289,7 +289,7 @@ describe("journal entry card", () => {
 
   it("names the day and time the entry is filed under, with no 'saved' and no 'at'", () => {
     deliver({ entry: { ...created, occurred_at: "2026-10-24T14:05:00" } });
-    expect(screen.getByText("24 Oct 14:05")).toBeInTheDocument();
+    expect(screen.getByText("24 Oct at 14:05")).toBeInTheDocument();
     expect(screen.getByRole("status")).not.toHaveTextContent(/saved/);
   });
 
@@ -301,7 +301,7 @@ describe("journal entry card", () => {
         occurred_at: "2026-11-03T12:30:00",
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^today 12:30$/);
+    expect(screen.getByRole("status")).toHaveTextContent(/^today at 12:30$/);
 
     deliver({
       entry: {
@@ -310,7 +310,9 @@ describe("journal entry card", () => {
         occurred_at: "2026-11-02T18:05:00",
       },
     });
-    expect(screen.getByRole("status")).toHaveTextContent(/^yesterday 18:05$/);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /^yesterday at 18:05$/,
+    );
 
     deliver({
       entry: { ...created, journal_date: "2025-12-31", occurred_at: null },

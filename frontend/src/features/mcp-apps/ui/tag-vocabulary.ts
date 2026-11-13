@@ -41,11 +41,16 @@ export function forgetTagVocabulary(read: ReadTags | undefined) {
 }
 
 /**
- * The owner's tag vocabulary for one kind of record. `options` are the tags in use on that kind (for a
- * filter), most used first; `suggestions` are all tags (for adding one). A failed or missing read leaves both
- * empty: the view then shows no filter and adds tags by typing only.
+ * The owner's tag vocabulary for one kind of record, or for several counted together (a list of Tasks and
+ * Projects). `options` are the tags in use on those kinds (for a filter), most used first; `suggestions` are all
+ * tags (for adding one). A failed or missing read leaves both empty: the view then shows no filter and adds tags
+ * by typing only.
  */
-export function useTagVocabulary(read: ReadTags | undefined, kind: TagKind) {
+export function useTagVocabulary(
+  read: ReadTags | undefined,
+  kind: TagKind | readonly TagKind[],
+) {
+  const kinds: readonly TagKind[] = typeof kind === "string" ? [kind] : kind;
   const [tags, setTags] = useState<TagRecord[]>([]);
   const [round, setRound] = useState(0);
   useEffect(() => {
@@ -77,7 +82,7 @@ export function useTagVocabulary(read: ReadTags | undefined, kind: TagKind) {
   const option = (tag: TagRecord): TagOption => ({
     slug: tag.slug,
     label: tag.label,
-    count: tag.usage[kind] ?? 0,
+    count: kinds.reduce((sum, each) => sum + (tag.usage[each] ?? 0), 0),
   });
   const options = tags
     .map(option)

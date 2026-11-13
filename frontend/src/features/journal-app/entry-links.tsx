@@ -36,6 +36,7 @@ export function EntryLinks({
   transport,
   onOpenContact,
   onChanged,
+  onConflict,
   removable = true,
 }: {
   entry: JournalEntry;
@@ -43,6 +44,8 @@ export function EntryLinks({
   transport: JournalTransport;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
   onChanged: (entry: JournalEntry) => void;
+  /** Runs when the write was refused for a stale version; the parent reads the entry again. */
+  onConflict: () => void;
   /**
    * Whether the chips carry their ×. The entry passes true only while it is being changed ("Ändra"), so a tap meant to
    * open a Contact never lands on its remove button.
@@ -116,13 +119,11 @@ export function EntryLinks({
         onChanged(result.entry);
       })
       .catch((error: unknown) => {
+        const conflict = writeFailure(error) === "conflict";
         setFailure(
-          writeFailure(error) === "conflict"
-            ? "conflict"
-            : action === "remove"
-              ? "remove"
-              : "restore",
+          conflict ? "conflict" : action === "remove" ? "remove" : "restore",
         );
+        if (conflict) onConflict();
       })
       .finally(() => setBusy(false));
   }
@@ -228,7 +229,7 @@ export function EntryLinks({
           {failure && (
             <p role="alert" className="journal-banner">
               {failure === "conflict"
-                ? t.linkConflict
+                ? t.entryReloadedConflict
                 : failure === "remove"
                   ? t.linkRemoveFailed
                   : t.linkRestoreFailed}

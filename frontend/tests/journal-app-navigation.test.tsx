@@ -350,7 +350,7 @@ describe("journal app navigation", () => {
       });
       await user.click(more);
       expect(
-        screen.getByText(/Sidekick är 20 dagar gammal/),
+        screen.getByText(/Den här versionen är 20 dagar gammal/),
       ).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "Minne och kontroll" }),
@@ -610,7 +610,7 @@ describe("journal app navigation", () => {
       screen.getByText("Utkast som väntar på granskning"),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("26 okt. 2026 · Transkription · 1 840 tecken"),
+      screen.getByText("26 okt · Transkription · 1 840 tecken"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
     expect(
@@ -645,7 +645,7 @@ describe("journal app navigation", () => {
     );
     expect(screen.getByText("Sparad, ej granskad")).toBeInTheDocument();
     expect(
-      screen.getByText("26 okt. 2026 · Egen text · 90 tecken"),
+      screen.getByText("26 okt · Egen text · 90 tecken"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
     expect(screen.queryByText(/source_saved/)).toBeNull();
@@ -660,7 +660,7 @@ describe("journal app navigation", () => {
     );
     expect(screen.getByText("Saved, not reviewed")).toBeInTheDocument();
     expect(
-      screen.getByText("26 Oct 2026 · Typed text · 90 characters"),
+      screen.getByText("26 Oct · Typed text · 90 characters"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/source_saved/)).toBeNull();
   });
@@ -697,18 +697,18 @@ describe("journal app navigation", () => {
     // The spans carry no space between them in the computed name, so the title and the meta are matched apart.
     expect(
       screen.getByRole("button", {
-        name: /^Awaiting one.*24 Oct 2026 · Typed text · 42 characters$/,
+        name: /^Awaiting one.*24 Oct · Typed text · 42 characters$/,
       }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", {
-        name: /^Saved one.*24 Oct 2026 · Saved, not reviewed · Typed text · 42 characters$/,
+        name: /^Saved one.*24 Oct · Saved, not reviewed · Typed text · 42 characters$/,
       }),
     ).toBeInTheDocument();
     // A draft without a title is still a button, named "Untitled draft", and awaiting review is not repeated.
     expect(
       screen.getByRole("button", {
-        name: /^Untitled draft.*24 Oct 2026 · Typed text · 42 characters$/,
+        name: /^Untitled draft.*24 Oct · Typed text · 42 characters$/,
       }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Draft awaiting review/)).toBeNull();

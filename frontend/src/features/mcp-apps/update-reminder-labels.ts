@@ -7,7 +7,7 @@ import type { AppLocale } from "./app-locale";
 export type UpdateReminderLabels = {
   /** Added to the accessible name of a ⋯ button while the reminder stands: "Fler alternativ – uppdatering finns …". */
   moreSuffix: string;
-  /** The row's first line: "Sidekick är 21 dagar gammal (commit abc1234)". */
+  /** The row's first line: "Den här versionen är 21 dagar gammal (commit abc1234)". */
   age: (days: number, commit: string) => string;
   /** Before the command: "Uppdatera med". */
   howTo: string;
@@ -20,7 +20,7 @@ export type UpdateReminderLabels = {
 export const updateReminderLabelsSv: UpdateReminderLabels = {
   moreSuffix: "uppdatering finns att hämta",
   age: (days, commit) =>
-    `Sidekick är ${days} ${days === 1 ? "dag" : "dagar"} gammal (commit ${commit})`,
+    `Den här versionen är ${days} ${days === 1 ? "dag" : "dagar"} gammal (commit ${commit})`,
   howTo: "Uppdatera med",
   dismiss: "Påminn inte för den här versionen",
   dismissed: "Okej, ingen mer påminnelse för den här versionen.",

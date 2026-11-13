@@ -243,6 +243,58 @@
   position: static;
   display: inline-block;
 }
+/* The tags (TagChips: two pills and "+N"), after "Hög" and before the Project. A pill is its own separator, so no dot
+   hangs before it. After another part they stand whole or not at all, as "Hög" does: when they do not fit beside the
+   time and the status they wrap to the 0-high line and are hidden whole, and the Project after them goes too. A long
+   tag is cut with an ellipsis at 6.5em, never clipped, and the pills are narrow (6 inside), so "Fre 6 nov" and three
+   tags fit a 320 px phone. The pill is drawn to the meta's line (17.5 with its hairlines), so a tagged row is as tall
+   as any other. As the first part they shrink with the line. */
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > .sk-tags {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > .sk-tags::before {
+  content: none;
+}
+:is(
+    .sidekick-work .work-agenda-body,
+    .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
+  )
+  > .work-card-meta
+  > *
+  + .sk-tags {
+  margin-block-end: calc(-1 * var(--sk-type-meta-line));
+}
+:is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag {
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-width: 6.5em;
+  padding-inline: calc(1.5 * var(--sk-s1));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+  line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
+}
+:is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag--more {
+  flex: none;
+  padding-inline: var(--sk-s1);
+}
 
 /* The row's quick choices (designsystem §3 "Snabbval"): two marked rows under the row, on
    the title's x. "Status" holds the four statuses, the current one chosen; "Datum" holds Idag, Imorgon, Nästa vecka and

@@ -268,9 +268,11 @@ test("fullscreen 1280x800 shows the three-tab strip with Agenda selected and Boa
   await expect(app.getByRole("region", { name: "To do" })).toBeVisible();
   const state = await hostState(page);
   expect(state.initialized).toBe(true);
-  // The To sort row above the agenda reads the unsorted count once when the app opens; the Board
-  // read follows the Board press. Each read is listed, so no other call goes unnoticed.
+  // The To sort row above the agenda reads the unsorted count once when the app opens, and the tag
+  // filter reads the tag list once; the Board read follows the Board press. Each read is listed, so
+  // no other call goes unnoticed.
   expect(state.calls.map((call) => call.name)).toEqual([
+    "list_tags",
     "list_tasks",
     "get_work_board",
   ]);

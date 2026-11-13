@@ -1,9 +1,14 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
+  bigAgenda,
+  bigBoard,
   bigContactContext,
   bigContactList,
   bigJournalDay,
+  FIXTURE_NOW,
+  fullTask,
   journalReplies,
+  projectRecord,
   workReplies,
 } from "./one-screen-fixtures";
 import {
@@ -37,7 +42,154 @@ const replies = {
       },
     },
   },
+  update_task: {
+    structuredContent: {
+      task: { ...fullTask, tags: [...fullTask.tags, "viktig"], version: 4 },
+    },
+  },
+  update_project: {
+    structuredContent: {
+      project: { ...projectRecord, tags: [], version: 3 },
+    },
+  },
 };
+
+/** The fullscreen room on the simulated host, at a phone's size unless `width` says otherwise. */
+async function openWork(
+  page: Page,
+  result: unknown,
+  options: {
+    locale?: "sv" | "en";
+    width?: number;
+    theme?: "light" | "dark";
+  } = {},
+) {
+  const locale = options.locale ?? "sv";
+  await page.clock.setFixedTime(FIXTURE_NOW);
+  const opened = await openSimulatedApp(page, {
+    resource: readBuiltApp("sidekick", locale),
+    width: options.width ?? 375,
+    height: 812,
+    hostContext: {
+      locale,
+      theme: options.theme ?? "light",
+      displayMode: "fullscreen",
+      availableDisplayModes: ["inline", "fullscreen"],
+    },
+    replies,
+  });
+  await waitForAppInitialized(page);
+  await deliverToolResult(page, result);
+  await settled(opened.app);
+  return opened;
+}
+
+for (const [view, tool, result] of [
+  ["Agenda", "get_work_agenda", bigAgenda],
+  ["Status", "get_work_board", bigBoard],
+] as const)
+  test(`${view}: the tag filter reads with every chosen tag, and a tagged row keeps one meta line`, async ({
+    page,
+  }) => {
+    const { app, failures, networkRequests } = await openWork(page, result);
+    const filter = app.getByRole("group", { name: "Filtrera på tagg" });
+    await expect(filter).toBeVisible();
+    for (const chip of await filter.getByRole("button").all()) {
+      const size = await effectiveTargetSize(chip);
+      expect(size?.height).toBeGreaterThanOrEqual(TAP);
+      expect(size?.width).toBeGreaterThanOrEqual(TAP);
+    }
+    // Two pills and "+1" on the meta line, drawn to its height: a tagged row is as tall as an untagged one.
+    const metas = app.locator(
+      ".work-agenda-body > .work-card-meta:has(.sk-tags), li.work-card > .work-card-meta:has(.sk-tags)",
+    );
+    expect(await metas.count()).toBeGreaterThan(0);
+    for (const box of await metas.evaluateAll((all) =>
+      all.map((el) => el.getBoundingClientRect().height),
+    ))
+      expect(box).toBeLessThanOrEqual(18);
+    await expect(app.locator(".work-card-meta .sk-tags-sr").first()).toHaveText(
+      /^Taggar: /,
+    );
+    await filter.getByRole("button", { name: "viktig" }).click();
+    await expect(
+      filter.getByRole("button", { name: "viktig" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await filter.getByRole("button", { name: "kund" }).click();
+    await settled(app);
+    const reads = (await simulatedHostState(page)).calls.filter(
+      (call) => call.name === tool,
+    );
+    expect(reads.at(-1)?.arguments).toMatchObject({
+      tags: ["viktig", "kund"],
+      tag_match: "all",
+    });
+    await filter.getByRole("button", { name: "Rensa taggfiltret" }).click();
+    await settled(app);
+    const cleared = (await simulatedHostState(page)).calls.filter(
+      (call) => call.name === tool,
+    );
+    expect(cleared.at(-1)?.arguments).not.toHaveProperty("tags");
+    expect(networkRequests()).toBe(0);
+    expect(failures).toEqual([]);
+  });
+
+test("Task: a tag added from the suggestions is one update_task of the whole set", async ({
+  page,
+}) => {
+  const { app, failures } = await openWork(
+    page,
+    { task: fullTask },
+    {
+      locale: "en",
+      theme: "dark",
+    },
+  );
+  const open = app.getByRole("button", {
+    name: `Edit tags for ${fullTask.title}`,
+  });
+  expect((await effectiveTargetSize(open))?.height).toBeGreaterThanOrEqual(TAP);
+  await open.click();
+  await expect(app.getByRole("textbox", { name: "New tag" })).toBeFocused();
+  await app.getByRole("button", { name: "Add tag viktig" }).click();
+  await expect(
+    app.getByRole("button", { name: "Remove tag viktig" }),
+  ).toBeVisible();
+  const write = (await simulatedHostState(page)).calls.find(
+    (call) => call.name === "update_task",
+  );
+  expect(write?.arguments).toMatchObject({
+    task_id: fullTask.id,
+    changes: { tags: ["kund", "byggprojekt-göteborg", "viktig"] },
+  });
+  // The editor stays open with the focus in it: a tag write does not move it to the title.
+  await expect(app.getByRole("textbox", { name: "New tag" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(open).toBeFocused();
+  expect(failures).toEqual([]);
+});
+
+test("Project: removing its tag is one update_project, and its Tasks show their tags", async ({
+  page,
+}) => {
+  const { app, failures } = await openWork(page, { project: projectRecord });
+  await expect(
+    app.locator(".work-list .work-card-meta .sk-tags").first(),
+  ).toBeVisible();
+  await app
+    .getByRole("button", { name: `Ändra taggar för ${projectRecord.title}` })
+    .click();
+  await app.getByRole("button", { name: "Ta bort taggen styrelse" }).click();
+  await expect(app.getByRole("textbox", { name: "Ny tagg" })).toBeFocused();
+  const write = (await simulatedHostState(page)).calls.find(
+    (call) => call.name === "update_project",
+  );
+  expect(write?.arguments).toMatchObject({
+    project_id: projectRecord.id,
+    changes: { tags: [] },
+  });
+  expect(failures).toEqual([]);
+});
 
 for (const width of [320, 412])
   test(`Contacts: the tag filter reads with every chosen tag and its chips are ${TAP} px targets (${width})`, async ({

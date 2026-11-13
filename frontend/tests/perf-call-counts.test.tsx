@@ -162,10 +162,11 @@ describe("Work: calls after open and for one done tap", () => {
     agenda_group: "today",
   };
 
-  it("fullscreen agenda with active=true reads only the To sort count (1); a done tap is one update_task and 0 reads", async () => {
+  it("fullscreen agenda with active=true reads only the To sort count and the tag vocabulary (1 each); a done tap is one update_task and 0 reads", async () => {
     const user = userEvent.setup();
     const fake = host((name) => {
       if (name === "list_tasks") return { tasks: [], next_cursor: null };
+      if (name === "list_tags") return { tags: [], next_cursor: null };
       if (name === "list_saved_work_views") return { saved_views: [] };
       if (name === "update_task")
         return { task: { ...task, status: "completed", version: 2 } };
@@ -187,9 +188,10 @@ describe("Work: calls after open and for one done tap", () => {
       total: fake.names.length,
       calls: opened,
     });
-    // The agenda is the result itself; the To sort count is the only read. The saved views are read when their panel
-    // opens, not at mount (so this is 0, not 1).
-    expect(opened).toEqual({ list_tasks: 1 });
+    // The agenda is the result itself; the To sort count and the tag vocabulary (the filter row and the rows' tag
+    // labels, read once per transport) are the only reads. The saved views are read when their panel opens, not at
+    // mount (so this is 0, not 1).
+    expect(opened).toEqual({ list_tags: 1, list_tasks: 1 });
     expect(fake.names).not.toContain("list_saved_work_views");
 
     const before = fake.names.length;

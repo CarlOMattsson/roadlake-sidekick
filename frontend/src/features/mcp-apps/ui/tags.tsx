@@ -337,6 +337,12 @@ export function TagFilter({
   locale: string;
 }) {
   const t = tagLabelsFor(locale);
+  // The chip just pressed stays in sight: "Rensa" appearing narrows the scroller and could hide it at the end.
+  const pressed = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    pressed.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    pressed.current = null;
+  }, [selected]);
   // A chosen tag the vocabulary no longer lists still shows, so it can be cleared.
   const shown = [
     ...options,
@@ -360,13 +366,14 @@ export function TagFilter({
               aria-pressed={on}
               disabled={!on && full}
               title={!on && full ? t.filterFull(TAGS_PER_FILTER) : undefined}
-              onClick={() =>
+              onClick={(event) => {
+                pressed.current = event.currentTarget;
                 onChange(
                   on
                     ? selected.filter((slug) => slug !== tag.slug)
                     : [...selected, tag.slug],
-                )
-              }
+                );
+              }}
             >
               <span className="sk-tag">{tag.label}</span>
             </button>

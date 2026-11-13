@@ -46,6 +46,7 @@ export type WorkTask = WithOptional<
     | "steps_done"
     | "steps_total"
     | "last_completed_at"
+    | "tags"
   >,
   | "description"
   | "priority"
@@ -57,6 +58,7 @@ export type WorkTask = WithOptional<
   | "steps_done"
   | "steps_total"
   | "last_completed_at"
+  | "tags"
 >;
 /**
  * Fields update_task accepts. An omitted key is left unchanged; null clears due_at, domain_id or
@@ -124,8 +126,9 @@ export type WorkProject = WithOptional<
     | "tasks_done"
     | "tasks_total"
     | "tasks_overdue"
+    | "tags"
   >,
-  "domain_id" | "tasks_done" | "tasks_total" | "tasks_overdue"
+  "domain_id" | "tasks_done" | "tasks_total" | "tasks_overdue" | "tags"
 >;
 /**
  * Fields update_project accepts. An omitted key is left unchanged; null clears a date or the
@@ -333,9 +336,13 @@ export type WorkProjectSummary = Pick<
   Item<ContactContextResult["projects"]["items"]>,
   "id" | "title" | "status"
 >;
-export type WorkTaskSummary = Pick<
-  Item<Results["list_tasks"]["tasks"]>,
-  "id" | "title" | "status" | "due_at"
+/** One Task of a Project's, Process's or Contact's list; `tags` is absent from a Contact's list and an older server. */
+export type WorkTaskSummary = WithOptional<
+  Pick<
+    Item<Results["list_tasks"]["tasks"]>,
+    "id" | "title" | "status" | "due_at" | "tags"
+  >,
+  "tags"
 >;
 /** One Journal entry linked to a Contact, as get_contact_context lists it: id, date and title only. */
 export type WorkJournalEntryLink = Item<

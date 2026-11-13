@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
+import { TagChips } from "../../mcp-apps/ui/tags";
+import { KnownTags } from "../shared/work-tags";
 import { fillLabel } from "../agenda/agenda-undo";
 import { taskStatusLabel, type WorkLabels } from "../shared/labels";
 import { WriteNotice } from "../shared/manage-controls";
@@ -17,7 +19,7 @@ import { TaskDue } from "./task-due";
 
 /**
  * Task summaries as the shared task row (the board's and the agenda's): the status ring, the title that opens the
- * Task, and under it one meta line, "Pågår · 5 dagar försenad". The status is named only when the ring does not say
+ * Task, and under it one meta line, "Pågår · 5 dagar försenad" and two of its tags. The status is named only when the ring does not say
  * it (not "Att göra"), there is no "Status:" prefix, and the date is plain text. In a detail view the row ends in › like
  * the note and Project rows beside it (§3, Chevronregeln): the title opens the Task and, with `transport`, the ring
  * marks it done. The row then
@@ -39,6 +41,7 @@ export function TaskSummaryList({
   onReload?: () => void;
 }) {
   const write = useWorkWrite();
+  const known = useContext(KnownTags);
   const [rung, setRung] = useState<
     Record<
       string,
@@ -92,6 +95,7 @@ export function TaskSummaryList({
           const statusText = taskStatusLabel(t, status);
           const showStatus = status !== "todo" && !done;
           const showDue = Boolean(task.due_at) && !done;
+          const tags = task.tags ?? [];
           const glyph = (
             <StatusGlyph kind="task" status={status} label={statusText} />
           );
@@ -129,7 +133,7 @@ export function TaskSummaryList({
                     <p role="status" className="work-card-meta">
                       {statusText}
                     </p>
-                  ) : showDue || showStatus || done ? (
+                  ) : showDue || showStatus || done || tags.length > 0 ? (
                     <p className="work-card-meta">
                       {showDue && task.due_at && (
                         <span className="work-card-due">
@@ -138,6 +142,12 @@ export function TaskSummaryList({
                       )}
                       {showStatus && <span>{statusText}</span>}
                       {done && <span>{statusText}</span>}
+                      <TagChips
+                        tags={tags}
+                        known={known}
+                        max={2}
+                        locale={t.dateLocale}
+                      />
                     </p>
                   ) : // No meta to show: no empty line under the title, so a one-line row is as tall as the Agenda's.
                   null}

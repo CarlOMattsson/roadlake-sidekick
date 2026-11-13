@@ -196,7 +196,7 @@ describe("the row in Control", () => {
     declare();
     render(<UpdateReminderRow locale="sv" now={now} />);
     expect(
-      screen.getByText("Sidekick är 20 dagar gammal (commit abc1234)"),
+      screen.getByText("Den här versionen är 20 dagar gammal (commit abc1234)"),
     ).toBeTruthy();
     const code = screen.getByText(UPDATE_COMMAND);
     expect(code.tagName).toBe("CODE");
@@ -269,7 +269,7 @@ describe("the row in Control", () => {
     declare({ commit: "def5678", ageDays: 15 });
     render(<UpdateReminderRow locale="sv" now={now} />);
     expect(
-      screen.getByText("Sidekick är 15 dagar gammal (commit def5678)"),
+      screen.getByText("Den här versionen är 15 dagar gammal (commit def5678)"),
     ).toBeTruthy();
   });
 
@@ -308,7 +308,7 @@ describe("Control's full view", () => {
     declare();
     render(view(controlSv, true));
     const row = screen
-      .getByText("Sidekick är 20 dagar gammal (commit abc1234)")
+      .getByText("Den här versionen är 20 dagar gammal (commit abc1234)")
       .closest(".sk-update-row") as HTMLElement;
     expect(within(row).getByText(UPDATE_COMMAND)).toBeTruthy();
   });
@@ -329,7 +329,7 @@ describe("Control's full view", () => {
 });
 
 describe("the row in the ⋯ menu when the Control room is off", () => {
-  const AGE = "Sidekick är 20 dagar gammal (commit abc1234)";
+  const AGE = "Den här versionen är 20 dagar gammal (commit abc1234)";
   const DISMISS = "Påminn inte för den här versionen";
 
   function WorkMenu() {

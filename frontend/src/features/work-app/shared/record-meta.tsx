@@ -1,8 +1,11 @@
+import { useContext } from "react";
 import { RepeatIcon } from "../../mcp-apps/ui/icons";
+import { TagChips } from "../../mcp-apps/ui/tags";
 import { relativeDue, workDate, type DueTone } from "../../mcp-apps/ui/due";
 import { taskPlaceLabelsFor } from "../tasks/task-place-labels";
 import type { WorkItemRecord } from "../transport/transport";
 import { workKindLabel, workStatusLabel, type WorkLabels } from "./labels";
+import { KnownTags } from "./work-tags";
 
 /**
  * The status in words for a Task in progress or blocked; "Att göra" and a done Task get none: the ring says done or not
@@ -53,8 +56,8 @@ export function rowDue(
 
 /**
  * The meta of a record row, one builder for the Agenda, Status and the inline cards: one line, the time
- * first, then the status in words, the kind (not for a Task), the "High" marker and the Project last ("9 dagar
- * försenad · Pågår · Renovering av köket"). The status is left out in Status (`inStatus`), whose sections are the
+ * first, then the status in words, the kind (not for a Task), the "High" marker, two tags and "+N", and the Project
+ * last ("9 dagar försenad · Pågår [kund] [viktig] +1 · Renovering av köket"; a pill needs no dot before it). The status is left out in Status (`inStatus`), whose sections are the
  * statuses. A Project there stands in the Projekt section, which names its kind, so it shows its own status instead
  * ("Aktivt", "Pausat"): a Project's status is not a Task status. The Project stands in both lists, whole or not at all: when the line has no room for the
  * whole name, CSS leaves it and its "·" out, so the row keeps one meta line and nothing is cut; its full name is the
@@ -94,7 +97,18 @@ export function RecordMeta({
       ? taskPlaceLabelsFor(t.dateLocale).repeatsShort(item.recurrence)
       : null;
   const project = item.project_title;
-  if (!status && !kind && !project && !marked && !due && !repeat) return null;
+  const tags = item.tags ?? [];
+  const known = useContext(KnownTags);
+  if (
+    !status &&
+    !kind &&
+    !project &&
+    !marked &&
+    !due &&
+    !repeat &&
+    tags.length === 0
+  )
+    return null;
   return (
     <p className="work-card-meta">
       {due ? (
@@ -121,6 +135,8 @@ export function RecordMeta({
           {t.priorityLevel.high}
         </span>
       ) : null}
+      {/* Two tags and "+N" before the Project: they stand whole or not at all, and the Project gives way first. */}
+      <TagChips tags={tags} known={known} max={2} locale={t.dateLocale} />
       {project ? (
         <span className="work-card-project" title={project}>
           {project}

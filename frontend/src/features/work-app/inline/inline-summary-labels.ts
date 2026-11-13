@@ -201,7 +201,8 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   completedNote: "Markerade uppgiften som klar.",
   undo: workSv.agendaUndo,
   undoneNote: "Ångrade: uppgiften är inte längre markerad som klar.",
-  conflict: "Uppgiften har ändrats under tiden. Läs om den för att se senaste.",
+  conflict:
+    "Uppgiften ändrades någon annanstans. Läs om för att se senaste versionen.",
   saveFailed: "Kunde inte spara. Försök igen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",

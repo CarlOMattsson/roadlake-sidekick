@@ -166,8 +166,8 @@ export const workEn = {
   archiveContact: "Archive",
   restoreContact: "Restore",
   confirmChange: "Confirm",
-  aliases: "Also known as",
-  aliasLabel: "Also known as",
+  /** Before the nicknames under a Contact's name: "Nicknames: Annie, AB". */
+  aliasLabel: (n: number): string => (n === 1 ? "Nickname:" : "Nicknames:"),
   /** The heading of the nickname list inside the Contact editor. */
   aliasesHeading: "Nicknames",
   noAliases: "No nicknames.",
@@ -470,8 +470,7 @@ export const workSv: WorkLabels = {
   archiveContact: "Arkivera",
   restoreContact: "Återställ",
   confirmChange: "Bekräfta",
-  aliases: "Även kallad",
-  aliasLabel: "Även kallad",
+  aliasLabel: () => "Även kallad",
   aliasesHeading: "Smeknamn",
   noAliases: "Inga smeknamn.",
   aliasValue: "Nytt smeknamn",

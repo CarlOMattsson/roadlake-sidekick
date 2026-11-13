@@ -197,7 +197,12 @@ describe("the Journal entries under a Contact with the journal room off", () => 
   };
   const host = () =>
     ({
-      call: vi.fn().mockResolvedValue(context),
+      // The Contact reads the tag vocabulary too; every other call answers with the Contact's context.
+      call: vi.fn((name: string) =>
+        Promise.resolve(
+          name === "list_tags" ? { tags: [], next_cursor: null } : context,
+        ),
+      ),
       requestDisplayMode: vi.fn().mockResolvedValue("fullscreen"),
       updateModelContext: vi.fn().mockResolvedValue(undefined),
     }) as unknown as RoomProps["transport"];

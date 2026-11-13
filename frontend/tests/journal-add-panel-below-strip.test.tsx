@@ -55,7 +55,7 @@ describe("Dagbok + panel", () => {
       await user.click(screen.getByRole("button", { name: labels.addEntry }));
       const panel = document.querySelector<HTMLElement>(".journal-add-panel")!;
       expect(panel.querySelector(".sk-btn--primary")).toHaveTextContent(name);
-      expect(labels.tellClaudeMore).toBe(name);
+      expect(labels.tellClaude).toBe(name);
     },
   );
 });

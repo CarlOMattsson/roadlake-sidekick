@@ -218,7 +218,7 @@ export function EntryTrashFailure({
         {how === "forbidden"
           ? t.forbiddenWrite
           : how === "conflict"
-            ? t.entryTrashConflict
+            ? t.entryReloadedConflict
             : t.entryTrashFailed}
       </p>
       {how !== "forbidden" && (
