@@ -1,8 +1,11 @@
+import { workEn, workSv } from "../shared/labels";
+
 /**
  * Labels for the inline Work summaries (one Task or Project, and the agenda, hierarchy and Contact list
- * counts). Kept in this file, not in labels.ts and
- * not in @/i18n, so the MCP App bundle does not pull in the Sidekick app catalogue. The Swedish and
- * English key sets must stay identical; inline-summary.test.tsx checks that.
+ * counts). Kept in this file, not in @/i18n, so the MCP App bundle does not pull in the Sidekick app
+ * catalogue. Words the Task room already has (Mark as done, Undo, Priority) are taken from its labels, so the card and
+ * the room never say the same thing in two ways. The Swedish and English key sets must stay identical;
+ * inline-summary.test.tsx checks that.
  */
 export const inlineSummaryLabelsEn = {
   dateLocale: "en-GB",
@@ -39,8 +42,9 @@ export const inlineSummaryLabelsEn = {
   overdueTasks: (count: number) => `${count} overdue`,
   /** Priority words shown on a Task summary; normal and low are not shown. */
   priority: { high: "High", urgent: "Urgent" },
+  /** The word before a priority level: "Priority: High". */
+  priorityLabel: workEn.priority,
   contacts: "Contacts",
-  subtasks: "Subtasks",
   /** The agenda card's title, its groups in the list's order: "1 today, 2 overdue", "1 today";
    * ", more not shown" when the read is partial. */
   agendaTitle: (overdue: number, today: number, more: boolean) =>
@@ -92,13 +96,16 @@ export const inlineSummaryLabelsEn = {
   showTask: "Show task",
   showProject: "Show project",
   /** The Done action on a Task summary, and the notices around it. */
-  complete: "Done",
+  complete: workEn.markDone,
   completing: "Saving…",
   completedNote: "Marked the task as done.",
+  /** After Done: "Done" and Undo for a short while; Undo writes the earlier status back. */
+  undo: workEn.agendaUndo,
+  undoneNote: "Undid it: the task is not marked done anymore.",
   conflict: "This task was changed in the meantime. Reload to see the latest.",
   saveFailed: "Couldn’t save. Try again.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
-  notFound: "This no longer exists. It may have been deleted in another chat.",
+  notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Task, Project or Contact that is gone when it is read: a calm line, with no Try again. */
   goneTask: "This task no longer exists",
   goneProject: "This project no longer exists",
@@ -129,7 +136,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     paused: "Pausat",
     completed: "Avslutat",
   },
-  due: "Förfaller",
+  due: "Klart senast",
   /** A Task past its due date, as the detail line: "Försenad sedan fre 30 okt". */
   overdueSince: "Försenad sedan",
   target: "Mål",
@@ -138,8 +145,8 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     `${done} av ${total} uppgifter klara`,
   overdueTasks: (count: number) => `${count} försenade`,
   priority: { high: "Hög", urgent: "Brådskande" },
+  priorityLabel: workSv.priority,
   contacts: "Kontakter",
-  subtasks: "Deluppgifter",
   /** The agenda card's title, the groups in the list's order: "1 idag, 2 försenade", "1 idag";
    * ", fler finns" when the read is partial. */
   agendaTitle: (overdue: number, today: number, more: boolean) =>
@@ -187,13 +194,15 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   showMore: "Visa mer",
   showTask: "Visa uppgiften",
   showProject: "Visa projektet",
-  complete: "Klar",
+  complete: workSv.markDone,
   completing: "Sparar…",
   completedNote: "Markerade uppgiften som klar.",
+  undo: workSv.agendaUndo,
+  undoneNote: "Ångrade: uppgiften är inte längre markerad som klar.",
   conflict: "Uppgiften har ändrats under tiden. Läs om den för att se senaste.",
   saveFailed: "Kunde inte spara. Försök igen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
-  notFound: "Den finns inte längre. Den kan ha tagits bort i en annan chatt.",
+  notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Task, Project or Contact that no longer exists when it is read: a calm line, without "Försök igen". */
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",

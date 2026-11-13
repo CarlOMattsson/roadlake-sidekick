@@ -78,7 +78,7 @@ describe("not_found without Try again", () => {
     );
     expect(screen.getByRole("alert")).toHaveTextContent(workSv.notFound);
     expect(workSv.notFound).toBe(
-      "Den finns inte längre. Den kan ha tagits bort i en annan chatt.",
+      "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
     );
     expect(
       screen.queryByRole("button", { name: workSv.retry }),
@@ -96,7 +96,7 @@ describe("not_found without Try again", () => {
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "This no longer exists. It may have been deleted in another chat.",
+      "This no longer exists. It may have been deleted elsewhere.",
     );
     expect(
       screen.queryByRole("button", { name: workEn.retry }),

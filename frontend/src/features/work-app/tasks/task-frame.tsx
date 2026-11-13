@@ -31,6 +31,7 @@ import {
   usePagedSection,
 } from "../view/parts/use-detail-frame";
 import { useTaskOffers } from "./use-task-offers";
+import { useCutText } from "./use-cut-text";
 import { WriteStatus } from "../view/parts/write-status";
 
 export function TaskFrame({
@@ -59,6 +60,8 @@ export function TaskFrame({
   const moreButton = useRef<HTMLButtonElement>(null);
   // The description shows two lines until "Show more" opens it; the view starts with it closed.
   const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const { ref: descriptionRef, cut: descriptionCut } =
+    useCutText<HTMLParagraphElement>(task?.description);
   const contactsHeading = useRef<HTMLHeadingElement>(null);
   // Set when a contact link changed: the list is read again and focus returns to its heading.
   const contactsRefocus = useRef(false);
@@ -383,6 +386,7 @@ export function TaskFrame({
           {task.description && (
             <>
               <p
+                ref={descriptionRef}
                 className={
                   descriptionOpen
                     ? "work-description"
@@ -391,9 +395,12 @@ export function TaskFrame({
               >
                 {task.description}
               </p>
-              {/* Shown from about two lines of text on; a short one-line text needs no toggle. */}
-              {(task.description.length > 60 ||
-                task.description.split("\n").length > 2) && (
+              {/* Shown when the two drawn lines cut the text (measured; before that, from about two lines of text on),
+                  and while it is open, so it can be closed again. */}
+              {(descriptionOpen ||
+                (descriptionCut ??
+                  (task.description.length > 60 ||
+                    task.description.split("\n").length > 2))) && (
                 // A tertiary text button right after the text it opens, "Visa mer". No ›: › says
                 // that a row opens a view (DR §4 "Klar"); this one opens the text in place.
                 <button

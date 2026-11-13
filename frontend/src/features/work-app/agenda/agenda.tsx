@@ -17,6 +17,7 @@ import {
   DoneTodaySection,
   WaitingSection,
 } from "./parts/agenda-sections";
+import { MoveAllUndo } from "./parts/move-all-overdue";
 import type { AgendaRowContext } from "./parts/row-context";
 import { SearchNoMatch } from "./parts/search-no-match";
 import { useAgendaBulk } from "./parts/use-agenda-bulk";
@@ -253,8 +254,19 @@ export function AgendaView({
           onRemind={bulk.remind}
         />
       )}
+      {/* Ångra of "Flytta N till imorgon": the moved Tasks have left the group, so it stands above the groups. */}
+      {!waitingView && bulk.moveUndo && (
+        <MoveAllUndo
+          labels={t}
+          count={bulk.moveUndo.count}
+          disabled={disabled}
+          onUndo={bulk.undoMoveAll}
+          onExpire={bulk.dismissMoveUndo}
+        />
+      )}
       {/* The Undo (or "Moving…", or "Waiting…") takes the meta line of the row it belongs to, so it covers no row and moves none.
-          A write with no row of its own ("Flytta 2 till imorgon") shows none; the loading status speaks for it. */}
+          A write with no row of its own ("Flytta 2 till imorgon") shows none; the loading status speaks for it, and the
+          Undo of the move is above. */}
       {(waitingView ? [] : layout.sections).map((section) => (
         <AgendaSection
           key={section.group}

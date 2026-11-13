@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import {
   ContactSummary,
@@ -9,10 +9,14 @@ import {
   type InlineSummaryNotice,
 } from "./inline-summary";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
+import { isRecurringCycle, sameDue } from "../agenda/parts/agenda-helpers";
 import {
+  isTaskStatus,
   writeFailure,
   type WorkContactRecord,
   type WorkContactsFrame,
+  type WorkTask,
+  type WorkTaskChanges,
   type WorkTransport,
 } from "../transport/transport";
 import { readFailurePhase, type Phase } from "../view/parts/frame-types";
@@ -23,6 +27,15 @@ import {
   taskInlineSummary,
 } from "./inline-data";
 import { useMounted } from "../view/parts/use-mounted";
+
+/** What Undo after Done writes back: the status the Task had, or for a recurring Task its due date and completion. */
+type DoneUndo = {
+  changes: WorkTaskChanges;
+  /** The Task version Done left; Undo is written against it. */
+  version: number;
+  /** The reply must show this status, or this due instant, or Undo did not take. */
+  restored: { status: string } | { due: string | null };
+};
 
 /**
  * The inline root of a Task or Project, shown while fullscreen is offered: it reads the record
@@ -52,6 +65,11 @@ export function InlineRootSummary({
   const [notice, setNotice] = useState<InlineSummaryNotice>();
   // One key per attempt: a retry of the same write against the same version reuses it.
   const pendingDone = useRef<PendingKey | undefined>(undefined);
+  const pendingUndo = useRef<PendingKey | undefined>(undefined);
+  // Set by Done for `UNDO_MS`: "Done · Undo" stands in the card where Done stood.
+  const [undo, setUndo] = useState<DoneUndo>();
+  // Undo has run: focus goes to Done, which comes back in place of the Undo that had it.
+  const [focusDone, setFocusDone] = useState(false);
   const alive = useMounted();
   const [phase, setPhase] = useState<Phase>(initial ? "ready" : "loading");
   const [summary, setSummary] = useState<InlineSummaryData | undefined>(
@@ -86,20 +104,54 @@ export function InlineRootSummary({
   }, [transport, kind, id, attempt, carried]);
   function reload() {
     pendingDone.current = undefined;
+    pendingUndo.current = undefined;
+    setUndo(undefined);
     setNotice(undefined);
     setPhase("loading");
     setAttempt((n) => n + 1);
   }
   /**
+   * The notice for a failed write: a conflict offers "Read again"; a network failure offers a retry that
+   * reuses the same idempotency key (`pending` keeps it); anything else is said once.
+   */
+  function showFailure(
+    error: unknown,
+    pending: { current: PendingKey | undefined },
+    retry: () => void,
+  ) {
+    const failure = writeFailure(error);
+    if (failure === "conflict") {
+      pending.current = undefined;
+      setNotice({
+        message: labels.conflict,
+        actionLabel: labels.reread,
+        action: reload,
+      });
+    } else if (failure === "failed") {
+      setNotice({
+        message: labels.saveFailed,
+        actionLabel: labels.retry,
+        action: retry,
+      });
+    } else if (failure === "not_found") {
+      pending.current = undefined;
+      setNotice({ message: labels.notFound });
+    } else {
+      pending.current = undefined;
+      setNotice({ message: labels.saveFailed });
+    }
+  }
+  /**
    * Marks the Task done with update_task against the version the summary shows, so no get_task
-   * comes first. A conflict offers "Read again"; a network failure offers a retry that reuses the
-   * same idempotency key. The host model hears about a saved change through `announce`.
+   * comes first. The host model hears about a saved change through `announce`, and the card offers
+   * Undo for `UNDO_MS` (see `undoDone`).
    */
   async function complete() {
     if (busy || summary?.version === undefined) return;
     const { version } = summary;
     setBusy(true);
     setNotice(undefined);
+    setFocusDone(false);
     try {
       const signature = JSON.stringify([id, version, "completed"]);
       const pendingKey = keyFor(pendingDone.current, signature);
@@ -113,34 +165,53 @@ export function InlineRootSummary({
       pendingDone.current = undefined;
       if (!alive.current) return;
       setSummary(taskInlineSummary(task));
+      setUndo(doneUndo(summary, task));
+      pendingUndo.current = undefined;
       announce?.(labels.completedNote);
     } catch (error) {
-      if (!alive.current) return;
-      const failure = writeFailure(error);
-      if (failure === "conflict") {
-        pendingDone.current = undefined;
-        setNotice({
-          message: labels.conflict,
-          actionLabel: labels.reread,
-          action: reload,
-        });
-      } else if (failure === "failed") {
-        setNotice({
-          message: labels.saveFailed,
-          actionLabel: labels.retry,
-          action: () => void complete(),
-        });
-      } else if (failure === "not_found") {
-        pendingDone.current = undefined;
-        setNotice({ message: labels.notFound });
-      } else {
-        pendingDone.current = undefined;
-        setNotice({ message: labels.saveFailed });
-      }
+      if (alive.current) showFailure(error, pendingDone, () => void complete());
     } finally {
       if (alive.current) setBusy(false);
     }
   }
+  /**
+   * Undo after Done: the earlier status (for a recurring Task its due date and completion) written against
+   * the version Done left, with a key of its own. A reply that does not show the restored value is a
+   * failure with "Try again", never a card that says it is undone.
+   */
+  async function undoDone(entry: DoneUndo) {
+    if (busy) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const signature = JSON.stringify([id, entry.version, entry.changes]);
+      const pendingKey = keyFor(pendingUndo.current, signature);
+      pendingUndo.current = pendingKey;
+      const { task } = await transport.updateTask(
+        id,
+        entry.version,
+        entry.changes,
+        pendingKey.key,
+      );
+      pendingUndo.current = undefined;
+      const restored =
+        "status" in entry.restored
+          ? task.status === entry.restored.status
+          : sameDue(task.due_at, entry.restored.due);
+      if (!restored) throw new Error("undo not applied");
+      if (!alive.current) return;
+      setSummary(taskInlineSummary(task));
+      setUndo(undefined);
+      setFocusDone(true);
+      announce?.(labels.undoneNote);
+    } catch (error) {
+      if (alive.current)
+        showFailure(error, pendingUndo, () => void undoDone(entry));
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }
+  const expireUndo = useCallback(() => setUndo(undefined), []);
   if (phase === "gone") {
     return (
       <InlineSummary
@@ -174,11 +245,49 @@ export function InlineRootSummary({
         onOpen={onOpen}
         onComplete={canComplete ? () => void complete() : undefined}
         busy={busy}
+        undo={
+          undo
+            ? {
+                onUndo: () => void undoDone(undo),
+                onExpire: expireUndo,
+                busy,
+              }
+            : undefined
+        }
+        focusComplete={focusDone}
         notice={notice}
       />
     );
   }
   return <InlineSummary state="loading" labels={labels} />;
+}
+
+/**
+ * What Undo writes after `task` came back from Done on `before`: the status the Task had; for a recurring
+ * Task the server recorded the cycle and reopened it, so its due date and completion are written back. A
+ * Task whose earlier status is not one this view writes gets no Undo.
+ */
+function doneUndo(
+  before: InlineSummaryData,
+  task: WorkTask,
+): DoneUndo | undefined {
+  const due = before.dueDate ?? null;
+  if (isRecurringCycle(task, due)) {
+    return {
+      changes: {
+        due_at: due,
+        last_completed_at: before.lastCompletedAt ?? null,
+      },
+      version: task.version,
+      restored: { due },
+    };
+  }
+  if (!isTaskStatus(before.status)) return undefined;
+  return {
+    changes: { status: before.status },
+    version: task.version,
+    restored: { status: before.status },
+  };
 }
 
 /**

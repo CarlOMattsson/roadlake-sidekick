@@ -155,7 +155,7 @@ it("without a Task due today the agenda starts with Försenade and shows no Idag
 
 it("moves every open overdue Task to tomorrow with one reschedule_tasks call, and rows carry no triage buttons", async () => {
   const { transport, mock } = makeTransport();
-  const reschedule = vi.fn(() => Promise.resolve({ count: 1 }));
+  const reschedule = vi.fn(() => Promise.resolve({ count: 1, tasks: [] }));
   Object.assign(mock, {
     rescheduleTasks: reschedule,
     getWorkAgenda: vi.fn(() =>
@@ -166,6 +166,11 @@ it("moves every open overdue Task to tomorrow with one reschedule_tasks call, an
   // One open overdue Task: the button counts it, and reads "Move 1 overdue to tomorrow".
   await userEvent.click(
     screen.getByRole("button", { name: workEn.moveAllOverdue(1) }),
+  );
+  // The tap only asks; "Move" writes.
+  expect(reschedule).not.toHaveBeenCalled();
+  await userEvent.click(
+    screen.getByRole("button", { name: workEn.moveAllConfirmYes }),
   );
   await waitFor(() => expect(reschedule).toHaveBeenCalledTimes(1));
   const [items] = reschedule.mock.calls[0] as unknown as [

@@ -358,4 +358,8 @@ export type WorkUnlinkReferenceResult = Pick<
   Results["unlink_external_reference_from_task"],
   "linked" | "reference_removed"
 >;
-export type WorkRescheduleResult = Pick<Results["reschedule_tasks"], "count">;
+/** What reschedule_tasks answers: how many Tasks moved, and each one's new version (an undo writes against it). */
+export type WorkRescheduleResult = Pick<
+  Results["reschedule_tasks"],
+  "count" | "tasks"
+>;

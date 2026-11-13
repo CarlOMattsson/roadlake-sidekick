@@ -350,7 +350,8 @@ function ReadyCard({
           ) : null}
         </div>
       ) : null}
-      {hidden > 0 ? (
+      {/* What the list leaves out, only when the card cannot open the list: "Visa alla (11)" already says it. */}
+      {hidden > 0 && !onOpen ? (
         <p className="work-compact-more">
           {fill(labels.more, { count: String(hidden) })}
         </p>
@@ -366,9 +367,7 @@ function ReadyCard({
           >
             {opening && openingLabel
               ? openingLabel
-              : fill(labels.showAll, {
-                  count: `${frame.total}${frame.truncated ? "+" : ""}`,
-                })}
+              : fill(labels.showAll, { count: String(frame.total) })}
             <ChevronRightIcon />
           </button>
         </CardFoot>
@@ -401,7 +400,10 @@ function changeLabel(labels: CardLabels, item: WorkItemRecord): string {
   return `${statusLabel(labels, { kind: item.kind, status: before })} → ${now}`;
 }
 
-/** The title: the card's word and the number of changes, "Changes (2)"; the bare word when there are none. */
+/**
+ * The title: the card's word and the number of changes, "Changes (2)"; the bare word when there are none. The number is
+ * the server's total, which counts every change even when it sent fewer rows, and "Show all (2)" shows the same one.
+ */
 function titleFor(labels: CardLabels, total: number): string {
   return total === 0 ? labels.title : `${labels.title} (${total})`;
 }

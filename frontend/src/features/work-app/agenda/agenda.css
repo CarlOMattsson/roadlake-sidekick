@@ -166,7 +166,9 @@
   > .work-card-meta:empty {
   display: none;
 }
-/* Not a target: a tap on the meta still reaches the title's cover over the row. */
+/* Not a target: a tap on the meta still reaches the title's cover over the row. Nothing but the Project clips itself
+   (below), so the dot each part hangs before it stays drawn: Status's columns cut their parts (work.css), which on
+   the phone hid the dot before "Hög". */
 :is(
     .sidekick-work .work-agenda-body,
     .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
@@ -175,6 +177,7 @@
   > * {
   position: relative;
   flex: none;
+  overflow: visible;
   pointer-events: none;
 }
 /* The dot hangs in the gap before its part (a gap, unlike a margin, is never drawn at a line's start), so a part that
@@ -655,7 +658,44 @@
   font-variant-numeric: tabular-nums;
 }
 /* "Flytta N försenade till imorgon" is the action row (row.css .sk-action-row) after the group's last row,
-   so it belongs to Försenade and is no flag on the heading's line. */
+   so it belongs to Försenade and is no flag on the heading's line. A tap on it asks "Flytta 3 till imorgon?" on the same
+   place ("Flytta" and "Avbryt" beside the question, under it when the line is too narrow, 320 px included), and after
+   the move "3 flyttade till imorgon" and Ångra stand above the groups (UNDO_MS). Every button is 48 high at least. */
+.sidekick-work .work-agenda-move-ask,
+.sidekick-work .work-agenda-move-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s1) var(--sk-s3);
+  min-height: var(--sk-row-min);
+}
+/* The question stands apart from the group's last row, where the button stood with its own 48 of air. */
+.sidekick-work .work-agenda-move-ask {
+  padding-block: var(--sk-s2);
+}
+.sidekick-work .work-agenda-move-ask > p,
+.sidekick-work .work-agenda-move-undo > p {
+  flex: 1 1 12rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-agenda-move-ask > p {
+  font: var(--sk-weight-medium) var(--sk-type-row-size) /
+    var(--sk-type-row-line) var(--sk-font);
+  color: var(--sk-fg);
+}
+.sidekick-work .work-agenda-move-undo > p {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-agenda-move-ask-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s1) var(--sk-s2);
+}
+.sidekick-work .work-agenda-move-ask-actions > button {
+  min-width: var(--sk-tap);
+}
 
 /* The waiting view: each row names who is waited on and for how long, then the Task, then a "Påminn" button.
    The name and the days share one line that wraps on a 320 px screen; the Task title is the open button; the

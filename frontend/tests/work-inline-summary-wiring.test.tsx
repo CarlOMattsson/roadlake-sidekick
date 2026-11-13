@@ -221,9 +221,15 @@ it("marks a Task done from the inline summary against the version it shows, with
     { status: "completed" },
     expect.any(String),
   );
+  // The status chip says Done, and so does the line beside Undo while Undo is offered.
   expect(
-    await screen.findByText(inlineSummaryLabelsEn.taskStatus.completed),
+    await screen.findByText(inlineSummaryLabelsEn.taskStatus.completed, {
+      selector: ".work-chip",
+    }),
   ).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent(
+    inlineSummaryLabelsEn.taskStatus.completed,
+  );
   // A finished Task offers no Done button; the host model hears it was saved.
   expect(
     screen.queryByRole("button", { name: inlineSummaryLabelsEn.complete }),

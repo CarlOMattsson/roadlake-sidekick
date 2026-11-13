@@ -1,3 +1,5 @@
+import { moveAllEn, moveAllSv } from "./move-all-labels";
+
 export const workEn = {
   title: "Work",
   back: "Back",
@@ -28,6 +30,7 @@ export const workEn = {
   reopenTask: "Reopen",
   /** Agenda: moves every open overdue Task to tomorrow with one call; the count is always in the text. */
   moveAllOverdue: (n: number) => `Move ${n} overdue to tomorrow`,
+  ...moveAllEn,
   priority: "Priority",
   priorityLevel: {
     low: "Low",
@@ -177,7 +180,7 @@ export const workEn = {
   removeAlias: "Remove",
   removeAliasFor: (value: string) => `Remove nickname ${value}`,
   projects: "Projects",
-  board: "Board",
+  board: "Status",
   agenda: "Agenda",
   refresh: "Refresh",
   /** The "⋯" button of the agenda row; it opens Saved views and Refresh. */
@@ -191,10 +194,10 @@ export const workEn = {
   taskRestoreFailed: "Couldn’t undo the deletion. Try again.",
   undo: "Undo",
   noCards: "Nothing here.",
-  boardEmpty: "Nothing on the board.",
-  /** The empty Status: what the view is for, under "Nothing on the board." */
+  boardEmpty: "No tasks yet.",
+  /** The empty Status: what the view is for, under "No tasks yet." */
   boardEmptyHint: "Your tasks by status: to do, in progress, blocked and done.",
-  boardForbidden: "You don’t have access to the board.",
+  boardForbidden: "You don’t have access to Status.",
   openBoard: "Open Status",
   boardNearestOverdue: "Longest overdue",
   boardNearest: "Due soonest",
@@ -214,7 +217,7 @@ export const workEn = {
   /** A refused change in the board, the agenda or To sort: the text names no view, since all three show it. */
   boardConflict: "The list was reloaded. Try again.",
   /** A change to a record that no longer exists: no Try again, since it cannot come back. */
-  notFound: "This no longer exists. It may have been deleted in another chat.",
+  notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Task, Project or Contact that was removed (or never existed) when it is read: calm, with no Try again. */
   goneTask: "This task no longer exists",
   goneProject: "This project no longer exists",
@@ -320,7 +323,7 @@ export const workSv: WorkLabels = {
   empty: "Ingen uppgift eller kontakt att visa.",
   hierarchy: "Projekt",
   hierarchyEmpty: "Inga domäner, processer eller projekt ännu.",
-  hierarchyTruncated: "Fler noder finns än som visas.",
+  hierarchyTruncated: "Det finns fler än som visas.",
   hierarchyMore: (count: number) => `+${count}`,
   hierarchyMoreLabel: (count: number) => `${count} fler`,
   progressOf: (done: number, total: number) => `${done} av ${total} klara`,
@@ -333,9 +336,9 @@ export const workSv: WorkLabels = {
     blocked: "Blockerad",
     completed: "Klar",
   },
-  due: "Förfaller",
+  due: "Klart senast",
   /** The Task's due date as a label (screen readers, editing). The detail row itself reads "fre 6 nov · om 2 dagar". */
-  dueDate: "Förfaller",
+  dueDate: "Klart senast",
   changeDue: "Ändra datum",
   addDue: "Lägg till datum",
   reopenTask: "Återöppna",
@@ -343,6 +346,7 @@ export const workSv: WorkLabels = {
    *  is moved. */
   moveAllOverdue: (n: number) =>
     `Flytta ${n} ${n === 1 ? "försenad" : "försenade"} till imorgon`,
+  ...moveAllSv,
   priority: "Prioritet",
   priorityLevel: {
     low: "Låg",
@@ -385,7 +389,7 @@ export const workSv: WorkLabels = {
   titleLabel: "Titel",
   titleRequired: "Ange en titel.",
   titleTooLong: "Titeln får vara högst 200 tecken.",
-  clearDue: "Rensa förfallodatum",
+  clearDue: "Ta bort datum",
   /** The date shortcuts above the due date field of the Task editor. */
   dueShortcuts: "Snabbval för datum",
   dueToday: "Idag",
@@ -418,7 +422,7 @@ export const workSv: WorkLabels = {
   tasksForbidden: "Du har inte behörighet att se projektets uppgifter.",
   newTask: "Ny uppgift",
   newTaskTitle: "Uppgiftens namn",
-  newTaskDue: "Förfallodatum",
+  newTaskDue: "Klart senast",
   createTask: "Skapa uppgift",
   taskCreated: "Uppgiften skapades.",
   taskCreateFailed: "Det gick inte att skapa uppgiften. Försök igen.",
@@ -482,7 +486,7 @@ export const workSv: WorkLabels = {
   removeAlias: "Ta bort",
   removeAliasFor: (value: string) => `Ta bort smeknamnet ${value}`,
   projects: "Projekt",
-  board: "Tavla",
+  board: "Status",
   agenda: "Agenda",
   refresh: "Uppdatera",
   /** The "⋯" button in the agenda's row; it opens "Sparade vyer" and "Uppdatera". */
@@ -496,10 +500,10 @@ export const workSv: WorkLabels = {
   taskRestoreFailed: "Det gick inte att ångra borttagningen. Försök igen.",
   undo: "Ångra",
   noCards: "Inget här.",
-  boardEmpty: "Inga poster på tavlan.",
+  boardEmpty: "Inga uppgifter här än.",
   boardEmptyHint:
     "Dina uppgifter efter status: att göra, pågår, blockerad och klar.",
-  boardForbidden: "Du har inte behörighet att se tavlan.",
+  boardForbidden: "Du har inte behörighet att se Status.",
   openBoard: "Öppna Status",
   boardNearestOverdue: "Äldst försenade",
   boardNearest: "Närmast i tid",
@@ -518,7 +522,7 @@ export const workSv: WorkLabels = {
   /** A refused change on the board, the agenda or "Att sortera": the text names no view, since all three show it. */
   boardConflict: "Listan har lästs om, försök igen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
-  notFound: "Den finns inte längre. Den kan ha tagits bort i en annan chatt.",
+  notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Task, Project or Contact that was deleted (or is missing) when it is read: calm, without "Försök igen". */
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",
@@ -536,7 +540,7 @@ export const workSv: WorkLabels = {
   /** The row menu's button for screen readers (not drawn), on a row in the Work room and on a Step. */
   rowMenuButton: (title: string) => `Fler val för ${title}`,
   dragTaskFor: (title: string) =>
-    `Dra ${title}, eller använd pilarna vänster och höger för att flytta till närliggande kolumn`,
+    `Dra ${title}, eller använd vänster- och högerpilen för att flytta till kolumnen bredvid`,
   /** "Flyttad till {status}" after a status change; "Ångra" follows. */
   movedTo: "Flyttad till {status}",
   moveFailed: "Det gick inte att ändra status.",
@@ -563,7 +567,7 @@ export const workSv: WorkLabels = {
   agendaComplete: "Markera {title} som klar",
   stepOf: "Steg i: {title}",
   /** Glyph action of a task that is done. */
-  agendaReopen: "Markera {title} som ej klar",
+  agendaReopen: "Markera {title} som inte klar",
   /** Triage: moves an overdue Task to 23:59 tomorrow. */
   triageTomorrow: "Imorgon",
   /** Triage: moves an overdue Task to 23:59 next Monday. */

@@ -22,7 +22,6 @@ const task: InlineSummaryData = {
   datapoints: {
     steps: { done: 2, total: 5 },
     contacts: 1,
-    subtasks: 3,
   },
 };
 
@@ -31,7 +30,7 @@ const project: InlineSummaryData = {
   title: "Sommarfest",
   status: "active",
   dueDate: "2026-11-15",
-  datapoints: { contacts: 4, subtasks: 12 },
+  datapoints: { contacts: 4 },
 };
 
 describe("InlineSummary ready state", () => {
@@ -59,7 +58,7 @@ describe("InlineSummary ready state", () => {
     expect(chip).toHaveTextContent("Pågår");
   });
 
-  it("draws the status glyph beside the chip text, hidden from assistive technology", () => {
+  it("draws no ring in front of an open status, so the chip does not read as a radio button", () => {
     const { container } = render(
       <InlineSummary
         state="ready"
@@ -67,8 +66,22 @@ describe("InlineSummary ready state", () => {
         summary={task}
       />,
     );
+    expect(container.querySelector(".work-chip")).toHaveTextContent(
+      "In progress",
+    );
+    expect(container.querySelector(".work-chip svg")).toBeNull();
+  });
+
+  it("draws the check beside a done status, hidden from assistive technology", () => {
+    const { container } = render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsEn}
+        summary={{ ...task, status: "completed" }}
+      />,
+    );
     const glyph = container.querySelector(".work-chip svg");
-    expect(glyph).toHaveAttribute("data-glyph", "ring-empty");
+    expect(glyph).toHaveAttribute("data-glyph", "ring-check");
     expect(glyph).toHaveAttribute("aria-hidden", "true");
   });
 
@@ -117,7 +130,7 @@ describe("InlineSummary ready state", () => {
         summary={task}
       />,
     );
-    expect(screen.getByText("Förfaller fre 30 okt")).toBeInTheDocument();
+    expect(screen.getByText("Klart senast fre 30 okt")).toBeInTheDocument();
   });
 
   it("names an overdue date 'Overdue since' and marks its tone for the host", () => {
@@ -145,7 +158,7 @@ describe("InlineSummary ready state", () => {
     expect(screen.queryByText(/^Due:/)).not.toBeInTheDocument();
   });
 
-  it("puts steps as a progress count and contacts and subtasks in the meta line, in order", () => {
+  it("puts steps as a progress count and contacts in the meta line", () => {
     const { container } = render(
       <InlineSummary
         state="ready"
@@ -158,7 +171,7 @@ describe("InlineSummary ready state", () => {
       "2 of 5 steps",
     );
     expect(screen.getByText("Contacts: 1").closest("p")).toHaveTextContent(
-      "Due Fri 30 Oct · Contacts: 1 · Subtasks: 3",
+      "Due Fri 30 Oct · Contacts: 1",
     );
     expect(container.querySelector("ul, li")).toBeNull();
   });
@@ -168,8 +181,9 @@ describe("InlineSummary ready state", () => {
       ...task,
       datapoints: {
         steps: { done: 1, total: 2 },
+        tasks: { done: 1, total: 4 },
+        overdue: 2,
         contacts: 1,
-        subtasks: 1,
         more: 9,
       },
     } as InlineSummaryData;
@@ -183,9 +197,10 @@ describe("InlineSummary ready state", () => {
     expect(container.querySelector(".sk-progress")).toHaveTextContent(
       "1 of 2 steps",
     );
-    expect(screen.getByText("Contacts: 1").closest("p")).toHaveTextContent(
-      "Due Fri 30 Oct · Contacts: 1 · Subtasks: 1",
+    expect(screen.getByText("2 overdue").closest("p")).toHaveTextContent(
+      "Due Fri 30 Oct · 1 of 4 tasks done · 2 overdue",
     );
+    expect(container.textContent).not.toContain("Contacts: 1");
     expect(container.textContent).not.toContain("more");
   });
 
@@ -199,7 +214,6 @@ describe("InlineSummary ready state", () => {
     );
     expect(container.querySelector(".sk-progress")).toBeNull();
     expect(screen.queryByText(/^Contacts:/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/^Subtasks:/)).not.toBeInTheDocument();
     expect(screen.getByText("Target: 15 Nov")).toBeInTheDocument();
   });
 
@@ -217,7 +231,7 @@ describe("InlineSummary ready state", () => {
     );
     const buttons = screen.getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual([
-      "Done",
+      "Mark as done",
       "Show more",
     ]);
     // Done is the primary action and Show more the open text button with ›, side by side in one row.
@@ -236,7 +250,7 @@ describe("InlineSummary ready state", () => {
       expect(button).toHaveClass("work-compact-action");
     }
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mark as done" }));
     await userEvent.click(screen.getByRole("button", { name: "Show more" }));
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -285,11 +299,22 @@ describe("InlineSummary ready state", () => {
         onComplete={vi.fn()}
       />,
     );
-    expect(screen.getByText("Kök · Hög")).toBeInTheDocument();
+    expect(screen.getByText("Kök · Prioritet: Hög")).toBeInTheDocument();
     const description = document.querySelector(".work-compact-description");
     expect(description?.textContent?.endsWith("…")).toBe(true);
     expect(description?.textContent?.length).toBeLessThanOrEqual(80);
     expect(description?.textContent).not.toContain("\n");
+  });
+
+  it("names the priority level: 'Priority: Urgent'", () => {
+    render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsEn}
+        summary={{ ...task, priority: "urgent" }}
+      />,
+    );
+    expect(screen.getByText("Priority: Urgent")).toBeInTheDocument();
   });
 
   it("shows no priority word for a normal priority and no description line when it is blank", () => {
@@ -301,7 +326,7 @@ describe("InlineSummary ready state", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.queryByText("High")).toBeNull();
+    expect(screen.queryByText(/High/)).toBeNull();
     expect(container.querySelector(".work-compact-description")).toBeNull();
   });
 

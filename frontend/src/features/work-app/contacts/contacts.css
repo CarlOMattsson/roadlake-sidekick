@@ -107,10 +107,12 @@
   > .sk-iconbtn[aria-expanded="true"]:not(.sk-iconbtn--primary) {
   background: var(--sk-surface);
 }
-/* The create field folds out 8 under the head, on a line of its own. */
+/* The create field folds out 8 under the head, on a line of its own, with 12 under it before the first row: it is the
+   head's field, not a row of the list. */
 .sidekick-work .work-contacts-create {
   order: 1;
   flex: 1 0 100%;
+  margin-block-end: var(--sk-s3);
 }
 .sidekick-work .work-contacts-create > p {
   margin: var(--sk-s2) 0 0;
@@ -209,11 +211,8 @@
   border-bottom: 1px solid var(--sk-line);
   border-radius: 0;
 }
-.sidekick-work .work-contact-menu > .work-contact-menu-item[data-danger],
-.sidekick-work
-  .work-contact-menu
-  .work-row-actions
-  > .sk-btn--quiet:first-child {
+/* Only a deletion is red. Archive keeps the text colour: Restore undoes it. */
+.sidekick-work .work-contact-menu > .work-contact-menu-item[data-danger] {
   color: var(--sk-danger-fg);
 }
 

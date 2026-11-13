@@ -132,7 +132,7 @@ export function transport(
       tasks: { items: annaTasks, next_cursor: null },
     }),
     updateTask: vi.fn().mockResolvedValue({ task: { ...taskA, version: 2 } }),
-    rescheduleTasks: vi.fn().mockResolvedValue({ count: 0 }),
+    rescheduleTasks: vi.fn().mockResolvedValue({ count: 0, tasks: [] }),
     reorderBoardColumn: vi.fn().mockResolvedValue({ items: [] }),
     listTaskSteps: vi.fn().mockResolvedValue({ items: [], next_cursor: null }),
     listUnsortedTasks: vi

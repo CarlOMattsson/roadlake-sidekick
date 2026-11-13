@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import {
   type DueLocale,
   type DueTone,
@@ -11,6 +11,7 @@ import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { UNDO_MS } from "../agenda/agenda-undo";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
   ListSummary,
@@ -36,13 +37,12 @@ const CONTACT_ROWS = 3;
 
 /**
  * The datapoints the summary may show. Each is optional. `steps` is drawn as a progress count
- * (done/total with a thin bar); `contacts` and `subtasks` are counts in the meta line. For a Task,
- * `steps` counts its Steps; for a Project, `subtasks` counts its Tasks.
+ * (done/total with a thin bar); `contacts` is a count in the meta line. For a Task,
+ * `steps` counts its Steps; for a Project, `tasks` is its progress.
  */
 export type InlineSummaryDatapoints = {
   steps?: { done: number; total: number };
   contacts?: number;
-  subtasks?: number;
   /** A Project's Tasks as progress: done of total, shown as "3 of 12 tasks done". */
   tasks?: { done: number; total: number };
   /** A Project's overdue Tasks, shown as "2 overdue" when above zero. */
@@ -60,12 +60,24 @@ export type InlineSummaryData = {
   /** The record's version, so the Done action writes against the version the summary shows (Task only). */
   version?: number;
   datapoints?: InlineSummaryDatapoints;
+  /** A recurring Task's completion on record before this write; Undo writes it back with the due date. */
+  lastCompletedAt?: string | null;
   /** A Task's priority; only "high" and "urgent" are shown, as words. */
   priority?: string | null;
   /** A Task's description: one line, cut with an ellipsis. Absent or empty means no line. */
   description?: string | null;
   /** The name of the Task's Project, when the record carries it. */
   projectTitle?: string | null;
+};
+
+/**
+ * The Undo that follows Done: "Done · Undo" stands where Done stood, for `UNDO_MS`. `onExpire` is called
+ * when the time is up; `busy` disables Undo while its write runs.
+ */
+export type InlineSummaryUndo = {
+  onUndo: () => void;
+  onExpire: () => void;
+  busy?: boolean;
 };
 
 /**
@@ -101,8 +113,60 @@ export type InlineSummaryProps =
       onOpen?: () => void;
       onComplete?: () => void;
       busy?: boolean;
+      /** After Done: the card says so and offers Undo instead of Done for a short while. */
+      undo?: InlineSummaryUndo;
+      /** Moves focus to Done when it appears (after Undo, so focus stays on a control that is still there). */
+      focusComplete?: boolean;
       notice?: InlineSummaryNotice;
     };
+
+/** Puts focus on a button when it mounts, so a control that replaces the one that had focus keeps it. */
+function focusOnMount(button: HTMLButtonElement | null) {
+  button?.focus();
+}
+
+/**
+ * "Done · Undo" in the card's foot. The text is a polite live region; Undo is a button as tall as the other
+ * actions (44 px on a coarse pointer). It takes focus from Done, which it replaces. When the time is up and
+ * focus is still in it, focus moves to Open, so it never falls to the page.
+ */
+function UndoLine({
+  labels,
+  undo,
+}: {
+  labels: InlineSummaryLabels;
+  undo: InlineSummaryUndo;
+}) {
+  const box = useRef<HTMLSpanElement>(null);
+  const { onExpire } = undo;
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const node = box.current;
+      if (node?.contains(document.activeElement))
+        node
+          .closest("section")
+          ?.querySelector<HTMLElement>(".sk-btn--open")
+          ?.focus();
+      onExpire();
+    }, UNDO_MS);
+    return () => clearTimeout(timer);
+  }, [onExpire]);
+  return (
+    <span ref={box} className="work-compact-undo">
+      <span role="status">{labels.taskStatus.completed}</span>
+      <button
+        type="button"
+        className="work-compact-action sk-btn--secondary"
+        onClick={undo.onUndo}
+        disabled={undo.busy}
+        aria-busy={undo.busy || undefined}
+        ref={focusOnMount}
+      >
+        {labels.undo}
+      </button>
+    </span>
+  );
+}
 
 /** One line of a Task's description: whitespace collapsed, cut at `max` characters with an ellipsis. */
 export function oneLine(text: string, max = 80): string {
@@ -156,7 +220,8 @@ export function InlineSummary(props: InlineSummaryProps) {
     );
   }
 
-  const { summary, onOpen, onComplete, busy, notice } = props;
+  const { summary, onOpen, onComplete, busy, undo, focusComplete, notice } =
+    props;
   const locale: DueLocale = labels.dateLocale.startsWith("sv") ? "sv" : "en";
   const meta = metaParts(summary, labels, locale, new Date());
   const steps = summary.datapoints?.steps;
@@ -188,7 +253,11 @@ export function InlineSummary(props: InlineSummaryProps) {
       <p className="work-compact-title sk-card__title">{summary.title}</p>
       <p>
         <span className="work-chip">
-          <StatusGlyph kind={summary.kind} status={summary.status} />
+          {/* The ring says only done or not done (designsystem §3.3), and an empty ring in front of "Pågår" reads
+              as a radio button: a known open status is told by its word alone. */}
+          {showsGlyph(labels, summary) ? (
+            <StatusGlyph kind={summary.kind} status={summary.status} />
+          ) : null}
           {statusLabel(labels, summary.kind, summary.status)}
         </span>
       </p>
@@ -219,16 +288,19 @@ export function InlineSummary(props: InlineSummaryProps) {
           {description}
         </p>
       ) : null}
-      {onComplete || onOpen ? (
+      {onComplete || undo || onOpen ? (
         <CardFoot>
           <div className="work-compact-actions">
-            {onComplete ? (
+            {undo ? (
+              <UndoLine labels={labels} undo={undo} />
+            ) : onComplete ? (
               <button
                 type="button"
                 className="work-compact-action sk-btn--primary"
                 onClick={onComplete}
                 disabled={busy}
                 aria-busy={busy || undefined}
+                ref={focusComplete ? focusOnMount : undefined}
               >
                 {busy ? labels.completing : labels.complete}
               </button>
@@ -414,7 +486,7 @@ export function ContactSummary({
 type MetaPart = { key: string; text: string; tone?: DueTone };
 
 /**
- * The meta line: due, then contacts and subtasks, joined by " · " in that order. A relative due
+ * The meta line: due, then a Project's progress and overdue count, then contacts, joined by " · " in that order. A relative due
  * date comes from relativeDue (owner calendar day, given `now`); an overdue text already
  * says so, so it is shown alone and every other due text gets the "Due" label in front.
  */
@@ -469,13 +541,20 @@ function metaParts(
       text: `${labels.contacts}: ${datapoints.contacts}`,
     });
   }
-  if (datapoints?.subtasks !== undefined) {
-    parts.push({
-      key: "subtasks",
-      text: `${labels.subtasks}: ${datapoints.subtasks}`,
-    });
-  }
   return parts.slice(0, 3);
+}
+
+/** Whether the status chip draws a glyph: a finished record (the check) or an unknown status (dashed), never an open one. */
+function showsGlyph(
+  labels: InlineSummaryLabels,
+  summary: { kind: InlineSummaryKind; status: string },
+): boolean {
+  const known =
+    summary.kind === "project" ? labels.projectStatus : labels.taskStatus;
+  return (
+    summary.status === "completed" ||
+    !Object.prototype.hasOwnProperty.call(known, summary.status)
+  );
 }
 
 /** A Task marked done ("completed"): it has no overdue state, so its due date is never shown as overdue. */
@@ -491,11 +570,11 @@ function kindLabel(
   return labels.kind[kind];
 }
 
-/** The word for a Task's priority; only "high" and "urgent" get one, so normal and low add no part. */
+/** The Task's priority as "Priority: High"; only "high" and "urgent" get one, so normal and low add no part. */
 function priorityText(
   labels: InlineSummaryLabels,
   priority: string | null | undefined,
 ): string | undefined {
   if (priority !== "high" && priority !== "urgent") return undefined;
-  return labels.priority[priority];
+  return `${labels.priorityLabel}: ${labels.priority[priority]}`;
 }

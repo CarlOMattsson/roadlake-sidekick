@@ -22,12 +22,26 @@
   margin: var(--sk-s2) 0 var(--sk-s3);
 }
 /* The property chip shows a value, not a choice, so it is never drawn chosen: the chip's edge, no surface, 500 and a
-   closing ⌄ of 16. A long value wraps inside it. */
-.sidekick-work .work-prop-chip {
-  flex-wrap: wrap;
+   closing ⌄ of 16. A long value wraps inside it (a word longer than the line breaks anywhere) and the ⌄ stays at the
+   end of its first line's row, never on a line of its own. The family's chip rule names the button element, so this
+   one does too, or its nowrap would win. 44 drawn (--sk-tap), as "Markera klar" beside it: the room's controls are
+   the ones a finger meets first. */
+.sidekick-work button.sk-chip.work-prop-chip,
+.sidekick-work .sk-chip.work-prop-chip {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  min-width: 0;
   padding-block: calc(var(--sk-s1) - var(--sk-hairline));
   text-align: start;
   white-space: normal;
+}
+.sidekick-work .work-prop-chip > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-work button.sk-chip.work-prop-chip,
+.sidekick-work button.sk-btn--compact.work-task-done {
+  min-height: var(--sk-tap);
 }
 .sidekick-work .work-prop-chip::after {
   inset: calc(-4px - var(--sk-hairline)) 0;

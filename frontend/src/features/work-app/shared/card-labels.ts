@@ -22,7 +22,7 @@ export const cardLabelsEn = {
   reread: "Reload",
   statusFailed: "Couldn’t save the status.",
   /** A change to a Task that no longer exists: no Try again, since it cannot come back. */
-  notFound: "This no longer exists. It may have been deleted in another chat.",
+  notFound: "This no longer exists. It may have been deleted elsewhere.",
   /** A Contact that is gone when it is read: calm, with no Try again. */
   goneContact: "This contact no longer exists",
   statusChanged: "Changed the status of 1 task to {status}.",
@@ -67,7 +67,7 @@ export const cardLabelsSv: CardLabels = {
   reread: "Läs om",
   statusFailed: "Kunde inte spara statusen.",
   /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
-  notFound: "Den finns inte längre. Den kan ha tagits bort i en annan chatt.",
+  notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
   /** A Contact that no longer exists when it is read: calm, without "Försök igen". */
   goneContact: "Kontakten finns inte längre",
   statusChanged: "Ändrade status på 1 uppgift till {status}.",

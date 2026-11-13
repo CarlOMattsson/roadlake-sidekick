@@ -144,7 +144,7 @@ test("Agenda row menu at 200 % text: no chip breaks inside its label, and the da
   expect(failures).toEqual([]);
 });
 
-test("inline card: the link row is 40 px drawn with a 48 px target", async ({
+test("inline card: the link row is 44 px drawn with a 48 px target", async ({
   page,
 }) => {
   const tasks = [1, 2, 3].map((n) => ({
@@ -172,7 +172,7 @@ test("inline card: the link row is 40 px drawn with a 48 px target", async ({
   });
   const link = app.getByRole("button", { name: "Show all (3)", exact: true });
   await expect(link).toBeVisible();
-  expect((await boxOf(link)).height).toBe(40);
+  expect((await boxOf(link)).height).toBe(44);
   expect((await effectiveTargetSize(link))?.height).toBe(TARGET_PX);
   expect(failures).toEqual([]);
 });

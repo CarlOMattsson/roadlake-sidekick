@@ -513,9 +513,12 @@
 }
 /* The head (kind and Project name) is one part on one line. */
 /* Every part after the first carries its "·" (the board's columns: inline, cut with its part; the single layout and the
-   Agenda hang it in the gap). One meta line, the time first. */
+   Agenda hang it in the gap). One meta line, the time first. The dot is the line's, not its part's: regular and muted,
+   also before "Hög". */
 .sidekick-work .work-column .work-card-meta > * + *::before {
   content: "· ";
+  font-weight: 400;
+  color: var(--work-muted);
 }
 .sidekick-work .work-description {
   white-space: pre-line;

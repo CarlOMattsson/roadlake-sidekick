@@ -21,6 +21,7 @@ export function taskInlineSummary(task: WorkTask): InlineSummaryData {
     dueDate: task.due_at,
     version: task.version,
     priority: task.priority,
+    lastCompletedAt: task.last_completed_at ?? null,
     description: task.description,
     projectTitle: task.project_title,
     datapoints: { steps },

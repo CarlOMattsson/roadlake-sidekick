@@ -118,44 +118,49 @@ export function ProjectFrame({
       {phase === "gone" && <p role="status">{t.goneProject}</p>}
       {phase === "ready" && project && (
         <>
-          <FrameMeta
-            area={domainName}
-            detail={
-              project.tasks_total ? (
-                <Progress
-                  done={project.tasks_done ?? 0}
-                  total={project.tasks_total}
-                  label={t.progressOf(
-                    project.tasks_done ?? 0,
-                    project.tasks_total,
-                  )}
-                />
-              ) : undefined
-            }
-          />
-          {project.status !== "active" && (
-            <p className="work-chip">
-              {t.status}: {projectStatusLabel(t, project.status)}
-            </p>
-          )}
-          {project.start_date && (
-            <p className="work-chip">
-              {t.startDate}:{" "}
-              <time dateTime={project.start_date}>
-                {workDate(project.start_date, new Date(), t.dateLocale)}
-              </time>
-            </p>
-          )}
-          {project.target_date && (
-            <p className="work-chip">
-              {t.targetDate}:{" "}
-              <time dateTime={project.target_date}>
-                {workDate(project.target_date, new Date(), t.dateLocale)}
-              </time>
-            </p>
-          )}
-          {project.description && (
-            <p className="work-description">{project.description}</p>
+          {/* While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
+          {!editing && (
+            <>
+              <FrameMeta
+                area={domainName}
+                detail={
+                  project.tasks_total ? (
+                    <Progress
+                      done={project.tasks_done ?? 0}
+                      total={project.tasks_total}
+                      label={t.progressOf(
+                        project.tasks_done ?? 0,
+                        project.tasks_total,
+                      )}
+                    />
+                  ) : undefined
+                }
+              />
+              {project.status !== "active" && (
+                <p className="work-chip">
+                  {t.status}: {projectStatusLabel(t, project.status)}
+                </p>
+              )}
+              {project.start_date && (
+                <p className="work-chip">
+                  {t.startDate}:{" "}
+                  <time dateTime={project.start_date}>
+                    {workDate(project.start_date, new Date(), t.dateLocale)}
+                  </time>
+                </p>
+              )}
+              {project.target_date && (
+                <p className="work-chip">
+                  {t.targetDate}:{" "}
+                  <time dateTime={project.target_date}>
+                    {workDate(project.target_date, new Date(), t.dateLocale)}
+                  </time>
+                </p>
+              )}
+              {project.description && (
+                <p className="work-description">{project.description}</p>
+              )}
+            </>
           )}
           <WriteStatus
             write={write}

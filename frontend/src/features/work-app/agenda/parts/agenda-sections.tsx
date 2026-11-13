@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Fold } from "../../../mcp-apps/ui/fold";
 import { Counted } from "../../../mcp-apps/ui/count";
-import { ArrowRightIcon } from "../../../mcp-apps/ui/icons";
 import type { WorkItemRecord } from "../../transport/transport";
 import { RecordTitle } from "../../board/board";
 import {
@@ -17,6 +16,7 @@ import {
 } from "../../shared/waiting";
 import { sectionHeading, stickyHeading } from "./agenda-helpers";
 import { AgendaRow } from "./agenda-row";
+import { MoveAllOverdue } from "./move-all-overdue";
 import type { AgendaRowContext } from "./row-context";
 
 /** The group heading that sticks under the host's navigation while its records scroll under it. */
@@ -44,7 +44,7 @@ function GroupHead({
   );
 }
 
-/** One group of dated records: its heading, the rows still to deal with, the handled ones under a line, and the move-all button. */
+/** One group of dated records: its heading, the rows still to deal with, the handled ones under a line, and the move-all action. */
 export function AgendaSection({
   ctx,
   section,
@@ -104,15 +104,12 @@ export function AgendaSection({
       )}
       {/* The group's action after its last row, so the heading meets its first row. */}
       {overdue && movable > 0 && moveAllOffered && (
-        <button
-          type="button"
-          className="work-agenda-move-all sk-action-row"
+        <MoveAllOverdue
+          labels={t}
+          count={movable}
           disabled={disabled}
-          onClick={() => onMoveAll(section.items)}
-        >
-          <ArrowRightIcon />
-          {t.moveAllOverdue(movable)}
-        </button>
+          onMove={() => onMoveAll(section.items)}
+        />
       )}
     </section>
   );

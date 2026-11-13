@@ -136,7 +136,7 @@ export function useAgendaSession({
     retryWrite.current = again;
   }
   function retry(action: BoardAction) {
-    if (action === "move") retryWrite.current?.();
+    if (action === "move" || action === "moveAll") retryWrite.current?.();
     else if (action === "more") loadMore();
     else reread();
   }

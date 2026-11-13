@@ -16,6 +16,33 @@ import type {
 import { readSource } from "./helpers/source-files";
 import { readStylesheet } from "./helpers/stylesheet";
 
+describe("work card counts", () => {
+  it("states the same count in its title and on Show all, and no +N line beside Show all", () => {
+    render(
+      <WorkCard
+        state="ready"
+        labels={cardLabelsSv}
+        frame={frame(5, 11)}
+        onOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("region")).toHaveAccessibleName("Ändringar (11)");
+    expect(
+      screen.getByRole("button", { name: "Visa alla (11)" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("+6 fler")).toBeNull();
+  });
+
+  it("keeps the +N line when the card cannot open the list", () => {
+    render(
+      <WorkCard state="ready" labels={cardLabelsSv} frame={frame(5, 11)} />,
+    );
+
+    expect(screen.getByText("+6 fler")).toBeInTheDocument();
+  });
+});
+
 function item(
   index: number,
   overrides: Partial<WorkItemRecord> = {},

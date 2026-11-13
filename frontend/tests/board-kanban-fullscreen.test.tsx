@@ -280,7 +280,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
       <InlineSummary
         state="ready"
         labels={inlineSummaryLabelsSv}
-        summary={{ kind: "task", title: "Ring Anna", status: "todo" }}
+        summary={{ kind: "task", title: "Ring Anna", status: "completed" }}
       />,
     );
 
@@ -288,7 +288,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
     // The glyph comes first and is hidden from assistive technology; the label follows it as text.
     expect(chip?.firstElementChild?.tagName.toLowerCase()).toBe("svg");
     expect(chip?.firstElementChild).toHaveAttribute("aria-hidden", "true");
-    expect(chip?.lastChild?.textContent).toBe("Att göra");
+    expect(chip?.lastChild?.textContent).toBe("Klar");
     // jsdom applies no CSS: the line and the gap are read from work.css.
     expect(workCss.styleOf(chip as Element, ROOM)).toMatchObject({
       display: "inline-flex",

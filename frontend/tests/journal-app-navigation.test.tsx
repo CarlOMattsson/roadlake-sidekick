@@ -309,7 +309,7 @@ describe("journal app navigation", () => {
       screen.getByRole("button", { name: "Minne och kontroll" }),
     );
     expect(onRoute).toHaveBeenCalledTimes(1);
-    expect(onRoute).toHaveBeenCalledWith({ room: "control", view: "trash" });
+    expect(onRoute).toHaveBeenCalledWith({ room: "control", view: "memory" });
 
     // Without a route (an inline day, or a host without navigation) there is no ⋯ at all.
     rerender(

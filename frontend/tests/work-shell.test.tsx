@@ -249,9 +249,13 @@ describe("task detail layout at 320 px", () => {
     const compact = family.styleOf(done, ROOM);
     expect(compact.width).not.toBe("100%");
     expect(compact["white-space"]).toBe("nowrap");
-    expect(
-      detailCss.rules.map((rule) => rule.selector).join("\n"),
-    ).not.toContain("work-task-done");
+    // Its one rule of its own only lifts it to the 44 of the chips beside it; its width stays the family's.
+    for (const rule of detailCss.rules.filter((rule) =>
+      rule.selector.includes("work-task-done"),
+    ))
+      expect(rule.declarations, rule.selector).toEqual({
+        "min-height": "var(--sk-tap)",
+      });
     // The air lies inside the label's 48 (no ⋯), and the list rises by --sk-row-air-extra.
     expect(detailCss.has(".sidekick-work .work-steps > li")).toBe(false);
     expect(

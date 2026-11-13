@@ -210,6 +210,12 @@
   flex-wrap: wrap;
   gap: var(--sk-s2) var(--sk-s5);
 }
+/* "Klar · Ångra" where Done stood: the word and its button on one line, the button as tall as Done. */
+.sidekick-work .work-compact-undo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s2);
+}
 
 .sidekick-work .work-compact-segments {
   display: flex;
@@ -231,14 +237,14 @@
   gap: 0.5rem;
 }
 
-/* The card's link row: a compact text row, 2.5rem drawn with a 48 target, so the card ends 4 sooner. */
+/* The card's link row: 44 drawn (--sk-tap), as every other control a finger meets in the card, with a 48 target. */
 .sidekick-work .work-compact-card > .work-compact-action.sk-btn--open,
 .sidekick-work
   .work-compact-card
   > .sk-card__foot
   > .work-compact-action.sk-btn--open {
   position: relative;
-  min-height: var(--sk-compact);
+  min-height: var(--sk-tap);
 }
 .sidekick-work .work-compact-card > .work-compact-action.sk-btn--open::after,
 .sidekick-work
@@ -247,7 +253,7 @@
   > .work-compact-action.sk-btn--open::after {
   content: "";
   position: absolute;
-  inset: calc((var(--sk-compact) - 48px) / 2) 0;
+  inset: calc((var(--sk-tap) - 48px) / 2) 0;
 }
 /* The Status card's bar and its legend 4 apart (8,8 before), so the head reads as one block. */
 .sidekick-work .work-compact-board .sk-counts-bar {

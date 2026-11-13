@@ -124,7 +124,7 @@ it("Edit list reveals the list and item forms", async () => {
   expect(screen.getByLabelText(shoppingEn.batch)).toBeInTheDocument();
 });
 
-it("the ⋯ menu ends with Control, which asks the host for the Control room's trash view", async () => {
+it("the ⋯ menu ends with Control, which asks the host for the Control room's memory view", async () => {
   const transport = adapter();
   const user = userEvent.setup();
   const onNavigate = vi.fn();
@@ -153,7 +153,7 @@ it("the ⋯ menu ends with Control, which asks the host for the Control room's t
     "Memory and control",
   ]);
   await user.click(entries[1]!);
-  expect(onNavigate).toHaveBeenCalledWith({ room: "control", view: "trash" });
+  expect(onNavigate).toHaveBeenCalledWith({ room: "control", view: "memory" });
 });
 
 it("the ⋯ menu has no Control entry when the view cannot navigate", async () => {

@@ -3,8 +3,11 @@ import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { writeFailure } from "../transport/transport";
 
-/** The read or write a board action runs; the view runs one read at a time, card writes queue per card. */
-export type BoardAction = "move" | "reload" | "more";
+/**
+ * The read or write a board action runs; the view runs one read at a time, card writes queue per card. `moveAll` is
+ * the agenda's bulk reschedule and the Undo of it, which have a text of their own.
+ */
+export type BoardAction = "move" | "moveAll" | "reload" | "more";
 /**
  * What the last board action did. `failed` names the action so retry runs it again; a conflict,
  * a refusal, invalid values or a record that no longer exists are never retried by the view itself.
@@ -66,7 +69,7 @@ export function NoticeView({
       // A failed read keeps the family's "Kunde inte uppdatera"; the record that is gone only explains.
       message={
         notice.kind === "forbidden"
-          ? notice.action === "move"
+          ? notice.action === "move" || notice.action === "moveAll"
             ? t.forbiddenWrite
             : t.boardForbidden
           : notice.kind === "invalid"
@@ -75,7 +78,9 @@ export function NoticeView({
               ? t.notFound
               : notice.action === "move"
                 ? t.moveFailed
-                : undefined
+                : notice.action === "moveAll"
+                  ? t.moveAllFailed
+                  : undefined
       }
       onRetry={failed ? () => onRetry(notice.action) : undefined}
     />

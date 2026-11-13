@@ -57,23 +57,6 @@ export function TaskContactsSection({
       <h3 ref={heading} tabIndex={-1}>
         {t.contacts}
       </h3>
-      {!contactsOpen && (
-        <p>
-          <button
-            type="button"
-            className="work-nav"
-            onClick={() =>
-              onOpen({
-                kind: "contacts",
-                q: "",
-                includeArchived: false,
-              })
-            }
-          >
-            {t.allContacts}
-          </button>
-        </p>
-      )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "forbidden" && <p>{t.contactsForbidden}</p>}
       {phase === "error" && (
@@ -156,7 +139,6 @@ export function TaskContactsSection({
           ) : (
             <p>{t.noContacts}</p>
           )}
-          {items.length > 0 && unlinkOffered && <LinkedRowTip labels={t} />}
           <WriteNotice
             failure={unlinks.failure}
             labels={manageLabelsFor(t.dateLocale)}
@@ -188,6 +170,27 @@ export function TaskContactsSection({
             />
           )}
         </>
+      )}
+      {/* The way to every Contact comes after this Task's own, so it is not read as one of them; the row tip last. */}
+      {!contactsOpen && (
+        <p>
+          <button
+            type="button"
+            className="work-nav"
+            onClick={() =>
+              onOpen({
+                kind: "contacts",
+                q: "",
+                includeArchived: false,
+              })
+            }
+          >
+            {t.allContacts}
+          </button>
+        </p>
+      )}
+      {phase === "ready" && items.length > 0 && unlinkOffered && (
+        <LinkedRowTip labels={t} />
       )}
     </>
   );

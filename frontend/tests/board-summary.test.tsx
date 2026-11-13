@@ -262,7 +262,7 @@ it("sends the counts and column names once to the model context, never record ti
   );
   expect(onModelContext).toHaveBeenCalledTimes(1);
   const [summary] = onModelContext.mock.calls[0] as [string];
-  expect(summary).toBe("Board: 2 to do, 1 in progress, 0 blocked, 1 done");
+  expect(summary).toBe("Status: 2 to do, 1 in progress, 0 blocked, 1 done");
   for (const item of [todoA, todoB, doing, done]) {
     expect(summary).not.toContain(item.title);
   }
@@ -319,7 +319,7 @@ it("sends counts only to the model context, never the due Task titles", () => {
   expect(onModelContext).toHaveBeenCalledTimes(1);
   const [summary] = onModelContext.mock.calls[0] as [string];
   expect(summary).toBe(
-    "Board: 3 to do, 1 in progress, 1 blocked, 1 done; projects: 1",
+    "Status: 3 to do, 1 in progress, 1 blocked, 1 done; projects: 1",
   );
   for (const item of [dueSoon, dueMid, dueLater, dueFourth, doneEarly, noDue]) {
     expect(summary).not.toContain(item.title);
@@ -367,7 +367,7 @@ it("counts the open Tasks in the legend, without Projects or Done, and says more
   expect(screen.queryByText(workEn.boardMore)).toBeNull();
   const [summary] = onModelContext.mock.calls[0] as [string];
   expect(summary).toBe(
-    "Board: 2 to do, 1 in progress, 0 blocked, 1 done, more not shown; projects: 1",
+    "Status: 2 to do, 1 in progress, 0 blocked, 1 done, more not shown; projects: 1",
   );
 });
 

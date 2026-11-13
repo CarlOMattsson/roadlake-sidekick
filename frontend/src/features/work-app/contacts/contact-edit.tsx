@@ -392,7 +392,7 @@ export function ContactArchiveToggle({
       <button
         ref={confirmButton}
         type="button"
-        className="sk-btn--danger"
+        className="sk-btn--primary"
         disabled={busy}
         onClick={onConfirm}
       >
@@ -416,7 +416,8 @@ export function ContactArchiveToggle({
 /**
  * The panel of a detail view's ⋯ button (the button sits in the Back row, see work-view.tsx ContactFrame and TaskFrame).
  * It opens under the title with "Redigera" first (design system §3, Tillbakarad; nicknames are edited there too),
- * then Archive (Restore for an archived one) in the danger text colour; the confirming step opens in the same panel. A Task passes no `archived`, so it has no archive entry. Escape closes it.
+ * then Archive (Restore for an archived one) in the text colour, since Restore undoes it (only a deletion is drawn in the
+ * danger colour); the confirming step opens in the same panel. A Task passes no `archived`, so it has no archive entry. Escape closes it.
  */
 export function ContactMenu({
   id,
