@@ -8,5 +8,5 @@
     { "months": 12, "amount": 32, "buyUrl": "" },
     { "months": 60, "amount": 100, "buyUrl": "" }
   ],
-  "org": { "months": 12, "amount": 1000, "perEmployees": 50, "customAbove": 2000 }
+  "org": { "months": 12, "amount": 1000, "perEmployees": 50, "customAbove": 2000, "contactEmail": "carlomattsson@gmail.com" }
 }

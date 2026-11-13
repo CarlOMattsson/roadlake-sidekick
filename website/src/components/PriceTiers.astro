@@ -21,6 +21,10 @@ const length = (months: number) =>
   months >= 24 && months % 12 === 0 ? t('site.length.years', { count: months / 12 }) : t('site.length.months', { count: months });
 const money = (amount: number) => `${n.format(amount)} ${pricing.currency}`;
 const orgLength = pricing.org.months === 12 ? t('site.pricing.perYear') : length(pricing.org.months);
+const orgOffer = t('site.pricing.orgOffer');
+const orgMail = pricing.org.contactEmail
+  ? `mailto:${pricing.org.contactEmail}?subject=${encodeURIComponent(t('site.pricing.orgMailSubject'))}`
+  : '';
 ---
 <div class="tiers not-content" data-marketing data-tiers={show.length}>
   {
@@ -68,7 +72,8 @@ const orgLength = pricing.org.months === 12 ? t('site.pricing.perYear') : length
         <p class="tier__sub">{org.sub}</p>
         <p class="price">{n.format(pricing.org.amount)} <small>{pricing.currency} {orgLength}</small></p>
         <p class="tier__sub tier__sub--tight">
-          {t('site.pricing.orgBlock', { count: pricing.org.perEmployees, max: n.format(pricing.org.customAbove) })}
+          {t('site.pricing.orgBlock', { count: pricing.org.perEmployees, max: n.format(pricing.org.customAbove) })}{' '}
+          {orgMail ? <a href={orgMail}>{orgOffer}</a> : orgOffer}.
         </p>
       </section>
     )
