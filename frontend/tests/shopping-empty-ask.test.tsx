@@ -108,8 +108,8 @@ it("the inline card's empty state carries the same ask", async () => {
   );
   await user.click(
     screen.getByRole("button", {
-      name: "Skicka till Claude: Lägg till kaffe på Garden",
+      name: "Skicka till Claude: Lägg till kaffe på listan Garden",
     }),
   );
-  expect(sendMessage).toHaveBeenCalledWith("Lägg till kaffe på Garden");
+  expect(sendMessage).toHaveBeenCalledWith("Lägg till kaffe på listan Garden");
 });

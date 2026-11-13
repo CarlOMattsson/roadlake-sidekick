@@ -12,6 +12,7 @@ from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.journal.domain.day_done import owner_today
+from sidekick.journal.domain.entry import JournalOrder
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.journal_records import (
     JournalSummaryResult,
@@ -52,10 +53,11 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
         name="list_journal_entries",
         description=(
             "Use this for a bounded date-filtered list of at most 366 inclusive calendar "
-            "days of the authenticated user's journal entries, oldest first. For the latest "
-            "entry of a day, make one call with limit=50 and take the last row; do not also call "
-            "get_journal_entry unless the user asks to see it. Each entry carries its summary "
-            "and key points unless include_content is false; tags lists only entries with them. "
+            "days of the authenticated user's journal entries, oldest first (order=desc: "
+            "newest first). For the latest entry of a day, make one call with limit=50 and "
+            "take the last row; do not also call get_journal_entry unless the user asks to "
+            "see it. Each entry carries its summary and key points unless include_content "
+            "is false; tags lists only entries with them. "
             "Do not use it for another user or unbounded history."
         ),
         output_schema=output_schema(JournalEntryPageResult),
@@ -69,6 +71,7 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
         include_content: bool = True,
         tags: TagFilter | None = None,
         tag_match: TagMatch = "any",
+        order: JournalOrder = "asc",
         limit: Annotated[int, Field(ge=1, le=50)] = 10,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
     ) -> ToolResult:
@@ -81,6 +84,7 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
             include_content=include_content,
             tags=tuple(tags or ()),
             tag_match=tag_match,
+            order=order,
             limit=limit,
             cursor=cursor,
         )
@@ -89,7 +93,7 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
         count = counted(len(entries), "journal entry", "journal entries", partial=partial)
         header = f"Found {count}"
         if include_content and entries:
-            latest = flat(entries[-1].title, SPOKEN_TITLE_LIMIT)
+            latest = flat(entries[0 if order == "desc" else -1].title, SPOKEN_TITLE_LIMIT)
             header += f', latest "{latest}"'
         return result(
             structured.model_dump(mode="json"),

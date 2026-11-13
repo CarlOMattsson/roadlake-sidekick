@@ -32,10 +32,9 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `ntfy-init.sh` | One-time setup of the ntfy accounts. It prints no secret. |
 | `secrets-to-files.sh` | Moves the secrets of `selfhost.env` into files in `secrets/` and prints no value. See [Secrets as files](../operate/limits-and-secrets.md#secrets-as-files). |
 | `postgres-init.sh` | Creates the database roles on the first start of an empty volume. |
-| `update.sh` | Updates to a signed, digest-pinned image, with an encrypted snapshot first. See [Update](../operate/update.md). |
+| `update.sh` | Updates to a signed, digest-pinned image, with an encrypted snapshot first. See [Update](../operate/update.md). Its free-space check and snapshot pruning run from `tools/workctl` in the same checkout (`python3`). |
 | `restore.sh` | Restores one owner from an encrypted backup or a plain export. See [Backup and restore](../operate/backup-and-restore.md). |
 | `restore-ownership.sql` | Gives each object back its owner after a plain SQL dump has been restored. |
-| `backup_space.sh` | Checks free space before a backup and prunes finished backup files. Shared with the work package. |
 | `snapshot_crypto.py` | Encrypts and decrypts the database snapshots that `update.sh` takes. |
 | `update_policy.py` | The decisions of `update.sh` (versions, migration class, rollback, recovery). Needs the host's `python3` (3.9 or newer, standard library only). |
 | `min-upgrade-from.txt` | The oldest version a new release can be updated from. |

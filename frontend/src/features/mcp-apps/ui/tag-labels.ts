@@ -24,7 +24,7 @@ const tagEn = {
   full: (max: number) => `At most ${max} tags.`,
   /** The filter row. */
   filter: "Filter by tag",
-  clear: "Clear",
+  clear: (n: number) => `Clear (${n})`,
   clearLabel: "Clear tag filter",
   filterFull: (max: number) => `At most ${max} tags at once.`,
   /** Read after a filtered list: what it is narrowed to (every tag, "all" match). */
@@ -48,7 +48,7 @@ const tagSv: typeof tagEn = {
   tooLong: (max) => `En tagg får vara högst ${max} tecken.`,
   full: (max) => `Högst ${max} taggar.`,
   filter: "Filtrera på tagg",
-  clear: "Rensa",
+  clear: (n) => `Rensa (${n})`,
   clearLabel: "Rensa taggfiltret",
   filterFull: (max) => `Högst ${max} taggar åt gången.`,
   filtered: (tags) =>

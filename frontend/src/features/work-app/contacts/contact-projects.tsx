@@ -20,10 +20,29 @@ export type ContactProjectsProps = {
   labels: WorkLabels;
 };
 
+/** The meta line of a Project row: a differing status, then "3 av 5 klara"; nothing for an active Project without Tasks or counts. */
+function ProjectMeta({
+  project,
+  labels: t,
+}: {
+  project: WorkProjectSummary;
+  labels: WorkLabels;
+}) {
+  const { tasks_done: done, tasks_total: total } = project;
+  const parts = [
+    project.status !== "active" ? projectStatusLabel(t, project.status) : "",
+    done !== undefined && total ? t.tasksProgress(done, total) : "",
+  ].filter(Boolean);
+  return parts.length ? (
+    <p className="work-card-meta">{parts.join(" · ")}</p>
+  ) : null;
+}
+
 /**
  * The Projects a Contact is linked to, under the heading "Projekt", in the shared row (design system §3, Listrad and
  * Kontaktvyn): FolderIcon in the leading column, the title on 52 that opens the Project, the status as the meta
- * line with no "Status:" label ("Aktivt"), and ›. The link is removed from the row's own menu (long press, right click,
+ * line with no "Status:" label, only when it differs from the usual ("Pausat", "Klart"), followed by the Task progress
+ * ("3 av 5 klara", left out when the server sends no counts or the Project has no Tasks), and ›. The link is removed from the row's own menu (long press, right click,
  * Shift+F10: "Ta bort koppling"); the row then stays with "Kopplingen borttagen · Ångra". With no Project the section
  * is left out.
  */
@@ -73,9 +92,7 @@ export function ContactProjects({
                     {linksLabelsFor(t.dateLocale).linkRemoved}
                   </p>
                 ) : (
-                  <p className="work-card-meta">
-                    {projectStatusLabel(t, project.status)}
-                  </p>
+                  <ProjectMeta project={project} labels={t} />
                 )}
               </div>
               {gone[project.id] && onUndo ? (

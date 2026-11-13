@@ -112,7 +112,7 @@ Returns: `ActionOutput` with `action` (ActionRecord).
 
 ## `update_step_action`
 
-Update an Action with optimistic version checking.
+Update an Action with optimistic version checking; status completed ticks it off, status open opens it again.
 
 Access: write
 
@@ -127,6 +127,7 @@ Returns: `ActionOutput` with `action` (ActionRecord).
 | `changes.attention_requested` | boolean | no | may be null |
 | `changes.due_at` | date-time | no | ISO 8601 date and time; may be null |
 | `changes.note` | string | no | up to 500 characters; may be null |
+| `changes.status` | string | no | one of `open`, `completed`; may be null |
 | `changes.title` | string | no | 1 to 200 characters; may be null |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `version` | integer | yes | at least 1 |

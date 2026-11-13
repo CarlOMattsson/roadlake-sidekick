@@ -1,13 +1,43 @@
-/* The Actions under one Step: an indented list, opened from the Step's ⋯ menu, whose rows carry the plain
-   Up, Down and Archive buttons from manage.css. No hover-only part. */
-/* Indented to the Step title: the checkbox is 1.25rem and the label gap 0.6rem, so the title starts at 1.85rem. */
+/* The count under a Step's title ("2 åtgärder") opens the Actions under the Step, and the Actions are a list of the
+   Step rows' own kind: a box, the title, a menu of Up, Down and Archive. No hover-only part. */
+/* The count is a meta line (--sk-type-meta, muted) on the title's x, drawn as text with a chevron, not as a framed button.
+   Its target is the tap height: the box is pulled back over the row's air above and below (the margins), so it adds
+   one meta line to the row, not the whole target; it stands over the row's label to take the taps there. */
+.sidekick-work .work-steps .work-step-actions-open {
+  --work-count-air: calc((var(--sk-tap) - 1.1rem) / 2);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  width: fit-content;
+  min-height: var(--sk-tap);
+  margin-block: calc(-1 * var(--work-count-air));
+  margin-inline-start: calc(var(--sk-icon) + var(--sk-s3));
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sidekick-work .work-steps .work-step-actions-open > svg {
+  flex: none;
+  transition: transform 0.15s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-work .work-steps .work-step-actions-open > svg {
+    transition: none;
+  }
+}
+.sidekick-work .work-steps .work-step-actions-open[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+.sidekick-work .work-steps > li.work-step-undoing > .work-step-actions-open {
+  grid-column: 1 / -1;
+}
+/* The Actions list is indented past the Step's box to the title. */
 .sidekick-work .work-step-actions {
   margin: 0.2rem 0 0.6rem 1.85rem;
-}
-.sidekick-work .work-step-actions-count {
-  margin: 0.2rem 0 0;
-  font-size: 0.9rem;
-  color: var(--work-muted);
 }
 .sidekick-work .work-step-actions-body {
   margin-top: 0.4rem;
@@ -20,21 +50,34 @@
   padding: 0;
 }
 .sidekick-work .work-step-action {
-  padding-block: 0.35rem;
   border-bottom: var(--work-border-width) solid var(--work-line);
 }
+/* The title and, under it, one meta line: the due day (tone from the global [data-tone] rules) and the note. The line
+   stays one line and the note gives way with "…". */
 .sidekick-work .work-step-action-text {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.25rem 0.6rem;
+  display: block;
 }
-.sidekick-work .work-step-action-title {
-  overflow-wrap: anywhere;
+.sidekick-work .work-step-action-meta {
+  display: block;
+  overflow: hidden;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+/* A state the box does not say ("Pågår", "Blockerad") stands after the title. */
 .sidekick-work .work-step-action-status {
+  margin-inline-start: var(--sk-s2);
   font-size: 0.85rem;
   color: var(--work-muted);
+}
+/* A done Action is dimmed as a done Step is; its box cannot be changed (the server cannot open an Action again), so it
+   shows the default cursor, not the pointer. */
+.sidekick-work .work-step-action-done :is(label, .work-step-read) > span {
+  color: var(--work-muted);
+}
+.sidekick-work .work-step-action .work-step-check[aria-readonly="true"] {
+  cursor: default;
 }
 .sidekick-work .work-step-actions-notice {
   margin: 0.3rem 0;

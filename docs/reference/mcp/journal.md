@@ -6,7 +6,7 @@
 
 ## `list_journal_entries`
 
-Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first.
+Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first (order=desc: newest first).
 
 Access: read
 
@@ -21,6 +21,7 @@ Returns: `JournalEntryPageResult` with `entries` (array of JournalEntryRecord), 
 | `include_archived` | boolean | no | default `false` |
 | `include_content` | boolean | no | default `true` |
 | `limit` | integer | no | default `10`; 1 to 50 |
+| `order` | string | no | default `"asc"`; one of `asc`, `desc` |
 | `tag_match` | string | no | default `"any"`; one of `any`, `all` |
 | `tags` | array of string | no | up to 5 items; may be null |
 | `to_date` | date | no | ISO 8601 date; may be null |

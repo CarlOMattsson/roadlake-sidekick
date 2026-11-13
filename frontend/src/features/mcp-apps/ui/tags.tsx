@@ -7,6 +7,7 @@ import {
   TAGS_PER_FILTER,
   TAGS_PER_RECORD,
   tagLabelOf,
+  sortTagOptions,
   tagSlugOf,
   type TagOption,
 } from "./tag-vocabulary";
@@ -200,7 +201,7 @@ function TagEditor({
     );
   }
   const typed = tagSlugOf(value);
-  const offered = suggestions
+  const offered = sortTagOptions(suggestions, locale)
     .filter((tag) => !tags.includes(tag.slug))
     .filter((tag) => !typed || tag.slug.includes(typed))
     .slice(0, SUGGESTIONS_SHOWN);
@@ -320,10 +321,17 @@ function TagEditor({
   );
 }
 
+/** The chosen tags as one text, so two sets of the same tags compare equal whatever the order they were chosen in. */
+function chosenKey(selected: readonly string[]): string {
+  return [...selected].sort().join(",");
+}
+
 /**
- * The tag filter of a list: one row of toggle chips (aria-pressed), the tags in use on that kind, most used
- * first, and "Rensa" once one is chosen. Choosing more tags narrows the list (the read asks for every tag,
- * tag_match "all"). At most five at once, as the server takes. Nothing is drawn while there is no tag to offer.
+ * The tag filter of a list: one row of toggle chips (aria-pressed), the chosen tags first and then the tags in use on
+ * that kind, most used first, and "Rensa (N)" once one is chosen. The chosen ones lead and the row starts at its
+ * beginning, so every chosen tag is in sight in a row that scrolls; a chip that was pressed keeps the focus where it
+ * moves to. Choosing more tags narrows the list (the read asks for every tag, tag_match "all"). At most five at once, as the
+ * server takes. Nothing is drawn while there is no tag to offer.
  */
 export function TagFilter({
   options,
@@ -337,25 +345,67 @@ export function TagFilter({
   locale: string;
 }) {
   const t = tagLabelsFor(locale);
-  // The chip just pressed stays in sight: "Rensa" appearing narrows the scroller and could hide it at the end.
-  const pressed = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    pressed.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
-    pressed.current = null;
-  }, [selected]);
+  const scroller = useRef<HTMLDivElement>(null);
+  // The chip just pressed: it moves in the row when it is chosen, and keeps the focus there.
+  const pressed = useRef<string | undefined>(undefined);
   // A chosen tag the vocabulary no longer lists still shows, so it can be cleared.
-  const shown = [
-    ...options,
+  const known = [
+    ...sortTagOptions(options, locale),
     ...selected
       .filter((slug) => !options.some((tag) => tag.slug === slug))
       .map((slug) => ({ slug, label: slug, count: 0 })),
   ];
+  const shown = [
+    ...known.filter((tag) => selected.includes(tag.slug)),
+    ...known.filter((tag) => !selected.includes(tag.slug)),
+  ];
+  const hasChips = shown.length > 0;
+  // The row goes back to its start when the chosen tags change, and a pressed chip that moved keeps the focus.
+  const chosen = chosenKey(selected);
+  useEffect(() => {
+    const row = scroller.current;
+    if (!row) return;
+    row.scrollLeft = 0;
+    if (pressed.current !== undefined)
+      [...row.querySelectorAll<HTMLElement>("[data-tag]")]
+        .find((chip) => chip.dataset.tag === pressed.current)
+        ?.focus({ preventScroll: true });
+    pressed.current = undefined;
+  }, [chosen]);
+  // The edge where the row can be scrolled further fades out, so a cut chip does not read as part of its neighbour.
+  useEffect(() => {
+    const row = scroller.current;
+    if (!hasChips || !row) return;
+    const update = () => {
+      const { scrollLeft, clientWidth, scrollWidth } = row;
+      row.toggleAttribute("data-fade-start", scrollLeft > 1);
+      row.toggleAttribute(
+        "data-fade-end",
+        scrollLeft + clientWidth < scrollWidth - 1,
+      );
+    };
+    update();
+    row.addEventListener("scroll", update, { passive: true });
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(update);
+    observer?.observe(row);
+    return () => {
+      row.removeEventListener("scroll", update);
+      observer?.disconnect();
+    };
+  }, [hasChips]);
   if (shown.length === 0) return null;
   const full = selected.length >= TAGS_PER_FILTER;
   return (
     <div className="sk-tag-filter" role="group" aria-label={t.filter}>
+      {/* The group is named by its aria-label; the visible word only tells sighted users what the chips are. */}
+      <span className="sk-tag-filter__label" aria-hidden="true">
+        {t.tags}
+      </span>
       {/* The chips scroll sideways; "Rensa" stands outside the scroller, so it is never scrolled away. */}
-      <div className="sk-tag-filter__scroll">
+      <div ref={scroller} className="sk-tag-filter__scroll">
         {shown.map((tag) => {
           const on = selected.includes(tag.slug);
           return (
@@ -363,11 +413,12 @@ export function TagFilter({
               key={tag.slug}
               type="button"
               className="sk-tag-filter__option"
+              data-tag={tag.slug}
               aria-pressed={on}
               disabled={!on && full}
               title={!on && full ? t.filterFull(TAGS_PER_FILTER) : undefined}
-              onClick={(event) => {
-                pressed.current = event.currentTarget;
+              onClick={() => {
+                pressed.current = tag.slug;
                 onChange(
                   on
                     ? selected.filter((slug) => slug !== tag.slug)
@@ -384,10 +435,9 @@ export function TagFilter({
         <button
           type="button"
           className="sk-tag-filter__clear"
-          aria-label={t.clearLabel}
           onClick={() => onChange([])}
         >
-          {t.clear}
+          {t.clear(selected.length)}
         </button>
       )}
     </div>

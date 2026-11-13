@@ -424,7 +424,9 @@ local_images_build() {
 # ---------------------------------------------------------------------------------------------------------
 # Scenario 1: the self-hosted stack with update.sh
 
-SH_DIR="$TMP/selfhost"
+# Shaped like the repository: update.sh finds tools/workctl two directories above itself.
+SH_REPO="$TMP/selfhost"
+SH_DIR="$SH_REPO/deploy/selfhost"
 sh_compose() {
   docker compose -p "$SH_PROJECT" -f "$SH_DIR/compose.yaml" -f "$SH_DIR/drill.override.yaml" \
     --profile memory --env-file "$SH_DIR/selfhost.env" --env-file "$SH_DIR/release.env" "$@"
@@ -444,6 +446,9 @@ sh_crypto_key() { # key mode
 sh_install() {
   local app mig pg db_key uuid tenant
   copy_selfhost_files "$SH_DIR"
+  mkdir -p "$SH_REPO/tools"
+  cp -R "$REPO/tools/workctl" "$SH_REPO/tools/workctl"
+  find "$SH_REPO/tools/workctl" -name __pycache__ -prune -exec rm -rf {} +
   app="$(rand_hex)"; mig="$(rand_hex)"; pg="$(rand_hex)"; db_key="$(fernet_key)"; tenant="$(rand_secret)"
   kv_set sh_backup_key "$db_key"
   kv_set sh_tenant "$tenant"

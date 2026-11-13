@@ -3,9 +3,10 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, or_, select, text
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.orm import Session
 
+from sidekick.contacts.application.models import TaskProgress
 from sidekick.contacts.domain.contact import Contact, ContactAlias
 from sidekick.contacts.domain.normalization import normalize_email, normalize_name, normalize_phone
 from sidekick.contacts.domain.phonetic import phonetic_match
@@ -29,7 +30,7 @@ from sidekick.shared.persistence.models import (
 )
 from sidekick.shared.persistence.stores.keyset import rows_after, text_key
 from sidekick.shared.types import KeyValue, utc_now
-from sidekick.tasks.domain import Task
+from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.tasks.persistence import task_from_row
 from sidekick.work.persistence.tags import tag_condition
 
@@ -534,6 +535,35 @@ class ContactStore:
             statement.order_by(ProjectRow.updated_at.desc(), ProjectRow.id.desc()).limit(limit)
         )
         return [project_from_row(row) for row in rows]
+
+    @staticmethod
+    def project_task_progress(
+        session: Session, owner_id: UUID, project_ids: list[UUID]
+    ) -> dict[UUID, TaskProgress]:
+        """Total and completed active Tasks of several Projects, in one grouped read.
+
+        Archived and trashed Tasks are left out. A Project without Tasks has no entry.
+        """
+
+        rows = session.execute(
+            select(
+                TaskRow.project_id,
+                func.count(TaskRow.id),
+                func.count(TaskRow.id).filter(TaskRow.status == TaskStatus.COMPLETED.value),
+            )
+            .where(
+                TaskRow.owner_id == owner_id,
+                TaskRow.project_id.in_(project_ids),
+                TaskRow.archived_at.is_(None),
+                TaskRow.trashed_at.is_(None),
+            )
+            .group_by(TaskRow.project_id)
+        )
+        return {
+            project_id: TaskProgress(total=int(total), done=int(done))
+            for project_id, total, done in rows
+            if project_id is not None
+        }
 
     @staticmethod
     def list_linked_tasks(

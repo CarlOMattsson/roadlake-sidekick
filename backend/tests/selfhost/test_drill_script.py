@@ -154,7 +154,9 @@ def test_the_self_hosted_drill_runs_the_memory_profile_and_archives_hindsight_as
     )
     assert stop < tar < start
     assert passing.kept_dir is not None
-    hindsight_env = (passing.kept_dir / "selfhost" / "hindsight.env").read_text()
+    hindsight_env = (
+        passing.kept_dir / "selfhost" / "deploy" / "selfhost" / "hindsight.env"
+    ).read_text()
     assert "HINDSIGHT_API_LLM_BASE_URL=http://model.drill.invalid" in hindsight_env
 
 
@@ -212,7 +214,9 @@ def test_ports_are_random_loopback_and_never_forbidden(passing: Result) -> None:
     assert not set(ports) & RESERVED_PORTS
     assert all(20000 <= port < 40000 for port in ports)
     assert passing.kept_dir is not None
-    override = (passing.kept_dir / "selfhost" / "drill.override.yaml").read_text()
+    override = (
+        passing.kept_dir / "selfhost" / "deploy" / "selfhost" / "drill.override.yaml"
+    ).read_text()
     published = re.findall(r'"([^"]+):8000"', override)
     assert published == [f"127.0.0.1:{ports[0]}"]
 

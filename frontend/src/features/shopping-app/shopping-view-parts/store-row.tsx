@@ -3,7 +3,7 @@ import type { ShoppingItem } from "../transport";
 import { isDefaultAmount, quantityText } from "../shopping-card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { holdUsed } from "./helpers";
+import { holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import { queuedMark, rowFailure, undoButton } from "./row-parts";
 import type { RowEnv } from "./row-parts";
@@ -28,6 +28,8 @@ export function StoreRow({
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
+  // A bought row is done: it keeps its name only.
+  const meta = item.purchased ? "" : itemMeta(item, t);
   return (
     <li
       className={`shopping-store-item${holding ? " shopping-held-item" : ""}`}
@@ -81,17 +83,21 @@ export function StoreRow({
             env.onOpenEditor(item, true);
           }}
         >
-          {/* The name and the amount share one baseline ("Mjölk  2 l"). */}
-          <span className="shopping-store-text">
-            <span className="shopping-store-name">{item.name}</span>
-            {holding ? (
-              <span className="shopping-held">
-                {amount ? `${t.bought} · ${amount}` : t.bought}
-              </span>
-            ) : (
-              amount && <span className="shopping-store-qty">{amount}</span>
-            )}
-            {queuedMark(item, env)}
+          <span className="shopping-store-body">
+            {/* The name and the amount share one baseline ("Mjölk  2 l"). */}
+            <span className="shopping-store-text">
+              <span className="shopping-store-name">{item.name}</span>
+              {holding ? (
+                <span className="shopping-held">
+                  {amount ? `${t.bought} · ${amount}` : t.bought}
+                </span>
+              ) : (
+                amount && <span className="shopping-store-qty">{amount}</span>
+              )}
+              {queuedMark(item, env)}
+            </span>
+            {/* What the shop needs to know without opening the form: occasion, date, offer, note. */}
+            {meta && <span className="shopping-store-meta">{meta}</span>}
           </span>
           {/* The row opens the change form, so it ends in › as Arbetes rows. */}
           <span className="shopping-chevron" aria-hidden="true">

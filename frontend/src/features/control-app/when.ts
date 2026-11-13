@@ -117,3 +117,32 @@ export function whenText(
   const year = stamp.year === stampOf(now).year ? "" : ` ${stamp.year}`;
   return `${stamp.day} ${month}${year}`;
 }
+
+/**
+ * A calendar date as a person would say it: "1 nov", and with the year when it is not this year ("1 nov 2025").
+ * A date-only value ("2026-11-01") is read as that day, whatever the zone; a timestamp is read in the owner's zone.
+ * "" when `value` is missing or not a date. Pure: the caller passes `now`.
+ */
+export function dateText(
+  value: string | null | undefined,
+  now: Date,
+  locale: WhenLocale,
+): string {
+  if (!value) return "";
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  let stamp: Pick<Stamp, "year" | "month" | "day">;
+  if (dateOnly) {
+    stamp = {
+      year: Number(dateOnly[1]),
+      month: Number(dateOnly[2]),
+      day: Number(dateOnly[3]),
+    };
+  } else {
+    const then = new Date(value);
+    if (Number.isNaN(then.getTime())) return "";
+    stamp = stampOf(then);
+  }
+  const month = MONTHS[locale][stamp.month - 1] ?? "";
+  const year = stamp.year === stampOf(now).year ? "" : ` ${stamp.year}`;
+  return `${stamp.day} ${month}${year}`;
+}

@@ -1,7 +1,7 @@
 """Shopping application use cases shared by HTTP, MCP and the interactive app."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass
 from datetime import date, datetime, timedelta, tzinfo
 from decimal import Decimal
@@ -129,7 +129,7 @@ def list_data(row: ShoppingListRow) -> dict[str, Any]:
     return list_record(row).model_dump(mode="json")
 
 
-def item_record(row: ShoppingItemRow, on_date: date) -> ItemRecord:
+def item_record(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) -> ItemRecord:
     offer = (
         None
         if row.offer_price is None
@@ -149,11 +149,14 @@ def item_record(row: ShoppingItemRow, on_date: date) -> ItemRecord:
         updated_at=row.updated_at,
         offer=offer,
         offer_status=status,
+        recipient_contact_name=(
+            names.get(row.recipient_contact_id) if row.recipient_contact_id is not None else None
+        ),
     )
 
 
-def item_data(row: ShoppingItemRow, on_date: date) -> dict[str, Any]:
-    return item_record(row, on_date).model_dump(mode="json")
+def item_data(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) -> dict[str, Any]:
+    return item_record(row, on_date, names).model_dump(mode="json")
 
 
 def _added_items_replay(result: dict[str, Any]) -> dict[str, Any]:
@@ -239,9 +242,12 @@ class ShoppingService:
                 limit=limit + 1,
             )
             page, next_offset = paginate(rows, limit, lambda _: offset + limit)
+            names = self._recipient_names(
+                session, actor, (item.recipient_contact_id for item in page)
+            )
             return ListDetail(
                 shopping_list=list_record(row),
-                items=[item_record(item, evaluated) for item in page],
+                items=[item_record(item, evaluated, names) for item in page],
                 next_offset=next_offset,
                 evaluated_on=evaluated,
                 store=store_filter,
@@ -350,6 +356,14 @@ class ShoppingService:
             if merge_duplicates:
                 for existing in self.store.open_items(session, actor.user_id, list_id):
                     open_rows.setdefault(_merge_key(existing.name, existing.unit), existing)
+            names = self._recipient_names(
+                session,
+                actor,
+                [
+                    *(detail.recipient_contact_id for detail in details),
+                    *(existing.recipient_contact_id for existing in open_rows.values()),
+                ],
+            )
             merged_count = 0
             for position, (source, detail) in enumerate(zip(items, details, strict=True)):
                 target = open_rows.get(_merge_key(detail.name, detail.unit))
@@ -367,7 +381,7 @@ class ShoppingService:
                         added.append(
                             {
                                 "client_ref": source.client_ref,
-                                "item": item_data(target, self._owner_day(now)),
+                                "item": item_data(target, self._owner_day(now), names),
                                 "merged": True,
                             }
                         )
@@ -392,7 +406,7 @@ class ShoppingService:
                 added.append(
                     {
                         "client_ref": source.client_ref,
-                        "item": item_data(row, self._owner_day(now)),
+                        "item": item_data(row, self._owner_day(now), names),
                         "merged": False,
                     }
                 )
@@ -440,16 +454,18 @@ class ShoppingService:
         today = self._owner_day(self.clock.now())
         # The client references come from the retry's own input, which the payload hash ties
         # to the first call.
+        rows = [
+            self.store.get_item(session, actor.user_id, UUID(entry["item"]["id"]))
+            for entry in record["items"]
+        ]
+        names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
         entries = [
             {
                 "client_ref": source.client_ref,
-                "item": item_data(
-                    self.store.get_item(session, actor.user_id, UUID(entry["item"]["id"])),
-                    today,
-                ),
+                "item": item_data(row, today, names),
                 "merged": entry["merged"],
             }
-            for source, entry in zip(items, record["items"], strict=True)
+            for source, entry, row in zip(items, record["items"], rows, strict=True)
         ]
         return {
             "items": entries,
@@ -487,7 +503,7 @@ class ShoppingService:
             row.updated_at = self.clock.now()
             self._audit(session, actor, "shopping.item_updated", row.id, correlation_id)
             return {
-                "item": item_data(row, self._owner_day(self.clock.now())),
+                "item": self._one_item_data(session, actor, row, self._owner_day(self.clock.now())),
                 "evaluated_on": self._owner_day(self.clock.now()).isoformat(),
                 "list_name": shopping_list.name,
                 "open_count": self.store.open_count(session, actor.user_id, row.list_id),
@@ -547,7 +563,7 @@ class ShoppingService:
                     correlation_id,
                 )
             return {
-                "item": item_data(row, self._owner_day(now)),
+                "item": self._one_item_data(session, actor, row, self._owner_day(now)),
                 "evaluated_on": self._owner_day(now).isoformat(),
                 "list_name": shopping_list.name,
                 "open_count": self.store.open_count(session, actor.user_id, row.list_id),
@@ -634,7 +650,7 @@ class ShoppingService:
                 else None
             )
             return {
-                "items": [item_data(row, self._owner_day(now)) for row in rows],
+                "items": self._items_data(session, actor, rows, self._owner_day(now)),
                 "unchanged_item_ids": [str(item_id) for item_id in unchanged],
                 "evaluated_on": self._owner_day(now).isoformat(),
                 "open_count": open_count,
@@ -708,7 +724,7 @@ class ShoppingService:
         today = self._owner_day(self.clock.now())
         row = self.store.get_item(session, actor.user_id, UUID(record["item"]["id"]))
         return {
-            "item": item_data(row, today),
+            "item": self._one_item_data(session, actor, row, today),
             "evaluated_on": today.isoformat(),
             "list_name": self.store.get_list(session, actor.user_id, row.list_id).name,
             "open_count": self.store.open_count(session, actor.user_id, row.list_id),
@@ -721,7 +737,7 @@ class ShoppingService:
         rows = [self.store.get_item(session, actor.user_id, UUID(i["id"])) for i in record["items"]]
         list_ids = {row.list_id for row in rows}
         return {
-            "items": [item_data(row, today) for row in rows],
+            "items": self._items_data(session, actor, rows, today),
             "unchanged_item_ids": record["unchanged_item_ids"],
             "evaluated_on": today.isoformat(),
             # open_count only means something for one list; a batch across lists gets None.
@@ -731,6 +747,29 @@ class ShoppingService:
                 else None
             ),
         }
+
+    def _recipient_names(
+        self, session: TxSession, actor: Actor, contact_ids: Iterable[UUID | None]
+    ) -> dict[UUID, str]:
+        """Names of the gift recipients in one query. Empty without the contacts:read scope, so a
+        session that cannot read Contacts still sees the recipient link, only without the name."""
+
+        if "contacts:read" not in actor.scopes:
+            return {}
+        wanted = {contact_id for contact_id in contact_ids if contact_id is not None}
+        found = self.store.contact_display_names(session, actor.user_id, tuple(wanted))
+        return {contact_id: name for contact_id, (name, _archived) in found.items()}
+
+    def _items_data(
+        self, session: TxSession, actor: Actor, rows: list[ShoppingItemRow], on_date: date
+    ) -> list[dict[str, Any]]:
+        names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
+        return [item_data(row, on_date, names) for row in rows]
+
+    def _one_item_data(
+        self, session: TxSession, actor: Actor, row: ShoppingItemRow, on_date: date
+    ) -> dict[str, Any]:
+        return self._items_data(session, actor, [row], on_date)[0]
 
     def _validate_details(self, session: TxSession, actor: Actor, details: ItemDetails) -> None:
         if details.offer is not None and details.offer.checked_on > self._owner_day(

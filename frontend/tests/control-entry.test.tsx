@@ -444,7 +444,9 @@ describe("control entry actions call the existing tools with exact arguments", (
 
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
 
-    expect(await screen.findByText("Slå av dagboken?")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Slå av minnet av dagboken?"),
+    ).toBeInTheDocument();
     expect(host.call).toHaveBeenCalledWith("set_memory_settings", {
       expected_version: 2,
       journal: false,
@@ -482,14 +484,16 @@ describe("control entry actions call the existing tools with exact arguments", (
 
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
     const dialog = await screen.findByRole("group", {
-      name: "Slå av dagboken?",
+      name: "Slå av minnet av dagboken?",
     });
     const before = host.call.mock.calls.length;
 
     await user.click(within(dialog).getByRole("button", { name: "Avbryt" }));
 
     expect(host.call.mock.calls.length).toBe(before);
-    expect(screen.queryByText("Slå av dagboken?")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Slå av minnet av dagboken?"),
+    ).not.toBeInTheDocument();
   });
 
   it("choosing a view reads it once, with the tool that belongs to it", async () => {

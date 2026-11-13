@@ -32,10 +32,9 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `ntfy-init.sh` | Engångsinställning av ntfy-kontona. Den skriver inte ut någon hemlighet. |
 | `secrets-to-files.sh` | Flyttar hemligheterna i `selfhost.env` till filer i `secrets/` och skriver inte ut något värde. Se [Hemligheter som filer](../operate/limits-and-secrets.sv.md#hemligheter-som-filer). |
 | `postgres-init.sh` | Skapar databasrollerna vid första starten av en tom volym. |
-| `update.sh` | Uppdaterar till en signerad, digest-låst image, med en krypterad ögonblicksbild först. Se [Uppdatera](../operate/update.sv.md). |
+| `update.sh` | Uppdaterar till en signerad, digest-låst image, med en krypterad ögonblicksbild först. Se [Uppdatera](../operate/update.sv.md). Kontrollen av ledigt utrymme och rensningen av ögonblicksbilder körs från `tools/workctl` i samma utcheckning (`python3`). |
 | `restore.sh` | Återställer en ägare från en krypterad backup eller en vanlig export. Se [Backup och återställning](../operate/backup-and-restore.sv.md). |
 | `restore-ownership.sql` | Ger varje objekt tillbaka sin ägare efter att en vanlig SQL-dump har återställts. |
-| `backup_space.sh` | Kontrollerar ledigt utrymme före en backup och rensar färdiga backupfiler. Delas med jobbpaketet. |
 | `snapshot_crypto.py` | Krypterar och dekrypterar de databasögonblicksbilder som `update.sh` tar. |
 | `update_policy.py` | Besluten i `update.sh` (versioner, migreringsklass, återställning, återupptagning). Kräver värdens `python3` (3.9 eller nyare, bara standardbiblioteket). |
 | `min-upgrade-from.txt` | Den äldsta version som en ny release kan uppdateras från. |

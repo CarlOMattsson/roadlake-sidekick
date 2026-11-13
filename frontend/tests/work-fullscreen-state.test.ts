@@ -94,14 +94,67 @@ describe("tools reducer", () => {
     const state = tools(
       { type: "query", tab: "agenda", query: "x" },
       { type: "query", tab: "board", query: "y" },
-      { type: "viewApplied", tab: "agenda", several: true },
-      { type: "viewApplied", tab: "board", several: false },
-      { type: "viewApplied", tab: "board", several: true },
+      { type: "viewApplied", tab: "agenda", several: true, name: "A" },
+      { type: "viewApplied", tab: "board", several: false, name: "B" },
+      { type: "viewApplied", tab: "board", several: true, name: "C" },
     );
     expect(state.viewKeys).toEqual({ agenda: 1, board: 2 });
     expect(state.severalPriorities).toEqual({ agenda: true, board: true });
+    // Each tab names its newest view.
+    expect(state.openedViews).toEqual({ agenda: "A", board: "C" });
     // The agenda's text goes with the view; the board keeps its own.
     expect(state.queries).toEqual({ agenda: "", board: "y" });
+  });
+
+  it("an opened saved view folds its own tab's menu away and leaves another tab's open", () => {
+    const own = tools(
+      { type: "more", tab: "agenda", open: true },
+      { type: "viewApplied", tab: "agenda", several: false, name: "A" },
+    );
+    expect(own.moreOpen).toBeUndefined();
+    const other = tools(
+      { type: "more", tab: "board", open: true },
+      { type: "viewApplied", tab: "agenda", several: false, name: "A" },
+    );
+    expect(other.moreOpen).toBe("board");
+  });
+
+  it("marks an opened view as edited by a filter or typed text, and a new view or Show all starts clean", () => {
+    const open = {
+      type: "viewApplied",
+      tab: "agenda",
+      several: false,
+      name: "A",
+    } as const;
+    const edited = tools(open, {
+      type: "viewEdited",
+      tab: "agenda",
+      edited: true,
+    });
+    expect(edited.editedViews.agenda).toBe(true);
+    expect(
+      tools(open, { type: "query", tab: "agenda", query: "x" }).editedViews
+        .agenda,
+    ).toBe(true);
+    // Text typed with no view open edits nothing.
+    expect(
+      tools({ type: "query", tab: "agenda", query: "x" }).editedViews.agenda,
+    ).toBeUndefined();
+    expect(
+      tools(open, { type: "viewEdited", tab: "agenda", edited: true }, open)
+        .editedViews.agenda,
+    ).toBe(false);
+    expect(
+      tools(
+        open,
+        { type: "viewEdited", tab: "agenda", edited: true },
+        { type: "viewCleared", tab: "agenda" },
+      ).editedViews.agenda,
+    ).toBe(false);
+    // The same value again returns the same state.
+    expect(
+      toolsReducer(edited, { type: "viewEdited", tab: "agenda", edited: true }),
+    ).toBe(edited);
   });
 
   it("tracks the stack depth and returns the same state when it does not change", () => {

@@ -281,7 +281,7 @@ test("Control app asks before memory is turned off and deletes only after the ow
     (await simulatedHostState(page)).calls.filter(
       (call) => call.name === "set_memory_settings",
     );
-  const dialog = app.getByRole("group", { name: "Slå av dagboken?" });
+  const dialog = app.getByRole("group", { name: "Slå av minnet av dagboken?" });
   const journalSwitch = app.getByRole("switch", { name: "Dagbok: på" });
 
   // The first press asks the host without confirm; the host answers with what would be deleted.

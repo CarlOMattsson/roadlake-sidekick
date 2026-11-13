@@ -1,5 +1,6 @@
 import type { KeyboardEvent, MouseEvent } from "react";
 import { flushSync } from "react-dom";
+import { CloseIcon } from "../../mcp-apps/ui/icons";
 import { finePointer } from "../../mcp-apps/ui/shortcuts";
 import type { WorkLabels } from "./labels";
 
@@ -18,6 +19,8 @@ export function rowMenuHandlers(open: boolean, set: (open: boolean) => void) {
       set(!open);
     },
     onKeyDown(event: KeyboardEvent) {
+      // A menu inside this row (an Action under a Step) handled the key first.
+      if (event.defaultPrevented) return;
       const menu =
         event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
       if (!menu && !(open && event.key === "Escape")) return;
@@ -43,11 +46,46 @@ const OPENED_BY_BUTTON = "data-row-menu-via";
 
 /** The row's hidden menu button, if it is the one that opened the menu now open (or last opened). */
 export function menuButtonOf(row: Element | null | undefined) {
-  return row?.querySelector<HTMLElement>(`[${OPENED_BY_BUTTON}]`) ?? undefined;
+  // Direct children only: an Action's menu button inside a Step's row is not the Step's.
+  return (
+    row?.querySelector<HTMLElement>(`:scope > [${OPENED_BY_BUTTON}]`) ??
+    undefined
+  );
 }
 
 function forgetMenuButton(row: Element) {
-  row.querySelector(`[${OPENED_BY_BUTTON}]`)?.removeAttribute(OPENED_BY_BUTTON);
+  row
+    .querySelector(`:scope > [${OPENED_BY_BUTTON}]`)
+    ?.removeAttribute(OPENED_BY_BUTTON);
+}
+
+/**
+ * The × at the end of a Step's or an Action's menu: it closes the menu and sends the focus where Escape does (the hidden
+ * menu button that opened it, else the row's own control), since the button unmounts with the menu.
+ */
+export function RowMenuClose({
+  label,
+  close,
+}: {
+  label: string;
+  close: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="sk-iconbtn work-step-menu-close"
+      aria-label={label}
+      onClick={(event) => {
+        const row = event.currentTarget.closest("li");
+        (
+          menuButtonOf(row) ?? row?.querySelector<HTMLElement>("input, button")
+        )?.focus();
+        close();
+      }}
+    >
+      <CloseIcon />
+    </button>
+  );
 }
 
 /**

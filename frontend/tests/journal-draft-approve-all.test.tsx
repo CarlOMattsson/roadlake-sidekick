@@ -149,10 +149,28 @@ describe.each([
     expect(
       await screen.findByText(t.suggestionSummary(2, 1)),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: t.approveAll })).toBeEnabled();
+    expect(screen.getByRole("button", { name: t.approveAll(3) })).toBeEnabled();
     expect(
       screen.getByRole("button", { name: t.chooseYourself }),
     ).toBeEnabled();
+  });
+
+  it("keeps the card's one primary on Save: Approve all is secondary and says how many it approves", async () => {
+    renderFrame(transportFor(draftWithSuggestions()), t);
+    const approve = await screen.findByRole("button", {
+      name: t.approveAll(3),
+    });
+    expect(approve).toHaveClass("sk-btn--secondary");
+    expect(approve).not.toHaveClass("sk-btn--primary");
+    const primaries = document.querySelectorAll(
+      ".journal-draft .sk-btn--primary",
+    );
+    expect(primaries).toHaveLength(1);
+    expect(primaries[0]).toHaveTextContent(t.finalize);
+    expect(journalEn.approveAll(3)).toBe("Approve all 3 suggestions");
+    expect(journalEn.approveAll(1)).toBe("Approve the suggestion");
+    expect(journalSv.approveAll(14)).toBe("Godkänn alla 14 förslag");
+    expect(journalSv.approveAll(1)).toBe("Godkänn förslaget");
   });
 
   it("approve all approves every suggestion like each row's Godkänn, then finalize keeps them", async () => {
@@ -161,12 +179,14 @@ describe.each([
     const transport = transportFor(draft);
     renderFrame(transport, t);
 
-    await user.click(await screen.findByRole("button", { name: t.approveAll }));
+    await user.click(
+      await screen.findByRole("button", { name: t.approveAll(3) }),
+    );
 
     // The summary line is replaced by the status, which takes focus since its button is gone.
     expect(screen.getByText(t.allApproved)).toHaveFocus();
     expect(
-      screen.queryByRole("button", { name: t.approveAll }),
+      screen.queryByRole("button", { name: t.approveAll(3) }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByText(t.decisionApproved)).toHaveLength(3);
     expect(transport.finalizeDraft).not.toHaveBeenCalled();
@@ -196,7 +216,9 @@ describe.each([
     const transport = transportFor(draftWithSuggestions());
     renderFrame(transport, t);
 
-    await user.click(await screen.findByRole("button", { name: t.approveAll }));
+    await user.click(
+      await screen.findByRole("button", { name: t.approveAll(3) }),
+    );
     await user.click(
       within(decisionGroup(annaRow)).getByRole("button", { name: t.decline }),
     );
@@ -207,7 +229,7 @@ describe.each([
     ).toBeInTheDocument();
     // One row is no longer approved, so the summary and approve all come back.
     expect(
-      await screen.findByRole("button", { name: t.approveAll }),
+      await screen.findByRole("button", { name: t.approveAll(3) }),
     ).toBeEnabled();
   });
 
@@ -230,7 +252,9 @@ describe.each([
       screen.queryByRole("button", { name: t.finalizeYes }),
     ).not.toBeInTheDocument();
     // While the confirmation is open, approve all is held like the rows are.
-    expect(screen.getByRole("button", { name: t.approveAll })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: t.approveAll(3) }),
+    ).toBeDisabled();
     expect(transport.finalizeDraft).not.toHaveBeenCalled();
   });
 
@@ -406,7 +430,7 @@ describe.each([
 
     await screen.findByRole("heading", { name: draft.title });
     expect(
-      screen.queryByRole("button", { name: t.approveAll }),
+      screen.queryByRole("button", { name: t.approveAll(3) }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: t.chooseYourself }),
@@ -424,7 +448,7 @@ describe.each([
   it("says nothing about a decision on an undecided row, and names Approved or Declined once one is chosen", async () => {
     const user = userEvent.setup();
     renderFrame(transportFor(draftWithSuggestions()), t);
-    await screen.findByRole("button", { name: t.approveAll });
+    await screen.findByRole("button", { name: t.approveAll(3) });
 
     // The unpressed Approve/Decline pair says it is open; no "No decision yet" and no per-row "Suggested by AI".
     expect(screen.queryByText(/No decision yet|Inget beslut ännu/)).toBeNull();
@@ -448,7 +472,7 @@ describe.each([
   it("draws each suggestion section as the app's fold row that names the region it controls", async () => {
     const user = userEvent.setup();
     const { container } = renderFrame(transportFor(draftWithSuggestions()), t);
-    await screen.findByRole("button", { name: t.approveAll });
+    await screen.findByRole("button", { name: t.approveAll(3) });
 
     const toggles = Array.from(
       container.querySelectorAll<HTMLButtonElement>(
@@ -480,7 +504,7 @@ describe.each([
 
   it("hides the legend of the task proposals visually but keeps it for a screen reader", async () => {
     const { container } = renderFrame(transportFor(draftWithSuggestions()), t);
-    await screen.findByRole("button", { name: t.approveAll });
+    await screen.findByRole("button", { name: t.approveAll(3) });
 
     const legend = Array.from(container.querySelectorAll("legend")).find(
       (candidate) => candidate.textContent === t.proposals,
@@ -493,7 +517,7 @@ describe.each([
 
   it("names an unknown suggestion as an unknown item in words", async () => {
     renderFrame(transportFor(draftWithSuggestions()), t);
-    await screen.findByRole("button", { name: t.approveAll });
+    await screen.findByRole("button", { name: t.approveAll(3) });
 
     expect(screen.getAllByText(t.unknownItem).length).toBeGreaterThan(0);
   });
@@ -508,7 +532,7 @@ describe("journal-app approve all suggestions, Swedish texts", () => {
       await screen.findByText("Claude föreslår 2 kopplingar och 1 uppgift."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Godkänn alla förslag" }),
+      screen.getByRole("button", { name: "Godkänn alla 3 förslag" }),
     ).toBeEnabled();
     expect(screen.getByRole("button", { name: "Välj själv" })).toBeEnabled();
 

@@ -201,6 +201,23 @@ npm --prefix frontend run test:mcp-app
 npm --prefix frontend run test:mobile-audit
 ```
 
+A small separate suite runs the same built app against a real server, so the contract between the app and the
+server's tools is exercised for real: the host is still simulated, but every tool call goes to a Sidekick server
+(FastAPI and FastMCP on a free loopback port) started by the suite on a test database slot, with a user and a token
+made for that run only. It covers creating and finishing a task in the Agenda, adding and checking off a step, a
+task changed elsewhere (the conflict and the reload), the tag filter and setting a tag, a contact's nickname and tag,
+writing a journal note and the shopping list. It needs the backend environment and the test database
+([Test database pool](../../tools/test-db-pool.md)); the suite empties the database it is given, so use a slot of your own:
+
+```bash
+bash tools/test-db-pool.sh create K
+pool_env=$(bash tools/test-db-pool.sh env K) && eval "$pool_env"
+npm --prefix frontend run test:real-backend
+```
+
+`E2E_BACKEND_PYTHON` names the Python of the backend environment when it is not `backend/.venv/bin/python`. The
+suite is not part of CI.
+
 Keep the generated contract snapshots in sync after an API or MCP change:
 
 ```bash

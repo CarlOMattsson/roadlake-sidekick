@@ -54,6 +54,9 @@
   display: grid;
   justify-items: end;
   min-width: 0;
+  /* In the rooms' reading width, so on a wide screen the words end on the content edge, not at the frame's. */
+  width: min(100%, var(--sk-room-max));
+  margin-inline: auto;
 }
 .sk-license-foot > .sk-license-mark {
   margin-inline-end: calc((var(--sk-tap) - var(--sk-glyph)) / -2);

@@ -522,8 +522,12 @@ describe("Gjort rows per kind", () => {
     );
     await user.click(screen.getByRole("button", { name: /^Gjort/ }));
     expect(screen.queryByText("+54 fler")).toBeNull();
+    // The server sent part of the kind, so the button does not promise all of it.
+    expect(
+      screen.queryByRole("button", { name: journalSv.moreShowAll(3) }),
+    ).toBeNull();
     await user.click(
-      screen.getByRole("button", { name: journalSv.moreShowAll(3) }),
+      screen.getByRole("button", { name: journalSv.moreShowMore(3) }),
     );
     expect(screen.getByText("+54 fler")).toBeInTheDocument();
   });

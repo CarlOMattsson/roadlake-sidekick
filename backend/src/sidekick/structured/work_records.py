@@ -20,7 +20,7 @@ from sidekick.shared.text_guard import NoImageData
 from sidekick.structured.base import Output
 from sidekick.tasks.domain import Priority, RecurrenceRule, TaskStatus
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
-from sidekick.work.domain import DomainStatus, ProcessStatus
+from sidekick.work.domain import ActionStatus, DomainStatus, ProcessStatus
 from sidekick.work.domain.planning import (
     MAX_ACTION_NOTE_LENGTH,
     MAX_DEFINITION_OF_DONE_LENGTH,
@@ -586,6 +586,7 @@ class StepChanges(Output):
 
 class ActionChanges(Output):
     title: Annotated[str | None, Field(min_length=1, max_length=200)] = None
+    status: ActionStatus | None = None
     due_at: datetime | None = None
     attention_requested: bool | None = None
     note: Annotated[str | None, Field(max_length=MAX_ACTION_NOTE_LENGTH)] = None
@@ -594,6 +595,8 @@ class ActionChanges(Output):
     def reject_null_required_fields(self) -> ActionChanges:
         if "title" in self.model_fields_set and self.title is None:
             raise ValueError("title cannot be null")
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
         if "attention_requested" in self.model_fields_set and self.attention_requested is None:
             raise ValueError("attention_requested cannot be null")
         return self

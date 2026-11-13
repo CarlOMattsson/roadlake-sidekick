@@ -15,6 +15,7 @@ from pathlib import Path
 from . import (
     addresses,
     autostart,
+    backupfiles,
     backupkey,
     derive,
     desktopconfig,
@@ -27,11 +28,14 @@ from . import (
     restore,
     secretfiles,
     status,
+    updatestate,
     workenv,
 )
 
 # Exit code of ``first-start-table``: the table exists, so ask for its row count.
 COUNT_NEEDED = 10
+# Exit code of ``backup-space``: the free size or a setting could not be judged.
+BACKUP_SPACE_UNKNOWN = 2
 
 
 def _fail(message: str) -> int:
@@ -201,6 +205,89 @@ def _cmd_backup_key(args: argparse.Namespace) -> int:
         return _fail(messages.render(args.lang, problem.key, *problem.values))
     if created:
         print(messages.render(args.lang, "bk_key_new", args.key_file))
+    return 0
+
+
+def _cmd_backup_keep_valid(args: argparse.Namespace) -> int:
+    return 0 if backupfiles.valid_keep(args.value) else 1
+
+
+def _cmd_backup_space(args: argparse.Namespace) -> int:
+    check = backupfiles.check_space(args.dir, os.environ, args.pattern)
+    print(check.needed, check.free)
+    return {backupfiles.ENOUGH: 0, backupfiles.TOO_LITTLE: 1}.get(check.outcome, BACKUP_SPACE_UNKNOWN)
+
+
+def _cmd_backup_preflight(args: argparse.Namespace) -> int:
+    if not backupfiles.valid_keep(args.keep):
+        return _fail(messages.render(args.lang, "bk_keep_bad", args.keep))
+    check = backupfiles.check_space(args.dir, os.environ, args.pattern)
+    if check.outcome == backupfiles.TOO_LITTLE:
+        return _fail(messages.render(args.lang, "bk_space", args.dir, check.free, check.needed))
+    if check.outcome == backupfiles.UNKNOWN:
+        return _fail(messages.render(args.lang, "bk_space_unknown", args.dir))
+    return 0
+
+
+def _cmd_backup_stamp(args: argparse.Namespace) -> int:
+    print(backupfiles.next_stamp(args.dir))
+    return 0
+
+
+def _cmd_backup_prune(args: argparse.Namespace) -> int:
+    if not backupfiles.valid_keep(args.keep):
+        return 1
+    print(backupfiles.prune(args.dir, int(args.keep), args.pattern, args.protected))
+    return 0
+
+
+def _cmd_journal_add(args: argparse.Namespace) -> int:
+    updatestate.add_journal_entry(args.file, args.state, args.detail)
+    return 0
+
+
+def _cmd_release_write(args: argparse.Namespace) -> int:
+    updatestate.write_release(args.file, args.image, args.previous)
+    return 0
+
+
+def _cmd_release_restore(args: argparse.Namespace) -> int:
+    updatestate.restore_release(args.file, args.pinned, args.image)
+    return 0
+
+
+def _cmd_lock_owner(args: argparse.Namespace) -> int:
+    print(updatestate.lock_owner(args.file))
+    return 0
+
+
+def _cmd_journal_state(args: argparse.Namespace) -> int:
+    try:
+        state = updatestate.last_journal_state(args.file)
+    except OSError:
+        return _fail("the update journal cannot be read")
+    if state is not None:
+        print(state)
+    return 0
+
+
+def _cmd_release_pin(args: argparse.Namespace) -> int:
+    try:
+        value = updatestate.release_value(args.file, args.key)
+    except OSError:
+        return _fail("the release pointer cannot be read")
+    if value is not None:
+        print(value)
+    return 0
+
+
+def _cmd_snapshot_name(_args: argparse.Namespace) -> int:
+    print(updatestate.snapshot_name(updatestate.utc_now()))
+    return 0
+
+
+def _cmd_snapshot_pattern(_args: argparse.Namespace) -> int:
+    print(updatestate.SNAPSHOT_PATTERN)
     return 0
 
 
@@ -458,6 +545,80 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--key-file", type=Path, required=True)
     sub.add_argument("--backups-dir", type=Path, required=True)
     sub.add_argument("--generate", action="store_true")
+
+    sub = add("backup-keep-valid", _cmd_backup_keep_valid, "exit 0 when the value is a whole number of at least 1")
+    sub.add_argument("value")
+
+    sub = add(
+        "backup-space",
+        _cmd_backup_space,
+        "print the bytes needed and free for a new backup; exit 0 enough, 1 too little, 2 cannot be judged",
+    )
+    sub.add_argument("--dir", type=Path, required=True)
+    sub.add_argument("--pattern", action="append", required=True, help="finished-name regex; repeat for each kind")
+
+    sub = add(
+        "backup-preflight",
+        _cmd_backup_preflight,
+        "refuse (exit 1) a bad number of sets to keep or too little free room for a new backup",
+    )
+    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+    sub.add_argument("--dir", type=Path, required=True)
+    sub.add_argument("--keep", required=True)
+    sub.add_argument("--pattern", action="append", required=True, help="finished-name regex; repeat for each kind")
+
+    sub = add("backup-stamp", _cmd_backup_stamp, "print the time stamp for a new backup set that is not taken yet")
+    sub.add_argument("--dir", type=Path, required=True)
+
+    sub = add(
+        "backup-prune",
+        _cmd_backup_prune,
+        "remove the finished backup files beyond the newest --keep; print how many; exit 1 for a bad --keep",
+    )
+    sub.add_argument("--dir", type=Path, required=True)
+    sub.add_argument("--keep", required=True)
+    sub.add_argument("--pattern", required=True, help="finished-name regex")
+    sub.add_argument("--protected", required=True, help="file name just written, never removed (may be empty)")
+
+    sub = add(
+        "journal-add", _cmd_journal_add, "add one line (UTC time, state, detail) to the update journal, atomically"
+    )
+    sub.add_argument("--file", type=Path, required=True)
+    sub.add_argument("state")
+    sub.add_argument("detail", nargs="?", default="")
+
+    sub = add("release-write", _cmd_release_write, "write the release pointer (new and previous api image), atomically")
+    sub.add_argument("--file", type=Path, required=True)
+    sub.add_argument("--image", required=True)
+    sub.add_argument("--previous", required=True)
+
+    sub = add(
+        "release-restore",
+        _cmd_release_restore,
+        "after a rollback: pin the earlier image again, or remove the pointer when none was pinned",
+    )
+    sub.add_argument("--file", type=Path, required=True)
+    sub.add_argument("--pinned", default="", help="the image that was pinned before the update (may be empty)")
+    sub.add_argument("--image", required=True, help="the image of the failed update")
+
+    sub = add("lock-owner", _cmd_lock_owner, "print the pid recorded in the update lock's pid file, or nothing")
+    sub.add_argument("--file", type=Path, required=True)
+
+    sub = add(
+        "journal-state",
+        _cmd_journal_state,
+        "print the state (second field) of the last line of the update journal, or nothing without a journal",
+    )
+    sub.add_argument("--file", type=Path, required=True)
+
+    sub = add(
+        "release-pin", _cmd_release_pin, "print the value of KEY in the release pointer, or nothing when it is absent"
+    )
+    sub.add_argument("--file", type=Path, required=True)
+    sub.add_argument("key")
+
+    add("snapshot-name", _cmd_snapshot_name, "print the finished name of a snapshot taken now")
+    add("snapshot-pattern", _cmd_snapshot_pattern, "print the regex that matches finished snapshot names")
     return parser
 
 

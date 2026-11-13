@@ -89,7 +89,12 @@ export function RecordMeta({
     item.kind === "task" || projectInStatus
       ? null
       : workKindLabel(t, item.kind);
-  const marked = item.kind === "task" && item.priority === "high";
+  // A finished Task has no use for a warning: "High" would draw the eye to what is already done.
+  const marked =
+    item.kind === "task" &&
+    item.priority === "high" &&
+    item.status !== "completed" &&
+    item.status !== "cancelled";
   const due = rowDue(item, now, t.dateLocale, group);
   // A Task that repeats says so after its time: "↻ varje månad".
   const repeat =

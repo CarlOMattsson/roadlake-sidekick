@@ -73,15 +73,28 @@
   max-width: 60%;
   overflow: hidden;
 }
+/* No meta text beside them: the pills have the whole line. */
+.sk-row-secondary > .sk-tags:only-child {
+  max-width: 100%;
+}
 :has(> .sk-row-meta) > .sk-tags > .sk-tag,
 .sk-row-secondary .sk-tag {
   display: inline-block;
+  flex: none;
   min-height: 0;
   max-width: 6.5rem;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   line-height: 1.125rem;
+}
+/* When the pills do not all fit, only the last named one gives way (its ellipsis); the shorter ones and "+N" stay whole. */
+:has(> .sk-row-meta)
+  > .sk-tags
+  > .sk-tag:not(.sk-tag--more):not(:has(~ .sk-tag:not(.sk-tag--more))),
+.sk-row-secondary
+  .sk-tag:not(.sk-tag--more):not(:has(~ .sk-tag:not(.sk-tag--more))) {
+  flex: 0 1 auto;
 }
 
 /* ---- The field in a room: the pills and "Lägg till tagg" / "Ändra taggar" ---- */
@@ -104,7 +117,9 @@
   color: var(--sk-fg);
   font: var(--sk-type-button);
 }
-.sk-tag-field .sk-tag-field__open:first-child {
+/* The button's text starts where the pills start, on the line of its own and beside the pills (the field's gap
+   and the button's own padding cancel). */
+.sk-tag-field .sk-tag-field__open {
   margin-inline-start: calc(-1 * var(--sk-s2));
 }
 .sk-tag-field__open svg {
@@ -195,8 +210,9 @@
   align-items: center;
   gap: var(--sk-s2);
 }
+/* A basis of 6rem, so the field, "Lägg till" and "Klar" share one row in a 290 px card (a phone's inline draft). */
 .sk-tag-editor .sk-tag-editor__input {
-  flex: 1 1 9rem;
+  flex: 1 1 6rem;
   min-width: 0;
   min-height: var(--sk-tap);
   box-sizing: border-box;
@@ -224,6 +240,12 @@
   gap: var(--sk-s1);
   margin: var(--sk-s1) 0 0;
 }
+.sk-tag-filter .sk-tag-filter__label {
+  flex: none;
+  margin-inline-end: var(--sk-s1);
+  color: var(--sk-muted);
+  font: var(--sk-type-caption);
+}
 .sk-tag-filter__scroll {
   display: flex;
   flex: 1 1 auto;
@@ -235,6 +257,25 @@
 }
 .sk-tag-filter__scroll::-webkit-scrollbar {
   display: none;
+}
+/* Where the row can be scrolled further, that edge fades out (the script sets data-fade-start and data-fade-end), so a
+   chip cut by the edge does not read as part of the label or of the next control. */
+.sk-tag-filter__scroll:is([data-fade-start], [data-fade-end]) {
+  --sk-tag-fade-start: 0px;
+  --sk-tag-fade-end: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--sk-tag-fade-start),
+    black calc(100% - var(--sk-tag-fade-end)),
+    transparent 100%
+  );
+}
+.sk-tag-filter__scroll[data-fade-start] {
+  --sk-tag-fade-start: var(--sk-s4);
+}
+.sk-tag-filter__scroll[data-fade-end] {
+  --sk-tag-fade-end: var(--sk-s4);
 }
 .sk-tag-filter .sk-tag-filter__option {
   flex: none;

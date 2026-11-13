@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { whenText } from "@/features/control-app/when";
+import { dateText, whenText } from "@/features/control-app/when";
 
 const now = new Date("2026-11-01T10:00:00Z");
 const minutesBefore = (minutes: number) =>
@@ -65,5 +65,25 @@ describe("whenText in English", () => {
   it("gives nothing for a missing or invalid value", () => {
     expect(whenText(null, now, "en")).toBe("");
     expect(whenText("inte ett datum", now, "en")).toBe("");
+  });
+});
+
+describe("dateText", () => {
+  it("reads a date-only value as that day and leaves out this year", () => {
+    expect(dateText("2026-11-01", now, "sv")).toBe("1 nov");
+    expect(dateText("2026-11-01", now, "en")).toBe("1 Nov");
+  });
+
+  it("adds the year when it is not this year", () => {
+    expect(dateText("2025-03-09", now, "sv")).toBe("9 mars 2025");
+  });
+
+  it("reads a timestamp in the owner's zone", () => {
+    expect(dateText("2026-10-31T23:30:00Z", now, "sv")).toBe("1 nov");
+  });
+
+  it("gives nothing for a missing or invalid value", () => {
+    expect(dateText(null, now, "sv")).toBe("");
+    expect(dateText("nonsense", now, "sv")).toBe("");
   });
 });

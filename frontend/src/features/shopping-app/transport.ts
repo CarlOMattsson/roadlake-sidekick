@@ -19,6 +19,7 @@ export type ShoppingItem = WithOptional<
   | "store"
   | "product_url"
   | "recipient_contact_id"
+  | "recipient_contact_name"
   | "occasion"
   | "target_date"
   | "offer"

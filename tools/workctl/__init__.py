@@ -36,14 +36,19 @@ Moved:
   (passed to ``python -c``, so each is a plain file with a ``__main__`` guard).
 * ``diagnose``   : the decisions of the hint after a failed first start (log evidence, table state, volume
   name); ``work.sh`` only gathers the logs and runs the read-only queries.
+* ``backupfiles``: the number of sets kept, the free-space check, the time stamp of a new set and the pruning of old
+  ones; also used by ``deploy/selfhost/update.sh`` and ``tools/db-backup.sh``.
 * ``restore``    : the complete backup sets of a directory, what a typed ``restore`` argument names and what
   undoing a half-done database swap has to do.
+* ``updatestate``: the state files of ``deploy/selfhost/update.sh``: the atomic journal entry, the release pointer
+  and its restore after a rollback, the lock owner and the snapshot name with the regex for its finished form.
+  Reading the journal and the pointer stays in ``update.sh`` (``--check`` and the dry run run without python3).
 * ``prompts``    : the guide's questions (read one line, hidden input, defaults), yes answers and numbered choices.
 * ``owner``      : the UUID check for the user Claude Desktop acts as.
 
 Still in ``work.sh`` (candidates to move next, in order of value):
 
 1. Backup, restore and update orchestration (docker, traps, locks, pause/resume of writers): thin shell
-   around compose calls, last to move; its pieces first (``backup_space``, set listing, prune).
+   around compose calls, last to move; its decision pieces have moved (``backupfiles``, ``restore``, ``backupkey``).
 2. ``setup``, the interactive guide.
 """

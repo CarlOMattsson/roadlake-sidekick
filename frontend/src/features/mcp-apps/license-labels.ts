@@ -11,14 +11,18 @@ export type LicenseLabels = {
   /** The words beside the coin at the end of a full view: the state in two words, never a sentence. */
   footFree: string;
   footExpired: string;
-  /** The row's first sentence, free version. */
+  /** The row's first sentence, free version, inviting a purchase (while a shop address is set). */
   unlicensed: string;
+  /** The same sentence while there is no shop yet: it states the version and invites nothing. */
+  unlicensedNoShop: string;
   /** The row's first sentence after the license ran out; `date` is empty when the server named no day. */
   expired: (date: string) => string;
+  /** The expired sentence while there is no shop yet. */
+  expiredNoShop: (date: string) => string;
   /** The licensed row: "Licensierad till Alex Exempel · t.o.m. 9 nov 2027". Either part may be absent. */
   licensed: (licensee: string | undefined, date: string) => string;
   buy: string;
-  /** Said in place of the buy button while LICENSE_BUY_URL is empty (no link to the shop yet). */
+  /** Said in place of the buy button while LICENSE_BUY_URL is empty (no link to the shop yet): that licenses can soon be bought, and where the key will go. */
   buySoon: string;
   enterKey: string;
   /** The key field's visible label. */
@@ -45,10 +49,13 @@ export const licenseLabelsSv: LicenseLabels = {
   footFree: "Gratisversion",
   footExpired: "Licensen har gått ut",
   unlicensed: "Gratisversion. Du får gärna köpa en licens.",
+  unlicensedNoShop: "Gratisversion.",
   expired: (date) =>
     date
       ? `Licensen gick ut ${date}. Du får gärna köpa en ny.`
       : "Licensen har gått ut. Du får gärna köpa en ny.",
+  expiredNoShop: (date) =>
+    date ? `Licensen gick ut ${date}.` : "Licensen har gått ut.",
   licensed: (licensee, date) =>
     [
       licensee ? `Licensierad till ${licensee}` : "Licensierad",
@@ -57,12 +64,12 @@ export const licenseLabelsSv: LicenseLabels = {
       .filter(Boolean)
       .join(" · "),
   buy: "Köp licens",
-  buySoon: "Licensnycklar säljs snart.",
+  buySoon: "Licenser kan snart köpas. Nyckeln anger du här.",
   enterKey: "Ange licensnyckel",
   keyField: "Licensnyckel",
   keyPlaceholder: "ROADLAKE-1.…",
   save: "Spara",
-  saving: "Sparar …",
+  saving: "Sparar…",
   cancel: "Avbryt",
   saved: "Licensen är sparad.",
   invalidKey: "Nyckeln kunde inte godkännas.",
@@ -77,16 +84,19 @@ export const licenseLabelsEn: LicenseLabels = {
   footFree: "Free version",
   footExpired: "License expired",
   unlicensed: "Free version. You can buy a license.",
+  unlicensedNoShop: "Free version.",
   expired: (date) =>
     date
       ? `Your license expired on ${date}. You can buy a new one.`
       : "Your license has expired. You can buy a new one.",
+  expiredNoShop: (date) =>
+    date ? `Your license expired on ${date}.` : "Your license has expired.",
   licensed: (licensee, date) =>
     [licensee ? `Licensed to ${licensee}` : "Licensed", date && `until ${date}`]
       .filter(Boolean)
       .join(" · "),
   buy: "Buy a license",
-  buySoon: "License keys will be on sale soon.",
+  buySoon: "Licenses will soon be available to buy. You’ll enter the key here.",
   enterKey: "Enter license key",
   keyField: "License key",
   keyPlaceholder: "ROADLAKE-1.…",

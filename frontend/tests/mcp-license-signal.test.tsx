@@ -173,7 +173,7 @@ describe("the inline card's foot", () => {
     expect(coin.textContent).toBe("");
     expect(coin.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true");
     expect(coin.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByText(licenseLabelsSv.unlicensed)).toBeNull();
+    expect(screen.queryByText(licenseLabelsSv.unlicensedNoShop)).toBeNull();
 
     await user.click(coin);
     expect(coin.getAttribute("aria-expanded")).toBe("true");
@@ -181,7 +181,9 @@ describe("the inline card's foot", () => {
       coin.getAttribute("aria-controls") ?? "",
     );
     expect(row).not.toBeNull();
-    expect(within(row!).getByText(licenseLabelsSv.unlicensed)).toBeTruthy();
+    expect(
+      within(row!).getByText(licenseLabelsSv.unlicensedNoShop),
+    ).toBeTruthy();
     // "Köp licens" waits for the owner's address (LICENSE_BUY_URL is empty): no button that leads nowhere, and the
     // row says that keys are on sale soon where the button would be.
     expect(within(row!).getByText(licenseLabelsSv.buySoon)).toBeTruthy();
@@ -192,7 +194,7 @@ describe("the inline card's foot", () => {
 
     await user.click(coin);
     expect(coin.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByText(licenseLabelsSv.unlicensed)).toBeNull();
+    expect(screen.queryByText(licenseLabelsSv.unlicensedNoShop)).toBeNull();
   });
 
   it("names the coin in English with the app language", () => {
@@ -212,7 +214,7 @@ describe("the license row", () => {
   it("says the free version, licensed with name and last day, or expired with the day", () => {
     meta(JSON.stringify(UNLICENSED));
     const { rerender } = render(<LicenseRow locale="sv" now={now} />);
-    expect(screen.getByText(licenseLabelsSv.unlicensed)).toBeTruthy();
+    expect(screen.getByText(licenseLabelsSv.unlicensedNoShop)).toBeTruthy();
 
     act(() => declareLicense(LICENSED));
     rerender(<LicenseRow locale="sv" now={now} />);
@@ -223,11 +225,7 @@ describe("the license row", () => {
 
     act(() => declareLicense(EXPIRED));
     rerender(<LicenseRow locale="en" now={now} />);
-    expect(
-      screen.getByText(
-        "Your license expired on Tue 3 Nov. You can buy a new one.",
-      ),
-    ).toBeTruthy();
+    expect(screen.getByText("Your license expired on Tue 3 Nov.")).toBeTruthy();
   });
 
   it("draws nothing without a declared license", () => {
@@ -339,7 +337,11 @@ describe("the license row", () => {
         licenseLabelsSv.invalidKey,
       ),
     );
-    expect(screen.getByRole("textbox")).toBeTruthy();
+    const field = screen.getByRole("textbox");
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    expect(field.getAttribute("aria-describedby")).toBe(
+      screen.getByRole("status").id,
+    );
     expect(
       screen.getByRole("button", { name: licenseLabelsSv.mark }),
     ).toBeTruthy();
@@ -460,7 +462,9 @@ describe("the full view's foot", () => {
     expect(roomsShell?.lastElementChild?.contains(coin)).toBe(true);
     await user.click(coin);
     await waitFor(() =>
-      expect(document.activeElement).toBe(rowLead(licenseLabelsSv.unlicensed)),
+      expect(document.activeElement).toBe(
+        rowLead(licenseLabelsSv.unlicensedNoShop),
+      ),
     );
     expect(screen.getByRole("heading", { name: "control" })).toBeTruthy();
     // Kontroll holds the row: no coin there.
@@ -519,7 +523,9 @@ describe("the full view's foot", () => {
     await user.click(coin);
     expect(coin.getAttribute("aria-expanded")).toBe("true");
     await waitFor(() =>
-      expect(document.activeElement).toBe(rowLead(licenseLabelsSv.unlicensed)),
+      expect(document.activeElement).toBe(
+        rowLead(licenseLabelsSv.unlicensedNoShop),
+      ),
     );
   });
 });

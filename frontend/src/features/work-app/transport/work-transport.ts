@@ -277,6 +277,19 @@ export function createWorkTransport(
       }),
     listStepActions: (stepId) =>
       call("list_step_actions", { step_id: stepId, limit: 100 }),
+    completeStepAction: (actionId, version, idempotencyKey) =>
+      call("complete_step_action", {
+        action_id: actionId,
+        version,
+        idempotency_key: idempotencyKey,
+      }),
+    reopenStepAction: (actionId, version, idempotencyKey) =>
+      call("update_step_action", {
+        action_id: actionId,
+        version,
+        idempotency_key: idempotencyKey,
+        changes: { status: "open" },
+      }),
     archiveStepAction: (actionId, version, idempotencyKey) =>
       call("archive_step_action", {
         action_id: actionId,

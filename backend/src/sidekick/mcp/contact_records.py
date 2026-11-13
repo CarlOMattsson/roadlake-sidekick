@@ -59,11 +59,15 @@ class ContactResult(Output):
 
 
 class ProjectSummaryRecord(Output):
+    """A linked Project in Contact context, with how many of its active Tasks are completed."""
+
     id: UUID
     title: str
     status: str
     updated_at: datetime
     version: int
+    tasks_total: int = Field(ge=0)
+    tasks_done: int = Field(ge=0)
 
 
 class TaskSummaryRecord(Output):

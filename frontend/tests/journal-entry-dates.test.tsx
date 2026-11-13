@@ -1,10 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { ProposalCheck } from "@/features/journal-app/draft-review-parts/proposal-check";
 import { EntryRow } from "@/features/journal-app/entry-row";
 import { JournalView } from "@/features/journal-app/journal-view";
 import { journalEn, journalSv } from "@/features/journal-app/labels";
 import { ownerToday } from "@/features/mcp-apps/app-timezone";
 import {
+  createProposal,
   entry,
   entryId,
   source,
@@ -105,6 +107,57 @@ describe("the day on the original text view", () => {
   it("adds the year for an earlier year", async () => {
     expect(await sourceLine(earlierDay)).toMatch(
       new RegExp(` · 9 May ${thisYear - 1}$`),
+    );
+  });
+});
+
+describe("the language on the original text view", () => {
+  async function languageLine(labels = journalEn) {
+    render(
+      <JournalView
+        transport={transportMock()}
+        initial={{ kind: "source", id: sourceId }}
+        labels={labels}
+      />,
+    );
+    return (await screen.findByText(new RegExp(`^${labels.language}: `)))
+      .textContent;
+  }
+
+  it("names the language in English, not by its code", async () => {
+    expect(await languageLine()).toBe("Language: Swedish");
+  });
+
+  it("names the language in Swedish, in lower case", async () => {
+    expect(await languageLine(journalSv)).toBe("Språk: svenska");
+  });
+});
+
+describe("the due date of a task proposal in a draft", () => {
+  function dueLine(dueAt: string, labels = journalEn) {
+    render(
+      <ProposalCheck
+        proposal={{ ...createProposal, description: null, due_at: dueAt }}
+        taskLabel={() => ""}
+        known
+        checked={false}
+        declined={false}
+        disabled={false}
+        onChange={() => undefined}
+        onDeclinedChange={() => undefined}
+        labels={labels}
+      />,
+    );
+    return screen.getByText(new RegExp(`${labels.newDue}: `)).textContent;
+  }
+
+  it("leaves the year out for a date in the current year, as the rest of the journal does", () => {
+    expect(dueLine(`${thisYear}-01-02T09:00:00Z`)).toMatch(/Due: 2 Jan$/);
+  });
+
+  it("adds the year for another year, and writes the Swedish month without a period", () => {
+    expect(dueLine(`${thisYear + 1}-11-05`, journalSv)).toMatch(
+      new RegExp(`Förfaller: 5 nov ${thisYear + 1}$`),
     );
   });
 });

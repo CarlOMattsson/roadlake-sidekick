@@ -114,6 +114,14 @@ describe("WorkFullscreen with saved views", () => {
     },
   };
 
+  const viktig: TagRecord = {
+    ...kund,
+    id: "019f0000-0000-7000-8000-0000000000t2",
+    slug: "viktig",
+    label: "viktig",
+    usage: { ...kund.usage, task: 2 },
+  };
+
   /** A fullscreen transport: the reads of the tabs and the saved-view methods. */
   function fullTransport(
     views: WorkSavedView[] = [englishAgenda, englishBoard],
@@ -125,7 +133,7 @@ describe("WorkFullscreen with saved views", () => {
       .fn()
       .mockResolvedValue({ items: [], next_cursor: null });
     const listDomains = vi.fn().mockResolvedValue([]);
-    const listTags = vi.fn().mockResolvedValue([kund]);
+    const listTags = vi.fn().mockResolvedValue([kund, viktig]);
     const transport = {
       ...fake.transport,
       getWorkAgenda,
@@ -168,7 +176,7 @@ describe("WorkFullscreen with saved views", () => {
     expect(fake.listSavedWorkViews).not.toHaveBeenCalled();
   });
 
-  it('keeps the "⋯" panel open, the bar\'s status and the focus when a saved view remounts the agenda, and clears the filter text', async () => {
+  it('folds the "⋯" menu away, names the opened view in a receipt and focuses "⋯" when a saved view remounts the agenda, and clears the filter text', async () => {
     const fake = fullTransport();
     fake.getWorkAgenda.mockResolvedValueOnce({
       items: [blockedItem],
@@ -190,21 +198,57 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Blocked" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Blocked" }));
 
     expect(await screen.findByText("Blocked item")).toBeInTheDocument();
+    const more = screen.getByRole("button", { name: workEn.moreActions });
+    expect(more).toHaveAttribute("aria-expanded", "false");
     expect(
-      screen.getByRole("button", { name: workEn.moreActions }),
-    ).toHaveAttribute("aria-expanded", "true");
-    expect(
-      screen.getByText(savedViewsLabelsEn.openedView("Blocked")),
+      screen.getByText(savedViewsLabelsEn.showingView("Blocked")),
     ).toBeVisible();
-    expect(screen.getByRole("button", { name: "Saved views" })).toHaveFocus();
+    expect(more).toHaveFocus();
     expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveValue(
       "",
     );
+  });
+
+  it("goes back to the whole agenda from the receipt's Show all, and keeps the view when the read fails", async () => {
+    const fake = fullTransport();
+    fake.getWorkAgenda
+      .mockResolvedValueOnce({ items: [blockedItem], next_cursor: null })
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(agendaPage);
+    const user = userEvent.setup();
+    mount({ kind: "agenda", filters: {}, page: agendaPage }, fake.transport);
+
+    await user.click(
+      await screen.findByRole("button", { name: workEn.moreActions }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Saved views" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Blocked" }));
+    expect(await screen.findByText("Blocked item")).toBeInTheDocument();
+
+    const showAll = screen.getByRole("button", {
+      name: savedViewsLabelsEn.showAll,
+    });
+    await user.click(showAll);
+    expect(
+      await screen.findByText(savedViewsLabelsEn.showAllFailed),
+    ).toBeVisible();
+    expect(screen.getByText("Blocked item")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: savedViewsLabelsEn.showAll }),
+    );
+    expect(await screen.findByText("Agenda item")).toBeInTheDocument();
+    expect(
+      screen.queryByText(savedViewsLabelsEn.showingView("Blocked")),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: savedViewsLabelsEn.showAll }),
+    ).not.toBeInTheDocument();
   });
 
   it('reads the agenda again from Refresh in the "⋯" panel and closes the panel', async () => {
@@ -223,7 +267,7 @@ describe("WorkFullscreen with saved views", () => {
     expect(more).toHaveFocus();
   });
 
-  it("opens a saved agenda view: it reads the view's filters, shows its items and focuses the bar", async () => {
+  it("opens a saved agenda view: it reads the view's filters, shows its items and focuses the menu button", async () => {
     const fake = fullTransport();
     fake.getWorkAgenda.mockResolvedValueOnce({
       items: [blockedItem],
@@ -238,14 +282,14 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Blocked" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Blocked" }));
 
     expect(fake.getWorkAgenda).toHaveBeenLastCalledWith({ status: "blocked" });
     expect(await screen.findByText("Blocked item")).toBeInTheDocument();
     expect(screen.queryByText("Agenda item")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Saved views" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: workEn.moreActions }),
+    ).toHaveFocus();
   });
 
   it("opens a saved board view with its one priority as the board's filter", async () => {
@@ -262,7 +306,7 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(await screen.findByRole("button", { name: "Open: High" }));
+    await user.click(await screen.findByRole("button", { name: "High" }));
 
     expect(fake.getWorkBoard).toHaveBeenLastCalledWith({ priority: "high" });
     expect(await screen.findByText("High item")).toBeInTheDocument();
@@ -281,20 +325,30 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Several" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Several" }));
 
     expect(fake.getWorkBoard).toHaveBeenLastCalledWith({});
     expect(
       await screen.findByText(savedViewsLabelsEn.severalPriorities),
     ).toBeInTheDocument();
 
-    await user.click(await screen.findByRole("button", { name: "Open: High" }));
+    // The menu folded away with the opening; the next view is opened from it again.
+    await user.click(screen.getByRole("button", { name: workEn.moreActions }));
+    await user.click(
+      await screen.findByRole("button", { name: "Saved views" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "High" }));
     expect(fake.getWorkBoard).toHaveBeenLastCalledWith({ priority: "high" });
     expect(
       screen.queryByText(savedViewsLabelsEn.severalPriorities),
     ).not.toBeInTheDocument();
+    // The receipt names the newest view only.
+    expect(
+      screen.queryByText(savedViewsLabelsEn.showingView("Several")),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(savedViewsLabelsEn.showingView("High")),
+    ).toBeVisible();
   });
 
   it("keeps the tab's view when the saved view cannot be read", async () => {
@@ -309,9 +363,7 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Blocked" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Blocked" }));
 
     expect(
       await screen.findByText(savedViewsLabelsEn.openFailed),
@@ -399,9 +451,7 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(
       await screen.findByRole("button", { name: "Saved views" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Open: Kunder" }),
-    );
+    await user.click(await screen.findByRole("button", { name: "Kunder" }));
 
     expect(fake.getWorkAgenda).toHaveBeenLastCalledWith({
       tags: ["kund"],
@@ -411,5 +461,51 @@ describe("WorkFullscreen with saved views", () => {
     expect(
       await within(filter).findByRole("button", { name: "kund" }),
     ).toHaveAttribute("aria-pressed", "true");
+  });
+  it("says the list changed from an opened view once a tag is added, and drops the receipt when every filter is gone", async () => {
+    const fake = fullTransport([taggedAgenda]);
+    const user = userEvent.setup();
+    mount({ kind: "agenda", filters: {}, page: agendaPage }, fake.transport);
+
+    await user.click(
+      await screen.findByRole("button", { name: workEn.moreActions }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Saved views" }),
+    );
+    await user.click(await screen.findByRole("button", { name: "Kunder" }));
+    expect(
+      await screen.findByText(savedViewsLabelsEn.showingView("Kunder")),
+    ).toBeVisible();
+
+    // Another tag narrows the list past the view: the receipt no longer says the view is shown.
+    const filter = await screen.findByRole("group", { name: tagEn.filter });
+    // The vocabulary is read after the view opens, so the chip may come a moment later.
+    await user.click(
+      await within(filter).findByRole("button", { name: "viktig" }),
+    );
+    expect(
+      await screen.findByText(savedViewsLabelsEn.changedFromView("Kunder")),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(savedViewsLabelsEn.showingView("Kunder")),
+    ).not.toBeInTheDocument();
+
+    // Taking the extra tag away makes the list the view again.
+    await user.click(within(filter).getByRole("button", { name: "viktig" }));
+    expect(
+      await screen.findByText(savedViewsLabelsEn.showingView("Kunder")),
+    ).toBeVisible();
+
+    // Clearing every tag is the tab's own list: the receipt goes.
+    await user.click(within(filter).getByRole("button", { name: /^Clear/ }));
+    await vi.waitFor(() =>
+      expect(
+        screen.queryByText(savedViewsLabelsEn.showingView("Kunder")),
+      ).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText(savedViewsLabelsEn.changedFromView("Kunder")),
+    ).not.toBeInTheDocument();
   });
 });

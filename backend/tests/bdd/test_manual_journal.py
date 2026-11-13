@@ -159,9 +159,11 @@ class ManualJournalStore(InMemoryStore):
         tag_match: str = "any",
         limit: int = 100,
         after: tuple[Any, ...] | None = None,
+        order: str = "asc",
     ) -> list[Any]:
         del session, tag_match
         assert not tags, "this fake keeps no tags"
+        assert order == "asc", "this fake lists in day order only"
         entries = [
             entry
             for entry in self.journal_entries.values()

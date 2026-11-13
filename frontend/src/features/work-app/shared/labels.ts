@@ -121,6 +121,8 @@ export const workEn = {
   stepAdded: "Step added.",
   stepsProgress: (done: number, total: number) =>
     `Steps · ${done} of ${total} done`,
+  /** A Project's Task progress in its row on a Contact, e.g. "3 of 5 done". */
+  tasksProgress: (done: number, total: number) => `${done} of ${total} done`,
   /** The meta line of a Step just checked or unchecked, beside its Undo. */
   stepDone: "Done",
   stepReopened: "Reopened",
@@ -430,6 +432,7 @@ export const workSv: WorkLabels = {
   stepAdded: "Steget lades till.",
   stepsProgress: (done: number, total: number) =>
     `Steg · ${done} av ${total} klara`,
+  tasksProgress: (done: number, total: number) => `${done} av ${total} klara`,
   stepDone: "Klar",
   stepReopened: "Öppen igen",
   stepCreateFailed: "Det gick inte att lägga till steget. Försök igen.",
@@ -473,10 +476,10 @@ export const workSv: WorkLabels = {
   aliasLabel: () => "Även kallad",
   aliasesHeading: "Även kallad",
   noAliases: "Inga andra namn.",
-  aliasValue: "Nytt namn",
+  aliasValue: "Nytt alternativt namn",
   aliasRequired: "Ange ett namn.",
   aliasTooLong: "Namnet får vara högst 200 tecken.",
-  addAlias: "Lägg till namn",
+  addAlias: "Lägg till alternativt namn",
   removeAlias: "Ta bort",
   removeAliasFor: (value: string) => `Ta bort namnet ${value}`,
   projects: "Projekt",

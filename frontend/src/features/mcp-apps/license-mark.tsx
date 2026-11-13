@@ -140,7 +140,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * The license row. Free version or expired: the sentence, "Köp licens" (when LICENSE_BUY_URL is set, otherwise "Licensnycklar säljs snart") and "Ange
+ * The license row. Free version or expired: the sentence, "Köp licens" (when LICENSE_BUY_URL is set, otherwise a line that licenses can soon be bought) and "Ange
  * licensnyckel", which folds out a field and Spara. The key goes only to set_license_key, through the host (the tool is
  * app-only: the model never sees it); it is not kept in any state after the answer, and never written to the page.
  * Licensed: one muted line. Nothing without a declared license.
@@ -171,6 +171,7 @@ export function LicenseRow({
   const field = useRef<HTMLTextAreaElement>(null);
   const fieldId = useId();
   const keyId = useId();
+  const statusId = useId();
 
   // The coin asked: the row's first line takes the focus once it is shown (after the shell and the settings have moved
   // their own focus, hence the timer).
@@ -242,6 +243,7 @@ export function LicenseRow({
     );
   }
 
+  const rejected = outcome?.kind === "rejected";
   const status =
     outcome?.kind === "saved"
       ? labels.saved
@@ -268,8 +270,12 @@ export function LicenseRow({
     <div className={rowClass} id={id} lang={locale}>
       <p ref={lead} tabIndex={-1} className="sk-license-row__lead">
         {license.state === "expired"
-          ? labels.expired(dayText(license.expires, labels, today))
-          : labels.unlicensed}
+          ? (LICENSE_BUY_URL ? labels.expired : labels.expiredNoShop)(
+              dayText(license.expires, labels, today),
+            )
+          : LICENSE_BUY_URL
+            ? labels.unlicensed
+            : labels.unlicensedNoShop}
       </p>
       <div className="sk-license-row__actions">
         {LICENSE_BUY_URL ? (
@@ -311,6 +317,8 @@ export function LicenseRow({
             autoCapitalize="off"
             spellCheck="false"
             value={key}
+            aria-invalid={rejected || undefined}
+            aria-describedby={rejected ? statusId : undefined}
             onChange={(event) => setKey(event.target.value)}
           />
           <div className="sk-license-row__actions">
@@ -338,7 +346,7 @@ export function LicenseRow({
           onRetry={editing ? save : undefined}
         />
       ) : status ? (
-        <p role="status" className="sk-license-row__status">
+        <p role="status" id={statusId} className="sk-license-row__status">
           {status}
         </p>
       ) : null}

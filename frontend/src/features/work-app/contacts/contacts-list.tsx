@@ -13,7 +13,12 @@ import { useToolSupport } from "../../mcp-apps/tool-support";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import { useShortcuts } from "../../mcp-apps/ui/shortcuts";
-import { MoreIcon, PlusIcon, SearchIcon } from "../../mcp-apps/ui/icons";
+import {
+  CloseIcon,
+  MoreIcon,
+  PlusIcon,
+  SearchIcon,
+} from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { controlEntry } from "../../mcp-apps/ui/control-entry";
 import { appLocale } from "../../mcp-apps/app-locale";
@@ -44,6 +49,7 @@ import { useContactsList } from "./use-contacts-list";
 import { TagFilter } from "../../mcp-apps/ui/tags";
 import { useWorkTags } from "../shared/work-tags";
 import { tagLabelsFor } from "../../mcp-apps/ui/tag-labels";
+import { tagLabelOf } from "../../mcp-apps/ui/tag-vocabulary";
 
 /** list_contacts takes q of 1 to 200 characters; an empty search lists every Contact. */
 const SEARCH_MAX_LENGTH = 200;
@@ -230,36 +236,57 @@ export function ContactsView({
       )}
       {fresh &&
         (page.items.length === 0 ? (
-          <EmptyState
-            title={query ? t.noContactMatches(query) : t.noAnyContacts}
-            hint={query ? undefined : words.emptyHint}
-            ask={{
-              locale: t.dateLocale,
-              example: query ? words.createNamedAsk(query) : words.emptyAsk,
-              onSend: sendMessage
-                ? () =>
-                    void sendMessage(
-                      query ? words.createNamedAsk(query) : words.emptyAsk,
-                    )
-                : undefined,
-            }}
-          >
-            {query && offers("create_contact") && (
+          chosenTags.length > 0 ? (
+            // The list is narrowed by tags: it is not empty, so no introduction and no first steps, only the way out.
+            <EmptyState
+              title={words.noContactsWithTags(
+                chosenTags.map((slug) =>
+                  tagLabelOf(slug, vocabulary.suggestions),
+                ),
+                query,
+              )}
+            >
               <button
                 type="button"
                 className="work-add-row sk-action-row"
-                onClick={() =>
-                  setCreateRequest((last) => ({
-                    name: query,
-                    n: (last?.n ?? 0) + 1,
-                  }))
-                }
+                onClick={() => list.changeTags([])}
               >
-                <PlusIcon />
-                {words.createNamed(query)}
+                <CloseIcon />
+                {tagWords.clearLabel}
               </button>
-            )}
-          </EmptyState>
+            </EmptyState>
+          ) : (
+            <EmptyState
+              title={query ? t.noContactMatches(query) : t.noAnyContacts}
+              hint={query ? undefined : words.emptyHint}
+              ask={{
+                locale: t.dateLocale,
+                example: query ? words.createNamedAsk(query) : words.emptyAsk,
+                onSend: sendMessage
+                  ? () =>
+                      void sendMessage(
+                        query ? words.createNamedAsk(query) : words.emptyAsk,
+                      )
+                  : undefined,
+              }}
+            >
+              {query && offers("create_contact") && (
+                <button
+                  type="button"
+                  className="work-add-row sk-action-row"
+                  onClick={() =>
+                    setCreateRequest((last) => ({
+                      name: query,
+                      n: (last?.n ?? 0) + 1,
+                    }))
+                  }
+                >
+                  <PlusIcon />
+                  {words.createNamed(query)}
+                </button>
+              )}
+            </EmptyState>
+          )
         ) : page.items.length > LETTER_HEADINGS_ABOVE ? (
           <div role="group" aria-label={t.contacts}>
             {sectionsOf(page.items).map((section) => (

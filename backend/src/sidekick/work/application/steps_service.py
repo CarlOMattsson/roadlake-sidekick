@@ -351,7 +351,8 @@ class StepsService:
             action = self.store.get_action(session, actor.user_id, action_id)
             updated = action.complete(now=self.clock.now())
             self.store.save_action(session, updated, expected_version=version)
-            self._audit(session, actor, "action.completed", "action", action_id, correlation_id)
+            if updated is not action:
+                self._audit(session, actor, "action.completed", "action", action_id, correlation_id)
             return updated
 
         return self.store.transaction(
@@ -407,7 +408,8 @@ class StepsService:
                 instruction=instruction,
             )
             self.store.save_step(session, updated, expected_version=version)
-            self._audit(session, actor, "step.updated", "step", step_id, correlation_id)
+            if updated is not current:
+                self._audit(session, actor, "step.updated", "step", step_id, correlation_id)
             return updated
 
         return self.store.transaction(
@@ -449,7 +451,8 @@ class StepsService:
             current = self.store.get_step(session, actor.user_id, step_id)
             updated = current.complete(now=self.clock.now())
             self.store.save_step(session, updated, expected_version=version)
-            self._audit(session, actor, "step.completed", "step", step_id, correlation_id)
+            if updated is not current:
+                self._audit(session, actor, "step.completed", "step", step_id, correlation_id)
             return updated
 
         return self.store.transaction(
@@ -476,11 +479,14 @@ class StepsService:
         version: int,
         idempotency_key: str,
         title: str | UnsetType = UNSET,
+        status: ActionStatus | UnsetType = UNSET,
         due_at: datetime | None | UnsetType = UNSET,
         attention_requested: bool | UnsetType = UNSET,
         note: str | None | UnsetType = UNSET,
         correlation_id: str | None = None,
     ) -> Action:
+        """Update one Action; `status` ticks it off or opens it again."""
+
         actor.require("tasks:write")
 
         def operation(session: TxSession) -> Action:
@@ -488,12 +494,22 @@ class StepsService:
             updated = current.update(
                 now=self.clock.now(),
                 title=title,
+                status=status,
                 due_at=due_at,
                 attention_requested=attention_requested,
                 note=note,
             )
             self.store.save_action(session, updated, expected_version=version)
-            self._audit(session, actor, "action.updated", "action", action_id, correlation_id)
+            if updated is current:
+                return updated
+            event = "action.updated"
+            if updated.status is not current.status:
+                event = (
+                    "action.completed"
+                    if updated.status is ActionStatus.COMPLETED
+                    else "action.reopened"
+                )
+            self._audit(session, actor, event, "action", action_id, correlation_id)
             return updated
 
         return self.store.transaction(
@@ -509,6 +525,7 @@ class StepsService:
                         "action_id": str(action_id),
                         "version": version,
                         "title": title,
+                        "status": status,
                         "due_at": due_at,
                         "attention_requested": attention_requested,
                         "note": note,

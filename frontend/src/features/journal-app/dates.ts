@@ -32,7 +32,10 @@ export function formatTime(value: string, locale: string): string {
   });
 }
 
-/** A calendar date as day and short month, without the year and without a trailing period: "26 okt". */
+/**
+ * A calendar date as day and short month, without the year and without a trailing period: "26 okt". English gives
+ * every month three letters ("14 Sep"), where en-GB alone writes "Sept" beside "3 Nov".
+ */
 export function formatShortDate(value: string, locale: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return value;
@@ -44,7 +47,8 @@ export function formatShortDate(value: string, locale: string): string {
       month: "short",
       timeZone: "UTC",
     })
-    .replace(/\.$/, "");
+    .replace(/\.$/, "")
+    .replace(/\bSept\b/, "Sep");
 }
 
 /**

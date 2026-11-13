@@ -260,6 +260,18 @@ export type WorkTransport = ToolSupport & {
   ) => Promise<WorkStepPage>;
   /** The active Actions of one Step, in display order. */
   listStepActions: (stepId: string) => Promise<WorkActionPage>;
+  /** Completes an Action against `version`. */
+  completeStepAction: (
+    actionId: string,
+    version: number,
+    idempotencyKey: string,
+  ) => Promise<{ action: WorkAction }>;
+  /** Opens a completed Action again against `version` (update_step_action with status open). */
+  reopenStepAction: (
+    actionId: string,
+    version: number,
+    idempotencyKey: string,
+  ) => Promise<{ action: WorkAction }>;
   archiveStepAction: (
     actionId: string,
     version: number,

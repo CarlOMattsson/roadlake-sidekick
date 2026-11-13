@@ -205,6 +205,21 @@ npm --prefix frontend run test:mcp-app
 npm --prefix frontend run test:mobile-audit
 ```
 
+En liten separat svit kör samma byggda app mot en riktig server, så att kontraktet mellan appen och serverns verktyg
+prövas på riktigt: värden är fortfarande simulerad, men varje verktygsanrop går till en Sidekick-server (FastAPI och
+FastMCP på en ledig loopback-port) som sviten startar mot en testdatabasplats, med en användare och en token som bara
+skapas för körningen. Den täcker att skapa och avsluta en uppgift i Agendan, taggfiltret och att sätta en tagg, att
+skriva en dagboksanteckning och inköpslistan. Den kräver backend-miljön och testdatabasen
+([Testdatabaspoolen](../../tools/test-db-pool.md)); sviten tömmer databasen den får, så använd en egen plats:
+
+```bash
+bash tools/test-db-pool.sh create K
+pool_env=$(bash tools/test-db-pool.sh env K) && eval "$pool_env"
+npm --prefix frontend run test:real-backend
+```
+
+`E2E_BACKEND_PYTHON` anger backend-miljöns Python när den inte är `backend/.venv/bin/python`. Sviten ingår inte i CI.
+
 Håll de genererade kontraktsfilerna i synk efter en ändring i API eller MCP:
 
 ```bash

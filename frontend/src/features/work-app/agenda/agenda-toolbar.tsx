@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, type ReactNode, type Ref } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+  type Ref,
+} from "react";
 import { CloseIcon, MoreIcon, SearchIcon } from "./agenda-icons";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
@@ -197,6 +204,21 @@ export function AgendaMore({
     onOpenChange(false);
     more.current?.focus();
   }
+  // The menu can be closed from outside (a saved view opened): when it folds away while the focus sat in it, or was
+  // dropped on the page, the focus goes back to ⋯ so a keyboard or screen reader user is not left on a hidden control.
+  // A layout effect, so the focus is back in the same frame in every renderer, not after the next paint.
+  const wasOpen = useRef(open);
+  useLayoutEffect(() => {
+    if (wasOpen.current && !open) {
+      const focused = document.activeElement;
+      const inPanel =
+        focused instanceof Node &&
+        document.getElementById(panelId)?.contains(focused);
+      if (!focused || focused === document.body || inPanel)
+        more.current?.focus();
+    }
+    wasOpen.current = open;
+  }, [open, panelId]);
   return (
     <div className="work-agenda-more" hidden={hidden}>
       <button

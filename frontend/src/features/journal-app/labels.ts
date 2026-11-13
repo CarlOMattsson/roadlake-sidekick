@@ -75,6 +75,8 @@ export const journalEn = {
   pendingEmpty: "Nothing to review.",
   /** A list cut to its first rows (Awaiting review inline, a kind in «Gjort»): the button that shows the rest. */
   moreShowAll: (n: number) => `+${n} more · Show all`,
+  /** The same button when the server sent only part of the list: the rest it shows is still not all. */
+  moreShowMore: (n: number) => `+${n} more · Show more`,
   showFewer: "Show fewer",
   pendingState: {
     source_saved: "Saved, not reviewed",
@@ -245,7 +247,9 @@ export const journalEn = {
   entryTrashFailed: "Couldn’t delete the entry. Try again.",
   entryRestoreFailed: "Couldn’t undo the deletion. Try again.",
   entryRestored: "Entry restored.",
-  approveAll: "Approve all suggestions",
+  /** Says how many it approves, so the inline card needs no line of its own for the count. */
+  approveAll: (n: number) =>
+    n === 1 ? "Approve the suggestion" : `Approve all ${n} suggestions`,
   chooseYourself: "Let me choose",
   suggestionSummary: (links: number, tasks: number) =>
     `Claude suggests ${links} ${links === 1 ? "link" : "links"} and ${tasks} ${tasks === 1 ? "task" : "tasks"}.`,
@@ -339,6 +343,7 @@ export const journalSv: JournalLabels = {
     "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
   pendingEmpty: "Inget väntar på granskning.",
   moreShowAll: (n: number) => `+${n} fler · Visa alla`,
+  moreShowMore: (n: number) => `+${n} fler · Visa fler`,
   showFewer: "Visa färre",
   pendingState: {
     source_saved: "Sparad, ej granskad",
@@ -500,7 +505,8 @@ export const journalSv: JournalLabels = {
   entryTrashFailed: "Det gick inte att ta bort anteckningen. Försök igen.",
   entryRestoreFailed: "Det gick inte att ångra borttagningen. Försök igen.",
   entryRestored: "Anteckningen är återställd.",
-  approveAll: "Godkänn alla förslag",
+  approveAll: (n: number) =>
+    n === 1 ? "Godkänn förslaget" : `Godkänn alla ${n} förslag`,
   chooseYourself: "Välj själv",
   suggestionSummary: (links: number, tasks: number) =>
     `Claude föreslår ${links} ${links === 1 ? "koppling" : "kopplingar"} och ${tasks} ${tasks === 1 ? "uppgift" : "uppgifter"}.`,

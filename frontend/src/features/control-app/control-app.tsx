@@ -34,6 +34,11 @@ export type ControlData = {
 
 const VIEW_ORDER: readonly ControlViewName[] = ["trash", "history", "memory"];
 
+/** The view a room target names ("memory", "history", "trash"); an unknown or missing name gives undefined. */
+export function controlViewNamed(name: string | undefined) {
+  return VIEW_ORDER.find((view) => view === name);
+}
+
 /**
  * Which view a tool result belongs to, from its shape: list_trash has items and has_more,
  * list_recent_changes has changes, get_memory_status has settings and provider, and

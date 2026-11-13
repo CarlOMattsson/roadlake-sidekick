@@ -7,7 +7,8 @@ import { BoardSummary } from "../board/board-summary";
 import { ContactCard } from "../contacts/contact-card";
 import { HIERARCHY_MAX_ROWS, HierarchyView } from "../hierarchy/hierarchy-view";
 import { ContactsView } from "../contacts/contacts-list";
-import { AgendaSummary, ContactSummary } from "../inline/inline-summary";
+import { ContactSummary } from "../inline/inline-contact-summary";
+import { AgendaSummary } from "../inline/inline-summary";
 import { cardLabelsEn } from "../shared/card-labels";
 import { inlineSummaryLabelsEn } from "../inline/inline-summary-labels";
 import { WorkCard } from "../inline/work-card";
@@ -191,6 +192,7 @@ export function WorkView({
           relationship={top.context.contact.relationship}
           organization={top.context.contact.organization}
           role={top.context.contact.role}
+          tags={top.context.contact.tags}
           counts={contactLinkCounts(top.context)}
           labels={inlineLabels}
           onOpen={fullscreen}
@@ -229,6 +231,7 @@ export function WorkView({
           contact={top.contact}
           transport={transport}
           labels={cards}
+          locale={t.dateLocale}
           showAddress={shortcuts}
           onOpen={() => openContact(top.contact.id, false)}
           onEdit={() => openContact(top.contact.id, true)}

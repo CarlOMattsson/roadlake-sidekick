@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { controlEn, controlSv } from "@/features/control-app/labels";
+import {
+  actionName,
+  controlEn,
+  controlSv,
+  trashedWhen,
+} from "@/features/control-app/labels";
 
 describe("Swedish memory sentences use the definite form of the domain", () => {
   it.each([
@@ -9,7 +14,9 @@ describe("Swedish memory sentences use the definite form of the domain", () => {
     ["projects", "projekten", "Projekten"],
     ["tasks", "uppgifterna", "Uppgifterna"],
   ] as const)("%s", (domain, definite, capitalised) => {
-    expect(controlSv.confirmTitle(domain)).toBe(`Slå av ${definite}?`);
+    expect(controlSv.confirmTitle(domain)).toBe(
+      `Slå av minnet av ${definite}?`,
+    );
     expect(controlSv.confirmYes(domain)).toBe(
       `Ja, radera minnet av ${definite}`,
     );
@@ -17,7 +24,7 @@ describe("Swedish memory sentences use the definite form of the domain", () => {
       `Bara Sidekicks minne av ${definite} raderas. ${capitalised} ändras inte.`,
     );
     expect(controlSv.deletionStarted(domain)).toBe(
-      `${capitalised} är avslagen. Minnet raderas inom några minuter.`,
+      `Minnet av ${definite} är avslaget. Det Sidekick mindes raderas inom några minuter.`,
     );
   });
 
@@ -45,6 +52,40 @@ describe("English memory sentences", () => {
     expect(controlEn.deletionStarted("projects")).toBe(
       "Memory is off for your projects. What Sidekick remembered will be deleted within a few minutes.",
     );
+    expect(controlEn.forget("contacts")).toBe("Forget the contact");
+    expect(controlEn.countStuck(2)).toBe("2 waiting for memory");
+  });
+});
+
+describe("Swedish forget sentences name the record", () => {
+  it.each([
+    ["journal", "anteckningen"],
+    ["contacts", "kontakten"],
+    ["projects", "projektet"],
+    ["tasks", "uppgiften"],
+  ] as const)("%s", (domain, definite) => {
+    expect(controlSv.forget(domain)).toBe(`Glöm ${definite}`);
+    expect(controlSv.forgetYes(domain)).toBe(`Ja, glöm ${definite}`);
+    expect(controlSv.forgetTitle(domain, null)).toBe(`Glöm ${definite}?`);
+    expect(controlSv.forgetBody(domain)).toContain(
+      `Själva ${definite} ändras inte`,
+    );
+  });
+});
+
+describe("Swedish participles follow the gender of the kind", () => {
+  it("uses the neuter form after a neuter noun and the common form otherwise", () => {
+    expect(trashedWhen(controlSv, "igår 14:30", "project")).toBe(
+      "borttaget igår 14:30",
+    );
+    expect(trashedWhen(controlSv, "igår 14:30", "task")).toBe(
+      "borttagen igår 14:30",
+    );
+    expect(actionName(controlSv, "created", "project")).toBe("skapat");
+    expect(actionName(controlSv, "updated", "domain")).toBe("ändrat");
+    expect(actionName(controlSv, "created", "task")).toBe("skapad");
+    expect(actionName(controlEn, "created", "project")).toBe("created");
+    expect(actionName(controlSv, "unknown", "project")).toBe("unknown");
   });
 });
 
@@ -78,7 +119,7 @@ describe("Control tab meta lines", () => {
   });
 
   it("say how many sources are on, and name the source list", () => {
-    expect(controlSv.sourcesOn(3, 4)).toBe("3 av 4 källor");
+    expect(controlSv.sourcesOn(3, 4)).toBe("3 av 4 källor på");
     expect(controlEn.sourcesOn(3, 4)).toBe("3 of 4 sources on");
     expect(controlSv.sourcesTitle).toBe("Källor");
     expect(controlEn.sourcesTitle).toBe("Sources");

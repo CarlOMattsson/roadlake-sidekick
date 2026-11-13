@@ -372,8 +372,8 @@ export function useTaskSteps(
 
   /** The Step's Actions were read or changed: the row offers "Visa åtgärder" only while there are some. */
   const setActionCount = useCallback(
-    (stepId: string, count: number) =>
-      dispatch({ type: "actionsCounted", stepId, count }),
+    (stepId: string, count: number, done: number) =>
+      dispatch({ type: "actionsCounted", stepId, count, done }),
     [],
   );
 

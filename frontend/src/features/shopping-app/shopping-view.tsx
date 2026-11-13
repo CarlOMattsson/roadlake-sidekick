@@ -366,9 +366,17 @@ export function ShoppingView({
             compact={compact}
             expanded={panels.expanded}
             storeMode={storeMode}
+            shopLabel={view.shopLabel}
             env={rowEnv}
             onExpanded={(value) => setPanel("expanded", value)}
           />
+          {/* Everything bought: the fold alone would not say the list is done (the card says it too). */}
+          {storeMode &&
+            rows.length === 0 &&
+            purchased.length > 0 &&
+            !list.archived && (
+              <p className="shopping-all-bought">{t.allBought}</p>
+            )}
           <PurchasedFold
             purchased={purchased}
             open={panels.boughtOpen}

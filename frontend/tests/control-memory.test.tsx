@@ -167,7 +167,7 @@ describe("MemoryView status", () => {
     );
     expect(
       screen.getByText(
-        metaLine("På · pausad · 12 anteckningar i minnet · 2 på väg"),
+        metaLine("På · pausad · 12 anteckningar i minnet · 2 väntar"),
       ),
     ).toBeVisible();
     expect(
@@ -460,7 +460,9 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
       domain: "journal",
       value: false,
     });
-    const question = screen.getByRole("group", { name: "Slå av dagboken?" });
+    const question = screen.getByRole("group", {
+      name: "Slå av minnet av dagboken?",
+    });
     expect(question).toHaveTextContent(
       "Bara Sidekicks minne av dagboken raderas (12 poster). Dagboken ändras inte.",
     );
@@ -486,7 +488,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     });
     await waitFor(() =>
       expect(
-        screen.queryByRole("group", { name: "Slå av dagboken?" }),
+        screen.queryByRole("group", { name: "Slå av minnet av dagboken?" }),
       ).toBeNull(),
     );
   });
@@ -508,7 +510,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     expect(setMemory).toHaveBeenCalledTimes(1);
     expect(setMemory.mock.calls.some(([c]) => c.confirm === true)).toBe(false);
     expect(
-      screen.queryByRole("group", { name: "Slå av dagboken?" }),
+      screen.queryByRole("group", { name: "Slå av minnet av dagboken?" }),
     ).toBeNull();
     expect(screen.getByRole("switch", { name: "Dagbok: på" })).toBeEnabled();
   });
@@ -526,7 +528,9 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
       />,
     );
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
-    const question = screen.getByRole("group", { name: "Slå av dagboken?" });
+    const question = screen.getByRole("group", {
+      name: "Slå av minnet av dagboken?",
+    });
     await waitFor(() => expect(question).toHaveFocus());
     expect(
       within(question)
@@ -560,7 +564,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     );
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
     expect(
-      screen.getByRole("group", { name: "Slå av dagboken?" }),
+      screen.getByRole("group", { name: "Slå av minnet av dagboken?" }),
     ).toHaveTextContent(
       "Bara Sidekicks minne av dagboken raderas. Dagboken ändras inte.",
     );
@@ -584,7 +588,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
       controlSv.memoryConflict,
     );
     expect(
-      screen.queryByRole("group", { name: "Slå av dagboken?" }),
+      screen.queryByRole("group", { name: "Slå av minnet av dagboken?" }),
     ).toBeNull();
     expect(transport.memoryStatus).toHaveBeenCalledTimes(1);
   });
@@ -619,7 +623,7 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
     );
 
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Dagboken är avslagen. Minnet raderas inom några minuter.",
+      "Minnet av dagboken är avslaget. Det Sidekick mindes raderas inom några minuter.",
     );
     expect(screen.getByText("· raderas…")).toBeVisible();
     expect(

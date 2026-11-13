@@ -321,7 +321,7 @@ describe("memory: a saved change tells the host model once", () => {
     await user.click(screen.getByRole("switch", { name: "Dagbok: på" }));
 
     expect(
-      await screen.findByRole("group", { name: "Slå av dagboken?" }),
+      await screen.findByRole("group", { name: "Slå av minnet av dagboken?" }),
     ).toBeInTheDocument();
     expect(onModelContext).not.toHaveBeenCalled();
   });

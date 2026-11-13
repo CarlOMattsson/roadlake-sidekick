@@ -1,7 +1,6 @@
 """Users and personal access tokens (MCP and companion credentials)."""
 
 from datetime import datetime
-from typing import ClassVar
 from uuid import UUID
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
@@ -14,10 +13,7 @@ from .base import SCHEMA, Base
 
 class UserRow(Base):
     __tablename__ = "users"
-    # SQLAlchemy's declarative base types `__table_args__` as an instance attribute.
-    __table_args__: ClassVar[dict[str, str]] = {  # pyright: ignore[reportIncompatibleVariableOverride]
-        "schema": SCHEMA
-    }
+    __table_args__ = ({"schema": SCHEMA},)
     id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     username: Mapped[str] = mapped_column(String(120), unique=True)
     display_name: Mapped[str] = mapped_column(String(120))

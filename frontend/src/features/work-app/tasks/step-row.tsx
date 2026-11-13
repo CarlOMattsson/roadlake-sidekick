@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CloseIcon } from "../../mcp-apps/ui/icons";
+import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { UndoMeta } from "../agenda/agenda-undo";
@@ -8,7 +8,7 @@ import type { ManageLabels } from "../shared/manage-labels";
 import { StepActions } from "../steps/step-actions";
 import {
   RowMenuButton,
-  menuButtonOf,
+  RowMenuClose,
   rowMenuHandlers,
   rowMenuHint,
 } from "../shared/row-menu";
@@ -39,7 +39,8 @@ function StepReadMark({ done, label }: { done: boolean; label: string }) {
 /**
  * One Step of the list: the checkbox and the title, and the Step's Actions under the title. A long press (touch), a
  * right click, Shift+F10 or the menu key on the Step opens its menu (as Work's rows; the ⋯ is gone): one row of
- * buttons under the title, Up, Down, Archive and "Visa åtgärder", and × at its end, which closes it as Escape does.
+ * buttons under the title, Up, Down and Archive, and × at its end, which closes it as Escape does. A Step that has
+ * Actions says how many under its title; that count opens and closes the list.
  * The check says so to a screen reader (aria-keyshortcuts, aria-description). The menu stays open after a move, so
  * the focus rule keeps the moved row's Up or Down button.
  */
@@ -58,6 +59,7 @@ export function StepRow({
   onMove,
   onArchive,
   actions,
+  actionsDone,
   onActionCount,
 }: {
   step: WorkStep;
@@ -77,18 +79,21 @@ export function StepRow({
   onMove?: (delta: -1 | 1) => void;
   /** Absent: no Archive. */
   onArchive?: () => void;
-  /** False: no "Visa åtgärder". With no menu entry at all, the Step has no menu (no long press, no hint). */
+  /** False: no Actions under the Step (no count to open them). */
   actions: boolean;
-  /** The Step's Actions were read or changed; `count` is how many are active. */
-  onActionCount: (count: number) => void;
+  /** How many of the Step's Actions are done; unknown until they have been read. */
+  actionsDone?: number;
+  /** The Step's Actions were read or changed; `count` is how many are active and `done` how many of them are done. */
+  onActionCount: (count: number, done: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  // The Step's Actions open from this menu; they stay open until the menu's button closes them.
+  // The Step's Actions open from the count under its title; they stay open until that button closes them.
   const [actionsOpen, setActionsOpen] = useState(false);
-  // A Step known to have no Actions offers no "Visa åtgärder"; an unknown count (an older server) still does.
-  // While they are open the button stays, so archiving the last Action does not take away the way to close them.
-  const offersActions = actions && (actionsOpen || step.action_count !== 0);
-  const hasMenu = Boolean(onMove || onArchive || offersActions);
+  const hasMenu = Boolean(onMove || onArchive);
+  // A Step known to have no Actions shows no count; while they are open the button stays, so archiving the last
+  // Action does not take away the way to close them.
+  const actionCount = step.action_count ?? 0;
+  const showCount = actions && (actionsOpen || actionCount > 0);
   const s = stepActionsLabelsFor(t.dateLocale);
   return (
     <li
@@ -141,6 +146,17 @@ export function StepRow({
           onExpire={onExpire}
         />
       )}
+      {showCount && (
+        <button
+          type="button"
+          className="work-step-actions-open"
+          aria-expanded={actionsOpen}
+          onClick={() => setActionsOpen((value) => !value)}
+        >
+          {s.countMeta(actionCount, actionsDone)}
+          <ChevronDownIcon size={16} />
+        </button>
+      )}
       {hasMenu && open && (
         <div className="work-step-menu">
           <RowControls
@@ -153,32 +169,7 @@ export function StepRow({
             onMove={onMove}
             onArchive={onArchive}
           />
-          {offersActions && (
-            <button
-              type="button"
-              className="work-step-actions-open"
-              aria-expanded={actionsOpen}
-              onClick={() => setActionsOpen((value) => !value)}
-            >
-              {actionsOpen ? s.hide : s.show}
-            </button>
-          )}
-          <button
-            type="button"
-            className="sk-iconbtn work-step-menu-close"
-            aria-label={t.closeMenu}
-            onClick={(event) => {
-              // The close button unmounts with the menu: the focus goes where Escape sends it.
-              const row = event.currentTarget.closest("li");
-              (
-                menuButtonOf(row) ??
-                row?.querySelector<HTMLElement>("input, button")
-              )?.focus();
-              setOpen(false);
-            }}
-          >
-            <CloseIcon />
-          </button>
+          <RowMenuClose label={t.closeMenu} close={() => setOpen(false)} />
         </div>
       )}
       {actions && (

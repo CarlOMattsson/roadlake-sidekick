@@ -21,6 +21,7 @@ from sidekick.shared.errors import ConflictError, NotFoundError, PermissionDenie
 from sidekick.shared.types import Actor, new_uuid7
 from sidekick.shopping.application.schemas import BatchItem, ItemInput
 from sidekick.shopping.application.service import LOGGER as SHOPPING_LOGGER
+from sidekick.shopping.application.service import ItemPatch
 from sidekick.shopping.persistence.rows import ShoppingStatusRow
 from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
@@ -197,6 +198,61 @@ def test_foreign_contact_rejects_whole_batch_and_scopes_apply_before_replay():
     assert archived.shopping_list.archived
     with pytest.raises(ConflictError):
         c.shopping.add_items(actor, own, good, idempotency_key="archived-write")
+
+
+@pytest.mark.integration
+def test_item_reads_name_the_recipient_only_from_the_owners_contacts_with_the_scope():
+    factory, _, c, actor, second, _, _ = setup()
+    list_id = c.shopping.create_list(actor, "Gifts", idempotency_key="names-list").shopping_list.id
+    contact = c.contacts.create(
+        actor, CreateContactCommand(display_name="Astrid Ek"), idempotency_key="names-contact"
+    )
+    foreign = c.contacts.create(
+        second, CreateContactCommand(display_name="Foreign Name"), idempotency_key="names-foreign"
+    )
+    added = c.shopping.add_items(
+        actor,
+        list_id,
+        [
+            BatchItem(name="Scarf", client_ref="gift", recipient_contact_id=contact.id),
+            BatchItem(name="Milk", client_ref="plain"),
+        ],
+        idempotency_key="names-batch",
+    )
+    assert [item.item.recipient_contact_name for item in added.items] == ["Astrid Ek", None]
+    gift_id = added.items[0].item.id
+
+    def names() -> list[str | None]:
+        return [item.recipient_contact_name for item in c.shopping.get_list(actor, list_id).items]
+
+    assert names() == ["Astrid Ek", None]
+    patched = c.shopping.update_item(
+        actor,
+        gift_id,
+        ItemPatch(note="Wrapped"),
+        version=1,
+        idempotency_key="names-update",
+    )
+    assert patched.item.recipient_contact_name == "Astrid Ek"
+    bought = c.shopping.set_purchased(
+        actor, gift_id, purchased=True, version=2, idempotency_key="names-buy"
+    )
+    assert bought.item.recipient_contact_name == "Astrid Ek"
+    reader = Actor(actor.user_id, frozenset({"shopping:read"}))
+    seen = c.shopping.get_list(reader, list_id).items[0]
+    assert seen.recipient_contact_id == contact.id and seen.recipient_contact_name is None
+    with factory() as session:
+        assert c.shopping.store.contact_display_names(session, actor.user_id, (foreign.id,)) == {}
+    c.contacts.archive(actor, contact.id, contact.version, "names-archive")
+    assert names() == ["Astrid Ek", None]
+    c.shopping.update_item(
+        actor,
+        gift_id,
+        ItemPatch(recipient_contact_id=None),
+        version=3,
+        idempotency_key="names-clear",
+    )
+    assert names() == [None, None]
 
 
 @pytest.mark.integration

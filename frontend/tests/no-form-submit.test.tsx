@@ -17,6 +17,7 @@ import {
   meetings,
   openPanel,
   renderBar,
+  unfoldEdit,
 } from "./helpers/saved-views-fixtures";
 
 // The host may sandbox an MCP App without `allow-forms`, and then no form ever submits. These tests
@@ -140,9 +141,8 @@ describe("Saved views without form submission", () => {
     const user = userEvent.setup();
     renderBar({ transport: fake.transport });
     await openPanel(user);
-    await user.click(
-      await screen.findByRole("button", { name: "Byt namn: Möten" }),
-    );
+    await unfoldEdit(user, "Möten");
+    await user.click(screen.getByRole("button", { name: "Byt namn: Möten" }));
     const edit = screen.getByRole("form", { name: "Byt namn: Möten" });
     const input = within(edit).getByRole("textbox");
     await user.clear(input);

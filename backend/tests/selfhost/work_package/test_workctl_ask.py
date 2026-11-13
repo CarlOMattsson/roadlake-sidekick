@@ -225,11 +225,21 @@ def test_the_confirm_command_default_no_is_no_at_end_of_input() -> None:
     assert result.returncode == 1
 
 
+# Upper bound for the child's start-up and exit; the tests wait for the terminal state and the exit
+# itself, so this only turns a genuine hang into a failure on a machine that is far oversubscribed.
+GUARD_SECONDS = 120
+
+
 def _wait_for_echo_state(fd: int, echo: bool) -> None:
-    deadline = time.monotonic() + 30
+    deadline = time.monotonic() + GUARD_SECONDS
     while bool(termios.tcgetattr(fd)[3] & termios.ECHO) != echo:
         assert time.monotonic() < deadline, "the terminal never reached the expected echo state"
         time.sleep(0.02)
+
+
+def _default_signal_handlers() -> None:
+    for number in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(number, signal.SIG_DFL)
 
 
 @pytest.mark.parametrize("sent", [signal.SIGTERM, signal.SIGHUP])
@@ -241,11 +251,13 @@ def test_a_signal_during_a_secret_prompt_puts_the_echo_back(sent: signal.Signals
         stdin=slave,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        # A run under nohup ignores SIGHUP, and an ignored signal stays ignored in the child.
+        preexec_fn=_default_signal_handlers,
     )
     try:
         _wait_for_echo_state(slave, echo=False)
         child.send_signal(sent)
-        child.communicate(timeout=30)
+        child.communicate(timeout=GUARD_SECONDS)
         assert child.returncode == -sent
         assert termios.tcgetattr(slave)[3] & termios.ECHO
     finally:

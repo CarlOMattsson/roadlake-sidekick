@@ -72,6 +72,27 @@ describe("the Project page's head", () => {
     ).toBeInTheDocument();
   });
 
+  it("writes the dates as one plain meta line, not as pills like the tags", async () => {
+    const { container } = renderProject(
+      {
+        ...projectA,
+        start_date: "2026-09-01",
+        target_date: "2026-12-15",
+      },
+      vi.fn(),
+      workEn,
+    );
+    const dates = await waitFor(() => {
+      const found = container.querySelector(".work-project-dates");
+      expect(found).not.toBeNull();
+      return found as Element;
+    });
+    expect(dates.textContent).toBe(
+      `${workEn.startDate}: 1 Sep${workEn.targetDate}: 15 Dec`,
+    );
+    expect(dates.querySelector(".work-chip")).toBeNull();
+  });
+
   it("draws no line when there is neither an Area nor a count", async () => {
     const { container } = renderProject(projectA, vi.fn());
     await screen.findByText(projectA.description as string);

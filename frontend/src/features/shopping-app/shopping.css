@@ -530,6 +530,22 @@
     min-width: 16px;
   }
 }
+/* The row's text: the name line, then (when the item has one) the meta line under it. */
+.sidekick-shopping .shopping-store-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+/* Occasion, date, offer and note on one muted line, cut with an ellipsis; the change form has the whole text. */
+.sidekick-shopping .shopping-store-meta {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* The name takes the free width and the amount sits at the right end of the same text line: one baseline. */
 .sidekick-shopping .shopping-store-text {
   display: flex;
@@ -735,6 +751,11 @@
 }
 /* The long-press tip last in the store view's list (designsystem §3 Listrad, as Arbetes .work-row-tip): 24 above,
    gone for good after the first long press (document attribute set by shopping-view.tsx). */
+/* "Allt är köpt." above the folded "Köpta (n)": the list is done. */
+.sidekick-shopping .shopping-all-bought {
+  margin: var(--sk-s3) 0 0;
+  font: var(--sk-type-body);
+}
 .sidekick-shopping .shopping-hold-tip {
   margin: var(--sk-s5) 0 0;
   font: var(--sk-type-meta);

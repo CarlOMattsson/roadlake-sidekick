@@ -56,14 +56,15 @@ export function ListSummary({
           {t.evaluated}: {formatCalendarDate(detail.evaluated_on, t.dateLocale)}
         </p>
       )}
-      {!storeMode && (
+      {/* The store view has no archive button, but an archived list says why its rows are still and offers Restore. */}
+      {(!storeMode || list.archived) && (
         <div className="shopping-toolbar">
-          {!folded && (
+          {list.archived && <span>{t.archived}</span>}
+          {(storeMode || !folded) && (
             <button disabled={busy} onClick={onArchive}>
               {list.archived ? t.restore : t.archive}
             </button>
           )}
-          {list.archived && <span>{t.archived}</span>}
         </div>
       )}
     </>

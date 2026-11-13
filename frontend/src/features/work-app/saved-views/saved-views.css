@@ -76,25 +76,91 @@
   padding: 0;
 }
 .sidekick-work .work-saved-view {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.6rem;
-  padding-block: 0.35rem;
+  padding-block: 0.15rem;
   min-width: 0;
   border-bottom: var(--work-border-width) solid var(--work-line);
 }
-.sidekick-work .work-saved-view-name {
-  flex: 1 1 8rem;
+/* One row per view: the name opens the view, "Ändra" at the end unfolds rename and archive. */
+.sidekick-work .work-saved-view-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   min-width: 0;
+}
+.sidekick-work .work-saved-view-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+  justify-items: start;
+  text-align: start;
+  padding: 0.35rem 0.25rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sidekick-work
+  .work-saved-view-open[aria-current="true"]
+  .work-saved-view-name {
+  font-weight: var(--sk-weight-medium);
+}
+.sidekick-work .work-saved-view-open:disabled {
+  cursor: default;
+}
+.sidekick-work .work-saved-view-name {
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
-.sidekick-work .work-saved-view-mark {
+/* The one-line summary of what a view holds, here and in the save form. */
+.sidekick-work .work-saved-view-meta,
+.sidekick-work .work-saved-views-save > .work-saved-views-meta {
+  max-width: 100%;
   font-size: 0.85rem;
   color: var(--work-muted);
 }
-.sidekick-work .work-saved-view .work-manage-controls {
-  margin: 0;
+.sidekick-work .work-saved-view-meta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidekick-work .work-saved-view-edit {
+  flex: none;
+  min-width: 2.75rem;
+  padding-inline: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--work-muted);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sidekick-work .work-saved-view .work-saved-view-edit-menu {
+  margin: 0 0 0.4rem;
+  padding-inline-start: 0.25rem;
+}
+/* The receipt under the tab row: which saved view the tab shows. Empty, it takes no room. */
+.sidekick-work .work-saved-view-receipt {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--work-muted);
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-saved-view-receipt:empty {
+  display: none;
+}
+/* The text first, then "Visa allt" as a button of its own (44 to tap); a failed way back says so on its own line. */
+.sidekick-work .work-saved-view-receipt:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s2);
+}
+.sidekick-work .work-saved-view-receipt > button {
+  min-height: 2.75rem;
+}
+.sidekick-work .work-saved-view-receipt-failed {
+  flex-basis: 100%;
 }
 .sidekick-work .work-saved-view-rename {
   display: grid;

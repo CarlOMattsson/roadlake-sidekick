@@ -124,3 +124,34 @@ describe("the item change form shows the main fields first", () => {
     expect(more).toHaveTextContent("2 ifyllda");
   });
 });
+
+describe("the recipient of a gift item", () => {
+  const linked = {
+    recipient_contact_id: "019f0000-0000-7000-8000-0000000000c1",
+  };
+
+  it("shows the contact name where the recipient is not among the search hits", () => {
+    renderEditor(item({ ...linked, recipient_contact_name: "Astrid Ek" }));
+    expect(
+      screen.getByRole("option", { name: "Astrid Ek", hidden: true }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(shoppingEn.linkedContact)).toBeNull();
+  });
+
+  it("falls back to the general label when the server sent no name", () => {
+    renderEditor(item({ ...linked, recipient_contact_name: null }));
+    expect(
+      screen.getByRole("option", {
+        name: shoppingEn.linkedContact,
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the Swedish label when the name is missing", () => {
+    renderEditor(item(linked), shoppingSv);
+    expect(
+      screen.getByRole("option", { name: "Nuvarande mottagare", hidden: true }),
+    ).toBeInTheDocument();
+  });
+});

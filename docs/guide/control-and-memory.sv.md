@@ -39,7 +39,7 @@ Under varje källa som är på trycker du på "Visa vad Sidekick minns" för ett
 
 ## Håll en enskild post utanför minnet
 
-Tryck på "Glöm den här" på ett faktum. Allt minnet har från den posten tas bort, och posten själv ändras inte. Du kan också be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
+Tryck på "Glöm anteckningen" (för en kontakt, ett projekt eller en uppgift heter knappen efter den posten) vid ett faktum. Allt minnet har från hela den posten, inte bara det faktumet, tas bort, och posten själv ändras inte. Du kan också be Claude, till exempel: "Håll det här dagboksinlägget utanför minnet." Posten finns kvar i rummet men används inte av minnet. Du kan be Claude ta in den igen.
 
 ## Ange en licensnyckel
 

@@ -4,6 +4,7 @@ from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
+from sidekick.contacts.application.models import TaskProgress
 from sidekick.contacts.domain.contact import Contact
 from sidekick.projects.domain import Project
 from sidekick.shared.types import (
@@ -92,6 +93,9 @@ class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTag
         after: tuple[KeyValue, ...] | None = None,
         include_completed: bool = False,
     ) -> list[Project]: ...
+    def project_task_progress(
+        self, session: TxSession, owner_id: UUID, project_ids: list[UUID]
+    ) -> dict[UUID, TaskProgress]: ...
     def list_linked_tasks(
         self,
         session: TxSession,

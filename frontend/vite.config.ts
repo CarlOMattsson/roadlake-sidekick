@@ -12,6 +12,8 @@ export default defineConfig({
     setupFiles: "./tests/setup.ts",
     exclude: [
       "tests/e2e/**",
+      // Playwright specs against a real backend (playwright.real-backend.config.ts).
+      "tests/e2e-real/**",
       // Screenshot scripts: run by hand with Playwright, never by vitest.
       "tests/ux/**",
       "node_modules/**",

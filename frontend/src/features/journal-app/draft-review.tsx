@@ -318,6 +318,8 @@ export function DraftFrame({
     </div>
   ) : null;
 
+  const original = <OriginalText source={source} labels={t} />;
+
   return (
     <article className="journal-draft">
       <h2 ref={heading} tabIndex={-1}>
@@ -374,11 +376,13 @@ export function DraftFrame({
                 labels={t}
               />
               {tagField}
+              {original}
             </>
           ) : (
             <DraftReading
               draft={draft}
               tags={pending ? tagField : null}
+              original={original}
               pending={pending}
               editDisabled={busy || hiddenProposals || confirm !== undefined}
               hiddenProposals={hiddenProposals}
@@ -392,7 +396,6 @@ export function DraftFrame({
               labels={t}
             />
           )}
-          <OriginalText source={source} labels={t} />
           {pending && (
             <>
               <RelationsSection

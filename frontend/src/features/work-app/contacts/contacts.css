@@ -474,11 +474,9 @@
   }
 }
 
-/* A Contact's relationship ("Leverantör") on a card is a word about the person, not a control: muted text in the meta
-   type with no frame, so it never reads as a button beside "Öppna ›". The inline
-   summary draws it as a .work-chip; inside the contact card's text column it takes the same form. */
-.sidekick-work .work-contact-relation,
-.sidekick-work .work-compact-contact-text > p > .work-chip {
+/* A Contact's relationship ("Leverantör") is a word about the person, not a control: muted text in the meta type with
+   no frame, so it never reads as a button beside "Öppna ›". (The inline cards' own words are in inline-summary.css.) */
+.sidekick-work .work-contact-relation {
   display: inline;
   margin: 0;
   padding: 0;

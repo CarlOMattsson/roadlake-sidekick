@@ -1,6 +1,7 @@
 import type { KeyboardEvent } from "react";
 import type { EmptyAsk } from "../../mcp-apps/ui/states";
 import type { ShoppingItem } from "../transport";
+import type { ShoppingLabels } from "../labels";
 
 /** The most item names one add may carry (the tool's limit). */
 export const MAX_ADD_ITEMS = 50;
@@ -115,6 +116,62 @@ export function formatCalendarDate(value: string, locale: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+/** A calendar date without the year ("20 nov"), for the row's meta line where the year only costs width. */
+function formatShortDate(value: string, locale: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    .toLocaleDateString(locale, { month: "short", day: "numeric" })
+    .replace(/\.$/, "");
+}
+
+/** A price in the locale's currency format without empty decimals: "199 kr" in Swedish, "SEK 199" in English. */
+function formatPrice(value: string, currency: string, locale: string): string {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return `${value} ${currency}`;
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: Number.isInteger(number) ? 0 : 2,
+    }).format(number);
+  } catch {
+    return `${value} ${currency}`;
+  }
+}
+
+/**
+ * What a store-view row says besides its name and amount, as one muted line: the offer ("199 kr (ord. 289 kr)", marked when it is
+ * not current), the date it is wanted by, the occasion and the note. Empty when the item has none of them.
+ */
+export function itemMeta(item: ShoppingItem, t: ShoppingLabels): string {
+  const { offer } = item;
+  const price = (value: string, currency: string) =>
+    formatPrice(value, currency, t.dateLocale);
+  const offerText = offer
+    ? [
+        price(offer.price, offer.currency) +
+          (offer.regular_price
+            ? ` (${t.regularShort(price(offer.regular_price, offer.currency))})`
+            : ""),
+        item.offer_status === "current"
+          ? ""
+          : t[item.offer_status].toLocaleLowerCase(t.dateLocale),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  return [
+    offerText,
+    item.target_date &&
+      t.untilDate(formatShortDate(item.target_date, t.dateLocale)),
+    item.occasion,
+    item.note,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /**

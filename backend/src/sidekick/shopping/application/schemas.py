@@ -81,6 +81,8 @@ class ItemRecord(ItemInput):
     created_at: datetime
     updated_at: datetime
     offer_status: OfferStatus
+    recipient_contact_name: str | None = None
+    """Display name of the gift recipient; only set when contacts:read is held."""
 
 
 class ListsResult(Closed):

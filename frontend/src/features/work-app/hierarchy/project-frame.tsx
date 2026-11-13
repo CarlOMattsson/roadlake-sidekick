@@ -217,20 +217,37 @@ export function ProjectFrame({
                   {t.status}: {projectStatusLabel(t, project.status)}
                 </p>
               )}
-              {project.start_date && (
-                <p className="work-chip">
-                  {t.startDate}:{" "}
-                  <time dateTime={project.start_date}>
-                    {workDate(project.start_date, new Date(), t.dateLocale)}
-                  </time>
-                </p>
-              )}
-              {project.target_date && (
-                <p className="work-chip">
-                  {t.targetDate}:{" "}
-                  <time dateTime={project.target_date}>
-                    {workDate(project.target_date, new Date(), t.dateLocale)}
-                  </time>
+              {/* The dates are plain meta text, one line: the pill shape belongs to the tags below. */}
+              {(project.start_date || project.target_date) && (
+                <p className="work-card-meta work-project-dates">
+                  {project.start_date && (
+                    <span>
+                      {t.startDate}:{" "}
+                      <time dateTime={project.start_date}>
+                        {workDate(
+                          project.start_date,
+                          new Date(),
+                          t.dateLocale,
+                          {
+                            inline: true,
+                          },
+                        )}
+                      </time>
+                    </span>
+                  )}
+                  {project.target_date && (
+                    <span>
+                      {t.targetDate}:{" "}
+                      <time dateTime={project.target_date}>
+                        {workDate(
+                          project.target_date,
+                          new Date(),
+                          t.dateLocale,
+                          { inline: true },
+                        )}
+                      </time>
+                    </span>
+                  )}
                 </p>
               )}
               {/* The tags under the dates, as on a Task: the pills and one quiet button that edits them in place. */}

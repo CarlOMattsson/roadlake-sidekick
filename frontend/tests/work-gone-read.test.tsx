@@ -222,7 +222,7 @@ describe("a record that no longer exists when it is read", () => {
       await screen.findByText(inlineSummaryLabelsEn.goneContact),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: inlineSummaryLabelsEn.open }),
+      screen.queryByRole("button", { name: inlineSummaryLabelsEn.showContact }),
     ).not.toBeInTheDocument();
   });
 
@@ -235,6 +235,7 @@ describe("a record that no longer exists when it is read", () => {
         contact={anna}
         transport={transport}
         labels={cardLabelsSv}
+        locale="sv-SE"
         onOpen={vi.fn()}
         onEdit={vi.fn()}
       />,

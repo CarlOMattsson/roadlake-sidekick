@@ -230,15 +230,19 @@ export function DayFrame({
   const tellClaudeAction = onTellClaude
     ? () => (tellMore ? tellMore() : onTellClaude(dayMessage))
     : undefined;
-  const addAction = canWrite
-    ? () => {
-        if (tellClaudeAction) setAddOpen((open) => !open);
-        else {
-          setCreated(false);
-          setComposing(true);
+  // With a tag chosen the view is a list over many days and no day is shown, so + has no day to write on: it is gone
+  // until the filter is cleared or a day is tapped in the strip (either shows that day, + included).
+  const addAction = dayTags.filtered
+    ? undefined
+    : canWrite
+      ? () => {
+          if (tellClaudeAction) setAddOpen((open) => !open);
+          else {
+            setCreated(false);
+            setComposing(true);
+          }
         }
-      }
-    : tellMore;
+      : tellMore;
   function writeEntry(
     values: { title: string; text: string },
     idempotencyKey: string,
@@ -391,7 +395,7 @@ export function DayFrame({
         below={
           // Mounted only while open: a closed panel between the week and the content would part the strip from the
           // summary and heading that follow it (journal.css).
-          canWrite && tellClaudeAction && addOpen ? (
+          canWrite && tellClaudeAction && addOpen && !dayTags.filtered ? (
             <KeyScope
               id={addPanel}
               className="journal-add-panel"
@@ -548,7 +552,7 @@ export function DayFrame({
             </ul>
           )}
           {!expanded && page.entries.length > inlineEntryLimit && (
-            <p>
+            <p className="journal-list-more">
               <button
                 type="button"
                 className="sk-btn--quiet"

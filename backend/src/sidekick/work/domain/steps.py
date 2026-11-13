@@ -70,7 +70,10 @@ class Step:
             raise ValidationError("at least one step change is required")
         if status is not UNSET and status != self.status:
             changes["completed_at"] = now if status is TaskStatus.COMPLETED else None
-        return replace(self, **changes, updated_at=now, version=self.version + 1)
+        candidate = replace(self, **changes)
+        if candidate == self:
+            return self
+        return replace(candidate, updated_at=now, version=self.version + 1)
 
     def complete(self, *, now: datetime) -> "Step":
         if self.status is TaskStatus.COMPLETED:
@@ -138,6 +141,7 @@ class Action:
         *,
         now: datetime,
         title: str | UnsetType = UNSET,
+        status: ActionStatus | UnsetType = UNSET,
         due_at: datetime | None | UnsetType = UNSET,
         attention_requested: bool | UnsetType = UNSET,
         note: str | None | UnsetType = UNSET,
@@ -146,6 +150,7 @@ class Action:
             key: value
             for key, value in {
                 "title": title,
+                "status": status,
                 "due_at": due_at,
                 "attention_requested": attention_requested,
                 "note": note,
@@ -154,7 +159,10 @@ class Action:
         }
         if not changes:
             raise ValidationError("at least one action change is required")
-        return replace(self, **changes, updated_at=now, version=self.version + 1)
+        candidate = replace(self, **changes)
+        if candidate == self:
+            return self
+        return replace(candidate, updated_at=now, version=self.version + 1)
 
     def archive(self, *, now: datetime) -> "Action":
         if self.archived_at is not None:

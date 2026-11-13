@@ -1,4 +1,11 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
@@ -84,6 +91,11 @@ function setup(overrides: Partial<WorkTransport> = {}) {
     reorderStepActions: vi.fn((_stepId: string, items: WorkOrderItem[]) =>
       Promise.resolve(reordered(items)),
     ),
+    completeStepAction: vi.fn(() =>
+      Promise.resolve({
+        action: { ...first, status: "completed", version: 2 },
+      }),
+    ),
     archiveStepAction: vi.fn(() =>
       Promise.resolve({
         action: { ...first, version: 2, archived_at: "2026-11-02T08:00:00Z" },
@@ -97,7 +109,7 @@ function setup(overrides: Partial<WorkTransport> = {}) {
 }
 
 /**
- * The Step row's side of the Actions: its ⋯ menu's "Visa åtgärder" button opens and closes them, and
+ * The Step row's side of the Actions: the count under its title ("2 åtgärder") opens and closes them, and
  * StepActions draws nothing while they are closed.
  */
 function ActionsHarness({
@@ -105,7 +117,7 @@ function ActionsHarness({
   onCount = vi.fn(),
 }: {
   transport: WorkTransport;
-  onCount?: (count: number) => void;
+  onCount?: (count: number, done: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -115,7 +127,7 @@ function ActionsHarness({
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
       >
-        {open ? stepActionsLabelsSv.hide : stepActionsLabelsSv.show}
+        {stepActionsLabelsSv.countMeta(2)}
       </button>
       <StepActions
         step={step}
@@ -128,12 +140,19 @@ function ActionsHarness({
   );
 }
 
+/** Opens an Action row's menu with a right click, as the long press does. */
+function openMenu(title: string) {
+  fireEvent.contextMenu(
+    screen.getByRole("checkbox", { name: title }).closest("li") as HTMLElement,
+  );
+}
+
 async function openActions(
   user: ReturnType<typeof userEvent.setup>,
   transport: WorkTransport,
 ) {
   render(<ActionsHarness transport={transport} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
   await screen.findByText("Ring receptionen");
 }
 
@@ -147,7 +166,7 @@ it("reads the actions only when the button is opened, then lists them with their
   expect(
     screen.queryByRole("region", { name: regionName }),
   ).not.toBeInTheDocument();
-  const toggle = screen.getByRole("button", { name: "Visa åtgärder" });
+  const toggle = screen.getByRole("button", { name: "2 åtgärder" });
   expect(toggle).toHaveAttribute("aria-expanded", "false");
 
   await user.click(toggle);
@@ -155,21 +174,20 @@ it("reads the actions only when the button is opened, then lists them with their
   const region = screen.getByRole("region", { name: regionName });
   expect(await screen.findByText("Ring receptionen")).toBeInTheDocument();
   expect(screen.getByText("Skicka mejlet")).toBeInTheDocument();
-  expect(screen.getByText("Att göra")).toBeInTheDocument();
-  expect(screen.getByText("Klar")).toBeInTheDocument();
-  expect(screen.getByText("Åtgärder (2)")).toBeInTheDocument();
-  expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Dölj åtgärder" })).toHaveAttribute(
-    "aria-expanded",
-    "true",
-  );
+  // The count button names the list, so the list has no heading that says it again.
+  expect(screen.queryByText("Åtgärder (2)")).not.toBeInTheDocument();
+  // The state is the box: no "Att göra" or "Klar" is written out.
+  expect(screen.queryByText("Att göra")).not.toBeInTheDocument();
+  expect(screen.queryByText("Klar")).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("checkbox", { name: "Ring receptionen" }),
+  ).not.toBeChecked();
+  expect(screen.getByRole("checkbox", { name: "Skicka mejlet" })).toBeChecked();
+  expect(toggle).toHaveAttribute("aria-expanded", "true");
 
-  await user.click(screen.getByRole("button", { name: "Dölj åtgärder" }));
+  await user.click(toggle);
   expect(region).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Visa åtgärder" })).toHaveAttribute(
-    "aria-expanded",
-    "false",
-  );
+  expect(toggle).toHaveAttribute("aria-expanded", "false");
 });
 
 it("shows Laddar while the list is read", async () => {
@@ -181,7 +199,7 @@ it("shows Laddar while the list is read", async () => {
     ),
   });
   render(<ActionsHarness transport={transport} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
 
   expect(screen.getByText("Laddar…")).toHaveAttribute("role", "status");
   act(() => {
@@ -199,7 +217,7 @@ it("says there are no actions when the Step has none", async () => {
     ),
   });
   render(<ActionsHarness transport={transport} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
 
   expect(await screen.findByText("Inga åtgärder.")).toBeInTheDocument();
 });
@@ -207,6 +225,8 @@ it("says there are no actions when the Step has none", async () => {
 it("disables Up on the first row and Down on the last", async () => {
   const user = userEvent.setup();
   await openActions(user, setup());
+  openMenu("Ring receptionen");
+  openMenu("Skicka mejlet");
 
   expect(
     screen.getByRole("button", { name: "Flytta upp: Ring receptionen" }),
@@ -224,6 +244,7 @@ it("moves an Action with the whole list and the versions the view holds, then ke
   const transport = setup();
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Flytta ned: Ring receptionen" }),
   );
@@ -247,6 +268,7 @@ it("moves an Action with the whole list and the versions the view holds, then ke
   ).toHaveFocus();
 
   // The next move uses the versions of the answer, not the ones from the first read.
+  openMenu("Skicka mejlet");
   await user.click(
     screen.getByRole("button", { name: "Flytta ned: Skicka mejlet" }),
   );
@@ -265,6 +287,7 @@ it("archives an Action, offers Undo, and Undo restores it and reads the list aga
   const transport = setup();
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
   );
@@ -292,8 +315,9 @@ it("archives an Action, offers Undo, and Undo restores it and reads the list aga
     expect.stringMatching(KEY),
   );
   expect(transport.listStepActions).toHaveBeenCalledTimes(2);
+  // The restored row's menu is closed, so its box takes the focus.
   expect(
-    await screen.findByRole("button", { name: "Arkivera: Ring receptionen" }),
+    await screen.findByRole("checkbox", { name: "Ring receptionen" }),
   ).toHaveFocus();
   expect(
     screen.getByText("Återställde ”Ring receptionen”."),
@@ -308,10 +332,12 @@ it("restores an archived Action from the archived list and puts focus on its row
   const transport = setup();
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
   );
   // Archiving the next Action moves the Undo line to it; the first Action then joins the Archived list.
+  openMenu("Skicka mejlet");
   await user.click(
     screen.getByRole("button", { name: "Arkivera: Skicka mejlet" }),
   );
@@ -330,7 +356,7 @@ it("restores an archived Action from the archived list and puts focus on its row
   );
   expect(transport.listStepActions).toHaveBeenCalledTimes(2);
   expect(
-    await screen.findByRole("button", { name: "Arkivera: Ring receptionen" }),
+    await screen.findByRole("checkbox", { name: "Ring receptionen" }),
   ).toHaveFocus();
   expect(
     screen.getByText("Återställde ”Ring receptionen”."),
@@ -347,6 +373,7 @@ it("clears the move notice when the next write starts, so a refusal shows alone"
   });
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Flytta ned: Ring receptionen" }),
   );
@@ -354,6 +381,7 @@ it("clears the move notice when the next write starts, so a refusal shows alone"
     await screen.findByText(manageLabelsSv.moved("Ring receptionen", 2, 2)),
   ).toBeInTheDocument();
 
+  openMenu("Skicka mejlet");
   await user.click(
     screen.getByRole("button", { name: "Arkivera: Skicka mejlet" }),
   );
@@ -372,6 +400,7 @@ it("shows the conflict message on a stale reorder and Read again reads the list 
   });
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Flytta ned: Ring receptionen" }),
   );
@@ -399,6 +428,7 @@ it("retries a failed reorder with the same idempotency key", async () => {
   });
   await openActions(user, transport);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Flytta ned: Ring receptionen" }),
   );
@@ -418,7 +448,7 @@ it("shows a calm text when reading the actions is forbidden", async () => {
     listStepActions: vi.fn(() => Promise.reject(refusal("forbidden"))),
   });
   render(<ActionsHarness transport={transport} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
 
   expect(
     await screen.findByText(stepActionsLabelsSv.forbidden),
@@ -436,7 +466,7 @@ it("shows a failed read with Try again, which reads the list again", async () =>
     listStepActions: list as unknown as WorkTransport["listStepActions"],
   });
   render(<ActionsHarness transport={transport} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent(
     "Det gick inte att läsa. Försök igen.",
@@ -446,20 +476,21 @@ it("shows a failed read with Try again, which reads the list again", async () =>
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
 
-it("reports how many actions are active after the read and after an archive, for the Step's row", async () => {
+it("reports how many actions are active, and done, after the read and after an archive, for the Step's row", async () => {
   const user = userEvent.setup();
   const onCount = vi.fn();
   const transport = setup();
   render(<ActionsHarness transport={transport} onCount={onCount} />);
-  await user.click(screen.getByRole("button", { name: "Visa åtgärder" }));
+  await user.click(screen.getByRole("button", { name: "2 åtgärder" }));
   await screen.findByText("Ring receptionen");
-  expect(onCount).toHaveBeenLastCalledWith(2);
+  expect(onCount).toHaveBeenLastCalledWith(2, 1);
 
+  openMenu("Ring receptionen");
   await user.click(
     screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
   );
   await screen.findByText("Arkiverade ”Ring receptionen”.");
-  expect(onCount).toHaveBeenLastCalledWith(1);
+  expect(onCount).toHaveBeenLastCalledWith(1, 1);
 });
 
 it("keeps the English and Swedish key sets identical", () => {

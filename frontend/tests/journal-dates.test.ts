@@ -50,6 +50,18 @@ describe("formatShortDateWithYear", () => {
       "31 Dec 2025",
     );
   });
+
+  it("gives every English month three letters, September too", () => {
+    expect(formatShortDateWithYear("2026-09-14", "en-GB", TODAY)).toBe(
+      "14 Sep",
+    );
+    expect(formatShortDateWithYear("2025-09-14", "en-GB", TODAY)).toBe(
+      "14 Sep 2025",
+    );
+    expect(formatShortDateWithYear("2026-09-14", "sv-SE", TODAY)).toBe(
+      "14 sep",
+    );
+  });
 });
 
 describe("relativeDay", () => {

@@ -33,7 +33,7 @@ type PendingOff = {
  * "Delete the memory of ..." sends confirm: true; Cancel sends nothing.
  *
  * Where the host offers recall_memory and exclude_from_memory, every source that is on also has "Show what Claude
- * remembers" (a read only sample with "Forget this" per fact), and a search field asks the whole memory.
+ * remembers" (a read only sample with "Forget the <record>" per fact), and a search field asks the whole memory.
  */
 export function MemoryView({
   initial,
@@ -64,7 +64,12 @@ export function MemoryView({
   const [deleting, setDeleting] = useState<MemoryDomain[]>([]);
   const confirmRef = useRef<HTMLDivElement>(null);
   const settings = status.settings;
-  const tools = recall ? recallTools(transport) : undefined;
+  const anyOn = MEMORY_DOMAINS.some((domain) => settings[domain]);
+  // Nothing can be looked up while the service is off, and a search has nothing to ask when every source is off.
+  const tools =
+    recall && status.provider !== "off" ? recallTools(transport) : undefined;
+  // New text is not added while memory is paused or the service is off, so what is queued is waiting, not on its way.
+  const held = settings.paused || status.provider === "off";
 
   // Move focus to the question, so a screen reader reads it and the buttons are next in order.
   useEffect(() => {
@@ -148,7 +153,6 @@ export function MemoryView({
     }
   }
 
-  const anyOn = MEMORY_DOMAINS.some((domain) => settings[domain]);
   const providerNote =
     status.provider === "off"
       ? labels.providerOff
@@ -242,8 +246,9 @@ export function MemoryView({
                       domain,
                       labels,
                       deleting.includes(domain),
+                      held,
                     )}`
-                  : `${labels.domainOff} · ${countText(status, domain, labels, deleting.includes(domain))}`
+                  : `${labels.domainOff} · ${countText(status, domain, labels, deleting.includes(domain), held)}`
               }
               below={
                 tools && on ? (
@@ -322,7 +327,7 @@ export function MemoryView({
           </div>
         </div>
       ) : null}
-      {tools ? (
+      {tools && anyOn ? (
         <MemorySearch
           tools={tools}
           labels={labels}
@@ -353,13 +358,14 @@ function countText(
   domain: MemoryDomain,
   labels: ControlLabels,
   removing: boolean,
+  held: boolean,
 ): string {
   if (removing) return labels.countDeleting;
   if (!status.settings[domain]) return labels.countOff;
   const source = status.sources.find((row) => row.kind === DOMAIN_KIND[domain]);
   if (!source) return labels.countUnknown;
   const parts = [labels.countStored(source.retained, domain)];
-  if (source.pending > 0) parts.push(labels.countWaiting(source.pending));
+  if (source.pending > 0) parts.push(labels.countWaiting(source.pending, held));
   const stuck = source.failed + source.parked;
   if (stuck > 0) parts.push(labels.countStuck(stuck));
   return parts.join(" · ");

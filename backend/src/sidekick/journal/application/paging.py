@@ -4,7 +4,7 @@ from datetime import date
 from uuid import UUID
 
 from sidekick.journal.application.models import MAX_JOURNAL_RANGE_DAYS
-from sidekick.journal.domain.entry import ENTRY_PAGE_KEY, JournalEntry, entry_page_key
+from sidekick.journal.domain.entry import ENTRY_PAGE_KEY, JournalEntry, JournalOrder, entry_page_key
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import Actor, CursorCodec, KeyValue, validate_limit
 
@@ -18,10 +18,16 @@ def decode_cursor(
         raise ValidationError("invalid pagination cursor") from error
 
 
-def entry_cursor(codec: CursorCodec, actor: Actor, last: JournalEntry, query_key: str) -> str:
+def entry_cursor(
+    codec: CursorCodec,
+    actor: Actor,
+    last: JournalEntry,
+    query_key: str,
+    order: JournalOrder = "asc",
+) -> str:
     """Keyset cursor after the last entry served: it does not shift when entries come and go."""
 
-    return codec.encode_keyset(actor.user_id, entry_page_key(last), query_key)
+    return codec.encode_keyset(actor.user_id, entry_page_key(last, order), query_key)
 
 
 def validate_list_bounds(start_date: date, end_date: date, limit: int) -> None:
@@ -38,13 +44,18 @@ def journal_list_cursor_key(
     include_archived: bool,
     tags: tuple[str, ...] = (),
     tag_match: str = "any",
+    order: JournalOrder = "asc",
 ) -> str:
+    """The query a cursor belongs to; a cursor of one direction is refused by the other."""
+
     key = (
         "journal:entries:v1:"
         f"from={start_date.isoformat()}:to={end_date.isoformat()}:"
         f"archived={str(include_archived).lower()}"
     )
-    return f"{key}:tags={','.join(tags)}:match={tag_match}" if tags else key
+    if tags:
+        key = f"{key}:tags={','.join(tags)}:match={tag_match}"
+    return f"{key}:order=desc" if order == "desc" else key
 
 
 def journal_day_cursor_key(journal_date: date, include_archived: bool) -> str:

@@ -1,9 +1,10 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { onEnterKey, preventSubmit } from "../../mcp-apps/ui/enter-key";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
+import type { WorkLabels } from "../shared/labels";
 import type { ManageLabels } from "../shared/manage-labels";
 import type { SavedViewsLabels } from "./saved-views-labels";
-import type { SavedViewTab } from "./saved-views";
+import { describeDefinition, type SavedViewTab } from "./saved-views";
 import type {
   WorkFilters,
   WorkSavedView,
@@ -18,6 +19,8 @@ export type SavedViewsBarProps = {
   tab: SavedViewTab;
   transport: WorkTransport;
   labels: SavedViewsLabels;
+  /** The Work words, for the status and priority names a view's summary line uses. */
+  workLabels: WorkLabels;
   /** The shared list words for the same locale, e.g. manageLabelsFor(t.dateLocale). */
   manage: ManageLabels;
   /** The filters the tab shows now; "Spara nuvarande vy" saves them. */
@@ -32,27 +35,25 @@ export type SavedViewsBarProps = {
   ) => Promise<boolean>;
 };
 
-type OpenStatus =
-  | { kind: "opening" }
-  | { kind: "opened"; name: string }
-  | { kind: "failed"; view: WorkSavedView };
+type OpenStatus = { kind: "opening" } | { kind: "failed"; view: WorkSavedView };
 
 /**
  * The saved views of one Work tab: a visible "Sparade vyer" button that unfolds a panel. The panel
- * reads the list only when it opens, and holds the save form, the list of this tab's views (open,
- * rename, archive) and the archived ones (restore). Opening a view is reported back through onOpen;
- * the open status line stays visible even when the panel is closed.
+ * reads the list only when it opens, and holds the list of this tab's views (a row opens the view;
+ * "Ändra" unfolds rename and archive), the save form and the archived views (restore). Opening a
+ * view is reported back through onOpen and folds the panel away, so the opened list is in sight; the
+ * caller shows which view is open. The "opening" and "failed" lines stay visible with the panel closed.
  */
 export function SavedViewsBar({
   tab,
   transport,
   labels: s,
+  workLabels,
   manage,
   filters,
   onOpen,
 }: SavedViewsBarProps) {
   const panelId = useId();
-  const toggle = useRef<HTMLButtonElement>(null);
   const mounted = useRef(true);
   const [open, setOpen] = useState(false);
   const [openedId, setOpenedId] = useState<string>();
@@ -70,8 +71,8 @@ export function SavedViewsBar({
     if (!mounted.current) return;
     if (shown) {
       setOpenedId(view.id);
-      setStatus({ kind: "opened", name: view.name });
-      toggle.current?.focus();
+      setStatus(undefined);
+      setOpen(false);
     } else {
       setStatus({ kind: "failed", view });
     }
@@ -80,7 +81,6 @@ export function SavedViewsBar({
   return (
     <div className="work-saved-views">
       <button
-        ref={toggle}
         type="button"
         className="work-saved-views-toggle"
         aria-expanded={open}
@@ -91,9 +91,6 @@ export function SavedViewsBar({
       </button>
       <div className="work-saved-views-status">
         {status?.kind === "opening" && <p role="status">{s.openingView}</p>}
-        {status?.kind === "opened" && (
-          <p role="status">{s.openedView(status.name)}</p>
-        )}
         {status?.kind === "failed" && (
           <p role="alert">
             {s.openFailed}{" "}
@@ -114,6 +111,7 @@ export function SavedViewsBar({
             tab={tab}
             transport={transport}
             labels={s}
+            workLabels={workLabels}
             manage={manage}
             filters={filters}
             openedId={openedId}
@@ -132,6 +130,7 @@ type PanelProps = {
   tab: SavedViewTab;
   transport: WorkTransport;
   labels: SavedViewsLabels;
+  workLabels: WorkLabels;
   manage: ManageLabels;
   filters: WorkFilters;
   openedId: string | undefined;
@@ -144,6 +143,7 @@ function SavedViewsPanel({
   tab,
   transport,
   labels: s,
+  workLabels,
   manage,
   filters,
   openedId,
@@ -151,8 +151,18 @@ function SavedViewsPanel({
   onPick,
 }: PanelProps) {
   const panel = useSavedViewsPanel({ tab, transport, labels: s, filters });
-  const { state, write, blocked, locked, active, archivedViews, formNote } =
-    panel;
+  const {
+    state,
+    write,
+    blocked,
+    definition,
+    locked,
+    active,
+    archivedViews,
+    formNote,
+  } = panel;
+  // The row whose "Ändra" is unfolded (rename, archive); one at a time.
+  const [editMenuId, setEditMenuId] = useState<string>();
   const {
     views,
     listPhase,
@@ -170,40 +180,6 @@ function SavedViewsPanel({
   const renameNoteId = `${baseId}-rename-note`;
   return (
     <div ref={panelRef} className="work-saved-views-body">
-      <form
-        className="work-saved-views-save"
-        aria-label={s.saveCurrent}
-        onSubmit={preventSubmit}
-      >
-        <p className="work-saved-views-heading">{s.saveCurrent}</p>
-        <label htmlFor={nameId}>{s.nameLabel}</label>
-        <input
-          id={nameId}
-          ref={nameInput}
-          type="text"
-          value={name}
-          disabled={locked}
-          aria-invalid={nameProblem ? true : undefined}
-          aria-describedby={formNote ? noteId : undefined}
-          onChange={(event) => panel.changeName(event.target.value)}
-          onKeyDown={(event) => onEnterKey(event, panel.save)}
-        />
-        {formNote && <p id={noteId}>{formNote}</p>}
-        <button
-          type="button"
-          className="sk-btn--primary"
-          disabled={locked || blocked}
-          onClick={panel.save}
-        >
-          {s.save}
-        </button>
-      </form>
-      <WriteNotice
-        failure={write.failure}
-        labels={manage}
-        onReload={panel.reload}
-        onRetry={panel.retryWrite}
-      />
       {listPhase === "loading" && <p role="status">{s.listLoading}</p>}
       {listPhase === "error" ? (
         <p role="alert">
@@ -216,90 +192,132 @@ function SavedViewsPanel({
         <ul className="work-saved-views-list">
           {active.map((view) => {
             const edit = editing?.id === view.id ? editing : undefined;
-            return edit ? (
-              <li key={view.id} className="work-saved-view">
-                <form
-                  className="work-saved-view-rename"
-                  aria-label={s.renameFor(view.name)}
-                  onSubmit={preventSubmit}
-                >
-                  <input
-                    ref={renameInput}
-                    type="text"
-                    aria-label={s.nameLabel}
-                    value={edit.value}
-                    disabled={locked}
-                    aria-invalid={edit.problem ? true : undefined}
-                    aria-describedby={edit.problem ? renameNoteId : undefined}
-                    onChange={(event) =>
-                      panel.typeRename(view.id, event.target.value)
-                    }
-                    onKeyDown={(event) =>
-                      onEnterKey(event, () =>
-                        panel.commitRename(view, edit.value),
-                      )
-                    }
-                  />
-                  {edit.problem && (
-                    <p id={renameNoteId}>
-                      {edit.problem === "required"
-                        ? s.nameRequired
-                        : s.nameTooLong}
-                    </p>
-                  )}
-                  <div className="work-manage-controls">
-                    <button
-                      type="button"
-                      className="sk-btn--primary"
+            if (edit)
+              return (
+                <li key={view.id} className="work-saved-view">
+                  <form
+                    className="work-saved-view-rename"
+                    aria-label={s.renameFor(view.name)}
+                    onSubmit={preventSubmit}
+                  >
+                    <input
+                      ref={renameInput}
+                      type="text"
+                      aria-label={s.nameLabel}
+                      value={edit.value}
                       disabled={locked}
-                      onClick={() => panel.commitRename(view, edit.value)}
-                    >
-                      {s.save}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={locked}
-                      onClick={() => panel.cancelRename(view.id)}
-                    >
-                      {s.cancel}
-                    </button>
-                  </div>
-                </form>
-              </li>
-            ) : (
+                      aria-invalid={edit.problem ? true : undefined}
+                      aria-describedby={edit.problem ? renameNoteId : undefined}
+                      onChange={(event) =>
+                        panel.typeRename(view.id, event.target.value)
+                      }
+                      onKeyDown={(event) =>
+                        onEnterKey(event, () =>
+                          panel.commitRename(view, edit.value),
+                        )
+                      }
+                    />
+                    {edit.problem && (
+                      <p id={renameNoteId}>
+                        {edit.problem === "required"
+                          ? s.nameRequired
+                          : s.nameTooLong}
+                      </p>
+                    )}
+                    <div className="work-manage-controls">
+                      <button
+                        type="button"
+                        className="sk-btn--primary"
+                        disabled={locked}
+                        onClick={() => panel.commitRename(view, edit.value)}
+                      >
+                        {s.save}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={locked}
+                        onClick={() => panel.cancelRename(view.id)}
+                      >
+                        {s.cancel}
+                      </button>
+                    </div>
+                  </form>
+                </li>
+              );
+            const isOpen = openedId === view.id;
+            const unfolded = editMenuId === view.id;
+            const summary = describeDefinition(view.definition, s, workLabels);
+            return (
               <li key={view.id} className="work-saved-view">
-                <span className="work-saved-view-name">{view.name}</span>
-                {openedId === view.id && (
-                  <span className="work-saved-view-mark">{s.opened}</span>
-                )}
-                <div className="work-manage-controls">
+                <div className="work-saved-view-row">
                   <button
                     type="button"
+                    className="work-saved-view-open"
                     data-open={view.id}
-                    aria-label={s.openFor(view.name)}
+                    aria-labelledby={`${baseId}-${view.id}-name`}
+                    aria-describedby={`${baseId}-${view.id}-meta`}
+                    aria-current={isOpen ? "true" : undefined}
                     disabled={locked || opening}
                     onClick={() => onPick(view)}
                   >
-                    {s.open}
+                    <span
+                      id={`${baseId}-${view.id}-name`}
+                      className="work-saved-view-name"
+                    >
+                      {view.name}
+                    </span>
+                    <span
+                      id={`${baseId}-${view.id}-meta`}
+                      className="work-saved-view-meta"
+                    >
+                      {isOpen ? `${s.opened} · ${summary}` : summary}
+                    </span>
                   </button>
                   <button
                     type="button"
-                    data-rename={view.id}
-                    aria-label={s.renameFor(view.name)}
+                    className="work-saved-view-edit"
+                    data-edit={view.id}
+                    aria-label={s.editFor(view.name)}
+                    aria-expanded={unfolded}
+                    aria-controls={`${baseId}-${view.id}-edit`}
                     disabled={locked}
-                    onClick={() => panel.startRename(view)}
+                    onClick={() =>
+                      setEditMenuId(unfolded ? undefined : view.id)
+                    }
                   >
-                    {s.rename}
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={manage.archiveFor(view.name)}
-                    disabled={locked}
-                    onClick={() => panel.archive(view)}
-                  >
-                    {manage.archive}
+                    {s.edit}
                   </button>
                 </div>
+                {unfolded && (
+                  <div
+                    id={`${baseId}-${view.id}-edit`}
+                    className="work-manage-controls work-saved-view-edit-menu"
+                  >
+                    <button
+                      type="button"
+                      data-rename={view.id}
+                      aria-label={s.renameFor(view.name)}
+                      disabled={locked}
+                      onClick={() => {
+                        setEditMenuId(undefined);
+                        panel.startRename(view);
+                      }}
+                    >
+                      {s.rename}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={manage.archiveFor(view.name)}
+                      disabled={locked}
+                      onClick={() => {
+                        setEditMenuId(undefined);
+                        panel.archive(view);
+                      }}
+                    >
+                      {manage.archive}
+                    </button>
+                  </div>
+                )}
               </li>
             );
           })}
@@ -320,6 +338,12 @@ function SavedViewsPanel({
       <p role="status" className="work-saved-views-notice">
         {notice}
       </p>
+      <WriteNotice
+        failure={write.failure}
+        labels={manage}
+        onReload={panel.reload}
+        onRetry={panel.retryWrite}
+      />
       <label className="work-saved-views-archived-toggle">
         <input
           type="checkbox"
@@ -347,6 +371,37 @@ function SavedViewsPanel({
         ) : (
           <p>{s.noArchived}</p>
         ))}
+      <form
+        className="work-saved-views-save"
+        aria-label={s.saveCurrent}
+        onSubmit={preventSubmit}
+      >
+        <p className="work-saved-views-heading">{s.saveCurrent}</p>
+        <p className="work-saved-views-meta">
+          {s.savingNow(describeDefinition(definition, s, workLabels))}
+        </p>
+        <label htmlFor={nameId}>{s.nameLabel}</label>
+        <input
+          id={nameId}
+          ref={nameInput}
+          type="text"
+          value={name}
+          disabled={locked}
+          aria-invalid={nameProblem ? true : undefined}
+          aria-describedby={formNote ? noteId : undefined}
+          onChange={(event) => panel.changeName(event.target.value)}
+          onKeyDown={(event) => onEnterKey(event, panel.save)}
+        />
+        {formNote && <p id={noteId}>{formNote}</p>}
+        <button
+          type="button"
+          className="sk-btn--primary"
+          disabled={locked || blocked}
+          onClick={panel.save}
+        >
+          {s.save}
+        </button>
+      </form>
     </div>
   );
 }

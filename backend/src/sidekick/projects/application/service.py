@@ -208,16 +208,17 @@ class ProjectService:
             if current.version != version:
                 raise ConflictError("stale project version")
             updated = current.complete(now=self.clock.now())
-            self.store.save_project(session, updated, expected_version=version)
-            self.store.append_audit(
-                session,
-                actor_id=actor.user_id,
-                event="project.completed",
-                outcome="success",
-                target_type="project",
-                target_id=project_id,
-                correlation_id=correlation_id,
-            )
+            if updated is not current:
+                self.store.save_project(session, updated, expected_version=version)
+                self.store.append_audit(
+                    session,
+                    actor_id=actor.user_id,
+                    event="project.completed",
+                    outcome="success",
+                    target_type="project",
+                    target_id=project_id,
+                    correlation_id=correlation_id,
+                )
             return project_to_data(updated)
 
         return self.store.transaction(

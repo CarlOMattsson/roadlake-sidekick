@@ -7,7 +7,7 @@ import {
   startAppLanguage,
 } from "@/mobile/app-language";
 import { LanguageSwitch } from "@/mobile/language-switch";
-import { LAST_SERVER_KEY } from "@/mobile/pairing-form";
+import { LAST_SERVER_KEY } from "@/mobile/use-pairing-form";
 import { PairingGate } from "@/mobile/pairing-gate";
 import { pairingLabelsEn, pairingLabelsSv } from "@/mobile/pairing-labels";
 import type { MobilePlatform } from "@/mobile/platform";

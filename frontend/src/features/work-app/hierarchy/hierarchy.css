@@ -150,3 +150,13 @@
   --sk-row-pad: calc(6px + var(--sk-row-air-extra));
   --sk-lead-h: calc(2 * var(--sk-row-pad) + var(--sk-type-row-line));
 }
+
+/* A Project's start and target dates: one meta line, a "·" between them. */
+.sidekick-work .work-project-dates {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--sk-s1);
+}
+.sidekick-work .work-project-dates > * + *::before {
+  content: "· ";
+}

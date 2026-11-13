@@ -4,13 +4,14 @@ import { EntryRow } from "./entry-row";
 import type { JournalLabels } from "./labels";
 import type { JournalEntry, JournalTransport } from "./transport";
 import { EmptyState, ErrorNotice } from "../mcp-apps/ui/states";
-import { tagLabelsFor } from "../mcp-apps/ui/tag-labels";
 import { tagLabelOf, type TagOption } from "../mcp-apps/ui/tag-vocabulary";
 
 /** list_journal_entries takes at most 366 inclusive days: a window is a day and the 365 before it. */
 const WINDOW_DAYS = 365;
 /** Pages of 50 followed for one window, so a window holds at most 500 entries. */
 const PAGE_LIMIT = 10;
+/** Empty windows in a row after which the list stops reading further back: two years without one such entry. */
+const EMPTY_WINDOWS_TO_STOP = 2;
 
 type Read =
   | { kind: "loading" }
@@ -21,14 +22,16 @@ type Read =
       /** Windows of 366 days read back from today; "Visa fler" reads one more. */
       years: number;
       more: "idle" | "busy" | "failed" | "empty";
+      /** Windows read in a row, newest last, that held no entry; at EMPTY_WINDOWS_TO_STOP the list ends. */
+      emptyRun: number;
     }
   | { kind: "error"; cause: unknown };
 
 /**
  * The entries that carry every chosen tag, newest first: the last 12 months, and with "Visa fler" the 366 days before
- * the oldest window read, one window at a time. The server lists a window oldest first and cannot turn the order round,
- * so its pages are followed to the end and reversed here. A window that runs past the page limit shows its oldest
- * entries, says so and offers no older window. A new `refreshKey` reads the last 12 months again in place, without the
+ * the oldest window read, one window at a time. The server lists each window newest first, so its pages are followed in
+ * order. A window that runs past the page limit shows its newest entries, says so and offers no older window. After two empty windows in a row the list says there is nothing older
+ * and offers no "Visa fler", so the button cannot step back through empty years forever. A new `refreshKey` reads the last 12 months again in place, without the
  * loading line. The view's heading names the list ("Taggade anteckningar"), so the section has no heading of its own.
  */
 export function TaggedEntries({
@@ -58,7 +61,7 @@ export function TaggedEntries({
       mounted.current = false;
     };
   }, []);
-  /** The window of 366 days that ends `back` windows before today, newest first. */
+  /** The window of 366 days that ends `back` windows before today, its entries newest first. */
   const readWindow = useCallback(
     async (back: number) => {
       if (!list) return { entries: [], capped: false };
@@ -72,7 +75,7 @@ export function TaggedEntries({
         cursor = got.next_cursor;
         if (!cursor) break;
       }
-      return { entries: entries.reverse(), capped: cursor !== null };
+      return { entries, capped: cursor !== null };
     },
     [list, tags, today],
   );
@@ -81,7 +84,14 @@ export function TaggedEntries({
     readWindow(0).then(
       ({ entries, capped }) => {
         if (current)
-          setRead({ kind: "ready", entries, capped, years: 1, more: "idle" });
+          setRead({
+            kind: "ready",
+            entries,
+            capped,
+            years: 1,
+            more: "idle",
+            emptyRun: entries.length > 0 ? 0 : 1,
+          });
       },
       (cause: unknown) => {
         if (current) setRead({ kind: "error", cause });
@@ -105,6 +115,7 @@ export function TaggedEntries({
           capped,
           years: shown.years + 1,
           more: entries.length > 0 ? "idle" : "empty",
+          emptyRun: entries.length > 0 ? 0 : shown.emptyRun + 1,
         });
       },
       () => {
@@ -113,13 +124,12 @@ export function TaggedEntries({
     );
   }
 
-  const labels = tagLabelsFor(t.dateLocale);
   const names = tags.map((slug) => tagLabelOf(slug, vocabulary));
+  const ended = read.kind === "ready" && read.emptyRun >= EMPTY_WINDOWS_TO_STOP;
   return (
     <section className="journal-tagged" aria-label={t.taggedEntries}>
       <p className="journal-muted">
-        {labels.filtered(names)} ·{" "}
-        {t.taggedWindow(read.kind === "ready" ? read.years : 1)}
+        {t.taggedScope(names, read.kind === "ready" ? read.years : 1)}
       </p>
       {read.kind === "loading" && <p role="status">{t.loading}</p>}
       {read.kind === "error" && (
@@ -156,7 +166,7 @@ export function TaggedEntries({
       )}
       {read.kind === "ready" && read.more === "empty" && (
         <p className="journal-muted" role="status">
-          {t.taggedNoOlder}
+          {ended ? t.taggedEnd(tags.length) : t.taggedNoOlder(tags.length)}
         </p>
       )}
       {read.kind === "ready" && read.more === "busy" && (
@@ -165,19 +175,22 @@ export function TaggedEntries({
       {read.kind === "ready" && read.more === "failed" && (
         <ErrorNotice locale={t.dateLocale} onRetry={readOlder} />
       )}
-      {/* The 12 months before the oldest read; none once a window was cut at the page limit. */}
-      {read.kind === "ready" && !read.capped && read.more !== "failed" && (
-        <p>
-          <button
-            type="button"
-            className="sk-btn--quiet"
-            disabled={read.more === "busy"}
-            onClick={readOlder}
-          >
-            {t.taggedMore}
-          </button>
-        </p>
-      )}
+      {/* The 12 months before the oldest read; none once a window was cut at the page limit or the list has ended. */}
+      {read.kind === "ready" &&
+        !read.capped &&
+        !ended &&
+        read.more !== "failed" && (
+          <p className="journal-list-more">
+            <button
+              type="button"
+              className="sk-btn--quiet"
+              disabled={read.more === "busy"}
+              onClick={readOlder}
+            >
+              {t.taggedMore}
+            </button>
+          </p>
+        )}
     </section>
   );
 }

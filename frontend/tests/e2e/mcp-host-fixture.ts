@@ -5,7 +5,8 @@ import type { FrameLocator, Locator, Page } from "@playwright/test";
 // Shared SIMULATED HOST for the MCP App e2e specs. It is not a real Claude or Sidekick host: it
 // answers the app's postMessage protocol (ui/initialize, tools/call, ui/request-display-mode) from
 // fixtures and sends the host notifications the tests choose (tool-input, tool-result,
-// host-context-changed). No backend, no database, no network: every tool answer is a fixture.
+// host-context-changed). No backend, no database, no network: every tool answer is a fixture. The one exception
+// is `forwardToolCall` (tests/e2e-real): the host then hands every tools/call to a real server instead.
 // The sandboxed iframe is the same pattern as ui-language-mcp-app.spec.ts and work-mcp-app.spec.ts.
 
 export type SimulatedCall = {
@@ -31,6 +32,8 @@ export type SimulatedHostConfig = {
    * { __byArgument: { key, answers } } answers by the value of one argument.
    */
   replies: Record<string, unknown>;
+  /** True when tools/call goes to window.forwardToolCall (a real server) instead of `replies`. */
+  forwardToolCalls?: boolean;
 };
 export type OpenedApp = {
   app: FrameLocator;
@@ -133,6 +136,20 @@ function installSimulatedHost({
     } else if (message.method === "tools/call") {
       const name = message.params.name ?? "";
       state.calls.push({ name, arguments: message.params.arguments ?? {} });
+      if (config.forwardToolCalls) {
+        const forward = (
+          window as unknown as {
+            forwardToolCall: (
+              name: string,
+              args: Record<string, unknown>,
+            ) => Promise<unknown>;
+          }
+        ).forwardToolCall;
+        void forward(name, message.params.arguments ?? {}).then((result) =>
+          send({ id: message.id, result }),
+        );
+        return;
+      }
       // { __sequence: [a, b] } answers a, then b, and keeps answering b: a read that changes after a write.
       const reply = config.replies[name] as
         | {
@@ -167,7 +184,15 @@ export async function openSimulatedApp(
     resource: string;
     width: number;
     height: number;
-  } & SimulatedHostConfig,
+    /**
+     * Answers every tools/call from outside the page, for example by asking a real server. When it is given,
+     * `replies` is ignored. The call runs in the test process, so the page's closed network does not apply.
+     */
+    forwardToolCall?: (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<unknown>;
+  } & Omit<SimulatedHostConfig, "forwardToolCalls">,
 ): Promise<OpenedApp> {
   const failures: string[] = [];
   page.on("pageerror", (error) => failures.push(error.message));
@@ -176,6 +201,8 @@ export async function openSimulatedApp(
     networkRequests++;
     await route.abort();
   });
+  if (options.forwardToolCall)
+    await page.exposeFunction("forwardToolCall", options.forwardToolCall);
   await page.setViewportSize({ width: options.width, height: options.height });
   // The outer page has no body margin, so the iframe alone decides its width.
   await page.setContent(
@@ -187,6 +214,7 @@ export async function openSimulatedApp(
       hostContext: options.hostContext,
       replies: options.replies,
       hostCapabilities: options.hostCapabilities,
+      forwardToolCalls: options.forwardToolCall !== undefined,
     },
   });
   return {

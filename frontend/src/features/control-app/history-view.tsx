@@ -230,6 +230,7 @@ export function HistoryView({
           items={rows}
           keyOf={(row) => row.key}
           label={labels.views.history}
+          wrapMeta
           showAll={labels.showAll}
           showFewer={labels.showFewer}
           full={full}
@@ -256,7 +257,7 @@ export function HistoryView({
             }
             const parts = [
               kindName(labels, change.kind),
-              actionName(labels, change.action),
+              actionName(labels, change.action, change.kind),
               actorName(labels, change.actor),
               when,
             ];

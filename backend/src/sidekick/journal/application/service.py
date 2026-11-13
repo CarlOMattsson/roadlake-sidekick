@@ -20,6 +20,7 @@ from sidekick.journal.application.relations import (
 from sidekick.journal.application.store import JournalStore
 from sidekick.journal.domain.entry import (
     JournalEntry,
+    JournalOrder,
     KeyPoint,
     append_to_entry,
     archive_entry,
@@ -64,6 +65,7 @@ class JournalService:
         include_archived: bool = False,
         tags: Sequence[str] = (),
         tag_match: str = "any",
+        order: JournalOrder = "asc",
         limit: int = 100,
         cursor: str | None = None,
     ) -> Page[JournalEntry]:
@@ -71,7 +73,7 @@ class JournalService:
         validate_list_bounds(start_date, end_date, limit)
         wanted_tags, tag_match = normalize_tag_filter(list(tags), tag_match)
         query_key = journal_list_cursor_key(
-            start_date, end_date, include_archived, wanted_tags, tag_match
+            start_date, end_date, include_archived, wanted_tags, tag_match, order
         )
         after = decode_cursor(self.cursor_codec, actor.user_id, cursor, query_key)
         entries = self.store.transaction(
@@ -85,13 +87,14 @@ class JournalService:
                 after=after,
                 tags=wanted_tags,
                 tag_match=tag_match,
+                order=order,
             )
         )
         return Page(
             *paginate(
                 entries,
                 limit,
-                lambda last: entry_cursor(self.cursor_codec, actor, last, query_key),
+                lambda last: entry_cursor(self.cursor_codec, actor, last, query_key, order),
             )
         )
 

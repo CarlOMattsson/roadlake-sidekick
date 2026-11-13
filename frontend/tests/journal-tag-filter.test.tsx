@@ -33,7 +33,7 @@ function renderDay(transport: TransportMock, labels = journalEn) {
   );
 }
 
-/** A tagged entry on its own day, older ids first as the server lists them. */
+/** A tagged entry on its own day. */
 function onDay(
   n: number,
   journalDate: string,
@@ -106,7 +106,7 @@ describe("the tag filter of the day view", () => {
           "c1",
         ),
       )
-      .mockResolvedValueOnce(page([onDay(3, "2026-09-30")]));
+      .mockResolvedValueOnce(page([onDay(3, "2024-09-30")]));
     renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
     await screen.findByRole("group", { name: "Filter by tag" });
 
@@ -133,7 +133,8 @@ describe("the tag filter of the day view", () => {
     const titles = (
       await screen.findAllByRole("button", { name: /^Post/ })
     ).map((b) => within(b).getByText(/^Post \d/).textContent);
-    expect(titles).toEqual(["Post 3", "Post 2", "Post 1"]);
+    // The server lists newest first; the list keeps that order across pages.
+    expect(titles).toEqual(["Post 1", "Post 2", "Post 3"]);
     // The day leads each row's meta line, since the list spans days; the year only when it is not this year.
     expect(screen.getByRole("button", { name: /Post 2/ })).toHaveTextContent(
       `9 May ${thisYear - 1}`,
@@ -182,7 +183,7 @@ describe("the tag filter of the day view", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      within(filterGroup()).getByRole("button", { name: "Clear tag filter" }),
+      within(filterGroup()).getByRole("button", { name: "Clear (1)" }),
     );
 
     expect(
@@ -364,14 +365,16 @@ describe("the tagged list in place of the day", () => {
     const text = document.body.textContent ?? "";
     expect(text.indexOf("Post 1")).toBeLessThan(text.indexOf("Post 2"));
     expect(
-      screen.getByText(/The last 2 years, newest first/),
+      screen.getByText(
+        "Entries tagged Viktig from the last 2 years, newest first",
+      ),
     ).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", { name: journalEn.taggedMore }),
     );
     expect(
-      await screen.findByText(journalEn.taggedNoOlder),
+      await screen.findByText(journalEn.taggedNoOlder(1)),
     ).toBeInTheDocument();
     const older = shiftDate(today, -732);
     expect(listTaggedEntries).toHaveBeenLastCalledWith(
@@ -380,5 +383,83 @@ describe("the tagged list in place of the day", () => {
       older,
       null,
     );
+    // One empty year still offers the year before it.
+    expect(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    ).toBeInTheDocument();
+  });
+
+  it("ends the list after two empty years in a row: no Show more, a sentence that nothing is older", async () => {
+    const user = userEvent.setup();
+    const listTaggedEntries = vi
+      .fn()
+      .mockResolvedValueOnce(page([onDay(1, "2026-09-30")]))
+      .mockResolvedValueOnce(page([]))
+      .mockResolvedValueOnce(page([]));
+    renderDay(transportMock({ listTags: listTagsMock(), listTaggedEntries }));
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText("Post 1");
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    await screen.findByText(journalEn.taggedNoOlder(1));
+    await user.click(
+      screen.getByRole("button", { name: journalEn.taggedMore }),
+    );
+    expect(await screen.findByText(journalEn.taggedEnd(1))).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: journalEn.taggedMore }),
+    ).toBeNull();
+    expect(listTaggedEntries).toHaveBeenCalledTimes(3);
+  });
+
+  it("ends at once when the last 12 months and the year before are both empty", async () => {
+    const user = userEvent.setup();
+    const listTaggedEntries = vi.fn(() => Promise.resolve(page([])));
+    renderDay(
+      transportMock({ listTags: listTagsMock(), listTaggedEntries }),
+      journalSv,
+    );
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText(journalSv.taggedEmpty(1));
+    await user.click(
+      screen.getByRole("button", { name: journalSv.taggedMore }),
+    );
+    expect(await screen.findByText(journalSv.taggedEnd(1))).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: journalSv.taggedMore }),
+    ).toBeNull();
+    expect(
+      screen.getByText(
+        "Anteckningar med taggen Viktig från de senaste 2 åren, nyast först",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no + while a tag is chosen, and + is back with the day once the filter is cleared", async () => {
+    const user = userEvent.setup();
+    renderDay(
+      transportMock({
+        listTags: listTagsMock(),
+        listTaggedEntries: vi.fn(() =>
+          Promise.resolve(page([onDay(1, "2026-09-30")])),
+        ),
+        writeEntry: vi.fn(),
+      }),
+    );
+    expect(
+      await screen.findByRole("button", { name: journalEn.addEntry }),
+    ).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Viktig" }));
+    await screen.findByText("Post 1");
+    expect(
+      screen.queryByRole("button", { name: journalEn.addEntry }),
+    ).toBeNull();
+    await user.click(
+      within(filterGroup()).getByRole("button", { name: "Clear (1)" }),
+    );
+    expect(
+      await screen.findByRole("button", { name: journalEn.addEntry }),
+    ).toBeInTheDocument();
   });
 });

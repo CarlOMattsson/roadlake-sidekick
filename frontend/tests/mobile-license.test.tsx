@@ -104,7 +104,7 @@ describe("the phone", () => {
       name: licenseLabelsSv.mark,
     });
     await user.click(coin);
-    const lead = await screen.findByText(licenseLabelsSv.unlicensed);
+    const lead = await screen.findByText(licenseLabelsSv.unlicensedNoShop);
     const settings = lead.closest(".mobile-settings");
     expect(settings).not.toBeNull();
     // Last in the settings, after "Den här telefonen".

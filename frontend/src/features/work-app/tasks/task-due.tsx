@@ -1,7 +1,10 @@
-import { relativeDue } from "../../mcp-apps/ui/due";
+import { relativeDue, workDate } from "../../mcp-apps/ui/due";
 import type { WorkLabels } from "../shared/labels";
 
-/** The due date of a list row as plain text: "5 dagar försenad", "Idag", "fre 6 nov". Red when overdue. */
+/**
+ * The due date of a list row as plain text: "5 dagar försenad", "Idag", "Fre 6 nov". It starts the row's meta line, so
+ * it starts with a capital like every other line; red when overdue.
+ */
 export function TaskDue({
   dueAt,
   labels,
@@ -9,11 +12,14 @@ export function TaskDue({
   dueAt: string;
   labels: WorkLabels;
 }) {
+  const now = new Date();
   const locale = labels.dateLocale.startsWith("sv") ? "sv" : "en";
-  const due = relativeDue(dueAt, new Date(), locale);
+  const due = relativeDue(dueAt, now, locale);
   return (
     <time dateTime={dueAt} data-tone={due.tone}>
-      {due.text}
+      {due.tone === "overdue"
+        ? due.text
+        : workDate(dueAt, now, labels.dateLocale)}
     </time>
   );
 }

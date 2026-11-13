@@ -49,10 +49,10 @@ BACKUPS="$WORK/backups"
 LOG="$WORK/work.log"
 PROJECT="${SIDEKICK_WORK_PROJECT:-sidekick-work}"
 GATEWAY_NAME=model.work.internal
-# Free-space check and safe pruning, shared with deploy/selfhost/update.sh.
-# shellcheck source=../deploy/selfhost/backup_space.sh
-. "$SELFHOST/backup_space.sh"
 KEEP_BACKUPS="${SIDEKICK_WORK_KEEP_BACKUPS:-7}"
+# The exact form of a finished backup file: only such names are measured and pruned.
+DB_ERE='sidekick-[0-9]{8}-[0-9]{6}\.sql\.enc'
+MEM_ERE='hindsight-[0-9]{8}-[0-9]{6}\.tar\.gz\.enc'
 ALLOW_PARSED=""
 L=sv
 DEFAULT_ROOMS="work,journal,contacts,control"
@@ -791,22 +791,9 @@ backup_memory() {
 # KEEP_BACKUPS is. Does nothing when the newest set is not there, so a failed backup never prunes older ones.
 prune_backups() {
   [ -s "$LAST_BACKUP_DB" ] || return 0
-  backup_prune_finished "$BACKUPS" 'sidekick-[0-9]{8}-[0-9]{6}\.sql\.enc' "$KEEP_BACKUPS" "$(basename "$LAST_BACKUP_DB")" >/dev/null || true
-  backup_prune_finished "$BACKUPS" 'hindsight-[0-9]{8}-[0-9]{6}\.tar\.gz\.enc' "$KEEP_BACKUPS" "$(basename "$LAST_BACKUP_MEM")" >/dev/null || true
+  workctl backup-prune --dir "$BACKUPS" --keep "$KEEP_BACKUPS" --pattern "$DB_ERE" --protected "$(basename "$LAST_BACKUP_DB")" >/dev/null || true
+  workctl backup-prune --dir "$BACKUPS" --keep "$KEEP_BACKUPS" --pattern "$MEM_ERE" --protected "$(basename "$LAST_BACKUP_MEM")" >/dev/null || true
   fsync_path "$BACKUPS"
-}
-
-# Before a new backup (and before anything is paused or stopped): the backup directory must have room for the
-# next set, judged by the newest finished set times a margin. Refuses with a clear error otherwise.
-require_backup_space() {
-  local baseline rc=0
-  baseline=$(( $(backup_newest_size "$BACKUPS" 'sidekick-[0-9]{8}-[0-9]{6}\.sql\.enc') + $(backup_newest_size "$BACKUPS" 'hindsight-[0-9]{8}-[0-9]{6}\.tar\.gz\.enc') ))
-  backup_check_space "$BACKUPS" "$baseline" || rc=$?
-  case "$rc" in
-    0) ;;
-    1) errf bk_space "$BACKUPS" "$BACKUP_SPACE_FREE" "$BACKUP_SPACE_NEEDED"; exit 1 ;;
-    *) errf bk_space_unknown "$BACKUPS"; exit 1 ;;
-  esac
 }
 
 # Used by `backup`, `update` and `restore`. Prints where the files went; exits 1 (the caller must not go on) on any
@@ -822,18 +809,14 @@ do_backup() {
   if [ "${1:-}" = --keep-paused ]; then keep_paused=1; fi
   mkdir -p "$BACKUPS"
   chmod 700 "$BACKUPS"
-  backup_valid_keep "$KEEP_BACKUPS" || { errf bk_keep_bad "$KEEP_BACKUPS"; exit 1; }
-  require_backup_space  # fails closed before anything is paused or started
+  # Fails closed before anything is paused or started: a bad number of sets to keep, too little room.
+  workctl backup-preflight --lang "$L" --dir "$BACKUPS" --keep "$KEEP_BACKUPS" \
+    --pattern "$DB_ERE" --pattern "$MEM_ERE" || exit 1
   require_backup_key generate  # fails closed before anything is paused or started
   if [ -z "$(container_id postgres)" ]; then
     compose up -d --wait postgres >>"$LOG" 2>&1 || { errf bk_db_start "$LOG"; exit 1; }
   fi
-  ts="$(date +%Y%m%d-%H%M%S)"
-  # Never write over an existing set (two backups within one second): wait for the next time stamp.
-  while [ -e "$BACKUPS/sidekick-$ts.sql.enc" ] || [ -e "$BACKUPS/hindsight-$ts.tar.gz.enc" ]; do
-    sleep 1
-    ts="$(date +%Y%m%d-%H%M%S)"
-  done
+  ts="$(workctl backup-stamp --dir "$BACKUPS")"
   db="$BACKUPS/sidekick-$ts.sql.enc"
   mem="$BACKUPS/hindsight-$ts.tar.gz.enc"
   if [ "$MEMORY" = 0 ]; then mem=""; fi

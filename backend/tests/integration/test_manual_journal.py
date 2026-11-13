@@ -686,6 +686,82 @@ def test_owned_lists_and_day_views_share_deterministic_fallback_order(
 
 
 @pytest.mark.integration
+def test_descending_list_reverses_timed_entries_keeps_untimed_last_and_pages_both_ways(
+    db: DatabaseHarness, journal_service: Any
+) -> None:
+    owner_id, other_id = new_uuid7(), new_uuid7()
+    _seed_user(db, owner_id)
+    _seed_user(db, other_id)
+    actor, other = _actor(owner_id), _actor(other_id)
+    # Timed, recorded-only and untimed entries, so every part of the sort key takes part.
+    specs = (
+        (datetime(2026, 7, 21, 9, tzinfo=UTC), None, "nine"),
+        (datetime(2026, 7, 21, 11, tzinfo=UTC), None, "eleven"),
+        (None, datetime(2026, 7, 21, 10, tzinfo=UTC), "recorded"),
+        (None, None, "untimed-a"),
+        (None, None, "untimed-b"),
+    )
+    for service_actor, prefix in ((actor, "own"), (other, "other")):
+        for occurred_at, recorded_at, suffix in specs:
+            source = _create_source(
+                journal_service,
+                service_actor,
+                raw_text=f"Syntetisk källa {prefix} {suffix}",
+                occurred_at=occurred_at,
+                source_recorded_at=recorded_at,
+                key=f"order-source-{prefix}-{suffix}",
+            )
+            _create_manual_entry(
+                journal_service,
+                service_actor,
+                source.id,
+                title=f"Post {prefix} {suffix}",
+                key=f"order-entry-{prefix}-{suffix}",
+            )
+
+    def read(order: str, limit: int, cursor: str | None = None) -> Any:
+        return journal_service.entries.list_entries(
+            actor,
+            start_date=JOURNAL_DATE,
+            end_date=JOURNAL_DATE,
+            order=order,
+            limit=limit,
+            cursor=cursor,
+        )
+
+    def paged(order: str) -> list[UUID]:
+        seen: list[UUID] = []
+        cursor = None
+        while True:
+            page = read(order, 2, cursor)
+            seen.extend(entry.id for entry in page.items)
+            cursor = page.next_cursor
+            if cursor is None:
+                return seen
+
+    ascending = [entry.id for entry in read("asc", 100).items]
+    assert len(ascending) == len(specs), "only the owner's entries are listed"
+    untimed = 2
+    timed, undated = ascending[:-untimed], ascending[-untimed:]
+    # Entries without a time are last in both orders; the timed ones reverse.
+    descending = timed[::-1] + undated[::-1]
+    assert [entry.id for entry in read("desc", 100).items] == descending
+    assert paged("asc") == ascending
+    assert paged("desc") == descending, "the cursor follows the descending order"
+    assert [entry.title for entry in read("asc", 100).items][-untimed:] == [
+        "Post own untimed-a",
+        "Post own untimed-b",
+    ]
+
+    asc_cursor = read("asc", 2).next_cursor
+    desc_cursor = read("desc", 2).next_cursor
+    with pytest.raises(ValidationError):
+        read("desc", 2, asc_cursor)
+    with pytest.raises(ValidationError):
+        read("asc", 2, desc_cursor)
+
+
+@pytest.mark.integration
 @pytest.mark.parametrize("surface", ["list", "day"])
 def test_paging_survives_entries_removed_and_added_between_pages(
     db: DatabaseHarness, journal_service: Any, surface: str

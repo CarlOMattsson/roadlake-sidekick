@@ -462,7 +462,7 @@ def stop_span_export(provider: TracerProvider) -> None:
     try:
         replace_active_span_processor(provider, SynchronousMultiSpanProcessor())
         # Later `add_span_processor` calls must not reach the redacting chain: a method is replaced.
-        provider.add_span_processor = lambda _processor: None  # pyright: ignore[reportAttributeAccessIssue]
+        provider.add_span_processor = lambda _processor: None  # pyright: ignore[reportAttributeAccessIssue]  # replaces a method on purpose
     except Exception as error:
         _LOG.error(
             "telemetry_export_stop_incomplete",

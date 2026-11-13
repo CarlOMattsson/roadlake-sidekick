@@ -215,6 +215,7 @@ async def test_step_and_action_updates_keep_omitted_fields_and_clear_a_null_due_
         ("update_task_step", "step_id", "status"),
         ("update_task_step", "step_id", "attention_requested"),
         ("update_step_action", "action_id", "title"),
+        ("update_step_action", "action_id", "status"),
         ("update_step_action", "action_id", "attention_requested"),
     ],
 )

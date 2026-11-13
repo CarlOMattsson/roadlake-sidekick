@@ -522,6 +522,7 @@
             "items": {
               "items": {
                 "additionalProperties": false,
+                "description": "A linked Project in Contact context, with how many of its active Tasks are completed.",
                 "properties": {
                   "id": {
                     "format": "uuid",
@@ -531,6 +532,16 @@
                   "status": {
                     "title": "Status",
                     "type": "string"
+                  },
+                  "tasks_done": {
+                    "minimum": 0,
+                    "title": "Tasks Done",
+                    "type": "integer"
+                  },
+                  "tasks_total": {
+                    "minimum": 0,
+                    "title": "Tasks Total",
+                    "type": "integer"
                   },
                   "title": {
                     "title": "Title",
@@ -551,7 +562,9 @@
                   "title",
                   "status",
                   "updated_at",
-                  "version"
+                  "version",
+                  "tasks_total",
+                  "tasks_done"
                 ],
                 "title": "ProjectSummaryRecord",
                 "type": "object"
@@ -2715,7 +2728,7 @@
       "readOnlyHint": true,
       "title": "Lista dagboksinl\u00e4gg"
     },
-    "description": "Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first. For the latest entry of a day, make one call with limit=50 and take the last row; do not also call get_journal_entry unless the user asks to see it. Each entry carries its summary and key points unless include_content is false; tags lists only entries with them. Do not use it for another user or unbounded history.",
+    "description": "Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first (order=desc: newest first). For the latest entry of a day, make one call with limit=50 and take the last row; do not also call get_journal_entry unless the user asks to see it. Each entry carries its summary and key points unless include_content is false; tags lists only entries with them. Do not use it for another user or unbounded history.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -2756,6 +2769,14 @@
           "maximum": 50,
           "minimum": 1,
           "type": "integer"
+        },
+        "order": {
+          "default": "asc",
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "type": "string"
         },
         "tag_match": {
           "default": "any",
@@ -9883,6 +9904,18 @@
                 "default": null,
                 "title": "Recipient Contact Id"
               },
+              "recipient_contact_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Recipient Contact Name"
+              },
               "store": {
                 "anyOf": [
                   {
@@ -10661,6 +10694,18 @@
                     "default": null,
                     "title": "Recipient Contact Id"
                   },
+                  "recipient_contact_name": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null,
+                    "title": "Recipient Contact Name"
+                  },
                   "store": {
                     "anyOf": [
                       {
@@ -11212,6 +11257,18 @@
               "default": null,
               "title": "Recipient Contact Id"
             },
+            "recipient_contact_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Recipient Contact Name"
+            },
             "store": {
               "anyOf": [
                 {
@@ -11535,6 +11592,18 @@
               ],
               "default": null,
               "title": "Recipient Contact Id"
+            },
+            "recipient_contact_name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Recipient Contact Name"
             },
             "store": {
               "anyOf": [
@@ -11874,6 +11943,18 @@
                 ],
                 "default": null,
                 "title": "Recipient Contact Id"
+              },
+              "recipient_contact_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Recipient Contact Name"
               },
               "store": {
                 "anyOf": [
@@ -19052,7 +19133,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra \u00e5tg\u00e4rd"
     },
-    "description": "Update an Action with optimistic version checking.",
+    "description": "Update an Action with optimistic version checking; status completed ticks it off, status open opens it again.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -19090,6 +19171,21 @@
               "anyOf": [
                 {
                   "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "status": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "completed"
+                  ],
                   "type": "string"
                 },
                 {

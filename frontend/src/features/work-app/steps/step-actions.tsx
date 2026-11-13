@@ -5,10 +5,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { taskStatusLabel, type WorkLabels } from "../shared/labels";
+import { useToolSupport } from "../../mcp-apps/tool-support";
+import type { WorkLabels } from "../shared/labels";
 import {
   ArchivedRows,
-  RowControls,
   UndoLine,
   WriteNotice,
   focusControl,
@@ -16,6 +16,7 @@ import {
   moveItem,
 } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
+import { StepActionRow } from "./step-action-row";
 import { stepActionsLabelsFor } from "./step-actions-labels";
 import {
   isForbidden,
@@ -30,10 +31,10 @@ export type StepActionsProps = {
   step: WorkStep;
   transport: WorkTransport;
   labels: WorkLabels;
-  /** Shown by the Step's ⋯ menu ("Visa åtgärder"); nothing is drawn while it is false. */
+  /** Opened by the count under the Step's title; nothing is drawn while it is false. */
   open: boolean;
-  /** Called with the number of active Actions after each read and each archive, so the Step's row can follow it. */
-  onCount: (count: number) => void;
+  /** Called with the number of active Actions and how many are done whenever the list changes, so the Step's row can follow it. */
+  onCount: (count: number, done: number) => void;
 };
 
 type ActionsPhase = "idle" | "ready" | "forbidden" | "error";
@@ -46,10 +47,14 @@ type ArchivedAction = {
   index: number;
 };
 
+/** The Action ticked last, whose row shows "Klar · Ångra" (or "Öppen igen") until it runs out or another write is made. */
+type TickUndo = { id: string; version: number; done: boolean };
+
 /**
- * The Actions of one Step. The Step's ⋯ menu opens them (`open`), so a Step without Actions shows no
- * control of its own. The list is read when they open, not with the Step, so a closed Step costs no
- * request. Up and Down reorder the whole list
+ * The Actions of one Step. The count under the Step's title opens them (`open`), so a Step without Actions
+ * shows no control of its own. The list is read when they open, not with the Step, so a closed Step costs no
+ * request. A box ticks an Action (completeStepAction) and unticks a done one (reopenStepAction): the new state is
+ * shown at once and set back if the write fails. Up and Down, in each row's menu, reorder the whole list
  * with reorderStepActions (every active Action once, with the version the view holds); Archive is
  * taken back by its Undo line, or later by Restore under the list. Every answer from an older read
  * is dropped once a write has succeeded, so the list never falls back to a state the server left.
@@ -66,11 +71,17 @@ export function StepActions({
   const manage = manageLabelsFor(t.dateLocale);
   const s = stepActionsLabelsFor(t.dateLocale);
   const write = useWorkWrite();
+  // A host that does not answer complete_step_action shows the Actions without a box.
+  const supports = useToolSupport(transport);
+  const canComplete = supports("complete_step_action");
+  // Opening an Action again is update_step_action with status open; without it a done Action stays ticked.
+  const canReopen = supports("update_step_action");
   const [reading, setReading] = useState(false);
   const [phase, setPhase] = useState<ActionsPhase>("idle");
   const [actions, setActions] = useState<WorkAction[]>([]);
   const [archived, setArchived] = useState<ArchivedAction[]>([]);
   const [undoId, setUndoId] = useState<string>();
+  const [tickUndo, setTickUndo] = useState<TickUndo>();
   const [notice, setNotice] = useState("");
   const listRef = useRef<HTMLUListElement>(null);
   const undoBox = useRef<HTMLDivElement>(null);
@@ -95,6 +106,14 @@ export function StepActions({
       mounted.current = false;
     };
   }, []);
+  // The Step's row follows the list: every read, tick and archive tells it how many Actions are active and done.
+  useLayoutEffect(() => {
+    if (phase === "ready")
+      countRef.current(
+        actions.length,
+        actions.filter((item) => item.status === "completed").length,
+      );
+  }, [actions, phase]);
   // Focus goes to a row only after the list holding it has been drawn, never on a timer.
   useLayoutEffect(() => {
     const focus = pendingFocus.current;
@@ -118,7 +137,6 @@ export function StepActions({
         setActions(page.items);
         setPhase("ready");
         setReading(false);
-        countRef.current(page.items.length);
       })
       .catch((error: unknown) => {
         if (current !== ticket.current || !mounted.current) return;
@@ -139,6 +157,7 @@ export function StepActions({
     if (!moved || !next) return;
     lastWrite.current = () => void moveAction(index, delta);
     setNotice("");
+    setTickUndo(undefined);
     const result = await write.run(
       JSON.stringify([
         "reorder-actions",
@@ -162,11 +181,56 @@ export function StepActions({
     );
   }
 
+  /**
+   * Ticks an open Action or opens a done one again, against the version the row holds. A tick offers Ångra in its row;
+   * `undoing` is that Ångra, which offers nothing more.
+   */
+  async function tickAction(
+    action: WorkAction,
+    completed: boolean,
+    undoing = false,
+  ) {
+    lastWrite.current = () => void tickAction(action, completed, undoing);
+    setNotice("");
+    const show = (next: WorkAction) =>
+      setActions((list) =>
+        list.map((item) => (item.id === next.id ? next : item)),
+      );
+    show({ ...action, status: completed ? "completed" : "open" });
+    const result = await write.run(
+      JSON.stringify([
+        completed ? "complete-action" : "reopen-action",
+        action.id,
+        action.version,
+      ]),
+      (key) =>
+        completed
+          ? transport.completeStepAction(action.id, action.version, key)
+          : transport.reopenStepAction(action.id, action.version, key),
+    );
+    if (!mounted.current) return;
+    if (!result) {
+      // The write failed or was refused: the Action is as it was, and the notice offers a retry.
+      show(action);
+      return;
+    }
+    settle();
+    show(result.action);
+    setTickUndo(
+      undoing
+        ? undefined
+        : { id: action.id, version: result.action.version, done: completed },
+    );
+  }
+
+  const expireTickUndo = useCallback(() => setTickUndo(undefined), []);
+
   async function archiveAction(action: WorkAction) {
     const index = actions.findIndex((item) => item.id === action.id);
     if (index < 0) return;
     lastWrite.current = () => void archiveAction(action);
     setNotice("");
+    setTickUndo(undefined);
     const result = await write.run(
       JSON.stringify(["archive-action", action.id, action.version]),
       (key) => transport.archiveStepAction(action.id, action.version, key),
@@ -179,7 +243,6 @@ export function StepActions({
       focusUndoIn(undoBox.current);
     };
     setActions(remaining);
-    countRef.current(remaining.length);
     setArchived((list) => [
       ...list,
       {
@@ -197,6 +260,7 @@ export function StepActions({
     if (!item) return;
     lastWrite.current = () => void restoreAction(id);
     setNotice("");
+    setTickUndo(undefined);
     const result = await write.run(
       JSON.stringify(["restore-action", item.id, item.version]),
       (key) => transport.restoreStepAction(item.id, item.version, key),
@@ -209,7 +273,13 @@ export function StepActions({
     // The re-read puts the Action back in its place; the layout effect then focuses its row.
     pendingFocus.current = (rows) => {
       const target = rows.find((row) => row.id === id) ?? rows[item.index];
-      if (target) focusControl(listRef.current, target.id, "archive");
+      // The restored row's menu is closed, so its box takes the focus, as a restored Step's does.
+      if (target)
+        listRef.current
+          ?.querySelector<HTMLElement>(
+            `[data-manage="${CSS.escape(target.id)}:more"]`,
+          )
+          ?.focus();
     };
     loadActions();
   }
@@ -228,11 +298,6 @@ export function StepActions({
       aria-label={s.sectionFor(step.title)}
     >
       <div className="work-step-actions-body">
-        {phase === "ready" && actions.length > 0 && (
-          <p className="work-step-actions-count">
-            {s.countHeading(actions.length)}
-          </p>
-        )}
         {reading && <p role="status">{t.loading}</p>}
         {!reading && phase === "forbidden" && <p>{s.forbidden}</p>}
         {!reading && phase === "error" && (
@@ -247,30 +312,40 @@ export function StepActions({
           (actions.length ? (
             <ul ref={listRef} className="work-step-actions-list">
               {actions.map((action, index) => (
-                <li key={action.id} className="work-step-action">
-                  <div className="work-step-action-text">
-                    <span className="work-step-action-title">
-                      {action.title}
-                    </span>
-                    <span className="work-step-action-status">
-                      {taskStatusLabel(t, action.status)}
-                    </span>
-                  </div>
-                  <RowControls
-                    id={action.id}
-                    title={action.title}
-                    index={index}
-                    count={actions.length}
-                    disabled={write.busy || reading}
-                    labels={manage}
-                    onMove={(delta) => {
-                      void moveAction(index, delta);
-                    }}
-                    onArchive={() => {
-                      void archiveAction(action);
-                    }}
-                  />
-                </li>
+                <StepActionRow
+                  key={action.id}
+                  action={action}
+                  index={index}
+                  count={actions.length}
+                  disabled={write.busy || reading}
+                  labels={t}
+                  manage={manage}
+                  undo={tickUndo?.id === action.id ? tickUndo : undefined}
+                  onUndo={() => {
+                    if (tickUndo) void tickAction(action, !tickUndo.done, true);
+                  }}
+                  onExpire={expireTickUndo}
+                  onComplete={
+                    canComplete
+                      ? () => {
+                          void tickAction(action, true);
+                        }
+                      : undefined
+                  }
+                  onReopen={
+                    canReopen
+                      ? () => {
+                          void tickAction(action, false);
+                        }
+                      : undefined
+                  }
+                  onMove={(delta) => {
+                    void moveAction(index, delta);
+                  }}
+                  onArchive={() => {
+                    void archiveAction(action);
+                  }}
+                />
               ))}
             </ul>
           ) : (

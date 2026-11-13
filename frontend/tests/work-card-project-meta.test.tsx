@@ -372,6 +372,14 @@ describe("record meta marks only a high-priority Task", () => {
     ).toEqual(["High"]);
   });
 
+  it("shows no marker once the Task is done or cancelled", () => {
+    for (const status of ["completed", "cancelled"]) {
+      expect(
+        metaParts({ ...base, status, priority: "high" }, workEn),
+      ).not.toContain("High");
+    }
+  });
+
   it("shows no marker for normal, low or urgent priority", () => {
     for (const priority of ["low", "normal", "urgent"]) {
       expect(metaParts({ ...base, priority }, workEn)).toEqual([

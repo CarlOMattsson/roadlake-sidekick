@@ -12,6 +12,7 @@ from sidekick.mcp.contact_text import contact_context_text
 from sidekick.mcp.text import CONTACT_CARD_NOTE
 from tests.support.mcp_contact_brief import (
     CONTACT_ID,
+    _project,
     _structured,
     _task,
 )
@@ -127,3 +128,16 @@ def test_brief_is_one_line_with_no_id_and_the_rest_of_the_text_is_unchanged() ->
     assert "Tasks: 1" in rest
     assert "- task 11111111-1111-4111-8111-111111111111 | Skicka offert | todo | v1" in rest
     assert rest.endswith(CONTACT_CARD_NOTE)
+
+
+def test_project_lines_carry_task_progress_only_when_the_project_has_tasks() -> None:
+    structured = _structured(projects=[_project("Webbplats", 3, 5), _project("Tom", 0, 0)])
+
+    lines = contact_context_text(structured).split("\n")
+
+    assert any(
+        line.startswith("- project ") and line.endswith("| v2 | 3 of 5 done") for line in lines
+    )
+    assert any(
+        line.startswith("- project ") and line.endswith("| Tom | active | v2") for line in lines
+    )

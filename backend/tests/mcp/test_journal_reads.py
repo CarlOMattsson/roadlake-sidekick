@@ -143,6 +143,70 @@ async def test_journal_reads_are_bounded_ordered_and_return_content_by_default()
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+async def test_list_journal_entries_order_desc_lists_newest_first_and_pages() -> None:
+    container, actor, first_id = make_state()
+    source = container.journal_capture.create_source(
+        actor,
+        source_type=SourceType.MANUAL_TEXT,
+        journal_date=JOURNAL_DATE,
+        occurred_at=datetime(2026, 7, 21, 15, 0, tzinfo=UTC),
+        source_recorded_at=None,
+        raw_text="Syntetisk senare källa.",
+        language="sv",
+        replaces_source_id=None,
+        idempotency_key="mcp-order-source",
+    )
+    later = container.journal_capture.create_manual_entry(
+        actor,
+        source_id=source.id,
+        title="Senare post",
+        summary=None,
+        key_points=(),
+        idempotency_key="mcp-order-entry",
+    )
+    server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
+    window = {"from_date": "2026-07-21", "to_date": "2026-07-21"}
+
+    async with Client(server) as client:
+        default = await client.call_tool("list_journal_entries", window)
+        newest_first = await client.call_tool("list_journal_entries", {**window, "order": "desc"})
+        assert [e["id"] for e in default.structured_content["entries"]] == [
+            str(first_id),
+            str(later.id),
+        ]
+        assert [e["id"] for e in newest_first.structured_content["entries"]] == [
+            str(later.id),
+            str(first_id),
+        ]
+        assert 'latest "Senare post"' in newest_first.content[0].text
+
+        page = await client.call_tool(
+            "list_journal_entries", {**window, "order": "desc", "limit": 1}
+        )
+        assert [e["id"] for e in page.structured_content["entries"]] == [str(later.id)]
+        rest = await client.call_tool(
+            "list_journal_entries",
+            {
+                **window,
+                "order": "desc",
+                "limit": 1,
+                "cursor": page.structured_content["next_cursor"],
+            },
+        )
+        assert [e["id"] for e in rest.structured_content["entries"]] == [str(first_id)]
+        assert rest.structured_content["next_cursor"] is None
+
+        with pytest.raises(ToolError):
+            await client.call_tool("list_journal_entries", {**window, "order": "sideways"})
+        with pytest.raises(ToolError):
+            await client.call_tool(
+                "list_journal_entries",
+                {**window, "cursor": page.structured_content["next_cursor"]},
+            )
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_journal_reads_enforce_date_range_cursor_and_safe_missing_errors() -> None:
     container, actor, entry_id = make_state()
     server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)

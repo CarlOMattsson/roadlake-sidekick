@@ -285,7 +285,7 @@
 }
 :is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag {
   display: inline-block;
-  flex: 0 1 auto;
+  flex: none;
   min-width: 0;
   min-height: 0;
   max-width: 6.5em;
@@ -296,9 +296,21 @@
   font-size: 0.75rem;
   line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
 }
+/* When the pills do not all fit, only the last named one gives way (its ellipsis); the shorter ones stay whole. */
+:is(.sidekick-work .work-card-meta)
+  > .sk-tags
+  > .sk-tag:not(.sk-tag--more):not(:has(~ .sk-tag:not(.sk-tag--more))) {
+  flex: 0 1 auto;
+}
 :is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag--more {
   flex: none;
   padding-inline: var(--sk-s1);
+}
+/* A wide frame has room for the whole name of a tag. */
+@container sk-frame (min-width: 640px) {
+  :is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag {
+    max-width: 12em;
+  }
 }
 
 /* The row's quick choices (designsystem §3 "Snabbval"): two marked rows under the row, on
@@ -729,6 +741,11 @@
 /* The question stands apart from the group's last row, where the button stood with its own 48 of air. */
 .sidekick-work .work-agenda-move-ask {
   padding-block: var(--sk-s2);
+}
+/* The line after a move-all stands above the groups, so the scroll that shows it (and the focus that lands on its
+   Ångra) stops 8 under the tab row that sticks over the list (--sk-sticky-top holds it there), not behind it. */
+.sidekick-work :is(.work-agenda-move-undo, .work-agenda-move-undo > *) {
+  scroll-margin-block-start: calc(var(--sk-sticky-top, 0px) + var(--sk-s2));
 }
 .sidekick-work .work-agenda-move-ask > p,
 .sidekick-work .work-agenda-move-undo > p {

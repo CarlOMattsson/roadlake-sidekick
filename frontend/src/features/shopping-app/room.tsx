@@ -535,6 +535,7 @@ export function ShoppingRoom(props: RoomProps) {
       compact={!fullscreen && shop === undefined}
       onNavigate={props.onNavigate}
       hostSettings={fullscreen ? props.hostSettings : undefined}
+      sendMessage={props.sendMessage}
     />
   );
 }

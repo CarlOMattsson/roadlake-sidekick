@@ -80,6 +80,7 @@ export function createTagTransport(
               to_date: to,
               tags,
               tag_match: "all",
+              order: "desc",
               include_content: false,
               limit: 50,
               cursor,

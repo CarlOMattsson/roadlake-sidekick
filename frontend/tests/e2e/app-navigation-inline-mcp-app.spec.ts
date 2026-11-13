@@ -46,7 +46,7 @@ for (const width of widths) {
         },
       });
       await expect(app.getByText("Att göra").first()).toBeVisible();
-      await app.getByRole("button", { name: /^Visa mer/ }).click();
+      await app.getByRole("button", { name: /^Öppna uppgiften/ }).click();
       // The host answers the request: it puts the app in fullscreen.
       await setHostContext(page, { displayMode: "fullscreen" });
       await expect(strip(app)).toBeVisible();

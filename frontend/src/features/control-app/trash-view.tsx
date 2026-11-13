@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { Notice as StatusNotice } from "../mcp-apps/ui/notice";
 import { EmptyState } from "../mcp-apps/ui/states";
-import { kindName, type ControlLabels } from "./labels";
+import { kindName, trashedWhen, type ControlLabels } from "./labels";
 import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
 import {
   writeFailure,
@@ -59,6 +59,8 @@ export function TrashView({
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
+  // The row a failed restore was on: its notice stands in that row, where the owner is looking, not at the top of the list.
+  const [failedRow, setFailedRow] = useState<string | null>(null);
   const pending = useRef<PendingKey | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -134,6 +136,7 @@ export function TrashView({
     focusIndex.current = list.items.findIndex((row) => row.id === item.id);
     setBusy(item.id);
     setNotice(undefined);
+    setFailedRow(null);
     pending.current = keyFor(
       pending.current,
       `${item.kind}:${item.id}:${item.version}`,
@@ -151,6 +154,7 @@ export function TrashView({
         text: item.label ? labels.restored(item.label) : labels.restoredHidden,
       });
     } catch (error) {
+      setFailedRow(item.id);
       const failure = writeFailure(error);
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
@@ -177,6 +181,11 @@ export function TrashView({
   }
 
   const items = list.items;
+  // A failure stays at the top only when its row is gone (the list was read again and no longer holds it).
+  const failureInRow =
+    notice?.tone === "error" &&
+    failedRow !== null &&
+    items.some((row) => row.id === failedRow);
   return (
     <div className="control-view" ref={rootRef}>
       {/* The tab "Borttaget" names the view (designsystem §5): the heading is for assistive technology only, and is
@@ -190,7 +199,7 @@ export function TrashView({
           {labels.trashMeta(items.length, list.has_more)}
         </p>
       ) : null}
-      {notice?.tone === "error" ? (
+      {notice?.tone === "error" && !failureInRow ? (
         <div ref={noticeRef} tabIndex={-1}>
           <NoticeLine notice={notice} />
         </div>
@@ -213,7 +222,7 @@ export function TrashView({
             return (
               <ControlRow
                 primary={title}
-                secondary={`${kindName(labels, item.kind)} · ${labels.trashedWhen(when)}`}
+                secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
                 action={
                   <button
                     type="button"
@@ -224,6 +233,11 @@ export function TrashView({
                   >
                     {busy === item.id ? labels.restoring : labels.restore}
                   </button>
+                }
+                below={
+                  failureInRow && failedRow === item.id ? (
+                    <NoticeLine notice={notice} />
+                  ) : undefined
                 }
               />
             );

@@ -367,6 +367,9 @@ class ContactRelationService:
                     ),
                 )
             )
+            project_progress = self.store.project_task_progress(
+                session, actor.user_id, [project.id for project in project_page.items]
+            )
             task_page = Page(
                 *paginate(
                     tasks,
@@ -415,6 +418,7 @@ class ContactRelationService:
             return ContactContext(
                 contact=contact,
                 projects=project_page,
+                project_progress=project_progress,
                 tasks=task_page,
                 task_marks=marks,
                 journal_entries=journal_entries,

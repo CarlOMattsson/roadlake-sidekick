@@ -132,7 +132,10 @@ export function TaskSteps({
               }
               onArchive={canArchive ? () => steps.archive(step.id) : undefined}
               actions={canActions}
-              onActionCount={(count) => steps.setActionCount(step.id, count)}
+              actionsDone={state.actionsDone[step.id]}
+              onActionCount={(count, done) =>
+                steps.setActionCount(step.id, count, done)
+              }
             />
           ))}
         </ul>

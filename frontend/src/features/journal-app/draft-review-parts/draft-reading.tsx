@@ -4,10 +4,15 @@ import type { JournalDraft } from "../transport";
 import { Disclosure } from "./disclosure";
 import { DraftSummary } from "./draft-summary";
 
-/** The draft as the owner reads it: summary, the tags for the entry (`tags`), key points, and the way into the editor. */
+/**
+ * The draft as the owner reads it: summary, the tags for the entry (`tags`), the way into the editor beside the
+ * original (`original`), then key points. Edit and the original sit under the summary they belong to, so the fold rows
+ * (key points, links, task changes) follow each other with nothing between them.
+ */
 export function DraftReading({
   draft,
   tags,
+  original,
   pending,
   editDisabled,
   hiddenProposals,
@@ -19,6 +24,7 @@ export function DraftReading({
 }: {
   draft: JournalDraft;
   tags: ReactNode;
+  original: ReactNode;
   pending: boolean;
   editDisabled: boolean;
   hiddenProposals: boolean;
@@ -38,6 +44,17 @@ export function DraftReading({
           {tags}
         </>
       )}
+      {pending && (
+        <p className="journal-draft-action">
+          <button type="button" disabled={editDisabled} onClick={onEdit}>
+            {t.edit}
+          </button>
+        </p>
+      )}
+      {original}
+      {pending && hiddenProposals && (
+        <p className="journal-muted">{t.editBlockedHidden}</p>
+      )}
       {draft.key_points.length > 0 && (
         <Disclosure
           id={keyPointsId}
@@ -56,16 +73,6 @@ export function DraftReading({
             ))}
           </ul>
         </Disclosure>
-      )}
-      {pending && (
-        <p className="journal-draft-action">
-          <button type="button" disabled={editDisabled} onClick={onEdit}>
-            {t.edit}
-          </button>
-        </p>
-      )}
-      {pending && hiddenProposals && (
-        <p className="journal-muted">{t.editBlockedHidden}</p>
       )}
     </>
   );

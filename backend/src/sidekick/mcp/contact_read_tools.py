@@ -17,6 +17,7 @@ from pydantic import Field
 from sidekick.contacts.application.models import (
     LinkedJournalEntries,
     TaskContactMarks,
+    TaskProgress,
 )
 from sidekick.contacts.application.serialization import contact_public_data
 from sidekick.contacts.domain.contact import Contact
@@ -95,7 +96,10 @@ def _closest_reply(ctx: ToolContext, page: ContactPageResult, closest: list[Cont
     return result(structured, f"{text}\n{CLOSEST_HINT}")
 
 
-def _project_context_page(page: Page[Project]) -> ProjectContextPageRecord:
+def _project_context_page(
+    page: Page[Project], progress: Mapping[UUID, TaskProgress]
+) -> ProjectContextPageRecord:
+    no_tasks = TaskProgress(total=0, done=0)
     return ProjectContextPageRecord(
         items=[
             ProjectSummaryRecord(
@@ -104,6 +108,8 @@ def _project_context_page(page: Page[Project]) -> ProjectContextPageRecord:
                 status=p.status.value,
                 updated_at=p.updated_at,
                 version=p.version,
+                tasks_total=progress.get(p.id, no_tasks).total,
+                tasks_done=progress.get(p.id, no_tasks).done,
             )
             for p in page.items
         ],
@@ -242,7 +248,7 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
             contact=ContactRecord.model_validate(
                 {**contact_public_data(res.contact), "tags": [tag.slug for tag in contact_tags]}
             ),
-            projects=_project_context_page(res.projects),
+            projects=_project_context_page(res.projects, res.project_progress),
             tasks=_task_context_page(res.tasks, res.task_marks),
             journal_entries=_journal_context(res.journal_entries),
         )

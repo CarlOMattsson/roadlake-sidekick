@@ -75,7 +75,7 @@ export function PendingFrame({
         })}
       </ul>
       {!fullscreen && items.length > inlinePendingLimit && (
-        <p>
+        <p className="journal-list-more">
           <button
             type="button"
             className="sk-btn--quiet"

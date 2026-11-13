@@ -78,9 +78,12 @@ export function ContactHeader({
       >
         {ready ? ready.display_name : t.contact}
       </h2>
-      {/* The profile line of the list row, 4 under the name as the Task's meta line; the nicknames under it. */}
-      {ready && <ContactProfileLine contact={ready} />}
-      {ready && <ContactAliasSummary aliases={ready.aliases} labels={t} />}
+      {/* The profile line of the list row, 4 under the name as the Task's meta line; the nicknames under it.
+          While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
+      {ready && !editing && <ContactProfileLine contact={ready} />}
+      {ready && !editing && (
+        <ContactAliasSummary aliases={ready.aliases} labels={t} />
+      )}
       {ready && menuOpen && (
         <ContactMenu
           key={ready.archived ? "archived" : "active"}

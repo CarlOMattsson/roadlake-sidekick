@@ -94,31 +94,36 @@ export function ContactBody({
           </button>
         </p>
       )}
-      {/* "Kontaktvägar ⌄" right after the name and alias: a fold row of 48, the
-          view's first content, with e-mail, phone and address closed in it. */}
-      <ContactWays contact={contact} onOpenLink={onOpenLink} labels={dl} />
-      {/* The tags under the ways to reach her: the pills and one quiet button that edits them in place. */}
-      <TagField
-        tags={contact.tags ?? []}
-        suggestions={vocabulary.suggestions}
-        editable={!contact.archived && offers("update_contact")}
-        busy={write.kind === "busy"}
-        name={contact.display_name}
-        onChange={(tags, done) =>
-          record.setTags(tags, () => {
-            vocabulary.refresh();
-            done();
-          })
-        }
-        locale={t.dateLocale}
-      />
-      {/* No "Etikett:" rows (design system §3, Kontaktvyn): the note is a paragraph under "Om Anna". */}
-      {contact.context_note && (
+      {/* While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
+      {!editing && (
         <>
-          <h3>{about(contact.display_name)}</h3>
-          <p className="work-description work-contact-about">
-            {contact.context_note}
-          </p>
+          {/* The tags first, under the name and nicknames, so they are the Contact's own and not part of the ways
+              to reach her: the pills and one quiet button that edits them in place. */}
+          <TagField
+            tags={contact.tags ?? []}
+            suggestions={vocabulary.suggestions}
+            editable={!contact.archived && offers("update_contact")}
+            busy={write.kind === "busy"}
+            name={contact.display_name}
+            onChange={(tags, done) =>
+              record.setTags(tags, () => {
+                vocabulary.refresh();
+                done();
+              })
+            }
+            locale={t.dateLocale}
+          />
+          {/* "Kontaktvägar ⌄": a fold row of 48 with e-mail, phone and address closed in it. */}
+          <ContactWays contact={contact} onOpenLink={onOpenLink} labels={dl} />
+          {/* No "Etikett:" rows (design system §3, Kontaktvyn): the note is a paragraph under "Om Anna". */}
+          {contact.context_note && (
+            <>
+              <h3>{about(contact.display_name)}</h3>
+              <p className="work-description work-contact-about">
+                {contact.context_note}
+              </p>
+            </>
+          )}
         </>
       )}
       {bare && (

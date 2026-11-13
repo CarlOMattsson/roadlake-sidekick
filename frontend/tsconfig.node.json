@@ -14,6 +14,7 @@
     "vite.mobile.config.ts",
     "capacitor.config.ts",
     "playwright.mcp-app.config.ts",
-    "playwright.mobile-audit.config.ts"
+    "playwright.mobile-audit.config.ts",
+    "playwright.real-backend.config.ts"
   ]
 }

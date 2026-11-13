@@ -377,7 +377,10 @@ def _register_reorder_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
 def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="update_step_action",
-        description="Update an Action with optimistic version checking.",
+        description=(
+            "Update an Action with optimistic version checking; "
+            "status completed ticks it off, status open opens it again."
+        ),
         output_schema=output_schema(ActionOutput),
         annotations=WRITE,
     )
@@ -394,6 +397,7 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             version=version,
             idempotency_key=idempotency_key,
             title=present(changes.title),
+            status=present(changes.status),
             due_at=sent(changes, "due_at", changes.due_at),
             attention_requested=present(changes.attention_requested),
             note=sent(changes, "note", changes.note),

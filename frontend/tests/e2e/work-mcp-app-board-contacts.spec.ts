@@ -132,7 +132,7 @@ test("sandboxed Work App adds a Step and links a searched Contact to the Task wi
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Show more", exact: true }).click();
+  await app.getByRole("button", { name: "Open task", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();
@@ -520,7 +520,7 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Open", exact: true }).click();
+  await app.getByRole("button", { name: "Open contact", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Anna Andersson" }),
   ).toBeVisible();
@@ -550,15 +550,18 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
   await aliasPanel
     .getByRole("button", { name: "Add nickname", exact: true })
     .click();
-  await expect(app.locator("p.work-alias-line")).toHaveText(
-    "Nickname: Annan A",
-  );
+  // While the editor is open the summary line is not drawn; the nickname is in the group, once.
   await expect(
     aliasPanel.getByRole("button", {
       name: "Remove nickname Annan A",
       exact: true,
     }),
   ).toBeVisible();
+  await expect(app.locator("p.work-alias-line")).toHaveCount(0);
+  await app.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(app.locator("p.work-alias-line")).toHaveText(
+    "Nickname: Annan A",
+  );
   await expect(app.locator("a")).toHaveCount(0);
   const calls = await page.evaluate(
     () =>

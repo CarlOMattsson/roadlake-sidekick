@@ -11,6 +11,7 @@ import { NewTaskInput, RecentTasks } from "../tasks/new-task-input";
 import { WorkNewTaskContext } from "../shared/empty-actions";
 import { newTaskInputLabelsFor } from "../tasks/new-task-input-labels";
 import type { SavedViewTab } from "../saved-views/saved-views";
+import { SavedViewReceipt } from "../saved-views/saved-view-receipt";
 import { SavedViewsBar } from "../saved-views/saved-views-bar";
 import { savedViewsLabelsFor } from "../saved-views/saved-views-labels";
 import type {
@@ -41,6 +42,13 @@ import { useTabTools } from "./parts/use-tab-tools";
 import { useUnsorted } from "../unsorted/use-unsorted";
 import type { HostSettingsEntry, RoomTarget } from "../../mcp-apps/room-types";
 import { useToolSupport } from "../../mcp-apps/tool-support";
+
+/** The filters as one comparable text, whatever order their keys were added in. */
+function filterKey(filters: WorkFilters): string {
+  return JSON.stringify(
+    Object.entries(filters).sort(([a], [b]) => a.localeCompare(b)),
+  );
+}
 
 export type WorkFullscreenProps = {
   transport: WorkTransport;
@@ -125,8 +133,12 @@ export function WorkFullscreen({
   const tools = useTabTools();
   const { dispatch: dispatchTools, state: ui } = tools;
   const onViewApplied = useCallback(
-    (tab: SavedViewTab, several: boolean) =>
-      dispatchTools({ type: "viewApplied", tab, several }),
+    (tab: SavedViewTab, several: boolean, name: string) =>
+      dispatchTools({ type: "viewApplied", tab, several, name }),
+    [dispatchTools],
+  );
+  const onViewCleared = useCallback(
+    (tab: SavedViewTab) => dispatchTools({ type: "viewCleared", tab }),
     [dispatchTools],
   );
   const reads = useTabReads({
@@ -135,8 +147,9 @@ export function WorkFullscreen({
     initialTab,
     firstFrame,
     onViewApplied,
+    onViewCleared,
   });
-  const { entries, retry, applyView } = reads;
+  const { entries, retry, applyView, clearView } = reads;
   // The filters each list shows now (a tag chosen in it), which a saved view is made from; a list not yet told
   // falls back to the filters it was read with.
   const [listFilters, setListFilters] = useState<PerTab<WorkFilters>>({});
@@ -163,6 +176,25 @@ export function WorkFullscreen({
   const agendaOpen = isOpenOver(ui, "agenda");
   const boardOpen = isOpenOver(ui, "board");
   const hierarchyOpen = isOpenOver(ui, "hierarchy");
+
+  /**
+   * The list of a tab showing a saved view was filtered again. When the view filtered something and every filter is
+   * gone, it is the tab's own list, so the receipt is dropped; otherwise the receipt says whether the list still is the
+   * view.
+   */
+  function listFiltersChanged(tab: SavedViewTab, filters: WorkFilters) {
+    if (ui.openedViews[tab] === undefined) return;
+    const applied = filtersOf(entries[tab]);
+    if (Object.keys(filters).length === 0 && Object.keys(applied).length > 0) {
+      void clearView(tab);
+      return;
+    }
+    dispatchTools({
+      type: "viewEdited",
+      tab,
+      edited: filterKey(filters) !== filterKey(applied),
+    });
+  }
 
   function renderFrame(
     tab: WorkTab,
@@ -203,9 +235,10 @@ export function WorkFullscreen({
               : undefined
           }
           onStackDepth={tools.setDepth[tab]}
-          onListFilters={(filters) =>
-            setListFilters((current) => ({ ...current, [tab]: filters }))
-          }
+          onListFilters={(filters) => {
+            setListFilters((current) => ({ ...current, [tab]: filters }));
+            if (tab !== "hierarchy") listFiltersChanged(tab, filters);
+          }}
         />
       </WorkNewTaskContext.Provider>
     );
@@ -239,9 +272,10 @@ export function WorkFullscreen({
         tab={tab}
         transport={transport}
         labels={savedLabels}
+        workLabels={labels}
         manage={manage}
         filters={listFilters[tab] ?? filtersOf(entries[tab])}
-        onOpen={(definition) => applyView(tab, definition)}
+        onOpen={(definition, name) => applyView(tab, definition, name)}
       />
     );
   }
@@ -279,11 +313,29 @@ export function WorkFullscreen({
     );
   }
 
-  // The note stays visible while the "⋯" panel is closed: it says what the shown list is.
+  // The notes stay visible while the "⋯" panel is closed: they say what the shown list is. The receipt names the
+  // opened saved view; its quiet line stays mounted so a screen reader hears each new name.
   function severalNote(tab: SavedViewTab) {
-    return ui.severalPriorities[tab] ? (
-      <Notice tone="warning">{savedLabels.severalPriorities}</Notice>
-    ) : null;
+    const name = ui.openedViews[tab];
+    return (
+      <>
+        <SavedViewReceipt
+          text={
+            name === undefined
+              ? undefined
+              : ui.editedViews[tab]
+                ? savedLabels.changedFromView(name)
+                : savedLabels.showingView(name)
+          }
+          clearLabel={savedLabels.showAll}
+          failedText={savedLabels.showAllFailed}
+          onClear={() => clearView(tab)}
+        />
+        {ui.severalPriorities[tab] ? (
+          <Notice tone="warning">{savedLabels.severalPriorities}</Notice>
+        ) : null}
+      </>
+    );
   }
 
   // The Work frame (.sidekick-work) holds the tab strip too, so the strip gets the app's font and colours.

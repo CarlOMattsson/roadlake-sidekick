@@ -7,6 +7,16 @@ import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import type { FrameProps, LoadPhase } from "./frame-props";
 
+/** A language code as its name in the owner's language: "sv" reads "svenska" in Swedish, "Swedish" in English. */
+function languageName(code: string, locale: string): string {
+  try {
+    return new Intl.DisplayNames(locale, { type: "language" }).of(code) ?? code;
+  } catch {
+    // A code Intl cannot read is shown as it came.
+    return code;
+  }
+}
+
 export function SourceFrame({
   id,
   transport,
@@ -78,7 +88,7 @@ export function SourceFrame({
           )}
           {source.language && (
             <p>
-              {t.language}: {source.language}
+              {t.language}: {languageName(source.language, t.dateLocale)}
             </p>
           )}
           {typeof source.raw_text === "string" && source.raw_text.length > 0 ? (

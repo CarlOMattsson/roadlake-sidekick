@@ -37,6 +37,7 @@ export function ItemGroups({
   compact,
   expanded,
   storeMode,
+  shopLabel,
   env,
   onExpanded,
 }: {
@@ -47,6 +48,8 @@ export function ItemGroups({
   compact: boolean;
   expanded: boolean;
   storeMode: boolean;
+  /** The shop the view was opened for: its own heading is left out, the view's title already names it. */
+  shopLabel?: string;
   env: RowEnv;
   onExpanded: (value: boolean) => void;
 }) {
@@ -58,7 +61,10 @@ export function ItemGroups({
       {shownGroups.map(({ store, shown }) =>
         folded && shown.length === 0 ? null : (
           <section key={store ?? ""} className="shopping-group">
-            {storeless ? null : <h3>{store ?? t.otherStore}</h3>}
+            {storeless ||
+            (shopLabel !== undefined && store === shopLabel) ? null : (
+              <h3>{store ?? t.otherStore}</h3>
+            )}
             <ul
               className={
                 folded

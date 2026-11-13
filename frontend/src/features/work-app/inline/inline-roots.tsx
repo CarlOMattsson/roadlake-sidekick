@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import {
   ContactSummary,
+  type ContactLinkCounts,
+} from "./inline-contact-summary";
+import {
   ContactsSummary,
   InlineSummary,
-  type ContactLinkCounts,
   type InlineSummaryData,
   type InlineSummaryNotice,
 } from "./inline-summary";
@@ -346,6 +348,8 @@ export function InlineContactRoot({
       relationship={contact.relationship}
       organization={contact.organization}
       role={contact.role}
+      tags={contact.tags}
+      aliases={contact.aliases.map((nickname) => nickname.value)}
       counts={counts}
       labels={labels}
       onOpen={onOpen}

@@ -39,7 +39,7 @@ Under each source that is on, tap "Visa vad Sidekick minns" (Show what Sidekick 
 
 ## Keep a single record out of memory
 
-Tap "Glöm den här" (Forget this) on a fact. Everything memory holds from that record is removed, and the record itself is unchanged. You can also ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
+Tap "Glöm anteckningen" (Forget the entry; for a contact, project or task the button names that record) on a fact. Everything memory holds from that whole record, not just that fact, is removed, and the record itself is unchanged. You can also ask Claude, for example: "Keep this journal entry out of memory." The record stays in the room but is not used by memory. You can ask Claude to let it back in.
 
 ## Enter a license key
 

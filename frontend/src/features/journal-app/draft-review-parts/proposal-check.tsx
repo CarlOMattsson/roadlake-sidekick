@@ -1,4 +1,6 @@
+import { ownerToday } from "../../mcp-apps/app-timezone";
 import { Segmented } from "../../mcp-apps/ui/segmented";
+import { formatShortDateWithYear } from "../dates";
 import { labelFor, type JournalLabels } from "../labels";
 import type { JournalTaskProposal } from "../transport";
 import {
@@ -8,14 +10,20 @@ import {
   proposalName,
 } from "./decisions";
 
-function dueText(iso: string, locale: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(locale, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+/**
+ * A due date as the rest of the journal shows dates: "5 nov", with the year only outside the owner's current year.
+ * A bare calendar date is that day; an instant is the day it falls on in the owner's zone.
+ */
+function dueText(value: string, locale: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value))
+    return formatShortDateWithYear(value, locale, ownerToday());
+  const instant = new Date(value);
+  if (Number.isNaN(instant.getTime())) return value;
+  return formatShortDateWithYear(
+    ownerToday(undefined, instant),
+    locale,
+    ownerToday(),
+  );
 }
 
 /** A task proposal: the Godkänn/Avslå pair is its only control, the details are shown as text. */

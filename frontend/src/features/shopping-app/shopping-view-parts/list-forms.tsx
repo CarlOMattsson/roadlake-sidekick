@@ -165,8 +165,13 @@ export function ListPicker({
     addButton.current?.focus();
   }, [newOpen]);
   const now = new Date();
+  // Archived lists stand after the active ones of the page, so the lists in use come first.
+  const ordered = [
+    ...lists.filter((entry) => !entry.archived),
+    ...lists.filter((entry) => entry.archived),
+  ];
   const shown =
-    fullscreen || listsExpanded ? lists : lists.slice(0, COMPACT_ROWS);
+    fullscreen || listsExpanded ? ordered : ordered.slice(0, COMPACT_ROWS);
   return (
     <div className="shopping-picker">
       <div className="shopping-picker-head">

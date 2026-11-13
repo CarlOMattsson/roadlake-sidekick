@@ -3,7 +3,7 @@
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
-from typing import cast
+from typing import Literal, cast
 from uuid import UUID
 
 from sidekick.shared.errors import InvalidInputError
@@ -104,14 +104,30 @@ def entry_order_key(entry: JournalEntry | EntryHead) -> tuple[datetime, int, int
     return effective_at.astimezone(UTC), fallback_rank, entry.id.int
 
 
+JournalOrder = Literal["asc", "desc"]
+"""Direction of a journal list: day order, or its exact reverse for the timed entries."""
+
 NO_OCCURRENCE = datetime(9999, 12, 31, tzinfo=UTC)
-"""Stands for "no time at all" in the page key: such an entry sorts after every dated one."""
+NO_OCCURRENCE_DESC = datetime(1, 1, 1, tzinfo=UTC)
+
+
+def no_occurrence(order: JournalOrder) -> datetime:
+    """Stands for "no time at all" in the page key: such an entry sorts after every dated one.
+
+    The stand-in is the latest instant when ascending and the earliest when descending, so an
+    entry without a time is last in both directions.
+    """
+
+    return NO_OCCURRENCE_DESC if order == "desc" else NO_OCCURRENCE
+
 
 ENTRY_PAGE_KEY = (datetime, int, datetime, UUID)
 """Kinds of `entry_page_key`: (effective time, fallback rank, created_at, id)."""
 
 
-def entry_page_key(entry: JournalEntry) -> tuple[datetime, int, datetime, UUID]:
+def entry_page_key(
+    entry: JournalEntry, order: JournalOrder = "asc"
+) -> tuple[datetime, int, datetime, UUID]:
     """The sort position of an entry in a journal list; the next page starts strictly after it.
 
     Mirrors the persistence ORDER BY: occurrence, else recorded time, else last; then creation
@@ -123,7 +139,7 @@ def entry_page_key(entry: JournalEntry) -> tuple[datetime, int, datetime, UUID]:
     elif entry.source_recorded_at is not None:
         effective_at, rank = entry.source_recorded_at, 1
     else:
-        effective_at, rank = NO_OCCURRENCE, 2
+        effective_at, rank = no_occurrence(order), 2
     return effective_at, rank, entry.created_at, entry.id
 
 

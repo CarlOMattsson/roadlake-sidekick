@@ -2,7 +2,8 @@
  * The Control room (room contract: mcp-apps/room-types.ts). It owns the card's state and renders the
  * Control card. Every read and write goes through `props.transport`; the room knows nothing about the
  * host bridge. The entry mounts it with the newest tool result. A room mounted hidden has no result and
- * shows the trash view with no data, and it does not count an answer that never came.
+ * opens on the view `props.view` names (trash when none), reading it for itself, and it does not count an answer that
+ * never came.
  */
 import { useMemo, useState } from "react";
 import type { RoomProps, RoomTransport } from "../mcp-apps/room-types";
@@ -10,6 +11,7 @@ import { appLocale } from "../mcp-apps/app-locale";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import {
   ControlApp,
+  controlViewNamed,
   viewOf,
   type ControlData,
   type ControlViewName,
@@ -98,13 +100,15 @@ type Shown = {
   cause?: unknown;
 };
 
-/** Nothing has been shown yet: the room starts at trash, as the first result would. */
-const NOTHING: Shown = {
-  failed: false,
-  known: {},
-  current: "trash",
-  revision: 0,
-};
+/** Nothing has been shown yet: the room starts at the view it was opened on (trash when none is named). */
+function nothingShown(view: string | undefined): Shown {
+  return {
+    failed: false,
+    known: {},
+    current: controlViewNamed(view) ?? "trash",
+    revision: 0,
+  };
+}
 
 /**
  * The room's state after one tool result. A result that is an error, or not a Control answer, is not
@@ -165,7 +169,9 @@ export function ControlRoom(props: RoomProps) {
     resultId !== undefined;
   const [seen, setSeen] = useState({ initial, initialError, resultId });
   const [shown, setShown] = useState<Shown>(() =>
-    hasResult ? afterResult(NOTHING, initial, initialError === true) : NOTHING,
+    hasResult
+      ? afterResult(nothingShown(props.view), initial, initialError === true)
+      : nothingShown(props.view),
   );
   // A changed resultId, initial or initialError is a new result (room-types). Derived during render, not in an effect.
   if (

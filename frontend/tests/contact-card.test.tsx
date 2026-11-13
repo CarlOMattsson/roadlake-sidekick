@@ -317,7 +317,9 @@ describe("inline Contact frame that carries its context", () => {
     expect(work.getContactContext).not.toHaveBeenCalled();
     expect(container.querySelector("section.work-compact-card")).not.toBeNull();
     expect(screen.getByText(anna.display_name)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Open" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open contact" }),
+    ).toBeInTheDocument();
     // No editor or Archive inline.
     expect(screen.queryByRole("button", { name: workEn.edit })).toBeNull();
     expect(
@@ -330,7 +332,7 @@ describe("inline Contact frame that carries its context", () => {
     const fullscreen = vi.fn();
     const { rerender } = render(inline(work, fullscreen));
 
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open contact" }));
     expect(fullscreen).toHaveBeenCalledTimes(1);
     expect(work.getContactContext).not.toHaveBeenCalled();
 
@@ -380,9 +382,9 @@ describe("inline Task frame that carries its record", () => {
     );
 
     expect(screen.getByText(linkedTask.title)).toBeVisible();
-    // A Task with a version offers "Show more" (the full view), not the old "Open" or a Refresh button.
+    // A Task with a version offers "Open task" (the full view), not the old "Open" or a Refresh button.
     expect(
-      screen.getByRole("button", { name: "Show more" }),
+      screen.getByRole("button", { name: "Open task" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Refresh" })).toBeNull();
     expect(getTask).not.toHaveBeenCalled();

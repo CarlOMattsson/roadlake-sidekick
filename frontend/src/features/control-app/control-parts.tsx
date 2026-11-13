@@ -76,6 +76,7 @@ export function RowList<T>({
   full = false,
   expanded: controlled,
   onExpandedChange,
+  wrapMeta = false,
 }: {
   items: readonly T[];
   keyOf: (item: T) => string;
@@ -87,13 +88,18 @@ export function RowList<T>({
   full?: boolean;
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
+  /** Break a row's meta line onto more lines instead of cutting it with an ellipsis (the time must be read whole). */
+  wrapMeta?: boolean;
 }) {
   const [own, setOwn] = useState(false);
   const expanded = controlled ?? own;
   const shown = full || expanded ? items : items.slice(0, INLINE_ROWS);
   return (
     <>
-      <ul className="control-list" aria-label={label}>
+      <ul
+        className={wrapMeta ? "control-list control-list-wrap" : "control-list"}
+        aria-label={label}
+      >
         {shown.map((item) => (
           <Fragment key={keyOf(item)}>{renderRow(item)}</Fragment>
         ))}

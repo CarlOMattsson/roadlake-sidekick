@@ -325,17 +325,16 @@ function labelOf(key: "getNtfy" | "openSettings" | "allow") {
 }
 
 describe("SettingsPanel: Den här telefonen", () => {
-  it("shows the name, when it was paired and until when the sign-in holds", async () => {
+  it("shows the name, when it was paired and that the sign-in renews before it expires", async () => {
     panel(fakeNative(answer));
 
     expect(await screen.findByText("Samsung")).toBeVisible();
     expect(screen.getByText("Server: sidekick.example")).toBeVisible();
     expect(screen.getByText("Kopplad sedan sön 1 nov")).toBeVisible();
     expect(
-      screen.getByText(
-        "Kopplingen förnyas automatiskt. Giltig till sön 15 nov.",
-      ),
+      screen.getByText("Kopplingen förnyas automatiskt innan den går ut."),
     ).toBeVisible();
+    expect(screen.queryByText(/Giltig till/)).toBeNull();
   });
 
   it("reads in English with the same parts", async () => {
@@ -345,9 +344,10 @@ describe("SettingsPanel: Den här telefonen", () => {
     expect(screen.getByText("Server: sidekick.example")).toBeVisible();
     expect(
       screen.getByText(
-        "The connection renews automatically. Valid until Sun 15 Nov.",
+        "The connection renews automatically before it expires.",
       ),
     ).toBeVisible();
+    expect(screen.queryByText(/Valid until/)).toBeNull();
     expect(
       screen.getByRole("button", { name: "Disconnect this phone" }),
     ).toBeVisible();
@@ -360,7 +360,9 @@ describe("SettingsPanel: Den här telefonen", () => {
 
     expect(await screen.findByText("Telefon utan namn")).toBeVisible();
     expect(screen.queryByText(/^Kopplad sedan/)).toBeNull();
-    expect(screen.getByText("Kopplingen förnyas automatiskt.")).toBeVisible();
+    expect(
+      screen.getByText("Kopplingen förnyas automatiskt innan den går ut."),
+    ).toBeVisible();
   });
 
   it("shows a failed read with a retry", async () => {

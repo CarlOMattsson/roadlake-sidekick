@@ -20,6 +20,10 @@ export type ToolsState = {
   viewKeys: PerTab<number>;
   /** Tabs whose opened saved view names several priorities (such a view shows every priority). */
   severalPriorities: PerTab<boolean>;
+  /** The name of the saved view each tab shows now; the next opened view replaces it. */
+  openedViews: PerTab<string>;
+  /** Tabs whose list has been filtered differently since the saved view opened, so it no longer shows the view. */
+  editedViews: PerTab<boolean>;
   /** How deep each list's navigation stack is; deeper than 1, a Task or Project is open over the list. */
   depth: PerTab<number>;
 };
@@ -31,7 +35,9 @@ export type ToolsAction =
   | { type: "closeSearch"; tab: WorkTab }
   | { type: "query"; tab: WorkTab; query: string }
   | { type: "more"; tab: WorkTab; open: boolean }
-  | { type: "viewApplied"; tab: WorkTab; several: boolean }
+  | { type: "viewApplied"; tab: WorkTab; several: boolean; name: string }
+  | { type: "viewCleared"; tab: WorkTab }
+  | { type: "viewEdited"; tab: WorkTab; edited: boolean }
   | { type: "depth"; tab: WorkTab; depth: number };
 
 export const initialToolsState: ToolsState = {
@@ -42,6 +48,8 @@ export const initialToolsState: ToolsState = {
   searchFocus: 0,
   viewKeys: {},
   severalPriorities: {},
+  openedViews: {},
+  editedViews: {},
   depth: {},
 };
 
@@ -82,12 +90,21 @@ export function toolsReducer(
       return {
         ...state,
         queries: { ...state.queries, [tab]: action.query },
+        // Typing over an opened view's list narrows it further than the view says.
+        editedViews:
+          action.query !== "" && state.openedViews[tab] !== undefined
+            ? { ...state.editedViews, [tab]: true }
+            : state.editedViews,
       };
     case "more":
       return { ...state, moreOpen: action.open ? tab : undefined };
     case "viewApplied":
       return {
         ...state,
+        // The view is on screen, so its tab's "⋯" menu folds away and the receipt takes over.
+        moreOpen: state.moreOpen === tab ? undefined : state.moreOpen,
+        openedViews: { ...state.openedViews, [tab]: action.name },
+        editedViews: { ...state.editedViews, [tab]: false },
         // The agenda's text is cleared with the view; the board keeps its own.
         queries:
           tab === "agenda" ? { ...state.queries, agenda: "" } : state.queries,
@@ -97,6 +114,22 @@ export function toolsReducer(
           [tab]: action.several,
         },
       };
+    case "viewCleared":
+      // The tab shows its own list again: the receipt and the several-priorities note go, the view starts anew.
+      return {
+        ...state,
+        openedViews: { ...state.openedViews, [tab]: undefined },
+        editedViews: { ...state.editedViews, [tab]: false },
+        viewKeys: { ...state.viewKeys, [tab]: (state.viewKeys[tab] ?? 0) + 1 },
+        severalPriorities: { ...state.severalPriorities, [tab]: false },
+      };
+    case "viewEdited":
+      return (state.editedViews[tab] ?? false) === action.edited
+        ? state
+        : {
+            ...state,
+            editedViews: { ...state.editedViews, [tab]: action.edited },
+          };
     case "depth":
       return state.depth[tab] === action.depth
         ? state

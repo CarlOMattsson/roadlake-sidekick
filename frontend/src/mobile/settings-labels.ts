@@ -44,8 +44,8 @@ export type SettingsLabels = {
   /** The host name of the server the phone is paired to. */
   server: (host: string) => string;
   pairedSince: (date: string) => string;
+  /** The sign-in renews itself before it expires (the app renews it when the server says it is due). */
   renews: string;
-  validUntil: (date: string) => string;
   notPaired: string;
   deviceFailed: string;
   unpair: string;
@@ -96,8 +96,7 @@ export const settingsLabelsSv: SettingsLabels = {
   unnamed: "Telefon utan namn",
   server: (host) => `Server: ${host}`,
   pairedSince: (date) => `Kopplad sedan ${date}`,
-  renews: "Kopplingen förnyas automatiskt.",
-  validUntil: (date) => `Giltig till ${date}.`,
+  renews: "Kopplingen förnyas automatiskt innan den går ut.",
   notPaired: "Telefonen är inte kopplad.",
   deviceFailed: "Telefonens koppling kunde inte läsas.",
   unpair: "Koppla från den här telefonen",
@@ -149,8 +148,7 @@ export const settingsLabelsEn: SettingsLabels = {
   unnamed: "Unnamed phone",
   server: (host) => `Server: ${host}`,
   pairedSince: (date) => `Connected since ${date}`,
-  renews: "The connection renews automatically.",
-  validUntil: (date) => `Valid until ${date}.`,
+  renews: "The connection renews automatically before it expires.",
   notPaired: "This phone isn’t connected.",
   deviceFailed: "Couldn’t check this phone’s connection.",
   unpair: "Disconnect this phone",

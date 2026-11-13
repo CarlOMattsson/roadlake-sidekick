@@ -60,8 +60,8 @@ const roots = [
     read: "getTask",
     id: task.id,
     kindLabel: inlineSummaryLabelsEn.kind.task,
-    /** A Task with Done: Open is the secondary "Show more" beside it. */
-    open: inlineSummaryLabelsEn.showMore,
+    /** A Task with Done: Open is the secondary "Open task" beside it. */
+    open: inlineSummaryLabelsEn.showTask,
   },
   {
     kind: "project",

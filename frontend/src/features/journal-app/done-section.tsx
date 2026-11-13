@@ -82,7 +82,7 @@ function DoneGroup({
         ))}
       </ul>
       {hidden > 0 && (
-        <p className="journal-done-toggle">
+        <p className="journal-list-more">
           <button
             type="button"
             className="sk-btn--quiet"
@@ -90,7 +90,11 @@ function DoneGroup({
             aria-controls={id}
             onClick={onWhole}
           >
-            {whole ? t.showFewer : t.moreShowAll(hidden)}
+            {whole
+              ? t.showFewer
+              : unsent > 0
+                ? t.moreShowMore(hidden)
+                : t.moreShowAll(hidden)}
           </button>
         </p>
       )}

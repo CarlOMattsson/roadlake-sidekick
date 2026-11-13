@@ -21,17 +21,28 @@ export const include = [
 export const exclude = ['docs/images/', 'docs/contracts/'];
 
 // Root files rendered as pages: source stem (SECURITY covers SECURITY.md and SECURITY.sv.md) and page slug.
-// An optional description is used when the file has no description comment of its own.
+// An optional description (a string, or one string per locale) is used when the file has no description comment of its own.
 export const rootFiles = [
   { src: 'CONTRIBUTING', slug: 'docs/contribute/index' },
   { src: 'CODE_OF_CONDUCT', slug: 'docs/contribute/code-of-conduct' },
-  { src: 'CLA', slug: 'docs/contribute/cla' },
+  {
+    src: 'CLA',
+    slug: 'docs/contribute/cla',
+    description: 'The agreement every contributor signs before a pull request is merged: you keep your rights and grant the project a license. English only.',
+  },
   {
     src: 'LICENSE',
     slug: 'docs/license',
     description: 'The Roadlake Sidekick Source Available License: what you may do with the source code, and the additional terms.',
   },
-  { src: 'SECURITY', slug: 'docs/security-policy' },
+  {
+    src: 'SECURITY',
+    slug: 'docs/security-policy',
+    description: {
+      en: 'How to report a vulnerability privately through the repository, what to include, and what to expect in reply. Do not open a public issue.',
+      sv: 'Så rapporterar du en sårbarhet privat via repot, vad rapporten ska innehålla och vad du kan vänta dig för svar. Öppna inget publikt ärende.',
+    },
+  },
   { src: 'CHANGELOG', slug: 'docs/changelog' },
 ];
 

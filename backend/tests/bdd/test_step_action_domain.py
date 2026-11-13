@@ -27,3 +27,26 @@ def test_negative_positions_are_rejected(position: int) -> None:
     now = datetime.now(UTC)
     with pytest.raises(ValidationError):
         Step(uuid4(), uuid4(), uuid4(), "Plan", TaskStatus.TODO, position, None, False, now, now)
+
+
+def test_an_update_that_changes_nothing_leaves_a_step_untouched() -> None:
+    now = datetime.now(UTC)
+    later = datetime.now(UTC)
+    step = Step(uuid4(), uuid4(), uuid4(), " Plan ", TaskStatus.TODO, 0, None, False, now, now)
+
+    assert step.update(now=later, status=TaskStatus.TODO) is step
+    assert step.update(now=later, title="Plan", attention_requested=False) is step
+    changed = step.update(now=later, status=TaskStatus.COMPLETED)
+    assert (changed.version, changed.updated_at, changed.completed_at) == (2, later, later)
+    assert changed.update(now=later, status=TaskStatus.COMPLETED) is changed
+
+
+def test_an_update_that_changes_nothing_leaves_an_action_untouched() -> None:
+    now = datetime.now(UTC)
+    later = datetime.now(UTC)
+    action = Action(uuid4(), uuid4(), uuid4(), "Call", ActionStatus.OPEN, 0, None, False, now, now)
+
+    assert action.update(now=later, status=ActionStatus.OPEN) is action
+    done = action.update(now=later, status=ActionStatus.COMPLETED)
+    assert (done.version, done.updated_at) == (2, later)
+    assert done.update(now=later, status=ActionStatus.COMPLETED) is done

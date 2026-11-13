@@ -725,19 +725,15 @@ describe("step progress, undo of a check and the quiet forms", () => {
     expect(check).toHaveFocus();
   });
 
-  it("draws no Actions button under a Step, only the Visa åtgärder in the Step's menu", async () => {
+  it("draws no Actions entry in the Step's menu: the count under the title opens them", async () => {
     const { transport } = mockTransport({});
     renderSteps(transport);
     await screen.findByRole("checkbox", { name: stepA.title });
 
-    expect(
-      screen.queryByRole("button", { name: "Visa åtgärder" }),
-    ).not.toBeInTheDocument();
     await openMenu(stepA.title);
-    const show = screen.getByRole("button", { name: "Visa åtgärder" });
-    expect(show).toHaveClass("work-step-actions-open");
-    expect(show).not.toHaveClass("sk-btn--quiet");
-    expect(show).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("button", { name: /åtgärd/ }),
+    ).not.toBeInTheDocument();
     // The menu has its own close button, labelled as the menu's close.
     expect(
       screen.getByRole("button", { name: workSv.closeMenu }),

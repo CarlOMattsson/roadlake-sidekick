@@ -108,7 +108,8 @@ export function discover(source, map) {
   const pages = [];
   const add = (rel, slug, root, description) => {
     const locale = rel.endsWith('.sv.md') ? 'sv' : 'en';
-    pages.push({ rel, stem: stemOf(rel), locale, slug, isRoot: root, description, url: slug.replace(/(^|\/)index$/, '') });
+    const text = typeof description === 'object' ? description?.[locale] : description;
+    pages.push({ rel, stem: stemOf(rel), locale, slug, isRoot: root, description: text, url: slug.replace(/(^|\/)index$/, '') });
   };
   for (const rel of source.walk('docs')) {
     if (!rel.endsWith('.md')) continue;

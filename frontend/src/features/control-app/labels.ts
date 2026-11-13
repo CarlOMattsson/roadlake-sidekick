@@ -35,6 +35,14 @@ const EN_RECORD_NOUNS: Record<MemoryDomain, readonly [string, string]> = {
   tasks: ["task", "tasks"],
 };
 
+/** The definite singular of one record of a memory source, for the text of "Forget …". */
+const SV_RECORD_DEFINITE: Record<MemoryDomain, string> = {
+  journal: "anteckningen",
+  contacts: "kontakten",
+  projects: "projektet",
+  tasks: "uppgiften",
+};
+
 /** Capitalises the first letter, for a sentence that starts with the noun. */
 function upperFirst(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -72,7 +80,6 @@ export const controlEn = {
   trashMore: "Show more",
   trashMoreFailed: "Couldn’t load more. Try again.",
   hiddenTitle: "Title hidden",
-  trashedWhen: (when: string) => (when ? `deleted ${when}` : "deleted"),
   restore: "Restore",
   restoreLabel: (title: string) => `Restore ${title}`,
   restoring: "Restoring…",
@@ -108,7 +115,7 @@ export const controlEn = {
   memoryOnProviderOff: "Memory is on, but the service is off",
   memoryFakeProvider: "Memory is using a test service",
   providerOff: "The memory service is off, so nothing is being saved.",
-  providerFake: "Test memory (fake). No real memory is in use.",
+  providerFake: "Test memory: no real memory is in use.",
   pause: "Pause memory",
   resume: "Resume memory",
   domainOn: "On",
@@ -119,8 +126,9 @@ export const controlEn = {
    * entry (`memory_sources.source_kind` "journal_entry"), the others a contact, project or task. */
   countStored: (count: number, domain: MemoryDomain) =>
     `${count} ${count === 1 ? EN_RECORD_NOUNS[domain][0] : EN_RECORD_NOUNS[domain][1]} in memory`,
-  countWaiting: (count: number) => `${count} being added`,
-  countStuck: (count: number) => `${count} waiting`,
+  countWaiting: (count: number, held = false) =>
+    held ? `${count} waiting` : `${count} being added`,
+  countStuck: (count: number) => `${count} waiting for memory`,
   countUnknown: "Count unknown",
   countOff: "not in memory",
   countDeleting: "deleting…",
@@ -146,7 +154,7 @@ export const controlEn = {
   /** Where memory text goes: to the model the owner connected (Hindsight's LLM), the facts stay on the owner's server. */
   memoryExplain:
     "Sidekick remembers context between your conversations, and Claude can ask Sidekick about it. The text of records that are included goes to the language model you connected to memory, which picks out facts. The facts are stored on your Sidekick server.",
-  // What Sidekick remembers: a read only sample per source, a free text search and "Forget this"
+  // What Sidekick remembers: a read only sample per source, a free text search and "Forget the <record>"
   recallShow: "Show what Sidekick remembers",
   recallHide: "Hide",
   recallShowLabel: (name: string) =>
@@ -168,17 +176,20 @@ export const controlEn = {
   searchButton: "Search",
   searchTooShort: "Type at least two characters.",
   resultsLabel: "What Sidekick remembers",
-  forget: "Forget this",
-  forgetLabel: (title: string) => `Forget ${title}`,
-  forgetTitle: (title: string | null) =>
-    title ? `Forget “${title}”?` : "Forget this item?",
+  /** "Forget" removes everything remembered from the whole source record, so the button names the record. */
+  forget: (domain: MemoryDomain) => `Forget the ${EN_RECORD_NOUNS[domain][0]}`,
+  forgetLabel: (domain: MemoryDomain, title: string | null) =>
+    `Forget the ${EN_RECORD_NOUNS[domain][0]}${title ? `: ${title}` : ""}`,
+  forgetTitle: (domain: MemoryDomain, title: string | null) =>
+    `Forget the ${EN_RECORD_NOUNS[domain][0]}${title ? ` “${title}”` : ""}?`,
   forgetBody: (domain: MemoryDomain) =>
-    `Everything Sidekick remembers from this item is removed from Sidekick’s memory. Your ${EN_DOMAIN_FORMS[domain].definite} won’t change.`,
-  forgetYes: "Yes, forget it",
+    `Everything Sidekick remembers from this ${EN_RECORD_NOUNS[domain][0]}, not just this fact, is removed from Sidekick’s memory. The ${EN_RECORD_NOUNS[domain][0]} itself won’t change.`,
+  forgetYes: (domain: MemoryDomain) =>
+    `Yes, forget the ${EN_RECORD_NOUNS[domain][0]}`,
   forgetNo: "Cancel",
   forgetting: "Forgetting…",
-  forgotten: (title: string | null) =>
-    `${title ? `“${title}”` : "The item"} is removed from Sidekick’s memory. The record itself is untouched. It can take a few minutes before it stops showing up in search.`,
+  forgotten: (domain: MemoryDomain, title: string | null) =>
+    `Sidekick has forgotten ${title ? `“${title}”` : `the ${EN_RECORD_NOUNS[domain][0]}`}. The ${EN_RECORD_NOUNS[domain][0]} itself won’t change. It can take a few minutes before it stops showing up in search.`,
   forgetForbidden: "You don’t have permission to change memory.",
   forgetFailed: "Couldn’t forget it. Try again.",
   domains: {
@@ -233,6 +244,8 @@ export const controlEn = {
     external_reference: "Reference",
     external_reference_link: "Reference link",
   } as Record<string, string>,
+  /** Kinds whose Swedish noun is neuter, so a participle after them takes its neuter form. Never any in English. */
+  neuterKinds: [] as readonly string[],
   actions: {
     created: "created",
     updated: "updated",
@@ -243,6 +256,7 @@ export const controlEn = {
     purchased: "bought",
     reopened: "back on the list",
   } as Record<string, string>,
+  neuterActions: {} as Record<string, string>,
 };
 export type ControlLabels = Omit<typeof controlEn, "locale"> & {
   locale: "sv" | "en";
@@ -263,7 +277,7 @@ export const controlSv: ControlLabels = {
   trashMeta: (count, more = false) =>
     `${more ? `${count}+ borttagna` : count === 1 ? "1 borttagen" : `${count} borttagna`} · kan återställas`,
   historyMeta: "Det du och Claude har gjort, senaste först",
-  sourcesOn: (on, all) => `${on} av ${all} källor`,
+  sourcesOn: (on, all) => `${on} av ${all} källor på`,
   sourcesTitle: "Källor",
   trashTitle: "Borttaget",
   trashEmpty: "Inget borttaget.",
@@ -271,7 +285,6 @@ export const controlSv: ControlLabels = {
   trashMore: "Visa fler",
   trashMoreFailed: "Det gick inte att hämta fler. Försök igen.",
   hiddenTitle: "Titeln är dold",
-  trashedWhen: (when) => (when ? `borttagen ${when}` : "borttagen"),
   restore: "Återställ",
   restoreLabel: (title) => `Återställ ${title}`,
   restoring: "Återställer…",
@@ -282,7 +295,7 @@ export const controlSv: ControlLabels = {
   restoreGone: "Posten ligger inte längre i papperskorgen. Listan läses om.",
   restoreForbidden: "Du saknar behörighet att återställa den.",
   restoreFailed: "Det gick inte att återställa. Försök igen.",
-  historyEmpty: "Ingen historik än.",
+  historyEmpty: "Ingen historik ännu.",
   historyEmptyHint: "Det du eller Claude ändrar visas här.",
   historyAskExample: "Lägg till mjölk på inköpslistan",
   nowTrashed: "ligger nu i papperskorgen",
@@ -302,7 +315,7 @@ export const controlSv: ControlLabels = {
   memoryOnProviderOff: "Minnet är på, men tjänsten är avstängd",
   memoryFakeProvider: "Minnet använder en testtjänst",
   providerOff: "Minnestjänsten är avstängd, så ingenting sparas.",
-  providerFake: "Testminne (fejk): inget riktigt minne används.",
+  providerFake: "Testminne: inget riktigt minne används.",
   pause: "Pausa minnet",
   resume: "Återuppta minnet",
   domainOn: "På",
@@ -311,15 +324,16 @@ export const controlSv: ControlLabels = {
   domainLabel: (name, on) => `${name}: ${on ? "på" : "av"}`,
   countStored: (count, domain) =>
     `${count} ${count === 1 ? SV_RECORD_NOUNS[domain][0] : SV_RECORD_NOUNS[domain][1]} i minnet`,
-  countWaiting: (count) => `${count} på väg`,
+  countWaiting: (count, held = false) =>
+    held ? `${count} väntar` : `${count} på väg`,
   countStuck: (count) => `${count} väntar på minnet`,
   countUnknown: "Antal okänt",
   countOff: "inte med i minnet",
   countDeleting: "raderas…",
   deletionStarted: (domain: MemoryDomain) =>
-    `${upperFirst(SV_DOMAIN_FORMS[domain].definite)} är avslagen. Minnet raderas inom några minuter.`,
+    `Minnet av ${SV_DOMAIN_FORMS[domain].definite} är avslaget. Det Sidekick mindes raderas inom några minuter.`,
   confirmTitle: (domain: MemoryDomain) =>
-    `Slå av ${SV_DOMAIN_FORMS[domain].definite}?`,
+    `Slå av minnet av ${SV_DOMAIN_FORMS[domain].definite}?`,
   confirmCount: (domain: MemoryDomain, count: number | null) => {
     const noun = SV_DOMAIN_FORMS[domain].definite;
     return count === null
@@ -345,7 +359,7 @@ export const controlSv: ControlLabels = {
   recallProbe: "senaste och viktigaste",
   recallSample: "Ett urval av vad Sidekick minns, inte allt.",
   recallLooking: "Letar…",
-  recallEmpty: "Sidekick minns inget härifrån än.",
+  recallEmpty: "Sidekick minns inget härifrån ännu.",
   recallNothing: "Hittade inget i minnet om det.",
   recallPaused: "Minnet är pausat, så det går inte att slå upp något.",
   recallOff: "Minnet är av, så det går inte att slå upp något.",
@@ -356,16 +370,18 @@ export const controlSv: ControlLabels = {
   searchButton: "Sök",
   searchTooShort: "Skriv minst två tecken.",
   resultsLabel: "Vad Sidekick minns",
-  forget: "Glöm den här",
-  forgetLabel: (title) => `Glöm ${title}`,
-  forgetTitle: (title) => (title ? `Glöm ”${title}”?` : "Glöm den här posten?"),
+  forget: (domain) => `Glöm ${SV_RECORD_DEFINITE[domain]}`,
+  forgetLabel: (domain, title) =>
+    `Glöm ${SV_RECORD_DEFINITE[domain]}${title ? `: ${title}` : ""}`,
+  forgetTitle: (domain, title) =>
+    `Glöm ${SV_RECORD_DEFINITE[domain]}${title ? ` ”${title}”` : ""}?`,
   forgetBody: (domain: MemoryDomain) =>
-    `Allt Sidekick minns från den här posten tas bort ur Sidekicks minne. ${upperFirst(SV_DOMAIN_FORMS[domain].definite)} ändras inte.`,
-  forgetYes: "Ja, glöm den",
+    `Allt Sidekick minns från ${SV_RECORD_DEFINITE[domain]}, inte bara det här faktumet, tas bort ur Sidekicks minne. Själva ${SV_RECORD_DEFINITE[domain]} ändras inte.`,
+  forgetYes: (domain: MemoryDomain) => `Ja, glöm ${SV_RECORD_DEFINITE[domain]}`,
   forgetNo: "Avbryt",
   forgetting: "Glömmer…",
-  forgotten: (title) =>
-    `${title ? `”${title}”` : "Posten"} är borttagen ur Sidekicks minne. Själva posten ändras inte. Det kan ta några minuter innan den försvinner ur sökningen.`,
+  forgotten: (domain, title) =>
+    `Sidekick har glömt ${title ? `”${title}”` : SV_RECORD_DEFINITE[domain]}. Själva ${SV_RECORD_DEFINITE[domain]} ändras inte. Det kan ta några minuter innan det försvinner ur sökningen.`,
   forgetForbidden: "Du saknar behörighet att ändra minnet.",
   forgetFailed: "Det gick inte att glömma den. Försök igen.",
   domains: {
@@ -405,8 +421,8 @@ export const controlSv: ControlLabels = {
     journal_entry: "Dagboksanteckning",
     shopping_item: "Inköpsvara",
     shopping_list: "Inköpslista",
-    contact_alias: "Kontaktalias",
-    contact_alias_removed: "Kontaktalias",
+    contact_alias: "Annat namn (kontakt)",
+    contact_alias_removed: "Annat namn (kontakt)",
     contact_link: "Kontaktkoppling",
     contact_task_link: "Koppling kontakt–uppgift",
     contact_project_link: "Koppling kontakt–projekt",
@@ -423,6 +439,22 @@ export const controlSv: ControlLabels = {
     purchased: "köpt",
     reopened: "lagd tillbaka",
   },
+  neuterKinds: [
+    "domain",
+    "project",
+    "step",
+    "contact_alias",
+    "contact_alias_removed",
+  ],
+  neuterActions: {
+    created: "skapat",
+    updated: "ändrat",
+    completed: "klart",
+    archived: "arkiverat",
+    restored: "återställt",
+    trashed: "borttaget",
+    reopened: "lagt tillbaka",
+  },
 };
 
 export const controlLabels = {
@@ -435,9 +467,31 @@ export function kindName(labels: ControlLabels, kind: string): string {
   return labels.kinds[kind] ?? kind.replace(/_/g, " ");
 }
 
+/** Whether the spoken name of a storage kind is a neuter noun (Swedish "projekt", "steg", "område"). */
+export function isNeuterKind(labels: ControlLabels, kind: string): boolean {
+  return labels.neuterKinds.includes(kind);
+}
+
+/** "borttaget igår 14:30" / "deleted yesterday at 14:30": the deletion of a kind of record, with its time when known. */
+export function trashedWhen(
+  labels: ControlLabels,
+  when: string,
+  kind: string,
+): string {
+  const word = actionName(labels, "trashed", kind);
+  return when ? `${word} ${when}` : word;
+}
+
 /** The spoken verb of a change action; an unknown action is shown as it arrived. */
-export function actionName(labels: ControlLabels, action: string): string {
-  return labels.actions[action] ?? action;
+export function actionName(
+  labels: ControlLabels,
+  action: string,
+  kind: string,
+): string {
+  const neuter = isNeuterKind(labels, kind) && action in labels.neuterActions;
+  return (
+    (neuter ? labels.neuterActions[action] : labels.actions[action]) ?? action
+  );
 }
 
 /** Who made an activity entry, in a word; an unknown source is shown as it arrived. */

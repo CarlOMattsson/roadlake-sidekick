@@ -114,6 +114,34 @@ describe("inline Contact card", () => {
     expect(container.textContent).not.toContain(profiled.address ?? "");
   });
 
+  it("names its nicknames on one line and opens the contact with a button that says so", async () => {
+    const nicknamed: WorkContactRecord = {
+      ...anna,
+      aliases: [
+        { id: "a1", value: "Annie", created_at: "2026-11-01T10:00:00Z" },
+        { id: "a2", value: "A. A.", created_at: "2026-11-01T10:00:00Z" },
+      ],
+    };
+    render(
+      <WorkView
+        transport={transport()}
+        initial={rootFromToolResult({ contact: nicknamed })}
+        labels={workEn}
+        inlineLabels={inlineSummaryLabelsEn}
+        fullscreen={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        inlineSummaryLabelsEn.alsoKnownAs("Annie, A. A."),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open contact" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows no form fields, only the name, the e-mail and the counts", async () => {
     const work = transport();
     const { container } = renderInline(work);
@@ -167,7 +195,7 @@ describe("inline Contact card", () => {
     const { onFullscreen } = renderInline(transport());
 
     await userEvent.click(
-      screen.getByRole("button", { name: inlineSummaryLabelsEn.open }),
+      screen.getByRole("button", { name: inlineSummaryLabelsEn.showContact }),
     );
     expect(onFullscreen).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: workEn.save })).toBeNull();
@@ -205,7 +233,7 @@ describe("inline Contact card", () => {
     await waitFor(() => expect(work.getContactContext).toHaveBeenCalled());
     expect(screen.getByText(anna.display_name)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: inlineSummaryLabelsEn.open }),
+      screen.getByRole("button", { name: inlineSummaryLabelsEn.showContact }),
     ).toBeInTheDocument();
     expect(
       screen.queryByText(new RegExp(inlineSummaryLabelsEn.taskCount)),

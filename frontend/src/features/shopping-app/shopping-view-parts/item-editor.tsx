@@ -22,6 +22,12 @@ function filledExtras(item: ShoppingItem): number {
   ].filter(Boolean).length;
 }
 
+/** A stored price without empty decimals ("199.00" reads "199", "199.50" reads "199.5"), still a plain number the field accepts. */
+function plainPrice(value: string | null | undefined): string {
+  if (!value) return "";
+  return value.includes(".") ? value.replace(/\.?0+$/, "") : value;
+}
+
 export function ItemEditor({
   item,
   labels: t,
@@ -118,7 +124,8 @@ export function ItemEditor({
       onEscape={onCancel}
     >
       <fieldset disabled={busy}>
-        <legend>
+        {/* The row above already names the item: the legend is for screen readers, so the frame stays whole. */}
+        <legend className="shopping-visually-hidden">
           {t.edit}: {item.name}
         </legend>
         <div className="shopping-editor-main">
@@ -213,7 +220,7 @@ export function ItemEditor({
                       (entry) => entry.id === item.recipient_contact_id,
                     ) && (
                       <option value={item.recipient_contact_id}>
-                        {t.linkedContact}
+                        {item.recipient_contact_name ?? t.linkedContact}
                       </option>
                     )}
                   {candidates.map((entry) => (
@@ -266,7 +273,7 @@ export function ItemEditor({
                   min="0.01"
                   max="99999999.99"
                   step="0.01"
-                  defaultValue={item.offer?.price ?? ""}
+                  defaultValue={plainPrice(item.offer?.price)}
                 />
               </label>
               <label>
@@ -277,7 +284,7 @@ export function ItemEditor({
                   min="0.01"
                   max="99999999.99"
                   step="0.01"
-                  defaultValue={item.offer?.regular_price ?? ""}
+                  defaultValue={plainPrice(item.offer?.regular_price)}
                 />
               </label>
               <label>

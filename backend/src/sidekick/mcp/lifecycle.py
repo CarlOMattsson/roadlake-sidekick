@@ -12,7 +12,7 @@ reversible.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Literal, cast
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -123,7 +123,7 @@ def _record(item: TrashItem, scopes: frozenset[str]) -> TrashItemRecord:
     readable = _READ_SCOPE_BY_KIND[item.kind] in scopes
     return TrashItemRecord(
         # RecordKind also has journal_source, which this surface never lists as trashable.
-        kind=item.kind.value,  # pyright: ignore[reportArgumentType]
+        kind=cast("KindValue", item.kind.value),
         id=item.id,
         label=item.label if readable else None,
         trashed_at=item.trashed_at,

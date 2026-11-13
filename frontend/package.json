@@ -21,6 +21,7 @@
     "build:mobile": "vite build --config vite.mobile.config.ts",
     "test:mcp-app": "playwright test --config playwright.mcp-app.config.ts",
     "test:mcp-app:preact": "vitest run --config vitest.mcp-app-preact.config.ts",
+    "test:real-backend": "playwright test --config playwright.real-backend.config.ts",
     "test:mobile-audit": "playwright test --config playwright.mobile-audit.config.ts"
   },
   "dependencies": {

@@ -2,7 +2,8 @@
 # Update a self-hosted Sidekick installation to a signed, digest-pinned api image.
 #
 # Default is --dry-run: the script only inspects local files and prints what --apply would do.
-# It calls neither docker nor the network in that mode. --apply needs python3 and update_policy.py (the decisions:
+# It calls neither docker nor the network in that mode. Everything but --decrypt-snapshot needs python3 and
+# tools/workctl (the state files); --apply also update_policy.py (the decisions:
 # versions, migration class, rollback, recovery) next to this script, and an explicit --image
 # <registry/repo@sha256:digest>; a tag alone is refused.
 # --check is read-only too, but does call docker and cosign: current pinned digest, signature
@@ -62,9 +63,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-# Free-space check and safe pruning, shared with tools/work.sh.
-# shellcheck source=backup_space.sh
-. "$SCRIPT_DIR/backup_space.sh"
+# The free-space check and the safe pruning of finished snapshots are tools/workctl (standard library only; the
+# repository's tools/ directory, which the installation is built from), shared with tools/work.sh and tools/db-backup.sh.
+WORKCTL_TOOLS="$SCRIPT_DIR/../../tools"
+workctl() { PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$WORKCTL_TOOLS${PYTHONPATH:+:$PYTHONPATH}" python3 -m workctl "$@"; }
 COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"
 # -f/--compose-file (repeatable) replaces the default compose.yaml, exactly like docker compose -f.
 # -p/--project-name is passed to docker compose; without it compose derives the name as usual
@@ -222,22 +224,6 @@ fi
 
 # --- shared helpers (local only) -------------------------------------------------------------
 
-read_pin() { # prints the value of $1 from release.env, or nothing
-  [ -f "$RELEASE_FILE" ] || return 0
-  sed -n "s/^$1=\\(.*\\)\$/\\1/p" "$RELEASE_FILE" | tail -n 1
-}
-
-current_pin="$(read_pin SIDEKICK_API_IMAGE)"
-if [ -n "$current_pin" ] && ! [[ "$current_pin" =~ $IMAGE_RE ]]; then
-  die "release.env holds an unexpected SIDEKICK_API_IMAGE value; fix or remove it first"
-fi
-previous_ref="${current_pin:-roadlake-sidekick:selfhost}" # what compose resolves today when nothing is pinned
-
-last_journal_state() {
-  [ -f "$JOURNAL" ] || return 0
-  tail -n 1 "$JOURNAL" | awk '{print $2}'
-}
-
 image_label() { # $1 = image ref or id, $2 = label; prints the value, or nothing when absent/unknown
   local value
   value="$(docker image inspect -f "{{ index .Config.Labels \"$2\" }}" "$1" 2>/dev/null || true)"
@@ -310,14 +296,25 @@ if [ "$mode" = "decrypt" ]; then
   exit $?
 fi
 
+# --- state files (python3 and tools/workctl) -----------------------------------------------
+
+command -v python3 >/dev/null 2>&1 || die "python3 not found, refusing to continue: the update state files are read by tools/workctl and the update decisions run in update_policy.py (python3 3.9 or newer, standard library only)"
+[ -f "$WORKCTL_TOOLS/workctl/__main__.py" ] || die "tools/workctl not found two directories up from this script (the state files, the free-space check and the pruning of snapshots)"
+
+current_pin="$(workctl release-pin --file "$RELEASE_FILE" SIDEKICK_API_IMAGE)"
+if [ -n "$current_pin" ] && ! [[ "$current_pin" =~ $IMAGE_RE ]]; then
+  die "release.env holds an unexpected SIDEKICK_API_IMAGE value; fix or remove it first"
+fi
+previous_ref="${current_pin:-roadlake-sidekick:selfhost}" # what compose resolves today when nothing is pinned
+
 # --- read-only status ------------------------------------------------------------------------
 
 if [ "$mode" = "check" ]; then
   rc=0
   echo "update.sh: CHECK (read-only). Nothing is changed."
   echo "  pinned api image (release.env) : ${current_pin:-none (compose default $previous_ref)}"
-  echo "  previous image (rollback)      : $(read_pin SIDEKICK_API_IMAGE_PREVIOUS | grep . || echo none)"
-  echo "  last update journal state      : $(last_journal_state | grep . || echo none)"
+  echo "  previous image (rollback)      : $(workctl release-pin --file "$RELEASE_FILE" SIDEKICK_API_IMAGE_PREVIOUS | grep . || echo none)"
+  echo "  last update journal state      : $(workctl journal-state --file "$JOURNAL" | grep . || echo none)"
   if ! command -v docker >/dev/null 2>&1; then
     echo "  docker                         : MISSING (running image, schema head not checked)"
   elif [ ! -f "$ENV_FILE" ]; then
@@ -378,7 +375,7 @@ if [ "$mode" = "dry-run" ]; then
   echo "  SIDEKICK_BACKUP_ENCRYPTION_KEY set (as a value or a secret file): $(backup_key_present && echo yes || echo NO) (--apply refuses without it; also encrypts the snapshot)"
   echo "  signer identity             : $([ -n "$identity" ] && echo given || echo NOT-GIVEN) (--cert-identity or SIDEKICK_RELEASE_CERT_IDENTITY)"
   echo "  current api image           : $previous_ref"
-  echo "  last update journal state   : $(last_journal_state | grep . || echo none) (anything but DONE/ROLLED_BACK/ABORTED blocks --apply; STARTED, STOPPING_WRITERS and RESUMING, left by an update that was killed, are resumed)"
+  echo "  last update journal state   : $(workctl journal-state --file "$JOURNAL" | grep . || echo none) (anything but DONE/ROLLED_BACK/ABORTED blocks --apply; STARTED, STOPPING_WRITERS and RESUMING, left by an update that was killed, are resumed)"
   echo
   echo "Plan for --apply with image ${image:-<REF@sha256:DIGEST, required>}:"
   cat <<EOF
@@ -408,7 +405,6 @@ fi
 [ -n "$image" ] || die "--apply requires --image REF@sha256:DIGEST"
 [ -n "$identity" ] || die "--apply requires --cert-identity (the exact release workflow identity)"
 command -v docker >/dev/null 2>&1 || die "docker not found"
-command -v python3 >/dev/null 2>&1 || die "python3 not found, refusing to update: the update decisions run in update_policy.py (python3 3.9 or newer, standard library only)"
 [ -f "$POLICY_PY" ] || die "update_policy.py not found next to this script"
 if ! command -v cosign >/dev/null 2>&1; then
   die "cosign not found, refusing to update (fail closed). Install cosign from https://docs.sigstore.dev/cosign/system_config/installation/ and re-run; do not skip verification"
@@ -451,13 +447,11 @@ acquire_lock() {
   command -v flock >/dev/null 2>&1 || die "flock not found (util-linux); refusing to update without a lock"
   exec 9>>"$LOCK_FILE" || die "cannot open the lock file $LOCK_FILE"
   if ! flock -n 9; then
-    recorded="$(cat "$LOCK_PID_FILE" 2>/dev/null || true)"
-    [[ "$recorded" =~ ^[0-9]+$ ]] || recorded=""
+    recorded="$(workctl lock-owner --file "$LOCK_PID_FILE")" || recorded=""
     die "another update is running (lock $LOCK_FILE is held${recorded:+, recorded owner pid $recorded})"
   fi
   # We hold the lock, so a pid still recorded belongs to a run that died without cleaning up.
-  recorded="$(cat "$LOCK_PID_FILE" 2>/dev/null || true)"
-  [[ "$recorded" =~ ^[0-9]+$ ]] || recorded=""
+  recorded="$(workctl lock-owner --file "$LOCK_PID_FILE")" || recorded=""
   if [ -n "$recorded" ]; then
     echo "update.sh: taking over the stale lock of an update process that is gone (pid $recorded)" >&2
   fi
@@ -493,15 +487,11 @@ trap 'on_signal TERM 143' TERM
 trap 'on_signal HUP 129' HUP
 rm -f "$JOURNAL.tmp" # a torn temporary file of a killed run; the journal itself is always whole
 
-# The journal is rewritten, never appended in place: the old lines plus the new one go to a temporary file in the same
-# directory, the file is flushed, renamed over the journal (atomic) and the directory entry is flushed. After a power
-# loss the journal is therefore either the old one or the new one, never a torn line.
-journal() {
-  local tmp="$JOURNAL.tmp"
-  { [ ! -f "$JOURNAL" ] || cat "$JOURNAL"; printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "${2:-}"; } >"$tmp"
-  fsync_path "$tmp"
-  mv "$tmp" "$JOURNAL"
-  fsync_path "$STATE_DIR"
+# The journal is rewritten, never appended in place (workctl updatestate): the old lines plus the new one go to a
+# temporary file in the same directory, the file is flushed, renamed over the journal (atomic) and the directory entry
+# is flushed. After a power loss the journal is therefore either the old one or the new one, never a torn line.
+journal() { # $1 = state, $2 = detail
+  workctl journal-add --file "$JOURNAL" "$1" "${2:-}"
 }
 
 worker_ready() { # $1 = a WORKERS entry; ready = running, and healthy where the service has a compose healthcheck
@@ -632,14 +622,6 @@ start_api() { # $1 = image ref
   compose ${profiles[@]+"${profiles[@]}"} up -d --no-build --pull never "${services[@]}"
 }
 
-write_release() { # $1 = new image, $2 = previous ref
-  local tmp="$RELEASE_FILE.tmp"
-  printf 'SIDEKICK_API_IMAGE=%s\nSIDEKICK_API_IMAGE_PREVIOUS=%s\n' "$1" "$2" >"$tmp"
-  fsync_path "$tmp" # durable before it replaces the pointer: after a power loss the old or the new file, never a torn one
-  mv "$tmp" "$RELEASE_FILE"
-  fsync_path "$(dirname -- "$RELEASE_FILE")"
-}
-
 manual_restore_help() {
   cat >&2 <<EOF
 update.sh: the database may now be on a newer schema than the previous image supports.
@@ -687,12 +669,7 @@ fail_apply() { # $1 = phase
   if policy rollback-allowed --class "$migration_class" --before "$before_count" --after "$after"; then
     echo "update.sh: starting the previous image $previous_ref" >&2
     if start_api "$previous_ref" && wait_healthy "$previous_ref"; then
-      if [ -f "$RELEASE_FILE" ] && [ -n "$current_pin" ]; then
-        write_release "$current_pin" "$image"
-      else
-        rm -f "$RELEASE_FILE"
-        fsync_path "$(dirname -- "$RELEASE_FILE")"
-      fi
+      workctl release-restore --file "$RELEASE_FILE" --pinned "$current_pin" --image "$image"
       journal ROLLED_BACK "phase=$1 previous=$previous_ref"
       echo "update.sh: rolled back to $previous_ref" >&2
       exit 1
@@ -713,7 +690,7 @@ fail_apply() { # $1 = phase
 # fail_apply and that must already know that writers may be stopped and which workers they were. We hold the lock, so
 # the process that wrote the last state is gone. Before MIGRATING nothing but the stop of the writers can have
 # happened, and the journal carries the list of workers that run stopped (or was about to stop): resume.
-state="$(last_journal_state)"
+state="$(workctl journal-state --file "$JOURNAL")"
 last_line=""
 if [ -f "$JOURNAL" ]; then last_line="$(tail -n 1 "$JOURNAL")"; fi
 recovery_rc=0
@@ -773,15 +750,17 @@ esac
 
 # Room for the snapshot is checked now, while the installation still runs: a full disk found after the stop would
 # stop the writers for nothing. The owner backup goes to the state volume and is not measured here.
-SNAPSHOT_ERE='sidekick-pre-[0-9]{8}T[0-9]{6}Z\.dump\.enc'
+SNAPSHOT_ERE="$(workctl snapshot-pattern)" || fail_apply "snapshot-pattern"
 snapshot_keep="${SIDEKICK_SNAPSHOT_KEEP:-5}"
-backup_valid_keep "$snapshot_keep" || fail_apply "snapshot-keep-invalid"
+workctl backup-keep-valid "$snapshot_keep" || fail_apply "snapshot-keep-invalid"
 space_rc=0
-backup_check_space "$STATE_DIR/snapshots" "$(backup_newest_size "$STATE_DIR/snapshots" "$SNAPSHOT_ERE")" || space_rc=$?
+space_out="$(workctl backup-space --dir "$STATE_DIR/snapshots" --pattern "$SNAPSHOT_ERE")" || space_rc=$?
+read -r space_needed space_free <<<"$space_out"
+if [ -z "${space_free:-}" ]; then space_rc=2; fi
 case "$space_rc" in
   0) ;;
   1)
-    echo "update.sh: not enough free space for a snapshot in $STATE_DIR/snapshots: $BACKUP_SPACE_FREE bytes free, $BACKUP_SPACE_NEEDED needed (newest snapshot times the margin, at least the floor). Free up space and re-run; nothing was stopped." >&2
+    echo "update.sh: not enough free space for a snapshot in $STATE_DIR/snapshots: $space_free bytes free, $space_needed needed (newest snapshot times the margin, at least the floor). Free up space and re-run; nothing was stopped." >&2
     fail_apply "snapshot-disk-space"
     ;;
   *)
@@ -804,7 +783,8 @@ before_count="$(migration_count)"
 
 echo "update.sh: 4/7 encrypted owner backup and database snapshot, with every writer stopped"
 compose run --rm -T --no-deps backup sidekick-backup-worker --once || fail_apply "owner-backup"
-snapshot_tmp="$STATE_DIR/snapshots/sidekick-pre-$(date -u +%Y%m%dT%H%M%SZ).dump.enc.partial"
+snapshot_name="$(workctl snapshot-name)" || fail_apply "snapshot-name"
+snapshot_tmp="$STATE_DIR/snapshots/$snapshot_name.partial"
 if ! { compose exec -T postgres pg_dump -U postgres -d sidekick -Fc | crypto_run encrypt; } >"$snapshot_tmp"; then
   fail_apply "snapshot" # removes the partial file
 fi
@@ -827,7 +807,7 @@ changed=1
 journal MIGRATING "class=$migration_class snapshot=${snapshot_file##*/}"
 export SIDEKICK_API_IMAGE="$image" # from here on compose resolves the new image
 compose run --rm -T --no-deps migrate || fail_apply "migrate"
-write_release "$image" "$previous_ref"
+workctl release-write --file "$RELEASE_FILE" --image "$image" --previous "$previous_ref" # flushed, then renamed into place
 start_api "$image" || fail_apply "start-api"
 
 echo "update.sh: 6/7 waiting for readiness: database and schema revision (up to ${HEALTH_TIMEOUT}s)"
@@ -839,7 +819,7 @@ journal DONE "image=$image"
 # Old snapshots are pruned only now, after a successful update: while an update is failing or needs a restore, no
 # restore point is touched. The newest SIDEKICK_SNAPSHOT_KEEP finished snapshots stay and the one just taken is
 # never removed; only names of the exact finished form are considered (never a .partial or any other file).
-if pruned="$(backup_prune_finished "$STATE_DIR/snapshots" "$SNAPSHOT_ERE" "$snapshot_keep" "${snapshot_file##*/}")"; then
+if pruned="$(workctl backup-prune --dir "$STATE_DIR/snapshots" --pattern "$SNAPSHOT_ERE" --keep "$snapshot_keep" --protected "${snapshot_file##*/}")"; then
   fsync_path "$STATE_DIR/snapshots"
   echo "update.sh: kept the newest $snapshot_keep snapshots in $STATE_DIR/snapshots, removed $pruned older"
 else

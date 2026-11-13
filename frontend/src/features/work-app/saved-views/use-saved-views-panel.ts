@@ -173,7 +173,7 @@ export function useSavedViewsPanel({
   function cancelRename(id: string) {
     dispatch({ type: "renameCancelled" });
     pendingFocus.current = () =>
-      buttonFor(panelRef.current, "data-rename", id)?.focus();
+      buttonFor(panelRef.current, "data-edit", id)?.focus();
   }
 
   function commitRename(view: WorkSavedView, value: string) {
@@ -208,7 +208,7 @@ export function useSavedViewsPanel({
           notice: s.renamed(result.saved_view.name),
         });
         pendingFocus.current = () =>
-          buttonFor(panelRef.current, "data-rename", view.id)?.focus();
+          buttonFor(panelRef.current, "data-edit", view.id)?.focus();
       });
   }
 
@@ -226,7 +226,7 @@ export function useSavedViewsPanel({
       });
   }
 
-  /** Restores an archived view; it is listed as active again, and its Open button takes the focus. */
+  /** Restores an archived view; it is listed as active again, and its row button takes the focus. */
   function restore(id: string, version: number) {
     lastWrite.current = () => restore(id, version);
     void write
@@ -263,6 +263,7 @@ export function useSavedViewsPanel({
     state,
     write,
     blocked,
+    definition,
     locked,
     active,
     archivedViews,

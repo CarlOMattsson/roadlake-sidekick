@@ -159,6 +159,8 @@ export function transport(
     listStepActions: vi
       .fn()
       .mockResolvedValue({ items: [], next_cursor: null }),
+    completeStepAction: vi.fn(),
+    reopenStepAction: vi.fn(),
     archiveStepAction: vi.fn(),
     restoreStepAction: vi.fn(),
     reorderStepActions: vi.fn(),

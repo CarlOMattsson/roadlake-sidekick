@@ -278,7 +278,7 @@ describe("HistoryView rows", () => {
       next_cursor: null,
     });
 
-    expect(screen.getByText("Ingen historik än.")).toBeInTheDocument();
+    expect(screen.getByText("Ingen historik ännu.")).toBeInTheDocument();
     expect(
       screen.getByText("Det du eller Claude ändrar visas här."),
     ).toBeInTheDocument();

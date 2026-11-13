@@ -497,6 +497,18 @@ it("Back from a record opened by Claude names the room; from a Process or Projec
   ).toBeInTheDocument();
 });
 
+it("Back from a journal entry's original text names the entry it returns to, not the journal", () => {
+  setup({}, journalStart);
+  navigateTo({ room: "journal", view: "entry", id: "e1" }, "journal");
+  expect(
+    screen.getByRole("button", { name: "Tillbaka till Dagbok" }),
+  ).toBeInTheDocument();
+  navigateTo({ room: "journal", view: "source", id: "s1" }, "journal");
+  expect(
+    screen.getByRole("button", { name: "Tillbaka till Anteckningen" }),
+  ).toBeInTheDocument();
+});
+
 it("a record below a named record keeps the name of that record in Back, even when it was opened from a list", () => {
   setup({}, { room: "work", view: "root" });
   navigateTo(

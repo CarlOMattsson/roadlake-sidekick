@@ -952,14 +952,15 @@
   margin: 0.5rem 0;
 }
 /* Contact editor: Save and Cancel stay on screen while the long form scrolls (phone-first, principle 4).
-   The row sticks to the bottom edge with an opaque base like the Undo line. Its bottom padding keeps
-   the buttons above the host's reply field in fullscreen. It is not position: fixed. */
+   The row sticks to the bottom edge with an opaque base like the Undo line. It rests on the foot reserve, above the
+   host's reply field in fullscreen (the frame keeps the same reserve below the content), so it is only as tall as its
+   buttons. It is not position: fixed. */
 .sidekick-work .work-actions-sticky {
   position: sticky;
-  bottom: 0;
+  bottom: var(--sk-foot-reserve, 6rem);
   z-index: 2;
   margin-top: 0;
-  padding: 0.5rem 0 var(--sk-foot-reserve, 6rem);
+  padding: 0.5rem 0;
   background-color: light-dark(#ffffff, #1c1c1e);
   background-image: linear-gradient(var(--work-bg), var(--work-bg));
   box-shadow: 0 -2px 6px rgb(0 0 0 / 0.12);

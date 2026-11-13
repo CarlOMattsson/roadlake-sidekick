@@ -32,8 +32,8 @@ export const inlineSummaryLabelsEn = {
   due: "Due",
   /** A Task past its due date, as the detail line: "Overdue since fri 30 Oct". */
   overdueSince: "Overdue since",
-  /** A Project's target date: "Target: Tue 15 Dec". */
-  target: "Target",
+  /** A Project's target date: "Target date: Tue 15 Dec", the room's own word. */
+  target: "Target date",
   /** A Task's steps: "2 of 4 steps". */
   stepsOf: (done: number, total: number) => `${done} of ${total} steps`,
   /** A Project's Tasks done: "3 of 12 tasks done". */
@@ -88,15 +88,17 @@ export const inlineSummaryLabelsEn = {
   loading: "Loading…",
   empty: "Nothing to show.",
   retry: "Try again",
-  /** Opens a summary's full view: "Show all", "Show task", "Show project", "Show more" on a Task. */
+  /** Opens a summary's full view: "Show all", "Open task", "Open project", "Open contact". */
   open: "Open",
   /** The foot of a list card; its title already says how many ("12 contacts"), so the button does not repeat it. */
   showAll: "Show all",
   /** The Open button of the agenda card; the counts stand in its kicker. */
   openAgenda: "Open Agenda",
-  showMore: "Show more",
-  showTask: "Show task",
-  showProject: "Show project",
+  showTask: "Open task",
+  showProject: "Open project",
+  showContact: "Open contact",
+  /** The nicknames of a Contact on its card: "Also known as Bob, Bobby". */
+  alsoKnownAs: (names: string) => `Also known as ${names}`,
   /** The Done action on a Task summary, and the notices around it. */
   complete: workEn.markDone,
   completing: "Saving…",
@@ -141,7 +143,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   due: "Klart senast",
   /** A Task past its due date, as the detail line: "Försenad sedan fre 30 okt". */
   overdueSince: "Försenad sedan",
-  target: "Mål",
+  target: "Måldatum",
   stepsOf: (done: number, total: number) => `${done} av ${total} steg`,
   tasksDoneOf: (done: number, total: number) =>
     `${done} av ${total} uppgifter klara`,
@@ -193,9 +195,10 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   showAll: "Visa alla",
   /** The "Öppna" button on the agenda card; the counts stand in the kicker. */
   openAgenda: "Öppna Agenda",
-  showMore: "Visa mer",
-  showTask: "Visa uppgiften",
-  showProject: "Visa projektet",
+  showTask: "Öppna uppgiften",
+  showProject: "Öppna projektet",
+  showContact: "Öppna kontakten",
+  alsoKnownAs: (names) => `Även kallad ${names}`,
   complete: workSv.markDone,
   completing: "Sparar…",
   completedNote: "Markerade uppgiften som klar.",

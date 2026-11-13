@@ -41,19 +41,6 @@ export function ContactFrame({
         back={back}
         onEdit={startEdit}
       />
-      {!contactsOpen && (
-        <p>
-          <button
-            type="button"
-            className="work-nav"
-            onClick={() =>
-              onOpen({ kind: "contacts", q: "", includeArchived: false })
-            }
-          >
-            {t.allContacts}
-          </button>
-        </p>
-      )}
       {phase === "loading" && <p role="status">{t.loading}</p>}
       {phase === "error" && (
         <section className="sk-card">
@@ -77,6 +64,20 @@ export function ContactFrame({
           onOpenJournalEntry={onOpenJournalEntry}
           onOpenLink={onOpenLink}
         />
+      )}
+      {/* Last, like the Task's "Alla uppgifter": a way out of the page, not a section of it. */}
+      {!contactsOpen && (
+        <p>
+          <button
+            type="button"
+            className="work-nav"
+            onClick={() =>
+              onOpen({ kind: "contacts", q: "", includeArchived: false })
+            }
+          >
+            {t.allContacts}
+          </button>
+        </p>
       )}
     </article>
   );

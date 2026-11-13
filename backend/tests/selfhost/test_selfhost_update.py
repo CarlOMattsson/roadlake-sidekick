@@ -33,6 +33,12 @@ PREVIOUS = "roadlake-sidekick:selfhost"
 NEW = "registry.example/roadlake/sidekick@sha256:" + "a" * 64
 ALL_WORKERS = "automation-worker,backup,push,memory-worker"
 
+# Upper bound for one update.sh run and for waiting on it. Every docker call of the script is a new
+# process, so a run makes dozens of process starts and takes minutes on a machine that is far
+# oversubscribed. The tests wait for markers and exit statuses, never for this; it only turns a
+# genuine hang into a failure.
+RUN_GUARD_SECONDS = 300
+
 FAKE_DOCKER = r"""#!__PYTHON__
 import json, os, sys, time
 
@@ -57,8 +63,8 @@ def block(stage):
         with open(os.environ["FAKE_BLOCK_MARKER"], "w", encoding="utf-8") as handle:
             handle.write(stage)
         # Kept: holding the call open IS the behaviour (the test signals the process group while
-        # it is stuck here); the sleep is never waited out.
-        time.sleep(30)
+        # it is stuck here); the sleep is never waited out, and outlasts the test's own guard.
+        time.sleep(600)
 
 
 def container_status(service):
@@ -203,7 +209,12 @@ class Harness:
         shutil.copy(UPDATE_SH, self.script)
         shutil.copy(SELFHOST / "compose.yaml", directory / "compose.yaml")
         shutil.copy(SELFHOST / "snapshot_crypto.py", directory / "snapshot_crypto.py")
-        shutil.copy(SELFHOST / "backup_space.sh", directory / "backup_space.sh")
+        # update.sh finds tools/workctl two directories above itself, as in the repository.
+        shutil.copytree(
+            REPO_ROOT / "tools" / "workctl",
+            directory.parent.parent / "tools" / "workctl",
+            ignore=shutil.ignore_patterns("__pycache__"),
+        )
         shutil.copy(SELFHOST / "update_policy.py", directory / "update_policy.py")
         # A placeholder, not a secret: update.sh only checks that the variable is present.
         (directory / "selfhost.env").write_text(
@@ -277,7 +288,7 @@ class Harness:
             env={**self.env, **env},
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=RUN_GUARD_SECONDS,
             check=False,
         )
 
@@ -308,7 +319,9 @@ class Harness:
 
 @pytest.fixture(name="harness")
 def _harness(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Harness:
-    return Harness(tmp_path, monkeypatch)
+    directory = tmp_path / "deploy" / "selfhost"
+    directory.mkdir(parents=True)
+    return Harness(directory, monkeypatch)
 
 
 def stops(calls: list[dict]) -> list[str]:
@@ -796,6 +809,11 @@ def test_the_automation_worker_is_default_on_and_hardened_like_backup() -> None:
 # --- interrupts: signals at any stage leave a consistent, re-runnable state ---------------------
 
 
+def _default_signal_handlers() -> None:
+    for number in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(number, signal.SIG_DFL)
+
+
 def interrupt_at(
     harness: Harness, stage: str, signal_number: int, *flags: str, **env: str
 ) -> subprocess.CompletedProcess[str]:
@@ -813,6 +831,8 @@ def interrupt_at(
         stderr=subprocess.PIPE,
         text=True,
         start_new_session=True,  # like a terminal: the signal reaches the script and its children
+        # A run under nohup ignores SIGHUP, and bash cannot trap a signal ignored at its start.
+        preexec_fn=_default_signal_handlers,
     )
     try:
 
@@ -820,9 +840,14 @@ def interrupt_at(
             assert process.poll() is None, "the update ended before it reached the stage"
             return marker.exists()
 
-        wait_until(reached, timeout=30, what="the fake docker to reach the stage", interval=0.05)
+        wait_until(
+            reached,
+            timeout=RUN_GUARD_SECONDS,
+            what="the fake docker to reach the stage",
+            interval=0.05,
+        )
         os.killpg(process.pid, signal_number)
-        stdout, stderr = process.communicate(timeout=30)
+        stdout, stderr = process.communicate(timeout=RUN_GUARD_SECONDS)
     finally:
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
@@ -1043,7 +1068,12 @@ def test_two_concurrent_updates_never_overlap_the_second_refuses(harness: Harnes
             assert first.poll() is None, "the first update ended before it reached the backup"
             return marker.exists()
 
-        wait_until(reached, timeout=30, what="the first update to reach the backup", interval=0.05)
+        wait_until(
+            reached,
+            timeout=RUN_GUARD_SECONDS,
+            what="the first update to reach the backup",
+            interval=0.05,
+        )
         calls_before = harness.calls()
         second = harness.apply()
         assert second.returncode == 1
@@ -1055,7 +1085,7 @@ def test_two_concurrent_updates_never_overlap_the_second_refuses(harness: Harnes
             first.pid
         )
         os.killpg(first.pid, signal.SIGTERM)
-        first.communicate(timeout=30)
+        first.communicate(timeout=RUN_GUARD_SECONDS)
     finally:
         if first.poll() is None:
             os.killpg(first.pid, signal.SIGKILL)
@@ -1400,34 +1430,33 @@ def test_healthy_or_healthcheck_less_workers_let_the_update_finish(harness: Harn
     assert harness.journal_states()[-1] == "DONE"
 
 
-# --- the journal and the release pointer are replaced atomically and flushed -------------------
+# --- the journal and the release pointer are replaced atomically (the flush order is tested in
+# --- tests/selfhost/work_package/test_workctl_updatestate.py) --------------------------------
 
 
-def test_the_journal_is_flushed_through_a_temporary_file_and_never_left_behind(
+def test_the_journal_is_rewritten_through_a_temporary_file_that_is_never_left_behind(
     harness: Harness,
 ) -> None:
     result = harness.apply()
     assert result.returncode == 0, result.stderr
     state_dir = harness.directory / "update-state"
     assert not list(state_dir.glob("*.tmp"))
-    flushed = harness.synced()
-    assert str(state_dir / "journal.log.tmp") in flushed
-    assert str(state_dir) in flushed
     # Lines accumulate: the rewrite keeps every earlier entry.
     assert harness.journal_states()[:2] == ["STARTED", "STOPPING_WRITERS"]
+    assert oct((state_dir / "journal.log").stat().st_mode & 0o777) == "0o600"
 
 
-def test_the_release_pointer_is_flushed_before_the_rename_and_its_directory_after(
+def test_the_release_pointer_names_the_new_and_the_previous_image_and_leaves_no_temporary_file(
     harness: Harness,
 ) -> None:
     result = harness.apply()
     assert result.returncode == 0, result.stderr
-    assert (harness.directory / "release.env").is_file()
+    release = harness.directory / "release.env"
+    assert release.read_text(encoding="utf-8").splitlines() == [
+        f"SIDEKICK_API_IMAGE={NEW}",
+        f"SIDEKICK_API_IMAGE_PREVIOUS={PREVIOUS}",
+    ]
     assert not (harness.directory / "release.env.tmp").exists()
-    flushed = harness.synced()
-    tmp = str(harness.directory / "release.env.tmp")
-    assert tmp in flushed
-    assert str(harness.directory) in flushed[flushed.index(tmp) + 1 :]
 
 
 def test_an_update_without_its_decision_file_is_refused_before_anything_runs(

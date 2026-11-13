@@ -3,6 +3,7 @@ import "../../mcp-apps/ui/tokens.css";
 import { Fold } from "../../mcp-apps/ui/fold";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { TagChips } from "../../mcp-apps/ui/tags";
 import type { HierarchyDetailLabels } from "../hierarchy/hierarchy-detail-labels";
 import type { CardLabels } from "../shared/card-labels";
 import {
@@ -15,6 +16,8 @@ export type ContactCardProps = {
   contact: WorkContactRecord;
   transport: WorkTransport;
   labels: CardLabels;
+  /** The date locale, for the spoken sentence of the tags. */
+  locale: string;
   onOpen: () => void;
   onEdit: () => void;
   /** Shows the address as a line under "role · organization". Only the fullscreen host passes true. */
@@ -31,6 +34,7 @@ export function ContactCard({
   contact,
   transport,
   labels,
+  locale,
   onOpen,
   onEdit,
   showAddress = false,
@@ -108,6 +112,11 @@ export function ContactCard({
       ) : null}
       {contact.context_note ? (
         <p className="work-compact-note">{contact.context_note}</p>
+      ) : null}
+      {contact.tags?.length ? (
+        <p>
+          <TagChips tags={contact.tags} max={2} locale={locale} />
+        </p>
       ) : null}
       {linked ? (
         <p className="work-compact-status">

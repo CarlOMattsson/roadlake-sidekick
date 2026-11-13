@@ -14,6 +14,9 @@ export const contactsRoomLabelsSv = {
   createNamed: (name: string) => `Skapa kontakt ”${name}”`,
   /** What a search with no match says to Claude: one sentence, also the message that is sent. */
   createNamedAsk: (name: string) => `Spara ${name} som kontakt`,
+  /** Tags are chosen in the filter and no Contact has them: not an empty room, so no first steps. */
+  noContactsWithTags: (tags: string[], search: string) =>
+    `Ingen kontakt${search ? ` som matchar ”${search}”` : ""} har ${tags.length === 1 ? "taggen" : "alla taggarna"} ${new Intl.ListFormat("sv-SE", { type: "conjunction" }).format(tags)}.`,
   addPhone: "Telefon",
   addEmail: "E-post",
   addRelationship: "Relation",
@@ -33,6 +36,8 @@ export const contactsRoomLabelsEn: ContactsRoomLabels = {
     `I’d like to tell you what I know about ${name} so you can save it on the contact.`,
   createNamed: (name) => `Create contact “${name}”`,
   createNamedAsk: (name) => `Save ${name} as a contact`,
+  noContactsWithTags: (tags, search) =>
+    `No contact${search ? ` matching “${search}”` : ""} has ${tags.length === 1 ? "the tag" : "all of the tags"} ${new Intl.ListFormat("en-GB", { type: "conjunction" }).format(tags)}.`,
   addPhone: "Phone",
   addEmail: "Email",
   addRelationship: "Relationship",

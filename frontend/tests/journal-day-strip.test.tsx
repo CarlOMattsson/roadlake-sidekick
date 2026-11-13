@@ -765,6 +765,33 @@ describe("weekRange, the week the arrows step, named under them", () => {
   });
 });
 
+describe("DayStrip with no day chosen", () => {
+  it("marks the strip, has no current date, and still selects a day on tap", async () => {
+    const onSelect = vi.fn();
+    render(<DayStrip {...props({ unmarked: true, onSelect })} />);
+    expect(document.querySelector(".sk-day-strip")).toHaveAttribute(
+      "data-unmarked",
+      "true",
+    );
+    expect(document.querySelector("[aria-current]")).toBeNull();
+    await userEvent.click(dayButton("2026-10-22"));
+    expect(onSelect).toHaveBeenCalledWith("2026-10-22");
+  });
+
+  it("is not marked when a day is chosen, and the numbers are muted only when none is", () => {
+    const { unmount } = render(<DayStrip {...props()} />);
+    expect(document.querySelector(".sk-day-strip")).not.toHaveAttribute(
+      "data-unmarked",
+    );
+    const chosen = document.querySelector(".sk-day-strip-number");
+    expect(journalCss.styleOf(chosen!, ROOM).color).toBeUndefined();
+    unmount();
+    render(<DayStrip {...props({ unmarked: true })} />);
+    const none = document.querySelector(".sk-day-strip-number");
+    expect(journalCss.styleOf(none!, ROOM).color).toBe("var(--sk-muted)");
+  });
+});
+
 describe("DayStrip and the journal text rule (D-058)", () => {
   it("contains no model context call and no console call", () => {
     const source = readSource("features/journal-app/day-strip.tsx");

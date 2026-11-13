@@ -117,6 +117,8 @@ export type ToolResults = {
       items: Array<{
         id: string;
         status: string;
+        tasks_done: number;
+        tasks_total: number;
         title: string;
         updated_at: string;
         version: number;
@@ -1201,6 +1203,7 @@ export type ToolInputs = {
     include_archived?: boolean;
     include_content?: boolean;
     limit?: number;
+    order?: "asc" | "desc";
     tag_match?: "any" | "all";
     tags?: Array<string> | null;
     to_date?: string | null;
@@ -1652,6 +1655,7 @@ export type ToolInputs = {
       attention_requested?: boolean | null;
       due_at?: string | null;
       note?: string | null;
+      status?: "open" | "completed" | null;
       title?: string | null;
     };
     idempotency_key: string;
@@ -1832,6 +1836,7 @@ export type ItemRecord = {
   purchased_at: string | null;
   quantity: string;
   recipient_contact_id: string | null;
+  recipient_contact_name: string | null;
   store: string | null;
   target_date: string | null;
   unit: string | null;

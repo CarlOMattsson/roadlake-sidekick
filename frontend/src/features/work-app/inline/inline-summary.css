@@ -103,12 +103,8 @@
   margin: 0;
 }
 
-/* Inline Contact card (ContactSummary): the text on the left, "Open" on the right, about 120 px high.
+/* Inline Contact card (ContactSummary): the text, then "Open" in the card's foot as in the other cards.
    The e-mail and counts share one line and wrap rather than grow the card. */
-.sidekick-work .work-compact-contact {
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
 .sidekick-work .work-compact-contact-text {
   display: grid;
   gap: 0.1rem;
@@ -284,4 +280,41 @@
    the weight only sets them off from the name. It wraps with the line, never inside a word. */
 .sidekick-work .work-compact-mark {
   font-weight: var(--sk-weight-semibold);
+}
+
+/* The card's tag line stays one line: two pills share it and a long tag gives way with "…", the "+N" never does. */
+.sidekick-work .work-compact-tags > .sk-tags {
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.sidekick-work .work-compact-tags > .sk-tags > .sk-tag {
+  display: inline-block;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 14em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sidekick-work .work-compact-tags > .sk-tags > .sk-tag--more {
+  flex: none;
+}
+
+/* The state a card names (a Task's or Project's status, a Contact's relationship) is a word about the record, not a
+   control and not a tag: muted text in the meta type with no frame, so the rounded pill is left to the tags. */
+.sidekick-work .work-compact-card > p > .work-chip,
+.sidekick-work .work-compact-contact-text > p > .work-chip {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-fg-2, var(--sk-muted));
+}
+
+/* The nicknames stay one line; a long list gives way with "…". */
+.sidekick-work .work-compact-aliases {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

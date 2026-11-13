@@ -117,7 +117,7 @@ describe("the tag filter of Agenda and Status", () => {
     expect(await screen.findByText(workSv.agendaNoMatches)).toBeInTheDocument();
     expect(screen.getByText(tagSv.filtered(["kund"]))).toBeInTheDocument();
     await user.click(
-      within(group).getByRole("button", { name: tagSv.clearLabel }),
+      within(group).getByRole("button", { name: tagSv.clear(1) }),
     );
     await waitFor(() =>
       expect(getWorkAgenda).toHaveBeenLastCalledWith({ status: "todo" }),

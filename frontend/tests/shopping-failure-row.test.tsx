@@ -103,7 +103,7 @@ describe("a failed row write shows its notice in that row", () => {
     const paragraph = alert.querySelector("p");
     expect(paragraph).toHaveTextContent(shoppingEn.markFailed);
     expect(alert).not.toHaveTextContent(shoppingEn.failed);
-    expect(shoppingSv.markFailed).toBe("Kunde inte markeras.");
+    expect(shoppingSv.markFailed).toBe("Ändringen kunde inte sparas.");
     const retry = within(alert).getByRole("button", { name: shoppingEn.retry });
     expect(paragraph).not.toContainElement(retry);
     expect(retry).toHaveClass("sk-error-retry--text");

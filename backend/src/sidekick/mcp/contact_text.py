@@ -183,7 +183,9 @@ def contact_context_text(
     lines.extend(f"- alias {alias.id} | {flat(alias.value)}" for alias in contact.aliases)
     lines.append(f"Projects: {len(projects)}")
     lines.extend(
-        f"- project {p.id} | {flat(p.title)} | {p.status} | v{p.version}" for p in projects
+        f"- project {p.id} | {flat(p.title)} | {p.status} | v{p.version}"
+        + (f" | {p.tasks_done} of {p.tasks_total} done" if p.tasks_total else "")
+        for p in projects
     )
     lines.append(f"Tasks: {len(tasks)}")
     lines.extend(

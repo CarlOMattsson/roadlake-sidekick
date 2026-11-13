@@ -50,6 +50,8 @@ export type StepsState = {
   undo: ArchivedStep | undefined;
   /** The Step checked last, whose row shows Ångra until it runs out, another write, or Undo. */
   stepUndo: StepUndo | undefined;
+  /** How many of each Step's Actions are done, by Step id; known once the Step's Actions have been read. */
+  actionsDone: Record<string, number>;
   /** The status line after a move, a restore or an added Step. */
   status: string | undefined;
 };
@@ -81,7 +83,7 @@ export type StepsAction =
   | { type: "restored"; item: ArchivedStep; status: string }
   | { type: "created"; step: WorkStep; status: string }
   /** The Step's Actions were read or changed: its row now knows how many active ones it has. */
-  | { type: "actionsCounted"; stepId: string; count: number };
+  | { type: "actionsCounted"; stepId: string; count: number; done: number };
 
 /**
  * `step` with the Action count the view already held for it. The Step writes answer without a count,
@@ -107,6 +109,7 @@ export const initialStepsState: StepsState = {
   archived: [],
   undo: undefined,
   stepUndo: undefined,
+  actionsDone: {},
   status: undefined,
 };
 
@@ -232,6 +235,7 @@ export function stepsReducer(
     case "actionsCounted":
       return {
         ...state,
+        actionsDone: { ...state.actionsDone, [action.stepId]: action.done },
         steps: state.steps.map((item) =>
           item.id === action.stepId
             ? { ...item, action_count: action.count }

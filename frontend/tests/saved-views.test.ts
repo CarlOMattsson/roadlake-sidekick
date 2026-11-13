@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   definitionToFilters,
+  describeDefinition,
   filtersToDefinition,
   isArchivedView,
   isSaveBlocked,
@@ -412,6 +414,97 @@ describe("view list helpers", () => {
 
     const added = view("c", { view: "agenda", context: "all" });
     expect(upsertView([first, second], added)).toEqual([added, first, second]);
+  });
+});
+
+describe("describeDefinition", () => {
+  const base: WorkSavedViewDefinition = { view: "agenda", context: "all" };
+
+  it("says all tasks for a view with no filter", () => {
+    expect(describeDefinition(base, savedViewsLabelsSv, workSv)).toBe(
+      "Alla uppgifter",
+    );
+    expect(describeDefinition(base, savedViewsLabelsEn, workEn)).toBe(
+      "All tasks",
+    );
+  });
+
+  it("lists tags, and says any-of when the view matches any tag", () => {
+    const tags = { ...base, tags: ["viktig", "kund"] };
+    expect(
+      describeDefinition(
+        { ...tags, tag_match: "all" },
+        savedViewsLabelsSv,
+        workSv,
+      ),
+    ).toBe("Taggar: viktig, kund");
+    expect(describeDefinition(tags, savedViewsLabelsSv, workSv)).toBe(
+      "Taggar: viktig, kund",
+    );
+    expect(
+      describeDefinition(
+        { ...tags, tag_match: "any" },
+        savedViewsLabelsSv,
+        workSv,
+      ),
+    ).toBe("Någon av taggarna: viktig, kund");
+    expect(
+      describeDefinition(
+        { ...tags, tag_match: "any" },
+        savedViewsLabelsEn,
+        workEn,
+      ),
+    ).toBe("Any of the tags: viktig, kund");
+  });
+
+  it("names the priority, one or several, in the words of the locale", () => {
+    expect(
+      describeDefinition(
+        { ...base, priority: "high" },
+        savedViewsLabelsSv,
+        workSv,
+      ),
+    ).toBe("Prioritet: Hög");
+    expect(
+      describeDefinition(
+        { ...base, priorities: ["high", "urgent"] },
+        savedViewsLabelsEn,
+        workEn,
+      ),
+    ).toBe("Priority: High, Urgent");
+  });
+
+  it("names the status and the search words, and joins the parts in one line", () => {
+    expect(
+      describeDefinition(
+        { ...base, status: "blocked" },
+        savedViewsLabelsSv,
+        workSv,
+      ),
+    ).toBe("Status: Blockerad");
+    expect(
+      describeDefinition(
+        {
+          ...base,
+          tags: ["kund"],
+          priority: "high",
+          status: "blocked",
+          q: " offert ",
+        },
+        savedViewsLabelsEn,
+        workEn,
+      ),
+    ).toBe("Tags: kund · Priority: High · Status: Blocked · Search: offert");
+  });
+
+  it("shows a status it does not know as it arrived", () => {
+    expect(
+      describeDefinition(
+        { ...base, status: "limbo" },
+        savedViewsLabelsEn,
+        workEn,
+      ),
+    ).toBe("Status: limbo");
   });
 });
 

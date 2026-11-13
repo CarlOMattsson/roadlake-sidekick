@@ -6,7 +6,7 @@ from uuid import UUID
 
 from sidekick.contacts.domain.contact import Contact
 from sidekick.journal.domain.day_done import DayDone
-from sidekick.journal.domain.entry import EntryHead, JournalEntry
+from sidekick.journal.domain.entry import EntryHead, JournalEntry, JournalOrder
 from sidekick.journal.domain.records import (
     DaySummaryStatus,
     EntryRelations,
@@ -54,6 +54,7 @@ class JournalStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTag
         after: tuple[KeyValue, ...] | None = None,
         tags: tuple[str, ...] = (),
         tag_match: str = "any",
+        order: JournalOrder = "asc",
     ) -> list[JournalEntry]: ...
 
     def list_pending_journal_items(

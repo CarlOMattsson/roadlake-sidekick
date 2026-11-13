@@ -86,11 +86,20 @@ class TaskContactMarks(TypedDict):
 
 
 @dataclass(frozen=True, slots=True)
+class TaskProgress:
+    """How many of a Project's active Tasks there are, and how many of them are completed."""
+
+    total: int
+    done: int
+
+
+@dataclass(frozen=True, slots=True)
 class ContactContext:
-    """A Contact with its linked Projects, Tasks (and their marks) and recent Journal entries."""
+    """A Contact with its linked Projects (and their Task progress), Tasks and Journal entries."""
 
     contact: Contact
     projects: Page[Project]
+    project_progress: dict[UUID, TaskProgress]
     tasks: Page[Task]
     task_marks: dict[UUID, TaskContactMarks]
     journal_entries: LinkedJournalEntries

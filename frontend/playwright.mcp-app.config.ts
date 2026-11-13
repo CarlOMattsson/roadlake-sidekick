@@ -24,6 +24,7 @@ export default defineConfig({
     "meta-line-mcp-app.spec.ts",
     "layout-mcp-app.spec.ts",
     "tags-mcp-app.spec.ts",
+    "agenda-move-all-mcp-app.spec.ts",
   ],
   fullyParallel: true,
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 6,

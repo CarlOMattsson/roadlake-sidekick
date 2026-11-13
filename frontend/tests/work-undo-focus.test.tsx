@@ -169,16 +169,23 @@ describe("focus after an archive or an unlink, and after Undo", () => {
       />,
     );
 
+    // The Action's Archive is in the row's menu, opened as a right click or a long press does.
+    fireEvent.contextMenu(
+      (
+        await screen.findByRole("checkbox", { name: "Ring receptionen" })
+      ).closest("li")!,
+    );
     await user.click(
-      await screen.findByRole("button", { name: "Arkivera: Ring receptionen" }),
+      screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
     );
     await waitFor(() =>
       expect(screen.getByRole("button", { name: sv.undo })).toHaveFocus(),
     );
     await user.click(screen.getByRole("button", { name: sv.undo }));
+    // The returned row's menu is closed, so its box takes the focus.
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Arkivera: Ring receptionen" }),
+        screen.getByRole("checkbox", { name: "Ring receptionen" }),
       ).toHaveFocus(),
     );
   });

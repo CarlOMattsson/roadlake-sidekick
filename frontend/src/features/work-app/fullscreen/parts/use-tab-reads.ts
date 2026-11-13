@@ -26,7 +26,9 @@ type Options = {
   initialTab: WorkTab;
   firstFrame: WorkTabFrame | undefined;
   /** A saved view was opened in a tab: the caller restarts the tab's view and sets its notice. */
-  onViewApplied: (tab: SavedViewTab, several: boolean) => void;
+  onViewApplied: (tab: SavedViewTab, several: boolean, name: string) => void;
+  /** A tab went back from its saved view to its own list. */
+  onViewCleared: (tab: SavedViewTab) => void;
 };
 
 /**
@@ -40,6 +42,7 @@ export function useTabReads({
   initialTab,
   firstFrame,
   onViewApplied,
+  onViewCleared,
 }: Options) {
   // False after unmount, so a late answer does not write into a gone view.
   const aliveRef = useMounted();
@@ -114,6 +117,7 @@ export function useTabReads({
     async (
       tab: SavedViewTab,
       definition: WorkSavedViewDefinition,
+      name: string,
     ): Promise<boolean> => {
       const filters = definitionToFilters(definition);
       const startedAt = (order.current += 1);
@@ -137,13 +141,38 @@ export function useTabReads({
           ...current,
           [tab]: { status: "ready", frame },
         }));
-        onViewApplied(tab, namesSeveralPriorities(definition));
+        onViewApplied(tab, namesSeveralPriorities(definition), name);
         return true;
       } catch {
         return false;
       }
     },
     [transport, aliveRef, onViewApplied],
+  );
+
+  /**
+   * Goes back from a saved view to the tab's own list: reads the tab again without filters. The view stays when the
+   * read fails. Resolves whether the tab shows its own list now.
+   */
+  const clearView = useCallback(
+    async (tab: SavedViewTab): Promise<boolean> => {
+      const startedAt = (order.current += 1);
+      try {
+        const frame = await readTab(transport, tab, false);
+        if (!aliveRef.current) return false;
+        viewApplied.current.delete(tab);
+        readAt.current[tab] = startedAt;
+        setEntries((current) => ({
+          ...current,
+          [tab]: { status: "ready", frame },
+        }));
+        onViewCleared(tab);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [transport, aliveRef, onViewCleared],
   );
 
   return {
@@ -154,5 +183,6 @@ export function useTabReads({
     load,
     retry,
     applyView,
+    clearView,
   };
 }

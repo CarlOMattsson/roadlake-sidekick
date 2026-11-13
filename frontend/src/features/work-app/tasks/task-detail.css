@@ -252,8 +252,8 @@
 }
 /* A Step row is the label alone, the whole width (no ⋯ and no line around the label; a long press, a right click or
    Shift+F10 opens the row's menu of Up, Down and Archive under the title). */
-/* The menu sits under the title, indented past the checkbox: one row of buttons, Up, Down, Archive and "Visa
-   åtgärder" alike (the list controls' frame and size, manage.css), and × at the row's end. */
+/* The menu sits under the title, indented past the checkbox: one row of buttons, Up, Down and Archive
+   (the list controls' frame and size, manage.css), and × at the row's end. */
 .sidekick-work .work-step-menu {
   display: flex;
   flex-wrap: wrap;
@@ -263,11 +263,6 @@
 }
 .sidekick-work .work-step-menu > .work-manage-controls {
   display: contents;
-}
-.sidekick-work .work-step-menu > .work-step-actions-open {
-  min-width: 2.75rem;
-  padding-inline: 0.7rem;
-  font-size: 0.9rem;
 }
 .sidekick-work .work-step-menu > .work-step-menu-close {
   margin-inline-start: auto;
@@ -336,21 +331,19 @@
 
 /* A Step just checked or unchecked keeps its place and says so in the agenda's way (agenda.css, "The Undo of a row"):
    its meta line ("Klar", "Öppen igen") stands under the title, on the title's x, and "Ångra" is a compact button in the
-   trailing slot. The row becomes the grid those rules place their line and button in. */
-.sidekick-work .work-steps > li.work-step-undoing {
+   trailing slot. The row becomes the grid those rules place their line and button in. An Action under a Step is a row of
+   the same kind, so it follows the same rules. */
+.sidekick-work .work-steps li.work-step-undoing {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   column-gap: var(--sk-s3);
   align-items: start;
 }
-.sidekick-work
-  .work-steps
-  > li.work-step-undoing
-  > :is(label, .work-step-read) {
+.sidekick-work .work-steps li.work-step-undoing > :is(label, .work-step-read) {
   grid-column: 1;
   grid-row: 1;
 }
-.sidekick-work .work-steps > li.work-step-undoing > .work-agenda-undo > p {
+.sidekick-work .work-steps li.work-step-undoing > .work-agenda-undo > p {
   padding-inline-start: calc(var(--sk-icon) + var(--sk-s3));
 }
 

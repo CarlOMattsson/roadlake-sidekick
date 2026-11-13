@@ -336,9 +336,13 @@ export type WorkContactRecord = WithOptional<
  */
 export type WorkContactChanges = Inputs["update_contact"]["changes"];
 type ContactContextResult = Results["get_contact_context"];
-export type WorkProjectSummary = Pick<
-  Item<ContactContextResult["projects"]["items"]>,
-  "id" | "title" | "status"
+/** One Project of a Contact's context; the Task counts are absent from an older server. */
+export type WorkProjectSummary = WithOptional<
+  Pick<
+    Item<ContactContextResult["projects"]["items"]>,
+    "id" | "title" | "status" | "tasks_total" | "tasks_done"
+  >,
+  "tasks_total" | "tasks_done"
 >;
 /** One Task of a Project's, Process's or Contact's list; `tags` is absent from a Contact's list and an older server. */
 export type WorkTaskSummary = WithOptional<

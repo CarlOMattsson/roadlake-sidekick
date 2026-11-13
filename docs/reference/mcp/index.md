@@ -32,7 +32,7 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 - [`complete_task_step`](steps-and-actions.md#complete_task_step): Complete a Step with optimistic version checking. (write)
 - [`list_step_actions`](steps-and-actions.md#list_step_actions): List bounded display-ordered Actions for one owned Step; next_cursor continues. (read)
 - [`create_step_action`](steps-and-actions.md#create_step_action): Create an ordered Action under one owned Step with a retry-safe key. (write)
-- [`update_step_action`](steps-and-actions.md#update_step_action): Update an Action with optimistic version checking. (write)
+- [`update_step_action`](steps-and-actions.md#update_step_action): Update an Action with optimistic version checking; status completed ticks it off, status open opens it again. (write)
 - [`complete_step_action`](steps-and-actions.md#complete_step_action): Complete an Action with optimistic version checking. (write)
 
 ### [External references](external-references.md)
@@ -70,7 +70,7 @@ Sidekick exposes 95 MCP tools: 70 that Claude can call and 25 that only the MCP 
 
 ### [Journal](journal.md)
 
-- [`list_journal_entries`](journal.md#list_journal_entries): Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first. (read)
+- [`list_journal_entries`](journal.md#list_journal_entries): Use this for a bounded date-filtered list of at most 366 inclusive calendar days of the authenticated user's journal entries, oldest first (order=desc: newest first). (read)
 - [`get_journal_entry`](journal.md#get_journal_entry): Use this for one known owned entry UUID, usually from a list result, when the user asks to see that entry. (read)
 - [`get_journal_day`](journal.md#get_journal_day): Use this for bounded entries and summary status on one explicit date. (read)
 - [`get_journal_source`](journal.md#get_journal_source): Use this for one known owned source UUID to read its immutable provenance: type, dates, language, replacement link, and fingerprint. (read)

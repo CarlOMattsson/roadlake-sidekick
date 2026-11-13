@@ -6,7 +6,7 @@
  * each read on its own from the native side, each with its own reading line, failure and retry:
  * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), "Skicka testavisering" with one calm line per outcome, and one sentence
  *   on the lock screen (see docs/decisions/log.md D-079: it follows the phone's own setting).
- * - "Den här telefonen": the device label, the server it is paired to, when it was paired, that the sign-in renews itself and until when it holds,
+ * - "Den här telefonen": the device label, the server it is paired to, when it was paired, and that the sign-in renews itself before it expires,
  *   and "Koppla från den här telefonen", which asks first (it clears the phone). After it, the pairing gate takes over.
  *
  * It fits one phone screen at 320 px and 110 % text: no list, no scroll. Nothing here reaches the network but through
@@ -409,7 +409,6 @@ function DeviceLines({
       relative: false,
     });
   const since = date(device.pairedAt);
-  const until = date(device.expiresAt);
   return (
     <>
       <p className="mobile-settings__name">
@@ -421,9 +420,7 @@ function DeviceLines({
       {since ? (
         <p className="mobile-settings__meta">{labels.pairedSince(since)}</p>
       ) : null}
-      <p className="mobile-settings__meta">
-        {until ? `${labels.renews} ${labels.validUntil(until)}` : labels.renews}
-      </p>
+      <p className="mobile-settings__meta">{labels.renews}</p>
     </>
   );
 }

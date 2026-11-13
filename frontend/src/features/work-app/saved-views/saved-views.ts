@@ -1,3 +1,9 @@
+import {
+  priorityLabel,
+  workStatusLabel,
+  type WorkLabels,
+} from "../shared/labels";
+import type { SavedViewsLabels } from "./saved-views-labels";
 import type {
   WorkFilters,
   WorkSavedView,
@@ -260,4 +266,40 @@ export function upsertView(
   return views.some((item) => item.id === view.id)
     ? views.map((item) => (item.id === view.id ? view : item))
     : [view, ...views];
+}
+
+/**
+ * One quiet line saying what a view holds: its tags, priority, status and search words, joined with
+ * " · ". A view with none of these is "all tasks". Only these four are named; the other keys
+ * (grouping, sort order, waiting and so on) shape the list without narrowing it down to something
+ * a person would recognise.
+ */
+export function describeDefinition(
+  definition: WorkSavedViewDefinition,
+  s: SavedViewsLabels,
+  work: WorkLabels,
+): string {
+  const parts: string[] = [];
+  const tags = (definition.tags ?? []).filter((tag) => tag.trim().length > 0);
+  if (tags.length > 0) {
+    const list = tags.join(", ");
+    parts.push(
+      definition.tag_match === "any" ? s.tagsAny(list) : s.tagsAll(list),
+    );
+  }
+  const priorities = [
+    ...(definition.priority ? [definition.priority] : []),
+    ...(definition.priorities ?? []),
+  ].filter((value, index, all) => all.indexOf(value) === index);
+  if (priorities.length > 0)
+    parts.push(
+      s.priorityIs(
+        priorities.map((value) => priorityLabel(work, value)).join(", "),
+      ),
+    );
+  if (definition.status)
+    parts.push(s.statusIs(workStatusLabel(work, definition.status)));
+  const query = definition.q?.trim();
+  if (query) parts.push(s.queryIs(query));
+  return parts.length > 0 ? parts.join(" · ") : s.allTasks;
 }

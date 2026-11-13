@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { controlEn, controlSv } from "@/features/control-app/labels";
 import { MemoryView } from "@/features/control-app/memory-view";
 import type {
@@ -19,6 +19,14 @@ const metaLine = (text: string) => (_: string, el: Element | null) =>
 function fail(code: string): Error {
   return Object.assign(new Error(code), { code });
 }
+
+// The date on a fact's meta line leaves out the year of "today", so today is fixed.
+beforeAll(() => {
+  vi.useFakeTimers({ toFake: ["Date"], now: new Date("2026-11-13T09:00:00Z") });
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
 
 const status: MemoryStatus = {
   settings: {
@@ -123,6 +131,63 @@ describe("Memory recall", () => {
     expect(screen.getAllByText("Visa vad Sidekick minns")).toHaveLength(2);
   });
 
+  it("offers neither the sample nor the search while the memory service is off, and says queued text is waiting", () => {
+    render(
+      <MemoryView
+        initial={{ ...status, provider: "off" }}
+        transport={makeTransport(vi.fn(), vi.fn())}
+        labels={controlSv}
+      />,
+    );
+    expect(screen.queryByText("Visa vad Sidekick minns")).toBeNull();
+    expect(screen.queryByRole("search")).toBeNull();
+    expect(
+      screen.getByText(metaLine("På · 12 anteckningar i minnet · 2 väntar")),
+    ).toBeVisible();
+  });
+
+  it("offers no search when every source is off", () => {
+    render(
+      <MemoryView
+        initial={{
+          ...status,
+          settings: {
+            ...status.settings,
+            journal: false,
+            projects: false,
+          },
+        }}
+        transport={makeTransport(vi.fn(), vi.fn())}
+        labels={controlSv}
+      />,
+    );
+    expect(screen.queryByRole("search")).toBeNull();
+  });
+
+  it("dates a fact by its record and marks an archived record", async () => {
+    const archived: RecalledFact = {
+      text: "Köket målas i vitt",
+      occurred: null,
+      source: {
+        kind: "project",
+        id: "id-3",
+        title: "Köksrenovering",
+        date: null,
+        archived: true,
+      },
+    };
+    const recall = vi.fn<Recall>(() => Promise.resolve(ok([archived])));
+    renderMemory(makeTransport(recall, vi.fn()));
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Visa vad Sidekick minns från Projekt",
+      }),
+    );
+    expect(
+      await screen.findByText(metaLine("Projekt · Köksrenovering · arkiverat")),
+    ).toBeInTheDocument();
+  });
+
   it("reads nothing until opened, then asks recall_memory for that source only and shows the facts without ids", async () => {
     const recall = vi.fn<Recall>(() => Promise.resolve(ok(sample)));
     renderMemory(makeTransport(recall, vi.fn()));
@@ -140,7 +205,7 @@ describe("Memory recall", () => {
     });
     expect(await screen.findByText("Anna föreslog en promenad")).toBeVisible();
     expect(
-      screen.getByText(metaLine("Dagboksanteckning · Söndag")),
+      screen.getByText(metaLine("Dagboksanteckning · Söndag · 1 nov")),
     ).toBeInTheDocument();
     expect(screen.getByText(controlSv.recallSample)).toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/id-1|id-2/);
@@ -283,13 +348,17 @@ describe("Forget this", () => {
     const forget = vi.fn<Forget>(() => Promise.resolve({}));
     await openSample(forget);
 
-    const button = screen.getByRole("button", { name: "Glöm Söndag" });
+    const button = screen.getByRole("button", {
+      name: "Glöm anteckningen: Söndag",
+    });
     await userEvent.click(button);
 
-    const confirm = screen.getByRole("group", { name: "Glöm ”Söndag”?" });
+    const confirm = screen.getByRole("group", {
+      name: "Glöm anteckningen ”Söndag”?",
+    });
     expect(confirm).toHaveClass("control-confirm");
     expect(confirm).toHaveTextContent(
-      "Allt Sidekick minns från den här posten tas bort ur Sidekicks minne. Dagboken ändras inte.",
+      "Allt Sidekick minns från anteckningen, inte bara det här faktumet, tas bort ur Sidekicks minne. Själva anteckningen ändras inte.",
     );
     expect(forget).not.toHaveBeenCalled();
 
@@ -305,8 +374,12 @@ describe("Forget this", () => {
     const forget = vi.fn<Forget>(() => Promise.resolve({}));
     await openSample(forget);
 
-    await userEvent.click(screen.getByRole("button", { name: "Glöm Söndag" }));
-    await userEvent.click(screen.getByRole("button", { name: "Ja, glöm den" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Glöm anteckningen: Söndag" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ja, glöm anteckningen" }),
+    );
 
     await waitFor(() => expect(forget).toHaveBeenCalledWith(sample[0]));
     await waitFor(() =>
@@ -314,7 +387,7 @@ describe("Forget this", () => {
     );
     expect(
       screen.getByText(
-        "”Söndag” är borttagen ur Sidekicks minne. Själva posten ändras inte. Det kan ta några minuter innan den försvinner ur sökningen.",
+        "Sidekick har glömt ”Söndag”. Själva anteckningen ändras inte. Det kan ta några minuter innan det försvinner ur sökningen.",
       ),
     ).toBeInTheDocument();
     // The other record's fact stays.
@@ -325,8 +398,12 @@ describe("Forget this", () => {
     const forget = vi.fn<Forget>(() => Promise.reject(fail("unavailable")));
     await openSample(forget);
 
-    await userEvent.click(screen.getByRole("button", { name: "Glöm Söndag" }));
-    await userEvent.click(screen.getByRole("button", { name: "Ja, glöm den" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "Glöm anteckningen: Söndag" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ja, glöm anteckningen" }),
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       controlSv.forgetFailed,
@@ -338,12 +415,12 @@ describe("Forget this", () => {
     const forget = vi.fn<Forget>(() => Promise.resolve({}));
     await openSample(forget, controlEn);
     await userEvent.click(
-      screen.getByRole("button", { name: "Forget Söndag" }),
+      screen.getByRole("button", { name: "Forget the entry: Söndag" }),
     );
     expect(
-      screen.getByRole("group", { name: "Forget “Söndag”?" }),
+      screen.getByRole("group", { name: "Forget the entry “Söndag”?" }),
     ).toHaveTextContent(
-      "Everything Sidekick remembers from this item is removed from Sidekick’s memory. Your journal won’t change.",
+      "Everything Sidekick remembers from this entry, not just this fact, is removed from Sidekick’s memory. The entry itself won’t change.",
     );
   });
 
@@ -351,14 +428,14 @@ describe("Forget this", () => {
     const forget = vi.fn<Forget>(() => Promise.resolve({}));
     await openSample(forget, controlEn);
     await userEvent.click(
-      screen.getByRole("button", { name: "Forget Söndag" }),
+      screen.getByRole("button", { name: "Forget the entry: Söndag" }),
     );
     await userEvent.click(
-      screen.getByRole("button", { name: "Yes, forget it" }),
+      screen.getByRole("button", { name: "Yes, forget the entry" }),
     );
     expect(
       await screen.findByText(
-        "“Söndag” is removed from Sidekick’s memory. The record itself is untouched. It can take a few minutes before it stops showing up in search.",
+        "Sidekick has forgotten “Söndag”. The entry itself won’t change. It can take a few minutes before it stops showing up in search.",
       ),
     ).toBeInTheDocument();
   });

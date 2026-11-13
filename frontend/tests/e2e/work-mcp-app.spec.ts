@@ -129,8 +129,8 @@ test("sandboxed Work App navigates Task and Contact through the host on a mobile
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  // Inline the Task is a summary; this host offers no fullscreen, so Show more expands the full view inline.
-  await app.getByRole("button", { name: "Show more", exact: true }).click();
+  // Inline the Task is a summary; this host offers no fullscreen, so Open task expands the full view inline.
+  await app.getByRole("button", { name: "Open task", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();
@@ -336,7 +336,7 @@ test("sandboxed Work App resets its stack on a new root and shows an error frame
       tasks: { items: [], next_cursor: null },
     },
   });
-  await app.getByRole("button", { name: "Show task", exact: true }).click();
+  await app.getByRole("button", { name: "Open task", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();
@@ -368,7 +368,7 @@ test("sandboxed Work App resets its stack on a new root and shows an error frame
   await expect(app.getByRole("button", { name: "Back" })).toHaveCount(0);
   // A new root result for another contact replaces the whole stack. Inline it is a summary again.
   await push(contactResult(bo));
-  await app.getByRole("button", { name: "Open", exact: true }).click();
+  await app.getByRole("button", { name: "Open contact", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Bo Berg" }),
   ).toBeVisible();
@@ -483,7 +483,7 @@ test("sandboxed Work App recovers from a stale Task version by reloading and sav
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Show more", exact: true }).click();
+  await app.getByRole("button", { name: "Open task", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();
@@ -654,7 +654,7 @@ test("sandboxed Work App opens a Task's Project, recovers from a stale Project v
     frame.srcdoc = resource;
   }, html);
   const app = page.frameLocator("iframe");
-  await app.getByRole("button", { name: "Show more", exact: true }).click();
+  await app.getByRole("button", { name: "Open task", exact: true }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),
   ).toBeVisible();

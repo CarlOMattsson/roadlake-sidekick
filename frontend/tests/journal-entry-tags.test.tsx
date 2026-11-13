@@ -60,6 +60,7 @@ describe("the tool calls of the tag parts", () => {
           to_date: "2026-11-13",
           tags: ["a", "b"],
           tag_match: "all",
+          order: "desc",
           include_content: false,
           limit: 50,
           cursor: "c1",

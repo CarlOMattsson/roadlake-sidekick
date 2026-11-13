@@ -42,6 +42,7 @@
   "site.pricing.noticeText": "You can buy a key once payment through Polar is in place.",
   "site.pricing.buyButton": "Buy a license key",
   "site.pricing.buyButtonPolar": "Buy at Polar",
+  "site.pricing.buySoon": "Coming soon",
   "site.length.months_one": "{{count}} month",
   "site.length.months_other": "{{count}} months",
   "site.length.years_one": "{{count}} year",

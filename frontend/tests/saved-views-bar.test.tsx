@@ -101,6 +101,49 @@ describe("SavedViewsBar: the panel and the list", () => {
   });
 });
 
+describe("SavedViewsBar: the order of the panel", () => {
+  it("lists the views first, then the archived switch, then the save form", async () => {
+    const fake = fakeTransport([meetings]);
+    const user = userEvent.setup();
+    renderBar({ transport: fake.transport });
+
+    await openPanel(user);
+    const list = await screen.findByRole("list");
+    const form = screen.getByRole("form", { name: "Spara nuvarande vy" });
+    const archived = screen.getByRole("checkbox", { name: "Visa arkiverade" });
+    const before = Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(list.compareDocumentPosition(archived) & before).toBe(before);
+    expect(archived.compareDocumentPosition(form) & before).toBe(before);
+  });
+
+  it("says what Save will save, from the tab's filters", async () => {
+    const fake = fakeTransport([]);
+    const user = userEvent.setup();
+    renderBar({
+      transport: fake.transport,
+      filters: { tags: ["viktig", "kund"], priority: "high" },
+    });
+
+    await openPanel(user);
+    expect(
+      await screen.findByText(
+        "Det här sparas: Taggar: viktig, kund · Prioritet: Hög",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("says it saves all tasks when no filter is set", async () => {
+    const fake = fakeTransport([]);
+    const user = userEvent.setup();
+    renderBar({ transport: fake.transport });
+
+    await openPanel(user);
+    expect(
+      await screen.findByText("Det här sparas: Alla uppgifter"),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("SavedViewsBar: saving the current view", () => {
   it("saves the tab's filters under the typed name, lists it on top and clears the field", async () => {
     const created: WorkSavedView = {

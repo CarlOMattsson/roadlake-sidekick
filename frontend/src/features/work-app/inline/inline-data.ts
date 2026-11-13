@@ -1,4 +1,5 @@
-import type { ContactLinkCounts, InlineSummaryData } from "./inline-summary";
+import type { ContactLinkCounts } from "./inline-contact-summary";
+import type { InlineSummaryData } from "./inline-summary";
 import type {
   WorkContactContext,
   WorkProject,
@@ -24,6 +25,7 @@ export function taskInlineSummary(task: WorkTask): InlineSummaryData {
     lastCompletedAt: task.last_completed_at ?? null,
     description: task.description,
     projectTitle: task.project_title,
+    tags: task.tags,
     datapoints: { steps },
   };
 }
@@ -42,6 +44,7 @@ export function projectInlineSummary(project: WorkProject): InlineSummaryData {
     title: project.title,
     status: project.status,
     dueDate: project.target_date,
+    tags: project.tags,
     datapoints: { tasks, overdue: project.tasks_overdue },
   };
 }

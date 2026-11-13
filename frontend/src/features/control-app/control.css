@@ -20,7 +20,19 @@
   position: sticky;
   top: var(--sk-sticky-top);
   z-index: 2;
+  background: transparent;
+}
+/* Only the full view scrolls under the tabs, so only there do they need the page colour to cover the rows. */
+.sk-rooms__pane .sidekick-control .sk-segmented {
   background: var(--sk-bg);
+}
+
+/* The inline card keeps a readable measure on a wide host: a row and its switch stay within reach of each other. */
+.sidekick-control .control-card {
+  max-width: 40rem;
+}
+.sk-rooms__pane .sidekick-control .control-card {
+  max-width: none;
 }
 
 .sidekick-control .control-view {
@@ -468,8 +480,8 @@
   color: var(--sk-muted);
 }
 
-/* Memory rows and recall results: their meta line breaks onto more lines instead of being cut with an ellipsis
-   ("På · 12 anteckningar i minnet · 2 på väg" must be read whole). */
+/* Memory rows, history rows and recall results: their meta line breaks onto more lines instead of being cut with an
+   ellipsis ("På · 12 anteckningar i minnet · 2 på väg", "Shopping item · bought · yesterday at 14:30" must be read whole). */
 .sidekick-control .control-list-wrap .control-row-secondary {
   overflow: visible;
   white-space: normal;
@@ -482,6 +494,11 @@
   display: grid;
   gap: var(--sk-s2);
   min-width: 0;
+}
+
+/* A failed write's notice under its own row (a restore that did not go through) keeps a little air from the row's meta. */
+.sidekick-control .control-row-below > .control-notice {
+  margin-top: var(--sk-s1);
 }
 
 /* "Visa vad Sidekick minns" / "Dölj": a compact secondary button under its source, so it reads as an action and not

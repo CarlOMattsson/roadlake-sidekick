@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TagChips, TagField, TagFilter } from "@/features/mcp-apps/ui/tags";
 import { tagEn, tagSv } from "@/features/mcp-apps/ui/tag-labels";
@@ -94,6 +95,33 @@ describe("TagField", () => {
     const [, done] = onChange.mock.calls[0] as [string[], () => void];
     done();
     await waitFor(() => expect(field).toHaveValue(""));
+  });
+
+  it("lists the suggestions most used first, equal use in the locale's collation (Swedish: viktig before vänta)", async () => {
+    const user = userEvent.setup();
+    const suggestions = ["vänta", "kund", "viktig", "åska"].map((label) => ({
+      slug: label,
+      label,
+      count: 2,
+    }));
+    render(
+      <TagField
+        tags={[]}
+        suggestions={suggestions}
+        editable
+        busy={false}
+        name="Anna"
+        onChange={vi.fn()}
+        locale="sv-SE"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: tagSv.add }));
+    const list = screen.getByRole("list", { name: tagSv.suggested });
+    expect(
+      within(list)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["kund", "viktig", "vänta", "åska"]);
   });
 
   it("removes a tag, adds a suggestion with one tap and closes with Escape", async () => {
@@ -214,7 +242,7 @@ describe("TagFilter", () => {
     await user.click(within(group).getByRole("button", { name: "a" }));
     expect(onChange).toHaveBeenLastCalledWith([]);
     await user.click(
-      within(group).getByRole("button", { name: tagEn.clearLabel }),
+      within(group).getByRole("button", { name: tagEn.clear(1) }),
     );
     expect(onChange).toHaveBeenLastCalledWith([]);
 
@@ -237,6 +265,74 @@ describe("TagFilter", () => {
       />,
     );
     expect(container.textContent).toBe("");
+  });
+
+  it("names the chips, counts the chosen tags on Clear and sorts Swedish tags with å, ä, ö last", () => {
+    const options = ["vänta", "viktig", "åska", "kund", "zebra"].map(
+      (label) => ({ slug: label, label, count: 1 }),
+    );
+    const { rerender } = render(
+      <TagFilter
+        options={options}
+        selected={["kund", "viktig"]}
+        onChange={vi.fn()}
+        locale="sv-SE"
+      />,
+    );
+    const group = screen.getByRole("group", { name: tagSv.filter });
+    expect(within(group).getByText(tagSv.tags)).toBeVisible();
+    expect(
+      within(group)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["kund", "viktig", "vänta", "zebra", "åska", "Rensa (2)"]);
+    rerender(
+      <TagFilter
+        options={options}
+        selected={["kund"]}
+        onChange={vi.fn()}
+        locale="en-GB"
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: tagEn.clear(1) }),
+    ).toHaveTextContent("Clear (1)");
+    expect(screen.getByText(tagEn.tags)).toBeVisible();
+  });
+  it("puts the chosen chips first, keeps the focus on a chip that moved and puts the order back when the tags are cleared", async () => {
+    const user = userEvent.setup();
+    const options = ["a", "b", "c", "d"].map((slug) => ({
+      slug,
+      label: slug,
+      count: 1,
+    }));
+    function Filter() {
+      const [selected, setSelected] = useState<string[]>([]);
+      return (
+        <TagFilter
+          options={options}
+          selected={selected}
+          onChange={setSelected}
+          locale="en-GB"
+        />
+      );
+    }
+    render(<Filter />);
+    const group = screen.getByRole("group", { name: tagEn.filter });
+    const names = () =>
+      within(group)
+        .getAllByRole("button")
+        .map((button) => button.textContent);
+    await user.click(within(group).getByRole("button", { name: "c" }));
+    expect(names()).toEqual(["c", "a", "b", "d", tagEn.clear(1)]);
+    // Moving the chip did not drop the keyboard focus.
+    expect(within(group).getByRole("button", { name: "c" })).toHaveFocus();
+    await user.click(within(group).getByRole("button", { name: "d" }));
+    expect(names()).toEqual(["c", "d", "a", "b", tagEn.clear(2)]);
+    await user.click(
+      within(group).getByRole("button", { name: tagEn.clear(2) }),
+    );
+    expect(names()).toEqual(["a", "b", "c", "d"]);
   });
 });
 

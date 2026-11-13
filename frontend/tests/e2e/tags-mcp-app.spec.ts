@@ -124,7 +124,7 @@ for (const [view, tool, result] of [
       tags: ["viktig", "kund"],
       tag_match: "all",
     });
-    await filter.getByRole("button", { name: "Rensa taggfiltret" }).click();
+    await filter.getByRole("button", { name: "Rensa" }).click();
     await settled(app);
     const cleared = (await simulatedHostState(page)).calls.filter(
       (call) => call.name === tool,
@@ -241,9 +241,7 @@ for (const width of [320, 412])
     }
     await filter.getByRole("button", { name: "viktig" }).click();
     await filter.getByRole("button", { name: "kund" }).click();
-    await expect(
-      filter.getByRole("button", { name: "Rensa taggfiltret" }),
-    ).toBeVisible();
+    await expect(filter.getByRole("button", { name: "Rensa" })).toBeVisible();
     await settled(app);
     const reads = (await simulatedHostState(page)).calls.filter(
       (call) => call.name === "list_contacts",
@@ -336,7 +334,7 @@ test("Journal: choosing a tag lists the tagged entries across days", async ({
     tags: ["viktig"],
     tag_match: "all",
   });
-  await filter.getByRole("button", { name: "Rensa taggfiltret" }).click();
+  await filter.getByRole("button", { name: "Rensa" }).click();
   await expect(filter.getByRole("button", { name: "viktig" })).toHaveAttribute(
     "aria-pressed",
     "false",

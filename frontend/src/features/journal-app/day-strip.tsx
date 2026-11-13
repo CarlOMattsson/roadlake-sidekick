@@ -256,6 +256,7 @@ export function DayStrip({
       <div
         ref={strip}
         className="sk-day-strip"
+        data-unmarked={unmarked ? "true" : undefined}
         role="group"
         aria-label={t.group}
         onTouchStart={onSwipeStart}

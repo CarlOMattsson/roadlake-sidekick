@@ -42,8 +42,8 @@ export function forgetTagVocabulary(read: ReadTags | undefined) {
 
 /**
  * The owner's tag vocabulary for one kind of record, or for several counted together (a list of Tasks and
- * Projects). `options` are the tags in use on those kinds (for a filter), most used first; `suggestions` are all
- * tags (for adding one). A failed or missing read leaves both empty: the view then shows no filter and adds tags
+ * Projects). `options` are the tags in use on those kinds (for a filter); `suggestions` are all tags (for
+ * adding one). Both come in the server's order; `sortTagOptions` puts them in reading order for a locale. A failed or missing read leaves both empty: the view then shows no filter and adds tags
  * by typing only.
  */
 export function useTagVocabulary(
@@ -84,17 +84,25 @@ export function useTagVocabulary(
     label: tag.label,
     count: kinds.reduce((sum, each) => sum + (tag.usage[each] ?? 0), 0),
   });
-  const options = tags
-    .map(option)
-    .filter((tag) => tag.count > 0)
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
-  const suggestions = tags
-    .map(option)
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+  const options = tags.map(option).filter((tag) => tag.count > 0);
+  const suggestions = tags.map(option);
   return { options, suggestions, refresh };
 }
 
 /** The label of a slug as the vocabulary names it; the slug itself when the vocabulary does not know it. */
 export function tagLabelOf(slug: string, known: readonly TagOption[]): string {
   return known.find((tag) => tag.slug === slug)?.label ?? slug;
+}
+
+/** The options most used first, ties in the collation of the locale (Swedish puts å, ä, ö last). */
+export function sortTagOptions(
+  options: readonly TagOption[],
+  locale: string,
+): TagOption[] {
+  const collator = new Intl.Collator(
+    locale.startsWith("en") ? "en-GB" : "sv-SE",
+  );
+  return [...options].sort(
+    (a, b) => b.count - a.count || collator.compare(a.label, b.label),
+  );
 }

@@ -129,3 +129,26 @@ def test_project_completion_records_finite_outcome() -> None:
     )
     assert completed.status is ProjectStatus.COMPLETED
     assert completed.version == project.version + 1
+
+
+def test_completing_a_completed_project_writes_no_version_and_no_event() -> None:
+    store = InMemoryStore()
+    service = ProjectService(store, FixedClock(), make_cursor_codec())
+    project = service.create(
+        actor(), title="Outcome", domain_id=TEST_DOMAIN_ID, idempotency_key="project-twice-create"
+    )
+    completed = service.complete(
+        actor(), project.id, version=project.version, idempotency_key="project-twice-first"
+    )
+    events_before = len(store.audit_events)
+
+    again = service.complete(
+        actor(), project.id, version=completed.version, idempotency_key="project-twice-again"
+    )
+
+    assert (again.version, again.updated_at) == (completed.version, completed.updated_at)
+    assert len(store.audit_events) == events_before
+    with pytest.raises(ConflictError):
+        service.complete(
+            actor(), project.id, version=project.version, idempotency_key="project-twice-stale"
+        )

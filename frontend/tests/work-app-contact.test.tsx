@@ -662,6 +662,6 @@ it("names the alias and archive controls in Swedish", async () => {
     }),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole("button", { name: "Lägg till namn" }),
+    screen.getByRole("button", { name: "Lägg till alternativt namn" }),
   ).toBeInTheDocument();
 });

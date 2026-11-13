@@ -7,7 +7,7 @@ from sqlalchemy import case, delete, func, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased, joinedload
 
-from sidekick.journal.domain.entry import NO_OCCURRENCE, EntryHead, JournalEntry
+from sidekick.journal.domain.entry import EntryHead, JournalEntry, JournalOrder, no_occurrence
 from sidekick.journal.domain.records import EntryRelations, PendingJournalItem, RelationLabels
 from sidekick.journal.domain.source import JournalSource, SourceType
 from sidekick.journal.persistence.mappers import journal_entry_from_row, journal_source_from_row
@@ -162,8 +162,13 @@ class JournalEntryStore:
         after: tuple[KeyValue, ...] | None = None,
         tags: tuple[str, ...] = (),
         tag_match: str = "any",
+        order: JournalOrder = "asc",
     ) -> list[JournalEntry]:
-        """Entries in day order; `after` is the `entry_page_key` of the last entry already read.
+        """Entries in day order, or with `order="desc"` newest first.
+
+        An entry with no time at all is last in both orders.
+
+        `after` is the `entry_page_key` of the last entry already read.
 
         With `tags` only entries carrying any (or, with `tag_match="all"`, every) tag are listed.
         """
@@ -173,7 +178,7 @@ class JournalEntryStore:
         explicit_at = func.coalesce(
             JournalEntryRow.occurred_at,
             JournalSourceRow.source_recorded_at,
-            literal(NO_OCCURRENCE, JournalEntryRow.occurred_at.type),
+            literal(no_occurrence(order), JournalEntryRow.occurred_at.type),
         )
         fallback_rank = case(
             (JournalEntryRow.occurred_at.is_not(None), 0),
@@ -196,6 +201,8 @@ class JournalEntryStore:
                 JournalSourceRow.trashed_at.is_(None),
             )
         )
+        descending = order == "desc"
+        sort_key = (explicit_at, fallback_rank, JournalEntryRow.created_at, JournalEntryRow.id)
         if not include_archived:
             statement = statement.where(JournalEntryRow.archived_at.is_(None))
         if tags:
@@ -203,19 +210,10 @@ class JournalEntryStore:
                 tag_condition("journal_entry", JournalEntryRow.id, owner_id, tags, tag_match)
             )
         if after is not None:
-            statement = statement.where(
-                rows_after(
-                    (explicit_at, fallback_rank, JournalEntryRow.created_at, JournalEntryRow.id),
-                    after,
-                    descending=False,
-                )
-            )
+            statement = statement.where(rows_after(sort_key, after, descending=descending))
         rows = session.scalars(
             statement.order_by(
-                explicit_at.asc(),
-                fallback_rank.asc(),
-                JournalEntryRow.created_at.asc(),
-                JournalEntryRow.id.asc(),
+                *(column.desc() if descending else column.asc() for column in sort_key)
             ).limit(limit)
         )
         return [journal_entry_from_row(row) for row in rows]

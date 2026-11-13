@@ -3,7 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ContactProjects } from "@/features/work-app/contacts/contact-projects";
-import { projectStatusLabel, workSv } from "@/features/work-app/shared/labels";
+import {
+  projectStatusLabel,
+  workEn,
+  workSv,
+} from "@/features/work-app/shared/labels";
 import type { WorkProjectSummary } from "@/features/work-app/transport/transport";
 
 const offert: WorkProjectSummary = {
@@ -23,7 +27,7 @@ const kok: WorkProjectSummary = {
 };
 
 describe("ContactProjects", () => {
-  it("shows each project as a row with its status alone and a ›, and no remove control", () => {
+  it("shows each project as a row with a differing status alone and a ›, and no remove control", () => {
     render(
       <ContactProjects
         projects={[offert, sajt, kok]}
@@ -40,9 +44,8 @@ describe("ContactProjects", () => {
     expect(
       screen.getByRole("button", { name: sajt.title }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(projectStatusLabel(workSv, "active")),
-    ).toBeInTheDocument();
+    // An active Project says nothing (it is the usual state); only a differing status is a meta line.
+    expect(screen.queryByText(projectStatusLabel(workSv, "active"))).toBeNull();
     expect(
       screen.getByText(projectStatusLabel(workSv, "paused")),
     ).toBeInTheDocument();
@@ -64,6 +67,44 @@ describe("ContactProjects", () => {
       .getByRole("button", { name: offert.title })
       .closest("li");
     expect(row?.querySelector(".work-open-chevron")).not.toBeNull();
+  });
+
+  it("shows the Task progress as the meta line, after a differing status, in either language", () => {
+    const { rerender } = render(
+      <ContactProjects
+        projects={[
+          { ...offert, tasks_total: 5, tasks_done: 3 },
+          { ...sajt, tasks_total: 4, tasks_done: 0 },
+        ]}
+        onOpen={vi.fn()}
+        labels={workSv}
+      />,
+    );
+    expect(screen.getByText("3 av 5 klara")).toBeInTheDocument();
+    expect(screen.getByText("Pausat · 0 av 4 klara")).toBeInTheDocument();
+    rerender(
+      <ContactProjects
+        projects={[{ ...offert, tasks_total: 5, tasks_done: 3 }]}
+        onOpen={vi.fn()}
+        labels={workEn}
+      />,
+    );
+    expect(screen.getByText("3 of 5 done")).toBeInTheDocument();
+  });
+
+  it("shows no progress for a Project without Tasks or from a server that sends no counts", () => {
+    render(
+      <ContactProjects
+        projects={[
+          { ...offert, tasks_total: 0, tasks_done: 0 },
+          { ...sajt, title: "Utan antal" },
+        ]}
+        onOpen={vi.fn()}
+        labels={workSv}
+      />,
+    );
+    expect(screen.queryByText(/av \d+ klara/)).toBeNull();
+    expect(screen.getByText("Pausat")).toBeInTheDocument();
   });
 
   it("opens the Project when its title is pressed", async () => {

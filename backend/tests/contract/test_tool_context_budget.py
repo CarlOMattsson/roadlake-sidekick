@@ -36,7 +36,10 @@ CHARS_PER_TOKEN = 3.5
 # on `create_contact`, `update_contact`, `write_journal_entry` and `update_journal_entry`, and a
 # `tags` and `tag_match` filter on `list_contacts` and `list_journal_entries` (about 450 tokens in
 # all); measured 19 305, rounded up.
-TOKEN_BUDGET = 19_350
+# 2026-11-13: raised to 19 450 for project progress (`tasks_total`, `tasks_done`) in
+# `get_contact_context`, `changes.status` on `update_step_action` to reopen an Action, and the
+# `order` of `list_journal_entries` (about 90 tokens in all); measured 19 392, rounded up.
+TOKEN_BUDGET = 19_450
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550

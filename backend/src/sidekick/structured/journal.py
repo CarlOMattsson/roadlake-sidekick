@@ -11,7 +11,7 @@ from pydantic import Field
 
 from sidekick.journal.application.models import RelationChange
 from sidekick.journal.domain.day_done import owner_today
-from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
+from sidekick.journal.domain.entry import JournalOrder, KeyPoint, KeyPointKind
 from sidekick.journal.domain.records import DaySummaryStatus, EntryRelations, RelationLabels
 from sidekick.journal.domain.source import SourceType
 from sidekick.journal.domain.summary import DailySummary, SummaryContent
@@ -362,6 +362,7 @@ def journal_entries_structured(
     cursor: str | None,
     tags: Sequence[str] = (),
     tag_match: TagMatch = "any",
+    order: JournalOrder = "asc",
 ) -> JournalEntryPageResult:
     """The structured content of `list_journal_entries`; a missing bound is the other, or today."""
 
@@ -373,6 +374,7 @@ def journal_entries_structured(
         include_archived=include_archived,
         tags=tags,
         tag_match=tag_match,
+        order=order,
         limit=limit,
         cursor=cursor,
     )

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef } from "react";
+import { Fragment, useContext, useEffect, useRef } from "react";
 import {
   type DueLocale,
   type DueTone,
@@ -11,6 +11,8 @@ import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { TagChips } from "../../mcp-apps/ui/tags";
+import { KnownTags } from "../shared/work-tags";
 import { UNDO_MS } from "../agenda/agenda-undo";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
@@ -68,6 +70,8 @@ export type InlineSummaryData = {
   description?: string | null;
   /** The name of the Task's Project, when the record carries it. */
   projectTitle?: string | null;
+  /** The record's tag slugs; two are shown with "+N" for the rest. Absent or empty means no line. */
+  tags?: readonly string[];
 };
 
 /**
@@ -176,6 +180,7 @@ export function oneLine(text: string, max = 80): string {
 
 export function InlineSummary(props: InlineSummaryProps) {
   const { labels } = props;
+  const known = useContext(KnownTags);
 
   if (props.state === "loading") {
     return (
@@ -236,11 +241,7 @@ export function InlineSummary(props: InlineSummaryProps) {
   // Done is the primary action of a Task that can be marked done. Open is navigation, so it is the
   // family's open text button with › (designsystem §3), beside Done or alone.
   const openText =
-    summary.kind === "project"
-      ? labels.showProject
-      : onComplete
-        ? labels.showMore
-        : labels.showTask;
+    summary.kind === "project" ? labels.showProject : labels.showTask;
 
   return (
     <section
@@ -273,6 +274,17 @@ export function InlineSummary(props: InlineSummaryProps) {
       ) : null}
       {head.length > 0 ? (
         <p className="work-compact-status">{head.join(" · ")}</p>
+      ) : null}
+      {/* Two tags and "+N" with the other metadata; no line when the record has none. */}
+      {summary.tags && summary.tags.length > 0 ? (
+        <p className="work-compact-status work-compact-tags">
+          <TagChips
+            tags={summary.tags}
+            known={known}
+            max={2}
+            locale={labels.dateLocale}
+          />
+        </p>
       ) : null}
       {steps ? (
         <p className="work-compact-status">
@@ -402,87 +414,6 @@ export function ContactsSummary({
   );
 }
 
-/** How many Projects and Tasks a Contact is linked to, counted on its context read; `more` marks a partial read. */
-export type ContactLinkCounts = {
-  projects: number;
-  projectsMore: boolean;
-  tasks: number;
-  tasksMore: boolean;
-};
-
-/**
- * The inline Contact card: the kind label, the name, the relationship as a small chip (when set), one
- * meta line with "role · organization" (or the e-mail when neither is set) and the counts of its
- * Projects and Tasks (a count is shown only when there is one), and "Open", which asks the host for
- * fullscreen. The address is never shown inline. The card has no fields and no Edit: the Contact view
- * with its editor is shown in fullscreen only. `counts` is absent while the read runs or when it
- * failed; the card then shows what it has.
- */
-export function ContactSummary({
-  kindLabel,
-  name,
-  email,
-  relationship,
-  organization,
-  role,
-  counts,
-  labels,
-  onOpen,
-}: {
-  kindLabel: string;
-  name: string;
-  email: string | null;
-  relationship?: string | null;
-  organization?: string | null;
-  role?: string | null;
-  counts?: ContactLinkCounts;
-  labels: InlineSummaryLabels;
-  /** Asks the host for fullscreen; the caller passes it only when the host can show it. */
-  onOpen: () => void;
-}) {
-  const meta: string[] = [];
-  const roleAndOrganization = [role, organization].filter(Boolean).join(" · ");
-  if (roleAndOrganization) meta.push(roleAndOrganization);
-  else if (email) meta.push(email);
-  if (counts && (counts.projects > 0 || counts.projectsMore))
-    meta.push(
-      `${labels.projectCount}: ${counts.projects}${counts.projectsMore ? "+" : ""}`,
-    );
-  if (counts && (counts.tasks > 0 || counts.tasksMore))
-    meta.push(
-      `${labels.taskCount}: ${counts.tasks}${counts.tasksMore ? "+" : ""}`,
-    );
-  return (
-    <section
-      className="work-compact-card sk-card work-compact-contact"
-      aria-label={kindLabel}
-    >
-      <div className="work-compact-contact-text">
-        <p className="work-compact-kind sk-eyebrow">{kindLabel}</p>
-        <p className="work-compact-title sk-card__title">{name}</p>
-        {relationship ? (
-          <p>
-            <span className="work-chip">{relationship}</span>
-          </p>
-        ) : null}
-        {meta.length > 0 ? (
-          <p className="work-compact-status">{meta.join(" · ")}</p>
-        ) : null}
-      </div>
-      <CardFoot>
-        <button
-          type="button"
-          className="work-compact-action sk-btn--open"
-          onClick={onOpen}
-        >
-          {labels.open}
-          <ChevronRightIcon />
-        </button>
-      </CardFoot>
-    </section>
-  );
-}
-
 type MetaPart = { key: string; text: string; tone?: DueTone };
 
 /**
@@ -503,11 +434,11 @@ function metaParts(
       ? relativeDue(summary.dueDate, now, locale)
       : undefined;
   if (due && due.text) {
-    // A Project's date is its target ("Mål: tis 15 dec"); a Task's is due, and an overdue one says so alone.
+    // A Project's date is its target ("Måldatum: tis 15 dec"); a Task's is due, and an overdue one says so alone.
     if (summary.kind === "project") {
       parts.push({
         key: "due",
-        text: `${labels.target}: ${due.text}`,
+        text: `${labels.target}: ${workDate(summary.dueDate, now, locale, { inline: true })}`,
         tone: due.tone,
       });
     } else {

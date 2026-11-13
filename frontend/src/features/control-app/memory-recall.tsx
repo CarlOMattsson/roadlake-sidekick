@@ -1,8 +1,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { onEnterKey, preventSubmit } from "../mcp-apps/ui/enter-key";
 import { ErrorNotice } from "../mcp-apps/ui/states";
-import { kindName, type ControlLabels } from "./labels";
+import { actionName, kindName, type ControlLabels } from "./labels";
 import { ControlRow, NoticeLine, type Notice } from "./control-parts";
+import { dateText } from "./when";
 import {
   DOMAIN_KIND,
   domainOfKind,
@@ -107,7 +108,7 @@ export function SourceRecall({
 }
 
 /**
- * The facts one recall returned, each with "Forget this". Forgetting is destructive for the memory (not for the
+ * The facts one recall returned, each with "Forget the <record>". Forgetting is destructive for the memory (not for the
  * record), so it asks in the row first: a red frame, what happens, then the red button and Cancel. It excludes the
  * whole source record, so every fact from it leaves the list. States: reading, empty, the memory being paused or off,
  * and a failure with Try again. Mount it afresh (a new `key`) for a new request.
@@ -205,7 +206,13 @@ export function RecallResults({
       setConfirming(null);
       setGone((current) => [...current, sourceKey(fact)]);
       onModelContext?.(labels.modelNote.forgotten);
-      setNotice({ tone: "ok", text: labels.forgotten(fact.source.title) });
+      setNotice({
+        tone: "ok",
+        text: labels.forgotten(
+          domainOfKind(fact.source.kind),
+          fact.source.title,
+        ),
+      });
       onForgotten?.();
       // The row and its button are gone: the status line is where focus rests.
       queueMicrotask(() => noticeRef.current?.focus());
@@ -245,21 +252,32 @@ export function RecallResults({
           >
             {facts.map((fact, index) => {
               const title = fact.source.title;
-              const label = title ?? kindName(labels, fact.source.kind);
+              const domain = domainOfKind(fact.source.kind);
+              // Where the fact comes from: the kind, the record's title, the day it concerns and a mark if archived.
+              const secondary = [
+                kindName(labels, fact.source.kind),
+                title,
+                dateText(
+                  fact.source.date ?? fact.occurred,
+                  new Date(),
+                  labels.locale,
+                ),
+                fact.source.archived
+                  ? actionName(labels, "archived", fact.source.kind)
+                  : "",
+              ]
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <ControlRow
                   key={`${sourceKey(fact)}:${index}`}
                   primary={fact.text}
-                  secondary={
-                    title
-                      ? `${kindName(labels, fact.source.kind)} · ${title}`
-                      : kindName(labels, fact.source.kind)
-                  }
+                  secondary={secondary}
                   action={
                     <button
                       type="button"
                       className="sk-btn--secondary sk-btn--compact control-row-btn"
-                      aria-label={labels.forgetLabel(label)}
+                      aria-label={labels.forgetLabel(domain, title)}
                       disabled={busy || confirming !== null}
                       ref={(node) => {
                         if (node) forgetButtons.current.set(index, node);
@@ -267,7 +285,7 @@ export function RecallResults({
                       }}
                       onClick={() => setConfirming(index)}
                     >
-                      {labels.forget}
+                      {labels.forget(domain)}
                     </button>
                   }
                   below={
@@ -276,15 +294,13 @@ export function RecallResults({
                         ref={confirmRef}
                         tabIndex={-1}
                         role="group"
-                        aria-label={labels.forgetTitle(title)}
+                        aria-label={labels.forgetTitle(domain, title)}
                         className="control-confirm"
                       >
                         <p className="control-confirm-title">
-                          {labels.forgetTitle(title)}
+                          {labels.forgetTitle(domain, title)}
                         </p>
-                        <p>
-                          {labels.forgetBody(domainOfKind(fact.source.kind))}
-                        </p>
+                        <p>{labels.forgetBody(domain)}</p>
                         <div className="control-confirm-actions">
                           {/* Cancel comes first in the DOM, so Tab reaches the safe button before the red one. */}
                           <button
@@ -306,7 +322,9 @@ export function RecallResults({
                             disabled={busy}
                             onClick={() => void forget(fact)}
                           >
-                            {busy ? labels.forgetting : labels.forgetYes}
+                            {busy
+                              ? labels.forgetting
+                              : labels.forgetYes(domain)}
                           </button>
                         </div>
                       </div>

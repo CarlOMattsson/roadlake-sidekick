@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi, type Mock } from "vitest";
+import { workSv } from "@/features/work-app/shared/labels";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
 import { SavedViewsBar } from "@/features/work-app/saved-views/saved-views-bar";
 import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
@@ -15,6 +16,13 @@ export const meetings: WorkSavedView = {
   name: "Möten",
   definition: { view: "agenda", context: "all", status: "todo" },
   version: 2,
+  archived_at: null,
+};
+export const otherAgenda: WorkSavedView = {
+  id: "019f0000-0000-7000-8000-0000000000v9",
+  name: "Veckan",
+  definition: { view: "agenda", context: "all", priority: "high" },
+  version: 1,
   archived_at: null,
 };
 export const boardView: WorkSavedView = {
@@ -61,6 +69,7 @@ export function renderBar(options: {
       tab={options.tab ?? "agenda"}
       transport={options.transport}
       labels={savedViewsLabelsSv}
+      workLabels={workSv}
       manage={manageLabelsSv}
       filters={options.filters ?? {}}
       onOpen={onOpen}
@@ -71,6 +80,16 @@ export function renderBar(options: {
 
 export async function openPanel(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Sparade vyer" }));
+}
+
+/** Unfolds the "Ändra" menu of one view row, which holds Byt namn and Arkivera. */
+export async function unfoldEdit(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+) {
+  await user.click(
+    await screen.findByRole("button", { name: `Ändra: ${name}` }),
+  );
 }
 
 export function deferred<T>() {

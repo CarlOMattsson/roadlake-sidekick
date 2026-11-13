@@ -42,6 +42,7 @@
   "site.pricing.noticeText": "Du kan köpa en nyckel när betalningen via Polar är på plats.",
   "site.pricing.buyButton": "Köp licensnyckel",
   "site.pricing.buyButtonPolar": "Köp hos Polar",
+  "site.pricing.buySoon": "Snart",
   "site.length.months_one": "{{count}} månad",
   "site.length.months_other": "{{count}} månader",
   "site.length.years_one": "{{count}} år",

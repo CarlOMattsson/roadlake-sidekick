@@ -95,11 +95,13 @@
   display: block;
   -webkit-line-clamp: unset;
 }
-/* "+3 fler · Visa alla" under a kind: a quiet button whose text lines up with the rows'. */
-.sidekick-journal .journal-done-toggle {
+/* The quiet button under a cut list ("+3 fler · Visa alla" under a kind of «Gjort», "Visa fler" under the tagged list,
+   "+7 fler · Visa alla" under the drafts, "Visa alla 9 anteckningar" under the day): one indent for all of them, the
+   button's text on the content edge as the rows' cards are. */
+.sidekick-journal .journal-done .journal-list-more {
   margin: 0;
 }
-.sidekick-journal .journal-done-toggle > button {
+.sidekick-journal .journal-list-more > button {
   padding-inline: 0;
 }
 .sidekick-journal .journal-done-more {
@@ -890,6 +892,14 @@ button.journal-entry-card {
 .sidekick-journal .sk-day-strip-day[aria-current="date"] .sk-day-strip-weekday {
   color: inherit;
 }
+/* No day chosen (the tagged list spans many days): the numbers drop to the muted colour and the regular weight so
+   the strip reads as "none of these", yet a tap still opens that day. No opacity, so the contrast stays the muted
+   colour's. */
+.sidekick-journal .sk-day-strip[data-unmarked="true"] .sk-day-strip-number,
+.sidekick-journal .sk-day-strip[data-unmarked="true"] .sk-day-strip-today {
+  color: var(--sk-muted);
+  font-weight: var(--sk-weight-normal);
+}
 /* The marker row: a 6 px dot centred under the number means "has entries", on every day, selected or not. */
 .sidekick-journal .sk-day-strip-marker {
   display: grid;
@@ -1035,9 +1045,20 @@ button.journal-entry-card {
   white-space: nowrap;
 }
 
-/* Inline draft: Approve all must not make the card taller than one screen. The summary sentence stays for screen
-   readers only, and "Choose yourself" is dropped (the two closed section rows are right below it). Each section row is
-   a fold row on a line of its own, so its name never breaks inside a word. Fullscreen shows all of it as written. */
+/* Fullscreen: what "Godkänn alla 14 förslag" approves, split in one meta line right over it (inline it is read only by
+   a screen reader, family.css). */
+.sidekick-journal .journal-suggestion-summary {
+  margin: 0.5rem 0 0;
+  font: var(--sk-type-meta);
+}
+.sidekick-journal.journal-fullscreen
+  .journal-suggestion-summary
+  + .journal-approve-all {
+  margin-top: 0.25rem;
+}
+/* Inline draft: Approve all must not make the card taller than one screen, so "Choose yourself" is dropped (the two
+   closed section rows are right below it). Each section row is a fold row on a line of its own, so its name never
+   breaks inside a word. Fullscreen shows all of it as written. */
 .sidekick-journal:not(.journal-fullscreen) .journal-choose-yourself {
   display: none;
 }

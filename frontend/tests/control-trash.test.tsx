@@ -525,6 +525,47 @@ describe("TrashView focus after a write", () => {
       ).toHaveFocus(),
     );
   });
+
+  it("shows a failed restore in the row it was on, not at the top of the list", async () => {
+    const restore = vi
+      .fn<Restore>()
+      .mockRejectedValueOnce(fail("internal_error"));
+    renderTrash(
+      { items: [task, note], has_more: false, next_cursor: null },
+      makeTransport(restore),
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Återställ Kort dagbok" }),
+    );
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(controlSv.restoreFailed);
+    expect(alert.closest("li")).toHaveTextContent("Kort dagbok");
+    expect(alert.closest("li")).not.toHaveTextContent("Förbered pitchen");
+  });
+
+  it("says a neuter kind was deleted in the neuter form", () => {
+    renderTrash(
+      {
+        items: [
+          {
+            kind: "project",
+            id: "019f0000-0000-7000-8000-000000000104",
+            label: "Köksrenovering",
+            trashed_at: "2026-10-31T13:30:00Z",
+            version: 1,
+          },
+        ],
+        has_more: false,
+        next_cursor: null,
+      },
+      makeTransport(),
+    );
+    expect(
+      screen.getByText(metaLine("Projekt · borttaget igår 14:30")),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("TrashView paging", () => {

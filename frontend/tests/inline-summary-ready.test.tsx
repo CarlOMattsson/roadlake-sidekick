@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ownerDayPlus } from "@/features/mcp-apps/ui/due";
 import {
   inlineSummaryLabelsEn,
   inlineSummaryLabelsSv,
@@ -118,7 +119,7 @@ describe("InlineSummary ready state", () => {
       />,
     );
     // A Project's date is its target, not a due date.
-    expect(screen.getByText("Target: 15 Nov")).toBeInTheDocument();
+    expect(screen.getByText("Target date: 15 Nov")).toBeInTheDocument();
     expect(screen.queryByText(/^Due:/)).not.toBeInTheDocument();
   });
 
@@ -214,10 +215,10 @@ describe("InlineSummary ready state", () => {
     );
     expect(container.querySelector(".sk-progress")).toBeNull();
     expect(screen.queryByText(/^Contacts:/)).not.toBeInTheDocument();
-    expect(screen.getByText("Target: 15 Nov")).toBeInTheDocument();
+    expect(screen.getByText("Target date: 15 Nov")).toBeInTheDocument();
   });
 
-  it("offers at most two actions, Done beside Show more, each a 44 px button", async () => {
+  it("offers at most two actions, Done beside Open task, each a 44 px button", async () => {
     const onOpen = vi.fn();
     const onComplete = vi.fn();
     render(
@@ -232,9 +233,9 @@ describe("InlineSummary ready state", () => {
     const buttons = screen.getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual([
       "Mark as done",
-      "Show more",
+      "Open task",
     ]);
-    // Done is the primary action and Show more the open text button with ›, side by side in one row.
+    // Done is the primary action and Open task the open text button with ›, side by side in one row.
     expect(buttons[0]).toHaveClass("sk-btn--primary");
     expect(buttons[1]).toHaveClass("sk-btn--open");
     expect(buttons[1]?.querySelector("svg")).not.toBeNull();
@@ -251,7 +252,7 @@ describe("InlineSummary ready state", () => {
     }
 
     await userEvent.click(screen.getByRole("button", { name: "Mark as done" }));
-    await userEvent.click(screen.getByRole("button", { name: "Show more" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open task" }));
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
@@ -265,9 +266,31 @@ describe("InlineSummary ready state", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByRole("button", { name: "Show task" })).toHaveClass(
+    expect(screen.getByRole("button", { name: "Open task" })).toHaveClass(
       "sk-btn--open",
     );
+  });
+
+  it("names the task button for what it does, in both languages, with or without Done", () => {
+    for (const [labels, text] of [
+      [inlineSummaryLabelsSv, "Öppna uppgiften"],
+      [inlineSummaryLabelsEn, "Open task"],
+    ] as const) {
+      const { unmount } = render(
+        <InlineSummary
+          state="ready"
+          labels={labels}
+          summary={task}
+          onOpen={vi.fn()}
+          onComplete={vi.fn()}
+        />,
+      );
+      expect(screen.getByRole("button", { name: text })).toHaveClass(
+        "sk-btn--open",
+      );
+      expect(screen.queryByText(/Visa mer|Show more/)).toBeNull();
+      unmount();
+    }
   });
 
   it("shows no Update button: a stale record is read again from the notice", () => {
@@ -343,9 +366,21 @@ describe("InlineSummary ready state", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("Mål: 15 dec").closest("p")).toHaveTextContent(
-      "Mål: 15 dec · 3 av 12 uppgifter klara · 2 försenade",
+    expect(screen.getByText("Måldatum: 15 dec").closest("p")).toHaveTextContent(
+      "Måldatum: 15 dec · 3 av 12 uppgifter klara · 2 försenade",
     );
+  });
+
+  it("writes a Project's target day in lower case after the colon", () => {
+    render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsSv}
+        summary={{ ...project, dueDate: ownerDayPlus(new Date(), 1) }}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Måldatum: imorgon")).toBeInTheDocument();
   });
 
   it("leaves the overdue part out when no Task is overdue, and keeps the Tasks count", () => {

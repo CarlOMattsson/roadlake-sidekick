@@ -691,9 +691,9 @@ const menuEntry =
     await settle(600);
   };
 /** The compact inline Task/Project/Contact card opens the full record in place through its own button. */
-const SHOW_MORE = /^(Visa mer|Show more)/;
-const SHOW_PROJECT = /^(Visa projektet|Show project)/;
-const OPEN_CONTACT = /^(Öppna|Open)$/;
+const SHOW_MORE = /^(Öppna uppgiften|Open task)/;
+const SHOW_PROJECT = /^(Öppna projektet|Open project)/;
+const OPEN_CONTACT = /^(Öppna kontakten|Open contact)$/;
 
 const scenarios: Scenario[] = [
   // ----- Work: board / kanban -----
@@ -852,7 +852,7 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { task: fullTask },
     replies: workReplies,
-    // The compact card has no Edit: open the full Task with "Visa mer", then Edit from its ⋯ menu.
+    // The compact card has no Edit: open the full Task with "Öppna uppgiften", then Edit from its ⋯ menu.
     steps: chain(buttonText(SHOW_MORE), menuEntry(/^(Redigera|Edit)$/)),
   },
   {
@@ -880,7 +880,7 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: { project: projectRecord },
     replies: workReplies,
-    // The compact card shows no Edit: open the full Project with "Visa projektet"; Edit is in its ⋯.
+    // The compact card shows no Edit: open the full Project with "Öppna projektet"; Edit is in its ⋯.
     steps: chain(buttonText(SHOW_PROJECT), menuEntry(/^(Redigera|Edit)$/)),
   },
   // ----- Work: cards and contacts -----
@@ -933,7 +933,7 @@ const scenarios: Scenario[] = [
     host: hostInline,
     result: contactContext,
     replies: workReplies,
-    // The compact card shows no Edit: open the full Contact with "Öppna", then Edit from its ⋯ menu.
+    // The compact card shows no Edit: open the full Contact with "Öppna kontakten", then Edit from its ⋯ menu.
     steps: chain(buttonText(OPEN_CONTACT), menuEntry(/^(Redigera|Edit)$/)),
   },
   {

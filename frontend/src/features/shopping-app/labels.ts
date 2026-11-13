@@ -46,6 +46,9 @@ export const shoppingEn = {
   price: "Offer price",
   regular: "Regular price (optional)",
   regularPrice: "Regular price",
+  /** The row's meta line: the regular price beside the offer price, and the date the gift is wanted by. */
+  regularShort: (price: string) => `was ${price}`,
+  untilDate: (date: string) => `by ${date}`,
   dateLocale: "en-GB",
   currency: "Currency",
   from: "Valid from",
@@ -133,7 +136,8 @@ export const shoppingEn = {
   pickerHint: "One list per purpose: groceries, furniture, gifts.",
   /** The meta line of a list row: "7 left · updated today". */
   listLeft: (count: number) => (count === 0 ? "Nothing left" : `${count} left`),
-  listUpdated: (day: string) => `updated ${day}`,
+  listUpdated: (day: string) =>
+    `updated ${day.charAt(0).toLocaleLowerCase("en") + day.slice(1)}`,
   /** A day and a clock time together: "yesterday at 10:00". */
   dayAt: (day: string, time: string) => `${day} at ${time}`,
   listArchived: "Archived",
@@ -158,10 +162,9 @@ export const shoppingSv: ShoppingLabels = {
   emptyHint: "Det du ska handla. Bocka av varorna i butiken.",
   emptyAddItem: "Lägg till en vara",
   loading: "Laddar…",
-  failed:
-    "Åtgärden kunde inte slutföras. Uppdatera för att kontrollera nuläget, eller försök med samma åtgärd igen.",
+  failed: "Något gick fel. Uppdatera listan eller försök igen.",
   retry: "Försök igen",
-  markFailed: "Kunde inte markeras.",
+  markFailed: "Ändringen kunde inte sparas.",
   batch: "Lägg till varor (komma eller en per rad, högst 50)",
   batchShort: "Varor",
   batchPlaceholder: "Lägg till, t.ex. mjölk, ägg",
@@ -188,6 +191,8 @@ export const shoppingSv: ShoppingLabels = {
   price: "Erbjudandepris",
   regular: "Ordinarie pris (valfritt)",
   regularPrice: "Ordinarie pris",
+  regularShort: (price: string) => `ord. ${price}`,
+  untilDate: (date: string) => `till ${date}`,
   dateLocale: "sv-SE",
   currency: "Valuta",
   from: "Gäller från",
@@ -210,10 +215,10 @@ export const shoppingSv: ShoppingLabels = {
   page: "Sida",
   hint: "Ha en lista per syfte: vardag, möbler, presenter. Datum är valfria.",
   offerHint:
-    "En noterad observation, ingen livekontroll av pris. Töm priset för att ta bort erbjudandet.",
+    "Ett pris du noterat, inte ett aktuellt pris. Töm priset för att ta bort erbjudandet.",
   recipientHint:
     "Claude kan hitta rätt Sidekick-kontakt och koppla den efter ditt val. Befintlig mottagare behålls tills du väljer en annan.",
-  evaluated: "Erbjudanden bedömda för",
+  evaluated: "Erbjudanden per",
   invalidBatch: "Ange mellan 1 och 50 varor.",
   openList: "Öppna inköpslistan",
   editList: "Redigera lista",
@@ -260,5 +265,5 @@ export const shoppingSv: ShoppingLabels = {
   dayAt: (day: string, time: string) => `${day} ${time}`,
   listArchived: "Arkiverad",
   emptyListsExample: "Lägg till mjölk och ägg på inköpslistan",
-  emptyListExample: (list: string) => `Lägg till kaffe på ${list}`,
+  emptyListExample: (list: string) => `Lägg till kaffe på listan ${list}`,
 };

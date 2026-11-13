@@ -101,7 +101,7 @@ def load_settings(env_file: Path | None) -> Settings:
     if not env_file.is_file():
         raise StdioStartupError(_REFUSED_CONFIGURATION, f"--env-file {env_file} is not a file")
     # pydantic-settings reads `_env_file` at construction; it is not a declared field.
-    return Settings(_env_file=env_file)  # pyright: ignore[reportCallIssue]
+    return Settings(_env_file=env_file)  # pyright: ignore[reportCallIssue]  # `_env_file` is not a declared field
 
 
 def resolve_owner(settings: Settings) -> UUID:

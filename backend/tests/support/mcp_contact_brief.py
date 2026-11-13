@@ -26,6 +26,18 @@ def _task(title: str, due_at: str | None, **overrides: Any) -> dict[str, Any]:
     return task
 
 
+def _project(title: str, tasks_done: int, tasks_total: int) -> dict[str, Any]:
+    return {
+        "id": "22222222-2222-4222-8222-222222222222",
+        "title": title,
+        "status": "active",
+        "updated_at": "2026-10-28T10:00:00+02:00",
+        "version": 2,
+        "tasks_total": tasks_total,
+        "tasks_done": tasks_done,
+    }
+
+
 def _structured(
     *,
     role: str | None = None,
@@ -33,6 +45,7 @@ def _structured(
     relationship: str | None = None,
     tasks: list[dict[str, Any]] | None = None,
     tasks_more: bool = False,
+    projects: list[dict[str, Any]] | None = None,
     journal_items: list[dict[str, Any]] | None = None,
     journal_readable: bool = True,
 ) -> ContactContextResult:
@@ -56,7 +69,7 @@ def _structured(
                 "archived_at": None,
                 "version": 3,
             },
-            "projects": {"items": [], "next_cursor": None},
+            "projects": {"items": projects or [], "next_cursor": None},
             "tasks": {
                 "items": items,
                 "next_cursor": "cursor-2" if tasks_more else None,
