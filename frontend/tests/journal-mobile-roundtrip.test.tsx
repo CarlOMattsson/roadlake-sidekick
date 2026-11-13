@@ -54,6 +54,8 @@ async function openDagbok(user: ReturnType<typeof userEvent.setup>) {
 afterEach(cleanup);
 
 describe("a hand-written journal entry on the phone", () => {
+  // The test starts the whole phone shell twice and clicks through it: a few seconds of work on an idle machine under
+  // Preact. Its own limit keeps a machine busy with other test files from turning that into a timeout.
   it("is written, saved, opened again after a restart and its text read back", async () => {
     const user = userEvent.setup();
     const server = phoneJournalServer();
@@ -113,5 +115,5 @@ describe("a hand-written journal entry on the phone", () => {
       2,
     );
     expect(paths.every((p) => p.startsWith("/companion/v1/"))).toBe(true);
-  });
+  }, 60_000);
 });

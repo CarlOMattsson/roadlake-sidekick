@@ -19,6 +19,7 @@ import {
   type ControlTransport,
   type TrashItem,
 } from "./transport";
+import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
 /**
@@ -57,17 +58,7 @@ export function HistoryView({
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
 }) {
-  const [list, setList] = useState(initial);
-  // A new `initial` is a fresh read from the card (a refresh): it replaces the data and keeps
-  // what the view holds on screen (busy, notices, focus).
-  const [seenInitial, setSeenInitial] = useState(initial);
-  if (initial !== seenInitial) {
-    setSeenInitial(initial);
-    setList(initial);
-  }
-  useEffect(() => {
-    if (list) onData?.(list);
-  }, [list, onData]);
+  const [list, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
   const pending = useRef<PendingKey | undefined>(undefined);
@@ -108,7 +99,8 @@ export function HistoryView({
 
   async function reload() {
     try {
-      setList(await transport.changes());
+      const fresh = await transport.changes();
+      change(() => fresh);
     } catch {
       // Keep the old rows; the notice already told the owner what happened.
     }

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import Field
@@ -42,7 +42,7 @@ def task_contacts_structured(
     *,
     limit: int = 20,
     cursor: str | None = None,
-) -> dict[str, Any]:
+) -> TaskContactPageRecord:
     """The structured content of `list_task_contacts` (shared with the companion route)."""
 
     page = container.contact_relations.list_task_contacts(
@@ -65,4 +65,4 @@ def task_contacts_structured(
             for item in page.items
         ],
         next_cursor=page.next_cursor,
-    ).model_dump(mode="json")
+    )

@@ -1,13 +1,13 @@
 """The meeting brief on line 1 of get_contact_context, built from already-fetched data only.
 
-Pure tests: the text builder takes the structured result dict, so no database is needed. The
+Pure tests: the text builder takes the structured result, so no database is needed. The
 brief must read aloud without an id, name the open-task count and the most urgent Task, name the
 newest linked journal date, and leave every later line of the existing text unchanged.
 """
 
 import re
-from typing import Any
 
+from sidekick.mcp.contact_records import ContactContextResult
 from sidekick.mcp.contact_text import contact_context_text
 from sidekick.mcp.text import CONTACT_CARD_NOTE
 from tests.support.mcp_contact_brief import (
@@ -19,7 +19,7 @@ from tests.support.mcp_contact_brief import (
 UUID_PATTERN = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 
-def _brief_line(structured: dict[str, Any]) -> str:
+def _brief_line(structured: ContactContextResult) -> str:
     return contact_context_text(structured).split("\n", 1)[0]
 
 

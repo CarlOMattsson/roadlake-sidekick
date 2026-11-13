@@ -13,6 +13,7 @@ import {
   type MemorySettings,
   type MemoryStatus,
 } from "./transport";
+import { useReportedData } from "./use-reported-data";
 
 /** A domain the owner asked to turn off, waiting for the explicit confirmation. */
 type PendingOff = {
@@ -55,17 +56,7 @@ export function MemoryView({
    */
   recall?: boolean;
 }) {
-  const [status, setStatus] = useState(initial);
-  // A new `initial` is a fresh read from the card (a refresh): it replaces the data and keeps
-  // what the view holds on screen (busy, notices, open confirmations).
-  const [seenInitial, setSeenInitial] = useState(initial);
-  if (initial !== seenInitial) {
-    setSeenInitial(initial);
-    setStatus(initial);
-  }
-  useEffect(() => {
-    onData?.(status);
-  }, [status, onData]);
+  const [status, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState<PendingOff | undefined>();
   const [notice, setNotice] = useState<Notice | undefined>();
@@ -86,11 +77,11 @@ export function MemoryView({
    */
   async function readAgain(fallback?: MemorySettings, keepDeleting = false) {
     try {
-      setStatus(await transport.memoryStatus());
+      const fresh = await transport.memoryStatus();
+      change(() => fresh);
       if (!keepDeleting) setDeleting([]);
     } catch {
-      if (fallback)
-        setStatus((current) => ({ ...current, settings: fallback }));
+      if (fallback) change((current) => ({ ...current, settings: fallback }));
     }
   }
 

@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -388,10 +388,46 @@ describe("ControlApp keeps what the owner changed in a view", () => {
     await user.click(
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
+    // Leave the tab as soon as the restore is saved, with no wait for a frame or a timer: the view tells the card in the
+    // same step that removes the row, so the change follows it to the other tab and back.
+    await screen.findByText(controlSv.restored("Förbered pitchen"));
     await user.click(viewButton("Historik"));
     await screen.findByRole("heading", { name: "Historik" });
     await user.click(viewButton("Borttaget"));
 
+    expect(
+      screen.queryByRole("button", { name: "Återställ Förbered pitchen" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("a restore made in History stays when the owner leaves the tab as soon as the list is read again", async () => {
+    const user = userEvent.setup();
+    const [trashing] = changes.changes;
+    if (!trashing) throw new Error("fixture has no change");
+    const restoredList: ChangesList = {
+      changes: [{ ...trashing, state: "active" }],
+    };
+    const transport = makeTransport({
+      changes: vi.fn(() => Promise.resolve(restoredList)),
+    });
+    renderApp(transport, "history", { changes });
+
+    await user.click(
+      await screen.findByRole("button", { name: "Återställ Förbered pitchen" }),
+    );
+    // The row has lost its button once History has read the list again; leave the tab at that moment, with no wait for
+    // a frame or a timer, and come back.
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Återställ Förbered pitchen" }),
+      ).not.toBeInTheDocument(),
+    );
+    await user.click(viewButton("Borttaget"));
+    await user.click(viewButton("Historik"));
+
+    expect(
+      await screen.findByRole("heading", { name: "Historik" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Återställ Förbered pitchen" }),
     ).not.toBeInTheDocument();

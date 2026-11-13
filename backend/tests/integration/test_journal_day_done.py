@@ -418,15 +418,15 @@ def test_an_item_bought_and_then_unbought_is_not_done_and_bought_again_counts_at
     created = service.create_list(actor, "Fredagsmiddag", idempotency_key="shopping-list-1")
     added = service.add_items(
         actor,
-        UUID(created["shopping_list"]["id"]),
+        created.shopping_list.id,
         [BatchItem(client_ref="a", name="Citron")],
         idempotency_key="shopping-items-1",
     )
-    item = added["items"][0]["item"]
-    item_id = UUID(item["id"])
+    item = added.items[0].item
+    item_id = item.id
 
     bought = service.set_purchased(
-        actor, item_id, purchased=True, version=item["version"], idempotency_key="shopping-buy-1"
+        actor, item_id, purchased=True, version=item.version, idempotency_key="shopping-buy-1"
     )
     assert _titles(world.done().purchases) == ["Citron"]
 
@@ -435,7 +435,7 @@ def test_an_item_bought_and_then_unbought_is_not_done_and_bought_again_counts_at
         actor,
         item_id,
         purchased=False,
-        version=bought["item"]["version"],
+        version=bought.item.version,
         idempotency_key="shopping-buy-2",
     )
     assert world.done().purchases == ()
@@ -446,7 +446,7 @@ def test_an_item_bought_and_then_unbought_is_not_done_and_bought_again_counts_at
         actor,
         item_id,
         purchased=True,
-        version=undone["item"]["version"],
+        version=undone.item.version,
         idempotency_key="shopping-buy-3",
     )
     done = world.done()

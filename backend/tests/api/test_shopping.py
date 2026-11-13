@@ -72,17 +72,17 @@ def test_batch_replay_versions_purchase_history_and_owner_export():
     factory, _, c, actor, _, _, _ = setup()
     service = c.shopping
     shopping = service.create_list(actor, "IKEA someday", idempotency_key="create-list-1")
-    list_id = UUID(shopping["shopping_list"]["id"])
+    list_id = shopping.shopping_list.id
     inputs = [
         BatchItem(name="Shelf", store="IKEA", client_ref="shelf"),
         BatchItem(name="Birthday idea", occasion="Birthday", client_ref="gift"),
     ]
     added = service.add_items(actor, list_id, inputs, idempotency_key="add-batch-1")
     assert service.add_items(actor, list_id, inputs, idempotency_key="add-batch-1") == added
-    assert [i["client_ref"] for i in added["items"]] == ["shelf", "gift"]
-    assert added["items"][0]["item"]["target_date"] is None
-    first = added["items"][0]["item"]
-    item_id = UUID(first["id"])
+    assert [i.client_ref for i in added.items] == ["shelf", "gift"]
+    assert added.items[0].item.target_date is None
+    first = added.items[0].item
+    item_id = first.id
     purchased = service.set_purchased(
         actor, item_id, purchased=True, version=1, idempotency_key="purchase-1"
     )
@@ -92,7 +92,7 @@ def test_batch_replay_versions_purchase_history_and_owner_export():
         )
         == purchased
     )
-    assert purchased["item"]["purchased_at"] and purchased["item"]["version"] == 2
+    assert purchased.item.purchased_at and purchased.item.version == 2
     with pytest.raises(ConflictError):
         service.set_purchased(
             actor, item_id, purchased=False, version=1, idempotency_key="stale-purchase"
@@ -123,26 +123,26 @@ def test_purchase_again_with_stale_version_is_unchanged_but_a_real_change_still_
     factory, _, c, actor, _, _, _ = setup()
     service = c.shopping
     shopping = service.create_list(actor, "Handla", idempotency_key="create-list-stale")
-    list_id = UUID(shopping["shopping_list"]["id"])
+    list_id = shopping.shopping_list.id
     added = service.add_items(
         actor,
         list_id,
         [BatchItem(name="Mjölk", client_ref="milk")],
         idempotency_key="add-milk-stale",
     )
-    milk = UUID(added["items"][0]["item"]["id"])
+    milk = added.items[0].item.id
     first = service.set_purchased(
         actor, milk, purchased=True, version=1, idempotency_key="milk-buy-first"
     )
-    assert first["unchanged"] is False
-    assert first["item"]["version"] == 2
+    assert first.unchanged is False
+    assert first.item.version == 2
     # Bought again with the version from before (ticked in the card meanwhile): no error, no write.
     again = service.set_purchased(
         actor, milk, purchased=True, version=1, idempotency_key="milk-buy-again"
     )
-    assert again["unchanged"] is True
-    assert again["item"]["version"] == 2
-    assert again["item"]["purchased_at"] == first["item"]["purchased_at"]
+    assert again.unchanged is True
+    assert again.item.version == 2
+    assert again.item.purchased_at == first.item.purchased_at
     # A real change with the old version still conflicts, and writes nothing.
     with pytest.raises(ConflictError):
         service.set_purchased(
@@ -158,11 +158,7 @@ def test_purchase_again_with_stale_version_is_unchanged_but_a_real_change_still_
 @pytest.mark.integration
 def test_foreign_contact_rejects_whole_batch_and_scopes_apply_before_replay():
     _, _, c, actor, second, _, _ = setup()
-    own = UUID(
-        c.shopping.create_list(actor, "Gifts", idempotency_key="create-gifts")["shopping_list"][
-            "id"
-        ]
-    )
+    own = c.shopping.create_list(actor, "Gifts", idempotency_key="create-gifts").shopping_list.id
     contact = c.contacts.create(
         second,
         CreateContactCommand(display_name="Other's contact"),
@@ -174,7 +170,7 @@ def test_foreign_contact_rejects_whole_batch_and_scopes_apply_before_replay():
     ]
     with pytest.raises(NotFoundError):
         c.shopping.add_items(actor, own, items, idempotency_key="atomic-batch")
-    assert c.shopping.get_list(actor, own)["items"] == []
+    assert c.shopping.get_list(actor, own).items == []
     with pytest.raises(NotFoundError):
         c.shopping.get_list(second, own)
     reader = Actor(actor.user_id, frozenset({"shopping:read"}))
@@ -198,7 +194,7 @@ def test_foreign_contact_rejects_whole_batch_and_scopes_apply_before_replay():
     archived = c.shopping.update_list(
         actor, own, name="Gifts", archived=True, version=1, idempotency_key="archive-gifts"
     )
-    assert archived["shopping_list"]["archived"]
+    assert archived.shopping_list.archived
     with pytest.raises(ConflictError):
         c.shopping.add_items(actor, own, good, idempotency_key="archived-write")
 
@@ -206,11 +202,9 @@ def test_foreign_contact_rejects_whole_batch_and_scopes_apply_before_replay():
 @pytest.mark.integration
 def test_offer_expiry_and_pagination_are_derived_on_read():
     _, _, c, actor, _, _, _ = setup()
-    list_id = UUID(
-        c.shopping.create_list(actor, "Weekly", idempotency_key="weekly-list")["shopping_list"][
-            "id"
-        ]
-    )
+    list_id = c.shopping.create_list(
+        actor, "Weekly", idempotency_key="weekly-list"
+    ).shopping_list.id
     item = BatchItem(
         client_ref="a",
         name="Recorded offer",
@@ -231,23 +225,19 @@ def test_offer_expiry_and_pagination_are_derived_on_read():
         idempotency_key="weekly-batch",
     )
     current = c.shopping.get_list(actor, list_id, on_date=date(2026, 10, 25), limit=1)
-    assert current["items"][0]["offer_status"] == "current"
-    assert current["next_offset"] == 1
-    assert (
-        c.shopping.get_list(actor, list_id, on_date=date(2026, 10, 26))["items"][0]["offer_status"]
-        == "expired"
-    )
-    assert c.shopping.get_list(actor, list_id, offset=1, limit=1)["items"][0]["name"] == "Next"
+    assert current.items[0].offer_status == "current"
+    assert current.next_offset == 1
+    expired = c.shopping.get_list(actor, list_id, on_date=date(2026, 10, 26))
+    assert expired.items[0].offer_status == "expired"
+    assert c.shopping.get_list(actor, list_id, offset=1, limit=1).items[0].name == "Next"
 
 
 @pytest.mark.integration
 def test_a_batch_keeps_its_submitted_order_on_read():
     _, _, c, actor, _, _, _ = setup()
-    list_id = UUID(
-        c.shopping.create_list(actor, "Ordered", idempotency_key="ordered-list")["shopping_list"][
-            "id"
-        ]
-    )
+    list_id = c.shopping.create_list(
+        actor, "Ordered", idempotency_key="ordered-list"
+    ).shopping_list.id
     names = [f"Item {number:02d}" for number in range(30)]
     c.shopping.add_items(
         actor,
@@ -256,7 +246,7 @@ def test_a_batch_keeps_its_submitted_order_on_read():
         idempotency_key="ordered-batch",
     )
     read = c.shopping.get_list(actor, list_id, limit=100)
-    assert [item["name"] for item in read["items"]] == names
+    assert [item.name for item in read.items] == names
 
 
 @pytest.mark.integration
@@ -311,7 +301,7 @@ async def test_authenticated_mcp_app_resource_and_oversized_batch():
             raise_on_error=False,
         )
         assert oversized.is_error
-    assert len(c.shopping.get_list(actor, UUID(list_id))["items"]) == 1
+    assert len(c.shopping.get_list(actor, UUID(list_id)).items) == 1
 
 
 @pytest.mark.integration
@@ -323,11 +313,9 @@ def test_linked_gift_blocks_contact_purge_until_explicit_unlink(shopping_logs: _
     contact = c.contacts.create(
         actor, CreateContactCommand(display_name="Gift recipient"), "create-recipient"
     )
-    list_id = UUID(
-        c.shopping.create_list(actor, "Gift ideas", idempotency_key="gift-ideas-list")[
-            "shopping_list"
-        ]["id"]
-    )
+    list_id = c.shopping.create_list(
+        actor, "Gift ideas", idempotency_key="gift-ideas-list"
+    ).shopping_list.id
     added = c.shopping.add_items(
         actor,
         list_id,
@@ -339,7 +327,7 @@ def test_linked_gift_blocks_contact_purge_until_explicit_unlink(shopping_logs: _
         idempotency_key="gift-for-person",
         correlation_id="shopping-test-correlation",
     )
-    item_id = UUID(added["items"][0]["item"]["id"])
+    item_id = added.items[0].item.id
     trashed = c.lifecycle.trash(
         actor,
         RecordKind.CONTACT,
@@ -370,7 +358,7 @@ def test_linked_gift_blocks_contact_purge_until_explicit_unlink(shopping_logs: _
         version=1,
         idempotency_key="unlink-gift-person",
     )
-    assert updated["item"]["recipient_contact_id"] is None
+    assert updated.item.recipient_contact_id is None
     assert (
         c.shopping.update_item(
             actor,

@@ -110,6 +110,10 @@ for (const scenario of scenarios) {
     test(`simulated host: axe finds no WCAG A/AA violations in ${scenario.name} (${mode.display}, ${mode.theme}, ${mode.locale})`, async ({
       page,
     }) => {
+      // axe walks every node of the app and measures colour contrast for each text run: a few seconds on an idle
+      // machine, but the one slow step of the file. Triple the limit (to 90 s) for these tests only, so a loaded
+      // machine does not fail them while axe is still working; the global limit stays as it is.
+      test.slow();
       await page.clock.setFixedTime(FIXTURE_NOW);
       const { failures } = await openSimulatedApp(page, {
         resource: readBuiltApp(scenario.resource, mode.locale as AppLocale),

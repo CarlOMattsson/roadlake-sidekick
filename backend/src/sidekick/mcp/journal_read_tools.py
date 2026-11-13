@@ -84,15 +84,15 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
             limit=limit,
             cursor=cursor,
         )
-        entries = structured["entries"]
-        partial = structured["next_cursor"] is not None
+        entries = structured.entries
+        partial = structured.next_cursor is not None
         count = counted(len(entries), "journal entry", "journal entries", partial=partial)
         header = f"Found {count}"
         if include_content and entries:
-            latest = flat(entries[-1]["title"], SPOKEN_TITLE_LIMIT)
+            latest = flat(entries[-1].title, SPOKEN_TITLE_LIMIT)
             header += f', latest "{latest}"'
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
                 f"{header}.",
                 [entry_row(entry, include_content=include_content) for entry in entries],
@@ -121,15 +121,15 @@ def _register_get_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None:
         structured = journal_entry_structured(
             ctx.container, ctx.actor_provider(), entry_id, include_content=include_content
         )
-        record = structured["entry"]
-        title = flat(record["title"], SPOKEN_TITLE_LIMIT)
-        day = ctx.spoken_day(record["journal_date"])
+        record = structured.entry
+        title = flat(record.title, SPOKEN_TITLE_LIMIT)
+        day = ctx.spoken_day(record.journal_date)
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
                 f'The journal entry "{title}" from {day}.',
                 [
-                    f"Entry {record['id']} v{record['version']}.",
+                    f"Entry {record.id} v{record.version}.",
                     *links_row(record),
                     *tags_row(record),
                 ],
@@ -172,23 +172,23 @@ def _register_get_journal_day(mcp: FastMCP, ctx: JournalToolContext) -> None:
             cursor=cursor,
         )
         count = counted(
-            len(structured["entries"]),
+            len(structured.entries),
             "entry",
             "entries",
-            partial=structured["next_cursor"] is not None,
+            partial=structured.next_cursor is not None,
         )
         sentence = (
-            f"{count} on {ctx.spoken_day(structured['journal_date'])}, "
-            f"{summary_phrase(structured['summary'])}."
+            f"{count} on {ctx.spoken_day(structured.journal_date)}, "
+            f"{summary_phrase(structured.summary)}."
         )
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
                 sentence,
                 [
-                    f"entry_fingerprint {structured['entry_fingerprint']}; "
+                    f"entry_fingerprint {structured.entry_fingerprint}; "
                     "the daily summary status is included.",
-                    *done_row(structured["done"]),
+                    *done_row(structured.done),
                 ],
             ),
         )
@@ -238,13 +238,13 @@ def _register_get_journal_source(mcp: FastMCP, ctx: JournalToolContext) -> None:
         structured = journal_source_structured(
             ctx.container, ctx.actor_provider(), source_id, include_content=include_content
         )
-        record = structured["source"]
-        kind = spoken_status(record["source_type"])
+        record = structured.source
+        kind = spoken_status(record.source_type)
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
-                f"The source text from {ctx.spoken_day(record['journal_date'])} ({kind}).",
-                [f"Source {record['id']}."],
+                f"The source text from {ctx.spoken_day(record.journal_date)} ({kind}).",
+                [f"Source {record.id}."],
             ),
         )
 

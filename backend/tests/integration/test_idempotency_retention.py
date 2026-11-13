@@ -181,7 +181,7 @@ def test_work_and_shopping_writes_keep_only_ids_and_a_retry_reads_the_record_aga
     created_list = container.shopping.create_list(
         actor, secret + " lista", idempotency_key="idem-list-001"
     )
-    list_id = UUID(created_list["shopping_list"]["id"])
+    list_id = created_list.shopping_list.id
     items = [BatchItem(name=secret + " vara", client_ref="ref-1")]
     added = container.shopping.add_items(actor, list_id, items, idempotency_key="idem-items-001")
     completed = container.tasks.complete(
@@ -221,9 +221,9 @@ def test_work_and_shopping_writes_keep_only_ids_and_a_retry_reads_the_record_aga
     assert replayed_task == completed
     assert replayed_task.title == secret + " uppgift"
     replayed = container.shopping.add_items(actor, list_id, items, idempotency_key="idem-items-001")
-    assert replayed["items"][0]["client_ref"] == "ref-1"
-    assert replayed["items"][0]["item"] == added["items"][0]["item"]
-    assert replayed["list_name"] == secret + " lista"
+    assert replayed.items[0].client_ref == "ref-1"
+    assert replayed.items[0].item == added.items[0].item
+    assert replayed.list_name == secret + " lista"
 
 
 @pytest.mark.integration

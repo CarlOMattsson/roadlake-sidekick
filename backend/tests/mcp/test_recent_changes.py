@@ -86,14 +86,14 @@ def _seed(container: Container, actor: Actor) -> dict[str, UUID]:
     )
     shopping_list = container.shopping.create_list(
         actor, "Veckohandel", idempotency_key="recent-list"
-    )["shopping_list"]
+    ).shopping_list
     added = container.shopping.add_items(
         actor,
-        UUID(shopping_list["id"]),
+        shopping_list.id,
         [BatchItem(name="Mjölk", client_ref="milk")],
         idempotency_key="recent-items",
     )
-    item = added["items"][0]["item"]
+    item = added.items[0].item
     container.lifecycle.trash(
         actor,
         RecordKind.CONTACT,
@@ -101,7 +101,7 @@ def _seed(container: Container, actor: Actor) -> dict[str, UUID]:
         version=contact.version,
         idempotency_key="recent-trash",
     )
-    return {"task": task.id, "contact": contact.id, "entry": entry.id, "item": UUID(item["id"])}
+    return {"task": task.id, "contact": contact.id, "entry": entry.id, "item": item.id}
 
 
 def _build(username: str) -> tuple[ActorSwitch, FastMCP, UUID, dict[str, UUID]]:
@@ -656,36 +656,36 @@ async def test_purchase_and_put_back_show_with_the_version_the_undo_needs() -> N
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("recent-buy-owner", "Change Owner")
     actor = Actor(owner, FULL)
-    shopping_list = container.shopping.create_list(actor, "Handla", idempotency_key="buy-list")[
-        "shopping_list"
-    ]
+    shopping_list = container.shopping.create_list(
+        actor, "Handla", idempotency_key="buy-list"
+    ).shopping_list
     added = container.shopping.add_items(
         actor,
-        UUID(shopping_list["id"]),
+        shopping_list.id,
         [BatchItem(name="Mjölk", client_ref="milk"), BatchItem(name="Smör", client_ref="butter")],
         idempotency_key="buy-items",
     )
-    milk = added["items"][0]["item"]
-    butter = added["items"][1]["item"]
+    milk = added.items[0].item
+    butter = added.items[1].item
     bought = container.shopping.set_purchased(
         actor,
-        UUID(milk["id"]),
+        milk.id,
         purchased=True,
-        version=milk["version"],
+        version=milk.version,
         idempotency_key="buy-milk-1",
     )
     container.shopping.set_purchased(
         actor,
-        UUID(butter["id"]),
+        butter.id,
         purchased=True,
-        version=butter["version"],
+        version=butter.version,
         idempotency_key="butter-buy-2",
     )
     container.shopping.set_purchased(
         actor,
-        UUID(butter["id"]),
+        butter.id,
         purchased=False,
-        version=butter["version"] + 1,
+        version=butter.version + 1,
         idempotency_key="butter-back-3",
     )
     switch = ActorSwitch(actor)
@@ -695,7 +695,7 @@ async def test_purchase_and_put_back_show_with_the_version_the_undo_needs() -> N
         call_result = await _call(client, {"limit": 20})
         # The undo the row names must work at the version the row shows.
         changes = _changes(call_result)
-        milk_row = next(change for change in changes if change["id"] == milk["id"])
+        milk_row = next(change for change in changes if change["id"] == str(milk.id))
         container.shopping.set_purchased(
             actor,
             UUID(milk_row["id"]),
@@ -707,13 +707,13 @@ async def test_purchase_and_put_back_show_with_the_version_the_undo_needs() -> N
     by_id = {change["id"]: change for change in changes}
     assert [change["kind"] for change in changes[:2]] == ["shopping_item", "shopping_item"]
     # Newest first: butter was put back last, and its row shows its newest event only.
-    assert changes[0]["id"] == butter["id"]
+    assert changes[0]["id"] == str(butter.id)
     assert changes[0]["action"] == "reopened"
-    assert changes[0]["version"] == butter["version"] + 2
+    assert changes[0]["version"] == butter.version + 2
     assert changes[0]["undo_tool"] == "set_shopping_item_purchased"
-    assert by_id[milk["id"]]["action"] == "purchased"
-    assert by_id[milk["id"]]["version"] == bought["item"]["version"]
-    assert by_id[milk["id"]]["undo_tool"] == "set_shopping_item_purchased"
+    assert by_id[str(milk.id)]["action"] == "purchased"
+    assert by_id[str(milk.id)]["version"] == bought.item.version
+    assert by_id[str(milk.id)]["undo_tool"] == "set_shopping_item_purchased"
     text = _text(call_result)
     first_line = text.splitlines()[0]
     assert 'reopened shopping item "Smör"' in first_line
@@ -721,7 +721,7 @@ async def test_purchase_and_put_back_show_with_the_version_the_undo_needs() -> N
     assert "move_to_trash" not in text
     assert "unlink" not in text
     # After the undo the item reads as put back, one version later.
-    undone = next(change for change in after_undo if change["id"] == milk["id"])
+    undone = next(change for change in after_undo if change["id"] == str(milk.id))
     assert undone["action"] == "reopened"
     assert undone["version"] == milk_row["version"] + 1
 

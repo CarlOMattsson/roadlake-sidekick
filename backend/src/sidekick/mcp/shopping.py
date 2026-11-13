@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from decimal import Decimal
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -20,12 +19,16 @@ from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import CARD_NOTE, MAX_ROWS, card_rows, flat, rows_text
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shopping.application.schemas import (
+    AddedItem,
     BatchItem,
     BatchResult,
+    ItemRecord,
     ItemResult,
     ListDetail,
+    ListRecord,
     ListResult,
     ListsResult,
+    ListSummary,
     PurchasedBatchResult,
     PurchaseTarget,
 )
@@ -36,13 +39,13 @@ Limit = Annotated[int, Field(ge=1, le=100)]
 Offset = Annotated[int, Field(ge=0, le=10000)]
 
 
-def _list_row(row: dict[str, Any]) -> str:
-    archived = " | archived" if row["archived"] else ""
-    return f"- {row['id']} | {flat(row['name'])} | v{row['version']}{archived}"
+def _list_row(row: ListSummary) -> str:
+    archived = " | archived" if row.archived else ""
+    return f"- {row.id} | {flat(row.name)} | v{row.version}{archived}"
 
 
-def _item_row(item: dict[str, Any]) -> str:
-    return f"- {item['id']} | {flat(item['name'])} | v{item['version']}"
+def _item_row(item: ItemRecord) -> str:
+    return f"- {item.id} | {flat(item.name)} | v{item.version}"
 
 
 def _count(number: int, one: str, many: str) -> str:
@@ -63,40 +66,40 @@ def _batch_sentence(changed: list[str], skipped: list[str], state: str) -> str:
 
 
 # Model-facing summary lines (block 1): a spoken sentence without ids, then id and version.
-def _list_summary(verb: str, shopping_list: dict[str, Any]) -> str:
+def _list_summary(verb: str, shopping_list: ListRecord) -> str:
     return (
-        f"{verb} shopping list {flat(shopping_list['name'])}.\n"
-        f"List {shopping_list['id']} v{shopping_list['version']}."
+        f"{verb} shopping list {flat(shopping_list.name)}.\n"
+        f"List {shopping_list.id} v{shopping_list.version}."
     )
 
 
-def _quantity(item: dict[str, Any]) -> str:
+def _quantity(item: ItemRecord) -> str:
     """The stored quantity without trailing zeros, with its unit when it has one."""
 
-    amount = format(Decimal(str(item["quantity"])).normalize(), "f")
-    return f"{amount} {flat(item['unit'], 30)}" if item["unit"] else amount
+    amount = format(item.quantity.normalize(), "f")
+    return f"{amount} {flat(item.unit, 30)}" if item.unit else amount
 
 
-def _item_summary(sentence: str, item: dict[str, Any]) -> str:
-    return f"{sentence}\nItem {item['id']} v{item['version']}."
+def _item_summary(sentence: str, item: ItemRecord) -> str:
+    return f"{sentence}\nItem {item.id} v{item.version}."
 
 
-def _list_card_text(data: dict[str, Any], *, offset: int) -> str:
+def _list_card_text(data: ListDetail, *, offset: int) -> str:
     """The model-facing text of an opened list: a spoken line, the wanted rows and the card note."""
-    store_name = data["store"]
-    shopping_list = data["shopping_list"]
-    items = data["items"]
-    purchased = sum(1 for item in items if item["purchased"])
-    wanted = [item for item in items if not item["purchased"]]
-    next_offset = data["next_offset"]
+    store_name = data.store
+    shopping_list = data.shopping_list
+    items = data.items
+    purchased = sum(1 for item in items if item.purchased)
+    wanted = [item for item in items if not item.purchased]
+    next_offset = data.next_offset
     # The counts cover only the page read, so the spoken line says so when there is a page.
     scope = " on this page" if (offset or next_offset is not None) else ""
     at_store = f" at {flat(store_name, 60)}" if store_name else ""
     spoken = (
-        f"Shopping list {flat(shopping_list['name'], 80)}{at_store} has "
+        f"Shopping list {flat(shopping_list.name, 80)}{at_store} has "
         f"{_count(len(wanted), 'item', 'items')} to buy and {purchased} already bought{scope}."
     )
-    head = f"{spoken}\nList {shopping_list['id']} v{shopping_list['version']}, card shown."
+    head = f"{spoken}\nList {shopping_list.id} v{shopping_list.version}, card shown."
     if store_name:
         head += " Shop items plus items with no shop."
     # One row per wanted item, at most MAX_ROWS; purchased items are counted, not listed.
@@ -108,22 +111,20 @@ def _list_card_text(data: dict[str, Any], *, offset: int) -> str:
     return "\n".join(lines)
 
 
-def _added_item_row(added: dict[str, Any]) -> str:
+def _added_item_row(added: AddedItem) -> str:
     """One `client_ref → id vN` row; client_ref is restricted to [A-Za-z0-9_-]."""
-    item = added["item"]
-    merged = f" (merged, now {_quantity(item)} {flat(item['name'], 60)})" if added["merged"] else ""
-    return f"- {added['client_ref']} → {item['id']} v{item['version']}{merged}"
+    item = added.item
+    merged = f" (merged, now {_quantity(item)} {flat(item.name, 60)})" if added.merged else ""
+    return f"- {added.client_ref} → {item.id} v{item.version}{merged}"
 
 
-def _added_items_sentence(data: dict[str, Any]) -> str:
+def _added_items_sentence(data: BatchResult) -> str:
     """The spoken answer of a batch add: what was added, and what merged into existing items."""
-    list_name = flat(data["list_name"])
-    added_names = [added["item"]["name"] for added in data["items"] if not added["merged"]]
+    list_name = flat(data.list_name)
+    added_names = [added.item.name for added in data.items if not added.merged]
     # Two inputs can merge into the same item; it is named once, with its final quantity.
-    merged_items = {
-        added["item"]["id"]: added["item"] for added in data["items"] if added["merged"]
-    }
-    merged_names = [f"{item['name']} (now {_quantity(item)})" for item in merged_items.values()]
+    merged_items = {added.item.id: added.item for added in data.items if added.merged}
+    merged_names = [f"{item.name} (now {_quantity(item)})" for item in merged_items.values()]
     sentences: list[str] = []
     if added_names:
         sentences.append(f"Added {spoken_names(added_names, len(added_names))} to {list_name}.")
@@ -134,9 +135,9 @@ def _added_items_sentence(data: dict[str, Any]) -> str:
     return " ".join(sentences) or f"Nothing was added to {list_name}."
 
 
-def _purchased_sentence(data: dict[str, Any], *, unchanged: bool) -> str:
-    name = flat(data["item"]["name"])
-    bought = data["item"]["purchased"]
+def _purchased_sentence(data: ItemResult, *, unchanged: bool) -> str:
+    name = flat(data.item.name)
+    bought = data.item.purchased
     if unchanged:
         return f"{name} was already {'bought' if bought else 'not bought'}."
     if bought:
@@ -160,15 +161,17 @@ def _register_list_shopping_lists(mcp: FastMCP, ctx: ToolContext) -> None:
         data = ctx.container.shopping.list_lists(
             ctx.actor_provider(), include_archived=include_archived, limit=limit, offset=offset
         )
-        lists = data["lists"]
+        lists = data.lists
         rows = [_list_row(row) for row in lists]
         if lists:
             found = _count(len(lists), "shopping list", "shopping lists")
-            names = spoken_names([row["name"] for row in lists], len(lists))
+            names = spoken_names([row.name for row in lists], len(lists))
             sentence = f"You have {found}: {names}."
         else:
             sentence = "You have no shopping lists."
-        return result(data, f"{sentence}\n" + rows_text("Shopping lists:", rows))
+        return result(
+            data.model_dump(mode="json"), f"{sentence}\n" + rows_text("Shopping lists:", rows)
+        )
 
 
 def _register_get_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -198,7 +201,7 @@ def _register_get_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
         data = ctx.container.shopping.get_list(
             ctx.actor_provider(), list_id, on_date=on_date, limit=limit, offset=offset, store=store
         )
-        return card_result(data, _list_card_text(data, offset=offset))
+        return card_result(data.model_dump(mode="json"), _list_card_text(data, offset=offset))
 
 
 def _register_create_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -222,7 +225,7 @@ def _register_create_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(data, _list_summary("Created", data["shopping_list"]))
+        return result(data.model_dump(mode="json"), _list_summary("Created", data.shopping_list))
 
 
 def _register_update_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -252,7 +255,7 @@ def _register_update_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(data, _list_summary("Updated", data["shopping_list"]))
+        return result(data.model_dump(mode="json"), _list_summary("Updated", data.shopping_list))
 
 
 def _register_add_shopping_items(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -285,9 +288,9 @@ def _register_add_shopping_items(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
             merge_duplicates=merge_duplicates,
         )
-        mapping = [_added_item_row(added) for added in data["items"]]
+        mapping = [_added_item_row(added) for added in data.items]
         return result(
-            data,
+            data.model_dump(mode="json"),
             f"{_added_items_sentence(data)}\n" + rows_text("Shopping batch committed.", mapping),
         )
 
@@ -319,8 +322,8 @@ def _register_update_shopping_item(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         return result(
-            data,
-            _item_summary(f"Updated shopping item {flat(data['item']['name'])}.", data["item"]),
+            data.model_dump(mode="json"),
+            _item_summary(f"Updated shopping item {flat(data.item.name)}.", data.item),
         )
 
 
@@ -339,7 +342,7 @@ def _register_set_shopping_item_purchased(mcp: FastMCP, ctx: ToolContext) -> Non
     def set_shopping_item_purchased(
         item_id: UUID, purchased: bool, version: Version, idempotency_key: IdempotencyKey
     ) -> ToolResult:
-        data = ctx.container.shopping.set_purchased(
+        outcome = ctx.container.shopping.set_purchased(
             ctx.actor_provider(),
             item_id,
             purchased=purchased,
@@ -347,10 +350,10 @@ def _register_set_shopping_item_purchased(mcp: FastMCP, ctx: ToolContext) -> Non
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        # Internal flag from the service; not an output field. Older replays may lack it.
-        unchanged = data.pop("unchanged", False)
         return result(
-            data, _item_summary(_purchased_sentence(data, unchanged=unchanged), data["item"])
+            # The unchanged flag is internal to the service; it is not an output field.
+            outcome.model_dump(mode="json", exclude={"unchanged"}),
+            _item_summary(_purchased_sentence(outcome, unchanged=outcome.unchanged), outcome.item),
         )
 
 
@@ -380,13 +383,13 @@ def _register_set_shopping_items_purchased(mcp: FastMCP, ctx: ToolContext) -> No
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        rows = [_item_row(item) for item in data["items"]]
+        rows = [_item_row(item) for item in data.items]
         state = "bought" if purchased else "not bought"
-        skipped_ids = {str(item_id) for item_id in data.get("unchanged_item_ids", [])}
-        skipped = [item["name"] for item in data["items"] if str(item["id"]) in skipped_ids]
-        changed = [item["name"] for item in data["items"] if str(item["id"]) not in skipped_ids]
+        skipped_ids = set(data.unchanged_item_ids)
+        skipped = [item.name for item in data.items if item.id in skipped_ids]
+        changed = [item.name for item in data.items if item.id not in skipped_ids]
         return result(
-            data,
+            data.model_dump(mode="json"),
             _batch_sentence(changed, skipped, state) + "\n" + rows_text("Updated items:", rows),
         )
 

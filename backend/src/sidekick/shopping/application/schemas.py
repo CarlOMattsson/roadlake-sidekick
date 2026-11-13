@@ -143,3 +143,10 @@ class PurchasedBatchResult(Closed):
     # Unpurchased, untrashed items in the list after this write when all items share one list,
     # else None. None also in results stored before this field existed (idempotent replay).
     open_count: int | None = None
+
+
+class PurchaseOutcome(ItemResult):
+    """What `set_purchased` returns: the ItemResult plus an internal flag transports drop."""
+
+    # True when the item was already in the asked state and was left as it was.
+    unchanged: bool

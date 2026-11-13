@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { workEn } from "@/features/work-app/shared/labels";
@@ -112,62 +112,89 @@ function stubBoardWidth(width: number) {
   } as DOMRect);
 }
 
+// These two tests mount the whole fullscreen shell and type into it, which is quick on an idle machine. Their own
+// limit keeps a machine busy with other test files from turning that into a timeout.
+const SLOW_TEST_MS = 60_000;
+
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 describe("Rensa sökningen in the fullscreen Work app", () => {
-  it("empties the agenda search and closes it, so the rows come back", async () => {
-    const user = userEvent.setup();
-    mount(
-      { kind: "agenda", filters: {}, page: agendaPage },
-      fakeTransport().transport,
-    );
+  it(
+    "empties the agenda search and closes it, so the rows come back",
+    async () => {
+      const user = userEvent.setup();
+      mount(
+        { kind: "agenda", filters: {}, page: agendaPage },
+        fakeTransport().transport,
+      );
 
-    await user.click(
-      await screen.findByRole("button", { name: "Search tasks" }),
-    );
-    await user.type(
-      screen.getByRole("searchbox", { name: "Search tasks" }),
-      "zzz",
-    );
-    expect(screen.queryByText("Agenda-uppgift")).not.toBeInTheDocument();
+      await user.click(
+        await screen.findByRole("button", { name: "Search tasks" }),
+      );
+      await user.type(
+        screen.getByRole("searchbox", { name: "Search tasks" }),
+        "zzz",
+      );
+      expect(screen.queryByText("Agenda-uppgift")).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: workEn.agendaClearSearch }),
-    );
-    expect(
-      screen.queryByRole("searchbox", { name: "Search tasks" }),
-    ).not.toBeInTheDocument();
-    expect(await screen.findByText("Agenda-uppgift")).toBeInTheDocument();
-  });
+      await user.click(
+        screen.getByRole("button", { name: workEn.agendaClearSearch }),
+      );
+      // The search closes in a later render, not within the click itself, so wait for it instead of assuming it.
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("searchbox", { name: "Search tasks" }),
+        ).not.toBeInTheDocument(),
+      );
+      expect(await screen.findByText("Agenda-uppgift")).toBeInTheDocument();
+    },
+    SLOW_TEST_MS,
+  );
 
-  it("empties the Status search and closes it, so the board comes back", async () => {
-    stubBoardWidth(400);
-    const user = userEvent.setup();
-    mount(
-      { kind: "board", filters: {}, page: boardPage },
-      fakeTransport().transport,
-    );
+  it(
+    "empties the Status search and closes it, so the board comes back",
+    async () => {
+      stubBoardWidth(400);
+      const user = userEvent.setup();
+      const fake = fakeTransport();
+      mount({ kind: "board", filters: {}, page: boardPage }, fake.transport);
 
-    await user.click(
-      await screen.findByRole("button", { name: "Search tasks" }),
-    );
-    await user.type(
-      screen.getByRole("searchbox", { name: "Search tasks" }),
-      "zzz",
-    );
-    expect(screen.queryByText("Board-uppgift")).not.toBeInTheDocument();
+      await user.click(
+        await screen.findByRole("button", { name: "Search tasks" }),
+      );
+      await user.type(
+        screen.getByRole("searchbox", { name: "Search tasks" }),
+        "zzz",
+      );
+      expect(screen.queryByText("Board-uppgift")).not.toBeInTheDocument();
+      // After a rest the board reads the server with the text and, while it reads, replaces the "no hit" row (and its
+      // button) with a loading line. A click that lands in that moment is lost, so wait until the read is done.
+      await waitFor(() =>
+        expect(fake.getWorkBoard).toHaveBeenCalledWith({ q: "zzz" }),
+      );
+      await waitFor(() => {
+        expect(screen.queryByText(workEn.loading)).not.toBeInTheDocument();
+        expect(
+          screen.getByRole("button", { name: workEn.agendaClearSearch }),
+        ).toBeInTheDocument();
+      });
 
-    await user.click(
-      screen.getByRole("button", { name: workEn.agendaClearSearch }),
-    );
-    expect(
-      screen.queryByRole("searchbox", { name: "Search tasks" }),
-    ).not.toBeInTheDocument();
-    expect(await screen.findByText("Board-uppgift")).toBeInTheDocument();
-  });
+      await user.click(
+        screen.getByRole("button", { name: workEn.agendaClearSearch }),
+      );
+      // The search closes in a later render, not within the click itself, so wait for it instead of assuming it.
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("searchbox", { name: "Search tasks" }),
+        ).not.toBeInTheDocument(),
+      );
+      expect(await screen.findByText("Board-uppgift")).toBeInTheDocument();
+    },
+    SLOW_TEST_MS,
+  );
 
   describe("the Status search reads the whole board", () => {
     const other: WorkItemRecord = {

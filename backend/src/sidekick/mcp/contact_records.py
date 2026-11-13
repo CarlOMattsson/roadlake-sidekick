@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -164,9 +164,9 @@ class ContactChanges(Output):
         return self
 
 
-def contact_result(contact: Contact, tags: list[str]) -> dict[str, Any]:
+def contact_result(contact: Contact, tags: list[str]) -> ContactResult:
     """The result of a Contact tool: the Contact as stored and its tag slugs."""
 
     return ContactResult(
         contact=ContactRecord.model_validate({**contact_public_data(contact), "tags": tags})
-    ).model_dump(mode="json")
+    )

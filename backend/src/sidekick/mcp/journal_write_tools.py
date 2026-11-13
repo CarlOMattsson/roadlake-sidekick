@@ -83,12 +83,12 @@ def _register_create_journal_source(mcp: FastMCP, ctx: JournalToolContext) -> No
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = JournalSourceResult(source=source_record(source)).model_dump(mode="json")
+        created = JournalSourceResult(source=source_record(source))
         return result(
-            structured,
+            created.model_dump(mode="json"),
             rows_text(
-                f"Created the journal source for {structured['source']['journal_date']}.",
-                [f"Source {structured['source']['id']}."],
+                f"Created the journal source for {created.source.journal_date}.",
+                [f"Source {created.source.id}."],
             ),
         )
 
@@ -147,14 +147,14 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
                 normalize_tag_selection(list(tags or ())),
                 include_content=True,
             )
-        ).model_dump(mode="json")
-        created = structured["entry"]
+        )
+        created = structured.entry
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
-                f"Created a manual entry from {ctx.spoken_day(created['journal_date'])}.",
+                f"Created a manual entry from {ctx.spoken_day(created.journal_date)}.",
                 [
-                    f"Entry {created['id']} v{created['version']}.",
+                    f"Entry {created.id} v{created.version}.",
                     *links_row(created),
                     *tags_row(created),
                 ],
@@ -211,13 +211,13 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
             tags=tags,
             correlation_id=request_correlation_id_or_new(),
         )
-        record = structured["entry"]
+        record = structured.entry
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
-                f"Saved the journal entry from {ctx.spoken_day(record['journal_date'])}.",
+                f"Saved the journal entry from {ctx.spoken_day(record.journal_date)}.",
                 [
-                    f"Entry {record['id']} v{record['version']}.",
+                    f"Entry {record.id} v{record.version}.",
                     *links_row(record),
                     *tags_row(record),
                 ],
@@ -299,7 +299,7 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
             appended_text=append_text is not None,
             edited_fields=not (title is None and key_points is None and summary is None),
         )
-        return result(structured, text)
+        return result(structured.model_dump(mode="json"), text)
 
 
 def _register_set_daily_journal_summary(mcp: FastMCP, ctx: JournalToolContext) -> None:

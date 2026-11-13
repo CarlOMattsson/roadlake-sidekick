@@ -31,7 +31,7 @@ def write(token: str, idempotency_key: str) -> dict[str, str]:
 def new_list(app: FastAPI, user_id: UUID, name: str = "Veckohandel") -> dict[str, Any]:
     shopping = app.state.container.shopping
     created = shopping.create_list(owner_actor(user_id), name, idempotency_key=f"seed-{uuid4()}")
-    return dict(created["shopping_list"])
+    return created.shopping_list.model_dump(mode="json")
 
 
 def seed_items(app: FastAPI, user_id: UUID, list_id: str, *names: str) -> list[dict[str, Any]]:
@@ -40,7 +40,7 @@ def seed_items(app: FastAPI, user_id: UUID, list_id: str, *names: str) -> list[d
     added = shopping.add_items(
         owner_actor(user_id), UUID(list_id), batch, idempotency_key=f"seed-{uuid4()}"
     )
-    return [dict(row["item"]) for row in added["items"]]
+    return [row.item.model_dump(mode="json") for row in added.items]
 
 
 @pytest.mark.integration
@@ -69,7 +69,7 @@ def test_missing_wrong_or_personal_credentials_are_401_on_a_read_and_a_write(
         assert response.json()["code"] == "unauthorized"
         assert response.json()["api_version"] == "companion.v1"
         assert response.headers["cache-control"] == "no-store"
-    assert app.state.container.shopping.list_lists(owner_actor(user_id))["lists"] == []
+    assert app.state.container.shopping.list_lists(owner_actor(user_id)).lists == []
 
 
 @pytest.mark.integration
@@ -111,9 +111,9 @@ def test_reads_need_the_read_capability_and_writes_need_write_and_read() -> None
     assert allowed.status_code == 200
     shopping = app.state.container.shopping
     actor = owner_actor(user_id)
-    assert [row["id"] for row in shopping.list_lists(actor)["lists"]] == [list_id]
+    assert [str(row.id) for row in shopping.list_lists(actor).lists] == [list_id]
     stored = shopping.get_list(actor, UUID(list_id))
-    assert [(row["name"], row["purchased"]) for row in stored["items"]] == [("Mjölk", False)]
+    assert [(row.name, row.purchased) for row in stored.items] == [("Mjölk", False)]
 
 
 @pytest.mark.integration
@@ -129,7 +129,7 @@ def test_list_lists_counts_the_unpurchased_items_of_each_list() -> None:
         actor, UUID(items[0]["id"]), purchased=True, version=1, idempotency_key=f"seed-{uuid4()}"
     )
     expected = {busy["id"]: 2, empty["id"]: 0}
-    rows = {row["id"]: row["open_count"] for row in shopping.list_lists(actor)["lists"]}
+    rows = {str(row.id): row.open_count for row in shopping.list_lists(actor).lists}
     assert rows == expected
     # create/update/get keep the plain list record without the count.
     assert "open_count" not in busy
@@ -186,7 +186,7 @@ def test_create_and_add_replay_the_same_answer_and_a_reused_key_is_409() -> None
         list_id = created.json()["shopping_list"]["id"]
         replay = client.post(LISTS, headers=write(token, create_key), json={"name": "Hem"})
         assert replay.json() == created.json()
-        assert len(shopping.list_lists(actor)["lists"]) == 1
+        assert len(shopping.list_lists(actor).lists) == 1
         reused = client.post(LISTS, headers=write(token, create_key), json={"name": "Annat"})
         assert reused.status_code == 409
         assert reused.json()["reason"] == "idempotency_key_reused"
@@ -211,7 +211,7 @@ def test_create_and_add_replay_the_same_answer_and_a_reused_key_is_409() -> None
         assert other.status_code == 409
         assert other.json()["reason"] == "idempotency_key_reused"
     stored = shopping.get_list(actor, UUID(list_id))
-    assert [row["name"] for row in stored["items"]] == ["Mjölk", "Smör"]
+    assert [row.name for row in stored.items] == ["Mjölk", "Smör"]
 
 
 @pytest.mark.integration
@@ -374,8 +374,8 @@ def test_bodies_are_closed_typed_capped_and_read_only_after_authentication() -> 
         assert short_key.status_code == 422
     shopping = app.state.container.shopping
     actor = owner_actor(user_id)
-    assert len(shopping.list_lists(actor)["lists"]) == 1
-    assert shopping.get_list(actor, UUID(shopping_list["id"]))["items"] == []
+    assert len(shopping.list_lists(actor).lists) == 1
+    assert shopping.get_list(actor, UUID(shopping_list["id"])).items == []
 
 
 @pytest.mark.integration

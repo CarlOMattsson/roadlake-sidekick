@@ -24,6 +24,7 @@ from sidekick.mcp.text import AGENDA_UPCOMING_DAYS
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
 from sidekick.shared.types import Actor
+from sidekick.shopping.application.schemas import ListSummary
 from sidekick.structured.base import Output
 from sidekick.work.application.models import WorkQuery, WorkRow
 
@@ -252,33 +253,33 @@ def _diary_part(container: Container, actor: Actor, day: date) -> BriefDiary:
 
 
 def _shopping_part(container: Container, actor: Actor) -> BriefShopping:
-    lists: list[dict[str, Any]] = []
+    lists: list[ListSummary] = []
     offset = 0
     for _ in range(MAX_PAGES):
         page = container.shopping.list_lists(
             actor, include_archived=False, limit=PAGE_SIZE, offset=offset
         )
-        lists.extend(page["lists"])
-        if page["next_offset"] is None:
+        lists.extend(page.lists)
+        if page.next_offset is None:
             break
-        offset = page["next_offset"]
+        offset = page.next_offset
     records: list[BriefShoppingList] = []
     for shopping_list in lists:
         open_items = 0
         item_offset = 0
         for _ in range(MAX_PAGES):
             detail = container.shopping.get_list(
-                actor, UUID(shopping_list["id"]), limit=PAGE_SIZE, offset=item_offset
+                actor, shopping_list.id, limit=PAGE_SIZE, offset=item_offset
             )
-            open_items += sum(1 for item in detail["items"] if not item["purchased"])
-            if detail["next_offset"] is None:
+            open_items += sum(1 for item in detail.items if not item.purchased)
+            if detail.next_offset is None:
                 break
-            item_offset = detail["next_offset"]
+            item_offset = detail.next_offset
         records.append(
             BriefShoppingList(
-                id=UUID(shopping_list["id"]),
-                name=shopping_list["name"],
-                version=shopping_list["version"],
+                id=shopping_list.id,
+                name=shopping_list.name,
+                version=shopping_list.version,
                 open_item_count=open_items,
             )
         )

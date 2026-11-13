@@ -10,6 +10,7 @@ import {
   type TrashItem,
   type TrashList,
 } from "./transport";
+import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
 /** How long the "Restored" line stays, in milliseconds (a snackbar stays 5 s). */
@@ -49,22 +50,13 @@ export function TrashView({
   expanded?: boolean;
   onExpandedChange?: (next: boolean) => void;
 }) {
-  const [list, setList] = useState(initial);
   const [more, setMore] = useState<"idle" | "busy" | "failed">("idle");
   // Counts the reads that replace the list, so a page that was asked for before one lands on nothing.
   const readTicket = useRef(0);
-  // A new `initial` is a fresh read from the card (a refresh): it replaces the data and keeps
-  // what the view holds on screen (busy, notices, focus).
-  const [seenInitial, setSeenInitial] = useState(initial);
-  if (initial !== seenInitial) {
-    setSeenInitial(initial);
-    setList(initial);
+  const [list, change] = useReportedData(initial, onData, () => {
     setMore("idle");
     readTicket.current++;
-  }
-  useEffect(() => {
-    onData?.(list);
-  }, [list, onData]);
+  });
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
   const pending = useRef<PendingKey | undefined>(undefined);
@@ -105,7 +97,8 @@ export function TrashView({
     readTicket.current++;
     setMore("idle");
     try {
-      setList(await transport.trash());
+      const fresh = await transport.trash();
+      change(() => fresh);
     } catch {
       // Keep the old rows; the notice already told the owner what happened.
     }
@@ -119,7 +112,7 @@ export function TrashView({
     try {
       const page = await transport.trash(list.next_cursor);
       if (ticket !== readTicket.current) return;
-      setList((current) => {
+      change((current) => {
         const seen = new Set(current.items.map((row) => row.id));
         return {
           items: [
@@ -149,7 +142,7 @@ export function TrashView({
       await transport.restore(item, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.restored);
-      setList((current) => ({
+      change((current) => ({
         ...current,
         items: current.items.filter((row) => row.id !== item.id),
       }));

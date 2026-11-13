@@ -98,14 +98,14 @@ def make_harness(username: str) -> Harness:
     )
     shopping_list = container.shopping.create_list(
         actor, "Trash shopping", idempotency_key=f"{username}-shopping-list"
-    )["shopping_list"]
+    ).shopping_list
     added = container.shopping.add_items(
         actor,
-        UUID(shopping_list["id"]),
+        shopping_list.id,
         [BatchItem(name="Trash item", client_ref="trash")],
         idempotency_key=f"{username}-shopping-item",
     )
-    shopping_item = added["items"][0]["item"]
+    shopping_item = added.items[0].item
     return Harness(
         container,
         actor,
@@ -114,7 +114,7 @@ def make_harness(username: str) -> Harness:
             "project": (project.id, project.version),
             "contact": (contact.id, contact.version),
             "journal_entry": (entry.id, int(getattr(entry, "version", 1))),
-            "shopping_item": (UUID(shopping_item["id"]), int(shopping_item["version"])),
+            "shopping_item": (shopping_item.id, shopping_item.version),
         },
         SwitchableServer.build(container, actor),
     )
@@ -301,17 +301,17 @@ async def test_trashed_shopping_item_leaves_the_list_until_restored() -> None:
 
     harness = make_harness("trash-shopping-list")
     item_id, _ = harness.records["shopping_item"]
-    list_id = UUID(harness.container.shopping.list_lists(harness.actor)["lists"][0]["id"])
+    list_id = harness.container.shopping.list_lists(harness.actor).lists[0].id
     async with harness.client() as client:
         shown = harness.container.shopping.get_list(harness.actor, list_id)
-        assert [row["id"] for row in shown["items"]] == [str(item_id)]
+        assert [row.id for row in shown.items] == [item_id]
 
         trashed = await call(
             client, "move_to_trash", args(harness, "shopping_item", "shop-trash-0001")
         )
         assert not trashed.is_error, trashed.structured_content
         version = trashed.structured_content["version"]
-        assert harness.container.shopping.get_list(harness.actor, list_id)["items"] == []
+        assert harness.container.shopping.get_list(harness.actor, list_id).items == []
 
         with pytest.raises(NotFoundError):
             harness.container.shopping.set_purchased(
@@ -351,7 +351,7 @@ async def test_trashed_shopping_item_leaves_the_list_until_restored() -> None:
         )
         assert not restored.is_error, restored.structured_content
     shown_again = harness.container.shopping.get_list(harness.actor, list_id)
-    assert [row["id"] for row in shown_again["items"]] == [str(item_id)]
+    assert [row.id for row in shown_again.items] == [item_id]
 
 
 @pytest.mark.asyncio

@@ -107,21 +107,19 @@ def _register_get_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> None:
         scoped = ctx.container.journal_analysis.read_draft(
             actor, draft_id, include_content=include_content
         )
-        structured = draft_dump(
-            JournalDraftReadResult(
-                draft=draft_record(scoped),
-                source=source_read_record(scoped.draft.source, include_content=include_content),
-            )
+        read = JournalDraftReadResult(
+            draft=draft_record(scoped),
+            source=source_read_record(scoped.draft.source, include_content=include_content),
         )
-        record = structured["draft"]
-        title = flat(record["title"], SPOKEN_TITLE_LIMIT)
-        day = ctx.spoken_day(structured["source"]["journal_date"])
-        state = DRAFT_STATE_WORDS[record["state"]]
+        record = read.draft
+        title = flat(record.title, SPOKEN_TITLE_LIMIT)
+        day = ctx.spoken_day(read.source.journal_date)
+        state = DRAFT_STATE_WORDS[record.state]
         return result(
-            structured,
+            draft_dump(read),
             rows_text(
                 f'The journal draft "{title}" from {day}, {state}.',
-                [f"Draft {record['id']} v{record['version']}."],
+                [f"Draft {record.id} v{record.version}."],
             ),
         )
 

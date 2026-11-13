@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any, cast
+from typing import Annotated, cast
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -52,7 +52,7 @@ def _update_command(changes: ContactChanges) -> UpdateContactCommand:
     )
 
 
-def _contact_result(ctx: ToolContext, contact: Contact) -> dict[str, Any]:
+def _contact_result(ctx: ToolContext, contact: Contact) -> ContactResult:
     """The tool result for a just-written Contact, with its tags.
 
     Every Contact write tool needs `contacts:read` for its reply (`reply_scopes`), which is also
@@ -108,10 +108,10 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = _contact_result(ctx, contact)
-        record = structured["contact"]
+        record = structured.contact
         return result(
-            structured,
-            contact_summary(f"Created contact {flat(record['display_name'])}.", record),
+            structured.model_dump(mode="json"),
+            contact_summary(f"Created contact {flat(record.display_name)}.", record),
         )
 
 
@@ -144,10 +144,10 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = _contact_result(ctx, contact)
-        record = structured["contact"]
+        record = structured.contact
         return result(
-            structured,
-            contact_summary(f"Updated contact {flat(record['display_name'])}.", record),
+            structured.model_dump(mode="json"),
+            contact_summary(f"Updated contact {flat(record.display_name)}.", record),
         )
 
 
@@ -174,11 +174,11 @@ def _register_archive_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         structured = _contact_result(ctx, contact)
         # The version changes on archive, so the id and new version stay in the text for restore.
-        record = structured["contact"]
+        record = structured.contact
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             contact_summary(
-                f"Archived contact {flat(record['display_name'])}; "
+                f"Archived contact {flat(record.display_name)}; "
                 "its data and links remain restorable.",
                 record,
             ),
@@ -208,10 +208,10 @@ def _register_restore_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = _contact_result(ctx, contact)
-        record = structured["contact"]
+        record = structured.contact
         return result(
-            structured,
-            contact_summary(f"Restored contact {flat(record['display_name'])}.", record),
+            structured.model_dump(mode="json"),
+            contact_summary(f"Restored contact {flat(record.display_name)}.", record),
         )
 
 
@@ -240,10 +240,10 @@ def _register_add_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         structured = _contact_result(ctx, contact)
-        record = structured["contact"]
+        record = structured.contact
         return result(
-            structured,
-            contact_summary(f"Added the Contact alias to {flat(record['display_name'])}.", record),
+            structured.model_dump(mode="json"),
+            contact_summary(f"Added the Contact alias to {flat(record.display_name)}.", record),
         )
 
 
@@ -271,7 +271,9 @@ def _register_remove_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(_contact_result(ctx, contact), "Removed the Contact alias.")
+        return result(
+            _contact_result(ctx, contact).model_dump(mode="json"), "Removed the Contact alias."
+        )
 
 
 def register_contact_write_tools(mcp: FastMCP, ctx: ToolContext) -> None:

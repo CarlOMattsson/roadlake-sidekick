@@ -362,7 +362,7 @@ def journal_entries_structured(
     cursor: str | None,
     tags: Sequence[str] = (),
     tag_match: TagMatch = "any",
-) -> dict[str, Any]:
+) -> JournalEntryPageResult:
     """The structured content of `list_journal_entries`; a missing bound is the other, or today."""
 
     today = _owner_today(container)
@@ -383,7 +383,7 @@ def journal_entries_structured(
         next_cursor=page.next_cursor,
         owner_timezone=container.settings.owner_timezone,
         today=today,
-    ).model_dump(mode="json")
+    )
 
 
 def source_record(source: Any) -> JournalSourceRecord:
@@ -409,24 +409,24 @@ def source_read_record(source: Any, *, include_content: bool) -> JournalSourceRe
 
 def journal_source_structured(
     container: Container, actor: Actor, source_id: UUID, *, include_content: bool
-) -> dict[str, Any]:
+) -> JournalSourceReadResult:
     """The structured content of `get_journal_source`: one owned source with its immutable text."""
 
     source = container.journal_capture.get_source(actor, source_id)
     return JournalSourceReadResult(
         source=source_read_record(source, include_content=include_content)
-    ).model_dump(mode="json")
+    )
 
 
 def journal_entry_structured(
     container: Container, actor: Actor, entry_id: UUID, *, include_content: bool
-) -> dict[str, Any]:
+) -> JournalEntryResult:
     """The structured content of `get_journal_entry`."""
 
     entry = container.journal.get_entry(actor, entry_id)
     return JournalEntryResult(
         entry=entry_with_relations(container, actor, entry, include_content=include_content)
-    ).model_dump(mode="json")
+    )
 
 
 def journal_day_structured(
@@ -438,7 +438,7 @@ def journal_day_structured(
     include_content: bool,
     limit: int,
     cursor: str | None,
-) -> dict[str, Any]:
+) -> JournalDayResult:
     """The structured content of `get_journal_day`: entries, summary status and `done`."""
 
     day = container.journal_day.get_day(
@@ -459,7 +459,7 @@ def journal_day_structured(
         entry_fingerprint=day.entry_fingerprint,
         summary=summary_record(day.journal_date, day.summary, day.summary_status),
         done=done_record(day.done),
-    ).model_dump(mode="json")
+    )
 
 
 def write_journal_entry_structured(
@@ -479,7 +479,7 @@ def write_journal_entry_structured(
     language: str | None = None,
     tags: Sequence[str] | None = None,
     correlation_id: str | None = None,
-) -> dict[str, Any]:
+) -> JournalEntryResult:
     """Save the owner's own words as a source and its entry in one step; the structured content
     of `write_journal_entry`. No AI runs."""
 
@@ -511,7 +511,7 @@ def write_journal_entry_structured(
         entry=labeled_entry_record(
             container, actor, entry, relations, written, include_content=True
         )
-    ).model_dump(mode="json")
+    )
 
 
 def update_journal_entry_structured(
@@ -532,7 +532,7 @@ def update_journal_entry_structured(
     remove_project_ids: list[UUID] | None = None,
     tags: Sequence[str] | None = None,
     correlation_id: str | None = None,
-) -> tuple[dict[str, Any], EntryRelations | None]:
+) -> tuple[JournalEntryResult, EntryRelations | None]:
     """Add to, replace, relink or retag one entry; the structured content of `update_journal_entry`.
 
     The second value is the entry's links before the write, set only when links changed (the MCP
@@ -609,5 +609,5 @@ def update_journal_entry_structured(
         )
     structured = JournalEntryResult(
         entry=entry_with_relations(container, actor, entry, include_content=True)
-    ).model_dump(mode="json")
+    )
     return structured, before

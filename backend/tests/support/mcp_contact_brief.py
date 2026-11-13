@@ -2,6 +2,8 @@
 
 from typing import Any
 
+from sidekick.mcp.contact_records import ContactContextResult
+
 CONTACT_ID = "7b0c2f1e-3a4d-4e5f-8a9b-0c1d2e3f4a5b"
 
 
@@ -33,34 +35,36 @@ def _structured(
     tasks_more: bool = False,
     journal_items: list[dict[str, Any]] | None = None,
     journal_readable: bool = True,
-) -> dict[str, Any]:
+) -> ContactContextResult:
     items = tasks or []
-    return {
-        "contact": {
-            "id": CONTACT_ID,
-            "display_name": "Sara Lind",
-            "context_note": None,
-            "email": None,
-            "phone": None,
-            "relationship": relationship,
-            "organization": organization,
-            "role": role,
-            "address": None,
-            "aliases": [],
-            "archived": False,
-            "created_at": "2026-10-01T10:00:00+02:00",
-            "updated_at": "2026-10-01T10:00:00+02:00",
-            "archived_at": None,
-            "version": 3,
-        },
-        "projects": {"items": [], "next_cursor": None},
-        "tasks": {
-            "items": items,
-            "next_cursor": "cursor-2" if tasks_more else None,
-        },
-        "journal_entries": {
-            "items": journal_items or [],
-            "has_more": False,
-            "readable": journal_readable,
-        },
-    }
+    return ContactContextResult.model_validate(
+        {
+            "contact": {
+                "id": CONTACT_ID,
+                "display_name": "Sara Lind",
+                "context_note": None,
+                "email": None,
+                "phone": None,
+                "relationship": relationship,
+                "organization": organization,
+                "role": role,
+                "address": None,
+                "aliases": [],
+                "archived": False,
+                "created_at": "2026-10-01T10:00:00+02:00",
+                "updated_at": "2026-10-01T10:00:00+02:00",
+                "archived_at": None,
+                "version": 3,
+            },
+            "projects": {"items": [], "next_cursor": None},
+            "tasks": {
+                "items": items,
+                "next_cursor": "cursor-2" if tasks_more else None,
+            },
+            "journal_entries": {
+                "items": journal_items or [],
+                "has_more": False,
+                "readable": journal_readable,
+            },
+        }
+    )

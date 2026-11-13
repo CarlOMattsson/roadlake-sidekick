@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -194,7 +194,7 @@ def draft_status(draft: DraftReview) -> JournalDraftStatusResult:
     )
 
 
-def draft_dump(record: BaseModel) -> dict[str, Any]:
+def draft_dump(record: BaseModel) -> dict[str, object]:
     """Serialize a draft read keeping which Task-proposal fields the model actually set.
 
     An update proposal distinguishes an omitted field from an explicit null, and the review

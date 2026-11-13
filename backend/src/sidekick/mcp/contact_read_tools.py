@@ -84,12 +84,10 @@ def _closest_contacts(ctx: ToolContext, q: str) -> list[Contact]:
     ]
 
 
-def _closest_reply(
-    ctx: ToolContext, structured: dict[str, object], closest: list[Contact]
-) -> ToolResult:
+def _closest_reply(ctx: ToolContext, page: ContactPageResult, closest: list[Contact]) -> ToolResult:
     """A misheard name ("Elijas" for "Elias"): the same word-level search as `search`."""
-    contacts = [record.model_dump(mode="json") for record in _page_records(ctx, closest)]
-    structured["contacts"] = contacts
+    contacts = _page_records(ctx, closest)
+    structured = page.model_copy(update={"contacts": contacts}).model_dump(mode="json")
     names = [item.display_name for item in closest]
     label = "Closest match" if len(names) == 1 else "Closest matches"
     header = f"{label}: {spoken_names(names, total=len(names))}?"
@@ -182,26 +180,26 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
             limit=limit,
             cursor=cursor,
         )
-        structured = ContactPageResult(
+        page_result = ContactPageResult(
             contacts=_page_records(ctx, page.items),
             next_cursor=page.next_cursor,
             q=q,
             include_archived=include_archived,
             tags=list(tags or ()),
             tag_match=tag_match,
-        ).model_dump(mode="json")
+        )
         closest = _closest_contacts(ctx, q) if not page.items and q and cursor is None else []
         if closest:
-            return _closest_reply(ctx, structured, closest)
+            return _closest_reply(ctx, page_result, closest)
         if page.items:
             names = spoken_names([item.display_name for item in page.items], total=len(page.items))
             header = f"{count_phrase(len(page.items), 'contact', 'contacts')}: {names}."
         else:
             header = "No contacts found."
-        text = rows_text(header, [contact_row(contact) for contact in structured["contacts"]])
+        text = rows_text(header, [contact_row(contact) for contact in page_result.contacts])
         if not page.items:
             text = f"{text}\n{NO_MATCH_HINT}"
-        return result(structured, text)
+        return result(page_result.model_dump(mode="json"), text)
 
 
 def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -240,18 +238,18 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
             include_completed=include_completed,
         )
         contact_tags = container.work_tags.for_record(ctx.actor_provider(), "contact", contact_id)
-        structured = ContactContextResult(
+        context = ContactContextResult(
             contact=ContactRecord.model_validate(
                 {**contact_public_data(res.contact), "tags": [tag.slug for tag in contact_tags]}
             ),
             projects=_project_context_page(res.projects),
             tasks=_task_context_page(res.tasks, res.task_marks),
             journal_entries=_journal_context(res.journal_entries),
-        ).model_dump(mode="json")
+        )
         return result(
-            structured,
+            context.model_dump(mode="json"),
             contact_context_text(
-                structured, now=datetime.now(UTC), zone=container.settings.owner_zone
+                context, now=datetime.now(UTC), zone=container.settings.owner_zone
             ),
         )
 
@@ -277,10 +275,10 @@ def _register_list_task_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
             ctx.container, ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )
         return result(
-            structured,
+            structured.model_dump(mode="json"),
             rows_text(
-                f"Found {len(structured['items'])} linked Contacts.",
-                [contact_row(contact) for contact in structured["items"]],
+                f"Found {len(structured.items)} linked Contacts.",
+                [contact_row(contact) for contact in structured.items],
             ),
         )
 

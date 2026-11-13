@@ -63,7 +63,7 @@ def seed(app: FastAPI, user_id: UUID, title: str = TITLE, source_text: str = SOU
         title=title,
         source_text=source_text,
         idempotency_key=f"seed-{uuid4()}",
-    )["entry"]
+    ).model_dump(mode="json")["entry"]
 
 
 @pytest.mark.integration
@@ -149,7 +149,7 @@ def test_reads_equal_the_mcp_structured_content_and_refuse_foreign_missing_and_b
             include_content=True,
             limit=10,
             cursor=None,
-        )
+        ).model_dump(mode="json")
         listed_ids = {item["id"] for item in day_response.json()["entries"]}
         assert listed_ids == {first["id"], second["id"]}
         assert str(foreign["id"]) not in day_response.text
@@ -165,11 +165,11 @@ def test_reads_equal_the_mcp_structured_content_and_refuse_foreign_missing_and_b
             include_content=True,
             limit=10,
             cursor=None,
-        )
+        ).model_dump(mode="json")
         one = client.get(f"{ENTRIES}/{first['id']}", headers=bearer(token))
         assert one.json() == journal_entry_structured(
             container, actor, UUID(first["id"]), include_content=True
-        )
+        ).model_dump(mode="json")
         assert (one.json()["entry"]["title"], one.json()["entry"]["version"]) == ("Första", 1)
 
         for path in (f"{ENTRIES}/{foreign['id']}", f"{ENTRIES}/{uuid4()}"):
@@ -494,7 +494,7 @@ def test_a_single_oversize_entry_loses_its_content_and_any_other_oversize_answer
         source_text=SOURCE,
         summary="s" * 3_000,
         idempotency_key=f"single-{uuid4()}",
-    )["entry"]
+    ).model_dump(mode="json")["entry"]
     with TestClient(app) as client:
         token = paired_token(client, app, user_id)
         one = client.get(f"{ENTRIES}/{entry['id']}", headers=bearer(token))
@@ -534,7 +534,7 @@ def test_a_hand_written_entry_can_be_read_back_through_its_source() -> None:
             owner_actor(user_id),
             UUID(entry["source_id"]),
             include_content=True,
-        )
+        ).model_dump(mode="json")
         metadata = client.get(f"{source_path}?include_content=false", headers=bearer(token))
         assert metadata.json()["source"]["raw_text"] is None
 

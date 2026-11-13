@@ -5,7 +5,6 @@ Stockholm (CET, UTC+1).
 """
 
 from datetime import UTC, date, datetime
-from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -113,16 +112,16 @@ def test_pantry_today_is_the_owner_day() -> None:
         owner_timezone=STOCKHOLM,
     )
     created = service.create_list(actor, "Fredag", idempotency_key="zone-list")
-    list_id = UUID(created["shopping_list"]["id"])
+    list_id = created.shopping_list.id
     added = service.add_items(
         actor, list_id, [BatchItem(client_ref="a", name="Citron")], idempotency_key="zone-items"
     )
-    item = added["items"][0]["item"]
+    item = added.items[0].item
 
     bought = service.set_purchased(
-        actor, UUID(item["id"]), purchased=True, version=item["version"], idempotency_key="zone-buy"
+        actor, item.id, purchased=True, version=item.version, idempotency_key="zone-buy"
     )
     read = service.get_list(actor, list_id)
 
-    assert bought["evaluated_on"] == "2026-10-29"
-    assert read["evaluated_on"] == "2026-10-29"
+    assert bought.evaluated_on == date(2026, 10, 29)
+    assert read.evaluated_on == date(2026, 10, 29)

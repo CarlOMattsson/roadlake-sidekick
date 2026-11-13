@@ -12,6 +12,7 @@ import pytest
 from fastmcp import Client
 
 from sidekick.api.app import create_container
+from sidekick.mcp.contact_records import ContactContextResult
 from sidekick.mcp.contact_text import contact_context_text
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
@@ -26,7 +27,7 @@ NOW = datetime(2026, 10, 27, 12, 0, tzinfo=UTC)
 ZONE = ZoneInfo("Europe/Stockholm")
 
 
-def _brief(structured: dict[str, Any]) -> str:
+def _brief(structured: ContactContextResult) -> str:
     return contact_context_text(structured, now=NOW, zone=ZONE).split("\n", 1)[0]
 
 

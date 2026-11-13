@@ -123,7 +123,7 @@ async def task_contacts(
     structured = await run_in_threadpool(
         lambda: task_contacts_structured(container, actor, task_id, limit=limit, cursor=cursor)
     )
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def task_external_references(

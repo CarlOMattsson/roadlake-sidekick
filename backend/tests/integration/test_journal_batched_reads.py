@@ -97,7 +97,7 @@ def _statement_counts(entry_count: int) -> dict[str, int]:
             include_content=True,
             limit=100,
             cursor=None,
-        )
+        ).model_dump(mode="json")
     counts["list"] = len(statements)
     assert len(page["entries"]) == entry_count
     for record in page["entries"]:
@@ -117,7 +117,7 @@ def _statement_counts(entry_count: int) -> dict[str, int]:
             include_content=True,
             limit=100,
             cursor=None,
-        )
+        ).model_dump(mode="json")
     counts["day"] = len(statements)
     assert len(day["entries"]) == entry_count
     assert day["entry_fingerprint"] == entry_fingerprint(

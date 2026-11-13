@@ -209,7 +209,7 @@ def _add_shopping_read_routes(router: CompanionRouter) -> None:
                 actor, include_archived=include_archived, limit=limit, offset=offset
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
     @router.register(CompanionRouteSpec("GET", "/shopping/lists/{list_id}", SHOPPING_LIST.name))
     async def shopping_list(
@@ -228,7 +228,7 @@ def _add_shopping_read_routes(router: CompanionRouter) -> None:
                 actor, list_id, on_date=on_date, limit=limit, offset=offset, store=store
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
 
 def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
@@ -251,7 +251,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
                 correlation_id=_correlation(request),
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
     @router.register(
         CompanionRouteSpec(
@@ -278,7 +278,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
                 correlation_id=_correlation(request),
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
     @router.register(
         CompanionRouteSpec(
@@ -301,7 +301,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
                 merge_duplicates=body.merge_duplicates,
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
 
 def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
@@ -329,7 +329,7 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
                 correlation_id=_correlation(request),
             )
         )
-        return _answer(data)
+        return _answer(data.model_dump(mode="json"))
 
     @router.register(
         CompanionRouteSpec(
@@ -356,8 +356,7 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
             )
         )
         # An internal flag of the use case, not an output field (the MCP tool drops it as well).
-        data.pop("unchanged", None)
-        return _answer(data)
+        return _answer(data.model_dump(mode="json", exclude={"unchanged"}))
 
 
 def add_journal_routes(router: CompanionRouter) -> None:
@@ -389,7 +388,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
                     include_content=content,
                     limit=page_limit,
                     cursor=cursor,
-                ),
+                ).model_dump(mode="json"),
                 limit=limit,
                 include_content=include_content,
             )
@@ -419,7 +418,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
                     include_content=content,
                     limit=page_limit,
                     cursor=cursor,
-                ),
+                ).model_dump(mode="json"),
                 limit=limit,
                 include_content=include_content,
             )
@@ -439,7 +438,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
             lambda: fit_to_budget(
                 lambda _limit, content: journal_entry_structured(
                     container, actor, entry_id, include_content=content
-                ),
+                ).model_dump(mode="json"),
                 limit=1,
                 include_content=include_content,
             )
@@ -460,7 +459,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
                 container, actor, source_id, include_content=include_content
             )
         )
-        return _answer(structured)
+        return _answer(structured.model_dump(mode="json"))
 
 
 def _add_journal_write_routes(router: CompanionRouter) -> None:
@@ -488,7 +487,7 @@ def _add_journal_write_routes(router: CompanionRouter) -> None:
                 **{name: getattr(body, name) for name in type(body).model_fields},
             )
         )
-        return _answer(structured)
+        return _answer(structured.model_dump(mode="json"))
 
     @router.register(
         CompanionRouteSpec(
@@ -518,4 +517,4 @@ def _add_journal_write_routes(router: CompanionRouter) -> None:
                 **changes,
             )
         )
-        return _answer(structured)
+        return _answer(structured.model_dump(mode="json"))

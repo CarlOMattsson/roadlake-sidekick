@@ -8,6 +8,8 @@ from decimal import Decimal
 from typing import Any
 from uuid import UUID, uuid4
 
+from pydantic import BaseModel
+
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.idempotent_operation import run_idempotent_operation
@@ -25,9 +27,17 @@ from sidekick.shared.types import (
 )
 from sidekick.shopping.application.schemas import (
     BatchItem,
+    BatchResult,
     ItemRecord,
+    ItemResult,
+    ListDetail,
     ListRecord,
+    ListResult,
+    ListsResult,
+    ListSummary,
     OfferInput,
+    PurchasedBatchResult,
+    PurchaseOutcome,
     PurchaseTarget,
 )
 from sidekick.shopping.domain import ItemDetails, Offer, required_text, text
@@ -111,11 +121,15 @@ def merged_details(row: ShoppingItemRow, patch: ItemPatch) -> ItemDetails:
     return ItemDetails(**{**current, **patch.changes()})
 
 
+def list_record(row: ShoppingListRow) -> ListRecord:
+    return ListRecord.model_validate(row, from_attributes=True)
+
+
 def list_data(row: ShoppingListRow) -> dict[str, Any]:
-    return ListRecord.model_validate(row, from_attributes=True).model_dump(mode="json")
+    return list_record(row).model_dump(mode="json")
 
 
-def item_data(row: ShoppingItemRow, on_date: date) -> dict[str, Any]:
+def item_record(row: ShoppingItemRow, on_date: date) -> ItemRecord:
     offer = (
         None
         if row.offer_price is None
@@ -135,7 +149,11 @@ def item_data(row: ShoppingItemRow, on_date: date) -> dict[str, Any]:
         updated_at=row.updated_at,
         offer=offer,
         offer_status=status,
-    ).model_dump(mode="json")
+    )
+
+
+def item_data(row: ShoppingItemRow, on_date: date) -> dict[str, Any]:
+    return item_record(row, on_date).model_dump(mode="json")
 
 
 def _added_items_replay(result: dict[str, Any]) -> dict[str, Any]:
@@ -168,11 +186,11 @@ class ShoppingService:
 
     def list_lists(
         self, actor: Actor, *, include_archived: bool = False, limit: int = 50, offset: int = 0
-    ) -> dict[str, Any]:
+    ) -> ListsResult:
         actor.require("shopping:read")
         self._bounds(limit, offset)
 
-        def read(session: TxSession) -> dict[str, Any]:
+        def read(session: TxSession) -> ListsResult:
             rows = self.store.list_lists(
                 session,
                 actor.user_id,
@@ -182,10 +200,13 @@ class ShoppingService:
             )
             page, next_offset = paginate(rows, limit, lambda _: offset + limit)
             counts = self.store.open_counts(session, actor.user_id, [row.id for row in page])
-            return {
-                "lists": [{**list_data(row), "open_count": counts.get(row.id, 0)} for row in page],
-                "next_offset": next_offset,
-            }
+            return ListsResult(
+                lists=[
+                    ListSummary(**list_record(row).model_dump(), open_count=counts.get(row.id, 0))
+                    for row in page
+                ],
+                next_offset=next_offset,
+            )
 
         return self.store.transaction(read)
 
@@ -198,7 +219,7 @@ class ShoppingService:
         limit: int = 100,
         offset: int = 0,
         store: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ListDetail:
         """One list with its items. `store` keeps the items whose store equals it, ignoring case,
         plus the items with no store; a blank store means the whole list."""
 
@@ -207,7 +228,7 @@ class ShoppingService:
         evaluated = on_date or self._owner_day(self.clock.now())
         store_filter = text(store, 200)
 
-        def read(session: TxSession) -> dict[str, Any]:
+        def read(session: TxSession) -> ListDetail:
             row = self.store.get_list(session, actor.user_id, list_id)
             rows = self.store.list_items(
                 session,
@@ -218,19 +239,19 @@ class ShoppingService:
                 limit=limit + 1,
             )
             page, next_offset = paginate(rows, limit, lambda _: offset + limit)
-            return {
-                "shopping_list": list_data(row),
-                "items": [item_data(item, evaluated) for item in page],
-                "next_offset": next_offset,
-                "evaluated_on": evaluated.isoformat(),
-                "store": store_filter,
-            }
+            return ListDetail(
+                shopping_list=list_record(row),
+                items=[item_record(item, evaluated) for item in page],
+                next_offset=next_offset,
+                evaluated_on=evaluated,
+                store=store_filter,
+            )
 
         return self.store.transaction(read)
 
     def create_list(
         self, actor: Actor, name: str, *, idempotency_key: str, correlation_id: str | None = None
-    ) -> dict[str, Any]:
+    ) -> ListResult:
         name = required_text(name, 200)
 
         def execute(session: TxSession) -> dict[str, Any]:
@@ -256,6 +277,7 @@ class ShoppingService:
             {"name": name},
             execute,
             correlation_id,
+            model=ListResult,
             replay=lambda result: {"shopping_list": id_replay_record(result["shopping_list"])},
             rebuild=lambda session, record: self._list_result(session, actor, record),
         )
@@ -270,7 +292,7 @@ class ShoppingService:
         version: int,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ListResult:
         name = required_text(name, 200)
 
         def execute(session: TxSession) -> dict[str, Any]:
@@ -289,6 +311,7 @@ class ShoppingService:
             {"list_id": str(list_id), "name": name, "archived": archived, "version": version},
             execute,
             correlation_id,
+            model=ListResult,
             replay=lambda result: {"shopping_list": id_replay_record(result["shopping_list"])},
             rebuild=lambda session, record: self._list_result(session, actor, record),
         )
@@ -302,7 +325,7 @@ class ShoppingService:
         idempotency_key: str,
         correlation_id: str | None = None,
         merge_duplicates: bool = False,
-    ) -> dict[str, Any]:
+    ) -> BatchResult:
         """Add 1-50 items. With merge_duplicates, an input whose name and unit (ignoring case)
         match an unpurchased item of the list adds its quantity to that item instead of creating
         a row; the existing item's other fields stay. Inputs of one batch merge with each other."""
@@ -397,6 +420,7 @@ class ShoppingService:
             payload,
             execute,
             correlation_id,
+            model=BatchResult,
             replay=_added_items_replay,
             rebuild=lambda session, record: self._added_items_result(
                 session, actor, list_id, items, record
@@ -444,7 +468,7 @@ class ShoppingService:
         version: int,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ItemResult:
         """Full replacement for an ItemDetails; an ItemPatch changes only the fields it holds."""
 
         patch = details if isinstance(details, ItemPatch) else ItemPatch.full(details)
@@ -476,6 +500,7 @@ class ShoppingService:
             {"item_id": str(item_id), "version": version, "item": patch.payload()},
             execute,
             correlation_id,
+            model=ItemResult,
             replay=lambda result: {"item": id_replay_record(result["item"])},
             rebuild=lambda session, record: self._item_result(session, actor, record),
         )
@@ -489,7 +514,7 @@ class ShoppingService:
         version: int,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> PurchaseOutcome:
         """Mark one item purchased or wanted. An item already in the asked state is returned
         unchanged (`unchanged` true) even with a stale version; otherwise the version must match."""
 
@@ -526,7 +551,6 @@ class ShoppingService:
                 "evaluated_on": self._owner_day(now).isoformat(),
                 "list_name": shopping_list.name,
                 "open_count": self.store.open_count(session, actor.user_id, row.list_id),
-                # Internal: transports drop it, so the ItemResult contract is unchanged.
                 "unchanged": unchanged,
             }
 
@@ -537,13 +561,13 @@ class ShoppingService:
             {"item_id": str(item_id), "version": version, "purchased": purchased},
             execute,
             correlation_id,
+            model=PurchaseOutcome,
             replay=lambda result: {
                 "item": id_replay_record(result["item"]),
                 "unchanged": result["unchanged"],
             },
             rebuild=lambda session, record: {
                 **self._item_result(session, actor, record),
-                # Internal: transports drop it, so the ItemResult contract is unchanged.
                 "unchanged": record["unchanged"],
             },
         )
@@ -556,7 +580,7 @@ class ShoppingService:
         purchased: bool,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> PurchasedBatchResult:
         """Mark 1-50 items purchased or wanted in one transaction. Items already in the asked state
         are skipped and listed in `unchanged_item_ids`; for the others every version is checked
         and a stale one fails the whole call."""
@@ -626,6 +650,7 @@ class ShoppingService:
             },
             execute,
             correlation_id,
+            model=PurchasedBatchResult,
             replay=lambda result: {
                 "items": [id_replay_record(item) for item in result["items"]],
                 "unchanged_item_ids": result["unchanged_item_ids"],
@@ -633,7 +658,7 @@ class ShoppingService:
             rebuild=lambda session, record: self._purchased_many_result(session, actor, record),
         )
 
-    def _write(
+    def _write[R: BaseModel](
         self,
         actor: Actor,
         operation: str,
@@ -642,9 +667,10 @@ class ShoppingService:
         execute: Callable[[TxSession], dict[str, Any]],
         correlation_id: str | None,
         *,
+        model: type[R],
         replay: Callable[[dict[str, Any]], dict[str, Any]],
         rebuild: Callable[[TxSession, dict[str, Any]], dict[str, Any]],
-    ) -> dict[str, Any]:
+    ) -> R:
         """Run one idempotent write; only `replay(result)` is kept and `rebuild` re-reads the rest.
 
         The idempotency record holds identifiers and flags, so a retry returns the records as they
@@ -652,7 +678,7 @@ class ShoppingService:
         """
 
         actor.require("shopping:write")
-        return run_idempotent_operation(
+        answer = run_idempotent_operation(
             store=self.store,
             telemetry=self.telemetry,
             logger=LOGGER,
@@ -666,6 +692,7 @@ class ShoppingService:
             replay=replay,
             rebuild=rebuild,
         )
+        return model.model_validate(answer)
 
     def _list_result(
         self, session: TxSession, actor: Actor, record: dict[str, Any]
