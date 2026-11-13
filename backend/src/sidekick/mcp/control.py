@@ -13,6 +13,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.automation.domain import AutomationPolicyMode
@@ -111,7 +112,7 @@ def register_control_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         category: Annotated[str | None, Field(max_length=48)] = None,
         state: Literal["applied", "review", "failed", "reverted"] | None = None,
         include_content: bool = True,
-    ) -> Any:
+    ) -> ToolResult:
         page = ctx.container.automation.list_activity(
             ctx.actor_provider(), limit=limit, cursor=cursor, category=category, state=state
         )

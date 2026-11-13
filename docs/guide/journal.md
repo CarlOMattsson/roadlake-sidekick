@@ -48,6 +48,7 @@ When an entry has been derived from a source text with the help of AI, it stays 
 - Writing or replacing the summary of a day.
 - Linking an entry to a contact or a project.
 - Finding what you wrote about a person or a period.
+- Tagging entries and finding entries by tag. `list_journal_entries` filters with `tags` and `tag_match` (`any` or `all`); Claude reuses existing tags with `list_tags`, which needs `projects:read` and shows only the kinds of record you may read.
 
 ## Scopes the room needs
 

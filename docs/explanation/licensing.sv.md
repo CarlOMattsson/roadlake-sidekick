@@ -25,7 +25,7 @@ Licensen på vanlig svenska: vad du får göra, vad den frivilliga licensnyckeln
 
 Nyckeln är frivillig. Ingen rättighet enligt licensen beror på den.
 
-- Utan nyckel visar Sidekick en liten påminnelse om att det är gratisversionen. I MCP-apparna är det en liten markering i toppraden i varje rum.
+- Utan nyckel visar Sidekick en liten påminnelse om att det är gratisversionen. I MCP-apparna är det ett litet mynt längst ned i varje rum, med ordet "Gratisversion" bredvid, och i slutet av ett inlinekorts öppna-rad.
   I Android-widgeten Idag är det ett litet mynt i widgetens huvud; ett tryck öppnar appen.
 - En giltig nyckel tar bara bort den påminnelsen. Inget annat ändras och ingen funktion är låst.
 - Med nyckel visar Inställningar (Android-appen) och Kontroll (MCP-apparna) "Licensierad till" och namnet på nyckeln, och dagen den går ut.

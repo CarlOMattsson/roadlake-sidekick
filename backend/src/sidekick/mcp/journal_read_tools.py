@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.journal.domain.day_done import owner_today
@@ -70,7 +71,7 @@ def _register_list_journal_entries(mcp: FastMCP, ctx: JournalToolContext) -> Non
         tag_match: TagMatch = "any",
         limit: Annotated[int, Field(ge=1, le=50)] = 10,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured = journal_entries_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -116,7 +117,7 @@ def _register_get_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None:
     def get_journal_entry(
         entry_id: UUID,
         include_content: bool = True,
-    ) -> Any:
+    ) -> ToolResult:
         structured = journal_entry_structured(
             ctx.container, ctx.actor_provider(), entry_id, include_content=include_content
         )
@@ -160,7 +161,7 @@ def _register_get_journal_day(mcp: FastMCP, ctx: JournalToolContext) -> None:
         include_content: bool = True,
         limit: Annotated[int, Field(ge=1, le=50)] = 10,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured = journal_day_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -206,7 +207,7 @@ def _register_get_daily_journal_summary(mcp: FastMCP, ctx: JournalToolContext) -
         app=AppConfig(visibility=["app"]),
     )
     @ctx.instrument("get_daily_journal_summary")
-    def get_daily_journal_summary(journal_date: date) -> Any:
+    def get_daily_journal_summary(journal_date: date) -> ToolResult:
         actor = ctx.actor_provider()
         status, summary = ctx.container.journal_day.get_summary(actor, journal_date)
         structured = JournalSummaryResult(
@@ -233,7 +234,7 @@ def _register_get_journal_source(mcp: FastMCP, ctx: JournalToolContext) -> None:
     def get_journal_source(
         source_id: UUID,
         include_content: bool = True,
-    ) -> Any:
+    ) -> ToolResult:
         structured = journal_source_structured(
             ctx.container, ctx.actor_provider(), source_id, include_content=include_content
         )
@@ -265,7 +266,7 @@ def _register_list_pending_journal(mcp: FastMCP, ctx: JournalToolContext) -> Non
         from_date: date | None = None,
         to_date: date | None = None,
         limit: Annotated[int, Field(ge=1, le=100)] = 100,
-    ) -> Any:
+    ) -> ToolResult:
         container = ctx.container
         actor = ctx.actor_provider()
         if from_date is None and to_date is None:

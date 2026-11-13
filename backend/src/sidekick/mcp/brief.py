@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
+from fastmcp.tools import ToolResult
 
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.results import output_schema, result
@@ -305,7 +306,7 @@ def register_brief_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         annotations=READ,
     )
     @ctx.instrument("get_today_brief")
-    def get_today_brief() -> Any:
+    def get_today_brief() -> ToolResult:
         actor = ctx.actor_provider()
         now = ctx.container.work_lists.clock.now()
         day = now.astimezone(ctx.container.settings.owner_zone).date()

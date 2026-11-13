@@ -37,5 +37,5 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `restore-ownership.sql` | Gives each object back its owner after a plain SQL dump has been restored. |
 | `backup_space.sh` | Checks free space before a backup and prunes finished backup files. Shared with the work package. |
 | `snapshot_crypto.py` | Encrypts and decrypts the database snapshots that `update.sh` takes. |
-| `update_policy.py` | The decisions of `update.sh` (versions, migration class, rollback, recovery). Needs the host's `python3`. |
+| `update_policy.py` | The decisions of `update.sh` (versions, migration class, rollback, recovery). Needs the host's `python3` (3.9 or newer, standard library only). |
 | `min-upgrade-from.txt` | The oldest version a new release can be updated from. |

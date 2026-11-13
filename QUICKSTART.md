@@ -5,7 +5,7 @@
 The shortest way from a fresh clone to a running local instance, for development. All commands run from the
 **repository root**. To run Sidekick for real use, see [README.md](README.md#run-it).
 
-You need Python 3.13 with [`uv`](https://docs.astral.sh/uv/), Node.js 22 / npm 10 and Docker with Compose v2.
+You need Python 3.13 with [`uv`](https://docs.astral.sh/uv/), Node.js 22 (22.23.4 or newer) / npm 10 and Docker with Compose v2.
 
 ## 1. Set up once
 

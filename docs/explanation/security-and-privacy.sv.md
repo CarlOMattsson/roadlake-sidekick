@@ -59,7 +59,7 @@ Påminnelser skickas som väckningar utan innehåll. Telefonen hämtar själv in
 
 ## Backuper
 
-Backuper krypteras när du har slagit på backup-profilen och skapat en nyckel. Utan nyckeln går de inte att läsa. Förvara nyckeln någon annanstans än på servern, och ha en kopia av backuperna utanför servern. En backup och dess nyckel tillsammans är hela databasen.
+Backuper krypteras när du har slagit på backup-profilen och skapat en nyckel. Utan nyckeln går de inte att läsa. Förvara nyckeln någon annanstans än på servern, och ha en kopia av backuperna utanför servern. Den som har en backup och dess nyckel kan läsa alla dina poster.
 
 ## Det här skyddar Sidekick inte mot
 

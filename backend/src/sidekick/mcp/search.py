@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastmcp import FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ
@@ -162,7 +163,7 @@ def register_search_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         kinds: Annotated[list[Kind], Field(min_length=1, max_length=4)] | None = None,
         limit: Annotated[int, Field(ge=1, le=25)] = 10,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         search_result = service.search(
             ctx.actor_provider(),
             query,

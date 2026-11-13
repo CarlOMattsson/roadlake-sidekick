@@ -5,8 +5,10 @@ from uuid import UUID
 
 from sidekick.contacts.application.models import (
     JOURNAL_CONTEXT_LIMIT,
+    ContactContext,
     LinkedJournalEntries,
     LinkedJournalEntry,
+    TaskContactMarks,
 )
 from sidekick.contacts.application.paging import contact_cursor
 from sidekick.contacts.application.store import ContactStore
@@ -315,7 +317,7 @@ class ContactRelationService:
         task_limit: int = 10,
         task_cursor: str | None = None,
         include_completed: bool = False,
-    ) -> dict[str, Any]:
+    ) -> ContactContext:
         actor.require("contacts:read")
         actor.require("projects:read")
         actor.require("tasks:read")
@@ -334,7 +336,7 @@ class ContactRelationService:
             actor.user_id, task_cursor, task_query_key, kinds=TIMED_KEY
         )
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> ContactContext:
             contact = self.store.get_contact(session, actor.user_id, contact_id)
             if contact.archived:
                 raise ValidationError("contact is archived")
@@ -397,7 +399,7 @@ class ContactRelationService:
             )
 
             now = self.clock.now()
-            marks = {
+            marks: dict[UUID, TaskContactMarks] = {
                 task.id: {
                     # A Task waiting on *this* Contact is the only claim made here.
                     # Any other linked Task is linked work, never an inferred promise.
@@ -410,12 +412,12 @@ class ContactRelationService:
                 }
                 for task in task_page.items
             }
-            return {
-                "contact": contact,
-                "projects": project_page,
-                "tasks": task_page,
-                "task_marks": marks,
-                "journal_entries": journal_entries,
-            }
+            return ContactContext(
+                contact=contact,
+                projects=project_page,
+                tasks=task_page,
+                task_marks=marks,
+                journal_entries=journal_entries,
+            )
 
         return self.store.transaction(operation)

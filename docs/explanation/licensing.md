@@ -25,7 +25,7 @@ The license in plain words: what you may do, what the optional license key does,
 
 The key is optional. No right under the license depends on it.
 
-- Without a key Sidekick shows a small reminder that this is the free version. In the MCP apps it is a small mark in the top bar of each room.
+- Without a key Sidekick shows a small reminder that this is the free version. In the MCP apps it is a small coin at the bottom of each room, with the words "Gratisversion" (Free version) next to it, and at the end of an inline card's open row.
   In the Android Today widget it is a small coin in the header of the widget; tapping it opens the app.
 - A valid key removes only that reminder. Nothing else changes and no feature is locked.
 - With a key, Settings (Android app) and Control (MCP apps) show "Licensed to" and the name on the key, and the day it runs out.

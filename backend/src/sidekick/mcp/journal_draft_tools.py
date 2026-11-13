@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
-from sidekick.journal.application.review_input import RelationSelection, TaskProposalInput
+from sidekick.journal.application.review_input import (
+    RelationSelection,
+    RelationSelectionItem,
+    TaskProposalInput,
+)
 from sidekick.journal.domain.analysis import KeyPoint as AnalysisKeyPoint
 from sidekick.journal.domain.finalize import FinalizeCommand
 from sidekick.journal.domain.records import EntryRelations
@@ -46,7 +51,7 @@ def _analysis_key_points(points: list[JournalKeyPointInput]) -> tuple[AnalysisKe
     return tuple(AnalysisKeyPoint(kind=point.kind, text=point.text) for point in points)
 
 
-def _relation_selection(items: Any) -> tuple[tuple[UUID, str], ...]:
+def _relation_selection(items: Sequence[RelationSelectionItem]) -> tuple[tuple[UUID, str], ...]:
     """The reviewed relation ids with their origin, in the shape the finalize use case takes."""
 
     return tuple((item.id, item.origin.value) for item in items)
@@ -97,7 +102,7 @@ def _register_get_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> None:
     def get_journal_draft(
         draft_id: UUID,
         include_content: bool = True,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         scoped = ctx.container.journal_analysis.read_draft(
             actor, draft_id, include_content=include_content
@@ -145,7 +150,7 @@ def _register_update_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> Non
         key_points: KeyPointInputs,
         task_proposals: TaskProposals,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         # Relation selection is only validated, never stored, on a draft; it is chosen at finalize.
         draft = ctx.container.journal_analysis.update_draft(
             ctx.actor_provider(),
@@ -185,7 +190,7 @@ def _register_reject_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> Non
         draft_id: UUID,
         expected_version: VersionParam,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         draft = ctx.container.journal_analysis.reject_draft(
             ctx.actor_provider(),
             draft_id=draft_id,
@@ -222,7 +227,7 @@ def _register_finalize_journal_draft(mcp: FastMCP, ctx: JournalToolContext) -> N
         task_proposals: TaskProposals,
         idempotency_key: IdempotencyKey,
         tags: TagsInput | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         container = ctx.container
         actor = ctx.actor_provider()
         outcome = container.journal_finalize.finalize(

@@ -12,11 +12,12 @@ output and hands over the request's correlation id.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import WRITE
@@ -68,7 +69,7 @@ def register_board_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             list[BoardItemInput], Field(min_length=1, max_length=MAX_BOARD_COLUMN_REORDER)
         ],
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         placements = ctx.container.task_board.reorder_board_column(
             ctx.actor_provider(),
             status,

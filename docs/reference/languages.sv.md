@@ -14,8 +14,8 @@ Texterna i rummen är på svenska som standard (`SIDEKICK_MCP_APP_LOCALE=sv`). S
 
 Alla kommandon i `tools/work.sh` skriver på svenska eller engelska: `SIDEKICK_WORK_LANG=sv|en`, annars
 `SIDEKICK_WORK_LOCALE` i `work.env`, annars systemets `LANG`. Det är ett annat val än språket i apparna och i Hindsights
-svar, som är `SIDEKICK_WORK_LOCALE` i `work.env`: första körningen kopierar `sv` från mallen och guiden ändrar värdet
-bara om det saknas. Sätt `SIDEKICK_WORK_LOCALE=en` där och kör `bash tools/work.sh start` för engelska apptexter.
+svar, som är `SIDEKICK_WORK_LOCALE` i `work.env`: första körningen kopierar `sv` från mallen; `setup` frågar efter språket
+varje gång, föreslår det nuvarande värdet och skriver ditt svar. Sätt `SIDEKICK_WORK_LOCALE=en` där och kör `bash tools/work.sh start` för engelska apptexter.
 
 ## Android-appen
 

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from sidekick.mcp.annotations import READ, WRITE
@@ -48,7 +49,7 @@ _PARENT_KEY = {"step": "task_id", "action": "step_id"}
 _PARENT_KIND = {"step": "task", "action": "step"}
 
 
-def _record_reply(kind: str, verb: str, record: dict[str, Any]) -> Any:
+def _record_reply(kind: str, verb: str, record: dict[str, Any]) -> ToolResult:
     """A Step or Action result with one spoken line naming it and its parent."""
 
     return result(
@@ -75,7 +76,9 @@ def _register_list_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
         annotations=READ,
     )
     @ctx.instrument("list_task_steps")
-    def list_task_steps(task_id: UUID, limit: _Limit100 = 100, cursor: _Cursor = None) -> Any:
+    def list_task_steps(
+        task_id: UUID, limit: _Limit100 = 100, cursor: _Cursor = None
+    ) -> ToolResult:
         data = task_steps_structured(
             ctx.container, ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )
@@ -104,7 +107,9 @@ def _register_list_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
         annotations=READ,
     )
     @ctx.instrument("list_step_actions")
-    def list_step_actions(step_id: UUID, limit: _Limit100 = 100, cursor: _Cursor = None) -> Any:
+    def list_step_actions(
+        step_id: UUID, limit: _Limit100 = 100, cursor: _Cursor = None
+    ) -> ToolResult:
         page = ctx.container.steps.list_actions(
             ctx.actor_provider(), step_id, limit=limit, cursor=cursor
         )
@@ -155,7 +160,7 @@ def _register_create_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         title: _Title,
         idempotency_key: IdempotencyKey,
         due_at: datetime | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         step = ctx.container.steps.create_step(
             ctx.actor_provider(),
             task_id,
@@ -191,7 +196,7 @@ def _register_create_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         title: _Title,
         idempotency_key: IdempotencyKey,
         due_at: datetime | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         action = ctx.container.steps.create_action(
             ctx.actor_provider(),
             step_id,
@@ -227,7 +232,7 @@ def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         changes: StepChanges,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         step = ctx.container.steps.update_step(
             ctx.actor_provider(),
             step_id,
@@ -252,7 +257,7 @@ def _register_complete_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         step_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         structured = complete_step_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -284,7 +289,7 @@ def _register_archive_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         step_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         step = ctx.container.steps.archive_step(
             ctx.actor_provider(),
             step_id,
@@ -309,7 +314,7 @@ def _register_restore_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         step_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         step = ctx.container.steps.restore_step(
             ctx.actor_provider(),
             step_id,
@@ -334,7 +339,7 @@ def _register_reorder_task_steps(mcp: FastMCP, ctx: ToolContext) -> None:
         task_id: UUID,
         items: _ReorderSteps,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         page = ctx.container.steps.reorder_steps(
             ctx.actor_provider(),
             task_id,
@@ -361,7 +366,7 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         changes: ActionChanges,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         action = ctx.container.steps.update_action(
             ctx.actor_provider(),
             action_id,
@@ -386,7 +391,7 @@ def _register_complete_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         action_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         action = ctx.container.steps.complete_action(
             ctx.actor_provider(),
             action_id,
@@ -411,7 +416,7 @@ def _register_archive_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         action_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         action = ctx.container.steps.archive_action(
             ctx.actor_provider(),
             action_id,
@@ -436,7 +441,7 @@ def _register_restore_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         action_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         action = ctx.container.steps.restore_action(
             ctx.actor_provider(),
             action_id,
@@ -461,7 +466,7 @@ def _register_reorder_step_actions(mcp: FastMCP, ctx: ToolContext) -> None:
         step_id: UUID,
         items: _ReorderActions,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         page = ctx.container.steps.reorder_actions(
             ctx.actor_provider(),
             step_id,

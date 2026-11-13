@@ -23,7 +23,7 @@ $C --profile vps up -d               # med de profiler du använder, som i Förs
 Den här vägen har ingen signatur att kontrollera; det du litar på är utcheckningen.
 
 **Till en signerad, digest-låst image.** `update.sh` verifierar signaturen, tar en krypterad ägarbackup och en
-krypterad ögonblicksbild av databasen, kör migreraren och väntar tills API:et är redo (det når databasen och schemat har den nya imagens revision) och varje arbetare den startat körs och är frisk; annars rullar den tillbaka. Som förval skriver den
+krypterad ögonblicksbild av databasen, kör migreraren och väntar tills API:et är redo (det når databasen och schemat har den nya imagens revision) och varje arbetare den startat körs och är frisk; annars går den tillbaka till den förra imagen när schemat tillåter det (se "Om en uppdatering misslyckas"); databasen rullas aldrig tillbaka. Som förval skriver den
 ut planen och ändrar ingenting förrän du anger `--apply`.
 
 ```bash

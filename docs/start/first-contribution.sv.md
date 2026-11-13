@@ -13,7 +13,7 @@ Vill du köra Sidekick på riktigt, se [README.sv.md](../../README.sv.md#kör-si
 ## Förutsättningar
 
 - Python 3.13 med [`uv`](https://docs.astral.sh/uv/)
-- Node.js 22 och npm 10
+- Node.js 22 (22.23.4 eller nyare) och npm 10
 - Docker med Compose v2 (för lokal PostgreSQL)
 
 ```bash
@@ -131,7 +131,7 @@ försenade, i dag och kommande, byggda av den påhittade datan. Öppna kortet f�
 Kontakter eller Dagbok från dess meny.
 
 En klient som skickar en bearer-token, till exempel MCP Inspector eller Claude Code, behöver en token som täcker
-alla rum. Kommandot nedan ger de tio standard-scopes som en personlig token kan ha (de två `automation:*`-scopes är opt-in och utelämnade) (`create-token` har ingen genväg för
+alla rum. Kommandot nedan ger de tio rum-scopes (den elfte vanliga, `license:write`, används bara för att ange en licensnyckel och utelämnas, liksom de två opt-in-scopes `automation:*`) (`create-token` har ingen genväg för
 "alla"):
 
 ```bash

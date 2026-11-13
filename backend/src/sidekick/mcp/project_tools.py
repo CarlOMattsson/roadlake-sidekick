@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import BaseModel, Field
 
 from sidekick.mcp.annotations import READ, WRITE
@@ -98,7 +99,7 @@ def _register_list_projects(mcp: FastMCP, ctx: ToolContext) -> None:
         limit: _Limit100 = 25,
         status: ProjectStatus | None = None,
         cursor: _Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         page = ctx.container.projects.list(actor, limit=limit, status=status, cursor=cursor)
         slugs = ctx.container.work_tags.slug_map(actor)
@@ -142,7 +143,7 @@ def _register_get_project(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("get_project")
-    def get_project(project_id: UUID) -> Any:
+    def get_project(project_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured, project = project_detail_structured(ctx.container, actor, project_id)
         record = structured["project"]
@@ -183,7 +184,7 @@ def _register_create_project(mcp: FastMCP, ctx: ToolContext) -> None:
         description: _Description = None,
         start_date: date | None = None,
         target_date: date | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         # The reply lists the record's tags (projects:read); refuse before anything is written.
         ctx.container.work_tags.require_record_tags_readable(actor, "project")
@@ -229,7 +230,7 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: ProjectChanges,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         patch = _tag_safe_patch(ctx, actor, changes)
         project = ctx.container.projects.update(
@@ -267,7 +268,7 @@ def _register_list_domains(mcp: FastMCP, ctx: ToolContext) -> None:
     def list_domains(
         limit: _Limit100 = 25,
         cursor: _Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         page = ctx.container.contexts.list_domains(actor, limit=limit, cursor=cursor)
         slugs = ctx.container.work_tags.slug_map(actor)
@@ -305,7 +306,7 @@ def _register_get_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
     )
     @ctx.instrument("get_domain")
-    def get_domain(domain_id: UUID) -> Any:
+    def get_domain(domain_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured = domain_structured(ctx.container, actor, domain_id)
         record = structured["domain"]
@@ -332,7 +333,7 @@ def _register_create_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         idempotency_key: IdempotencyKey,
         description: _Description = None,
         accent: Annotated[DomainAccent | None, Field(description=DOMAIN_ACCENT_DESCRIPTION)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         domain = ctx.container.contexts.create_domain(
             ctx.actor_provider(),
             name=name,
@@ -369,7 +370,7 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: DomainChanges,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         patch = _tag_safe_patch(ctx, actor, changes)
         domain = ctx.container.contexts.update_domain(
@@ -408,7 +409,7 @@ def _register_create_process(mcp: FastMCP, ctx: ToolContext) -> None:
         name: _Name,
         idempotency_key: IdempotencyKey,
         description: _Description = None,
-    ) -> Any:
+    ) -> ToolResult:
         process = ctx.container.contexts.create_process(
             ctx.actor_provider(),
             domain_id=domain_id,
@@ -441,7 +442,7 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: ProcessChanges,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         patch = _tag_safe_patch(ctx, actor, changes)
         process = ctx.container.contexts.update_process(
@@ -477,7 +478,7 @@ def _register_list_processes(mcp: FastMCP, ctx: ToolContext) -> None:
         domain_id: UUID | None = None,
         limit: _Limit100 = 25,
         cursor: _Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         page = ctx.container.contexts.list_processes(
             actor, domain_id=domain_id, limit=limit, cursor=cursor
@@ -517,7 +518,7 @@ def _register_get_process(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
     )
     @ctx.instrument("get_process")
-    def get_process(process_id: UUID) -> Any:
+    def get_process(process_id: UUID) -> ToolResult:
         actor = ctx.actor_provider()
         structured = process_structured(ctx.container, actor, process_id)
         record = structured["process"]

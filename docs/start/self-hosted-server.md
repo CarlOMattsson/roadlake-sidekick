@@ -9,7 +9,7 @@ Start Sidekick on your own Linux server with Docker Compose. The guide goes from
 ## Requirements
 
 - Linux x86_64 with Docker Engine and the Docker Compose plugin (v2.24 or newer, see `docker compose version`), and
-  `git`, `openssl`, `curl`.
+  `git`, `openssl`, `curl`. For updates to a signed image later: `cosign` and `python3` (3.9 or newer).
 - Either a public domain whose DNS points at the machine, with ports 80 and 443 reachable (`vps` profile: Caddy
   obtains the certificate), or a tunnel that forwards HTTPS to `127.0.0.1:8000` (home machine). Claude reaches the
   server from Anthropic's cloud, so the address must be public HTTPS in both cases.

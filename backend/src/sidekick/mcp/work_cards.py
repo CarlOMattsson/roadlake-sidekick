@@ -9,11 +9,12 @@ without saying why.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ
@@ -144,7 +145,7 @@ def register_work_card_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("show_work_changes")
     def show_work_changes(
         refs: Annotated[list[WorkRef], Field(min_length=1, max_length=MAX_REFS)],
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         # Duplicates collapse to one row, in the order the model asked for them.
         unique: dict[tuple[WorkKind, UUID], None] = {}

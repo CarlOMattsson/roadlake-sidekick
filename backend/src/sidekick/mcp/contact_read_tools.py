@@ -6,14 +6,20 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
+from sidekick.contacts.application.models import (
+    LinkedJournalEntries,
+    TaskContactMarks,
+)
 from sidekick.contacts.application.serialization import contact_public_data
+from sidekick.contacts.domain.contact import Contact
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.contact_records import (
     ContactContextResult,
@@ -37,15 +43,18 @@ from sidekick.mcp.results import output_schema, result, spoken_names
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import count_phrase, rows_text
 from sidekick.mcp.tool_context import ToolContext
+from sidekick.projects.domain import Project
+from sidekick.shared.types import Page
 from sidekick.structured.contacts import (
     ContactSummaryRecord,
     TaskContactPageRecord,
     task_contacts_structured,
 )
 from sidekick.structured.tags import TagFilter, TagMatch
+from sidekick.tasks.domain import Task
 
 
-def _summary_record(item: Any, tags: Sequence[str] = ()) -> ContactSummaryRecord:
+def _summary_record(item: Contact, tags: Sequence[str] = ()) -> ContactSummaryRecord:
     return ContactSummaryRecord(
         id=item.id,
         display_name=item.display_name,
@@ -59,14 +68,14 @@ def _summary_record(item: Any, tags: Sequence[str] = ()) -> ContactSummaryRecord
     )
 
 
-def _page_records(ctx: ToolContext, items: Sequence[Any]) -> list[ContactSummaryRecord]:
+def _page_records(ctx: ToolContext, items: Sequence[Contact]) -> list[ContactSummaryRecord]:
     """The Contacts of a page as summaries, each with its tags (one read for the page)."""
 
     tags = ctx.container.work_tags.slugs_for(ctx.actor_provider(), "contact", [i.id for i in items])
     return [_summary_record(item, tags.get(item.id, ())) for item in items]
 
 
-def _closest_contacts(ctx: ToolContext, q: str) -> list[Any]:
+def _closest_contacts(ctx: ToolContext, q: str) -> list[Contact]:
     """Contacts close to a misheard name, empty without contacts:read or any near match."""
     actor = ctx.actor_provider()
     return [
@@ -75,19 +84,20 @@ def _closest_contacts(ctx: ToolContext, q: str) -> list[Any]:
     ]
 
 
-def _closest_reply(ctx: ToolContext, structured: dict[str, Any], closest: list[Any]) -> Any:
+def _closest_reply(
+    ctx: ToolContext, structured: dict[str, object], closest: list[Contact]
+) -> ToolResult:
     """A misheard name ("Elijas" for "Elias"): the same word-level search as `search`."""
-    structured["contacts"] = [
-        record.model_dump(mode="json") for record in _page_records(ctx, closest)
-    ]
+    contacts = [record.model_dump(mode="json") for record in _page_records(ctx, closest)]
+    structured["contacts"] = contacts
     names = [item.display_name for item in closest]
     label = "Closest match" if len(names) == 1 else "Closest matches"
     header = f"{label}: {spoken_names(names, total=len(names))}?"
-    text = rows_text(header, [contact_row(contact) for contact in structured["contacts"]])
+    text = rows_text(header, [contact_row(contact) for contact in contacts])
     return result(structured, f"{text}\n{CLOSEST_HINT}")
 
 
-def _project_context_page(page: Any) -> ProjectContextPageRecord:
+def _project_context_page(page: Page[Project]) -> ProjectContextPageRecord:
     return ProjectContextPageRecord(
         items=[
             ProjectSummaryRecord(
@@ -103,7 +113,9 @@ def _project_context_page(page: Any) -> ProjectContextPageRecord:
     )
 
 
-def _task_context_page(page: Any, marks: Mapping[UUID, Mapping[str, Any]]) -> TaskContextPageRecord:
+def _task_context_page(
+    page: Page[Task], marks: Mapping[UUID, TaskContactMarks]
+) -> TaskContextPageRecord:
     return TaskContextPageRecord(
         items=[
             TaskSummaryRecord(
@@ -126,7 +138,7 @@ def _task_context_page(page: Any, marks: Mapping[UUID, Mapping[str, Any]]) -> Ta
     )
 
 
-def _journal_context(entries: Any) -> JournalEntryContextRecord:
+def _journal_context(entries: LinkedJournalEntries) -> JournalEntryContextRecord:
     return JournalEntryContextRecord(
         items=[
             JournalEntryLinkRecord(id=entry.id, journal_date=entry.journal_date, title=entry.title)
@@ -160,7 +172,7 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
         tag_match: TagMatch = "any",
         limit: Annotated[int, Field(ge=1, le=100)] = 25,
         cursor: Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         page = ctx.container.contacts.list(
             ctx.actor_provider(),
             q=q,
@@ -216,7 +228,7 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
         task_limit: Annotated[int, Field(ge=1, le=25)] = 10,
         task_cursor: Cursor = None,
         include_completed: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         container = ctx.container
         res = container.contact_relations.get_contact_context(
             ctx.actor_provider(),
@@ -230,11 +242,11 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
         contact_tags = container.work_tags.for_record(ctx.actor_provider(), "contact", contact_id)
         structured = ContactContextResult(
             contact=ContactRecord.model_validate(
-                {**contact_public_data(res["contact"]), "tags": [tag.slug for tag in contact_tags]}
+                {**contact_public_data(res.contact), "tags": [tag.slug for tag in contact_tags]}
             ),
-            projects=_project_context_page(res["projects"]),
-            tasks=_task_context_page(res["tasks"], res["task_marks"]),
-            journal_entries=_journal_context(res["journal_entries"]),
+            projects=_project_context_page(res.projects),
+            tasks=_task_context_page(res.tasks, res.task_marks),
+            journal_entries=_journal_context(res.journal_entries),
         ).model_dump(mode="json")
         return result(
             structured,
@@ -260,7 +272,7 @@ def _register_list_task_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
         task_id: UUID,
         limit: Annotated[int, Field(ge=1, le=50)] = 20,
         cursor: Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured = task_contacts_structured(
             ctx.container, ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )

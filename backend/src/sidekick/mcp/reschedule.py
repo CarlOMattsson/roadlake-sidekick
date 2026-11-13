@@ -10,10 +10,11 @@ update_task use. "next_week" is the Monday of next week, counted from the owner'
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import WRITE
@@ -106,7 +107,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             list[RescheduleInput], Field(min_length=1, max_length=MAX_RESCHEDULE_TASKS)
         ],
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         zone = ctx.container.settings.owner_zone
         today = ctx.container.tasks.clock.now().astimezone(zone).date()

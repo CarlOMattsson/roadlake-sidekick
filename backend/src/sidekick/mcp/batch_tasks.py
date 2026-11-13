@@ -9,10 +9,11 @@ create_task.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import WRITE
@@ -101,7 +102,7 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         idempotency_key: IdempotencyKey,
         project_id: UUID | None = None,
         domain_id: UUID | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         # The reply lists each task's tags (projects:read), so refuse before anything is written.
         ctx.container.work_tags.require_record_tags_readable(actor, "task")

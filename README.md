@@ -29,8 +29,8 @@ your own PostgreSQL database.
 | Area | Capabilities |
 | --- | --- |
 | **Work** | Agenda, status board, domains, processes, projects, tasks and steps; dates, priorities, tags, estimates, waiting context and recurring work. |
-| **Journal** | Several entries per day, manual writing and editing, entries and summaries written by Claude, linked context. |
-| **Contacts** | People, organisations, roles, contact channels and relationship notes, linked to tasks, projects and journal entries. |
+| **Journal** | Several entries per day, manual writing and editing, entries and summaries written by Claude, tags, linked context. |
+| **Contacts** | People, organisations, roles, contact channels, relationship notes and tags, linked to tasks, projects and journal entries. |
 | **Shopping** | Lists, quantities, store groups, purchase ticks and undo. |
 | **Control** | Trash and restore, recent changes, and controls for Sidekick's memory. Permanent deletion is not a public tool. |
 | **Memory** | Optional Hindsight memory derived from your records, with per-source switches, pause and per-record exclusion. |
@@ -108,11 +108,11 @@ Sidekick sends no telemetry or analytics; it only contacts the services you conf
   [Android app](docs/operate/pair-android.md).
 - **Developers:** Sidekick can also run as a local stdio MCP server for Claude Desktop from a source checkout; see step 4 of [Run Sidekick locally as a developer](docs/start/first-contribution.md).
 - **Android app:** from the first release on, install the signed APK attached to the GitHub release, or build the app
-  from this repository (JDK 21, Android SDK 36, Node.js 22), and pair it with your server; see [Build, install and pair Android](docs/operate/pair-android.md).
+  from this repository (JDK 21, Android SDK 36, Node.js 22.23.4 or newer), and pair it with your server; see [Build, install and pair Android](docs/operate/pair-android.md).
 
 ## Develop
 
-You need Python 3.13 with `uv`, Node.js 22 / npm 10 and Docker (for PostgreSQL).
+You need Python 3.13 with `uv`, Node.js 22 (22.23.4 or newer) / npm 10 and Docker (for PostgreSQL).
 Full steps in [Run Sidekick locally as a developer](docs/start/first-contribution.md):
 
 ```bash

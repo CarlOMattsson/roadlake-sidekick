@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.journal.domain.entry import KeyPoint
@@ -69,7 +70,7 @@ def _register_create_journal_source(mcp: FastMCP, ctx: JournalToolContext) -> No
         source_recorded_at: datetime | None = None,
         language: Annotated[str | None, Field(min_length=2, max_length=35)] = None,
         replaces_source_id: UUID | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         source = ctx.container.journal_capture.create_source(
             ctx.actor_provider(),
             source_type=source_type,
@@ -115,7 +116,7 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
         contact_ids: RelationIds,
         idempotency_key: IdempotencyKey,
         tags: TagsInput | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         container = ctx.container
         actor = ctx.actor_provider()
         entry = container.journal_capture.create_manual_entry(
@@ -191,7 +192,7 @@ def _register_write_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> None
         occurred_at: datetime | None = None,
         language: Annotated[str | None, Field(min_length=2, max_length=35)] = None,
         tags: TagsInput | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured = write_journal_entry_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -270,7 +271,7 @@ def _register_update_journal_entry(mcp: FastMCP, ctx: JournalToolContext) -> Non
         add_project_ids: RelationIds | None = None,
         remove_project_ids: RelationIds | None = None,
         tags: TagsInput | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured, before = update_journal_entry_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -322,7 +323,7 @@ def _register_set_daily_journal_summary(mcp: FastMCP, ctx: JournalToolContext) -
         expected_entry_fingerprint: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")],
         idempotency_key: IdempotencyKey,
         expected_summary_version: VersionParam | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         summary = ctx.container.journal_day.put_manual_summary(
             ctx.actor_provider(),
             journal_date=journal_date,

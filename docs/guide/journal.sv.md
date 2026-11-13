@@ -47,7 +47,7 @@ När ett inlägg har tagits fram ur en källtext med hjälp av AI stannar det so
 - Lägga till något i dagens inlägg.
 - Skriva eller byta ut sammanfattningen av en dag.
 - Koppla ett inlägg till en kontakt eller ett projekt.
-- Leta upp vad du skrev om en person eller en period.
+- Tagga inlägg och hitta inlägg efter tagg. `list_journal_entries` filtrerar med `tags` och `tag_match` (`any` eller `all`); Claude återanvänder befintliga taggar med `list_tags`, som kräver `projects:read` och bara visar de sorters poster du får läsa.
 
 ## Scopes som rummet behöver
 

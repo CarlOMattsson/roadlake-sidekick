@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
@@ -64,9 +65,10 @@ from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.tags_service import tag_public_data
 from sidekick.work.domain.planning import MAX_TAG_FILTER_VALUES
+from sidekick.work.domain.saved_view import SavedView
 
 
-def saved_view_record(item: Any) -> SavedViewRecord:
+def saved_view_record(item: SavedView) -> SavedViewRecord:
     return SavedViewRecord(
         id=item.id,
         name=item.name,
@@ -90,7 +92,7 @@ _Waiting = Literal["all", "waiting", "not_waiting"]
 _Estimate = Literal["all", "estimated", "unestimated"]
 
 
-def _saved_view_reply(item: Any, verb: str) -> Any:
+def _saved_view_reply(item: SavedView, verb: str) -> ToolResult:
     """The tool result of a saved-view write: the record and one spoken line naming it."""
 
     structured = SavedViewOutput(saved_view=saved_view_record(item)).model_dump(mode="json")
@@ -121,7 +123,7 @@ def _register_list_tags(mcp: FastMCP, ctx: ToolContext) -> None:
         limit: _Limit100 = 50,
         cursor: _Cursor = None,
         include_archived: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         page = ctx.container.work_tags.list(
             actor, limit=limit, cursor=cursor, include_archived=include_archived
@@ -176,7 +178,7 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
         cursor: _Cursor = None,
         process_id: UUID | None = None,
         unsorted: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         structured = task_page_structured(
             ctx.container,
@@ -213,7 +215,7 @@ _BOARD_FILTER_DEFAULTS = {
 }
 
 
-def _board_reply(ctx: ToolContext, board_query: WorkQuery, values: dict[str, Any]) -> Any:
+def _board_reply(ctx: ToolContext, board_query: WorkQuery, values: dict[str, Any]) -> ToolResult:
     """The board page for a query; `values` are the filters as the caller named them."""
 
     actor = ctx.actor_provider()
@@ -269,7 +271,7 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
         estimate: _Estimate = "all",
         project_id: UUID | None = None,
         cursor: _Cursor = None,
-    ) -> Any:
+    ) -> ToolResult:
         board_query = WorkQuery(
             q=q,
             status=status.value if status else None,
@@ -309,7 +311,7 @@ def _agenda_reply(
     waiting: str,
     include_undated: bool,
     max_minutes: int | None,
-) -> Any:
+) -> ToolResult:
     """The agenda card; the waiting and quick-planning asks get their own plain text."""
 
     items, next_cursor = structured["items"], structured["next_cursor"]
@@ -368,7 +370,7 @@ def _register_get_work_agenda(mcp: FastMCP, ctx: ToolContext) -> None:
         cursor: _Cursor = None,
         max_minutes: Annotated[int | None, Field(ge=1, le=MAX_ESTIMATED_MINUTES)] = None,
         include_undated: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         structured = work_agenda_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -422,7 +424,7 @@ def _register_get_work_hierarchy(mcp: FastMCP, ctx: ToolContext) -> None:
         include_tasks: bool = False,
         cursor: _Cursor = None,
         process_id: UUID | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         structured = work_hierarchy_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -471,7 +473,7 @@ def _register_list_saved_work_views(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
     )
     @ctx.instrument("list_saved_work_views")
-    def list_saved_work_views(include_archived: bool = False) -> Any:
+    def list_saved_work_views(include_archived: bool = False) -> ToolResult:
         items = ctx.container.saved_views.list(
             ctx.actor_provider(), include_archived=include_archived
         )
@@ -505,7 +507,7 @@ def _register_create_saved_work_view(mcp: FastMCP, ctx: ToolContext) -> None:
         name: Annotated[str, Field(min_length=1, max_length=120)],
         definition: SavedViewFilters,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         item = ctx.container.saved_views.create(
             ctx.actor_provider(),
             name=name,
@@ -535,7 +537,7 @@ def _register_update_saved_work_view(mcp: FastMCP, ctx: ToolContext) -> None:
         idempotency_key: IdempotencyKey,
         name: Annotated[str | None, Field(min_length=1, max_length=120)] = None,
         definition: SavedViewFilters | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         if name is None and definition is None:
             raise ValidationError("provide a name or a definition to change")
         item = ctx.container.saved_views.update(
@@ -570,7 +572,7 @@ def _register_archive_saved_work_view(mcp: FastMCP, ctx: ToolContext) -> None:
         view_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         item = ctx.container.saved_views.archive(
             ctx.actor_provider(),
             view_id,
@@ -597,7 +599,7 @@ def _register_restore_saved_work_view(mcp: FastMCP, ctx: ToolContext) -> None:
         view_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         item = ctx.container.saved_views.restore(
             ctx.actor_provider(),
             view_id,

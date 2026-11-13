@@ -16,11 +16,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import DESTRUCTIVE, READ, WRITE
@@ -391,7 +392,7 @@ def _register_recall_memory(mcp: FastMCP, ctx: ToolContext) -> None:
         query: Annotated[str, Field(min_length=2, max_length=300)],
         kinds: Annotated[list[MemoryKind], Field(min_length=1, max_length=4)] | None = None,
         limit: Annotated[int, Field(ge=1, le=20)] = 8,
-    ) -> Any:
+    ) -> ToolResult:
         output = _recall(ctx.container, ctx.actor_provider(), query=query, kinds=kinds, limit=limit)
         return result(output.model_dump(mode="json"), _summary(output))
 
@@ -405,7 +406,7 @@ def _register_get_memory_status(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("get_memory_status")
-    def get_memory_status() -> Any:
+    def get_memory_status() -> ToolResult:
         output, settings, counts = _status_output(ctx.container, ctx.actor_provider())
         return result(
             output.model_dump(mode="json"),
@@ -429,7 +430,7 @@ def _register_set_memory_settings(mcp: FastMCP, ctx: ToolContext) -> None:
         tasks: bool | None = None,
         paused: bool | None = None,
         confirm: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         requested = {
             "journal": journal,
@@ -473,7 +474,7 @@ def _register_exclude_from_memory(mcp: FastMCP, ctx: ToolContext) -> None:
         kind: MemoryKind,
         id: UUID,
         excluded: bool = True,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         key = ctx.container.settings.memory_id_derivation_key
         with ctx.container.memory_store.begin() as session:

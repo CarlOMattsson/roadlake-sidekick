@@ -3,7 +3,7 @@
 import copy
 import functools
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 from uuid import uuid4
 
@@ -110,10 +110,10 @@ def _without_empty(value: Any) -> Any:
 
 
 def result(
-    structured_content: dict[str, Any],
+    structured_content: Mapping[str, object],
     text: str,
     *,
-    text_json: dict[str, Any] | None = None,
+    text_json: Mapping[str, object] | None = None,
 ) -> ToolResult:
     """Return structured content plus two text blocks for model clients.
 
@@ -148,7 +148,7 @@ def result(
     )
 
 
-def card_result(structured_content: dict[str, Any], text: str) -> ToolResult:
+def card_result(structured_content: Mapping[str, object], text: str) -> ToolResult:
     """Return structured content for an app card with one short text block for the model.
 
     The card renders `structured_content`, which is unchanged. The model gets only `text`, a

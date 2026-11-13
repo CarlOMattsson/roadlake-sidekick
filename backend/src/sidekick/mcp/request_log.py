@@ -63,7 +63,7 @@ def _log(
     error_code: str | None = None,
     duration_ms: float | None = None,
 ) -> None:
-    fields: dict[str, Any] = {
+    fields: dict[str, object] = {
         "correlation_id": request_correlation_id() or UNKNOWN_CORRELATION,
         "mcp_method": safe_mcp_method(method),
         "outcome": outcome,
@@ -91,7 +91,7 @@ def _logged_tool_name(message: object) -> str:
     return name if name is not None and is_registered_tool(name) else _UNKNOWN_TOOL
 
 
-def _error_code(structured: dict[str, Any] | None) -> str | None:
+def _error_code(structured: dict[str, object] | None) -> str | None:
     """The closed code Sidekick's `error_result` puts in structured content, if well formed."""
 
     value = structured.get("code") if structured is not None else None
@@ -231,7 +231,7 @@ def _protocol_version(scope: Scope) -> str:
 def _log_transport_rejection(scope: Scope, body: bytes) -> None:
     correlation = scope.get("sidekick.correlation_id")
     reason = transport_reason(body)
-    fields: dict[str, Any] = {
+    fields: dict[str, object] = {
         "correlation_id": correlation if isinstance(correlation, str) else UNKNOWN_CORRELATION,
         "http_method": safe_http_method(scope),
         "http_status": 400,

@@ -16,10 +16,11 @@ key is a signed license string, not an account credential, and Sidekick never lo
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Literal
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 
 from sidekick.license.key import LicenseView
 from sidekick.mcp.annotations import WRITE
@@ -67,7 +68,7 @@ def register_license_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
     )
     @ctx.instrument("set_license_key")
-    def set_license_key(key: str) -> Any:
+    def set_license_key(key: str) -> ToolResult:
         actor = ctx.actor_provider()
         actor.require(WRITE_SCOPE)
         outcome = ctx.container.license.set_by_owner(

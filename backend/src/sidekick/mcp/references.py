@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import DESTRUCTIVE, READ, WRITE
@@ -46,7 +47,7 @@ def _register_link_external_reference_to_task(mcp: FastMCP, ctx: ToolContext) ->
         instance_ref: Annotated[str | None, Field(min_length=1, max_length=500)] = None,
         url: Annotated[str | None, Field(min_length=1, max_length=2000)] = None,
         occurs_at: datetime | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         # Authorization precedes domain validation so a missing scope never reveals link rules.
         actor.require("tasks:write")
@@ -87,7 +88,7 @@ def _register_unlink_external_reference_from_task(mcp: FastMCP, ctx: ToolContext
     @ctx.instrument("unlink_external_reference_from_task")
     def unlink_external_reference_from_task(
         task_id: UUID, reference_id: UUID, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.references.unlink(
             ctx.actor_provider(),
             task_id,
@@ -115,7 +116,7 @@ def _register_list_task_external_references(mcp: FastMCP, ctx: ToolContext) -> N
         task_id: UUID,
         limit: Annotated[int, Field(ge=1, le=50)] = 25,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.references.list_for_task(
             ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )

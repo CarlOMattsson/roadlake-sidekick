@@ -45,7 +45,7 @@ Resten fyller du i efteråt, eller ber Claude om.
 
 - Lägga till en kontakt med roll, organisation och anteckning i ett svep.
 - Koppla en kontakt till ett projekt eller en uppgift.
-- Fråga vem någon är och vad ni har på gång.
+- Tagga en kontakt (till exempel "familj") och lista kontakter efter tagg. `list_contacts` filtrerar med `tags` och `tag_match` (`any` eller `all`); Claude återanvänder befintliga taggar med `list_tags`, som kräver `projects:read` och bara visar de sorters poster du får läsa.
 
 ## Scopes som rummet behöver
 

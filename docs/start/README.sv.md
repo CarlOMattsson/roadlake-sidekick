@@ -41,7 +41,7 @@ För dig som redan har en server igång och Claude ansluten. Guiden tar dig geno
 
 ### Utveckla och bidra
 
-För dig som vill köra Sidekick lokalt, läsa koden eller föreslå en ändring. Du behöver en egen dator med Python 3.13 och `uv`, Node.js 22 och Docker. Claude Desktop kan starta Sidekick lokalt, utan publik adress.
+För dig som vill köra Sidekick lokalt, läsa koden eller föreslå en ändring. Du behöver en egen dator med Python 3.13 och `uv`, Node.js 22 (22.23.4 eller nyare) och Docker. Claude Desktop kan starta Sidekick lokalt, utan publik adress.
 
 [Gå till Kör Sidekick lokalt som utvecklare](first-contribution.sv.md)
 

@@ -14,8 +14,8 @@ The texts in the rooms are Swedish by default (`SIDEKICK_MCP_APP_LOCALE=sv`). Se
 
 Every `tools/work.sh` command prints Swedish or English: `SIDEKICK_WORK_LANG=sv|en`, else `SIDEKICK_WORK_LOCALE` in
 `work.env`, else the system `LANG`. That is a separate choice from the language of the apps and of Hindsight's answers,
-which is `SIDEKICK_WORK_LOCALE` in `work.env`: the first run copies `sv` from the template, and the guide changes it only
-if the value is missing. Set `SIDEKICK_WORK_LOCALE=en` there, then run `bash tools/work.sh start`, for English app texts.
+which is `SIDEKICK_WORK_LOCALE` in `work.env`: the first run copies `sv` from the template; `setup` asks for the language
+every time, proposes the current value and writes your answer. Set `SIDEKICK_WORK_LOCALE=en` there, then run `bash tools/work.sh start`, for English app texts.
 
 ## The Android app
 

@@ -59,7 +59,7 @@ Reminders are sent as wake-ups with no content. The phone fetches the content fr
 
 ## Backups
 
-Backups are encrypted once you have turned on the backup profile and created a key. Without the key they cannot be read. Keep the key somewhere other than the server, and keep a copy of the backups off the server. A backup and its key together are the whole database.
+Backups are encrypted once you have turned on the backup profile and created a key. Without the key they cannot be read. Keep the key somewhere other than the server, and keep a copy of the backups off the server. Anyone who has a backup and its key can read all of your records.
 
 ## What Sidekick does not protect against
 

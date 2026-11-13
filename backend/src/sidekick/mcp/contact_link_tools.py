@@ -11,6 +11,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 
 from sidekick.mcp.annotations import DESTRUCTIVE, WRITE
 from sidekick.mcp.contact_records import ProjectContactResult, TaskContactResult
@@ -60,7 +61,7 @@ def _register_link_contact_to_project(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("link_contact_to_project")
     def link_contact_to_project(
         contact_id: UUID, project_id: UUID, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         res = ctx.container.contact_relations.link_project(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -86,7 +87,7 @@ def _register_unlink_contact_from_project(mcp: FastMCP, ctx: ToolContext) -> Non
     @ctx.instrument("unlink_contact_from_project")
     def unlink_contact_from_project(
         contact_id: UUID, project_id: UUID, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         res = ctx.container.contact_relations.unlink_project(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -112,7 +113,7 @@ def _register_link_contact_to_task(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("link_contact_to_task")
     def link_contact_to_task(
         contact_id: UUID, task_id: UUID, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         res = ctx.container.contact_relations.link_task(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -138,7 +139,7 @@ def _register_unlink_contact_from_task(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("unlink_contact_from_task")
     def unlink_contact_from_task(
         contact_id: UUID, task_id: UUID, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         res = ctx.container.contact_relations.unlink_task(
             ctx.actor_provider(),
             contact_id=contact_id,

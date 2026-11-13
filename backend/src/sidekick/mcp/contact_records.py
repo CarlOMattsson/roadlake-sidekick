@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from sidekick.contacts.application.serialization import contact_public_data
+from sidekick.contacts.domain.contact import Contact
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.base import Output
@@ -163,7 +164,7 @@ class ContactChanges(Output):
         return self
 
 
-def contact_result(contact: Any, tags: list[str]) -> dict[str, Any]:
+def contact_result(contact: Contact, tags: list[str]) -> dict[str, Any]:
     """The result of a Contact tool: the Contact as stored and its tag slugs."""
 
     return ContactResult(

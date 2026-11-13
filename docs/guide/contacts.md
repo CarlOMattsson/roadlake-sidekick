@@ -46,6 +46,7 @@ Open the contact and choose ⋯. It has one row per link, "Ta bort koppling till
 - Adding a contact with role, organisation and a note in one go.
 - Linking a contact to a project or a task.
 - Asking who someone is and what you have going on together.
+- Tagging a contact (for example "familj") and listing contacts by tag. `list_contacts` filters with `tags` and `tag_match` (`any` or `all`); Claude reuses existing tags with `list_tags`, which needs `projects:read` and shows only the kinds of record you may read.
 
 ## Scopes the room needs
 

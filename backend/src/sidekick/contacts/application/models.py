@@ -1,11 +1,14 @@
 """Contact commands and the Journal link read models."""
 
 from dataclasses import dataclass
-from datetime import date
-from typing import Any
+from datetime import date, datetime
+from typing import Any, TypedDict
 from uuid import UUID
 
-from sidekick.shared.types import UNSET, UnsetType
+from sidekick.contacts.domain.contact import Contact
+from sidekick.projects.domain import Project
+from sidekick.shared.types import UNSET, Page, UnsetType
+from sidekick.tasks.domain import Task
 
 
 @dataclass(frozen=True, slots=True)
@@ -71,3 +74,23 @@ class LinkedJournalEntries:
     items: list[LinkedJournalEntry]
     has_more: bool
     readable: bool
+
+
+class TaskContactMarks(TypedDict):
+    """What a linked Task says about the Contact it is read for."""
+
+    waiting_on_contact: bool
+    waiting_since: datetime | None
+    follow_up_at: datetime | None
+    follow_up_due: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ContactContext:
+    """A Contact with its linked Projects, Tasks (and their marks) and recent Journal entries."""
+
+    contact: Contact
+    projects: Page[Project]
+    tasks: Page[Task]
+    task_marks: dict[UUID, TaskContactMarks]
+    journal_entries: LinkedJournalEntries

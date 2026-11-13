@@ -12,11 +12,12 @@ reversible.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.lifecycle import RecordKind, TrashItem
@@ -151,7 +152,7 @@ def _register_list_trash(mcp: FastMCP, ctx: ToolContext) -> None:
         kind: KindValue | None = None,
         limit: Annotated[int, Field(ge=1, le=100)] = 100,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         # `within` filters in the query, so excluded kinds never take up slots in the page.
         page = ctx.container.lifecycle.list_trash(
@@ -186,7 +187,7 @@ def _register_move_to_trash(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("move_to_trash")
     def move_to_trash(
         kind: KindValue, record_id: UUID, version: Version, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         item = ctx.container.lifecycle.trash(
             actor,
@@ -216,7 +217,7 @@ def _register_restore_from_trash(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("restore_from_trash")
     def restore_from_trash(
         kind: KindValue, record_id: UUID, version: Version, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         actor = ctx.actor_provider()
         item = ctx.container.lifecycle.restore(
             actor,

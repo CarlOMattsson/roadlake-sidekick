@@ -7,8 +7,10 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 
 from sidekick.contacts.application.models import CreateContactCommand, UpdateContactCommand
+from sidekick.contacts.domain.contact import Contact
 from sidekick.mcp.annotations import DESTRUCTIVE, WRITE
 from sidekick.mcp.contact_records import (
     Address,
@@ -27,14 +29,14 @@ from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import flat
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.text_guard import NoImageData
-from sidekick.shared.types import UNSET
+from sidekick.shared.types import UNSET, UnsetType
 from sidekick.structured.tags import TagsInput
 
 
 def _update_command(changes: ContactChanges) -> UpdateContactCommand:
     """Fields the caller sent are mapped; the rest stay UNSET."""
 
-    def sent(name: str) -> Any:
+    def sent(name: str) -> str | None | UnsetType:
         return getattr(changes, name) if name in changes.model_fields_set else UNSET
 
     return UpdateContactCommand(
@@ -50,7 +52,7 @@ def _update_command(changes: ContactChanges) -> UpdateContactCommand:
     )
 
 
-def _contact_result(ctx: ToolContext, contact: Any) -> dict[str, Any]:
+def _contact_result(ctx: ToolContext, contact: Contact) -> dict[str, Any]:
     """The tool result for a just-written Contact, with its tags.
 
     Every Contact write tool needs `contacts:read` for its reply (`reply_scopes`), which is also
@@ -86,7 +88,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         role: Role = None,
         address: Address = None,
         tags: TagsInput | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         cmd = CreateContactCommand(
             display_name=display_name,
             context_note=context_note,
@@ -132,7 +134,7 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         expected_version: int,
         idempotency_key: IdempotencyKey,
         changes: ContactChanges,
-    ) -> Any:
+    ) -> ToolResult:
         contact = ctx.container.contacts.update(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -162,7 +164,7 @@ def _register_archive_contact(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("archive_contact")
     def archive_contact(
         contact_id: UUID, expected_version: int, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         contact = ctx.container.contacts.archive(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -197,7 +199,7 @@ def _register_restore_contact(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("restore_contact")
     def restore_contact(
         contact_id: UUID, expected_version: int, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         contact = ctx.container.contacts.restore(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -228,7 +230,7 @@ def _register_add_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("add_contact_alias")
     def add_contact_alias(
         contact_id: UUID, value: str, expected_version: int, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         contact = ctx.container.contacts.add_alias(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -260,7 +262,7 @@ def _register_remove_contact_alias(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("remove_contact_alias")
     def remove_contact_alias(
         contact_id: UUID, alias_id: UUID, expected_version: int, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         contact = ctx.container.contacts.remove_alias(
             ctx.actor_provider(),
             contact_id=contact_id,

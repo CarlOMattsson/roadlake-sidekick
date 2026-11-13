@@ -24,7 +24,7 @@ There is no signature to check on this route; the checkout is what you trust.
 
 **To a signed, digest-pinned image.** `update.sh` verifies the signature, takes an encrypted owner backup and an
 encrypted database snapshot, runs the migrator and waits until the API is ready (it answers the database and the
-schema is at the revision of the new image) and every worker it started is running and healthy; otherwise it rolls back. It prints the plan by default and changes
+schema is at the revision of the new image) and every worker it started is running and healthy; otherwise it goes back to the previous image when the schema allows it (see "If an update fails"); it never rolls back the database. It prints the plan by default and changes
 nothing until `--apply`.
 
 ```bash

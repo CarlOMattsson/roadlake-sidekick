@@ -9,11 +9,12 @@ Undo uses the existing write tools; this module never changes anything.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ
@@ -158,7 +159,7 @@ def register_change_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("list_recent_changes")
     def list_recent_changes(
         limit: Annotated[int, Field(ge=1, le=20)] = 20,
-    ) -> Any:
+    ) -> ToolResult:
         changes = ctx.container.lifecycle.list_recent_changes(ctx.actor_provider(), limit=limit)
         zone = ctx.container.settings.owner_zone
         structured = ChangesOutput(

@@ -55,7 +55,7 @@ taket hålls fortfarande i minnet, och i några kopior, medan den krypteras och 
 omslag kring `sidekick-backup import` i en engångscontainer av `api`. Det visar planen och skriver ingenting utan
 `--apply`; med `--apply` skriver det exakt den plan det just visade (matchad med checksumman) och kontrollerar
 radantalen. En målägare som redan har data nekas, och det gör också fel nyckel eller en ändrad plan. Bara backuper och
-exporter i det nuvarande formatet läses; äldre backuper och ägarexporter läses inte. Utan omslaget används `sidekick-backup import`:
+exporter som 0.1.0 skrivit läses (exportformat 4 till 6); äldre läses inte. Utan omslaget används `sidekick-backup import`:
 
 ```bash
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID]           # bara planen

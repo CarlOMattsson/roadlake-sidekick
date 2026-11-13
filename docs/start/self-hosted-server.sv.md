@@ -9,7 +9,7 @@ Starta Sidekick på en egen Linux-server med Docker Compose. Guiden går från e
 ## Krav
 
 - Linux x86_64 med Docker Engine och pluginet Docker Compose (v2.24 eller nyare, se `docker compose version`), samt
-  `git`, `openssl` och `curl`.
+  `git`, `openssl` och `curl`. För uppdateringar till en signerad image senare: `cosign` och `python3` (3.9 eller nyare).
 - Antingen en publik domän vars DNS pekar på maskinen, med portarna 80 och 443 nåbara (profilen `vps`: Caddy
   hämtar certifikatet), eller en tunnel som skickar HTTPS vidare till `127.0.0.1:8000` (hemdator). Claude når
   servern från Anthropics moln, så adressen måste vara publik HTTPS i båda fallen.

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
@@ -50,7 +51,7 @@ from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 _Version = Annotated[int, Field(ge=1)]
 
 
-def _task_reply(structured: dict[str, Any], verb: str) -> Any:
+def _task_reply(structured: dict[str, Any], verb: str) -> ToolResult:
     """`<verb> task <title>.` and the task's reference line, as the tool result."""
     record = structured["task"]
     return result(
@@ -73,7 +74,7 @@ def _register_get_task(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("get_task")
-    def get_task(task_id: UUID) -> Any:
+    def get_task(task_id: UUID) -> ToolResult:
         structured, detail = task_detail_structured(ctx.container, ctx.actor_provider(), task_id)
         task = detail.task
         record = structured["task"]
@@ -127,7 +128,7 @@ def _register_create_task(mcp: FastMCP, ctx: ToolContext) -> None:
             list[Annotated[str, NoImageData]] | None,
             Field(max_length=MAX_TAGS_PER_RECORD),
         ] = None,
-    ) -> Any:
+    ) -> ToolResult:
         container = ctx.container
         actor = ctx.actor_provider()
         # The reply lists the tags (projects:read), so refuse before anything is written.
@@ -173,7 +174,7 @@ def _register_update_task(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: TaskChanges,
-    ) -> Any:
+    ) -> ToolResult:
         structured = update_task_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -201,7 +202,7 @@ def _register_complete_task(mcp: FastMCP, ctx: ToolContext) -> None:
         task_id: UUID,
         version: _Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         structured = complete_task_structured(
             ctx.container,
             ctx.actor_provider(),

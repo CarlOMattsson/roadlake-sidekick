@@ -36,8 +36,8 @@ This is an embedded web interface. Native installation and unrestricted device a
 - The Android app runs the same room components from assets packaged in the app, with no host bridge. A
   closed list of room calls is mapped to the companion routes under `/companion/v1/` (when
   `SIDEKICK_COMPANION_ENABLED=true`), which call the same use cases with paired, revocable device credentials.
-  The rooms are therefore reachable over two transports, MCP and the companion adapter, and Work is available
-  through both.
+  The rooms are therefore reachable over two transports, MCP and the companion adapter, and Work, Journal and Shopping
+  are available through both.
 - Another host (including a local one) is eligible only after its actual MCP Apps support is verified. Tool discovery alone
   is not evidence. A simulated test host is a test fixture, not a host.
 
@@ -80,8 +80,8 @@ checks for owner, scope, observed version and idempotency, and the host's permis
 of future changes. The review flow that remains is the journal draft: text derived by analysis stays a draft until
 the owner updates, rejects or finalizes it, and approval text supplied by a browser or model grants nothing.
 
-Destructive actions are reversible (trash, never permanent removal) and have their own scope, version and
-idempotency rules and audit. The "ask first" wording of such a tool is an instruction to the host model, not a check
+Destructive actions are reversible (trash, never permanent removal), need the write scope of the record's area,
+and have their own version and idempotency rules and audit. The "ask first" wording of such a tool is an instruction to the host model, not a check
 the server can make. Export, download and file behavior also need proof in the target host.
 
 Credentials stay out of HTML, resources and widget state. Outputs and state are bounded, the content security policy is

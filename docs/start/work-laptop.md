@@ -28,7 +28,7 @@ Run Sidekick in Docker on your work laptop, with an optional private memory, and
 - Your user must be able to run `docker` **without `sudo`**: Claude Desktop starts Sidekick with `docker exec`, which
   cannot ask for a password. On Linux: `sudo usermod -aG docker "$USER"`, then log out and in again and check with
   `docker ps` (without `sudo`). Docker Desktop on Mac needs nothing extra.
-- `git`, `python3` and `curl` (all standard on Ubuntu and macOS).
+- `git`, `python3` (3.9 or newer) and `curl` (all standard on Ubuntu and macOS).
 - Claude Desktop. Node.js is not needed: Claude Desktop starts Sidekick's stdio server directly in the container.
 - Only if you want the memory: the address of the company model server (a vLLM base URL ending in `/v1`) and, if it needs one, its API key. The model server is optional; without the memory Sidekick runs entirely on the laptop and needs none.
 
@@ -62,8 +62,8 @@ on the user's behalf.
 2. `bash tools/work.sh init` copies `deploy/work/work.env.example` to `deploy/work/work.env`, generates the
    database passwords and other secrets into `deploy/work/secrets/` (directory mode 700, files mode 600, not in git)
    and asks for the model key (hidden input; Enter if the server needs none).
-3. Edit `deploy/work/work.env`: `SIDEKICK_WORK_MODEL_BASE_URL` and
-   `SIDEKICK_WORK_MEMORY_MODEL` (the model Hindsight uses). Locale is Swedish by default (`SIDEKICK_WORK_LOCALE=en` for English).
+3. Only if you want the memory: in `deploy/work/work.env` set `SIDEKICK_WORK_MEMORY=on`,
+   `SIDEKICK_WORK_MODEL_BASE_URL` and `SIDEKICK_WORK_MEMORY_MODEL` (the model Hindsight uses). Locale is Swedish by default (`SIDEKICK_WORK_LOCALE=en` for English).
 4. `bash tools/work.sh start` builds Sidekick's image (a few minutes the first time), starts the stack, creates the
    owner user and writes a ready Claude Desktop configuration to `deploy/work/secrets/claude_desktop_config.json`.
    Merge that file's `sidekick-work` entry under `mcpServers` in `claude_desktop_config.json` (Linux:
@@ -71,7 +71,7 @@ on the user's behalf.
    Alternatively, run `bash tools/work.sh claude-config`: it previews the entry, asks **y/N**, then merges it
    with Python's JSON parser, preserving other servers and settings. An existing file gets a timestamped `.bak.*`
    copy with mode 600 before replacement. It never runs automatically from `setup` or `start`; Enter or EOF declines.
-   `bash tools/work.sh status` then lists the model ids the server offers, so you can copy them exactly.
+   With the memory on, `bash tools/work.sh status` then lists the model ids the server offers, so you can copy them exactly.
 
 The entry looks like this (the path to `docker` is your machine's own and absolute, because Claude Desktop starts
 programs with a minimal `PATH`; the UUID is the owner user's):

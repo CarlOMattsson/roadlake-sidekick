@@ -100,7 +100,7 @@ def _join_rows(prefix: str, rows: list[str], fallback: str) -> str:
     return message
 
 
-def _field_path(parts: Iterable[Any]) -> str:
+def _field_path(parts: Iterable[object]) -> str:
     return ".".join(str(part) for part in parts) or _NO_FIELD
 
 
@@ -121,7 +121,7 @@ def _describe(error: BaseException | None) -> str:
 def _schema_rows(error: SchemaValidationError) -> list[str]:
     """Return `path: validator` rows for one JSON Schema error. Never reads its message."""
 
-    path: list[Any] = list(error.absolute_path)
+    path: list[object] = list(error.absolute_path)
     # jsonschema's stubs are looser than their runtime values; `str()` keeps the comparison typed.
     keyword = str(error.validator)
     if keyword == "required":
@@ -146,11 +146,11 @@ def _schema_rows(error: SchemaValidationError) -> list[str]:
 @lru_cache(maxsize=_VALIDATOR_CACHE_SIZE)
 def _validator_for_schema_json(schema_json: str) -> Validator:
     # Built from a copy loaded from the key, so later changes to the caller's dict do not reach it.
-    schema: dict[str, Any] = json.loads(schema_json)
+    schema: dict[str, object] = json.loads(schema_json)
     return validator_for(schema)(schema)
 
 
-def _validator_for(schema: dict[str, Any]) -> Validator:
+def _validator_for(schema: dict[str, object]) -> Validator:
     """Return the validator for a listed schema, reusing it for every call with an equal schema.
 
     The key keeps key order (no `sort_keys`), because jsonschema reports errors in schema order and
@@ -160,7 +160,7 @@ def _validator_for(schema: dict[str, Any]) -> Validator:
     return _validator_for_schema_json(json.dumps(schema))
 
 
-def _schema_message(schema: dict[str, Any], arguments: dict[str, Any]) -> str | None:
+def _schema_message(schema: dict[str, object], arguments: dict[str, Any]) -> str | None:
     """Check the arguments against the tool's listed schema; describe every failure, or None."""
 
     # A failure with no describable row still counts as a failure, so the fallback is returned.

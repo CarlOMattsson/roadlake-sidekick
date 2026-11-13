@@ -13,6 +13,7 @@ from sidekick.journal.domain.analysis import (
     CreateTaskProposal,
     UpdateTaskProposal,
 )
+from sidekick.journal.domain.records import PendingJournalItem
 from sidekick.journal.domain.review import (
     CandidateCatalog,
     DraftReview,
@@ -129,7 +130,7 @@ class JournalFinalizeResult(Output):
     updated_task_ids: Annotated[list[UUID], Field(max_length=20)]
 
 
-def pending_record(item: Any) -> PendingJournalItemRecord:
+def pending_record(item: PendingJournalItem) -> PendingJournalItemRecord:
     return PendingJournalItemRecord(
         source_id=item.source_id,
         journal_date=item.journal_date,

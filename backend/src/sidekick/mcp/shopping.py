@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
+from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
@@ -155,7 +156,7 @@ def _register_list_shopping_lists(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("list_shopping_lists")
     def list_shopping_lists(
         include_archived: bool = False, limit: Limit = 50, offset: Offset = 0
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.list_lists(
             ctx.actor_provider(), include_archived=include_archived, limit=limit, offset=offset
         )
@@ -193,7 +194,7 @@ def _register_get_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
         limit: Limit = 100,
         offset: Offset = 0,
         store: Annotated[str, Field(max_length=200)] | None = None,
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.get_list(
             ctx.actor_provider(), list_id, on_date=on_date, limit=limit, offset=offset, store=store
         )
@@ -214,7 +215,7 @@ def _register_create_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("create_shopping_list")
     def create_shopping_list(
         name: Annotated[str, Field(min_length=1, max_length=200)], idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.create_list(
             ctx.actor_provider(),
             name,
@@ -241,7 +242,7 @@ def _register_update_shopping_list(mcp: FastMCP, ctx: ToolContext) -> None:
         archived: bool,
         version: Version,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.update_list(
             ctx.actor_provider(),
             list_id,
@@ -275,7 +276,7 @@ def _register_add_shopping_items(mcp: FastMCP, ctx: ToolContext) -> None:
         items: Annotated[list[BatchItem], Field(min_length=1, max_length=50)],
         idempotency_key: IdempotencyKey,
         merge_duplicates: bool = False,
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.add_items(
             ctx.actor_provider(),
             list_id,
@@ -308,7 +309,7 @@ def _register_update_shopping_item(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("update_shopping_item")
     def update_shopping_item(
         item_id: UUID, item: ItemPatchInput, version: Version, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.update_item(
             ctx.actor_provider(),
             item_id,
@@ -337,7 +338,7 @@ def _register_set_shopping_item_purchased(mcp: FastMCP, ctx: ToolContext) -> Non
     @ctx.instrument("set_shopping_item_purchased")
     def set_shopping_item_purchased(
         item_id: UUID, purchased: bool, version: Version, idempotency_key: IdempotencyKey
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.set_purchased(
             ctx.actor_provider(),
             item_id,
@@ -371,7 +372,7 @@ def _register_set_shopping_items_purchased(mcp: FastMCP, ctx: ToolContext) -> No
         items: Annotated[list[PurchaseTarget], Field(min_length=1, max_length=50)],
         purchased: bool,
         idempotency_key: IdempotencyKey,
-    ) -> Any:
+    ) -> ToolResult:
         data = ctx.container.shopping.set_purchased_many(
             ctx.actor_provider(),
             items,

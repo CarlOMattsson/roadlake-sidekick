@@ -30,8 +30,8 @@ PostgreSQL-databas.
 | Område | Funktioner |
 | --- | --- |
 | **Arbete** | Agenda, statustavla, domäner, processer, projekt, uppgifter och steg; datum, prioritet, taggar, uppskattning, väntar-på och återkommande arbete. |
-| **Dagbok** | Flera anteckningar per dag, egen skrivning och redigering, anteckningar och sammanfattningar skrivna av Claude, länkad kontext. |
-| **Kontakter** | Personer, organisationer, roller, kontaktvägar och relationsanteckningar, länkade till uppgifter, projekt och dagboksanteckningar. |
+| **Dagbok** | Flera anteckningar per dag, egen skrivning och redigering, anteckningar och sammanfattningar skrivna av Claude, taggar, länkad kontext. |
+| **Kontakter** | Personer, organisationer, roller, kontaktvägar, relationsanteckningar och taggar, länkade till uppgifter, projekt och dagboksanteckningar. |
 | **Inköp** | Listor, mängder, butiksgrupper, avprickning och ångra. |
 | **Kontroll** | Papperskorg och återställning, senaste ändringar och kontroller för Sidekicks minne. Permanent radering är inget publikt verktyg. |
 | **Minne** | Valfritt Hindsight-minne härlett från dina poster, med omkopplare per källa, paus och undantag per post. |
@@ -109,11 +109,11 @@ Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster d
   [Android-app](docs/operate/pair-android.sv.md).
 - **Utvecklare:** Sidekick kan också köras som en lokal stdio-MCP-server för Claude Desktop från en källkodskopia; se steg 4 i [Kör Sidekick lokalt som utvecklare](docs/start/first-contribution.sv.md).
 - **Android-appen:** från och med första releasen installerar du den signerade APK:n som ligger i GitHub-releasen, eller
-  bygger appen från det här repot (JDK 21, Android SDK 36, Node.js 22), och parar ihop den med din server; se [Bygg, installera och para ihop Android](docs/operate/pair-android.sv.md).
+  bygger appen från det här repot (JDK 21, Android SDK 36, Node.js 22.23.4 eller nyare), och parar ihop den med din server; se [Bygg, installera och para ihop Android](docs/operate/pair-android.sv.md).
 
 ## Utveckla
 
-Du behöver Python 3.13 med `uv`, Node.js 22 / npm 10 och Docker (för PostgreSQL).
+Du behöver Python 3.13 med `uv`, Node.js 22 (22.23.4 eller nyare) / npm 10 och Docker (för PostgreSQL).
 Alla steg finns i [Kör Sidekick lokalt som utvecklare](docs/start/first-contribution.sv.md):
 
 ```bash

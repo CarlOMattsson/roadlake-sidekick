@@ -13,7 +13,7 @@ To run Sidekick for real use, see [README.md](../../README.md#run-it) instead.
 ## Prerequisites
 
 - Python 3.13 with [`uv`](https://docs.astral.sh/uv/)
-- Node.js 22 and npm 10
+- Node.js 22 (22.23.4 or newer) and npm 10
 - Docker with Compose v2 (for local PostgreSQL)
 
 ```bash
@@ -131,7 +131,7 @@ and upcoming, built from the seeded data. Open the card to get the full room, an
 Contacts or Journal.
 
 A bearer-token client such as the MCP Inspector or Claude Code needs a token that covers every room. The
-command below grants the ten default scopes a personal token can hold (the two `automation:*` scopes are opt-in and left out) (`create-token` does not accept a
+command below grants the ten room scopes (the eleventh ordinary scope, `license:write`, only enters a license key and is left out, as are the two opt-in `automation:*` scopes) (`create-token` does not accept a
 shortcut for "all"):
 
 ```bash

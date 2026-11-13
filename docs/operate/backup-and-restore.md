@@ -53,8 +53,8 @@ just under the ceiling is still held in memory, and a few copies of it, while it
 it first with `sidekick-admin create-user`, step 3 of [First start](../start/self-hosted-server.md#first-start)). `restore.sh` is a thin wrapper
 around `sidekick-backup import` in a one-off `api` container. It shows the plan and writes nothing without `--apply`;
 with `--apply` it writes exactly the plan it just showed (matched by its checksum) and checks the row counts. A target
-owner that already holds data is refused, and so is a wrong key or a changed plan. Only backups and exports in the
-current format are read; older backups and owner exports are not. Without the wrapper, use `sidekick-backup import`:
+owner that already holds data is refused, and so is a wrong key or a changed plan. Only backups and exports written by
+0.1.0 are read (export formats 4 to 6); older ones are not. Without the wrapper, use `sidekick-backup import`:
 
 ```bash
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID]           # plan only

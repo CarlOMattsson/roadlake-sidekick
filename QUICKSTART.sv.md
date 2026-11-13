@@ -5,7 +5,7 @@
 Den kortaste vägen från en färsk klon till en körande lokal instans, för utveckling. Alla kommandon körs från
 **repo-roten**. Vill du köra Sidekick på riktigt, se [README.sv.md](README.sv.md#kör-sidekick).
 
-Du behöver Python 3.13 med [`uv`](https://docs.astral.sh/uv/), Node.js 22 / npm 10 och Docker med Compose v2.
+Du behöver Python 3.13 med [`uv`](https://docs.astral.sh/uv/), Node.js 22 (22.23.4 eller nyare) / npm 10 och Docker med Compose v2.
 
 ## 1. Uppsättning, en gång
 

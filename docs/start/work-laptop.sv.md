@@ -28,7 +28,7 @@ Kör Sidekick i Docker på din jobbdator, med ett valfritt privat minne, och anv
 - Din användare måste kunna köra `docker` **utan `sudo`**: Claude Desktop startar Sidekick med `docker exec`, och det
   kan inte be om ett lösenord. På Linux: `sudo usermod -aG docker "$USER"`, logga sedan ut och in igen och kontrollera
   med `docker ps` (utan `sudo`). Med Docker Desktop på Mac behövs inget extra.
-- `git`, `python3` och `curl` (finns som standard på Ubuntu och macOS).
+- `git`, `python3` (3.9 eller nyare) och `curl` (finns som standard på Ubuntu och macOS).
 - Claude Desktop. Node.js behövs inte: Claude Desktop startar Sidekicks stdio-server direkt i containern.
 - Bara om du vill ha minnet: adressen till företagets modellserver (en vLLM-adress som slutar på `/v1`) och, om den kräver en, dess API-nyckel. Modellservern är valfri; utan minnet körs Sidekick helt på datorn och behöver ingen.
 
@@ -61,13 +61,13 @@ användaren.
 2. `bash tools/work.sh init` kopierar `deploy/work/work.env.example` till `deploy/work/work.env`, skapar
    databaslösenord och andra hemligheter i `deploy/work/secrets/` (katalog 700, filer 600, inte i git) och frågar efter
    modellnyckeln (dold inmatning; Enter om servern inte kräver någon).
-3. Redigera `deploy/work/work.env`: `SIDEKICK_WORK_MODEL_BASE_URL` och
-   `SIDEKICK_WORK_MEMORY_MODEL` (modellen Hindsight använder). Språket är svenska som förval (`SIDEKICK_WORK_LOCALE=en` för engelska).
+3. Bara om du vill ha minnet: sätt i `deploy/work/work.env` `SIDEKICK_WORK_MEMORY=on`,
+   `SIDEKICK_WORK_MODEL_BASE_URL` och `SIDEKICK_WORK_MEMORY_MODEL` (modellen Hindsight använder). Språket är svenska som förval (`SIDEKICK_WORK_LOCALE=en` för engelska).
 4. `bash tools/work.sh start` bygger Sidekicks avbildning (några minuter första gången), startar allt, skapar
    ägaranvändaren och skriver en färdig Claude Desktop-inställning till
    `deploy/work/secrets/claude_desktop_config.json`. Lägg in filens `sidekick-work`-post under `mcpServers` i
    `claude_desktop_config.json` (Linux: `~/.config/Claude/`, macOS: `~/Library/Application Support/Claude/`) och
-   starta om Claude Desktop helt. `bash tools/work.sh status` listar sedan modell-id:n som servern erbjuder, så att du
+   starta om Claude Desktop helt. Med minnet på listar `bash tools/work.sh status` sedan modell-id:n som servern erbjuder, så att du
    kan kopiera dem exakt.
    Alternativt: kör `bash tools/work.sh claude-config`. Det visar posten, frågar **j/N** och slår sedan ihop den
    med Pythons JSON-tolk utan att ändra andra servrar eller inställningar. En befintlig fil får en tidsstämplad
