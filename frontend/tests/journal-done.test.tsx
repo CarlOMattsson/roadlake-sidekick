@@ -1,6 +1,6 @@
 // «Gjort» in the diary's day view (Gjort 2026-11-08): the count line,
 // folded and open, no section when nothing was done, an older answer without `done`, and the transport's check.
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { doneCountLine } from "@/features/journal-app/done-section";
@@ -409,5 +409,122 @@ describe("Gjort in the transport", () => {
       vi.fn(() => Promise.reject(new Error("boom"))) as never,
     );
     await expect(broken.getDay(DATE)).rejects.toThrow("boom");
+  });
+});
+
+describe("Gjort rows per kind", () => {
+  /** Six tasks: three more than a kind shows before "+N fler · Visa alla". */
+  function busy(): JournalDone {
+    const base = done();
+    const extra = ["Ring Bo", "Skicka offerten", "Boka hantverkare"].map(
+      (title, index) => ({
+        id: `t${index + 4}`,
+        title,
+        completed_at: at(`1${index + 5}:00`),
+        project_title: null,
+        recurring: false,
+      }),
+    );
+    return done({
+      tasks: [...base.tasks, ...extra],
+      counts: { ...base.counts, tasks: 6 },
+    });
+  }
+
+  it("shows three rows of a kind and opens the rest in place, and folds them again", async () => {
+    const user = userEvent.setup();
+    render(
+      <JournalView
+        transport={transport()}
+        initial={{ kind: "day", page: day({ done: busy() }) }}
+        labels={journalSv}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /^Gjort/ }));
+    const section = screen.getByRole("region", { name: "Gjort" });
+    const tasks = within(section).getByRole("list", { name: "Uppgifter" });
+    expect(within(tasks).getAllByRole("listitem")).toHaveLength(3);
+    const more = within(section).getByRole("button", {
+      name: journalSv.moreShowAll(3),
+    });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(more).toHaveAttribute("aria-controls", tasks.id);
+    // Steps (1) and purchases (2 lists) are within the limit: no button of their own.
+    expect(
+      within(section).getAllByRole("button", { name: /Visa alla/ }),
+    ).toHaveLength(1);
+
+    await user.click(more);
+    expect(within(tasks).getAllByRole("listitem")).toHaveLength(6);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(more).toHaveTextContent(journalSv.showFewer);
+    expect(more).toHaveFocus();
+
+    await user.click(more);
+    expect(within(tasks).getAllByRole("listitem")).toHaveLength(3);
+  });
+
+  it("starts the next day with three rows again, the section still open", async () => {
+    const user = userEvent.setup();
+    const shown = busy();
+    const reading = transport();
+    vi.mocked(reading.getDay).mockImplementation((date: string) =>
+      Promise.resolve(day({ journal_date: date, done: shown })),
+    );
+    render(
+      <JournalView
+        transport={reading}
+        initial={{ kind: "day", page: day({ done: shown }) }}
+        labels={journalEn}
+        fullscreen
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /^Completed/ }));
+    await user.click(
+      screen.getByRole("button", { name: journalEn.moreShowAll(3) }),
+    );
+    expect(
+      within(screen.getByRole("list", { name: "Tasks" })).getAllByRole(
+        "listitem",
+      ),
+    ).toHaveLength(6);
+
+    await user.click(screen.getByRole("button", { name: /^Mon 2 November/ }));
+    await waitFor(() =>
+      expect(reading.getDay).toHaveBeenCalledWith("2026-11-02"),
+    );
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("list", { name: "Tasks" })).getAllByRole(
+          "listitem",
+        ),
+      ).toHaveLength(3),
+    );
+    expect(
+      screen.getByRole("button", { name: journalEn.moreShowAll(3) }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("says the server's cut once the kind is shown in full", async () => {
+    const user = userEvent.setup();
+    const base = busy();
+    const cut = {
+      ...base,
+      counts: { ...base.counts, tasks: 60 },
+      truncated: true,
+    };
+    render(
+      <JournalView
+        transport={transport()}
+        initial={{ kind: "day", page: day({ done: cut }) }}
+        labels={journalSv}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /^Gjort/ }));
+    expect(screen.queryByText("+54 fler")).toBeNull();
+    await user.click(
+      screen.getByRole("button", { name: journalSv.moreShowAll(3) }),
+    );
+    expect(screen.getByText("+54 fler")).toBeInTheDocument();
   });
 });

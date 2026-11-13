@@ -49,15 +49,19 @@ export function formatShortDate(value: string, locale: string): string {
 
 /**
  * A calendar date with its weekday and full month, in lower case: "tisdag 3 november" in Swedish. Used for
- * the day buttons' names, so a screen reader says the whole date.
+ * the day buttons' names, so a screen reader says the whole date. `weekday: "short"` gives "ons 4 november".
  */
-export function formatLongDate(value: string, locale: string): string {
+export function formatLongDate(
+  value: string,
+  locale: string,
+  weekday: "long" | "short" = "long",
+): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return value;
   return new Date(
     Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
   ).toLocaleDateString(locale, {
-    weekday: "long",
+    weekday,
     day: "numeric",
     month: "long",
     timeZone: "UTC",
@@ -67,15 +71,17 @@ export function formatLongDate(value: string, locale: string): string {
 /**
  * A calendar date with its weekday, as a heading: "Tisdag 3 november" in Swedish, "Tuesday 3 November" in
  * English. The year is added only when the date is not in the year of `today`: "Tisdag 3 november 2025".
+ * `weekday: "short"` is the form for a title row too narrow for the long one: "Ons 4 november", "Wed 4 November".
  */
 export function formatDayHeading(
   value: string,
   locale: string,
   today: string,
+  weekday: "long" | "short" = "long",
 ): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return value;
-  const long = formatLongDate(value, locale);
+  const long = formatLongDate(value, locale, weekday);
   const capitalized = long.charAt(0).toLocaleUpperCase(locale) + long.slice(1);
   const sameYear = value.slice(0, 4) === today.slice(0, 4);
   return sameYear ? capitalized : `${capitalized} ${value.slice(0, 4)}`;

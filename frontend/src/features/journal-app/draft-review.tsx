@@ -297,6 +297,27 @@ export function DraftFrame({
     focusApproved.current = false;
   }, [allApprovedNow]);
 
+  // The entry's tags, under the summary. Inline its heading is hidden (journal.css hides the section heads inline)
+  // and the closed field, "+ Lägg till tagg", shares the row with "Läs mer", so the card still fits a phone screen.
+  const tagField = draft ? (
+    <div className="journal-draft-tags">
+      <h3 className="journal-disclosure-head">{t.draftTags}</h3>
+      <TagField
+        tags={tags}
+        suggestions={vocabulary.suggestions}
+        editable
+        busy={busy || confirm !== undefined}
+        name={draft.title}
+        onChange={(next, done) => {
+          setWrite({ kind: "idle" });
+          setTags(next);
+          done();
+        }}
+        locale={t.dateLocale}
+      />
+    </div>
+  ) : null;
+
   return (
     <article className="journal-draft">
       <h2 ref={heading} tabIndex={-1}>
@@ -343,17 +364,21 @@ export function DraftFrame({
             />
           )}
           {editing && pending && !hiddenProposals ? (
-            <FieldsEditor
-              draft={draft}
-              busy={busy}
-              saveFailed={write.kind === "failed" && write.action === "save"}
-              onSave={saveEdits}
-              onCancel={cancelEdit}
-              labels={t}
-            />
+            <>
+              <FieldsEditor
+                draft={draft}
+                busy={busy}
+                saveFailed={write.kind === "failed" && write.action === "save"}
+                onSave={saveEdits}
+                onCancel={cancelEdit}
+                labels={t}
+              />
+              {tagField}
+            </>
           ) : (
             <DraftReading
               draft={draft}
+              tags={pending ? tagField : null}
               pending={pending}
               editDisabled={busy || hiddenProposals || confirm !== undefined}
               hiddenProposals={hiddenProposals}
@@ -370,23 +395,6 @@ export function DraftFrame({
           <OriginalText source={source} labels={t} />
           {pending && (
             <>
-              {/* Fullscreen only (journal.css): inline the card has to fit one phone screen. */}
-              <div className="journal-draft-tags">
-                <h3 className="journal-disclosure-head">{t.draftTags}</h3>
-                <TagField
-                  tags={tags}
-                  suggestions={vocabulary.suggestions}
-                  editable
-                  busy={busy || confirm !== undefined}
-                  name={draft.title}
-                  onChange={(next, done) => {
-                    setWrite({ kind: "idle" });
-                    setTags(next);
-                    done();
-                  }}
-                  locale={t.dateLocale}
-                />
-              </div>
               <RelationsSection
                 id={`${baseId}-relations`}
                 draft={draft}

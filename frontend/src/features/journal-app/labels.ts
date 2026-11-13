@@ -73,8 +73,9 @@ export const journalEn = {
   pending: "Awaiting review",
   pendingNote: "Open a draft to review it. Nothing is saved until you save it.",
   pendingEmpty: "Nothing to review.",
-  pendingMore: (n: number) => `+${n} more · Show all`,
-  pendingLess: "Show fewer",
+  /** A list cut to its first rows (Awaiting review inline, a kind in «Gjort»): the button that shows the rest. */
+  moreShowAll: (n: number) => `+${n} more · Show all`,
+  showFewer: "Show fewer",
   pendingState: {
     source_saved: "Saved, not reviewed",
     draft_pending_review: "Draft awaiting review",
@@ -337,8 +338,8 @@ export const journalSv: JournalLabels = {
   pendingNote:
     "Öppna ett utkast för att granska det. Inget sparas förrän du sparar det.",
   pendingEmpty: "Inget väntar på granskning.",
-  pendingMore: (n: number) => `+${n} fler · Visa alla`,
-  pendingLess: "Visa färre",
+  moreShowAll: (n: number) => `+${n} fler · Visa alla`,
+  showFewer: "Visa färre",
   pendingState: {
     source_saved: "Sparad, ej granskad",
     draft_pending_review: "Utkast som väntar på granskning",

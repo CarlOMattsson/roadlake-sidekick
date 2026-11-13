@@ -104,6 +104,33 @@ describe("tags on a draft being saved", () => {
     });
   });
 
+  it("stands under the summary, before the key points, and stays while the draft is edited", async () => {
+    const user = userEvent.setup();
+    renderDraft(transportMock({ listTags: listTagsMock() }));
+    await screen.findByRole("heading", { level: 2, name: OFFERTEN });
+    const summary = screen.getByText("Kunden vill ha offerten före fredag.");
+    const opener = screen.getByRole("button", { name: "Add tag" });
+    const keyPoints = screen.getByRole("heading", {
+      name: journalEn.keyPoints,
+    });
+    // Inline the field shares the row under the summary with "Read more" (journal.css): the card gets no row for it.
+    expect(opener.closest(".journal-summary-row")).not.toBeNull();
+    expect(
+      summary.compareDocumentPosition(opener) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      opener.compareDocumentPosition(keyPoints) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(opener);
+    await addTag(user, "Viktig");
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await user.click(screen.getByRole("button", { name: journalEn.edit }));
+    expect(screen.getByText("Tags: Viktig")).toBeInTheDocument();
+  });
+
   it("speaks Swedish, with the same parts", async () => {
     const user = userEvent.setup();
     renderDraft(transportMock({ listTags: listTagsMock() }), journalSv);

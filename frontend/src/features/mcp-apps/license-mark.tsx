@@ -170,6 +170,7 @@ export function LicenseRow({
   const enterButton = useRef<HTMLButtonElement>(null);
   const field = useRef<HTMLTextAreaElement>(null);
   const fieldId = useId();
+  const keyId = useId();
 
   // The coin asked: the row's first line takes the focus once it is shown (after the shell and the settings have moved
   // their own focus, hence the timer).
@@ -296,10 +297,14 @@ export function LicenseRow({
           id={fieldId}
           onEscape={close}
         >
+          <label htmlFor={keyId} className="sk-license-row__key-label">
+            {labels.keyField}
+          </label>
           <textarea
             ref={field}
+            id={keyId}
             className="sk-license-row__key"
-            aria-label={labels.keyField}
+            placeholder={labels.keyPlaceholder}
             rows={3}
             autoComplete="off"
             autoCorrect="off"

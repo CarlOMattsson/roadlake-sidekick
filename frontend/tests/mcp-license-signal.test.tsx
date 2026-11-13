@@ -256,6 +256,30 @@ describe("the license row", () => {
     );
   }
 
+  it.each([
+    ["sv", licenseLabelsSv],
+    ["en", licenseLabelsEn],
+  ] as const)(
+    "labels the key field in view and shows the key's shape as the placeholder (%s)",
+    async (locale, labels) => {
+      const user = userEvent.setup();
+      meta(JSON.stringify(UNLICENSED));
+      render(
+        <LicenseHostContext.Provider value={{ call: vi.fn() }}>
+          <LicenseRow locale={locale} now={now} />
+        </LicenseHostContext.Provider>,
+      );
+      // No shop address yet: words, not a link or a button that leads nowhere.
+      expect(screen.queryByRole("link")).toBeNull();
+      expect(screen.queryByRole("button", { name: labels.buy })).toBeNull();
+      await user.click(screen.getByRole("button", { name: labels.enterKey }));
+      const field = screen.getByRole("textbox", { name: labels.keyField });
+      expect(screen.getByText(labels.keyField).tagName).toBe("LABEL");
+      expect(field.getAttribute("aria-label")).toBeNull();
+      expect(field.getAttribute("placeholder")).toBe("ROADLAKE-1.…");
+    },
+  );
+
   it("saves a key through set_license_key; licensed, the coin goes everywhere at once and the key is gone", async () => {
     const user = userEvent.setup();
     meta(JSON.stringify(UNLICENSED));

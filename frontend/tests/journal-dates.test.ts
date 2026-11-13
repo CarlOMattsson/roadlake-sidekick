@@ -24,6 +24,18 @@ describe("formatDayHeading", () => {
     );
   });
 
+  it("gives the short weekday for a narrow title row, in both languages", () => {
+    expect(formatDayHeading("2026-11-04", "en-GB", TODAY, "short")).toBe(
+      "Wed 4 November",
+    );
+    expect(formatDayHeading("2026-11-04", "sv-SE", TODAY, "short")).toBe(
+      "Ons 4 november",
+    );
+    expect(formatDayHeading("2025-11-03", "en-GB", TODAY, "short")).toBe(
+      "Mon 3 November 2025",
+    );
+  });
+
   it("returns a malformed date unchanged", () => {
     expect(formatDayHeading("not a date", "sv-SE", TODAY)).toBe("not a date");
   });

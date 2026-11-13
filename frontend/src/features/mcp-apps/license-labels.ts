@@ -21,8 +21,10 @@ export type LicenseLabels = {
   /** Said in place of the buy button while LICENSE_BUY_URL is empty (no link to the shop yet). */
   buySoon: string;
   enterKey: string;
-  /** The key field's label (visually hidden: the button above names it). */
+  /** The key field's visible label. */
   keyField: string;
+  /** The field's placeholder: the shape of a key (`ROADLAKE-1.<payload>.<signature>`), not a real one. */
+  keyPlaceholder: string;
   save: string;
   saving: string;
   cancel: string;
@@ -58,6 +60,7 @@ export const licenseLabelsSv: LicenseLabels = {
   buySoon: "Licensnycklar säljs snart.",
   enterKey: "Ange licensnyckel",
   keyField: "Licensnyckel",
+  keyPlaceholder: "ROADLAKE-1.…",
   save: "Spara",
   saving: "Sparar …",
   cancel: "Avbryt",
@@ -86,6 +89,7 @@ export const licenseLabelsEn: LicenseLabels = {
   buySoon: "License keys will be on sale soon.",
   enterKey: "Enter license key",
   keyField: "License key",
+  keyPlaceholder: "ROADLAKE-1.…",
   save: "Save",
   saving: "Saving…",
   cancel: "Cancel",

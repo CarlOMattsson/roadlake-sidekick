@@ -532,7 +532,7 @@ describe("journal app navigation", () => {
       screen.queryByRole("button", { name: /^Draft 3/ }),
     ).not.toBeInTheDocument();
     const more = screen.getByRole("button", {
-      name: journalEn.pendingMore(7),
+      name: journalEn.moreShowAll(7),
     });
     expect(more).toHaveAttribute("aria-expanded", "false");
     expect(more.style.minHeight).toBe("44px");
@@ -541,7 +541,7 @@ describe("journal app navigation", () => {
     expect(
       screen.getByRole("button", { name: /^Draft 9/ }),
     ).toBeInTheDocument();
-    const less = screen.getByRole("button", { name: journalEn.pendingLess });
+    const less = screen.getByRole("button", { name: journalEn.showFewer });
     expect(less).toHaveAttribute("aria-expanded", "true");
   });
 
@@ -559,7 +559,7 @@ describe("journal app navigation", () => {
       screen.getByRole("button", { name: /^Draft 9/ }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: journalEn.pendingMore(7) }),
+      screen.queryByRole("button", { name: journalEn.moreShowAll(7) }),
     ).not.toBeInTheDocument();
   });
 

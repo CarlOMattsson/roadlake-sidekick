@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { formatDayHeading, formatLongDate, shiftDate } from "./dates";
+import { DayHeading } from "./day-heading";
 import { DayStrip, stripDays } from "./day-strip";
 import { dayStripLabelsEn, dayStripLabelsSv } from "./day-strip-labels";
 import { DoneSection } from "./done-section";
@@ -194,8 +195,10 @@ export function DayFrame({
   // The summary section shows with a summary or a note about one; an empty summary is not shown.
   const summaryShown = hasDaySummary(page.summary);
   // What was done on the day (completed tasks and steps, and purchases, as the journal read returns them); an older server sends no `done`, and the section is then absent.
+  // Keyed by the day: a kind shown in full is back to its first rows on the next day; the fold itself stays as it was.
   const done = page.done ? (
     <DoneSection
+      key={page.journal_date}
       done={page.done}
       labels={t}
       open={doneOpen}
@@ -295,11 +298,19 @@ export function DayFrame({
         disabled={phase === "loading"}
         onSelect={go}
         heading={
-          <h2 ref={heading} tabIndex={-1}>
-            {dayTags.filtered
-              ? t.taggedEntries
-              : formatDayHeading(shownDate, t.dateLocale, today)}
-          </h2>
+          <DayHeading
+            ref={heading}
+            long={
+              dayTags.filtered
+                ? t.taggedEntries
+                : formatDayHeading(shownDate, t.dateLocale, today)
+            }
+            short={
+              dayTags.filtered
+                ? t.taggedEntries
+                : formatDayHeading(shownDate, t.dateLocale, today, "short")
+            }
+          />
         }
         more={
           addAction || hasMore ? (

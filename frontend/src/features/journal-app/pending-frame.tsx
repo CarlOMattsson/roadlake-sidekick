@@ -84,8 +84,8 @@ export function PendingFrame({
             style={touchStyle}
           >
             {expanded
-              ? t.pendingLess
-              : t.pendingMore(items.length - inlinePendingLimit)}
+              ? t.showFewer
+              : t.moreShowAll(items.length - inlinePendingLimit)}
           </button>
         </p>
       )}

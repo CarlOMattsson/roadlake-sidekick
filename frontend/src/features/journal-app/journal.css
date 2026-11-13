@@ -95,6 +95,13 @@
   display: block;
   -webkit-line-clamp: unset;
 }
+/* "+3 fler · Visa alla" under a kind: a quiet button whose text lines up with the rows'. */
+.sidekick-journal .journal-done-toggle {
+  margin: 0;
+}
+.sidekick-journal .journal-done-toggle > button {
+  padding-inline: 0;
+}
 .sidekick-journal .journal-done-more {
   margin: 0;
   font: var(--sk-type-meta);
@@ -953,6 +960,31 @@ button.journal-entry-card {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Inline: "Läs mer" and the entry's closed tag field share the row under the summary, so the tags cost the card no
+   row; an open tag editor takes the whole width. Fullscreen draws no "Läs mer", and the tags are a section. */
+.sidekick-journal:not(.journal-fullscreen) .journal-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s4);
+  /* A paragraph's margin, on the row: its children's would not collapse with the sections around it. */
+  margin: 0.4rem 0;
+}
+.sidekick-journal:not(.journal-fullscreen) .journal-summary-row > p,
+.sidekick-journal:not(.journal-fullscreen) .journal-summary-row .sk-tag-field {
+  margin: 0;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-summary-row
+  > .journal-draft-tags {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sidekick-journal:not(.journal-fullscreen)
+  .journal-summary-row
+  > .journal-draft-tags:has(.sk-tag-editor) {
+  flex-basis: 100%;
+}
 /* The section's fold row (row.css .sk-fold) inline; fullscreen shows the heading and the body instead. */
 .sidekick-journal.journal-fullscreen .journal-disclosure-toggle,
 .sidekick-journal.journal-fullscreen .journal-summary-more {
@@ -1076,8 +1108,4 @@ button.journal-entry-card {
    it is cut. The full title is its tooltip and part of its accessible name. */
 .sidekick-journal .journal-task-chips .journal-chip-name {
   max-width: 100%;
-}
-/* The draft's tags are set in the full view; the inline card keeps to one phone screen. */
-.sidekick-journal:not(.journal-fullscreen) .journal-draft-tags {
-  display: none;
 }

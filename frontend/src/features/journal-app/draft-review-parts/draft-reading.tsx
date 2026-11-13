@@ -1,11 +1,13 @@
+import type { ReactNode } from "react";
 import { labelFor, type JournalLabels } from "../labels";
 import type { JournalDraft } from "../transport";
 import { Disclosure } from "./disclosure";
 import { DraftSummary } from "./draft-summary";
 
-/** The draft as the owner reads it: summary, key points, and the way into the editor. */
+/** The draft as the owner reads it: summary, the tags for the entry (`tags`), key points, and the way into the editor. */
 export function DraftReading({
   draft,
+  tags,
   pending,
   editDisabled,
   hiddenProposals,
@@ -16,6 +18,7 @@ export function DraftReading({
   labels: t,
 }: {
   draft: JournalDraft;
+  tags: ReactNode;
   pending: boolean;
   editDisabled: boolean;
   hiddenProposals: boolean;
@@ -28,9 +31,12 @@ export function DraftReading({
   return (
     <>
       {draft.summary ? (
-        <DraftSummary text={draft.summary} labels={t} />
+        <DraftSummary text={draft.summary} after={tags} labels={t} />
       ) : (
-        <p className="journal-muted">{t.noDraftSummary}</p>
+        <>
+          <p className="journal-muted">{t.noDraftSummary}</p>
+          {tags}
+        </>
       )}
       {draft.key_points.length > 0 && (
         <Disclosure

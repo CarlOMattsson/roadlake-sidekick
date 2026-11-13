@@ -786,6 +786,100 @@ test("sandboxed Journal App draft decision bar is not sticky at 320 px and 190 p
   expect(failures).toEqual([]);
 });
 
+// The day view's title row holds the heading (beside + and ⋯ where the host offers them). "Wednesday 4 November" does
+// not fit it at 270 px (nor at 375 px beside + and ⋯), so the heading shows "Wed 4 November" on one line and keeps
+// the long form as its name; a wide frame shows the long form.
+// A simulated host, not a real Claude or Android host.
+test("sandboxed Journal App day heading shortens its weekday where the long form would wrap", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date("2026-11-04T10:00:00Z"));
+  const failures: string[] = [];
+  page.on("pageerror", (error) => failures.push(error.message));
+  await page.route("**/*", (route) => route.abort());
+  const day = {
+    journal_date: "2026-11-04",
+    entries: [],
+    next_cursor: null,
+    summary: {
+      journal_date: "2026-11-04",
+      exists: false,
+      origin: "manual",
+      status: "current",
+      content: null,
+    },
+  };
+  for (const [width, shown] of [
+    [270, "Wed 4 November"],
+    [700, "Wednesday 4 November"],
+  ] as const) {
+    await mountJournalFrame(page, {
+      width,
+      height: 800,
+      initial: day,
+      reads: {},
+    });
+    const app = page.frameLocator("iframe");
+    await app.getByRole("button", { name: /^(Open|Show all)/ }).click();
+    const heading = app.locator(".sk-day-strip-title > h2");
+    await expect(heading).toHaveText(shown);
+    await expect(heading).toHaveAccessibleName("Wednesday 4 November");
+    const lines = await heading.evaluate((element) => {
+      const line = parseFloat(getComputedStyle(element).lineHeight);
+      return Math.round(element.getBoundingClientRect().height / line);
+    });
+    expect(lines).toBe(1);
+  }
+  expect(failures).toEqual([]);
+});
+
+// Inline, the draft's tag field shares the row under the summary with "Read more", so the card gets no row for it;
+// both keep a 44 px target. A simulated host, not a real Claude or Android host.
+test("sandboxed Journal App inline draft offers tags beside Read more at 320 px", async ({
+  page,
+}) => {
+  const draftId = "019f0000-0000-7000-8000-0000000000d2";
+  const sourceId = "019f0000-0000-7000-8000-0000000000s2";
+  const failures: string[] = [];
+  page.on("pageerror", (error) => failures.push(error.message));
+  await page.route("**/*", (route) => route.abort());
+  const draft = {
+    id: draftId,
+    source_id: sourceId,
+    journal_date: "2026-10-24",
+    state: "pending_review",
+    title: "Utkast om offerten",
+    summary:
+      "Kunden vill ha offerten före fredag. Vi pratade även om leveranstider och garanti, och därefter om projektplanen, budgeten och vem som ansvarar för vad under november.",
+    key_points: [],
+    suggestions: { projects: [], tasks: [], contacts: [] },
+    task_proposals: [],
+    task_proposal_count: 0,
+    catalog: { projects: [], tasks: [], contacts: [] },
+    version: 1,
+  };
+  await mountJournalFrame(page, {
+    width: 320,
+    height: 700,
+    initial: { draft: { id: draftId } },
+    reads: { get_journal_draft: { draft } },
+  });
+  const app = page.frameLocator("iframe");
+  const readMore = app.getByRole("button", { name: "Read more" });
+  const addTag = app.getByRole("button", { name: "Add tag" });
+  await expect(readMore).toBeVisible();
+  await expect(addTag).toBeVisible();
+  const [more, tag] = await Promise.all([
+    readMore.boundingBox(),
+    addTag.boundingBox(),
+  ]);
+  expect(more && tag).toBeTruthy();
+  expect(Math.abs(more!.y - tag!.y)).toBeLessThanOrEqual(2);
+  expect(tag!.x).toBeGreaterThan(more!.x + more!.width);
+  expect(Math.min(more!.height, tag!.height)).toBeGreaterThanOrEqual(44);
+  expect(failures).toEqual([]);
+});
+
 /**
  * Mounts the Journal App in a sandboxed iframe of the given size. `initial` is the first tool result;
  * `reads` answers tools/call by tool name, and any other call gets an error.

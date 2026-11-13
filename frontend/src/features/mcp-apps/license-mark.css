@@ -122,6 +122,13 @@
 .sk-license-row__editor .sk-license-row__actions {
   margin-inline-start: 0;
 }
+.sk-license-row__key-label {
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+}
+.sk-license-row__key::placeholder {
+  color: var(--sk-muted);
+}
 .sk-license-row__key {
   box-sizing: border-box;
   width: 100%;
