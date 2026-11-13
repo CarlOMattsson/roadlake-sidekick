@@ -7,13 +7,24 @@
 //      -lead, -open or -back) and that sets min-height has at least 2.75rem or 44px.
 //   4. No overflow-y: auto or scroll in selectors that apply to the inline mode.
 //   5. Every var(--sk-*) is defined in tokens.css or in the same stylesheet.
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { sourceFiles, srcDir } from "./helpers/source-files";
-
-const featuresDir = path.resolve(import.meta.dirname, "../src/features");
+import {
+  customPropertyDeclarations,
+  customPropertyUses,
+  declarationsOf,
+  loadCssFiles,
+  readCss,
+  cssRules,
+  valueOf,
+} from "./helpers/css-contract";
+import {
+  readSource,
+  readText,
+  sourceFiles,
+  srcDir,
+} from "./helpers/source-files";
 
 // Directories whose *.css files are scanned, including their subfolders: the shared MCP-app kit and the three apps.
 // Shopping has its single stylesheet at shopping-app/*.css, found by the same glob as the others.
@@ -24,59 +35,6 @@ const scannedDirs = [
   "shopping-app",
   "control-app",
 ];
-
-type CssFile = { rel: string; css: string };
-
-// Comments are blanked out, keeping newlines, so line numbers in messages stay correct and words
-// inside a comment cannot trip a rule.
-function stripComments(raw: string): string {
-  return raw.replace(/\/\*[\s\S]*?\*\//g, (match) =>
-    match.replace(/[^\n]/g, " "),
-  );
-}
-
-function lineOf(text: string, index: number): number {
-  return text.slice(0, index).split("\n").length;
-}
-
-function loadCss(): CssFile[] {
-  return scannedDirs.flatMap((dir) => {
-    const absolute = path.join(featuresDir, dir);
-    return sourceFiles(absolute, /\.css$/).map((file) => ({
-      rel: `${dir}/${path.relative(absolute, file).split(path.sep).join("/")}`,
-      css: stripComments(readFileSync(file, "utf8")),
-    }));
-  });
-}
-
-type Rule = { selector: string; body: string; line: number };
-type Declaration = { property: string; value: string };
-
-// Flat rules. Nested rules inside @media are matched on their own, because a rule body never
-// contains braces. At-rule preludes are never followed by a body without braces, so they do not match.
-function rulesOf(css: string): Rule[] {
-  return [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
-    .map((match) => ({
-      selector: (match[1] ?? "").trim(),
-      body: match[2] ?? "",
-      line: lineOf(css, match.index ?? 0),
-    }))
-    .filter((rule) => !rule.selector.startsWith("@"));
-}
-
-function declarationsOf(body: string): Declaration[] {
-  return body
-    .split(";")
-    .map((part) => {
-      const colon = part.indexOf(":");
-      if (colon === -1) return null;
-      return {
-        property: part.slice(0, colon).trim().toLowerCase(),
-        value: part.slice(colon + 1).trim(),
-      };
-    })
-    .filter((declaration): declaration is Declaration => declaration !== null);
-}
 
 // Bodies of every @media (prefers-reduced-motion: reduce) block in the file.
 function reducedMotionBodies(css: string): string[] {
@@ -135,15 +93,7 @@ function meetsTouchTarget(value: string): boolean {
   return match[2] === "rem" ? size >= 2.75 : size >= 44;
 }
 
-// Custom property declarations (`--sk-name:`) and reads (`var(--sk-name`) in a stylesheet.
-const customPropertyDeclaration = /(?<![\w-])(--sk-[\w-]+)\s*:/g;
-const customPropertyUse = /var\(\s*(--sk-[\w-]+)/g;
-
-function customPropertyNames(css: string, pattern: RegExp): Set<string> {
-  return new Set([...css.matchAll(pattern)].map((match) => match[1] ?? ""));
-}
-
-const files = loadCss();
+const files = scannedDirs.flatMap(loadCssFiles);
 
 // Body of the top-level rule that lists this selector (whitespace-normalised; the whole list or one part of it, so a
 // selector shared with another shape, e.g. the card foot, still holds) in one stylesheet. Fails the test when the rule
@@ -151,21 +101,14 @@ const files = loadCss();
 function ruleBody(rel: string, selector: string): string {
   const file = files.find((entry) => entry.rel === rel);
   expect(file, rel).toBeDefined();
-  const rule = rulesOf(file?.css ?? "").find((candidate) => {
-    const whole = candidate.selector.replace(/\s+/g, " ");
+  const rule = cssRules(file?.css ?? "").find((candidate) => {
     return (
-      whole === selector ||
-      whole.split(",").some((part) => part.trim() === selector)
+      candidate.selector === selector ||
+      candidate.selector.split(",").some((part) => part.trim() === selector)
     );
   });
   expect(rule, `${rel} ${selector}`).toBeDefined();
   return rule?.body ?? "";
-}
-
-function valueOf(body: string, property: string): string | undefined {
-  return declarationsOf(body).find(
-    (declaration) => declaration.property === property,
-  )?.value;
 }
 
 describe("MCP-app UI CSS contract (D28)", () => {
@@ -182,16 +125,13 @@ describe("MCP-app UI CSS contract (D28)", () => {
   it("every --sk-* read in a stylesheet is defined in tokens.css or in that same stylesheet", () => {
     const tokens = files.find((file) => file.rel === "mcp-apps/ui/tokens.css");
     expect(tokens).toBeDefined();
-    const shared = customPropertyNames(
-      tokens?.css ?? "",
-      customPropertyDeclaration,
-    );
+    const shared = customPropertyDeclarations(tokens?.css ?? "");
     const violations: string[] = [];
     for (const file of files) {
       // A component may declare its own tokens (for example --sk-cb-* in counts-bar.css), but only
       // in the stylesheet that reads them, so no file depends on another file's local token.
-      const local = customPropertyNames(file.css, customPropertyDeclaration);
-      for (const name of customPropertyNames(file.css, customPropertyUse)) {
+      const local = customPropertyDeclarations(file.css);
+      for (const name of customPropertyUses(file.css)) {
         if (!shared.has(name) && !local.has(name)) {
           violations.push(`${file.rel} reads ${name}, which is not defined`);
         }
@@ -217,7 +157,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
       for (const property of motion) {
         // The block holds nested rules, so each rule's declarations are read on their own.
         const off = blocks.some((body) =>
-          rulesOf(body).some((rule) =>
+          cssRules(body).some((rule) =>
             declarationsOf(rule.body).some(
               (declaration) =>
                 declaration.property === property &&
@@ -237,7 +177,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
   it("font-size is never set in px outside a var() fallback", () => {
     const violations: string[] = [];
     for (const file of files) {
-      for (const rule of rulesOf(file.css)) {
+      for (const rule of cssRules(file.css)) {
         for (const declaration of declarationsOf(rule.body)) {
           if (
             declaration.property !== "font-size" &&
@@ -259,7 +199,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
   it("button rules with min-height reach 2.75rem or 44px", () => {
     const violations: string[] = [];
     for (const file of files) {
-      for (const rule of rulesOf(file.css)) {
+      for (const rule of cssRules(file.css)) {
         const selectors = rule.selector.split(",").map((part) => part.trim());
         const isButton = selectors.some(
           (part) => buttonElement.test(part) || buttonClass.test(part),
@@ -352,7 +292,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
       }
     }
     for (const file of sourceFiles(srcDir, /\.(tsx?|css)$/)) {
-      const text = readFileSync(file, "utf8");
+      const text = readText(file);
       for (const pattern of stale) {
         if (pattern.test(text))
           violations.push(`${path.relative(srcDir, file)} ${pattern}`);
@@ -362,10 +302,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
   });
 
   it("the room, the day and the chip that are chosen are marked with a 2 px contour, not a fill alone", () => {
-    const tokens = readFileSync(
-      path.join(featuresDir, "mcp-apps/ui/tokens.css"),
-      "utf8",
-    );
+    const tokens = readSource("features/mcp-apps/ui/tokens.css");
     expect(tokens).toMatch(/--sk-selected-width:\s*2px/);
     // The selected contour is drawn from that token wherever a selection is shown.
     const users = files.filter((file) =>
@@ -385,14 +322,10 @@ describe("MCP-app UI CSS contract (D28)", () => {
   });
 
   it("the chosen room is drawn with the page colour and the 2 px contour, and the round + is ink", () => {
-    const shell = readFileSync(
-      path.join(featuresDir, "mcp-apps/sidekick-shell.css"),
-      "utf8",
-    );
-    const room = rulesOf(shell.replace(/\/\*[\s\S]*?\*\//g, "")).find(
+    const shell = readCss("mcp-apps/sidekick-shell.css");
+    const room = cssRules(shell).find(
       (rule) =>
-        rule.selector.replace(/\s+/g, " ") ===
-        '.sk-rooms .sk-rooms__tab[aria-current="page"]',
+        rule.selector === '.sk-rooms .sk-rooms__tab[aria-current="page"]',
     );
     expect(room, "chosen room rule").toBeDefined();
     expect(valueOf(room?.body ?? "", "background")).toBe(
@@ -417,9 +350,9 @@ describe("MCP-app UI CSS contract (D28)", () => {
     const tokens = files.find((file) => file.rel === "mcp-apps/ui/tokens.css");
     expect(tokens?.css).toMatch(/--sk-plus:\s*2rem;/);
     // The focus ring of a room lies inside its cell, so the strip's edge never cuts it.
-    const ring = rulesOf(shell.replace(/\/\*[\s\S]*?\*\//g, "")).find(
+    const ring = cssRules(shell).find(
       (rule) =>
-        rule.selector.replace(/\s+/g, " ") ===
+        rule.selector ===
         ".sk-rooms :is(.sk-rooms__tab, .sk-pick):focus-visible",
     );
     expect(valueOf(ring?.body ?? "", "outline-offset")).toBe("-2px");
@@ -474,7 +407,7 @@ describe("MCP-app UI CSS contract (D28)", () => {
   it("inline-mode rules never scroll on the y axis", () => {
     const violations: string[] = [];
     for (const file of files) {
-      for (const rule of rulesOf(file.css)) {
+      for (const rule of cssRules(file.css)) {
         if (!inlineSelector.test(rule.selector)) continue;
         for (const declaration of declarationsOf(rule.body)) {
           if (

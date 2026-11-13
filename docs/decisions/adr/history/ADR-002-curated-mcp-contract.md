@@ -1,6 +1,6 @@
 # ADR-002: Keep MCP as a curated contract over shared use cases
 
-- Status: Accepted; Superseded in part by ADR-009 (the agent profile and the Chat gateway were removed by D-084, and the proposal flow by D-064; see the note under Decision)
+- Status: Superseded by ADR-009 (the agent profile and the Chat gateway were removed by D-084, and the proposal flow by D-064). ADR-009 restates what still holds; this record is kept for its reasoning only.
 - Date: 2026-08-23
 - Owners: Sidekick application maintainers
 

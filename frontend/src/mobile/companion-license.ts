@@ -1,5 +1,5 @@
 /**
- * The license over the companion routes (see docs/decisions/log.md D-083). The phone reads the display state and saves a key through the same
+ * The license over the companion routes (see docs/decisions/log.md D-083: license terms). The phone reads the display state and saves a key through the same
  * closed shape as every other call; the key goes only in the body of the PUT and is never kept.
  *
  *   (read, not a tool)  -> GET /companion/v1/license                    (server-license.ts)

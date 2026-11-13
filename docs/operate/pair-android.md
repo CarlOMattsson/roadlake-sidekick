@@ -35,7 +35,7 @@ again.
 | --- | --- | --- |
 | JDK | 21 (CI uses Temurin 21; the Kotlin target is JVM 21) | `.github/workflows/ci.yml`, `frontend/android/app/build.gradle` |
 | Android SDK | Platform 36 (`compileSdk` and `targetSdk` are 36) | `frontend/android/variables.gradle` |
-| Node.js | 22 (CI pins 22.22.1) with npm 10 | `.github/workflows/ci.yml`, `frontend/package.json` |
+| Node.js | 22 (CI pins 22.23.4) with npm 10 | `.node-version`, `frontend/package.json` |
 | Gradle | 8.14.3, downloaded by the wrapper (`./gradlew`) | `frontend/android/gradle/wrapper/gradle-wrapper.properties` |
 
 Point Gradle at the SDK with `ANDROID_HOME`, or with `sdk.dir=<path>` in a file named `local.properties` in the `android` folder of the frontend

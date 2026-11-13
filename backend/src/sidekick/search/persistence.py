@@ -134,7 +134,8 @@ class JournalHit:
     """A journal match. `id_type` is `entry` or `source`; `matched_in` is `entry` or `source_text`.
 
     `title` is the entry title, clipped like other titles, and None for a source without an entry.
-    The hit deliberately has no summary, raw text or excerpt field (D-058).
+    The hit deliberately has no summary, raw text or excerpt field (D-058: logs and telemetry never
+    carry user content).
     """
 
     id: UUID

@@ -3,7 +3,7 @@ import { useSyncExternalStore } from "react";
 import { parseDueDay } from "./ui/due";
 
 /**
- * The license signal (see docs/decisions/log.md D-083). The backend writes the display state
+ * The license signal (see docs/decisions/log.md D-083: license terms). The backend writes the display state
  * into the app document, next to `sidekick-rooms` and the build metas, as one JSON meta:
  * `<meta name="sidekick-license" content='{"state":"unlicensed","licensee":"…","kind":"personal","expires":"2027-11-09"}'>`.
  * Only `state` is required. The key itself is never in the document. The phone has no such document: it reads the

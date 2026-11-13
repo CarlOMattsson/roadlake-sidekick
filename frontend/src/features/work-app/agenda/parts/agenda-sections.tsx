@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Fold } from "../../../mcp-apps/ui/fold";
 import { Counted } from "../../../mcp-apps/ui/count";
 import type { WorkItemRecord } from "../../transport/transport";
-import { RecordTitle } from "../../board/board";
+import { RecordTitle } from "../../board/board-card";
 import {
   cardKey,
   type AgendaBucket,

@@ -78,7 +78,8 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "get_today_brief",
         "search",
         "recall_memory",
-        # The instance's license key (D-081): the owner's own, and not tied to a room's data.
+        # The instance's license key (D-081: offline signed license keys): the owner's own, and not
+        # tied to a room's data.
         "set_license_key",
         # The trash: a Work-only instance still lets Claude delete and undo. Records of an off room
         # are skipped through the narrowed scopes.

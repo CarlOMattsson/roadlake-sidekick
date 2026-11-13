@@ -11,7 +11,8 @@ reply. Every tool that is not read-only is therefore listed here exactly once:
 - `RECEIPT_ONLY_WRITES` answers with identifiers and flags only (or checks the read scope itself),
   so it needs nothing more.
 
-Tools that write the owner's own journal text answer with that text and stay write-only (D-076).
+Tools that write the owner's own journal text answer with that text and stay write-only (D-076: the
+journal is written by hand, no AI).
 A contract test requires every write tool to be in exactly one of the two, so a new tool cannot be
 added without choosing. The companion adapter applies the same rule with `CompanionOperation.also`
 and a receipt for a device that may not read (`sidekick.api.companion_tasks`).
@@ -133,7 +134,8 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # The owner's installation licence; reaches no record.
         "set_license_key",
         # The journal tools that write the owner's own text answer with that text and stay
-        # write-only on purpose (D-076; pinned by tests/mcp/test_journal_writes.py).
+        # write-only on purpose (D-076: the journal is written by hand, no AI; pinned by
+        # tests/mcp/test_journal_writes.py).
         "create_journal_source",
         "create_manual_journal_entry",
         "write_journal_entry",

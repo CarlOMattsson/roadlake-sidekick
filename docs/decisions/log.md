@@ -361,7 +361,7 @@ Status: Accepted (2026-11-11); recorded as [ADR-009](adr/ADR-009-one-curated-pub
 Sidekick has one public, curated MCP surface (`/mcp`, the list in `contracts/mcp-tools.generated.json`), shown as
 MCP apps inside Claude. It has no built-in chat engine, agent server or standalone web client, and the Android app
 uses the separate `/companion/v1` API over the same use cases. It documents the delivered design (see D-064, D-082
-and D-084) and changes no behaviour; ADR-001 and ADR-002 are marked Superseded in part by it.
+and D-084) and changes no behaviour; ADR-001 and ADR-002 are marked Superseded by it and moved to `adr/history/`.
 
 ### D-093 - One error tree rooted at SidekickError
 

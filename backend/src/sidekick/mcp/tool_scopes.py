@@ -85,7 +85,8 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
         "link_external_reference_to_task",
         "unlink_external_reference_from_task",
     ),
-    # The instance's license key (D-081) is an administrative change with a scope of its own.
+    # The instance's license key (D-081: offline signed license keys) is an administrative change
+    # with a scope of its own.
     "set_license_key": ToolScopes(("license:write",)),
     # Work: Projects, Domains, Processes, tags and saved views.
     **_tools(

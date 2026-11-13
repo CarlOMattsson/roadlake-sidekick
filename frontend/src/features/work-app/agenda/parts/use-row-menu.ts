@@ -1,5 +1,5 @@
 import { useState, type RefObject } from "react";
-import { menuButtonOf } from "../../board/board-card";
+import { menuButtonOf } from "../../shared/row-menu";
 import { useLargeText } from "../../../mcp-apps/ui/large-text";
 
 /** The groups of the row menu that fold at large text. */

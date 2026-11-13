@@ -1,6 +1,6 @@
 # ADR-001: Separate local MCP surfaces by trust boundary
 
-- Status: Accepted; Superseded in part by ADR-009 (surfaces 2 and 3 were removed by D-084 and the HTTP API by D-082; see the note under Decision)
+- Status: Superseded by ADR-009 (surfaces 2 and 3 were removed by D-084 and the HTTP API by D-082). ADR-009 restates what still holds; this record is kept for its reasoning only.
 - Date: 2026-08-23
 - Owners: Sidekick application maintainers
 

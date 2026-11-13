@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
-import { menuButtonOf } from "../../board/board-card";
+import { menuButtonOf } from "../../shared/row-menu";
 
 /**
  * A done or moved row of Försenade sinks under the group's line, and Undo brings it back: React moves the row's

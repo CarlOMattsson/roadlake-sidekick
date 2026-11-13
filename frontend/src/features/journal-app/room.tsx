@@ -346,7 +346,7 @@ export function JournalRoom(props: JournalRoomProps) {
    * Open asks the host for fullscreen, the same way the work and shopping apps do, and shows the
    * entry view once the host answers. When the host does not offer fullscreen, or refuses or fails
    * the request, the entry view opens inline in the card's place (the fallback). Nothing about the
-   * entry is sent to the host or logged on this path, per docs/decisions/log.md D-058.
+   * entry is sent to the host or logged on this path, per docs/decisions/log.md D-058 (logs and telemetry never carry user content).
    */
   function openCard() {
     const entry = card;

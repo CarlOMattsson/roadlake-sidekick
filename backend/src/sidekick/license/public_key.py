@@ -1,4 +1,5 @@
-"""The licensor's license public key (D-081): the one value that decides which keys are valid.
+"""The licensor's license public key (D-081: offline signed license keys): the one value that
+decides which keys are valid.
 
 `DEFAULT_LICENSE_PUBLIC_KEY` below holds the licensor's public key (base64 of a raw 32-byte
 Ed25519 key, on one line), so a build from this repository verifies the keys the licensor issues.

@@ -98,10 +98,11 @@ def load_settings(env_file: Path | None) -> Settings:
     """The usual Settings; with ``env_file`` that file replaces ``.env`` and must exist."""
 
     if env_file is None:
-        return Settings()  # type: ignore[call-arg]
+        return Settings()
     if not env_file.is_file():
         raise StdioStartupError(_REFUSED_CONFIGURATION, f"--env-file {env_file} is not a file")
-    return Settings(_env_file=env_file)  # type: ignore[call-arg]
+    # pydantic-settings reads `_env_file` at construction; it is not a declared field.
+    return Settings(_env_file=env_file)  # pyright: ignore[reportCallIssue]
 
 
 def resolve_owner(settings: Settings) -> UUID:

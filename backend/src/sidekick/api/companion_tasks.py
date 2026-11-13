@@ -4,7 +4,8 @@ Added to the companion router by `create_companion_router` (sidekick.api.compani
 supplies the route class, so every refusal here is the same versioned problem envelope and the
 request log carries only the operation name and the outcome. Each route verifies the credential,
 checks the operation's capability, and calls one fixed use case with its scopes; the writes also
-queue no wake push for the device that made the change (D-078). The routes are listed in the
+queue no wake push for the device that made the change (D-078: push through UnifiedPush). The
+routes are listed in the
 module docstring of `sidekick.api.companion`.
 """
 
@@ -154,7 +155,7 @@ async def task_reopen(
     # row locked in the write's own transaction and after the idempotency replay check, so a
     # replay answers with the stored result and a concurrent edit cannot slip past it.
     def reopen() -> dict[str, Any]:
-        # The device's own change queues no wake push for itself (D-078).
+        # The device's own change queues no wake push for itself (D-078: push through UnifiedPush).
         with acting_device(credential.device_id):
             return update_task_structured(
                 container,
@@ -182,7 +183,7 @@ async def task_complete(
     container = request.app.state.container
 
     def complete() -> dict[str, Any]:
-        # The device's own change queues no wake push for itself (D-078).
+        # The device's own change queues no wake push for itself (D-078: push through UnifiedPush).
         with acting_device(credential.device_id):
             return complete_task_structured(
                 container,

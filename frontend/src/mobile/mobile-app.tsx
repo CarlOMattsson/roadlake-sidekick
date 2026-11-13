@@ -128,7 +128,7 @@ export function MobileApp({
   const [pushTick, setPushTick] = useState(0);
   // The rooms the server shows (SIDEKICK_ENABLED_ROOMS), read from the pairing and from the server on each return.
   const roomsKey = useServerRooms(native, pushTick);
-  // The license display state (see docs/decisions/log.md D-083), read the same way: the coin and the row in Inställningar follow it.
+  // The license display state (see docs/decisions/log.md D-083: license terms), read the same way: the coin and the row in Inställningar follow it.
   useServerLicense(native, pushTick);
   useEffect(
     () =>

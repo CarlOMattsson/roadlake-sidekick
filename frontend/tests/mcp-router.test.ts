@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { expect, it } from "vitest";
 import {
   isRoomId,
@@ -8,6 +6,7 @@ import {
   routeForTool,
   TOOL_ROUTES,
 } from "@/features/mcp-apps/router";
+import { readRepoFile } from "./helpers/source-files";
 
 type ContractTool = {
   name: string;
@@ -15,8 +14,9 @@ type ContractTool = {
 };
 
 function contractTools(): ContractTool[] {
-  const path = resolve(__dirname, "../../contracts/mcp-tools.generated.json");
-  return JSON.parse(readFileSync(path, "utf-8")) as ContractTool[];
+  return JSON.parse(
+    readRepoFile("contracts/mcp-tools.generated.json"),
+  ) as ContractTool[];
 }
 
 // N3: a new opener tool without a routerpost must fail here, not silently draw nothing.

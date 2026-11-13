@@ -201,7 +201,7 @@ export const controlEn = {
   } as Record<string, string>,
   /**
    * Sentences sent to the host model (updateModelContext) after an owner change in the card. Generic:
-   * no titles, no ids, no content, per docs/decisions/log.md D-058.
+   * no titles, no ids, no content, per docs/decisions/log.md D-058 (logs and telemetry never carry user content).
    */
   modelNote: {
     restored: "The owner restored an item from the trash in the card.",

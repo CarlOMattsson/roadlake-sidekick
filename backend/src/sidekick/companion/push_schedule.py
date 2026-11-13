@@ -1,7 +1,8 @@
 """When visible reminders are due (ADR-005; D-078, push through UnifiedPush). Pure: no database, no
 framework, no clock.
 
-All times are the owner's wall-clock times in `SIDEKICK_OWNER_TIMEZONE` (D-063), the zone the agenda
+All times are the owner's wall-clock times in `SIDEKICK_OWNER_TIMEZONE` (D-063: owner timezone
+setting), the zone the agenda
 counts "today" in.
 
 - The morning summary is due from `summary_time` on the owner's day, for `SUMMARY_WINDOW`, and never

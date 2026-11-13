@@ -5,7 +5,7 @@ import {
   type CountsTone,
 } from "../../mcp-apps/ui/counts-bar";
 import { workDate } from "../../mcp-apps/ui/due";
-import { rowDue } from "./board-card";
+import { rowDue } from "../shared/record-meta";
 import { InlineRow, OpenFoot, inlineMeta } from "../inline/inline-summary";
 import "../inline/inline-summary.css";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";

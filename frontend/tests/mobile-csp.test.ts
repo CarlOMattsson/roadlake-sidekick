@@ -5,15 +5,15 @@
 // the app packages and must not add an inline script or style the policy would block. In a CI run (CI is set) the
 // built page is required: CI builds it before the unit tests, and a missing artifact fails here instead of
 // skipping the check unseen. Locally it is still skipped until `npm run build:mobile` has run.
-import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const root = path.resolve(import.meta.dirname, "..");
+import { fileExists, frontendDir, readText } from "./helpers/source-files";
+
 const buildRequired = Boolean(process.env.CI);
 const pages = {
-  "mobile.html": path.join(root, "mobile.html"),
-  "dist-mobile/index.html": path.join(root, "dist-mobile", "index.html"),
+  "mobile.html": path.join(frontendDir, "mobile.html"),
+  "dist-mobile/index.html": path.join(frontendDir, "dist-mobile", "index.html"),
 };
 
 function policyOf(html: string): Map<string, string[]> {
@@ -30,16 +30,16 @@ function policyOf(html: string): Map<string, string[]> {
 }
 
 for (const [label, file] of Object.entries(pages)) {
-  if (buildRequired && !existsSync(file)) {
+  if (buildRequired && !fileExists(file)) {
     describe(`the CSP of ${label}`, () => {
       it("exists (run `npm run build:mobile` before the tests)", () => {
-        expect(existsSync(file), `${label} is missing`).toBe(true);
+        expect(fileExists(file), `${label} is missing`).toBe(true);
       });
     });
     continue;
   }
-  describe.skipIf(!existsSync(file))(`the CSP of ${label}`, () => {
-    const html = (): string => readFileSync(file, "utf8");
+  describe.skipIf(!fileExists(file))(`the CSP of ${label}`, () => {
+    const html = (): string => readText(file);
 
     it("is present, starts from default-src 'none' and allows no eval or inline code", () => {
       const policy = policyOf(html());

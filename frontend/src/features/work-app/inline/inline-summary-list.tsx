@@ -6,7 +6,7 @@ import type { InlineSummaryLabels } from "./inline-summary-labels";
 import { knownLabel } from "../shared/labels";
 import type { WorkItemRecord } from "../transport/transport";
 import { OpenChevron } from "../tasks/task-detail-controls";
-import { rowDue, rowStatus } from "../board/board-card";
+import { rowDue, rowStatus } from "../shared/record-meta";
 
 export type InlineSummaryKind = "task" | "project";
 

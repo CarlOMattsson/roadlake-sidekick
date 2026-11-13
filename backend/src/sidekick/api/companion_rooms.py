@@ -1,4 +1,5 @@
-"""`/companion/v1/` routes of the rooms Shopping and Journal (ADR-005; D-076 for the journal).
+"""`/companion/v1/` routes of the rooms Shopping and Journal (ADR-005; D-076: the journal is
+written by hand).
 
 Added to the companion router by `create_companion_router` (sidekick.api.companion), which also
 supplies the route class, so every refusal here is the same versioned problem envelope and the
@@ -21,7 +22,8 @@ Shopping (`companion:shopping:read`; the writes also `companion:shopping:write`)
   (`{"purchased", "version"}`; the undo is the same call with `purchased: false`)
 
 Journal (`companion:journal:read`; the writes also `companion:journal:write`), only the owner's
-manual writing (D-076) and the text of a source read back, no draft or summary flow:
+manual writing (D-076: the journal is written by hand, no AI) and the text of a source read back,
+no draft or summary flow:
 
 - `GET  /companion/v1/journal/days/{journal_date}`          = `get_journal_day`
 - `GET  /companion/v1/journal/entries`                      = `list_journal_entries`

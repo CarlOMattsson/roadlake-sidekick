@@ -1246,12 +1246,13 @@ def test_release_pipeline_declares_the_minimum_upgrade_version_consistently() ->
     dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
     assert "io.sidekick.min-upgrade-from=" in dockerfile
     assert "SIDEKICK_MIN_UPGRADE_FROM" in dockerfile
-    workflow = (REPO_ROOT / ".github" / "workflows" / "release-image.yml").read_text(
+    gates = (REPO_ROOT / ".github" / "workflows" / "release-gates.yml").read_text(encoding="utf-8")
+    release = (REPO_ROOT / ".github" / "workflows" / "release-image.yml").read_text(
         encoding="utf-8"
     )
-    assert "deploy/selfhost/min-upgrade-from.txt" in workflow
-    assert "io.sidekick.min-upgrade-from=" in workflow
-    assert "SIDEKICK_MIN_UPGRADE_FROM=" in workflow
+    assert "deploy/selfhost/min-upgrade-from.txt" in gates
+    assert "io.sidekick.min-upgrade-from=" in release
+    assert "SIDEKICK_MIN_UPGRADE_FROM=" in release
 
 
 def seed_snapshots(harness: Harness, names: list[str], size: int = 100) -> list[Path]:

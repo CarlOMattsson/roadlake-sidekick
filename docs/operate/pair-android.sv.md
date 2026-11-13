@@ -36,7 +36,7 @@ först och para ihop igen.
 | --- | --- | --- |
 | JDK | 21 (CI använder Temurin 21; Kotlin-målet är JVM 21) | `.github/workflows/ci.yml`, `frontend/android/app/build.gradle` |
 | Android SDK | Plattform 36 (`compileSdk` och `targetSdk` är 36) | `frontend/android/variables.gradle` |
-| Node.js | 22 (CI låser 22.22.1) med npm 10 | `.github/workflows/ci.yml`, `frontend/package.json` |
+| Node.js | 22 (CI låser 22.23.4) med npm 10 | `.node-version`, `frontend/package.json` |
 | Gradle | 8.14.3, hämtas av wrappern (`./gradlew`) | `frontend/android/gradle/wrapper/gradle-wrapper.properties` |
 
 Peka ut SDK:n för Gradle med `ANDROID_HOME`, eller med `sdk.dir=<path>` i en fil som heter `local.properties` i frontendens mapp `android`

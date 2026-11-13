@@ -8,14 +8,17 @@
 // appear inside a comment: text in quotes or backticks, capitalized words (room and screen
 // names such as Inköp or Dagbok) and single letters are ignored. Any other word with å, ä or ö
 // fails, and so do a few common Swedish words that have none of those letters.
-import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-import { sourceFiles } from "./helpers/source-files";
+import {
+  entryNames,
+  frontendDir,
+  readText,
+  sourceFiles,
+} from "./helpers/source-files";
 
-const frontendDir = path.resolve(import.meta.dirname, "..");
 const roots = ["src", "tests"];
 // Screenshot scripts, run by hand and not part of the test suite.
 const skippedDirs = new Set(["node_modules", "dist", "ux"]);
@@ -37,13 +40,10 @@ function scannedFiles(dir: string): string[] {
 }
 
 function configFiles(): string[] {
-  return readdirSync(frontendDir)
-    .filter((name) =>
-      /^(vite|vitest|playwright|capacitor)[\w.-]*\.config\.(ts|mts|js|mjs)$/.test(
-        name,
-      ),
-    )
-    .map((name) => path.join(frontendDir, name));
+  return entryNames(
+    frontendDir,
+    /^(vite|vitest|playwright|capacitor)[\w.-]*\.config\.(ts|mts|js|mjs)$/,
+  ).map((name) => path.join(frontendDir, name));
 }
 
 type Comment = { line: number; text: string };
@@ -100,7 +100,7 @@ describe("frontend comments are English", () => {
     ];
     const hits = files.flatMap((file) => {
       const relative = path.relative(frontendDir, file);
-      return commentsOf(file, readFileSync(file, "utf8"))
+      return commentsOf(file, readText(file))
         .filter((comment) => isSwedish(comment.text))
         .map(
           (comment) =>

@@ -73,7 +73,8 @@ def _kind_counts(search_result: SearchResult) -> list[tuple[int, str, str]]:
 
 def _summary(search_result: SearchResult) -> str:
     """Line 1: the hits in words. One named hit reads "Found the journal entry "Flytten"."; more
-    give counts per kind and up to three names. Journal text is never included (D-058)."""
+    give counts per kind and up to three names. Journal text is never included (D-058: logs and
+    telemetry never carry user content)."""
     counts = [(count, one, many) for count, one, many in _kind_counts(search_result) if count]
     if not counts:
         return "No matches."

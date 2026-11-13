@@ -1,6 +1,6 @@
 # ADR-009: One curated public MCP surface, rendered in Claude, with the companion API for Android
 
-- Status: Accepted (D-092, 2026-11-11); records the delivered design and supersedes parts of ADR-001 and ADR-002, no behaviour changed
+- Status: Accepted (D-092, 2026-11-11); records the delivered design and supersedes ADR-001 and ADR-002, no behaviour changed
 - Date: 2026-11-11
 - Owners: Sidekick application maintainers
 
@@ -9,7 +9,7 @@
 ADR-001 and ADR-002 were written in August 2026, when Sidekick had three model-facing surfaces (a public MCP
 server, a run-scoped agent server and an in-process Chat gateway), a React web application and 47 public tools.
 Since then the old web shell was removed (D-082) and so was the chat runtime with everything that served only it
-(D-084). Both ADRs kept their "Accepted" status and carry dated "Current state" notes, but their bodies still
+(D-084). Both ADRs carried dated "Current state" notes, but their bodies still
 describe surfaces that no longer exist. ADR-004 requires that a decision which replaces another is marked as
 superseded; this ADR records what those two ADRs now stand for, so that a reader has one current statement.
 
@@ -65,9 +65,9 @@ it is the only HTTP API that remains beside `/mcp`.
 
 ## Supersession
 
-- ADR-001 is superseded in part: surfaces 2 (agent server) and 3 (Chat gateway) and the "47 tools" figure no longer
+- ADR-001 is superseded (now in `history/`): surfaces 2 (agent server) and 3 (Chat gateway) and the "47 tools" figure no longer
   apply. Its stdio entrance, token handling and neutral manifest remain in force.
-- ADR-002 is superseded in part: the agent profile, the Chat gateway, the React application as a consumer and the
+- ADR-002 is superseded (now in `history/`): the agent profile, the Chat gateway, the React application as a consumer and the
   "47 tools" figure no longer apply. Its curated-contract and shared-use-case rules remain in force.
 
 ## Evidence

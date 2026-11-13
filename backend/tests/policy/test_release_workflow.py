@@ -16,6 +16,7 @@ pytestmark = pytest.mark.policy
 REPO = Path(__file__).resolve().parents[3]
 WORKFLOWS = REPO / ".github" / "workflows"
 RELEASE = WORKFLOWS / "release-image.yml"
+GATES = WORKFLOWS / "release-gates.yml"
 SIGNING_SECRETS = (
     "ANDROID_KEYSTORE_BASE64",
     "ANDROID_KEYSTORE_PASSWORD",
@@ -31,6 +32,16 @@ def workflow() -> dict[Any, Any]:
 
 def steps(job: str) -> list[dict[str, Any]]:
     return workflow()["jobs"][job]["steps"]
+
+
+def gates_workflow() -> dict[Any, Any]:
+    """The reusable workflow that release-image.yml calls as its `gates` job."""
+
+    return yaml.safe_load(GATES.read_text(encoding="utf-8"))
+
+
+def gate_steps() -> list[dict[str, Any]]:
+    return gates_workflow()["jobs"]["gates"]["steps"]
 
 
 def test_the_workflow_is_manual_and_has_a_dry_run() -> None:
@@ -85,10 +96,13 @@ def test_jobs_run_source_approval_ci_and_drill_then_gates_apk_image_bundle() -> 
 def test_the_gates_check_the_version_and_signing_check_the_secrets_before_anything_is_built() -> (
     None
 ):
-    text = "\n".join(str(step.get("run", "")) for step in steps("gates"))
+    text = "\n".join(str(step.get("run", "")) for step in gate_steps())
     assert "tools/check-version-sync.py" in text and "--release" in text
     # The gates run repository scripts, so they never see a secret; another job checks them.
-    assert "secrets." not in yaml.safe_dump(workflow()["jobs"]["gates"])
+    # The caller passes inputs only, and the called workflow has no secret to receive.
+    assert "secrets." not in yaml.safe_dump(gates_workflow())
+    assert "secrets" not in workflow()["jobs"]["gates"]
+    assert "secrets" not in gates_workflow()[True]["workflow_call"]
     check = steps("secrets-check")
     assert not any("checkout" in step.get("uses", "") for step in check)
     env = str(check[0]["env"])
@@ -221,7 +235,7 @@ def test_patch_versions_are_released_like_any_other_version() -> None:
 
 
 def run_gate_step(prefix: str, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
-    step = next(s for s in steps("gates") if s.get("name", "").startswith(prefix))
+    step = next(s for s in gate_steps() if s.get("name", "").startswith(prefix))
     bash = shutil.which("bash")
     if bash is None:
         pytest.skip("bash is needed to run the workflow steps")
@@ -252,7 +266,7 @@ def test_the_version_has_no_leading_zeros(version: str, accepted: bool) -> None:
     result = run_gate_step("Check the version format", {"INPUT_VERSION": version})
     assert (result.returncode == 0) is accepted, result.stderr
     # Every other check of the gates relies on this one coming first.
-    names = [s.get("name", "") for s in steps("gates")]
+    names = [s.get("name", "") for s in gate_steps()]
     assert names.index("Check the version format") < names.index(
         "Refuse a breaking migration class for a patch release"
     )
@@ -261,7 +275,7 @@ def test_the_version_has_no_leading_zeros(version: str, accepted: bool) -> None:
 
 
 def patch_rule(version: str, migration_class: str) -> subprocess.CompletedProcess[str]:
-    step = next(s for s in steps("gates") if s.get("name", "").startswith("Refuse a breaking"))
+    step = next(s for s in gate_steps() if s.get("name", "").startswith("Refuse a breaking"))
     bash = shutil.which("bash")
     if bash is None:
         pytest.skip("bash is needed to run the workflow steps")
@@ -297,8 +311,7 @@ def test_a_patch_release_may_only_declare_the_expand_migration_class(
 
 
 def test_every_gate_of_a_real_release_still_runs_for_a_patch() -> None:
-    gates = workflow()["jobs"]["gates"]
-    text = "\n".join(str(step.get("run", "")) for step in gates["steps"])
+    text = "\n".join(str(step.get("run", "")) for step in gate_steps())
     for needed in (
         "check-version-sync.py",
         "check-release-migration-class.py",
@@ -746,9 +759,7 @@ def git(repo: Path, *args: str) -> None:
 def version_order(
     tmp_path: Path, tags: list[str], version: str
 ) -> subprocess.CompletedProcess[str]:
-    step = next(
-        s for s in steps("gates") if s.get("name", "").startswith("Require a version above")
-    )
+    step = next(s for s in gate_steps() if s.get("name", "").startswith("Require a version above"))
     bash = shutil.which("bash")
     if bash is None or shutil.which("git") is None:
         pytest.skip("bash and git are needed to run the workflow steps")

@@ -2,7 +2,7 @@ import type { WorkLabels } from "../shared/labels";
 import "./new-task-input.css";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
 import { useToolSupport } from "../../mcp-apps/tool-support";
-import { RowMenuTip } from "../board/board-card";
+import { RowMenuTip } from "../shared/row-menu";
 import type { WorkTransport } from "../transport/transport";
 import { StepCreate } from "../steps/step-create";
 import { useTaskSteps } from "../steps/use-task-steps";

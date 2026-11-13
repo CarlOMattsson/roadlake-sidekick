@@ -1,5 +1,5 @@
 /**
- * The license display state, for the phone (see docs/decisions/log.md D-083). Claude's app document carries it as a meta; the phone has no such
+ * The license display state, for the phone (see docs/decisions/log.md D-083: license terms). Claude's app document carries it as a meta; the phone has no such
  * document, so it reads `GET /companion/v1/license` at the start and on every return to the foreground and declares the
  * answer the way the backend does (license-state.ts), so the coin and the row read one answer. A server that has no
  * route (older: 404) or answers nothing Sidekick knows removes the declaration: nothing is drawn. No answer at all (no

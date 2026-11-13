@@ -9,7 +9,7 @@ import {
   RowMenuButton,
   rowMenuHandlers,
   rowMenuHint,
-} from "../board/board-card";
+} from "../shared/row-menu";
 import { stepActionsLabelsFor } from "../steps/step-actions-labels";
 import type { StepUndo } from "../steps/steps-state";
 import type { WorkStep, WorkTransport } from "../transport/transport";

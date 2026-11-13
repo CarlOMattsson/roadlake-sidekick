@@ -4,14 +4,16 @@
 //
 // The prefix counts only where it starts a name: "search-", "match-", "touch-", "each-" or
 // "--branch-" never match, because the character before "ch-" is part of the same word.
-import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { sourceFiles } from "./helpers/source-files";
-
-const frontendDir = path.resolve(import.meta.dirname, "..");
-const repoDir = path.resolve(frontendDir, "..");
+import {
+  fileExists,
+  frontendDir,
+  readText,
+  repoDir,
+  sourceFiles,
+} from "./helpers/source-files";
 
 const legacyPrefix = /(?<![A-Za-z0-9_$-])(?:--)?ch-/g;
 
@@ -19,7 +21,7 @@ const sourceExtensions = new Set([".ts", ".tsx", ".css", ".html", ".json"]);
 
 function legacyHits(files: string[]): string[] {
   return files.flatMap((file) => {
-    const text = readFileSync(file, "utf8");
+    const text = readText(file);
     return [...text.matchAll(legacyPrefix)].map((match) => {
       const line = text.slice(0, match.index).split("\n").length;
       const excerpt = text.slice(match.index, match.index + 40).split(/\s/)[0];
@@ -45,7 +47,7 @@ describe("CSS prefix policy (sk-, never ch-)", () => {
       "backend/src/sidekick/mcp/apps/sidekick.html",
     );
     const built = [
-      ...(existsSync(committedApp) ? [committedApp] : []),
+      ...(fileExists(committedApp) ? [committedApp] : []),
       ...sourceFiles(path.join(frontendDir, "dist-mcp-app"), /\.css$/),
       ...sourceFiles(path.join(frontendDir, "dist-mobile"), /\.css$/),
     ];

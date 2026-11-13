@@ -3,7 +3,7 @@ import type { AppLocale } from "./app-locale";
 /**
  * Words of the license signal (license-state.ts, license-mark.tsx). Kept next to it, not in @/i18n, so the MCP App
  * bundle does not pull in the Sidekick app catalogue. The type makes the Swedish and English sets identical. Swedish is
- * the default. The words are "licens" and "Köp licens"; never "stöd", "donation" or "tips" (see docs/decisions/log.md D-083).
+ * the default. The words are "licens" and "Köp licens"; never "stöd", "donation" or "tips" (see docs/decisions/log.md D-083: license terms).
  */
 export type LicenseLabels = {
   /** The coin's accessible name. The coin has no text of its own. */

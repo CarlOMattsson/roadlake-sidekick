@@ -14,6 +14,7 @@ from .base import SCHEMA, Base
 
 class UserRow(Base):
     __tablename__ = "users"
+    # SQLAlchemy's declarative base types `__table_args__` as an instance attribute.
     __table_args__: ClassVar[dict[str, str]] = {  # pyright: ignore[reportIncompatibleVariableOverride]
         "schema": SCHEMA
     }

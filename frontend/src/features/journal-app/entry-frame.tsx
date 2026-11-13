@@ -56,7 +56,7 @@ export function EntryFrame({
   const [cause, setCause] = useState<unknown>();
   const [entry, setEntry] = useState<JournalEntry>();
   const [attempt, setAttempt] = useState(0);
-  // Editing by hand (see docs/decisions/log.md D-076): which form is open, how the last write failed, what it changed, and its key.
+  // Editing by hand (see docs/decisions/log.md D-076: the journal is written by hand, no AI): which form is open, how the last write failed, what it changed, and its key.
   const [mode, setMode] = useState<"view" | "edit" | "append">("view");
   const [editFailure, setEditFailure] = useState<
     ReturnType<typeof writeFailure> | undefined

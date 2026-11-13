@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { copyTime } from "../../mcp-apps/app-timezone";
 import { WorkEmpty } from "../shared/work-empty";
 import { type WorkLabels } from "../shared/labels";
-import { RowMenuTip } from "../board/board-card";
+import { RowMenuTip } from "../shared/row-menu";
 import { cardKey } from "../shared/work-items";
 import {
   type WorkAgendaFrame,

@@ -68,7 +68,7 @@ export function DayFrame({
   // ⋯ holds "Kontroll", and the update reminder and the license row when Control is off and the card is full size.
   const hasMore =
     Boolean(control) || (fullscreen && (moreMark.inMenu || licenseInMenu));
-  // Writing by hand (see docs/decisions/log.md D-076): the + menu, the open form, and the line after a saved entry.
+  // Writing by hand (see docs/decisions/log.md D-076: the journal is written by hand, no AI): the + menu, the open form, and the line after a saved entry.
   const [addOpen, setAddOpen] = useState(false);
   const [composing, setComposing] = useState(false);
   const [created, setCreated] = useState(false);
@@ -220,7 +220,7 @@ export function DayFrame({
           )
       : undefined;
 
-  // The day's + (see docs/decisions/log.md D-076): with a transport that can write, it also holds writing by hand. Together with Claude it
+  // The day's + (see docs/decisions/log.md D-076: the journal is written by hand, no AI): with a transport that can write, it also holds writing by hand. Together with Claude it
   // opens a two-item menu; alone it opens the form. Without a writing transport it is the old "Tell Claude more".
   const canWrite = transport.writeEntry !== undefined && !failedDate;
   const tellClaudeAction = onTellClaude

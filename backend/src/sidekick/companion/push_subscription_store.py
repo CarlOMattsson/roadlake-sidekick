@@ -8,9 +8,10 @@ written here and never read back out: the lookups return hosts and ids.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -112,7 +113,7 @@ def revoke_for_device(session: Session, user_id: UUID, device_id: UUID, now: dat
         .values(revoked_at=now, updated_at=now)
         .execution_options(synchronize_session=False)
     )
-    return bool(result.rowcount)  # type: ignore[attr-defined]
+    return bool(cast(CursorResult[Any], result).rowcount)
 
 
 def _pairing_of(session: Session, user_id: UUID, device_id: UUID) -> UUID | None:

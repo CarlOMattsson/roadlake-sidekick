@@ -6,10 +6,11 @@ import {
   RowMenuButton,
   rowMenuHandlers,
   rowMenuHint,
-} from "../../board/board-card";
+} from "../../shared/row-menu";
 import { cardKey, type AgendaBucket } from "../../shared/work-items";
 import { domainAccentOf, type WorkItemRecord } from "../../transport/transport";
-import { RecordMeta, RecordTitle } from "../../board/board";
+import { RecordTitle } from "../../board/board-card";
+import { RecordMeta } from "../../shared/record-meta";
 import { OpenChevron } from "../../tasks/task-detail-controls";
 import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
 import { RowMenuPanel } from "./row-menu-panel";

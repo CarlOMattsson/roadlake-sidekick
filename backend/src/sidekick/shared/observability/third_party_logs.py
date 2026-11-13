@@ -15,7 +15,7 @@ the rule is an allowlist applied where every handler sees it, at record creation
 """
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 THIRD_PARTY_LOG = "third_party_log"
 _OWN_LOGGERS = ("sidekick", "sidekick.")
@@ -50,10 +50,10 @@ _UVICORN_LABELS: tuple[tuple[str, str], ...] = (
 def exception_class(exc_info: object) -> str | None:
     """The class name of a record's `exc_info`, or None; never the message or the traceback."""
 
-    if isinstance(exc_info, tuple) and len(exc_info) == 3:  # pyright: ignore[reportUnknownArgumentType]
-        exc_type = exc_info[0]  # pyright: ignore[reportUnknownVariableType]
-        if isinstance(exc_type, type):
-            return exc_type.__name__
+    if isinstance(exc_info, tuple):
+        parts = cast(tuple[object, ...], exc_info)
+        if len(parts) == 3 and isinstance(parts[0], type):
+            return parts[0].__name__
     return None
 
 

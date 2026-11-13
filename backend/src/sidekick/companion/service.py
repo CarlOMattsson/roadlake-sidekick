@@ -29,7 +29,8 @@ from sidekick.shared.errors.core import RateLimitedError, RefusedError, Sidekick
 from sidekick.shared.types import TxSession, new_uuid7, utc_now
 
 PAIRING_TTL = timedelta(minutes=10)
-# A device credential lives 30 days unless the operator says otherwise, at most 90 (D-077). It is
+# A device credential lives 30 days unless the operator says otherwise, at most 90 (D-077: 30-day
+# device credential). It is
 # never perpetual: the device renews its own credential in the last `RENEWAL_WINDOW` before it
 # expires (`renew`), and pairs again if it let the credential lapse.
 DEFAULT_DEVICE_LIFETIME_DAYS = 30
@@ -364,7 +365,8 @@ class CompanionDeviceService:
             row = self._store.device(session, user_id, device_id)
             if row is None:
                 return False
-            # The device's push subscription goes with it (D-078), also when the credential was
+            # The device's push subscription goes with it (D-078: push through UnifiedPush), also
+            # when the credential was
             # already revoked: revoking again is idempotent and never leaves a live endpoint.
             self._store.revoke_push_subscription(session, user_id, device_id, self._clock())
             if row.revoked_at is None:

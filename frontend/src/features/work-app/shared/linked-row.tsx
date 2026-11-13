@@ -7,7 +7,7 @@ import {
   RowMenuTip,
   rowMenuHandlers,
   rowMenuHint,
-} from "../board/board-card";
+} from "./row-menu";
 
 /** The tip's and the hint's words: the Task row's, with this list's "a row" in place of "a task". */
 function rowLabels(t: WorkLabels): WorkLabels {

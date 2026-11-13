@@ -1,17 +1,16 @@
 // Every testMatch/testIgnore pattern of the Playwright configs must hit at least one file under its testDir.
 // A pattern for a file that is missing (or not shipped) otherwise passes silently:
 // Playwright just runs fewer specs. Configs that are not in this checkout are skipped.
-import { readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { sourceFiles } from "./helpers/source-files";
+import {
+  entryNames,
+  frontendDir as root,
+  sourceFiles,
+} from "./helpers/source-files";
 
-const root = path.resolve(import.meta.dirname, "..");
-
-const configNames = readdirSync(root).filter((name) =>
-  /^playwright\..*\.config\.ts$/.test(name),
-);
+const configNames = entryNames(root, /^playwright\..*\.config\.ts$/);
 
 type Pattern = string | RegExp;
 type Scope = {

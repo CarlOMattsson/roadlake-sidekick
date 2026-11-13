@@ -3,7 +3,8 @@
 `reorder_work_board_column` calls `TaskBoardService.reorder_board_column`; the board has no HTTP
 route, so this MCP tool is the only way in. It is hidden from the model
 (`visibility=["app"]`; the owner's own reordering is a small change that applies directly,
-D-057): the open board app sends the complete column with each task's observed version. The
+D-057 (minor changes apply directly)): the open board app sends the complete column with each
+task's observed version. The
 use case owns the write scope, the owner filter, the completeness and version checks, the
 idempotency record and the content-free audit event, so this adapter only shapes input and
 output and hands over the request's correlation id.

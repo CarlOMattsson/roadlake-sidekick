@@ -20,8 +20,8 @@
 #   secrets-check -> real run, environment `release-signing`: the four signing secrets and the pinned certificate
 #               fingerprint exist (no checkout, no repository code).
 #   ci/drill -> ci.yml and release-drill.yml, called as reusable workflows on exactly this commit (real run only).
-#   gates    -> version sync, input checks, migration class and license public key. Nothing is built before
-#               all of these pass.
+#   gates    -> version sync, input checks, migration class and license public key (release-gates.yml, called as a
+#               reusable workflow: it signs nothing and gets no secret). Nothing is built before all of these pass.
 #   android  -> builds ONLY an unsigned, R8-minified release APK (npm and Gradle dependencies run here, so nothing
 #               here ever sees a secret) and uploads it.
 #   sign-apk -> real run, environment `release-signing`: aligns and signs that APK with the pinned build-tools of the runner image and the owner's key,
@@ -40,6 +40,10 @@
 # token and no id-token and no secret; only release, sign-apk and sign-bundle can push or sign, they never run in a
 # dry run, and none of the jobs that hold a secret or an id-token runs repository code. The environment
 # `release-signing` is limited to the main branch, so a workflow edited on another branch cannot reach its secrets.
+# Only the parts that sign nothing and hold no secret are split into reusable workflows (ci, drill, gates). A reusable
+# workflow would become the signer identity of every signature made inside it (the OIDC claim names the called file),
+# so everything that signs, attests, pushes or reads a signing secret stays in this file, with no local action either:
+# the jobs release, sign-apk, bundle and sign-bundle run only steps written out here and pinned remote actions.
 # There is deliberately no tag or push trigger, and the workflow never creates a tag or a GitHub release:
 # the owner pushes the signed tag and creates the release from the bundle (docs/maintainers/release.md).
 #
@@ -185,149 +189,19 @@ jobs:
       packages: read
 
   gates:
+    # Input, version, migration and license-key checks, in a workflow of their own (release-gates.yml): it signs
+    # nothing and gets no secret, so it is called like ci and drill and never touches the signer identity.
     needs: [source, ci, drill, signing-check, secrets-check]
     # A skipped ci, drill, signing-check or secrets-check (dry run) is fine; a failed one is not.
     if: ${{ !cancelled() && needs.source.result == 'success' && (inputs.dry_run || (needs.ci.result == 'success' && needs.drill.result == 'success' && needs.signing-check.result == 'success' && needs.secrets-check.result == 'success')) }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    uses: ./.github/workflows/release-gates.yml
     permissions:
       contents: read
-    outputs:
-      schema_head: ${{ steps.meta.outputs.schema_head }}
-      min_upgrade_from: ${{ steps.meta.outputs.min_upgrade_from }}
-      image: ${{ steps.meta.outputs.image }}
-      version: ${{ steps.meta.outputs.version }}
-      build_commit: ${{ steps.meta.outputs.build_commit }}
-      build_date: ${{ steps.meta.outputs.build_date }}
-    env:
-      INPUT_VERSION: ${{ inputs.version }}
-      INPUT_MIGRATION_CLASS: ${{ inputs.migration_class }}
-      INPUT_PREVIOUS_RELEASE: ${{ inputs.previous_release }}
-      DRY_RUN: ${{ inputs.dry_run }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # Full history and tags: the migration class is compared with the previous release.
-          fetch-depth: 0
-          persist-credentials: false
-
-      - name: Check the version format
-        # SemVer without leading zeros (v1.2.01 would slip past the patch rule and the version order below). First
-        # step of the gates, so every later step can rely on it. Runs in a dry run too.
-        run: |
-          set -euo pipefail
-          if ! [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "version must look like v1.2.3 (numbers without leading zeros)" >&2
-            exit 1
-          fi
-
-      - name: Refuse a breaking migration class for a patch release
-        # A patch fixes without a one-way schema step: it may declare only `expand`. The migration check below
-        # compares the declared class with the migrations themselves, so a patch with no migrations declares `expand`.
-        run: |
-          set -euo pipefail
-          if [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.[1-9][0-9]*$ ]] && [ "$INPUT_MIGRATION_CLASS" != "expand" ]; then
-            echo "${INPUT_VERSION} is a patch release; a patch may only declare migration_class expand. Ship a breaking migration with the next minor or major version." >&2
-            exit 1
-          fi
-
-      - name: Require a version above the highest release tag
-        # Versions only go up: the new version must be strictly higher (SemVer order) than every existing vX.Y.Z tag.
-        # No tag at all is the first release. Runs in a dry run too.
-        run: |
-          set -euo pipefail
-          highest="$(git tag --list 'v*' | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -n 1 || true)"
-          if [ -n "$highest" ] && { [ "$highest" = "$INPUT_VERSION" ] || [ "$(printf '%s\n%s\n' "$highest" "$INPUT_VERSION" | sort -V | tail -n 1)" != "$INPUT_VERSION" ]; }; then
-            echo "${INPUT_VERSION} is not higher than the highest release tag ${highest}; versions only go up" >&2
-            exit 1
-          fi
-
-      - name: Validate inputs and derive metadata
-        id: meta
-        env:
-          OWNER: ${{ github.repository_owner }}
-        run: |
-          set -euo pipefail
-          if ! [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "version must look like v1.2.3" >&2
-            exit 1
-          fi
-          case "$INPUT_MIGRATION_CLASS" in
-            expand | breaking) ;;
-            *) echo "migration_class must be expand or breaking" >&2; exit 1 ;;
-          esac
-          if ! [[ "$INPUT_PREVIOUS_RELEASE" =~ ^(|none|v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]]; then
-            echo "previous_release must be empty, none or a vX.Y.Z tag" >&2
-            exit 1
-          fi
-          # The tag is v + the release version in backend/pyproject.toml (the single version source).
-          source_version="$(python3 -c 'import tomllib; print(tomllib.load(open("backend/pyproject.toml", "rb"))["project"]["version"])')"
-          if [ "$INPUT_VERSION" != "v${source_version}" ]; then
-            echo "version ${INPUT_VERSION} does not match backend/pyproject.toml (${source_version}); bump the version on main first" >&2
-            exit 1
-          fi
-          # Oldest installed version this release can be updated from (stepping-stone rule, checked by
-          # deploy/selfhost/update.sh against the installed image's version label). Never above this release.
-          min_from="$(tr -d '[:space:]' < deploy/selfhost/min-upgrade-from.txt)"
-          MIN_FROM="$min_from" SOURCE_VERSION="$source_version" python3 - <<'PY'
-          import os, re, sys
-          pattern = r"\d+\.\d+\.\d+"
-          lowest, version = os.environ["MIN_FROM"], os.environ["SOURCE_VERSION"]
-          if not (re.fullmatch(pattern, lowest) and re.fullmatch(pattern, version)):
-              sys.exit("deploy/selfhost/min-upgrade-from.txt must hold a plain X.Y.Z version")
-          if tuple(map(int, lowest.split("."))) > tuple(map(int, version.split("."))):
-              sys.exit("min-upgrade-from " + lowest + " is newer than the release " + version)
-          PY
-          # Newest migration file name without .py; the zero-padded prefix makes a plain sort correct.
-          head_file="$(find migrations -maxdepth 1 -name '[0-9]*.py' -printf '%f\n' | sort | tail -n 1)"
-          if [ -z "$head_file" ]; then
-            echo "no migration files found" >&2
-            exit 1
-          fi
-          {
-            echo "schema_head=${head_file%.py}"
-            echo "min_upgrade_from=${min_from}"
-            echo "image=ghcr.io/${OWNER,,}/roadlake-sidekick"
-            # The OCI version label is the SemVer from the tag, without the leading v.
-            echo "version=${INPUT_VERSION#v}"
-            # Commit hash and commit date (ISO 8601) are baked into the image for the update reminder.
-            echo "build_commit=$(git rev-parse --short=7 HEAD)"
-            echo "build_date=$(git log -1 --format=%cI HEAD)"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Check that every copy of the version agrees
-        # backend, the package, frontend/package*.json and the Android versionName/versionCode (derived from
-        # package.json) must all be this version. A real run also needs a dated CHANGELOG.md section for it.
-        run: |
-          set -euo pipefail
-          if [ "$DRY_RUN" = "true" ]; then
-            python3 tools/check-version-sync.py --tag "$INPUT_VERSION"
-          else
-            python3 tools/check-version-sync.py --tag "$INPUT_VERSION" --release
-          fi
-
-      - name: Check the migration class against the migrations
-        run: |
-          set -euo pipefail
-          echo "::warning title=Protect v* tags::The migration check compares with the previous vX.Y.Z tag and trusts it. Protect v* tags with a tag protection rule (or ruleset) in the repository settings, or a moved tag can make the comparison empty. See CONTRIBUTING.md."
-          args=(--release-class "$INPUT_MIGRATION_CLASS")
-          if [ -n "$INPUT_PREVIOUS_RELEASE" ]; then
-            args+=(--base "$INPUT_PREVIOUS_RELEASE")
-          fi
-          python3 tools/check-release-migration-class.py "${args[@]}"
-
-      - name: Require the licensor's license public key
-        # With the placeholder every license key would be unlicensed in the published image.
-        run: |
-          set -uo pipefail
-          if python3 tools/check-license-public-key.py; then
-            exit 0
-          fi
-          if [ "$DRY_RUN" = "true" ]; then
-            echo "::warning title=License public key::dry run continues, but a real release is refused until the licensor's public key is set"
-            exit 0
-          fi
-          exit 1
+    with:
+      version: ${{ inputs.version }}
+      migration_class: ${{ inputs.migration_class }}
+      previous_release: ${{ inputs.previous_release }}
+      dry_run: ${{ inputs.dry_run }}
 
   android:
     # Builds the unsigned APK and nothing else. npm and Gradle run third-party code here, so this job has no secret and
@@ -345,7 +219,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22.22.1, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with: { node-version-file: .node-version, cache: npm, cache-dependency-path: frontend/package-lock.json }
       - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin

@@ -419,7 +419,7 @@
   flex-wrap: wrap;
   align-items: center;
   row-gap: 0.125rem;
-  /* Each part after the first starts with its " · " (board-card.tsx), so a wrapped line never ends with a dot;
+  /* Each part after the first starts with its " · " (record-meta.tsx), so a wrapped line never ends with a dot;
      the gap sets the space before each part. */
   column-gap: 0.25em;
   min-width: 0;

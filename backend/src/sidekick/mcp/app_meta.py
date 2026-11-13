@@ -79,7 +79,8 @@ def with_update_reminder(html: str, reminder: UpdateReminder | None) -> str:
 
 
 def with_license(html: str, view: LicenseView | None) -> str:
-    """Declares the instance's license state (D-081) as compact JSON: `state`, `licensee`, `kind`
+    """Declares the instance's license state (D-081: offline signed license keys) as compact JSON:
+    `state`, `licensee`, `kind`
     and `expires`, with `null` for what the state does not carry. Never the key itself.
 
     The licensee is a free-text name, so the JSON is escaped for an HTML attribute. Without the

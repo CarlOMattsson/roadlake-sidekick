@@ -35,8 +35,8 @@ The records are the files in [`adr/`](adr/); the [index](#adr-index) below lists
 
 | ADR | Status | Subject |
 | --- | --- | --- |
-| [ADR-001](adr/ADR-001-local-mcp-surfaces.md) | Accepted; Superseded in part by ADR-009 | Separate MCP surfaces by trust boundary |
-| [ADR-002](adr/ADR-002-curated-mcp-contract.md) | Accepted; Superseded in part by ADR-009 | A curated MCP contract over shared use cases |
+| [ADR-001](adr/history/ADR-001-local-mcp-surfaces.md) | Superseded by ADR-009 | Separate MCP surfaces by trust boundary (in `history/`) |
+| [ADR-002](adr/history/ADR-002-curated-mcp-contract.md) | Superseded by ADR-009 | A curated MCP contract over shared use cases (in `history/`) |
 | [ADR-003](adr/history/ADR-003-ai-owned-local-qa-lifecycle.md) | Superseded by D-082 | Persistent browser QA environment (in `history/`) |
 | [ADR-004](adr/ADR-004-documentation-authority-and-sync.md) | Accepted | Executable truth versus explanatory documentation |
 | [ADR-005](adr/ADR-005-native-android-app.md) | Accepted | Official Android app |
@@ -48,5 +48,5 @@ The records are the files in [`adr/`](adr/); the [index](#adr-index) below lists
 
 ## Numbering
 
-Numbers are never reused. ADR-003 is not missing: it is superseded and lives in `history/`, so the active ADRs in this
-folder skip from 002 to 004. A new ADR takes the next free number.
+Numbers are never reused. ADR-001 to ADR-003 are not missing: they are superseded and live in `history/`, so the active ADRs in this
+folder start at 004. A new ADR takes the next free number.

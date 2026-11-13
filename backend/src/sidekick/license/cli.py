@@ -1,4 +1,4 @@
-"""Operator commands for the instance's license key (D-081).
+"""Operator commands for the instance's license key (D-081: offline signed license keys).
 
     python -m sidekick.license.cli set [KEY]     store a key (read from stdin when KEY is left out)
     python -m sidekick.license.cli show          print the license state

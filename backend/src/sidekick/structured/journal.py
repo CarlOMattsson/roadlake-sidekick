@@ -318,7 +318,8 @@ def labeled_entry_record(
     *,
     include_content: bool,
 ) -> JournalEntryRecord:
-    """The entry record with its links named; names need the kind's read scope (D-060)."""
+    """The entry record with its links named; names need the kind's read scope (D-060: Claude reads
+    the owner's own text within its scope)."""
 
     labels = (
         container.journal_relations.get_relation_labels(actor, relations)

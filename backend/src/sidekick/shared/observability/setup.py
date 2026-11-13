@@ -40,7 +40,8 @@ SAFE_LOG_FIELDS = frozenset(
         "http_status",
         "mcp_tool_name",
         # MCP request accounting (sidekick.mcp.request): the protocol method, the error class and
-        # a closed error code. Never arguments, results, titles, or Journal text (D-058).
+        # a closed error code. Never arguments, results, titles, or Journal text (D-058: logs and
+        # telemetry never carry user content).
         "mcp_method",
         "mcp_error_class",
         "mcp_error_code",
@@ -57,14 +58,16 @@ SAFE_LOG_FIELDS = frozenset(
         # Never a token, pairing secret, device label, task id, title or query value.
         "companion_operation",
         "companion_error",
-        # Push delivery (ADR-005, D-078): the fixed kind (`w` or `r`), the endpoint's host alone, a
+        # Push delivery (ADR-005, D-078: push through UnifiedPush): the fixed kind (`w` or `r`),
+        # the endpoint's host alone, a
         # closed outcome and the endpoint's HTTP status. Never the endpoint URL, topic or payload.
         "push_kind",
         "push_host",
         "push_outcome",
         "push_status",
         "outcome",
-        # License key (D-081, sidekick.license): a closed state and a closed reject reason. Never
+        # License key (D-081: offline signed license keys, sidekick.license): a closed state and a
+        # closed reject reason. Never
         # the key, its signature, the licensee or the key id.
         "license_state",
         "license_reason",
@@ -458,7 +461,8 @@ def stop_span_export(provider: TracerProvider) -> None:
             )
     try:
         replace_active_span_processor(provider, SynchronousMultiSpanProcessor())
-        provider.add_span_processor = lambda _processor: None  # type: ignore[method-assign]
+        # Later `add_span_processor` calls must not reach the redacting chain: a method is replaced.
+        provider.add_span_processor = lambda _processor: None  # pyright: ignore[reportAttributeAccessIssue]
     except Exception as error:
         _LOG.error(
             "telemetry_export_stop_incomplete",

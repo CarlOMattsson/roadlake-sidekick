@@ -32,7 +32,7 @@ import { ErrorNotice } from "./ui/states";
 import "./license-mark.css";
 
 /**
- * The license signal's parts (see docs/decisions/log.md D-083):
+ * The license signal's parts (see docs/decisions/log.md D-083: license terms):
  * - `LicenseMark`: a small amber coin with "$", 16 px in a 44 px target, no text, no animation. It stands only in the
  *   free version and after the license ran out, never on ⋯ (the update dot's place).
  * - `LicenseRow`: the one place with words, after the update row: Control's foot, the ⋯ panel when Control is off,

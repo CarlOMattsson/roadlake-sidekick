@@ -188,7 +188,8 @@ def contact_context_text(
         more = " (older links not shown)" if journal["has_more"] else ""
         lines.append(f"Journal entries: {len(entries)} newest{more}")
         lines.extend(
-            # Ids and dates here; the titles are in block 2, which the model may read (D-060).
+            # Ids and dates here; the titles are in block 2, which the model may read (D-060:
+            # Claude reads the owner's own text within its scope).
             f"- journal entry {e['id']} | {e['journal_date']}"
             for e in entries
         )

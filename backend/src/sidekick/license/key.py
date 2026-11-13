@@ -1,4 +1,5 @@
-"""License keys (D-081): a signed, copy-pasteable string that is checked without any network.
+"""License keys (D-081: offline signed license keys): a signed, copy-pasteable string that is
+checked without any network.
 
     ROADLAKE-1.<base64url(payload)>.<base64url(Ed25519 signature)>
 

@@ -262,6 +262,7 @@ def change_settings(
     for name, value in changes.items():
         if name not in ALLOWED_SETTINGS:
             raise ValidationError("unknown memory setting")
+        # The annotation says bool, but the value arrives from untyped tool arguments.
         if not isinstance(value, bool):  # pyright: ignore[reportUnnecessaryIsInstance]
             raise ValidationError("memory settings must be true or false")
     # An empty call and `paused` ask for no single domain, so any write scope is enough to proceed.

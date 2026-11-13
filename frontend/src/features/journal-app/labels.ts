@@ -174,7 +174,7 @@ export const journalEn = {
   characters: "characters",
   loading: "Loading…",
   retry: "Try again",
-  /** Writing and editing by hand (see docs/decisions/log.md D-076): the day's + menu, the new-entry form and the entry's edit forms. */
+  /** Writing and editing by hand (see docs/decisions/log.md D-076: the journal is written by hand, no AI): the day's + menu, the new-entry form and the entry's edit forms. */
   addEntry: "New entry",
   writeYourself: "Write it yourself",
   newEntryHeading: "New entry",

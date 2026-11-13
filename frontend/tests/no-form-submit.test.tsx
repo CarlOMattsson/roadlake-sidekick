@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -11,7 +10,7 @@ import type {
   RecallResult,
 } from "@/features/control-app/transport";
 import { onEnterKey } from "@/features/mcp-apps/ui/enter-key";
-import { sourceFiles } from "./helpers/source-files";
+import { featuresDir, readText, sourceFiles } from "./helpers/source-files";
 import { savedViewsLabelsSv } from "@/features/work-app/saved-views/saved-views-labels";
 import {
   fakeTransport,
@@ -178,17 +177,16 @@ describe("onEnterKey", () => {
 });
 
 describe("Every form in the MCP apps", () => {
-  const features = path.resolve(import.meta.dirname, "../src/features");
   it("acts without submission: a form's onSubmit only prevents navigation", () => {
     const offenders: string[] = [];
     for (const file of sourceFiles(
-      features,
+      featuresDir,
       (name) => name.endsWith(".tsx") && !name.includes(".test."),
     )) {
-      const text = readFileSync(file, "utf8");
+      const text = readText(file);
       for (const match of text.matchAll(/<form\b[^>]*?onSubmit=\{([^}]*)/gs)) {
         if (match[1]?.trim() !== "preventSubmit")
-          offenders.push(path.relative(features, file));
+          offenders.push(path.relative(featuresDir, file));
       }
     }
     expect(offenders).toEqual([]);

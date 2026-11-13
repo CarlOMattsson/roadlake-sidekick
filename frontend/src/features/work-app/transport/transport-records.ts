@@ -79,7 +79,7 @@ export type WorkUnsortedPage = {
  */
 export type WorkTaskCreate = Omit<Inputs["create_task"], "idempotency_key">;
 /**
- * The eight domain accent names (see docs/decisions/log.md D-061). Each has --sk-accent-<name>-line, -bg and -fg in
+ * The eight domain accent names (see docs/decisions/log.md D-061: per-domain accent colours). Each has --sk-accent-<name>-line, -bg and -fg in
  * mcp-apps/ui/tokens.css; the server sends one of these or null.
  */
 export type DomainAccent = NonNullable<

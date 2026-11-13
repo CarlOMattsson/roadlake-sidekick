@@ -180,7 +180,7 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
       />,
     );
 
-    // The Project is the part that is cut: it carries the full name as its title (board-card.tsx RecordMeta).
+    // The Project is the part that is cut: it carries the full name as its title (record-meta.tsx RecordMeta).
     const project = handleOf(taskA.title)
       .closest("li")
       ?.querySelector(".work-card-meta > .work-card-project");

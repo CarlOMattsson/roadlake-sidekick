@@ -1,4 +1,5 @@
-"""The MCP tool that sets the instance's license key (D-081): `set_license_key`.
+"""The MCP tool that sets the instance's license key (D-081: offline signed license keys):
+`set_license_key`.
 
 It calls the same use case as the companion route and the command line
 (`sidekick.license.service`). Only the installation's only active user may set the key; the tool

@@ -104,16 +104,13 @@ def set_mapper_sort_key(mapper: Mapper[Any], key: str) -> None:
 def parser_actions(parser: argparse.ArgumentParser) -> list[argparse.Action]:
     """Every action of a parser (`ArgumentParser._actions`). Why: the CLI reference is generated."""
 
-    return list(parser._actions)  # pyright: ignore[reportPrivateUsage]
+    return list(parser._actions)
 
 
 def parser_exclusive_groups(parser: argparse.ArgumentParser) -> list[list[argparse.Action]]:
     """The actions of each mutually exclusive group (`_mutually_exclusive_groups`)."""
 
-    return [
-        list(group._group_actions)  # pyright: ignore[reportPrivateUsage]
-        for group in parser._mutually_exclusive_groups  # pyright: ignore[reportPrivateUsage]
-    ]
+    return [list(group._group_actions) for group in parser._mutually_exclusive_groups]
 
 
 def is_subparsers_action(action: argparse.Action) -> bool:

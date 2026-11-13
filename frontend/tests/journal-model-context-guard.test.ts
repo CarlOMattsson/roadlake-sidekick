@@ -3,13 +3,11 @@
 // app may not use it or console at all, and no feature may pass the journal content fields
 // (summary, key_points, raw_text) to it. onModelContext is the same channel as a prop of the rooms
 // and the shell, so the same rules apply to it.
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { sourceFiles } from "./helpers/source-files";
+import { featuresDir, readText, sourceFiles } from "./helpers/source-files";
 
-const featuresDir = path.resolve(import.meta.dirname, "../src/features");
 const journalAppDir = path.join(featuresDir, "journal-app");
 
 // Reviewed exception, keyed by "<relative file>:<argument text>". The work board summary
@@ -34,7 +32,7 @@ type ModelContextCall = { rel: string; args: string };
 function loadSources(dir: string): SourceFile[] {
   return sourceFiles(dir, /\.tsx?$/).map((file) => ({
     rel: path.relative(featuresDir, file).split(path.sep).join("/"),
-    source: readFileSync(file, "utf8"),
+    source: readText(file),
   }));
 }
 

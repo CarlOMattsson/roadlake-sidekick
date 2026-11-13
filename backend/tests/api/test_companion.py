@@ -6,7 +6,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import threading
-import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
@@ -289,10 +288,17 @@ def test_concurrent_bad_pairings_cannot_overshoot_the_failure_budget(
             # budget overshoots, fewer are refused; the deadline then releases the gate and the
             # assertions below report the overshoot.
             refused = attempts - SAME_CLIENT_BUDGET
+            pending = set(tasks)
+            answered = 0
             try:
-                deadline = time.monotonic() + 5
-                while sum(task.done() for task in tasks) < refused and time.monotonic() < deadline:
-                    await asyncio.sleep(0.01)  # polling interval
+                async with asyncio.timeout(5):
+                    while answered < refused:
+                        done, pending = await asyncio.wait(
+                            pending, return_when=asyncio.FIRST_COMPLETED
+                        )
+                        answered += len(done)
+            except TimeoutError:
+                pass
             finally:
                 gate.set()
             responses = await asyncio.gather(*tasks)

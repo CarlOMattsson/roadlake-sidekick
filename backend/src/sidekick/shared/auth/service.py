@@ -58,7 +58,8 @@ TOKEN_SCOPES = ALL_SCOPES - OPT_IN_SCOPES
 # session, personal token or MCP credential can hold them, and a companion credential holds nothing
 # else. The companion adapter maps each one to a fixed set of operations
 # (sidekick.companion.operations); the device is never handed `tasks:write` itself. `companion:push`
-# registers the device's UnifiedPush endpoint (D-078); it reaches no use case. The rooms Shopping
+# registers the device's UnifiedPush endpoint (D-078: push through UnifiedPush); it reaches no use
+# case. The rooms Shopping
 # and Journal: a read and a write capability each. The write capability is the manual writing of the
 # owner's own data (D-076: the journal is written and changed by hand in the room, no AI). A write
 # operation answers with the record it wrote, so it also needs the room's read capability
@@ -71,7 +72,8 @@ COMPANION_ROOM_SCOPES = frozenset(
         "companion:journal:write",
     }
 )
-# `companion:license` lets the device read the instance's license state and enter a key (D-081); it
+# `companion:license` lets the device read the instance's license state and enter a key (D-081:
+# offline signed license keys); it
 # reaches no domain use case. Setting the key is further limited to the instance's only owner.
 COMPANION_SCOPES = (
     frozenset(

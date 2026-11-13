@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { WorkEmpty } from "../shared/work-empty";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { cardKey } from "../shared/work-items";
-import { RowMenuTip } from "./board-card";
+import { RowMenuTip } from "../shared/row-menu";
 import { UndoMeta } from "../agenda/agenda-undo";
 import { SearchNoMatch } from "../agenda/agenda";
 import {
@@ -32,8 +32,6 @@ import type {
   WorkTransport,
 } from "../transport/transport";
 
-// The record title and meta line are shared with the agenda, which imports them from here.
-export { RecordMeta, RecordTitle } from "./board-card";
 // The board's notice and layout types live in their own modules; the agenda and the shell import them from here.
 export { failureNotice, NoticeView };
 export type { BoardAction, BoardNotice, BoardLayout };
@@ -143,12 +141,12 @@ export function BoardView({
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
-  useBoardFocus(core.focusWanted, boardRoot, heading, [
+  useBoardFocus(core.focusWanted, boardRoot, heading, {
     page,
     preview,
     busy,
     undos,
-  ]);
+  });
 
   /** The Undo of one card in place of its meta line, while it lasts. */
   function undoOf(item: WorkItemRecord) {

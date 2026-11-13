@@ -171,7 +171,7 @@ export function SettingsPanel({
           onUnpaired={onUnpaired}
           now={now}
         />
-        {/* The license row comes last, after a hairline and without a heading of its own (see docs/decisions/log.md D-083). */}
+        {/* The license row comes last, after a hairline and without a heading of its own (see docs/decisions/log.md D-083: license terms). */}
         <LicenseRow locale={locale} now={now && (() => now)} />
       </section>
     </AppFrame>

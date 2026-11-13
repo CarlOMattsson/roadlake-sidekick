@@ -9,7 +9,8 @@ from .base import SCHEMA, Base
 
 
 class InstanceLicenseRow(Base):
-    """The instance's one license record (D-081): the signed key the owner entered
+    """The instance's one license record (D-081: offline signed license keys): the signed key the
+    owner entered
     and the highest UTC date seen, which the expiry check uses so a turned-back clock revives
     nothing. A single row (`id = 1`); no owner, because the key belongs to the installation."""
 

@@ -17,7 +17,8 @@ class Base(DeclarativeBase):
 
 # Tables that stay in the database but have no ORM mapping, because nothing reads or writes them any
 # more. Dropping a table is a separate contract migration; until then the rows stay as they are and
-# the migrations keep owning the DDL. None at present: `sessions` (browser sign-in, D-082) is not
+# the migrations keep owning the DDL. None at present: `sessions` (browser sign-in, D-082: old web
+# shell removed) is not
 # in the 0.1.0 baseline. Name a table here, with the reason, instead of leaving a stale model.
 RETAINED_UNMAPPED_TABLES: frozenset[str] = frozenset()
 

@@ -49,7 +49,8 @@ app's React rooms read exactly the structured content they read in Claude:
 - `POST /companion/v1/reminders/ack`            `{"ids": [...]}` (1-50): shown; 204, idempotent,
   the owner's own only
 
-`GET`/`PUT /companion/v1/license` (the instance's license key, D-081) are in
+`GET`/`PUT /companion/v1/license` (the instance's license key, D-081: offline signed license keys)
+are in
 `sidekick.api.companion_license`; the display state also rides as `license` in the `/pair`,
 `/device` and `/device/renew` answers.
 

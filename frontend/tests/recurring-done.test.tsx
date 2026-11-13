@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { fillLabel } from "@/features/work-app/agenda/agenda-undo";
 import { isRecurringCycle } from "@/features/work-app/agenda/parts/agenda-helpers";
-import { RecordMeta } from "@/features/work-app/board/board-card";
+import { RecordMeta } from "@/features/work-app/shared/record-meta";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   taskPlaceLabelsEn,

@@ -1,7 +1,8 @@
 """Reversible record lifecycle tools: list the trash, move a record there, restore it.
 
 Permanent removal is deliberately not here (D-031: permanent removal is not an MCP tool): nothing in
-this module can reach `RecordLifecycleService.permanently_remove`, and since D-082 removed the REST
+this module can reach `RecordLifecycleService.permanently_remove`, and since D-082 (old web shell
+removed) removed the REST
 routes no public surface exposes that method. The tools call the lifecycle use case with the record
 kinds and scopes listed here. The "ask first" wording of `move_to_trash` is an instruction to the
 host model; the server enforces owner, scope, observed version and idempotency, and the move is
@@ -120,6 +121,7 @@ def _subject(kind: str, label: str | None) -> str:
 def _record(item: TrashItem, scopes: frozenset[str]) -> TrashItemRecord:
     readable = _READ_SCOPE_BY_KIND[item.kind] in scopes
     return TrashItemRecord(
+        # RecordKind also has journal_source, which this surface never lists as trashable.
         kind=item.kind.value,  # pyright: ignore[reportArgumentType]
         id=item.id,
         label=item.label if readable else None,

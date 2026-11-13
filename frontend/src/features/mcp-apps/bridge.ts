@@ -126,7 +126,7 @@ export type HostBridge = {
   /**
    * ui/update-model-context: tells the host model what the user just did, for future turns.
    * Pass only a short description of the action, for example "Flyttade uppgift <id> till Klar".
-   * Callers must never send journal text (diary entries), per docs/decisions/log.md D-058.
+   * Callers must never send journal text (diary entries), per docs/decisions/log.md D-058 (logs and telemetry never carry user content).
    * The text is capped at 500 characters, and an identical summary sent again within 2 seconds
    * is skipped. The 2026-01-26 spec defines no per-method capability flag, so support follows
    * from the negotiated protocol version. Before the handshake, after teardown, or when the

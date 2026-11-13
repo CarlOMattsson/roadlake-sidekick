@@ -1,7 +1,8 @@
 """Closed wire contracts for search results, shared by every transport.
 
 Journal hits carry ids, a journal date, where the match was found and the entry title. They
-never carry a summary, raw text or excerpt (D-058); the owner reads text through the journal
+never carry a summary, raw text or excerpt (D-058: logs and telemetry never carry user content);
+the owner reads text through the journal
 entry tools. A source hit without an entry has `title: None`.
 """
 

@@ -92,7 +92,8 @@ class WorkListService:
         Task due on a later day never count. The page is cut from the whole selected list,
         today's Tasks first and the overdue ones after them (the order the app's Idag reads),
         each group oldest due first as the agenda lists it. The totals count that whole list,
-        never the page. "Today" is the owner's calendar day (SIDEKICK_OWNER_TIMEZONE, D-063), not
+        never the page. "Today" is the owner's calendar day (SIDEKICK_OWNER_TIMEZONE, D-063: owner
+        timezone setting), not
         the caller's and not UTC.
         """
 

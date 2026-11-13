@@ -3,41 +3,22 @@
 // says, the chosen Godkänn/Avslå option takes its status tone, the decision bar is sticky only above 400 px, and
 // the quiet buttons that lead a line align with the heading. The test reads journal.css and the TSX sources; it
 // changes no CSS.
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const journalDir = path.resolve(
-  import.meta.dirname,
-  "../src/features/journal-app",
-);
-const read = (file: string) =>
-  readFileSync(path.join(journalDir, file), "utf8");
-const css = read("journal.css").replace(/\/\*[\s\S]*?\*\//g, "");
+import {
+  cssRules,
+  declares,
+  readCss,
+  ruleFor as findRule,
+} from "./helpers/css-contract";
+import { readSource } from "./helpers/source-files";
 
-type CssRule = { selectors: string; declarations: string };
-
-// Rules of a stylesheet. A rule inside an @media block is found too, because its selector is read
-// after the block's opening brace.
-function cssRules(source: string): CssRule[] {
-  return [...source.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map((match) => ({
-    selectors: (match[1] ?? "").replace(/\s+/g, " ").trim(),
-    declarations: (match[2] ?? "").replace(/\s+/g, " ").trim(),
-  }));
-}
-
-// True when the rule declares exactly `property: value` (one declaration, normalised spacing).
-function declares(rule: CssRule, property: string, value: string): boolean {
-  return rule.declarations
-    .split(";")
-    .some((declaration) => declaration.trim() === `${property}: ${value}`);
-}
+const read = (file: string) => readSource(`features/journal-app/${file}`);
+const css = readCss("journal-app/journal.css");
 
 const rules = cssRules(css);
 
-function ruleFor(selector: string): CssRule | undefined {
-  return rules.find((rule) => rule.selectors === selector);
-}
+const ruleFor = (selector: string) => findRule(rules, selector);
 
 describe("week strip fits seven days at 320 px, without scrolling", () => {
   // The week is seven equal tracks shared by the strip's width (the arrows sit on the title row above, not beside
@@ -260,13 +241,7 @@ describe("week strip fits seven days at 320 px, without scrolling", () => {
     expect(source).not.toMatch(/touchStyle/);
     expect(source.match(/minHeight/g)).toHaveLength(1);
     expect(source).toMatch(/const dayStyle = \{ minHeight: "56px" \};/);
-    const family = readFileSync(
-      path.resolve(
-        import.meta.dirname,
-        "../src/features/mcp-apps/ui/family.css",
-      ),
-      "utf8",
-    );
+    const family = readSource("features/mcp-apps/ui/family.css");
     expect(family).toMatch(
       /\.sk-iconbtn \{[^}]*width: var\(--sk-tap\);[^}]*height: var\(--sk-tap\);/,
     );
@@ -276,8 +251,8 @@ describe("week strip fits seven days at 320 px, without scrolling", () => {
 describe("Godkänn/Avslå unpressed options read in ink colour with a border ring", () => {
   const unpressed = rules.find(
     (rule) =>
-      rule.selectors.includes(".journal-check-flat") &&
-      rule.selectors.includes(':not([aria-pressed="true"])'),
+      rule.selector.includes(".journal-check-flat") &&
+      rule.selector.includes(':not([aria-pressed="true"])'),
   );
 
   it("an unpressed option uses --sk-fg text and a --sk-border ring", () => {
@@ -292,13 +267,13 @@ describe("Godkänn/Avslå unpressed options read in ink colour with a border rin
 describe("Godkänn/Avslå pair tints the chosen option with its status tone", () => {
   const approve = rules.find(
     (rule) =>
-      rule.selectors.includes(".journal-check-flat") &&
-      rule.selectors.includes('[aria-pressed="true"]:nth-child(1)'),
+      rule.selector.includes(".journal-check-flat") &&
+      rule.selector.includes('[aria-pressed="true"]:nth-child(1)'),
   );
   const decline = rules.find(
     (rule) =>
-      rule.selectors.includes(".journal-check-flat") &&
-      rule.selectors.includes('[aria-pressed="true"]:nth-child(2)'),
+      rule.selector.includes(".journal-check-flat") &&
+      rule.selector.includes('[aria-pressed="true"]:nth-child(2)'),
   );
 
   it("Godkänn (first option) uses the success tones", () => {
@@ -339,7 +314,7 @@ describe("decision bar is sticky only above 400 px", () => {
   it("above 400 px the bar is sticky at the bottom on the card surface", () => {
     expect(stickyBlock, "401 px block").not.toBe("");
     const bar = cssRules(stickyBlock).find(
-      (rule) => rule.selectors === ".sidekick-journal .journal-decision-bar",
+      (rule) => rule.selector === ".sidekick-journal .journal-decision-bar",
     );
     expect(bar, "sticky decision bar rule").toBeDefined();
     expect(declares(bar!, "position", "sticky")).toBe(true);
@@ -355,7 +330,7 @@ describe("decision bar is sticky only above 400 px", () => {
     expect(
       cssRules(outside).some(
         (rule) =>
-          rule.selectors.includes("journal-decision-bar") &&
+          rule.selector.includes("journal-decision-bar") &&
           /position: sticky/.test(rule.declarations),
       ),
     ).toBe(false);

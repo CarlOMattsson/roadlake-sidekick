@@ -1,7 +1,8 @@
 """One structured log line per MCP request, and a reason code for a transport-level 400.
 
 The line names the protocol method, the tool for `tools/call`, the outcome and a closed error
-code. It never carries arguments, results, titles or Journal text (D-058). The method must be on
+code. It never carries arguments, results, titles or Journal text (D-058: logs and telemetry never
+carry user content). The method must be on
 the fixed protocol list and the tool a registered one, so a client cannot write free text into
 a log field by choosing a method or tool name.
 """

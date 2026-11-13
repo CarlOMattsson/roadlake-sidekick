@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, and_, func, or_, select, text, update
+from sqlalchemy import ColumnElement, CursorResult, and_, func, or_, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -180,7 +181,7 @@ class SqlReminderStore:
                 .values(acked_at=now)
                 .execution_options(synchronize_session=False)
             )
-        return int(result.rowcount)  # type: ignore[attr-defined]
+        return int(cast(CursorResult[Any], result).rowcount)
 
     def queue_test(
         self,

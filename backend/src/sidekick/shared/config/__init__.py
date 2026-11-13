@@ -49,7 +49,7 @@ __all__ = [
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()  # type: ignore[call-arg]
+    return Settings()
 
 
 def get_admin_settings() -> Settings:
@@ -62,4 +62,4 @@ def get_admin_settings() -> Settings:
     complete. Not cached: a CLI process runs once.
     """
 
-    return Settings(mcp_auth_mode="pat")  # type: ignore[call-arg]
+    return Settings(mcp_auth_mode="pat")

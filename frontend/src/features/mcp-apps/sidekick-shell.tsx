@@ -433,7 +433,7 @@ export function SidekickShell({
           strip={strip}
           backSlot={showBack ? backSlot : null}
         />
-        {/* The license coin, last in the room (see docs/decisions/log.md D-083). Control holds the row itself, so the coin is not drawn there. */}
+        {/* The license coin, last in the room (see docs/decisions/log.md D-083: license terms). Control holds the row itself, so the coin is not drawn there. */}
         {inControl ? null : (
           <LicenseFoot key={nav.active} locale={locale} onShow={showLicense} />
         )}

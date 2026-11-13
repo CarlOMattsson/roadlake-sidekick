@@ -4,7 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   RowMenuTip,
   rowMenuHandlers,
-} from "@/features/work-app/board/board-card";
+} from "@/features/work-app/shared/row-menu";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 
 // The long-press tip (designsystem §3 "Listrad"): last in Agenda and Status until the quick choices are first

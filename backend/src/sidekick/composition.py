@@ -94,7 +94,8 @@ class Container:
     companion_devices: CompanionDeviceService
     push_subscriptions: PushSubscriptionService
     reminders: ReminderService
-    # The instance's license key and its display state (D-081); checked offline.
+    # The instance's license key and its display state (D-081: offline signed license keys);
+    # checked offline.
     license: LicenseService
     # Derived-memory provider, built once from settings; None when memory is off.
     memory: MemoryProvider | None
@@ -174,7 +175,8 @@ def create_container(
         timeouts=settings.database_timeouts,
     )
     if settings.push_enabled:
-        # Task and Step changes queue a wake push in the writing transaction (ADR-005, D-078).
+        # Task and Step changes queue a wake push in the writing transaction (ADR-005, D-078: push
+        # through UnifiedPush).
         install_wake_hook(
             factory, min_interval=timedelta(seconds=settings.push_wake_min_interval_seconds)
         )

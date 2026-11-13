@@ -1,3 +1,4 @@
+// Playwright runs this file outside Vitest: it reads the bundled app HTML (and font files) from disk to serve them to the simulated host.
 import { readFileSync } from "node:fs";
 import { withAppLocale } from "./mcp-host-fixture";
 import { test, expect, type Page } from "@playwright/test";

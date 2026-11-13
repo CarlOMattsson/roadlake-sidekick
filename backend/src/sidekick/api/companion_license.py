@@ -1,4 +1,5 @@
-"""`/companion/v1/license`: the instance's license key from the companion app (D-081).
+"""`/companion/v1/license`: the instance's license key from the companion app (D-081: offline
+signed license keys).
 
 Added to the companion router by `create_companion_router` (sidekick.api.companion), which supplies
 the route class, so every refusal is the same versioned problem envelope and the request log

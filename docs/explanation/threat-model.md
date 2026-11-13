@@ -75,6 +75,46 @@ registration, no web sign-in and no cookie.
 | Stdio acting as the owner without a token | The process refuses to start when the owner is unset, is not a UUID, is not a user or is disabled, and re-checks the owner on every request, so disabling the account stops a running session; it is trusted exactly as far as the database credentials in its environment (`backend/src/sidekick/mcp/stdio.py`; `test_a_missing_owner_stops_the_process_with_a_clear_message`, `test_an_owner_who_is_not_a_user_stops_the_process`, `test_disabling_the_owner_stops_a_session_that_is_already_running` in `backend/tests/mcp/test_stdio.py`). |
 | Misconfiguration | The packages bind to loopback by default, run as non-root with read-only filesystems where practical, and refuse unsafe settings at start. |
 
+## Tool list budget, sign-in cache and dependency review
+
+Three controls are easy to overlook because they sit between features rather than inside one.
+
+### The model-visible tool list has a fixed size
+
+Every tool a host shows the model costs its name, description and input schema in the model's context. If the list
+grew without anyone noticing, tool descriptions would crowd out the owner's own conversation and a long, attacker-
+influenced description would have more room to steer the model. `backend/tests/contract/test_tool_context_budget.py`
+estimates the cost from the reviewed tool snapshot (characters divided by 3.5), counts only the tools the model
+sees (tools meant for the rooms alone are not counted), and fails when the total, the longest description or the
+combined size of the output schemas passes a fixed ceiling. The ceiling is a guard against silent growth, not a
+target: raising it takes a reviewed reason in the same change, and the failure message lists every tool with its
+sizes so the cause is easy to find.
+
+### The sign-in cache and what it means for revocation
+
+When you connect Claude through GitHub sign-in, Sidekick asks GitHub whether the access grant is still valid. A
+successful answer is reused for 300 seconds by default (`SIDEKICK_MCP_OAUTH_UPSTREAM_CACHE_SECONDS`, 0 to 3,600;
+0 checks on every request), so that every tool call does not need a round trip to GitHub. The consequences:
+
+- If you revoke the grant at GitHub, it can keep working for Sidekick for up to the configured time. Lower the
+  setting, or recreate the api container (which empties the cache), if you need an immediate cut-off.
+- Only that check is cached. Whether the owner account is still enabled is checked on every request, so disabling
+  the account takes effect at once.
+- The list of allowed GitHub identities is read at startup, so removing an identity needs a restart.
+- Personal access tokens and device credentials are not affected: they are checked against Sidekick's own database
+  on each call.
+
+### Reviewing the frozen MCP library and other dependencies
+
+`fastmcp` is pinned to an exact version and left out of automatic update proposals, because it carries the tool and
+schema contract the rooms and clients rely on. A frozen dependency still collects security fixes it does not get,
+so review it on a schedule: once a quarter (and sooner when a security advisory names it), read the release notes
+and advisories of `fastmcp`, `mcp`, `httpx`, `httpx2` and the other pinned runtime libraries, and decide per item
+whether to upgrade or to record why not. An upgrade of `fastmcp` goes through the contract tests first (the
+generated tool list, the tool context budget above and the authentication tests) and is never merged on a green
+unit run alone. Image and dependency scanning in the release process covers known vulnerabilities between reviews;
+the quarterly review covers the ones that scanners do not flag and the drift that frozen versions invite.
+
 ## Phone pairing, credential renewal, push and backups
 
 The sections below take the four flows that hold a long-lived secret or leave the server and apply the same

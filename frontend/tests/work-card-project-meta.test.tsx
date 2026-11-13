@@ -1,6 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { RecordMeta } from "@/features/work-app/board/board-card";
+import { RecordMeta } from "@/features/work-app/shared/record-meta";
 import { workDate } from "@/features/mcp-apps/ui/due";
 import {
   workEn,

@@ -128,7 +128,7 @@ export function ControlApp({
   sendMessage?: (text: string) => Promise<boolean>;
   /**
    * Tells the host model, in one generic sentence, that the owner changed something in the card.
-   * Never a title or content (see docs/decisions/log.md D-058). Without a host that supports it, this does nothing.
+   * Never a title or content (see docs/decisions/log.md D-058: logs and telemetry never carry user content). Without a host that supports it, this does nothing.
    */
   onModelContext?: (summary: string) => void;
 }) {
@@ -293,7 +293,7 @@ export function ControlApp({
         </div>
         {/* The instance's settings live here: the update reminder is a row of the full view. */}
         {heading && <UpdateReminderRow locale={labels.locale} now={now} />}
-        {/* The license row comes last, after the update row (see docs/decisions/log.md D-083): the coin of every room leads here. */}
+        {/* The license row comes last, after the update row (see docs/decisions/log.md D-083: license terms): the coin of every room leads here. */}
         {heading && <LicenseRow locale={labels.locale} />}
       </div>
     </section>

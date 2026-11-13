@@ -67,7 +67,7 @@ def test_a_missing_file_is_a_usage_error(tmp_path: Path) -> None:
 
 def test_the_release_workflows_run_the_check() -> None:
     root = TOOL.parents[1]
-    workflows = [root / ".github/workflows/release-image.yml"]
+    workflows = [root / ".github/workflows/release-gates.yml"]
     assert workflows[0].exists()
     for workflow in workflows:
         assert "python3 tools/check-license-public-key.py" in workflow.read_text(encoding="utf-8")
