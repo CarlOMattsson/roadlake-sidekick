@@ -1,7 +1,7 @@
 # Two stages. The builder has uv and installs the locked dependencies into a venv; the runtime stage is the same
 # digest-pinned python base plus that venv and the app, so the image that runs holds no package manager.
 # Tag python:3.13.15-slim, pinned by manifest-list digest (resolved 2026-11-14).
-FROM python:3.13.15-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS builder
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS builder
 
 # The venv's python is a symlink to the base image's interpreter, so uv must use that one and never fetch its own.
 ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy UV_COMPILE_BYTECODE=0
@@ -19,7 +19,7 @@ RUN chmod -R a+rX ./backend/src
 RUN cd backend && uv sync --frozen --no-dev
 
 # Tag python:3.13.15-slim, pinned by manifest-list digest (resolved 2026-11-14).
-FROM python:3.13.15-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 # The image is for running an instance, so it defaults to production: the interactive API docs are off
