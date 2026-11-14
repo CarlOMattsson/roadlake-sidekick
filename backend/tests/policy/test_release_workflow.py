@@ -705,6 +705,27 @@ def test_the_owner_approves_once_at_one_gate_and_the_signing_jobs_cannot_skip_it
     assert all("secrets.ANDROID" not in yaml.safe_dump(jobs[n]) for n in outside)
 
 
+def test_a_job_that_needs_a_skippable_job_checks_its_needs_with_a_status_function() -> None:
+    """A skipped ancestor skips a job without a status function; a dry run would stop at `gates`."""
+
+    jobs = workflow()["jobs"]
+    skippable = {name for name, job in jobs.items() if "if" in job}
+    for name, job in jobs.items():
+        condition = str(job.get("if", ""))
+        if job.get("if") == NOT_DRY:
+            continue  # skipped in a dry run, and in a real run every ancestor has succeeded
+        if not needs_closure(name) & skippable:
+            continue
+        assert "!cancelled()" in condition, name
+        for need in _as_list(job.get("needs", [])):
+            if need in skippable:
+                assert f"needs.{need}.result == 'success'" in condition, (name, need)
+    # A real run never runs past a failed or skipped gate: gates decides for android and build-dry.
+    assert "inputs.dry_run" in jobs["build-dry"]["if"]
+    assert "!inputs.dry_run" not in jobs["android"]["if"]
+    assert "needs.gates.result == 'success'" in jobs["android"]["if"]
+
+
 def test_nothing_is_built_before_the_owner_has_approved() -> None:
     jobs = workflow()["jobs"]
     for name in ("ci", "drill", "secrets-check", "gates", "android", "release", "sign-apk"):
