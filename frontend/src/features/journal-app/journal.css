@@ -1,6 +1,6 @@
 .sidekick-journal {
   font: var(--font-text-md-size, 16px)/var(--font-text-md-line-height, 1.5)
-    var(--font-sans, system-ui, sans-serif);
+    var(--sk-font);
   color: var(--sk-fg);
   background: transparent;
   padding: calc(1rem + var(--host-safe-top, 0px))

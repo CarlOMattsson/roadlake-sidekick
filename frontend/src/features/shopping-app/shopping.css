@@ -13,7 +13,7 @@
   --work-radius: var(--border-radius-md, 0.5rem);
   --work-border: var(--border-width-regular, 1px);
   --work-success: var(--color-border-success, light-dark(#548651, #7fbf8a));
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
   font-size: var(--font-text-md-size, 16px);
   line-height: var(--font-text-md-line-height, 1.5);
   color: var(--work-fg);

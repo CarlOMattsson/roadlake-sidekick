@@ -30,7 +30,7 @@
     var(--color-background-primary, light-dark(#ffffff, #1c1c1e))
   );
   color: var(--w-fg);
-  font-family: var(--sk-font, var(--font-sans, system-ui, sans-serif));
+  font-family: var(--sk-font);
 }
 
 /* A grey block that breathes: a slow, gentle pulse that stops with reduced motion. */

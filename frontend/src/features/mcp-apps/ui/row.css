@@ -11,7 +11,7 @@
   padding: 0;
   list-style: none;
   color: var(--color-text-primary, light-dark(#1f1f1f, #ededed));
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
 }
 
 /* Leading slot: a 48 px touch target when it is a button, plain content otherwise. */

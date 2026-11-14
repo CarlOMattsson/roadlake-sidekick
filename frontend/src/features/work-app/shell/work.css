@@ -16,7 +16,7 @@
   --work-danger: var(--color-border-danger, light-dark(#b42318, #ff8a80));
   --work-danger-fg: var(--color-text-danger, light-dark(#7a1a12, #ffd2cc));
   --work-warning-fg: var(--color-text-warning, light-dark(#78350f, #fde68a));
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
   font-size: var(--font-text-md-size, 16px);
   line-height: 1.5;
   color: var(--work-fg);

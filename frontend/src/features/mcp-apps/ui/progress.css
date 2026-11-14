@@ -7,7 +7,7 @@
   gap: 0.5rem;
   max-width: 100%;
   color: var(--color-text-secondary, light-dark(#5f6368, #a1a1aa));
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
   font-size: var(--font-text-sm-size, 0.875rem);
   font-variant-numeric: tabular-nums;
   line-height: 1.25;

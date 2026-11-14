@@ -8,7 +8,20 @@
   --sk-line-height: 1.4;
   --sk-weight-normal: var(--font-weight-normal, 400);
   --sk-weight-semibold: var(--font-weight-semibold, 600);
-  --sk-font: var(--font-sans, system-ui, sans-serif);
+  /* The host's typeface first. The fallback names fonts a runner or a phone really has instead of system-ui and
+     sans-serif, which on a bare Linux machine resolve to DejaVu Sans, a much wider face than Arial or Roboto,
+     so the text wraps on more lines and a card outgrows the phone screen. */
+  --sk-font: var(
+    --font-sans,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Noto Sans",
+    "Liberation Sans",
+    Arial,
+    sans-serif
+  );
   --sk-weight-medium: var(--font-weight-medium, 500);
 
   /* Type scale. The only sizes and weights a view may use. Each role

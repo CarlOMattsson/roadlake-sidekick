@@ -13,7 +13,7 @@ body {
   margin: 0;
   background: Canvas;
   color: CanvasText;
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
   line-height: 1.4;
 }
 button,

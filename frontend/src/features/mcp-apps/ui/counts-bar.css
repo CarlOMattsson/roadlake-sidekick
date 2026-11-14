@@ -23,7 +23,7 @@
   min-width: 0;
   max-width: 100%;
   color: var(--sk-cb-fg);
-  font-family: var(--font-sans, system-ui, sans-serif);
+  font-family: var(--sk-font);
 }
 
 .sk-counts-bar__bar {
