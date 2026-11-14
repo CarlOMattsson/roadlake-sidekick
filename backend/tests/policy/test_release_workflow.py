@@ -16,6 +16,9 @@ pytestmark = pytest.mark.policy
 REPO = Path(__file__).resolve().parents[3]
 WORKFLOWS = REPO / ".github" / "workflows"
 RELEASE = WORKFLOWS / "release-image.yml"
+PUBLISHED_RELEASE = (
+    REPO / "tools" / "export" / "overlay" / ".github" / "workflows" / "release-image.yml"
+)
 GATES = WORKFLOWS / "release-gates.yml"
 ANDROID = WORKFLOWS / "release-android.yml"
 SIGNING_SECRETS = (
@@ -659,10 +662,10 @@ def test_each_image_platform_is_scanned_before_the_image_is_signed() -> None:
 SIGNING_ENVIRONMENT_JOBS = {"secrets-check", "sign-apk", "release", "sign-bundle"}
 
 
-def needs_closure(job: str) -> set[str]:
+def needs_closure(job: str, jobs: dict[str, Any] | None = None) -> set[str]:
     """Every job that has to succeed before `job` runs, directly or through other jobs."""
 
-    jobs = workflow()["jobs"]
+    jobs = jobs or workflow()["jobs"]
     pending = list(_as_list(jobs[job].get("needs", [])))
     seen: set[str] = set()
     while pending:
@@ -705,16 +708,24 @@ def test_the_owner_approves_once_at_one_gate_and_the_signing_jobs_cannot_skip_it
     assert all("secrets.ANDROID" not in yaml.safe_dump(jobs[n]) for n in outside)
 
 
-def test_a_job_that_needs_a_skippable_job_checks_its_needs_with_a_status_function() -> None:
-    """A skipped ancestor skips a job without a status function; a dry run would stop at `gates`."""
+@pytest.mark.parametrize("path", [RELEASE, PUBLISHED_RELEASE], ids=["repository", "published"])
+def test_a_job_that_needs_a_skippable_job_checks_its_needs_with_a_status_function(
+    path: Path,
+) -> None:
+    """A skipped ancestor skips a job without a status function; a dry run would stop at `gates`.
 
-    jobs = workflow()["jobs"]
+    Holds for the published copy too (the export overlay), which is the workflow people run.
+    """
+
+    if not path.is_file():
+        pytest.skip("the published tree has no export overlay")
+    jobs = yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"]
     skippable = {name for name, job in jobs.items() if "if" in job}
     for name, job in jobs.items():
         condition = str(job.get("if", ""))
         if job.get("if") == NOT_DRY:
             continue  # skipped in a dry run, and in a real run every ancestor has succeeded
-        if not needs_closure(name) & skippable:
+        if not needs_closure(name, jobs) & skippable:
             continue
         assert "!cancelled()" in condition, name
         for need in _as_list(job.get("needs", [])):

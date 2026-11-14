@@ -217,6 +217,9 @@ jobs:
     # third-party code there, so it has no secret and signs nothing; sign-apk signs the uploaded file in isolation. Like
     # ci, drill and gates it is called, so it never touches the signer identity.
     needs: [source, gates]
+    # A dry run skips ci, drill, signing-check and secrets-check, and a job without a status function inherits that skip
+    # through its needs chain; so this checks the direct needs itself. gates only succeeds after a green real run.
+    if: ${{ !cancelled() && needs.source.result == 'success' && needs.gates.result == 'success' }}
     uses: ./.github/workflows/release-android.yml
     permissions:
       contents: read
@@ -305,7 +308,9 @@ jobs:
     # Dry run only: builds both platforms and throws the result away. Read-only token, no id-token, no registry
     # login, so whatever runs here (the build runs the Dockerfile of the chosen branch) cannot sign or push.
     needs: [gates, android]
-    if: ${{ inputs.dry_run }}
+    # Explicit status function: gates and android run in a dry run although ci, drill, signing-check and secrets-check
+    # are skipped.
+    if: ${{ !cancelled() && inputs.dry_run && needs.gates.result == 'success' && needs.android.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -488,7 +493,7 @@ jobs:
   bundle:
     # Collects the files. No id-token: it runs a repository script (the release notes), also in a dry run.
     needs: [gates, android, sign-apk, release, build-dry]
-    if: ${{ !cancelled() && needs.android.result == 'success' && ((inputs.dry_run && needs.build-dry.result == 'success') || (!inputs.dry_run && needs.release.result == 'success' && needs.sign-apk.result == 'success')) }}
+    if: ${{ !cancelled() && needs.gates.result == 'success' && needs.android.result == 'success' && ((inputs.dry_run && needs.build-dry.result == 'success') || (!inputs.dry_run && needs.release.result == 'success' && needs.sign-apk.result == 'success')) }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
