@@ -6,8 +6,9 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
-Planned as 0.1.0, the first public release. Status: **not released yet**. The heading gets its version and date on
-the day the release is made (see "Releasing" in the [development guide](docs/contribute/development.md)).
+## [0.1.0] - 2026-11-14
+
+The first public release.
 
 ### Added
 
