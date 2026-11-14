@@ -110,6 +110,20 @@ uv run --project backend python -m sidekick.mcp.export_contract --output contrac
 `tools/check-all.sh` bygger om MCP-appens HTML och misslyckas när den incheckade bunten skiljer sig. Med `--release` jämför den
 dessutom kontraktsfilerna; generera om verktygskontraktet med det andra kommandot när du ändrar ett verktyg.
 
+### Androids beroendelås
+
+Varje Gradle-konfiguration i Android-skalet är låst (`dependencyLocking` i `frontend/android/build.gradle`), och låsfilerna
+ligger i `frontend/android/gradle/locks/<projekt>.lockfile`. Skriv om dem efter en beroendeändring genom att köra de
+uppgifter CI kör, så att varje konfiguration som används hamnar i ett lås:
+
+```bash
+cd frontend/android
+./gradlew :app:ktlintCheck :app:testDebugUnitTest :app:lintDebug :app:assembleRelease :app:assembleDebugAndroidTest --write-locks
+```
+
+Granska diffen av `gradle/locks/` som en beroendeändring. Ett beroende som saknas i ett lås gör bygget rött i stället för att
+tyst välja en nyare version.
+
 ## Webbplats
 
 Den publika webbplatsen är ett Astro Starlight-projekt i `website/`. Den visar dokumenten i det här repot (de

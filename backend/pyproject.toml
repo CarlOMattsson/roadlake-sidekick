@@ -52,7 +52,7 @@ dev = [
 [project.scripts]
 sidekick-admin = "sidekick.admin.cli:main"
 sidekick-openapi = "sidekick.api.export_openapi:main"
-sidekick-automation-worker = "sidekick.automation.worker:main"
+sidekick-automation-worker = "sidekick.work.worker:main"
 sidekick-owner-export = "sidekick.owner_export.cli:main"
 sidekick-backup = "sidekick.backup.cli:main"
 sidekick-backup-worker = "sidekick.backup.worker:main"
@@ -72,7 +72,7 @@ line-length = 100
 target-version = "py313"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "S", "C901"]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF", "S", "C901", "INP001"]
 
 [tool.ruff.lint.mccabe]
 # Ratchet: the most complex function in src today scores 16. Lower this when one is simplified; never
@@ -99,6 +99,7 @@ max-complexity = 16
 "tests/mcp/test_stdio.py" = ["S603"]
 "tests/support/mcp_stdio.py" = ["S603"]
 "tests/policy/test_release_workflow.py" = ["S603", "S607"]
+"tests/policy/test_repo_path_references.py" = ["S603", "S607"]
 "tests/selfhost/test_drill_script.py" = ["S603", "S607"]
 "tests/selfhost/test_release_migration_class.py" = ["S603", "S607", "S608"]
 "tests/selfhost/test_selfhost_logging.py" = ["S603", "S607"]

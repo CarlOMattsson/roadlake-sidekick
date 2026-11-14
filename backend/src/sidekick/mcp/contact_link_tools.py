@@ -1,8 +1,5 @@
 """The Contact link tools: relate a Contact to a Project or a Task, and remove the relation."""
 
-# En dashes are intentional human-facing tool copy preserved by contract snapshots.
-# ruff: noqa: RUF001
-
 from __future__ import annotations
 
 from uuid import UUID
@@ -76,7 +73,7 @@ def _register_unlink_contact_from_project(mcp: FastMCP, ctx: ToolContext) -> Non
     @mcp.tool(
         name="unlink_contact_from_project",
         description=(
-            "Use this only when the user wants to remove the known Contact–Project relation. "
+            "Use this only when the user wants to remove the known Contact–Project relation. "  # noqa: RUF001
             "It deletes the semantic link but does not delete or edit the Contact or Project."
         ),
         output_schema=output_schema(ProjectContactResult),
@@ -94,7 +91,7 @@ def _register_unlink_contact_from_project(mcp: FastMCP, ctx: ToolContext) -> Non
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(_project_link_result(res), "Removed the Contact–Project link.")
+        return result(_project_link_result(res), "Removed the Contact–Project link.")  # noqa: RUF001
 
 
 def _register_link_contact_to_task(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -128,7 +125,7 @@ def _register_unlink_contact_from_task(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="unlink_contact_from_task",
         description=(
-            "Use this only when the user wants to remove the known Contact–Task relation. "
+            "Use this only when the user wants to remove the known Contact–Task relation. "  # noqa: RUF001
             "It deletes the semantic link but does not delete or edit the Contact or Task."
         ),
         output_schema=output_schema(TaskContactResult),
@@ -146,7 +143,7 @@ def _register_unlink_contact_from_task(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(_task_link_result(res), "Removed the Contact–Task link.")
+        return result(_task_link_result(res), "Removed the Contact–Task link.")  # noqa: RUF001
 
 
 def register_contact_link_tools(mcp: FastMCP, ctx: ToolContext) -> None:

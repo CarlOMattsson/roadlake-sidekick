@@ -192,10 +192,20 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    sin jämförelsepunkt från den och migrationskontrollen vägrar en lättviktig tagg. Arbetsflödet skapar aldrig taggen
    eller releasen; båda är medvetna, signerade steg som underhållaren tar.
 
-7. **Badges.** README-badgarna för senaste release, arbetsflödet release-image och Sigstore-signaturen är borttagna så
-   länge det inte finns någon release. Vid första releasen (`vX.Y.Z`, v0.1.0) lägger du tillbaka dem i
-   `tools/export/overlay/README.md` och `README.sv.md`, där kommentaren `<!-- release badges are added with the first release (v0.1.0) -->` står, i båda
-   språken, och kontrollerar att de renderas.
+7. **Scorecard.** När releasen är publicerad startar du arbetsflödet `scorecard` för hand från `main` (Actions,
+   "scorecard", Run workflow). Det analyserar det publika repot med den officiella OpenSSF Scorecard-actionen och
+   publicerar resultatet som Scorecard-badgen i README visar; kontrollera i körloggen att resultatet publicerades.
+   Det har medvetet ingen release-trigger: actionen analyserar bara standardgrenen, och en `release`-händelse körs på
+   taggen, så actionen skulle vägra. Repot måste vara publikt. Kör det också en gång så snart repot är publikt, och
+   starta arbetsflödet `ci` för hand på `main` en gång: Scorecard- och CI-badgarna i README förblir avstängda (steg 8) tills vart och ett av dem har körts, så att ingen visar
+   en trasig bild eller "no status".
+8. **README.** Slå på de utkommenterade badgarna i `README.md` och `README.sv.md` (i underhållsrepot ligger de i
+   `tools/export/overlay/`; ta bort kommentarsraden som börjar med `<!-- release badges, off until the first release`
+   och den avslutande `-->`-raden under de sex badgarna; gör det först efter de första körningarna av `ci` och
+   `scorecard`, och när releasen finns) och byt statusnotisen ("ännu inte släppt") mot texten mellan markörerna `START` och `END` i kommentaren
+   under den; ta sedan bort kommentaren. Kontrollera i båda språken att badgarna renderas och att länkarna fungerar.
+   Varje badge stämmer bara för att arbetsflödet har körts på riktigt: CI, Scorecard, senaste GitHub-releasen, senaste körningen
+   av `release-image`, cosign-signaturen med build provenance och Trivy-skanningen av imagen.
 
 ## Verifiera en release
 

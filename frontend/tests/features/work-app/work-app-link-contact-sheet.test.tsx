@@ -19,9 +19,9 @@ import {
 } from "@tests/helpers/work-app-fixtures";
 
 /** Not linked to taskA, so a search can offer it. */
-const carl: WorkContact = {
+const erik: WorkContact = {
   id: "019f0000-0000-7000-8000-0000000000c3",
-  display_name: "Carl Nilsson",
+  display_name: "Erik Lindgren",
 };
 
 /** Opens the sheet from "+ Koppla kontakt" / "+ Link contact" once the Task's contacts are drawn. */
@@ -38,7 +38,7 @@ it("filters the contacts as the name is typed and shows a linked hit without off
   const user = userEvent.setup();
   const search = vi.fn((q: string) =>
     Promise.resolve({
-      items: [anna, carl].filter((contact) =>
+      items: [anna, erik].filter((contact) =>
         contact.display_name.toLowerCase().includes(q.toLowerCase()),
       ),
       next_cursor: null,
@@ -50,9 +50,9 @@ it("filters the contacts as the name is typed and shows a linked hit without off
   expect(input).toHaveAttribute("placeholder", workEn.contactSearchPlaceholder);
   expect(screen.getByText(workEn.contactSearchHint)).toBeInTheDocument();
 
-  await user.type(input, "Ca");
+  await user.type(input, "Eri");
   expect(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   ).toBeInTheDocument();
   expect(screen.queryByText(workEn.contactAlreadyLinked)).toBeNull();
 
@@ -61,7 +61,7 @@ it("filters the contacts as the name is typed and shows a linked hit without off
   expect(
     await screen.findByText(workEn.contactAlreadyLinked),
   ).toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: carl.display_name })).toBeNull();
+  expect(screen.queryByRole("button", { name: erik.display_name })).toBeNull();
   // anna is linked: her only button is the contact row of the section, not a hit.
   expect(
     screen.getAllByRole("button", { name: anna.display_name }),
@@ -199,15 +199,15 @@ it("offers a retry when the search fails", async () => {
   const search = vi
     .fn()
     .mockRejectedValueOnce(new HostToolError("unavailable"))
-    .mockResolvedValue({ items: [carl], next_cursor: null });
+    .mockResolvedValue({ items: [erik], next_cursor: null });
   render(rootTask(transport({ searchContacts: search })));
-  await user.type(await openSheet(user), "Carl");
+  await user.type(await openSheet(user), "Erik");
   const alert = await screen.findByRole("alert");
   await user.click(within(alert).getByRole("button", { name: workEn.retry }));
   expect(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   ).toBeInTheDocument();
-  expect(search).toHaveBeenLastCalledWith("Carl");
+  expect(search).toHaveBeenLastCalledWith("Erik");
 });
 
 it("speaks Swedish: title, example, hint, empty sentence and create row", async () => {

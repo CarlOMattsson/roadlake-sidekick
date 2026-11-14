@@ -2,7 +2,7 @@
 
 The Work list, the Task list, the Project list and the Contact list all continue after the sort
 key of the last row served (not after a row count), and a cursor only works for the actor and
-the filter set it was issued for. See docs/architecture/pagination.md for the model.
+the filter set it was issued for.
 """
 
 from collections.abc import Callable

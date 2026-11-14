@@ -9454,13 +9454,13 @@
                       "auto_reversible",
                       "disabled"
                     ],
-                    "title": "AutomationPolicyMode",
                     "type": "string"
                   },
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "title": "Policy Mode"
               },
               "source": {
                 "enum": [

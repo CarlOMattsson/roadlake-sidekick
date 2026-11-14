@@ -107,6 +107,20 @@ uv run --project backend python -m sidekick.mcp.export_contract --output contrac
 `tools/check-all.sh` rebuilds the MCP App HTML and fails when the committed bundle differs. With `--release` it also
 compares the contract files; regenerate the tool contract with the second command whenever you change a tool.
 
+### Android dependency locks
+
+Every Gradle configuration of the Android shell is locked (`dependencyLocking` in `frontend/android/build.gradle`), and the
+lock files are `frontend/android/gradle/locks/<project>.lockfile`. After a dependency change, rewrite them by running the
+tasks CI runs, so that every configuration in use lands in a lock:
+
+```bash
+cd frontend/android
+./gradlew :app:ktlintCheck :app:testDebugUnitTest :app:lintDebug :app:assembleRelease :app:assembleDebugAndroidTest --write-locks
+```
+
+Review the diff of `gradle/locks/` as a dependency change. A dependency missing from a lock makes the build fail instead
+of silently resolving a newer one.
+
 ## Website
 
 The public website is an Astro Starlight project in `website/`. It renders the documents of this repository

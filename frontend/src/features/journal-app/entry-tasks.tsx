@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useRead } from "../mcp-apps/ui/use-read";
 import type { JournalLabels } from "./labels";
 import type { JournalTransport } from "./transport";
 import "./journal.css";
@@ -23,27 +24,26 @@ export function EntryTasks({
   getTaskTitle?: JournalTransport["getTaskTitle"];
   onOpenTask?: (id: string) => void;
 }) {
-  const [titles, setTitles] = useState<Titles>();
   // The ids as one value, so a new array with the same ids reads nothing again.
   const key = taskIds.join(",");
   const ids = useMemo(() => (key ? key.split(",") : []), [key]);
-  useEffect(() => {
-    if (!getTaskTitle || ids.length === 0) return undefined;
-    let live = true;
-    void Promise.all(
-      ids.map((id) =>
-        getTaskTitle(id).then(
-          (title): [string, string | null] => [id, title],
-          (): [string, string | null] => [id, null],
-        ),
-      ),
-    ).then((pairs) => {
-      if (live) setTitles(Object.fromEntries(pairs));
-    });
-    return () => {
-      live = false;
-    };
-  }, [getTaskTitle, ids]);
+  const readTitles = useMemo(
+    () =>
+      getTaskTitle && ids.length > 0
+        ? () =>
+            Promise.all(
+              ids.map((id) =>
+                getTaskTitle(id).then(
+                  (title): [string, string | null] => [id, title],
+                  (): [string, string | null] => [id, null],
+                ),
+              ),
+            ).then((pairs): Titles => Object.fromEntries(pairs))
+        : undefined,
+    [getTaskTitle, ids],
+  );
+  const [read] = useRead(readTitles);
+  const titles = read.phase === "ready" ? read.value : undefined;
 
   if (taskIds.length === 0) return null;
   const known = titles && taskIds.every((id) => id in titles);

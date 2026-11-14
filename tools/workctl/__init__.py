@@ -37,7 +37,7 @@ Moved:
 * ``diagnose``   : the decisions of the hint after a failed first start (log evidence, table state, volume
   name); ``work.sh`` only gathers the logs and runs the read-only queries.
 * ``backupfiles``: the number of sets kept, the free-space check, the time stamp of a new set and the pruning of old
-  ones; also used by ``deploy/selfhost/update.sh`` and ``tools/db-backup.sh``.
+  ones; also used by ``deploy/selfhost/update.sh``.
 * ``restore``    : the complete backup sets of a directory, what a typed ``restore`` argument names and what
   undoing a half-done database swap has to do.
 * ``updatestate``: the state files of ``deploy/selfhost/update.sh``: the atomic journal entry, the release pointer

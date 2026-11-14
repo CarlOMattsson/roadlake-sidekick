@@ -1,7 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import "../../mcp-apps/ui/tokens.css";
 import { initialsOf } from "../../mcp-apps/ui/initials";
 import { Fold } from "../../mcp-apps/ui/fold";
+import { useRead } from "../../mcp-apps/ui/use-read";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { TagChips } from "../../mcp-apps/ui/tags";
@@ -41,35 +42,24 @@ export function ContactCard({
   showAddress = false,
 }: ContactCardProps) {
   // The count is kept with the Contact it belongs to, so a count for another Contact is never shown.
-  const [read, setRead] = useState<{
-    id: string;
-    count: number;
-    more: boolean;
-  }>();
-  const linked = read?.id === contact.id ? read : undefined;
+  const readCount = useCallback(
+    () =>
+      transport.getContactContext(contact.id).then((context) => ({
+        id: contact.id,
+        count: context.tasks.items.length,
+        more: context.tasks.next_cursor !== null,
+      })),
+    [contact.id, transport],
+  );
+  const [read] = useRead(readCount);
+  const linked =
+    read.phase === "ready" && read.value.id === contact.id
+      ? read.value
+      : undefined;
   // Set when the read says the Contact no longer exists: the card then shows only that line, no actions.
-  const [gone, setGone] = useState(false);
-
-  useEffect(() => {
-    let live = true;
-    transport
-      .getContactContext(contact.id)
-      .then((context) => {
-        if (live)
-          setRead({
-            id: contact.id,
-            count: context.tasks.items.length,
-            more: context.tasks.next_cursor !== null,
-          });
-      })
-      .catch((error: unknown) => {
-        // The count is optional; the card still shows the Contact and its actions, unless it is gone.
-        if (live && writeFailure(error) === "not_found") setGone(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, [contact.id, transport]);
+  // The count is optional; the card still shows the Contact and its actions, unless it is gone.
+  const gone =
+    read.phase === "failed" && writeFailure(read.cause) === "not_found";
 
   if (gone) {
     return (

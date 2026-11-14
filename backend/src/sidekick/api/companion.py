@@ -105,6 +105,7 @@ from sidekick.api.pairing_budget import (
 from sidekick.companion.operations import CapabilityMissing
 from sidekick.companion.push_reminders import ReminderService
 from sidekick.companion.response_budget import ensure_within_budget
+from sidekick.composition import container_of
 from sidekick.shared.auth import CompanionCredential
 from sidekick.shared.errors import (
     CLIENT_INPUT_ERRORS,
@@ -302,7 +303,7 @@ def _log(request: Request, operation: str, status: int, code: str | None = None)
     }
     if code is not None:
         fields["companion_error"] = code
-    request.app.state.container.telemetry.count(
+    container_of(request).telemetry.count(
         "sidekick.companion.requests",
         {"companion.operation": operation, "outcome": str(fields["outcome"])},
     )
@@ -417,7 +418,7 @@ def _bearer(request: Request) -> str:
 def companion_credential(request: Request) -> CompanionCredential:
     """The verified device behind this request, checked afresh on every call."""
 
-    credential = request.app.state.container.auth.verify_companion_token(_bearer(request))
+    credential = container_of(request).auth.verify_companion_token(_bearer(request))
     if not isinstance(credential, CompanionCredential):
         raise CompanionProblem(
             401,
@@ -483,7 +484,7 @@ async def task_body(request: Request) -> CompleteTaskRequest:
 
 
 def reminder_service(request: Request) -> ReminderService:
-    return request.app.state.container.reminders
+    return container_of(request).reminders
 
 
 def create_companion_router(

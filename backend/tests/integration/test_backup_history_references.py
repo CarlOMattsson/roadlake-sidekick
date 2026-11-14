@@ -18,9 +18,9 @@ from cryptography.fernet import Fernet
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.activity.application.service import ActivityLedger
+from sidekick.activity.domain import ActivityCategory
 from sidekick.api.app import Container, create_container
-from sidekick.automation.application.service import ActivityLedger
-from sidekick.automation.domain import AutomationCategory
 from sidekick.backup.bundle import OwnerBackupService, decrypt_backup_envelope, verify_backup_file
 from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle.domain import RecordKind
@@ -96,7 +96,7 @@ class Env:
 
     def record_history(self, aggregate_type: str, aggregate_id: UUID) -> None:
         def write(session: Any) -> None:
-            ActivityLedger(self.container.automation.store).append(
+            ActivityLedger(self.container.activity.store).append(
                 session,
                 owner_id=self.owner,
                 aggregate_type=aggregate_type,
@@ -106,12 +106,12 @@ class Env:
                 actor_type="user",
                 actor_id=self.owner,
                 operation="record",
-                category=AutomationCategory.TASK_MAINTENANCE,
+                category=ActivityCategory.TASK_MAINTENANCE,
                 summary="history",
                 occurred_at=datetime.now(UTC),
             )
 
-        self.container.automation.store.transaction(write)
+        self.container.activity.store.transaction(write)
 
     def remove_permanently(self, kind: RecordKind, record_id: UUID, version: int) -> None:
         lifecycle = self.container.lifecycle

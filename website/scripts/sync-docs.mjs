@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Turns the repository's Markdown documents into Starlight pages (docs/ia.md in the design: one source of truth).
+// Turns the repository's Markdown documents into Starlight pages (one source of truth for the website and the repository).
 // Only node:* modules. Output is git-ignored: src/content/docs/{en,sv}/docs/** and public/docs-images/**.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -408,7 +408,7 @@ export function run(opts = {}) {
   return { pages, errors, warnings, missing, written: outputs.length, images: copiedImages.size };
 }
 
-/** All mermaid blocks in the rendered sources, for tools/diagrams/render.mjs. */
+/** All mermaid blocks in the rendered sources, for website/tools/diagrams/render.mjs. */
 export function collectMermaid(sourceRoot, map) {
   const source = makeSource(path.resolve(sourceRoot));
   const found = new Map();

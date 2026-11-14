@@ -21,7 +21,7 @@ from sidekick.shared.persistence.stores.base import IDEMPOTENCY_RETENTION, Store
 from sidekick.shared.types import utc_now
 from sidekick.shared.worker_health import WorkerHeartbeat
 
-LOGGER = logging.getLogger("sidekick.automation.worker")
+LOGGER = logging.getLogger("sidekick.work.worker")
 POLL_SECONDS = 30
 IDEMPOTENCY_PRUNE_SECONDS = 3600
 

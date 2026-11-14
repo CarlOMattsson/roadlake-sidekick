@@ -6,11 +6,12 @@
  * the server has not accepted yet is not the owner's to fix with this line. A refused or failed read draws nothing.
  * `dismiss` puts it away for good on this phone; Inställningar keep the same fix.
  */
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { AppLocale } from "@/features/mcp-apps/app-locale";
 import { Button } from "@/features/mcp-apps/ui/button";
-import type { SidekickNativePlugin, PushStatus } from "./sidekick-native";
+import { useRead } from "@/features/mcp-apps/ui/use-read";
+import type { SidekickNativePlugin } from "./sidekick-native";
 import "./push-notice.css";
 
 export type PushNoticeLabels = {
@@ -62,27 +63,24 @@ export type PushNoticeProps = {
 };
 
 export function PushNotice({ native, locale, refreshKey }: PushNoticeProps) {
-  const [status, setStatus] = useState<PushStatus | undefined>();
-  const [serverPush, setServerPush] = useState(false);
   const [dismissed, setDismissed] = useState(dismissedBefore);
 
-  useEffect(() => {
-    if (dismissed) return undefined;
-    let live = true;
-    Promise.all([native.pushStatus(), native.deviceStatus()]).then(
-      ([next, device]) => {
-        if (!live) return;
-        setStatus(next);
-        setServerPush(device.pushEnabled === true);
-      },
-      () => {
-        if (live) setStatus(undefined);
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [native, refreshKey, dismissed]);
+  const readPush = useMemo(
+    () =>
+      dismissed
+        ? undefined
+        : () =>
+            Promise.all([native.pushStatus(), native.deviceStatus()]).then(
+              ([status, device]) => ({
+                status,
+                serverPush: device.pushEnabled === true,
+              }),
+            ),
+    [native, dismissed],
+  );
+  const [push] = useRead(readPush, refreshKey);
+  const status = push.phase === "ready" ? push.value.status : undefined;
+  const serverPush = push.phase === "ready" && push.value.serverPush;
 
   if (dismissed || !serverPush || !status || status.distributor) return null;
   const labels = pushNoticeLabelsFor(locale);

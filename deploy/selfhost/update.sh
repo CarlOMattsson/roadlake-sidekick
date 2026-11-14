@@ -64,7 +64,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # The free-space check and the safe pruning of finished snapshots are tools/workctl (standard library only; the
-# repository's tools/ directory, which the installation is built from), shared with tools/work.sh and tools/db-backup.sh.
+# repository's tools/ directory, which the installation is built from), shared with tools/work.sh.
 WORKCTL_TOOLS="$SCRIPT_DIR/../../tools"
 workctl() { PYTHONDONTWRITEBYTECODE=1 PYTHONPATH="$WORKCTL_TOOLS${PYTHONPATH:+:$PYTHONPATH}" python3 -m workctl "$@"; }
 COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"

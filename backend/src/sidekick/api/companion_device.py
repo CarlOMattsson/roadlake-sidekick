@@ -39,6 +39,7 @@ from sidekick.companion.service import (
     RenewalNotDue,
     RenewalRateLimited,
 )
+from sidekick.composition import container_of
 from sidekick.shared.auth import CompanionCredential
 
 MAX_PAIR_BODY_BYTES = 1024
@@ -62,7 +63,7 @@ RENEW_BODY = RequestBody(RenewRequest, MAX_RENEW_BODY_BYTES, required=False)
 
 
 def device_service(request: Request) -> CompanionDeviceService:
-    return request.app.state.container.companion_devices
+    return container_of(request).companion_devices
 
 
 def _device_json(device: CompanionDeviceView) -> dict[str, Any]:
@@ -80,12 +81,12 @@ def _device_json(device: CompanionDeviceView) -> dict[str, Any]:
 async def _license_state(request: Request) -> dict[str, Any]:
     """The license display state that rides in every pair, device and renew answer."""
 
-    view = await run_in_threadpool(request.app.state.container.license.display)
+    view = await run_in_threadpool(container_of(request).license.display)
     return view.as_json()
 
 
 def _count_pairing_failure(request: Request, *, limited: bool) -> None:
-    request.app.state.container.telemetry.count(
+    container_of(request).telemetry.count(
         "sidekick.companion.pairing_failures", {"companion.limited": str(limited).lower()}
     )
 
@@ -115,13 +116,13 @@ def _spend_pairing_budget(request: Request, failed_pairings: PairingBudget) -> P
 def _owner_timezone(request: Request) -> str:
     """The owner's IANA zone: the one the server counts "today" in, which the phone must follow."""
 
-    return str(request.app.state.container.settings.owner_timezone)
+    return container_of(request).settings.owner_timezone
 
 
 def _push_enabled(request: Request) -> bool:
     """Whether the server delivers push (`SIDEKICK_PUSH_ENABLED`); the app hides its row if off."""
 
-    return bool(request.app.state.container.settings.push_enabled)
+    return container_of(request).settings.push_enabled
 
 
 def make_pair(

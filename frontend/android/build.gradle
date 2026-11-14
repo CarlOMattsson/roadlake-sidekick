@@ -26,7 +26,7 @@ allprojects {
     }
     // Dependency locking: every resolved configuration is pinned to the versions in gradle/locks, so a build resolves
     // exactly what was reviewed. The Capacitor modules live in node_modules, so the lock files are kept here for all
-    // projects rather than next to each project. Update with the command in tools/android/README.md.
+    // projects rather than next to each project. Update with the command in docs/contribute/development.md.
     dependencyLocking {
         lockAllConfigurations()
         lockFile = rootProject.layout.projectDirectory.file("gradle/locks/${project.name}.lockfile")

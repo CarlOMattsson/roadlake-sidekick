@@ -25,7 +25,7 @@ import { ErrorNotice } from "@/features/mcp-apps/ui/states";
 import type { SidekickNativePlugin, DeviceStatus } from "./sidekick-native";
 import { LanguageSwitch } from "./language-switch";
 import { PushSection } from "./settings-push";
-import { useNativeRead, type Read } from "./use-native-read";
+import { useRead, type Read } from "@/features/mcp-apps/ui/use-read";
 import { settingsLabelsFor, type SettingsLabels } from "./settings-labels";
 import "./settings-panel.css";
 
@@ -72,10 +72,10 @@ export function SettingsPanel({
   const root = useRef<HTMLElement>(null);
   // The pairing is read once: its section shows it, and Aviseringar learn from it whether the server sends any.
   const readDevice = useCallback(() => native.deviceStatus(), [native]);
-  const [device, retryDevice] = useNativeRead(readDevice, refreshKey);
+  const [device, retryDevice] = useRead(readDevice, refreshKey);
   // Which server the phone is paired to; a failed read only leaves that line out.
   const readServer = useCallback(() => native.status(), [native]);
-  const [pairing] = useNativeRead(readServer, refreshKey);
+  const [pairing] = useRead(readServer, refreshKey);
   const serverHost =
     pairing.phase === "ready" ? pairing.value.serverHost : undefined;
   // The settings replace the room on screen: the focus moves to them, as the shell moves it to a new layer.

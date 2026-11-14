@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One local run of the checks that should be green before a push. It mirrors the CI jobs for the backend,
-# the frontend, the migrations, the website, an optional extra hook and the Android shell, in that order.
+# the frontend, the migrations, the website and the Android shell, in that order.
 #
 #   bash tools/check-all.sh --slot K [options]
 #
@@ -18,7 +18,6 @@
 #   website         npm --prefix website test, then run build, then run check (the page, link, accessibility and
 #                   price checks; the check script is skipped while website/package.json has none).
 #                   Needs website/node_modules: npm --prefix website ci --ignore-scripts
-#   extra           runs tools/check-extra.sh when a checkout has one (the stage is skipped otherwise)
 #   android         build:mobile, cap sync android, gradlew ktlintCheck testDebugUnitTest lintDebug assembleRelease
 #
 # Release gate (only with --release; the rest of the release CI, in the order of .github/workflows/ci.yml):
@@ -38,7 +37,7 @@
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
 #   --workers N           pytest-xdist workers for backend-tests (default 10)
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
-#   --skip-shellcheck     --skip-gitleaks   --skip-website   --skip-extra   --skip-android
+#   --skip-shellcheck     --skip-gitleaks   --skip-website   --skip-android
 #   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit);
 #                         each has its own --skip-contracts, --skip-coverage, --skip-mobile-audit, --skip-audit
 #   --strict              a missing shellcheck, gitleaks or website/node_modules fails the run (default: that stage
@@ -70,7 +69,6 @@ SKIP_MCP_APP=0
 SKIP_WEBSITE=0
 SKIP_SHELLCHECK=0
 SKIP_GITLEAKS=0
-SKIP_EXTRA=0
 SKIP_ANDROID=0
 SKIP_CONTRACTS=0
 SKIP_COVERAGE=0
@@ -109,7 +107,6 @@ while [ $# -gt 0 ]; do
     --skip-shellcheck) SKIP_SHELLCHECK=1; shift ;;
     --skip-gitleaks) SKIP_GITLEAKS=1; shift ;;
     --strict) STRICT=1; shift ;;
-    --skip-extra) SKIP_EXTRA=1; shift ;;
     --skip-android) SKIP_ANDROID=1; shift ;;
     --skip-contracts) SKIP_CONTRACTS=1; shift ;;
     --skip-coverage) SKIP_COVERAGE=1; shift ;;
@@ -382,10 +379,6 @@ stage_dependency_audit() {
   fi
 }
 
-stage_extra() {
-  run bash tools/check-extra.sh
-}
-
 stage_android() {
   need npm
   need java
@@ -440,11 +433,6 @@ run_stage coverage "$SKIP_COVERAGE" stage_coverage
 run_stage mcp-app "$SKIP_MCP_APP" stage_mcp_app
 run_stage mobile-audit "$SKIP_MOBILE_AUDIT" stage_mobile_audit
 run_stage website "$SKIP_WEBSITE" stage_website
-# Optional hook: only a checkout that ships tools/check-extra.sh has this stage.
-if [ ! -f tools/check-extra.sh ]; then
-  SKIP_EXTRA=1
-fi
-run_stage extra "$SKIP_EXTRA" stage_extra
 run_stage android "$SKIP_ANDROID" stage_android
 
 echo

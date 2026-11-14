@@ -42,31 +42,18 @@ from sidekick.shopping.application.schemas import (
     PurchaseTarget,
 )
 from sidekick.shopping.application.store import ShoppingStore
-from sidekick.shopping.domain import ItemDetails, Offer, required_text, text
-from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
+from sidekick.shopping.domain import (
+    DETAIL_FIELDS,
+    ItemDetails,
+    Offer,
+    PurchaseChange,
+    ShoppingItem,
+    ShoppingList,
+    required_text,
+    text,
+)
 
 LOGGER = logging.getLogger("sidekick.shopping")
-DETAIL_FIELDS = (
-    "name",
-    "quantity",
-    "unit",
-    "note",
-    "store",
-    "product_url",
-    "recipient_contact_id",
-    "occasion",
-    "target_date",
-)
-OFFER_FIELDS = (
-    "price",
-    "regular_price",
-    "currency",
-    "source",
-    "source_url",
-    "valid_from",
-    "valid_until",
-    "checked_on",
-)
 ITEM_FIELDS = (*DETAIL_FIELDS, "offer")
 
 DEFAULT_OWNER_ZONE = parse_owner_timezone(DEFAULT_OWNER_TIMEZONE)
@@ -140,47 +127,63 @@ class ItemPatch:
         }
 
 
-def merged_details(row: ShoppingItemRow, patch: ItemPatch) -> ItemDetails:
-    """The stored item with only the patched fields replaced."""
+def merged_details(item: ShoppingItem, patch: ItemPatch) -> ItemDetails:
+    """The stored item's details with only the patched fields replaced."""
 
-    current = ItemDetails(
-        **{key: getattr(row, key) for key in DETAIL_FIELDS},
-        offer=(
-            Offer(**{key: getattr(row, f"offer_{key}") for key in OFFER_FIELDS})
-            if row.offer_price is not None
-            else None
-        ),
+    return replace(item.details, **patch.changes())
+
+
+def _with_added_quantity(
+    held: ShoppingItem, quantity: Decimal, now: datetime, *, bump: bool
+) -> ShoppingItem | None:
+    """The item with `quantity` added, or None when the total would pass the largest quantity.
+    `bump` also moves its version and update time on, as every stored change does."""
+
+    total = held.details.quantity + quantity
+    if total > MAX_QUANTITY:
+        return None
+    merged = replace(held, details=replace(held.details, quantity=total))
+    return replace(merged, version=held.version + 1, updated_at=now) if bump else merged
+
+
+def _new_item(
+    actor: Actor, list_id: UUID, details: ItemDetails, now: datetime, position: int
+) -> ShoppingItem:
+    return ShoppingItem(
+        id=new_uuid7(),
+        owner_id=actor.user_id,
+        list_id=list_id,
+        details=details,
+        purchased=False,
+        purchased_at=None,
+        version=1,
+        # Reads order by (created_at, id) and UUIDv7 is random within one millisecond, so a
+        # shared timestamp would shuffle the batch order.
+        created_at=now + timedelta(microseconds=position),
+        updated_at=now,
     )
-    return replace(current, **patch.changes())
 
 
-def list_record(row: ShoppingListRow) -> ListRecord:
-    return ListRecord.model_validate(row, from_attributes=True)
+def list_record(shopping_list: ShoppingList) -> ListRecord:
+    return ListRecord.model_validate(shopping_list, from_attributes=True)
 
 
-def item_record(row: ShoppingItemRow, on_date: date, names: Mapping[UUID, str]) -> ItemRecord:
-    offer = (
-        None
-        if row.offer_price is None
-        else OfferInput.model_validate({key: getattr(row, f"offer_{key}") for key in OFFER_FIELDS})
-    )
-    status = "none"
-    if offer is not None:
-        status = Offer(**offer.model_dump()).status(on_date)
+def item_record(item: ShoppingItem, on_date: date, names: Mapping[UUID, str]) -> ItemRecord:
+    details = item.details
+    offer = None if details.offer is None else OfferInput.model_validate(asdict(details.offer))
+    recipient = details.recipient_contact_id
     return ItemRecord(
-        **{key: getattr(row, key) for key in DETAIL_FIELDS},
-        id=row.id,
-        list_id=row.list_id,
-        purchased=row.purchased,
-        purchased_at=row.purchased_at,
-        version=row.version,
-        created_at=row.created_at,
-        updated_at=row.updated_at,
+        **{key: getattr(details, key) for key in DETAIL_FIELDS},
+        id=item.id,
+        list_id=item.list_id,
+        purchased=item.purchased,
+        purchased_at=item.purchased_at,
+        version=item.version,
+        created_at=item.created_at,
+        updated_at=item.updated_at,
         offer=offer,
-        offer_status=status,
-        recipient_contact_name=(
-            names.get(row.recipient_contact_id) if row.recipient_contact_id is not None else None
-        ),
+        offer_status="none" if details.offer is None else details.offer.status(on_date),
+        recipient_contact_name=names.get(recipient) if recipient is not None else None,
     )
 
 
@@ -235,19 +238,21 @@ class ShoppingService:
         self._bounds(limit, offset)
 
         def read(session: TxSession) -> ListsResult:
-            rows = self.store.list_lists(
+            lists = self.store.list_lists(
                 session,
                 actor.user_id,
                 include_archived=include_archived,
                 offset=offset,
                 limit=limit + 1,
             )
-            page, next_offset = paginate(rows, limit, lambda _: offset + limit)
-            counts = self.store.open_counts(session, actor.user_id, [row.id for row in page])
+            page, next_offset = paginate(lists, limit, lambda _: offset + limit)
+            counts = self.store.open_counts(session, actor.user_id, [entry.id for entry in page])
             return ListsResult(
                 lists=[
-                    ListSummary(**list_record(row).model_dump(), open_count=counts.get(row.id, 0))
-                    for row in page
+                    ListSummary(
+                        **list_record(entry).model_dump(), open_count=counts.get(entry.id, 0)
+                    )
+                    for entry in page
                 ],
                 next_offset=next_offset,
             )
@@ -273,8 +278,8 @@ class ShoppingService:
         store_filter = text(store, 200)
 
         def read(session: TxSession) -> ListDetail:
-            row = self.store.get_list(session, actor.user_id, list_id)
-            rows = self.store.list_items(
+            shopping_list = self.store.get_list(session, actor.user_id, list_id)
+            found = self.store.list_items(
                 session,
                 actor.user_id,
                 list_id,
@@ -282,12 +287,12 @@ class ShoppingService:
                 offset=offset,
                 limit=limit + 1,
             )
-            page, next_offset = paginate(rows, limit, lambda _: offset + limit)
+            page, next_offset = paginate(found, limit, lambda _: offset + limit)
             names = self._recipient_names(
-                session, actor, (item.recipient_contact_id for item in page)
+                session, actor, (item.details.recipient_contact_id for item in page)
             )
             return ListDetail(
-                shopping_list=list_record(row),
+                shopping_list=list_record(shopping_list),
                 items=[item_record(item, evaluated, names) for item in page],
                 next_offset=next_offset,
                 evaluated_on=evaluated,
@@ -303,7 +308,7 @@ class ShoppingService:
 
         def execute(session: TxSession) -> ListResult:
             now = self.clock.now()
-            row = ShoppingListRow(
+            created = ShoppingList(
                 id=new_uuid7(),
                 owner_id=actor.user_id,
                 name=name,
@@ -312,10 +317,9 @@ class ShoppingService:
                 created_at=now,
                 updated_at=now,
             )
-            session.add(row)
-            session.flush()
-            self._audit(session, actor, "shopping.list_created", row.id, correlation_id)
-            return ListResult(shopping_list=list_record(row))
+            self.store.add_list(session, created)
+            self._audit(session, actor, "shopping.list_created", created.id, correlation_id)
+            return ListResult(shopping_list=list_record(created))
 
         return self._write(
             actor,
@@ -343,13 +347,18 @@ class ShoppingService:
         name = required_text(name, 200)
 
         def execute(session: TxSession) -> ListResult:
-            row = self.store.get_list(session, actor.user_id, list_id, lock=True)
-            self._version(row.version, version)
-            row.name, row.archived = name, archived
-            row.version += 1
-            row.updated_at = self.clock.now()
-            self._audit(session, actor, "shopping.list_updated", row.id, correlation_id)
-            return ListResult(shopping_list=list_record(row))
+            current = self.store.get_list(session, actor.user_id, list_id, lock=True)
+            self._version(current.version, version)
+            updated = replace(
+                current,
+                name=name,
+                archived=archived,
+                version=current.version + 1,
+                updated_at=self.clock.now(),
+            )
+            self.store.save_list(session, updated)
+            self._audit(session, actor, "shopping.list_updated", updated.id, correlation_id)
+            return ListResult(shopping_list=list_record(updated))
 
         return self._write(
             actor,
@@ -392,66 +401,60 @@ class ShoppingService:
                 self._validate_details(session, actor, detail)
             now = self.clock.now()
             added: list[AddedItem] = []
-            open_rows: dict[tuple[str, str], ShoppingItemRow] = {}
-            created: set[UUID] = set()
+            open_items: dict[tuple[str, str], ShoppingItem] = {}
+            created: dict[UUID, ShoppingItem] = {}
+            merged_into: dict[UUID, ShoppingItem] = {}
             if merge_duplicates:
                 for existing in self.store.open_items(session, actor.user_id, list_id):
-                    open_rows.setdefault(_merge_key(existing.name, existing.unit), existing)
+                    key = _merge_key(existing.details.name, existing.details.unit)
+                    open_items.setdefault(key, existing)
             names = self._recipient_names(
                 session,
                 actor,
                 [
                     *(detail.recipient_contact_id for detail in details),
-                    *(existing.recipient_contact_id for existing in open_rows.values()),
+                    *(existing.details.recipient_contact_id for existing in open_items.values()),
                 ],
             )
             merged_count = 0
             for position, (source, detail) in enumerate(zip(items, details, strict=True)):
-                target = open_rows.get(_merge_key(detail.name, detail.unit))
+                key = _merge_key(detail.name, detail.unit)
+                target = open_items.get(key)
                 if merge_duplicates and target is not None:
-                    total = target.quantity + detail.quantity
-                    if total <= MAX_QUANTITY:
-                        target.quantity = total
-                        if target.id not in created:
-                            target.version += 1
-                            target.updated_at = now
+                    is_new = target.id in created
+                    merged = _with_added_quantity(target, detail.quantity, now, bump=not is_new)
+                    if merged is not None:
+                        open_items[key] = merged
+                        (created if is_new else merged_into)[merged.id] = merged
+                        if not is_new:
                             self._audit(
-                                session, actor, "shopping.item_updated", target.id, correlation_id
+                                session, actor, "shopping.item_updated", merged.id, correlation_id
                             )
                         merged_count += 1
                         added.append(
                             AddedItem(
                                 client_ref=source.client_ref,
-                                item=item_record(target, self._owner_day(now), names),
+                                item=item_record(merged, self._owner_day(now), names),
                                 merged=True,
                             )
                         )
                         continue
-                row = ShoppingItemRow(
-                    id=new_uuid7(),
-                    owner_id=actor.user_id,
-                    list_id=list_id,
-                    purchased=False,
-                    purchased_at=None,
-                    version=1,
-                    # Reads order by (created_at, id) and UUIDv7 is random within one
-                    # millisecond, so a shared timestamp would shuffle the batch order.
-                    created_at=now + timedelta(microseconds=position),
-                    updated_at=now,
-                )
-                self._apply(row, detail)
-                session.add(row)
-                created.add(row.id)
+                new_item = _new_item(actor, list_id, detail, now, position)
+                created[new_item.id] = new_item
                 if merge_duplicates:
-                    open_rows.setdefault(_merge_key(detail.name, detail.unit), row)
+                    open_items.setdefault(key, new_item)
                 added.append(
                     AddedItem(
                         client_ref=source.client_ref,
-                        item=item_record(row, self._owner_day(now), names),
+                        item=item_record(new_item, self._owner_day(now), names),
                         merged=False,
                     )
                 )
-                self._audit(session, actor, "shopping.item_added", row.id, correlation_id)
+                self._audit(session, actor, "shopping.item_added", new_item.id, correlation_id)
+            for item in merged_into.values():
+                self.store.save_item(session, item)
+            for item in created.values():
+                self.store.add_item(session, item)
             return BatchResult(
                 items=added,
                 evaluated_on=self._owner_day(now),
@@ -495,18 +498,20 @@ class ShoppingService:
         today = self._owner_day(self.clock.now())
         # The client references come from the retry's own input, which the payload hash ties
         # to the first call.
-        rows = [
+        stored = [
             self.store.get_item(session, actor.user_id, UUID(entry["item"]["id"]))
             for entry in record["items"]
         ]
-        names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
+        names = self._recipient_names(
+            session, actor, (item.details.recipient_contact_id for item in stored)
+        )
         entries = [
             AddedItem(
                 client_ref=source.client_ref,
-                item=item_record(row, today, names),
+                item=item_record(item, today, names),
                 merged=entry["merged"],
             )
-            for source, entry, row in zip(items, record["items"], rows, strict=True)
+            for source, entry, item in zip(items, record["items"], stored, strict=True)
         ]
         return BatchResult(
             items=entries,
@@ -533,22 +538,26 @@ class ShoppingService:
             actor.require("contacts:read")
 
         def execute(session: TxSession) -> ItemResult:
-            row = self.store.get_item(session, actor.user_id, item_id)
-            shopping_list = self.store.get_list(session, actor.user_id, row.list_id, lock=True)
+            current = self.store.get_item(session, actor.user_id, item_id)
+            shopping_list = self.store.get_list(session, actor.user_id, current.list_id, lock=True)
             self._active(shopping_list)
-            self._version(row.version, version, row.name)
-            merged = merged_details(row, patch)
+            self._version(current.version, version, current.details.name)
+            merged = merged_details(current, patch)
             self._validate_details(session, actor, merged)
-            self._apply(row, merged)
-            row.version += 1
-            row.updated_at = self.clock.now()
-            self._audit(session, actor, "shopping.item_updated", row.id, correlation_id)
+            updated = replace(
+                current,
+                details=merged,
+                version=current.version + 1,
+                updated_at=self.clock.now(),
+            )
+            self.store.save_item(session, updated)
+            self._audit(session, actor, "shopping.item_updated", updated.id, correlation_id)
             today = self._owner_day(self.clock.now())
             return ItemResult(
-                item=self._one_item_record(session, actor, row, today),
+                item=self._one_item_record(session, actor, updated, today),
                 evaluated_on=today,
                 list_name=shopping_list.name,
-                open_count=self.store.open_count(session, actor.user_id, row.list_id),
+                open_count=self.store.open_count(session, actor.user_id, updated.list_id),
             )
 
         return self._write(
@@ -577,38 +586,20 @@ class ShoppingService:
         unchanged (`unchanged` true) even with a stale version; otherwise the version must match."""
 
         def execute(session: TxSession) -> PurchaseOutcome:
-            row = self.store.get_item(session, actor.user_id, item_id)
-            shopping_list = self.store.get_list(session, actor.user_id, row.list_id, lock=True)
+            current = self.store.get_item(session, actor.user_id, item_id)
+            shopping_list = self.store.get_list(session, actor.user_id, current.list_id, lock=True)
             self._active(shopping_list)
             now = self.clock.now()
-            unchanged = row.purchased == purchased
+            unchanged = current.purchased == purchased
+            item = current
             if not unchanged:
-                self._version(row.version, version, row.name)
-                row.purchased, row.purchased_at = purchased, now if purchased else None
-                row.version += 1
-                row.updated_at = now
-                session.add(
-                    ShoppingStatusRow(
-                        id=new_uuid7(),
-                        owner_id=actor.user_id,
-                        item_id=row.id,
-                        purchased=purchased,
-                        item_version=row.version,
-                        changed_at=now,
-                    )
-                )
-                self._audit(
-                    session,
-                    actor,
-                    "shopping.item_purchased" if purchased else "shopping.item_reopened",
-                    row.id,
-                    correlation_id,
-                )
+                self._version(current.version, version, current.details.name)
+                item = self._set_purchased(session, actor, current, purchased, now, correlation_id)
             return PurchaseOutcome(
-                item=self._one_item_record(session, actor, row, self._owner_day(now)),
+                item=self._one_item_record(session, actor, item, self._owner_day(now)),
                 evaluated_on=self._owner_day(now),
                 list_name=shopping_list.name,
-                open_count=self.store.open_count(session, actor.user_id, row.list_id),
+                open_count=self.store.open_count(session, actor.user_id, item.list_id),
                 unchanged=unchanged,
             )
 
@@ -643,52 +634,35 @@ class ShoppingService:
             raise ValidationError("invalid shopping batch")
 
         def execute(session: TxSession) -> PurchasedBatchResult:
-            rows = [self.store.get_item(session, actor.user_id, t.item_id) for t in targets]
+            stored = [self.store.get_item(session, actor.user_id, t.item_id) for t in targets]
             # Lists are locked in id order, so two overlapping batches cannot deadlock.
-            for list_id in sorted({row.list_id for row in rows}):
+            for list_id in sorted({item.list_id for item in stored}):
                 self._active(self.store.get_list(session, actor.user_id, list_id, lock=True))
             now = self.clock.now()
             # An item already in the asked state is skipped even when its version moved on (bought
             # in the app meanwhile), so one such item no longer stops the rest. Any other stale
             # version still fails the whole call.
             unchanged: list[UUID] = []
-            for row, target in zip(rows, targets, strict=True):
-                if row.purchased == purchased:
-                    unchanged.append(row.id)
+            for item, target in zip(stored, targets, strict=True):
+                if item.purchased == purchased:
+                    unchanged.append(item.id)
                 else:
-                    self._version(row.version, target.version, row.name)
-            for row in rows:
-                if row.purchased == purchased:
-                    continue
-                row.purchased, row.purchased_at = purchased, now if purchased else None
-                row.version += 1
-                row.updated_at = now
-                session.add(
-                    ShoppingStatusRow(
-                        id=new_uuid7(),
-                        owner_id=actor.user_id,
-                        item_id=row.id,
-                        purchased=purchased,
-                        item_version=row.version,
-                        changed_at=now,
-                    )
-                )
-                self._audit(
-                    session,
-                    actor,
-                    "shopping.item_purchased" if purchased else "shopping.item_reopened",
-                    row.id,
-                    correlation_id,
-                )
+                    self._version(item.version, target.version, item.details.name)
+            items = [
+                item
+                if item.purchased == purchased
+                else self._set_purchased(session, actor, item, purchased, now, correlation_id)
+                for item in stored
+            ]
             # open_count only means something for one list; a batch across lists gets None.
-            list_ids = {row.list_id for row in rows}
+            list_ids = {item.list_id for item in stored}
             open_count = (
                 self.store.open_count(session, actor.user_id, next(iter(list_ids)))
                 if len(list_ids) == 1
                 else None
             )
             return PurchasedBatchResult(
-                items=self._item_records(session, actor, rows, self._owner_day(now)),
+                items=self._item_records(session, actor, items, self._owner_day(now)),
                 unchanged_item_ids=unchanged,
                 evaluated_on=self._owner_day(now),
                 open_count=open_count,
@@ -747,29 +721,31 @@ class ShoppingService:
         )
 
     def _list_result(self, session: TxSession, actor: Actor, record: ListReplay) -> ListResult:
-        row = self.store.get_list(session, actor.user_id, UUID(record["shopping_list"]["id"]))
-        return ListResult(shopping_list=list_record(row))
+        stored = self.store.get_list(session, actor.user_id, UUID(record["shopping_list"]["id"]))
+        return ListResult(shopping_list=list_record(stored))
 
     def _item_result(self, session: TxSession, actor: Actor, record: ItemReplay) -> ItemResult:
         """One item with its list's name and open count, as a write answers."""
 
         today = self._owner_day(self.clock.now())
-        row = self.store.get_item(session, actor.user_id, UUID(record["item"]["id"]))
+        item = self.store.get_item(session, actor.user_id, UUID(record["item"]["id"]))
         return ItemResult(
-            item=self._one_item_record(session, actor, row, today),
+            item=self._one_item_record(session, actor, item, today),
             evaluated_on=today,
-            list_name=self.store.get_list(session, actor.user_id, row.list_id).name,
-            open_count=self.store.open_count(session, actor.user_id, row.list_id),
+            list_name=self.store.get_list(session, actor.user_id, item.list_id).name,
+            open_count=self.store.open_count(session, actor.user_id, item.list_id),
         )
 
     def _purchased_many_result(
         self, session: TxSession, actor: Actor, record: PurchasedBatchReplay
     ) -> PurchasedBatchResult:
         today = self._owner_day(self.clock.now())
-        rows = [self.store.get_item(session, actor.user_id, UUID(i["id"])) for i in record["items"]]
-        list_ids = {row.list_id for row in rows}
+        stored = [
+            self.store.get_item(session, actor.user_id, UUID(i["id"])) for i in record["items"]
+        ]
+        list_ids = {item.list_id for item in stored}
         return PurchasedBatchResult(
-            items=self._item_records(session, actor, rows, today),
+            items=self._item_records(session, actor, stored, today),
             unchanged_item_ids=[UUID(item_id) for item_id in record["unchanged_item_ids"]],
             evaluated_on=today,
             # open_count only means something for one list; a batch across lists gets None.
@@ -793,15 +769,56 @@ class ShoppingService:
         return {contact_id: name for contact_id, (name, _archived) in found.items()}
 
     def _item_records(
-        self, session: TxSession, actor: Actor, rows: list[ShoppingItemRow], on_date: date
+        self, session: TxSession, actor: Actor, items: list[ShoppingItem], on_date: date
     ) -> list[ItemRecord]:
-        names = self._recipient_names(session, actor, (row.recipient_contact_id for row in rows))
-        return [item_record(row, on_date, names) for row in rows]
+        names = self._recipient_names(
+            session, actor, (item.details.recipient_contact_id for item in items)
+        )
+        return [item_record(item, on_date, names) for item in items]
 
     def _one_item_record(
-        self, session: TxSession, actor: Actor, row: ShoppingItemRow, on_date: date
+        self, session: TxSession, actor: Actor, item: ShoppingItem, on_date: date
     ) -> ItemRecord:
-        return self._item_records(session, actor, [row], on_date)[0]
+        return self._item_records(session, actor, [item], on_date)[0]
+
+    def _set_purchased(
+        self,
+        session: TxSession,
+        actor: Actor,
+        item: ShoppingItem,
+        purchased: bool,
+        now: datetime,
+        correlation_id: str | None,
+    ) -> ShoppingItem:
+        """Move one item to the asked state: save it, add its history row and audit the change."""
+
+        changed = replace(
+            item,
+            purchased=purchased,
+            purchased_at=now if purchased else None,
+            version=item.version + 1,
+            updated_at=now,
+        )
+        self.store.save_item(session, changed)
+        self.store.add_purchase_change(
+            session,
+            PurchaseChange(
+                id=new_uuid7(),
+                owner_id=actor.user_id,
+                item_id=item.id,
+                purchased=purchased,
+                item_version=changed.version,
+                changed_at=now,
+            ),
+        )
+        self._audit(
+            session,
+            actor,
+            "shopping.item_purchased" if purchased else "shopping.item_reopened",
+            item.id,
+            correlation_id,
+        )
+        return changed
 
     def _validate_details(self, session: TxSession, actor: Actor, details: ItemDetails) -> None:
         if details.offer is not None and details.offer.checked_on > self._owner_day(
@@ -829,13 +846,6 @@ class ShoppingService:
         )
 
     @staticmethod
-    def _apply(row: ShoppingItemRow, details: ItemDetails) -> None:
-        for key in DETAIL_FIELDS:
-            setattr(row, key, getattr(details, key))
-        for key in OFFER_FIELDS:
-            setattr(row, f"offer_{key}", getattr(details.offer, key) if details.offer else None)
-
-    @staticmethod
     def _bounds(limit: int, offset: int) -> None:
         validate_limit(
             limit, maximum=100, message="invalid shopping page bounds", error=ValidationError
@@ -844,8 +854,8 @@ class ShoppingService:
             raise ValidationError("invalid shopping page bounds")
 
     @staticmethod
-    def _active(row: ShoppingListRow) -> None:
-        if row.archived:
+    def _active(shopping_list: ShoppingList) -> None:
+        if shopping_list.archived:
             raise ConflictError("shopping list is archived")
 
     @staticmethod

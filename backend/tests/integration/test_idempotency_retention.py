@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.api.app import create_app
-from sidekick.automation.worker import prune_idempotency_records
 from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle import RecordKind
 from sidekick.shared.errors import IdempotencyKeyReusedError, NotFoundError
@@ -23,6 +22,7 @@ from sidekick.shared.types import Actor, new_uuid7, utc_now
 from sidekick.shopping.application.schemas import BatchItem
 from sidekick.tasks.application.models import NewTaskItem
 from sidekick.tasks.domain import Priority
+from sidekick.work.worker import prune_idempotency_records
 from tests.db import database_factory
 from tests.support.settings import make_settings
 

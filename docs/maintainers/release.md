@@ -191,10 +191,20 @@ so a patch that adds a contract migration cannot declare `expand` either.
    finds its comparison point from it and the migration check refuses a lightweight tag. The workflow never creates
    the tag or the release; both are deliberate, signed steps of the maintainer.
 
-7. **Badges.** The README badges for the latest release, the release-image workflow and the Sigstore signature are left out
-   until a release exists. At the first release (`vX.Y.Z`, v0.1.0), add them back in `tools/export/overlay/README.md` and
-   `README.sv.md`, where the comment `<!-- release badges are added with the first release (v0.1.0) -->` stands, in both
-   languages, and check that they render.
+7. **Scorecard.** Once the release is published, start the workflow `scorecard` by hand from `main` (Actions,
+   "scorecard", Run workflow). It analyses the public repository with the official OpenSSF Scorecard action and
+   publishes the result that the Scorecard badge in the README shows; check in the run log that the results were
+   published. It has no release trigger on purpose: the action only analyses the default branch, and a `release`
+   event runs on the tag, so the action would refuse it. The repository must be public. Run it once as soon as the
+   repository is public, too, and start the `ci` workflow by hand on `main` once: the Scorecard and CI badges in the
+   README stay switched off (step 8) until each of these has run, so that none shows a broken image or "no status".
+8. **README.** In `README.md` and `README.sv.md` (in the maintainer repository they live in `tools/export/overlay/`):
+   turn on the commented badges (delete the comment line that starts with `<!-- release badges, off until the first
+   release` and the closing `-->` line below the six badges; do it only after the first `ci` and `scorecard` runs, and
+   once the release exists) and replace the status note ("not yet released") with the text between the `START` and `END`
+   markers in the comment under it, then delete the comment. Check in both languages that the badges render and that
+   the links work. Each of these badges is true only because the workflow ran for real: CI, Scorecard, the latest GitHub release, the
+   last run of `release-image`, the cosign signature and build provenance, and the Trivy scan of the image.
 
 ## Verifying a release
 

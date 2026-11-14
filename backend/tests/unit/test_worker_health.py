@@ -15,7 +15,6 @@ from uuid import UUID, uuid4
 import pytest
 import yaml
 
-from sidekick.automation import worker as automation_worker
 from sidekick.backup import worker as backup_worker
 from sidekick.companion import push_worker
 from sidekick.companion.push_delivery import PushDeliveryService
@@ -35,6 +34,7 @@ from sidekick.shared.worker_health import (
     heartbeat_path,
     main,
 )
+from sidekick.work import worker as process_run_worker
 
 SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 
@@ -224,17 +224,19 @@ def test_the_automation_worker_beats_each_iteration(
     async def fake_sleep(_seconds: float) -> None:
         raise _Stop
 
-    monkeypatch.setattr(automation_worker, "get_settings", lambda: _settings())
+    monkeypatch.setattr(process_run_worker, "get_settings", lambda: _settings())
     monkeypatch.setattr(
-        automation_worker, "create_container", lambda _s: SimpleNamespace(process_runs=process_runs)
+        process_run_worker,
+        "create_container",
+        lambda _s: SimpleNamespace(process_runs=process_runs),
     )
-    monkeypatch.setattr(automation_worker, "create_session_factory", lambda _url, **_kw: None)
-    monkeypatch.setattr(automation_worker, "StoreBase", lambda _factory: None)
-    monkeypatch.setattr(automation_worker, "prune_idempotency_records", lambda _store: 0)
-    monkeypatch.setattr(automation_worker.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(process_run_worker, "create_session_factory", lambda _url, **_kw: None)
+    monkeypatch.setattr(process_run_worker, "StoreBase", lambda _factory: None)
+    monkeypatch.setattr(process_run_worker, "prune_idempotency_records", lambda _store: 0)
+    monkeypatch.setattr(process_run_worker.asyncio, "sleep", fake_sleep)
 
     with pytest.raises(_Stop):
-        asyncio.run(automation_worker.run_worker())
+        asyncio.run(process_run_worker.run_worker())
 
     assert check_worker("automation") == "ok"
 
@@ -333,17 +335,19 @@ def test_the_automation_worker_marks_success_only_when_the_iteration_works(
     async def fake_sleep(_seconds: float) -> None:
         raise _Stop
 
-    monkeypatch.setattr(automation_worker, "get_settings", lambda: _settings())
+    monkeypatch.setattr(process_run_worker, "get_settings", lambda: _settings())
     monkeypatch.setattr(
-        automation_worker, "create_container", lambda _s: SimpleNamespace(process_runs=process_runs)
+        process_run_worker,
+        "create_container",
+        lambda _s: SimpleNamespace(process_runs=process_runs),
     )
-    monkeypatch.setattr(automation_worker, "create_session_factory", lambda _url, **_kw: None)
-    monkeypatch.setattr(automation_worker, "StoreBase", lambda _factory: None)
-    monkeypatch.setattr(automation_worker, "prune_idempotency_records", lambda _store: 0)
-    monkeypatch.setattr(automation_worker.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(process_run_worker, "create_session_factory", lambda _url, **_kw: None)
+    monkeypatch.setattr(process_run_worker, "StoreBase", lambda _factory: None)
+    monkeypatch.setattr(process_run_worker, "prune_idempotency_records", lambda _store: 0)
+    monkeypatch.setattr(process_run_worker.asyncio, "sleep", fake_sleep)
 
     with pytest.raises(_Stop):
-        asyncio.run(automation_worker.run_worker())
+        asyncio.run(process_run_worker.run_worker())
 
     assert _last_success("automation") == 0, "a failed iteration is not a success"
     assert check_worker("automation") == "ok", "the loop is alive and still inside its window"

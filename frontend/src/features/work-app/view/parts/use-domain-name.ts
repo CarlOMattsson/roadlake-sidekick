@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { toolOffered } from "../../../mcp-apps/tool-support";
+import { useRead } from "../../../mcp-apps/ui/use-read";
 import type { WorkTransport } from "../../transport/transport";
 
 /**
@@ -11,21 +12,18 @@ export function useDomainName(
   transport: WorkTransport,
   domainId: string | undefined,
 ): string | undefined {
-  const [found, setFound] = useState<{ id: string; name: string }>();
   const offered = toolOffered(transport, "get_domain");
-  useEffect(() => {
-    if (!domainId || !offered) return undefined;
-    let live = true;
-    // The call runs inside a promise chain so a transport that throws at once is a failed read too.
-    Promise.resolve()
-      .then(() => transport.getDomain(domainId))
-      .then((result) => {
-        if (live) setFound({ id: domainId, name: result.domain.name });
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [transport, domainId, offered]);
+  const readDomain = useMemo(
+    () =>
+      domainId && offered
+        ? () =>
+            transport
+              .getDomain(domainId)
+              .then((result) => ({ id: domainId, name: result.domain.name }))
+        : undefined,
+    [transport, domainId, offered],
+  );
+  const [read] = useRead(readDomain);
+  const found = read.phase === "ready" ? read.value : undefined;
   return found && found.id === domainId ? found.name : undefined;
 }

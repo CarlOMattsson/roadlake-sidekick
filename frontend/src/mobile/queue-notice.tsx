@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { AppLocale } from "@/features/mcp-apps/app-locale";
 import { Button } from "@/features/mcp-apps/ui/button";
+import { useRead } from "@/features/mcp-apps/ui/use-read";
 import type { FailedWrite, SidekickNativePlugin } from "./sidekick-native";
 import "./queue-notice.css";
 
@@ -119,7 +120,6 @@ export type QueueNoticeProps = {
 };
 
 export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
-  const [failed, setFailed] = useState<FailedWrite[]>([]);
   const [busy, setBusy] = useState<string | undefined>();
   const [refused, setRefused] = useState<
     { key: string; message: keyof QueueNoticeLabels } | undefined
@@ -136,20 +136,11 @@ export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
     };
   }, [native]);
 
-  useEffect(() => {
-    let live = true;
-    native.queuedWrites().then(
-      (writes) => {
-        if (live) setFailed(writes.failed ?? []);
-      },
-      () => {
-        if (live) setFailed([]);
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [native, refreshKey, tick]);
+  // Both counters only count up, so the sum changes whenever either does. A refused read draws nothing.
+  const readQueue = useCallback(() => native.queuedWrites(), [native]);
+  const [queue] = useRead(readQueue, refreshKey + tick);
+  const failed: FailedWrite[] =
+    queue.phase === "ready" ? (queue.value.failed ?? []) : [];
 
   /**
    * Runs a retry or a remove. The plugin answers `done: false` when it did not do it (the write was gone, too old to

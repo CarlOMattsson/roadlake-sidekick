@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Protocol, TypeVar
 from uuid import UUID
 
-from sidekick.automation.domain import AutomationCategory
+from sidekick.activity.domain import ActivityCategory
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.replay import ids_result, items_replay_record, record_id
 from sidekick.shared.types import (
@@ -481,7 +481,7 @@ class ProcessRunService:
             actor_type=actor_type,
             actor_id=actor_id,
             operation="run_process",
-            category=AutomationCategory.TASK_MAINTENANCE,
+            category=ActivityCategory.TASK_MAINTENANCE,
             summary=f"Process run created: {process.name}",
             after_values={
                 "process_id": process.id,

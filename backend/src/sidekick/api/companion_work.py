@@ -34,6 +34,7 @@ from sidekick.companion.operations import (
     WORK_TODAY,
     operation_actor,
 )
+from sidekick.composition import container_of
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.work import (
     WorkAgendaArguments,
@@ -134,7 +135,7 @@ async def work_agenda(
         max_minutes=max_minutes,
         include_undated=include_undated,
     )
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(work_agenda_structured, container, actor, arguments)
     return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
@@ -146,7 +147,7 @@ async def work_today(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, WORK_TODAY)
-    container = request.app.state.container
+    container = container_of(request)
     today = await run_in_threadpool(
         lambda: container.work_lists.work_today_page(actor, limit=limit, cursor=cursor)
     )
@@ -165,7 +166,7 @@ async def work_hierarchy(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, WORK_HIERARCHY)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(
         lambda: work_hierarchy_structured(
             container,
@@ -184,7 +185,7 @@ async def work_hierarchy(
 async def project_detail(request: Request, project_id: UUID) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, PROJECT_DETAIL)
-    container = request.app.state.container
+    container = container_of(request)
     structured, _project = await run_in_threadpool(
         project_detail_structured, container, actor, project_id
     )
@@ -199,7 +200,7 @@ async def project_tasks(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, PROJECT_TASKS)
-    container = request.app.state.container
+    container = container_of(request)
 
     def read() -> dict[str, Any]:
         # The MCP tool takes any id and returns an empty page; a Project that is not the
@@ -215,7 +216,7 @@ async def project_tasks(
 async def domain_detail(request: Request, domain_id: UUID) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, DOMAIN_DETAIL)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(domain_structured, container, actor, domain_id)
     return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
@@ -223,7 +224,7 @@ async def domain_detail(request: Request, domain_id: UUID) -> JSONResponse:
 async def process_detail(request: Request, process_id: UUID) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, PROCESS_DETAIL)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(process_structured, container, actor, process_id)
     return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 

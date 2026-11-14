@@ -27,7 +27,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
 from itertools import chain
-from typing import Any
+from typing import Any, Final, Literal
 from uuid import UUID
 from weakref import WeakKeyDictionary
 
@@ -44,8 +44,8 @@ from sidekick.shared.persistence.models import (
 )
 from sidekick.shared.types import new_uuid7, utc_now
 
-WAKE = "w"
-REMINDER = "r"
+WAKE: Final[Literal["w"]] = "w"
+REMINDER: Final[Literal["r"]] = "r"
 # One pending wake per subscription: the dedup key of every wake is the same.
 WAKE_DEDUP_KEY = "w"
 

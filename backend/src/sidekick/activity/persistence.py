@@ -6,7 +6,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from sidekick.automation.application.service import (
+from sidekick.activity.application.service import (
     ActivityEntry,
     NewActivity,
 )
@@ -18,8 +18,12 @@ from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.types import KeyValue
 
+# Every new entry is applied; the other states exist only on history the retired automation
+# engine left behind.
+APPLIED = "applied"
 
-class AutomationStore(StoreBase):
+
+class ActivityStore(StoreBase):
     """The activity ledger and its read projection, over the shared session and idempotency."""
 
     @staticmethod
@@ -38,8 +42,6 @@ class AutomationStore(StoreBase):
             actor_id=activity.actor_id,
             command_id=activity.command_id,
             correlation_id=activity.correlation_id,
-            causation_id=activity.causation_id,
-            automation_run_id=activity.automation_run_id,
             payload=activity.payload,
             occurred_at=activity.occurred_at,
         )
@@ -56,14 +58,13 @@ class AutomationStore(StoreBase):
                 category=activity.category,
                 source=activity.actor_type,
                 operation=activity.operation,
-                state=activity.state,
+                state=APPLIED,
                 aggregate_type=activity.aggregate_type,
                 aggregate_id=activity.aggregate_id,
                 summary=activity.summary,
                 before_values=activity.before_values,
                 after_values=activity.after_values,
                 evidence=activity.evidence,
-                policy_mode=activity.policy_mode,
                 correlation_id=activity.correlation_id,
                 occurred_at=activity.occurred_at,
             )

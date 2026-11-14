@@ -2,7 +2,7 @@
 
 `list_assistant_activity` opens the Sidekick app (`ui://sidekick/app-v1.html`), as its fourth view.
 It returns the owner's own durable Activity Center entries, newest first, and needs `tasks:read`.
-There is no REST route for it: the MCP tool calls the automation application service directly.
+There is no REST route for it: the MCP tool calls the activity application service directly.
 """
 
 from __future__ import annotations
@@ -16,7 +16,6 @@ from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
 from pydantic import Field
 
-from sidekick.automation.domain import AutomationPolicyMode
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
@@ -25,10 +24,14 @@ from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.base import Output
 
 if TYPE_CHECKING:
-    from sidekick.automation.application.service import ActivityEntry
+    from sidekick.activity.application.service import ActivityEntry
 
 CONTROL_TOOL_NAMES = ("list_assistant_activity",)
 CONTROL_TOOL_SCOPES = {"list_assistant_activity": {"tasks:read"}}
+
+# `state` other than "applied" and any `policy_mode` occur only on history the retired automation
+# engine left behind; entries written today are always applied and carry no policy mode.
+ActivityState = Literal["applied", "review", "failed", "reverted"]
 
 
 class ActivityRecord(Output):
@@ -39,14 +42,14 @@ class ActivityRecord(Output):
     category: Annotated[str, Field(max_length=48)]
     source: Literal["user", "assistant", "worker", "system"]
     operation: Annotated[str, Field(max_length=120)]
-    state: Literal["applied", "review", "failed", "reverted"]
+    state: ActivityState
     aggregate_type: Annotated[str, Field(max_length=64)]
     aggregate_id: UUID
     summary: Annotated[str, Field(max_length=2_000)]
     before_values: dict[str, object]
     after_values: dict[str, object]
     evidence: dict[str, object]
-    policy_mode: AutomationPolicyMode | None
+    policy_mode: Literal["review", "auto_reversible", "disabled"] | None
     correlation_id: Annotated[str, Field(max_length=128)] | None
     occurred_at: datetime
 
@@ -110,10 +113,10 @@ def register_control_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         limit: Annotated[int, Field(ge=1, le=100)] = 25,
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
         category: Annotated[str | None, Field(max_length=48)] = None,
-        state: Literal["applied", "review", "failed", "reverted"] | None = None,
+        state: ActivityState | None = None,
         include_content: bool = True,
     ) -> ToolResult:
-        page = ctx.container.automation.list_activity(
+        page = ctx.container.activity.list_activity(
             ctx.actor_provider(), limit=limit, cursor=cursor, category=category, state=state
         )
         structured = ActivityPageResult(

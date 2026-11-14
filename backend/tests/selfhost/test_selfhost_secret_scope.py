@@ -233,7 +233,7 @@ MEMORY_FIELDS = {
 # here and in the compose environment.
 WORKER_CODE = {
     "automation-worker": (
-        ("automation/**/*.py", "composition.py", "memory/factory.py"),
+        ("work/worker.py", "composition.py", "memory/factory.py"),
         MEMORY_FIELDS
         | {
             "cursor_signing_key",

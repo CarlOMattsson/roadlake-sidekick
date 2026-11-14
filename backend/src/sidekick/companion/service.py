@@ -29,8 +29,7 @@ from sidekick.shared.errors.core import RateLimitedError, RefusedError, Sidekick
 from sidekick.shared.types import TxSession, new_uuid7, utc_now
 
 PAIRING_TTL = timedelta(minutes=10)
-# A device credential lives 30 days unless the operator says otherwise, at most 90 (D-077: 30-day
-# device credential). It is
+# A device credential lives 30 days unless the operator says otherwise, at most 90 (D-077). It is
 # never perpetual: the device renews its own credential in the last `RENEWAL_WINDOW` before it
 # expires (`renew`), and pairs again if it let the credential lapse.
 DEFAULT_DEVICE_LIFETIME_DAYS = 30

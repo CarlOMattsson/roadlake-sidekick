@@ -6,12 +6,13 @@ This module imports neither interface layer, so each of them can depend on it wi
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.automation.application.service import ActivityLedger, AutomationPolicyService
-from sidekick.automation.persistence import AutomationStore
+from sidekick.activity.application.service import ActivityLedger, ActivityService
+from sidekick.activity.persistence import ActivityStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
 from sidekick.companion.push_outbox_store import install_wake_hook
@@ -64,6 +65,9 @@ from sidekick.work.persistence.store import SqlWorkStore
 from sidekick.work.persistence.structure import WorkStructureStore
 from sidekick.work.persistence.tags import WorkTagStore
 
+if TYPE_CHECKING:
+    from starlette.requests import Request
+
 # The session factory type, named here so the transport layers (`api`, `mcp`) can type the test
 # seam of `create_app` without importing SQLAlchemy themselves.
 SessionFactory = sessionmaker[Session]
@@ -94,7 +98,7 @@ class Container:
     search: SearchService
     journal_analysis: JournalAnalysisService
     journal_finalize: JournalFinalizeService
-    automation: AutomationPolicyService
+    activity: ActivityService
     lifecycle: RecordLifecycleService
     process_runs: ProcessRunService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
@@ -109,6 +113,13 @@ class Container:
     memory: MemoryProvider | None
     memory_store: MemoryStore
     telemetry: TelemetryPort
+
+
+def container_of(request: "Request") -> Container:
+    """The `Container` the application was created with; typed access for route handlers."""
+
+    container: Container = request.app.state.container
+    return container
 
 
 def _memory_provider(settings: Settings) -> MemoryProvider | None:
@@ -242,9 +253,9 @@ def create_container(
     resolved_telemetry = telemetry or configure_observability(settings.environment)
     stores = create_stores(factory, resolved_telemetry)
     cursor_codec = CursorCodec(settings.cursor_signing_key)
-    automation_store = AutomationStore(factory, resolved_telemetry)
-    activity_ledger = ActivityLedger(automation_store)
-    automation_service = AutomationPolicyService(automation_store, SystemClock(), cursor_codec)
+    activity_store = ActivityStore(factory, resolved_telemetry)
+    activity_ledger = ActivityLedger(activity_store)
+    activity_service = ActivityService(activity_store, cursor_codec)
     tasks = TaskService(
         stores.tasks,
         SystemClock(),
@@ -301,7 +312,7 @@ def create_container(
         ),
         journal_analysis=JournalAnalysisService(stores.journal, SystemClock()),
         journal_finalize=JournalFinalizeService(stores.journal, SystemClock()),
-        automation=automation_service,
+        activity=activity_service,
         lifecycle=create_lifecycle_service(factory, resolved_telemetry, settings),
         process_runs=ProcessRunService(stores.work, tasks, SystemClock(), activity_ledger),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),

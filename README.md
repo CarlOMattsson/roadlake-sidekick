@@ -3,7 +3,26 @@
 # Roadlake Sidekick
 
 <p align="center">
-<!-- release badges are added with the first release (v0.1.0) -->
+<a href=".github/workflows/audit.yml"><img src="https://img.shields.io/badge/dependency%20audit-pip--audit%20%C2%B7%20npm%20%C2%B7%20OSV-informational" alt="Dependency audit: pip-audit, npm audit and OSV-Scanner"></a>
+<a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/secret%20scanning-gitleaks-informational" alt="Secret scanning: gitleaks"></a>
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/types-pyright%20strict-informational" alt="Type checking: pyright strict"></a>
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint and format: ruff"></a>
+<a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Type checking: TypeScript strict"></a>
+<a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin style: ktlint"></a>
+<!-- release badges, off until the first release (v0.1.0; the CI and Scorecard badges after their first runs): delete this line and the closing line below to turn them on
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status of the last run started by hand"></a>
+<a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Latest release"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml/badge.svg?branch=main" alt="release-image workflow: the last run that built, scanned and signed the image"></a>
+<a href="docs/maintainers/release.md#verifying-a-release"><img src="https://img.shields.io/badge/releases-signed%20%C2%B7%20cosign%20%C2%B7%20provenance-success" alt="Signed releases: cosign (Sigstore) signature and build provenance; see Verifying a release"></a>
+<a href="docs/maintainers/release.md#verifying-a-release"><img src="https://img.shields.io/badge/image-Trivy%20scanned-success" alt="Container image scanned with Trivy before it is signed"></a>
+-->
+</p>
+<p align="center">
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13"></a>
+<a href="https://www.postgresql.org"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
+<a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-first-informational" alt="MCP-first: Model Context Protocol"></a>
+<a href="frontend/android"><img src="https://img.shields.io/badge/Android-Kotlin-3DDC84?logo=android&logoColor=white" alt="Android app in Kotlin"></a>
 <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-Source%20Available-blue" alt="License: Source Available"></a>
 <a href="https://roadlake.com"><img src="https://img.shields.io/badge/web-roadlake.com-informational" alt="Website: roadlake.com"></a>
 </p>
@@ -13,12 +32,22 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 [Svenska](README.sv.md) · [Documentation](docs/README.md) · [Quickstart](QUICKSTART.md) · [License](LICENSE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Decisions](docs/decisions/log.md)
 
 > **Status: first version, not yet released.** Version 0.1.0 has no tag yet, so for now you build the container image and
-> the APK from this repository. From the first release on, every release carries a signed image and a signed APK. It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS
-> has not been tried yet. Details: [docs/maintainers/release.md](docs/maintainers/release.md).
+> the APK from this repository. From the first release on, every release carries a signed image and a signed APK.
+> It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet.
+> Details: [docs/maintainers/release.md](docs/maintainers/release.md).
 
-Roadlake Sidekick is a self-hosted, MCP-first operating system for one person for work and tasks, journal, shopping and
-contacts. You talk to it through Claude; interactive MCP Apps rooms open inside the conversation when you
-want to work with the result. A companion Android app uses the same records on your server.
+<!-- After the first release (v0.1.0), replace the status note above with the text between the markers below.
+START
+> **Status: version 0.1.0, the first release.** The signed container image and the signed APK are attached to the
+> [latest release](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); how to verify them is in
+> [Verifying a release](docs/maintainers/release.md#verifying-a-release). It is in daily use with Claude, with the
+> Android app on a real phone and on Linux; macOS has not been tried yet.
+END
+-->
+
+Sidekick brings work and tasks, journal, shopping and contacts together in one self-hosted, MCP-first system for one
+person. You talk to it through Claude, and interactive MCP Apps rooms open inside the conversation when you want to
+work with the result. A companion Android app uses the same records on your server.
 
 Sidekick is **AI-first**: many changes are made by asking Claude rather than through a form for every field.
 The rooms give direct controls for the supported workflows, and everything is stored as durable records in
@@ -89,7 +118,7 @@ There are two ways. Pick by where Claude will run.
 - You choose the rooms. What you do in Claude Desktop is still shared with Claude.
 - Guide: [Sidekick on a work laptop](docs/start/work-laptop.md) (Swedish: [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md)), started with `bash tools/work.sh setup`.
 
-**2. Your own server, reachable from Claude on the web and phone.** You run Sidekick on a Linux x86_64 machine with Docker Compose, a VPS or an always-on home computer. This route needs a Claude plan that supports custom connectors, a public HTTPS address for the server (a domain, or a tunnel to it) and a GitHub account (used to sign in). It is also the route for the Android app. Guide: [First start on a server](docs/start/self-hosted-server.md#first-start).
+**2. Your own server, reachable from Claude on the web and phone.** You run Sidekick on a Linux x86_64 machine with Docker Compose, a VPS or an always-on home computer. This route needs a Claude plan that supports custom connectors, a public HTTPS address for the server (a domain, or a tunnel to it; LAN-only access is not enough) and a GitHub account (used to sign in). It is also the route for the Android app. Guide: [First start on a server](docs/start/self-hosted-server.md#first-start).
 
 Sidekick sends no telemetry or analytics; it only contacts the services you configure (GitHub sign-in, push, and the model provider for optional Hindsight memory).
 
@@ -100,9 +129,8 @@ Sidekick sends no telemetry or analytics; it only contacts the services you conf
   secrets, creates the owner and registers the GitHub sign-in before the first `up`. Profiles: `vps` (Caddy terminates TLS
   on your domain) or none (home: bring your own public HTTPS tunnel to `127.0.0.1:8000`).
 
-  Claude's remote connector needs a **public HTTPS origin**; LAN-only access is not enough. Optional profiles:
-  `memory` (private Hindsight), `backup` (encrypted owner exports) and `push` (reminders through a hardened
-  own ntfy). `update.sh` defaults to a dry run and verifies a digest-pinned, signed image before applying.
+  Optional profiles: `memory` (private Hindsight), `backup` (encrypted owner exports) and `push` (reminders
+  through a hardened own ntfy). `update.sh` defaults to a dry run and verifies a digest-pinned, signed image before applying.
   Backups cover owner product data, not a full server image; keep an off-server copy. To connect Claude to
   the running server, see [Connect Claude](docs/operate/connect-claude.md); to pair the Android app, see
   [Android app](docs/operate/pair-android.md).
@@ -144,17 +172,19 @@ described in [SECURITY.md](SECURITY.md).
 
 ## License
 
-Sidekick is **source available**, not open source. It is licensed under the **Roadlake Sidekick Source Available License**, which is the
-Sustainable Use License 1.0 with the Roadlake Sidekick Additional Terms; see [LICENSE.md](LICENSE.md) for the binding text. In short, you may use and
-modify it for your own internal business purposes or for non-commercial and private use, and distribute it
-free of charge for non-commercial purposes. You may pay a consultant or agency to install, adapt and
-maintain it on your own installation, but nobody may sell it or offer it as a hosted service. A license key is verified offline; it is never needed to
-exercise a right under the license, but without a valid key the software shows an unpaid notice, and a
-valid key removes that notice; the notice may not be removed or hidden, and the key check may not be
-circumvented. The summary is not the license: the text in `LICENSE.md` governs.
-For the license in plain words, how to enter a key and the planned prices, see [License, license key and price](docs/explanation/licensing.md).
-Third-party components keep their own licenses; they are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Sidekick is **source available**, not open source. It is licensed under the **Roadlake Sidekick Source Available
+License**, which is the Sustainable Use License 1.0 with the Roadlake Sidekick Additional Terms. The binding text is
+[LICENSE.md](LICENSE.md); this summary is not the license and the text governs.
 
-### License keys
+- You may use and modify it for your own internal business purposes or for non-commercial and private use, and
+  distribute it free of charge for non-commercial purposes.
+- You may pay a consultant or agency to install, adapt and maintain it on your own installation, but nobody may sell it
+  or offer it as a hosted service.
+- A license key is optional and verified offline. It is never needed to exercise a right under the license, but without
+  a valid key the software shows an unpaid notice, and a valid key removes that notice. The notice may not be removed
+  or hidden, and the key check may not be circumvented.
 
-A license key is optional and checked offline; without one the software shows an unpaid notice, and nothing else changes. Operators store a key with `python -m sidekick.license.cli set` and check it with `python -m sidekick.license.cli show`. How keys are verified, which public key the instance uses and how to check the setup are in [Enter a license key](docs/operate/license-key.md#how-the-key-is-checked); the plain-words summary and prices are in [License, license key and price](docs/explanation/licensing.md).
+Operators store a key with `python -m sidekick.license.cli set` and check it with `python -m sidekick.license.cli show`.
+How keys are verified is in [Enter a license key](docs/operate/license-key.md#how-the-key-is-checked); the license in plain
+words and the planned prices are in [License, license key and price](docs/explanation/licensing.md). Third-party
+components keep their own licenses, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

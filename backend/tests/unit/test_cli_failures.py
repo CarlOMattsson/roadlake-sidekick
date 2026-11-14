@@ -17,7 +17,6 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 
 from sidekick import composition
 from sidekick.admin import cli as auth_cli
-from sidekick.automation import worker as automation_worker
 from sidekick.backup import cli as backup_cli
 from sidekick.backup import worker as backup_worker
 from sidekick.companion import cli as companion_cli
@@ -41,6 +40,7 @@ from sidekick.shared.errors.core import (
     RefusedError,
     SidekickError,
 )
+from sidekick.work import worker as process_run_worker
 
 SECRET = "secret-name-42"
 
@@ -343,9 +343,9 @@ WORKERS: list[tuple[str, Callable[[pytest.MonkeyPatch], Callable[[], object]], s
 
 
 def _automation(monkeypatch: pytest.MonkeyPatch) -> Callable[[], object]:
-    monkeypatch.setattr(automation_worker, "run_worker", failing_async(duplicate()))
+    monkeypatch.setattr(process_run_worker, "run_worker", failing_async(duplicate()))
     monkeypatch.setattr(sys, "argv", ["sidekick-automation-worker", "--once"])
-    return automation_worker.main
+    return process_run_worker.main
 
 
 def _backup_worker(monkeypatch: pytest.MonkeyPatch) -> Callable[[], object]:
@@ -399,7 +399,7 @@ def test_worker_entry_points_fail_with_a_fixed_line(
     message: str,
     code: int,
 ) -> None:
-    for module in (automation_worker, backup_worker, push_worker, memory_worker):
+    for module in (process_run_worker, backup_worker, push_worker, memory_worker):
         monkeypatch.setattr(module, "configure_worker_logging", lambda: None)
     run = build(monkeypatch)
 

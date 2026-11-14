@@ -9,7 +9,45 @@ from sidekick.contacts.persistence import ContactStore
 from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.persistence.models import ContactRow
 from sidekick.shared.persistence.stores.base import StoreBase
+from sidekick.shopping.domain import PurchaseChange, ShoppingItem, ShoppingList
+from sidekick.shopping.persistence.mappers import (
+    apply_item,
+    apply_list,
+    item_from_row,
+    item_row,
+    list_from_row,
+    list_row,
+    purchase_change_row,
+)
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow
+
+
+def _list_row(
+    session: Session, owner: UUID, list_id: UUID, *, lock: bool = False
+) -> ShoppingListRow:
+    statement = select(ShoppingListRow).where(
+        ShoppingListRow.id == list_id, ShoppingListRow.owner_id == owner
+    )
+    row = session.scalar(statement.with_for_update() if lock else statement)
+    if row is None:
+        raise NotFoundError("shopping list not found")
+    return row
+
+
+def _item_row(session: Session, owner: UUID, item_id: UUID) -> ShoppingItemRow:
+    # A trashed item is hidden everywhere, so edits to it fail as not found until restored.
+    row = session.scalar(
+        select(ShoppingItemRow)
+        .where(
+            ShoppingItemRow.id == item_id,
+            ShoppingItemRow.owner_id == owner,
+            ShoppingItemRow.trashed_at.is_(None),
+        )
+        .with_for_update()
+    )
+    if row is None:
+        raise NotFoundError("shopping item not found")
+    return row
 
 
 class ShoppingStore(StoreBase):
@@ -46,47 +84,50 @@ class ShoppingStore(StoreBase):
     @staticmethod
     def get_list(
         session: Session, owner: UUID, list_id: UUID, *, lock: bool = False
-    ) -> ShoppingListRow:
-        statement = select(ShoppingListRow).where(
-            ShoppingListRow.id == list_id, ShoppingListRow.owner_id == owner
-        )
-        row = session.scalar(statement.with_for_update() if lock else statement)
-        if row is None:
-            raise NotFoundError("shopping list not found")
-        return row
+    ) -> ShoppingList:
+        return list_from_row(_list_row(session, owner, list_id, lock=lock))
 
     @staticmethod
-    def get_item(session: Session, owner: UUID, item_id: UUID) -> ShoppingItemRow:
-        # A trashed item is hidden everywhere, so edits to it fail as not found until restored.
-        row = session.scalar(
-            select(ShoppingItemRow)
-            .where(
-                ShoppingItemRow.id == item_id,
-                ShoppingItemRow.owner_id == owner,
-                ShoppingItemRow.trashed_at.is_(None),
-            )
-            .with_for_update()
-        )
-        if row is None:
-            raise NotFoundError("shopping item not found")
-        return row
+    def get_item(session: Session, owner: UUID, item_id: UUID) -> ShoppingItem:
+        return item_from_row(_item_row(session, owner, item_id))
+
+    @staticmethod
+    def add_list(session: Session, shopping_list: ShoppingList) -> None:
+        session.add(list_row(shopping_list))
+        session.flush()
+
+    @staticmethod
+    def save_list(session: Session, shopping_list: ShoppingList) -> None:
+        row = _list_row(session, shopping_list.owner_id, shopping_list.id, lock=True)
+        apply_list(row, shopping_list)
+
+    @staticmethod
+    def add_item(session: Session, item: ShoppingItem) -> None:
+        session.add(item_row(item))
+
+    @staticmethod
+    def save_item(session: Session, item: ShoppingItem) -> None:
+        apply_item(_item_row(session, item.owner_id, item.id), item)
+
+    @staticmethod
+    def add_purchase_change(session: Session, change: PurchaseChange) -> None:
+        session.add(purchase_change_row(change))
 
     @staticmethod
     def list_lists(
         session: Session, owner: UUID, *, include_archived: bool, offset: int, limit: int
-    ) -> list[ShoppingListRow]:
+    ) -> list[ShoppingList]:
         """The owner's lists, oldest first, from `offset`; at most `limit` rows."""
 
         query = select(ShoppingListRow).where(ShoppingListRow.owner_id == owner)
         if not include_archived:
             query = query.where(ShoppingListRow.archived.is_(False))
-        return list(
-            session.scalars(
-                query.order_by(ShoppingListRow.created_at, ShoppingListRow.id)
-                .offset(offset)
-                .limit(limit)
-            )
+        rows = session.scalars(
+            query.order_by(ShoppingListRow.created_at, ShoppingListRow.id)
+            .offset(offset)
+            .limit(limit)
         )
+        return [list_from_row(row) for row in rows]
 
     @staticmethod
     def list_items(
@@ -97,7 +138,7 @@ class ShoppingStore(StoreBase):
         store_name: str | None,
         offset: int,
         limit: int,
-    ) -> list[ShoppingItemRow]:
+    ) -> list[ShoppingItem]:
         """Untrashed items of one list, oldest first, from `offset`; at most `limit` rows.
 
         `store_name` keeps the items whose store equals it, ignoring case, plus the items with
@@ -116,32 +157,30 @@ class ShoppingStore(StoreBase):
                     func.lower(ShoppingItemRow.store) == store_name.lower(),
                 )
             )
-        return list(
-            session.scalars(
-                select(ShoppingItemRow)
-                .where(*conditions)
-                .order_by(ShoppingItemRow.created_at, ShoppingItemRow.id)
-                .offset(offset)
-                .limit(limit)
-            )
+        rows = session.scalars(
+            select(ShoppingItemRow)
+            .where(*conditions)
+            .order_by(ShoppingItemRow.created_at, ShoppingItemRow.id)
+            .offset(offset)
+            .limit(limit)
         )
+        return [item_from_row(row) for row in rows]
 
     @staticmethod
-    def open_items(session: Session, owner: UUID, list_id: UUID) -> list[ShoppingItemRow]:
+    def open_items(session: Session, owner: UUID, list_id: UUID) -> list[ShoppingItem]:
         """Unpurchased, untrashed items of the list, oldest first."""
 
-        return list(
-            session.scalars(
-                select(ShoppingItemRow)
-                .where(
-                    ShoppingItemRow.owner_id == owner,
-                    ShoppingItemRow.list_id == list_id,
-                    ShoppingItemRow.purchased.is_(False),
-                    ShoppingItemRow.trashed_at.is_(None),
-                )
-                .order_by(ShoppingItemRow.created_at, ShoppingItemRow.id)
+        rows = session.scalars(
+            select(ShoppingItemRow)
+            .where(
+                ShoppingItemRow.owner_id == owner,
+                ShoppingItemRow.list_id == list_id,
+                ShoppingItemRow.purchased.is_(False),
+                ShoppingItemRow.trashed_at.is_(None),
             )
+            .order_by(ShoppingItemRow.created_at, ShoppingItemRow.id)
         )
+        return [item_from_row(row) for row in rows]
 
     @staticmethod
     def has_active_contact(session: Session, owner: UUID, contact_id: UUID) -> bool:

@@ -33,8 +33,7 @@ ROOT = Path(__file__).resolve().parents[3]
 OVERLAY = Path(os.environ.get("DOCS_PARITY_STAGING", ROOT / ".docs-staging-unset"))
 
 # English-only documents (patterns from the repository root, matched with full_match). Some are
-# generated or normative English sources; docs/planning, docs/architecture and docs/design are the
-# locations before the restructuring into docs/decisions and docs/explanation.
+# generated or normative English sources.
 EN_ONLY = (
     "AGENTS.md",
     "CHANGELOG.md",
@@ -45,10 +44,6 @@ EN_ONLY = (
     "docs/decisions/**",
     "docs/explanation/architecture/**",
     "docs/explanation/threat-model.md",
-    "docs/planning/**",
-    "docs/architecture/**",
-    "docs/design/**",
-    "docs/security/**",
 )
 # Where documents are looked for: the repository root files and these folders.
 DOCUMENT_DIRS = ("docs", "deploy")

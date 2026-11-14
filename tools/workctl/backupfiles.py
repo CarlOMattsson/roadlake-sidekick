@@ -1,4 +1,4 @@
-"""The housekeeping around a backup, for ``tools/work.sh``, ``deploy/selfhost/update.sh`` and ``tools/db-backup.sh``:
+"""The housekeeping around a backup, for ``tools/work.sh`` and ``deploy/selfhost/update.sh``:
 the setting for how many are kept, the free-space check before one is written, the time stamp of a new set and the
 pruning of the old ones.
 

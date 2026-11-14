@@ -1,8 +1,8 @@
 """The ports process-run materialization writes a Task and its activity through.
 
 Process runs create a Task and record an activity entry in their own transaction. They depend
-on these protocols, not on the Task or automation application layers; the composition root
-injects the Task service and the automation activity ledger, which satisfy them.
+on these protocols, not on the Task or activity application layers; the composition root
+injects the Task service and the activity ledger, which satisfy them.
 """
 
 from datetime import datetime

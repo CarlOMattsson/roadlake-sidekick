@@ -36,6 +36,7 @@ from sidekick.api.companion import (
     no_store_headers,
 )
 from sidekick.companion.operations import LICENSE_SET, LICENSE_SHOW, operation_actor
+from sidekick.composition import container_of
 from sidekick.license.key import MAX_KEY_LENGTH
 
 MAX_LICENSE_BODY_BYTES = 2048
@@ -58,7 +59,7 @@ def add_license_routes(router: CompanionRouter) -> None:
     @router.register(CompanionRouteSpec("GET", "/license", LICENSE_SHOW.name))
     async def license_show(request: Request, credential: Credential) -> JSONResponse:
         operation_actor(credential, LICENSE_SHOW)
-        view = await run_in_threadpool(request.app.state.container.license.view)
+        view = await run_in_threadpool(container_of(request).license.view)
         return JSONResponse(
             headers=no_store_headers,
             content={"api_version": API_VERSION, **view.as_json()},
@@ -68,7 +69,7 @@ def add_license_routes(router: CompanionRouter) -> None:
     async def license_set(request: Request, credential: Credential) -> JSONResponse:
         actor = operation_actor(credential, LICENSE_SET)
         body = await LICENSE_KEY_BODY.read(request)
-        service = request.app.state.container.license
+        service = container_of(request).license
         outcome = await run_in_threadpool(
             lambda: service.set_by_owner(
                 actor.user_id,

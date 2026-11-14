@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import {
   ContactSummary,
@@ -25,11 +25,12 @@ import { useSingleFlight } from "../shared/use-single-flight";
 import { readFailurePhase, type Phase } from "../view/parts/frame-types";
 import {
   contactLinkCounts,
-  contactNames,
+  contactMatches,
   projectInlineSummary,
   taskInlineSummary,
 } from "./inline-data";
 import { useMounted } from "../../mcp-apps/ui/use-mounted";
+import { useRead } from "../../mcp-apps/ui/use-read";
 
 /** What Undo after Done writes back: the status the Task had, or for a recurring Task its due date and completion. */
 type DoneUndo = {
@@ -76,48 +77,30 @@ export function InlineRootSummary({
   // Undo has run: focus goes to Done, which comes back in place of the Undo that had it.
   const [focusDone, setFocusDone] = useState(false);
   const alive = useMounted();
-  const [phase, setPhase] = useState<Phase>(initial ? "ready" : "loading");
-  // Why the last read failed, for the error card's second line.
-  const [cause, setCause] = useState<unknown>();
-  const [summary, setSummary] = useState<InlineSummaryData | undefined>(
-    initial,
-  );
-  const [attempt, setAttempt] = useState(0);
-  // Whether the tool result carried the record: it only decides the first read, so it is fixed at mount.
-  const [carried] = useState(initial !== undefined);
-  useEffect(() => {
-    // The carried record is the first view; only a refresh (attempt > 0) reads it again.
-    if (carried && attempt === 0) return;
-    // A response from a superseded read or an unmounted summary must not update state.
-    let live = true;
-    const read: Promise<InlineSummaryData> =
+  // The carried record is the first view; only a refresh reads it again.
+  const readSummary = useCallback(
+    (): Promise<InlineSummaryData> =>
       kind === "task"
         ? transport.getTask(id).then(({ task }) => taskInlineSummary(task))
         : transport
             .getProject(id)
-            .then(({ project }) => projectInlineSummary(project));
-    read
-      .then((next) => {
-        if (!live) return;
-        setSummary(next);
-        setPhase("ready");
-      })
-      .catch((error: unknown) => {
-        if (!live) return;
-        setCause(error);
-        setPhase(readFailurePhase(error));
-      });
-    return () => {
-      live = false;
-    };
-  }, [transport, kind, id, attempt, carried]);
+            .then(({ project }) => projectInlineSummary(project)),
+    [transport, kind, id],
+  );
+  const [read, retryRead, setSummary] = useRead(readSummary, 0, initial);
+  const summary = read.phase === "ready" ? read.value : undefined;
+  const phase: Phase =
+    read.phase === "failed"
+      ? readFailurePhase(read.cause)
+      : read.phase === "ready"
+        ? "ready"
+        : "loading";
   function reload() {
     pendingDone.current = undefined;
     pendingUndo.current = undefined;
     setUndo(undefined);
     setNotice(undefined);
-    setPhase("loading");
-    setAttempt((n) => n + 1);
+    retryRead();
   }
   /**
    * The notice for a failed write: a conflict offers "Read again"; a network failure offers a retry that
@@ -252,7 +235,7 @@ export function InlineRootSummary({
         labels={labels}
         kindLabel={labels.kind[kind]}
         subject={`work:${kind}`}
-        cause={cause}
+        cause={read.phase === "failed" ? read.cause : undefined}
         onRetry={reload}
       />
     );
@@ -334,25 +317,17 @@ export function InlineContactRoot({
   labels: InlineSummaryLabels;
   onOpen: () => void;
 }) {
-  const [counts, setCounts] = useState<ContactLinkCounts>();
+  // The counts are optional; the card still shows the Contact and Open, unless it is gone.
+  const readContext = useCallback(
+    () => transport.getContactContext(contact.id).then(contactLinkCounts),
+    [transport, contact.id],
+  );
+  const [read] = useRead(readContext);
+  const counts: ContactLinkCounts | undefined =
+    read.phase === "ready" ? read.value : undefined;
   // Set when the read says the Contact no longer exists: the card then shows only that line.
-  const [gone, setGone] = useState(false);
-  useEffect(() => {
-    // A response from an unmounted card must not update state.
-    let live = true;
-    transport
-      .getContactContext(contact.id)
-      .then((context) => {
-        if (live) setCounts(contactLinkCounts(context));
-      })
-      .catch((error: unknown) => {
-        // The counts are optional; the card still shows the Contact and Open, unless it is gone.
-        if (live && writeFailure(error) === "not_found") setGone(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, [transport, contact.id]);
+  const gone =
+    read.phase === "failed" && writeFailure(read.cause) === "not_found";
   if (gone) {
     return (
       <InlineSummary
@@ -396,65 +371,40 @@ export function ContactsRootSummary({
   labels: InlineSummaryLabels;
   onOpen: () => void;
 }) {
-  const [phase, setPhase] = useState<Phase>(frame.page ? "ready" : "loading");
-  const [matches, setMatches] = useState(() => ({
-    count: frame.page?.items.length ?? 0,
-    more: frame.page ? frame.page.next_cursor !== null : false,
-    contacts: contactNames(frame.page?.items ?? []),
-  }));
-  const [attempt, setAttempt] = useState(0);
-  // Why the last read failed, for the error card's second line.
-  const [cause, setCause] = useState<unknown>();
-  useEffect(() => {
-    // A frame that already holds its page needs no read; a retry reads the first page again.
-    if (frame.page && attempt === 0) return;
-    // A response from an unmounted summary must not update state.
-    let live = true;
-    transport
-      .listContacts({
-        q: frame.q.trim(),
-        includeArchived: frame.includeArchived,
-      })
-      .then((next) => {
-        if (!live) return;
-        setMatches({
-          count: next.items.length,
-          more: next.next_cursor !== null,
-          contacts: contactNames(next.items),
-        });
-        setPhase("ready");
-      })
-      .catch((error: unknown) => {
-        if (!live) return;
-        setCause(error);
-        setPhase("error");
-      });
-    return () => {
-      live = false;
-    };
-  }, [transport, frame, attempt]);
-  function reload() {
-    setPhase("loading");
-    setAttempt((n) => n + 1);
-  }
-  if (phase === "error") {
+  // A frame that already holds its page needs no read; a retry reads the first page again.
+  const held = useMemo(
+    () => (frame.page ? contactMatches(frame.page) : undefined),
+    [frame.page],
+  );
+  const readMatches = useCallback(
+    () =>
+      transport
+        .listContacts({
+          q: frame.q.trim(),
+          includeArchived: frame.includeArchived,
+        })
+        .then(contactMatches),
+    [transport, frame],
+  );
+  const [read, reload] = useRead(readMatches, 0, held);
+  if (read.phase === "failed") {
     return (
       <InlineSummary
         state="error"
         labels={labels}
         kindLabel={labels.kind.contacts}
         subject="contacts"
-        cause={cause}
+        cause={read.cause}
         onRetry={reload}
       />
     );
   }
-  if (phase === "ready") {
+  if (read.phase === "ready") {
     return (
       <ContactsSummary
-        count={matches.count}
-        more={matches.more}
-        contacts={matches.contacts}
+        count={read.value.count}
+        more={read.value.more}
+        contacts={read.value.contacts}
         query={frame.q}
         labels={labels}
         onOpen={onOpen}

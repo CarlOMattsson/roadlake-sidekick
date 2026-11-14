@@ -62,6 +62,18 @@ export function contactLinkCounts(
 }
 
 /** The id and display name of each Contact, as the inline Contact summary lists them. */
-export function contactNames(items: { id: string; display_name: string }[]) {
+function contactNames(items: { id: string; display_name: string }[]) {
   return items.map((item) => ({ id: item.id, name: item.display_name }));
+}
+
+/** What the inline Contact list shows of a page: how many matches, whether more follow, and their names. */
+export function contactMatches(page: {
+  items: { id: string; display_name: string }[];
+  next_cursor: string | null;
+}) {
+  return {
+    count: page.items.length,
+    more: page.next_cursor !== null,
+    contacts: contactNames(page.items),
+  };
 }

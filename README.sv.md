@@ -3,7 +3,26 @@
 # Roadlake Sidekick
 
 <p align="center">
-<!-- release badges are added with the first release (v0.1.0) -->
+<a href=".github/workflows/audit.yml"><img src="https://img.shields.io/badge/dependency%20audit-pip--audit%20%C2%B7%20npm%20%C2%B7%20OSV-informational" alt="Beroendegranskning: pip-audit, npm audit och OSV-Scanner"></a>
+<a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/secret%20scanning-gitleaks-informational" alt="Hemlighetsskanning: gitleaks"></a>
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/types-pyright%20strict-informational" alt="Typkontroll: pyright strict"></a>
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint och formatering: ruff"></a>
+<a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Typkontroll: TypeScript strict"></a>
+<a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin-stil: ktlint"></a>
+<!-- release badges, off until the first release (v0.1.0; the CI and Scorecard badges after their first runs): delete this line and the closing line below to turn them on
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status för senaste körningen som startats för hand"></a>
+<a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Senaste release"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml/badge.svg?branch=main" alt="Arbetsflödet release-image: senaste körningen som byggde, skannade och signerade imagen"></a>
+<a href="docs/maintainers/release.sv.md#verifiera-en-release"><img src="https://img.shields.io/badge/releases-signed%20%C2%B7%20cosign%20%C2%B7%20provenance-success" alt="Signerade releaser: cosign-signatur (Sigstore) och build provenance; se Verifiera en release"></a>
+<a href="docs/maintainers/release.sv.md#verifiera-en-release"><img src="https://img.shields.io/badge/image-Trivy%20scanned-success" alt="Containerimagen skannas med Trivy innan den signeras"></a>
+-->
+</p>
+<p align="center">
+<a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13"></a>
+<a href="https://www.postgresql.org"><img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL"></a>
+<a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-first-informational" alt="MCP-först: Model Context Protocol"></a>
+<a href="frontend/android"><img src="https://img.shields.io/badge/Android-Kotlin-3DDC84?logo=android&logoColor=white" alt="Android-app i Kotlin"></a>
 <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-Source%20Available-blue" alt="Licens: Source Available"></a>
 <a href="https://roadlake.com"><img src="https://img.shields.io/badge/web-roadlake.com-informational" alt="Webbplats: roadlake.com"></a>
 </p>
@@ -13,13 +32,22 @@ Roadlake Sidekick är en personlig assistent som du kör på din egen server: du
 [English](README.md) · [Dokumentation](docs/README.sv.md) · [Snabbstart](QUICKSTART.sv.md) · [Licens](LICENSE.md) · [Bidra](CONTRIBUTING.sv.md) · [Säkerhet](SECURITY.sv.md) · [Beslut](docs/decisions/log.md)
 
 > **Status: första versionen, ännu inte släppt.** Version 0.1.0 har ingen tagg än, så tills vidare bygger du containerimagen
-> och APK:n från det här repot. Från och med första releasen har varje release en signerad image och en signerad APK. Den används dagligen med Claude, med Android-appen på en riktig
-> telefon och på Linux; macOS är ännu inte provat.
-> Detaljer: [docs/maintainers/release.md](docs/maintainers/release.md) (på engelska) och [docs/maintainers/release.sv.md](docs/maintainers/release.sv.md).
+> och APK:n från det här repot. Från och med första releasen har varje release en signerad image och en signerad APK.
+> Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat.
+> Detaljer: [docs/maintainers/release.sv.md](docs/maintainers/release.sv.md) (engelska: [docs/maintainers/release.md](docs/maintainers/release.md)).
 
-Roadlake Sidekick är ett självhostat, MCP-först personligt operativsystem för arbete och uppgifter, dagbok, inköp och
-kontakter. Du pratar med det via Claude, och interaktiva MCP-appar (rum) öppnas i samtalet när du vill arbeta
-med resultatet. En Android-app använder samma poster på din server.
+<!-- After the first release (v0.1.0), replace the status note above with the text between the markers below.
+START
+> **Status: version 0.1.0, den första releasen.** Den signerade containerimagen och den signerade APK:n ligger som bilagor
+> i [senaste releasen](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); hur du verifierar dem står i
+> [Verifiera en release](docs/maintainers/release.sv.md#verifiera-en-release). Den används dagligen med Claude, med
+> Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat.
+END
+-->
+
+Sidekick samlar arbete och uppgifter, dagbok, inköp och kontakter i ett självhostat, MCP-först system för en person.
+Du pratar med det via Claude, och interaktiva MCP-appar (rum) öppnas i samtalet när du vill arbeta med resultatet.
+En Android-app använder samma poster på din server.
 
 Sidekick är **AI-först**: många ändringar görs genom att be Claude i stället för i ett formulär för varje fält.
 Rummen ger direkta kontroller för de arbetsflöden som stöds, och allt lagras som varaktiga poster i din egen
@@ -89,7 +117,7 @@ Det finns två sätt. Välj efter var Claude ska köra.
 - Rummen väljer du själv. Det du gör i Claude Desktop delas fortfarande med Claude.
 - Guide: [Sidekick på jobbdatorn](docs/start/work-laptop.sv.md) (engelska: [Sidekick on a work laptop](docs/start/work-laptop.md)), startas med `bash tools/work.sh setup`.
 
-**2. Egen server som Claude når på webben och i mobilen.** Du kör Sidekick på en Linux x86_64-dator med Docker Compose, en VPS eller en hemdator som alltid är på. Den här vägen kräver en Claude-plan som stöder egna connectors, en publik HTTPS-adress till servern (en domän eller en tunnel dit) och ett GitHub-konto (används för inloggning). Det är också vägen för Android-appen. Guide: [Första start på en server](docs/start/self-hosted-server.sv.md#första-start).
+**2. Egen server som Claude når på webben och i mobilen.** Du kör Sidekick på en Linux x86_64-dator med Docker Compose, en VPS eller en hemdator som alltid är på. Den här vägen kräver en Claude-plan som stöder egna connectors, en publik HTTPS-adress till servern (en domän eller en tunnel dit; enbart åtkomst i lokalnätet räcker inte) och ett GitHub-konto (används för inloggning). Det är också vägen för Android-appen. Guide: [Första start på en server](docs/start/self-hosted-server.sv.md#första-start).
 
 Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster du själv konfigurerar (GitHub-inloggning, push och modelltjänsten för det valfria Hindsight-minnet).
 
@@ -100,7 +128,6 @@ Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster d
   genererar dina hemligheter, skapar ägaren och registrerar GitHub-inloggningen före första `up`. Profiler: `vps` (Caddy
   terminerar TLS på din domän) eller ingen (hemma: ordna en egen publik HTTPS-tunnel till `127.0.0.1:8000`).
 
-  Claudes fjärranslutning kräver ett **publikt HTTPS-ursprung**; enbart åtkomst i lokalnätet räcker inte.
   Valfria profiler: `memory` (privat Hindsight), `backup` (krypterade ägarexporter) och `push` (påminnelser via
   en härdad egen ntfy). `update.sh` kör som standard en torrkörning och verifierar en signerad, digest-låst
   image innan något tillämpas. Backuper omfattar ägarens produktdata, inte en hel serverimage; ta en kopia
@@ -145,18 +172,19 @@ Sårbarheter rapporteras privat, enligt [SECURITY.sv.md](SECURITY.sv.md).
 
 ## Licens
 
-Sidekick är **source available**, inte öppen källkod. Det licensieras under **Roadlake Sidekick Source Available License**, som är
-Sustainable Use License 1.0 med Roadlake Sidekick Additional Terms; det bindande licensvillkoret (på engelska) står i [LICENSE.md](LICENSE.md). I korthet:
-du får använda och ändra det för din egen interna verksamhet eller för icke-kommersiellt och personligt bruk,
-och sprida det kostnadsfritt för icke-kommersiella ändamål. Du får betala en konsult eller byrå för att
-installera, anpassa och sköta det på din egen installation, men ingen får sälja det eller erbjuda det som
-hostad tjänst. En licensnyckel verifieras offline; den behövs
-aldrig för att utöva en rättighet enligt licensen, men utan giltig nyckel visar programvaran en
-obetald-notis, och en giltig nyckel tar bort den; notisen får inte tas bort eller döljas, och
-nyckelkontrollen får inte kringgås. Sammanfattningen är inte licensen: texten i `LICENSE.md`
-gäller. Licensen på vanlig svenska, hur du anger en nyckel och de planerade priserna finns i [Licens, licensnyckel och pris](docs/explanation/licensing.sv.md).
+Sidekick är **source available**, inte öppen källkod. Det licensieras under **Roadlake Sidekick Source Available
+License**, som är Sustainable Use License 1.0 med Roadlake Sidekick Additional Terms. Det bindande licensvillkoret (på
+engelska) står i [LICENSE.md](LICENSE.md); den här sammanfattningen är inte licensen, utan texten gäller.
+
+- Du får använda och ändra det för din egen interna verksamhet eller för icke-kommersiellt och personligt bruk, och
+  sprida det kostnadsfritt för icke-kommersiella ändamål.
+- Du får betala en konsult eller byrå för att installera, anpassa och sköta det på din egen installation, men ingen får
+  sälja det eller erbjuda det som hostad tjänst.
+- En licensnyckel är valfri och verifieras offline. Den behövs aldrig för att utöva en rättighet enligt licensen, men utan
+  giltig nyckel visar programvaran en obetald-notis, och en giltig nyckel tar bort den. Notisen får inte tas bort eller
+  döljas, och nyckelkontrollen får inte kringgås.
+
+Operatörer sparar en nyckel med `python -m sidekick.license.cli set` och kontrollerar den med
+`python -m sidekick.license.cli show`. Hur nycklar verifieras står i [Ange en licensnyckel](docs/operate/license-key.sv.md#så-kontrolleras-nyckeln);
+licensen på vanlig svenska och de planerade priserna finns i [Licens, licensnyckel och pris](docs/explanation/licensing.sv.md).
 Tredjepartskomponenter behåller sina egna licenser; de förtecknas i [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) (på engelska).
-
-### Licensnycklar
-
-En licensnyckel är valfri och kontrolleras offline; utan nyckel visar programvaran en obetald-notis, och inget annat ändras. Operatörer sparar en nyckel med `python -m sidekick.license.cli set` och kontrollerar den med `python -m sidekick.license.cli show`. Hur nycklar verifieras, vilken publik nyckel instansen använder och hur du kontrollerar uppsättningen står i [Ange en licensnyckel](docs/operate/license-key.sv.md#så-kontrolleras-nyckeln); sammanfattningen på vanlig svenska och priserna finns i [Licens, licensnyckel och pris](docs/explanation/licensing.sv.md).

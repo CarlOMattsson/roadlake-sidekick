@@ -33,9 +33,9 @@ import {
 } from "@tests/helpers/work-app-fixtures";
 
 /** Not linked to taskA, so it can be chosen in a search; anna is linked and must not be offered. */
-const carl: WorkContact = {
+const erik: WorkContact = {
   id: "019f0000-0000-7000-8000-0000000000c3",
-  display_name: "Carl Nilsson",
+  display_name: "Erik Lindgren",
 };
 
 /** Opens the Project's editor: the ⋯ in its header row holds "Edit", which is the way in (a tap on the title also edits). */
@@ -469,20 +469,20 @@ it("waits for a pause before searching contacts and never searches a single lett
   const user = userEvent.setup();
   const search = vi
     .fn()
-    .mockResolvedValue({ items: [carl], next_cursor: null });
+    .mockResolvedValue({ items: [erik], next_cursor: null });
   const work = transport({ searchContacts: search });
   render(rootTask(work));
   await openContactForm(user);
   const input = await screen.findByLabelText(workEn.linkContact);
-  await user.type(input, "C");
+  await user.type(input, "E");
   await new Promise((resolve) => setTimeout(resolve, 400));
   expect(search).not.toHaveBeenCalled();
-  await user.type(input, "arl");
+  await user.type(input, "rik");
   expect(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   ).toBeInTheDocument();
   expect(search).toHaveBeenCalledTimes(1);
-  expect(search).toHaveBeenCalledWith("Carl");
+  expect(search).toHaveBeenCalledWith("Erik");
 });
 
 it("ignores the answer to an older search query and offers no linked contact", async () => {
@@ -500,7 +500,7 @@ it("ignores the answer to an older search query and offers no linked contact", a
           resolveOld = resolve;
         }),
     )
-    .mockResolvedValue({ items: [carl, anna], next_cursor: null });
+    .mockResolvedValue({ items: [erik, anna], next_cursor: null });
   const work = transport({ searchContacts: search });
   render(rootTask(work));
   await openContactForm(user);
@@ -508,9 +508,9 @@ it("ignores the answer to an older search query and offers no linked contact", a
   await user.type(input, "Bo");
   await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
   await user.clear(input);
-  await user.type(input, "Ca");
+  await user.type(input, "Er");
   expect(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   ).toBeInTheDocument();
   act(() => {
     resolveOld({ items: [bo], next_cursor: null });
@@ -528,29 +528,29 @@ it("links a searched contact, reads the contact list again and returns focus to 
   const list = vi
     .fn()
     .mockResolvedValueOnce({ items: [anna], next_cursor: null })
-    .mockResolvedValueOnce({ items: [anna, carl], next_cursor: null });
+    .mockResolvedValueOnce({ items: [anna, erik], next_cursor: null });
   const work = transport({
     listTaskContacts: list,
     searchContacts: vi
       .fn()
-      .mockResolvedValue({ items: [carl], next_cursor: null }),
+      .mockResolvedValue({ items: [erik], next_cursor: null }),
     linkContactToTask: link,
   });
   render(rootTask(work));
   await screen.findByRole("button", { name: anna.display_name });
   await openContactForm(user);
-  await user.type(screen.getByLabelText(workEn.linkContact), "Carl");
+  await user.type(screen.getByLabelText(workEn.linkContact), "Erik");
   await user.click(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   );
   await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
   expect(link).toHaveBeenCalledWith(
     taskA.id,
-    carl.id,
+    erik.id,
     expect.stringMatching(KEY),
   );
   expect(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   ).toBeInTheDocument();
   await waitFor(() =>
     expect(
@@ -570,15 +570,15 @@ it("sends one link request for a double-clicked search result", async () => {
   const work = transport({
     searchContacts: vi
       .fn()
-      .mockResolvedValue({ items: [carl], next_cursor: null }),
+      .mockResolvedValue({ items: [erik], next_cursor: null }),
     linkContactToTask: link,
   });
   render(rootTask(work));
   await screen.findByRole("button", { name: anna.display_name });
   await openContactForm(user);
-  await user.type(screen.getByLabelText(workEn.linkContact), "Carl");
+  await user.type(screen.getByLabelText(workEn.linkContact), "Erik");
   await user.dblClick(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   );
   expect(link).toHaveBeenCalledTimes(1);
 });
@@ -620,22 +620,22 @@ it("shows a link conflict as a banner that reads the contact list again", async 
   const list = vi
     .fn()
     .mockResolvedValueOnce({ items: [anna], next_cursor: null })
-    .mockResolvedValueOnce({ items: [anna, carl], next_cursor: null })
-    .mockResolvedValue({ items: [anna, carl], next_cursor: null });
+    .mockResolvedValueOnce({ items: [anna, erik], next_cursor: null })
+    .mockResolvedValue({ items: [anna, erik], next_cursor: null });
   const link = vi.fn().mockRejectedValue(new HostToolError("conflict"));
   const work = transport({
     listTaskContacts: list,
     searchContacts: vi
       .fn()
-      .mockResolvedValue({ items: [carl], next_cursor: null }),
+      .mockResolvedValue({ items: [erik], next_cursor: null }),
     linkContactToTask: link,
   });
   render(rootTask(work));
   await screen.findByRole("button", { name: anna.display_name });
   await openContactForm(user);
-  await user.type(screen.getByLabelText(workEn.linkContact), "Carl");
+  await user.type(screen.getByLabelText(workEn.linkContact), "Erik");
   await user.click(
-    await screen.findByRole("button", { name: carl.display_name }),
+    await screen.findByRole("button", { name: erik.display_name }),
   );
   const banner = await screen.findByRole("alert");
   expect(banner).toHaveTextContent(workEn.contactConflict);

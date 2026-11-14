@@ -45,6 +45,7 @@ from sidekick.companion.push_reminder_models import (
     PushTestRateLimited,
 )
 from sidekick.companion.push_reminders import MAX_ACK_IDS
+from sidekick.composition import container_of
 
 MAX_PUSH_BODY_BYTES = 2048
 MAX_ACK_BODY_BYTES = 4096
@@ -68,7 +69,7 @@ ACK_BODY = RequestBody(AckRequest, MAX_ACK_BODY_BYTES)
 
 
 def _push_service(request: Request) -> PushSubscriptionService:
-    return request.app.state.container.push_subscriptions
+    return container_of(request).push_subscriptions
 
 
 def _reminders_json(pending: PendingReminders, timezone: str) -> dict[str, Any]:
@@ -134,7 +135,7 @@ async def push_unsubscribe(request: Request, credential: Credential) -> Response
 
 async def push_test(request: Request, credential: Credential) -> JSONResponse:
     actor = operation_actor(credential, PUSH_REMINDERS)
-    if not request.app.state.container.settings.push_enabled:
+    if not container_of(request).settings.push_enabled:
         raise CompanionProblem(404, "not_found", "Not found")
     try:
         await run_in_threadpool(
@@ -159,7 +160,7 @@ async def reminders_pending(request: Request) -> JSONResponse:
     pending = await run_in_threadpool(reminder_service(request).pending, actor.user_id)
     return JSONResponse(
         headers=no_store_headers,
-        content=_reminders_json(pending, request.app.state.container.settings.owner_timezone),
+        content=_reminders_json(pending, container_of(request).settings.owner_timezone),
     )
 
 

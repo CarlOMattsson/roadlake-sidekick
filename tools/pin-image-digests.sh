@@ -8,8 +8,7 @@
 # to the digest, so a reader sees the version and the digest is what the daemon verifies.
 #
 # usage: tools/pin-image-digests.sh [--write] [FILE...]
-# Default FILEs are the Dockerfile and compose files of the release and test setups (DEFAULT_FILES below);
-# defaults that are not present in this checkout are skipped, named FILEs must exist.
+# Default FILEs are the Dockerfile and compose files of the release, work and test setups (DEFAULT_FILES below).
 # Digest lookup order: `docker buildx imagetools inspect`, `skopeo inspect`, then the registry HTTP API
 # (curl, anonymous pull token; manifest list digest from the Docker-Content-Digest header).
 # The same detection rules are enforced in CI.
@@ -19,9 +18,9 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 DEFAULT_FILES=(
   backend/Dockerfile
   deploy/selfhost/compose.yaml
+  deploy/work/compose.yaml
   deploy/compose.dev.yaml
   deploy/compose.test.yaml
-  deploy/compose.ntfy-dev.yaml
 )
 ACCEPT='application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json'
 
@@ -43,17 +42,20 @@ while [ $# -gt 0 ]; do
   shift
 done
 if [ "${#files[@]}" -eq 0 ]; then
-  # A default file may be absent: not every checkout carries every stack.
-  for f in "${DEFAULT_FILES[@]}"; do [ ! -f "$ROOT/$f" ] || files+=("$ROOT/$f"); done
+  for f in "${DEFAULT_FILES[@]}"; do files+=("$ROOT/$f"); done
 fi
 
-# Prints the unpinned external refs of a file, one per line. Local and templated names are skipped.
+# Prints the unpinned external refs of a file, one per line. Local and templated names and the names of
+# earlier `FROM ... AS <stage>` build stages (as in `COPY --from=<stage>`) are skipped.
 unpinned_refs() {
+  local stages
+  stages="$(sed -nE 's/^FROM[[:space:]].*[[:space:]][Aa][Ss][[:space:]]+([^[:space:]]+).*$/\1/p' "$1")"
   sed -nE \
     -e 's/^[[:space:]]*image:[[:space:]]*"?([^"[:space:]#]+)"?.*$/\1/p' \
     -e 's/^FROM[[:space:]]+(--[^[:space:]]+[[:space:]]+)*([^[:space:]]+).*$/\2/p' \
     -e 's/^.*COPY[[:space:]]+--from=([^[:space:]]+).*$/\1/p' "$1" |
     grep -v -e '@sha256:' -e '\$' -e '^scratch$' -e '^sidekick-' -e '^roadlake-sidekick' |
+    { grep -vxF "$stages" || true; } |
     grep -E '^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9._-]+)?$' | sort -u || true
 }
 

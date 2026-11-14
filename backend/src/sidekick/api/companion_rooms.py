@@ -75,6 +75,7 @@ from sidekick.companion.operations import (
     operation_actor,
 )
 from sidekick.companion.response_budget import TRIMMED_HEADER, fit_to_budget
+from sidekick.composition import container_of
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.shopping.application.schemas import BatchItem
@@ -203,7 +204,7 @@ def _add_shopping_read_routes(router: CompanionRouter) -> None:
         offset: Annotated[int, Query(ge=0, le=10000)] = 0,
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_LISTS)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.list_lists(
                 actor, include_archived=include_archived, limit=limit, offset=offset
@@ -222,7 +223,7 @@ def _add_shopping_read_routes(router: CompanionRouter) -> None:
         store: Annotated[str | None, Query(max_length=200)] = None,
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_LIST)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.get_list(
                 actor, list_id, on_date=on_date, limit=limit, offset=offset, store=store
@@ -242,7 +243,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_LIST_CREATE)
         body = await CREATE_LIST_BODY.read(request)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.create_list(
                 actor,
@@ -266,7 +267,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_LIST_UPDATE)
         body = await UPDATE_LIST_BODY.read(request)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.update_list(
                 actor,
@@ -290,7 +291,7 @@ def _add_shopping_list_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_ITEMS_ADD)
         body = await ADD_ITEMS_BODY.read(request)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.add_items(
                 actor,
@@ -318,7 +319,7 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_ITEM_UPDATE)
         body = await UPDATE_ITEM_BODY.read(request)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.update_item(
                 actor,
@@ -344,7 +345,7 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, SHOPPING_ITEM_PURCHASED)
         body = await PURCHASED_BODY.read(request)
-        service = request.app.state.container.shopping
+        service = container_of(request).shopping
         data = await run_in_threadpool(
             lambda: service.set_purchased(
                 actor,
@@ -377,7 +378,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
         cursor: Annotated[str | None, Query(max_length=MAX_CURSOR_LENGTH)] = None,
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_DAY)
-        container = request.app.state.container
+        container = container_of(request)
         structured, trimmed = await run_in_threadpool(
             lambda: fit_to_budget(
                 lambda page_limit, content: journal_day_structured(
@@ -406,7 +407,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
         cursor: Annotated[str | None, Query(max_length=MAX_CURSOR_LENGTH)] = None,
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_ENTRIES)
-        container = request.app.state.container
+        container = container_of(request)
         structured, trimmed = await run_in_threadpool(
             lambda: fit_to_budget(
                 lambda page_limit, content: journal_entries_structured(
@@ -433,7 +434,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
         include_content: bool = True,
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_ENTRY)
-        container = request.app.state.container
+        container = container_of(request)
         structured, trimmed = await run_in_threadpool(
             lambda: fit_to_budget(
                 lambda _limit, content: journal_entry_structured(
@@ -453,7 +454,7 @@ def _add_journal_read_routes(router: CompanionRouter) -> None:
         include_content: bool = True,
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_SOURCE)
-        container = request.app.state.container
+        container = container_of(request)
         structured = await run_in_threadpool(
             lambda: journal_source_structured(
                 container, actor, source_id, include_content=include_content
@@ -477,7 +478,7 @@ def _add_journal_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_ENTRY_WRITE)
         body = await WRITE_ENTRY_BODY.read(request)
-        container = request.app.state.container
+        container = container_of(request)
         structured = await run_in_threadpool(
             lambda: write_journal_entry_structured(
                 container,
@@ -502,7 +503,7 @@ def _add_journal_write_routes(router: CompanionRouter) -> None:
     ) -> JSONResponse:
         actor = operation_actor(credential, JOURNAL_ENTRY_UPDATE)
         body = await UPDATE_ENTRY_BODY.read(request)
-        container = request.app.state.container
+        container = container_of(request)
         changes = {
             name: getattr(body, name) for name in type(body).model_fields if name != "version"
         }

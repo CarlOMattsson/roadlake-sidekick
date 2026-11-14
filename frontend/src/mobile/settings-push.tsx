@@ -14,7 +14,7 @@ import type {
   TestPushResult,
 } from "./sidekick-native";
 import type { SettingsLabels } from "./settings-labels";
-import { useNativeRead } from "./use-native-read";
+import { useRead } from "@/features/mcp-apps/ui/use-read";
 
 /** What the section asks of the native side. */
 export type PushNative = Pick<
@@ -101,7 +101,7 @@ export function PushSection({
   serverOff: boolean;
 }) {
   const readPush = useCallback(() => native.pushStatus(), [native]);
-  const [status, retry] = useNativeRead(readPush, refreshKey);
+  const [status, retry] = useRead(readPush, refreshKey);
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | undefined>();
   const fix =

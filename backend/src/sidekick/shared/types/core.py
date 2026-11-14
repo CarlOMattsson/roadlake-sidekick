@@ -271,8 +271,7 @@ class CursorCodec:
         """Seal the sort key of the last row served: the next page starts strictly after it.
 
         Unlike an offset, a keyset position does not move when rows are added or removed
-        before it, so no row is served twice while a client pages
-        (see docs/architecture/pagination.md).
+        before it, so no row is served twice while a client pages.
         """
 
         return self._seal(actor_id, query_key, keyset=pack_key(values))

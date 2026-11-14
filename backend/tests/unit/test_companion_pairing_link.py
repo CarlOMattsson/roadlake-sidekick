@@ -68,5 +68,5 @@ def test_pair_accepts_a_server_url_and_defaults_to_none() -> None:
     ],
 )
 def test_the_check_code_matches_the_one_the_app_derives(code: str, check: str) -> None:
-    # The same vectors are asserted in frontend/tests/mobile-pairing-form.test.tsx.
+    # The same vectors are asserted in frontend/tests/mobile/mobile-pairing-form.test.tsx.
     assert pairing_check(code) == check

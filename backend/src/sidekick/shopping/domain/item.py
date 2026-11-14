@@ -11,6 +11,28 @@ from sidekick.shared.errors import ValidationError
 
 OfferStatus = Literal["none", "upcoming", "current", "expired"]
 
+DETAIL_FIELDS = (
+    "name",
+    "quantity",
+    "unit",
+    "note",
+    "store",
+    "product_url",
+    "recipient_contact_id",
+    "occasion",
+    "target_date",
+)
+OFFER_FIELDS = (
+    "price",
+    "regular_price",
+    "currency",
+    "source",
+    "source_url",
+    "valid_from",
+    "valid_until",
+    "checked_on",
+)
+
 
 def text(value: str | None, maximum: int, *, required: bool = False) -> str | None:
     if value is not None:

@@ -1,9 +1,8 @@
 """`list_assistant_activity`: the Activity Center read over MCP, owner-scoped and redacted.
 
-It calls the `automation.list_activity` use case and needs `tasks:read`. Content (summary,
+It calls the `activity.list_activity` use case and needs `tasks:read`. Content (summary,
 before/after values, evidence) is returned by default and withheld with `include_content=false`;
-no argument or record content reaches a log sink; the session-only automation settings read is
-not exposed.
+no argument or record content reaches a log sink; no automation-settings read exists as a tool.
 """
 
 import logging
@@ -15,9 +14,9 @@ from uuid import uuid4
 import pytest
 from fastmcp import Client, FastMCP
 
+from sidekick.activity.application.service import ActivityLedger
+from sidekick.activity.domain import ActivityCategory
 from sidekick.api.app import Container, create_container
-from sidekick.automation.application.service import ActivityLedger
-from sidekick.automation.domain import AutomationCategory
 from sidekick.mcp.control import CONTROL_TOOL_NAMES, CONTROL_TOOL_SCOPES
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import TOKEN_SCOPES
@@ -48,7 +47,7 @@ async def _create_tasks(client: Client, count: int, prefix: str) -> None:
 
 def _record_activity(container: Container, owner: Any, aggregate_type: str, summary: str) -> None:
     """Write a ledger row the way the owning domain service does, for one aggregate type."""
-    ledger = ActivityLedger(container.automation.store)
+    ledger = ActivityLedger(container.activity.store)
 
     def operation(session: Any) -> None:
         ledger.append(
@@ -61,12 +60,12 @@ def _record_activity(container: Container, owner: Any, aggregate_type: str, summ
             actor_type="user",
             actor_id=owner,
             operation="record",
-            category=AutomationCategory.TASK_MAINTENANCE,
+            category=ActivityCategory.TASK_MAINTENANCE,
             summary=summary,
             occurred_at=datetime.now(UTC),
         )
 
-    container.automation.store.transaction(operation)
+    container.activity.store.transaction(operation)
 
 
 def _record_process_run_activity(container: Container, owner: Any) -> None:

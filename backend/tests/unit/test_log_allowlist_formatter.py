@@ -63,7 +63,7 @@ def test_allowlist_holds_no_content_field_names() -> None:
 
 PERSONAL = "anna.svensson@example.com ringde om Johans tandrot"
 WORKER_MODULES = (
-    "automation/worker.py",
+    "work/worker.py",
     "backup/worker.py",
     "companion/push_worker.py",
     "memory/worker.py",
@@ -90,7 +90,7 @@ def test_exception_in_the_configured_sidekick_logger_is_reduced_to_its_type(
     assert isinstance(handler, logging.StreamHandler)
     stream = io.StringIO()
     monkeypatch.setattr(handler, "stream", stream)
-    _raise_and_log(logging.getLogger("sidekick.automation.worker"))
+    _raise_and_log(logging.getLogger("sidekick.work.worker"))
     output = stream.getvalue()
     _assert_only_exception_type(output)
     record = json.loads(output)

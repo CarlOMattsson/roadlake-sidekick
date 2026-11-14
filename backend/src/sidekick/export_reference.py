@@ -116,7 +116,7 @@ CLIS: tuple[CliSpec, ...] = (
     CliSpec(
         "sidekick-automation-worker",
         "uv run --project backend sidekick-automation-worker",
-        "sidekick.automation.worker",
+        "sidekick.work.worker",
         "build_parser",
         "Run the process-run worker.",
     ),

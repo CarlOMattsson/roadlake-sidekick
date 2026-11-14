@@ -26,7 +26,7 @@ If you run the local setup (`bash tools/work.sh setup`) on behalf of a person, a
 ## Repository layout
 
 - `backend/src/sidekick/`: one package per context (`work`, `tasks`, `projects`, `journal`, `contacts`, `shopping`,
-  `memory`, `automation`, `search`, `lifecycle`, `license`, `references`, `companion`, `backup`, `owner_export`), the
+  `memory`, `activity`, `search`, `lifecycle`, `license`, `references`, `companion`, `backup`, `owner_export`), the
   shared read records (`structured/`), the two interfaces (`mcp/`, and `api/` with the companion routes), the operator
   CLI (`admin/`), the composition root (`composition.py`) and `shared/`. Layering is enforced by
   `backend/tests/policy/test_interface_layering.py` and

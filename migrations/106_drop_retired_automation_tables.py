@@ -1,10 +1,10 @@
 """Drop the four tables of the retired automation engine.
 
 `assistant_automation_policies`, `assistant_automation_control`, `assistant_automation_runs` and
-`assistant_task_review_findings` belonged to the retired in-app assistant's autonomy posture and task
-health review. Nothing writes them any more and nothing reads them, so they are empty on every
-installation. The tables are not created by anything but the 0.1.0 baseline, which stays as it is
-because installations have already applied it.
+`assistant_task_review_findings` belonged to the removed in-app assistant's autonomy settings and
+task health review. Nothing writes or reads them any more, so they are empty on every installation.
+Only the 0.1.0 baseline creates them; it is left unchanged because existing installations have
+already applied it.
 
 Safety: a table that holds a row stops the migration with an error that names the table, and the
 transaction rolls back, so no data is thrown away without notice. The tables are dropped in one

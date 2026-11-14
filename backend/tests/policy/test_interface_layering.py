@@ -9,9 +9,11 @@ allow).
 The transport layers (`api`, `mcp`) hold no SQL: they import neither `sqlalchemy` nor the shared
 persistence package nor any context's own `persistence` module, only application services and
 `structured` reads through the container.
-`<domain>/application` packages import no `sidekick.shared.persistence` either. Their `sqlalchemy`
-imports are already covered by `test_package_boundaries.py` (rule 5, empty debt for `application`),
-so that rule is not repeated here.
+`<domain>/application` packages import no ORM models either: not `sidekick.shared.persistence`, and
+not a context's own `persistence` or `infrastructure` package (its rows and store adapters); they
+work on domain records through a store port. Their `sqlalchemy` imports are already covered by
+`test_package_boundaries.py` (rule 5, empty debt for `application`), so that rule is not repeated
+here.
 """
 
 import ast
@@ -223,13 +225,28 @@ def _application_modules() -> list[Path]:
     return paths
 
 
-def test_the_application_packages_import_no_persistence_package() -> None:
+def _application_storage_imports(modules: set[str]) -> list[str]:
+    """What an application module may not import: the shared persistence package (ORM models and
+    store bases) and any context's own `persistence` or `infrastructure` module (its ORM rows and
+    store adapters). SQLAlchemy itself is covered by rule 5 of `test_package_boundaries.py`."""
+
+    found = set(_imports_package(modules, "sidekick.shared.persistence"))
+    found.update(
+        module
+        for module in modules
+        if module.startswith("sidekick.")
+        and {"persistence", "infrastructure"} & set(module.split("."))
+    )
+    return sorted(found)
+
+
+def test_the_application_packages_import_no_orm_models_or_storage_modules() -> None:
     offenders: dict[str, list[str]] = {}
     for path in _application_modules():
         relative = path.relative_to(SRC).as_posix()
         if relative in APPLICATION_PERSISTENCE_EXCEPTIONS:
             continue
-        found = _imports_package(_all_imports(path), "sidekick.shared.persistence")
+        found = _application_storage_imports(_all_imports(path))
         if found:
             offenders[relative] = found
     assert offenders == {}
@@ -238,8 +255,24 @@ def test_the_application_packages_import_no_persistence_package() -> None:
 def test_the_application_persistence_exceptions_are_real_and_explained() -> None:
     for relative, reason in APPLICATION_PERSISTENCE_EXCEPTIONS.items():
         assert reason.strip(), relative
-        imports = _all_imports(SRC / relative)
-        assert _imports_package(imports, "sidekick.shared.persistence"), relative
+        assert _application_storage_imports(_all_imports(SRC / relative)), relative
+
+
+def test_the_application_storage_rule_catches_a_contexts_own_orm_rows() -> None:
+    """The rule applies to every context, also to the ORM rows of the application's own one."""
+
+    assert _application_storage_imports(
+        {"sidekick.shopping.persistence.rows", "sidekick.shared.persistence.models"}
+    ) == ["sidekick.shared.persistence.models", "sidekick.shopping.persistence.rows"]
+    assert _application_storage_imports({"sidekick.memory.infrastructure.store"}) == [
+        "sidekick.memory.infrastructure.store"
+    ]
+    assert (
+        _application_storage_imports(
+            {"sidekick.shopping.domain", "sidekick.shared.types", "sidekick.shopping.application"}
+        )
+        == []
+    )
 
 
 def test_relative_imports_are_resolved_to_absolute_modules() -> None:

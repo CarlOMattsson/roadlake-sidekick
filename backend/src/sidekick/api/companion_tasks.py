@@ -40,6 +40,7 @@ from sidekick.companion.operations import (
     operation_actor,
 )
 from sidekick.companion.push_outbox_store import acting_device
+from sidekick.composition import container_of
 from sidekick.shared.auth import CompanionCredential
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.contacts import task_contacts_structured
@@ -91,7 +92,7 @@ def _receipt_or_full(
 async def task_detail(request: Request, task_id: UUID) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, TASK_DETAIL)
-    container = request.app.state.container
+    container = container_of(request)
     structured, _detail = await run_in_threadpool(task_detail_structured, container, actor, task_id)
     return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
@@ -104,7 +105,7 @@ async def task_steps(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, TASK_STEPS)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(
         lambda: task_steps_structured(container, actor, task_id, limit=limit, cursor=cursor)
     )
@@ -119,7 +120,7 @@ async def task_contacts(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, TASK_CONTACTS)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(
         lambda: task_contacts_structured(container, actor, task_id, limit=limit, cursor=cursor)
     )
@@ -134,7 +135,7 @@ async def task_external_references(
 ) -> JSONResponse:
     credential = await credential_for(request)
     actor = operation_actor(credential, TASK_EXTERNAL_REFERENCES)
-    container = request.app.state.container
+    container = container_of(request)
     structured = await run_in_threadpool(
         lambda: container.references.list_for_task(actor, task_id, limit=limit, cursor=cursor)
     )
@@ -149,7 +150,7 @@ async def task_reopen(
 ) -> JSONResponse:
     actor = operation_actor(credential, TASK_REOPEN)
     body = await task_body(request)
-    container = request.app.state.container
+    container = container_of(request)
 
     # Only the undo of a completion. The status guard runs inside the use case, on the Task
     # row locked in the write's own transaction and after the idempotency replay check, so a
@@ -180,7 +181,7 @@ async def task_complete(
 ) -> JSONResponse:
     actor = operation_actor(credential, TASK_COMPLETE)
     body = await task_body(request)
-    container = request.app.state.container
+    container = container_of(request)
 
     def complete() -> dict[str, Any]:
         # The device's own change queues no wake push for itself (D-078: push through UnifiedPush).
@@ -206,7 +207,7 @@ async def step_complete(
 ) -> JSONResponse:
     actor = operation_actor(credential, STEP_COMPLETE)
     body = await task_body(request)
-    container = request.app.state.container
+    container = container_of(request)
 
     def complete() -> dict[str, Any]:
         with acting_device(credential.device_id):
@@ -233,7 +234,7 @@ async def step_reopen(
 ) -> JSONResponse:
     actor = operation_actor(credential, STEP_REOPEN)
     body = await task_body(request)
-    container = request.app.state.container
+    container = container_of(request)
 
     def reopen() -> dict[str, Any]:
         with acting_device(credential.device_id):

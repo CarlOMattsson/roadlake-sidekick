@@ -1,7 +1,7 @@
 """The port a Task command records its user-visible activity through.
 
-Task use cases depend on this protocol, not on the automation application layer; the
-composition root injects the automation activity ledger, which satisfies it.
+Task use cases depend on this protocol, not on the activity application layer; the
+composition root injects the activity ledger, which satisfies it.
 """
 
 from datetime import datetime

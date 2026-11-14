@@ -131,11 +131,11 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # Memory settings carry per-domain scope checks of their own
         # (`sidekick.memory.application.settings`).
         "set_memory_settings",
-        # The owner's installation licence; reaches no record.
+        # The installation licence key; reaches no record.
         "set_license_key",
-        # The journal tools that write the owner's own text answer with that text and stay
-        # write-only on purpose (D-076: the journal is written by hand, no AI; pinned by
-        # tests/mcp/test_journal_writes.py).
+        # The journal tools that write the user's own text answer with that text and stay
+        # write-only on purpose (the journal is written by hand, not by the assistant; pinned
+        # by tests/mcp/test_journal_writes.py).
         "create_journal_source",
         "create_manual_journal_entry",
         "write_journal_entry",

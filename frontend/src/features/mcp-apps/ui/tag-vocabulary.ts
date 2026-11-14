@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { Item } from "../../../lib/mcp/derived";
 import type { ToolResults } from "../../../lib/mcp/tool-results.generated";
+import { useRead } from "./use-read";
 
 /** One entry of the owner's tag vocabulary as list_tags returns it (TagRecord), with its use per kind. */
 export type TagRecord = Item<ToolResults["list_tags"]["tags"]>;
@@ -51,30 +52,28 @@ export function useTagVocabulary(
   kind: TagKind | readonly TagKind[],
 ) {
   const kinds: readonly TagKind[] = typeof kind === "string" ? [kind] : kind;
-  const [tags, setTags] = useState<TagRecord[]>([]);
   const [round, setRound] = useState(0);
-  useEffect(() => {
-    if (!read) return;
-    let live = true;
-    let pending = cache.get(read);
-    if (!pending) {
-      // A failed read is kept too: a host that cannot answer is not asked again by every view. A tag write
-      // (`refresh`) asks again.
-      pending = read();
-      cache.set(read, pending);
-    }
-    pending.then(
-      (found) => {
-        if (live) setTags(found.filter((tag) => !tag.archived_at));
-      },
-      () => {
-        if (live) setTags([]);
-      },
-    );
-    return () => {
-      live = false;
-    };
-  }, [read, round]);
+  // A failed read is kept too: a host that cannot answer is not asked again by every view. A tag write
+  // (`refresh`) asks again.
+  const readTags = useMemo(
+    () =>
+      read
+        ? () => {
+            let pending = cache.get(read);
+            if (!pending) {
+              pending = read();
+              cache.set(read, pending);
+            }
+            return pending;
+          }
+        : undefined,
+    [read],
+  );
+  const [found] = useRead(readTags, round);
+  const tags =
+    found.phase === "ready"
+      ? found.value.filter((tag) => !tag.archived_at)
+      : [];
   const refresh = useCallback(() => {
     forgetTagVocabulary(read);
     setRound((n) => n + 1);

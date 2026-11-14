@@ -278,7 +278,7 @@ def test_a_history_reference_to_a_removed_record_is_stable_and_never_blocks(
 
 
 def test_every_aggregate_type_the_ledger_writes_has_a_mapping() -> None:
-    from sidekick.automation.application.service import ACTIVITY_AGGREGATE_SCOPES
+    from sidekick.activity.application.service import ACTIVITY_AGGREGATE_SCOPES
 
     # The run records of the retired automation engine have no export source any more; their ledger
     # type stays readable and is restored under its own label like any unmapped type.

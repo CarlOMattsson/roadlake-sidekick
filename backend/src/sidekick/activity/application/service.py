@@ -1,4 +1,4 @@
-"""Automation policy and bounded activity-history use cases."""
+"""The activity ledger and bounded activity-history use cases."""
 
 from __future__ import annotations
 
@@ -7,19 +7,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Protocol, TypeVar, cast
+from typing import Protocol, cast
 from uuid import UUID
 
-from sidekick.automation.domain import (
-    AutomationCategory,
-    AutomationPolicyMode,
-    category_for_operation,
-)
+from sidekick.activity.domain import ActivityCategory, category_for_operation
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import (
     TIMED_KEY,
     Actor,
-    Clock,
     CursorCodec,
     IdempotentStore,
     KeyValue,
@@ -32,14 +27,13 @@ from sidekick.shared.types import (
 )
 from sidekick.tasks.domain import Task
 
-T = TypeVar("T")
-
 # A bounded JSON object: keys are text, values are plain JSON values.
 JsonObject = dict[str, object]
 
 # Activity entries are read-scoped by the domain that owns their aggregate. An aggregate type
 # missing from this map is treated as cross-domain and needs every scope in
-# _ACTIVITY_UNMAPPED_SCOPES.
+# _ACTIVITY_UNMAPPED_SCOPES. `automation_run` is no longer written: it keeps the history of the
+# retired automation engine readable.
 ACTIVITY_AGGREGATE_SCOPES: dict[str, str] = {
     "task": "tasks:read",
     "automation_run": "tasks:read",
@@ -75,6 +69,7 @@ class ActivityEntry:
     before_values: JsonObject
     after_values: JsonObject
     evidence: JsonObject
+    # Set only on entries the retired automation engine wrote; new entries never carry one.
     policy_mode: str | None
     correlation_id: str | None
     occurred_at: datetime
@@ -95,17 +90,13 @@ class NewActivity:
     actor_id: UUID | None
     command_id: UUID
     correlation_id: str | None
-    causation_id: UUID | None
-    automation_run_id: UUID | None
     payload: JsonObject
     category: str
     operation: str
-    state: str
     summary: str
     before_values: JsonObject
     after_values: JsonObject
     evidence: JsonObject
-    policy_mode: str | None
     occurred_at: datetime
 
 
@@ -115,7 +106,7 @@ class ActivityWriter(Protocol):
         ...
 
 
-class AutomationStore(ActivityWriter, TransactionalStore, IdempotentStore, Protocol):
+class ActivityStore(ActivityWriter, TransactionalStore, IdempotentStore, Protocol):
     def activity_entries(
         self,
         session: TxSession,
@@ -173,16 +164,12 @@ class ActivityLedger:
         actor_type: str,
         actor_id: UUID | None,
         operation: str,
-        category: AutomationCategory | str,
+        category: ActivityCategory | str,
         summary: str,
-        state: str = "applied",
         before_values: JsonObject | None = None,
         after_values: JsonObject | None = None,
         evidence: JsonObject | None = None,
-        policy_mode: AutomationPolicyMode | str | None = None,
         correlation_id: str | None = None,
-        causation_id: UUID | None = None,
-        automation_run_id: UUID | None = None,
         occurred_at: datetime,
     ) -> UUID:
         event_id = new_uuid7()
@@ -211,23 +198,13 @@ class ActivityLedger:
                 actor_id=actor_id,
                 command_id=new_uuid7(),
                 correlation_id=correlation_id,
-                causation_id=causation_id,
-                automation_run_id=automation_run_id,
                 payload=payload,
                 category=category.value if isinstance(category, StrEnum) else str(category),
                 operation=operation,
-                state=state,
                 summary=summary[:300],
                 before_values=json_object(before_values or {}, max_text=1000),
                 after_values=json_object(after_values or {}, max_text=1000),
                 evidence=json_object(evidence or {}, max_text=1000),
-                policy_mode=(
-                    policy_mode.value
-                    if isinstance(policy_mode, StrEnum)
-                    else str(policy_mode)
-                    if policy_mode is not None
-                    else None
-                ),
                 occurred_at=occurred_at,
             ),
         )
@@ -284,10 +261,9 @@ class ActivityLedger:
         )
 
 
-class AutomationPolicyService:
-    def __init__(self, store: AutomationStore, clock: Clock, cursor_codec: CursorCodec) -> None:
+class ActivityService:
+    def __init__(self, store: ActivityStore, cursor_codec: CursorCodec) -> None:
         self.store = store
-        self.clock = clock
         self.cursor_codec = cursor_codec
 
     def list_activity(

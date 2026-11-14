@@ -2,8 +2,8 @@
 
 The file is `frontend/tests/fixtures/companion-journal.json`.
 
-The mobile journal test in `frontend/tests/journal-mobile-roundtrip.test.tsx` cannot start this
-backend, so it replays answers this backend gave: a hand-written entry saved, then the day, the
+The mobile journal test in `frontend/tests/mobile/journal-mobile-roundtrip.test.tsx` cannot start
+this backend, so it replays answers this backend gave: a hand-written entry saved, then the day, the
 entry and the source read back. This test records the same four calls and fails when the shape of
 any answer (its keys and value types, not its ids or times) differs from the committed file, so the
 replayed answers cannot drift from what the routes really send. Refresh the file after an intended
