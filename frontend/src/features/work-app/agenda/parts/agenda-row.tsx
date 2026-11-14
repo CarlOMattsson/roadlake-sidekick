@@ -115,7 +115,7 @@ export function AgendaRow({
   } = ctx;
   const a = agendaLabelsFor(t.dateLocale);
   const drawn = rows.current(record);
-  // A tick that waits in the phone's outbox (the widget's too) is drawn done, with "Skickas…" for its meta line.
+  // A tick that waits in the phone's outbox (the widget's too) is drawn done, with `sending` for its meta line.
   const sending =
     drawn.kind === "task" && ctx.sending.has(drawn.id.toLowerCase());
   const item = sending ? { ...drawn, status: "completed" } : drawn;

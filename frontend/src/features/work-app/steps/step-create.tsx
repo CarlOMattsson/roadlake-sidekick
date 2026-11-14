@@ -20,7 +20,7 @@ type StepCreateFailure = { title: string; kind: WriteFailure | "tooLong" };
 /**
  * Appends a Step to the Task with create_task_step, through the shared create field (the same one the new Task
  * and the new contact use). Enter and + create and keep the focus in the field, so several Steps can be typed in
- * a row; × and Esc close it and give the focus back to "+ Lägg till steg". Submitting the same title again reuses
+ * a row; × and Esc close it and give the focus back to `addStep`. Submitting the same title again reuses
  * one key, so a retry after a lost response replays the created Step instead of adding a second one.
  */
 export function StepCreate({
@@ -37,7 +37,7 @@ export function StepCreate({
   onCreated: (step: WorkStep) => void;
 }) {
   const [failure, setFailure] = useState<StepCreateFailure>();
-  // Closed, the section shows one quiet "+ Lägg till steg" line; opening it puts the focus in the field.
+  // Closed, the section shows one quiet `addStep` line; opening it puts the focus in the field.
   const [open, setOpen] = useState(false);
   // Bumped when Retry succeeds and the field still holds that title: it then remounts empty.
   const [fieldKey, setFieldKey] = useState(0);

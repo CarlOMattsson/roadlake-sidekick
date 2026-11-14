@@ -48,7 +48,7 @@ type ArchivedAction = {
   index: number;
 };
 
-/** The Action ticked last, whose row shows "Klar · Ångra" (or "Öppen igen") until it runs out or another write is made. */
+/** The Action ticked last, whose row shows `completed` with `undo` (or `stepReopened`) until it runs out or another write is made. */
 type TickUndo = { id: string; version: number; done: boolean };
 
 /**

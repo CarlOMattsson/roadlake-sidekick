@@ -70,7 +70,7 @@ export function CreateToggle({
   onOpenChange,
   buttonRef,
 }: {
-  /** "Ny uppgift" / "New task". */
+  /** The `newTask` label. */
   label: string;
   open: boolean;
   disabled: boolean;
@@ -166,7 +166,7 @@ export function AgendaSearch({
 
 /**
  * The "⋯" button of a Work tab, at the end of the tab row (the shell's tabsEnd). It unfolds a menu with the view's
- * rarer actions (Sparade vyer, Uppdatera, and "Kontroll" last, designsystem §3 "Rumshuvud") under the tab row, at full width, in the page flow; the button
+ * rarer actions (saved views, `refresh`, and `control` last, designsystem §3 "Rumshuvud") under the tab row, at full width, in the page flow; the button
  * stays where it is. The caller owns the state (open or closed), because the view under it is remounted when a saved
  * view opens and this button is not. The panel stays mounted while closed (hidden), so what it holds keeps its status
  * and focus.
@@ -187,8 +187,8 @@ export function AgendaMore({
   onOpenChange: (open: boolean) => void;
   onRefresh: () => void;
   /**
-   * The last item: "Kontroll", which opens the Control room, or the host's own settings in its place (the phone's
-   * "Inställningar"). Absent when the host has neither. The focus returns to ⋯ before it opens, so a screen that closes
+   * The last item: `control`, which opens the Control room, or the host's own settings in its place (the phone's
+   * settings). Absent when the host has neither. The focus returns to ⋯ before it opens, so a screen that closes
    * again can give it back there.
    */
   control?: { label: string; onOpen: () => void };

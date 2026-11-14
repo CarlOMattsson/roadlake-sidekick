@@ -432,7 +432,7 @@ async def test_alias_and_unlink_changes_are_named_and_unlinks_keep_their_text() 
         source="manual",
         idempotency_key="link-reference",
     )
-    reference_id = UUID(str(linked["reference"]["id"]))
+    reference_id = linked.reference.id
     # A second task shares the reference, so removing it from the first task keeps the row.
     other_task = container.tasks.create(
         actor, title="Andra uppgiften", idempotency_key="link-task-2"
@@ -450,7 +450,7 @@ async def test_alias_and_unlink_changes_are_named_and_unlinks_keep_their_text() 
         source="manual",
         idempotency_key="link-reference-2",
     )
-    assert UUID(str(shared["reference"]["id"])) == reference_id
+    assert shared.reference.id == reference_id
     container.references.unlink(actor, task.id, reference_id, idempotency_key="link-ref-unlink")
     switch = ActorSwitch(actor)
     mcp = FastMCP("recent-link-test")
@@ -514,7 +514,7 @@ async def test_linked_changes_name_both_sides_and_send_the_undo_to_the_app() -> 
         source="manual",
         idempotency_key="linked-reference",
     )
-    reference_id = UUID(str(linked["reference"]["id"]))
+    reference_id = linked.reference.id
     switch = ActorSwitch(actor)
     mcp = FastMCP("recent-linked-test")
     register_change_tools(mcp, ToolContext(container, switch, lambda _name: lambda fn: fn))

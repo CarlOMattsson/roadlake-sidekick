@@ -17,7 +17,7 @@ import { stepActionsLabelsFor } from "./step-actions-labels";
 
 /**
  * One Action under a Step: the Step's checkbox and title, and its Up, Down and Archive in a menu that a long press, a
- * right click, Shift+F10 or the hidden "Fler val" button opens (as a Step's). The box ticks an open Action and unticks a
+ * right click, Shift+F10 or the hidden `moreActions` button opens (as a Step's). The box ticks an open Action and unticks a
  * done one, which is dimmed while it is done. A host that can do neither (`onComplete` and `onReopen` absent) shows the
  * state as a mark without a box; with only one of them, the box is read-only in the state the other one would change.
  * Under the title stands one meta line: the due day (red once it has passed, left out when the Action is done) and the
@@ -44,7 +44,7 @@ export function StepActionRow({
   disabled: boolean;
   labels: WorkLabels;
   manage: ManageLabels;
-  /** The tick this row was just given: its meta line says "Klar" or "Öppen igen" and Ångra stands in the row. */
+  /** The tick this row was just given: its meta line says `completed` or `stepReopened` and Ångra stands in the row. */
   undo?: Pick<StepUndo, "id" | "version" | "done">;
   onUndo: () => void;
   onExpire: () => void;
@@ -65,7 +65,7 @@ export function StepActionRow({
   const toggle = done ? onReopen : onComplete;
   const hasMenu = Boolean(onMove || onArchive);
   const hasBox = Boolean(onComplete || onReopen);
-  // Only a state the check does not say is written out: "Pågår", "Blockerad".
+  // Only a state the check does not say is written out: `in_progress`, `blocked`.
   const state =
     status === "todo" || done ? undefined : taskStatusLabel(t, status);
   // A done Action is not overdue, so it names no day, as a done Task does not.

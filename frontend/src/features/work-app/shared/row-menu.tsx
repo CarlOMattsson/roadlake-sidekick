@@ -124,7 +124,7 @@ export function RowMenuButton({
 }
 
 /*
- * The long-press tip (designsystem §3 "Listrad"): "Håll inne en uppgift för fler val." stands last in Agenda and
+ * The long-press tip (designsystem §3 "Listrad"): `rowMenuHint` stands last in Agenda and
  * Status until the quick choices are first opened, and is gone for good after that. The frame's storage keeps it when
  * the host allows it; the document's `data-row-menu` keeps it for the session when not, and hides a tip that is still
  * drawn (agenda.css) until its list draws again.

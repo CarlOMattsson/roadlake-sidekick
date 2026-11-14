@@ -13,7 +13,6 @@ import type {
   WorkTransport,
 } from "@/features/work-app/transport/transport";
 import { WorkView } from "@/features/work-app/view/work-view";
-import { readStylesheet } from "./helpers/stylesheet";
 
 /*
  * The Task card's Done is undoable for UNDO_MS, as the Agenda's is: "Done" and Undo stand where Done stood, and Undo
@@ -84,14 +83,8 @@ it("shows Done and Undo in place of Done, with focus on Undo", async () => {
   const undo = screen.getByRole("button", { name: en.undo });
   expect(undo).toHaveFocus();
   expect(screen.queryByRole("button", { name: en.complete })).toBeNull();
-  // 44 px minimum on a touch pointer comes from the stylesheet (jsdom loads no CSS).
+  // Its 44 px target is measured in the browser (tests/e2e/work-lists-styles-mcp-app.spec.ts).
   expect(undo).toHaveClass("work-compact-action");
-  expect(
-    readStylesheet("features/work-app/inline/inline-summary.css").styleOf(
-      undo,
-      { room: "sidekick-work" },
-    )["min-height"],
-  ).toBe("var(--sk-tap)");
 });
 
 it("says it in Swedish: Klar and Ångra", async () => {
@@ -208,10 +201,6 @@ it.each([
     expect(
       screen.getByRole("button", { name: labels.retry }),
     ).toBeInTheDocument();
-    // The card no longer sets a layout of its own on the notice (it squeezed the text beside the button).
-    expect(
-      readStylesheet("features/work-app/inline/inline-summary.css"),
-    ).not.toContain("work-compact-notice");
   },
 );
 

@@ -20,7 +20,7 @@ import {
 
 /**
  * Title, summary and key points in one form, with Save and Cancel: the draft review's editor, and the entry's
- * ("ändra"). `fields` is whatever record holds them; a new object (a reload) moves the base and keeps the owner's edits.
+ * (its edit mode). `fields` is whatever record holds them; a new object (a reload) moves the base and keeps the owner's edits.
  */
 export function FieldsEditor({
   draft,

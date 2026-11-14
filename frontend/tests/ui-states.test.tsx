@@ -5,15 +5,12 @@ import {
   EmptyState,
   ErrorNotice,
   Skeleton,
-  SkeletonRows,
   errorLabelsFor,
   readErrorHeading,
 } from "@/features/mcp-apps/ui/states";
 import { ROOM_IDS, TOOL_ROUTES } from "@/features/mcp-apps/router";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
 import { HostToolError } from "@/features/mcp-apps/bridge";
-
-import { readStylesheet } from "./helpers/stylesheet";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -497,34 +494,5 @@ describe("the heading of a failed read, for every view a tool can open", () => {
     ]);
     for (const subject of Object.keys(errorLabelsFor("sv").subjects))
       expect(known.has(subject), subject).toBe(true);
-  });
-});
-
-describe("states styling", () => {
-  const css = readStylesheet("features/mcp-apps/ui/states.css");
-
-  it("draws the skeleton with the waiting placeholder's blocks, whose pulse stops under reduced motion", () => {
-    const wait = readStylesheet("features/mcp-apps/awaiting.css");
-    render(<SkeletonRows rows={1} />);
-    const block = document.querySelector(".sidekick-wait-block") as Element;
-
-    expect(
-      css.rules.some((rule) =>
-        rule.declarations.animation?.includes("sk-skeleton-pulse"),
-      ),
-    ).toBe(false);
-    expect(
-      wait.styleOf(block, {
-        conditions: ["@media (prefers-reduced-motion: reduce)"],
-      }).animation,
-    ).toBe("none");
-  });
-
-  it("uses no pixel font sizes", () => {
-    for (const rule of css.rules) {
-      expect(rule.declarations["font-size"] ?? "", rule.selector).not.toMatch(
-        /^\d+px$/,
-      );
-    }
   });
 });

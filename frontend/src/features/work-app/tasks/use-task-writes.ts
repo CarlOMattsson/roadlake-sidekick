@@ -39,7 +39,7 @@ export function useTaskWrites({
   /** Runs when the Task is about to be moved to the trash (the frame closes its ⋯ panel). */
   onTrashStart: () => void;
 }) {
-  // What the last "Markera klar" left to undo: the line under the button and the earlier value its Ångra puts back.
+  // What the last `markDone` left to undo: the line under the button and the earlier value its Ångra puts back.
   const [receipt, setReceipt] = useState<DoneReceipt>();
   const endReceipt = useCallback(() => setReceipt(undefined), []);
   // Set once the Task has moved to the trash: the trash record's version, which the restore needs.
@@ -52,7 +52,7 @@ export function useTaskWrites({
   /**
    * Writes only the changed fields against the version the view holds; the key follows the action. Every write ends
    * the receipt of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply is shown by the
-   * controls themselves (a "Klar" receipt with Ångra, or the controls put back by Ångra), so no plain "Sparat" stands
+   * controls themselves (a `completed` receipt with Ångra, or the controls put back by Ångra), so no plain `saved` stands
    * beside it.
    */
   function saveTask(
@@ -144,7 +144,7 @@ export function useTaskWrites({
       },
     );
   }
-  /** The Ångra of a "Markera klar": the status and the button go back in place, with no "Sparat" beside them. */
+  /** The Ångra of a `markDone`: the status and the button go back in place, with no `saved` beside them. */
   function undoDone(changes: WorkTaskChanges) {
     saveTask(changes, undefined, true);
   }

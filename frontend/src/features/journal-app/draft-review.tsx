@@ -64,7 +64,7 @@ export function DraftFrame({
   transport: JournalTransport;
   labels: JournalLabels;
   moves: number;
-  /** Fullscreen shows every section open and draws the tags as a section of their own, after "Redigera". */
+  /** Fullscreen shows every section open and draws the tags as a section of their own, after `edit`. */
   fullscreen: boolean;
   /** The draft was rejected: the pending list should stop offering it. */
   onRejected: (draftId: string) => void;
@@ -303,7 +303,7 @@ export function DraftFrame({
   }, [allApprovedNow]);
 
   // The entry's tags, under the summary. Inline its heading is hidden (journal.css hides the section heads inline)
-  // and the closed field, "+ Lägg till tagg", shares the row with "Läs mer", so the card still fits a phone screen.
+  // and the closed field (the tag `add` label) shares the row with `readMore`, so the card still fits a phone screen.
   const tagField = draft ? (
     <div className="journal-draft-tags">
       <h3 className="journal-disclosure-head">{t.draftTags}</h3>

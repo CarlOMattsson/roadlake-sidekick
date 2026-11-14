@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
 
 /**
- * Puts focus on the "Försök igen" of the write error row in the view that holds `anchor`, when `failed` becomes true:
+ * Puts focus on the `retry` of the write error row in the view that holds `anchor`, when `failed` becomes true:
  * the press that failed came from the controls above it, so the keyboard lands on the way to repeat it and not on the
  * page.
  */

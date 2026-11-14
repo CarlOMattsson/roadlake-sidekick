@@ -15,7 +15,7 @@ export type BoardPage = WorkBoardFrame["page"];
 
 /**
  * An Undo the board offers on a card. In the single layout `at` is the section the card was in and `index` its
- * place there: the card stays there with "Klar · Ångra" while the Undo lasts (designsystem §3 "Tillstånd").
+ * place there: the card stays there with `completed` and `undo` while the Undo lasts (designsystem §3 "Tillstånd").
  */
 export type BoardUndo = AgendaUndo & { at?: string; index: number };
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID
 
 from sidekick.shared.cadence import Cadence
@@ -104,12 +104,21 @@ class NewTaskItem:
     step_titles: tuple[str, ...]
 
 
+class BatchStep(TypedDict):
+    """One Step a batch created, as the reply lists it."""
+
+    id: str
+    title: str
+    position: int
+    version: int
+
+
 @dataclass(frozen=True, slots=True)
 class BatchCreatedTask:
     """A Task of a batch as committed, with its Steps as plain step result data."""
 
     task: Task
-    steps: tuple[dict[str, Any], ...]
+    steps: tuple[BatchStep, ...]
 
 
 @dataclass(frozen=True, slots=True)

@@ -5,11 +5,11 @@ import type { AppLocale } from "./app-locale";
  * in the Sidekick app catalogue. The type makes the Swedish and English sets identical. Swedish is the default.
  */
 export type UpdateReminderLabels = {
-  /** Added to the accessible name of a ⋯ button while the reminder stands: "Fler val – uppdatering finns …". */
+  /** Added to the accessible name of a ⋯ button while the reminder stands: the more-actions name and the update note. */
   moreSuffix: string;
-  /** The row's first line: "Den här versionen är 21 dagar gammal (commit abc1234)". */
+  /** The row's first line: the age in days and the commit. */
   age: (days: number, commit: string) => string;
-  /** Before the command: "Uppdatera med". */
+  /** Before the command: `howTo`. */
   howTo: string;
   /** The one button; it quiets the reminder for this commit only. */
   dismiss: string;

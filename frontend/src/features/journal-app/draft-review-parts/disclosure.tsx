@@ -4,8 +4,8 @@ import { Fold } from "../../mcp-apps/ui/fold";
 export type DisclosureKey = "keyPoints" | "relations" | "proposals";
 
 /**
- * A section of the draft as a disclosure. Inline it is the app's fold row with its count and ⌄ ("Uppgiftsändringar
- * (8)", aria-expanded), each on a line of its own, and the heading is hidden; fullscreen shows the heading and the
+ * A section of the draft as a disclosure. Inline it is the app's fold row with its count and ⌄
+ * (aria-expanded), each on a line of its own, and the heading is hidden; fullscreen shows the heading and the
  * whole body, as before (the CSS in journal.css decides which). The body stays mounted when closed, so each row keeps
  * the owner's choices.
  */

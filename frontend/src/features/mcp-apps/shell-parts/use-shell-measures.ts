@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
  * rests below it), and whether the room tabs fit one row (`narrow`: the room picker takes their place).
  */
 export function useShellMeasures(full: boolean, stripVisible: boolean) {
-  // The strip's four labels do not fit one row (large text): the room picker "Arbete ⌄" takes their place.
+  // The strip's four labels do not fit one row (large text): the room picker takes their place.
   const [narrow, setNarrow] = useState(false);
   const tabsEl = useRef<HTMLDivElement | null>(null);
   const shellEl = useRef<HTMLDivElement | null>(null);

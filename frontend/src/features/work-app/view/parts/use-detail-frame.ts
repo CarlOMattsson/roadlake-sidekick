@@ -63,7 +63,7 @@ export function useDetailFrame({
   /**
    * One durable write. The signature names the action and the version it was based on, so a retry of the
    * same action reuses its key and any other action gets a fresh one. `apply` stores the answer. `receipt` says the
-   * frame draws its own receipt for this write (a "Klar" line with Ångra), so no plain "Sparat" stands beside it.
+   * frame draws its own receipt for this write (a `completed` line with Ångra), so no plain `saved` stands beside it.
    */
   function sendWrite<R>(
     signature: string,

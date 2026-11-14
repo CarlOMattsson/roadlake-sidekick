@@ -44,7 +44,7 @@ function PriceField({
 
 /**
  * The offer's fields in the change form, folded into a part of their own. The closed toggle says what is saved
- * ("Erbjudande: 199 kr t.o.m. 30 nov"); the fields stay in the form while it is closed (hidden), so Save sends
+ * (`offerSummary`); the fields stay in the form while it is closed (hidden), so Save sends
  * every one as it was read.
  */
 export function OfferFields({

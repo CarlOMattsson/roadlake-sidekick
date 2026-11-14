@@ -39,7 +39,7 @@ export function useWriteForms({
   const [renameName, setRenameName] = useState("");
   const [names, setNames] = useState("");
   const [invalidBatch, setInvalidBatch] = useState(false);
-  // The receipt under the create field, "Tillagd: Mjölk · ICA" (§3 Skapa): the new item may stand far below in
+  // The receipt under the create field, `newItemPrefix` with the item and its shop (§3 Skapa): the new item may stand far below in
   // its shop, so the field says where it went. The list does not scroll and the field keeps the focus. A failed add
   // hides it, so the error line never stands under an old receipt.
   const [addNote, setAddNote] = useState("");

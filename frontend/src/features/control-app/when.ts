@@ -1,5 +1,5 @@
 /**
- * A time as a person would say it: "nyss", "för 12 min sedan", "idag 14:30", "igår 09:05", "30 okt".
+ * A time as a person would say it: `now`, minutes ago, the `today` or `yesterday` word with the time, or a short date.
  * Only today and yesterday carry a clock; older times show the date alone. Never an ISO string. The
  * calendar day is the owner's (the zone the backend declares, Stockholm by default), like the other
  * Sidekick apps, so the words do not depend on the host's time zone. Pure: the caller passes `now`.

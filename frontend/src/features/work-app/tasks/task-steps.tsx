@@ -55,12 +55,12 @@ export function TaskSteps({
   const doneCount = state.steps.filter(
     (step) => step.status === "completed",
   ).length;
-  // The count is left out while more Steps exist than the list holds: "2 av 4" would then be wrong.
+  // The count is left out while more Steps exist than the list holds: the count would then be wrong.
   const heading =
     state.steps.length && !hasMore
       ? t.stepsProgress(doneCount, state.steps.length)
       : t.steps;
-  // A Task with no Steps shows only "+ Lägg till steg" (F and O: an empty "Steg" section took a heading's room). The
+  // A Task with no Steps shows only `addStep` (F and O: an empty `steps` section took a heading's room). The
   // heading stays for assistive technology and comes back with the first Step, an Undo line or a notice.
   const bare =
     phase === "ready" &&
@@ -116,7 +116,7 @@ export function TaskSteps({
           onRetry={steps.retryLoad}
         />
       )}
-      {/* No "Inga steg än.": "+ Lägg till steg" under the heading already says the list is empty (§3, Tomt). */}
+      {/* No `noSteps` line: `addStep` under the heading already says the list is empty (§3, Tomt). */}
       {phase === "ready" && state.steps.length > 0 && (
         <ul className="work-steps" ref={listRef}>
           {state.steps.map((step, index) => (
@@ -192,7 +192,7 @@ export function TaskSteps({
           onCreated={steps.stepCreated}
         />
       )}
-      {/* The tip right under "+ Lägg till steg", so the add row follows the last step. */}
+      {/* The tip right under `addStep`, so the add row follows the last step. */}
       {phase === "ready" && state.steps.length > 0 && hasMenu && (
         <RowMenuTip labels={t} step />
       )}

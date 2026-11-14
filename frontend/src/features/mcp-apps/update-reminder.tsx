@@ -15,8 +15,8 @@ export const UPDATE_COMMAND = "tools/work.sh update";
 
 /**
  * What a room's ⋯ button adds while the update reminder stands: a small calm dot, drawn inside the button, and a
- * suffix on its accessible name ("Fler val – uppdatering finns att hämta"), so the dot is said and not only
- * seen. No banner and no modal: the dot leads to the ⋯ menu. With the Control room on, its "Kontroll" entry holds
+ * suffix on its accessible name (the more-actions name and the update note), so the dot is said and not only
+ * seen. No banner and no modal: the dot leads to the ⋯ menu. With the Control room on, its `control` entry holds
  * the row; with Control off (SIDEKICK_ENABLED_ROOMS=work) the menu holds the row itself (`MenuUpdateReminder`), and
  * `inMenu` tells a room whose ⋯ exists only for Control that it needs the button anyway. `inMenu` stays true after
  * "not for this version", so the button the owner just used does not vanish under the confirmation.
@@ -43,7 +43,7 @@ export function useMoreMark(label: string): {
 
 /**
  * The reminder inside a room's ⋯ menu when the Control room is off and so cannot hold it: the same compact row,
- * in the app language. With Control on the menu keeps its "Kontroll" entry and this draws nothing (one place for
+ * in the app language. With Control on the menu keeps its `control` entry and this draws nothing (one place for
  * the row, no second copy to keep in step).
  */
 export function MenuUpdateReminder({ now }: { now?: () => Date }) {
@@ -53,8 +53,7 @@ export function MenuUpdateReminder({ now }: { now?: () => Date }) {
 
 /**
  * The compact row in Control (the room that holds the instance's settings): how old the running code is, the command
- * that updates it in a code element the owner can select and copy, and one button, "Påminn inte för den här
- * versionen". The button remembers the commit, so the reminder comes back only for a newer version that grows old too.
+ * that updates it in a code element the owner can select and copy, and one button, `dismiss`. The button remembers the commit, so the reminder comes back only for a newer version that grows old too.
  * After it, one line says so in the row's place and the focus rests on it. Nothing is drawn without a reminder.
  */
 export function UpdateReminderRow({

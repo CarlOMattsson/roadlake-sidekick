@@ -174,7 +174,8 @@ What you get:
 - On stderr, the rights the phone will have (in the language of `SIDEKICK_MCP_APP_LOCALE`), the time the
   code stops working, and the credential lifetime.
 - On stdout, one JSON document. `pairing_secret` is the code (it starts with `rspair_`); it is shown only now.
-  With `--server-url` it also has `pairing_link`: `sidekick://pair?server=<url-encoded address>&code=<code>`.
+  With `--server-url` it also has `pairing_link`: `sidekick://pair?server=<url-encoded address>&code=<code>`, and
+  `pairing_check`, a six-digit check code such as `846 345` (also printed on stderr).
 
 Notes:
 
@@ -190,21 +191,31 @@ Notes:
   yourself, a message to yourself) and do not share it. It stops working after one use or 10 minutes.
 
 **Easiest: the pairing link.** Open the `pairing_link` on the phone (tap it in a message or note). Sidekick opens,
-shows "Connect to <your server>?", and connects only when you tap **Connect**; **Cancel** drops the link. Nothing
-is paired by the link alone, because any app or page can open such a link: connect only if you created the code
-yourself.
+shows "Connect to <your server>?" and a **check code**, and connects only when you tap **Connect**; **Cancel** drops
+the link. Compare the check code with the one `pair` printed when you created the code: if they differ, the link did
+not come from your command, so tap **Cancel**. Nothing is paired by the link alone, because any app or page can open
+such a link: connect only if you created the code yourself.
 
 **Why the link is not a verified Android App Link.** An App Link (`https`, `android:autoVerify="true"`) proves to Android
 that the app belongs to the domain in the link, through an `assetlinks.json` file on that domain that names the app's package and
-signing-certificate fingerprint. That cannot work here: the domain is your own server's, and you (or the operator) build
-and sign the app yourself, so no one can publish that file for you in advance. A fixed
-`roadlake.com` route would not help either, because a build signed with your own key does not match a fingerprint published
-there. The app therefore uses its own scheme, `sidekick://pair`, and the protection is in the code and in the app instead:
+signing-certificate fingerprint. That cannot work here: Android reads the domains an app may verify from its manifest at
+build time, and every owner's domain is different, so the released app cannot name yours (a wildcard cannot be verified),
+and a build of your own would have to list your domain and be signed with your own key. A fixed `roadlake.com` route
+would not help either, because the link has to name your server, not ours. The app therefore uses its own scheme, `sidekick://pair`, and the protection is in the code and in the app instead:
 
 - The code works once and for 10 minutes, and the server limits failed attempts per address. An app that captured the link
   after you had paired (or after 10 minutes) gets nothing.
 - The link never pairs by itself. The app shows the server's host, "Connect to <host>?", and waits for your tap on
-  **Connect**; a link that names a server you did not expect is refused with **Cancel**.
+  **Connect**; a link that names a server you did not expect is refused with **Cancel**. A host with look-alike
+  letters from another alphabet is shown in its ASCII form (`xn--…`).
+- The app also shows a check code, six digits derived from the pairing code (the first four bytes of its SHA-256,
+  modulo 1,000,000), and the server's `pair` command prints the same digits. A link written by someone else carries a
+  code you never created, so its digits do not match the ones in your terminal. This catches the real attack on a
+  self-hosted server, a link that points the phone at someone else's server, without a second step for you: you
+  already have the terminal open. The check code is a comparison aid, not a secret, and it does not replace the host
+  question: it proves that the code is yours, the host line shows where it will be used. Do not share the check code
+  together with the link (the same message or screenshot), or it no longer shows that the link is yours. If the app
+  cannot show the check code, it keeps **Connect** off and says so: pair by hand instead.
 - The link is parsed strictly: exactly one `server` and one `code`, an `https` origin with no path, a code of the right
   shape, at most 1024 characters. Anything else is ignored.
 - A link that reaches a phone that is already paired is dropped, and the app says so once.

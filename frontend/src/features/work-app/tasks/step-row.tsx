@@ -70,7 +70,7 @@ export function StepRow({
   manage: ManageLabels;
   /** Absent: the Step is shown, not checked (the host cannot complete it). */
   onToggle?: (step: WorkStep) => void;
-  /** The check this row was just given: its meta line says "Klar" or "Öppen igen" and Ångra stands in the row. */
+  /** The check this row was just given: its meta line says `completed` or `stepReopened` and Ångra stands in the row. */
   undo?: StepUndo;
   onUndo: () => void;
   onExpire: () => void;

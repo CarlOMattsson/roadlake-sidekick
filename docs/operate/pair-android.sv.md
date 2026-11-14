@@ -178,7 +178,8 @@ Det här får du:
 - På stderr: rättigheterna telefonen får (på språket i `SIDEKICK_MCP_APP_LOCALE`), tiden då koden slutar
   gälla och hur länge inloggningsuppgiften gäller.
 - På stdout: ett JSON-dokument. `pairing_secret` är koden (den börjar med `rspair_`); den visas bara nu.
-  Med `--server-url` finns också `pairing_link`: `sidekick://pair?server=<url-kodad adress>&code=<kod>`.
+  Med `--server-url` finns också `pairing_link`: `sidekick://pair?server=<url-kodad adress>&code=<kod>`, och
+  `pairing_check`, en sexsiffrig kontrollkod som `846 345` (skrivs också på stderr).
 
 Att tänka på:
 
@@ -194,21 +195,31 @@ Att tänka på:
   eller ett meddelande till dig själv) och dela den inte. Den slutar gälla efter en användning eller 10 minuter.
 
 **Enklast: kopplingslänken.** Öppna `pairing_link` på telefonen (tryck på den i ett meddelande eller en anteckning).
-Sidekick öppnas, visar "Koppla till <din server>?" och kopplar först när du trycker på **Koppla**; **Avbryt** släpper
-länken. Länken ensam kopplar ingenting, eftersom vilken app eller sida som helst kan öppna en sådan länk: koppla bara
-om du själv skapade koden.
+Sidekick öppnas, visar "Koppla till <din server>?" och en **kontrollkod**, och kopplar först när du trycker på
+**Koppla**; **Avbryt** släpper länken. Jämför kontrollkoden med den som `pair` skrev när du skapade koden: skiljer de
+sig åt kommer länken inte från ditt kommando, så tryck **Avbryt**. Länken ensam kopplar ingenting, eftersom vilken app
+eller sida som helst kan öppna en sådan länk: koppla bara om du själv skapade koden.
 
 **Varför länken inte är en verifierad Android App Link.** En App Link (`https`, `android:autoVerify="true"`) visar för Android att
 appen hör till domänen i länken, genom en `assetlinks.json` på den domänen som anger appens paketnamn och
-signeringscertifikatets fingeravtryck. Det går inte här: domänen är din egen servers, och du (eller operatören) bygger och
-signerar appen själv, så ingen kan i förväg publicera den filen åt dig. En fast
-`roadlake.com`-väg skulle inte heller hjälpa, eftersom ett bygge som signerats med din egen nyckel inte stämmer med ett fingeravtryck som
-publicerats där. Appen använder därför ett eget schema, `sidekick://pair`, och skyddet ligger i koden och i appen:
+signeringscertifikatets fingeravtryck. Det går inte här: Android läser vilka domäner en app får verifiera ur manifestet när
+appen byggs, och varje ägares domän är en annan, så den utgivna appen kan inte namnge din (ett jokertecken kan inte
+verifieras), och ett eget bygge skulle behöva lista din domän och signeras med din egen nyckel. En fast `roadlake.com`-väg
+skulle inte heller hjälpa, eftersom länken måste peka på din server, inte på vår. Appen använder därför ett eget schema, `sidekick://pair`, och skyddet ligger i koden och i appen:
 
 - Koden gäller en gång och i 10 minuter, och servern begränsar misslyckade försök per adress. En app som fångade länken
   efter att du kopplat (eller efter 10 minuter) får ingenting.
 - Länken kopplar aldrig av sig själv. Appen visar serverns värd, "Koppla till <värd>?", och väntar på att du trycker på
-  **Koppla**; en länk som anger en server du inte väntade dig avvisar du med **Avbryt**.
+  **Koppla**; en länk som anger en server du inte väntade dig avvisar du med **Avbryt**. En värd med lookalike-tecken
+  från ett annat alfabet visas i sin ASCII-form (`xn--…`).
+- Appen visar också en kontrollkod, sex siffror som härleds ur kopplingskoden (de fyra första byten av dess SHA-256,
+  modulo 1 000 000), och serverns `pair`-kommando skriver samma siffror. En länk som någon annan har skrivit bär en kod
+  som du aldrig skapat, så dess siffror stämmer inte med dem i din terminal. Det fångar den verkliga attacken mot en
+  egen server, en länk som pekar telefonen mot någon annans server, utan något extra steg för dig: terminalen är redan
+  öppen. Kontrollkoden är ett jämförelsehjälpmedel, inte en hemlighet, och den ersätter inte värdfrågan: den visar att
+  koden är din, värdraden visar var den ska användas. Dela inte kontrollkoden tillsammans med länken (i samma meddelande
+  eller skärmdump), annars visar den inte längre att länken är din. Kan appen inte visa kontrollkoden håller den
+  **Koppla** avstängd och säger det: koppla då för hand.
 - Länken tolkas strikt: exakt en `server` och en `code`, ett `https`-ursprung utan sökväg, en kod av rätt form,
   högst 1024 tecken. Allt annat ignoreras.
 - En länk som når en telefon som redan är kopplad släpps, och appen säger det en gång.

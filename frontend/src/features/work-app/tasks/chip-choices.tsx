@@ -5,8 +5,8 @@ import { KeyScope, onEscapeKey } from "../../mcp-apps/ui/key-scope";
 export type ChipChoice = { value: string; label: string };
 
 /**
- * A property chip that unfolds its choices (design system §3, egenskapschip): "Upprepas varje vecka ⌄", "Prioritet:
- * Hög ⌄". A tap unfolds the choices as chips on a row of their own under the chips, the current one ticked
+ * A property chip that unfolds its choices (design system §3, egenskapschip): the repeat chip and the `priority` chip with
+ * its value. A tap unfolds the choices as chips on a row of their own under the chips, the current one ticked
  * (aria-pressed), as the row menu's Status and Datum. Another choice runs `onChoose` and folds the chips away;
  * the current one only folds them and returns focus to the chip. Escape folds them and returns focus to the chip;
  * opening them puts focus on the ticked one, so Enter keeps it and Tab walks the others.

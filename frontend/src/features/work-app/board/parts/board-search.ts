@@ -7,7 +7,7 @@ import { createContext } from "react";
  * board shows everything.
  */
 export const BoardQuery = createContext("");
-/** Empties the Status tab's search, given by the fullscreen shell beside BoardQuery. Absent, a search with no hit has no "Rensa sökningen" button. */
+/** Empties the Status tab's search, given by the fullscreen shell beside BoardQuery. Absent, a search with no hit has no `clearSearch` button. */
 export const BoardClearSearch = createContext<(() => void) | undefined>(
   undefined,
 );

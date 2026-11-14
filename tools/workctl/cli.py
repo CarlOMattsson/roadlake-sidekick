@@ -15,28 +15,28 @@ from pathlib import Path
 from . import (
     autostart,
     backupfiles,
-    backupkey,
+    backupflow,
     derive,
     desktopconfig,
-    diagnose,
+    desktopsetup,
     drillpolicy,
     drilltimings,
+    firststart,
     generated,
     invocation,
     messages,
-    owner,
     prompts,
-    restore,
+    restoreflow,
     secretfiles,
     setupguide,
-    stackstate,
+    stackfiles,
     status,
+    updateflow,
     updatestate,
     workenv,
 )
+from .stack import Stack, Stop
 
-# Exit code of ``first-start-table``: the table exists, so ask for its row count.
-COUNT_NEEDED = 10
 # Exit code of ``backup-space``: the free size or a setting could not be judged.
 BACKUP_SPACE_UNKNOWN = 2
 # Exit code of the ``drill-*`` checks that refuse their input (the reason is on stderr); 1 means nothing was found.
@@ -94,9 +94,35 @@ def _cmd_rooms_env(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_render_gateway(args: argparse.Namespace) -> int:
-    entries = generated.parse_allow_lines(args.allow)
-    generated.write_gateway_files(args.template, args.out_dir, entries)
+def _stack(args: argparse.Namespace) -> Stack:
+    return Stack(args.repo, project=args.project, lang=args.lang, memory=args.memory == "1")
+
+
+def _cmd_render_generated(args: argparse.Namespace) -> int:
+    stackfiles.render_generated(_stack(args), generated.parse_allow_lines(args.allow))
+    return 0
+
+
+def _cmd_backup(args: argparse.Namespace) -> int:
+    return backupflow.run_backup(_stack(args))
+
+
+def _cmd_update(args: argparse.Namespace) -> int:
+    allow = generated.parse_allow_lines(args.allow)
+    return updateflow.run_update(_stack(args), args.allow_breaking_migration, allow)
+
+
+def _cmd_restore(args: argparse.Namespace) -> int:
+    return restoreflow.run_restore(_stack(args), args.reference, args.apply)
+
+
+def _cmd_desktop_setup(args: argparse.Namespace) -> int:
+    desktopsetup.desktop_setup(_stack(args))
+    return 0
+
+
+def _cmd_diagnose_first_start(args: argparse.Namespace) -> int:
+    firststart.print_hint(_stack(args), args.log_start)
     return 0
 
 
@@ -186,14 +212,10 @@ def _cmd_status_via(args: argparse.Namespace) -> int:
 
 
 def _cmd_build_info(args: argparse.Namespace) -> int:
-    generated.write_build_info(
-        args.path, args.commit, args.commit_date, args.now, args.previous, args.updated == "updated"
-    )
-    return 0
-
-
-def _cmd_desktop_config(args: argparse.Namespace) -> int:
-    desktopconfig.write_desktop_config(args.out, args.docker, args.container, args.owner)
+    if args.if_missing:
+        stackfiles.ensure_build_info(_stack(args))
+    else:
+        stackfiles.write_build_info(_stack(args), args.previous, args.updated)
     return 0
 
 
@@ -206,16 +228,6 @@ def _cmd_claude_config(args: argparse.Namespace) -> int:
     )
 
 
-def _cmd_backup_key(args: argparse.Namespace) -> int:
-    try:
-        created = backupkey.ensure_key(args.key_file, args.backups_dir, args.generate)
-    except backupkey.KeyProblem as problem:
-        return _fail(messages.render(args.lang, problem.key, *problem.values))
-    if created:
-        print(messages.render(args.lang, "bk_key_new", args.key_file))
-    return 0
-
-
 def _cmd_backup_keep_valid(args: argparse.Namespace) -> int:
     return 0 if backupfiles.valid_keep(args.value) else 1
 
@@ -224,22 +236,6 @@ def _cmd_backup_space(args: argparse.Namespace) -> int:
     check = backupfiles.check_space(args.dir, os.environ, args.pattern)
     print(check.needed, check.free)
     return {backupfiles.ENOUGH: 0, backupfiles.TOO_LITTLE: 1}.get(check.outcome, BACKUP_SPACE_UNKNOWN)
-
-
-def _cmd_backup_preflight(args: argparse.Namespace) -> int:
-    if not backupfiles.valid_keep(args.keep):
-        return _fail(messages.render(args.lang, "bk_keep_bad", args.keep))
-    check = backupfiles.check_space(args.dir, os.environ, args.pattern)
-    if check.outcome == backupfiles.TOO_LITTLE:
-        return _fail(messages.render(args.lang, "bk_space", args.dir, check.free, check.needed))
-    if check.outcome == backupfiles.UNKNOWN:
-        return _fail(messages.render(args.lang, "bk_space_unknown", args.dir))
-    return 0
-
-
-def _cmd_backup_stamp(args: argparse.Namespace) -> int:
-    print(backupfiles.next_stamp(args.dir))
-    return 0
 
 
 def _cmd_backup_prune(args: argparse.Namespace) -> int:
@@ -299,35 +295,9 @@ def _cmd_snapshot_pattern(_args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_first_start_evidence(_args: argparse.Namespace) -> int:
-    # stdin: the evidence, a NUL byte, the postgres log.
-    evidence, _, postgres_log = sys.stdin.buffer.read().decode("utf-8", errors="replace").partition("\0")
-    return 0 if diagnose.has_failure_evidence(evidence, postgres_log) else 1
-
-
-def _cmd_first_start_table(args: argparse.Namespace) -> int:
-    if diagnose.count_needed(args.table):
-        return COUNT_NEEDED
-    return 0 if diagnose.nothing_applied(args.table, "") else 1
-
-
-def _cmd_first_start_hint(args: argparse.Namespace) -> int:
-    hint = diagnose.volume_hint(args.lang, args.project, args.volume, args.table, args.count)
-    if hint:
-        print(hint, file=sys.stderr)
-    return 0 if hint else 1
-
-
-def _cmd_is_uuid(args: argparse.Namespace) -> int:
-    return 0 if owner.is_uuid(args.value) else 1
-
-
 def _cmd_ask(args: argparse.Namespace) -> int:
-    if args.raw:
-        prompt = messages.render(args.lang, args.key, *args.values)
-    else:
-        prompt = prompts.question(messages.text(args.lang, args.key), args.default)
-    answer = prompts.ask(prompt, args.default, secret=args.secret, only_on_terminal=args.only_on_terminal)
+    prompt = messages.render(args.lang, args.key, *args.values)
+    answer = prompts.ask(prompt, secret=args.secret, only_on_terminal=args.only_on_terminal)
     # Bytes, so the answer is returned as it was typed whatever the locale; no trailing newline.
     sys.stdout.buffer.write(answer.encode("utf-8", errors="surrogateescape"))
     return 0
@@ -336,32 +306,6 @@ def _cmd_ask(args: argparse.Namespace) -> int:
 def _cmd_confirm(args: argparse.Namespace) -> int:
     prompt = prompts.question(messages.text(args.lang, args.key))
     return 0 if prompts.confirm(prompt, args.default) else 1
-
-
-def _cmd_backup_sets(args: argparse.Namespace) -> int:
-    stamps = restore.complete_sets(args.dir, args.memory == "on")
-    if not stamps:
-        print(messages.fill(args.lang, "rs_no_sets", args.dir))
-        return 0
-    print(messages.fill(args.lang, "rs_sets", args.dir))
-    for stamp in stamps:
-        print(f"  {stamp}")
-    return 0
-
-
-def _cmd_restore_ref(args: argparse.Namespace) -> int:
-    ref = restore.parse_reference(args.reference, args.backups)
-    if ref is None:
-        print(messages.render(args.lang, "rs_bad_name", args.reference), file=sys.stderr)
-        return 2
-    print(ref.directory)
-    print(ref.timestamp)
-    return 0
-
-
-def _cmd_rollback_action(args: argparse.Namespace) -> int:
-    print(restore.rollback_action(sys.stdin.read().split(), args.old))
-    return 0
 
 
 def _cmd_parse_args(args: argparse.Namespace) -> int:
@@ -381,16 +325,6 @@ def _cmd_lock_command(args: argparse.Namespace) -> int:
 
 def _cmd_api_image(args: argparse.Namespace) -> int:
     print(invocation.api_image(args.env_file))
-    return 0
-
-
-def _cmd_previous_image_tag(args: argparse.Namespace) -> int:
-    print(stackstate.previous_image_tag(args.image))
-    return 0
-
-
-def _cmd_restore_old_name(args: argparse.Namespace) -> int:
-    print(stackstate.old_database_name(args.stamp))
     return 0
 
 
@@ -416,6 +350,12 @@ def build_parser() -> argparse.ArgumentParser:
         sub.set_defaults(handler=handler)
         return sub
 
+    def stack_options(sub: argparse.ArgumentParser) -> None:
+        sub.add_argument("--repo", type=Path, required=True, help="the checkout")
+        sub.add_argument("--project", default="sidekick-work", help="the compose project")
+        sub.add_argument("--lang", choices=("sv", "en"), default="sv")
+        sub.add_argument("--memory", choices=("0", "1"), default="1", help="1 when Hindsight's memory is on")
+
     sub = add("autostart", _cmd_autostart, "switch the start at login on or off, or show its state")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
     sub.add_argument("--platform", required=True, help="uname -s: Darwin means launchd, anything else systemd")
@@ -439,9 +379,12 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--env-file", type=Path, required=True)
     sub.add_argument("--secrets-dir", type=Path, required=True)
 
-    sub = add("render-gateway", _cmd_render_gateway, "write gateway.haproxy.cfg and allow.compose.yaml")
-    sub.add_argument("--template", type=Path, required=True)
-    sub.add_argument("--out-dir", type=Path, required=True)
+    sub = add(
+        "render-generated",
+        _cmd_render_generated,
+        "write gateway.haproxy.cfg, allow.compose.yaml and (when missing) build-info.json",
+    )
+    stack_options(sub)
     sub.add_argument("--allow", default="", help="'host port' lines from the allowlist command")
 
     sub = add("text", _cmd_text, "print one message of work.sh (the key itself when there is none)")
@@ -493,19 +436,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_argument("pyproject", type=Path)
 
-    sub = add("build-info", _cmd_build_info, "write build-info.json")
-    sub.add_argument("--path", type=Path, required=True)
-    sub.add_argument("--commit", required=True)
-    sub.add_argument("--commit-date", required=True)
-    sub.add_argument("--now", required=True)
-    sub.add_argument("--previous", default="")
-    sub.add_argument("--updated", default="")
+    sub = add("build-info", _cmd_build_info, "write build-info.json for the commit this checkout is on")
+    stack_options(sub)
+    sub.add_argument("--if-missing", action="store_true", help="write it only when there is none")
+    sub.add_argument("--previous", default="", help="the commit the checkout was on before an update")
+    sub.add_argument("--updated", action="store_true", help="record the time as the time of the update")
 
-    sub = add("desktop-config", _cmd_desktop_config, "write the Claude Desktop entry file (mode 600)")
-    sub.add_argument("--out", type=Path, required=True)
-    sub.add_argument("--docker", required=True, help="absolute path of the docker binary")
-    sub.add_argument("--container", required=True)
-    sub.add_argument("--owner", required=True)
+    sub = add(
+        "backup",
+        _cmd_backup,
+        "pause the writers, take an encrypted copy of the database and of Hindsight's memory, prune old copies",
+    )
+    stack_options(sub)
+
+    sub = add(
+        "restore",
+        _cmd_restore,
+        "check one backup set and show the plan; with --apply replace the database and Hindsight's memory by it",
+    )
+    stack_options(sub)
+    sub.add_argument("--reference", default="", help="a time stamp, or the path of either file of a set")
+    sub.add_argument("--apply", action="store_true", help="really replace (asks for the project name first)")
+
+    sub = add(
+        "update",
+        _cmd_update,
+        "pull the code, build, back up, migrate and restart; on a failure say where the backup is and how to go back",
+    )
+    stack_options(sub)
+    sub.add_argument("--allow", default="", help="'host port' lines from the allowlist command")
+    sub.add_argument("--allow-breaking-migration", action="store_true", help="accept migrations that need a restore")
+
+    sub = add(
+        "desktop-setup",
+        _cmd_desktop_setup,
+        "check the image, make sure the owner user exists and write the Claude Desktop entry file",
+    )
+    stack_options(sub)
 
     sub = add(
         "claude-config", _cmd_claude_config, "preview and, after a yes on stdin, merge the entry into Claude Desktop"
@@ -514,43 +481,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--source", type=Path, required=True)
     sub.add_argument("--platform", required=True, help="uname -s: Darwin keeps the file elsewhere than Linux")
 
-    add(
-        "first-start-evidence",
-        _cmd_first_start_evidence,
-        "exit 0 when the logs (stdin: evidence NUL postgres) show a role failure",
-    )
-
     sub = add(
-        "first-start-table",
-        _cmd_first_start_table,
-        "exit 0 when the yoyo table is absent, 10 to ask for its count, 1 otherwise",
+        "diagnose-first-start",
+        _cmd_diagnose_first_start,
+        "print on stderr what a failed first start left behind, when it provably is an unmigrated database",
     )
-    sub.add_argument("--table", required=True)
+    stack_options(sub)
+    sub.add_argument("--log-start", type=int, required=True, help="the number of lines the log had at the start")
 
-    sub = add(
-        "first-start-hint",
-        _cmd_first_start_hint,
-        "print the failed-first-start hint on stderr; exit 1 when none applies",
-    )
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--project", required=True)
-    sub.add_argument("--volume", required=True)
-    sub.add_argument("--table", required=True)
-    sub.add_argument("--count", default="")
-
-    sub = add("is-uuid", _cmd_is_uuid, "exit 0 when the value is a well-formed UUID")
-    sub.add_argument("value")
-
-    sub = add(
-        "ask", _cmd_ask, "ask a question of the message table on stderr; print the answer, else the default, on stdout"
-    )
+    sub = add("ask", _cmd_ask, "ask a question of the message table on stderr; print the answer on stdout")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv")
     sub.add_argument("--key", required=True)
-    sub.add_argument("--default", default="")
     sub.add_argument("--secret", action="store_true", help="no echo while the answer is typed")
-    sub.add_argument("--raw", action="store_true", help="the message is the whole prompt (no colon, no default shown)")
     sub.add_argument("--only-on-terminal", action="store_true", help="show the prompt only when stdin is a terminal")
-    sub.add_argument("values", nargs="*", help="fill the message's %%s (with --raw)")
+    sub.add_argument("values", nargs="*", help="fill the message's %%s")
 
     sub = add(
         "confirm", _cmd_confirm, "ask a yes/no question; exit 0 for a yes (j, y, ja, yes), an empty answer is --default"
@@ -575,12 +519,6 @@ def build_parser() -> argparse.ArgumentParser:
     sub = add("api-image", _cmd_api_image, "print the image the stack runs from")
     sub.add_argument("--env-file", type=Path, required=True)
 
-    sub = add("previous-image-tag", _cmd_previous_image_tag, "print the tag that keeps the image that runs now")
-    sub.add_argument("image")
-
-    sub = add("restore-old-name", _cmd_restore_old_name, "print the name the database gets during a restore")
-    sub.add_argument("stamp")
-
     sub = add("setup-language", _cmd_setup_language, "ask the guide's language; print sv or en")
     sub.add_argument("--lang", choices=("sv", "en"), default="sv", help="the current language, offered as the answer")
 
@@ -594,31 +532,6 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_argument("--secrets-dir", type=Path, required=True)
     sub.add_argument("--default-rooms", required=True)
 
-    sub = add("backup-sets", _cmd_backup_sets, "list the complete backup sets of a directory")
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--dir", type=Path, required=True)
-    sub.add_argument("--memory", choices=("on", "off"), required=True)
-
-    sub = add(
-        "restore-ref", _cmd_restore_ref, "print the directory and time stamp a restore argument names; exit 2 if none"
-    )
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--backups", required=True, help="the directory a bare time stamp refers to")
-    sub.add_argument("reference")
-
-    sub = add(
-        "rollback-action", _cmd_rollback_action, "print keep, rename-back or fail for the database names on stdin"
-    )
-    sub.add_argument("--old", required=True)
-
-    sub = add(
-        "backup-key", _cmd_backup_key, "check the backup key file; create it with --generate when no backup exists"
-    )
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--key-file", type=Path, required=True)
-    sub.add_argument("--backups-dir", type=Path, required=True)
-    sub.add_argument("--generate", action="store_true")
-
     sub = add("backup-keep-valid", _cmd_backup_keep_valid, "exit 0 when the value is a whole number of at least 1")
     sub.add_argument("value")
 
@@ -629,19 +542,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_argument("--dir", type=Path, required=True)
     sub.add_argument("--pattern", action="append", required=True, help="finished-name regex; repeat for each kind")
-
-    sub = add(
-        "backup-preflight",
-        _cmd_backup_preflight,
-        "refuse (exit 1) a bad number of sets to keep or too little free room for a new backup",
-    )
-    sub.add_argument("--lang", choices=("sv", "en"), default="sv")
-    sub.add_argument("--dir", type=Path, required=True)
-    sub.add_argument("--keep", required=True)
-    sub.add_argument("--pattern", action="append", required=True, help="finished-name regex; repeat for each kind")
-
-    sub = add("backup-stamp", _cmd_backup_stamp, "print the time stamp for a new backup set that is not taken yet")
-    sub.add_argument("--dir", type=Path, required=True)
 
     sub = add(
         "backup-prune",
@@ -697,4 +597,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return int(args.handler(args))
+    try:
+        return int(args.handler(args))
+    except Stop as stop:
+        return stop.code

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Protocol, TypeVar, cast
+from typing import Protocol, TypeVar, cast
 from uuid import UUID
 
 from sidekick.automation.domain import (
@@ -30,8 +30,12 @@ from sidekick.shared.types import (
     paginate,
     validate_limit,
 )
+from sidekick.tasks.domain import Task
 
 T = TypeVar("T")
+
+# A bounded JSON object: keys are text, values are plain JSON values.
+JsonObject = dict[str, object]
 
 # Activity entries are read-scoped by the domain that owns their aggregate. An aggregate type
 # missing from this map is treated as cross-domain and needs every scope in
@@ -68,9 +72,9 @@ class ActivityEntry:
     aggregate_type: str
     aggregate_id: UUID
     summary: str
-    before_values: dict[str, Any]
-    after_values: dict[str, Any]
-    evidence: dict[str, Any]
+    before_values: JsonObject
+    after_values: JsonObject
+    evidence: JsonObject
     policy_mode: str | None
     correlation_id: str | None
     occurred_at: datetime
@@ -93,14 +97,14 @@ class NewActivity:
     correlation_id: str | None
     causation_id: UUID | None
     automation_run_id: UUID | None
-    payload: dict[str, Any]
+    payload: JsonObject
     category: str
     operation: str
     state: str
     summary: str
-    before_values: dict[str, Any]
-    after_values: dict[str, Any]
-    evidence: dict[str, Any]
+    before_values: JsonObject
+    after_values: JsonObject
+    evidence: JsonObject
     policy_mode: str | None
     occurred_at: datetime
 
@@ -125,7 +129,7 @@ class AutomationStore(ActivityWriter, TransactionalStore, IdempotentStore, Proto
     ) -> list[ActivityEntry]: ...
 
 
-def json_safe(value: Any, *, max_text: int = 2000) -> Any:
+def json_safe(value: object, *, max_text: int = 2000) -> object:
     """Turn domain values into bounded JSON without retaining provider internals."""
 
     if isinstance(value, UUID):
@@ -136,19 +140,19 @@ def json_safe(value: Any, *, max_text: int = 2000) -> Any:
         return value.value
     if isinstance(value, str):
         return value[:max_text]
-    if isinstance(value, dict):
-        return {
-            str(key): json_safe(item, max_text=max_text)
-            for key, item in cast("dict[Any, Any]", value).items()
-        }
+    if isinstance(value, Mapping):
+        return json_object(cast(Mapping[object, object], value), max_text=max_text)
     if isinstance(value, (list, tuple)):
-        return [
-            json_safe(item, max_text=max_text)
-            for item in cast("list[Any] | tuple[Any, ...]", value)[:50]
-        ]
+        return [json_safe(item, max_text=max_text) for item in cast(Sequence[object], value)[:50]]
     if isinstance(value, (bool, int, float)) or value is None:
         return value
     return str(value)[:max_text]
+
+
+def json_object[K](value: Mapping[K, object], *, max_text: int = 2000) -> JsonObject:
+    """`json_safe` of a mapping, which is always an object."""
+
+    return {str(key): json_safe(item, max_text=max_text) for key, item in value.items()}
 
 
 class ActivityLedger:
@@ -172,9 +176,9 @@ class ActivityLedger:
         category: AutomationCategory | str,
         summary: str,
         state: str = "applied",
-        before_values: dict[str, Any] | None = None,
-        after_values: dict[str, Any] | None = None,
-        evidence: dict[str, Any] | None = None,
+        before_values: JsonObject | None = None,
+        after_values: JsonObject | None = None,
+        evidence: JsonObject | None = None,
         policy_mode: AutomationPolicyMode | str | None = None,
         correlation_id: str | None = None,
         causation_id: UUID | None = None,
@@ -182,7 +186,7 @@ class ActivityLedger:
         occurred_at: datetime,
     ) -> UUID:
         event_id = new_uuid7()
-        payload = json_safe(
+        payload = json_object(
             {
                 "operation": operation,
                 "before": before_values or {},
@@ -214,9 +218,9 @@ class ActivityLedger:
                 operation=operation,
                 state=state,
                 summary=summary[:300],
-                before_values=json_safe(before_values or {}, max_text=1000),
-                after_values=json_safe(after_values or {}, max_text=1000),
-                evidence=json_safe(evidence or {}, max_text=1000),
+                before_values=json_object(before_values or {}, max_text=1000),
+                after_values=json_object(after_values or {}, max_text=1000),
+                evidence=json_object(evidence or {}, max_text=1000),
                 policy_mode=(
                     policy_mode.value
                     if isinstance(policy_mode, StrEnum)
@@ -233,18 +237,18 @@ class ActivityLedger:
         self,
         session: TxSession,
         *,
-        task: Any,
+        task: Task,
         operation: str,
         actor_id: UUID,
         actor_type: str,
         occurred_at: datetime,
-        before: Any | None = None,
+        before: Task | None = None,
         correlation_id: str | None = None,
         changed_fields: frozenset[str] | None = None,
     ) -> UUID:
         """Record a Task command after its projection has passed optimistic locking."""
 
-        def values(item: Any | None) -> dict[str, Any]:
+        def values(item: Task | None) -> JsonObject:
             if item is None:
                 return {}
             return {

@@ -10,7 +10,7 @@ import { tagLabelOf, type TagOption } from "../mcp-apps/ui/tag-vocabulary";
 const WINDOW_DAYS = 365;
 /** Pages of 50 followed for one window, so a window holds at most 500 entries. */
 const PAGE_LIMIT = 10;
-/** Entries drawn at once; "Visa fler" draws this many more of those already read before it reads an older window. */
+/** Entries drawn at once; `taggedMore` draws this many more of those already read before it reads an older window. */
 const ENTRIES_PER_PAGE = 50;
 /** Empty windows in a row after which the list stops reading further back: two years without one such entry. */
 const EMPTY_WINDOWS_TO_STOP = 2;
@@ -21,7 +21,7 @@ type Ready = {
   /** How many of `entries` are drawn; the rest follow ENTRIES_PER_PAGE at a time. */
   visible: number;
   capped: boolean;
-  /** Windows of 366 days read back from today; "Visa fler" reads one more. */
+  /** Windows of 366 days read back from today; `taggedMore` reads one more. */
   years: number;
   more: "idle" | "busy" | "failed" | "empty";
   /** Windows read in a row, newest last, that held no entry; at EMPTY_WINDOWS_TO_STOP the list ends. */
@@ -30,11 +30,11 @@ type Ready = {
 type Read = { kind: "loading" } | Ready | { kind: "error"; cause: unknown };
 
 /**
- * The entries that carry every chosen tag, newest first: the last 12 months, and with "Visa fler" the 366 days before
+ * The entries that carry every chosen tag, newest first: the last 12 months, and with `taggedMore` the 366 days before
  * the oldest window read, one window at a time. The server lists each window newest first, so its pages are followed in
  * order. A window that runs past the page limit shows its newest entries, says so and offers no older window. After two empty windows in a row the list says there is nothing older
- * and offers no "Visa fler", so the button cannot step back through empty years forever. A new `refreshKey` reads the last 12 months again in place, without the
- * loading line. The view's heading names the list ("Taggade anteckningar"), so the section has no heading of its own.
+ * and offers no `taggedMore`, so the button cannot step back through empty years forever. A new `refreshKey` reads the last 12 months again in place, without the
+ * loading line. The view's heading names the list (`taggedEntries`), so the section has no heading of its own.
  */
 export function TaggedEntries({
   tags,
@@ -100,7 +100,7 @@ export function TaggedEntries({
       marker.current++;
     };
   }, [readWindow, attempt, refreshKey]);
-  /** "Visa fler": the entries already read first, then the 12 months before the oldest read, added under the list. */
+  /** `taggedMore`: the entries already read first, then the 12 months before the oldest read, added under the list. */
   function showMore() {
     if (read.kind !== "ready" || read.more === "busy") return;
     if (read.visible < read.entries.length)

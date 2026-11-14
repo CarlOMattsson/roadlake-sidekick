@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { openLinkedRowMenu } from "./linked-row-menu-helpers";
-import { expect, it, vi } from "vitest";
+import { expect, it, onTestFinished, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { workDate } from "@/features/mcp-apps/ui/due";
 import { workEn } from "@/features/work-app/shared/labels";
@@ -128,6 +128,10 @@ it("names the Project with its plain label in the place chip when the Task carri
 });
 
 it("shows the Project's dates as the calendar days they name and its description", async () => {
+  // A fixed today keeps both dates absolute: a date that falls on today or tomorrow reads as a word.
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T12:00:00"));
+  onTestFinished(() => vi.useRealTimers());
   const work = transport();
   render(rootProject(work));
   expect(

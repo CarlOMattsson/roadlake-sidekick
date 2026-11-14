@@ -37,7 +37,7 @@ export function TaskContactsSection({
   transport: WorkTransport;
   labels: WorkLabels;
   contacts: PagedSection<WorkContact>;
-  /** "Ta bort koppling" in a row's own menu: the row stays with its Ångra until the list is read again. */
+  /** `removeLink` in a row's own menu: the row stays with its Ångra until the list is read again. */
   unlinks: ReturnType<typeof useLinkUndo>;
   /** Whether the host answers unlink and link (for its Ångra); without both, a row has no menu. */
   unlinkOffered: boolean;

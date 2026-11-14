@@ -64,8 +64,7 @@ function onceFlag(
 }
 
 /*
- * The tip of the store view (designsystem §3 "Listrad", one once-only tip): "Tryck på
- * ringen för att markera köpt, på varan för att ändra." stands after the last shop until a ring is first tapped or a
+ * The tip of the store view (designsystem §3 "Listrad", one once-only tip): the tip stands after the last shop until a ring is first tapped or a
  * row's change form is first opened (tap, long press or Shift+F10), and is gone for good after that. The frame's storage keeps it when the host allows it; the document's `data-shopping-hold`
  * keeps it for the session when not, and hides a tip that is still drawn (shopping.css).
  */
@@ -225,8 +224,8 @@ function formatPrice(value: string, currency: string, locale: string): string {
 }
 
 /**
- * "bought 3 Nov": the day a bought item was ticked off, read as every date in the app is ("bought yesterday", "bought
- * Thu 5 Nov"). Nothing when the server recorded no day.
+ * `boughtOn`: the day a bought item was ticked off, read as every date in the app is (the day word, or a short
+ * date). Nothing when the server recorded no day.
  */
 export function boughtOnText(
   item: ShoppingItem,
@@ -243,8 +242,8 @@ export function boughtOnText(
 }
 
 /**
- * The closed offer fold's line, "Offer: SEK 199 until 30 Nov": the saved offer's price and the day it ends. The plain
- * word "Offer" when the item has none.
+ * The closed offer fold's line, `offerSummary`: the saved offer's price and the day it ends. The plain
+ * `offer` word when the item has none.
  */
 export function offerSummary(item: ShoppingItem, t: ShoppingLabels): string {
   const { offer } = item;

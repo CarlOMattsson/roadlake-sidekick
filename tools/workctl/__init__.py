@@ -2,7 +2,7 @@
 
 Why this exists
 ---------------
-``tools/work.sh`` grew to ~2 400 lines of bash that mixes orchestration (docker compose calls, waiting, traps,
+``tools/work.sh`` grew into a long bash script that mixed orchestration (docker compose calls, waiting, traps,
 locks) with logic that is easy to get wrong and hard to test in shell: address parsing, escaping, secret
 generation, file rendering. The logic moves here, step by step, and ``work.sh`` stays a thin shell that calls
 ``workctl`` for it. Behaviour, flags, output and exit codes of ``work.sh`` do not change.
@@ -56,8 +56,19 @@ Moved:
 * ``stackstate`` : the tag that keeps the previous image and the name of the database a restore sets aside (whether a
   container is or may become active is ``deploy/selfhost/update_policy.py``, shared with the updater).
 
-Still in ``work.sh`` (candidates to move next, in order of value):
+* ``stack``      : the compose project of a checkout: where its files are, the docker and compose calls with their log,
+  pipelines, the encryption of the backups and the signals a flow has to survive. Tests of the flows replace it with a
+  stand-in that has the same methods (``backend/tests/selfhost/work_package/fakestack.py``).
+* ``stackfiles`` / ``desktopsetup`` / ``firststart``: the files compose mounts, the owner user and the Claude Desktop
+  entry, and the hint after a failed first start.
+* ``backupflow`` / ``updateflow`` / ``restoreflow`` / ``readiness``: the sequences of ``backup``, ``update`` and
+  ``restore --apply`` (pause and resume of the writers, the swap and its way back, the migration, the wait for the api),
+  each with the cleanup that runs on every way out. Their decisions are plain functions and methods; the order of the
+  docker calls is tested with the stand-in.
+* ``worklock``: the same lock file for a flow started without ``work.sh`` (``work.sh`` says it holds the lock with
+  ``SIDEKICK_WORK_LOCK_HELD=1``).
 
-1. Backup, restore and update orchestration (docker, traps, locks, pause/resume of writers): thin shell
-   around compose calls, last to move; its decision pieces have moved (``backupfiles``, ``restore``, ``backupkey``).
+Still in ``work.sh``: what has to live in the shell process, namely the lock (``flock`` on a file descriptor of the
+shell, or a ``mkdir`` lock where there is no flock), the traps that release it, the derivation of the environment that
+compose reads (exported into the process the flows inherit), and the commands that are one call to ``workctl``.
 """

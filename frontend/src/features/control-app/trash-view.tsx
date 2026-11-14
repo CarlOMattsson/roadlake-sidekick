@@ -27,8 +27,8 @@ import { whenText } from "./when";
  * version the list showed). A stale version or a vanished item reads the list again and says so.
  * There is no way to empty the trash or delete anything for good from here.
  *
- * A restore that is saved leaves the row on its place and its meta line says what happened ("Uppgift · återställd", a
- * status, no Restore button) for RESTORED_MS, then the row goes. When the room can open the record, "Öppna ›" stands at
+ * A restore that is saved leaves the row on its place and its meta line says what happened (the kind and the restored word, a
+ * status, no Restore button) for RESTORED_MS, then the row goes. When the room can open the record, the open link stands at
  * the end of the row meanwhile. It has no Undo: no tool puts an item back in the trash. A failure stays in its row
  * until the next action.
  */
@@ -198,9 +198,9 @@ export function TrashView({
     items.some((row) => row.id === failedRow);
   return (
     <div className="control-view" ref={rootRef}>
-      {/* The tab "Borttaget" names the view (designsystem §5): the heading is for assistive technology only, and is
+      {/* The `trash` tab names the view (designsystem §5): the heading is for assistive technology only, and is
           where focus rests when the "Restored" line it was on goes away. With rows, the view's first content is one meta
-          line, "3 borttagna · kan återställas". */}
+          line (the deleted count and the restore note). */}
       <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
         {labels.trashTitle}
       </h2>

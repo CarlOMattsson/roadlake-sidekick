@@ -24,7 +24,7 @@ export type SavedViewsBarProps = {
   workLabels: WorkLabels;
   /** The shared list words for the same locale, e.g. manageLabelsFor(t.dateLocale). */
   manage: ManageLabels;
-  /** The filters the tab shows now; "Spara nuvarande vy" saves them. */
+  /** The filters the tab shows now; `saveCurrent` saves them. */
   filters: WorkFilters;
   /**
    * Opens a saved view in the tab. Resolves true when the tab shows the view, false when the read
@@ -39,9 +39,9 @@ export type SavedViewsBarProps = {
 type OpenStatus = { kind: "opening" } | { kind: "failed"; view: WorkSavedView };
 
 /**
- * The saved views of one Work tab: a visible "Sparade vyer" button that unfolds a panel. The panel
+ * The saved views of one Work tab: a visible `button` that unfolds a panel. The panel
  * reads the list only when it opens, and holds the list of this tab's views (a row opens the view;
- * "Ändra" unfolds rename and archive), the save form and the archived views (restore). Opening a
+ * `edit` unfolds rename and archive), the save form and the archived views (restore). Opening a
  * view is reported back through onOpen and folds the panel away, so the opened list is in sight; the
  * caller shows which view is open. The "opening" and "failed" lines stay visible with the panel closed.
  */
@@ -159,7 +159,7 @@ function SavedViewsPanel({
     archivedViews,
     formNote,
   } = panel;
-  // The row whose "Ändra" is unfolded (rename, archive); one at a time.
+  // The row whose `edit` is unfolded (rename, archive); one at a time.
   const [editMenuId, setEditMenuId] = useState<string>();
   const {
     views,

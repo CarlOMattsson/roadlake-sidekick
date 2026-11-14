@@ -160,7 +160,7 @@ export function useRowWrites({
     send(record, { status: to });
   }
 
-  /** A triage move of an overdue Task's due date. Its Undo names the new date: "Flyttad till imorgon · Ångra". */
+  /** A triage move of an overdue Task's due date. Its Undo names the new date: `movedTo` and `undo`. */
   function moveDue(record: WorkItemRecord, dueAt: string) {
     send(
       record,

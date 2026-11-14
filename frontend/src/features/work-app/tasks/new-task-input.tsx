@@ -246,7 +246,7 @@ export function RecentTasks({
 }: {
   tasks: readonly WorkTask[];
   labels: NewTaskInputLabels;
-  /** The status word for the glyph's accessible name, e.g. "Att göra". */
+  /** The status word for the glyph's accessible name, e.g. `todo`. */
   statusLabel: (status: string) => string;
   query?: string;
   onOpen?: (task: WorkTask) => void;

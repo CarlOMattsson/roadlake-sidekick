@@ -37,7 +37,7 @@ export type EntryRowProps = {
   dated?: boolean;
 };
 
-/** How many linked names the meta line names; the rest are counted ("och 1 till"). */
+/** How many linked names the meta line names; the rest are counted. */
 const ROW_LINK_LIMIT = 2;
 /** The tags a row names before it counts the rest: two on a phone, four where the frame is wide. */
 const ROW_TAGS_NARROW = 2;

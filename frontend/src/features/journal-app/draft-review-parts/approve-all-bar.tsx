@@ -3,10 +3,10 @@ import type { JournalLabels } from "../labels";
 
 /**
  * "Approve all" on the AI's suggestions, or the status that replaces it once every suggestion is approved. The button
- * says how many it approves ("Godkänn alla 14 förslag"); fullscreen the sentence over it splits them ("Claude föreslår
- * 6 kopplingar och 8 uppgifter."), inline the fold rows right under it do ("Kopplingar (6)"), so the sentence is read
+ * says how many it approves (`approveAll`); fullscreen the sentence over it (`suggestionSummary`) splits them,
+ * inline the fold rows right under it do (`relationsFold` with a count), so the sentence is read
  * only by a screen reader there and the card still fits a phone screen. The button is secondary: approving saves
- * nothing, and the card's one primary is "Spara som anteckning".
+ * nothing, and the card's one primary is `finalize`.
  */
 export function ApproveAllBar({
   allApproved,

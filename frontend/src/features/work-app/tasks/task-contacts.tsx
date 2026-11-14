@@ -21,7 +21,7 @@ import "./task-contacts.css";
 const SEARCH_MIN_LENGTH = 2;
 const SEARCH_MAX_LENGTH = 200;
 const SEARCH_DEBOUNCE_MS = 300;
-/** The busy marker of the "Skapa kontakt" row; a Contact id is never this. */
+/** The busy marker of the `createContact` row; a Contact id is never this. */
 const CREATE_ROW = "create";
 
 type SearchPhase = "idle" | "loading" | "ready" | "forbidden" | "error";
@@ -38,7 +38,7 @@ function ContactFailure({
   onRetry,
 }: {
   failure: WriteFailure;
-  /** The line for a failed write ("Det gick inte att …"); Försök igen is the notice's own button. */
+  /** The line for a failed write; `retry` is the notice's own button. */
   message: string;
   labels: WorkLabels;
   onReload: () => void;
@@ -68,13 +68,13 @@ function ContactFailure({
 }
 
 /**
- * "+ Koppla kontakt" opens a search sheet over the owner's Contacts for the Task. The sheet sticks to the foot of the
+ * `linkContact` opens a search sheet over the owner's Contacts for the Task. The sheet sticks to the foot of the
  * visible window above the host's reply field (and the on-screen keyboard, which shrinks that window), with the field
  * at its foot and the hits growing upwards over it, so what is typed and what it finds are always in view. Each
  * change of the query starts a debounced search, and an answer to an older query is ignored. A hit that is not linked
- * yet links on a tap; a linked hit is shown, not offered. When nothing matches, "Skapa kontakt ”…”" creates the
+ * yet links on a tap; a linked hit is shown, not offered. When nothing matches, `createContact` with the typed name creates the
  * Contact with that name and links it. After a link the parent reads the contact list again. Esc and × close the
- * sheet and return the focus to "+ Koppla kontakt".
+ * sheet and return the focus to `linkContact`.
  */
 export function LinkContact({
   taskId,
@@ -99,11 +99,11 @@ export function LinkContact({
   const [more, setMore] = useState<MorePhase>("idle");
   const [busyId, setBusyId] = useState<string>();
   const [failed, setFailed] = useState<Failed>();
-  // Closed, the section shows one quiet "+ Koppla kontakt" line; opening it puts the focus in the search.
+  // Closed, the section shows one quiet `linkContact` line; opening it puts the focus in the search.
   const [open, setOpen] = useState(false);
   const inputElement = useRef<HTMLInputElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
-  // Set by a close, so the focus goes back to "+ Koppla kontakt" and not on the first render.
+  // Set by a close, so the focus goes back to `linkContact` and not on the first render.
   const returnFocus = useRef(false);
   const inputId = useId();
   const hintId = useId();
@@ -431,8 +431,8 @@ export function LinkContact({
 }
 
 /**
- * "Ta bort koppling" from a detail view's ⋯ (design system §3, Tillbakarad and Ångra): one entry per link, no
- * confirmation. The row stays where it was with "Kopplingen borttagen · Ångra" (the agenda's UndoMeta) while Ångra
+ * `removeLink` from a detail view's ⋯ (design system §3, Tillbakarad and Ångra): one entry per link, no
+ * confirmation. The row stays where it was with `linkRemoved` and Ångra (the agenda's UndoMeta) while Ångra
  * holds; then it leaves (`hidden`). Ångra links it back. `send` writes the link (`link` true) or removes it, with the
  * action's idempotency key.
  */

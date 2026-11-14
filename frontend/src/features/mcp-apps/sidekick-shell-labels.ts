@@ -12,11 +12,11 @@ export type SidekickShellLabels = {
   /** Room names. The strip shows work, journal, contacts and shopping; Control is named by its own title. */
   rooms: Record<RoomId, string>;
   /**
-   * Names of views a Back can return to, keyed "room:view" ("work:board" is "Status"). A view without a name
+   * Names of views a Back can return to, keyed "room:view" ("work:board" is the `status` view). A view without a name
    * is named by its room.
    */
   viewNames: Record<string, string>;
-  /** Accessible name of a Back button: "Tillbaka till Status". */
+  /** Accessible name of a Back button: the back label and the view name. */
   backTo: (parent: string) => string;
   /** Folds the expanded view back into the card, when the host did not make it fullscreen. */
   collapse: string;

@@ -74,8 +74,8 @@ def test_a_confirmation_cut_off_before_its_newline_is_no_yes() -> None:
     os.close(fd)
     result = _workctl("confirm", "--key", "start_q", "--default", "n", stdin=b"ja")
     assert result.returncode == 1
-    result = _workctl("ask", "--key", "url_q", "--default=d", stdin=b"typed")
-    assert result.stdout == b"d"
+    result = _workctl("ask", "--key", "purge_q", stdin=b"")
+    assert result.stdout == b""
 
 
 def test_a_closed_input_is_an_empty_answer() -> None:
@@ -153,49 +153,43 @@ def test_confirm_takes_the_default_for_an_empty_answer(
     os.close(fd)
 
 
-def test_the_ask_command_prints_the_message_and_the_answer() -> None:
-    result = _workctl("ask", "--lang", "en", "--key", "url_q", "--default=http://m", stdin=b"\n")
+def test_the_ask_command_prints_the_message_and_returns_the_typed_answer_unchanged() -> None:
+    result = _workctl("ask", "--lang", "en", "--key", "model_key_ask", stdin="åäö -x  \n".encode())
     assert result.returncode == 0
-    assert result.stdout == b"http://m"
-    assert result.stderr == f"{messages.text('en', 'url_q')} [http://m]: ".encode()
-
-
-def test_the_ask_command_returns_a_typed_answer_unchanged() -> None:
-    result = _workctl("ask", "--key", "url_q", stdin="åäö -x  \n".encode())
     assert result.stdout == "åäö -x  ".encode()
-    assert result.stderr == f"{messages.text('sv', 'url_q')}: ".encode()
+    assert result.stderr == messages.text("en", "model_key_ask").encode()
 
 
-def test_the_ask_command_without_input_gives_the_default() -> None:
-    result = _workctl("ask", "--key", "url_q", "--default=d")
+def test_the_ask_command_without_input_gives_an_empty_answer() -> None:
+    result = _workctl("ask", "--key", "purge_q")
     assert result.returncode == 0
-    assert result.stdout == b"d"
+    assert result.stdout == b""
 
 
-def test_the_raw_ask_command_fills_the_message_without_a_colon() -> None:
+def test_the_ask_command_fills_the_message_without_a_colon() -> None:
     result = _workctl(
-        "ask", "--lang", "en", "--key", "rs_confirm_q", "--raw", "--", "-proj", stdin=b"-proj\n"
+        "ask", "--lang", "en", "--key", "rs_confirm_q", "--", "-proj", stdin=b"-proj\n"
     )
     assert result.stdout == b"-proj"
     assert result.stderr == (messages.text("en", "rs_confirm_q") % "-proj").encode()
 
 
-def test_the_raw_ask_command_can_stay_silent_on_a_pipe() -> None:
-    result = _workctl("ask", "--key", "purge_q", "--raw", "--only-on-terminal", stdin=b"ja\n")
+def test_the_ask_command_can_stay_silent_on_a_pipe() -> None:
+    result = _workctl("ask", "--key", "purge_q", "--only-on-terminal", stdin=b"ja\n")
     assert result.stdout == b"ja"
     assert result.stderr == b""
 
 
 def test_the_secret_ask_command_ends_the_line_on_stderr_and_never_on_stdout() -> None:
-    result = _workctl("ask", "--lang", "en", "--key", "key_q", "--secret", stdin=b"abc\n")
+    result = _workctl("ask", "--lang", "en", "--key", "model_key_ask", "--secret", stdin=b"abc\n")
     assert result.stdout == b"abc"
-    assert result.stderr == f"{messages.text('en', 'key_q')}: \n".encode()
+    assert result.stderr == f"{messages.text('en', 'model_key_ask')}\n".encode()
 
 
 def test_two_ask_commands_on_one_pipe_read_one_line_each(tmp_path: Path) -> None:
     script = (
         'workctl() { python3 -m workctl "$@"; }; '
-        'a="$(workctl ask --key url_q)"; b="$(workctl ask --key url_q)"; echo "$a|$b"'
+        'a="$(workctl ask --key purge_q)"; b="$(workctl ask --key purge_q)"; echo "$a|$b"'
     )
     result = subprocess.run(
         ["bash", "-c", script],
@@ -246,7 +240,7 @@ def _default_signal_handlers() -> None:
 def test_a_signal_during_a_secret_prompt_puts_the_echo_back(sent: signal.Signals) -> None:
     master, slave = pty.openpty()
     child = subprocess.Popen(
-        [sys.executable, "-m", "workctl", "ask", "--key", "key_q", "--secret"],
+        [sys.executable, "-m", "workctl", "ask", "--key", "model_key_ask", "--secret"],
         env=ENV,
         stdin=slave,
         stdout=subprocess.PIPE,

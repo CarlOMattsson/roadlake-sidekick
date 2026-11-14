@@ -13,7 +13,7 @@ import pytest
 pytestmark = pytest.mark.policy
 
 WORK_ROOT = Path(__file__).resolve().parents[2] / "src" / "sidekick" / "work"
-MAX_UNTYPED_DICTS = 8
+MAX_UNTYPED_DICTS = 4
 NEEDLE = "dict[str, Any]"
 
 

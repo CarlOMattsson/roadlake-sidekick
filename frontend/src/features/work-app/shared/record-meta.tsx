@@ -8,7 +8,7 @@ import { workKindLabel, workStatusLabel, type WorkLabels } from "./labels";
 import { KnownTags } from "./work-tags";
 
 /**
- * The status in words for a Task in progress or blocked; "Att göra" and a done Task get none: the ring says done or not
+ * The status in words for a Task in progress or blocked; `todo` and a done Task get none: the ring says done or not
  * done. `word` names a status (the work labels, or the inline labels).
  */
 export function rowStatus(
@@ -22,10 +22,10 @@ export function rowStatus(
 }
 
 /**
- * The time of a row: "9 dagar försenad" when overdue, else the date ("Fre 6 nov", "Idag"). It starts the meta line, so
+ * The time of a row: how late it is when overdue, else the date (a short date, or the `today` word). It starts the meta line, so
  * it starts with a capital, as every line of the app does and as a Contact's or Project's Task rows (TaskDue) write it:
- * "Idag · Pågår", "Today · In progress".
- * None for a done or cancelled record, and none under "Idag" for a Task due today, as the group says it; an overdue
+ * The due word, then the status.
+ * None for a done or cancelled record, and none under `today` for a Task due today, as the group says it; an overdue
  * time always stands.
  */
 export function rowDue(
@@ -59,7 +59,7 @@ export function rowDue(
  * first, then the status in words, the kind (not for a Task), the "High" marker, two tags and "+N", and the Project
  * last ("9 dagar försenad · Pågår [kund] [viktig] +1 · Renovering av köket"; a pill needs no dot before it). The status is left out in Status (`inStatus`), whose sections are the
  * statuses. A Project there stands in the Projekt section, which names its kind, so it shows its own status instead
- * ("Aktivt", "Pausat"): a Project's status is not a Task status. The Project stands in both lists, whole or not at all: when the line has no room for the
+ * (`active`, `paused`): a Project's status is not a Task status. The Project stands in both lists, whole or not at all: when the line has no room for the
  * whole name, CSS leaves it and its "·" out, so the row keeps one meta line and nothing is cut; its full name is the
  * text (screen readers) and the title. Each
  * part is a flex item and the "·" before it is drawn in CSS, so a wrapped line never starts or ends with one. The
@@ -75,7 +75,7 @@ export function RecordMeta({
   item: WorkItemRecord;
   labels: WorkLabels;
   now: Date;
-  /** The agenda group of the row; the meta never repeats it ("idag" under "Idag, …"). */
+  /** The agenda group of the row; the meta never repeats it (the `today` word under the group heading). */
   group?: string | null;
   inStatus?: boolean;
 }) {
@@ -96,7 +96,7 @@ export function RecordMeta({
     item.status !== "completed" &&
     item.status !== "cancelled";
   const due = rowDue(item, now, t.dateLocale, group);
-  // A Task that repeats says so after its time: "↻ varje månad".
+  // A Task that repeats says so after its time (the repeat glyph and the rule in words).
   const repeat =
     item.kind === "task" && item.recurrence
       ? taskPlaceLabelsFor(t.dateLocale).repeatsShort(item.recurrence)

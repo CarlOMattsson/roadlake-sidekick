@@ -126,7 +126,7 @@ export function ControlApp({
    */
   titled?: boolean;
   /**
-   * Draws the name as the view's title ("Kontroll", --sk-type-title) under the shell's "‹ Arbete", as a detail view's
+   * Draws the name as the view's title (`control`, --sk-type-title) under the shell's Back row, as a detail view's
    * title, instead of the card's kicker. The full view sets it (designsystem §3).
    */
   heading?: boolean;
@@ -249,7 +249,7 @@ export function ControlApp({
   return (
     <section className="sidekick-control" aria-label={labels.title}>
       <div className="control-card sk-card">
-        {/* Fullscreen: the shell's Back row reads "‹ Arbete", where it leads, and the view's title "Kontroll" stands under
+        {/* Fullscreen: the shell's Back row names the room where it leads, and the view's title `control` stands under
             it as a detail view's, then the tabs. */}
         {heading ? (
           <h2 className="control-title">{labels.title}</h2>

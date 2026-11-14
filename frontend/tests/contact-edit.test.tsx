@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { readStylesheet } from "./helpers/stylesheet";
 import { ContactEditor } from "@/features/work-app/contacts/contact-edit";
 import { workEn } from "@/features/work-app/shared/labels";
 import type { WorkContactRecord } from "@/features/work-app/transport/transport";
@@ -44,14 +43,5 @@ describe("Contact editor action row", () => {
     expect(row).toHaveClass("work-actions-sticky");
     expect(cancel.parentElement).toBe(row);
     expect(row?.nextElementSibling).toBeNull();
-  });
-
-  it("rests the sticky row on the foot reserve instead of padding it, so it is as tall as its buttons", () => {
-    // jsdom applies no CSS: the declarations are read from work.css.
-    const rule = readStylesheet("features/work-app/shell/work.css").rule(
-      ".sidekick-work .work-actions-sticky",
-    );
-    expect(rule["bottom"]).toBe("var(--sk-foot-reserve, 6rem)");
-    expect(rule["padding"]).toBe("0.5rem 0");
   });
 });

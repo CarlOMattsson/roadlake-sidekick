@@ -47,7 +47,7 @@ export function PendingFrame({
       ) : (
         <p>{t.pendingNote}</p>
       )}
-      {/* The row template: the draft's title opens it (›), one meta line "28 okt · Egen text · 1 020 tecken". A draft
+      {/* The row template: the draft's title opens it (›), one meta line (the date, the source kind and the `characters` count). A draft
           awaiting review names no state (the heading says it); any other state follows the date. */}
       <ul className="journal-pending-list">
         {shownItems.map((item) => {

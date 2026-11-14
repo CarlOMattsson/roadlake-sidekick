@@ -1,7 +1,8 @@
 """Transport-neutral Project commands and queries."""
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
-from datetime import date, datetime
+from datetime import date
 from typing import Any, Protocol, TypeVar
 from uuid import UUID
 
@@ -106,16 +107,34 @@ class ProjectService:
         self.clock = clock
         self.cursor_codec = cursor_codec
 
-    def _replayed(self, session: TxSession, actor: Actor, record: dict[str, Any]) -> Project:
-        """The Project a (possibly replayed) write refers to, re-read by id.
+    def _write(
+        self,
+        actor: Actor,
+        operation: str,
+        key: str,
+        payload: Mapping[str, object],
+        execute: Callable[[TxSession], Project],
+    ) -> Project:
+        """Run one idempotent Project write; only the Project's id is kept.
 
-        The idempotency record keeps only the id, so a retry returns the Project as it is now,
-        archived or not.
+        A retry returns the Project as it is now, archived or not, re-read by that id.
         """
 
-        return self.store.get_project(
-            session, actor.user_id, UUID(record["id"]), include_archived=True
-        )
+        def run(session: TxSession) -> Project:
+            record = self.store.idempotent(
+                session,
+                actor_id=actor.user_id,
+                operation=operation,
+                key=key,
+                payload=dict(payload),
+                execute=lambda: {"id": str(execute(session).id)},
+                replay=id_replay_record,
+            )
+            return self.store.get_project(
+                session, actor.user_id, UUID(record["id"]), include_archived=True
+            )
+
+        return self.store.transaction(run)
 
     def list(
         self,
@@ -201,7 +220,7 @@ class ProjectService:
         actor.require("projects:write")
         payload = {"project_id": str(project_id), "version": version}
 
-        def operation(session: TxSession) -> dict[str, Any]:
+        def operation(session: TxSession) -> Project:
             current = self.store.get_project(
                 session, actor.user_id, project_id, include_archived=True
             )
@@ -219,23 +238,9 @@ class ProjectService:
                     target_id=project_id,
                     correlation_id=correlation_id,
                 )
-            return project_to_data(updated)
+            return updated
 
-        return self.store.transaction(
-            lambda session: self._replayed(
-                session,
-                actor,
-                self.store.idempotent(
-                    session,
-                    actor_id=actor.user_id,
-                    operation="complete_project",
-                    key=idempotency_key,
-                    payload=payload,
-                    execute=lambda: operation(session),
-                    replay=id_replay_record,
-                ),
-            )
-        )
+        return self._write(actor, "complete_project", idempotency_key, payload, operation)
 
     def _set_archive(
         self,
@@ -250,30 +255,19 @@ class ProjectService:
         actor.require("projects:write")
         payload = {"project_id": str(project_id), "version": version, "archived": archived}
 
-        def operation(session: TxSession) -> dict[str, Any]:
-            return self._archive_data(
+        return self._write(
+            actor,
+            "archive_project" if archived else "restore_project",
+            idempotency_key,
+            payload,
+            lambda session: self._set_archived(
                 session,
                 actor,
                 project_id,
                 version,
                 archived=archived,
                 correlation_id=correlation_id,
-            )
-
-        return self.store.transaction(
-            lambda session: self._replayed(
-                session,
-                actor,
-                self.store.idempotent(
-                    session,
-                    actor_id=actor.user_id,
-                    operation="archive_project" if archived else "restore_project",
-                    key=idempotency_key,
-                    payload=payload,
-                    execute=lambda: operation(session),
-                    replay=id_replay_record,
-                ),
-            )
+            ),
         )
 
     def _archive(
@@ -290,18 +284,11 @@ class ProjectService:
         `TaskService._archive` and `StepsService._archive_step`.
         """
 
-        return project_from_data(
-            self._archive_data(
-                session,
-                actor,
-                project_id,
-                version,
-                archived=True,
-                correlation_id=correlation_id,
-            )
+        return self._set_archived(
+            session, actor, project_id, version, archived=True, correlation_id=correlation_id
         )
 
-    def _archive_data(
+    def _set_archived(
         self,
         session: TxSession,
         actor: Actor,
@@ -310,7 +297,7 @@ class ProjectService:
         *,
         archived: bool,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> Project:
         current = self.store.get_project(session, actor.user_id, project_id, include_archived=True)
         if current.version != version:
             raise ConflictError("stale project version")
@@ -326,7 +313,7 @@ class ProjectService:
             target_id=project_id,
             correlation_id=correlation_id,
         )
-        return project_to_data(updated)
+        return updated
 
     def create(
         self,
@@ -349,30 +336,35 @@ class ProjectService:
             "domain_id": domain_id,
         }
 
-        def operation(session: TxSession) -> Project:
-            result = self.store.idempotent(
+        return self._write(
+            actor,
+            "create_project",
+            idempotency_key,
+            payload,
+            lambda session: self._create(
                 session,
-                actor_id=actor.user_id,
-                operation="create_project",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._create(session, actor, payload, correlation_id),
-                replay=id_replay_record,
-            )
-            return self._replayed(session, actor, result)
-
-        return self.store.transaction(operation)
+                actor,
+                title=title,
+                description=description,
+                start_date=start_date,
+                target_date=target_date,
+                domain_id=domain_id,
+                correlation_id=correlation_id,
+            ),
+        )
 
     def _create(
         self,
         session: TxSession,
         actor: Actor,
-        payload: dict[str, Any],
+        *,
+        title: str,
+        description: str | None,
+        start_date: date | None,
+        target_date: date | None,
+        domain_id: UUID,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
-        domain_id = payload["domain_id"]
-        if not isinstance(domain_id, UUID):
-            raise ConflictError("project domain is required")
+    ) -> Project:
         get_domain = getattr(self.store, "get_domain", None)
         if callable(get_domain):
             get_domain(session, actor.user_id, domain_id)
@@ -380,11 +372,11 @@ class ProjectService:
         project = Project(
             id=new_uuid7(),
             owner_id=actor.user_id,
-            title=payload["title"],
-            description=payload["description"],
+            title=title,
+            description=description,
             status=ProjectStatus.ACTIVE,
-            start_date=payload["start_date"],
-            target_date=payload["target_date"],
+            start_date=start_date,
+            target_date=target_date,
             domain_id=domain_id,
             created_at=now,
             updated_at=now,
@@ -399,7 +391,7 @@ class ProjectService:
             target_id=project.id,
             correlation_id=correlation_id,
         )
-        return project_to_data(project)
+        return project
 
     def update(
         self,
@@ -415,25 +407,19 @@ class ProjectService:
         changes = command.changes()
         if not command.has_changes():
             raise InvalidInputError("at least one change is required")
-        payload: dict[str, Any] = {"project_id": str(project_id), "version": version, **changes}
+        payload: dict[str, object] = {"project_id": str(project_id), "version": version, **changes}
         if command.tags is not UNSET:
             payload["tags"] = list(command.tags)
 
-        def operation(session: TxSession) -> Project:
-            result = self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="update_project",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._update(
-                    session, actor, project_id, version, command, correlation_id
-                ),
-                replay=id_replay_record,
-            )
-            return self._replayed(session, actor, result)
-
-        return self.store.transaction(operation)
+        return self._write(
+            actor,
+            "update_project",
+            idempotency_key,
+            payload,
+            lambda session: self._update(
+                session, actor, project_id, version, command, correlation_id
+            ),
+        )
 
     def _update(
         self,
@@ -443,7 +429,7 @@ class ProjectService:
         version: int,
         command: UpdateProjectCommand,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> Project:
         project = self.store.get_project(session, actor.user_id, project_id)
         changes = command.changes()
         new_domain = changes.get("domain_id")
@@ -479,50 +465,4 @@ class ProjectService:
             target_id=project.id,
             correlation_id=correlation_id,
         )
-        return project_to_data(updated)
-
-
-def project_to_data(project: Project) -> dict[str, Any]:
-    return {
-        "id": str(project.id),
-        "owner_id": str(project.owner_id),
-        "title": project.title,
-        "description": project.description,
-        "status": project.status.value,
-        "start_date": project.start_date.isoformat() if project.start_date else None,
-        "target_date": project.target_date.isoformat() if project.target_date else None,
-        "created_at": project.created_at.isoformat(),
-        "updated_at": project.updated_at.isoformat(),
-        "version": project.version,
-        "domain_id": str(project.domain_id) if project.domain_id else None,
-        "archived_at": project.archived_at.isoformat() if project.archived_at else None,
-        "definition_of_done": project.definition_of_done,
-    }
-
-
-def project_public_data(project: Project) -> dict[str, Any]:
-    """Serialize the public contract without internal ownership fields."""
-
-    data = project_to_data(project)
-    data.pop("owner_id")
-    return data
-
-
-def project_from_data(data: dict[str, Any]) -> Project:
-    return Project(
-        id=UUID(data["id"]),
-        owner_id=UUID(data["owner_id"]),
-        title=data["title"],
-        description=data["description"],
-        status=ProjectStatus(data["status"]),
-        start_date=date.fromisoformat(data["start_date"]) if data["start_date"] else None,
-        target_date=date.fromisoformat(data["target_date"]) if data["target_date"] else None,
-        created_at=datetime.fromisoformat(data["created_at"]),
-        updated_at=datetime.fromisoformat(data["updated_at"]),
-        version=data["version"],
-        domain_id=UUID(data["domain_id"]),
-        archived_at=(
-            datetime.fromisoformat(data["archived_at"]) if data.get("archived_at") else None
-        ),
-        definition_of_done=data.get("definition_of_done"),
-    )
+        return updated

@@ -1,6 +1,7 @@
 """Contact links to Projects and Tasks, and the context read around one Contact."""
 
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import cast
 from uuid import UUID
 
 from sidekick.contacts.application.models import (
@@ -8,7 +9,9 @@ from sidekick.contacts.application.models import (
     ContactContext,
     LinkedJournalEntries,
     LinkedJournalEntry,
+    ProjectLinkRecord,
     TaskContactMarks,
+    TaskLinkRecord,
 )
 from sidekick.contacts.application.paging import contact_cursor
 from sidekick.contacts.application.store import ContactStore
@@ -35,6 +38,29 @@ class ContactRelationService:
         self.clock = clock
         self.cursor_codec = cursor_codec
 
+    def _write[R: Mapping[str, object]](
+        self,
+        actor: Actor,
+        operation: str,
+        key: str,
+        payload: Mapping[str, object],
+        execute: Callable[[TxSession], R],
+    ) -> R:
+        """Run one idempotent link write; the store keeps the (identifier-only) result whole."""
+
+        def run(session: TxSession) -> R:
+            record = self.store.idempotent(
+                session,
+                actor_id=actor.user_id,
+                operation=operation,
+                key=key,
+                payload=dict(payload),
+                execute=lambda: dict(execute(session)),
+            )
+            return cast(R, record)
+
+        return self.store.transaction(run)
+
     def link_project(
         self,
         actor: Actor,
@@ -42,24 +68,20 @@ class ContactRelationService:
         project_id: UUID,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ProjectLinkRecord:
         actor.require("contacts:write")
         actor.require("projects:read")
         payload = {"contact_id": str(contact_id), "project_id": str(project_id)}
 
-        def operation(session: TxSession) -> dict[str, Any]:
-            return self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="link_contact_to_project",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._link_project(
-                    session, actor, contact_id, project_id, correlation_id
-                ),
-            )
-
-        return self.store.transaction(operation)
+        return self._write(
+            actor,
+            "link_contact_to_project",
+            idempotency_key,
+            payload,
+            lambda session: self._link_project(
+                session, actor, contact_id, project_id, correlation_id
+            ),
+        )
 
     def _link_project(
         self,
@@ -68,7 +90,7 @@ class ContactRelationService:
         contact_id: UUID,
         project_id: UUID,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> ProjectLinkRecord:
         self.store.get_contact(session, actor.user_id, contact_id)
         project = self.store.get_project(session, actor.user_id, project_id)
         if project.status is ProjectStatus.COMPLETED:
@@ -99,24 +121,20 @@ class ContactRelationService:
         project_id: UUID,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> ProjectLinkRecord:
         actor.require("contacts:write")
         actor.require("projects:read")
         payload = {"contact_id": str(contact_id), "project_id": str(project_id)}
 
-        def operation(session: TxSession) -> dict[str, Any]:
-            return self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="unlink_contact_from_project",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._unlink_project(
-                    session, actor, contact_id, project_id, correlation_id
-                ),
-            )
-
-        return self.store.transaction(operation)
+        return self._write(
+            actor,
+            "unlink_contact_from_project",
+            idempotency_key,
+            payload,
+            lambda session: self._unlink_project(
+                session, actor, contact_id, project_id, correlation_id
+            ),
+        )
 
     def _unlink_project(
         self,
@@ -125,7 +143,7 @@ class ContactRelationService:
         contact_id: UUID,
         project_id: UUID,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> ProjectLinkRecord:
         self.store.get_contact(session, actor.user_id, contact_id)
         project = self.store.get_project(session, actor.user_id, project_id)
         if project.status is ProjectStatus.COMPLETED:
@@ -150,24 +168,18 @@ class ContactRelationService:
         task_id: UUID,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskLinkRecord:
         actor.require("contacts:write")
         actor.require("tasks:read")
         payload = {"contact_id": str(contact_id), "task_id": str(task_id)}
 
-        def operation(session: TxSession) -> dict[str, Any]:
-            return self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="link_contact_to_task",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._link_task(
-                    session, actor, contact_id, task_id, correlation_id
-                ),
-            )
-
-        return self.store.transaction(operation)
+        return self._write(
+            actor,
+            "link_contact_to_task",
+            idempotency_key,
+            payload,
+            lambda session: self._link_task(session, actor, contact_id, task_id, correlation_id),
+        )
 
     def _link_task(
         self,
@@ -176,7 +188,7 @@ class ContactRelationService:
         contact_id: UUID,
         task_id: UUID,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> TaskLinkRecord:
         self.store.get_contact(session, actor.user_id, contact_id)
         task = self.store.get_task(session, actor.user_id, task_id)
         if task.status is TaskStatus.COMPLETED:
@@ -207,24 +219,18 @@ class ContactRelationService:
         task_id: UUID,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> TaskLinkRecord:
         actor.require("contacts:write")
         actor.require("tasks:read")
         payload = {"contact_id": str(contact_id), "task_id": str(task_id)}
 
-        def operation(session: TxSession) -> dict[str, Any]:
-            return self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="unlink_contact_from_task",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._unlink_task(
-                    session, actor, contact_id, task_id, correlation_id
-                ),
-            )
-
-        return self.store.transaction(operation)
+        return self._write(
+            actor,
+            "unlink_contact_from_task",
+            idempotency_key,
+            payload,
+            lambda session: self._unlink_task(session, actor, contact_id, task_id, correlation_id),
+        )
 
     def _unlink_task(
         self,
@@ -233,7 +239,7 @@ class ContactRelationService:
         contact_id: UUID,
         task_id: UUID,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> TaskLinkRecord:
         self.store.get_contact(session, actor.user_id, contact_id)
         task = self.store.get_task(session, actor.user_id, task_id)
         if task.status is TaskStatus.COMPLETED:

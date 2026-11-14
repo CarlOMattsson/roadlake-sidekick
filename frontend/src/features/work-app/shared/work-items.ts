@@ -109,8 +109,8 @@ export function boardSegments(
 
 /**
  * The segment a board opens on. A saved column (the frame's `column`) wins when a segment shows it,
- * even when that segment is empty. Otherwise the first non-empty of "Att göra", "Pågår" and
- * "Blockerad", and otherwise "Att göra". Returns the segment key.
+ * even when that segment is empty. Otherwise the first non-empty of `todo`, `in_progress` and
+ * `blocked`, and otherwise `todo`. Returns the segment key.
  */
 export function defaultBoardSegment(
   segments: BoardSegment[],
@@ -345,7 +345,7 @@ export function triageDueAt(
 
 /**
  * What an inline card's foot says it leaves out: every row of the view the foot opens, minus the rows the
- * card shows. One count for both feet, "Öppna Agenda · 7 fler" (10 − 3) and "Öppna Status · 10 fler" (13 − 3).
+ * card shows. One count for both feet: the agenda's (10 − 3) and Status's (13 − 3).
  */
 export function hiddenRows(target: number, shown: number): number {
   return Math.max(0, target - shown);

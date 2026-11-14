@@ -5,8 +5,8 @@ import { ChipChoices } from "./chip-choices";
 import { PRIORITY_CHOICES, isPriorityChoice } from "./task-edit";
 
 /**
- * The Task's priority as a property chip beside its place and repeat rule: "Prioritet: Hög ⌄", the word "Hög" in the
- * warning colour the rows' "Hög" has. A tap unfolds Låg, Normal and Hög (ChipChoices); a choice is one update_task
+ * The Task's priority as a property chip beside its place and repeat rule: the `priority` label with its value, the word `high` in the
+ * warning colour the rows' `high` has. A tap unfolds `low`, `normal` and `high` (ChipChoices); a choice is one update_task
  * through `onChoose`. A value the chips have no word for keeps its own ticked chip, so opening them never loses it.
  * Where the host cannot write (the phone), only a high priority shows, as a plain chip.
  */

@@ -30,19 +30,17 @@ from sidekick.shared.text_guard import NoImageData
 from sidekick.structured.work import (
     complete_task_structured,
     task_detail_structured,
+    task_record,
     update_task_structured,
-    with_tags,
 )
 from sidekick.structured.work_records import (
     DueAtInput,
     TaskChanges,
     TaskDetailOutput,
     TaskOutput,
-    TaskRecord,
     WritePriority,
     end_of_day_due_at,
 )
-from sidekick.tasks.application.serialization import task_public_data
 from sidekick.tasks.domain import Priority
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
@@ -152,9 +150,7 @@ def _register_create_task(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task.id)]
-        structured = TaskOutput(
-            task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs))
-        )
+        structured = TaskOutput(task=task_record(task, slugs))
         return _task_reply(structured, "Created")
 
 

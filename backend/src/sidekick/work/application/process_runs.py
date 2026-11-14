@@ -279,7 +279,7 @@ class ProcessRunService:
         template = self._template_for(session, process)
         worker_actor = Actor(process.owner_id, frozenset({"tasks:write", "projects:read"}))
         now = self.clock.now()
-        task_data = self.task_service.create_in_session(
+        task = self.task_service.create_in_session(
             session,
             worker_actor,
             {
@@ -300,11 +300,11 @@ class ProcessRunService:
             correlation_id,
             actor_type=actor_type,
         )
-        # The Task creator returns a serialized command result and the store
+        # The Task creator returns the Task and the store
         # has no ORM relationship between TaskRow and ProcessRunRow. Flush here so the
         # ProcessRun foreign key can never be inserted before its generated Task.
         session.flush()
-        task_id = UUID(str(task_data["id"]))
+        task_id = task.id
         self._materialize_steps(
             session, process, template, task_id, scheduled_for, now, correlation_id
         )

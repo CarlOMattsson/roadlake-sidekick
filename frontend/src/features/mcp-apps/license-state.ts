@@ -26,7 +26,7 @@ export type License = {
 };
 
 /**
- * Where "Köp licens" leads: the one place to set the shop address once there is one. While it is empty no button is
+ * Where `buy` leads: the one place to set the shop address once there is one. While it is empty no button is
  * drawn and the row says that keys are on sale soon instead (`buySoon`); docs/explanation/licensing.md and .sv.md name the same
  * address under "How to buy".
  */

@@ -9,6 +9,8 @@
 //   6. Inline-mode rules never scroll on the y axis.
 //   7. The palette has the eight accent lines and no other accent token; a status token reads a host variable first.
 //   8. The tonal button level is gone, and a selected state is drawn with the 2 px contour token.
+//   9. The frame reads width through container queries only, and the counts bar is static, wraps and keeps its tokens.
+//  10. Selectors, tokens and rules that were retired stay out of the stylesheets.
 // How the views look (sizes, colours, spacing) is measured in a browser by the specs under tests/e2e.
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -343,5 +345,111 @@ describe("retired design", () => {
       /inset 0 0 0 1px var\(--sk-selected-line/.test(file.css),
     );
     expect(oneOnly.map((file) => file.rel)).toEqual([]);
+  });
+});
+
+describe("component stylesheets", () => {
+  const rules = (rel: string) => cssRules(readCss(rel));
+  const declared = (rel: string) =>
+    rules(rel).flatMap((rule) => declarationsOf(rule.body));
+
+  it("the frame reads its width through container queries, with no width media query and no url()", () => {
+    const css = readCss("mcp-apps/ui/layout.css");
+    expect(css).not.toMatch(/@media/);
+    expect(css).not.toContain("url(");
+    expect(css).toMatch(/@container\s+sk-frame/);
+  });
+
+  it("the skeleton is the waiting placeholder's blocks: states.css animates nothing of its own", () => {
+    expect(readCss("mcp-apps/ui/states.css")).not.toContain(
+      "sk-skeleton-pulse",
+    );
+  });
+
+  it("the counts bar is static and wraps: no motion, no sideways scroll, no nowrap", () => {
+    const properties = declared("mcp-apps/ui/counts-bar.css");
+    expect(
+      properties.filter(({ property }) =>
+        /^(transition|animation|overflow-x)/.test(property),
+      ),
+    ).toEqual([]);
+    expect(
+      properties.filter(
+        ({ property, value }) =>
+          property === "white-space" && value === "nowrap",
+      ),
+    ).toEqual([]);
+  });
+
+  it("the counts bar gives each status one colour and one meaning: neutral is ink on page, in progress is ink, blocked is a hatch, none is red or the host's info colour", () => {
+    const css = readCss("mcp-apps/ui/counts-bar.css");
+    const tokens = Object.fromEntries(
+      declared("mcp-apps/ui/counts-bar.css").map(({ property, value }) => [
+        property,
+        value.replace(/\s+/g, " "),
+      ]),
+    );
+    expect(tokens["--sk-cb-neutral"]).toMatch(
+      /^color-mix\(in srgb, var\(--sk-fg\) \d+%, var\(--sk-bg\)\)$/,
+    );
+    expect(tokens["--sk-cb-info"]).toBe("var(--sk-fg)");
+    expect(tokens["--sk-cb-hatch"]).toMatch(
+      /^repeating-linear-gradient\(.*var\(--sk-fg\).*var\(--sk-surface\)/,
+    );
+    expect(Object.keys(tokens)).not.toContain("--sk-cb-warning");
+    expect(css).not.toMatch(
+      /--sk-overdue-fg|--color-text-info|--color-text-warning/,
+    );
+    expect(css).toMatch(/var\(--color-text-primary, light-dark\(/);
+  });
+});
+
+describe("retired rules stay out", () => {
+  const selectors = (rel: string) =>
+    cssRules(readCss(rel))
+      .map((rule) => rule.selector)
+      .join("\n");
+
+  it("the old fold and action-row rules are gone from the room sheets", () => {
+    expect(selectors("work-app/shell/work.css")).not.toContain(
+      ".work-board-fold",
+    );
+    expect(selectors("shopping-app/shopping.css")).not.toContain(
+      ".shopping-bought-toggle",
+    );
+    expect(selectors("shopping-app/shopping.css")).not.toContain(
+      ".shopping-purchased > summary",
+    );
+    expect(selectors("work-app/contacts/contacts.css")).not.toContain(
+      ".work-contact-ways-value",
+    );
+    expect(selectors("work-app/contacts/contacts.css")).not.toContain(
+      ".work-contact-ways > button",
+    );
+    expect(
+      selectors("work-app/tasks/task-detail.css").split("\n"),
+    ).not.toContain(".sidekick-work .work-add-row");
+  });
+
+  it("the task view has no status-segment rule, the shell no undo-bottom variable and the inline card no notice layout of its own", () => {
+    expect(selectors("work-app/tasks/task-detail.css")).not.toContain(
+      "work-task-status",
+    );
+    expect(readCss("work-app/shell/work-shell.css")).not.toContain(
+      "--work-undo-bottom",
+    );
+    expect(readCss("work-app/inline/inline-summary.css")).not.toContain(
+      "work-compact-notice",
+    );
+  });
+
+  it("the row menu's panel edge comes from the secondary button's --sk-border, and --sk-panel-line is gone", () => {
+    const agenda = readCss("work-app/agenda/agenda.css");
+    const tokens = readCss("mcp-apps/ui/tokens.css");
+    expect(agenda).not.toContain("--sk-panel-line");
+    expect(tokens).not.toContain("--sk-panel-line");
+    expect(agenda.replace(/\s+/g, " ")).toContain(
+      "inset 0 0 0 var(--sk-hairline) var(--sk-border)",
+    );
   });
 });

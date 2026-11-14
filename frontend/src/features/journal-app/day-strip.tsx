@@ -11,7 +11,7 @@ import type { DayStripLabels } from "./day-strip-labels";
 import "./journal.css";
 
 /**
- * Every day cell is at least 56 px high in px (weekday or "Idag", the number, and an 8 px marker row for the entry dot;
+ * Every day cell is at least 56 px high in px (weekday or `today`, the number, and an 8 px marker row for the entry dot;
  * 104–160 at 412, it was 3.5rem, 61.6 at 110 %), and grows with its rows at large text. Its width
  * comes from the grid in journal.css.
  */
@@ -37,7 +37,7 @@ export type DayStripProps = {
   onSelect: (date: string) => void;
   /** The day's heading, alone on the title row with ⋯ (designsystem §3, Dagremsan). */
   heading?: ReactNode;
-  /** A secondary control after › on the week row: the view's "Idag" button. */
+  /** A secondary control after › on the week row: the view's `today` button. */
   actions?: ReactNode;
   /** The room's ⋯ on the title row (x 383 as in every room head). */
   more?: ReactNode;
@@ -120,7 +120,7 @@ function dayOfMonth(date: string): string {
 
 /**
  * A seven-day strip for the journal day view (`stripDays`). Each day shows its short weekday and day number; today
- * says "Idag" in place of its weekday, the selected day is filled, and a 6 px dot under the number marks each day
+ * says `today` in place of its weekday, the selected day is filled, and a 6 px dot under the number marks each day
  * with entries (journal.css). The strip chooses the day; ‹ › on the title row and a horizontal swipe on the strip step a
  * week (O and F read day steps beside a strip of days as two ways to do one thing), and the arrow keys
  * step a day. A day after today is never offered: a step forward stops at today. Journal text never reaches the component: it only receives dates,
@@ -216,7 +216,7 @@ export function DayStrip({
   // The week row under the title row: "‹ 29 okt–4 nov ›", the
   // arrows (48 × 48, glyph 24) right beside the week they step, at the start of the row with ‹'s glyph on the content
   // edge, the same form at every width and text size. On today › is aria-disabled in the tertiary tone (journal.css)
-  // and stays drawn; step() ignores a press past today. "Idag", when the week lacks today, follows ›.
+  // and stays drawn; step() ignores a press past today. `today`, when the week lacks today, follows ›.
   const arrows = (
     <div className="sk-day-strip-weekrow">
       <button
@@ -273,9 +273,9 @@ export function DayStrip({
               const active = anchor && !unmarked;
               const hasEntries = marked.has(date);
               const isToday = date === today;
-              // The name starts with the two words the cell shows (its weekday, or "Idag", and the day number) so
+              // The name starts with the two words the cell shows (its weekday, or `today`, and the day number) so
               // it contains the visible label (WCAG 2.5.3), then the month, the weekday in full when the cell says
-              // "Idag", "vald" for the selected day and "har anteckningar" for a marked day.
+              // `today`, `selected` for the selected day and `withEntries` for a marked day.
               const name = [
                 `${isToday ? t.todayMarker : weekdayShort(date, t.dateLocale)} ${dayOfMonth(date)} ${monthLong(date, t.dateLocale)}`,
                 isToday ? weekdayLong(date, t.dateLocale) : undefined,
@@ -301,7 +301,7 @@ export function DayStrip({
                     onClick={() => onSelect(date)}
                     onKeyDown={(event) => onDayKey(event, date)}
                   >
-                    {/* Today says "Idag" where the weekday is, so every cell keeps the same three rows. */}
+                    {/* Today says `today` where the weekday is, so every cell keeps the same three rows. */}
                     <span
                       className={
                         isToday

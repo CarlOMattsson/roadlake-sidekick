@@ -13,8 +13,8 @@ import { SkeletonRows } from "./ui/states";
 import "./awaiting.css";
 
 /**
- * The placeholder while the app waits for its first tool result (designsystem §3 Tillstånd, §4 "Skelettets
- * orientering"): the frame is drawn for real, with the same components as the loaded view, and only the
+ * The placeholder while the app waits for its first tool result (designsystem §3 Tillstånd, §4, the skeleton
+ * guidance): the frame is drawn for real, with the same components as the loaded view, and only the
  * rows are a skeleton, so nothing moves when the data arrives.
  *
  * - Before the host has answered the handshake nothing is known: the room strip with no room marked and four rows.
@@ -22,11 +22,11 @@ import "./awaiting.css";
  * - After the handshake the host context may name the tool that opened the card (`toolInfo`, optional in MCP Apps
  *   2026-01-26). The entry routes it to `room` and `view`, and the placeholder marks that room in the strip and draws
  *   its real header, inert: Work's tab row (ViewTabs, search and + held off while the list loads, and ⋯); Control's
- *   "‹ Arbete", title and tabs, with no strip (Control applies to every room). The header sits in a
+ *   the Back row to the room, title and tabs, with no strip (Control applies to every room). The header sits in a
  *   `sk-rooms__pane`, as in the shell, so the rooms' own rules place it exactly as the loaded view.
  * - `full` false (the host said inline): a card has no strip, so only the rows are drawn.
  *
- * What is loading ("Laddar uppgifter…") is read by assistive technology through the status role and never drawn.
+ * What is loading (the `work` loading text) is read by assistive technology through the status role and never drawn.
  * Rows have the measures of the finished list rows: a 36 px leading column with the glyph at the content edge, the
  * text at x 52, 12 px of padding, 70 px for two lines and no hairlines. The skeleton never guesses the groups
  *: Work's lists open on a heading, so one bar holds its place, and five rows follow (SkeletonRows). The blocks

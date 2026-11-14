@@ -41,11 +41,11 @@ function everyEn(rule: Rule): string {
 }
 
 /**
- * Words of the Task's place chip ("Plats: Renovering av köket ⌄"), the repeat chip and its picker, and the "Att sortera"
+ * Words of the Task's place chip (the `place` label and the place's name), the repeat chip and its picker, and the `unsortedHeading`
  * picker. The place picker's own words are in group-select-labels.ts. The Swedish and English key sets must stay identical.
  */
 export const taskPlaceLabelsSv = {
-  /** The chip's accessible name, before the place: "Ändra plats: Hem". */
+  /** The chip's accessible name, before the place: `changePlace` and the place. */
   changePlace: "Ändra plats",
   /** The chip's text: the word, then the place's name. */
   chipValue: (place: string) => `Plats: ${place}`,
@@ -57,18 +57,18 @@ export const taskPlaceLabelsSv = {
   processName: "Process",
   /** The link to the Project or Process page. */
   open: (place: string) => `Öppna ${place}`,
-  /** The picker's accessible name: "Plats för Måla taket". */
+  /** The picker's accessible name: the place label and the Task title. */
   pickerFor: (task: string) => `Plats för ${task}`,
-  /** The "Att sortera" row's button that unfolds the picker. */
+  /** The `unsortedHeading` row's button that unfolds the picker. */
   choosePlace: "Välj plats…",
-  /** Replaces the "Att sortera" intro: the Domain buttons and the picker. */
+  /** Replaces the `unsortedHeading` intro: the Domain buttons and the picker. */
   unsortedIntro:
     "Ingen plats än. Tryck på en domän, eller välj ett projekt eller en process.",
-  /** The repeat chip's accessible name, before its text: "Ändra upprepning: Upprepas varje vecka". */
+  /** The repeat chip's accessible name, before its text: the change-repeat label and the repeat text. */
   changeRepeat: "Ändra upprepning",
   /** The repeat chip of a Task that does not repeat (only drawn where the host can set a rule). */
   repeatsNot: "Upprepas inte",
-  /** The repeat picker's accessible name: "Upprepning för Måla taket". */
+  /** The repeat picker's accessible name: the repeat label and the Task title. */
   repeatPickerFor: (task: string) => `Upprepning för ${task}`,
   /** The picker's options: no rule, then the simple rules. */
   repeatOptions: {
@@ -80,7 +80,7 @@ export const taskPlaceLabelsSv = {
   },
   /** The option that keeps a rule the picker has no word for (every 2nd week, chosen weekdays, an end date). */
   repeatCurrent: (rule: string) => `${rule} (nuvarande)`,
-  /** The rule in a list row's meta line, after the repeat glyph: "varje månad", "var 2:a vecka". */
+  /** The rule in a list row's meta line, after the repeat glyph: the rule in words. */
   repeatsShort: (rule: Rule) => everySv(rule),
   /** The repeat chip's text: the rule in words. */
   repeats: (rule: Rule) => `Upprepas ${everySv(rule)}`,

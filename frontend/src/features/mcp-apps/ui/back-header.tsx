@@ -13,7 +13,7 @@ import "./back-header.css";
  * back to the parent on the left, and the view's actions on the right in the order pen, ⋯ (⋯ outermost), in one
  * row 44 px high. An optional title sits right under that row as the view's heading (--sk-type-title). The Back
  * has no frame and its chevron starts exactly on the content edge. The text after ‹ always names where it leads
- *, and its accessible name is "Tillbaka till {label}" ("Back to {label}" in English). Actions are icon
+ *, and its accessible name is the back label with `label`. Actions are icon
  * buttons: no frame, 44x44, a 24 px glyph in --sk-fg.
  *
  * Shared by the shell and the rooms, so every Back looks and sits the same way. The shell's Back row also holds
@@ -27,7 +27,7 @@ export function BackHeader({
   actions,
   slotRef,
 }: {
-  /** The parent's name, for example "Status", "Kontakter" or "Listor". It is part of the button's accessible name. */
+  /** The parent's name, for example the Status, Contacts or Lists view. It is part of the button's accessible name. */
   label: string;
   onBack: () => void;
   /** Shown under the Back row, as the view's heading. */

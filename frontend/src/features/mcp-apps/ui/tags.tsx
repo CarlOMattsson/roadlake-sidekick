@@ -18,7 +18,7 @@ const SUGGESTIONS_SHOWN = 6;
 
 /**
  * A record's tags as small pills, for a row, a card or a room. The pills are drawn only; the tags are read
- * once as one sentence ("Taggar: viktig, familj och 2 till"), so the pills can sit inside a row's open button.
+ * once as one sentence (the tags label, the names and a count of the rest), so the pills can sit inside a row's open button.
  * `max` shows that many and "+N" for the rest (an inline card keeps its height). No tags: nothing.
  */
 export function TagChips({
@@ -62,9 +62,9 @@ export function TagChips({
 }
 
 /**
- * A record's tags where they can be changed: the pills and one button ("Lägg till tagg" / "Ändra taggar").
+ * A record's tags where they can be changed: the pills and one button (`add` / `edit`).
  * The button opens the editor in place: each pill gets its own remove button, a field adds a typed tag (Enter
- * or "Lägg till"), and the owner's other tags stand under it as chips to add with one tap. Every change is the
+ * or `addButton`), and the owner's other tags stand under it as chips to add with one tap. Every change is the
  * whole new set through `onChange`, which the room writes as one update; `done` runs once it is stored, and
  * the typed text stays until then so a failed write can be retried. `editable` false shows the pills only.
  */
@@ -81,7 +81,7 @@ export function TagField({
   suggestions?: readonly TagOption[];
   editable: boolean;
   busy: boolean;
-  /** The record's name, for the button's accessible name ("Ändra taggar för Anna"). */
+  /** The record's name, for the button's accessible name (`edit` and the name). */
   name: string;
   onChange: (next: string[], done: () => void) => void;
   locale: string;
@@ -301,7 +301,7 @@ function TagEditor({
                   onClick={() => {
                     add(tag.slug);
                     // The chip leaves the suggestions once added: the focus goes back to the field (or to
-                    // "Klar" when the record is full), never to the page.
+                    // `done` when the record is full), never to the page.
                     if (tags.length + 1 >= TAGS_PER_RECORD)
                       doneButton.current?.focus();
                     else input.current?.focus();

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import replace
 from datetime import datetime, tzinfo
 from typing import Any
@@ -26,9 +26,9 @@ from sidekick.shared.types import (
     validate_limit,
 )
 from sidekick.tasks.application.models import TaskDetailRead, UpdateTaskCommand
-from sidekick.tasks.application.serialization import task_to_data
 from sidekick.tasks.application.store import TaskStore
 from sidekick.tasks.domain import (
+    NewTaskPayload,
     Priority,
     RecurrenceRule,
     Task,
@@ -37,6 +37,7 @@ from sidekick.tasks.domain import (
     TaskStatusHistory,
     derive_domain_id,
 )
+from sidekick.tasks.domain.recurrence import RecurrenceData
 from sidekick.work.domain.tag_assignment import apply_record_tags
 
 DEFAULT_OWNER_ZONE = parse_owner_timezone(DEFAULT_OWNER_TIMEZONE)
@@ -58,7 +59,9 @@ class TaskService:
         self.activity_ledger = activity_ledger
         self.owner_timezone = owner_timezone
 
-    def _replayed_task(self, session: TxSession, actor: Actor, record: dict[str, Any]) -> Task:
+    def _replayed_task(
+        self, session: TxSession, actor: Actor, record: Mapping[str, object]
+    ) -> Task:
         """The Task a (possibly replayed) write refers to, re-read by id.
 
         The idempotency record keeps only the id, so a retry returns the Task as it is now,
@@ -75,7 +78,7 @@ class TaskService:
         return self._with_derived_domain(session, actor, task)
 
     def replayed_tasks(
-        self, session: TxSession, actor: Actor, records: Sequence[dict[str, Any]]
+        self, session: TxSession, actor: Actor, records: Sequence[Mapping[str, object]]
     ) -> list[Task]:
         """Several (possibly replayed) Tasks re-read by id, their Domains looked up together."""
 
@@ -90,6 +93,28 @@ class TaskService:
             for record in records
         ]
         return self._with_derived_domains(session, actor, tasks)
+
+    def _write(
+        self,
+        session: TxSession,
+        actor: Actor,
+        operation: str,
+        key: str,
+        payload: Mapping[str, object],
+        execute: Callable[[], Task],
+    ) -> Task:
+        """Run one idempotent Task write; only the Task's id is kept, the Task is re-read by it."""
+
+        record = self.store.idempotent(
+            session,
+            actor_id=actor.user_id,
+            operation=operation,
+            key=key,
+            payload=dict(payload),
+            execute=lambda: {"id": str(execute().id)},
+            replay=id_replay_record,
+        )
+        return self._replayed_task(session, actor, record)
 
     def list(
         self,
@@ -213,7 +238,7 @@ class TaskService:
         estimated_minutes: int | None = None,
         blocked_reminder_cadence: Cadence | None = None,
         blocked_reminder_snoozed_until: datetime | None = None,
-        recurrence: dict[str, Any] | None = None,
+        recurrence: RecurrenceData | None = None,
         tags: tuple[str, ...] | None = None,
         contact_ids: tuple[UUID, ...] = (),
         correlation_id: str | None = None,
@@ -221,7 +246,7 @@ class TaskService:
         actor.require("tasks:write")
         if contact_ids:
             actor.require("contacts:write")
-        payload: dict[str, Any] = {
+        payload: NewTaskPayload = {
             "title": title,
             "project_id": str(project_id) if project_id else None,
             "domain_id": str(domain_id) if domain_id else None,
@@ -242,29 +267,26 @@ class TaskService:
             # Only present when used, so retries of existing create keys keep their payload hash.
             payload["contact_ids"] = [str(contact_id) for contact_id in contact_ids]
 
-        def operation(session: TxSession) -> Task:
-            result = self.store.idempotent(
+        return self.store.transaction(
+            lambda session: self._write(
                 session,
-                actor_id=actor.user_id,
-                operation="create_task",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._create(session, actor, payload, correlation_id),
-                replay=id_replay_record,
+                actor,
+                "create_task",
+                idempotency_key,
+                payload,
+                lambda: self._create(session, actor, payload, correlation_id),
             )
-            return self._replayed_task(session, actor, result)
-
-        return self.store.transaction(operation)
+        )
 
     def create_in_session(
         self,
         session: TxSession,
         actor: Actor,
-        payload: dict[str, Any],
+        payload: NewTaskPayload,
         correlation_id: str | None,
         actor_type: str = "user",
-    ) -> dict[str, Any]:
-        """Create a task inside the caller's open transaction and return its serialized result.
+    ) -> Task:
+        """Create a task inside the caller's open transaction and return it.
 
         For callers that must write a Task together with other rows in one transaction
         (process-run materialisation). Same contract as `_create`, which it delegates to.
@@ -276,10 +298,10 @@ class TaskService:
         self,
         session: TxSession,
         actor: Actor,
-        payload: dict[str, Any],
+        payload: NewTaskPayload,
         correlation_id: str | None,
         actor_type: str = "user",
-    ) -> dict[str, Any]:
+    ) -> Task:
         project_id = UUID(payload["project_id"]) if payload["project_id"] else None
         domain_id = UUID(payload["domain_id"]) if payload["domain_id"] else None
         process_id = UUID(payload["process_id"]) if payload["process_id"] else None
@@ -366,7 +388,7 @@ class TaskService:
                 occurred_at=now,
                 correlation_id=correlation_id,
             )
-        return task_to_data(task)
+        return task
 
     def update(
         self,
@@ -394,20 +416,21 @@ class TaskService:
             changes["recurrence"] = _recurrence_rule(changes["recurrence"])
         if not command.has_changes():
             raise InvalidInputError("at least one change is required")
-        payload: dict[str, Any] = {"task_id": str(task_id), "version": version, **changes}
-        if isinstance(payload.get("recurrence"), RecurrenceRule):
-            payload["recurrence"] = payload["recurrence"].to_data()
+        payload: dict[str, object] = {"task_id": str(task_id), "version": version, **changes}
+        recurrence = changes.get("recurrence")
+        if isinstance(recurrence, RecurrenceRule):
+            payload["recurrence"] = recurrence.to_data()
         if command.tags is not UNSET:
             payload["tags"] = list(command.tags)
 
-        def operation(session: TxSession) -> Task:
-            result = self.store.idempotent(
+        return self.store.transaction(
+            lambda session: self._write(
                 session,
-                actor_id=actor.user_id,
-                operation="update_task",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self.update_in_session(
+                actor,
+                "update_task",
+                idempotency_key,
+                payload,
+                lambda: self.update_in_session(
                     session,
                     actor,
                     task_id,
@@ -416,11 +439,8 @@ class TaskService:
                     correlation_id,
                     only_if_status=only_if_status,
                 ),
-                replay=id_replay_record,
             )
-            return self._replayed_task(session, actor, result)
-
-        return self.store.transaction(operation)
+        )
 
     def update_in_session(
         self,
@@ -432,8 +452,8 @@ class TaskService:
         correlation_id: str | None,
         actor_type: str = "user",
         only_if_status: TaskStatus | None = None,
-    ) -> dict[str, Any]:
-        """Update a Task inside the caller's open transaction and return its serialized result.
+    ) -> Task:
+        """Update a Task inside the caller's open transaction and return it.
 
         The body of `update`, also run per item by the bulk reschedule.
         """
@@ -516,7 +536,7 @@ class TaskService:
                 correlation_id=correlation_id,
                 changed_fields=frozenset(changes) | ({"tags"} if tags_changed else set[str]()),
             )
-        return task_to_data(updated)
+        return updated
 
     def history(self, actor: Actor, task_id: UUID, *, limit: int = 100) -> list[TaskStatusHistory]:
         actor.require("tasks:read")
@@ -588,19 +608,16 @@ class TaskService:
         actor.require("tasks:write")
         payload = {"task_id": str(task_id), "version": version}
 
-        def operation(session: TxSession) -> Task:
-            result = self.store.idempotent(
+        return self.store.transaction(
+            lambda session: self._write(
                 session,
-                actor_id=actor.user_id,
-                operation="complete_task",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: self._complete(session, actor, task_id, version, correlation_id),
-                replay=id_replay_record,
+                actor,
+                "complete_task",
+                idempotency_key,
+                payload,
+                lambda: self._complete(session, actor, task_id, version, correlation_id),
             )
-            return self._replayed_task(session, actor, result)
-
-        return self.store.transaction(operation)
+        )
 
     def _complete(
         self,
@@ -610,7 +627,7 @@ class TaskService:
         version: int,
         correlation_id: str | None,
         actor_type: str = "user",
-    ) -> dict[str, Any]:
+    ) -> Task:
         task = self.store.get_task(session, actor.user_id, task_id)
         # Checked before the already-completed shortcut: a stale caller must learn that the
         # Task changed since it read it, not receive a silent success.
@@ -642,7 +659,7 @@ class TaskService:
                     correlation_id=correlation_id,
                     changed_fields=frozenset({"status"}),
                 )
-        return task_to_data(completed)
+        return completed
 
     @staticmethod
     def _stale(task: Task) -> ConflictError:
@@ -660,7 +677,7 @@ class TaskService:
         task_id: UUID,
         version: int,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> Task:
         task = self.store.get_task(session, actor.user_id, task_id, include_archived=True)
         if task.version != version:
             raise self._stale(task)
@@ -676,7 +693,7 @@ class TaskService:
                 target_id=task.id,
                 correlation_id=correlation_id,
             )
-        return task_to_data(archived)
+        return archived
 
     def _restore(
         self,
@@ -685,7 +702,7 @@ class TaskService:
         task_id: UUID,
         version: int,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> Task:
         task = self.store.get_task(session, actor.user_id, task_id, include_archived=True)
         if task.version != version:
             raise self._stale(task)
@@ -701,7 +718,7 @@ class TaskService:
                 target_id=task.id,
                 correlation_id=correlation_id,
             )
-        return task_to_data(restored)
+        return restored
 
 
 def _require_uuid(value: object) -> UUID:

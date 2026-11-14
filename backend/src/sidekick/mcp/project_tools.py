@@ -33,15 +33,14 @@ from sidekick.mcp.work_text import (
     work_item_sentence,
 )
 from sidekick.projects.application import UpdateProjectCommand
-from sidekick.projects.application.service import project_public_data
 from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.types import MAX_CURSOR_LENGTH, UNSET, UnsetType
 from sidekick.structured.work import (
     domain_structured,
     process_structured,
     project_detail_structured,
-    with_description_excerpt,
-    with_tags,
+    project_list_record,
+    project_record,
 )
 from sidekick.structured.work_records import (
     DOMAIN_ACCENT_DESCRIPTION,
@@ -56,10 +55,8 @@ from sidekick.structured.work_records import (
     ProcessRecord,
     ProjectChanges,
     ProjectDetailOutput,
-    ProjectListRecord,
     ProjectOutput,
     ProjectPageOutput,
-    ProjectRecord,
 )
 from sidekick.work.application.models import UpdateContextCommand
 from sidekick.work.application.serialization import domain_public_data, process_public_data
@@ -138,13 +135,7 @@ def _register_list_projects(mcp: FastMCP, ctx: ToolContext) -> None:
         slugs = ctx.container.work_tags.slug_map(actor)
         structured = ProjectPageOutput(
             projects=[
-                ProjectListRecord.model_validate(
-                    with_description_excerpt(
-                        with_tags(
-                            project_public_data(item), list(slugs.get(("project", item.id), ()))
-                        )
-                    )
-                )
+                project_list_record(item, slugs.get(("project", item.id), ()))
                 for item in page.items
             ],
             next_cursor=page.next_cursor,
@@ -239,9 +230,7 @@ def _register_create_project(mcp: FastMCP, ctx: ToolContext) -> None:
         slugs = [
             tag.slug for tag in ctx.container.work_tags.for_record(actor, "project", project.id)
         ]
-        structured = ProjectOutput(
-            project=ProjectRecord.model_validate(with_tags(project_public_data(project), slugs))
-        )
+        structured = ProjectOutput(project=project_record(project, slugs))
         record = structured.project
         return result(
             structured.model_dump(mode="json"),
@@ -285,9 +274,7 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         slugs = [
             tag.slug for tag in ctx.container.work_tags.for_record(actor, "project", project_id)
         ]
-        structured = ProjectOutput(
-            project=ProjectRecord.model_validate(with_tags(project_public_data(project), slugs))
-        )
+        structured = ProjectOutput(project=project_record(project, slugs))
         record = structured.project
         return result(
             structured.model_dump(mode="json"),

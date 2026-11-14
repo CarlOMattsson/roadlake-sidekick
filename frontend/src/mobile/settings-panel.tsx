@@ -1,13 +1,13 @@
 /**
- * The phone's settings (ADR-005): one screen above the rooms, opened from "Inställningar" at the end of every room's
+ * The phone's settings (ADR-005): one screen above the rooms, opened from the settings entry at the end of every room's
  * ⋯ menu, where Control stands in Claude. It exists only in the mobile app: Claude has no phone to set.
  *
- * First "Språk": Svenska | English, the app's language (app-language.ts; the widget follows it). Then two sections,
+ * First `languageHeading`: Svenska | English, the app's language (app-language.ts; the widget follows it). Then two sections,
  * each read on its own from the native side, each with its own reading line, failure and retry:
- * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), "Skicka testavisering" with one calm line per outcome, and one sentence
+ * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), `sendTest` with one calm line per outcome, and one sentence
  *   on the lock screen, shown only while notifications are on (see docs/decisions/log.md D-079: it follows the phone's own setting).
- * - "Den här telefonen": the device label, the server it is paired to, when it was paired, and that the sign-in renews itself before it expires,
- *   and "Koppla från den här telefonen", which asks first (it clears the phone). After it, the pairing gate takes over.
+ * - `phoneHeading`: the device label, the server it is paired to, when it was paired, and that the sign-in renews itself before it expires,
+ *   and `unpair`, which asks first (it clears the phone). After it, the pairing gate takes over.
  *
  * It fits one phone screen at 320 px and 110 % text: no list, no scroll. Nothing here reaches the network but through
  * the plugin.
@@ -226,7 +226,7 @@ function DeviceLines({
 }
 
 /**
- * "Koppla från den här telefonen". The first press asks; the confirm button takes the focus, and Avbryt gives it back
+ * `unpair`. The first press asks; the confirm button takes the focus, and Avbryt gives it back
  * to the first button (as ContactArchiveToggle does).
  */
 function Unpair({

@@ -138,7 +138,7 @@ async def task_external_references(
     structured = await run_in_threadpool(
         lambda: container.references.list_for_task(actor, task_id, limit=limit, cursor=cursor)
     )
-    return JSONResponse(headers=no_store_headers, content=structured)
+    return JSONResponse(headers=no_store_headers, content=structured.model_dump(mode="json"))
 
 
 async def task_reopen(

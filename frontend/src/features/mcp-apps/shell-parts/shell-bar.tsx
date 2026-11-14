@@ -14,7 +14,7 @@ export type ShellAsk = {
 };
 
 /**
- * The bar above the rooms: the room strip (or the narrow room picker), the Back row with "Fäll ihop", and the
+ * The bar above the rooms: the room strip (or the narrow room picker), the Back row with `collapse`, and the
  * question about unsaved edits. Nothing here navigates by itself; every press goes to the shell.
  */
 export function ShellBar({
@@ -92,7 +92,7 @@ export function ShellBar({
       {picker.menu}
       {back ? (
         <BackHeader
-          // "‹ X" names where it leads, also in Control ("‹ Arbete" over the title "Kontroll").
+          // "‹ X" names where it leads, also in Control (the room's name over the `control` title).
           label={back.label}
           onBack={back.onBack}
           actions={collapseButton}

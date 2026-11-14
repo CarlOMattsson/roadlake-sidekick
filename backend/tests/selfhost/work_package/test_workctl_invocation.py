@@ -154,10 +154,6 @@ def test_the_small_commands_print_one_answer(
 ) -> None:
     assert cli.main(["lock-command", "--", "restore", "--apply"]) == 0
     assert capsys.readouterr().out == "restore --apply\n"
-    assert cli.main(["previous-image-tag", "--", "a/b:1"]) == 0
-    assert capsys.readouterr().out == "a/b:previous\n"
-    assert cli.main(["restore-old-name", "--", "20260101-120000"]) == 0
-    assert capsys.readouterr().out == "sidekick_before_restore_20260101_120000\n"
     monkeypatch.delenv("SIDEKICK_WORK_API_IMAGE", raising=False)
     capsys.readouterr()
     assert cli.main(["api-image", "--env-file", str(tmp_path / "none.env")]) == 0

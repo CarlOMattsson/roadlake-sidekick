@@ -3,7 +3,7 @@ import { isCompleteDate } from "../../shared/fields";
 import { editsDate } from "./agenda-helpers";
 
 /**
- * "Välj datum …" is the date control itself: the chip as drawn, with the platform's date input laid
+ * `rescheduleChoose` is the date control itself: the chip as drawn, with the platform's date input laid
  * invisibly over its 48 target, so a tap opens the platform's own picker and no native field (its "dd/mm/yyyy", its
  * blue ring) is ever shown. The input holds the Task's date, so the picker opens on it. A write is only for an
  * intended choice: the picker's own `change` writes at once, but a date edited from the keys (a

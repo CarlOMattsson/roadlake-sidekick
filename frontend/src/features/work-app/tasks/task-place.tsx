@@ -25,9 +25,9 @@ import type {
 /**
  * The Task's place, repeat rule and priority, one row of chips under the date and status chips (design system §3,
  * property chip).
- * "Plats: Renovering av köket ⌄" says where the Task belongs (a Project, a Process, a Domain or "Att sortera"); a
+ * The place chip (the `place` label and its name) says where the Task belongs (a Project, a Process, a Domain or `unsortedHeading`); a
  * tap opens a panel with the place picker, and a choice is one update_task through `onChoose`. The same panel holds
- * "Öppna Renovering av köket ›" for a Project or Process. Where the host cannot write the place (the phone), the
+ * the open link for a Project or Process. Where the host cannot write the place (the phone), the
  * panel keeps only the open link, and a place with neither is plain text. The repeat rule (TaskRepeat) and the priority
  * (TaskPriority) are the Task's own chips next to it: a picker where the host can write, a read-only chip where it
  * cannot.

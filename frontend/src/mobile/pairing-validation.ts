@@ -59,3 +59,23 @@ export function hostOf(address: string): string {
     return "";
   }
 }
+
+/**
+ * The check code of a pairing code: six digits, written "123 456", that the server's pairing command prints next to the
+ * link (`pairing_check` in `backend/src/sidekick/companion/cli.py`, the same SHA-256 reduction). The phone shows it before
+ * it connects, so the owner can see that the link carries the code they just created and not one that someone else sent.
+ * It is a comparison aid, not a secret. Undefined where the page has no Web Crypto.
+ */
+export async function pairingCheck(code: string): Promise<string | undefined> {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) return undefined;
+  const digest = await subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(code.trim()),
+  );
+  const digits = String(new DataView(digest).getUint32(0) % 1_000_000).padStart(
+    6,
+    "0",
+  );
+  return `${digits.slice(0, 3)} ${digits.slice(3)}`;
+}

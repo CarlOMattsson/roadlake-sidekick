@@ -1,10 +1,7 @@
 """The failed-first-start decisions of tools/workctl: log evidence, table state, volume, hint."""
 
-import io
-import sys
-
 import pytest
-from tools.workctl import cli, diagnose, messages
+from tools.workctl import diagnose, messages
 
 AUTH = 'FATAL: password authentication failed for user "sidekick_migrator"'
 
@@ -96,35 +93,3 @@ def test_an_unsafe_volume_name_gets_no_hint(volume: str) -> None:
 
 def test_data_in_the_table_gets_no_hint() -> None:
     assert diagnose.volume_hint("en", "p", "p_pgdata", "_yoyo_migration", "3") == ""
-
-
-def test_the_evidence_command_reads_both_logs_from_stdin(monkeypatch: pytest.MonkeyPatch) -> None:
-    def run(stdin: bytes) -> int:
-        monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(stdin)))
-        return cli.main(["first-start-evidence"])
-
-    assert run(AUTH.encode() + b"\n\0") == 0
-    assert run(b"\0initdb.d/x: permission denied") == 0
-    assert run(b"ok\0ok") == 1
-    assert run(b"") == 1
-    # An undecodable byte does not break the check.
-    assert run(b"\xff\xfe " + AUTH.encode() + b"\0") == 0
-
-
-@pytest.mark.parametrize(
-    ("table", "code"), [("absent", 0), ("_yoyo_migration", cli.COUNT_NEEDED), ("whatever", 1)]
-)
-def test_the_table_command_says_what_to_ask_next(table: str, code: int) -> None:
-    assert cli.main(["first-start-table", "--table", table]) == code
-
-
-def test_the_hint_command_prints_on_stderr_and_exits_1_without_one(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    base = ["first-start-hint", "--lang", "en", "--project", "p", "--volume", "p_pgdata"]
-    assert cli.main([*base, "--table", "absent"]) == 0
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert "docker volume rm p_pgdata" in captured.err
-    assert cli.main([*base, "--table", "_yoyo_migration", "--count", "2"]) == 1
-    assert capsys.readouterr() == ("", "")

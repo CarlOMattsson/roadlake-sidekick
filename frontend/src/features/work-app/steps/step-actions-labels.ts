@@ -5,7 +5,7 @@
  * identical to it (tests/step-actions.test.tsx checks that).
  */
 export const stepActionsLabelsSv = {
-  /** The count under the Step's title; once the list is read it also says how many are done ("1 av 2 åtgärder klara"). */
+  /** The count under the Step's title; once the list is read it also says how many are done (done of total). */
   countMeta: (count: number, done = 0) =>
     done > 0
       ? count === 1

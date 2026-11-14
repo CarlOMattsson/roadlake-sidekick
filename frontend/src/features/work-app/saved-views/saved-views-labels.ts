@@ -1,5 +1,5 @@
 /**
- * Words of the saved Work views bar (the "Sparade vyer" button and its panel) that no other control
+ * Words of the saved Work views bar (the `button` label and its panel) that no other control
  * shares. The shared words (Archive, Restore, Undo, Read again, Try again, the refusals) stay in
  * manage-labels.ts. Swedish comes first and is the default; the English key set must stay identical
  * to it (tests/saved-views.test.ts checks that).

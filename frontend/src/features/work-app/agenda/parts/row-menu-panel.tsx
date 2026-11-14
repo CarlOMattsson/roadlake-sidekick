@@ -118,7 +118,7 @@ function StatusChoices({
               aria-pressed={item.status === value}
               disabled={disabled}
               onClick={() =>
-                // "Klar" on an overdue row is the triage move that mutes the row with its note.
+                // `completed` on an overdue row is the triage move that mutes the row with its note.
                 writes.send(
                   record,
                   { status: value },
@@ -136,7 +136,7 @@ function StatusChoices({
   );
 }
 
-/** The Datum row of the menu: the three shortcuts, the Task's own date when it is none of them, and "Välj datum …". */
+/** The `rescheduleRow` row of the menu: the three shortcuts, the Task's own date when it is none of them, and `rescheduleChoose`. */
 function DueChoices({
   ctx,
   record,

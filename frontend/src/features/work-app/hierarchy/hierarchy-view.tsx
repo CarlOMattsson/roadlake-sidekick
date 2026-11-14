@@ -50,11 +50,11 @@ function rowButtons(list: HTMLElement | null): HTMLButtonElement[] {
 
 /**
  * The Projects tab: the user's Projects and Processes, the two ways of grouping Tasks, under the name of their Domain.
- * A Domain's open Projects come first, then its Processes (the word "Process" on the meta line); the completed Projects
- * sit in a closed group last, opened by a tap anywhere on its row. A row shows how far the Project has come ("1 av 3
- * klara") and how many of its Tasks are overdue, when the frame carries the Tasks (the tab reads it with
- * include_tasks). A tap on a row opens the Project's or Process's page through `onOpen`, with its Tasks, "+ Ny
- * uppgift" and its own Back.
+ * A Domain's open Projects come first, then its Processes (the `process` word on the meta line); the completed Projects
+ * sit in a closed group last, opened by a tap anywhere on its row. A row shows how far the Project has come
+ * (done of total) and how many of its Tasks are overdue, when the frame carries the Tasks (the tab reads it with
+ * include_tasks). A tap on a row opens the Project's or Process's page through `onOpen`, with its Tasks, `newTask`
+ * and its own Back.
  *
  * The rows are plain buttons in the tab order. `shortcuts` adds the window keys j and k (move focus between rows); only
  * a fullscreen caller passes it. Without `query` the view has its own title filter; the tab row's search gives one.
@@ -88,7 +88,7 @@ export function HierarchyView({
   shortcuts?: boolean;
   /** Most Project and Process rows shown before the "+N" line. Fullscreen passes Infinity. */
   rowLimit?: number;
-  /** False in a card: the list says "Projekt" in a heading of its own. */
+  /** False in a card: the list says `projects` in a heading of its own. */
   headingHidden?: boolean;
   /** The filter text of the tab row's search (fullscreen). Given, the view shows no filter field of its own. */
   query?: string;
@@ -187,7 +187,7 @@ export function HierarchyView({
         <div ref={listRef} className="work-tree">
           {sections.map((section) =>
             section.domain === null ? (
-              // Beside Domains, the Projects outside them are a group of their own with a heading ("Utan domän");
+              // Beside Domains, the Projects outside them are a group of their own with a heading (`noDomain`);
               // without any Domain the list has no headings at all (progressive concepts: Domains show once made).
               sections.length > 1 ? (
                 <section

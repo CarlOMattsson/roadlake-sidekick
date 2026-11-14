@@ -142,7 +142,7 @@ export function SidekickShell({
       value,
       label: labels.rooms[value],
     })),
-    // Control applies to every room, so the picker marks none there and says "Rum", as the
+    // Control applies to every room, so the picker marks none there and says `stripLabel`, as the
     // strip does; its first room takes the focus when it opens.
     value: inControl ? undefined : nav.active,
     placeholder: labels.stripLabel,
@@ -206,7 +206,7 @@ export function SidekickShell({
     dispatch({ type: "switch-room", room });
   }
 
-  /** Asks "Släng ändringarna?" on the layer on top, remembering where the focus was to give it back on "Fortsätt". */
+  /** Asks `unsavedAsk` on the layer on top, remembering where the focus was to give it back on the keep button. */
   function askFirst(kind: "back" | "root") {
     const layer = layersOf(nav, nav.active).at(-1)?.id;
     if (layer === undefined) return;
@@ -283,7 +283,7 @@ export function SidekickShell({
   useEffect(() => {
     systemBack.current = () => {
       if (mode !== "local" || !canGoBack(nav)) return false;
-      // A second Back while the question is open is "Fortsätt redigera".
+      // A second Back while the question is open is `unsavedKeep`.
       if (ask) keepEditing();
       else requestBack();
       return true;

@@ -3,8 +3,8 @@ import type { WorkLabels } from "../../shared/labels";
 import { agendaLabelsFor } from "../agenda-labels";
 
 /**
- * A search with no hit (designsystem §3 "Tomt"): "Inga uppgifter matchar ”{q}”." and the text button "Rensa
- * sökningen", which empties the search. Shared by the agenda and the Status tab; the button shows when `onClear` is given.
+ * A search with no hit (designsystem §3 "Tomt"): the `noMatch` line and the `clearSearch` text button,
+ * which empties the search. Shared by the agenda and the Status tab; the button shows when `onClear` is given.
  */
 export function SearchNoMatch({
   query,

@@ -7,8 +7,8 @@ import type { WorkLabels } from "./labels";
 
 /**
  * The empty Agenda, Status and Projects, in the family's empty state as Contacts and Journal have it: what is missing,
- * one line on what the view is for, "Säg till Claude:" with an example (a button that sends it where the host offers
- * messages), and "+ Lägg till en uppgift" where the tab row can create a Task.
+ * one line on what the view is for, `askLead` with an example (a button that sends it where the host offers
+ * messages), and `emptyAddTask` where the tab row can create a Task.
  */
 export function WorkEmpty({
   title,

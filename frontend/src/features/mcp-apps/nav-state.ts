@@ -78,7 +78,7 @@ export const CONTROL_PARENT: RoomId = "work";
  * (a Task, a post, a Contact) makes the room's overview the root and the record its first step, so
  * Back and a press on the room always reach the overview.
  * Control is never a root: it is a step above Work's overview, so the strip marks no room and Back
- * reads "‹ Arbete".
+ * reads the Back row to the room.
  */
 export function createNavState(start: NavEntry): NavState {
   const home = start.room === "control" ? CONTROL_PARENT : start.room;

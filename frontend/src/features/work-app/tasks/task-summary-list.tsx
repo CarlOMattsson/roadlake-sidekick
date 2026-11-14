@@ -19,11 +19,11 @@ import { TaskDue } from "./task-due";
 
 /**
  * Task summaries as the shared task row (the board's and the agenda's): the status ring, the title that opens the
- * Task, and under it one meta line, "Pågår · 5 dagar försenad" and two of its tags. The status is named only when the ring does not say
- * it (not "Att göra"), there is no "Status:" prefix, and the date is plain text. In a detail view the row ends in › like
+ * Task, and under it one meta line, (the status and how late it is) and two of its tags. The status is named only when the ring does not say
+ * it (not `todo`), there is no `status` prefix, and the date is plain text. In a detail view the row ends in › like
  * the note and Project rows beside it (§3, Chevronregeln): the title opens the Task and, with `transport`, the ring
  * marks it done. The row then
- * stays with a filled ring and "Klar · Ångra" while Ångra holds (§3, Ångra).
+ * stays with a filled ring and `completed` with `undo` while Ångra holds (§3, Ångra).
  */
 export function TaskSummaryList({
   tasks,

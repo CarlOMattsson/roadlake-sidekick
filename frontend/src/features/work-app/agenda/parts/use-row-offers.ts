@@ -9,7 +9,7 @@ import {
 /**
  * What the host can write is offered, and nothing else (RoomTransport.supportsTool/supportsCall): the mobile app answers
  * update_task only with the completing change, so its rows can be ticked done but get no other status, no date
- * choices and no Ångra, and there is no "Flytta försenade".
+ * choices and no Ångra, and there is no `moveAllOverdue`.
  */
 export function useRowOffers(transport: WorkTransport) {
   const offers = useToolSupport(transport);

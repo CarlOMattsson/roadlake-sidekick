@@ -4,8 +4,8 @@ import type { WorkLabels } from "./labels";
 
 /**
  * A refused or failed create in the family's write error row. Only a transient failure can be repeated, so only it
- * gets "Försök igen"; the other refusals explain, and a forbidden write is calm text. `failedMessage` is the line for that
- * transient failure ("Det gick inte att skapa …"), without the retry words: the button says them.
+ * gets `retry`; the other refusals explain, and a forbidden write is calm text. `failedMessage` is the line for that
+ * transient failure, without the retry words: the button says them.
  */
 export function WriteFailureRow({
   failure,

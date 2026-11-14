@@ -476,7 +476,7 @@ export function isNeuterKind(labels: ControlLabels, kind: string): boolean {
   return labels.neuterKinds.includes(kind);
 }
 
-/** "borttaget igår 14:30" / "deleted yesterday at 14:30": the deletion of a kind of record, with its time when known. */
+/** The deletion of a kind of record, with its time when known. */
 export function trashedWhen(
   labels: ControlLabels,
   when: string,

@@ -166,7 +166,7 @@ function UndoLine({
       onPointerEnter={handlers.onPointerEnter}
       onPointerLeave={handlers.onPointerLeave}
     >
-      {/* The status row above already says "Klar"; the live region only announces it. */}
+      {/* The status row above already says `completed`; the live region only announces it. */}
       <span role="status" className="work-visually-hidden">
         {labels.taskStatus.completed}
       </span>
@@ -271,7 +271,7 @@ export function InlineSummary(props: InlineSummaryProps) {
       <p className="work-compact-title sk-card__title">{summary.title}</p>
       <p>
         <span className="work-chip">
-          {/* The ring says only done or not done (designsystem §3.3), and an empty ring in front of "Pågår" reads
+          {/* The ring says only done or not done (designsystem §3.3), and an empty ring in front of `in_progress` reads
               as a radio button: a known open status is told by its word alone. */}
           {showsGlyph(labels, summary) ? (
             <StatusGlyph kind={summary.kind} status={summary.status} />
@@ -436,13 +436,13 @@ function metaParts(
   now: Date,
 ): MetaPart[] {
   const parts: MetaPart[] = [];
-  // A done Task shows no due date at all: it is not overdue, and "Försenad" next to a finished Task is wrong.
+  // A done Task shows no due date at all: it is not overdue, and the overdue word next to a finished Task is wrong.
   const due =
     summary.dueDate && !isDoneTask(summary)
       ? relativeDue(summary.dueDate, now, locale)
       : undefined;
   if (due && due.text) {
-    // A Project's date is its target ("Måldatum: tis 15 dec"); a Task's is due, and an overdue one says so alone.
+    // A Project's date is its target (`target` and the date); a Task's is due, and an overdue one says so alone.
     if (summary.kind === "project") {
       parts.push({
         key: "due",

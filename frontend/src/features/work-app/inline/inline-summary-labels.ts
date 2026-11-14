@@ -40,7 +40,7 @@ export const inlineSummaryLabelsEn = {
   due: "Due",
   /** A Task past its due date, as the detail line: "Overdue since fri 30 Oct". */
   overdueSince: "Overdue since",
-  /** A Project's target date: "Target date: Tue 15 Dec", the room's own word. */
+  /** A Project's target date: `target` and the date, the room's own word. */
   target: "Target date",
   /** A Task's steps: "2 of 4 steps". */
   stepsOf: (done: number, total: number) => `${done} of ${total} steps`,
@@ -174,7 +174,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     completed: "Avslutat",
   },
   due: "Klart senast",
-  /** A Task past its due date, as the detail line: "Försenad sedan fre 30 okt". */
+  /** A Task past its due date, as the detail line: overdue and the due date. */
   overdueSince: "Försenad sedan",
   target: "Måldatum",
   stepsOf: (done: number, total: number) => `${done} av ${total} steg`,
@@ -184,8 +184,8 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   priority: { high: "Hög", urgent: "Brådskande" },
   priorityLabel: workSv.priority,
   contacts: "Kontakter",
-  /** The agenda card's title, the groups in the list's order: "1 idag, 2 försenade", "1 idag";
-   * ", fler finns" when the read is partial. */
+  /** The agenda card's title, the groups in the list's order: the today and overdue counts;
+   * a `more` suffix when the read is partial. */
   agendaTitle: (overdue: number, today: number, more: boolean) =>
     [
       ...(today ? [`${today} idag`] : []),
@@ -194,14 +194,14 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
         : []),
       ...(more ? ["fler finns"] : []),
     ].join(", "),
-  /** Under the empty sentence, when other groups have records: "3 kommande", "3 kommande, fler på agendan". */
+  /** Under the empty sentence, when other groups have records: the upcoming count, and that more exist. */
   agendaRest: (upcoming: number, more: boolean) =>
     [
       ...(upcoming ? [`${upcoming} kommande`] : []),
       ...(more ? ["fler på agendan"] : []),
     ].join(", "),
-  /** After "Öppna Agenda · ", "Öppna Projekt · ", "Öppna kontakterna · ": every row of the view the card does not
-   * show, "7 fler". When there is another page to read (`more`) the count is a floor, "7+ fler", never an exact number. */
+  /** After the open-room label and a separator: every row of the view the card does not
+   * show. When there is another page to read (`more`) the count is a floor, never an exact number. */
   moreRows: (hidden: number, more = false) =>
     hidden > 0 ? `${hidden}${more ? "+" : ""} fler` : "",
   agendaEmpty: "Inget försenat och inget för idag.",
@@ -235,7 +235,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   tasksCount: (count: number, more: boolean) =>
     `${count}${more ? "+" : ""} ${count === 1 && !more ? "uppgift" : "uppgifter"}`,
   matchCount: "Träffar",
-  /** The Contact list without a search: "3 kontakter", "1 kontakt", "25+ kontakter" when more exist. */
+  /** The Contact list without a search: the count of contacts, with a + when more exist. */
   contactCount: (count: number, more: boolean) =>
     `${count}${more ? "+" : ""} ${count === 1 && !more ? "kontakt" : "kontakter"}`,
   progressOf: (done: number, total: number) => `${done} av ${total} klara`,
@@ -244,7 +244,7 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   retry: "Försök igen",
   open: "Öppna",
   showAll: "Visa alla",
-  /** The "Öppna" button on the agenda card; the counts stand in the kicker. */
+  /** The `open` button on the agenda card; the counts stand in the kicker. */
   openAgenda: "Öppna Agenda",
   openHierarchy: "Öppna Projekt",
   openContacts: "Öppna kontakterna",
@@ -261,9 +261,9 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     "Uppgiften ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   doneFailed: "Kunde inte markera som klar.",
   undoFailed: "Kunde inte ångra.",
-  /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
+  /** A change to something that no longer exists: no `retry`, since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
-  /** A Task, Project or Contact that no longer exists when it is read: a calm line, without "Försök igen". */
+  /** A Task, Project or Contact that no longer exists when it is read: a calm line, without `retry`. */
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",
   goneContact: "Kontakten finns inte längre",

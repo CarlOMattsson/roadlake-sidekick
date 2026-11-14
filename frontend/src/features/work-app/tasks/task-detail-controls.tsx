@@ -12,13 +12,13 @@ import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 /** The ⋯ is the one shared glyph of mcp-apps/ui/icons.tsx. */
 export { MoreIcon } from "../../mcp-apps/ui/icons";
 
-/** The statuses the Task's status chip offers. "Klar" is the primary button "Markera klar", not a menu entry. */
+/** The statuses the Task's status chip offers. `completed` is the primary button `markDone`, not a menu entry. */
 const OPEN_STATUSES = ["todo", "in_progress", "blocked"] as const;
 export type OpenTaskStatus = (typeof OPEN_STATUSES)[number];
 
 /**
- * The Task's property chips under its title (design system §3, egenskapschip): the due date "fre 30 okt
- * · 5 dagar försenad ⌄" and the status "Att göra ⌄", each a 40 high pill with a 44 target. The date chip opens the
+ * The Task's property chips under its title (design system §3, egenskapschip): the due date (the date and how late it is, with ⌄)
+ * and the status (`todo` with ⌄), each a 40 high pill with a 44 target. The date chip opens the
  * quick choices Idag, Imorgon, Nästa vecka and Välj datum under the row; every choice is one write through `onDue`
  * (update_task with due_at, to 23:59 in the owner zone on the chosen day). The status chip opens a menu with ✓ on the current
  * status; a choice writes through `onStatus`. Only one panel is open at a time, and Escape closes it and returns focus
@@ -202,7 +202,7 @@ export function OpenChevron() {
 
 /**
  * The Ångra of a detail row (design system §3, Tillstånd, Ångra): a compact secondary button in the row's trailing
- * slot, level with the title line, while the meta line says what happened ("Klar", "Kopplingen borttagen").
+ * slot, level with the title line, while the meta line says what happened (`completed`, `linkRemoved`).
  */
 export function RowUndo({
   label,

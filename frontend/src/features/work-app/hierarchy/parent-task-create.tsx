@@ -58,7 +58,7 @@ export function CreateParentTask({
   const [problem, setProblem] = useState<CreateProblem>();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<CreateNotice>();
-  // Closed, the section shows one quiet "+ Ny uppgift" line; opening it puts the focus in the name.
+  // Closed, the section shows one quiet `newTask` line; opening it puts the focus in the name.
   const [open, setOpen] = useState(false);
   const titleInput = useRef<HTMLInputElement>(null);
   const dueInput = useRef<HTMLInputElement>(null);
@@ -95,7 +95,7 @@ export function CreateParentTask({
   if (!open)
     return (
       <div>
-        {/* The add row of the room's lists ("+ Lägg till steg"): the + in the rings' column, the words on the titles' x. */}
+        {/* The add row of the room's lists (`addStep`): the + in the rings' column, the words on the titles' x. */}
         <button
           type="button"
           className="work-add-row sk-action-row"

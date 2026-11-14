@@ -8,7 +8,7 @@
  * fit; there is no bottom bar. What the app cannot answer (the AI drafts of the Journal, the
  * recipient search of Shopping) the rooms leave out themselves, by asking the transport which tools it has.
  *
- * The phone's settings (settings-panel.tsx) open from "Inställningar" at the end of every room's ⋯ menu, where
+ * The phone's settings (settings-panel.tsx) open from the settings entry at the end of every room's ⋯ menu, where
  * Control stands in Claude. They cover the shell, which stays mounted, and Back (‹ Arbete or system Back) returns.
  */
 import {
@@ -81,7 +81,7 @@ export type MobileAppProps = {
   /**
    * Tells the home-screen widget the app language, reads whether push can work (the note about a missing
    * distributor) and serves the settings. Absent: the widget keeps the system language, and there is no push note and
-   * no "Inställningar".
+   * no settings entry.
    */
   native?: Pick<SidekickNativePlugin, "setLocale"> &
     SettingsNative &
@@ -216,7 +216,7 @@ export function MobileApp({
   );
 
   // The license row's host: the key through the companion transport (PUT /companion/v1/license), and the coin opens
-  // Inställningar, which hold the row. "Köp licens" is a plain link: the system browser opens it.
+  // Inställningar, which hold the row. `buy` is a plain link: the system browser opens it.
   const licenseHost = useMemo<LicenseHost>(
     () => ({
       call: noting.call,

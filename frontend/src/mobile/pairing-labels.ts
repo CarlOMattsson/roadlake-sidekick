@@ -38,6 +38,11 @@ export type PairingLabels = {
   /** The question asked before a pairing link pairs the phone. `{host}` is the server the link names. */
   confirmTitle: string;
   confirmBody: string;
+  /** The check code the server's pairing command printed, shown before connecting. `{check}` is the code. */
+  confirmCheck: string;
+  confirmCheckHelp: string;
+  /** Shown instead of the check code when the page cannot compute it; the link then does not pair. */
+  confirmCheckMissing: string;
   confirm: string;
   cancel: string;
   /** Shown after the server refused the stored credential. */
@@ -102,6 +107,11 @@ export const pairingLabelsSv: PairingLabels = {
   confirmTitle: "Koppla till {host}?",
   confirmBody:
     "En länk vill koppla den här telefonen till servern {host}. Koppla bara om du själv skapade koden.",
+  confirmCheck: "Kontrollkod: {check}",
+  confirmCheckHelp:
+    "Samma kontrollkod ska ha visats i terminalen när du skapade koden. Om den skiljer sig, tryck Avbryt.",
+  confirmCheckMissing:
+    "Kontrollkoden kunde inte visas. Koppla inte via länken – skriv in serveradress och kod för hand.",
   confirm: "Koppla",
   cancel: "Avbryt",
   lost: "Kopplingen har upphört. Koppla igen.",
@@ -164,6 +174,11 @@ export const pairingLabelsEn: PairingLabels = {
   confirmTitle: "Connect to {host}?",
   confirmBody:
     "A link wants to connect this phone to the server {host}. Only connect if you created the code yourself.",
+  confirmCheck: "Check code: {check}",
+  confirmCheckHelp:
+    "The same check code should have been shown in the terminal when you created the code. If it differs, tap Cancel.",
+  confirmCheckMissing:
+    "The check code couldn’t be shown. Don’t connect from the link – enter the server address and code by hand.",
   confirm: "Connect",
   cancel: "Cancel",
   lost: "The connection has ended. Connect again.",

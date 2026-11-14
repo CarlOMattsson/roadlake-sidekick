@@ -59,6 +59,15 @@
   font: var(--sk-type-meta);
   color: var(--sk-muted);
 }
+.mobile-pairing__check {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.mobile-pairing__check-code {
+  margin: 0;
+  font: var(--sk-type-title);
+  font-variant-numeric: tabular-nums;
+}
 .mobile-pairing__form .sk-btn {
   width: 100%;
 }

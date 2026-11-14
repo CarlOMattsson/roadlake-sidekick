@@ -7,7 +7,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from sidekick.companion.cli import _server_origin, build_parser, pairing_link
+from sidekick.companion.cli import _server_origin, build_parser, pairing_check, pairing_link
 
 
 def test_the_link_carries_both_fields_url_encoded() -> None:
@@ -57,3 +57,16 @@ def test_pair_accepts_a_server_url_and_defaults_to_none() -> None:
     assert parser.parse_args(base).server_url is None
     given = parser.parse_args([*base, "--server-url", "https://s.example"])
     assert given.server_url == "https://s.example"
+
+
+@pytest.mark.parametrize(
+    ("code", "check"),
+    [
+        ("rspair_abcdefghijklmnop", "846 345"),
+        ("rspair_a-b_c", "335 471"),
+        (" rspair_a-b_c ", "335 471"),
+    ],
+)
+def test_the_check_code_matches_the_one_the_app_derives(code: str, check: str) -> None:
+    # The same vectors are asserted in frontend/tests/mobile-pairing-form.test.tsx.
+    assert pairing_check(code) == check

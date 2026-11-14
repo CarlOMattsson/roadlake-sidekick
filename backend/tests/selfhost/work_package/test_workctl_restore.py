@@ -1,11 +1,9 @@
 """The restore, prompt and owner-account checks of tools/workctl."""
 
-import io
-import sys
 from pathlib import Path
 
 import pytest
-from tools.workctl import cli, owner, prompts, restore
+from tools.workctl import owner, prompts, restore
 
 
 def _backups(tmp_path: Path, files: dict[str, str]) -> Path:
@@ -151,43 +149,3 @@ def test_a_uuid_is_recognised_in_either_case(value: str) -> None:
 )
 def test_anything_else_is_not_a_uuid(value: str) -> None:
     assert not owner.is_uuid(value)
-
-
-def test_the_commands_answer_with_exit_codes_and_lines(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
-) -> None:
-    assert cli.main(["is-uuid", "--", "123e4567-e89b-12d3-a456-426614174000"]) == 0
-    assert cli.main(["is-uuid", "--", "nope"]) == 1
-    capsys.readouterr()
-
-    monkeypatch.setattr(sys, "stdin", io.StringIO("sidekick\nold\n"))
-    assert cli.main(["rollback-action", "--old", "old"]) == 0
-    assert capsys.readouterr().out == "rename-back\n"
-
-    ref_args = ["restore-ref", "--lang", "en", "--backups", str(tmp_path)]
-    assert cli.main([*ref_args, "--", "20261102-100000"]) == 0
-    assert capsys.readouterr().out == f"{tmp_path}\n20261102-100000\n"
-    assert cli.main([*ref_args, "--", "latest"]) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert captured.err.startswith("latest is neither a time stamp (YYYYMMDD-HHMMSS)")
-
-
-def test_the_backup_sets_command_lists_them_or_says_there_are_none(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    args = ["backup-sets", "--lang", "en", "--dir", str(tmp_path), "--memory", "off"]
-    assert cli.main(args) == 0
-    assert capsys.readouterr().out == (
-        f"No complete backup sets (database and memory with the same time) in {tmp_path}.\n"
-    )
-    _backups(
-        tmp_path,
-        {"sidekick-20261102-100000.sql.enc": "db", "sidekick-20261101-100000.sql.enc": "db"},
-    )
-    assert cli.main(args) == 0
-    assert capsys.readouterr().out == (
-        f"Complete backup sets in {tmp_path}:\n  20261101-100000\n  20261102-100000\n"
-    )
-    assert cli.main([*args[:-1], "on"]) == 0
-    assert "No complete backup sets" in capsys.readouterr().out

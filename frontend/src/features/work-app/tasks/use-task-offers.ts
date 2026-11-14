@@ -9,7 +9,7 @@ import {
 /**
  * What the host can write for the open Task, so the controls it cannot answer are not offered
  * (RoomTransport.supportsTool/supportsCall): the mobile app answers update_task only with the completing
- * change, so the date and status choices, "Redigera" and "Återöppna" are gone there and "Markera klar"
+ * change, so the date and status choices, `edit` and `reopenTask` are gone there and `markDone`
  * stays; no steps, contacts or links are written either.
  */
 export function useTaskOffers(
@@ -18,7 +18,7 @@ export function useTaskOffers(
 ) {
   const offers = useToolSupport(transport);
   const dueOffered = offers("update_task", { changes: { due_at: null } });
-  // The status chip lists every status, so it needs every one answered; "Återöppna" needs only "todo" from a done Task.
+  // The status chip lists every status, so it needs every one answered; `reopenTask` needs only "todo" from a done Task.
   const statusOffered = TASK_STATUSES.every((status) =>
     status === task?.status
       ? true
@@ -41,7 +41,7 @@ export function useTaskOffers(
   const trashOffered =
     offers("move_to_trash", { kind: "task" }) &&
     offers("restore_from_trash", { kind: "task" });
-  // "Markera klar" completes; on a done Task the same place holds "Återöppna", which sets it back to "Att göra".
+  // `markDone` completes; on a done Task the same place holds `reopenTask`, which sets it back to `todo`.
   const doneShown = task?.status === "completed" ? reopenOffered : doneOffered;
   // With the contacts room off a Task shows no Contacts, reads none and offers no link to one.
   const contactsOn = roomEnabled("contacts");

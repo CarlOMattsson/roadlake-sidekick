@@ -2,13 +2,33 @@
 
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from uuid import UUID
 
 from sidekick.contacts.domain.contact import Contact
 from sidekick.projects.domain import Project
 from sidekick.shared.types import UNSET, Page, UnsetType
 from sidekick.tasks.domain import Task
+
+
+class ProjectLinkRecord(TypedDict):
+    """What linking or unlinking a Contact and a Project keeps for a retry: ids and a flag."""
+
+    contact_id: str
+    project_id: str
+    linked: bool
+    relation_created_at: NotRequired[str | None]
+    """Present when the link was made, not when it was removed."""
+
+
+class TaskLinkRecord(TypedDict):
+    """What linking or unlinking a Contact and a Task keeps for a retry: ids and a flag."""
+
+    contact_id: str
+    task_id: str
+    linked: bool
+    relation_created_at: NotRequired[str | None]
+    """Present when the link was made, not when it was removed."""
 
 
 @dataclass(frozen=True, slots=True)

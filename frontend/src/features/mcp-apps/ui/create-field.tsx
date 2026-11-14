@@ -20,7 +20,7 @@ export type CreateResult = boolean | void;
 export type CreateFieldProps = {
   /** The field's accessible name. It is drawn for screen readers only. */
   label: string;
-  /** The example shown while the field is empty, e.g. "Ny uppgift, t.ex. ring Anna". */
+  /** The example shown while the field is empty, e.g. a new-task example. */
   placeholder: string;
   /**
    * Called with the trimmed text on Enter or +. Never called for an empty or blank field, and not again while an
@@ -29,14 +29,14 @@ export type CreateFieldProps = {
   onCreate: (text: string) => CreateResult | Promise<CreateResult>;
   /** Called on × or Esc. */
   onClose: () => void;
-  /** Accessible name of × while the field is empty, e.g. "Stäng". */
+  /** Accessible name of × while the field is empty, e.g. `close`. */
   closeLabel: string;
-  /** Accessible name of + while the field has text, e.g. "Lägg till". */
+  /** Accessible name of + while the field has text, e.g. `add`. */
   addLabel: string;
-  /** The line under the field when a write fails, e.g. "Det gick inte att spara. Försök igen." Optional. */
+  /** The line under the field when a write fails, e.g. `saveFailed`. Optional. */
   errorLabel?: string;
   /**
-   * A muted line 4 px under the field, read out politely, e.g. "Tillagd: Ring Anna · Idag". The caller
+   * A muted line 4 px under the field, read out politely, e.g. a receipt naming the new item and its date. The caller
    * sets it while the field is open and clears it when the field closes; nothing is drawn while it is empty.
    */
   note?: string;

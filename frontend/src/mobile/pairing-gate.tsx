@@ -7,7 +7,7 @@
  * asks "Connect to <host>?". It never pairs by itself, because any app or page can open such a link.
  *
  * When the server refuses the stored credential (`pairingLost`), the gate returns to the form with a line saying so.
- * The app inside disconnects the phone itself through `PairingGateContext` (the settings' "Koppla från"): the gate
+ * The app inside disconnects the phone itself through `PairingGateContext` (the settings' `unpair`): the gate
  * then returns to the form with a line that says the phone is disconnected.
  */
 import {

@@ -69,7 +69,7 @@ def _register_link_external_reference_to_task(mcp: FastMCP, ctx: ToolContext) ->
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(data, "Linked the external reference to the Task.")
+        return result(data.model_dump(mode="json"), "Linked the external reference to the Task.")
 
 
 def _register_unlink_external_reference_from_task(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -96,7 +96,7 @@ def _register_unlink_external_reference_from_task(mcp: FastMCP, ctx: ToolContext
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return result(data, "Removed the external reference from the Task.")
+        return result(data.model_dump(mode="json"), "Removed the external reference from the Task.")
 
 
 def _register_list_task_external_references(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -120,7 +120,7 @@ def _register_list_task_external_references(mcp: FastMCP, ctx: ToolContext) -> N
         data = ctx.container.references.list_for_task(
             ctx.actor_provider(), task_id, limit=limit, cursor=cursor
         )
-        return result(data, f"Found {len(data['items'])} external references.")
+        return result(data.model_dump(mode="json"), f"Found {len(data.items)} external references.")
 
 
 _REGISTRARS = (

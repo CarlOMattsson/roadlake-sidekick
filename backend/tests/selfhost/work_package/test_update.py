@@ -1,17 +1,16 @@
 """`tools/work.sh update`: backup first, rollback, migrations, writers held until ready."""
 
-import re
 import shutil
 from pathlib import Path
 from typing import Any
 
 import pytest
+from tools.workctl import backupflow
 
 from tests.selfhost.work_package.support import (
     MIGRATE,
     READINESS_CALL,
     RESTART_WRITERS,
-    SCRIPT,
     STOP_WRITERS,
     STUB_IMAGE_ID,
     docker_calls,
@@ -204,15 +203,13 @@ def test_update_starts_the_writers_again_when_the_backup_fails(
 def test_update_stops_every_sidekick_worker_of_the_stack(overlay: dict[str, Any]) -> None:
     """A new service on the api image must be added to WRITERS, or update leaves it writing."""
 
-    writers = re.search(r"^WRITERS=\((.*?)\)", SCRIPT.read_text(encoding="utf-8"), re.MULTILINE)
-    assert writers is not None
     api_image = overlay["services"]["api"]["image"]
     on_api_image = {
         name
         for name, service in overlay["services"].items()
         if service.get("image") == api_image and name != "migrate"
     }
-    assert set(writers.group(1).split()) == on_api_image
+    assert set(backupflow.WRITERS) == on_api_image
 
 
 EXPAND_MIGRATION = """from yoyo import step

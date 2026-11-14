@@ -37,6 +37,7 @@ export function PairingForm({
     secretShown,
     setSecretShown,
     confirming,
+    check,
     busy,
     errors,
     problem,
@@ -61,9 +62,23 @@ export function PairingForm({
         <p className="mobile-pairing__intro">
           {labels.confirmBody.replaceAll("{host}", host)}
         </p>
+        {check ? (
+          <div className="mobile-pairing__check">
+            <p className="mobile-pairing__check-code">
+              {labels.confirmCheck.replace("{check}", check)}
+            </p>
+            <p className="mobile-pairing__hint">{labels.confirmCheckHelp}</p>
+          </div>
+        ) : null}
+        {check === null ? (
+          <p role="alert" className="mobile-pairing__error">
+            {labels.confirmCheckMissing}
+          </p>
+        ) : null}
         <div className="mobile-pairing__form" ref={actions}>
           <Button
             variant="primary"
+            disabled={!check}
             aria-disabled={busy || undefined}
             onClick={() => {
               if (!busy) pair(serverUrl, secret);

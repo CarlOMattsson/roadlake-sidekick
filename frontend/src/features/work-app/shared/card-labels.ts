@@ -54,7 +54,7 @@ export type CardLabels = typeof cardLabelsEn;
 
 export const cardLabelsSv: CardLabels = {
   dateLocale: "sv-SE",
-  /** The heading is the word and the count: "Ändringar (2)". */
+  /** The heading is the word and the count: the word followed by the count in brackets. */
   title: "Ändringar",
   appName: "Arbete",
   loading: "Laddar…",
@@ -69,9 +69,9 @@ export const cardLabelsSv: CardLabels = {
     "Uppgiften ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   reread: "Uppdatera",
   statusFailed: "Kunde inte spara statusen.",
-  /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
+  /** A change to something that no longer exists: no `retry`, since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
-  /** A Contact that no longer exists when it is read: calm, without "Försök igen". */
+  /** A Contact that no longer exists when it is read: calm, without `retry`. */
   goneContact: "Kontakten finns inte längre",
   statusChanged: "Ändrade status på 1 uppgift till {status}.",
   superseded: "Ersatt av ett nyare kort",

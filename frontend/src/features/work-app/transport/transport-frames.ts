@@ -67,7 +67,7 @@ export type WorkAgendaPage = {
   items: WorkItemRecord[];
   next_cursor: Results["get_work_agenda"]["next_cursor"];
 };
-/** The filters a board or agenda read was made with; "Uppdatera" and "Visa fler" repeat them. */
+/** The filters a board or agenda read was made with; `refresh` and `more` repeat them. */
 export type WorkFilters = Record<string, string | string[]>;
 /** Filters both get_work_board and get_work_agenda take. */
 const SHARED_FILTER_KEYS = [

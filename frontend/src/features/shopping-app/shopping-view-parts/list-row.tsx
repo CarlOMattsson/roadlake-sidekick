@@ -53,8 +53,8 @@ export function ListRow({
           {/* The status sits in the text column under the name, not as a flex sibling of the row. */}
           <span className="shopping-item-text">
             <span>{cardItemText(item, t.dateLocale)}</span>
-            {/* A bought row needs no status line (its ticked box and the purchased section say it), except "Köpt" (or
-                  "Inte köpt") while its Undo holds; the row's status below says it to assistive technology. */}
+            {/* A bought row needs no status line (its ticked box and the purchased section say it), except `bought` (or
+                  `notBought`) while its Undo holds; the row's status below says it to assistive technology. */}
             {(!item.purchased || holding) && (
               <span
                 className="shopping-status"
@@ -63,7 +63,7 @@ export function ListRow({
                 {holding ? heldWord(item, env) : t.wanted}
               </span>
             )}
-            {/* Under "Köpta" the status line is the day it was bought. */}
+            {/* Under the `boughtCount` fold the status line is the day it was bought. */}
             {boughtOn && <span className="shopping-status">{boughtOn}</span>}
             {queuedMark(item, env)}
           </span>

@@ -4,13 +4,24 @@ The schedule is deliberately small and explicit. It describes when the next
 occurrence should be due; it never creates rows or performs I/O.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta, tzinfo
-from typing import Any
+from typing import Any, TypedDict
 
 from sidekick.shared.errors import ValidationError
 
 FREQUENCIES = frozenset({"daily", "weekly", "monthly", "yearly"})
+
+
+class RecurrenceData(TypedDict):
+    """A rule as `RecurrenceRule.to_data` serialises it: plain JSON values."""
+
+    frequency: str
+    interval: int
+    weekdays: list[int]
+    day_of_month: int | None
+    until: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,7 +51,7 @@ class RecurrenceRule:
             raise ValidationError("day of month is only supported for monthly recurrence")
 
     @classmethod
-    def from_data(cls, value: dict[str, Any] | None) -> "RecurrenceRule | None":
+    def from_data(cls, value: Mapping[str, Any] | None) -> "RecurrenceRule | None":
         if value is None:
             return None
         until = value.get("until")
@@ -54,7 +65,7 @@ class RecurrenceRule:
             ),
         )
 
-    def to_data(self) -> dict[str, Any]:
+    def to_data(self) -> RecurrenceData:
         return {
             "frequency": self.frequency,
             "interval": self.interval,

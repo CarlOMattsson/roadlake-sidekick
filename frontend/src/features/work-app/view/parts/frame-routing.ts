@@ -69,7 +69,7 @@ export function routeOfFrame(
   }
 }
 
-/** The name of the view one step below, for the Back header: "Tavla", "Agenda", "Kontakter" or the kind word. */
+/** The name of the view one step below, for the Back header: `board`, `agenda`, `contacts` or the kind word. */
 export function parentLabel(
   frame: WorkFrame | undefined,
   t: WorkLabels,

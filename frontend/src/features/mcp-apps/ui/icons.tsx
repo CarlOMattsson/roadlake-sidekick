@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * the glyph in --sk-fg, or --sk-muted in a row. Decorative: the button's aria-label names the action.
  */
 
-/** Three dots: "Fler val" in the room head and the ⋯ of a row. */
+/** Three dots: `moreActions` in the room head and the ⋯ of a row. */
 export function MoreIcon() {
   return (
     <svg
@@ -24,7 +24,7 @@ export function MoreIcon() {
   );
 }
 
-/** A magnifier: "Sök uppgifter" in the room head. */
+/** A magnifier: `search` in the room head. */
 export function SearchIcon() {
   return (
     <svg
@@ -63,7 +63,7 @@ export function CloseIcon() {
   );
 }
 
-/** A pen: "Redigera". */
+/** A pen: `edit`. */
 export function PenIcon() {
   return (
     <svg
@@ -84,7 +84,7 @@ export function PenIcon() {
   );
 }
 
-/** A plus: "Ny" in a create row. */
+/** A plus: the new-item control in a create row. */
 export function PlusIcon() {
   return (
     <svg
@@ -103,7 +103,7 @@ export function PlusIcon() {
   );
 }
 
-/** A chevron pointing right: "Öppna" and the next period. */
+/** A chevron pointing right: `open` and the next period. */
 export function ChevronRightIcon() {
   return (
     <svg
@@ -123,7 +123,7 @@ export function ChevronRightIcon() {
   );
 }
 
-/** A chevron pointing left: "‹ Förälder" and the previous period. */
+/** A chevron pointing left: the Back row's ‹ and the previous period. */
 export function ChevronLeftIcon() {
   return (
     <svg
@@ -183,7 +183,7 @@ function Outline({ children }: { children: ReactNode }) {
   );
 }
 
-/** An arrow forward: the action row "Flytta N försenade till imorgon" in the ring's column. */
+/** An arrow forward: the action row `moveAllOverdue` in the ring's column. */
 export function ArrowRightIcon() {
   return (
     <Outline>
@@ -192,7 +192,7 @@ export function ArrowRightIcon() {
   );
 }
 
-/** Pause: the action row "Pausa minnet" in Sidekick's memory. */
+/** Pause: the action row `pause` in Sidekick's memory. */
 export function PauseIcon() {
   return (
     <Outline>
@@ -201,7 +201,7 @@ export function PauseIcon() {
   );
 }
 
-/** Play: the action row "Återuppta minnet" while the memory is paused. */
+/** Play: the action row `resume` while the memory is paused. */
 export function PlayIcon() {
   return (
     <Outline>
@@ -210,7 +210,7 @@ export function PlayIcon() {
   );
 }
 
-/** A folder: "Projekt" in a row's leading column. */
+/** A folder: `project` in a row's leading column. */
 export function FolderIcon() {
   return (
     <Outline>
@@ -219,7 +219,7 @@ export function FolderIcon() {
   );
 }
 
-/** Two arrows in a circle: "Process" (work that goes on and never ends) in a row's leading column. */
+/** Two arrows in a circle: `process` (work that goes on and never ends) in a row's leading column. */
 export function CycleIcon() {
   return (
     <Outline>
@@ -230,7 +230,7 @@ export function CycleIcon() {
 }
 
 /**
- * A loop of two arrows: a Task that repeats, before the rule in a row's meta line ("↻ varje månad"). Drawn at the
+ * A loop of two arrows: a Task that repeats, before the rule in a row's meta line (the repeat text). Drawn at the
  * meta's text size; the words beside it carry the meaning, so it is hidden from screen readers.
  */
 export function RepeatIcon() {

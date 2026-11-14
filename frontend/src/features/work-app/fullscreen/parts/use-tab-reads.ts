@@ -74,7 +74,7 @@ export function useTabReads({
     (tab: WorkTab) => {
       if (started.current.has(tab)) return;
       started.current.add(tab);
-      // A read again after a failure keeps the notice, its button saying "Försöker igen…" (designsystem §3).
+      // A read again after a failure keeps the notice, its button saying `retrying` (designsystem §3).
       setEntries((current) => {
         const entry = current[tab];
         return {

@@ -11,7 +11,7 @@ import type { HostSettingsEntry } from "../mcp-apps/room-types";
 import { MoreIcon } from "../mcp-apps/ui/icons";
 
 /**
- * The day view's ⋯ menu: "Kontroll" (or the host's own settings), and the update reminder and the license row
+ * The day view's ⋯ menu: `control` (or the host's own settings), and the update reminder and the license row
  * when Control is off and the card is full size. `hasMore` says whether the menu has anything to hold.
  */
 export function useDayMore(

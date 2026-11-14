@@ -34,7 +34,7 @@ type Options = {
 
 /**
  * The board's reads and the generation every read and write shares: its frame, notice and busy state, the
- * serialized reload, "Visa fler", the per-card write queue and the quiet read that follows the last write.
+ * serialized reload, `more`, the per-card write queue and the quiet read that follows the last write.
  */
 export function useBoardCore({
   frame,

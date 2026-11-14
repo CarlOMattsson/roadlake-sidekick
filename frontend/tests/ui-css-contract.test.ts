@@ -1,8 +1,9 @@
 // What of the MCP apps' design language (docs/reference/design-system.md) is still checked from the stylesheet text.
 // The rules about the source (tokens defined, reduced motion, no px font sizes, 44 px buttons) are in
 // css-policy.test.ts, and how the views look is measured in a browser (tests/e2e/ui-family-styles-mcp-app.spec.ts,
-// journal-styles-mcp-app.spec.ts). The four rules below have no browser check yet: they need a chosen chip, the Kontroll
-// room's title and rows, the Status card row and the Shopping inline card, which the simulated host does not open.
+// journal-styles-mcp-app.spec.ts and the specs beside them). The two rules below have no browser check yet: a chosen chip
+// needs a writable priority chip, and the Shopping inline card is a card the simulated host does not open (it opens
+// the Shopping room); both are stylesheet rules that stay.
 import { describe, expect, it } from "vitest";
 
 import { cssRules, loadCssFiles, valueOf } from "./helpers/css-contract";
@@ -46,37 +47,6 @@ describe("MCP-app UI CSS contract", () => {
       '.sk-chip[aria-pressed="true"]::before',
     );
     expect(valueOf(tick, "-webkit-mask")).toContain("var(--sk-check)");
-  });
-
-  it("Kontroll's title is a visible h2 under the Back row, not the old screen-reader heading", () => {
-    const title = ruleBody(
-      "control-app/control.css",
-      ".sk-rooms__pane .sidekick-control .control-title",
-    );
-    expect(valueOf(title, "font")).toBe("var(--sk-type-title)");
-    expect(valueOf(title, "color")).toBe("var(--sk-fg)");
-    // 4 under the Back row's box (gives back the pane's gap), not out of the flow as the old screen-reader heading.
-    expect(valueOf(title, "margin")).toBe("calc(-1 * var(--sk-s1)) 0 0");
-    expect(valueOf(title, "position")).toBeUndefined();
-  });
-
-  it("the Kontroll row and the Status card row are at least 48 high, from the one row token --sk-row-min", () => {
-    expect(
-      valueOf(
-        ruleBody("control-app/control.css", ".sidekick-control .control-row"),
-        "min-height",
-      ),
-    ).toBe("var(--sk-row-min)");
-    // The Status card row (single layout): its title and ring are covered by the row's ::after.
-    expect(
-      valueOf(
-        ruleBody(
-          "work-app/shell/work.css",
-          '.sidekick-work .work-board[data-layout="single"] .work-list > li.work-card',
-        ),
-        "min-height",
-      ),
-    ).toBe("var(--sk-row-min)");
   });
 
   it("the Shopping inline card grows with its content: height is auto, not a fixed height", () => {

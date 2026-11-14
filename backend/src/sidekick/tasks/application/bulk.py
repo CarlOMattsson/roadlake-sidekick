@@ -7,17 +7,18 @@ so validation, versions, status history and audit are the same as for a single w
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
-from sidekick.shared.replay import items_replay_record
+from sidekick.shared.replay import IdRecord, items_replay_record
 from sidekick.shared.types import Actor, TxSession, new_uuid7
 from sidekick.tasks.application.models import (
     MAX_BATCH_CREATE_TASKS,
     MAX_BATCH_STEPS_PER_TASK,
     MAX_RESCHEDULE_TASKS,
     BatchCreatedTask,
+    BatchStep,
     NewTaskItem,
     RescheduleTaskItem,
     TaskBatch,
@@ -30,7 +31,26 @@ if TYPE_CHECKING:
     from sidekick.tasks.application.service import TaskService
 
 
-def task_batch_replay_record(result: dict[str, Any]) -> dict[str, Any]:
+class _CreatedEntry(TypedDict):
+    task: IdRecord
+    steps: list[BatchStep]
+
+
+class _BatchResult(TypedDict):
+    tasks: list[_CreatedEntry]
+
+
+class _ReplayEntry(TypedDict):
+    task: IdRecord
+    steps: NotRequired[list[IdRecord]]
+    """Missing in records written before Step ids were kept."""
+
+
+class _BatchReplay(TypedDict):
+    tasks: list[_ReplayEntry]
+
+
+def task_batch_replay_record(result: _BatchResult) -> _BatchReplay:
     """Idempotency projection of a created batch: Task ids and Step ids; the rest is re-read.
 
     Records written before Step ids were kept have no `steps` key per entry; the replay reads
@@ -76,7 +96,7 @@ class TaskBulkService:
             )
         if len({item.task_id for item in items}) != len(items):
             raise ValidationError("each task may appear only once")
-        payload: dict[str, Any] = {
+        payload: dict[str, object] = {
             "items": [
                 {
                     "task_id": str(item.task_id),
@@ -96,14 +116,18 @@ class TaskBulkService:
                 payload=payload,
                 execute=lambda: {
                     "tasks": [
-                        self.tasks.update_in_session(
-                            session,
-                            actor,
-                            item.task_id,
-                            item.expected_version,
-                            UpdateTaskCommand(due_at=item.due_at),
-                            correlation_id,
-                        )
+                        {
+                            "id": str(
+                                self.tasks.update_in_session(
+                                    session,
+                                    actor,
+                                    item.task_id,
+                                    item.expected_version,
+                                    UpdateTaskCommand(due_at=item.due_at),
+                                    correlation_id,
+                                ).id
+                            )
+                        }
                         for item in items
                     ]
                 },
@@ -136,7 +160,7 @@ class TaskBulkService:
             raise ValidationError(f"at most {MAX_BATCH_CREATE_TASKS} tasks can be created at once")
         if any(len(item.step_titles) > MAX_BATCH_STEPS_PER_TASK for item in items):
             raise ValidationError(f"at most {MAX_BATCH_STEPS_PER_TASK} steps per task")
-        payload: dict[str, Any] = {
+        payload: dict[str, object] = {
             "project_id": str(project_id) if project_id else None,
             "domain_id": str(domain_id) if domain_id else None,
             "items": [
@@ -157,24 +181,31 @@ class TaskBulkService:
                 label = self.store.get_project(session, actor.user_id, project_id).title
             elif domain_id:
                 label = self.store.get_domain(session, actor.user_id, domain_id).name
-            result = self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation="create_tasks",
-                key=idempotency_key,
-                payload=payload,
-                execute=lambda: {
-                    "tasks": [
-                        self._create_batch_item(
-                            session, actor, item, project_id, domain_id, correlation_id
+            result = cast(
+                _BatchReplay,
+                self.store.idempotent(
+                    session,
+                    actor_id=actor.user_id,
+                    operation="create_tasks",
+                    key=idempotency_key,
+                    payload=payload,
+                    execute=lambda: dict(
+                        _BatchResult(
+                            tasks=[
+                                self._create_batch_item(
+                                    session, actor, item, project_id, domain_id, correlation_id
+                                )
+                                for item in items
+                            ]
                         )
-                        for item in items
-                    ]
-                },
-                replay=task_batch_replay_record,
+                    ),
+                    replay=lambda result: dict(
+                        task_batch_replay_record(cast(_BatchResult, result))
+                    ),
+                ),
             )
             created = self.tasks.replayed_tasks(
-                session, actor, [e["task"] for e in result["tasks"]]
+                session, actor, [entry["task"] for entry in result["tasks"]]
             )
             replayed_steps = [
                 self._replayed_steps(session, actor, task.id, entry.get("steps"))
@@ -195,8 +226,8 @@ class TaskBulkService:
         session: TxSession,
         actor: Actor,
         task_id: UUID,
-        recorded: Sequence[dict[str, Any]] | None,
-    ) -> tuple[dict[str, Any], ...]:
+        recorded: Sequence[IdRecord] | None,
+    ) -> tuple[BatchStep, ...]:
         """The Steps a batch created for one Task, re-read by the ids its record kept.
 
         The reply lists exactly the recorded Steps in creation order, whatever has happened to
@@ -210,7 +241,7 @@ class TaskBulkService:
         if recorded is None:
             steps = self.store.list_steps(session, actor.user_id, task_id, MAX_BATCH_STEPS_PER_TASK)
         else:
-            step_ids = tuple(UUID(str(entry["id"])) for entry in recorded)
+            step_ids = tuple(UUID(entry["id"]) for entry in recorded)
             live = self.store.list_live_steps_by_ids(session, actor.user_id, step_ids)
             steps = [live[step_id] for step_id in step_ids if step_id in live]
         return tuple(
@@ -231,8 +262,8 @@ class TaskBulkService:
         project_id: UUID | None,
         domain_id: UUID | None,
         correlation_id: str | None,
-    ) -> dict[str, Any]:
-        task_data = self.tasks.create_in_session(
+    ) -> _CreatedEntry:
+        task = self.tasks.create_in_session(
             session,
             actor,
             {
@@ -254,9 +285,9 @@ class TaskBulkService:
         )
         # Flush so each Step row can reference its Task, as process-run materialisation does.
         session.flush()
-        task_id = UUID(str(task_data["id"]))
+        task_id = task.id
         now = self.clock.now()
-        steps: list[dict[str, Any]] = []
+        steps: list[BatchStep] = []
         for position, title in enumerate(item.step_titles):
             step = Step(
                 new_uuid7(),
@@ -274,4 +305,4 @@ class TaskBulkService:
             steps.append(
                 {"id": str(step.id), "title": title, "position": position, "version": step.version}
             )
-        return {"task": task_data, "steps": steps}
+        return {"task": {"id": str(task.id)}, "steps": steps}

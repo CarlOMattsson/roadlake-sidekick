@@ -251,7 +251,7 @@ Issue a 10-minute, single-use pairing secret.
 | `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
 | `--scope` | `SCOPE` | no | Grant this device capability; repeatable, companion scopes only (required unless --preset is given). One of `companion:journal:read`, `companion:journal:write`, `companion:license`, `companion:push`, `companion:shopping:read`, `companion:shopping:write`, `companion:tasks:complete`, `companion:tasks:read`. Repeatable. |
 | `--preset` | `PRESET` | no | Named set of capabilities, only when written explicitly: app = tasks, Inköp and Dagbok, notifications, license key (companion:tasks:read + companion:tasks:complete + companion:push + companion:shopping:read/write + companion:journal:read/write + companion:license). One of `app`. Repeatable. |
-| `--server-url` | `SERVER_URL` | no | The https address the phone reaches this server on (scheme and host, nothing after); adds a sidekick://pair link that fills in the app's pairing screen. |
+| `--server-url` | `SERVER_URL` | no | The https address the phone reaches this server on (scheme and host, nothing after); adds a sidekick://pair link that fills in the app's pairing screen, and a check code to compare with the one the app shows. |
 | `--device-days` | `DEVICE_DAYS` | no | Device credential lifetime in days, 1 to 90. Default `30`. |
 
 ### `sidekick-companion grant`

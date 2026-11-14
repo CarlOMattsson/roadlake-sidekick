@@ -5,13 +5,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from uuid import UUID
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
 
+from sidekick.contacts.application.models import ProjectLinkRecord, TaskLinkRecord
 from sidekick.mcp.annotations import DESTRUCTIVE, WRITE
 from sidekick.mcp.contact_records import ProjectContactResult, TaskContactResult
 from sidekick.mcp.correlation import request_correlation_id_or_new
@@ -29,19 +29,19 @@ def _linked_contact_name(ctx: ToolContext, contact_id: UUID) -> str:
     return flat(ctx.container.contacts.get(actor, contact_id).display_name)
 
 
-def _project_link_result(res: Mapping[str, object]) -> dict[str, object]:
+def _project_link_result(res: ProjectLinkRecord) -> dict[str, object]:
     return ProjectContactResult(
-        contact_id=UUID(str(res["contact_id"])),
-        project_id=UUID(str(res["project_id"])),
-        linked=bool(res["linked"]),
+        contact_id=UUID(res["contact_id"]),
+        project_id=UUID(res["project_id"]),
+        linked=res["linked"],
     ).model_dump(mode="json")
 
 
-def _task_link_result(res: Mapping[str, object]) -> dict[str, object]:
+def _task_link_result(res: TaskLinkRecord) -> dict[str, object]:
     return TaskContactResult(
-        contact_id=UUID(str(res["contact_id"])),
-        task_id=UUID(str(res["task_id"])),
-        linked=bool(res["linked"]),
+        contact_id=UUID(res["contact_id"]),
+        task_id=UUID(res["task_id"]),
+        linked=res["linked"],
     ).model_dump(mode="json")
 
 

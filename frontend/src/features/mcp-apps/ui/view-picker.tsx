@@ -13,7 +13,7 @@ import "./view-picker.css";
 
 /**
  * The picker that stands in for a row of tabs that does not fit (designsystem §3 "Rumshuvud", "Rumsremsan"):
- * one button with the chosen option's name and ⌄ ("Status ⌄", "Arbete ⌄"), which opens a menu with the options as
+ * one button with the chosen option's name and ⌄ (the view name and ⌄), which opens a menu with the options as
  * `menuitemradio` and ✓ on the chosen one, in the form of the ⋯ menu (a full-width card under the row, in the page
  * flow). The room strip, Work's views and later Control's tabs use this one picker.
  *
@@ -46,7 +46,7 @@ export function useViewPicker<T extends string>({
   className?: string;
   /** Also report a press on the chosen option (the room picker: the active room goes to its root). */
   reselect?: boolean;
-  /** The button's words while no option is chosen (`value` undefined, e.g. "Rum" in Control); else the first option's. */
+  /** The button's words while no option is chosen (`value` undefined, e.g. `stripLabel` in Control); else the first option's. */
   placeholder?: string;
 }): { button: ReactNode; menu: ReactNode } {
   const buttonRef = useRef<HTMLButtonElement>(null);

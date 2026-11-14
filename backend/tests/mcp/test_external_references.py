@@ -544,7 +544,7 @@ def test_concurrent_links_of_one_object_create_one_pointer() -> None:
             source="claude_connector",
             idempotency_key=f"parallel-key-{index:02d}",
         )
-        return str(data["reference"]["id"])
+        return str(data.reference.id)
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         ids = list(pool.map(link, range(8)))

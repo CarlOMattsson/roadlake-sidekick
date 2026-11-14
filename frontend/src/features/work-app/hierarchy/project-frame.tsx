@@ -44,7 +44,7 @@ export function ProjectFrame({
   // or create a Task here yet.
   const offers = useToolSupport(transport);
   const editOffered = offers("update_project");
-  // The ⋯ in the Back row holds "Redigera", as a Task's and a Contact's do; a tap on the title edits too.
+  // The ⋯ in the Back row holds `edit`, as a Task's and a Contact's do; a tap on the title edits too.
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const moreButton = useRef<HTMLButtonElement>(null);

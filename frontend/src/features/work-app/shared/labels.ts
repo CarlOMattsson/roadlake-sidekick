@@ -20,7 +20,7 @@ export const workEn = {
     completed: "Done",
   },
   due: "Due",
-  /** The Task's due date as a label (screen readers, editors): "Due". The detail line itself is "Fri 6 Nov · in 2 days". */
+  /** The Task's due date as a label (screen readers, editors). The detail line itself shows the date and how far off it is. */
   dueDate: "Due",
   /** The compact button beside the due line that opens the date choices. */
   changeDue: "Change date",
@@ -225,7 +225,7 @@ export const workEn = {
   stepOf: "Step in: {title}",
   /** Glyph action of a task that is done. */
   agendaReopen: "Mark {title} as not done",
-  /** Closes a row's quick choices; "Klar" would read as the status. */
+  /** Closes a row's quick choices; `completed` would read as the status. */
   closeMenu: "Close",
   /** The accessible name of that date input. */
   rescheduleDate: "Choose date",
@@ -270,7 +270,7 @@ export const workSv: WorkLabels = {
     completed: "Klar",
   },
   due: "Klart senast",
-  /** The Task's due date as a label (screen readers, editing). The detail row itself reads "fre 6 nov · om 2 dagar". */
+  /** The Task's due date as a label (screen readers, editing). The detail row itself shows the date and how far off it is. */
   dueDate: "Klart senast",
   changeDue: "Ändra datum",
   addDue: "Lägg till datum",
@@ -430,9 +430,9 @@ export const workSv: WorkLabels = {
   undo: "Ångra",
   /** The inline card's Open button while the host answers the fullscreen request. */
   opening: "Öppnar…",
-  /** A change to something that no longer exists: no "Försök igen", since it will not come back. */
+  /** A change to something that no longer exists: no `retry`, since it will not come back. */
   notFound: "Den finns inte längre. Den kan ha tagits bort någon annanstans.",
-  /** A Task, Project or Contact that was deleted (or is missing) when it is read: calm, without "Försök igen". */
+  /** A Task, Project or Contact that was deleted (or is missing) when it is read: calm, without `retry`. */
   goneTask: "Uppgiften finns inte längre",
   goneProject: "Projektet finns inte längre",
   goneContact: "Kontakten finns inte längre",
@@ -442,7 +442,7 @@ export const workSv: WorkLabels = {
   stepMenuKeys: "Högerklicka på ett steg eller tryck Shift+F10 för fler val.",
   /** The row menu's button for screen readers (not drawn), on a row in the Work room and on a Step. */
   rowMenuButton: (title: string) => `Fler val för ${title}`,
-  /** "Flyttad till {status}" after a status change; "Ångra" follows. */
+  /** The line after a status change; `undo` follows. */
   movedTo: "Flyttad till {status}",
   agendaEmpty: "Inget på agendan.",
   agendaEmptyHint: "Det du ska göra, sorterat efter när.",
@@ -458,15 +458,15 @@ export const workSv: WorkLabels = {
   closeMenu: "Stäng",
   /** The accessible name of the date input. */
   rescheduleDate: "Välj datum",
-  /** The row above the agenda that opens the "Att sortera" view; the count stands in parentheses. */
+  /** The row above the agenda that opens the `unsortedHeading` view; the count stands in parentheses. */
   unsortedOpen: (count: string) => `Att sortera (${count})`,
-  /** The heading of the "Att sortera" view, which opens from the row above the agenda and closes with "Tillbaka". */
+  /** The heading of the `unsortedHeading` view, which opens from the row above the agenda and closes with `back`. */
   unsortedHeading: "Att sortera",
-  /** The "Att sortera" view has no Task left to sort. */
+  /** The `unsortedHeading` view has no Task left to sort. */
   unsortedEmpty: "Inget att sortera.",
-  /** The "Att sortera" view has no Domain to sort into. */
+  /** The `unsortedHeading` view has no Domain to sort into. */
   unsortedNoDomains: "Inga domäner än.",
-  /** Names the row of a Task in the "Att sortera" view: its Domain buttons are grouped under that name. */
+  /** Names the row of a Task in the `unsortedHeading` view: its Domain buttons are grouped under that name. */
   unsortedRowFor: (title: string) => `Sortera ${title}`,
   kindName: {
     task: "Uppgift",
@@ -516,8 +516,8 @@ export function workStatusLabel(t: WorkLabels, value: string): string {
 
 /**
  * Status of one node in the Work hierarchy, by its kind. A Task or Step uses the Task words; a Project,
- * a Domain or a Process uses the Project words, so a Project "completed" reads "Avslutat", not the Task's
- * "Klar". An archived Domain or Process reads with the archived word. A value neither set knows is shown
+ * a Domain or a Process uses the Project words, so a Project "completed" reads the Project word, not the Task's
+ * `completed`. An archived Domain or Process reads with the archived word. A value neither set knows is shown
  * as it arrived.
  */
 export function hierarchyStatusLabel(

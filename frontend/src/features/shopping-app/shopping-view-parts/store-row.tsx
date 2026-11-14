@@ -102,7 +102,7 @@ export function StoreRow({
           }}
         >
           <span className="shopping-store-body">
-            {/* The name and the amount share one baseline ("Mjölk  2 l"). */}
+            {/* The name and the amount share one baseline. */}
             <span className="shopping-store-text">
               <span className="shopping-store-name">{item.name}</span>
               {holding ? (

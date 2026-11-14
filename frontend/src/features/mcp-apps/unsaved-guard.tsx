@@ -6,7 +6,7 @@ import type { SidekickShellLabels } from "@/features/mcp-apps/sidekick-shell-lab
 
 /**
  * Unsaved work, one mechanism for every form. A form that holds edits the user has not saved calls
- * `useUnsavedGuard(dirty)`; the shell then asks "Släng ändringarna?" before a Back (the Back row or the
+ * `useUnsavedGuard(dirty)`; the shell then asks `unsavedAsk` before a Back (the Back row or the
  * system Back of the phone) or a press on the active room tab would take the layer away. With no unsaved
  * form there is no question. Outside the shell (a card, a test) the hook does nothing.
  */
@@ -60,7 +60,7 @@ export function useUnsavedGuard(dirty: boolean): void {
   }, [dirty, layer, set, token]);
 }
 
-/** "Släng ändringarna? [Släng] [Fortsätt redigera]": a small inline card under the Back row, never a dialog. */
+/** `unsavedAsk` with its `unsavedDiscard` and `unsavedKeep` buttons: a small inline card under the Back row, never a dialog. */
 export function UnsavedAsk({
   labels,
   onDiscard,

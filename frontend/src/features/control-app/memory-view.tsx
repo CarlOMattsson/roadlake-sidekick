@@ -51,7 +51,7 @@ export function MemoryView({
   /** Called once a memory change is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
   /**
-   * The full view's parts: the sentence on what the memory is, "Visa vad Sidekick minns" and the search. The full view only: the inline card stays one phone screen of
+   * The full view's parts: the sentence on what the memory is, `recallShow` and the search. The full view only: the inline card stays one phone screen of
    * status and switches, and Öppna leads to the rest.
    */
   recall?: boolean;
@@ -179,9 +179,9 @@ export function MemoryView({
 
   return (
     <div className="control-view">
-      {/* The memory's own row : "Minnet är på" with its meta, how many sources are on, alone on
-          its line. Under it Pausa minnet is the list's action row (row.css .sk-action-row, as "Flytta …"
-          and "+ Lägg till steg"): a pause glyph in the leading column and the text at 500, a global action and no source;
+      {/* The memory's own row : `memoryOn` with its meta, how many sources are on, alone on
+          its line. Under it `pause` is the list's action row (row.css .sk-action-row, as `moveAllOverdue`
+          and `addStep`): a pause glyph in the leading column and the text at 500, a global action and no source;
           the screen has no ink. */}
       <div className="control-headrow">
         <div className="control-headrow-text">
@@ -354,8 +354,8 @@ function memoryNote(
 }
 
 /**
- * "214 anteckningar i minnet · 2 på väg" (the source's own noun). A domain being deleted reads "deleting…"; a domain
- * that is off reads "inte med i minnet" after "Av"; an on domain without a count reads "count unknown".
+ * the count line with those on the way (the source's own noun). A domain being deleted reads "deleting…"; a domain
+ * that is off reads `countOff` after `domainOff`; an on domain without a count reads "count unknown".
  */
 function countText(
   status: MemoryStatus,

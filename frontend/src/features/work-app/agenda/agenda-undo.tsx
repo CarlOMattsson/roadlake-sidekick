@@ -25,11 +25,11 @@ export type AgendaUndo = {
   due?: { from: string | null; label: string };
   /**
    * A recurring Task marked done keeps its completion on record (`last_completed_at`) when it is reopened. This is the
-   * value it had before the change; Undo writes it back together with the due date, so the Task leaves "Gjort".
+   * value it had before the change; Undo writes it back together with the due date, so the Task leaves the journal's `done` section.
    */
   lastCompleted?: { from: string | null };
   /**
-   * The change marked the Task done (its "Klar"). When the agenda's Undo runs out, only such a row folds away from its
+   * The change marked the Task done (its `completed` state). When the agenda's Undo runs out, only such a row folds away from its
    * group; a due move of a Task that is already done keeps its row.
    */
   completed?: boolean;
@@ -126,8 +126,8 @@ export function useNearest<T extends HTMLElement>(key?: unknown) {
 }
 
 /**
- * The Undo of one row, in the row itself (designsystem §3 "Tillstånd", Ångra): the meta line gives way to "Klar"
- * (or "Flyttad till imorgon") while the change can be undone, and "Ångra" is a compact secondary button in the row's
+ * The Undo of one row, in the row itself (designsystem §3 "Tillstånd", Ångra): the meta line gives way to `completed`
+ * (or `movedTo` with the new date) while the change can be undone, and `undo` is a compact secondary button in the row's
  * trailing slot, level with the title line. The row stays where it was and keeps its height. While the change is
  * written the line says "Moving…" and offers no Undo. Every row has its own Undo and its own time, which pauses while
  * the pointer is over it or focus is in it. The line is a polite live region (`role="status"`); focus is not moved.
@@ -145,9 +145,9 @@ export function UndoMeta({
   onUndo,
   onExpire,
 }: {
-  /** What the change did, in the meta line's words: "Klar", "Flyttad till imorgon". */
+  /** What the change did, in the meta line's words: `completed`, `movedTo`. */
   text: string;
-  /** The title of the row, which names the button for a screen reader ("Ångra Städa garaget"). */
+  /** The title of the row, which names the button for a screen reader (`undo` and the title). */
   title: string;
   /** The change is being written: the line says so and offers no Undo. */
   moving?: boolean;

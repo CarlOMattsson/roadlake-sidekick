@@ -6,7 +6,7 @@ import { ErrorNotice, errorLabelsFor } from "./states";
  * Render and start-up failures, shown with the family's one error notice instead of a blank view.
  *
  * `RenderErrorBoundary` wraps a room (or the whole app): an error thrown while that part draws is caught
- * there, the rest of the app keeps working, and "Försök igen" draws the part again from scratch. Only the
+ * there, the rest of the app keeps working, and `retry` draws the part again from scratch. Only the
  * scope name and the error's class name are logged: an error message or stack can carry a title, a name or
  * other user data, so it is never written out or shown.
  */
@@ -55,7 +55,7 @@ export class RenderErrorBoundary extends Component<
   }
 }
 
-/** The app could not start: one short, translated card with "Försök igen". No detail of the failure is shown. */
+/** The app could not start: one short, translated card with `retry`. No detail of the failure is shown. */
 export function StartupError({
   locale,
   onRetry,

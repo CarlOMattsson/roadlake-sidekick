@@ -69,7 +69,7 @@ export function deriveView({
     compact && !expanded && !fullscreen && !store && Boolean(detail);
   // A chosen list whose read has not answered yet: the loading line only, no forms and no hint.
   const reading = Boolean(id) && !list;
-  // The shop view names its shop: "ICA · 8 kvar". The filter ignores case, so the spelling the items
+  // The shop view names its shop (`storeRemaining`). The filter ignores case, so the spelling the items
   // already use wins over the spelling that was asked for.
   const shopName = storeMode ? store?.trim() || undefined : undefined;
   const shopLabel = shopName

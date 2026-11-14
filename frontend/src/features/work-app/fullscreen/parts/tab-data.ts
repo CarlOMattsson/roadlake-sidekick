@@ -26,7 +26,7 @@ export const UNSORTED_COUNT_LIMIT = 100;
 
 export type TabEntry =
   | { status: "loading" }
-  /** A failed read: why (for the notice's second line), and whether "Försök igen" is reading again now. */
+  /** A failed read: why (for the notice's second line), and whether `retry` is reading again now. */
   | { status: "error"; cause: unknown; retrying?: boolean }
   | { status: "ready"; frame: WorkTabFrame };
 export type TabEntries = PerTab<TabEntry>;

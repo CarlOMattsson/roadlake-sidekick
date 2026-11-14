@@ -52,9 +52,9 @@ export type { AgendaControls };
  * vecka, Senare and Utan datum (`agendaSections`). Only Försenade shows its count; Idag also names its day. A record opens its Task or Project.
  * The glyph of a Task marks it done at once; the row's quick choices (a long press, Shift+F10 or the menu key; the row
  * has no ⋯) set any status and move its due date ("Tomorrow", "Next week", or a chosen day, 23:59).
- * Every change stays on its row as "Klar · Ångra" for `UNDO_MS`, each row with its own Undo.
- * The Overdue group has one more control, "Flytta 2 till imorgon", and an overdue row's "Klar" in its quick choices
- * is a triage move too: the row stays in its group, muted with its new date or "Klar", and its date choices
+ * Every change stays on its row as `completed` with `undo` for `UNDO_MS`, each row with its own Undo.
+ * The Overdue group has one more control, `moveAllOverdue`, and an overdue row's `completed` in its quick choices
+ * is a triage move too: the row stays in its group, muted with its new date or `completed`, and its date choices
  * are off until the list is read again.
  * Keys: j and k step through the records, x toggles done of the selected Task, 1 to 4 set its status. The filter
  * narrows the loaded page by title. The inline card is the read-only agenda summary in `inline-summary.tsx`.
@@ -109,7 +109,7 @@ export function AgendaView({
   const rows = useRowState({ items: page.items, root, mounted });
   const menu = useRowMenu(root);
   const { query, setQuery, clearSearch } = useAgendaQuery(controls);
-  // "Klar idag (n) ⌄" last in the Agenda is folded until opened, as Status's "Klar (n)".
+  // The `doneToday` fold last in the Agenda is folded until opened, as the Work room's `completed` fold.
   const [doneOpen, setDoneOpen] = useState(false);
 
   useEffect(() => {
@@ -187,7 +187,7 @@ export function AgendaView({
     onReload: session.reread,
     onRetry: session.retry,
   };
-  // The Overdue group shows the notice of a failed "Flytta alla"; without the group (its Ångra failed) it stands above the groups.
+  // The Overdue group shows the notice of a failed `moveAllOverdue`; without the group (its Ångra failed) it stands above the groups.
   const overdueShown =
     !waitingView && layout.sections.some((s) => s.group === "overdue");
 
@@ -284,7 +284,7 @@ export function AgendaView({
             onRemind={bulk.remind}
           />
         )}
-        {/* Ångra of "Flytta N till imorgon": the moved Tasks have left the group, so it stands above the groups. */}
+        {/* The `undo` of `moveAllDone`: the moved Tasks have left the group, so it stands above the groups. */}
         {!overdueShown && (
           <AgendaNotice spot="moveAll" source={notice} labels={t} />
         )}
@@ -298,7 +298,7 @@ export function AgendaView({
           />
         )}
         {/* The Undo (or "Moving…", or "Waiting…") takes the meta line of the row it belongs to, so it covers no row and moves none.
-          A write with no row of its own ("Flytta 2 till imorgon") shows none; the loading status speaks for it, and the
+          A write with no row of its own (`moveAllOverdue`) shows none; the loading status speaks for it, and the
           Undo of the move is above. */}
         {(waitingView ? [] : layout.sections).map((section) => (
           <AgendaSection
@@ -306,7 +306,7 @@ export function AgendaView({
             ctx={ctx}
             section={section}
             rows={layout.shown(section)}
-            // Not while a search narrows the list: "Flytta N försenade" would read as moving the hits.
+            // Not while a search narrows the list: `moveAllOverdue` would read as moving the hits.
             moveAllOffered={offers.rescheduleOffered && query.trim() === ""}
             onMoveAll={bulk.moveAllOverdue}
           />

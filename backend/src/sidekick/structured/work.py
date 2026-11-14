@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 from uuid import UUID
 
-from sidekick.projects.application.service import project_public_data
+from sidekick.projects.application.serialization import project_public_data
 from sidekick.projects.domain import Project
 from sidekick.shared.errors import InvalidInputError
 from sidekick.shared.text_excerpt import excerpt
@@ -28,6 +28,8 @@ from sidekick.structured.work_records import (
     ProcessRecord,
     ProjectDetailOutput,
     ProjectDetailRecord,
+    ProjectListRecord,
+    ProjectRecord,
     StepOutput,
     StepRecord,
     TaskChanges,
@@ -44,7 +46,7 @@ from sidekick.structured.work_records import (
 from sidekick.tasks.application import UpdateTaskCommand
 from sidekick.tasks.application.models import TaskDetailRead
 from sidekick.tasks.application.serialization import task_public_data
-from sidekick.tasks.domain import Priority, TaskStatus
+from sidekick.tasks.domain import Priority, Task, TaskStatus
 from sidekick.work.application.models import HierarchyNode, WorkQuery, WorkRow
 from sidekick.work.application.serialization import (
     clipped_project_title,
@@ -71,14 +73,52 @@ if TYPE_CHECKING:
 RECORD_STEP_LIMIT = 50
 
 
-def with_tags(data: dict[str, Any], tags: list[str] | None) -> dict[str, Any]:
-    """Attach the record's tag slugs to a public contract payload."""
+def task_record(task: Task, tags: Sequence[str]) -> TaskRecord:
+    """The structured record of a Task with its tag slugs."""
 
-    return {**data, "tags": list(tags or [])}
+    return TaskRecord.model_validate({**task_public_data(task), "tags": list(tags)})
+
+
+def task_list_record(task: Task, tags: Sequence[str]) -> TaskListRecord:
+    """A Task in the list shape: a description excerpt in place of the whole description."""
+
+    return TaskListRecord.model_validate(
+        _list_shape(task_public_data(task), task.description, tags)
+    )
+
+
+def project_record(project: Project, tags: Sequence[str]) -> ProjectRecord:
+    """The structured record of a Project with its tag slugs."""
+
+    return ProjectRecord.model_validate({**project_public_data(project), "tags": list(tags)})
+
+
+def project_list_record(project: Project, tags: Sequence[str]) -> ProjectListRecord:
+    """A Project in the list shape: a description excerpt in place of the whole description."""
+
+    return ProjectListRecord.model_validate(
+        _list_shape(project_public_data(project), project.description, tags)
+    )
+
+
+def _list_shape(
+    data: Mapping[str, object], description: str | None, tags: Sequence[str]
+) -> dict[str, object]:
+    """A record's public data with `description` replaced by `description_excerpt` and
+    `description_truncated`, so a page of rows stays small."""
+
+    shortened, truncated = excerpt(description)
+    row = {key: value for key, value in data.items() if key != "description"}
+    return {
+        **row,
+        "tags": list(tags),
+        "description_excerpt": shortened,
+        "description_truncated": truncated,
+    }
 
 
 def applied_filters(
-    values: Mapping[str, Any], defaults: Mapping[str, Any]
+    values: Mapping[str, object], defaults: Mapping[str, object]
 ) -> dict[str, str | list[str]]:
     """The filter arguments a read narrowed by, in the form the tool takes them.
 
@@ -226,11 +266,15 @@ def task_detail_structured(
 
     # One transaction for the Task, tags, Project title, Step counts and the first Steps.
     detail = container.tasks.get_detail(actor, task_id, step_limit=RECORD_STEP_LIMIT + 1)
-    task_data = with_tags(task_public_data(detail.task), [tag.slug for tag in detail.tags])
-    task_data["project_title"] = clipped_project_title(detail.project_title)
-    task_data.update(detail.step_counts)
-    structured = TaskDetailOutput(task=TaskDetailRecord.model_validate(task_data))
-    return structured, detail
+    record = TaskDetailRecord.model_validate(
+        {
+            **task_public_data(detail.task),
+            "tags": [tag.slug for tag in detail.tags],
+            "project_title": clipped_project_title(detail.project_title),
+            **detail.step_counts,
+        }
+    )
+    return TaskDetailOutput(task=record), detail
 
 
 def complete_task_structured(
@@ -256,7 +300,7 @@ def complete_task_structured(
         correlation_id=correlation_id,
     )
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task_id)]
-    return TaskOutput(task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs)))
+    return TaskOutput(task=task_record(task, slugs))
 
 
 def update_task_structured(
@@ -294,7 +338,7 @@ def update_task_structured(
         only_if_status=only_if_status,
     )
     slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task_id)]
-    return TaskOutput(task=TaskRecord.model_validate(with_tags(task_public_data(task), slugs)))
+    return TaskOutput(task=task_record(task, slugs))
 
 
 def task_steps_structured(
@@ -334,11 +378,15 @@ def project_detail_structured(
     estimate_totals = container.contexts.estimate_totals(
         actor, scope="project_open_tasks", project_id=project_id
     )
-    project_data = with_tags(project_public_data(project), slugs)
-    project_data["estimate_totals"] = estimate_totals.to_data()
-    project_data.update(container.contexts.project_task_counts(actor, project_id))
-    structured = ProjectDetailOutput(project=ProjectDetailRecord.model_validate(project_data))
-    return structured, project
+    record = ProjectDetailRecord.model_validate(
+        {
+            **project_public_data(project),
+            "tags": slugs,
+            "estimate_totals": estimate_totals.to_data(),
+            **container.contexts.project_task_counts(actor, project_id),
+        }
+    )
+    return ProjectDetailOutput(project=record), project
 
 
 def domain_structured(container: Container, actor: Actor, domain_id: UUID) -> DomainOutput:
@@ -476,17 +524,6 @@ def hierarchy_tasks(
     return tasks, cut_tasks or cut_steps
 
 
-def with_description_excerpt(data: Mapping[str, Any]) -> dict[str, Any]:
-    """A record's data with its `description` replaced by `description_excerpt` and
-    `description_truncated`: the list shape, so a page of rows stays small."""
-
-    row = dict(data)
-    shortened, truncated = excerpt(row.pop("description", None))
-    row["description_excerpt"] = shortened
-    row["description_truncated"] = truncated
-    return row
-
-
 def _task_page(
     container: Container,
     actor: Actor,
@@ -497,8 +534,8 @@ def _task_page(
     status: TaskStatus | None,
     cursor: str | None,
     unsorted: bool,
-) -> tuple[list[dict[str, Any]], str | None]:
-    """One authorized page of Tasks as public data with their tags, and the next cursor."""
+) -> tuple[list[TaskListRecord], str | None]:
+    """One authorized page of Tasks in the list shape with their tags, and the next cursor."""
 
     page = container.tasks.list(
         actor,
@@ -510,10 +547,7 @@ def _task_page(
         unsorted=unsorted,
     )
     slugs = container.work_tags.slug_map(actor)
-    rows = [
-        with_tags(task_public_data(item), list(slugs.get(("task", item.id), ())))
-        for item in page.items
-    ]
+    rows = [task_list_record(item, slugs.get(("task", item.id), ())) for item in page.items]
     return rows, page.next_cursor
 
 
@@ -541,10 +575,7 @@ def task_page_structured(
         cursor=cursor,
         unsorted=unsorted,
     )
-    return TaskPageOutput(
-        tasks=[TaskListRecord.model_validate(with_description_excerpt(row)) for row in rows],
-        next_cursor=next_cursor,
-    )
+    return TaskPageOutput(tasks=rows, next_cursor=next_cursor)
 
 
 def complete_step_structured(

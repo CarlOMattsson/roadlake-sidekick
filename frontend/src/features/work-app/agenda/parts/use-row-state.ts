@@ -33,8 +33,8 @@ export function useRowState({
   const [undos, setUndos] = useState<Record<string, AgendaUndo>>({});
   // Rows a triage move changed: they stay in place, muted, with their date choices off, until the list is read again.
   const [triaged, setTriaged] = useState<Record<string, boolean>>({});
-  // A row marked done whose Undo has run out leaves its group (it stood on under "Försenade (4)" as a fifth row
-  // without "Klar"): first `leaving` (its height, for the 200 ms fold), then `left`, until the list is read again or the
+  // A row marked done whose Undo has run out leaves its group (it stood on under the Overdue heading as a fifth row
+  // without `completed`): first `leaving` (its height, for the 200 ms fold), then `left`, until the list is read again or the
   // Task is open again.
   const [leaving, setLeaving] = useState<Record<string, number>>({});
   const [left, setLeft] = useState<Record<string, boolean>>({});
@@ -89,7 +89,7 @@ export function useRowState({
     overridesRef.current = { ...overridesRef.current, [key]: next };
     setOverrides(overridesRef.current);
     // A recorded cycle is handled like a triage move: the row stays in place with its Ångra, is not counted as
-    // open, and then sinks under the group's line with "Klar · nästa: …" until the list is read again.
+    // open, and then sinks under the group's line with `recurringDone` until the list is read again.
     if (next.cycle) patchTriaged((all) => ({ ...all, [key]: true }));
     // A Task that is open again has not left: marked done once more it waits out its own Undo first.
     if (task.status !== "completed" && leftRef.current[key]) {

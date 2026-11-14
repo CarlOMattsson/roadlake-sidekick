@@ -8,6 +8,7 @@ import { parsePairingLink, type PairingLink } from "@/mobile/pairing-link";
 import {
   codeProblem,
   hostOf,
+  pairingCheck,
   serverProblem,
 } from "@/mobile/pairing-validation";
 import type { MobilePlatform } from "@/mobile/platform";
@@ -202,12 +203,58 @@ describe("pairing link", () => {
     expect(screen.queryByText("Appen")).toBeNull();
   });
 
+  it("shows the check code of the link's code before it pairs", async () => {
+    const native = fakeNative(() => ok({}), { paired: false });
+    mount(native, { launchLink: link });
+
+    expect(await screen.findByText("Kontrollkod: 846 345")).toBeTruthy();
+    expect(screen.getByText(pairingLabelsSv.confirmCheckHelp)).toBeTruthy();
+    expect(native.pair).not.toHaveBeenCalled();
+  });
+
+  it("keeps Connect off until the check code is shown", async () => {
+    const native = fakeNative(() => ok({}), { paired: false });
+    mount(native, { launchLink: link });
+
+    await screen.findByText("Kontrollkod: 846 345");
+    expect(screen.getByRole("button", { name: "Koppla" })).toBeEnabled();
+  });
+
+  it("does not pair from the link when the check code cannot be computed", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("crypto", {});
+    try {
+      const native = fakeNative(() => ok({}), { paired: false });
+      mount(native, { launchLink: link });
+
+      expect(
+        await screen.findByText(pairingLabelsSv.confirmCheckMissing),
+      ).toBeTruthy();
+      const connect = screen.getByRole("button", { name: "Koppla" });
+      expect(connect).toBeDisabled();
+      await user.click(connect);
+      expect(native.pair).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Avbryt" })).toBeEnabled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not show a check code on the typed form", async () => {
+    const native = fakeNative(() => ok({}), { paired: false });
+    mount(native);
+
+    await screen.findByLabelText("Serveradress");
+    expect(screen.queryByText(/Kontrollkod/)).toBeNull();
+  });
+
   it("pairs with the link's values once the user confirms", async () => {
     const user = userEvent.setup();
     const native = fakeNative(() => ok({}), { paired: false });
     mount(native, { launchLink: link });
 
-    await user.click(await screen.findByRole("button", { name: "Koppla" }));
+    await screen.findByText("Kontrollkod: 846 345");
+    await user.click(screen.getByRole("button", { name: "Koppla" }));
 
     expect(await screen.findByText("Appen")).toBeTruthy();
     expect(native.pair).toHaveBeenCalledWith({
@@ -253,7 +300,8 @@ describe("pairing link", () => {
     });
     mount(native, { launchLink: link });
 
-    await user.click(await screen.findByRole("button", { name: "Koppla" }));
+    await screen.findByText("Kontrollkod: 846 345");
+    await user.click(screen.getByRole("button", { name: "Koppla" }));
 
     await screen.findByText(pairingLabelsSv.errors.pairing_invalid);
     await waitFor(() =>
@@ -330,11 +378,21 @@ describe("validation and language helpers", () => {
     expect(hostOf("::")).toBe("");
   });
 
+  it("derives the check code like the server's pairing command", async () => {
+    // The same vectors are asserted in backend/tests/unit/test_companion_pairing_link.py.
+    expect(await pairingCheck("rspair_abcdefghijklmnop")).toBe("846 345");
+    expect(await pairingCheck("rspair_a-b_c")).toBe("335 471");
+    expect(await pairingCheck(" rspair_a-b_c ")).toBe("335 471");
+  });
+
   it("keeps the field and confirmation texts in step (locale parity)", () => {
     expect(Object.keys(pairingLabelsEn.fieldErrors).sort()).toEqual(
       Object.keys(pairingLabelsSv.fieldErrors).sort(),
     );
-    for (const labels of [pairingLabelsSv, pairingLabelsEn])
+    for (const labels of [pairingLabelsSv, pairingLabelsEn]) {
       expect(labels.confirmTitle).toContain("{host}");
+      expect(labels.confirmCheck).toContain("{check}");
+      expect(labels.confirmCheckMissing).not.toBe("");
+    }
   });
 });

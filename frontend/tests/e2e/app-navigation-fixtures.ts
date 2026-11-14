@@ -32,6 +32,7 @@ export type Options = {
   availableDisplayModes?: string[];
   replies?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  safeAreaInsets?: { top: number; right: number; bottom: number; left: number };
 };
 
 export async function openSidekick(page: Page, options: Options) {
@@ -49,6 +50,9 @@ export async function openSidekick(page: Page, options: Options) {
         "fullscreen",
       ],
       toolInfo: { id: 1, tool: { name: options.tool } },
+      ...(options.safeAreaInsets
+        ? { safeAreaInsets: options.safeAreaInsets }
+        : {}),
     },
     hostCapabilities: options.capabilities ?? { serverTools: {}, message: {} },
     replies: { ...domainReplies(), ...options.replies },

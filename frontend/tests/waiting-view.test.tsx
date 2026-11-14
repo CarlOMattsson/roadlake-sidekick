@@ -22,7 +22,6 @@ import {
   waitedDays,
   waitingRows,
 } from "@/features/work-app/shared/waiting";
-import { readStylesheet } from "./helpers/stylesheet";
 
 /** 27 Oct 2026, 12:00 UTC (Stockholm is still on summer time until 25 Oct, so 13:00 on the 27th). */
 const NOW = new Date("2026-10-27T12:00:00Z");
@@ -209,19 +208,6 @@ describe("waiting view in the fullscreen agenda", () => {
       />,
     );
     expect(screen.queryByRole("button", { name: /Remind me/ })).toBeNull();
-  });
-
-  it("gives the reminder button a 44 px touch target and lets the row wrap at 320 px", () => {
-    const css = readStylesheet("features/work-app/agenda/agenda.css");
-
-    expect(css.rule(".sidekick-work .work-waiting-remind")).toMatchObject({
-      "min-height": "2.75rem",
-      "min-width": "2.75rem",
-      "max-width": "100%",
-    });
-    expect(css.rule(".sidekick-work .work-waiting-who")["flex-wrap"]).toBe(
-      "wrap",
-    );
   });
 });
 

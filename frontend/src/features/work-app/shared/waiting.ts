@@ -76,21 +76,21 @@ export function remindAt(now: Date): string {
 
 /** The words of the waiting view, Swedish or English by the date locale of the caller. */
 export type WaitingLabels = {
-  /** Heading of the waiting view, with the count: "Du väntar på · 3". */
+  /** Heading of the waiting view, with the count. */
   heading: (count: number) => string;
   /** The inline card's kind label. */
   kind: string;
-  /** The inline count line: "3 väntar", "5+ väntar" when more exist. */
+  /** The inline count line: the count and the waiting word, with a + when more exist. */
   count: (count: number, more: boolean) => string;
   empty: string;
   /** When the record names nobody, or Contacts cannot be read. */
   someone: string;
-  /** "9 dagar", "1 dag", "sedan idag". */
+  /** How long it has waited: in days, or since today. */
   days: (days: number | null) => string;
   /** The button; its visible text is short, the accessible name says which task and when. */
   remind: string;
   remindName: (title: string) => string;
-  /** The line under a row once its reminder is set: "Påminnelse imorgon 09:00". */
+  /** The line under a row once its reminder is set: `reminded` with the day and time. */
   reminded: string;
   remindFailed: string;
 };

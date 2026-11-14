@@ -52,7 +52,7 @@ export type JournalDoneStep = Item<JournalDayResult["done"]["steps"]>;
 /** A shopping item bought on the day and still bought. */
 export type JournalDonePurchase = Item<JournalDayResult["done"]["purchases"]>;
 /**
- * What was done on the day (the diary's "Gjort" section): each list in time order, at most 50;
+ * What was done on the day (the diary's `done` section): each list in time order, at most 50;
  * `counts` are the real totals and `truncated` is true when a list was cut.
  */
 export type JournalDone = JournalDayResult["done"];

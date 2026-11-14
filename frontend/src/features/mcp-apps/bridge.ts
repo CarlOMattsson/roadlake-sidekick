@@ -125,7 +125,7 @@ export type HostBridge = {
   requestDisplayMode: (mode: DisplayMode) => Promise<DisplayMode>;
   /**
    * ui/update-model-context: tells the host model what the user just did, for future turns.
-   * Pass only a short description of the action, for example "Flyttade uppgift <id> till Klar".
+   * Pass only a short description of the action, for example that a task moved to done.
    * Callers must never send journal text (diary entries), per docs/decisions/log.md D-058 (logs and telemetry never carry user content).
    * The text is capped at 500 characters, and an identical summary sent again within 2 seconds
    * is skipped. The 2026-01-26 spec defines no per-method capability flag, so support follows
@@ -135,7 +135,7 @@ export type HostBridge = {
   updateModelContext: (summary: string) => Promise<void>;
   /**
    * ui/message: puts a short user message in the conversation, so Claude answers it (for example
-   * "Öppna Dagbok"). Resolves true when the host accepted it. Before the handshake, after teardown,
+   * `openRoomMessage`). Resolves true when the host accepted it. Before the handshake, after teardown,
    * when the host declared hostCapabilities without `message`, or when the host refuses or fails,
    * nothing is shown and this resolves false; it never throws. The text is capped at 500
    * characters, and an identical text sent again within 2 seconds is skipped (resolves false).

@@ -19,7 +19,7 @@ export type LicenseLabels = {
   expired: (date: string) => string;
   /** The expired sentence while there is no shop yet. */
   expiredNoShop: (date: string) => string;
-  /** The licensed row: "Licensierad till Alex Exempel · t.o.m. 9 nov 2027". Either part may be absent. */
+  /** The licensed row: the licensee and the end date. Either part may be absent. */
   licensed: (licensee: string | undefined, date: string) => string;
   buy: string;
   /** Said in place of the buy button while LICENSE_BUY_URL is empty (no link to the shop yet): that licenses can soon be bought, and where the key will go. */

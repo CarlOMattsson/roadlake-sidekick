@@ -158,7 +158,7 @@ function render() {
 }
 
 /**
- * The license row's host: set_license_key (app-only, the model never sees it) and "Köp licens" through the bridge.
+ * The license row's host: set_license_key (app-only, the model never sees it) and `buy` through the bridge.
  * A host that cannot proxy tool calls gets no key field.
  */
 const licenseCall: LicenseHost["call"] = (name, args) =>
@@ -258,7 +258,7 @@ function startHandshake() {
       warmIntl();
     })
     .catch(() => {
-      // No detail of the failure is shown; "Försök igen" draws the skeleton and runs the handshake again.
+      // No detail of the failure is shown; `retry` draws the skeleton and runs the handshake again.
       root.render(
         <StartupError
           locale={locale}

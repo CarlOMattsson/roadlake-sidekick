@@ -5,15 +5,16 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict, dataclass, replace
 from datetime import date, datetime, timedelta, tzinfo
 from decimal import Decimal
-from typing import Any, TypedDict, cast
+from typing import TypedDict
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
 
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
-from sidekick.shared.idempotent_operation import run_idempotent_operation
+from sidekick.shared.idempotent_operation import run_idempotent_model_operation
 from sidekick.shared.observability import TelemetryPort
+from sidekick.shared.replay import IdRecord
 from sidekick.shared.types import (
     UNSET,
     Actor,
@@ -80,16 +81,12 @@ def _merge_key(name: str, unit: str | None) -> tuple[str, str]:
     return (name.casefold(), (unit or "").casefold())
 
 
-class IdRef(TypedDict):
-    id: str
-
-
 class ListReplay(TypedDict):
-    shopping_list: IdRef
+    shopping_list: IdRecord
 
 
 class ItemReplay(TypedDict):
-    item: IdRef
+    item: IdRecord
 
 
 class PurchaseReplay(ItemReplay):
@@ -97,7 +94,7 @@ class PurchaseReplay(ItemReplay):
 
 
 class AddedItemReplay(TypedDict):
-    item: IdRef
+    item: IdRecord
     merged: bool
 
 
@@ -106,11 +103,11 @@ class BatchReplay(TypedDict):
 
 
 class PurchasedBatchReplay(TypedDict):
-    items: list[IdRef]
+    items: list[IdRecord]
     unchanged_item_ids: list[str]
 
 
-def _ref(record_id: UUID) -> IdRef:
+def _ref(record_id: UUID) -> IdRecord:
     return {"id": str(record_id)}
 
 
@@ -733,7 +730,7 @@ class ShoppingService:
         """
 
         actor.require("shopping:write")
-        answer = run_idempotent_operation(
+        return run_idempotent_model_operation(
             store=self.store,
             telemetry=self.telemetry,
             logger=LOGGER,
@@ -742,14 +739,12 @@ class ShoppingService:
             operation=operation,
             key=key,
             payload=payload,
-            execute=lambda session: execute(session).model_dump(mode="json"),
+            execute=execute,
             correlation_id=correlation_id,
-            replay=lambda result: cast(dict[str, Any], replay(model.model_validate(result))),
-            rebuild=lambda session, record: rebuild(session, cast(Rec, record)).model_dump(
-                mode="json"
-            ),
+            model=model,
+            replay=replay,
+            rebuild=rebuild,
         )
-        return model.model_validate(answer)
 
     def _list_result(self, session: TxSession, actor: Actor, record: ListReplay) -> ListResult:
         row = self.store.get_list(session, actor.user_id, UUID(record["shopping_list"]["id"]))

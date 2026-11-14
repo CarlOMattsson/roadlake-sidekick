@@ -10,7 +10,7 @@ import "./group-select.css";
 
 /**
  * The place picker: a native select (the phone draws its own list, with touch and screen reader built in), with
- * "Ingen plats" first and one group per Domain: the Domain alone, then its open Projects, then its Processes marked
+ * The no-place choice first and one group per Domain: the Domain alone, then its open Projects, then its Processes marked
  * "(process)". The value is the Task's place; `onChange` gives the chosen place, null for none. While the places are
  * read it says so; a failed read is the shared row error with a retry. The caller labels it (`label` is the accessible name).
  */

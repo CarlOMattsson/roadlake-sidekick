@@ -23,17 +23,17 @@ export interface RelativeDue {
 /** How a date label is written: in a sentence, or on its own. */
 export interface WorkDateOptions {
   /**
-   * Inline: the label is a sentence part after a colon or "till", so it starts in lower case ("imorgon",
-   * "tis 4 nov"). Without it the first letter is a capital ("Imorgon", "Tis 4 nov").
+   * Inline: the label is a sentence part after a colon or "till", so it starts in lower case (the `tomorrow` word,
+   * a short date). Without it the first letter is a capital.
    */
   inline?: boolean;
-  /** `false`: no "idag", "igår" or "imorgon", only the weekday and the date. */
+  /** `false`: no `today`, `yesterday` or `tomorrow`, only the weekday and the date. */
   relative?: boolean;
-  /** `false`: never a weekday, only the date ("5 nov"). "idag", "igår" and "imorgon" still read as words. */
+  /** `false`: never a weekday, only the date ("5 nov"). `today`, `yesterday` and `tomorrow` still read as words. */
   weekday?: boolean;
 }
 
-/** Days ahead (2..SOON_DAYS) that still count as "soon"; 1 day is "Imorgon". */
+/** Days ahead (2..SOON_DAYS) that still count as "soon"; 1 day is `tomorrow`. */
 const SOON_DAYS = 6;
 /** Within this many days of today a date shows its weekday ("tors 5 nov"); further out only the date. */
 const WEEKDAY_DAYS = 7;
@@ -213,7 +213,7 @@ function capitalize(text: string): string {
 /**
  * The one date label of the Work app, for a `YYYY-MM-DD` date or an ISO datetime (`Z` or offset),
  * relative to `now` in the owner zone:
- * - the days next to today read "idag", "imorgon" and "igår" (not with `relative: false`);
+ * - the days next to today read `today`, `tomorrow` and `yesterday` (not with `relative: false`);
  * - a day within a week reads with its weekday: "tors 5 nov" (not with `weekday: false`);
  * - any other day reads as "5 nov", with the year only when it is not the current year.
  * `locale` is a work label locale ("sv-SE", "en-GB"); Swedish reads in Swedish, anything else in English.
@@ -258,7 +258,7 @@ export function workDate(
   return options.inline ? text : capitalize(text);
 }
 
-/** "5 dagar försenad" or "5 days overdue"; one day is singular: "1 dag försenad", "1 day overdue". */
+/** How late it is in days; one day is singular. */
 function overdueText(days: number, sv: boolean): string {
   if (sv) return `${days} ${days === 1 ? "dag" : "dagar"} försenad`;
   return `${days} ${days === 1 ? "day" : "days"} overdue`;
@@ -269,7 +269,7 @@ function none(): RelativeDue {
 }
 
 /**
- * The due text of a row: an overdue day reads "5 dagar försenad" (or "5 days overdue"; one day is singular),
+ * The due text of a row: an overdue day reads how late it is in days (one day is singular),
  * any other day the `workDate` label (lower case from tomorrow on, "fre 6 nov"), with a tone. Missing or
  * invalid input gives an empty label with tone `none`.
  */
@@ -289,7 +289,7 @@ export function relativeDue(
   }
   const tone: DueTone =
     diff === 0 ? "today" : diff <= SOON_DAYS ? "soon" : "later";
-  // A chip reads "Idag" and "Imorgon" on their own; any other day is lower case: "fre 6 nov".
+  // A chip reads `today` and `tomorrow` capitalised on their own; any other day is lower case.
   const word = diff === 0 || diff === 1;
   return { text: workDate(value, now, locale, { inline: !word }), tone };
 }

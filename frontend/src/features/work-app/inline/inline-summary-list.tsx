@@ -60,7 +60,7 @@ export type CountLine = {
 };
 
 /**
- * The card's one link row (§7: "Öppna …" and "+N fler" became one): "Öppna Agenda · 3 fler ›"
+ * The card's one link row (§7: the open label and the more count became one): `openAgenda` with the count of the rest and a ›
  *, a tertiary open button, the rest after the name in the meta type. Without `aside` the name alone.
  */
 export function OpenFoot({
@@ -158,9 +158,9 @@ export function ListSummary({
 }: {
   labels: InlineSummaryLabels;
   kindLabel: string;
-  /** What the rows leave out ("+3 fler försenade"), on the line of "Open" at its end. */
+  /** What the rows leave out (the count of the rest), on the line of "Open" at its end. */
   aside?: string;
-  /** The kicker in full ("Arbete · 2 försenade · 1 idag · 3 kommande"); without it the app name alone. */
+  /** The kicker in full (the app name, then the overdue, today and upcoming counts); without it the app name alone. */
   kicker?: string;
   /** An extra class on the card, e.g. the agenda's own layout. */
   className?: string;
@@ -171,7 +171,7 @@ export function ListSummary({
   blank?: InlineEmptyText;
   /** Without it there is no Open button, e.g. when the agenda has nothing to open. */
   onOpen?: () => void;
-  /** The words of the Open button ("Öppna Agenda"); without it the button says "Open". */
+  /** The words of the Open button (`openAgenda`); without it the button says "Open". */
   openLabel?: string;
   /** Optional rows between the count line and "Open", e.g. the Projects of a hierarchy. */
   children?: ReactNode;
@@ -233,7 +233,7 @@ export type InlineMetaPart = { text: string; tone?: DueTone };
 /**
  * The row of every inline list card (the agenda and the board, designsystem §3 inline card): a button
  * the width of the card, at least 44 high, that opens its record or the room. The title takes the full width on its
- * own line, cut with an ellipsis, and the meta line stands under it, always ("11 dagar försenad · Pågår"). No ring and
+ * own line, cut with an ellipsis, and the meta line stands under it, always (how late it is, then the status). No ring and
  * no indent: an inline card does not write.
  */
 export function InlineRow({
@@ -274,9 +274,9 @@ export function InlineRow({
 }
 
 /**
- * An inline row's meta: the time and the status on one line, "9 dagar försenad · Pågår", from the builder of
+ * An inline row's meta: the time and the status on one line, how late it is, then the status, from the builder of
  * the fullscreen rows (`rowStatus`, `rowDue`), so the agenda and the board say the same of the same Task. No Project: the card is short.
- * Under a group that says the day (`group` "today", the agenda card's "Idag"), the row does not say it again.
+ * Under a group that says the day (`group` "today", the agenda card's `today`), the row does not say it again.
  */
 export function inlineMeta(
   item: WorkItemRecord,

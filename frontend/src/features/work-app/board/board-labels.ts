@@ -1,7 +1,7 @@
 /**
  * Words of Status (the board) that no other view shares: its empty state, the inline summary, the words of a card
  * (move up and down, the status list, dragging), and the notices that stand where a change was made: a refused
- * change, a failed change to one row, a failed "Visa fler", and the conflict notice, which the agenda and "Att sortera"
+ * change, a failed change to one row, a failed `more`, and the conflict notice, which the agenda and the `unsortedHeading` view
  * show too. Swedish comes first and is the default; the English key set must stay identical to it
  * (board-labels.test.ts checks that). The word set for one locale is picked with boardLabelsFor(t.dateLocale).
  */
@@ -37,7 +37,7 @@ export const boardLabelsSv = {
   moveFailed: "Det gick inte att ändra status.",
   rowChangeFailed: (title: string) => `Det gick inte att ändra ”${title}”.`,
   moreFailed: "Det gick inte att hämta fler.",
-  /** A refused change on the board, the agenda or "Att sortera": the text names no view, since all three show it. */
+  /** A refused change on the board, the agenda or the `unsortedHeading` view: the text names no view, since all three show it. */
   conflict: "Listan har lästs om, försök igen.",
   conflictAction: "Hämta senaste",
 };

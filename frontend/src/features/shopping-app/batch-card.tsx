@@ -20,7 +20,7 @@ export type BatchSummary = {
   merged: boolean[];
   list?: string;
   listId?: string;
-  /** The list's open items after the write, when the result carries open_count: "Inköp · 6 kvar · uppdaterad 10:22". */
+  /** The list's open items after the write, when the result carries open_count: the `updatedKicker` line. */
   open?: number;
 };
 
@@ -88,7 +88,7 @@ function clock(at: string, locale: string): string {
 }
 
 /**
- * When the list was written, with its day: "idag 13:00", "igår 13:00", else "tis 3 nov 13:00" (the
+ * When the list was written, with its day: the `today` or `yesterday` word and the time, else the short date and the time (the
  * day as every date in the app reads it), so a card read later does not pass yesterday's time off as today's.
  */
 function updatedWhen(at: string, t: ShoppingLabels): string {
@@ -177,9 +177,9 @@ export function BatchCard({
             {shown.map((item, index) => {
               const merged = summary.merged[index] === true;
               const updated = summary.kind === "updated";
-              // One pattern, "Utfall: vara, detalj": "Tillagd: Mjölk, 2 l", "Uppdaterad: Mjölk, nu 2 l". A
-              // merged item (the result's `merged`, a flag without the amount before) is "Uppdaterad" with its amount, or
-              // "Fanns redan: Mjölk" without one: whether the amount grew cannot be told from the result.
+              // One pattern, outcome prefix then item and detail: `newItemPrefix` (or `updatedPrefix`) with the item and its amount. A
+              // merged item (the result's `merged`, a flag without the amount before) is `updatedPrefix` with its amount, or
+              // `existedPrefix` and the item without one: whether the amount grew cannot be told from the result.
               const amount = hasAmount(item)
                 ? quantityText(item, t.dateLocale)
                 : undefined;

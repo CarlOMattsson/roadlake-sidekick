@@ -85,7 +85,7 @@ export function ShoppingView({
    * folded) that fits a phone card. "Show all" expands the whole view in place, and "Show fewer" folds it again.
    */
   compact?: boolean;
-  /** Opens another room; the list's ⋯ then ends with "Kontroll" (designsystem §3, Rumshuvud). */
+  /** Opens another room; the list's ⋯ then ends with `control` (designsystem §3, Rumshuvud). */
   onNavigate?: (target: RoomTarget) => void;
   /** The host's own settings (the phone): the list's ⋯ ends with them instead of Control. */
   hostSettings?: HostSettingsEntry;
@@ -152,7 +152,7 @@ export function ShoppingView({
   // The license coin asks (Control off): this ⋯ opens on its row.
   useLicenseMenu(moreButton, () => setPanel("moreOpen", true));
   const moreMark = useMoreMark(t.moreActions);
-  // The last entry of the list's ⋯ (designsystem §3): the host's own settings (the phone), else "Kontroll" when the
+  // The last entry of the list's ⋯ (designsystem §3): the host's own settings (the phone), else `control` when the
   // room can open another room.
   const control = useMemo(() => {
     if (hostSettings) return hostSettings;
@@ -389,12 +389,12 @@ export function ShoppingView({
             env={rowEnv}
             onToggle={() => setPanel("boughtOpen", !panels.boughtOpen)}
           />
-          {/* Last in the list, after the `boughtCount` fold, as Arbetes tip stands after "Klar (n)". */}
+          {/* Last in the list, after the `boughtCount` fold, as the Work room's tip stands after its `completed` fold. */}
           {storeMode && rows.length > 0 && !list.archived && !wasHoldUsed() && (
             <p className="shopping-hold-tip">{holdTip}</p>
           )}
           {/* An empty list says what it is for and how to fill it (§3 Tomt); in fullscreen, where + sits in the
-              Back row, "+ Lägg till vara" opens the same field here. Gone while the field is open. */}
+              Back row, the `addItem` row opens the same field here. Gone while the field is open. */}
           {!detail.items.length && !panels.addOpen && (
             <EmptyState
               title={t.empty}

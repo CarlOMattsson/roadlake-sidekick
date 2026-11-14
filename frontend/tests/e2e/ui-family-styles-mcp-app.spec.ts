@@ -1,47 +1,14 @@
-import {
-  expect,
-  test,
-  type FrameLocator,
-  type Locator,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { goRoom, openSidekick, room } from "./app-navigation-fixtures";
 import { settled } from "./mcp-host-fixture";
 import { journalDay, task } from "./sidekick-domain-fixtures";
+import { resolved, style } from "./computed-style";
 
 // The shared design language of the rooms (tokens, the room strip, the four button levels, the round +, the menu)
 // measured in a real Chromium from computed style and boxes instead of read out of the stylesheets. Simulated host (see
 // mcp-host-fixture.ts), not a real Claude or Android host: every tool answer is a fixture. Where the design says
 // "the colour of token X", the expected value is X resolved in the page, so a retuned token does not break the test
 // but a rule that stops using it does.
-
-/** `value` for the CSS `property`, resolved in the page: tokens, light-dark() and calc() become a colour or length. */
-async function resolved(
-  app: FrameLocator,
-  property: string,
-  value: string,
-): Promise<string> {
-  return app.locator("#root").evaluate(
-    (root, [name, text]) => {
-      const probe = document.createElement("span");
-      root.appendChild(probe);
-      probe.style.setProperty(name as string, text as string);
-      const out = getComputedStyle(probe).getPropertyValue(name as string);
-      probe.remove();
-      return out;
-    },
-    [property, value],
-  );
-}
-
-const style = (locator: Locator, ...properties: string[]) =>
-  locator.evaluate(
-    (element, names) =>
-      Object.fromEntries(
-        names.map((name) => [name, getComputedStyle(element)[name as never]]),
-      ) as Record<string, string>,
-    properties,
-  );
 
 async function openJournal(page: Page, width = 500) {
   const opened = await openSidekick(page, {

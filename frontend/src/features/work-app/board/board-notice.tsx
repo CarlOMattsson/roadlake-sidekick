@@ -37,7 +37,7 @@ export function failureNotice(
 }
 
 /**
- * Where the agenda shows a notice: in the row that was written, at "Flytta alla" for the bulk move, below "Visa fler",
+ * Where the agenda shows a notice: in the row that was written, at `moveAllOverdue` for the bulk move, below `more`,
  * else above the list. A conflict is the banner above the list.
  */
 export function noticeSpot(notice: BoardNotice | undefined): string {
@@ -49,8 +49,8 @@ export function noticeSpot(notice: BoardNotice | undefined): string {
 
 /**
  * The notice of a board or agenda action, with its banner focus and calm text. A failed read keeps the list and is the
- * family's refresh row (ErrorNotice): ⚠, the text and a secondary "Försök igen". A failed change is the family's write
- * error row: the line in the danger tone and "Försök igen" as a text button.
+ * family's refresh row (ErrorNotice): ⚠, the text and a secondary `retry`. A failed change is the family's write
+ * error row: the line in the danger tone and `retry` as a text button.
  */
 export function NoticeView({
   notice,
@@ -89,7 +89,7 @@ export function NoticeView({
       placement={change ? "row" : "refresh"}
       locale={t.dateLocale}
       cause={failed ? notice.cause : undefined}
-      // A failed read of the whole list keeps the family's "Kunde inte uppdatera"; the record that is gone only explains.
+      // A failed read of the whole list keeps the family's `refresh` line; the record that is gone only explains.
       message={
         notice.kind === "forbidden"
           ? writing

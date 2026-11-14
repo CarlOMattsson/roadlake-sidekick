@@ -64,8 +64,8 @@ export function AgendaSection({
 }) {
   const { labels: t, now, disabled } = ctx;
   const overdue = section.group === "overdue";
-  // The rows still to deal with: what "Flytta N till imorgon" moves and what the heading counts, one number at once
-  // (a row standing for its Ångra is not counted, so "Försenade (4)" and "Flytta 4" agree). Only Tasks: the move takes
+  // The rows still to deal with: what `moveAllOverdue` moves and what the heading counts, one number at once
+  // (a row standing for its Ångra is not counted, so the heading and the button agree). Only Tasks: the move takes
   // Tasks alone, and a Step is its Task's to deal with. A tick waiting to be sent counts as done.
   const movable = rows.open.filter(
     (item) =>
@@ -113,7 +113,7 @@ export function AgendaSection({
           onMove={() => onMoveAll(section.items)}
         />
       )}
-      {/* A failed "Flytta alla" or its Ångra says so under the button, with its Try again. */}
+      {/* A failed `moveAllOverdue` or its Ångra says so under the button, with its Try again. */}
       {overdue && (
         <AgendaNotice spot="moveAll" source={ctx.notice} labels={t} />
       )}
@@ -122,7 +122,7 @@ export function AgendaSection({
 }
 
 /**
- * "Klar idag (n) ⌄" last in the Agenda, folded until opened. The same markup and classes as Status's "Klar (n) ⌄"
+ * The `doneToday` fold last in the Agenda, folded until opened. The same markup and classes as the Work room's `completed` fold
  * (board.tsx); a ring tap opens the Task again and the row goes back to its group.
  */
 export function DoneTodaySection({

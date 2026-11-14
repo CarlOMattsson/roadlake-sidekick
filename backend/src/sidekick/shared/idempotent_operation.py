@@ -8,9 +8,11 @@ the outcome and the correlation id, never record content.
 """
 
 import logging
-from collections.abc import Callable
-from typing import Any, Protocol
+from collections.abc import Callable, Mapping
+from typing import Any, Protocol, cast
 from uuid import UUID
+
+from pydantic import BaseModel
 
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.observability import TelemetryPort
@@ -80,3 +82,52 @@ def run_idempotent_operation(
         extra={"correlation_id": correlation_id, "operation": operation, "outcome": "success"},
     )
     return result
+
+
+def run_idempotent_model_operation[R: BaseModel, Rec](
+    *,
+    store: IdempotentTransactionalStore,
+    telemetry: TelemetryPort,
+    logger: logging.Logger,
+    feature: str,
+    actor_id: UUID,
+    operation: str,
+    key: str,
+    payload: Mapping[str, object],
+    execute: Callable[[TxSession], R],
+    correlation_id: str | None,
+    model: type[R],
+    replay: Callable[[R], Rec] | None = None,
+    rebuild: Callable[[TxSession, Rec], R] | None = None,
+) -> R:
+    """`run_idempotent_operation` for an operation whose result is a closed model.
+
+    `execute` returns the model and `rebuild` the model from the record. The record (`Rec`,
+    usually a TypedDict naming the identifiers and flags the operation keeps) is what `replay`
+    projects the result to. The store holds plain JSON, so the result and the record cross it
+    as such, here and nowhere else; the answer is validated back into `model`.
+    """
+
+    answer = run_idempotent_operation(
+        store=store,
+        telemetry=telemetry,
+        logger=logger,
+        feature=feature,
+        actor_id=actor_id,
+        operation=operation,
+        key=key,
+        payload=dict(payload),
+        execute=lambda session: execute(session).model_dump(mode="json"),
+        correlation_id=correlation_id,
+        replay=(
+            None
+            if replay is None
+            else lambda result: cast(dict[str, Any], replay(model.model_validate(result)))
+        ),
+        rebuild=(
+            None
+            if rebuild is None
+            else lambda session, record: rebuild(session, cast(Rec, record)).model_dump(mode="json")
+        ),
+    )
+    return model.model_validate(answer)

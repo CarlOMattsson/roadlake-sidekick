@@ -14,7 +14,7 @@ import type { RowState } from "./use-row-state";
 export type AgendaControls = {
   query: string;
   refreshTick: number;
-  /** Empties the caller's search; "Rensa sökningen" under a search with no hit calls it. */
+  /** Empties the caller's search; `clearSearch` under a search with no hit calls it. */
   clear?: () => void;
 };
 
@@ -29,7 +29,7 @@ export function useAgendaQuery(controls: AgendaControls | undefined) {
 
 /**
  * What the agenda shows from the page it read: the records the filter keeps, their groups, the rows of each group in
- * the order they are shown (with those that left or wait for a decision apart), "Klar idag", and the records j and k
+ * the order they are shown (with those that left or wait for a decision apart), the `doneToday` fold, and the records j and k
  * step through.
  */
 export function useAgendaLayout({
@@ -101,10 +101,10 @@ export function useAgendaLayout({
   }
 
   /**
-   * "Klar idag": the rows marked done in this view whose Undo has run out and that have folded away, in the order they
+   * `doneToday`: the rows marked done in this view whose Undo has run out and that have folded away, in the order they
    * left. The agenda data holds only the open Tasks it was read with, so this is what the client knows: rows done here
    * since the last read. Where the data carries no more, the fallback
-   * applies: no earlier completions are listed and the row's line says "Klar · finns i Status". No call is
+   * applies: no earlier completions are listed and the row's line says `doneInStatus`. No call is
    * made for it.
    */
   const doneToday: { record: WorkItemRecord; group: AgendaBucket }[] =

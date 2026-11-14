@@ -10,7 +10,7 @@ type Titles = Record<string, string | null>;
  * The Tasks linked to one entry, by name, as chips beside its Contacts and Projects. A chip
  * opens its Task when the host routes there (`onOpenTask`); otherwise it is the name only. The titles are read with
  * get_task once per entry; until they are there, and on a host that cannot read them, the line is the count
- * ("Uppgifter: 2"), so the block never stands empty. A Task whose title could not be read shows a neutral name.
+ * (the `tasks` label and the count), so the block never stands empty. A Task whose title could not be read shows a neutral name.
  */
 export function EntryTasks({
   taskIds,

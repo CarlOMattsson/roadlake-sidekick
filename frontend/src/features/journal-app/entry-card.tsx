@@ -31,7 +31,7 @@ export type EntryCardData = {
   links?: JournalEntryLink[];
 };
 
-/** How many linked names the card names; the rest are counted ("och 1 till"). */
+/** How many linked names the card names; the rest are counted. */
 const CARD_LINK_LIMIT = 3;
 
 /** The name of a linked Project or Contact: its label, or the kind's fallback when the label is null. */
@@ -43,9 +43,9 @@ export function linkName(link: JournalEntryLink, t: JournalLabels): string {
 }
 
 /**
- * Compact card for one Journal entry (designsystem §3, Inline-kort): the kicker "Dagbok · sparad 10:20", the title,
- * the summary clamped by CSS, one muted line "Sammanfattad av Claude · Kopplad till Bo Berg", and the text button
- * "Öppna anteckningen ›" (no ink: opening is navigation) that opens the entry view. The original text is read in
+ * Compact card for one Journal entry (designsystem §3, Inline-kort): the kicker (app name and saved time), the title,
+ * the summary clamped by CSS, one muted line (`cardSummarized` and `linkedTo` with the names), and the text button
+ * `cardOpenEntry` with a › (no ink: opening is navigation) that opens the entry view. The original text is read in
  * fullscreen only, not here. The links are text (no × in the card, it was easy to hit by
  * mistake); a link is removed in the entry's fullscreen view. A contact's name opens the contact when the host passes
  * `onOpenContact`. The card reads nothing.
@@ -59,7 +59,7 @@ export function EntryCard({
   onOpenContact,
 }: {
   entry: EntryCardData;
-  /** Today, YYYY-MM-DD, so the saved line can say "igår" or leave the day out for today. Passed in, never read here. */
+  /** Today, YYYY-MM-DD, so the saved line can say `yesterday` or leave the day out for today. Passed in, never read here. */
   today: string;
   labels: JournalLabels;
   onOpen: () => void;
@@ -82,7 +82,7 @@ export function EntryCard({
   return (
     <section className="sidekick-journal" aria-label={t.title}>
       <article className="journal-card sk-card">
-        {/* The kicker before the title: "Dagbok · idag 10:20". Two elements, so the app name stays a heading and the
+        {/* The kicker before the title (app name, the day word and the time). Two elements, so the app name stays a heading and the
             day line stays a status. */}
         <div className="journal-card-meta">
           <h1 className="sk-eyebrow">{t.title}</h1>
@@ -114,7 +114,7 @@ export function EntryCard({
           </p>
         )}
         {/* The open button is the foot's own child, as in the shopping card: inside a wrapper that the foot lets
-            shrink, "Öppna anteckningen" broke onto two lines beside the coin. */}
+            shrink, `cardOpenEntry` broke onto two lines beside the coin. */}
         <CardFoot>
           <button
             type="button"
@@ -155,7 +155,7 @@ function legacyLinks(entry: EntryCardData, t: JournalLabels): string[] {
 }
 
 /**
- * The links as parts of the meta line: "Kopplad till Bo Berg, Anna Andersson och 1 till", then "1 uppgift". A
+ * The links as parts of the meta line: `linkedTo` with the names and a count of the rest, then `cardTasks`. A
  * contact's name is a text button that opens the contact when the host can; a project's name is plain text. No
  * remove button: a link is removed in the entry's fullscreen view. Tasks are not links in the record, so they
  * show as a count.
@@ -236,9 +236,9 @@ export function summaryRest(
 }
 
 /**
- * When the entry happened, the day and time it is filed under: "idag 12:30", "igår 18:05", or "26 okt 14:05"
+ * When the entry happened, the day and time it is filed under: the `today` or `yesterday` word and the time, or a short date and the time
  * (the year only when it is not this year's). It is not when the entry was saved, so the line does not say
- * "sparad" then; a result without a date says only "sparad".
+ * `cardSaved` then; a result without a date says only `cardSaved`.
  */
 function savedLine(
   entry: EntryCardData,

@@ -1,6 +1,6 @@
 /**
  * Words of the Work hierarchy that are not in labels.ts: the meta words of the Projects tab (no Tasks, open Tasks,
- * overdue, an empty Domain), the title filter, the group of completed Projects, the Task detail's date choice "Imorgon" (one word, design system §1.6), and the words of the Task and Contact detail. The shared words (Status, Description, Loading, Try again, the kind names) stay
+ * overdue, an empty Domain), the title filter, the group of completed Projects, the Task detail's date choice `dueTomorrow` (one word, design system §1.6), and the words of the Task and Contact detail. The shared words (Status, Description, Loading, Try again, the kind names) stay
  * in labels.ts. The word set for one locale is picked with hierarchyDetailLabelsFor(dateLocale). The
  * Swedish and English key sets must stay identical (hierarchy-detail.test.tsx checks that).
  */
@@ -34,15 +34,15 @@ export const hierarchyDetailLabelsSv = {
   /** The closed group of completed Projects, last in the tree. */
   completedGroup: (count: number) => `Avslutade (${count})`,
   dueTomorrow: "Imorgon",
-  /** The Task's status chip (design system §3, egenskapschip): its name is "Ändra status: Att göra". */
+  /** The Task's status chip (design system §3, egenskapschip): its name is `changeStatus` and the status. */
   changeStatus: "Ändra status",
-  /** The Task's priority chip: its name is "Ändra prioritet: Hög". */
+  /** The Task's priority chip: its name is `changePriority` and the priority. */
   changePriority: "Ändra prioritet",
-  /** The Contact's note as a paragraph under "Om Anna" (design system §3, Kontaktvyn). */
+  /** The Contact's note as a paragraph under the `aboutContact` heading (design system §3, Kontaktvyn). */
   aboutContact: (first: string) => `Om ${first}`,
   /** The closed section with e-mail, phone and address. */
   waysToReach: "Kontaktvägar",
-  /** Kontaktvägar's meta line names what is there, "E-post och telefon": the words, and the locale that lists them. */
+  /** The `waysToReach` meta line names what is there (e-mail and phone): the words, and the locale that lists them. */
   wayWords: ["e-post", "telefon", "adress"],
   wayLocale: "sv",
   /** The create field of the Contact list: a new Contact needs only a name. */

@@ -29,7 +29,7 @@ function GroupMeta({
   dl: HierarchyDetailLabels;
 }) {
   const process = node.kind === "process";
-  // "Aktivt" is the default and says nothing; a completed Project is in its own group, which says it.
+  // `active` is the default and says nothing; a completed Project is in its own group, which says it.
   const status =
     node.status !== undefined &&
     node.status !== "active" &&

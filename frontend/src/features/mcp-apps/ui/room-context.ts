@@ -9,7 +9,7 @@ import { createContext } from "react";
  *   twice (no doubled padding).
  * - `room` and `view` name what the layer shows (the room and view of its entry, which may belong to
  *   another room than the pane: a contact reached from the journal is `contacts`/`contact`). The shared
- *   read error (ErrorNotice) words its heading from them ("Uppgifterna kunde inte hämtas."), so a room's
+ *   read error (ErrorNotice) words its heading from them (the room's failed-read heading), so a room's
  *   own files need not pass a text. Absent outside the shell: the notice then uses the general sentence.
  * - `heading` is the room's name when the shell draws no room strip (a host that offers one room: the mobile app),
  *   so a room that has a header row of its own writes the name there. Absent where the strip names the room.

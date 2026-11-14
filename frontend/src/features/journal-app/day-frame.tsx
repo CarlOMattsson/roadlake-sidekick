@@ -30,7 +30,7 @@ type DayFrameProps = FrameProps & {
   refreshKey?: number;
   onTellClaude?: (text?: string) => void;
   /**
-   * The last entry of the day view's ⋯: Control, or the host's own settings (the phone's "Inställningar"). Absent: no
+   * The last entry of the day view's ⋯: Control, or the host's own settings (the phone's settings). Absent: no
    * such entry.
    */
   control?: HostSettingsEntry;
@@ -232,8 +232,8 @@ export function DayFrame({
           more.hasMore && <DayMorePanel more={more} buttonRef={moreButton} />
         }
         below={<DayAddPanel write={write} buttonRef={addButton} labels={t} />}
-        // "Idag" shows only while the strip shows a week without today: in today's week the strip's own
-        // "Idag" cell is the way back, so the button is gone rather than greyed. The `t` shortcut still works.
+        // The `today` button shows only while the strip shows a week without today: in today's week the strip's own
+        // `today` cell is the way back, so the button is gone rather than greyed. The `t` shortcut still works.
         actions={
           shownDays.includes(today) ? undefined : (
             <button

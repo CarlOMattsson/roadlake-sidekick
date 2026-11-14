@@ -236,8 +236,8 @@ export type EmptyAsk = {
 
 /**
  * The family's one empty state (designsystem §3 Tillstånd), the same in every room: line 1 says what is missing
- * ("Inga listor ännu."), an optional muted line says what the list is for, then "Säg till Claude:" with one example
- * sentence. With a host that offers messages the example is a button that sends it, as "Berätta om dagen" does; a host
+ * (the empty line), an optional muted line says what the list is for, then `askLead` with one example
+ * sentence. With a host that offers messages the example is a button that sends it, as the journal's example does; a host
  * without one (the phone) shows it as text under "Be Claude i Claude-appen:", still the main thing to learn. `children` adds a secondary way to do it
  * by hand. Start-aligned on the content edge, like the rows that will come.
  */
@@ -326,8 +326,8 @@ export function toolResultCause(result: unknown): Error {
 
 /**
  * A failure of the connection itself: the device is offline, or the request through the host failed
- * before any answer (anything but the host's tool answer, HostToolError). Only then does the card say "Kontrollera
- * anslutningen."; a tool answer without a code says only "Sidekick svarade inte." and guesses no cause.
+ * before any answer (anything but the host's tool answer, HostToolError). Only then does the card say `network`;
+ * a tool answer without a code says only `silent` and guesses no cause.
  */
 export function networkFailure(cause: unknown): boolean {
   if (typeof navigator !== "undefined" && navigator.onLine === false)
@@ -366,21 +366,21 @@ const warning = (
  *
  * `placement="card"` (default) is a failed read, drawn in the row system with no box: ⚠ in the leading column
  * with its centre on the ring's (x 28), then at x 52 a heading without a full stop that names what could not be
- * read ("Uppgifterna kunde inte hämtas"), a muted line with what the frame knows of the failure: "Sidekick
- * svarade inte." when no answer came from Sidekick (`maybeConnection(cause)`), followed by "Kontrollera anslutningen."
- * only on a failed request or offline and alone otherwise ("Försök igen om en stund." said the
- * button again), "Sidekick svarade med ett fel." when
+ * read (the room's failed-read heading), a muted line with what the frame knows of the failure: `silent`
+ * when no answer came from Sidekick (`maybeConnection(cause)`), followed by `network`
+ * only on a failed request or offline and alone otherwise (the wait line said the
+ * button again), `answered` when
  * Sidekick answered with its own code; no guessed cause or advice, and no line without a cause. Then the primary button
- * "Försök igen". No sentence repeats the button. The heading comes from `subject` ("room" or
+ * `retry`. No sentence repeats the button. The heading comes from `subject` ("room" or
  * "room:view"), else from the layer the shell draws (RoomSurfaceContext), else it is the general sentence.
  *
  * `placement="refresh"` is a list that was shown and could not be read again: the list stays and this is one row
- * on top of it, ⚠, "Kunde inte uppdatera" and a secondary "Försök igen" in the right slot.
+ * on top of it, ⚠, `refresh` and a secondary `retry` in the right slot.
  *
  * `placement="row"` is a failed write or a failed part of a view: one line in the danger tone under the
- * control, and "Försök igen" as a text button.
+ * control, and `retry` as a text button.
  *
- * `retrying` says a retry is running: the button reads "Försöker igen…", is aria-busy and does nothing (it keeps the
+ * `retrying` says a retry is running: the button reads `retrying`, is aria-busy and does nothing (it keeps the
  * focus). `message` replaces the heading or the line; it must never carry backend text, identifiers or another owner's
  * data. `onRetry` may be left out when the failure cannot be repeated; `children` adds further actions beside it.
  */

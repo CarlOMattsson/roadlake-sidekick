@@ -5,9 +5,9 @@ import { useUndoHold } from "../../../mcp-apps/ui/undo-hold";
 import { useNearest } from "../agenda-undo";
 
 /**
- * "Flytta N försenade till imorgon" at the foot of the Overdue group. A tap does not write: the button gives way to a
- * question ("Flytta 3 till imorgon?") with "Flytta" and "Avbryt" on the same place, and focus goes to "Flytta".
- * "Avbryt" and Escape bring the button back with focus on it.
+ * `moveAllOverdue` at the foot of the Overdue group. A tap does not write: the button gives way to a
+ * question (`moveAllConfirm`) with `moveAllConfirmYes` and `cancel` on the same place, and focus goes to `moveAllConfirmYes`.
+ * `cancel` and Escape bring the button back with focus on it.
  */
 export function MoveAllOverdue({
   labels: t,
@@ -88,7 +88,7 @@ export function MoveAllOverdue({
 }
 
 /**
- * The line after a move-all, "3 flyttade till imorgon" with Ångra beside it, for `UNDO_MS`. The time stands still while
+ * The line after a move-all, `moveAllDone` with Ångra beside it, for `UNDO_MS`. The time stands still while
  * the pointer is over it. Focus does not hold it: Ångra takes focus when the confirm button's was lost, and a hold by
  * focus would never let the time run out. It is a polite live region and scrolls into view when it shows. When the
  * time is up with focus in it, focus goes to the Overdue group's button, or to the heading.

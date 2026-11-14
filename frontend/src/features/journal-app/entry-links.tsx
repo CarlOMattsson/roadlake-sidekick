@@ -48,7 +48,7 @@ export function EntryLinks({
   /** Runs when the write was refused for a stale version; the parent reads the entry again. */
   onConflict: () => void;
   /**
-   * Whether the chips carry their ×. The entry passes true only while it is being changed ("Ändra"), so a tap meant to
+   * Whether the chips carry their ×. The entry passes true only while it is being changed (its edit mode), so a tap meant to
    * open a Contact never lands on its remove button.
    */
   removable?: boolean;
@@ -66,7 +66,7 @@ export function EntryLinks({
   const [busy, setBusy] = useState(false);
   // The key of the write in flight or the last failed one: a retry of the same write reuses it.
   const pendingKey = useRef<PendingKey | undefined>(undefined);
-  // Where focus goes after the question opens or closes: its "Ta bort" when it opens, the chip's × when it
+  // Where focus goes after the question opens or closes: its `linkRemoveConfirm` when it opens, the chip's × when it
   // closes, and the list itself after a removal (the chip is gone by then).
   const focusNext = useRef<"confirm" | "chip" | "list" | undefined>(undefined);
   const confirmRef = useRef<HTMLButtonElement | null>(null);

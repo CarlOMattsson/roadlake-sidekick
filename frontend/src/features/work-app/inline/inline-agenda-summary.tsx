@@ -47,10 +47,10 @@ export type InlineAgendaWrite = {
 };
 
 /**
- * Inline agenda (designsystem §3, inline card): the kicker "Arbete · ons 4 nov", the counts as the title in the
- * rows' order ("1 idag, 2 försenade"), then at most three rows, today first and then overdue. No headings and no status glyphs: a row is the title and its due words ("Ring Anna om offerten ·
- * 5 dagar försenad", red when overdue), and the whole row opens its record (`onOpenItem`; without it, the agenda).
- * With nothing overdue or due today the title is "Agenda" over one sentence. "Öppna agendan" shows the rest. An
+ * Inline agenda (designsystem §3, inline card): the kicker (the app name and the date), the counts as the title in the
+ * rows' order (`agendaTitle`), then at most three rows, today first and then overdue. No headings and no status glyphs: a row is the title and its due words (the title, then
+ * how late it is, red when overdue), and the whole row opens its record (`onOpenItem`; without it, the agenda).
+ * With nothing overdue or due today the title is `agenda` over one sentence. `openAgenda` shows the rest. An
  * Agenda with no record at all is the room's empty state (its sentence and the example to say to Claude) and the link.
  */
 export function AgendaSummary({
@@ -84,8 +84,8 @@ export function AgendaSummary({
 }
 /**
  * Inline waiting view: who each Task waits on and for how long, the longest wait first, as text rows
- * ("Anna Berg · 9 dagar", then the Task). Like every inline list it is read-only: "Open" shows the
- * fullscreen view, where each row has its "Påminn" button.
+ * (the name and the wait in days, then the Task). Like every inline list it is read-only: "Open" shows the
+ * fullscreen view, where each row has its `remind` button.
  */
 function WaitingSummary({
   page,
@@ -217,13 +217,13 @@ function DatedAgendaSummary({
   const listed = overdue.length + today.length;
   const blank = page.items.length === 0 && !more;
   // The card answers "today" first: with a Task due today the first row is today's, then the oldest overdue (the title once said
-  // "1 idag" over three overdue rows).
+  // the today count over three overdue rows).
   const rows = (
     today.length > 0 ? [today[0]!, ...overdue, ...today.slice(1)] : overdue
   ).slice(0, AGENDA_CARD_ROWS);
   const shownToday = rows.filter((row) => today.includes(row)).length;
-  // What the rows leave out of the Agenda the foot opens, every group of it ("3 fler" read against the
-  // Agenda's 10 rows). With another page to read the count is a floor: "7+ fler". The fullscreen Agenda lists every record of the page.
+  // What the rows leave out of the Agenda the foot opens, every group of it (`moreRows` read against the
+  // Agenda's 10 rows). With another page to read the count is a floor (`moreRows` with `more`). The fullscreen Agenda lists every record of the page.
   const hiddenText = labels.moreRows(
     hiddenRows(page.items.length, rows.length),
     more,
@@ -256,10 +256,10 @@ function DatedAgendaSummary({
       aside={rows.length > 0 ? hiddenText : undefined}
     >
       {rows.length > 0 ? (
-        // "Idag" over today's rows, then "Försenade" over the overdue: with both groups each is named, so a card
-        // titled "4 idag, 3 försenade" that shows one of today's says which row that is. The rows are drawn by their own
+        // `today` over today's rows, then `group.overdue` over the overdue: with both groups each is named, so a card
+        // titled with the counts that shows one of today's says which row that is. The rows are drawn by their own
         // group: which rows are chosen is above (today's first row, then the overdue), but a second row of today's
-        // never stands under "Försenade". With one group only, the card's title already says what the rows are.
+        // never stands under `group.overdue`. With one group only, the card's title already says what the rows are.
         (shownToday > 0 && overdue.length > 0
           ? [
               {
@@ -298,7 +298,7 @@ function DatedAgendaSummary({
   );
 }
 
-/** One row of the inline agenda: the title, and its meta under it; a row of today's does not say "Idag" again. */
+/** One row of the inline agenda: the title, and its meta under it; a row of today's does not say `today` again. */
 function AgendaRow({
   item,
   group,

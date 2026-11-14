@@ -6,25 +6,26 @@ injects the Task service and the automation activity ledger, which satisfy them.
 """
 
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Protocol
 from uuid import UUID
 
 from sidekick.shared.types import Actor, TxSession
+from sidekick.tasks.domain import NewTaskPayload, Task
 
 
 class RunTaskCreator(Protocol):
-    """Creates one Task inside the caller's open transaction and returns its serialized result."""
+    """Creates one Task inside the caller's open transaction and returns it."""
 
     def create_in_session(
         self,
         session: TxSession,
         actor: Actor,
-        payload: dict[str, Any],
+        payload: NewTaskPayload,
         correlation_id: str | None,
         /,
         *,
         actor_type: str,
-    ) -> dict[str, Any]: ...
+    ) -> Task: ...
 
 
 class RunActivityRecorder(Protocol):
@@ -45,8 +46,8 @@ class RunActivityRecorder(Protocol):
         operation: str,
         category: str,
         summary: str,
-        after_values: dict[str, Any] | None = None,
-        evidence: dict[str, Any] | None = None,
+        after_values: dict[str, object] | None = None,
+        evidence: dict[str, object] | None = None,
         correlation_id: str | None = None,
         occurred_at: datetime,
     ) -> UUID: ...

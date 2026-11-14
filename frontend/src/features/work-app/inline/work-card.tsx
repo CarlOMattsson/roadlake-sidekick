@@ -43,7 +43,7 @@ export type WorkCardProps =
   | {
       state: "error";
       labels: CardLabels;
-      /** The app's name above the notice ("Arbete"), not the card's own title. */
+      /** The app's name above the notice (`appName`), not the card's own title. */
       appTitle: string;
       /** Locale of the notice text: the work labels' dateLocale, as elsewhere in Work. */
       locale: string;
@@ -350,7 +350,7 @@ function ReadyCard({
         </ul>
       )}
       {notice ? <NoticeRow notice={notice} locale={labels.dateLocale} /> : null}
-      {/* What the list leaves out, only when the card cannot open the list: "Visa alla (11)" already says it. */}
+      {/* What the list leaves out, only when the card cannot open the list: `showAll` already says it. */}
       {hidden > 0 && !onOpen ? (
         <p className="work-compact-more">
           {fill(labels.more, { count: String(hidden) })}
@@ -426,7 +426,7 @@ function statusSentenceFor(
     items.every((item) => item.kind === "task" && item.status === first.status);
   if (!sameTaskStatus || !first) return undefined;
   const status = statusLabel(labels, first);
-  // The sentence reads mid-line ("nu pågår"), so only the first letter is lowered.
+  // The sentence reads mid-line (the status sentence), so only the first letter is lowered.
   const lowered = status.charAt(0).toLocaleLowerCase() + status.slice(1);
   return fill(total === 1 ? labels.summaryMovedOne : labels.summaryMovedOther, {
     count: String(total),

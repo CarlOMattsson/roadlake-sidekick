@@ -38,8 +38,8 @@ export function RelationCheck({
     >
       {option.suggested ? (
         <>
-          {/* Claude's suggestion is told by its Godkänn/Avslå pair (a candidate of the owner's own has a checkbox) and
-              by the summary line "Claude föreslår …", so the row names no source. */}
+          {/* Claude's suggestion is told by its `approve`/`decline` pair (a candidate of the owner's own has a checkbox) and
+              by the `suggestionSummary` line, so the row names no source. */}
           <p className="journal-choice">{option.label}</p>
           <Segmented
             label={t.decisionFor(option.label)}

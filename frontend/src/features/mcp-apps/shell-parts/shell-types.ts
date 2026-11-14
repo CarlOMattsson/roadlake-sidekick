@@ -55,7 +55,7 @@ export type SidekickShellProps = {
   full: boolean;
   /**
    * Present when the full view is only our own expansion (the host does not show fullscreen): a
-   * "Fäll ihop" button in the view then folds it back into the card, so the user never gets stuck in it.
+   * `collapse` button in the view then folds it back into the card, so the user never gets stuck in it.
    */
   onCollapse?: () => void;
   /** From bridge.getFeatures(). */

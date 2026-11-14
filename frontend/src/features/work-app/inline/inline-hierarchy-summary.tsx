@@ -28,10 +28,10 @@ function isEnded(node: WorkHierarchyNode): boolean {
  * Inline hierarchy: the number of open Projects (active or paused), of open Processes when there are any, and of
  * Tasks in the frame, then up to three Projects by name, open ones first, each in the rows' one template: the name,
  * and under it the meta line. An ended Project is not counted and comes last in the list, marked with its status word
- * ("Avslutat"); a paused one is marked "Pausat". A Project gets its progress ("0 av 1 klara" and the bar), or "Inga
- * uppgifter än", when the frame carries its Tasks (get_work_hierarchy with include_tasks); without them the Tasks line
- * and the progress are left out rather than shown as zero. The rows are text, not buttons, so they carry no ›: "Öppna
- * Projekt" opens the Projects. A tree the server cut is marked with "+". Without a single Project, Process or Domain the card is
+ * (`completed`); a paused one is marked `paused`. A Project gets its progress (the done count and the bar), or the no-tasks line
+ * when the frame carries its Tasks (get_work_hierarchy with include_tasks); without them the Tasks line
+ * and the progress are left out rather than shown as zero. The rows are text, not buttons, so they carry no ›: the open-projects
+ * link opens the Projects. A tree the server cut is marked with "+". Without a single Project, Process or Domain the card is
  * the room's empty state and its link, with no counts.
  */
 export function HierarchySummary({

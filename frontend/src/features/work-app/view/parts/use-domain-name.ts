@@ -3,7 +3,7 @@ import { toolOffered } from "../../../mcp-apps/tool-support";
 import type { WorkTransport } from "../../transport/transport";
 
 /**
- * The name of the Domain a Project or Process belongs to, for the "Hem · 1 av 3 klara" line. It is a nicety, not
+ * The name of the Domain a Project or Process belongs to, for the meta line under the title. It is a nicety, not
  * part of the record: until it is read, or when the read fails or the host cannot answer get_domain, the name is
  * undefined and the line simply goes without it (no error is shown).
  */

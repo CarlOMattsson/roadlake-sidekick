@@ -72,8 +72,8 @@ export function ownerDateFormat(
 }
 
 /**
- * When an offline copy was read, for "Ingen anslutning · senast hämtad 14:02": the time alone when the copy is from
- * today, else "11 nov. 14:02". The owner's clock, as every time in the apps reads.
+ * When an offline copy was read, for the offline line (the last-fetched time): the time alone when the copy is from
+ * today, else the short date and the time. The owner's clock, as every time in the apps reads.
  */
 export function copyTime(at: number, locale: string): string {
   const when = new Date(at);

@@ -82,6 +82,8 @@ def test_pair_with_a_scope_shows_the_rights_before_the_secret() -> None:
     ticket = json.loads(printed)
     assert ticket["scopes"] == ["companion:tasks:read"]
     assert "pairing_link" not in ticket
+    assert "pairing_check" not in ticket
+    assert "Kontrollkod" not in shown
 
 
 @pytest.mark.integration
@@ -107,6 +109,9 @@ def test_pair_with_a_server_url_prints_a_link_that_fills_in_the_app() -> None:
         "https://sidekick.example", ticket["pairing_secret"]
     )
     assert "rspair_" not in shown
+    check = cli.pairing_check(ticket["pairing_secret"])
+    assert ticket["pairing_check"] == check
+    assert f"Kontrollkod: {check}" in shown
 
 
 @pytest.mark.integration

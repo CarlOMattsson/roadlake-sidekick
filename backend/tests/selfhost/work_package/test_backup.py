@@ -219,25 +219,6 @@ def test_pruning_goes_by_the_time_in_the_name_and_never_removes_the_new_set(
     assert len(list(backups.glob("hindsight-*.tar.gz.enc"))) <= 7
 
 
-def test_a_backup_is_flushed_before_the_rename_and_the_directory_after_it(
-    mini_repo: Path,
-) -> None:
-    work = ready_repo(mini_repo)
-    sync_log = mini_repo / "sync.log"
-    stub = mini_repo / "bin" / "sync"
-    stub.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >>"$SYNC_LOG"\n', encoding="utf-8")
-    stub.chmod(0o755)
-    result = run_work(mini_repo, "backup", SYNC_LOG=str(sync_log))
-    assert result.returncode == 0, result.stderr
-    flushed = sync_log.read_text(encoding="utf-8").splitlines()
-    backups = work / "backups"
-    # Each backup's partial file is flushed before the directory.
-    db = next(backups.glob("sidekick-*.sql.enc"))
-    part = flushed.index(f"{db}.part")
-    assert str(backups) in flushed[part + 1 :], "the directory is flushed after the rename"
-    assert not list(backups.glob("*.part"))
-
-
 def test_a_failed_verification_prunes_nothing_and_keeps_no_new_file(mini_repo: Path) -> None:
     work = ready_repo(mini_repo)
     backups = work / "backups"

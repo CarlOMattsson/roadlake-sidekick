@@ -3,8 +3,8 @@ import { ChevronDownIcon } from "./icons";
 
 /**
  * The one fold row (row.css .sk-fold): "Text (n) ⌄" in the section type and ink, its count muted, an
- * optional meta line under it in 15,4 text-2, ⌄ (24) on the content edge and a 48 target. "Klar (n)", "Köpta (n)",
- * "Klara här (n)", "Kontaktvägar" and the row menu's groups at large text all use it.
+ * optional meta line under it in 15,4 text-2, ⌄ (24) on the content edge and a 48 target. the completed, bought and
+ * done-here folds, the ways-to-reach fold and the row menu's groups at large text all use it.
  */
 export function Fold({
   text,

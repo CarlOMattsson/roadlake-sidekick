@@ -9,7 +9,7 @@ from uuid import UUID
 from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ConflictError
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.tasks.domain import Priority
+from sidekick.tasks.domain import NewTaskPayload, Priority, Task, TaskStatus
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.domain import (
     Process,
@@ -37,14 +37,26 @@ class FakeTaskService:
     def create_in_session(
         self,
         _session: Any,
-        _actor: Actor,
-        payload: dict[str, Any],
+        actor: Actor,
+        payload: NewTaskPayload,
         _correlation_id: str | None,
         *,
         actor_type: str,
-    ) -> dict[str, Any]:
+    ) -> Task:
         self.created.append({**payload, "actor_type": actor_type})
-        return {"id": str(new_uuid7())}
+        return Task(
+            id=new_uuid7(),
+            owner_id=actor.user_id,
+            project_id=None,
+            title=payload["title"],
+            description=payload["description"],
+            status=TaskStatus.TODO,
+            priority=Priority(payload["priority"]),
+            due_at=payload["due_at"],
+            completed_at=None,
+            created_at=NOW,
+            updated_at=NOW,
+        )
 
 
 class FakeSession:

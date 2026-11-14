@@ -86,7 +86,7 @@ const MENU_OPENED = "sidekick-work-card-menu-opened";
  * Task's glyph is the drag handle. In "single" (a narrow phone) the glyph is a done toggle with no drag. The row has
  * no ⋯ (designsystem §3 "Snabbval"): a long press, Shift+F10 or the menu key opens a group inside the card with
  * the four statuses and, when `onReorder` is given, Flytta upp and Flytta ned. `undo` takes the meta line's place
- * while the last change of this card can be undone ("Klar · Ångra").
+ * while the last change of this card can be undone (`completed` with `undo`).
  */
 export function BoardCard({
   item,
@@ -135,9 +135,9 @@ export function BoardCard({
   queued?: boolean;
   /** A write of this card is running or waiting. */
   busy?: boolean;
-  /** A Step's Task by title when the Task stands elsewhere: its meta is "Steg i: <title>", on two lines. */
+  /** A Step's Task by title when the Task stands elsewhere: its meta is `stepOf`, on two lines. */
   parentTitle?: string;
-  /** A Step right after its Task in the same section: indented, its meta "Steg". */
+  /** A Step right after its Task in the same section: indented, its meta `step`. */
   nested?: boolean;
 }) {
   const [open, setOpen] = useState(false);

@@ -4,12 +4,12 @@ import { clipAtWord } from "../../mcp-apps/ui/clip-text";
 import type { JournalLabels } from "../labels";
 
 /**
- * The summary. Inline it is clamped to three lines, with "Läs mer" when the text is longer; fullscreen has no
+ * The summary. Inline it is clamped to three lines, with `readMore` when the text is longer; fullscreen has no
  * clamp, so it shows the whole text and no toggle. The cut is made here at a word boundary (CSS would cut inside a
  * word) and the CSS clamp only backs it up; the whole text stays in the page for screen readers. An expanded text
  * cannot tell whether it overflows, so the check runs only while it is clamped; the toggle then stays up to
  * collapse it again. `after` comes under the
- * text; inline it shares the row with "Läs mer" (journal.css), so it costs the card no row of its own.
+ * text; inline it shares the row with `readMore` (journal.css), so it costs the card no row of its own.
  */
 export function DraftSummary({
   text,

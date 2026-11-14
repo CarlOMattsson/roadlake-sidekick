@@ -1,16 +1,47 @@
-"""Plain-data serialisation of a Task, shared by the use cases and the transports."""
+"""Plain-data serialisation of a Task, shared by the transports."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TypedDict
 
 from sidekick.tasks.domain import Task
+from sidekick.tasks.domain.recurrence import RecurrenceData
 
 
-def task_to_data(task: Task) -> dict[str, Any]:
+class TaskPublicData(TypedDict):
+    """A Task as the public contract carries it: JSON values, no ownership fields."""
+
+    id: str
+    project_id: str | None
+    domain_id: str | None
+    process_id: str | None
+    derived_domain_id: str | None
+    attention_requested: bool
+    title: str
+    description: str | None
+    status: str
+    priority: str
+    due_at: str | None
+    completed_at: str | None
+    created_at: str
+    updated_at: str
+    version: int
+    archived_at: str | None
+    not_before: str | None
+    estimated_minutes: int | None
+    waiting_since: str | None
+    follow_up_at: str | None
+    waiting_on_contact_id: str | None
+    blocked_reminder_cadence: str | None
+    blocked_reminder_snoozed_until: str | None
+    blocked_last_reminded_at: str | None
+    recurrence: RecurrenceData | None
+    last_completed_at: str | None
+
+
+def task_public_data(task: Task) -> TaskPublicData:
     return {
         "id": str(task.id),
-        "owner_id": str(task.owner_id),
         "project_id": str(task.project_id) if task.project_id else None,
         "domain_id": str(task.domain_id) if task.domain_id else None,
         "process_id": str(task.process_id) if task.process_id else None,
@@ -49,11 +80,3 @@ def task_to_data(task: Task) -> dict[str, Any]:
             task.last_completed_at.isoformat() if task.last_completed_at else None
         ),
     }
-
-
-def task_public_data(task: Task) -> dict[str, Any]:
-    """Serialize the public contract without internal ownership fields."""
-
-    data = task_to_data(task)
-    data.pop("owner_id")
-    return data

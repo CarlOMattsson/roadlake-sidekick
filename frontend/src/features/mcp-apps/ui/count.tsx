@@ -1,5 +1,5 @@
 /**
- * A section heading's text with its count in the count's style: "Försenade" in the section type, " (5)" muted
+ * A section heading's text with its count in the count's style: the heading in the section type, " (5)" muted
  * and 400 (family.css .sk-count). A text without a count at its end stays as it is.
  */
 export function Counted({ text }: { text: string }) {

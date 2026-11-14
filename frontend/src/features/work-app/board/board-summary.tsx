@@ -69,7 +69,7 @@ export function summaryRows(page: WorkBoardPage, t: WorkLabels): SummaryRow[] {
  * The text sent to the host model: counts and column names only, never record titles, so
  * "Board: 3 to do, 2 in progress, 0 blocked, 1 done". Only Tasks are counted there; Projects follow
  * apart ("; projects: 2"). When the page has a next cursor, the text ends with "more not shown"
- * (Swedish: "fler finns").
+ * (the `more` label).
  */
 export function summaryText(
   rows: SummaryRow[],
@@ -117,8 +117,8 @@ export function BoardSummary({
   const now = new Date();
   // Projects get a line of their own below the bar.
   const projectRow = rows.find((row) => row.key === PROJECT_ROW);
-  // One set of open rows: "Att göra", "Pågår" and "Blockerad" as the Status list shows and counts them, Tasks and
-  // Steps. The bar, the headline's open and overdue counts and "+N fler öppna" all count it; Klar is not in the bar.
+  // One set of open rows: `todo`, `in_progress` and `blocked` as the Status list shows and counts them, Tasks and
+  // Steps. The bar, the headline's open and overdue counts and the more-open count all count it; `completed` is not in the bar.
   const segments: CountsSegment[] = [];
   const open: WorkItemRecord[] = [];
   for (const row of rows)
@@ -146,13 +146,13 @@ export function BoardSummary({
   const blank =
     !more && Object.values(page.columns).every((list) => list.length === 0);
   return (
-    // The card is named as the view it opens, "Status" ("Tavla" once opened "Status").
+    // The card is named as the view it opens (`status`).
     <section
       aria-label={t.status}
       className="sk-card work-compact-card work-compact-board"
     >
-      {/* The head of the agenda card (01), so the card says what its rows are: "Arbete · Status · ons 4 nov"
-          and "5 försenade av 13 öppna". */}
+      {/* The head of the agenda card (01), so the card says what its rows are: the room, the view and the date,
+          and the overdue and open counts. */}
       <h2 tabIndex={-1} className="work-compact-kind sk-eyebrow">
         {`${t.title} · ${t.status} · ${workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false })}`}
       </h2>
@@ -177,8 +177,8 @@ export function BoardSummary({
             <p className="work-compact-status">{`${projectRow.label}: ${projectRow.count}`}</p>
           ) : null}
           {nearest.length > 0 ? (
-            // What the rows are, as a meta label over them: "Äldst försenade" when all three are
-            // late, else "Närmast i tid".
+            // What the rows are, as a meta label over them: `nearestOverdue` when all three are
+            // late, else `nearest`.
             <p className="work-compact-group">
               {nearest.every(
                 (item) => rowDue(item, now, t.dateLocale)?.tone === "overdue",
@@ -188,7 +188,7 @@ export function BoardSummary({
             </p>
           ) : null}
           {nearest.length > 0 ? (
-            // The rows of the agenda card (01), with the status before the due words: "Pågår · 11 dagar försenad".
+            // The rows of the agenda card (01), with the status before the due words: the status, then how late it is.
             <ul className="work-compact-rows">
               {nearest.map((item) => (
                 <InlineRow
@@ -202,8 +202,8 @@ export function BoardSummary({
               ))}
             </ul>
           ) : null}
-          {/* "Öppna status ›", as "Öppna agendan ›" on the agenda card: an inline card has no ink button. What
-          the list leaves out stands at the end of its line; with nothing hidden but more pages, "Fler finns". */}
+          {/* The open-the-view link, as on the agenda card: an inline card has no ink button. What
+          the list leaves out stands at the end of its line; with nothing hidden but more pages, `more`. */}
           <OpenFoot
             aside={
               hiddenCount > 0

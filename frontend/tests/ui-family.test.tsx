@@ -6,8 +6,6 @@ import { Card, Eyebrow } from "@/features/mcp-apps/ui/card";
 import { Notice, UndoNotice } from "@/features/mcp-apps/ui/notice";
 import { ErrorNotice } from "@/features/mcp-apps/ui/states";
 
-import { readStylesheet } from "./helpers/stylesheet";
-
 describe("Card", () => {
   it("renders eyebrow, title, body and actions in the family order", () => {
     render(
@@ -143,33 +141,5 @@ describe("ErrorNotice placement", () => {
     );
     expect(screen.getByRole("button", { name: "Försök igen" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Uppdatera" })).toBeVisible();
-  });
-});
-
-describe("family.css", () => {
-  const css = readStylesheet("features/mcp-apps/ui/family.css");
-  it("uses tokens only: no hex outside var() or light-dark()", () => {
-    const stripped = css.rules
-      .flatMap((rule) => Object.values(rule.declarations))
-      .join(" ")
-      .replace(/var\([^)]*\)/g, "");
-    expect(stripped).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
-      expect.stringContaining("prefers-color-scheme"),
-    );
-  });
-  it("keeps every button at least 44 px high (the tap token; the phone raises it to 48)", () => {
-    render(<Button>Spara</Button>);
-
-    expect(
-      css.styleOf(screen.getByRole("button"), { room: "sidekick-work" })[
-        "min-height"
-      ],
-    ).toBe("var(--sk-tap)");
-  });
-  it("fullscreen frames lift every sticky notice above the foot reserve", () => {
-    expect(css.rule('.sk-frame[data-mode="full"]')["--sk-notice-bottom"]).toBe(
-      "var(--sk-foot-reserve, 6rem)",
-    );
   });
 });

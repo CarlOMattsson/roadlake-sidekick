@@ -152,7 +152,7 @@ function RefreshIcon() {
   );
 }
 
-/** The board's own "Uppdatera" button: the refresh glyph and its text. */
+/** The board's own `refresh` button: the refresh glyph and its text. */
 export function RefreshButton({
   label,
   disabled,

@@ -5,7 +5,7 @@ import "./saved-views.css";
 
 /**
  * The quiet line under the tab row that names the saved view the tab shows ("Visar vyn …") and offers the way back to
- * the tab's own list ("Visa allt"). It is a status region that stays mounted, so a new name is announced; with no text
+ * the tab's own list (`showAll`). It is a status region that stays mounted, so a new name is announced; with no text
  * it takes no room. `onClear` resolves whether the tab shows its own list now; when it does not, the line says so.
  */
 export function SavedViewReceipt({

@@ -1,6 +1,6 @@
 /**
  * The Aviseringar section of the phone's settings: the push state in plain words, the one fix the owner can apply,
- * and "Skicka testavisering" with one calm line per outcome. It reads the push state from the native side on its own.
+ * and `sendTest` with one calm line per outcome. It reads the push state from the native side on its own.
  */
 import { useCallback, useState } from "react";
 
@@ -52,14 +52,14 @@ function pushFixFor(status: PushStatus): PushFix | undefined {
   return undefined;
 }
 
-/** "Högst 5 testaviseringar i timmen. Försök igen om N min": whole minutes, at least 1. */
+/** The rate-limit line with the wait: whole minutes, at least 1. */
 function retryMinutes(seconds: number | undefined): number | undefined {
   if (seconds === undefined || !Number.isFinite(seconds) || seconds < 0)
     return undefined;
   return Math.max(1, Math.ceil(seconds / 60));
 }
 
-/** The line under "Skicka testavisering": a sent one is a success, a refusal plain information, no answer a failure. */
+/** The line under `sendTest`: a sent one is a success, a refusal plain information, no answer a failure. */
 type Feedback = { tone: "ok" | "info" | "error"; text: string };
 
 function testPushFeedback(

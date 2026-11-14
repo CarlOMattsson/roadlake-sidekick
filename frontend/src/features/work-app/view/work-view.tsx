@@ -91,9 +91,9 @@ export function WorkView({
   const inlineContact =
     (top?.kind === "compact" || (top?.kind === "contact" && top.context)) &&
     summaryRoot;
-  // A Contact on top names the view "Kontakt" (the header or the hidden heading), not the app name. A Task
+  // A Contact on top names the view `contact` (the header or the hidden heading), not the app name. A Task
   // or a Project names its own kind: in a framed room the hidden heading is all a screen reader hears of
-  // the strip's app ("Arbete" while the strip says "Dagbok" or "Kontakter").
+  // the strip's app (`work` while the strip says `journal` or `contacts`).
   const heading =
     top?.kind === "task"
       ? t.task

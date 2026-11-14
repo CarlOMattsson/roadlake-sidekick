@@ -26,7 +26,7 @@ function shortDate(value: string | null, locale: string): string | undefined {
 }
 
 /**
- * The external pointers on a Task (mail, calendar event, document) under "Underlag". Titles are shown as
+ * The external pointers on a Task (mail, calendar event, document) under `references`. Titles are shown as
  * plain text: they come from another service. Only the pointer is removed, with a visible Undo; focus
  * goes to that Undo, and after Undo back to the restored row. Nothing is shown while the list is empty,
  * cannot be read, or is forbidden, unless an Undo is pending.

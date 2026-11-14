@@ -13,7 +13,7 @@ import type {
 import type { useTaskOffers } from "./use-task-offers";
 
 /**
- * The Ångra of a "Markera klar" receipt: focus starts on its button (the write had moved it to the title), and the
+ * The Ångra of a `markDone` receipt: focus starts on its button (the write had moved it to the title), and the
  * time is held by the pointer only. A hold by focus would never let the time run out, since focus starts there. When
  * the time is up with focus on the button, focus goes to the Task's title.
  */
@@ -36,9 +36,9 @@ function useReceiptUndo(onExpire: () => void) {
 }
 
 /**
- * The Task view's answer to "Markera klar" on a recurring Task, right under the button, in the family's receipt shape
- * (line plus Ångra): "Klar · nästa: fre 27 nov". The server recorded the cycle and opened the Task again for its next
- * date, so the button still says "Markera klar" and Ångra writes the earlier due date back. It is a polite live
+ * The Task view's answer to `markDone` on a recurring Task, right under the button, in the family's receipt shape
+ * (line plus Ångra): `recurringDone`. The server recorded the cycle and opened the Task again for its next
+ * date, so the button still says `markDone` and Ångra writes the earlier due date back. It is a polite live
  * region; its time to undo stops while the pointer is over it (not for focus, which starts on Ångra), and `onExpire` ends it.
  */
 export function TaskCycleLine({
@@ -79,9 +79,9 @@ export function TaskCycleLine({
 }
 
 /**
- * Ångra in the place of "Återöppna" while a Task has just been marked done: the status chip already says "Klar", so the
+ * Ångra in the place of `reopenTask` while a Task has just been marked done: the status chip already says `completed`, so the
  * one way back is this button (with its time line) and no line of its own is added. Focus starts on it, and the time
- * stands still while the pointer is over it. Screen readers get "Klar" from a hidden live region.
+ * stands still while the pointer is over it. Screen readers get `completed` from a hidden live region.
  */
 export function TaskDoneUndo({
   labels: t,
@@ -115,13 +115,13 @@ export function TaskDoneUndo({
   );
 }
 
-/** What the last "Markera klar" left to undo: a recurring Task's cycle, or the status any other Task had before. */
+/** What the last `markDone` left to undo: a recurring Task's cycle, or the status any other Task had before. */
 export type DoneReceipt =
   | ({ kind: "cycle" } & RecurringCycle)
   | { kind: "finished"; was: TaskStatusValue };
 
 /**
- * What Ångra of the last "Markera klar" writes back, or nothing where the host cannot answer that write: a recurring
+ * What Ångra of the last `markDone` writes back, or nothing where the host cannot answer that write: a recurring
  * Task's earlier due date (and last completion), or the status any other Task had.
  */
 export function receiptUndo(
@@ -146,8 +146,8 @@ export function receiptUndo(
 }
 
 /**
- * The Task's "Markera klar" slot, last in the control row: the screen's one primary, compact ink; on a done Task
- * "Återöppna" as a secondary, which sets it back to "Att göra". Right after "Markera klar" on any other Task Ångra stands
+ * The Task's `markDone` slot, last in the control row: the screen's one primary, compact ink; on a done Task
+ * `reopenTask` as a secondary, which sets it back to `todo`. Right after `markDone` on any other Task Ångra stands
  * there instead (see TaskDoneUndo) until the time to undo is up. Both choices go through `onChoose`.
  */
 export function TaskDoneControl({
@@ -200,7 +200,7 @@ export function TaskDoneControl({
 }
 
 /**
- * The receipt line of a recurring Task's last "Markera klar" ("Klar · nästa: fre 27 nov") with the Ångra that writes the
+ * The receipt line of a recurring Task's last `markDone` (`recurringDone`) with the Ångra that writes the
  * earlier due date back through `save`. Without a host that answers that write the line only says what happened.
  */
 export function TaskDoneReceipt({

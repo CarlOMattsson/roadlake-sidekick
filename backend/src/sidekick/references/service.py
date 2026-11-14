@@ -7,11 +7,13 @@ title, link, account or provider-side identity.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Protocol, cast
+from typing import Protocol, TypedDict, cast
 from uuid import UUID, uuid4
+
+from pydantic import BaseModel
 
 from sidekick.references.domain import MAX_REFERENCES_PER_TASK, SOURCES, ExternalReferenceDetails
 from sidekick.references.persistence import ExternalReferenceRow, TaskExternalReferenceRow
@@ -25,9 +27,9 @@ from sidekick.references.schemas import (
     UnlinkResult,
 )
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
-from sidekick.shared.idempotent_operation import run_idempotent_operation
+from sidekick.shared.idempotent_operation import run_idempotent_model_operation
 from sidekick.shared.observability import TelemetryPort
-from sidekick.shared.replay import id_replay_record
+from sidekick.shared.replay import IdRecord
 from sidekick.shared.types import (
     TIMED_KEY,
     Actor,
@@ -43,6 +45,13 @@ from sidekick.shared.types import (
 )
 
 LOGGER = logging.getLogger("sidekick.references")
+
+
+class LinkReplay(TypedDict):
+    """What a retry of `link` keeps: the reference's id and whether the relation was new."""
+
+    reference: IdRecord
+    relation_created: bool
 
 
 def reference_data(row: ExternalReferenceRow, linked_at: datetime) -> ReferenceRecord:
@@ -133,7 +142,7 @@ class ExternalReferenceService:
         source: str,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> LinkResult:
         """Attach the pointer to the Task, creating or refreshing the shared reference row."""
 
         actor.require("tasks:write")
@@ -145,7 +154,7 @@ class ExternalReferenceService:
             "reference": asdict(details),
         }
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> LinkResult:
             self.store.require_task(session, actor.user_id, task_id)
             self.store.lock_task(session, actor.user_id, task_id)
             self.store.lock_identity(session, actor.user_id, details)
@@ -176,9 +185,9 @@ class ExternalReferenceService:
                 reference=reference_data(row, relation.created_at),
                 linked=True,
                 relation_created=created,
-            ).model_dump(mode="json")
+            )
 
-        def rebuild(session: TxSession, record: dict[str, Any]) -> dict[str, Any]:
+        def rebuild(session: TxSession, record: LinkReplay) -> LinkResult:
             # The record keeps ids and a flag; the pointer's text is read again, so a retry shows
             # the reference as it is now (and fails as not found once it was unlinked).
             reference_id = UUID(record["reference"]["id"])
@@ -191,7 +200,13 @@ class ExternalReferenceService:
                 reference=reference_data(row, relation.created_at),
                 linked=True,
                 relation_created=record["relation_created"],
-            ).model_dump(mode="json")
+            )
+
+        def replay(result: LinkResult) -> LinkReplay:
+            return {
+                "reference": {"id": str(result.reference.id)},
+                "relation_created": result.relation_created,
+            }
 
         return self._write(
             actor,
@@ -200,10 +215,8 @@ class ExternalReferenceService:
             payload,
             execute,
             correlation_id,
-            replay=lambda result: {
-                "reference": id_replay_record(result["reference"]),
-                "relation_created": result["relation_created"],
-            },
+            model=LinkResult,
+            replay=replay,
             rebuild=rebuild,
         )
 
@@ -215,13 +228,13 @@ class ExternalReferenceService:
         *,
         idempotency_key: str,
         correlation_id: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> UnlinkResult:
         """Remove the relation; the last relation also removes the pure-pointer row."""
 
         actor.require("tasks:write")
         payload = {"task_id": str(task_id), "reference_id": str(reference_id)}
 
-        def execute(session: TxSession) -> dict[str, Any]:
+        def execute(session: TxSession) -> UnlinkResult:
             self.store.require_task(session, actor.user_id, task_id)
             self.store.get_reference(session, actor.user_id, reference_id, lock=True)
             removed_reference = False
@@ -238,13 +251,15 @@ class ExternalReferenceService:
                 reference_id=reference_id,
                 linked=False,
                 reference_removed=removed_reference,
-            ).model_dump(mode="json")
+            )
 
-        return self._write(actor, "unlink", idempotency_key, payload, execute, correlation_id)
+        return self._write(
+            actor, "unlink", idempotency_key, payload, execute, correlation_id, model=UnlinkResult
+        )
 
     def list_for_task(
         self, actor: Actor, task_id: UUID, *, limit: int = 25, cursor: str | None = None
-    ) -> dict[str, Any]:
+    ) -> ReferencePage:
         actor.require("tasks:read")
         validate_limit(
             limit,
@@ -255,7 +270,7 @@ class ExternalReferenceService:
         query_key = f"task:{task_id}:external-references"
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=TIMED_KEY)
 
-        def read(session: TxSession) -> dict[str, Any]:
+        def read(session: TxSession) -> ReferencePage:
             self.store.require_task(session, actor.user_id, task_id)
             rows = self.store.list_for_task(
                 session, actor.user_id, task_id, limit=limit + 1, after=after
@@ -271,23 +286,24 @@ class ExternalReferenceService:
                 task_id=task_id,
                 items=[reference_data(row, linked_at) for row, linked_at in page],
                 next_cursor=next_cursor,
-            ).model_dump(mode="json")
+            )
 
         return self.store.transaction(read)
 
-    def _write(
+    def _write[R: BaseModel, Rec](
         self,
         actor: Actor,
         operation: str,
         key: str,
-        payload: dict[str, Any],
-        execute: Callable[[TxSession], dict[str, Any]],
+        payload: Mapping[str, object],
+        execute: Callable[[TxSession], R],
         correlation_id: str | None,
         *,
-        replay: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
-        rebuild: Callable[[TxSession, dict[str, Any]], dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
-        return run_idempotent_operation(
+        model: type[R],
+        replay: Callable[[R], Rec] | None = None,
+        rebuild: Callable[[TxSession, Rec], R] | None = None,
+    ) -> R:
+        return run_idempotent_model_operation(
             store=self.store,
             telemetry=self.telemetry,
             logger=LOGGER,
@@ -298,6 +314,7 @@ class ExternalReferenceService:
             payload=payload,
             execute=execute,
             correlation_id=correlation_id,
+            model=model,
             replay=replay,
             rebuild=rebuild,
         )

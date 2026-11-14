@@ -12,6 +12,7 @@ from typing import Any
 import pytest
 import yaml
 from tools.workctl import probe_egress
+from tools.workctl.readiness import READINESS_PY
 
 from sidekick.shared.config import Settings, secret_file_variable_names
 from tests.selfhost.work_package.support import (
@@ -404,12 +405,11 @@ def test_the_secret_files_are_ignored_and_the_examples_are_not() -> None:
 
 def test_the_readiness_code_is_the_one_the_selfhost_updater_runs() -> None:
     pattern = r"^READINESS_PY='(.*?)'$"
-    ours = re.search(pattern, SCRIPT.read_text(encoding="utf-8"), re.MULTILINE | re.DOTALL)
     theirs = re.search(
         pattern, (SELFHOST / "update.sh").read_text(encoding="utf-8"), re.MULTILINE | re.DOTALL
     )
-    assert ours is not None and theirs is not None
-    assert ours.group(1).strip() == theirs.group(1).strip()
+    assert theirs is not None
+    assert READINESS_PY.strip() == theirs.group(1).strip()
 
 
 def test_the_api_health_is_the_selfhost_readiness_and_the_gateway_waits_for_it(
@@ -420,12 +420,8 @@ def test_the_api_health_is_the_selfhost_readiness_and_the_gateway_waits_for_it(
     assert "healthcheck" not in overlay["services"]["api"], "the MCP-only check must not return"
     compose = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encoding="utf-8"))
     test = compose["services"]["api"]["healthcheck"]["test"]
-    ours = re.search(
-        r"^READINESS_PY='(.*?)'$", SCRIPT.read_text(encoding="utf-8"), re.MULTILINE | re.DOTALL
-    )
-    assert ours is not None
     assert test[:3] == ["CMD", "python", "-c"]
-    assert test[3].strip() == ours.group(1).strip()
+    assert test[3].strip() == READINESS_PY.strip()
     assert "sidekick.shared.readiness" in test[3]
     assert overlay["services"]["gateway"]["depends_on"] == {"api": {"condition": "service_healthy"}}
 

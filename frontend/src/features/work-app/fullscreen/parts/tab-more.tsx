@@ -10,7 +10,7 @@ import { AgendaMore } from "../../agenda/agenda-toolbar";
 import type { WorkLabels } from "../../shared/labels";
 
 /**
- * One tab's "⋯" menu. Its last entry is the host's own settings when it has them (the phone's "Inställningar"), else
+ * One tab's "⋯" menu. Its last entry is the host's own settings when it has them (the phone's settings), else
  * Control, which a routing host offers when the Control room is on and the host can list the trash.
  */
 export function TabMore({

@@ -151,7 +151,7 @@ function errorCard(
         {titled ? (
           <p className="sk-eyebrow">{labels.title}</p>
         ) : (
-          // Fullscreen: the title under the shell's "‹ Arbete", as the loaded view.
+          // Fullscreen: the title under the shell's Back row, as the loaded view.
           <h2 className="control-title">{labels.title}</h2>
         )}
         <ErrorNotice
@@ -254,8 +254,8 @@ export function ControlRoom(props: RoomProps) {
       });
   }
 
-  // Inline the card names itself in its kicker; the full view names it with the title "Kontroll" under the shell's
-  // Back ("‹ Arbete"), since Control is a step of the room it was opened from.
+  // Inline the card names itself in its kicker; the full view names it with the title `control` under the shell's
+  // Back (to the room), since Control is a step of the room it was opened from.
   const titled = props.mode === "inline";
   if (shown.failed)
     return errorCard(labels, titled, shown.current, retry, shown.cause);

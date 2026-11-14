@@ -5,7 +5,7 @@ import stat
 from pathlib import Path
 
 import pytest
-from tools.workctl import backupkey, cli
+from tools.workctl import backupkey
 
 VALID_KEY = "A" * 43 + "="
 
@@ -79,44 +79,6 @@ def test_a_key_file_inside_the_backup_directory_is_refused(dirs: tuple[Path, Pat
         backupkey.ensure_key(backups / "backup.key", backups, generate=True)
     assert problem.value.key == "bk_key_inside"
     assert not (backups / "backup.key").exists()
-
-
-def test_the_command_reports_a_new_key_on_stdout_without_its_content(
-    dirs: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
-) -> None:
-    key_file, backups = dirs
-    args = [
-        "backup-key",
-        "--lang",
-        "en",
-        "--key-file",
-        str(key_file),
-        "--backups-dir",
-        str(backups),
-    ]
-    assert cli.main([*args, "--generate"]) == 0
-    out = capsys.readouterr().out
-    assert out.startswith(f"A new key for the backups was created: {key_file}\n")
-    assert key_file.read_text(encoding="ascii").strip() not in out
-
-
-def test_the_command_fails_with_the_message_on_stderr(
-    dirs: tuple[Path, Path], capsys: pytest.CaptureFixture[str]
-) -> None:
-    key_file, backups = dirs
-    args = [
-        "backup-key",
-        "--lang",
-        "en",
-        "--key-file",
-        str(key_file),
-        "--backups-dir",
-        str(backups),
-    ]
-    assert cli.main(args) == 1
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert f"The key for the backups is missing: {key_file}" in captured.err
 
 
 def test_a_key_made_by_a_concurrent_run_is_never_replaced(

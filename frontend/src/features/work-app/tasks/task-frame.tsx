@@ -50,7 +50,7 @@ export function TaskFrame({
   const frame = useDetailFrame({ moves });
   const { phase, write, editing, heading, banner } = frame;
   const [task, setTask] = useState<WorkTask>();
-  // The ⋯ panel under the title; its one entry is "Redigera" (design system §3, Tillbakarad).
+  // The ⋯ panel under the title; its one entry is `edit` (design system §3, Tillbakarad).
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
   const moreButton = useRef<HTMLButtonElement>(null);
@@ -111,13 +111,13 @@ export function TaskFrame({
     enabled: contactsOn,
     refreshKey,
   });
-  // "Ta bort koppling" in the Contact row's own menu: the row stays with its Ångra until the list is read again.
+  // `removeLink` in the Contact row's own menu: the row stays with its Ångra until the list is read again.
   const unlinks = useLinkUndo((contactId, link, key) =>
     link
       ? transport.linkContactToTask(id, contactId, key)
       : transport.unlinkContactFromTask(id, contactId, key),
   );
-  // The detail's meta line under the title: "5 dagar försenad", only while the open Task is late.
+  // The detail's meta line under the title: how late it is, only while the open Task is late.
   const late =
     task?.due_at && task.status !== "completed"
       ? relativeDue(
@@ -149,7 +149,7 @@ export function TaskFrame({
       (result) => setTask(result.task),
     );
   }
-  // A failed "Markera klar" puts focus on its Försök igen, where the press was, not on the page.
+  // A failed `markDone` puts focus on its `retry`, where the press was, not on the page.
   useFocusRetry(
     write.kind === "failed" &&
       write.action !== "reload" &&
@@ -176,7 +176,7 @@ export function TaskFrame({
     );
   return (
     <article className="work-task">
-      {/* The Back row carries only ⋯, whose first entries are "Redigera" and "Ta bort uppgift"; a tap on the title edits too (§3). */}
+      {/* The Back row carries only ⋯, whose first entries are `edit` and `deleteTask`; a tap on the title edits too (§3). */}
       <DetailBar
         back={back}
         kicker={phase !== "gone" ? t.task : undefined}
@@ -211,7 +211,7 @@ export function TaskFrame({
       >
         {phase === "ready" && task ? task.title : t.task}
       </DetailTitle>
-      {/* The Task's one meta line (§4 Detaljvy): "5 dagar försenad", under the title, only while the Task is late;
+      {/* The Task's one meta line (§4 Detaljvy): how late it is, under the title, only while the Task is late;
           its place stands as a chip in the control rows below. */}
       {late?.tone === "overdue" && (
         <p className="work-task-meta">
@@ -265,7 +265,7 @@ export function TaskFrame({
               )
             }
           >
-            {/* The chip carries only the value, "fre 30 okt"; how late it is stands on the line above. */}
+            {/* The chip carries only the value (the date); how late it is stands on the line above. */}
             {task.due_at ? (
               <time dateTime={task.due_at}>{detailDate(task.due_at, t)}</time>
             ) : null}
@@ -356,7 +356,7 @@ export function TaskFrame({
                 (descriptionCut ??
                   (task.description.length > 60 ||
                     task.description.split("\n").length > 2))) && (
-                // A tertiary text button right after the text it opens, "Visa mer". No ›: › says
+                // A tertiary text button right after the text it opens, `descriptionMore`. No ›: › says
                 // that a row opens a view (DR §4 "Klar"); this one opens the text in place.
                 <button
                   type="button"

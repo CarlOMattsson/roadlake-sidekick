@@ -21,8 +21,8 @@ import {
 import { useDomainName } from "../view/parts/use-domain-name";
 
 /**
- * A Process page, the sibling of ProjectFrame: kicker, name, a line "Hem · Varje vecka" (the Area and the cadence),
- * the status when it is not active, the description and the Tasks of the Process with "+ Ny uppgift". The Process
+ * A Process page, the sibling of ProjectFrame: kicker, name, a line (the Area and the cadence),
+ * the status when it is not active, the description and the Tasks of the Process with `newTask`. The Process
  * itself is read only here; the Tasks section loads and fails on its own.
  */
 export function ProcessFrame({

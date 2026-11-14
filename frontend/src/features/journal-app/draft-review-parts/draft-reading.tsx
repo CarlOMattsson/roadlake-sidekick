@@ -7,7 +7,7 @@ import { DraftSummary } from "./draft-summary";
 /**
  * The draft as the owner reads it: summary, the tags for the entry (`tags`), the way into the editor beside the
  * original (`original`), then key points. Edit and the original sit under the summary they belong to, so the fold rows
- * (key points, links, task changes) follow each other with nothing between them. Fullscreen puts "Redigera" right
+ * (key points, links, task changes) follow each other with nothing between them. Fullscreen puts `edit` right
  * under the summary and the tags, a section of their own, after it: inline the tags share the summary's row.
  */
 export function DraftReading({

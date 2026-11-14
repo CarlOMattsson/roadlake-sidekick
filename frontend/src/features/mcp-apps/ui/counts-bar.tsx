@@ -11,7 +11,7 @@ export type CountsTone = "neutral" | "info" | "warning";
 
 export type CountsSegment = {
   key: string;
-  /** Status name in the caller's language, e.g. "Att göra" or "To do". */
+  /** Status name in the caller's language, e.g. `todo`. */
   label: string;
   count: number;
   tone?: CountsTone;

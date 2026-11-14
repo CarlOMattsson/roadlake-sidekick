@@ -19,8 +19,8 @@ export const rowSpot = (key: string) => `row:${key}`;
 
 /**
  * The agenda's notice on the spot where its write or read was made (`noticeSpot`): in the row that was written, at
- * "Flytta alla", below "Visa fler", else above the list. A notice that sits away from the top takes focus on its
- * "Försök igen" when it shows, so a keyboard or screen reader user lands on it and not on the page.
+ * `moveAllOverdue`, below `more`, else above the list. A notice that sits away from the top takes focus on its
+ * `retry` when it shows, so a keyboard or screen reader user lands on it and not on the page.
  */
 export function AgendaNotice({
   spot,

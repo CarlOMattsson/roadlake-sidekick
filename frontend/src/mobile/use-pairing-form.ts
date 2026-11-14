@@ -9,6 +9,7 @@ import { pairingErrorMessage, type PairingLabels } from "./pairing-labels";
 import type { PairingLink } from "./pairing-link";
 import {
   codeProblem,
+  pairingCheck,
   serverProblem,
   withScheme,
   type CodeProblem,
@@ -71,12 +72,27 @@ export function usePairingForm({
   const [secret, setSecret] = useState(link?.code ?? "");
   const [secretShown, setSecretShown] = useState(false);
   const [confirming, setConfirming] = useState(link !== undefined);
+  // Undefined while it is computed; null when the page cannot compute it.
+  const [check, setCheck] = useState<string | null | undefined>();
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [problem, setProblem] = useState<string | undefined>();
   const serverInput = useRef<HTMLInputElement>(null);
   const secretInput = useRef<HTMLInputElement>(null);
   const actions = useRef<HTMLDivElement>(null);
+
+  // The check code of the link's pairing code, to compare with the one the server printed.
+  useEffect(() => {
+    if (!confirming) return undefined;
+    let current = true;
+    pairingCheck(secret).then(
+      (value) => current && setCheck(value ?? null),
+      () => current && setCheck(null),
+    );
+    return () => {
+      current = false;
+    };
+  }, [confirming, secret]);
 
   // The keyboard covers the lower part of the page: keep the button in view while a field has focus and when the
   // keyboard opens or closes.
@@ -181,6 +197,7 @@ export function usePairingForm({
     secretShown,
     setSecretShown,
     confirming,
+    check,
     busy,
     errors,
     problem,

@@ -56,7 +56,7 @@ export function ItemGroups({
   onExpanded: (value: boolean) => void;
 }) {
   const { labels: t } = env;
-  // "Utan butik" names the rest beside stores; with no store on any row there is nothing to tell it from.
+  // `otherStore` names the rest beside stores; with no store on any row there is nothing to tell it from.
   const storeless = shownGroups.every(({ store }) => store === null);
   return (
     <>

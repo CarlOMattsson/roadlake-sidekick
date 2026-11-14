@@ -37,7 +37,7 @@ export function ListSummary({
       {/* The list name (or the shop's "ICA · 8 left") is the title of the header row above, not repeated here. */}
       {storeMode ? (
         // Fullscreen: a full-width stripe under the list name (shopping.css, .shopping-progress). An empty list has
-        // nothing to count ("0 av 0 köpta"): its empty state says so instead.
+        // nothing to count (`boughtOf` with 0 of 0): its empty state says so instead.
         detail.items.length > 0 && (
           <div className="shopping-progress">
             <Progress
@@ -73,7 +73,7 @@ export function ListSummary({
 
 /**
  * The create field stands first, 8 under the progress line and before the first shop. In fullscreen the + of the
- * Back row opens it; in a card the row "+ Lägg till vara" does, in the field's place (§3 Skapa). Enter
+ * Back row opens it; in a card the `addItem` row does, in the field's place (§3 Skapa). Enter
  * adds and keeps it open, Esc or × closes it and gives the focus back to what opened it. Esc closes it from
  * anywhere in the view, not only while the caret is in the field (the focus may have moved to a row or a button).
  */

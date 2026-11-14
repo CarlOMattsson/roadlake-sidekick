@@ -10,7 +10,7 @@ import type { BackTarget } from "./frame-types";
  * The top row of a Task, Contact or Project (design system §3, Tillbakarad): "‹ Parent" on the left and the view's
  * icon buttons (pen, then ⋯) on the right, 44 px high. In fullscreen the shell draws that Back row, and the actions
  * go into its slot (BackHeaderActions). A Back inside the view (a deeper frame of this view) is drawn here with the
- * actions. A root frame with no Back at all shows the kind as a muted kicker ("Uppgift") in the row instead, with the
+ * actions. A root frame with no Back at all shows the kind as a muted kicker (`task`) in the row instead, with the
  * same actions, so the actions never sit on the title's line.
  */
 export function DetailBar({

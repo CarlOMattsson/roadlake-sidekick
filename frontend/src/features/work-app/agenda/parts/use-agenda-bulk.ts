@@ -20,7 +20,7 @@ const RESCHEDULE_CHUNK = 20;
 type MovedTask = { id: string; version: number; was: string | null };
 
 /**
- * The two writes that are not one status change: "Påminn" in the waiting view and "Flytta alla försenade till imorgon"
+ * The two writes that are not one status change: `remind` in the waiting view and `moveAllOverdue`
  * in the Overdue group, with its Ångra.
  */
 export function useAgendaBulk({
@@ -42,14 +42,14 @@ export function useAgendaBulk({
   // Waiting view: the Tasks whose reminder this view set, by row key.
   const [reminded, setReminded] = useState<Record<string, boolean>>({});
   const remindedRef = useRef(new Set<string>());
-  // The key of "Flytta alla försenade": the same group, unchanged, sends the same key again.
+  // The key of `moveAllOverdue`: the same group, unchanged, sends the same key again.
   const bulkPending = useRef<PendingKey | undefined>(undefined);
   // The Tasks of the last move-all while Ångra is offered; undefined when there is nothing to undo.
   const [moved, setMoved] = useState<MovedTask[]>();
   const dismissMoveUndo = useCallback(() => setMoved(undefined), []);
 
   /**
-   * "Påminn" in the waiting view: sets the Task's follow-up time to 09:00 tomorrow with update_task, so
+   * `remind` in the waiting view: sets the Task's follow-up time to 09:00 tomorrow with update_task, so
    * it comes back to the owner as a follow-up then. The key is kept for a retry of the same write.
    */
   function remind(record: WorkItemRecord) {
@@ -81,7 +81,7 @@ export function useAgendaBulk({
   }
 
   /**
-   * "Flytta alla försenade till imorgon", once the owner confirmed: every open Task of the overdue group moves to 23:59
+   * `moveAllOverdue`, once the owner confirmed: every open Task of the overdue group moves to 23:59
    * tomorrow with reschedule_tasks, which takes 20 at most, so the group goes in chunks. Then the agenda is read
    * again, so the rows show the new dates, and the move can be undone for a while. A refused or stale write shows the
    * notice; "Try again" repeats the move.

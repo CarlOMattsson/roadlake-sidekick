@@ -25,7 +25,7 @@ export type AgendaRowContext = {
   onOpen: (frame: WorkFrame) => void;
   /** The last notice and its buttons: a row shows the one that belongs to it. */
   notice: NoticeSource;
-  /** The ids (lower case) of the Tasks whose tick waits in the phone's outbox: drawn done, "Skickas…". */
+  /** The ids (lower case) of the Tasks whose tick waits in the phone's outbox: drawn done, `sending`. */
   sending: ReadonlySet<string>;
   /** The ids (lower case) of the Tasks this agenda draws done: their Steps say so instead of their dates. */
   doneTasks: ReadonlySet<string>;

@@ -13,8 +13,10 @@
 and lifetimes in the app language (on stderr) before it prints the pairing secret once, with its
 expiry: paste it into the app within 10 minutes (there is no QR code). With `--server-url` the JSON
 also carries `pairing_link`, `sidekick://pair?server=<url>&code=<code>`, which opens the phone's app
-with both fields filled in (the app still asks before it pairs). It is single-use; the device
-exchanges it at `POST /companion/v1/pair` for its own credential, which the operator never sees.
+with both fields filled in (the app still asks before it pairs) and `pairing_check`, six digits that
+the app derives from the code and shows before it connects (also printed on stderr: compare them).
+It is single-use; the device exchanges it at `POST /companion/v1/pair` for its own credential,
+which the operator never sees.
 Without `--user-id` the command uses the installation's only active owner and refuses when there is
 not exactly one.
 
@@ -29,6 +31,7 @@ print a device credential, and `list` never prints a secret.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections.abc import Sequence
@@ -119,6 +122,12 @@ NOTICES: dict[str, LocalizedText] = {
         "sv": "Hemligheten visas bara nu:",
         "en": "The pairing code is shown only now:",
     },
+    "check": {
+        "sv": "Kontrollkod: {check}. Appen visar samma kod innan telefonen kopplas; "
+        "om den skiljer sig, tryck Avbryt.",
+        "en": "Check code: {check}. The app shows the same code before the phone connects; "
+        "if it differs, tap Cancel.",
+    },
 }
 
 
@@ -140,6 +149,19 @@ def _server_origin(text: str) -> str:
     ):
         raise argparse.ArgumentTypeError("must be an https origin such as https://sidekick.example")
     return f"{parts.scheme}://{parts.netloc}"
+
+
+def pairing_check(secret: str) -> str:
+    """Six digits, "123 456", that the app derives from the code too and shows before it connects.
+
+    The owner compares them with the ones printed here, which a link sent by someone else cannot
+    match. They are a comparison aid, not a secret. The app computes the same value (`pairingCheck`
+    in `frontend/src/mobile/pairing-validation.ts`).
+    """
+    leading = hashlib.sha256(secret.strip().encode()).digest()[:4]
+    number = int.from_bytes(leading, "big") % 1_000_000
+    digits = f"{number:06d}"
+    return f"{digits[:3]} {digits[3:]}"
 
 
 def pairing_link(server_url: str, secret: str) -> str:
@@ -178,7 +200,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--server-url",
         type=_server_origin,
         help="the https address the phone reaches this server on (scheme and host, nothing after); "
-        "adds a sidekick://pair link that fills in the app's pairing screen",
+        "adds a sidekick://pair link that fills in the app's pairing screen, "
+        "and a check code to compare with the one the app shows",
     )
     pair.add_argument(
         "--device-days",
@@ -239,9 +262,10 @@ def run(
         except ValueError as error:
             parser.error(str(error))
         # The rights go to stderr so stdout stays one JSON document; they come first.
-        print(_rights_notice(ticket, locale), file=notice or sys.stderr, flush=True)
+        check = pairing_check(ticket.secret) if args.server_url else None
+        print(_rights_notice(ticket, locale, check), file=notice or sys.stderr, flush=True)
         link = pairing_link(args.server_url, ticket.secret) if args.server_url else None
-        print(json.dumps(_ticket_json(ticket, link), indent=2), file=out)
+        print(json.dumps(_ticket_json(ticket, link, check), indent=2), file=out)
         return 0
     if args.command == "grant":
         try:
@@ -285,7 +309,7 @@ def _granted_notice(device: CompanionDeviceView, locale: AppLocale) -> str:
     return "\n".join(lines)
 
 
-def _rights_notice(ticket: PairingTicket, locale: AppLocale) -> str:
+def _rights_notice(ticket: PairingTicket, locale: AppLocale, check: str | None = None) -> str:
     lines = [localized(NOTICES["pairing"], locale).format(label=ticket.label)]
     lines += _scope_lines(ticket.scopes, locale)
     lines.append(
@@ -294,11 +318,15 @@ def _rights_notice(ticket: PairingTicket, locale: AppLocale) -> str:
     lines.append(
         localized(NOTICES["device_valid"], locale).format(days=ticket.device_lifetime_days)
     )
+    if check is not None:
+        lines.append(localized(NOTICES["check"], locale).format(check=check))
     lines.append(localized(NOTICES["shown_once"], locale))
     return "\n".join(lines)
 
 
-def _ticket_json(ticket: PairingTicket, link: str | None = None) -> dict[str, object]:
+def _ticket_json(
+    ticket: PairingTicket, link: str | None = None, check: str | None = None
+) -> dict[str, object]:
     document: dict[str, object] = {
         "pairing_secret": ticket.secret,
         "expires_at": ticket.expires_at.isoformat(),
@@ -309,6 +337,8 @@ def _ticket_json(ticket: PairingTicket, link: str | None = None) -> dict[str, ob
     }
     if link is not None:
         document["pairing_link"] = link
+    if check is not None:
+        document["pairing_check"] = check
     return document
 
 

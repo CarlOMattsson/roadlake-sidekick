@@ -6,8 +6,14 @@ re-reads the rest by id, so no title, note or name is kept in the idempotency ta
 """
 
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID
+
+
+class IdRecord(TypedDict):
+    """A replay record that names one record: its id as text."""
+
+    id: str
 
 
 def id_replay_record(result: dict[str, Any]) -> dict[str, Any]:

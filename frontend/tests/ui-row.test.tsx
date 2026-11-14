@@ -4,10 +4,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Row, type RowProps } from "@/features/mcp-apps/ui/row";
 
-import { readStylesheet } from "./helpers/stylesheet";
-
-const css = readStylesheet("features/mcp-apps/ui/row.css");
-
 function renderRow(props: Partial<RowProps> & { primary: string }) {
   return render(
     <ul>
@@ -162,59 +158,5 @@ describe("Row keyboard and pointer", () => {
     await user.click(screen.getByText("G"));
     expect(onLeading).toHaveBeenCalledTimes(1);
     expect(onOpen).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("row.css", () => {
-  function renderFull() {
-    renderRow({
-      primary: "Köp mjölk",
-      secondary: "Inköp · 2 st",
-      trailing: "2 st",
-      leading: <span>G</span>,
-      onLeading: vi.fn(),
-      onOpen: vi.fn(),
-    });
-    return document.querySelector(".sk-row") as HTMLElement;
-  }
-  const part = (root: HTMLElement, selector: string) =>
-    root.querySelector(selector) as Element;
-
-  it("reads the row template: a --sk-row-min floor, --sk-row-pad of air, no hairline, and a title clamp that only the line-limit token sets", () => {
-    const root = renderFull();
-
-    // The floor is the one row token (48 px in tokens.css, ui-tokens.test.ts), not a literal of its own.
-    const style = css.styleOf(root);
-    expect(style["min-height"]).toBe("var(--sk-row-min)");
-    expect(style["border-bottom"]).toBeUndefined();
-    // The open area holds the 6 of air over the title line and under the last text line.
-    expect(css.styleOf(part(root, ".sk-row-open")).padding).toBe(
-      "var(--sk-row-pad) 0",
-    );
-    // The title is cut only by the token: `none` in an inline card, 3 in a full-screen list (layout.css).
-    expect(
-      css.styleOf(part(root, ".sk-row-primary"))["-webkit-line-clamp"],
-    ).toBe("var(--sk-row-title-lines, none)");
-  });
-
-  it("holds the metarad to one line cut with an ellipsis, and sets tabular numbers on the trailing text", () => {
-    const root = renderFull();
-
-    const secondary = css.styleOf(part(root, ".sk-row-secondary"));
-    expect(secondary).toMatchObject({
-      "white-space": "nowrap",
-      "text-overflow": "ellipsis",
-      overflow: "hidden",
-    });
-    expect(secondary["line-height"]).not.toBe("1.4");
-    expect(
-      css.styleOf(part(root, ".sk-row-trailing"))["font-variant-numeric"],
-    ).toBe("tabular-nums");
-  });
-
-  it("uses no colour-scheme media query, so the host decides the theme", () => {
-    expect(css.rules.flatMap((rule) => rule.conditions)).not.toContainEqual(
-      expect.stringContaining("prefers-color-scheme"),
-    );
   });
 });

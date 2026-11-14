@@ -1,10 +1,4 @@
-import {
-  expect,
-  test,
-  type FrameLocator,
-  type Locator,
-  type Page,
-} from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   deliverToolResult,
   openSimulatedApp,
@@ -13,6 +7,7 @@ import {
   waitForAppInitialized,
 } from "./mcp-host-fixture";
 import { journalDay, ok } from "./sidekick-domain-fixtures";
+import { box, resolved, style } from "./computed-style";
 
 // How the Journal looks, measured in a real Chromium from the computed style and the boxes of the rendered
 // views, instead of read out of journal.css. Simulated host (see mcp-host-fixture.ts), not a real Claude or Android
@@ -100,40 +95,6 @@ async function openDay(
   await settled(opened.app);
   return opened;
 }
-
-/** `value` of the CSS `property`, resolved in the page (tokens and light-dark() become the colour or length they give). */
-async function resolved(
-  app: FrameLocator,
-  property: string,
-  value: string,
-): Promise<string> {
-  return app.locator("#root").evaluate(
-    (root, [name, text]) => {
-      const probe = document.createElement("span");
-      root.appendChild(probe);
-      probe.style.setProperty(name as string, text as string);
-      const out = getComputedStyle(probe).getPropertyValue(name as string);
-      probe.remove();
-      return out;
-    },
-    [property, value],
-  );
-}
-
-const style = (locator: Locator, ...properties: string[]) =>
-  locator.evaluate(
-    (element, names) =>
-      Object.fromEntries(
-        names.map((name) => [name, getComputedStyle(element)[name as never]]),
-      ) as Record<string, string>,
-    properties,
-  );
-
-const box = async (locator: Locator) => {
-  const found = await locator.boundingBox();
-  expect(found, "the element has a box").not.toBeNull();
-  return found!;
-};
 
 for (const [width, gap] of [
   [500, 4],

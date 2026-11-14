@@ -40,12 +40,12 @@ import "./license-mark.css";
  *   the phone's settings. Licensed it is one muted line and the coin is gone everywhere.
  * - `CardFoot` (ui/card.tsx) puts the coin at the end of an inline card's open row; a tap folds the row out in the card.
  * - `LicenseFoot`: the coin at the end of the full view's room, drawn by the shell, with two words beside it
- *   ("Gratisversion") so it does not stand as a lone symbol.
+ *   (`footFree`) so it does not stand as a lone symbol.
  */
 
 /**
  * What the host offers the row. `call` is the host's tools/call (Claude's bridge, the phone's companion transport) for
- * the app-only tool set_license_key; absent, there is no key field. `openLink` opens "Köp licens" through the host
+ * the app-only tool set_license_key; absent, there is no key field. `openLink` opens `buy` through the host
  * (ui/open-link); absent, a plain link. `openSettings` is a host whose own settings hold the row (the phone): the coin
  * opens them, and no ⋯ panel holds a second row; it is given the room the coin was tapped in, so the settings can lead back to it.
  */
@@ -121,7 +121,7 @@ function shown(element: HTMLElement | null): element is HTMLElement {
   return Boolean(element?.isConnected && !element.closest("[hidden]"));
 }
 
-/** A date for the row: "9 nov 2027" (the year only when it is not this year, as every date of the apps). */
+/** A date for the row: a short date (the year only when it is not this year, as every date of the apps). */
 function dayText(value: string | undefined, labels: LicenseLabels, now: Date) {
   return workDate(value, now, labels.dateLocale, {
     inline: true,
@@ -137,8 +137,8 @@ type Outcome =
   | { kind: "failed"; cause: unknown };
 
 /**
- * The license row. Free version or expired: the sentence, "Köp licens" (when LICENSE_BUY_URL is set, otherwise a line that licenses can soon be bought) and "Ange
- * licensnyckel", which folds out a field and Spara. The key goes only to set_license_key, through the host (the tool is
+ * The license row. Free version or expired: the sentence, `buy` (when LICENSE_BUY_URL is set, otherwise a line that licenses can soon be bought) and `enterKey`,
+ * which folds out a field and Spara. The key goes only to set_license_key, through the host (the tool is
  * app-only: the model never sees it); it is not kept in any state after the answer, and never written to the page.
  * Licensed: one muted line. Nothing without a declared license.
  *
@@ -183,7 +183,7 @@ export function LicenseRow({
     return () => window.clearTimeout(timer);
   });
 
-  // The field takes the focus when it opens; Avbryt and Esc give it back to "Ange licensnyckel".
+  // The field takes the focus when it opens; Avbryt and Esc give it back to `enterKey`.
   const refocusEnter = useRef(false);
   useEffect(() => {
     if (editing) field.current?.focus();

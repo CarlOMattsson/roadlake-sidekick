@@ -44,7 +44,7 @@ type UnsortedUndo = {
 
 /**
  * The To sort view (Att sortera): Tasks with no Domain, Project or Process, one page at a time, each
- * with one button per Domain and "Välj plats…", which unfolds the place picker (a Domain, Project or Process).
+ * with one button per Domain and `choosePlace`, which unfolds the place picker (a Domain, Project or Process).
  * A tap or a choice sorts the Task there (update_task with placeChanges) and the row leaves when the reply
  * comes; the Undo line puts it back. The places are read (get_work_hierarchy) when a picker is first opened. Reads go through the bridge
  * (list_tasks with unsorted, list_domains); there is no app resource of its own. The fullscreen Work
@@ -250,7 +250,7 @@ export function UnsortedView({
   const disabled = reads || moving;
   const loading = reads || (items === undefined && !notice);
   const list = items ?? [];
-  // The sorted row stays in its place with "Flyttad till Hem · Ångra" in place of its Domain buttons (designsystem),
+  // The sorted row stays in its place with `movedTo` and `undo` in place of its Domain buttons (designsystem),
   // so it covers no row; while a write runs it says "Moving…" there, so a quick second tap lands where it aimed.
   const at = undo ? Math.min(Math.max(undo.index, 0), list.length) : -1;
   const line = undo && (

@@ -107,7 +107,7 @@ type ListsView = {
   onOffset: (offset: number) => void;
 };
 
-/** "7 kvar · uppdaterad idag": what is left and when the list last changed. */
+/** The `listLeft` and `listUpdated` line: what is left and when the list last changed. */
 function listMeta(t: ShoppingLabels, entry: ShoppingList, now: Date): string {
   return [
     entry.open_count === undefined ? "" : t.listLeft(entry.open_count),
@@ -118,8 +118,8 @@ function listMeta(t: ShoppingLabels, entry: ShoppingList, now: Date): string {
 }
 
 /**
- * No list chosen (§3 Rumshuvud, as Kontakter): the heading "Listor" with + for a new list in its row, then one
- * row per list with "7 kvar · uppdaterad idag" and ›. The + opens the shared create field under the head; Enter
+ * No list chosen (§3 Rumshuvud, as Contacts): the `lists` heading with + for a new list in its row, then one
+ * row per list with its `listLeft` and `listUpdated` line and ›. The + opens the shared create field under the head; Enter
  * creates the list and opens it, Esc or × closes the field and gives the focus back to +.
  */
 export function ListPicker({
@@ -143,7 +143,7 @@ export function ListPicker({
   control,
 }: Omit<ListsView, "listName" | "onListName" | "onCreate"> & {
   /**
-   * The last entry of the picker's ⋯: "Minne och kontroll", or the host's own settings (the phone). The ⋯ holds it,
+   * The last entry of the picker's ⋯: the Control room's `title`, or the host's own settings (the phone). The ⋯ holds it,
    * so it is one tap away also before any list exists. Absent: no ⋯ (the room cannot open Control).
    */
   control?: HostSettingsEntry;

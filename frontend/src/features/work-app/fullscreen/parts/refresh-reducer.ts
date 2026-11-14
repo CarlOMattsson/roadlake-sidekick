@@ -21,7 +21,7 @@ export type RefreshAction =
   | { type: "stale"; tabs: readonly WorkTab[] }
   /** The shown tab's mark is cleared; `bump` says whether its view reads again. */
   | { type: "consume"; tab: WorkTab; bump: boolean }
-  /** "Uppdatera" in a tab's "⋯": the Agenda and Board by their own tick, the Projects tab by its key. */
+  /** `refresh` in a tab's ⋯: the Agenda and Board by their own tick, the Projects tab by its key. */
   | { type: "refresh"; tab: WorkTab };
 
 export const initialRefreshState: RefreshState = {

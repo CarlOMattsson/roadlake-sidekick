@@ -73,7 +73,7 @@ function LocalizedApp({ platform }: { platform: MobilePlatform }) {
 // One transport for the app's life, so a change of language keeps what it holds.
 const transport = new CompanionRoomTransport(SidekickNative);
 
-/** Loads the platform and draws the app; a failure shows a short translated card with "Försök igen", never the error. */
+/** Loads the platform and draws the app; a failure shows a short translated card with `retry`, never the error. */
 function start() {
   platform()
     .then((mobilePlatform) => {

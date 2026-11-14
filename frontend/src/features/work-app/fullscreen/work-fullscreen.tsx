@@ -84,7 +84,7 @@ export type WorkFullscreenProps = {
    * the host lacks is not offered: Sparade vyer (with its archived views) needs list_saved_work_views, Control list_trash.
    */
   supportsTool?: (name: string) => boolean;
-  /** The host's own settings: the ⋯ menu's last entry in Control's place (the phone's "Inställningar"). */
+  /** The host's own settings: the ⋯ menu's last entry in Control's place (the phone's settings). */
   hostSettings?: HostSettingsEntry;
   /** A new value reads the shown lists again in place (tab, filters, scroll and typed text stay). */
   refreshKey?: number;
@@ -362,7 +362,7 @@ export function WorkFullscreen({
     ) : null;
 
   // A tab whose first read failed keeps its frame: the tab row with its tools stays, and only the list is the room's
-  // error box (designsystem §3 "Tillstånd"). Uppdatera in "⋯" reads the tab again, as "Försök igen". + is off until
+  // error box (designsystem §3 "Tillstånd"). `refresh` in ⋯ reads the tab again, as `retry` does. + is off until
   // the tab's list has been read.
   const failed = (tab: WorkTab) => entries[tab]?.status === "error";
   // While a Task or Project is open over a list, its tab row shows no tools.

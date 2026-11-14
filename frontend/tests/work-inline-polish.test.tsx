@@ -16,8 +16,6 @@ import type {
   WorkTransport,
 } from "@/features/work-app/transport/transport";
 
-import { readStylesheet } from "./helpers/stylesheet";
-
 const TASK: WorkItemRecord = {
   kind: "task",
   id: "019f0000-0000-7000-8000-000000000001",
@@ -65,14 +63,6 @@ describe("contact list rows start on the left", () => {
     expect(
       container.querySelector(".work-contact-list .sk-row-open"),
     ).toHaveTextContent("Anna Andersson");
-  });
-
-  it("aligns the row to the start in contacts.css, above the shared button centring", () => {
-    const css = readStylesheet("features/work-app/contacts/contacts.css");
-
-    expect(
-      css.rule(".sidekick-work .work-contact-list .sk-row-open"),
-    ).toMatchObject({ "justify-content": "flex-start", "text-align": "start" });
   });
 });
 

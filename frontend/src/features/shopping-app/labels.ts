@@ -60,7 +60,7 @@ export const shoppingEn = {
   /** Said once above the bought items when their circle is a way back to the open list; with a fine pointer it says click. */
   buyAgainTip: "Tap the circle to buy again.",
   buyAgainKeys: "Click the circle to buy again.",
-  /** The closed offer fold's line: "Offer: SEK 199 until 30 Nov" (the end of the offer is left out when unknown). */
+  /** The closed offer fold's line, the offer's price and its end (the end of the offer is left out when unknown). */
   offerSummary: (price: string, until: string) =>
     until ? `Offer: ${price} until ${until}` : `Offer: ${price}`,
   dateLocale: "en-GB",

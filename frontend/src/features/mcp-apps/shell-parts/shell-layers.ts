@@ -83,7 +83,7 @@ export function layersOf(state: NavState, room: RoomId): Layer[] {
 
 /**
  * The name of the layer a Back returns to: a record's own name ("Anna"), else the list the top entry was opened from
- * ("Projekt" for a Project opened from that tab), else the view's name ("Status" or "Uppgift"), else the name of its
+ * (`project` for a Project opened from that tab), else the view's name (`status` or `task`), else the name of its
  * room.
  */
 export function backName(labels: SidekickShellLabels, nav: NavState): string {
@@ -92,7 +92,7 @@ export function backName(labels: SidekickShellLabels, nav: NavState): string {
   const parent = stack[stack.length - 2] ?? nav.roots[nav.active];
   if (isRecordEntry(parent) && parent.label) return parent.label;
   const top = stack[stack.length - 1];
-  // Control is a step of the room it was opened from: Back names that room ("‹ Arbete"), not its view.
+  // Control is a step of the room it was opened from: Back names that room, not its view.
   if (top?.room === "control") return labels.rooms[parent.room];
   const origin = top?.from;
   if (origin !== undefined && !isRecordEntry(parent)) {

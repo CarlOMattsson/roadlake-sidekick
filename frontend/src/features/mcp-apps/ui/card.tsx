@@ -4,16 +4,16 @@ import "./tokens.css";
 import "./family.css";
 
 /**
- * An inline card's open row ("Öppna Agenda ›") with the license coin at its end (license-mark.tsx). Wrap the open
+ * An inline card's open row (the open label and a ›) with the license coin at its end (license-mark.tsx). Wrap the open
  * button, or the action row that ends on it, in it; without the license signal it adds nothing.
  */
 export { LicenseCardFoot as CardFoot } from "../license-mark";
 
 /**
  * The family's card shell (the inline card of the app design system): surface, hairline,
- * radius 12, padding 16, and its parts in a fixed order: the kicker ("Rum · händelse/antal", the
+ * radius 12, padding 16, and its parts in a fixed order: the kicker (the room, then the event or count, the
  * eyebrow), the title (the object's name), the body (at most 3 rows or 4 lines of text), an optional
- * muted line (`meta`: the source or the links) and the actions (one primary button, "Öppna …").
+ * muted line (`meta`: the source or the links) and the actions (one primary button, the open label).
  * Every inline card in the four apps uses it, so they read as one family. Colours and type come from
  * tokens.css; the host's theme variables are followed.
  *

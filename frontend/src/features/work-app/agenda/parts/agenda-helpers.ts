@@ -22,7 +22,7 @@ export type Override = {
   last_completed_at?: string | null;
   /**
    * The write marked a recurring Task done and the server reopened it for its next date: the row shows
-   * "Klar · nästa: …", and its Ångra writes `cycle.from` back as the due date.
+   * `recurringDone`, and its Ångra writes `cycle.from` back as the due date.
    */
   cycle?: RecurringCycle;
 };
@@ -40,7 +40,7 @@ export function sameDue(
 /**
  * A recurring Task marked done is not left done: the server records the cycle (`last_completed_at`) and reopens the
  * same Task with its next due date in one reply. So the reply to "done" says "todo" with a new date, and the view
- * tells it apart with this check ("Klar · nästa: …"), or the tap looks as if it did nothing. `from` is the due date the
+ * tells it apart with this check (`recurringDone`), or the tap looks as if it did nothing. `from` is the due date the
  * Task had before; Ångra writes it back.
  */
 export type RecurringCycle = {
@@ -68,7 +68,7 @@ export function isRecurringCycle(
   );
 }
 
-/** The line of a recorded cycle: "Klar · nästa: fre 27 nov", or "Klar · upprepas" when the reply has no next date. */
+/** The line of a recorded cycle: `recurringDone`, or `recurringDoneNoDate` when the reply has no next date. */
 export function recurringDoneText(
   t: WorkLabels,
   next: string | null | undefined,
@@ -159,8 +159,8 @@ export const selectedRow: CSSProperties = {
 export const LEAVE_MS = 200;
 
 /**
- * The note under an overdue Task that a triage button changed, until the list is read again: "Klar" when
- * it is done, else "Flyttad till <date>" with its new due date.
+ * The note under an overdue Task that a triage button changed, until the list is read again: `completed` when
+ * it is done, else `movedTo` with its new due date.
  */
 export function triagedNote(
   t: WorkLabels,
@@ -186,10 +186,10 @@ function headingDay(date: Date, locale: string): string {
 }
 
 /**
- * A section heading. Only Försenade has a count ("Försenade (2)"), since there the count bears a decision; time
- * groups have none (designsystem §3). Today's heading also names the day ("Idag, ons 28 okt"). `count` is the open
- * rows, the same number "Flytta N" moves: a row standing for its Ångra no longer counts, so "Försenade (4)" and
- * "Flytta 4" agree.
+ * A section heading. Only the Overdue heading (`group.overdue`) has a count, since there the count bears a decision; time
+ * groups have none (designsystem §3). Today's heading also names the day (`group.today` and the date). `count` is the open
+ * rows, the same number `moveAllOverdue` moves: a row standing for its Ångra no longer counts, so the heading and
+ * the button agree.
  */
 export function sectionHeading(
   t: WorkLabels,

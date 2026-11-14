@@ -9,7 +9,7 @@ import { knownLabel } from "../shared/labels";
  * picked with agendaLabelsFor(t.dateLocale).
  */
 export const agendaLabelsSv = {
-  /** The undo line while a move is written and read back; there is no "Ångra" button then. */
+  /** The undo line while a move is written and read back; there is no `undo` button then. */
   moving: "Flyttar…",
   doneInStatus: "Klar · finns i Status",
   /** The meta line of a Step whose Task is done. */
@@ -28,7 +28,7 @@ export const agendaLabelsSv = {
   triageTomorrow: "Imorgon",
   /** Triage: moves an overdue Task to 23:59 next Monday. */
   triageNextWeek: "Nästa vecka",
-  /** Names the date choices in a Task's ⋯ menu in the agenda: "Imorgon", "Nästa vecka" and "Välj …". */
+  /** Names the date choices in a Task's ⋯ menu in the agenda: `triageTomorrow`, `triageNextWeek` and `rescheduleChoose`. */
   rescheduleGroup: "Nytt datum",
   /** The date chip in a row's quick choices; the platform's date field lies invisibly over it and opens the picker for any day. */
   rescheduleChoose: "Välj datum …",
@@ -50,11 +50,11 @@ export const agendaLabelsEn: AgendaLabels = {
   doneInStatus: "Done · in Status",
   parentDone: "Task done",
   /** A recurring Task marked done: the server reopened it for its next date. Its Undo line, and its row once Undo
-   *  has run out: "Done · next: Fri 27 Nov". */
+   *  has run out (`recurringDone`). */
   recurringDone: "Done · next: {date}",
   /** The same, when the rule gives no next date in the reply. */
   recurringDoneNoDate: "Done · repeats",
-  /** The fold last in the Agenda: the Tasks marked done here since the list was read; the count follows ("Done here (2)"),
+  /** The fold last in the Agenda: the Tasks marked done here since the list was read; the count follows,
    *  and the meta line under it says what "here" is. */
   doneToday: "Done here",
   doneSince: "Since you opened the agenda",
