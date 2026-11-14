@@ -22,7 +22,7 @@ from pathlib import Path
 from types import FrameType, ModuleType
 from typing import IO, NamedTuple
 
-from . import messages, secretfiles
+from . import invocation, messages, secretfiles
 
 # The exit status of a command ended by a signal: 128 + the signal number, as a shell reports it.
 SIGNAL_EXIT = {signal.SIGINT: 130, signal.SIGTERM: 143, signal.SIGHUP: 129}
@@ -30,6 +30,8 @@ SIGNAL_EXIT = {signal.SIGINT: 130, signal.SIGTERM: 143, signal.SIGHUP: 129}
 PLACEHOLDER_DOMAIN = "work.invalid"
 CRYPTO_SCRIPT = "snapshot_crypto.py"
 KEY_VARIABLE = "SIDEKICK_BACKUP_ENCRYPTION_KEY"
+CRYPTO_MEMORY = "3g"
+CRYPTO_PIDS = "256"
 COMMAND_NOT_FOUND = 127
 HINDSIGHT_IMAGE = "vectorize-io/hindsight"
 
@@ -374,7 +376,12 @@ class Stack:
         """stdin to stdout through the api image: ``encrypt`` or ``decrypt`` (the code is
         deploy/selfhost/snapshot_crypto.py, run in a one-off container from the image that is already here). The
         key is read into the environment of this one process, never onto a command line. None without a usable key
-        file: a backup or a check then fails, never passes."""
+        file: a backup or a check then fails, never passes.
+
+        Plain ``docker run``, not ``compose run api``: the api service has a fixed address on the proxy network, so a
+        one-off copy of it cannot start while the api itself is running (the check of a backup before a restore).
+        The script needs no network, no secrets and no database, so the container gets none of them. The limits are
+        those of the api service, which the plaintext of a dump has to fit in."""
         try:
             key = "".join(self.backup_key_file.read_bytes().decode("utf-8", errors="replace").split())
             script = (self.selfhost / CRYPTO_SCRIPT).read_text(encoding="utf-8").rstrip("\n")
@@ -382,8 +389,36 @@ class Stack:
             return None
         if not key:
             return None
-        argv = self.compose_argv(["run", "--rm", "-T", "--no-deps", "-e", KEY_VARIABLE, "api"])
-        return Stage([*argv, "python", "-I", "-c", script, mode], {**self.compose_env(), KEY_VARIABLE: key})
+        image = invocation.api_image(self.work_env, self.environ)
+        argv = [
+            "docker",
+            "run",
+            "--rm",
+            "-i",
+            "--network",
+            "none",
+            "--read-only",
+            "--tmpfs",
+            "/tmp",  # noqa: S108 - the container's own tmpfs
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges:true",
+            "--memory",
+            CRYPTO_MEMORY,
+            "--pids-limit",
+            CRYPTO_PIDS,
+            "-e",
+            KEY_VARIABLE,
+            "--entrypoint",
+            "python",
+            image,
+            "-I",
+            "-c",
+            script,
+            mode,
+        ]
+        return Stage(argv, {**self.environ, KEY_VARIABLE: key})
 
     def fsync(self, path: Path) -> None:
         """Flush one file or directory entry; where that is not possible, everything (as ``sync`` does)."""

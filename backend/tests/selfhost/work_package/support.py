@@ -21,11 +21,11 @@ SCRIPT = REPO_ROOT / "tools" / "work.sh"
 CRYPTO_MAGIC = b"SIDEKICK-SNAPSHOT-1\n"
 
 # The stand-in docker runs the real deploy/selfhost/snapshot_crypto.py for the encryption step (a
-# one-off api container in the real stack), so every backup in these tests is really encrypted.
+# one-off container from the api image), so every backup in these tests is really encrypted.
 # STUB_FAIL=crypto_encrypt or crypto_decrypt makes that direction fail. Checked before the call is
 # logged.
 CRYPTO_STUB = r"""case "$*" in
-  *"-e SIDEKICK_BACKUP_ENCRYPTION_KEY api python"*)
+  *"-e SIDEKICK_BACKUP_ENCRYPTION_KEY --entrypoint python"*)
     while [ "$1" != "-c" ]; do shift; done
     src="$2"; mode="$3"
     echo "$mode" >> "${STUB_CALLS}.crypto"

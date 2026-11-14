@@ -39,7 +39,19 @@ COMPOSE_VALUE_FLAGS = (
     "--status",
 )
 RUN_VALUE_FLAGS = ("-e", "-v", "-u", "--entrypoint", "-w", "--name")
-DOCKER_RUN_VALUE_FLAGS = ("-v", "--entrypoint", "--network", "-e", "-u", "--name")
+DOCKER_RUN_VALUE_FLAGS = (
+    "-v",
+    "--entrypoint",
+    "--network",
+    "-e",
+    "-u",
+    "--name",
+    "--tmpfs",
+    "--cap-drop",
+    "--security-opt",
+    "--memory",
+    "--pids-limit",
+)
 
 
 class Exit(Exception):
@@ -420,7 +432,7 @@ class FakeDocker:
     # -- docker itself -----------------------------------------------------------------------------------------
 
     def docker_run(self, args: Sequence[str]) -> None:
-        volume, entrypoint, rest, skip = "", "", [], False
+        volume, entrypoint, rest, skip, key_from_env = "", "", [], False, False
         for index, item in enumerate(args):
             if skip:
                 skip = False
@@ -431,10 +443,18 @@ class FakeDocker:
                     volume = value.split(":")[0]
                 elif item == "--entrypoint":
                     entrypoint = value
+                elif item == "-e":
+                    key_from_env = key_from_env or value.startswith(
+                        "SIDEKICK_BACKUP_ENCRYPTION_KEY"
+                    )
                 skip = True
             elif not item.startswith("-"):
                 rest = list(args[index + 1 :])
                 break
+        if (
+            entrypoint == "python"
+        ):  # the backup encryption, in a container without a volume
+            self.crypto([entrypoint, *rest], key_from_env)
         if volume and not project_ok(volume):
             die(99, "fake docker: refusing volume " + volume)
         if volume not in self.state["volumes"]:
