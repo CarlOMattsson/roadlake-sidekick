@@ -6,15 +6,25 @@
 #
 # Stages (each can be skipped):
 #   backend-tests   pytest --full in parallel on the disposable test database, slot K (tools/test-db-pool.sh),
-#                   with the CI coverage gate (--cov=sidekick --cov-fail-under=90)
+#                   with the CI coverage gate (--cov=sidekick --cov-fail-under=90), in the CI time zone (TZ=UTC)
 #   backend-static  ruff format --check, ruff check, pyright
 #   policy          tools/check-version-sync.py, tools/third_party_notices.py --check and
 #                   tools/check-migration-policy.py --all
-#   ShellCheck      shellcheck --severity=warning over every tracked shell script (the CI file selection)
-#   gitleaks        gitleaks git --redact over the full history (repo config and .gitleaksignore, as in CI)
+#   ShellCheck      tools/shellcheck-ci.sh: the CI image of shellcheck (tools/ci-images.sh), severity warning, over every
+#                   tracked shell script. Needs Docker
+#   gitleaks        tools/gitleaks-ci.sh: the CI image of gitleaks (v8.24.3) over the full history, with the repo
+#                   configuration and .gitleaksignore. Needs Docker. In the working repository the history is not what
+#                   CI scans (the public repository starts from an export), so the published-tree stage scans the
+#                   export instead and this stage says so; the published repository scans its own history here
 #   frontend        build:mobile first (mobile-csp.test.ts reads the built page), prettier --check,
-#                   eslint + tsc -b + vitest on React and the MCP App views on Preact (npm run check)
-#   mcp-app         npm run build:mcp-app, the checked-in resource must equal the build, then test:mcp-app
+#                   eslint + tsc -b + vitest on React and the MCP App views on Preact (npm run check) with TZ=UTC,
+#                   then the unit tests once more with TZ=America/Los_Angeles, as CI does
+#   mcp-app         npm run build:mcp-app, the checked-in resource must equal the build, then the Playwright tests
+#                   (test:mcp-app) in the pinned Playwright image of CI (tools/playwright-docker.sh). Needs Docker
+#   published-tree  tools/check-extra.sh: the public export (tools/export/export-repo.sh) built in a temporary directory
+#                   and checked there as the published CI would: links and docs parity, lint, prettier, tsc, vitest in two
+#                   time zones, the MCP App view tests, the policy tests, shellcheck and gitleaks. Not applicable (and
+#                   skipped) in a checkout without the export tooling, i.e. the published repository itself
 #   website         npm --prefix website test, then run build, then run check (the page, link, accessibility and
 #                   price checks; the check script is skipped while website/package.json has none).
 #                   Needs website/node_modules: npm --prefix website ci --ignore-scripts
@@ -26,8 +36,10 @@
 #                   contracts/ re-exported to a temporary file and compared (nothing in the working tree is rewritten).
 #                   Runs after backend-static
 #   coverage        the frontend coverage threshold (vitest --coverage, lines >= 91), after the frontend stage
-#   mobile-audit    the Playwright mobile audit on the simulated MCP host (Chromium: npx playwright install chromium),
-#                   after mcp-app
+#   mobile-audit    the Playwright mobile audit on the simulated MCP host, in the same Playwright image, after mcp-app
+#   drill           tools/drill.sh selfhost --local-images: install, update, backup, destroy and restore of the
+#                   self-hosted stack from two images built from this checkout, in a throw-away Compose project on random
+#                   ports (about 3 minutes; it never touches a running instance). Needs Docker. Runs last
 #   dependency-audit  what .github/workflows/audit.yml runs: pip-audit, npm audit (frontend and website, runtime
 #                   dependencies, high and above) and OSV-Scanner on the Gradle lockfiles. Every part needs the
 #                   network; one that cannot reach its host (or lacks its tool) prints a "SKIPPED: ..." line and the
@@ -37,11 +49,12 @@
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
 #   --workers N           pytest-xdist workers for backend-tests (default 10)
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
-#   --skip-shellcheck     --skip-gitleaks   --skip-website   --skip-android
-#   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit);
-#                         each has its own --skip-contracts, --skip-coverage, --skip-mobile-audit, --skip-audit
-#   --strict              a missing shellcheck, gitleaks or website/node_modules fails the run (default: that stage
-#                         prints a "SKIPPED: ... missing (install: ...)" line and is reported as SKIPPED, never as ok)
+#   --skip-shellcheck     --skip-gitleaks   --skip-published-tree   --skip-website   --skip-android
+#   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit,
+#                         drill); each has its own --skip-contracts, --skip-coverage, --skip-mobile-audit, --skip-audit,
+#                         --skip-drill
+#   --strict              a missing Docker, website/node_modules or other tool fails the run (default: that stage prints
+#                         a "SKIPPED: ..." line and is reported as SKIPPED, never as ok)
 #   --keep-going          run the remaining stages after a failure (default: stop at the first failure)
 #   --dry-run             print the commands in order without running anything
 #   -h, --help            show this text
@@ -52,6 +65,7 @@
 #
 # Not covered here, even with --release: the emulator test, the API image build and the Compose smoke test (they need
 # an emulator or a container runtime that this script does not drive). CI runs those; see docs/maintainers/release.md.
+# Before a release: run this with --release, then start ci.yml by hand in the public repository.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -69,11 +83,13 @@ SKIP_MCP_APP=0
 SKIP_WEBSITE=0
 SKIP_SHELLCHECK=0
 SKIP_GITLEAKS=0
+SKIP_PUBLISHED_TREE=0
 SKIP_ANDROID=0
 SKIP_CONTRACTS=0
 SKIP_COVERAGE=0
 SKIP_MOBILE_AUDIT=0
 SKIP_AUDIT=0
+SKIP_DRILL=0
 RELEASE=0
 STRICT=0
 
@@ -106,12 +122,14 @@ while [ $# -gt 0 ]; do
     --skip-website) SKIP_WEBSITE=1; shift ;;
     --skip-shellcheck) SKIP_SHELLCHECK=1; shift ;;
     --skip-gitleaks) SKIP_GITLEAKS=1; shift ;;
+    --skip-published-tree) SKIP_PUBLISHED_TREE=1; shift ;;
     --strict) STRICT=1; shift ;;
     --skip-android) SKIP_ANDROID=1; shift ;;
     --skip-contracts) SKIP_CONTRACTS=1; shift ;;
     --skip-coverage) SKIP_COVERAGE=1; shift ;;
     --skip-mobile-audit) SKIP_MOBILE_AUDIT=1; shift ;;
     --skip-audit) SKIP_AUDIT=1; shift ;;
+    --skip-drill) SKIP_DRILL=1; shift ;;
     --release) RELEASE=1; shift ;;
     --keep-going) KEEP_GOING=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
@@ -135,6 +153,7 @@ if [ "$RELEASE" -eq 0 ]; then
   SKIP_COVERAGE=1
   SKIP_MOBILE_AUDIT=1
   SKIP_AUDIT=1
+  SKIP_DRILL=1
 fi
 
 need() {
@@ -178,7 +197,7 @@ stage_backend_tests() {
   run bash tools/test-db-pool.sh workers "$SLOT" "$WORKERS"
   if [ "$DRY_RUN" -eq 1 ]; then
     echo "+ pool_env=\$(bash tools/test-db-pool.sh env $SLOT) && eval \"\$pool_env\""
-    echo "+ uv run --project backend python -m pytest backend/tests --full -n $WORKERS --dist loadgroup" \
+    echo "+ env TZ=UTC uv run --project backend python -m pytest backend/tests --full -n $WORKERS --dist loadgroup" \
       "--no-header -p no:cacheprovider -rfE -W ignore --cov=sidekick --cov-fail-under=90"
     return 0
   fi
@@ -186,7 +205,8 @@ stage_backend_tests() {
   local pool_env
   pool_env="$(bash tools/test-db-pool.sh env "$SLOT")" || exit $?
   eval "$pool_env"
-  run uv run --project backend python -m pytest backend/tests --full -n "$WORKERS" --dist loadgroup \
+  # The CI runner's zone is UTC; the owner's machine is not, and date handling that depends on the zone must show here.
+  run env TZ=UTC uv run --project backend python -m pytest backend/tests --full -n "$WORKERS" --dist loadgroup \
     --no-header -p no:cacheprovider -rfE -W ignore --cov=sidekick --cov-fail-under=90
 }
 
@@ -238,27 +258,18 @@ stage_policy() {
   run python3 tools/check-migration-policy.py --all
 }
 
-# The same file selection as the CI shellcheck job: *.sh files and extensionless tracked files whose first line is a
-# sh or bash shebang.
+# The CI shellcheck and secrets jobs run these same scripts (tools/ci-images.sh pins the images). Without Docker they
+# exit with RC_TOOL_MISSING after a SKIPPED line.
 stage_shellcheck() {
-  optional_tool shellcheck "apt install shellcheck, or brew install shellcheck"
-  echo "+ git ls-files | select shell scripts | xargs shellcheck --severity=warning"
-  if [ "$DRY_RUN" -eq 1 ]; then
-    return 0
-  fi
-  git ls-files -z | while IFS= read -r -d '' file; do
-    case "$file" in
-      *.sh) ;;
-      *) [ -f "$file" ] && head -c 128 "$file" | head -n 1 | grep -aEq '^#!.*\b(ba)?sh\b' || continue ;;
-    esac
-    printf '%s\0' "$file"
-  done | xargs -0 -r shellcheck --severity=warning || exit $?
+  run bash tools/shellcheck-ci.sh
 }
 
-# CI scans the full history with the default rules plus the repository's .gitleaksignore (there is no .gitleaks.toml).
 stage_gitleaks() {
-  optional_tool gitleaks "https://github.com/gitleaks/gitleaks#installing, or brew install gitleaks"
-  run gitleaks git --no-banner --redact --verbose .
+  if [ "$DRY_RUN" -eq 0 ] && [ -d tools/export ]; then
+    echo "not applicable: CI scans the published repository, so the published-tree stage scans the export"
+    return 0
+  fi
+  run bash tools/gitleaks-ci.sh
 }
 
 stage_frontend() {
@@ -266,14 +277,16 @@ stage_frontend() {
   # mobile-csp.test.ts checks the built mobile page, so it is built first (as in CI), never read stale or missing.
   run npm --prefix frontend run build:mobile
   run npm --prefix frontend run format:check
-  run npm --prefix frontend run check
+  # The runner's zone is UTC; the same tests run again in a zone that differs from both UTC and the owner's.
+  run env TZ=UTC npm --prefix frontend run check
+  run env TZ=America/Los_Angeles npm --prefix frontend test
 }
 
 # The CI frontend job runs the unit tests with the coverage threshold after the mobile bundle is built.
 stage_coverage() {
   need npm
   run npm --prefix frontend run build:mobile
-  run npm --prefix frontend run test:coverage
+  run env TZ=UTC npm --prefix frontend run test:coverage
 }
 
 stage_mcp_app() {
@@ -291,19 +304,27 @@ stage_mcp_app() {
       exit 1
     fi
   fi
-  run npm --prefix frontend run test:mcp-app
+  run bash tools/playwright-docker.sh npx playwright test --config playwright.mcp-app.config.ts
 }
 
-# The mobile audit drives the checked-in MCP App resource in Chromium; CI writes its output under the runner temp directory.
+# The mobile audit drives the checked-in MCP App resource in Chromium (the pinned Playwright image); CI writes its output
+# under the runner temp directory.
 stage_mobile_audit() {
-  need npm
   echo "+ MOBILE_AUDIT_OUT=<temporary directory>"
   if [ "$DRY_RUN" -eq 0 ]; then
     MOBILE_AUDIT_OUT="$(mktemp -d)"
     export MOBILE_AUDIT_OUT
   fi
-  cd frontend || exit 1
-  run npx playwright test --config playwright.mobile-audit.config.ts
+  run bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-audit.config.ts
+}
+
+# The public export, checked as its own CI would check it. Only the working repository has the export tooling.
+stage_published_tree() {
+  if [ "$DRY_RUN" -eq 0 ] && [ ! -f tools/check-extra.sh ]; then
+    echo "not applicable: this checkout has no export tooling (it is the published tree)"
+    return 0
+  fi
+  run bash tools/check-extra.sh
 }
 
 # The website check script belongs to a separate piece of work; run it as soon as website/package.json declares it.
@@ -379,6 +400,13 @@ stage_dependency_audit() {
   fi
 }
 
+# Install, update, backup, destroy and restore from two images built from this checkout. The drill picks random free
+# ports (never a reserved one) and removes what it created.
+stage_drill() {
+  optional_tool docker "https://docs.docker.com/engine/install/"
+  run bash tools/drill.sh selfhost --local-images
+}
+
 stage_android() {
   need npm
   need java
@@ -432,8 +460,10 @@ run_stage frontend "$SKIP_FRONTEND" stage_frontend
 run_stage coverage "$SKIP_COVERAGE" stage_coverage
 run_stage mcp-app "$SKIP_MCP_APP" stage_mcp_app
 run_stage mobile-audit "$SKIP_MOBILE_AUDIT" stage_mobile_audit
+run_stage published-tree "$SKIP_PUBLISHED_TREE" stage_published_tree
 run_stage website "$SKIP_WEBSITE" stage_website
 run_stage android "$SKIP_ANDROID" stage_android
+run_stage drill "$SKIP_DRILL" stage_drill
 
 echo
 if [ "$DRY_RUN" -eq 1 ]; then

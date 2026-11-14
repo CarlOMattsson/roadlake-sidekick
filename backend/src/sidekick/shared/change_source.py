@@ -6,7 +6,7 @@ reads it when it appends an event. Use cases never pass it around. Outside a req
 a background job, no source is set and the event records none (stored as NULL, read as unknown).
 """
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Literal
@@ -23,7 +23,7 @@ def current_change_source() -> ChangeSource | None:
 
 
 @contextmanager
-def change_source(source: ChangeSource) -> Iterator[None]:
+def change_source(source: ChangeSource) -> Generator[None]:
     """Mark every audit event appended inside the block (and its worker threads) with `source`."""
 
     token = _SOURCE.set(source)

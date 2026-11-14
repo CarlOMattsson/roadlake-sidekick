@@ -59,9 +59,9 @@ class Step:
         now: datetime,
         title: str | UnsetType = UNSET,
         status: TaskStatus | UnsetType = UNSET,
-        due_at: datetime | None | UnsetType = UNSET,
+        due_at: datetime | UnsetType | None = UNSET,
         attention_requested: bool | UnsetType = UNSET,
-        instruction: str | None | UnsetType = UNSET,
+        instruction: str | UnsetType | None = UNSET,
     ) -> "Step":
         changes = {
             key: value
@@ -150,9 +150,9 @@ class Action:
         now: datetime,
         title: str | UnsetType = UNSET,
         status: ActionStatus | UnsetType = UNSET,
-        due_at: datetime | None | UnsetType = UNSET,
+        due_at: datetime | UnsetType | None = UNSET,
         attention_requested: bool | UnsetType = UNSET,
-        note: str | None | UnsetType = UNSET,
+        note: str | UnsetType | None = UNSET,
     ) -> "Action":
         changes = {
             key: value

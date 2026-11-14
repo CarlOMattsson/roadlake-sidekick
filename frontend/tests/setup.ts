@@ -19,7 +19,7 @@ if (!("ResizeObserver" in globalThis)) {
     observe() {}
     unobserve() {}
     disconnect() {}
-  } as unknown as typeof ResizeObserver;
+  };
 }
 /**
  * Component tests run in the reduced-motion branch by default: they assert what
@@ -28,7 +28,7 @@ if (!("ResizeObserver" in globalThis)) {
  * own test that overrides this.
  */
 if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
-  window.matchMedia = ((query: string) => ({
+  window.matchMedia = (query: string) => ({
     matches: query.includes("prefers-reduced-motion"),
     media: query,
     onchange: null,
@@ -37,7 +37,7 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     addListener: () => undefined,
     removeListener: () => undefined,
     dispatchEvent: () => false,
-  })) as unknown as typeof window.matchMedia;
+  });
 }
 
 /**

@@ -309,8 +309,7 @@ it("caps the summary at 500 characters and drops empty summaries", async () => {
   const long = bridge.updateModelContext("a".repeat(600));
   await waitForRequest("ui/update-model-context");
   const content = contextMessages()[0]?.params?.content as
-    | { text: string }[]
-    | undefined;
+    { text: string }[] | undefined;
   expect(content?.[0]?.text).toHaveLength(500);
   answerRequest("ui/update-model-context", { result: {} });
   await long;

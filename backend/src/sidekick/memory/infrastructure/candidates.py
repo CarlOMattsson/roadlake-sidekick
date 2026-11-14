@@ -266,7 +266,7 @@ def _candidate(
 
 
 def _grouped_names(
-    rows: Iterable[Row[tuple[UUID, UUID, str]]],
+    rows: Iterable[Row[UUID, UUID, str]],
 ) -> dict[UUID, tuple[str, ...]]:
     """Group (parent id, contact id, name) rows; one name per contact, sorted by name."""
 

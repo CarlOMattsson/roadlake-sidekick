@@ -15,9 +15,7 @@ export type PerTab<T> = Partial<Record<WorkTab, T>>;
 
 /** The frames the fullscreen tabs show. Other frame kinds stay inline in the view. */
 export type WorkTabFrame =
-  | WorkAgendaFrame
-  | WorkBoardFrame
-  | WorkHierarchyFrame;
+  WorkAgendaFrame | WorkBoardFrame | WorkHierarchyFrame;
 
 /** The count of unsorted Tasks the To sort row shows: the first page read, and whether more follow it. */
 export type UnsortedCount = { count: number; more: boolean };

@@ -38,13 +38,13 @@ class UpdateProjectCommand:
     """Explicit mutable Project fields; omitted and null remain distinct."""
 
     title: str | UnsetType = UNSET
-    description: str | None | UnsetType = UNSET
+    description: str | UnsetType | None = UNSET
     status: ProjectStatus | UnsetType = UNSET
-    start_date: date | None | UnsetType = UNSET
+    start_date: date | UnsetType | None = UNSET
     """The project's earliest start: the project-level counterpart of `not_before`."""
-    target_date: date | None | UnsetType = UNSET
-    domain_id: UUID | None | UnsetType = UNSET
-    definition_of_done: str | None | UnsetType = UNSET
+    target_date: date | UnsetType | None = UNSET
+    domain_id: UUID | UnsetType | None = UNSET
+    definition_of_done: str | UnsetType | None = UNSET
     tags: tuple[str, ...] | UnsetType = UNSET
 
     def changes(self) -> dict[str, Any]:

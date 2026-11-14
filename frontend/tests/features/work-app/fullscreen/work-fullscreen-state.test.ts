@@ -214,7 +214,7 @@ describe("refresh reducer", () => {
 describe("tab data", () => {
   it("knows the three tab frames", () => {
     expect(isTabFrame({ kind: "board" } as unknown as WorkFrame)).toBe(true);
-    expect(isTabFrame({ kind: "task", id: "1" } as WorkFrame)).toBe(false);
+    expect(isTabFrame({ kind: "task", id: "1" })).toBe(false);
   });
 
   it("carries filters only for a ready agenda or board", () => {

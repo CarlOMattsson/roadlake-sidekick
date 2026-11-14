@@ -195,6 +195,7 @@ export function useBoardCore({
     if (stale) reload();
   });
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a stale board reads again once on mount, which sets its loading state first, by design.
     reloadIfStale();
   }, []);
   // A changed refreshKey reads the board again in place; the value at mount is not a request.

@@ -15,7 +15,26 @@ import type {
   TestPushResult,
 } from "@/mobile/sidekick-native";
 
-export type FakeNative = SidekickNativePlugin & {
+/** The plugin methods this fake replaces with mocks; taking them out keeps `expect(native.method)` from reading as an unbound method. */
+type MockedMethod =
+  | "request"
+  | "pair"
+  | "status"
+  | "unpair"
+  | "widgetRefresh"
+  | "setLocale"
+  | "pushStatus"
+  | "openNotificationSettings"
+  | "requestNotificationPermission"
+  | "openNtfyInstall"
+  | "deviceStatus"
+  | "sendTestPush"
+  | "queuePurchase"
+  | "queueShoppingAdd"
+  | "retryQueuedWrite"
+  | "removeQueuedWrite";
+
+export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
   request: ReturnType<
     typeof vi.fn<(request: NativeRequest) => Promise<NativeResponse>>
   >;

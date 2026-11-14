@@ -61,8 +61,8 @@ function makeTransport(
       Promise.resolve({ items: [], has_more: false, next_cursor: null }),
     ),
     restore: vi.fn(() => Promise.resolve({})),
-    changes: vi.fn(
-      (): Promise<ChangesList> => Promise.resolve({ changes: [] }),
+    changes: vi.fn((): Promise<ChangesList> =>
+      Promise.resolve({ changes: [] }),
     ),
     undoPurchase,
     memoryStatus: vi.fn(),

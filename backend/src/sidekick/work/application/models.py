@@ -32,13 +32,13 @@ class UpdateContextCommand:
     """Mutable Domain/Process fields. `tags` is the record's intended tag set."""
 
     name: str | UnsetType = UNSET
-    description: str | None | UnsetType = UNSET
+    description: str | UnsetType | None = UNSET
     status: DomainStatus | ProcessStatus | UnsetType = UNSET
     domain_id: UUID | UnsetType = UNSET
-    review_cadence: Cadence | None | UnsetType = UNSET
-    last_reviewed_at: datetime | None | UnsetType = UNSET
-    cadence: Cadence | None | UnsetType = UNSET
-    accent: str | None | UnsetType = UNSET
+    review_cadence: Cadence | UnsetType | None = UNSET
+    last_reviewed_at: datetime | UnsetType | None = UNSET
+    cadence: Cadence | UnsetType | None = UNSET
+    accent: str | UnsetType | None = UNSET
     tags: tuple[str, ...] | UnsetType = UNSET
 
     def changes(self) -> dict[str, Any]:

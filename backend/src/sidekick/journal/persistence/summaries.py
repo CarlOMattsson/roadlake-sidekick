@@ -73,7 +73,7 @@ class JournalSummaryStore:
         owner_id: UUID,
         journal_date: date,
         *,
-        summary: DailySummary | None | _Unread = _UNREAD,
+        summary: DailySummary | _Unread | None = _UNREAD,
         active: list[EntryHead] | None = None,
     ) -> DaySummaryStatus:
         """The summary's state; a caller that already read the summary or the day's active

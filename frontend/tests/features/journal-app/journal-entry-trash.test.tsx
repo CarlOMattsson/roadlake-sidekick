@@ -48,7 +48,7 @@ function transport(extra: Partial<JournalTransport> = {}): JournalTransport {
     trashEntry: vi.fn().mockResolvedValue({ version: 8 }),
     restoreEntry: vi.fn().mockResolvedValue({}),
     ...extra,
-  } as unknown as JournalTransport;
+  };
 }
 
 async function openMenuAndDelete(

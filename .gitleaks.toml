@@ -8,9 +8,9 @@
 # line): a real or random-looking value on an `idempotency_key=` line or in a placeholder constant is a
 # different match and is still reported, as is everything outside the test directories (production code,
 # deploy files, docs, env examples). Changing a fixture value or adding one needs its entry here.
-# Written for gitleaks 8.24.x, the version the CI action installs: the exception sits on the rule itself
-# (`[[rules.allowlists]]`), because the global `[[allowlists]]` table only exists from 8.25 on and older
-# releases ignore it silently, which leaves every finding unexempted.
+# Written for gitleaks 8.24.x, the version CI and tools/check-all.sh run (tools/ci-images.sh): the exception
+# sits on the rule itself (`[[rules.allowlists]]`), because the global `[[allowlists]]` table only exists from
+# 8.25 on and older releases ignore it silently, which leaves every finding unexempted.
 # The path pattern accepts both a relative path (history scan) and an absolute one (`gitleaks dir /repo`).
 title = "Roadlake Sidekick gitleaks configuration"
 

@@ -156,14 +156,21 @@ so a patch that adds a contract migration cannot declare `expand` either.
    `--release` adds, after the usual stages and in the order of `.github/workflows/ci.yml`, the checks that the
    release CI runs on top of them: the contract diff (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, and the snapshots under `contracts/`
-   re-exported and compared), the frontend coverage threshold, the Playwright mobile audit (Chromium needed:
-   `npx playwright install chromium`) and the dependency audit of `audit.yml` (pip-audit, `npm audit` for the
-   frontend and the website, OSV-Scanner on the Gradle lockfiles). The frontend stage already includes the MCP App
-   views on Preact. The dependency audit needs the network (and Docker for OSV-Scanner): a part whose tool or host
-   is not available prints a `SKIPPED: ...` line and the stage is reported as `SKIPPED`, never as `ok`; add
-   `--strict` to make that a failure, and run the audit on a machine with network access before you release. Not
-   covered locally: the emulator test, the image build and the Compose smoke test; the release run does those.
-   Merge to `main` when it is green; the release run itself runs the full CI.
+   re-exported and compared), the frontend coverage threshold, the Playwright mobile audit, the dependency audit of
+   `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on the Gradle lockfiles) and
+   the drill (`tools/drill.sh selfhost --local-images`, about 3 minutes, on random ports and in its own Compose
+   project, so it never touches a running instance). The frontend stage already includes the MCP App views on
+   Preact. The gate runs the tests the way CI does: backend and frontend tests in UTC (the frontend ones also in
+   `America/Los_Angeles`), the Playwright tests, shellcheck and gitleaks in the images pinned in
+   `tools/ci-images.sh` (the same ones CI uses, so browser build, fonts and tool versions match), and the
+   `published-tree` stage builds the public export and checks it as the published CI will (lint, prettier, tsc,
+   vitest, policy tests, shellcheck, gitleaks, the Playwright tests). Docker is needed for those; the dependency
+   audit needs the network. A part whose tool or host is not available prints a `SKIPPED: ...` line and the stage is
+   reported as `SKIPPED`, never as `ok`; add `--strict` to make that a failure, and run the gate on a machine with
+   Docker and network access before you release. Not covered locally: the emulator test, the image build and the
+   Compose smoke test; the release run does those.
+   Merge to `main` when it is green. Then start the `CI` workflow by hand in the public repository (Actions, "CI",
+   Run workflow) on the commit you are about to release; the release run itself runs the full CI again.
 3. **Dry run first.** Actions, "release-image", Run workflow: `version` = `vX.Y.Z`, `migration_class` (see below),
    `previous_release` (`none` for the very first release, otherwise empty), **`dry_run` ticked**. It builds both
    image platforms and the APK unsigned, pushes and signs nothing, needs no secrets, and uploads

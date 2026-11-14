@@ -317,8 +317,9 @@ def test_operation_status_maps_provider_states(
     assert str(request.url) == f"{BASE_URL}/v1/default/banks/{_bank()}/operations/op-1"
 
 
-def test_operation_status_for_an_unknown_operation_is_lost() -> None:
-    handler = Script(_response(404))
+@pytest.mark.parametrize("response", [_response(404), _response(200, {"status": "not_found"})])
+def test_operation_status_for_an_unknown_operation_is_lost(response: httpx.Response) -> None:
+    handler = Script(response)
 
     result = _provider(handler).operation_status(owner_id=OWNER, operation_id="op-1")
 

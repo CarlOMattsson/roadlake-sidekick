@@ -52,7 +52,7 @@ function transport(extra: Partial<JournalTransport>): JournalTransport {
     rejectDraft: vi.fn(),
     finalizeDraft: vi.fn(),
     ...extra,
-  } as unknown as JournalTransport;
+  };
 }
 
 describe("transport arguments", () => {

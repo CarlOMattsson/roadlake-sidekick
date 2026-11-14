@@ -8,7 +8,7 @@ the mark survives a thread hop (`anyio.to_thread` copies the context but shares 
 layer that copies the ASGI scope. Outside a watched request it does nothing.
 """
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 
@@ -24,7 +24,7 @@ _CURRENT: ContextVar[Verification | None] = ContextVar("sidekick_verification", 
 
 
 @contextmanager
-def watch() -> Iterator[Verification]:
+def watch() -> Generator[Verification]:
     """Observe `mark_verified()` calls made while the body of the `with` runs."""
 
     verification = Verification()

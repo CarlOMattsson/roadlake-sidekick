@@ -15,7 +15,7 @@ export function rowMenuHandlers(open: boolean, set: (open: boolean) => void) {
       if (event.defaultPrevented) return;
       event.preventDefault();
       menuUsed();
-      forgetMenuButton(event.currentTarget as HTMLElement);
+      forgetMenuButton(event.currentTarget);
       set(!open);
     },
     onKeyDown(event: KeyboardEvent) {

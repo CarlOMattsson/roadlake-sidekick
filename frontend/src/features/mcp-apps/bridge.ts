@@ -374,8 +374,7 @@ export function createHostBridge(app: {
     async requestDisplayMode(mode) {
       await ready;
       const raw = (await request("ui/request-display-mode", { mode })) as
-        | { mode?: unknown }
-        | undefined;
+        { mode?: unknown } | undefined;
       const actual = raw?.mode;
       if (typeof actual !== "string" || !DISPLAY_MODES.includes(actual))
         throw new Error("Unsupported display mode");

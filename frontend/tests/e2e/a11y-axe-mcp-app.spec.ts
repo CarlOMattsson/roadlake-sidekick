@@ -22,7 +22,6 @@ import {
   settled,
   waitForAppInitialized,
 } from "./mcp-host-fixture";
-import type { AppLocale } from "./mcp-host-fixture";
 
 // AUTOMATED AXE CHECK of the rooms (Work, Journal, Shopping and Control) in the SIMULATED host (see
 // mcp-host-fixture.ts): every tool answer and host message is a fixture, so this is not a real
@@ -116,7 +115,7 @@ for (const scenario of scenarios) {
       test.slow();
       await page.clock.setFixedTime(FIXTURE_NOW);
       const { failures } = await openSimulatedApp(page, {
-        resource: readBuiltApp(scenario.resource, mode.locale as AppLocale),
+        resource: readBuiltApp(scenario.resource, mode.locale),
         width: 390,
         height: 844,
         hostContext: {

@@ -18,24 +18,24 @@ from sidekick.work.domain.planning import WorkTag
 class UpdateTaskCommand:
     """Explicit mutable Task fields; omitted and null remain distinct."""
 
-    project_id: UUID | None | UnsetType = UNSET
+    project_id: UUID | UnsetType | None = UNSET
     title: str | UnsetType = UNSET
-    description: str | None | UnsetType = UNSET
+    description: str | UnsetType | None = UNSET
     status: TaskStatus | UnsetType = UNSET
     priority: Priority | UnsetType = UNSET
-    due_at: datetime | None | UnsetType = UNSET
-    domain_id: UUID | None | UnsetType = UNSET
-    process_id: UUID | None | UnsetType = UNSET
+    due_at: datetime | UnsetType | None = UNSET
+    domain_id: UUID | UnsetType | None = UNSET
+    process_id: UUID | UnsetType | None = UNSET
     attention_requested: bool | UnsetType = UNSET
-    not_before: datetime | None | UnsetType = UNSET
-    estimated_minutes: int | None | UnsetType = UNSET
-    waiting_since: datetime | None | UnsetType = UNSET
-    follow_up_at: datetime | None | UnsetType = UNSET
-    waiting_on_contact_id: UUID | None | UnsetType = UNSET
-    blocked_reminder_cadence: Cadence | None | UnsetType = UNSET
-    blocked_reminder_snoozed_until: datetime | None | UnsetType = UNSET
-    recurrence: RecurrenceRule | dict[str, Any] | None | UnsetType = UNSET
-    last_completed_at: datetime | None | UnsetType = UNSET
+    not_before: datetime | UnsetType | None = UNSET
+    estimated_minutes: int | UnsetType | None = UNSET
+    waiting_since: datetime | UnsetType | None = UNSET
+    follow_up_at: datetime | UnsetType | None = UNSET
+    waiting_on_contact_id: UUID | UnsetType | None = UNSET
+    blocked_reminder_cadence: Cadence | UnsetType | None = UNSET
+    blocked_reminder_snoozed_until: datetime | UnsetType | None = UNSET
+    recurrence: RecurrenceRule | dict[str, Any] | UnsetType | None = UNSET
+    last_completed_at: datetime | UnsetType | None = UNSET
     """Undo of a recurring completion: an earlier value (or null); never moves it forward."""
     tags: tuple[str, ...] | UnsetType = UNSET
     """The record's complete intended tag set; applied inside this same update."""

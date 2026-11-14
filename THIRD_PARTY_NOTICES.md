@@ -18,15 +18,15 @@ move and this file does not.
 <!-- section:python -->
 | Package | Version | License | Author and project |
 | --- | --- | --- | --- |
-| aiofile | 3.11.1 | Apache-2.0 | Dmitry Orlov (https://github.com/mosquito/aiofile) |
+| aiofile | 3.12.3 | Apache-2.0 | Dmitry Orlov (https://github.com/mosquito/aiofile) |
 | annotated-doc | 0.0.4 | MIT | Sebastián Ramírez (https://github.com/fastapi/annotated-doc) |
 | annotated-types | 0.7.0 | MIT License | Adrian Garcia Badaracco (https://github.com/annotated-types/annotated-types) |
-| anyio | 4.14.2 | MIT | Alex Grönholm (https://github.com/agronholm/anyio) |
+| anyio | 4.16.0 | MIT | Alex Grönholm (https://github.com/agronholm/anyio) |
 | attrs | 26.1.0 | MIT | Hynek Schlawack (https://www.attrs.org/) |
 | authlib | 1.9.5 | BSD-3-Clause | Hsiaoming Yang (https://github.com/authlib/authlib) |
 | beartype | 0.22.9 | MIT License | Cecil Curry (https://beartype.readthedocs.io) |
 | cachetools | 7.1.4 | MIT | Thomas Kemmer (https://github.com/tkem/cachetools/) |
-| caio | 0.9.25 | Apache-2.0 | Dmitry Orlov (https://github.com/mosquito/caio/) |
+| caio | 0.12.10 | Apache-2.0 | Dmitry Orlov (https://github.com/mosquito/caio/) |
 | certifi | 2026.10.23 | MPL-2.0 | Kenneth Reitz (https://github.com/certifi/python-certifi) |
 | cffi | 2.1.0 | MIT-0 | Armin Rigo, Maciej Fijalkowski (https://github.com/python-cffi/cffi) |
 | click | 8.4.2 | BSD-3-Clause | Pallets (https://github.com/pallets/click/) |
@@ -36,10 +36,9 @@ move and this file does not.
 | docstring-parser | 0.18.0 | MIT | Marcin Kurczewski (https://github.com/rr-/docstring_parser) |
 | email-validator | 2.3.0 | Unlicense | Joshua Tauberer (https://github.com/JoshData/python-email-validator) |
 | exceptiongroup | 1.3.1 | MIT License | Alex Grönholm (https://github.com/agronholm/exceptiongroup) |
-| fastapi | 0.139.2 | MIT | Sebastián Ramírez (https://github.com/fastapi/fastapi) |
+| fastapi | 0.162.4 | MIT | Sebastián Ramírez (https://github.com/fastapi/fastapi) |
 | fastmcp | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
 | fastmcp-slim | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
-| greenlet | 3.5.3 | MIT AND PSF-2.0 | Alexey Borzenkov (https://greenlet.readthedocs.io) |
 | griffelib | 2.1.0 | ISC | Timothée Mazzucotelli (https://pypi.org/project/griffelib/) |
 | h11 | 0.16.0 | MIT | Nathaniel J. Smith (https://github.com/python-hyper/h11) |
 | httpcore | 1.0.9 | BSD-3-Clause | Tom Christie (https://www.encode.io/httpcore/) |
@@ -64,34 +63,34 @@ move and this file does not.
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | Donald Stufft (https://github.com/pypa/packaging) |
 | pathable | 0.6.0 | Apache-2.0 | Artur Maciag (https://github.com/p1c2u/pathable) |
 | platformdirs | 4.10.1 | MIT | Bernát Gábor (https://github.com/tox-dev/platformdirs) |
-| psycopg | 3.3.4 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
-| psycopg-binary | 3.3.4 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
-| py-key-value-aio | 0.4.5 | Apache-2.0 | see project (https://pypi.org/project/py-key-value-aio/) |
+| psycopg | 3.3.8 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
+| psycopg-binary | 3.3.8 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
+| py-key-value-aio | 0.4.6 | Apache-2.0 | see project (https://pypi.org/project/py-key-value-aio/) |
 | pycparser | 3.0 | BSD-3-Clause | Eli Bendersky (https://github.com/eliben/pycparser) |
-| pydantic | 2.13.4 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
-| pydantic-core | 2.46.4 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
-| pydantic-settings | 2.14.2 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic-settings) |
+| pydantic | 2.14.3 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
+| pydantic-core | 2.50.4 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
+| pydantic-settings | 2.16.2 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic-settings) |
 | pygments | 2.20.0 | BSD-2-Clause | Georg Brandl (https://pygments.org) |
 | pyjwt | 2.15.1 | MIT | Jose Padilla (https://github.com/jpadilla/pyjwt) |
 | pyperclip | 1.11.0 | BSD | Al Sweigart (https://github.com/asweigart/pyperclip) |
 | python-dotenv | 1.2.2 | BSD-3-Clause | Saurabh Kumar (https://github.com/theskumar/python-dotenv) |
-| python-json-logger | 4.0.0 | BSD-2-Clause License | Zakaria Zajac (https://nhairs.github.io/python-json-logger) |
+| python-json-logger | 4.2.0 | BSD-2-Clause | Zakaria Zajac (https://nhairs.github.io/python-json-logger) |
 | python-multipart | 0.0.32 | Apache-2.0 | Andrew Dunham (https://github.com/Kludex/python-multipart) |
 | pyyaml | 6.0.3 | MIT | Kirill Simonov (https://pyyaml.org/) |
 | referencing | 0.37.0 | MIT | Julian Berman (https://github.com/python-jsonschema/referencing) |
 | rich | 15.0.0 | MIT | Will McGugan (https://github.com/Textualize/rich) |
 | rich-rst | 2.1.0 | MIT | Wasi Master (https://wasi-master.github.io/rich-rst) |
 | rpds-py | 2026.6.3 | MIT | Julian Berman (https://github.com/crate-py/rpds) |
-| sqlalchemy | 2.0.51 | MIT | Mike Bayer (https://www.sqlalchemy.org) |
+| sqlalchemy | 2.1.8 | MIT | Mike Bayer (https://www.sqlalchemy.org) |
 | sqlparse | 0.6.1 | BSD License | Andi Albrecht (https://github.com/andialbrecht/sqlparse) |
 | sse-starlette | 3.4.5 | BSD-3-Clause | sysid (https://github.com/sysid/sse-starlette) |
-| starlette | 1.3.1 | BSD-3-Clause | Tom Christie (https://github.com/Kludex/starlette) |
+| starlette | 1.10.0 | BSD-3-Clause | Tom Christie (https://github.com/Kludex/starlette) |
 | tabulate | 0.10.0 | MIT | Sergey Astanin (https://github.com/astanin/python-tabulate) |
 | truststore | 0.10.5 | MIT | Seth Michael Larson (https://github.com/sethmlarson/truststore) |
 | typing-extensions | 4.16.0 | PSF-2.0 | Guido van Rossum (https://github.com/python/typing_extensions) |
-| typing-inspection | 0.4.2 | MIT | Victorien Plot (https://github.com/pydantic/typing-inspection) |
+| typing-inspection | 0.4.5 | MIT | Victorien Plot (https://github.com/pydantic/typing-inspection) |
 | uncalled-for | 0.4.2 | MIT | Chris Guidry (https://github.com/chrisguidry/uncalled-for) |
-| uvicorn | 0.41.0 | BSD-3-Clause | Tom Christie (https://uvicorn.dev/) |
+| uvicorn | 0.54.0 | BSD-3-Clause | Tom Christie (https://uvicorn.dev/) |
 | watchfiles | 1.2.0 | MIT | Samuel Colvin (https://github.com/samuelcolvin/watchfiles) |
 | websockets | 16.1.1 | BSD-3-Clause | Aymeric Augustin (https://github.com/python-websockets/websockets) |
 | yoyo-migrations | 9.0.0 | Apache | Oliver Cope (https://ollycope.com/software/yoyo/latest/) |
@@ -105,10 +104,10 @@ move and this file does not.
 | @capacitor/android | 8.6.0 | MIT | https://www.npmjs.com/package/@capacitor/android |
 | @capacitor/app | 8.1.2 | MIT | https://www.npmjs.com/package/@capacitor/app |
 | @capacitor/core | 8.6.0 | MIT | https://www.npmjs.com/package/@capacitor/core |
-| preact | 11.0.1 | MIT | https://www.npmjs.com/package/preact |
-| react | 19.2.7 | MIT | https://www.npmjs.com/package/react |
-| react-dom | 19.2.7 | MIT | https://www.npmjs.com/package/react-dom |
-| scheduler | 0.27.0 | MIT | https://www.npmjs.com/package/scheduler |
+| preact | 11.2.0 | MIT | https://www.npmjs.com/package/preact |
+| react | 19.3.1 | MIT | https://www.npmjs.com/package/react |
+| react-dom | 19.3.1 | MIT | https://www.npmjs.com/package/react-dom |
+| scheduler | 0.28.0 | MIT | https://www.npmjs.com/package/scheduler |
 | tslib | 2.8.1 | 0BSD | https://www.npmjs.com/package/tslib |
 
 ## Android runtime dependencies (Gradle releaseRuntimeClasspath)
@@ -199,10 +198,10 @@ Licenses are checked by hand against each artifact's published POM (Gradle canno
 | com.google.guava:listenablefuture | 1.0 | Apache-2.0 | https://github.com/google/guava |
 | com.google.protobuf:protobuf-java | 4.33.6 | BSD-3-Clause | https://github.com/protocolbuffers/protobuf |
 | org.apache.cordova:framework | 14.0.1 | Apache-2.0 | https://cordova.apache.org |
-| org.jetbrains.kotlin:kotlin-stdlib | 1.8.22, 2.0.21, 2.2.20 | Apache-2.0 | https://kotlinlang.org |
-| org.jetbrains.kotlin:kotlin-stdlib-common | 1.8.22, 2.2.20 | Apache-2.0 | https://kotlinlang.org |
-| org.jetbrains.kotlin:kotlin-stdlib-jdk7 | 1.6.21 | Apache-2.0 | https://kotlinlang.org |
-| org.jetbrains.kotlin:kotlin-stdlib-jdk8 | 1.6.21 | Apache-2.0 | https://kotlinlang.org |
+| org.jetbrains.kotlin:kotlin-stdlib | 2.4.21 | Apache-2.0 | https://kotlinlang.org |
+| org.jetbrains.kotlin:kotlin-stdlib-common | 2.4.21 | Apache-2.0 | https://kotlinlang.org |
+| org.jetbrains.kotlin:kotlin-stdlib-jdk7 | 1.8.0 | Apache-2.0 | https://kotlinlang.org |
+| org.jetbrains.kotlin:kotlin-stdlib-jdk8 | 1.8.0 | Apache-2.0 | https://kotlinlang.org |
 | org.jetbrains.kotlinx:kotlinx-coroutines-android | 1.6.4, 1.8.1, 1.9.0 | Apache-2.0 | https://github.com/Kotlin/kotlinx.coroutines |
 | org.jetbrains.kotlinx:kotlinx-coroutines-bom | 1.6.4, 1.8.1, 1.9.0 | Apache-2.0 | https://github.com/Kotlin/kotlinx.coroutines |
 | org.jetbrains.kotlinx:kotlinx-coroutines-core | 1.6.4, 1.8.1, 1.9.0 | Apache-2.0 | https://github.com/Kotlin/kotlinx.coroutines |

@@ -48,9 +48,17 @@ CONNECT_TIMEOUT_SECONDS = 2
 # its thread really ends, so a server that drips headers cannot pile up threads and sockets.
 DEFAULT_MAX_PENDING_SENDS = 8
 MAX_PENDING_SENDS = 64
+# Hindsight lists banks one page at a time (100 by default). A page this size keeps one response
+# far below `DEFAULT_MAX_RESPONSE_BYTES`; the page bound stops a server that never reaches its
+# own `total`.
+BANK_LIST_PAGE_SIZE = 200
+MAX_BANK_LIST_PAGES = 500
 RETRYABLE_STATUS_CODES = frozenset({408, 429, 502, 503, 504})
 RETAINED_STATUSES = frozenset({"completed", "succeeded", "success", "done"})
 FAILED_STATUSES = frozenset({"failed", "error", "cancelled"})
+# Hindsight answers 200 with this status for an operation it does not know, for example after
+# its volume was lost.
+LOST_STATUS = "not_found"
 
 
 class HindsightMemoryProvider:
@@ -151,6 +159,8 @@ class HindsightMemoryProvider:
             return OperationResult(state="retained")
         if normalized in FAILED_STATUSES:
             return OperationResult(state="failed", failure_category="operation_failed")
+        if normalized == LOST_STATUS:
+            return OperationResult(state="failed", failure_category="operation_lost")
         return OperationResult(state="pending")
 
     def delete_document(self, *, owner_id: UUID, document_id: str) -> None:
@@ -227,21 +237,39 @@ class HindsightMemoryProvider:
         return self._bank_id(owner_id)
 
     def list_banks(self) -> tuple[str, ...]:
-        """`GET /v1/default/banks` -> `{"banks": [{"bank_id": ...}, ...]}`. Only ids are read;
-        names, missions and every other field are ignored."""
+        """`GET /v1/default/banks?limit=&offset=` -> `{"banks": [{"bank_id": ...}], "total": N}`.
 
-        data = self._json("GET", "/v1/default/banks", payload=None, timeout=self._operation_timeout)
-        banks = data.get("banks")
-        if not isinstance(banks, list):
-            raise MemoryProviderError("invalid_response")
-        ids: list[str] = []
-        for raw_bank in cast(list[object], banks):
-            if not isinstance(raw_bank, Mapping):
+        Hindsight answers one page at a time, so every page is read until `total` is reached. A
+        list that cannot be read to its end raises `invalid_response`: a partial list must never
+        be taken for the whole one, because the callers decide from it which banks are lost or
+        orphaned. Only ids are read; names, missions and every other field are ignored."""
+
+        ids: dict[str, None] = {}
+        offset = 0
+        for _ in range(MAX_BANK_LIST_PAGES):
+            data = self._json(
+                "GET",
+                f"/v1/default/banks?limit={BANK_LIST_PAGE_SIZE}&offset={offset}",
+                payload=None,
+                timeout=self._operation_timeout,
+            )
+            banks = data.get("banks")
+            total = data.get("total")
+            if not isinstance(banks, list) or isinstance(total, bool) or not isinstance(total, int):
                 raise MemoryProviderError("invalid_response")
-            bank_id = cast(Mapping[str, object], raw_bank).get("bank_id")
-            if isinstance(bank_id, str) and OPAQUE_ID_PATTERN.fullmatch(bank_id):
-                ids.append(bank_id)
-        return tuple(ids)
+            page = cast(list[object], banks)
+            for raw_bank in page:
+                if not isinstance(raw_bank, Mapping):
+                    raise MemoryProviderError("invalid_response")
+                bank_id = cast(Mapping[str, object], raw_bank).get("bank_id")
+                if isinstance(bank_id, str) and OPAQUE_ID_PATTERN.fullmatch(bank_id):
+                    ids[bank_id] = None
+            offset += len(page)
+            if offset >= total:
+                return tuple(ids)
+            if not page:
+                break
+        raise MemoryProviderError("invalid_response")
 
     def delete_bank(self, *, bank_id: str) -> None:
         validate_bank_id(bank_id)

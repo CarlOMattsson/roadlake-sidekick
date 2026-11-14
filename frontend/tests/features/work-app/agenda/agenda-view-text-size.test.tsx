@@ -7,7 +7,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { UndoMeta } from "@/features/work-app/agenda/agenda-undo";
 import { workEn } from "@/features/work-app/shared/labels";
 import type { WorkItemRecord } from "@/features/work-app/transport/transport";
@@ -20,7 +20,19 @@ import {
   resetAgendaEnvironment,
 } from "@tests/helpers/agenda-view-fixtures";
 
-afterEach(resetAgendaEnvironment);
+// jsdom does not scroll an element: the large-text menu corrects its row's place with the nearest box's scrollBy.
+beforeEach(() => {
+  Object.defineProperty(Element.prototype, "scrollBy", {
+    configurable: true,
+    writable: true,
+    value: vi.fn(),
+  });
+});
+
+afterEach(() => {
+  Reflect.deleteProperty(Element.prototype, "scrollBy");
+  resetAgendaEnvironment();
+});
 
 it("the row menu shows Status and Datum as open groups side by side at normal text, and as fold rows, one open at a time with Status first, at large text", async () => {
   const { transport } = makeTransport();

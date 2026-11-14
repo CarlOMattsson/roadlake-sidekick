@@ -55,12 +55,12 @@ class Project:
         *,
         now: datetime,
         title: str | UnsetType = UNSET,
-        description: str | None | UnsetType = UNSET,
+        description: str | UnsetType | None = UNSET,
         status: ProjectStatus | UnsetType = UNSET,
-        start_date: date | None | UnsetType = UNSET,
-        target_date: date | None | UnsetType = UNSET,
+        start_date: date | UnsetType | None = UNSET,
+        target_date: date | UnsetType | None = UNSET,
         domain_id: UUID | UnsetType = UNSET,
-        definition_of_done: str | None | UnsetType = UNSET,
+        definition_of_done: str | UnsetType | None = UNSET,
     ) -> "Project":
         """Apply the mutable Project fields, including its planning metadata.
 

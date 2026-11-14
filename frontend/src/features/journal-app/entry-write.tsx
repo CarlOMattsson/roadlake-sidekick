@@ -19,7 +19,7 @@ import "./journal.css";
  * view on its own in most hosts, this covers the ones that do not. Absent in a test DOM, so optional.
  */
 export function keepVisible(event: FocusEvent<HTMLElement>) {
-  const target = event.target as HTMLElement;
+  const target = event.target;
   target.scrollIntoView?.({ block: "nearest" });
 }
 

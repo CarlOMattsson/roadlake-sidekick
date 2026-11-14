@@ -157,14 +157,21 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    `--release` lägger till, efter de vanliga stegen och i samma ordning som `.github/workflows/ci.yml`, de kontroller
    som release-CI kör utöver dem: kontraktsdiffen (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, och ögonblicksbilderna under
-   `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning
-   (Chromium krävs: `npx playwright install chromium`) och beroendegranskningen i `audit.yml` (pip-audit, `npm audit`
-   för frontend och webbplatsen, OSV-Scanner på Gradle-låsfilerna). Frontend-steget omfattar redan MCP-appens vyer på
-   Preact. Beroendegranskningen kräver nätverk (och Docker för OSV-Scanner): en del vars verktyg eller värd inte
-   finns skriver en `SKIPPED: ...`-rad och steget rapporteras som `SKIPPED`, aldrig som `ok`; lägg till `--strict`
-   för att göra det till ett fel, och kör granskningen på en maskin med nätverk innan du släpper. Täcks inte lokalt:
-   emulatortestet, avbildsbygget och Compose-röktestet; releasekörningen gör dem.
-   Slå ihop med `main` när det är grönt; själva releasekörningen kör hela CI.
+   `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning,
+   beroendegranskningen i `audit.yml` (pip-audit, `npm audit` för frontend och webbplatsen, OSV-Scanner på
+   Gradle-låsfilerna) och drillen (`tools/drill.sh selfhost --local-images`, cirka 3 minuter, på slumpade portar och i
+   ett eget Compose-projekt, så den rör aldrig en körande instans). Frontend-steget omfattar redan MCP-appens vyer på
+   Preact. Grinden kör testerna som CI gör: backend- och frontendtester i UTC (frontendtesterna även i
+   `America/Los_Angeles`), Playwright-testerna, shellcheck och gitleaks i de avbilder som är fastnålade i
+   `tools/ci-images.sh` (samma som CI använder, så webbläsarbygge, typsnitt och verktygsversioner stämmer), och
+   steget `published-tree` bygger den publika exporten och kontrollerar den som den publicerade CI kommer att göra
+   (lint, prettier, tsc, vitest, policytester, shellcheck, gitleaks, Playwright-testerna). Docker krävs för dem;
+   beroendegranskningen kräver nätverk. En del vars verktyg eller värd inte finns skriver en `SKIPPED: ...`-rad och
+   steget rapporteras som `SKIPPED`, aldrig som `ok`; lägg till `--strict` för att göra det till ett fel, och kör
+   grinden på en maskin med Docker och nätverk innan du släpper. Täcks inte lokalt: emulatortestet, avbildsbygget och
+   Compose-röktestet; releasekörningen gör dem.
+   Slå ihop med `main` när det är grönt. Starta sedan arbetsflödet `CI` för hand i det publika repot (Actions, "CI",
+   Run workflow) på den commit du ska släppa; själva releasekörningen kör hela CI igen.
 3. **Torrkör först.** Actions, "release-image", Run workflow: `version` = `vX.Y.Z`, `migration_class` (se nedan),
    `previous_release` (`none` för den allra första releasen, annars tomt), **`dry_run` ikryssad**. Den bygger båda
    imageplattformarna och APK:n osignerad, pushar och signerar ingenting, behöver inga hemligheter och laddar upp

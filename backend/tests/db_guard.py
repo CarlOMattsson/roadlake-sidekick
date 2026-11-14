@@ -376,9 +376,9 @@ def guard_psycopg_generators(generators_module: Any) -> None:
     key = "psycopg.generators.connect"
     _LOWEST_DIALERS.setdefault(key, original)
 
-    def connect(conninfo: str, *, timeout: float = 0.0) -> Any:
+    def connect(conninfo: str) -> Any:
         validate_effective_conninfo(_psycopg_effective_params(conninfo, {}), loopback_hostaddr=True)
-        return _LOWEST_DIALERS[key](conninfo, timeout=timeout)
+        return _LOWEST_DIALERS[key](conninfo)
 
     setattr(connect, _GUARD_MARKER, True)
     generators_module.connect = connect

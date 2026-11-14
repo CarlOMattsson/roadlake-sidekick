@@ -42,10 +42,7 @@ export type ProjectDraftState = {
   dateIncomplete: Record<DateField, boolean>;
 };
 export type ProjectFieldProblem =
-  | TitleProblem
-  | "descriptionTooLong"
-  | "startIncomplete"
-  | "targetIncomplete";
+  TitleProblem | "descriptionTooLong" | "startIncomplete" | "targetIncomplete";
 
 export function draftFromProject(project: WorkProject): ProjectDraft {
   return {

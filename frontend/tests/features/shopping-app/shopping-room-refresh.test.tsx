@@ -76,13 +76,8 @@ function makeTransport() {
   });
   const transport: RoomTransport = {
     call: call as unknown as RoomTransport["call"],
-    requestDisplayMode: vi
-      .fn()
-      .mockResolvedValue(
-        "fullscreen",
-      ) as unknown as RoomTransport["requestDisplayMode"],
-    updateModelContext:
-      vi.fn() as unknown as RoomTransport["updateModelContext"],
+    requestDisplayMode: vi.fn().mockResolvedValue("fullscreen"),
+    updateModelContext: vi.fn(),
   };
   return { call, transport };
 }

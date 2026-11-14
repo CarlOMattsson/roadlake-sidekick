@@ -212,13 +212,12 @@ describe("memory: a saved change tells the host model once", () => {
     const user = userEvent.setup();
     const onModelContext = vi.fn();
     const transport = makeTransport({
-      setMemory: vi.fn(
-        (): Promise<SetMemoryResult> =>
-          Promise.resolve({
-            status: "updated",
-            settings: memory(true, 3).settings,
-            turning_off: [],
-          }),
+      setMemory: vi.fn((): Promise<SetMemoryResult> =>
+        Promise.resolve({
+          status: "updated",
+          settings: memory(true, 3).settings,
+          turning_off: [],
+        }),
       ),
       memoryStatus: vi.fn(() => Promise.resolve(memory(true, 3))),
     });
@@ -242,13 +241,12 @@ describe("memory: a saved change tells the host model once", () => {
     const user = userEvent.setup();
     const onModelContext = vi.fn();
     const transport = makeTransport({
-      setMemory: vi.fn(
-        (): Promise<SetMemoryResult> =>
-          Promise.resolve({
-            status: "updated",
-            settings: memory(false, 3).settings,
-            turning_off: [],
-          }),
+      setMemory: vi.fn((): Promise<SetMemoryResult> =>
+        Promise.resolve({
+          status: "updated",
+          settings: memory(false, 3).settings,
+          turning_off: [],
+        }),
       ),
       memoryStatus: vi.fn(() => Promise.resolve(memory(false, 3))),
     });
@@ -271,13 +269,12 @@ describe("memory: a saved change tells the host model once", () => {
     const user = userEvent.setup();
     const onModelContext = vi.fn();
     const transport = makeTransport({
-      setMemory: vi.fn(
-        (): Promise<SetMemoryResult> =>
-          Promise.resolve({
-            status: "updated",
-            settings: memory(false, 3).settings,
-            turning_off: [],
-          }),
+      setMemory: vi.fn((): Promise<SetMemoryResult> =>
+        Promise.resolve({
+          status: "updated",
+          settings: memory(false, 3).settings,
+          turning_off: [],
+        }),
       ),
       memoryStatus: vi.fn(() => Promise.resolve(memory(false, 3))),
     });
@@ -300,13 +297,12 @@ describe("memory: a saved change tells the host model once", () => {
     const user = userEvent.setup();
     const onModelContext = vi.fn();
     const transport = makeTransport({
-      setMemory: vi.fn(
-        (): Promise<SetMemoryResult> =>
-          Promise.resolve({
-            status: "needs_confirmation",
-            settings: memory(false, 2).settings,
-            turning_off: [{ domain: "journal", documents: 3 }],
-          }),
+      setMemory: vi.fn((): Promise<SetMemoryResult> =>
+        Promise.resolve({
+          status: "needs_confirmation",
+          settings: memory(false, 2).settings,
+          turning_off: [{ domain: "journal", documents: 3 }],
+        }),
       ),
     });
     render(
@@ -330,13 +326,12 @@ describe("memory: a saved change tells the host model once", () => {
     const user = userEvent.setup();
     const onModelContext = vi.fn();
     const transport = makeTransport({
-      setMemory: vi.fn(
-        (): Promise<SetMemoryResult> =>
-          Promise.resolve({
-            status: "unchanged",
-            settings: memory(true, 2).settings,
-            turning_off: [],
-          }),
+      setMemory: vi.fn((): Promise<SetMemoryResult> =>
+        Promise.resolve({
+          status: "unchanged",
+          settings: memory(true, 2).settings,
+          turning_off: [],
+        }),
       ),
     });
     render(

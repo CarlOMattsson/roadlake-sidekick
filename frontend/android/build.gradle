@@ -7,10 +7,10 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.13.0'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.20'
+        classpath 'com.android.tools.build:gradle:9.5.1'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21'
         // Jetpack Glance (the home-screen widget) is written in Compose syntax and needs the Compose compiler.
-        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.2.20'
+        classpath 'org.jetbrains.kotlin:compose-compiler-gradle-plugin:2.4.21'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -33,10 +33,16 @@ allprojects {
     }
     // org.json is a JVM-test-only dependency, and Capacitor's own modules pin an older release in their test classpaths.
     // One version everywhere keeps a fixed advisory from lingering in a lockfile that no shipped code resolves.
+    // The lint tool of the Android Gradle plugin brings in older libraries with published advisories; the same rule
+    // lifts those to the releases listed in variables.gradle.
     configurations.configureEach {
         resolutionStrategy.eachDependency { details ->
             if (details.requested.group == 'org.json' && details.requested.name == 'json') {
                 details.useVersion rootProject.ext.orgJsonVersion
+            }
+            def patched = rootProject.ext.patchedTransitiveVersions["${details.requested.group}:${details.requested.name}".toString()]
+            if (patched) {
+                details.useVersion patched
             }
         }
     }

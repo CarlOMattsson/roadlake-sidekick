@@ -91,15 +91,15 @@ Returns: `BatchResult` with `evaluated_on` (date), `items` (array of AddedItem),
 | `items[].occasion` | string | no | up to 200 characters; may be null |
 | `items[].offer` | object | no | may be null |
 | `items[].offer.checked_on` | date | yes | ISO 8601 date |
-| `items[].offer.price` | number or string | yes | above 0.0; up to 99999999.99; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,8}\|(?=[\d.]{1,11}0*$)\d{0,8}\.\d{0,2}0*$)` |
+| `items[].offer.price` | number or string | yes | above 0.0; up to 99999999.99 |
 | `items[].offer.source` | string | yes | 1 to 200 characters |
 | `items[].offer.valid_from` | date | yes | ISO 8601 date |
 | `items[].offer.valid_until` | date | yes | ISO 8601 date |
 | `items[].offer.currency` | string | no | default `"SEK"`; pattern `^[A-Z]{3}$` |
-| `items[].offer.regular_price` | number or string | no | above 0.0; up to 99999999.99; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,8}\|(?=[\d.]{1,11}0*$)\d{0,8}\.\d{0,2}0*$)`; may be null |
+| `items[].offer.regular_price` | number or string | no | above 0.0; up to 99999999.99; may be null |
 | `items[].offer.source_url` | string | no | up to 2000 characters; may be null |
 | `items[].product_url` | string | no | up to 2000 characters; may be null |
-| `items[].quantity` | number or string | no | default `"1"`; above 0.0; up to 999999.999; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,6}\|(?=[\d.]{1,10}0*$)\d{0,6}\.\d{0,3}0*$)` |
+| `items[].quantity` | number or string | no | default `"1"`; above 0.0; up to 999999.999 |
 | `items[].recipient_contact_id` | uuid | no | may be null |
 | `items[].store` | string | no | up to 200 characters; may be null |
 | `items[].target_date` | date | no | ISO 8601 date; may be null |
@@ -128,15 +128,15 @@ Returns: `ItemResult` with `evaluated_on` (date), `item` (ItemRecord), `list_nam
 | `item.occasion` | string | no | up to 200 characters; may be null |
 | `item.offer` | object | no | may be null |
 | `item.offer.checked_on` | date | yes | ISO 8601 date |
-| `item.offer.price` | number or string | yes | above 0.0; up to 99999999.99; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,8}\|(?=[\d.]{1,11}0*$)\d{0,8}\.\d{0,2}0*$)` |
+| `item.offer.price` | number or string | yes | above 0.0; up to 99999999.99 |
 | `item.offer.source` | string | yes | 1 to 200 characters |
 | `item.offer.valid_from` | date | yes | ISO 8601 date |
 | `item.offer.valid_until` | date | yes | ISO 8601 date |
 | `item.offer.currency` | string | no | default `"SEK"`; pattern `^[A-Z]{3}$` |
-| `item.offer.regular_price` | number or string | no | above 0.0; up to 99999999.99; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,8}\|(?=[\d.]{1,11}0*$)\d{0,8}\.\d{0,2}0*$)`; may be null |
+| `item.offer.regular_price` | number or string | no | above 0.0; up to 99999999.99; may be null |
 | `item.offer.source_url` | string | no | up to 2000 characters; may be null |
 | `item.product_url` | string | no | up to 2000 characters; may be null |
-| `item.quantity` | number or string | no | default `"1"`; above 0.0; up to 999999.999; pattern `^(?!^[-+.]*$)[+-]?0*(?:\d{0,6}\|(?=[\d.]{1,10}0*$)\d{0,6}\.\d{0,3}0*$)` |
+| `item.quantity` | number or string | no | default `"1"`; above 0.0; up to 999999.999 |
 | `item.recipient_contact_id` | uuid | no | may be null |
 | `item.store` | string | no | up to 200 characters; may be null |
 | `item.target_date` | date | no | ISO 8601 date; may be null |

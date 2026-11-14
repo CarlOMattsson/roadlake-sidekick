@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 // One release version for the server, the web bundle and this app. backend/pyproject.toml is the source;
@@ -48,8 +47,8 @@ android {
     }
     sourceSets {
         // One fake companion server and one process wiring serve both the JVM tests and the instrumented tests.
-        test.java.srcDir 'src/testShared/kotlin'
-        androidTest.java.srcDir 'src/testShared/kotlin'
+        test.kotlin.srcDir 'src/testShared/kotlin'
+        androidTest.kotlin.srcDir 'src/testShared/kotlin'
     }
     kotlin {
         compilerOptions {
@@ -66,7 +65,7 @@ android {
             // R8 shrinks, optimizes and obfuscates the release; proguard-rules.pro keeps what is reached by reflection.
             minifyEnabled true
             shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

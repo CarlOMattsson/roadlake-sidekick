@@ -190,7 +190,7 @@ it("a quantity of 1 without a unit is not shown in the shop view, an amount is",
 
 it("the quick field adds to the shop that is open", async () => {
   const transport = adapter();
-  vi.mocked(transport.add).mockResolvedValue({ items: [] } as never);
+  vi.mocked(transport.add).mockResolvedValue({ items: [] });
   const user = userEvent.setup();
   render(
     <ShoppingView

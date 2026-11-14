@@ -1113,13 +1113,7 @@ export type ToolInputs = {
     group?: "none" | "kind" | "status" | "context";
     include_undated?: boolean;
     kind?:
-      | "all"
-      | "domain"
-      | "process"
-      | "project"
-      | "task"
-      | "step"
-      | "action";
+      "all" | "domain" | "process" | "project" | "task" | "step" | "action";
     limit?: number;
     max_minutes?: number | null;
     priority?: "low" | "normal" | "high" | "urgent" | null;
@@ -2131,13 +2125,7 @@ export type TaskRecord = {
   attention_requested: boolean;
   blocked_last_reminded_at: string | null;
   blocked_reminder_cadence:
-    | "daily"
-    | "weekly"
-    | "biweekly"
-    | "monthly"
-    | "quarterly"
-    | "yearly"
-    | null;
+    "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | null;
   blocked_reminder_snoozed_until: string | null;
   completed_at: string | null;
   created_at: string;
@@ -2186,23 +2174,11 @@ export type WorkItemRecord = {
   archived: boolean;
   attention_requested: boolean;
   blocked_reminder_cadence:
-    | "daily"
-    | "weekly"
-    | "biweekly"
-    | "monthly"
-    | "quarterly"
-    | "yearly"
-    | null;
+    "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | null;
   blocked_reminder_due: boolean;
   blocked_reminder_snoozed_until: string | null;
   cadence:
-    | "daily"
-    | "weekly"
-    | "biweekly"
-    | "monthly"
-    | "quarterly"
-    | "yearly"
-    | null;
+    "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | null;
   domain_accent: string | null;
   domain_id: string | null;
   due_at: string | null;
@@ -2220,13 +2196,7 @@ export type WorkItemRecord = {
   project_title: string | null;
   recurrence: RecurrenceRecord | null;
   review_cadence:
-    | "daily"
-    | "weekly"
-    | "biweekly"
-    | "monthly"
-    | "quarterly"
-    | "yearly"
-    | null;
+    "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly" | null;
   review_due: boolean;
   status: string;
   tags: Array<string>;

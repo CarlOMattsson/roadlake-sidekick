@@ -785,6 +785,10 @@ button.journal-entry-card {
   min-width: 0;
   max-width: calc(100% + 12px);
   margin-inline-start: -12px;
+  /* "Idag"'s 48 tap target reaches 4 + the hairline past its box (family.css .sk-btn--compact::after); the row keeps
+     that inside itself, so the button wraps rather than ending flush with the row and the target spilling out. */
+  padding-inline-end: calc(4px + var(--sk-hairline));
+  box-sizing: border-box;
 }
 .sidekick-journal .sk-day-strip-weekrow > .sk-iconbtn {
   margin-top: calc(-1 * var(--sk-day-week-reach));

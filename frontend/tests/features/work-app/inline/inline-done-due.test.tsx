@@ -100,7 +100,7 @@ describe("a done Task's due date on an agenda row", () => {
     status: "completed",
     due_at: "2026-10-20T09:00:00Z",
     agenda_group: "overdue",
-  } as WorkItemRecord;
+  };
 
   it("shows no overdue text for a row whose Task is done", () => {
     render(

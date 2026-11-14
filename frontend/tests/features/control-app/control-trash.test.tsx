@@ -50,9 +50,8 @@ function makeTransport(
   restore: Mock<Restore> = vi.fn<Restore>(() => Promise.resolve({})),
 ) {
   const transport = {
-    trash: vi.fn(
-      (): Promise<TrashList> =>
-        Promise.resolve({ items: [], has_more: false, next_cursor: null }),
+    trash: vi.fn((): Promise<TrashList> =>
+      Promise.resolve({ items: [], has_more: false, next_cursor: null }),
     ),
     restore,
     changes: vi.fn(() => Promise.resolve({ changes: [] })),

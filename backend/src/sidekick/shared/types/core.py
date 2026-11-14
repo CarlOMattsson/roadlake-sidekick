@@ -78,7 +78,7 @@ def paginate[Row, Cursor](
     return page, cursor_for(page[-1])
 
 
-type KeyValue = None | int | str | date | datetime | UUID
+type KeyValue = int | str | date | datetime | UUID | None
 """One component of a keyset position: the value of a sort column in the last row served."""
 
 

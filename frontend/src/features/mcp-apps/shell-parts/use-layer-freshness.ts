@@ -108,7 +108,6 @@ export function useLayerFreshness({
     book.hiddenAt = null;
     if (!changed && !stale) return;
     book.seen = { ...versions.current };
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- the check needs the layout after the commit and the write counts in refs; asking for the read is its result.
     setLayerKeys((keys) => ({ ...keys, [shownId]: (keys[shownId] ?? 0) + 1 }));
   }, [full, nav, shownId, writes, staleTick]);
 

@@ -193,12 +193,7 @@ export function groupAgenda(items: WorkItemRecord[]): AgendaSection[] {
  * due date in the local calendar, Monday to Sunday. Records without a due date are "undated".
  */
 export type AgendaBucket =
-  | "overdue"
-  | "today"
-  | "thisWeek"
-  | "nextWeek"
-  | "later"
-  | "undated";
+  "overdue" | "today" | "thisWeek" | "nextWeek" | "later" | "undated";
 
 /** A fullscreen agenda section: its bucket, its records, and the dates of the heading ("28 okt–1 nov"). */
 export type DatedAgendaSection = {

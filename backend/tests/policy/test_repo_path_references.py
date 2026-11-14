@@ -16,7 +16,8 @@ working tree.
 
 A path counts when it ends in a file extension or a slash. Names with a wildcard or a template
 character are skipped, and so are the locations in GENERATED, which only exist at run time or
-after a build. The test passes in the working repository and in the published copy of it.
+after a build, and in UNPUBLISHED, the maintainer's own tooling. The test passes in the working
+repository and in the published copy of it.
 """
 
 import ast
@@ -47,6 +48,9 @@ GENERATED = (
     "deploy/work/.work.lock",
     "frontend/android/app/build/",
 )
+# The maintainer's own tooling. It is never published; a published script that names it
+# (tools/check-all.sh runs it as one stage) first checks that it is there.
+UNPUBLISHED = ("tools/check-extra.sh", "tools/export/")
 LINE_SUFFIXES = {".sh", ".yaml", ".yml", ".ini", ".toml", ".gradle"}
 COMMENT_SUFFIXES = {".ts", ".tsx", ".js", ".mjs"}
 SKIPPED_PARTS = {"node_modules", "fixtures"}
@@ -160,7 +164,7 @@ def referenced_paths(name: str, text: str) -> list[tuple[int, str]]:
     for number, line in _comment_lines(name, text):
         for match in PATH.finditer(line):
             path = match.group(1)
-            if ".." in path or path.startswith(GENERATED) or path.endswith(".env"):
+            if ".." in path or path.startswith((*GENERATED, *UNPUBLISHED)) or path.endswith(".env"):
                 continue
             if path.endswith("/") or FILE_NAME.search(path):
                 found.append((number, path))

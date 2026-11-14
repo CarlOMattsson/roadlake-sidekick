@@ -33,18 +33,22 @@ npm --prefix frontend run check            # eslint + tsc -b + vitest
 # Bara repots regler (skanning av källkod, dokument och konfiguration; release-CI kör dem som eget steg, ingen databas)
 (cd backend && uv run pytest --full -m policy)
 
-# Webbläsartester för MCP-appen (Playwright med Chromium: `npx playwright install chromium` i frontend/)
+# Webbläsartester för MCP-appen, i den Playwright-avbild som CI använder (tools/ci-images.sh; kräver Docker).
+# Typsnitt avgör kortens höjd, så en körning med en annan webbläsarbygge kan skilja sig från CI:
+# `npm --prefix frontend run test:mcp-app` med din egen Chromium är en snabb loop, inte kontrollen.
 npm --prefix frontend run build:mcp-app
-npm --prefix frontend run test:mcp-app
-(cd frontend && npx playwright test --config playwright.mobile-audit.config.ts)
+bash tools/playwright-docker.sh npx playwright test --config playwright.mcp-app.config.ts
+bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-audit.config.ts
 ```
 
 För att köra hela den lokala sviten som ska vara grön före en push i ett svep finns `tools/check-all.sh`. Den kör
 backendtesterna parallellt på en egen plats i testdatabasen (`--slot`, 1 till 20; se `tools/test-db-pool.md`), därefter
 ruff och pyright, versions- och migrationskontrollerna, shellcheck, gitleaks, frontendkontrollerna, bygget och
-webbläsartesterna för MCP-appen och Androids Gradle-bygge. Backendtesterna körs med CI:s täckningsgräns (90 %), och
-mobilpaketet byggs före frontendkontrollerna eftersom `mobile-csp.test.ts` läser det. Den rör
-ingen annan databas än testcontainern på port 55433. Varje del har en `--skip-...`-flagga, och `--dry-run` skriver ut
+webbläsartesterna för MCP-appen, en kontroll av den publika exporten (`published-tree`: exporten byggs i en temporär
+katalog och lintas, typkontrolleras och testas där som den publicerade CI kommer att göra) och Androids Gradle-bygge.
+Backendtesterna körs med CI:s täckningsgräns (90 %), testerna körs i UTC som på CI-runnern (frontendens enhetstester
+även en gång i `America/Los_Angeles`), och mobilpaketet byggs före frontendkontrollerna eftersom `mobile-csp.test.ts`
+läser det. Den rör ingen annan databas än testcontainern på port 55433. Varje del har en `--skip-...`-flagga, och `--dry-run` skriver ut
 kommandona utan att köra dem:
 
 ```bash
@@ -54,14 +58,17 @@ bash tools/check-all.sh --slot 3 --release        # plus resten av releasegrinde
 bash tools/check-all.sh --help                    # alla flaggor
 ```
 
-shellcheck och gitleaks måste vara installerade lokalt. Saknas ett av dem skriver steget `SKIPPED: <verktyg> missing
-(install: ...)` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett fel.
+Docker behövs för shellcheck, gitleaks och Playwright-testerna: de körs i de avbilder som är fastnålade i
+`tools/ci-images.sh`, samma som CI använder, så versioner, webbläsare och typsnitt stämmer. Saknas Docker skriver steget
+`SKIPPED: docker missing ...` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett
+fel.
 
 Som standard kör den inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna eller
-kontraktsdiffen. Lägg till `--release` för att köra dem också, i samma ordning som release-CI (se
+kontraktsdiffen. Lägg till `--release` för att köra dem också, och drillen, i samma ordning som release-CI (se
 [releasechecklistan](../maintainers/release.sv.md)); beroendegranskningen kräver nätverk och rapporteras som `SKIPPED`
 när det inte nås. Emulatortestet, avbildsbygget och Compose-röktestet lämnas åt release-CI, så kör de nedan som hör
-till det du har ändrat.
+till det du har ändrat. Före varje release: kör `bash tools/check-all.sh --slot K --release` och starta sedan `ci.yml`
+för hand i det publika repot.
 
 CI körs inte för pull requests, sammanslagningar eller pushar; det är en grind vid varje release (och kan startas för
 hand). Kontrollerna kör alltså du själv innan du pushar: installera hookarna med `pre-commit install --hook-type
@@ -79,8 +86,8 @@ npm --prefix frontend run build:mobile
 (cd frontend && npx cap sync android)
 (cd frontend/android && ./gradlew test)
 
-# Skalskript (CI kontrollerar också filer utan ändelse som börjar med sh- eller bash-shebang)
-git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
+# Skalskript (CI kontrollerar också filer utan ändelse som börjar med sh- eller bash-shebang), i CI:s avbild
+bash tools/shellcheck-ci.sh
 
 # Beroenden (.github/workflows/audit.yml): pip-audit över alla låsta Python-grupper, `npm audit --audit-level=high --omit=dev`
 # över de levererade frontend-beroendena och OSV-Scanner över Androids Gradle-låsfiler (kräver Docker)

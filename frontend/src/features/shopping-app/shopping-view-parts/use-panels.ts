@@ -24,8 +24,7 @@ export type Panels = {
 };
 
 type PanelAction =
-  | { type: "set"; key: keyof Panels; value: boolean }
-  | { type: "closeAll" };
+  { type: "set"; key: keyof Panels; value: boolean } | { type: "closeAll" };
 
 const CLOSED: Panels = {
   editOpen: false,

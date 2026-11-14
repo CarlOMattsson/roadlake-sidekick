@@ -193,6 +193,7 @@ export function BoardCard({
       data-accent={accent ?? undefined}
       aria-busy={busy ? true : undefined}
       style={dragging ? draggingStyle : undefined}
+      // eslint-disable-next-line react-hooks/refs -- the handlers only touch the menu state when the user presses or holds, not during render.
       {...(task ? rowMenuHandlers(open, show) : {})}
     >
       <div className="work-card-head">

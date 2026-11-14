@@ -274,6 +274,7 @@ export function useBoardWrites({
     answer: WorkBoardPlacement[],
     sent: WorkBoardPlacementItem[],
   ) {
+    // eslint-disable-next-line react-hooks/immutability -- the counter is a ref the board hook owns and its callers pass in.
     writes.current += 1;
     commit({
       ...latest.current,
@@ -298,6 +299,7 @@ export function useBoardWrites({
     if (to < 0 || to >= items.length) return;
     // The write is made the same way as a drop, a step from where the card stands when it runs; the card's
     // title takes focus when it is done.
+    // eslint-disable-next-line react-hooks/immutability -- the focus request is a ref the board hook owns and its callers pass in.
     focusWanted.current = { kind: "more", id: card.id };
     reorder(card.status, card.id, { by: direction });
   }

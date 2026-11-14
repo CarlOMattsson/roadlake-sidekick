@@ -246,7 +246,9 @@ def test_a_404_on_the_documents_of_a_listed_bank_changes_nothing(
     """A wrong base path or proxy route answers 404 everywhere. The bank is listed, so no reset."""
     owner = _owner(factory)
     _retained_rows(factory, owner)
-    script = Script(_response(200, {"banks": [{"bank_id": _bank(owner)}]}), _response(404))
+    script = Script(
+        _response(200, {"banks": [{"bank_id": _bank(owner)}], "total": 1}), _response(404)
+    )
     provider = _provider(script, max_retries=0)
 
     result = lifecycle.verify_banks_after_start(SqlAlchemyMemoryStore(factory), provider)

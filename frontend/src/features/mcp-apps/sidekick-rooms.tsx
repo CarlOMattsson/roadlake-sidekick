@@ -155,6 +155,8 @@ export function initialFor(
   if (entry.data !== undefined) {
     // In the full view a Contact record is the Contact view with its Tasks and Projects, not a card.
     if (full && entry.room === "contacts" && entry.view === "compact") {
+      // The data is unknown here: the assertion names the one field read, and the rule wrongly calls it unnecessary.
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       const id = (entry.data as { contact?: { id?: unknown } } | null)?.contact
         ?.id;
       if (typeof id === "string")

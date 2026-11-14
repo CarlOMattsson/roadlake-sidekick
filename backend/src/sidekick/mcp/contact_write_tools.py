@@ -36,7 +36,7 @@ from sidekick.structured.tags import TagsInput
 def _update_command(changes: ContactChanges) -> UpdateContactCommand:
     """Fields the caller sent are mapped; the rest stay UNSET."""
 
-    def sent(name: str) -> str | None | UnsetType:
+    def sent(name: str) -> str | UnsetType | None:
         return getattr(changes, name) if name in changes.model_fields_set else UNSET
 
     return UpdateContactCommand(

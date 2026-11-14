@@ -8,9 +8,7 @@
 import { ROOT_VIEW, type NavEntry } from "@/features/mcp-apps/nav-state";
 
 export type LaunchHint =
-  | { view: "today" }
-  | { view: "task"; id: string }
-  | { view: "settings" };
+  { view: "today" } | { view: "task"; id: string } | { view: "settings" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TODAY: LaunchHint = { view: "today" };

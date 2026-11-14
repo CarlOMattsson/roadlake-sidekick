@@ -141,7 +141,7 @@ class RequestBodyLimitMiddleware:
             return
         self._buffering += 1
         timed_out = False
-        buffered: bytes | None | object = None
+        buffered: bytes | object | None = None
         try:
             async with asyncio.timeout(timeout):
                 buffered = await _buffer_within(receive, limit)
@@ -203,7 +203,7 @@ def _has_content_length(scope: Scope) -> bool:
 _DISCONNECTED = object()
 
 
-async def _buffer_within(receive: Receive, limit: int) -> bytes | None | object:
+async def _buffer_within(receive: Receive, limit: int) -> bytes | object | None:
     """Read the whole request body.
 
     `None` as soon as it exceeds `limit` bytes; `_DISCONNECTED` if the client went away before the

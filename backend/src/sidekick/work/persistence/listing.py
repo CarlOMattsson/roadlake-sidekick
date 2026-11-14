@@ -64,6 +64,8 @@ from sidekick.work.persistence.mappers import (
 )
 from sidekick.work.persistence.tags import tag_condition
 
+# A SELECT of any number of columns: `Select[Any]` would mean exactly one column.
+_AnySelect = Select[*tuple[Any, ...]]
 _TIMESTAMP = DateTime(timezone=True)
 _PRIORITY_RANK = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
 
@@ -97,7 +99,7 @@ class _Cols(NamedTuple):
 class _Branch(NamedTuple):
     cols: _Cols
     entity: Any
-    join: Callable[[Select[Any]], Select[Any]]
+    join: Callable[[_AnySelect], _AnySelect]
     where: list[ColumnElement[bool]]
 
 
@@ -136,7 +138,7 @@ def _casefold(text: Any) -> ColumnElement[str]:
     return folded
 
 
-def _no_join(statement: Select[Any]) -> Select[Any]:
+def _no_join(statement: _AnySelect) -> _AnySelect:
     return statement
 
 
@@ -297,7 +299,7 @@ def _step_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         *_loaded(TaskRow.archived_at.is_not(None), include_archived),
     ]
 
-    def join(statement: Select[Any]) -> Select[Any]:
+    def join(statement: _AnySelect) -> _AnySelect:
         return statement.join(
             TaskRow, and_(TaskRow.id == StepRow.task_id, TaskRow.owner_id == StepRow.owner_id)
         )
@@ -334,7 +336,7 @@ def _action_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         *_loaded(TaskRow.archived_at.is_not(None), include_archived),
     ]
 
-    def join(statement: Select[Any]) -> Select[Any]:
+    def join(statement: _AnySelect) -> _AnySelect:
         return statement.join(
             StepRow, and_(StepRow.id == ActionRow.step_id, StepRow.owner_id == ActionRow.owner_id)
         ).join(TaskRow, and_(TaskRow.id == StepRow.task_id, TaskRow.owner_id == StepRow.owner_id))
@@ -481,7 +483,7 @@ def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> An
         "step": lambda: _step_branch(owner_id, include_archived),
         "action": lambda: _action_branch(owner_id, include_archived),
     }
-    selects: list[Select[Any]] = []
+    selects: list[_AnySelect] = []
     for kind in kinds:
         branch = branches[kind]()
         statement = branch.join(select(*branch.cols.labelled()).select_from(branch.entity))

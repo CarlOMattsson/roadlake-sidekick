@@ -22,7 +22,7 @@ already has the result. Nothing here reads or writes an endpoint or any content.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
@@ -53,7 +53,7 @@ _ORIGIN_DEVICE: ContextVar[UUID | None] = ContextVar("sidekick_push_origin_devic
 
 
 @contextmanager
-def acting_device(device_id: UUID) -> Iterator[None]:
+def acting_device(device_id: UUID) -> Generator[None]:
     """Mark the writes made inside as made by this companion device: it gets no wake for them."""
 
     token = _ORIGIN_DEVICE.set(device_id)

@@ -116,7 +116,7 @@ function transport(): JournalTransport {
     updateDraft: vi.fn(),
     rejectDraft: vi.fn(),
     finalizeDraft: vi.fn(),
-  } as unknown as JournalTransport;
+  };
 }
 
 /** The count line as read: the no-break spaces of done-section.tsx as plain spaces. */
@@ -399,14 +399,12 @@ describe("Gjort in the transport", () => {
 
   it("still reads not_found from an older server as the empty day, and other errors stay errors", async () => {
     const notFound = Object.assign(new Error("nf"), { code: "not_found" });
-    const gone = createJournalTransport(
-      vi.fn(() => Promise.reject(notFound)) as never,
-    );
+    const gone = createJournalTransport(vi.fn(() => Promise.reject(notFound)));
     const empty = await gone.getDay(DATE);
     expect(empty.entries).toEqual([]);
     expect(empty.done).toBeUndefined();
     const broken = createJournalTransport(
-      vi.fn(() => Promise.reject(new Error("boom"))) as never,
+      vi.fn(() => Promise.reject(new Error("boom"))),
     );
     await expect(broken.getDay(DATE)).rejects.toThrow("boom");
   });

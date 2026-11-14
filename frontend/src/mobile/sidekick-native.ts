@@ -267,7 +267,7 @@ export function isConnectionCode(code: string): code is "network" | "timeout" {
 /** The closed code of a failed plugin call ("not_paired", "pairing_invalid", "timeout", ...), or "unknown". */
 export function nativeErrorCode(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error) {
-    const code = (error as { code: unknown }).code;
+    const code = error.code;
     if (typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/.test(code))
       return code;
   }
@@ -281,10 +281,10 @@ export function nativeErrorCode(error: unknown): string {
 export function nativeErrorGeneration(error: unknown): number | undefined {
   if (typeof error !== "object" || error === null || !("data" in error))
     return undefined;
-  const data = (error as { data: unknown }).data;
+  const data = error.data;
   if (typeof data !== "object" || data === null || !("generation" in data))
     return undefined;
-  const generation = (data as { generation: unknown }).generation;
+  const generation = data.generation;
   return typeof generation === "number" &&
     Number.isSafeInteger(generation) &&
     generation >= 0

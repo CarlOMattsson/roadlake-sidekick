@@ -118,7 +118,7 @@ test("the meta line keeps its time and status whole, lets only the Project give 
   ).toEqual({
     display: "flex",
     flexWrap: "wrap",
-    alignContent: "flex-start",
+    alignContent: await resolved(app, "align-content", "flex-start"),
     rowGap: "0px",
     whiteSpace: "nowrap",
     overflowX: "clip",

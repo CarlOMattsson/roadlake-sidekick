@@ -39,7 +39,7 @@ import signal
 import sys
 import tempfile
 import threading
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import FrameType
@@ -256,7 +256,7 @@ class Drill:
         return code
 
     @contextlib.contextmanager
-    def caught_signals(self) -> Iterator[None]:
+    def caught_signals(self) -> Generator[None]:
         """An interrupt or a terminate ends the run with the shell's status (130, 143); the cleanup still runs."""
         if threading.current_thread() is not threading.main_thread():
             yield

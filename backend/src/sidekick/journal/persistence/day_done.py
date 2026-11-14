@@ -1,7 +1,7 @@
 """The owner-scoped queries behind `DayDone`. See `journal/domain/day_done.py` for the rules."""
 
 from datetime import date, datetime, tzinfo
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select
@@ -139,7 +139,11 @@ def _steps(
     return (
         tuple(
             DoneStep(
-                id=row[0], title=row[1], task_id=row[2], task_title=row[3], completed_at=row[4]
+                id=row[0],
+                title=row[1],
+                task_id=row[2],
+                task_title=row[3],
+                completed_at=cast(datetime, row[4]),
             )
             for row in rows
         ),
@@ -185,7 +189,11 @@ def _purchases(
     return (
         tuple(
             DonePurchase(
-                id=row[0], title=row[1], list_id=row[2], list_title=row[3], purchased_at=row[4]
+                id=row[0],
+                title=row[1],
+                list_id=row[2],
+                list_title=row[3],
+                purchased_at=cast(datetime, row[4]),
             )
             for row in rows
         ),

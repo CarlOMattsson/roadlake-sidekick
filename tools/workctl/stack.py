@@ -16,7 +16,7 @@ import os
 import signal
 import subprocess
 import sys
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Mapping, Sequence
 from datetime import datetime
 from pathlib import Path
 from types import FrameType, ModuleType
@@ -106,7 +106,7 @@ class Signals:
             raise Stop(self.take())
 
     @contextlib.contextmanager
-    def interruptible(self) -> Iterator[None]:
+    def interruptible(self) -> Generator[None]:
         """A wait for a person (a question on the terminal): a signal ends it at once with its status instead of
         being acted on after the answer. A signal that came earlier ends it before it begins."""
         self.check()
@@ -393,7 +393,7 @@ class Stack:
             os.sync()
 
     @contextlib.contextmanager
-    def caught_signals(self) -> Iterator[None]:
+    def caught_signals(self) -> Generator[None]:
         self.signals.catch()
         try:
             yield

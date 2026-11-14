@@ -218,6 +218,7 @@ export function ControlApp({
       void read(initialView, false);
   });
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the first read of a card mounted without data sets its loading state by design.
     readInitial();
   }, []);
 

@@ -61,7 +61,7 @@ test("Kontakter: a contact's name starts at the row's start edge, not centred", 
   const open = app.locator(".work-contact-list .sk-row-open").first();
   await expect(open).toBeVisible();
   expect(await style(open, "justifyContent", "textAlign")).toEqual({
-    justifyContent: "flex-start",
+    justifyContent: await resolved(app, "justify-content", "flex-start"),
     textAlign: "start",
   });
   const [button, text] = await Promise.all([

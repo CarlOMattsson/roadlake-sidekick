@@ -33,18 +33,22 @@ npm --prefix frontend run check            # eslint + tsc -b + vitest
 # Repository rules only (source, docs and config scans; the release CI runs them as their own step, no database)
 (cd backend && uv run pytest --full -m policy)
 
-# MCP App browser tests (Playwright with Chromium: `npx playwright install chromium` in frontend/)
+# MCP App browser tests, in the Playwright image that CI uses (tools/ci-images.sh; needs Docker). Fonts decide card
+# heights, so a run with another browser build can differ from CI: `npm --prefix frontend run test:mcp-app` with
+# your own Chromium is a quick loop, not the check.
 npm --prefix frontend run build:mcp-app
-npm --prefix frontend run test:mcp-app
-(cd frontend && npx playwright test --config playwright.mobile-audit.config.ts)
+bash tools/playwright-docker.sh npx playwright test --config playwright.mcp-app.config.ts
+bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-audit.config.ts
 ```
 
 To run the local suite that should be green before a push in one go, use `tools/check-all.sh`. It runs the backend
 tests in parallel on a disposable test database slot of your own (`--slot`, 1 to 20; see `tools/test-db-pool.md`),
 with the CI coverage gate (90 %), then ruff and pyright, the version and migration policy checks, shellcheck, gitleaks,
 the frontend checks (the mobile bundle is built first, because `mobile-csp.test.ts` reads it), the MCP App build and
-browser tests, and the Android Gradle build. It touches no database other than the test container on port 55433. Each part has a `--skip-...` flag, and
-`--dry-run` prints the commands without running them:
+browser tests, a check of the public export (`published-tree`: the export is built in a temporary directory and linted,
+type-checked and tested there as the published CI will) and the Android Gradle build. Tests run in UTC, as on the CI
+runner, and the frontend unit tests once more in `America/Los_Angeles`. It touches no database other than the test
+container on port 55433. Each part has a `--skip-...` flag, and `--dry-run` prints the commands without running them:
 
 ```bash
 bash tools/check-all.sh --slot 3                  # everything
@@ -53,14 +57,17 @@ bash tools/check-all.sh --slot 3 --release        # plus the rest of the release
 bash tools/check-all.sh --help                    # all options
 ```
 
-shellcheck and gitleaks must be installed locally. When one is missing its stage prints `SKIPPED: <tool> missing
-(install: ...)` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into a failure.
+Docker is needed for shellcheck, gitleaks and the Playwright tests: they run in the images pinned in
+`tools/ci-images.sh`, the same ones CI uses, so versions, browsers and fonts match. When Docker is missing the stage
+prints `SKIPPED: docker missing ...` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into
+a failure.
 
 By default it does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits or the
-contract diff. Add `--release` to run those too, in the order of the release CI (see
+contract diff. Add `--release` to run those too, and the drill, in the order of the release CI (see
 [the release checklist](../maintainers/release.md)); the dependency audit needs the network and is reported as `SKIPPED`
 when it is not reachable. The emulator test, the image build and the Compose smoke test are left to the release CI, so
-run the ones below that match what you changed.
+run the ones below that match what you changed. Before every release run `bash tools/check-all.sh --slot K --release`,
+then start `ci.yml` by hand in the public repository.
 
 CI does not run on pull requests, merges or pushes; it is a gate of every release (and can be started by hand). So
 the checks are yours to run before you push: install the hooks with `pre-commit install --hook-type pre-commit --hook-type
@@ -78,8 +85,8 @@ npm --prefix frontend run build:mobile
 (cd frontend && npx cap sync android)
 (cd frontend/android && ./gradlew test)
 
-# Shell scripts (CI also checks extensionless files that start with a sh or bash shebang)
-git ls-files -z '*.sh' | xargs -0 shellcheck --severity=warning
+# Shell scripts (CI also checks extensionless files that start with a sh or bash shebang), in the CI image
+bash tools/shellcheck-ci.sh
 
 # Dependencies: pip-audit and `npm audit --audit-level=high --omit=dev`, OSV-Scanner on the Gradle lockfiles (.github/workflows/audit.yml)
 bash .github/audit/pip-audit.sh

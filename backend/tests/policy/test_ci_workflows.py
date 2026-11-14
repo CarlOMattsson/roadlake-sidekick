@@ -44,13 +44,21 @@ def test_every_workflow_pins_the_same_checkout() -> None:
     assert re.fullmatch(r"[0-9a-f]{40}", sha), "checkout is pinned to a full commit sha"
 
 
+SHELLCHECK_SCRIPT = ROOT / "tools" / "shellcheck-ci.sh"
+
+
 @pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))
-def test_shellcheck_covers_every_tracked_shell_script(ci: Path) -> None:
+def test_the_shellcheck_job_runs_the_shared_script(ci: Path) -> None:
     script = "\n".join(str(step.get("run", "")) for step in _steps(ci, "shellcheck"))
+    assert "bash tools/shellcheck-ci.sh" in script
+
+
+def test_shellcheck_covers_every_tracked_shell_script() -> None:
+    script = SHELLCHECK_SCRIPT.read_text(encoding="utf-8")
     assert "git ls-files" in script, "the file list comes from git, not from a hand-kept list"
-    assert "*.sh" in script, "files with the .sh extension are covered"
+    assert "*.sh) ;;" in script, "files with the .sh extension are covered"
     assert "#!" in script, "extensionless scripts are found by their shebang"
-    assert "shellcheck --severity=warning" in script
+    assert "--severity=warning" in script
 
 
 @pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))

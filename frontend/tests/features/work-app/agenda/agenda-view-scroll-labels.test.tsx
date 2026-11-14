@@ -53,7 +53,7 @@ function renderOverHeading(
     x: 0,
     y: top,
     toJSON: () => ({}),
-  } as DOMRect);
+  });
   // The agenda is its own scroll box in the "box" case: overflow auto, and its scrollTop is the test's (jsdom has no layout).
   const article = head.closest<HTMLElement>(".work-agenda");
   if (!article) throw new Error("no agenda");

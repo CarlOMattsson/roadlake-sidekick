@@ -64,7 +64,7 @@ function writerMock(): {
     writer: {
       getTask,
       updateTask,
-    } as unknown as CardStatusWriter,
+    },
     getTask,
     updateTask,
   };

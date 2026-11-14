@@ -51,9 +51,7 @@ export type DraftState = {
   dueIncomplete: boolean;
 };
 export type FieldProblem =
-  | TitleProblem
-  | "descriptionTooLong"
-  | "dueIncomplete";
+  TitleProblem | "descriptionTooLong" | "dueIncomplete";
 type DraftField = keyof TaskDraft;
 /** The date shortcuts above the due date field: today, tomorrow, the next Monday, or no date. */
 type DueShortcut = "today" | "tomorrow" | "nextWeek" | "none";

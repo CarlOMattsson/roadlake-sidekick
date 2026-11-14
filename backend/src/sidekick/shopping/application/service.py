@@ -104,14 +104,14 @@ class ItemPatch:
 
     name: str | UnsetType = UNSET
     quantity: Decimal | UnsetType = UNSET
-    unit: str | None | UnsetType = UNSET
-    note: str | None | UnsetType = UNSET
-    store: str | None | UnsetType = UNSET
-    product_url: str | None | UnsetType = UNSET
-    recipient_contact_id: UUID | None | UnsetType = UNSET
-    occasion: str | None | UnsetType = UNSET
-    target_date: date | None | UnsetType = UNSET
-    offer: Offer | None | UnsetType = UNSET
+    unit: str | UnsetType | None = UNSET
+    note: str | UnsetType | None = UNSET
+    store: str | UnsetType | None = UNSET
+    product_url: str | UnsetType | None = UNSET
+    recipient_contact_id: UUID | UnsetType | None = UNSET
+    occasion: str | UnsetType | None = UNSET
+    target_date: date | UnsetType | None = UNSET
+    offer: Offer | UnsetType | None = UNSET
 
     @classmethod
     def full(cls, details: ItemDetails) -> "ItemPatch":

@@ -318,7 +318,7 @@ class ProjectTaskStore:
         ).one()
         return {
             "task_count": int(row[0]),
-            "estimated_minutes_total": int(row[1]),
+            "estimated_minutes_total": int(row[1] or 0),
             "overdue_minutes": int(row[2]),
             "unestimated_count": int(row[3]),
         }

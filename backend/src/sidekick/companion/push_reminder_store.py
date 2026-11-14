@@ -89,7 +89,8 @@ class SqlReminderStore:
                 )
             ).all()
         return [
-            DueTask(task_id, title, due_at, created_at)
+            # The query keeps only tasks with a due time, which the column type cannot express.
+            DueTask(task_id, title, cast(datetime, due_at), created_at)
             for task_id, title, due_at, created_at in rows
         ]
 

@@ -50,6 +50,7 @@ export function useShoppingRead({
   const [ownWritten] = useState(() => new Map<string, ShoppingItem>());
   const written = writtenFrom ?? ownWritten;
   const detailNow = useRef<ShoppingDetail | undefined>(initial);
+  // eslint-disable-next-line react-hooks/refs -- the ref holds the latest detail for the read callbacks, which run after the render.
   detailNow.current = detail;
   // The snapshot the opening result carried: the first read of that list is not repeated.
   const seeded = useRef<ShoppingDetail | undefined>(initial);
@@ -75,6 +76,7 @@ export function useShoppingRead({
   );
   useEffect(() => {
     if (writtenTick === undefined) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a write of the list is folded into the detail the view shows once it is reported.
     setDetail((before) => {
       if (!before) return before;
       const next = fresher(before);
@@ -146,6 +148,7 @@ export function useShoppingRead({
   );
   useEffect(() => {
     const marker = generation;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the list reads when it opens, which sets its loading state first, by design.
     void reload(false);
     return () => {
       marker.current++;

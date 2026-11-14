@@ -174,6 +174,7 @@ export default tseslint.config(
       "dist-mcp-app",
       "dist-mobile",
       "android",
+      "coverage",
       "eslint.config.js",
       "scripts/check.mjs",
       "scripts/generate-tool-types.mjs",

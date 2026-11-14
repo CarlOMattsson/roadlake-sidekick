@@ -153,7 +153,9 @@ test("the store view keeps its rows, amounts, progress and reserve in the right 
   const line = app.locator(".shopping-store-line").first();
   const ring = app.locator("button.shopping-ring").first();
   expect(await style(line, "alignItems")).toEqual({ alignItems: "stretch" });
-  expect(await style(ring, "alignItems")).toEqual({ alignItems: "flex-start" });
+  expect(await style(ring, "alignItems")).toEqual({
+    alignItems: await resolved(app, "align-items", "flex-start"),
+  });
   expect(await style(ring, "width")).toEqual({
     width: await resolved(app, "width", "var(--sk-lead-w)"),
   });

@@ -36,7 +36,7 @@ function adapter(
     add: vi.fn(),
     update: vi.fn(),
     purchase: vi.fn(),
-  } as ShoppingTransport;
+  };
 }
 
 it("no lists: the shared empty state offers a button that sends the example to Claude", async () => {

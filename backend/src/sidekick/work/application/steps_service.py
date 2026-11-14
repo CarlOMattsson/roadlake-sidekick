@@ -380,9 +380,9 @@ class StepsService:
         idempotency_key: str,
         title: str | UnsetType = UNSET,
         status: TaskStatus | UnsetType = UNSET,
-        due_at: datetime | None | UnsetType = UNSET,
+        due_at: datetime | UnsetType | None = UNSET,
         attention_requested: bool | UnsetType = UNSET,
-        instruction: str | None | UnsetType = UNSET,
+        instruction: str | UnsetType | None = UNSET,
         only_if_status: TaskStatus | None = None,
         correlation_id: str | None = None,
     ) -> Step:
@@ -480,9 +480,9 @@ class StepsService:
         idempotency_key: str,
         title: str | UnsetType = UNSET,
         status: ActionStatus | UnsetType = UNSET,
-        due_at: datetime | None | UnsetType = UNSET,
+        due_at: datetime | UnsetType | None = UNSET,
         attention_requested: bool | UnsetType = UNSET,
-        note: str | None | UnsetType = UNSET,
+        note: str | UnsetType | None = UNSET,
         correlation_id: str | None = None,
     ) -> Action:
         """Update one Action; `status` ticks it off or opens it again."""

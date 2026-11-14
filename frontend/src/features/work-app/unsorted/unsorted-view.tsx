@@ -88,6 +88,7 @@ export function UnsortedView({
   const retryWrite = useRef<(() => void) | undefined>(undefined);
 
   // The first read happens once, when the tab is first pressed.
+  // eslint-disable-next-line react-hooks/immutability -- the first read runs from an effect after the render, when reload is declared.
   const readFirst = useEffectEvent(() => reload());
   useEffect(() => {
     mounted.current = true;

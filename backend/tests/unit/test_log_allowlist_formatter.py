@@ -49,10 +49,16 @@ def test_unknown_fields_with_personal_data_are_removed_and_counted() -> None:
     assert output["outcome"] == "success"
 
 
+def _configured_sidekick_handlers() -> list[logging.Handler]:
+    """The handlers `configure_observability` installed, without pytest's capture handlers."""
+
+    return [h for h in logging.getLogger("sidekick").handlers if type(h) is logging.StreamHandler]
+
+
 def test_configured_sidekick_logger_applies_the_allowlist() -> None:
     """The handler `configure_observability` installs on the `sidekick` logger uses it."""
 
-    formatters = [h.formatter for h in logging.getLogger("sidekick").handlers if h.formatter]
+    formatters = [h.formatter for h in _configured_sidekick_handlers() if h.formatter]
     assert formatters
     assert all(isinstance(formatter, AllowlistJsonFormatter) for formatter in formatters)
 
@@ -86,7 +92,7 @@ def _assert_only_exception_type(output: str) -> None:
 def test_exception_in_the_configured_sidekick_logger_is_reduced_to_its_type(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    (handler,) = logging.getLogger("sidekick").handlers
+    (handler,) = _configured_sidekick_handlers()
     assert isinstance(handler, logging.StreamHandler)
     stream = io.StringIO()
     monkeypatch.setattr(handler, "stream", stream)

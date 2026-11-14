@@ -110,7 +110,7 @@ function stubBoardWidth(width: number) {
     width,
     height: 0,
     toJSON: () => ({}),
-  } as DOMRect);
+  });
 }
 
 // These two tests mount the whole fullscreen shell and type into it, which is quick on an idle machine. Their own

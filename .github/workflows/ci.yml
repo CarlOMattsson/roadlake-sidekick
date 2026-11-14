@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 30
     env:
       SIDEKICK_ENVIRONMENT: test
+      TZ: UTC
       # pytest-xdist workers; each gets its own database sidekick_test_w0..w(N-1), as tools/test-db-pool.sh does.
       SIDEKICK_TEST_WORKERS: "4"
       SIDEKICK_TEST_DATABASE_URL: postgresql+psycopg://sidekick_app:sidekick_app@127.0.0.1:55433/sidekick_test
@@ -87,6 +88,9 @@ jobs:
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # What the runner has anyway, stated so that the local gate (tools/check-all.sh) can say the same.
+      TZ: UTC
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
@@ -120,8 +124,6 @@ jobs:
         working-directory: frontend
         env:
           TZ: America/Los_Angeles
-      - run: npx playwright install --with-deps chromium
-        working-directory: frontend
       # The MCP App browser probes read backend/src/sidekick/mcp/apps/sidekick.html, so the
       # resource is rebuilt from source before any probe runs, and the checked-in copy (which
       # the backend image ships) must equal that build. A probe can then never pass on stale HTML.
@@ -129,12 +131,13 @@ jobs:
         working-directory: frontend
       - name: Checked-in MCP App resource matches the source build
         run: git diff --exit-code -- backend/src/sidekick/mcp/apps/sidekick.html
-      - run: npm run test:mcp-app
-        working-directory: frontend
+      # The browser tests run in the Playwright image pinned in tools/ci-images.sh, the same one that
+      # tools/check-all.sh uses locally, so browser build and fonts (they decide card heights) are identical.
+      - name: MCP App browser tests (Playwright image)
+        run: bash tools/playwright-docker.sh npx playwright test --config playwright.mcp-app.config.ts
       # The mobile audit runs on the same simulated host.
-      - name: Mobile audit (simulated MCP host)
-        run: npx playwright test --config playwright.mobile-audit.config.ts
-        working-directory: frontend
+      - name: Mobile audit (simulated MCP host, Playwright image)
+        run: bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-audit.config.ts
         env:
           MOBILE_AUDIT_OUT: ${{ runner.temp }}/mobile-audit
 
@@ -241,10 +244,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0, persist-credentials: false }
-      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_COMMENTS: "false"
+      # The gitleaks image pinned in tools/ci-images.sh (v8.24.3), the one tools/check-all.sh runs locally.
+      - run: bash tools/gitleaks-ci.sh
 
   shellcheck:
     # Every tracked shell script: *.sh files and extensionless files whose first line is a sh or bash shebang.
@@ -253,16 +254,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
-      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends shellcheck
-      - name: shellcheck every tracked shell script
-        run: |
-          git ls-files -z | while IFS= read -r -d '' file; do
-            case "$file" in
-              *.sh) ;;
-              *) [ -f "$file" ] && head -c 128 "$file" | head -n 1 | grep -aEq '^#!.*\b(ba)?sh\b' || continue ;;
-            esac
-            printf '%s\0' "$file"
-          done | xargs -0 -r shellcheck --severity=warning
+      # The shellcheck image pinned in tools/ci-images.sh; the file selection is in the script.
+      - run: bash tools/shellcheck-ci.sh
 
   dependency-audit:
     # Part of every CI run, whatever files the release touches: a vulnerable dependency is a defect.

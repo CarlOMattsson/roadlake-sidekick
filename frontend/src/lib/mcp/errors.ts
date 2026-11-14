@@ -20,9 +20,7 @@ export type McpErrorCode =
 
 /** The extra codes of the companion HTTP envelope, which has its own bad_request and method refusals. */
 export type CompanionErrorCode =
-  | McpErrorCode
-  | "bad_request"
-  | "method_not_allowed";
+  McpErrorCode | "bad_request" | "method_not_allowed";
 
 /** The closed error code a failure carries, or undefined when it carries none. */
 export function errorCode(error: unknown): string | undefined {
@@ -55,11 +53,7 @@ export function isConflict(error: unknown): boolean {
  * anything else is `failed`, a transient failure that may be retried.
  */
 export type WriteFailure =
-  | "conflict"
-  | "forbidden"
-  | "invalid"
-  | "not_found"
-  | "failed";
+  "conflict" | "forbidden" | "invalid" | "not_found" | "failed";
 
 export function writeFailure(error: unknown): WriteFailure {
   switch (errorCode(error)) {

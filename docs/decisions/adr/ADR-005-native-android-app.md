@@ -183,6 +183,6 @@ Code comments refer to these stages:
   `backend/src/sidekick/shared/auth/service.py`.
 - Push: `backend/src/sidekick/companion/push_outbox_store.py`, `push_worker.py`, `push_schedule.py`;
   `deploy/selfhost/compose.yaml` (profile `push`).
-- Tests: `backend/tests/api/test_companion*.py`, `frontend/tests/mobile-companion-transport.test.ts`,
+- Tests: `backend/tests/api/test_companion*.py`, `frontend/tests/mobile/mobile-companion-transport.test.ts`,
   `frontend/android/app/src/test/kotlin/com/roadlake/sidekick/`.
 - Related decisions: D-052, D-075, D-077 to D-084 in the [decision log](../log.md).

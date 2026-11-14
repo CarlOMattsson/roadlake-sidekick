@@ -52,6 +52,19 @@ function renderEditor(
   return onSave;
 }
 
+/** Opens "More fields" and then the offer inside it: a field of a closed fold cannot take the focus. */
+async function openOffer(
+  user: ReturnType<typeof userEvent.setup>,
+  labels: ShoppingLabels = shoppingEn,
+) {
+  await user.click(
+    screen.getByRole("button", { name: new RegExp(`^${labels.moreFields}`) }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: new RegExp(`^${labels.offer}`) }),
+  );
+}
+
 /** The container of the fields behind "More fields". */
 function extra(): HTMLElement {
   const element = document.querySelector<HTMLElement>(".shopping-editor-extra");
@@ -367,7 +380,7 @@ describe("the offer's fields are a fold of their own", () => {
   it("a wrong value in the folded offer opens it on Save", async () => {
     const user = userEvent.setup();
     const onSave = renderEditor(item({ offer, offer_status: "current" }));
-    await user.click(screen.getByRole("button", { name: /^More fields/ }));
+    await openOffer(user);
     await user.clear(screen.getByLabelText(shoppingEn.currency));
     await user.type(screen.getByLabelText(shoppingEn.currency), "kr");
     await user.click(screen.getByRole("button", { name: shoppingEn.save }));
@@ -415,6 +428,7 @@ describe("the offer's prices follow the app's language", () => {
   it("takes a comma or a point and sends the price with a point", async () => {
     const user = userEvent.setup();
     const onSave = renderEditor(withOffer(), shoppingSv);
+    await openOffer(user, shoppingSv);
     const price = screen.getByLabelText(shoppingSv.price);
     await user.clear(price);
     await user.type(price, "24,5");
@@ -473,6 +487,7 @@ describe("the offer's prices follow the app's language", () => {
   it("refuses text that is not a price, and says so in the language", async () => {
     const user = userEvent.setup();
     const onSave = renderEditor(withOffer(), shoppingSv);
+    await openOffer(user, shoppingSv);
     const price = screen.getByLabelText(shoppingSv.price);
     await user.clear(price);
     await user.type(price, "gratis");

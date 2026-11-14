@@ -85,11 +85,11 @@ class Domain:
         *,
         now: datetime,
         name: str | UnsetType = UNSET,
-        description: str | None | UnsetType = UNSET,
+        description: str | UnsetType | None = UNSET,
         status: DomainStatus | UnsetType = UNSET,
-        review_cadence: Cadence | None | UnsetType = UNSET,
-        last_reviewed_at: datetime | None | UnsetType = UNSET,
-        accent: str | None | UnsetType = UNSET,
+        review_cadence: Cadence | UnsetType | None = UNSET,
+        last_reviewed_at: datetime | UnsetType | None = UNSET,
+        accent: str | UnsetType | None = UNSET,
     ) -> "Domain":
         changes = {
             key: value
@@ -138,11 +138,11 @@ class Process:
         *,
         now: datetime,
         name: str | UnsetType = UNSET,
-        description: str | None | UnsetType = UNSET,
+        description: str | UnsetType | None = UNSET,
         status: ProcessStatus | UnsetType = UNSET,
         domain_id: UUID | UnsetType = UNSET,
-        cadence: Cadence | None | UnsetType = UNSET,
-        next_expected_run_at: datetime | None | UnsetType = UNSET,
+        cadence: Cadence | UnsetType | None = UNSET,
+        next_expected_run_at: datetime | UnsetType | None = UNSET,
     ) -> "Process":
         changes = {
             key: value

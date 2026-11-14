@@ -26,6 +26,13 @@ updates:
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # ESLint stays on 9.x: eslint-plugin-jsx-a11y (the accessibility lint gate) declares the peer range
+      # ^9 and has no release for 10. Lift this when it does.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: gradle
     directory: /frontend/android
@@ -50,6 +57,11 @@ updates:
     groups:
       docker-minor-patch:
         update-types: [minor, patch]
+    ignore:
+      # The backend requires Python >=3.13,<3.14 (backend/pyproject.toml, CI, pyright). Patch releases within
+      # 3.13 still come through; moving the runtime to a newer Python is a planned change of its own.
+      - dependency-name: python
+        versions: [">=3.14"]
 
   - package-ecosystem: docker-compose
     directories:

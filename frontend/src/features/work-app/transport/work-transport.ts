@@ -93,12 +93,10 @@ export function createWorkTransport(
         unsorted: true,
         limit,
         cursor: cursor ?? null,
-      }).then(
-        (page): WorkUnsortedPage => ({
-          items: page.tasks,
-          next_cursor: page.next_cursor,
-        }),
-      ),
+      }).then((page): WorkUnsortedPage => ({
+        items: page.tasks,
+        next_cursor: page.next_cursor,
+      })),
     listDomains: () =>
       call<{ domains: WorkDomain[] }>("list_domains", {
         limit: 100,

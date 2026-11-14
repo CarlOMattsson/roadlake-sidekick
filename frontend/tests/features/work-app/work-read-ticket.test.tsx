@@ -127,7 +127,7 @@ describe("replaceFrame: two patches in one batch", () => {
     const user = userEvent.setup();
     const initial: WorkBoardFrame = {
       kind: "board",
-      filters: {} as WorkBoardFrame["filters"],
+      filters: {},
       page: { columns: [] } as unknown as WorkBoardFrame["page"],
     };
     render(

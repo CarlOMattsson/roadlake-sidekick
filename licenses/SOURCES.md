@@ -62,7 +62,7 @@ Shipped unmodified, as source files. Source: https://github.com/certifi/python-c
 
 ## Base image: Debian (python:3.13-slim)
 
-The runtime image is `python:3.13.13-slim` (Debian 13 "trixie"), pinned by digest in `backend/Dockerfile` and unmodified apart from
+The runtime image is `python:3.13.15-slim` (Debian 13 "trixie"), pinned by digest in `backend/Dockerfile` and unmodified apart from
 the files we add under `/app` and `/usr/share/doc/sidekick`. It contains Debian packages under GPL, LGPL and
 other licenses (bash, coreutils, glibc, dpkg, and others). Their license texts are in `/usr/share/doc/<package>/copyright`
 inside the image, and their source is the Debian source package of the same name and version:

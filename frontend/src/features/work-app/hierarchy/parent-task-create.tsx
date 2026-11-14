@@ -23,8 +23,7 @@ export type TaskParent = { project_id: string } | { process_id: string };
 
 type CreateProblem = TitleProblem | "dueIncomplete";
 type CreateNotice =
-  | { kind: "created" }
-  | { kind: "failed"; failure: WriteFailure };
+  { kind: "created" } | { kind: "failed"; failure: WriteFailure };
 
 function summaryOf(task: WorkTask): WorkTaskSummary {
   return {

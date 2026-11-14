@@ -521,13 +521,13 @@ services:
     restart: unless-stopped
 
   hindsight:
-    # Memory, memory profile only. Hindsight 0.8.4 pinned by digest, with its exact tag (the contract's fallbackReference). Version
-    # 1.1.0 is not delivered here yet: it is adopted only after its live retain and recall checks pass and an
-    # upgrade path for an existing memory volume exists (see contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml). Its database is the embedded pg0,
-    # kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
+    # Memory, memory profile only. Hindsight 1.2.1 pinned by digest, with its exact tag (the contract's imageReference, see
+    # contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml). A start on a newer version migrates the volume
+    # and the step cannot be undone, so archive the volume first (docs/operate/backup-and-restore.md). Its database is the
+    # embedded pg0, kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
     # Settings and secrets: hindsight.env (copy of hindsight.env.example), never selfhost.env.
     profiles: [memory]
-    image: ghcr.io/vectorize-io/hindsight:0.8.4@sha256:2c60f233eaba8f51db31adb920a560735aaf6f314e4b63c36c73159742dfa1a7
+    image: ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a714e933affd63753e181a0579328fdcbbc021800a76e0bc7b6e76b31
     env_file:
       - path: ./hindsight.env
         required: false
@@ -549,6 +549,9 @@ services:
       HINDSIGHT_API_OTEL_TRACES_ENABLED: "false"
       HINDSIGHT_API_ACCESS_LOG: "false"
       HINDSIGHT_API_LOG_FORMAT: json
+      # A stable worker id: the default is the container hostname, which changes on every recreate, and
+      # operations a replaced container left half-done under the old name are then never picked up again.
+      HINDSIGHT_API_WORKER_ID: hindsight
       # The image carries its embedding and reranker models in ~/.cache/huggingface. Without these two a start checks the hub
       # and writes a refs file there, which a read-only root filesystem refuses. A model that is not in the image then fails
       # at start instead of being downloaded; the local models used here are in the image.

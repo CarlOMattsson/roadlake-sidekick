@@ -6,7 +6,7 @@ import json
 import os
 import stat
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -78,7 +78,7 @@ def _create_missing_directories(path: Path) -> None:
 
 
 @contextmanager
-def _private_directory(path: Path, *, create: bool, require_private: bool = True) -> Iterator[int]:
+def _private_directory(path: Path, *, create: bool, require_private: bool = True) -> Generator[int]:
     """Yield a descriptor for an owner-only output directory, refusing anything else.
 
     The directory is opened without following a symbolic link, must belong to the current user,

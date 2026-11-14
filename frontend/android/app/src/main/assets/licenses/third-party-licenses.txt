@@ -11,9 +11,9 @@ Web part (React, Capacitor)
 @capacitor/android 8.6.0 (MIT): Copyright (c) 2017-present Drifty Co.
 @capacitor/app 8.1.2 (MIT): Copyright 2020-present Ionic (https://ionic.io)
 @capacitor/core 8.6.0 (MIT): Copyright (c) 2017-present Drifty Co.
-react 19.2.7 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
-react-dom 19.2.7 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
-scheduler 0.27.0 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
+react 19.3.1 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
+react-dom 19.3.1 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
+scheduler 0.28.0 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
 tslib 2.8.1 (0BSD): Copyright (c) Microsoft Corporation.
 
 Native part (AndroidX, Kotlin, protobuf and others, from the Gradle release classpath)
@@ -99,10 +99,10 @@ com.google.errorprone:error_prone_annotations 2.41.0 (Apache-2.0): https://githu
 com.google.guava:listenablefuture 1.0 (Apache-2.0): https://github.com/google/guava
 com.google.protobuf:protobuf-java 4.33.6 (BSD-3-Clause): https://github.com/protocolbuffers/protobuf
 org.apache.cordova:framework 14.0.1 (Apache-2.0): https://cordova.apache.org
-org.jetbrains.kotlin:kotlin-stdlib 1.8.22, 2.0.21, 2.2.20 (Apache-2.0): https://kotlinlang.org
-org.jetbrains.kotlin:kotlin-stdlib-common 1.8.22, 2.2.20 (Apache-2.0): https://kotlinlang.org
-org.jetbrains.kotlin:kotlin-stdlib-jdk7 1.6.21 (Apache-2.0): https://kotlinlang.org
-org.jetbrains.kotlin:kotlin-stdlib-jdk8 1.6.21 (Apache-2.0): https://kotlinlang.org
+org.jetbrains.kotlin:kotlin-stdlib 2.4.21 (Apache-2.0): https://kotlinlang.org
+org.jetbrains.kotlin:kotlin-stdlib-common 2.4.21 (Apache-2.0): https://kotlinlang.org
+org.jetbrains.kotlin:kotlin-stdlib-jdk7 1.8.0 (Apache-2.0): https://kotlinlang.org
+org.jetbrains.kotlin:kotlin-stdlib-jdk8 1.8.0 (Apache-2.0): https://kotlinlang.org
 org.jetbrains.kotlinx:kotlinx-coroutines-android 1.6.4, 1.8.1, 1.9.0 (Apache-2.0): https://github.com/Kotlin/kotlinx.coroutines
 org.jetbrains.kotlinx:kotlinx-coroutines-bom 1.6.4, 1.8.1, 1.9.0 (Apache-2.0): https://github.com/Kotlin/kotlinx.coroutines
 org.jetbrains.kotlinx:kotlinx-coroutines-core 1.6.4, 1.8.1, 1.9.0 (Apache-2.0): https://github.com/Kotlin/kotlinx.coroutines

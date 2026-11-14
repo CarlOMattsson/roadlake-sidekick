@@ -166,7 +166,7 @@ describe("journal draft review", () => {
     const changed: JournalTaskProposal = {
       ...createProposal,
       priority: "low",
-    } as JournalTaskProposal;
+    };
     const getDraft = vi
       .fn()
       .mockResolvedValueOnce({ draft: draftFixture(), source })

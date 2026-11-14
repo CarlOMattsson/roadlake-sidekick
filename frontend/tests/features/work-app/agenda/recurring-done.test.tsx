@@ -54,7 +54,7 @@ function recurringUpdate() {
         last_completed_at:
           changes.status === "completed" ? "2026-10-29T09:00:00Z" : null,
         version: version + 1,
-      } as WorkTask,
+      },
     }),
   );
 }

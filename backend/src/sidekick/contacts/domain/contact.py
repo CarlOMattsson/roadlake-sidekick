@@ -69,13 +69,13 @@ class Contact:
         *,
         now: datetime,
         display_name: str | UnsetType = UNSET,
-        context_note: str | None | UnsetType = UNSET,
-        email: str | None | UnsetType = UNSET,
-        phone: str | None | UnsetType = UNSET,
-        relationship: str | None | UnsetType = UNSET,
-        organization: str | None | UnsetType = UNSET,
-        role: str | None | UnsetType = UNSET,
-        address: str | None | UnsetType = UNSET,
+        context_note: str | UnsetType | None = UNSET,
+        email: str | UnsetType | None = UNSET,
+        phone: str | UnsetType | None = UNSET,
+        relationship: str | UnsetType | None = UNSET,
+        organization: str | UnsetType | None = UNSET,
+        role: str | UnsetType | None = UNSET,
+        address: str | UnsetType | None = UNSET,
     ) -> "Contact":
         """Update allowed contact fields and advance aggregate version."""
         if self.archived:

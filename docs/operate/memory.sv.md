@@ -25,9 +25,14 @@ språkmodellsleverantör du väljer.
    Hindsight vägrar starta om `HINDSIGHT_API_RETAIN_CHUNK_SIZE` inte är lägre än
    `HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS`.
 
-**Hindsight-version.** Profilen `memory` pinnar Hindsight 0.8.4 med digest (`ghcr.io/vectorize-io/hindsight@sha256:2c60f233...`).
-Version 1.1.0 är vald i `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml` men levereras inte här ännu:
-de skarpa retain- och recall-kontrollerna måste först klaras, och en befintlig minnesvolym skulle migreras vid
-flytten. Ändra inte digesten för hand.
+**Hindsight-version.** Profilen `memory` pinnar Hindsight 1.2.1 med digest (`ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a...`).
+Utgåvan beskrivs i `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml`. Ändra inte digesten för hand.
+
+**Flytta en befintlig minnesvolym till en ny Hindsight-version.** Hindsight migrerar databasen i sin volym när den startar
+på en nyare version, och steget kan inte ångras: en äldre Hindsight startar inte på en migrerad volym. Arkivera volymen
+först (se [Säkerhetskopiering och återställning](backup-and-restore.sv.md), "Hindsight-minnet"), uppdatera sedan; för att
+gå tillbaka återställer du arkivet med den tidigare avbilden. Flytten från 0.8.4 till 1.2.1 kördes mot en volym med
+banker, dokument och fakta: allt fanns kvar efteråt, och sökning, lagring och radering fungerade på de migrerade
+uppgifterna. Sidekick kontrollerar vid start att varje bank fortfarande har sina dokument och skickar på nytt det som saknas.
 
 Minnesinställningarna heter `SIDEKICK_MEMORY_*`.

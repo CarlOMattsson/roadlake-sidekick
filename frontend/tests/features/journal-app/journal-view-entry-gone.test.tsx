@@ -43,7 +43,7 @@ function transportWith(
     updateDraft: vi.fn(),
     rejectDraft: vi.fn(),
     finalizeDraft: vi.fn(),
-  } as unknown as JournalTransport;
+  };
 }
 
 describe("journal entry that no longer exists", () => {

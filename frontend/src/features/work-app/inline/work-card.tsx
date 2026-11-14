@@ -164,6 +164,7 @@ function ReadyCard({
   const issuedAt = frame.issuedAt;
   useEffect(() => {
     supersededRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the supersession starts unset for each issued_at before the channel reports.
     setSuperseded(false);
     if (issuedAt === undefined) return undefined;
     const supersession = createSupersession({

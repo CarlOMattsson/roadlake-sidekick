@@ -38,7 +38,10 @@ def test_list_banks_reads_only_bank_ids() -> None:
                     {"bank_id": "not a safe id/../x"},
                     {"name": "no id"},
                     {"bank_id": "legacy-bank"},
-                ]
+                ],
+                "total": 4,
+                "limit": 200,
+                "offset": 0,
             },
         )
     )
@@ -51,7 +54,38 @@ def test_list_banks_reads_only_bank_ids() -> None:
     assert request.headers["authorization"] == f"Bearer {TOKEN}"
 
 
-@pytest.mark.parametrize("body", [{}, {"banks": "x"}, {"banks": ["x"]}, []])
+def test_list_banks_reads_every_page_until_the_total() -> None:
+    first = [{"bank_id": f"bank-{i}"} for i in range(3)]
+    second = [{"bank_id": "bank-3"}, {"bank_id": "bank-1"}]
+    script = Script(
+        _response(200, {"banks": first, "total": 5}),
+        _response(200, {"banks": second, "total": 5}),
+    )
+
+    banks = _provider(script).list_banks()
+
+    assert banks == ("bank-0", "bank-1", "bank-2", "bank-3")
+    queries = [request.url.params for request in script.requests]
+    assert [(q["limit"], q["offset"]) for q in queries] == [("200", "0"), ("200", "3")]
+
+
+def test_list_banks_never_returns_a_partial_list() -> None:
+    """A server that stops short of its own total must not be read as a complete list."""
+    script = Script(
+        _response(200, {"banks": [{"bank_id": "bank-0"}], "total": 3}),
+        _response(200, {"banks": [], "total": 3}),
+    )
+
+    with pytest.raises(MemoryProviderError) as raised:
+        _provider(script).list_banks()
+
+    assert raised.value.category == "invalid_response"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [{}, {"banks": "x", "total": 1}, {"banks": ["x"], "total": 1}, {"banks": []}, []],
+)
 def test_list_banks_rejects_a_malformed_response(body: object) -> None:
     with pytest.raises(MemoryProviderError) as raised:
         _provider(Script(_response(200, body))).list_banks()

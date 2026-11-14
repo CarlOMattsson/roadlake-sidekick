@@ -325,13 +325,8 @@ describe("the room's empty state", () => {
           return { lists: [], next_offset: null };
         return new Promise(() => undefined);
       }) as unknown as RoomTransport["call"],
-      requestDisplayMode: vi
-        .fn()
-        .mockResolvedValue(
-          "fullscreen",
-        ) as unknown as RoomTransport["requestDisplayMode"],
-      updateModelContext:
-        vi.fn() as unknown as RoomTransport["updateModelContext"],
+      requestDisplayMode: vi.fn().mockResolvedValue("fullscreen"),
+      updateModelContext: vi.fn(),
     };
     const props: RoomProps = {
       initial: { lists: [], next_offset: null },

@@ -1,6 +1,6 @@
 """Application-facing telemetry port and privacy-safe OpenTelemetry adapter."""
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import AbstractContextManager, contextmanager
 from typing import Any, Protocol
 
@@ -54,7 +54,7 @@ class NoopTelemetryAdapter:
     @contextmanager
     def span(
         self, name: str, attributes: dict[str, Any], *, kind: SpanKind = SpanKind.INTERNAL
-    ) -> Iterator[None]:
+    ) -> Generator[None]:
         del name, attributes, kind
         yield
 
@@ -71,7 +71,7 @@ class OpenTelemetryAdapter:
     @contextmanager
     def span(
         self, name: str, attributes: dict[str, Any], *, kind: SpanKind = SpanKind.INTERNAL
-    ) -> Iterator[None]:
+    ) -> Generator[None]:
         # The SDK would record the exception message as a span event and as the status
         # description; both can echo personal data, so only the exception class is kept.
         with self._tracer.start_as_current_span(

@@ -5,3 +5,4 @@ dist-mobile
 android
 playwright-report
 test-results
+coverage

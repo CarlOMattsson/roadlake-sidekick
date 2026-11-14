@@ -23,9 +23,14 @@ is derived or sent until you turn it on, and the material goes to the language m
 3. `docker compose --env-file selfhost.env --profile memory up -d` (add `--profile vps` on a VPS). Hindsight refuses to
    start if `HINDSIGHT_API_RETAIN_CHUNK_SIZE` is not below `HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS`.
 
-**Hindsight version.** The `memory` profile pins Hindsight 0.8.4 by digest (`ghcr.io/vectorize-io/hindsight@sha256:2c60f233...`).
-Version 1.1.0 is chosen in `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml` but is not yet
-delivered here: its live retain and recall checks still have to pass, and an existing memory volume would be
-migrated when it moves. Do not change the digest by hand.
+**Hindsight version.** The `memory` profile pins Hindsight 1.2.1 by digest (`ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a...`).
+The release is described in `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml`. Do not change the digest by hand.
+
+**Moving an existing memory volume to a new Hindsight version.** Hindsight migrates the database in its volume when it
+starts on a newer version, and that step cannot be undone: an older Hindsight does not start on the migrated volume.
+Archive the volume first (see [Backup and restore](backup-and-restore.md), "Hindsight memory"), then update; to go back,
+restore the archive with the previous image. The move from 0.8.4 to 1.2.1 was run against a volume with banks,
+documents and facts: all of them were still there afterwards, and recall, retain and delete worked on the migrated data.
+Sidekick checks at start that every bank still holds its documents and sends again what is missing.
 
 The memory settings are `SIDEKICK_MEMORY_*`.

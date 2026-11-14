@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import fcntl
 import os
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator
 from pathlib import Path
 
 from .stack import Stack
@@ -29,7 +29,7 @@ def _holder(path: Path) -> str:
 
 
 @contextlib.contextmanager
-def held(stack: Stack, command: str) -> Iterator[bool]:
+def held(stack: Stack, command: str) -> Generator[bool]:
     """Holds the lock for the length of the block and yields True; yields False, after a message, when another
     command has it. Holds nothing and yields True when the caller says it holds the lock already."""
     if stack.environ.get(HELD_VARIABLE) == "1":

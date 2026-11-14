@@ -20,7 +20,7 @@ function failingHost(code: string | undefined) {
   });
   const host: RoomHost = {
     transport: {
-      call: call as unknown as RoomHost["transport"]["call"],
+      call: call,
       requestDisplayMode: vi.fn().mockResolvedValue("inline"),
       updateModelContext: vi.fn().mockResolvedValue(undefined),
     },

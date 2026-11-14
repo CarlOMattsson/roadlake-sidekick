@@ -213,7 +213,7 @@ async function measureFirstRender(page: Page, appCase: AppCase) {
   await waitForAppInitialized(page);
 
   const frameElement = await page.locator("iframe").elementHandle();
-  const frame = await frameElement!.contentFrame();
+  const frame = await frameElement.contentFrame();
   expect(frame).not.toBeNull();
   await armFirstCardWatch(frame!, appCase.firstView);
   const sentAt = await deliverToolResult(page, appCase.result);

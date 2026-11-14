@@ -70,20 +70,17 @@ function stubObserver() {
   );
   rectSpy = vi
     .spyOn(Element.prototype, "getBoundingClientRect")
-    .mockImplementation(
-      () =>
-        ({
-          left: 0,
-          top: 0,
-          right: width,
-          bottom: 0,
-          width,
-          height: 0,
-          x: 0,
-          y: 0,
-          toJSON: () => ({}),
-        }) as DOMRect,
-    );
+    .mockImplementation(() => ({
+      left: 0,
+      top: 0,
+      right: width,
+      bottom: 0,
+      width,
+      height: 0,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }));
 }
 
 /** Fires every observer, as a resize (or a room that is shown or hidden) does. */
