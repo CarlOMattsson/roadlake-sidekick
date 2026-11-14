@@ -14,10 +14,13 @@ from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.lifecycle import RecordKind
 from sidekick.shared.errors import IdempotencyKeyReusedError, NotFoundError
 from sidekick.shared.persistence.models import IdempotencyRow
-from sidekick.shared.persistence.stores.base import IDEMPOTENCY_RETENTION, ReplayRecordError
+from sidekick.shared.persistence.stores.base import (
+    IDEMPOTENCY_RETENTION,
+    ReplayRecordError,
+    StoreBase,
+)
 from sidekick.shared.types import Actor, new_uuid7, utc_now
 from sidekick.shopping.application.schemas import BatchItem
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application.models import NewTaskItem
 from sidekick.tasks.domain import Priority
 from tests.db import database_factory
@@ -33,7 +36,7 @@ def _owner(factory: sessionmaker[Session]) -> UUID:
 
 
 def _run(
-    store: SqlAlchemyStore,
+    store: StoreBase,
     owner: UUID,
     *,
     key: str,
@@ -55,7 +58,7 @@ def _run(
 @pytest.mark.integration
 def test_replay_within_retention_returns_the_stored_result_and_executes_once() -> None:
     factory = database_factory()
-    store = SqlAlchemyStore(factory)
+    store = StoreBase(factory)
     owner = _owner(factory)
     calls: list[int] = []
 
@@ -69,7 +72,7 @@ def test_replay_within_retention_returns_the_stored_result_and_executes_once() -
 @pytest.mark.integration
 def test_a_reused_key_with_another_payload_is_refused() -> None:
     factory = database_factory()
-    store = SqlAlchemyStore(factory)
+    store = StoreBase(factory)
     owner = _owner(factory)
     calls: list[int] = []
     _run(store, owner, key="k1", payload={"a": 1}, calls=calls)
@@ -83,7 +86,7 @@ def test_a_reused_key_with_another_payload_is_refused() -> None:
 @pytest.mark.integration
 def test_pruning_removes_expired_records_and_keeps_fresh_ones() -> None:
     factory = database_factory()
-    store = SqlAlchemyStore(factory)
+    store = StoreBase(factory)
     owner = _owner(factory)
     calls: list[int] = []
     for key in ("old", "fresh"):
@@ -108,7 +111,7 @@ def test_pruning_removes_expired_records_and_keeps_fresh_ones() -> None:
 @pytest.mark.integration
 def test_an_operation_without_a_projection_or_allow_list_entry_writes_nothing() -> None:
     factory = database_factory()
-    store = SqlAlchemyStore(factory)
+    store = StoreBase(factory)
     owner = _owner(factory)
 
     with pytest.raises(ReplayRecordError):

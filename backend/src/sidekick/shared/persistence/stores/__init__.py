@@ -1,4 +1,5 @@
 """Store pieces every context shares: `StoreBase`, keyset paging, task parents and work tags.
 
-Context-specific mixins live in `<context>/persistence`; `sidekick.store` composes them.
+Each context's store lives in `<context>/persistence` and is built on `StoreBase`;
+`sidekick.composition` wires the stores to each other.
 """

@@ -136,7 +136,7 @@ export function useContactsList({
     if (matches(latest.current, query)) return;
     read(query);
   }
-  // One "Show more" page per read generation, claimed before React re-renders the button.
+  // One `more` page per read generation, claimed before React re-renders the button.
   const pages = useSingleFlight();
   function loadMore() {
     const shown = latest.current.page;

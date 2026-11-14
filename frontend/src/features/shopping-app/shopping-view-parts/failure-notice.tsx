@@ -57,7 +57,9 @@ export function FailureNotice({
       role="alert"
       tabIndex={-1}
       ref={box}
-      className={`shopping-failure sk-error sk-error--${placement}`}
+      // The card placement of the shared notice is a grid with an icon column that this plain message-and-buttons
+      // box does not have; only the row placement has a layout of its own.
+      className={`shopping-failure sk-error${placement === "row" ? " sk-error--row" : ""}`}
     >
       <p>{t.failed}</p>
       <div className="shopping-failure-actions">

@@ -1,10 +1,9 @@
 /**
  * Text-level reading of the app's stylesheets for the CSS contract tests.
  *
- * The stylesheet tests (`css-policy`, `ui-css-contract`, `project-task-rows`) check rules of the real files as text
- * and state only what they expect. Loading the files, blanking comments, splitting rules and
- * reading a declaration live here once. `helpers/stylesheet.ts` is the other reader: it resolves which rules
- * apply to a rendered element, while this one answers "does this selector declare this value".
+ * Only `css-policy` reads the stylesheets as text, for rules about the source (see its header). Loading the files,
+ * blanking comments, splitting rules and reading a declaration live here once. How a view looks is measured in a
+ * browser by the specs under tests/e2e, never read from the CSS (test-source-access-policy.test.ts).
  */
 import path from "node:path";
 

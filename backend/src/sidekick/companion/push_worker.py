@@ -35,7 +35,7 @@ from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging, log_failure, safe_log_fields
 from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.worker_health import WorkerHeartbeat
-from sidekick.store import SqlAlchemyStore
+from sidekick.work.persistence.store import SqlWorkStore
 
 LOGGER = logging.getLogger("sidekick.companion.push_worker")
 
@@ -72,7 +72,7 @@ def build_cycles(settings: Settings) -> tuple[DeliveryCycle, ScheduleCycle]:
         auth_token=settings.push_auth_token,
     )
     scheduler = ReminderScheduler.from_settings(
-        settings, SqlReminderStore(session_factory), SqlAlchemyStore(session_factory)
+        settings, SqlReminderStore(session_factory), SqlWorkStore(session_factory)
     )
     return service, scheduler
 

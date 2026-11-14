@@ -21,8 +21,8 @@ from sidekick.owner_export.document import verify_export
 from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.older_export_formats import as_format_5
 from tests.support.settings import make_settings
@@ -58,7 +58,7 @@ def _tagged_owner(container: Container) -> tuple[UUID, Actor]:
 def _restore(factory: Any, document: dict[str, Any], target: UUID) -> None:
     plan = build_restore_plan(document, target)
     assert plan.status == "ready"
-    OwnerRestoreService(SqlAlchemyStore(factory)).restore(
+    OwnerRestoreService(StoreBase(factory)).restore(
         document, target_owner_id=target, expected_plan_checksum=plan.plan_checksum
     )
 
@@ -86,7 +86,7 @@ def test_the_tag_links_are_exported_and_restored_with_their_records() -> None:
     source, _ = _tagged_owner(container)
     target = container.auth.provision_user("tagged-target", "Target")
 
-    document = OwnerExportService(SqlAlchemyStore(factory)).export(Actor(source, frozenset()))
+    document = OwnerExportService(StoreBase(factory)).export(Actor(source, frozenset()))
 
     assert verify_export(document).owner_id == source
     assert len(document["collections"]["contact_tags"]) == 2
@@ -106,7 +106,7 @@ def test_an_export_of_the_earlier_format_restores_without_tag_links() -> None:
     container = create_container(make_settings(), factory)
     source, _ = _tagged_owner(container)
     target = container.auth.provision_user("older-target", "Target")
-    exported = OwnerExportService(SqlAlchemyStore(factory)).export(Actor(source, frozenset()))
+    exported = OwnerExportService(StoreBase(factory)).export(Actor(source, frozenset()))
     document = as_format_5(exported)
 
     assert "contact_tags" not in document["collections"]

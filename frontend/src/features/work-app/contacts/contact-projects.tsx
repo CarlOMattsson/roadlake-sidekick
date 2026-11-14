@@ -8,7 +8,7 @@ import type { WorkProjectSummary } from "../transport/transport";
 export type ContactProjectsProps = {
   /** The Projects the Contact is linked to, as get_contact_context returned them. */
   projects: WorkProjectSummary[];
-  /** Projects whose link was removed from a row's menu ("gone"); their rows offer Ångra. */
+  /** Projects whose link was removed from a row's menu ("gone"); their rows offer `undo`. */
   gone?: Record<string, string | undefined>;
   busy?: boolean;
   /** Removes a Project's link from the row's own menu; absent, the rows have no menu. */
@@ -20,7 +20,7 @@ export type ContactProjectsProps = {
   labels: WorkLabels;
 };
 
-/** The meta line of a Project row: a differing status, then "3 av 5 klara"; nothing for an active Project without Tasks or counts. */
+/** The meta line of a Project row: a differing status, then the `progressOf` count; nothing for an active Project without Tasks or counts. */
 function ProjectMeta({
   project,
   labels: t,
@@ -39,11 +39,11 @@ function ProjectMeta({
 }
 
 /**
- * The Projects a Contact is linked to, under the heading "Projekt", in the shared row (design system §3, Listrad and
- * Kontaktvyn): FolderIcon in the leading column, the title on 52 that opens the Project, the status as the meta
- * line with no "Status:" label, only when it differs from the usual ("Pausat", "Klart"), followed by the Task progress
- * ("3 av 5 klara", left out when the server sends no counts or the Project has no Tasks), and ›. The link is removed from the row's own menu (long press, right click,
- * Shift+F10: "Ta bort koppling"); the row then stays with "Kopplingen borttagen · Ångra". With no Project the section
+ * The Projects a Contact is linked to, under the `projects` heading, in the shared row (design system §3, list row and
+ * Contact view): FolderIcon in the leading column, the title on 52 that opens the Project, the status as the meta
+ * line with no status label, only when it differs from the usual (paused, done), followed by the Task progress
+ * (the `progressOf` count, left out when the server sends no counts or the Project has no Tasks), and ›. The link is removed from the row's own menu (long press, right click,
+ * Shift+F10: `removeLink`); the row then stays with `linkRemoved` and `undo`. With no Project the section
  * is left out.
  */
 export function ContactProjects({

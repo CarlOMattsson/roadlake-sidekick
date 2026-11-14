@@ -2,7 +2,7 @@ import { Row } from "../../mcp-apps/ui/row";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import type { TagOption } from "../../mcp-apps/ui/tag-vocabulary";
 import type { WorkContactSummary } from "../transport/transport";
-import { initialsOf } from "./contact-card";
+import { initialsOf } from "../../mcp-apps/ui/initials";
 import { contactMeta } from "./contacts-sections";
 
 /**

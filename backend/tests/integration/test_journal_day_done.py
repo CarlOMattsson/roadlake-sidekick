@@ -8,6 +8,7 @@ from uuid import UUID
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.composition import create_stores
 from sidekick.journal.application.day import JournalDayService
 from sidekick.shared.auth import AuthService
 from sidekick.shared.observability import NoopTelemetryAdapter
@@ -17,7 +18,6 @@ from sidekick.shopping.application.schemas import BatchItem
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow
 from sidekick.shopping.persistence.store import ShoppingStore
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskService, UpdateTaskCommand
 from sidekick.tasks.domain import TaskStatus
 from sidekick.work.application.steps_service import StepsService
@@ -63,7 +63,7 @@ def world() -> World:
     clock = Clock()
     return World(
         factory=factory,
-        journal=JournalDayService(SqlAlchemyStore(factory), clock, make_cursor_codec()),
+        journal=JournalDayService(create_stores(factory).journal, clock, make_cursor_codec()),
         owner=auth.provision_user("done-owner", "Owner"),
         other=auth.provision_user("done-other", "Other"),
         clock=clock,
@@ -366,7 +366,7 @@ def test_a_task_whose_repeat_was_removed_is_not_done_by_its_old_cycle(world: Wor
 def test_a_step_ticked_off_and_opened_again_leaves_the_day_it_was_ticked_off_on(
     world: World,
 ) -> None:
-    steps = StepsService(SqlAlchemyStore(world.factory), world.clock, make_cursor_codec())
+    steps = StepsService(create_stores(world.factory).work, world.clock, make_cursor_codec())
     actor = world.actor()
     task = _task(world.owner, "Flytta")
     with world.factory.begin() as session:
@@ -610,7 +610,7 @@ def test_done_tasks_and_steps_of_a_trashed_parent_are_left_out_until_it_is_resto
 def test_undoing_a_recurring_completion_removes_it_from_the_day_and_restores_the_due_date(
     world: World,
 ) -> None:
-    tasks = TaskService(SqlAlchemyStore(world.factory), world.clock, make_cursor_codec())
+    tasks = TaskService(create_stores(world.factory).tasks, world.clock, make_cursor_codec())
     actor = world.actor()
     due = NOON + timedelta(hours=6)
     task = tasks.create(

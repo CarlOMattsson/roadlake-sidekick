@@ -179,7 +179,7 @@ class ManualJournalStore(InMemoryStore):
     def list_active_journal_entry_heads(
         self, session: Any, owner_id: UUID, journal_date: date
     ) -> list[EntryHead]:
-        # Same contract as SqlAlchemyStore: all non-archived entries of the day, unpaged, in
+        # Same contract as SqlJournalStore: all non-archived entries of the day, unpaged, in
         # occurrence order. Domain entries carry no trash flag in this fake.
         del session
         entries = [

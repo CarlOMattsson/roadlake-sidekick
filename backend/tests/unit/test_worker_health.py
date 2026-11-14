@@ -229,7 +229,7 @@ def test_the_automation_worker_beats_each_iteration(
         automation_worker, "create_container", lambda _s: SimpleNamespace(process_runs=process_runs)
     )
     monkeypatch.setattr(automation_worker, "create_session_factory", lambda _url, **_kw: None)
-    monkeypatch.setattr(automation_worker, "SqlAlchemyStore", lambda _factory: None)
+    monkeypatch.setattr(automation_worker, "StoreBase", lambda _factory: None)
     monkeypatch.setattr(automation_worker, "prune_idempotency_records", lambda _store: 0)
     monkeypatch.setattr(automation_worker.asyncio, "sleep", fake_sleep)
 
@@ -247,7 +247,7 @@ def test_the_backup_worker_beats_even_with_backups_off(
 
     monkeypatch.setattr(backup_worker, "get_settings", lambda: _settings(backup_enabled=False))
     monkeypatch.setattr(backup_worker, "create_session_factory", lambda _url, **_kw: None)
-    monkeypatch.setattr(backup_worker, "SqlAlchemyStore", lambda _factory: None)
+    monkeypatch.setattr(backup_worker, "StoreBase", lambda _factory: None)
     monkeypatch.setattr(backup_worker, "OwnerBackupService", lambda _store: None)
     monkeypatch.setattr(backup_worker.asyncio, "sleep", fake_sleep)
 
@@ -338,7 +338,7 @@ def test_the_automation_worker_marks_success_only_when_the_iteration_works(
         automation_worker, "create_container", lambda _s: SimpleNamespace(process_runs=process_runs)
     )
     monkeypatch.setattr(automation_worker, "create_session_factory", lambda _url, **_kw: None)
-    monkeypatch.setattr(automation_worker, "SqlAlchemyStore", lambda _factory: None)
+    monkeypatch.setattr(automation_worker, "StoreBase", lambda _factory: None)
     monkeypatch.setattr(automation_worker, "prune_idempotency_records", lambda _store: 0)
     monkeypatch.setattr(automation_worker.asyncio, "sleep", fake_sleep)
 

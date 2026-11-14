@@ -161,7 +161,7 @@ def test_both_commands_never_open_the_database_or_read_settings(
         raise AssertionError("the export commands must not touch the database")
 
     monkeypatch.setattr(owner_export_cli, "get_settings", refuse)
-    monkeypatch.setattr(owner_export_cli, "SqlAlchemyStore", refuse)
+    monkeypatch.setattr(owner_export_cli, "StoreBase", refuse)
     monkeypatch.setattr(owner_export_cli, "create_session_factory", refuse)
     export = write_export(
         tmp_path,

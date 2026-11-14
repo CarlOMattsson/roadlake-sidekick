@@ -51,7 +51,7 @@ from sidekick.work.persistence.tags import WorkTagStore
 class JournalDraftStore:
     """Journal draft review, finalization and rejection.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlJournalStore` adds the transaction boundary.
     """
 
     @staticmethod

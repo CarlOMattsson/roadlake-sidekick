@@ -49,7 +49,7 @@ def _process_runs(monkeypatch: pytest.MonkeyPatch) -> FakeProcessRuns:
     monkeypatch.setattr(automation_worker, "get_settings", lambda: settings)
     monkeypatch.setattr(automation_worker, "create_container", lambda _settings: container)
     monkeypatch.setattr(automation_worker, "create_session_factory", lambda _url, **_kw: object())
-    monkeypatch.setattr(automation_worker, "SqlAlchemyStore", lambda _factory: object())
+    monkeypatch.setattr(automation_worker, "StoreBase", lambda _factory: object())
     monkeypatch.setattr(automation_worker, "prune_idempotency_records", lambda _store: 0)
     monkeypatch.setattr(automation_worker, "WorkerHeartbeat", FakeHeartbeat)
     monkeypatch.setattr(automation_worker, "configure_worker_logging", lambda: None)

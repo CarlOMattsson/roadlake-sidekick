@@ -17,6 +17,7 @@ REPO = Path(__file__).resolve().parents[3]
 WORKFLOWS = REPO / ".github" / "workflows"
 RELEASE = WORKFLOWS / "release-image.yml"
 GATES = WORKFLOWS / "release-gates.yml"
+ANDROID = WORKFLOWS / "release-android.yml"
 SIGNING_SECRETS = (
     "ANDROID_KEYSTORE_BASE64",
     "ANDROID_KEYSTORE_PASSWORD",
@@ -38,6 +39,12 @@ def gates_workflow() -> dict[Any, Any]:
     """The reusable workflow that release-image.yml calls as its `gates` job."""
 
     return yaml.safe_load(GATES.read_text(encoding="utf-8"))
+
+
+def android_workflow() -> dict[Any, Any]:
+    """The reusable workflow that release-image.yml calls as its `android` job."""
+
+    return yaml.safe_load(ANDROID.read_text(encoding="utf-8"))
 
 
 def gate_steps() -> list[dict[str, Any]]:
@@ -85,7 +92,8 @@ def test_jobs_run_source_approval_ci_and_drill_then_gates_apk_image_bundle() -> 
         and "needs.secrets-check.result == 'success'" in condition
     )
     assert "inputs.dry_run" in condition
-    assert jobs["android"]["needs"] == "gates"
+    assert jobs["android"]["needs"] == ["source", "gates"]
+    assert jobs["android"]["uses"] == "./.github/workflows/release-android.yml"
     assert jobs["release"]["needs"] == ["gates", "android"]
     assert jobs["build-dry"]["needs"] == ["gates", "android"]
     assert jobs["sign-apk"]["needs"] == ["gates", "android"]
@@ -147,8 +155,8 @@ def test_no_job_that_can_write_or_sign_runs_in_a_dry_run() -> None:
             assert name in skipped, f"job {name} has write or id-token permissions in a dry run"
         elif name not in skipped:
             assert set(granted) <= {"contents", "packages", "pull-requests"}, name
-    # The reusable workflows (ci, drill) never inherit id-token or write access either.
-    for name in ("ci", "drill"):
+    # The reusable workflows (ci, drill, android) never inherit id-token or write access either.
+    for name in ("ci", "drill", "android"):
         assert "id-token" not in permissions(workflow()["jobs"][name])
         assert "write" not in permissions(workflow()["jobs"][name]).values()
 
@@ -341,16 +349,53 @@ def test_ci_and_drill_are_reusable_and_not_triggered_by_pushes_or_schedules() ->
 
 
 def test_the_android_job_builds_only_an_unsigned_apk_and_holds_no_secret() -> None:
-    android = workflow()["jobs"]["android"]
-    dumped = yaml.safe_dump(android)
+    called = android_workflow()
+    android = called["jobs"]["android"]
+    dumped = yaml.safe_dump(called)
     assert "secrets." not in dumped and "vars." not in dumped
     assert 'apksigner" sign' not in dumped and "zipalign" not in dumped
+    # A called workflow becomes the signer identity of what is signed inside it: this one signs
+    # nothing, takes no secret and no permission beyond reading the repository.
+    assert "secrets" not in called[True]["workflow_call"]
+    assert list(called[True]) == ["workflow_call"]
+    assert called["permissions"] == {"contents": "read"} == android["permissions"]
+    assert "environment" not in android
     uploads = [step for step in android["steps"] if "upload-artifact" in step.get("uses", "")]
     assert uploads[0]["with"]["name"] == "android-apk-unsigned"
     assert uploads[0]["with"]["path"].endswith("app-release-unsigned.apk")
     # The pinned build-tools are checked early, also in a dry run.
     check = android["steps"][0]
     assert "ANDROID_BUILD_TOOLS_VERSION" in check["run"] and "if" not in check
+
+
+def test_the_build_tools_pin_lives_in_the_release_workflow_and_reaches_both_users() -> None:
+    """One pin, in release-image.yml: sign-apk reads it, the android build gets it as input."""
+
+    jobs = workflow()["jobs"]
+    assert list(workflow()["env"]) == ["ANDROID_BUILD_TOOLS_VERSION"]
+    assert (
+        "ANDROID_BUILD_TOOLS_VERSION" not in ANDROID.read_text(encoding="utf-8").split("jobs:")[0]
+    )
+    pin = next(step for step in steps("source") if step.get("id") == "pins")
+    assert (
+        "$ANDROID_BUILD_TOOLS_VERSION" in pin["run"]
+        or "${ANDROID_BUILD_TOOLS_VERSION}" in pin["run"]
+    )
+    assert jobs["source"]["outputs"] == {
+        "build_tools_version": "${{ steps.pins.outputs.build_tools_version }}"
+    }
+    assert jobs["android"]["with"] == {
+        "build_tools_version": "${{ needs.source.outputs.build_tools_version }}"
+    }
+    inputs = android_workflow()[True]["workflow_call"]["inputs"]
+    assert (
+        list(inputs) == ["build_tools_version"]
+        and inputs["build_tools_version"]["required"] is True
+    )
+    env = android_workflow()["jobs"]["android"]["env"]
+    assert env == {"ANDROID_BUILD_TOOLS_VERSION": "${{ inputs.build_tools_version }}"}
+    sign = next(step for step in steps("sign-apk") if step.get("id") == "sign")
+    assert "ANDROID_BUILD_TOOLS_VERSION" in sign["run"]
 
 
 def test_the_apk_is_signed_in_isolation_and_its_hash_is_published() -> None:

@@ -25,7 +25,7 @@ from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import get_settings
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
 from sidekick.shared.persistence import create_session_factory
-from sidekick.store import SqlAlchemyStore
+from sidekick.shared.persistence.stores.base import StoreBase
 
 _EXPECTED_ERRORS = (
     OSError,
@@ -247,7 +247,7 @@ def _command_restore(args: argparse.Namespace) -> int:
     try:
         document = _read_document(args.path)
         settings = get_settings()
-        store = SqlAlchemyStore(
+        store = StoreBase(
             create_session_factory(
                 settings.database_url,
                 timeouts=settings.database_timeouts.unbounded_statements(),

@@ -6,6 +6,8 @@ import {
   bigContactContext,
   bigContactList,
   fullTask,
+  projectRecord,
+  task,
   workReplies,
 } from "./one-screen-fixtures";
 import { ok } from "./sidekick-domain-fixtures";
@@ -164,5 +166,87 @@ test("Inline Task card: after Markera klar the Ångra button is a 44 px target",
   await expect(undo).toBeVisible();
   await expect(undo).toBeFocused();
   expect((await box(undo)).height).toBeGreaterThanOrEqual(44);
+  expect(failures).toEqual([]);
+});
+
+test("Contact page: a section heading takes its space from the section tokens, and the list under it has no 6 px margin of its own", async ({
+  page,
+}) => {
+  const { app, failures } = await openSidekick(page, {
+    width: 375,
+    theme: "light",
+    tool: "get_contact_context",
+    result: bigContactContext,
+    replies: workReplies,
+  });
+  await settled(app);
+  const heading = app.locator("article.work-contact h3").first();
+  await expect(heading).toBeVisible();
+  expect(await style(heading, "marginTop", "marginBottom")).toEqual({
+    marginTop: await resolved(app, "margin-top", "var(--sk-section-above)"),
+    marginBottom: await resolved(
+      app,
+      "margin-bottom",
+      "var(--sk-section-below)",
+    ),
+  });
+  const list = app.locator("article.work-contact h3 + .work-list").first();
+  await expect(list).toBeVisible();
+  expect((await style(list, "marginTop")).marginTop).not.toBe("6px");
+  expect(failures).toEqual([]);
+});
+
+test("Project page: the Task rows are the shared agenda rows with no padding of their own, and a row without a meta line keeps its line in the middle of its 48 px", async ({
+  page,
+}) => {
+  const rows = Array.from({ length: 3 }, (_, n) => ({
+    ...task(n, "todo"),
+    project_id: projectRecord.id,
+    project_title: projectRecord.title,
+    due_at: null,
+    tags: [],
+    priority: "normal",
+  }));
+  const { app, failures } = await openSidekick(page, {
+    width: 375,
+    theme: "light",
+    tool: "get_project",
+    result: { project: projectRecord },
+    replies: {
+      ...workReplies,
+      list_tasks: ok({ tasks: rows, next_cursor: null }),
+    },
+  });
+  await settled(app);
+  const article = app.locator("article.work-project");
+  await expect(article).toBeVisible();
+  const row = article.locator(".work-list > li.work-agenda-row").first();
+  await expect(row).toBeVisible();
+  expect(
+    await style(
+      row,
+      "paddingTop",
+      "paddingRight",
+      "paddingBottom",
+      "paddingLeft",
+    ),
+  ).toEqual({
+    paddingTop: "0px",
+    paddingRight: "0px",
+    paddingBottom: "0px",
+    paddingLeft: "0px",
+  });
+  const line = row.locator(".work-agenda-line");
+  await expect(line).toBeVisible();
+  await expect(line.locator(".work-card-meta")).toHaveCount(0);
+  // The row's own pad is 6 px plus the air the type scale adds, so the title sits in the middle of the 48 px.
+  const [rowBox, titleBox] = await Promise.all([
+    box(row),
+    box(line.locator(".work-agenda-body > button").first()),
+  ]);
+  expect(rowBox.height).toBeGreaterThanOrEqual(48);
+  expect(
+    Math.abs(titleBox.y + titleBox.height / 2 - (rowBox.y + rowBox.height / 2)),
+  ).toBeLessThan(3);
   expect(failures).toEqual([]);
 });

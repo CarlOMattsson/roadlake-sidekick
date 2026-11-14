@@ -61,7 +61,7 @@ def _worker(monkeypatch: pytest.MonkeyPatch, settings: SimpleNamespace) -> type[
     monkeypatch.setattr(backup_worker, "get_settings", lambda: settings)
     monkeypatch.setattr(backup_worker, "OwnerBackupService", FakeService)
     monkeypatch.setattr(backup_worker, "create_session_factory", lambda _url, **_kw: object())
-    monkeypatch.setattr(backup_worker, "SqlAlchemyStore", lambda _factory: object())
+    monkeypatch.setattr(backup_worker, "StoreBase", lambda _factory: object())
     monkeypatch.setattr(backup_worker, "configure_worker_logging", lambda: None)
     monkeypatch.setattr(sys, "argv", ["sidekick-backup-worker", "--once"])
     return FakeService

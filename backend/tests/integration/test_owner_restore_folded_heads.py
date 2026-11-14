@@ -22,8 +22,8 @@ from sidekick.owner_export.document import verify_export
 from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.older_export_formats import BASELINE_HEAD, as_format_4
 from tests.support.settings import make_settings
@@ -52,7 +52,7 @@ def test_an_export_stamped_with_a_folded_head_restores_on_the_current_schema(hea
     container = create_container(make_settings(), factory)
     source = container.auth.provision_user(f"fold-source-{head[:3]}", "Source")
     target = container.auth.provision_user(f"fold-target-{head[:3]}", "Target")
-    exported = OwnerExportService(SqlAlchemyStore(factory)).export(Actor(source, frozenset()))
+    exported = OwnerExportService(StoreBase(factory)).export(Actor(source, frozenset()))
     document = as_format_4(exported, head)
 
     assert verify_export(document).owner_id == source
@@ -62,7 +62,7 @@ def test_an_export_stamped_with_a_folded_head_restores_on_the_current_schema(hea
     plan = build_restore_plan(document, target)
     assert plan.status == "ready"
 
-    OwnerRestoreService(SqlAlchemyStore(factory)).restore(
+    OwnerRestoreService(StoreBase(factory)).restore(
         document, target_owner_id=target, expected_plan_checksum=plan.plan_checksum
     )
 

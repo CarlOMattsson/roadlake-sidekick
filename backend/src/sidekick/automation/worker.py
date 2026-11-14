@@ -17,17 +17,16 @@ from sidekick.shared.config import get_settings
 from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging, log_failure
 from sidekick.shared.persistence import create_session_factory
-from sidekick.shared.persistence.stores.base import IDEMPOTENCY_RETENTION
+from sidekick.shared.persistence.stores.base import IDEMPOTENCY_RETENTION, StoreBase
 from sidekick.shared.types import utc_now
 from sidekick.shared.worker_health import WorkerHeartbeat
-from sidekick.store import SqlAlchemyStore
 
 LOGGER = logging.getLogger("sidekick.automation.worker")
 POLL_SECONDS = 30
 IDEMPOTENCY_PRUNE_SECONDS = 3600
 
 
-def prune_idempotency_records(store: SqlAlchemyStore) -> int:
+def prune_idempotency_records(store: StoreBase) -> int:
     """Delete replay records older than `IDEMPOTENCY_RETENTION`; returns how many were removed."""
 
     cutoff = utc_now() - IDEMPOTENCY_RETENTION
@@ -44,7 +43,7 @@ async def run_worker(*, once: bool = False) -> bool:
     settings = get_settings()
     container = create_container(settings)
     worker_id = f"{socket.gethostname()}:{os.getpid()}:{uuid4().hex[:12]}"
-    store = SqlAlchemyStore(
+    store = StoreBase(
         create_session_factory(settings.database_url, timeouts=settings.database_timeouts)
     )
     next_prune = time.monotonic()

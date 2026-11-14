@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import type { WorkLabels } from "../shared/labels";
 
 /**
- * What the Contact view shows after Archive: the receipt, the one fact that archived Contacts are read-only, and Ångra, which
+ * What the Contact view shows after Archive: the receipt, the one fact that archived Contacts are read-only, and `undo`, which
  * restores the Contact at the version the archive left. The button takes the focus when the receipt appears, so the keyboard
- * stays on the page. A failed Ångra is shown by the page's write-failure line, whose Retry reuses the key.
+ * stays on the page. A failed `undo` is shown by the page's write-failure line, whose Retry reuses the key.
  */
 export function ContactArchived({
   labels: t,

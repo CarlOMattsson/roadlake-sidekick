@@ -126,9 +126,9 @@ export function ContactBody({
             }
             locale={t.dateLocale}
           />
-          {/* "Kontaktvägar ⌄": a fold row of 48 with e-mail, phone and address closed in it. */}
+          {/* `waysToReach` ⌄: a fold row of 48 with e-mail, phone and address closed in it. */}
           <ContactWays contact={contact} onOpenLink={onOpenLink} labels={dl} />
-          {/* No "Etikett:" rows (design system §3, Kontaktvyn): the note is a paragraph under "Om Anna". */}
+          {/* No labelled field rows (design system §3, Contact view): the note is a paragraph under `aboutContact`. */}
           {contact.context_note && (
             <>
               <h3>{about(contact.display_name)}</h3>

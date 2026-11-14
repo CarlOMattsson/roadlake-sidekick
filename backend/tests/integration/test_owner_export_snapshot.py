@@ -20,15 +20,15 @@ from sidekick.owner_export.document import verify_export
 from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore_plan import build_restore_plan, verify_restorable
 from sidekick.shared.persistence.models import TaskRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
 SCOPES = frozenset({"tasks:read", "tasks:write"})
 
 
-class ConcurrentWriteStore(SqlAlchemyStore):
+class ConcurrentWriteStore(StoreBase):
     """Commits one related write from another session right after the tasks have been read."""
 
     def __init__(self, factory: Any, write: Any) -> None:
@@ -123,7 +123,7 @@ def test_history_of_a_task_removed_directly_does_not_block_a_backup(
 ) -> None:
     env = Env()
     key = Fernet.generate_key()
-    result = OwnerBackupService(SqlAlchemyStore(env.factory)).create(
+    result = OwnerBackupService(StoreBase(env.factory)).create(
         directory=tmp_path, key=key, retention_count=5, retention_days=5
     )
     assert verify_backup_file(result.path, key) == result.owner_count
@@ -132,7 +132,7 @@ def test_history_of_a_task_removed_directly_does_not_block_a_backup(
     # allowed history (the same state a permanent removal leaves), not a dangling reference.
     with env.factory.begin() as session:
         session.execute(delete(TaskRow).where(TaskRow.owner_id == env.owner))
-    again = OwnerBackupService(SqlAlchemyStore(env.factory)).create(
+    again = OwnerBackupService(StoreBase(env.factory)).create(
         directory=tmp_path, key=key, retention_count=5, retention_days=5
     )
     assert verify_backup_file(again.path, key) == again.owner_count

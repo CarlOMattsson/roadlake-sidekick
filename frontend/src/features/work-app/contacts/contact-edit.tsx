@@ -4,7 +4,6 @@ import type { WorkLabels } from "../shared/labels";
 import { keepEdits, titleProblem } from "../shared/fields";
 import { useUnsavedGuard } from "../../mcp-apps/unsaved-guard";
 import { ContactAliases } from "./contact-aliases";
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import type {
   WorkContactAlias,
   WorkContactChanges,
@@ -137,7 +136,7 @@ export function ContactEditor({
   onAddAlias: (value: string, done: () => void) => void;
   onRemoveAlias: (alias: WorkContactAlias) => void;
   labels: WorkLabels;
-  /** The field that takes the focus when the editor opens (a new Contact's "+ Telefon"); else the name. */
+  /** The field that takes the focus when the editor opens (a new Contact's `addPhone` button); else the name. */
   focusField?: "phone" | "email" | "relationship";
 }) {
   const [state, setState] = useState<ContactDraftState>(() => {
@@ -350,61 +349,5 @@ export function ContactEditor({
         </button>
       </div>
     </form>
-  );
-}
-
-type MenuChoice = { label: string; onChoose: () => void };
-
-/**
- * The panel of a detail view's ⋯ button (the button sits in the Back row, see work-view.tsx ContactFrame and TaskFrame).
- * It opens under the title with "Redigera" first (design system §3, Tillbakarad; nicknames are edited there too),
- * then Archive (Restore for an archived one) in the text colour: Restore undoes it, so it writes at once and the page
- * shows its receipt. Only a deletion is drawn in the danger colour. A Task has no archive entry. Escape closes it.
- */
-export function ContactMenu({
-  id,
-  busy,
-  edit,
-  archive,
-  remove,
-  onClose,
-}: {
-  id: string;
-  busy: boolean;
-  /** "Redigera", first in the menu; left out for an archived (read-only) Contact. */
-  edit?: MenuChoice;
-  /** A Contact's "Arkivera", or "Återställ" for an archived one; no question first, because Restore and Ångra undo it. */
-  archive?: MenuChoice;
-  /** A Task's "Ta bort uppgift" in the danger colour; no question first, because the trash and Ångra undo it. */
-  remove?: MenuChoice;
-  onClose: () => void;
-}) {
-  return (
-    <KeyScope id={id} className="work-contact-menu" onEscape={onClose}>
-      {edit && <MenuItem choice={edit} busy={busy} />}
-      {archive && <MenuItem choice={archive} busy={busy} />}
-      {remove && <MenuItem choice={remove} busy={busy} danger />}
-    </KeyScope>
-  );
-}
-
-function MenuItem({
-  choice,
-  busy,
-  danger = false,
-}: {
-  choice: MenuChoice;
-  busy: boolean;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      className={danger ? "sk-menu-item sk-menu-item--danger" : "sk-menu-item"}
-      disabled={busy}
-      onClick={choice.onChoose}
-    >
-      {choice.label}
-    </button>
   );
 }

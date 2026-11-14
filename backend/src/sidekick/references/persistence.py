@@ -27,9 +27,9 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from sidekick.references.domain import ExternalReferenceDetails
 from sidekick.shared.errors import NotFoundError
 from sidekick.shared.persistence.models import SCHEMA, Base, TaskRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.types import KeyValue, new_uuid7
-from sidekick.store import SqlAlchemyStore
 
 
 class ExternalReferenceRow(Base):
@@ -83,7 +83,7 @@ def _lock_id(material: str) -> int:
     return int.from_bytes(hashlib.sha256(material.encode()).digest()[:8], signed=True)
 
 
-class ExternalReferenceStore(SqlAlchemyStore):
+class ExternalReferenceStore(StoreBase):
     @staticmethod
     def require_task(session: Session, owner: UUID, task_id: UUID) -> None:
         """Refuse another owner's, archived and trashed Tasks with one indistinct error."""

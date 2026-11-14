@@ -33,7 +33,7 @@ from sidekick.shared.persistence.models import (
     TaskRow,
 )
 from sidekick.shared.types import new_uuid7
-from sidekick.store import SqlAlchemyStore
+from sidekick.work.persistence.store import SqlWorkStore
 from tests.db import database_factory
 from tests.support.companion import bearer, create_task, owner, paired_token
 from tests.support.companion_push import (
@@ -68,7 +68,7 @@ def scheduler(app: FastAPI, clock: Clock) -> ReminderScheduler:
     return ReminderScheduler.from_settings(
         app.state.container.settings,
         SqlReminderStore(factory_of(app)),
-        SqlAlchemyStore(factory_of(app)),
+        SqlWorkStore(factory_of(app)),
         clock=clock,
     )
 

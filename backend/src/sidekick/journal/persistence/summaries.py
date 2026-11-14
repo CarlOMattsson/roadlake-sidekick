@@ -44,7 +44,7 @@ _UNREAD = _Unread()
 class JournalSummaryStore:
     """Daily journal summaries and the per-day done list.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlJournalStore` adds the transaction boundary.
     """
 
     @staticmethod

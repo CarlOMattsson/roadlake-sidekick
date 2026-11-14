@@ -16,17 +16,19 @@ import pytest
 from sqlalchemy import Engine, event
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.composition import create_stores
 from sidekick.lifecycle import RecordKind, RecordLifecycleService
+from sidekick.lifecycle.persistence import LifecycleStore
 from sidekick.projects.application import ProjectService
 from sidekick.search.persistence import SearchStore
 from sidekick.shared.auth import ALL_SCOPES, AuthService
 from sidekick.shared.errors import NotFoundError
 from sidekick.shared.types import Actor, SystemClock
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskService
 from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.work_lists import WorkListService
+from sidekick.work.persistence.store import SqlWorkStore
 from tests.db import database_factory
 from tests.support.fakes import make_cursor_codec
 
@@ -37,7 +39,7 @@ PARENT_KINDS = ("project", "process", "domain")
 class _World:
     actor: Actor
     factory: sessionmaker[Session]
-    store: SqlAlchemyStore
+    store: SqlWorkStore
     tasks: TaskService
     projects: ProjectService
     contexts: ContextService
@@ -49,7 +51,8 @@ class _World:
     def build(cls) -> "_World":
         factory = database_factory()
         owner_id = AuthService(factory, "pepper" * 8).provision_user("owner", "Owner")
-        store = SqlAlchemyStore(factory)
+        stores = create_stores(factory)
+        store = stores.work
         codec = make_cursor_codec()
         contexts = ContextService(store, SystemClock(), codec, owner_timezone=UTC)
         work_lists = WorkListService(store, SystemClock(), codec, owner_timezone=UTC)
@@ -61,11 +64,11 @@ class _World:
             actor=actor,
             factory=factory,
             store=store,
-            tasks=TaskService(store, SystemClock(), codec),
-            projects=ProjectService(store, SystemClock(), codec),
+            tasks=TaskService(stores.tasks, SystemClock(), codec),
+            projects=ProjectService(stores.tasks, SystemClock(), codec),
             contexts=contexts,
             work_lists=work_lists,
-            lifecycle=RecordLifecycleService(store, SystemClock(), codec),
+            lifecycle=RecordLifecycleService(LifecycleStore(factory), SystemClock(), codec),
             domain_id=domain.id,
         )
 

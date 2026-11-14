@@ -11,6 +11,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.automation.application.service import ActivityLedger, AutomationPolicyService
+from sidekick.automation.persistence import AutomationStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
 from sidekick.companion.push_outbox_store import install_wake_hook
@@ -20,16 +21,19 @@ from sidekick.companion.push_subscription_store import SqlPushSubscriptionStore
 from sidekick.companion.service import CompanionDeviceService
 from sidekick.contacts.application.relations import ContactRelationService
 from sidekick.contacts.application.service import ContactService
+from sidekick.contacts.persistence import ContactStore, SqlContactStore
 from sidekick.journal.application.analysis import JournalAnalysisService
 from sidekick.journal.application.capture import JournalCaptureService
 from sidekick.journal.application.day import JournalDayService
 from sidekick.journal.application.finalize import JournalFinalizeService
 from sidekick.journal.application.relations import JournalRelationService
 from sidekick.journal.application.service import JournalService
+from sidekick.journal.persistence.store import SqlJournalStore
 from sidekick.license.persistence import LicenseStore
 from sidekick.license.service import LicenseService
 from sidekick.lifecycle.application import RecordLifecycleService
 from sidekick.lifecycle.application.empty_trash import EmptyTrashResult, empty_trash
+from sidekick.lifecycle.persistence import LifecycleStore
 from sidekick.memory.application.settings import provision_owner_settings
 from sidekick.memory.application.store import MemoryStore
 from sidekick.memory.factory import build_provider as build_memory_provider
@@ -47,14 +51,18 @@ from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.types import CursorCodec, SystemClock
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskBoardService, TaskBulkService, TaskService
+from sidekick.tasks.persistence import ProjectTaskStore, SqlTaskStore
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.steps_service import StepsService
 from sidekick.work.application.tags_service import WorkTagService
 from sidekick.work.application.work_lists import WorkListService
+from sidekick.work.persistence.steps_actions import StepActionStore
+from sidekick.work.persistence.store import SqlWorkStore
+from sidekick.work.persistence.structure import WorkStructureStore
+from sidekick.work.persistence.tags import WorkTagStore
 
 # The session factory type, named here so the transport layers (`api`, `mcp`) can type the test
 # seam of `create_app` without importing SQLAlchemy themselves.
@@ -128,11 +136,13 @@ def create_auth_service(
     return AuthService(factory, settings.token_pepper, on_user_provisioned=(provision_memory,))
 
 
-def create_lifecycle_service(store: SqlAlchemyStore, settings: Settings) -> RecordLifecycleService:
+def create_lifecycle_service(
+    factory: SessionFactory, telemetry: TelemetryPort, settings: Settings
+) -> RecordLifecycleService:
     """The one wiring of the lifecycle use case: the API, MCP tools and the admin sweep share it."""
 
     return RecordLifecycleService(
-        store,
+        LifecycleStore(factory, telemetry),
         SystemClock(),
         CursorCodec(settings.cursor_signing_key),
         contact_removal_guard=ShoppingStore.ensure_contact_unlinked,
@@ -146,8 +156,9 @@ def create_admin_lifecycle_service(
 ) -> RecordLifecycleService:
     """The lifecycle use case for `sidekick-admin`, which has no container and serves nothing."""
 
-    store = SqlAlchemyStore(factory, configure_observability(settings.environment))
-    return create_lifecycle_service(store, settings)
+    return create_lifecycle_service(
+        factory, configure_observability(settings.environment), settings
+    )
 
 
 def sweep_trash_for_admin(
@@ -161,6 +172,54 @@ def sweep_trash_for_admin(
 
     return empty_trash(
         lifecycle, remove=remove, older_than=older_than, correlation_id=correlation_id
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class ContextStores:
+    """One store per context over the same session factory.
+
+    A context's store holds only that context's operations plus the few reads it borrows from
+    another context, which are handed in here as ports. The operations are static, so the owning
+    store class is the port; nothing here is shared state.
+    """
+
+    tasks: SqlTaskStore
+    contacts: SqlContactStore
+    journal: SqlJournalStore
+    work: SqlWorkStore
+    tags: WorkTagStore
+
+
+def create_stores(factory: SessionFactory, telemetry: TelemetryPort | None = None) -> ContextStores:
+    """Build the context stores and wire the reads they borrow from each other."""
+
+    return ContextStores(
+        tasks=SqlTaskStore(
+            factory,
+            telemetry,
+            contacts=ContactStore,
+            structure=WorkStructureStore,
+            steps=StepActionStore,
+            tags=WorkTagStore,
+        ),
+        contacts=SqlContactStore(
+            factory,
+            telemetry,
+            projects=ProjectTaskStore,
+            tasks=ProjectTaskStore,
+            tags=WorkTagStore,
+        ),
+        journal=SqlJournalStore(
+            factory,
+            telemetry,
+            projects=ProjectTaskStore,
+            tasks=ProjectTaskStore,
+            contacts=ContactStore,
+            tags=WorkTagStore,
+        ),
+        work=SqlWorkStore(factory, telemetry),
+        tags=WorkTagStore(factory, telemetry),
     )
 
 
@@ -181,22 +240,27 @@ def create_container(
             factory, min_interval=timedelta(seconds=settings.push_wake_min_interval_seconds)
         )
     resolved_telemetry = telemetry or configure_observability(settings.environment)
-    store = SqlAlchemyStore(factory, resolved_telemetry)
+    stores = create_stores(factory, resolved_telemetry)
     cursor_codec = CursorCodec(settings.cursor_signing_key)
-    activity_ledger = ActivityLedger(store)
-    automation_service = AutomationPolicyService(store, SystemClock(), cursor_codec)
+    automation_store = AutomationStore(factory, resolved_telemetry)
+    activity_ledger = ActivityLedger(automation_store)
+    automation_service = AutomationPolicyService(automation_store, SystemClock(), cursor_codec)
     tasks = TaskService(
-        store, SystemClock(), cursor_codec, activity_ledger, owner_timezone=settings.owner_zone
+        stores.tasks,
+        SystemClock(),
+        cursor_codec,
+        activity_ledger,
+        owner_timezone=settings.owner_zone,
     )
-    projects = ProjectService(store, SystemClock(), cursor_codec)
+    projects = ProjectService(stores.tasks, SystemClock(), cursor_codec)
     contexts = ContextService(
-        store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+        stores.work, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
     )
     work_lists = WorkListService(
-        store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+        stores.work, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
     )
-    steps = StepsService(store, SystemClock(), cursor_codec)
-    contacts = ContactService(store, SystemClock(), cursor_codec)
+    steps = StepsService(stores.work, SystemClock(), cursor_codec)
+    contacts = ContactService(stores.contacts, SystemClock(), cursor_codec)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
     container = Container(
@@ -207,19 +271,19 @@ def create_container(
         contexts=contexts,
         work_lists=work_lists,
         steps=steps,
-        saved_views=SavedViewService(store, SystemClock()),
-        work_tags=WorkTagService(store, SystemClock(), cursor_codec),
+        saved_views=SavedViewService(stores.work, SystemClock()),
+        work_tags=WorkTagService(stores.tags, SystemClock(), cursor_codec),
         tasks=tasks,
-        task_board=TaskBoardService(store, SystemClock()),
+        task_board=TaskBoardService(stores.tasks, SystemClock()),
         task_bulk=TaskBulkService(tasks),
         contacts=contacts,
-        contact_relations=ContactRelationService(store, SystemClock(), cursor_codec),
-        journal=JournalService(store, SystemClock(), cursor_codec),
-        journal_capture=JournalCaptureService(store, SystemClock()),
+        contact_relations=ContactRelationService(stores.contacts, SystemClock(), cursor_codec),
+        journal=JournalService(stores.journal, SystemClock(), cursor_codec),
+        journal_capture=JournalCaptureService(stores.journal, SystemClock()),
         journal_day=JournalDayService(
-            store, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+            stores.journal, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
         ),
-        journal_relations=JournalRelationService(store),
+        journal_relations=JournalRelationService(stores.journal),
         shopping=ShoppingService(
             ShoppingStore(factory, resolved_telemetry),
             SystemClock(),
@@ -235,11 +299,11 @@ def create_container(
         search=SearchService(
             SearchStore(factory, resolved_telemetry), cursor_codec, resolved_telemetry
         ),
-        journal_analysis=JournalAnalysisService(store, SystemClock()),
-        journal_finalize=JournalFinalizeService(store, SystemClock()),
+        journal_analysis=JournalAnalysisService(stores.journal, SystemClock()),
+        journal_finalize=JournalFinalizeService(stores.journal, SystemClock()),
         automation=automation_service,
-        lifecycle=create_lifecycle_service(store, settings),
-        process_runs=ProcessRunService(store, tasks, SystemClock(), activity_ledger),
+        lifecycle=create_lifecycle_service(factory, resolved_telemetry, settings),
+        process_runs=ProcessRunService(stores.work, tasks, SystemClock(), activity_ledger),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

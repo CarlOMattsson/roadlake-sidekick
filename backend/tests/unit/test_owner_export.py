@@ -840,7 +840,7 @@ class RecordingSession:
 
 
 def test_snapshot_transaction_sets_repeatable_read_before_anything_else() -> None:
-    from sidekick.store import SqlAlchemyStore
+    from sidekick.shared.persistence.stores.base import StoreBase
 
     session = RecordingSession()
 
@@ -854,7 +854,7 @@ def test_snapshot_transaction_sets_repeatable_read_before_anything_else() -> Non
         def __exit__(self, *_exc: object) -> None:
             return None
 
-    store = SqlAlchemyStore(Factory())  # type: ignore[arg-type]
+    store = StoreBase(Factory())  # type: ignore[arg-type]
 
     assert store.snapshot_transaction(lambda s: s.statements.copy()) == [
         "SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY DEFERRABLE"

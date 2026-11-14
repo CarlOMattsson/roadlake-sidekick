@@ -7,7 +7,7 @@ import {
   waitForAppInitialized,
 } from "./mcp-host-fixture";
 import { journalDay, ok } from "./sidekick-domain-fixtures";
-import { box, resolved, style } from "./computed-style";
+import { box, pseudoStyle, resolved, style } from "./computed-style";
 
 // How the Journal looks, measured in a real Chromium from the computed style and the boxes of the rendered
 // views, instead of read out of journal.css. Simulated host (see mcp-host-fixture.ts), not a real Claude or Android
@@ -278,26 +278,28 @@ test("Journal day view: an empty day stands 12 px under the strip, and the + ope
   expect(failures).toEqual([]);
 });
 
+async function openDraftReview(page: Page, width = 500) {
+  const opened = await openSimulatedApp(page, {
+    resource: readBuiltApp("journal", "en"),
+    width,
+    height: 900,
+    hostContext: fullscreen,
+    replies: {
+      list_pending_journal: ok(pending),
+      get_journal_draft: ok({ draft, source }),
+    },
+  });
+  await waitForAppInitialized(page);
+  await deliverToolResult(page, pending);
+  await settled(opened.app);
+  await opened.app.getByRole("button", { name: /^Utkast om offerten/ }).click();
+  return opened;
+}
+
 test("Journal draft review: an unpressed option is ink on a border ring, the chosen Godkänn and Avslå take their status tone, the bar sticks only above 400 px", async ({
   page,
 }) => {
-  const { app, failures } = await (async () => {
-    const opened = await openSimulatedApp(page, {
-      resource: readBuiltApp("journal", "en"),
-      width: 500,
-      height: 900,
-      hostContext: fullscreen,
-      replies: {
-        list_pending_journal: ok(pending),
-        get_journal_draft: ok({ draft, source }),
-      },
-    });
-    await waitForAppInitialized(page);
-    await deliverToolResult(page, pending);
-    await settled(opened.app);
-    return opened;
-  })();
-  await app.getByRole("button", { name: /^Utkast om offerten/ }).click();
+  const { app, failures } = await openDraftReview(page);
   const flat = app.locator(".journal-check-flat").first();
   await expect(flat).toBeVisible();
   const options = flat.getByRole("button");
@@ -473,3 +475,219 @@ for (const [width, side] of [
     expect(failures).toEqual([]);
   });
 }
+
+test("Journal day view: the chosen day's number is semibold, Today is semibold and muted, the entry dot is centred, and the arrows are never hidden", async ({
+  page,
+}) => {
+  const { app, failures } = await openDay(page, 360);
+  const semibold = await resolved(
+    app,
+    "font-weight",
+    "var(--sk-weight-semibold)",
+  );
+  const muted = await resolved(app, "color", "var(--sk-muted)");
+  const selected = app.locator('.sk-day-strip-day[aria-current="date"]');
+  expect(
+    (await style(selected.locator(".sk-day-strip-number"), "fontWeight"))
+      .fontWeight,
+  ).toBe(semibold);
+  // Today's word in the weekday row is only semibold: its colour stays the muted weekday colour.
+  const today = app.locator(".sk-day-strip-today");
+  await expect(today).toBeVisible();
+  expect(await style(today, "fontWeight", "color")).toEqual({
+    fontWeight: semibold,
+    color: muted,
+  });
+  // The marker row is a centred grid, with the dot under the number.
+  const marker = app.locator(".sk-day-strip-marker").first();
+  expect(await style(marker, "display", "placeItems")).toEqual({
+    display: "grid",
+    placeItems: "center",
+  });
+  // Both arrows always show, and the spent one reads in --sk-border while the other keeps the text colour.
+  const arrows = await app.locator(".sk-day-strip-arrow").all();
+  expect(arrows).toHaveLength(2);
+  for (const arrow of arrows)
+    expect(await style(arrow, "visibility", "display")).toMatchObject({
+      visibility: "visible",
+    });
+  const enabled = app.locator(
+    '.sk-day-strip-arrow:not([aria-disabled="true"])',
+  );
+  expect((await style(enabled, "color")).color).not.toBe(
+    await resolved(app, "color", "var(--sk-border)"),
+  );
+  // «Dagen i korthet» is a label: meta size at 600 in the muted colour, 4 over the ingress.
+  const label = app.locator(".journal-summary-label");
+  expect(
+    await style(label, "marginBottom", "fontWeight", "color", "fontSize"),
+  ).toEqual({
+    marginBottom: await resolved(app, "margin-bottom", "var(--sk-s1)"),
+    fontWeight: semibold,
+    color: muted,
+    fontSize: await resolved(app, "font-size", "var(--sk-type-meta-size)"),
+  });
+  expect(failures).toEqual([]);
+});
+
+test("Journal day view: with no day chosen the numbers drop to the muted colour and the regular weight", async ({
+  page,
+}) => {
+  const { app, failures } = await openDay(page, 360);
+  const number = app.locator(".sk-day-strip-number").first();
+  const ink = (await style(number, "color")).color;
+  // The strip is marked unmarked by the tag filter; the attribute is set here as the view sets it.
+  await app
+    .locator(".sk-day-strip")
+    .evaluate((strip) => strip.setAttribute("data-unmarked", "true"));
+  expect(await style(number, "color", "fontWeight")).toEqual({
+    color: await resolved(app, "color", "var(--sk-muted)"),
+    fontWeight: await resolved(app, "font-weight", "var(--sk-weight-normal)"),
+  });
+  expect(ink).not.toBe(await resolved(app, "color", "var(--sk-muted)"));
+  expect(failures).toEqual([]);
+});
+
+test("Journal day view: forced colours give the chosen day a real 2 px outline", async ({
+  page,
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  const { app, failures } = await openDay(page, 360);
+  const selected = app.locator('.sk-day-strip-day[aria-current="date"]');
+  await expect(selected).toBeVisible();
+  expect(await style(selected, "outlineWidth", "outlineStyle")).toEqual({
+    outlineWidth: "2px",
+    outlineStyle: "solid",
+  });
+  expect(failures).toEqual([]);
+});
+
+test("Segmented (Godkänn and Avslå): a 1 px framed row of options that are at least 44 px, share it equally, wrap their label and tick the pressed one", async ({
+  page,
+}) => {
+  const { app, failures } = await openDraftReview(page);
+  const group = app.locator(".journal-check-flat .sk-segmented").first();
+  await expect(group).toBeVisible();
+  expect(
+    await style(
+      group,
+      "display",
+      "flexWrap",
+      "columnGap",
+      "rowGap",
+      "borderTopWidth",
+      "borderTopStyle",
+      "borderTopColor",
+      "borderTopLeftRadius",
+      "overflowX",
+      "backgroundColor",
+    ),
+  ).toEqual({
+    display: "flex",
+    flexWrap: "wrap",
+    columnGap: "0px",
+    rowGap: "0px",
+    borderTopWidth: "1px",
+    borderTopStyle: "solid",
+    borderTopColor: await resolved(app, "color", "var(--sk-border)"),
+    borderTopLeftRadius: await resolved(
+      app,
+      "border-radius",
+      "var(--border-radius-md, 0.5rem)",
+    ),
+    overflowX: "visible",
+    backgroundColor: "rgba(0, 0, 0, 0)",
+  });
+  const options = await group.locator(".sk-segmented__option").all();
+  expect(options).toHaveLength(2);
+  for (const option of options) {
+    expect(
+      await style(
+        option,
+        "minHeight",
+        "minWidth",
+        "marginTop",
+        "marginLeft",
+        "paddingLeft",
+        "paddingRight",
+        "textAlign",
+        "lineHeight",
+        "borderTopWidth",
+        "textOverflow",
+        "outlineStyle",
+      ),
+    ).toMatchObject({
+      minHeight: "44px",
+      minWidth: "min-content",
+      marginTop: "-1px",
+      marginLeft: "-1px",
+      paddingLeft: "12px",
+      paddingRight: "12px",
+      textAlign: "center",
+      borderTopWidth: "0px",
+      textOverflow: "clip",
+    });
+    expect((await box(option)).height).toBeGreaterThanOrEqual(44);
+    const label = option.locator(".sk-segmented__label");
+    expect(await style(label, "whiteSpace", "textOverflow")).toEqual({
+      whiteSpace: "normal",
+      textOverflow: "clip",
+    });
+  }
+  const [a, b] = await Promise.all(options.map((option) => box(option)));
+  expect(Math.abs(a!.width - b!.width)).toBeLessThan(1);
+  // The pressed option is 600 and carries a 16 px tick before its label; the other has none.
+  await options[0]!.click();
+  const pressed = options[0]!;
+  await expect(pressed).toHaveAttribute("aria-pressed", "true");
+  expect(await style(pressed, "fontWeight")).toEqual({
+    fontWeight: await resolved(
+      app,
+      "font-weight",
+      "var(--font-weight-semibold, 600)",
+    ),
+  });
+  const tick = await pseudoStyle(
+    pressed.locator(".sk-segmented__label"),
+    "::before",
+    "content",
+    "display",
+    "width",
+    "height",
+  );
+  expect(tick).toEqual({
+    content: '""',
+    display: "inline-block",
+    width: "16px",
+    height: "16px",
+  });
+  expect(
+    (
+      await pseudoStyle(
+        options[1]!.locator(".sk-segmented__label"),
+        "::before",
+        "content",
+      )
+    ).content,
+  ).toBe("none");
+  expect(failures).toEqual([]);
+});
+
+test("Segmented in a 320 px frame: only the label gets smaller (14 px), the option keeps its 12 px padding and 44 px height", async ({
+  page,
+}) => {
+  const { app, failures } = await openDraftReview(page, 320);
+  const option = app
+    .locator(".journal-check-flat .sk-segmented__option")
+    .first();
+  await expect(option).toBeVisible();
+  expect(
+    await style(option, "fontSize", "paddingLeft", "paddingRight", "minHeight"),
+  ).toEqual({
+    fontSize: "14px",
+    paddingLeft: "12px",
+    paddingRight: "12px",
+    minHeight: "44px",
+  });
+  expect(failures).toEqual([]);
+});

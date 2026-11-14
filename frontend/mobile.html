@@ -7,7 +7,7 @@
       own bundle: one module script, one stylesheet, fonts and small images from the bundle (data: for assets Vite
       inlines). It makes no network call of its own: every request to the companion server goes through the native
       SidekickNative plugin (the Capacitor bridge, not fetch/XHR/WebSocket), so connect-src is 'none'. No inline
-      script or style and no eval. tests/mobile-csp.test.ts checks the built page against this list.
+      script or style and no eval. tests/mobile/mobile-csp.test.ts checks the built page against this list.
     -->
     <meta
       http-equiv="Content-Security-Policy"

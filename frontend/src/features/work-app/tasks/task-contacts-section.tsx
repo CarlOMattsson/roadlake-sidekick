@@ -4,7 +4,7 @@ import type { WorkLabels } from "../shared/labels";
 import { WriteNotice } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
 import { linksLabelsFor } from "../shared/links-labels";
-import { initialsOf } from "../contacts/contact-card";
+import { initialsOf } from "../../mcp-apps/ui/initials";
 import { LinkedRow, LinkedRowTip, linkedRowHint } from "../shared/linked-row";
 import { LinkContact, type useLinkUndo } from "./task-contacts";
 import { OpenChevron, RowUndo } from "./task-detail-controls";

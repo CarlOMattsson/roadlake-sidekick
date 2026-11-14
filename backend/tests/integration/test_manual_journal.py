@@ -14,6 +14,7 @@ from sqlalchemy import Engine, create_engine, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.composition import create_stores
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind, entry_order_key, entry_page_key
 from sidekick.journal.domain.source import SourceType
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
@@ -30,7 +31,6 @@ from sidekick.shared.persistence.models import (
     TaskRow,
 )
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from tests.db import require_test_database_url
 from tests.support.fakes import (
     JOURNAL_REDACTION_SENTINEL_ONE,
@@ -104,7 +104,7 @@ def db(database_harness: DatabaseHarness) -> DatabaseHarness:
 
 @pytest.fixture
 def journal_service(db: DatabaseHarness) -> ManualJournal:
-    return ManualJournal.build(SqlAlchemyStore(db.factory), FixedClock(), make_cursor_codec())
+    return ManualJournal.build(create_stores(db.factory).journal, FixedClock(), make_cursor_codec())
 
 
 def _actor(owner_id: UUID) -> Actor:

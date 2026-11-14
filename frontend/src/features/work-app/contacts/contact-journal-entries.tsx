@@ -8,8 +8,8 @@ import type {
 } from "../transport/transport";
 
 /**
- * The Contact's profile line under the name (§3, Kontaktvyn): the list row's meta, "Leverantör · Säljare ·
- * Flyttfirman Väst AB", built by the same function, on one muted line cut at the end. No fields, no line.
+ * The Contact's profile line under the name (§3, Contact view): the list row's meta (relationship · role ·
+ * organization), built by the same function, on one muted line cut at the end. No fields, no line.
  */
 export function ContactProfileLine({
   contact,
@@ -24,7 +24,7 @@ export function ContactProfileLine({
  * The Contact's newest linked Journal entries, under the Tasks, as note rows (design system §3, Anteckningsrad):
  * no leading icon (the heading says what they are, and the title starts on the content edge), the
  * title first as the button that opens the entry in the journal room, the date
- * under it as the muted meta line ("tis 3 nov"), and the shared chevron (›) at the right. An empty readable list shows nothing. When the
+ * under it as the muted meta line (a short weekday and date), and the shared chevron (›) at the right. An empty readable list shows nothing. When the
  * session may not read the journal, a calm line says so, with no button and no retry.
  */
 export function ContactJournalEntries({

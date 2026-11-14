@@ -33,6 +33,14 @@ class RecordTagStore(Protocol):
     ) -> None: ...
 
 
+class RecordTagReader(RecordTagStore, Protocol):
+    """Tag assignment plus the read that shows a record's tags."""
+
+    def list_record_tags(
+        self, session: TxSession, owner_id: UUID, kind: str, record_id: UUID
+    ) -> list[WorkTag]: ...
+
+
 def apply_record_tags(
     store: RecordTagStore,
     session: TxSession,

@@ -42,9 +42,9 @@ from sidekick.shared.persistence.models import (
     UserRow,
 )
 from sidekick.shared.types import new_uuid7, utc_now
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import UpdateTaskCommand
 from sidekick.tasks.domain import Priority, Task, TaskStatus
+from sidekick.tasks.persistence import ProjectTaskStore
 from tests.db import database_factory
 from tests.support.companion import (
     bearer,
@@ -206,7 +206,7 @@ def test_a_rolled_back_change_leaves_no_outbox_row() -> None:
         task = new_task(user_id)
 
         def failing(session: Session) -> None:
-            SqlAlchemyStore.save_task(session, task)
+            ProjectTaskStore.save_task(session, task)
             session.flush()
             # The wake was written with the task, inside the same open transaction.
             assert session.scalars(select(PushOutboxRow.id)).all()
@@ -218,7 +218,7 @@ def test_a_rolled_back_change_leaves_no_outbox_row() -> None:
         committed = new_task(user_id)
 
         def save_committed(session: Session) -> None:
-            SqlAlchemyStore.save_task(session, committed)
+            ProjectTaskStore.save_task(session, committed)
 
         app.state.container.tasks.store.transaction(save_committed)
         assert len(outbox(app)) == 1

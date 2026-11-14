@@ -29,10 +29,13 @@ code and `backend/tests/policy/test_interface_layering.py` (see
   and may only shrink). Services take an `Actor` (verified user id and scopes),
   check the scope (`actor.require("tasks:read")`), and carry the business flow, so every
   interface gets the same behavior.
-- **Persistence** (`<domain>/persistence`, `shared/persistence`): `SqlAlchemyStore` (`store.py`, beside
-  `composition.py`) is a thin composition of per-context mixins that live in each context's own
-  `persistence` module, on a `StoreBase` (`shared/persistence/stores`) that holds the session factory,
-  the transaction boundary, idempotency and audit. Every read and write filters by `owner_id`. Persistence adapters never
+- **Persistence** (`<domain>/persistence`, `shared/persistence`): each context has its own store
+  (`SqlTaskStore`, `SqlContactStore`, `SqlJournalStore`, `SqlWorkStore`, `ShoppingStore`, ...) in its
+  own `persistence` module, built on a `StoreBase` (`shared/persistence/stores`) that holds the
+  session factory, the transaction boundary, idempotency and audit. A store inherits only its own
+  context's operations; the few reads it borrows from another context (a Task for a Contact link, a
+  tag for a record) are delegated to small ports it is given in `create_stores` in
+  `composition.py`. Every read and write filters by `owner_id`. Persistence adapters never
   import an application package. The smallest domains (references, search) keep their own
   `persistence.py` next to the service.
 - **API** (`api/`): FastAPI routes, mainly the companion routes used by the Android app. They

@@ -192,9 +192,8 @@
    Only a narrower frame scrolls the row sideways in its own box (.work-columns); below 640 px the board is one list
    (BoardView's single layout). The Projekt column, when the board holds Projects, is a row of its own under the
    statuses, its cards side by side: it is not a status, and as a fifth column it pushed the four out of the frame.
-   Scoped to .sk-shell with no detail open, so the inline board stays stacked and an open detail keeps the narrow
-   layout. */
-.sk-shell[data-detail="closed"] .work-columns {
+   Scoped to .sk-shell, so the inline board stays stacked. */
+.sk-shell .work-columns {
   --work-column-min: 13.25rem;
   display: grid;
   grid-template-columns: repeat(4, minmax(var(--work-column-min), 1fr));
@@ -206,19 +205,17 @@
   overflow-x: auto;
   scroll-snap-type: x proximity;
 }
-.sk-shell[data-detail="closed"] .work-columns > .work-column {
+.sk-shell .work-columns > .work-column {
   min-width: 0;
   margin: 0;
   /* 8 at the sides (12 before): the card's title gets the 8. */
   padding-inline: 0.5rem;
   scroll-snap-align: start;
 }
-.sk-shell[data-detail="closed"]
-  .work-columns
-  > .work-column[data-board-column="project"] {
+.sk-shell .work-columns > .work-column[data-board-column="project"] {
   grid-column: 1 / -1;
 }
-.sk-shell[data-detail="closed"]
+.sk-shell
   .work-columns
   > .work-column[data-board-column="project"]
   > .work-list {
@@ -231,7 +228,7 @@
 }
 /* While columns lie beyond the right edge (the board sets data-more), that edge fades out so the row
    reads as scrollable. The mask is on the row's own box, so it stays put while the columns scroll. */
-.sk-shell[data-detail="closed"] .work-columns[data-more="end"] {
+.sk-shell .work-columns[data-more="end"] {
   -webkit-mask-image: linear-gradient(
     to right,
     black calc(100% - 2.5rem),

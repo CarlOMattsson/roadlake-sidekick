@@ -500,7 +500,7 @@ def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> An
 class WorkListStore:
     """Filtered, sorted and paged Work list reads.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlWorkStore` adds the transaction boundary.
     """
 
     @staticmethod

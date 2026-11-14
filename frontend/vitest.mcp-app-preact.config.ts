@@ -18,6 +18,10 @@ export default mergeConfig(
     resolve: {
       alias: [
         { find: "@", replacement: path.resolve(import.meta.dirname, "src") },
+        {
+          find: "@tests",
+          replacement: path.resolve(import.meta.dirname, "tests"),
+        },
         // Testing Library's React package would render with React, so the Preact run uses a thin stand-in.
         {
           find: /^@testing-library\/react$/,
@@ -37,7 +41,7 @@ export default mergeConfig(
       setupFiles: ["./tests/preact/setup.ts"],
       // Merged with the base config's excludes. The mobile shell renders with real React (vite.mobile.config.ts),
       // so Preact says nothing about its tests.
-      exclude: ["tests/mobile-*.test.tsx"],
+      exclude: ["tests/mobile/**"],
     },
   }),
 );

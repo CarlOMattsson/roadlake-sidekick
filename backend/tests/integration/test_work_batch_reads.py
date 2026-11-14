@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sidekick.shared.auth import AuthService
 from sidekick.shared.persistence.models import ActionRow, StepRow, TaskRow
 from sidekick.shared.types import new_uuid7
-from sidekick.store import SqlAlchemyStore
+from sidekick.work.persistence.steps_actions import StepActionStore
 from tests.db import database_factory
 
 NOW = datetime(2026, 11, 5, 12, 0, tzinfo=UTC)
@@ -77,15 +77,15 @@ def test_steps_are_capped_per_task_in_sql_and_ordered_like_the_single_task_read(
         session.add(_step(owner, long.id, 9, trashed_at=NOW))
         session.add(_step(owner, long.id, 8, archived_at=NOW))
     with factory() as session:
-        grouped = SqlAlchemyStore.list_steps_for_tasks(
+        grouped = StepActionStore.list_steps_for_tasks(
             session, owner, (short.id, long.id), per_task_limit=3
         )
         for task in (short, long):
-            single = SqlAlchemyStore.list_steps(session, owner, task.id, 3)
+            single = StepActionStore.list_steps(session, owner, task.id, 3)
             assert [step.id for step in grouped[task.id]] == [step.id for step in single]
         assert [step.position for step in grouped[long.id]] == [0, 1, 2]
         assert [step.position for step in grouped[short.id]] == [0, 1]
-        with_archived = SqlAlchemyStore.list_steps_for_tasks(
+        with_archived = StepActionStore.list_steps_for_tasks(
             session, owner, (long.id,), per_task_limit=10, include_archived=True
         )
         assert [step.position for step in with_archived[long.id]] == [0, 1, 2, 3, 4, 8]
@@ -105,11 +105,11 @@ def test_actions_are_capped_per_step_in_sql_and_ordered_like_the_single_step_rea
         session.add(_action(owner, second.id, 0))
         session.add(_action(owner, first.id, 7, trashed_at=NOW))
     with factory() as session:
-        grouped = SqlAlchemyStore.list_actions_for_steps(
+        grouped = StepActionStore.list_actions_for_steps(
             session, owner, (first.id, second.id), per_step_limit=2
         )
         for step in (first, second):
-            single = SqlAlchemyStore.list_actions(session, owner, step.id, 2)
+            single = StepActionStore.list_actions(session, owner, step.id, 2)
             assert [action.id for action in grouped[step.id]] == [a.id for a in single]
         assert [action.position for action in grouped[first.id]] == [0, 1]
         assert len(grouped[second.id]) == 1
@@ -125,5 +125,5 @@ def test_batched_reads_take_more_ids_than_the_driver_has_parameters() -> None:
         session.add(_step(owner, task.id, 0))
     ids = (*(uuid4() for _ in range(70_000)), task.id)
     with factory() as session:
-        assert len(SqlAlchemyStore.list_steps_for_tasks(session, owner, ids)[task.id]) == 1
-        assert SqlAlchemyStore.list_actions_for_steps(session, owner, ids) == {}
+        assert len(StepActionStore.list_steps_for_tasks(session, owner, ids)[task.id]) == 1
+        assert StepActionStore.list_actions_for_steps(session, owner, ids) == {}

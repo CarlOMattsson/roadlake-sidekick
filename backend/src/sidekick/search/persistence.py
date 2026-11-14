@@ -32,6 +32,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, aliased
 
+from sidekick.contacts.domain.contact import Contact
+from sidekick.contacts.persistence import ContactStore
 from sidekick.shared.persistence.models import (
     ContactAliasRow,
     ContactRow,
@@ -40,8 +42,8 @@ from sidekick.shared.persistence.models import (
     ProjectRow,
     TaskRow,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
-from sidekick.store import SqlAlchemyStore
 
 TITLE_LIMIT = 120
 """Titles and names are clipped to this length, the same bound as the list tools."""
@@ -175,7 +177,7 @@ def _clip(value: str) -> str:
     return value[:TITLE_LIMIT]
 
 
-class SearchStore(SqlAlchemyStore):
+class SearchStore(StoreBase):
     """Owner-filtered search reads. Callers pass the owner id from the authenticated actor."""
 
     @staticmethod
@@ -289,6 +291,14 @@ class SearchStore(SqlAlchemyStore):
             ContactHit(id=row.id, display_name=_clip(row.display_name), version=row.version)
             for row in rows
         ]
+
+    @staticmethod
+    def phonetic_contacts(
+        session: Session, owner_id: UUID, query: str, *, limit: int
+    ) -> list[Contact]:
+        """Contacts whose phonetic key matches `query`; the read lives with the Contacts."""
+
+        return ContactStore.phonetic_contacts(session, owner_id, query, limit=limit)
 
     @staticmethod
     def closest_contacts(

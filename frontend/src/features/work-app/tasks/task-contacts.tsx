@@ -7,7 +7,7 @@ import { CloseIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { WriteFailureRow } from "../shared/write-failure-row";
-import { initialsOf } from "../contacts/contact-card";
+import { initialsOf } from "../../mcp-apps/ui/initials";
 import {
   isForbidden,
   writeFailure,

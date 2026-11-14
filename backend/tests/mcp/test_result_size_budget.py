@@ -26,14 +26,17 @@ from mcp.types import TextContent
 from sidekick.api.app import Container, create_container
 from sidekick.contacts.domain.contact import Contact
 from sidekick.contacts.domain.normalization import normalize_name
+from sidekick.contacts.persistence import ContactStore
 from sidekick.mcp.server import create_mcp_server
 from sidekick.mcp.text import BOARD_ROW_LIMIT
 from sidekick.projects.domain.project import Project, ProjectStatus
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.domain.task import Priority, Task, TaskStatus
+from sidekick.tasks.persistence import ProjectTaskStore
 from sidekick.work.domain.context import Domain, DomainStatus
 from sidekick.work.domain.steps import Step
+from sidekick.work.persistence.steps_actions import StepActionStore
+from sidekick.work.persistence.structure import WorkStructureStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -102,7 +105,7 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
     )
     task_ids: list[UUID] = []
     with container.session_factory.begin() as session:
-        SqlAlchemyStore.save_domain(session, domain)
+        WorkStructureStore.save_domain(session, domain)
         for project_index in range(PROJECT_COUNT):
             project = Project(
                 id=new_uuid7(),
@@ -116,7 +119,7 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
                 created_at=now,
                 updated_at=now,
             )
-            SqlAlchemyStore.save_project(session, project)
+            ProjectTaskStore.save_project(session, project)
             for task_index in range(TASKS_PER_PROJECT):
                 task = Task(
                     id=new_uuid7(),
@@ -134,8 +137,8 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
                     created_at=now,
                     updated_at=now,
                 )
-                SqlAlchemyStore.save_task(session, task)
-                SqlAlchemyStore.append_task_status_history(
+                ProjectTaskStore.save_task(session, task)
+                ProjectTaskStore.append_task_status_history(
                     session,
                     owner_id=owner,
                     task_id=task.id,
@@ -147,7 +150,7 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
                 task_ids.append(task.id)
         for task_id in task_ids[:STEPPED_TASKS]:
             for step_index in range(2):
-                SqlAlchemyStore.save_step(
+                StepActionStore.save_step(
                     session,
                     Step(
                         id=new_uuid7(),
@@ -166,7 +169,7 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
             display_name, display_name_key = normalize_name(
                 _title(f"Storleskontakt {contact_index:03d}", title_length)
             )
-            SqlAlchemyStore.save_contact(
+            ContactStore.save_contact(
                 session,
                 Contact(
                     id=new_uuid7(),

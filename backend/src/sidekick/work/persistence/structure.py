@@ -60,7 +60,7 @@ def _saved_view_from_row(row: SavedViewRow) -> SavedView:
 class WorkStructureStore:
     """Domains, saved views, Processes, Process runs and the run outbox.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlWorkStore` adds the transaction boundary.
     """
 
     @staticmethod

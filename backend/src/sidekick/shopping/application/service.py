@@ -41,9 +41,9 @@ from sidekick.shopping.application.schemas import (
     PurchaseOutcome,
     PurchaseTarget,
 )
+from sidekick.shopping.application.store import ShoppingStore
 from sidekick.shopping.domain import ItemDetails, Offer, required_text, text
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
-from sidekick.shopping.persistence.store import ShoppingStore
 
 LOGGER = logging.getLogger("sidekick.shopping")
 DETAIL_FIELDS = (
@@ -810,10 +810,9 @@ class ShoppingService:
             raise ValidationError("offer cannot have a future observation date")
         if details.recipient_contact_id is not None:
             actor.require("contacts:read")
-            contact = self.store.active_contact(
+            if not self.store.has_active_contact(
                 session, actor.user_id, details.recipient_contact_id
-            )
-            if contact is None:
+            ):
                 raise NotFoundError("contact not found")
 
     def _audit(

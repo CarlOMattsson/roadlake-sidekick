@@ -20,7 +20,7 @@ import {
 } from "./new-contact-state";
 
 /**
- * "Ny kontakt" behind + in the room head (design system §3, Skapa): + opens the shared create field under the head,
+ * `newContact` behind + in the room head (design system §3, Create): + opens the shared create field under the head,
  * and a new Contact needs only its name. The same name sends one key, so a retry after a lost answer replays the result
  * instead of creating a second Contact. The created Contact is handed to the parent, which opens it. Esc and × close
  * the field and return the focus to +.

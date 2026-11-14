@@ -23,7 +23,7 @@ export function ContactFrame({
   onOpenJournalEntry?: (entry: { id: string; title: string }) => void;
   onOpenLink?: (url: string) => void;
 }) {
-  // A compact Contact card's "Edit" opens the frame with the existing editor already open.
+  // A compact Contact card's `edit` action opens the frame with the existing editor already open.
   const frame = useDetailFrame({ moves, startEditing });
   const record = useContactRecord({ id, transport, frame, refreshKey });
   const { phase } = frame;
@@ -63,7 +63,7 @@ export function ContactFrame({
           onOpenLink={onOpenLink}
         />
       )}
-      {/* Last, like the Task's "Alla uppgifter": a way out of the page, not a section of it. */}
+      {/* Last, like the Task's link back to its list: a way out of the page, not a section of it. */}
       {!contactsOpen && (
         <p>
           <button

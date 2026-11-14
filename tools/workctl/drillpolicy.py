@@ -1,7 +1,6 @@
-"""The checks of ``tools/drill.sh``: the extra reserved ports, the image pair, the free port, the digest of a push
-and the versions of a release. drill.sh runs the ``drill-*`` commands of workctl and acts on their exit status and
-output. The default reserved ports, the project name rule and everything that decides what the cleanup may remove
-stay in drill.sh, where a test reads them as text.
+"""The rules of ``tools/drill.sh`` that decide what the drill may touch: the project name every compose project must
+carry, the ports it must never publish on (the defaults, and the extra ones of ``SIDEKICK_RESERVED_PORTS``), the image
+pair, the free port, the digest of a push and the versions of a release.
 
 ``release_versions`` reads ``pyproject.toml`` with ``tomllib`` (Python 3.11+), which the drill host has.
 """
@@ -14,6 +13,11 @@ import socket
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+PROJECT_PREFIX = "sk-drill-"
+PROJECT_NAME = re.compile(r"sk-drill-[a-z0-9][a-z0-9-]*")
+# Reserved ports: the drill must never touch these (long-running databases and their API ports, plus the test pool's
+# 55433). SIDEKICK_RESERVED_PORTS (comma-separated) only adds to this list.
+RESERVED_PORTS = (55432, 55433, 55434, 55436, 8100, 8101)
 LOW_PORT, HIGH_PORT = 1, 65535
 PICK_RANGE = (20000, 39999)
 PICK_ATTEMPTS = 50
@@ -24,6 +28,21 @@ PUSHED_DIGEST = re.compile(r".*digest: (sha256:[0-9a-f]{64})")
 
 class Refused(Exception):
     """The input is refused; the message is the reason, as drill.sh prints it."""
+
+
+def valid_project(name: str) -> bool:
+    return PROJECT_NAME.fullmatch(name) is not None
+
+
+def require_project(name: str) -> str:
+    """``name`` when it is a drill project name; every name passes through here before anything is started, and again
+    before anything is removed."""
+    if not valid_project(name):
+        raise Refused(
+            f"drill: refusing to run: compose project name must start with {PROJECT_PREFIX} "
+            "(lower case letters, digits, hyphens)"
+        )
+    return name
 
 
 def extra_reserved_ports(value: str) -> list[int]:
@@ -85,11 +104,6 @@ def pushed_digest(output: str) -> str | None:
         if match:
             found = match.group(1)
     return found
-
-
-def parse_ports(text: str) -> list[int]:
-    """The ports of a space or comma separated list."""
-    return [int(item) for item in text.replace(",", " ").split()]
 
 
 def release_versions(pyproject: Path) -> tuple[str, str]:

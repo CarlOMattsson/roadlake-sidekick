@@ -90,7 +90,7 @@ export function ContactsView({
   shortcuts?: boolean;
   /** Reads the list again in place when it changes; the value at mount is not a request. Search and archive switch stay. */
   refreshKey?: number;
-  /** Opens another room; the ⋯ menu then ends with "Kontroll" (design system §3, Rumshuvud). Absent: no entry. */
+  /** Opens another room; the ⋯ menu then ends with the Control room's entry (design system §3, room head). Absent: no entry. */
   onRoute?: (target: RoomTarget) => void;
 }) {
   // The host's message function: the empty list's example sends itself to Claude.
@@ -98,7 +98,7 @@ export function ContactsView({
   const words = contactsRoomLabelsFor(t.dateLocale);
   const list = useContactsList({ frame, onChange, transport, refreshKey });
   const { error, cause, more } = list;
-  // "Skapa kontakt "Zlatan"" under a search with no match: each press is a new request, so the field opens again.
+  // `createNamed` under a search with no match: each press is a new request, so the field opens again.
   const [createRequest, setCreateRequest] = useState<CreateRequest>();
   const offers = useToolSupport(transport);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -270,7 +270,7 @@ export function ContactsView({
                   : undefined,
               }}
             >
-              {/* The hand-made way next to "Säg till Claude": it opens the create field as + does, with the search text as the name. */}
+              {/* The hand-made way next to the ask-Claude line: it opens the create field as + does, with the search text as the name. */}
               {offers("create_contact") && (
                 <button
                   type="button"

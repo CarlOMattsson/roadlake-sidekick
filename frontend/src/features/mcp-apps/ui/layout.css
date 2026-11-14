@@ -74,22 +74,6 @@
   }
 }
 
-/* Row for a list and an optional detail. It is one column by default and becomes two columns only
-   when a detail is present (a second child) in a frame of at least 640 px. */
-.sk-wide {
-  min-width: 0;
-}
-
-@container sk-frame (min-width: 640px) {
-  .sk-wide:has(> :nth-child(2)),
-  .sk-shell[data-detail="open"] .sk-wide {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-    gap: var(--sk-s4, 16px);
-    align-items: start;
-  }
-}
-
 /* Every room's content in fullscreen keeps the one reading width (--sk-room-max), centred, as the Agenda did alone
    (Uppgift, Journal, Shopping and Contacts ran edge to edge at 1024 px). A Work layer with view tabs (.sk-shell)
    caps its lists itself (work-shell.css), so the Status columns can still take the row. The room strip and the Back

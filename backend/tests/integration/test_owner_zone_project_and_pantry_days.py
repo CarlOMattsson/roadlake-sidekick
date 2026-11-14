@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.composition import create_stores
 from sidekick.projects.application.service import ProjectService
 from sidekick.shared.auth import AuthService
 from sidekick.shared.observability import NoopTelemetryAdapter
@@ -17,7 +18,6 @@ from sidekick.shared.types import Actor
 from sidekick.shopping.application.schemas import BatchItem
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
-from sidekick.store import SqlAlchemyStore
 from sidekick.work.application.models import WorkQuery
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.work_lists import WorkListService
@@ -41,10 +41,12 @@ def _owner() -> tuple[
 ]:
     factory = database_factory()
     owner_id = AuthService(factory, "pepper" * 8).provision_user("owner", "Owner")
-    store = SqlAlchemyStore(factory)
-    contexts = ContextService(store, _Clock(), make_cursor_codec(), owner_timezone=STOCKHOLM)
-    work_lists = WorkListService(store, _Clock(), make_cursor_codec(), owner_timezone=STOCKHOLM)
-    projects = ProjectService(store, _Clock(), make_cursor_codec())
+    stores = create_stores(factory)
+    contexts = ContextService(stores.work, _Clock(), make_cursor_codec(), owner_timezone=STOCKHOLM)
+    work_lists = WorkListService(
+        stores.work, _Clock(), make_cursor_codec(), owner_timezone=STOCKHOLM
+    )
+    projects = ProjectService(stores.tasks, _Clock(), make_cursor_codec())
     return Actor(owner_id, SCOPES), factory, contexts, work_lists, projects
 
 

@@ -71,7 +71,7 @@ function isContactsRoot(frame: WorkFrame | undefined): frame is WorkFrame {
 /**
  * The names the Contacts room shows. The room is Contacts (Kontakter in Swedish) everywhere: the region the view
  * draws is named by `labels.title`, and the eyebrow of an inline or card summary by `appName`. Both
- * say the room's own name, not the Work app's "Arbete".
+ * say the room's own name, not the Work app's `title`.
  */
 export function contactsRoomNames(locale: string) {
   const base = locale.startsWith("sv") ? workSv : workEn;
@@ -163,7 +163,7 @@ export function ContactsRoom(props: RoomProps) {
         ? requestFullscreen
         : expandInline;
   // A failed first result carries no data: Try again reads the Contact the host named, else the list afresh, and the
-  // heading names that read ("Kontakten", "Kontakterna").
+  // heading names that read (the Contact, or the Contacts).
   const contactRead = contactFirstRead(props.toolArgs);
   const subject = contactRead?.subject ?? "contacts";
   function retry() {
@@ -217,7 +217,7 @@ export function ContactsRoom(props: RoomProps) {
         opening={state.opening}
         shortcuts={fullscreen}
         onOpenJournalEntry={onOpenJournalEntry}
-        // Kontaktvägar opens e-mail and phone through the host (ui/open-link).
+        // The `waysToReach` fold opens e-mail and phone through the host (ui/open-link).
         onOpenLink={openLink && ((url) => void openLink(url))}
         // In the full view of a host that routes, a Contact, Task or Project is a step on the shell's stack.
         onRoute={fullscreen ? onNavigate : undefined}

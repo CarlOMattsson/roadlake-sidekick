@@ -1,0 +1,71 @@
+# The unsigned Android release build. Called by release-image.yml (and by nothing else) on exactly the commit being
+# released, in a dry run too. It builds ONLY an unsigned, R8-minified release APK and uploads it: it signs, pushes and
+# publishes nothing, holds no secret and no id-token, and receives no secret from the caller. npm and Gradle run
+# third-party code here, which is why the signing happens elsewhere: the release signer identity belongs to
+# release-image.yml, so everything that signs or attests stays in that file (its `sign-apk` job signs the uploaded file
+# in isolation).
+name: release-android
+
+on:
+  workflow_call:
+    inputs:
+      build_tools_version:
+        description: "The Android build-tools version sign-apk will use; the runner image must have exactly this one"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    env:
+      ANDROID_BUILD_TOOLS_VERSION: ${{ inputs.build_tools_version }}
+    steps:
+      - name: Check that the pinned Android build-tools exist on this runner image
+        run: |
+          test -x "${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/apksigner" || {
+            echo "Android build-tools ${ANDROID_BUILD_TOOLS_VERSION} are not on this runner image; sign-apk would stop. Change ANDROID_BUILD_TOOLS_VERSION to a version the image has (and review it)." >&2
+            exit 1
+          }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version-file: .node-version, cache: npm, cache-dependency-path: frontend/package-lock.json }
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            frontend/android/**/*.gradle*
+            frontend/android/gradle/wrapper/gradle-wrapper.properties
+      - run: npm ci
+        working-directory: frontend
+      # Same build as the CI android job (its tests and lint already passed for this commit): the mobile bundle is
+      # built and synced, then Gradle makes the unsigned, R8-minified release APK. The repository holds no signing
+      # configuration; the key is only ever used by sign-apk.
+      - run: npm run build:mobile
+        working-directory: frontend
+      - run: npx cap sync android
+        working-directory: frontend
+      - run: ./gradlew :app:assembleRelease
+        working-directory: frontend/android
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-apk-unsigned
+          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          # The R8 mapping de-obfuscates crash reports of exactly this build; keep it with the release.
+          name: android-r8-mapping
+          path: frontend/android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+          retention-days: 90

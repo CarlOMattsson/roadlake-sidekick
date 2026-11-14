@@ -24,7 +24,7 @@ type AppName = keyof typeof apps;
 const LOCALES = ["sv", "en"] as const;
 /**
  * The room names of the strip and the loading line by app language. Keep in step with the shell labels
- * (sidekick-shell-labels.ts) and `awaitingSv`/`awaitingEn` in awaiting.tsx; tests/awaiting.test.tsx checks the built document.
+ * (sidekick-shell-labels.ts) and `awaitingSv`/`awaitingEn` in awaiting.tsx; tests/features/mcp-apps/awaiting.test.tsx checks the built document.
  */
 const WAIT_TEXT = {
   sv: { rooms: ["Arbete", "Dagbok", "Kontakter", "Inköp"], loading: "Laddar…" },

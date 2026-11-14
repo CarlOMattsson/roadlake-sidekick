@@ -95,8 +95,7 @@ def _identifier_only(value: Any) -> bool:
 class StoreBase:
     """Short-lived transaction boundary with owner-filtered feature operations.
 
-    Domain operations live in the sibling mixin modules and are composed by
-    ``SqlAlchemyStore``.
+    Each context's store builds on this class and adds that context's operations.
     """
 
     def __init__(

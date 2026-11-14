@@ -17,7 +17,7 @@ import { useFrameRead, type DetailFrame } from "../view/parts/use-detail-frame";
 
 /**
  * What the Contact frame holds besides the shared detail-frame state: the Contact with its Projects, Tasks
- * and linked Journal entries, the "Show more" page of Tasks, and every Contact write (edit, tags, nickname,
+ * and linked Journal entries, the `more` page of Tasks, and every Contact write (edit, tags, nickname,
  * archive, unlinking a Project). The frame draws it; this hook reads and writes.
  */
 export function useContactRecord({
@@ -43,14 +43,14 @@ export function useContactRecord({
   const [archivedHere, setArchivedHere] = useState(false);
   // Runs the last failed write again; the same action keeps its key, so the server replays it.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
-  // "Ta bort koppling till {projekt}" in the ⋯: the Project row stays with its Ångra until the view is read again.
+  // `removeReferenceFor` in the ⋯: the Project row stays with its `undo` until the view is read again.
   const unlinks = useLinkUndo((projectId, link, key) =>
     link
       ? transport.linkContactToProject(id, projectId, key)
       : transport.unlinkContactFromProject(id, projectId, key),
   );
 
-  // One "Show more" page per read generation, claimed before React re-renders the button.
+  // One `more` page per read generation, claimed before React re-renders the button.
   const pages = useSingleFlight();
   function loadMore() {
     const current = frame.ticket.current;
@@ -90,7 +90,7 @@ export function useContactRecord({
   /**
    * One Contact write. The signature names the action and the version it was based on, so a retry
    * of the same action reuses its key and any other action gets a fresh one. `receipt`: the page draws its own receipt
-   * for this write, so no plain "Sparat" stands beside it.
+   * for this write, so no plain `saved` line stands beside it.
    */
   function runWrite(
     signature: string,
@@ -107,7 +107,7 @@ export function useContactRecord({
       send,
       (result) => {
         retryWrite.current = undefined;
-        // A "Show more" page still on its way was dropped with the read: its busy state is cleared here.
+        // A `more` page still on its way was dropped with the read: its busy state is cleared here.
         setMore("idle");
         setContact(result.contact);
         done?.();
@@ -187,7 +187,7 @@ export function useContactRecord({
         setArchivedHere(archive);
         leaveEditor();
       },
-      // Archive is answered by its receipt ("Kontakten är arkiverad" with Ångra); Restore has none.
+      // Archive is answered by its receipt (`contactArchived` with `undo`); Restore has none.
       archive,
     );
   }

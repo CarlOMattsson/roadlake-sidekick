@@ -13,8 +13,8 @@ from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import get_settings
 from sidekick.shared.observability import configure_worker_logging, log_failure
 from sidekick.shared.persistence import create_session_factory
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.worker_health import WorkerHeartbeat
-from sidekick.store import SqlAlchemyStore
 
 LOGGER = logging.getLogger("sidekick.backup.worker")
 
@@ -33,7 +33,7 @@ async def run_worker(*, once: bool = False) -> bool:
             return True
 
     service = OwnerBackupService(
-        SqlAlchemyStore(
+        StoreBase(
             create_session_factory(
                 settings.database_url,
                 require_unprivileged_role=settings.environment == "production",

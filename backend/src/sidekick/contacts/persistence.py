@@ -4,19 +4,21 @@ from datetime import date, datetime
 from uuid import UUID
 
 from sqlalchemy import delete, func, or_, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.contacts.application.models import TaskProgress
 from sidekick.contacts.domain.contact import Contact, ContactAlias
 from sidekick.contacts.domain.normalization import normalize_email, normalize_name, normalize_phone
 from sidekick.contacts.domain.phonetic import phonetic_match
 from sidekick.projects.domain import Project
+from sidekick.projects.domain.ports import ProjectReader
 from sidekick.projects.persistence import project_from_row
 from sidekick.shared.errors import (
     ConflictError,
     NotFoundError,
     ValidationError,
 )
+from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.persistence.models import (
     ContactAliasRow,
     ContactRow,
@@ -28,11 +30,14 @@ from sidekick.shared.persistence.models import (
     TaskContactRow,
     TaskRow,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after, text_key
-from sidekick.shared.types import KeyValue, utc_now
+from sidekick.shared.types import KeyValue, TxSession, utc_now
 from sidekick.tasks.domain import Task, TaskStatus
+from sidekick.tasks.domain.ports import TaskReader
 from sidekick.tasks.persistence import task_from_row
-from sidekick.work.persistence.tags import tag_condition
+from sidekick.work.domain.tag_assignment import RecordTagReader
+from sidekick.work.persistence.tags import RecordTagRelay, tag_condition
 
 
 def contact_from_row(row: ContactRow, aliases: list[ContactAliasRow]) -> Contact:
@@ -68,7 +73,7 @@ PHONETIC_CANDIDATE_LIMIT = 200
 class ContactStore:
     """Contacts, aliases, and Contact links to Projects, Tasks and journal entries.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlContactStore` adds the transaction boundary.
     """
 
     @staticmethod
@@ -639,3 +644,31 @@ class ContactStore:
             .limit(limit)
         ).all()
         return [(row.id, row.journal_date, row.title) for row in rows]
+
+
+class SqlContactStore(ContactStore, RecordTagRelay, StoreBase):
+    """The store of the Contact use cases: the Contact operations plus what they borrow.
+
+    A link, a relation or a tag assignment names a Project, a Task or a tag, so the reads of
+    those are delegated to the ports it was built with.
+    """
+
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        telemetry: TelemetryPort | None = None,
+        *,
+        projects: ProjectReader,
+        tasks: TaskReader,
+        tags: RecordTagReader,
+    ) -> None:
+        super().__init__(session_factory, telemetry)
+        self._projects = projects
+        self._tasks = tasks
+        self._tags = tags
+
+    def get_project(self, session: TxSession, owner_id: UUID, project_id: UUID) -> Project:
+        return self._projects.get_project(session, owner_id, project_id)
+
+    def get_task(self, session: TxSession, owner_id: UUID, task_id: UUID) -> Task:
+        return self._tasks.get_task(session, owner_id, task_id)

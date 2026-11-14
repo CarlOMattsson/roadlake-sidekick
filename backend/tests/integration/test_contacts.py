@@ -2,9 +2,9 @@
 
 import pytest
 
+from sidekick.composition import create_stores
 from sidekick.contacts.domain.contact import Contact
 from sidekick.shared.types.core import new_uuid7
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 
 
@@ -15,7 +15,7 @@ def test_postgres_contact_lifecycle() -> None:
 
     auth = AuthService(factory, "pepper" * 8)
     owner_id = auth.provision_user("owner", "Owner")
-    store = SqlAlchemyStore(factory)
+    store = create_stores(factory).contacts
 
     # Verify we can save and get a Contact in PostgreSQL
     contact_id = new_uuid7()

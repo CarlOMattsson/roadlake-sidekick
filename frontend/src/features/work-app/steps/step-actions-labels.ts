@@ -2,7 +2,7 @@
  * Words of a Step's Actions list that no other list shares: the count under the Step title that opens the list,
  * the section name, the empty and forbidden texts and the Action row's menu hint. The shared words (Up, Down, Archive, Restore, Undo, the refusals)
  * stay in manage-labels.ts. Swedish comes first and is the default; the English key set must stay
- * identical to it (tests/step-actions.test.tsx checks that).
+ * identical to it (tests/features/work-app/steps/step-actions.test.tsx checks that).
  */
 export const stepActionsLabelsSv = {
   /** The count under the Step's title; once the list is read it also says how many are done (done of total). */

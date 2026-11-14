@@ -19,8 +19,8 @@ from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.persistence.models import DomainEventRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -35,7 +35,7 @@ def _setup() -> tuple[sessionmaker[Session], UUID, UUID, dict[str, Any]]:
         title="Plan",
         idempotency_key="actor-source-task",
     )
-    exported = OwnerExportService(SqlAlchemyStore(factory)).export(Actor(source, frozenset()))
+    exported = OwnerExportService(StoreBase(factory)).export(Actor(source, frozenset()))
     return factory, source, target, exported
 
 
@@ -51,7 +51,7 @@ def _plan_and_restore(
 ) -> None:
     plan = build_restore_plan(document, target)
     assert plan.status == "ready"
-    OwnerRestoreService(SqlAlchemyStore(factory)).restore(
+    OwnerRestoreService(StoreBase(factory)).restore(
         document, target_owner_id=target, expected_plan_checksum=plan.plan_checksum
     )
 

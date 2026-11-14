@@ -47,20 +47,6 @@
   overflow-wrap: normal;
 }
 
-/* With a badge the label is on row one and the count on row two. Without a badge nothing changes. */
-.sk-segmented__option--badged {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.125rem;
-}
-
-.sk-segmented__badge {
-  font-variant-numeric: tabular-nums;
-  font-size: var(--font-text-sm-size, 0.875rem);
-  line-height: 1.2;
-}
-
 /* The pressed option (designsystem §3 Valda lägen): the selected tone, a 2 px outline in the text
    colour, a 16 px tick before the label and 600, the form of a chosen chip (family.css .sk-chip). The fill alone gives
    only 1.2:1 / 1.6:1 against the page; the outline and the tick carry the choice. */
@@ -96,13 +82,5 @@
 @container (max-width: 360px) {
   .sk-segmented .sk-segmented__option {
     font-size: 0.875rem;
-  }
-
-  .sk-segmented__option--badged {
-    gap: 0;
-  }
-
-  .sk-segmented__badge {
-    line-height: 1.1;
   }
 }

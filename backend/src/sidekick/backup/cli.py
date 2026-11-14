@@ -31,8 +31,8 @@ from sidekick.shared.cli_errors import (
 )
 from sidekick.shared.config import get_settings
 from sidekick.shared.persistence import create_session_factory
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import SystemClock
-from sidekick.store import SqlAlchemyStore
 
 
 def _settings_key(settings: Any) -> str:
@@ -114,11 +114,11 @@ def _import_key(key_file: Path | None) -> str | None:
     return key.get_secret_value()
 
 
-def _import_store() -> SqlAlchemyStore:
+def _import_store() -> StoreBase:
     """A store for backup and import, which may run statements longer than the app's budget."""
 
     settings = get_settings()
-    return SqlAlchemyStore(
+    return StoreBase(
         create_session_factory(
             settings.database_url, timeouts=settings.database_timeouts.unbounded_statements()
         )

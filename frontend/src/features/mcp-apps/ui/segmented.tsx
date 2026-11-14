@@ -10,8 +10,6 @@ import "./segmented.css";
 export type SegmentedOption<T extends string = string> = {
   value: T;
   label: string;
-  /** Optional count shown on a second row under the label, e.g. "3". Accessible name: "Label 3". */
-  badge?: string;
 };
 
 export type SegmentedProps<T extends string = string> = {
@@ -47,25 +45,12 @@ export function Segmented<T extends string>({
             aria-pressed={pressed}
             tabIndex={index === tabStopIndex ? 0 : -1}
             disabled={disabled}
-            className={
-              option.badge === undefined
-                ? "sk-segmented__option"
-                : "sk-segmented__option sk-segmented__option--badged"
-            }
+            className="sk-segmented__option"
             onClick={() => {
               if (!pressed) onChange(option.value);
             }}
           >
-            {option.badge === undefined ? (
-              <span className="sk-segmented__label">{option.label}</span>
-            ) : (
-              <>
-                <span className="sk-segmented__label">{option.label}</span>
-                {/* This space is a whitespace text node between flex items, so it is not drawn,
-                    but the accessible name becomes "Label 3". */}{" "}
-                <span className="sk-segmented__badge">{option.badge}</span>
-              </>
-            )}
+            <span className="sk-segmented__label">{option.label}</span>
           </button>
         );
       })}

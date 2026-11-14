@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from sidekick.lifecycle.domain import ChangeRecordView, RecordKind, TrashItem, TrashPosition
+from sidekick.references.persistence import ExternalReferenceRow
 from sidekick.shared.errors import (
     ConflictError,
     NotFoundError,
@@ -33,7 +34,8 @@ from sidekick.shared.persistence.models import (
     TaskContactRow,
     TaskRow,
 )
-from sidekick.shopping.persistence.rows import ShoppingItemRow
+from sidekick.shared.persistence.stores.base import StoreBase
+from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow
 
 LIFECYCLE_ROWS: dict[RecordKind, tuple[type[Any], str]] = {
     RecordKind.DOMAIN: (DomainRow, "name"),
@@ -74,10 +76,11 @@ CHANGE_ROWS: dict[str, tuple[type[Any], str]] = {
 """Row type and title field for each kind that `list_recent_changes` may name."""
 
 
-class LifecycleStore:
+class LifecycleStore(StoreBase):
     """Trash, restore, permanent removal and the change feed over the audit log.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    Methods are static and owner-filtered; the session factory, transaction boundary,
+    idempotency and audit come from ``StoreBase``.
     """
 
     @staticmethod
@@ -248,9 +251,6 @@ class LifecycleStore:
         ):
             return LifecycleStore._link_change_views(session, owner_id, kind, keys, locale)
         if kind == "shopping_list":
-            # Imported here because shopping.persistence.store imports this module at load time.
-            from sidekick.shopping.persistence.rows import ShoppingListRow
-
             row_type, label_field = ShoppingListRow, "name"
         else:
             row_type, label_field = CHANGE_ROWS[kind]
@@ -591,9 +591,6 @@ def _reference_views(
     related_ids: frozenset[UUID],
     locale: AppLocale,
 ) -> dict[tuple[UUID, UUID | None], ChangeRecordView]:
-    # Imported here because references.persistence imports this module at load time.
-    from sidekick.references.persistence import ExternalReferenceRow
-
     reference_rows = {
         row.id: row
         for row in session.execute(

@@ -29,8 +29,8 @@ from sidekick.owner_export.document import verify_export
 from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 
 _ENVELOPE_START = re.compile(rb'\s*\{\s*"ciphertext"\s*:')
 
@@ -92,12 +92,12 @@ def load_export_document(
     return cast("dict[str, Any]", selected)
 
 
-def _owner_exists(store: SqlAlchemyStore, owner_id: UUID) -> bool:
+def _owner_exists(store: StoreBase, owner_id: UUID) -> bool:
     return store.transaction(lambda session: store.owner_exists(session, owner_id))
 
 
 def plan_import(
-    store: SqlAlchemyStore, document: Mapping[str, Any], target_owner: UUID
+    store: StoreBase, document: Mapping[str, Any], target_owner: UUID
 ) -> dict[str, Any]:
     """The reviewable plan as a dict. Reads whether the target exists; writes nothing."""
 
@@ -107,7 +107,7 @@ def plan_import(
 
 
 def apply_import(
-    store: SqlAlchemyStore,
+    store: StoreBase,
     document: Mapping[str, Any],
     target_owner: UUID,
     *,

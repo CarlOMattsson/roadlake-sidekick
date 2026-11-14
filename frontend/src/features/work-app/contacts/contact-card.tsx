@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import "../../mcp-apps/ui/tokens.css";
+import { initialsOf } from "../../mcp-apps/ui/initials";
 import { Fold } from "../../mcp-apps/ui/fold";
 import { CardFoot } from "../../mcp-apps/ui/card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
@@ -25,8 +26,8 @@ export type ContactCardProps = {
 };
 
 /**
- * Compact card for one Contact: the kind as an eyebrow paragraph, initials, name, the relationship as a chip, "role · organization", the
- * address (fullscreen only), the note in two lines, the number of linked Tasks and two actions, "Open" and "Edit". The initials are text on a CSS circle, never an image, and
+ * Compact card for one Contact: the kind as an eyebrow paragraph, initials, name, the relationship as a chip, role and organization on one line, the
+ * address (fullscreen only), the note in two lines, the number of linked Tasks and two actions, `open` and `edit`. The initials are text on a CSS circle, never an image, and
  * are hidden from assistive tech because the name is already read out. The count comes from
  * get_contact_context; if that read fails the line is left out and the card keeps its other content.
  */
@@ -140,29 +141,6 @@ export function ContactCard({
   );
 }
 
-/**
- * Up to two letters: the first letter of the first and the last word, or the first two letters of
- * a single word. Only letters and digits count, so punctuation never becomes an initial. Text in parentheses is a note,
- * not a name: "Kerstin Åberg (innebandylaget)" is "KÅ", unless the name is nothing else.
- */
-export function initialsOf(name: string): string {
-  const bare = name.replace(/\([^)]*\)?/gu, " ").trim();
-  const words = (bare || name)
-    .split(/\s+/u)
-    .map((word) =>
-      Array.from(word)
-        .filter((ch) => /[\p{L}\p{N}]/u.test(ch))
-        .join(""),
-    )
-    .filter((word) => word !== "");
-  if (words.length === 0) return "?";
-  const head = Array.from(words[0] ?? "");
-  const tail = Array.from(words[words.length - 1] ?? "");
-  const letters =
-    words.length === 1 ? head.slice(0, 2) : [head[0] ?? "", tail[0] ?? ""];
-  return letters.join("").toLocaleUpperCase();
-}
-
 const headStyle: CSSProperties = {
   display: "flex",
   alignItems: "center",
@@ -193,9 +171,9 @@ const initialsStyle: CSSProperties = {
 };
 
 /**
- * "Kontaktvägar ⌄" (en "Ways to reach") after "Om Anna" (design system §3, Kontaktvyn):
- * a foldable section, its label in the section heading style of "Om Anna" and "Uppgifter" with ⌄ on the content edge
- * (as a row it read as a list item), and a meta line naming what is there ("E-post och telefon"). Closed by default. Open, the values are rows on the title's x with no labels;
+ * The `waysToReach` fold ⌄ after the `aboutContact` paragraph (design system §3, Contact view):
+ * a foldable section, its label in the section heading style of `aboutContact` and `tasks` with ⌄ on the content edge
+ * (as a row it read as a list item), and a meta line naming what is there (the `wayWords`). Closed by default. Open, the values are rows on the title's x with no labels;
  * e-mail and phone open through the host (`onOpenLink`, bridge ui/open-link), or as plain links without one.
  * Without any value the row is left out.
  */
@@ -220,7 +198,7 @@ export function ContactWays({
   const meta = new Intl.ListFormat(labels.wayLocale).format(kinds);
   return (
     <section className="work-contact-ways">
-      {/* The fold row: "Kontaktvägar ⌄" with what it holds ("E-post och telefon") as its meta line. */}
+      {/* The fold row: `waysToReach` ⌄ with what it holds (`wayWords`) as its meta line. */}
       <Fold
         text={labels.waysToReach}
         meta={meta.charAt(0).toUpperCase() + meta.slice(1)}

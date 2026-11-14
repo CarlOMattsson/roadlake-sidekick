@@ -5,8 +5,10 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import and_, case, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.contacts.domain.contact import Contact
+from sidekick.contacts.domain.ports import TaskContactLinker
 from sidekick.projects.domain import Project, ProjectStatus
 from sidekick.projects.persistence import project_from_row, project_to_row
 from sidekick.shared.cadence import parse_cadence
@@ -14,6 +16,7 @@ from sidekick.shared.errors import (
     ConflictError,
     NotFoundError,
 )
+from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.persistence.models import (
     DomainRow,
     ProcessRow,
@@ -22,10 +25,16 @@ from sidekick.shared.persistence.models import (
     TaskRow,
     TaskStatusHistoryRow,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
-from sidekick.shared.types import KeyValue, new_uuid7
+from sidekick.shared.types import KeyValue, TxSession, new_uuid7
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus, TaskStatusHistory
+from sidekick.work.domain.context import Domain, Process
+from sidekick.work.domain.ports import StructureReader, TaskStepStore
+from sidekick.work.domain.steps import Step
+from sidekick.work.domain.tag_assignment import RecordTagReader
+from sidekick.work.persistence.tags import RecordTagRelay
 
 
 def task_from_row(row: TaskRow) -> Task:
@@ -97,7 +106,7 @@ def task_to_row(task: Task) -> TaskRow:
 class ProjectTaskStore:
     """Projects, Tasks, board reads and Task status history.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlTaskStore` adds the transaction boundary.
     """
 
     @staticmethod
@@ -595,3 +604,60 @@ class ProjectTaskStore:
             )
             for row in rows
         ]
+
+
+class SqlTaskStore(ProjectTaskStore, RecordTagRelay, StoreBase):
+    """The store of the Task and Project use cases: their operations plus what they borrow.
+
+    A Task names its Contacts, Domain, Process, Steps and tags, so the reads and writes of those
+    are delegated to the ports it was built with.
+    """
+
+    def __init__(
+        self,
+        session_factory: sessionmaker[Session],
+        telemetry: TelemetryPort | None = None,
+        *,
+        contacts: TaskContactLinker,
+        structure: StructureReader,
+        steps: TaskStepStore,
+        tags: RecordTagReader,
+    ) -> None:
+        super().__init__(session_factory, telemetry)
+        self._contacts = contacts
+        self._structure = structure
+        self._steps = steps
+        self._tags = tags
+
+    def get_contact(self, session: TxSession, owner_id: UUID, contact_id: UUID) -> Contact:
+        return self._contacts.get_contact(session, owner_id, contact_id)
+
+    def link_task_contact(
+        self, session: TxSession, owner_id: UUID, task_id: UUID, contact_id: UUID
+    ) -> datetime | None:
+        return self._contacts.link_task_contact(session, owner_id, task_id, contact_id)
+
+    def get_domain(self, session: TxSession, owner_id: UUID, domain_id: UUID) -> Domain:
+        return self._structure.get_domain(session, owner_id, domain_id)
+
+    def get_process(self, session: TxSession, owner_id: UUID, process_id: UUID) -> Process:
+        return self._structure.get_process(session, owner_id, process_id)
+
+    def save_step(self, session: TxSession, step: Step) -> None:
+        self._steps.save_step(session, step)
+
+    def list_steps(
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        task_id: UUID,
+        limit: int,
+        offset: int = 0,
+        include_archived: bool = False,
+    ) -> list[Step]:
+        return self._steps.list_steps(session, owner_id, task_id, limit, offset, include_archived)
+
+    def list_live_steps_by_ids(
+        self, session: TxSession, owner_id: UUID, step_ids: tuple[UUID, ...]
+    ) -> dict[UUID, Step]:
+        return self._steps.list_live_steps_by_ids(session, owner_id, step_ids)

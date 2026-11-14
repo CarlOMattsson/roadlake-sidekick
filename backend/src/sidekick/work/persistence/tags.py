@@ -33,9 +33,11 @@ from sidekick.shared.persistence.models import (
     TaskTagRow,
     WorkTagRow,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.types import KeyValue, utc_now
 from sidekick.work.domain.planning import WorkTag
+from sidekick.work.domain.tag_assignment import RecordTagReader
 
 
 def work_tag_from_row(row: WorkTagRow) -> WorkTag:
@@ -102,10 +104,43 @@ def tag_condition(
     return exists(select(1).where(*linked))
 
 
-class WorkTagStore:
+class RecordTagRelay:
+    """The tag calls of a record's use cases, forwarded to the tag store the store was built with.
+
+    A store that owns tagged records (Contacts, Journal entries, Tasks, ...) does not inherit the
+    tag operations; it holds the port as `_tags` and mixes this relay in to expose them.
+    """
+
+    _tags: RecordTagReader
+
+    def find_work_tag_by_slug(self, session: Session, owner_id: UUID, slug: str) -> WorkTag | None:
+        return self._tags.find_work_tag_by_slug(session, owner_id, slug)
+
+    def save_work_tag(
+        self, session: Session, tag: WorkTag, expected_version: int | None = None
+    ) -> None:
+        self._tags.save_work_tag(session, tag, expected_version)
+
+    def replace_record_tags(
+        self,
+        session: Session,
+        owner_id: UUID,
+        kind: str,
+        record_id: UUID,
+        tag_ids: tuple[UUID, ...],
+    ) -> None:
+        self._tags.replace_record_tags(session, owner_id, kind, record_id, tag_ids)
+
+    def list_record_tags(
+        self, session: Session, owner_id: UUID, kind: str, record_id: UUID
+    ) -> list[WorkTag]:
+        return self._tags.list_record_tags(session, owner_id, kind, record_id)
+
+
+class WorkTagStore(StoreBase):
     """Tags and their links to the tagged records.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The tag operations are static and owner-filtered; the instance adds the transaction boundary.
     """
 
     @staticmethod

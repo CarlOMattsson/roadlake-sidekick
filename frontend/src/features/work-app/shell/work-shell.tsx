@@ -34,13 +34,6 @@ export type WorkShellProps = {
   /** Called with the new tab each time a tab is pressed, so the host knows which tab is visible. */
   onTabChange?: (tab: WorkTab) => void;
   /**
-   * Optional detail for an open item. A wide frame shows it beside the list; a narrow frame shows it
-   * alone with the back button. The shell does not change the detail when the tab changes.
-   */
-  detail?: ReactNode;
-  /** Called by the back button in the detail column. Shown only when this and `detail` are set. */
-  onBack?: () => void;
-  /**
    * Optional control beside the tab strip, on the same row (e.g. the board's saved views toggle). The
    * caller hides it when it does not belong to the tab shown. An open panel wraps onto its own row.
    */
@@ -50,7 +43,7 @@ export type WorkShellProps = {
 /**
  * Fullscreen shell for the Work app: a tab strip at the top (Agenda, Board, Hierarki)
  * above the active tab's content. The strip is at the top, not the bottom, because the composer
- * sits at the bottom of the host. Density follows the frame width (`.sk-wide`), not breakpoints.
+ * sits at the bottom of the host. Density follows the frame width, not breakpoints.
  */
 export function WorkShell({
   labels,
@@ -60,8 +53,6 @@ export function WorkShell({
   hierarchy,
   tabs: offeredTabs = TAB_ORDER,
   onTabChange,
-  detail,
-  onBack,
   tabsEnd,
 }: WorkShellProps) {
   const { heading } = useContext(RoomSurfaceContext);
@@ -86,11 +77,10 @@ export function WorkShell({
     board,
     hierarchy,
   };
-  const hasDetail = detail !== undefined && detail !== null && detail !== false;
 
   return (
     <AppFrame mode="full">
-      <div className="sk-shell" data-detail={hasDetail ? "open" : "closed"}>
+      <div className="sk-shell">
         <div
           className={
             tabsEnd === undefined
@@ -120,34 +110,18 @@ export function WorkShell({
           )}
           {tabsEnd}
         </div>
-        <div className="sk-wide">
-          {tabs
-            .filter((value) => visited.has(value))
-            .map((value) => (
-              <section
-                key={value}
-                className="sk-shell-list"
-                aria-label={labels.tabs[value]}
-                hidden={value !== tab}
-              >
-                {panels[value]}
-              </section>
-            ))}
-          {hasDetail ? (
-            <section aria-label={labels.detailLabel}>
-              {onBack ? (
-                <button
-                  type="button"
-                  className="sk-shell-back"
-                  onClick={onBack}
-                >
-                  {labels.back}
-                </button>
-              ) : null}
-              {detail}
+        {tabs
+          .filter((value) => visited.has(value))
+          .map((value) => (
+            <section
+              key={value}
+              className="sk-shell-list"
+              aria-label={labels.tabs[value]}
+              hidden={value !== tab}
+            >
+              {panels[value]}
             </section>
-          ) : null}
-        </div>
+          ))}
       </div>
     </AppFrame>
   );

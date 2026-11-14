@@ -13,6 +13,7 @@ from datetime import UTC, date, datetime, timedelta, timezone
 from uuid import UUID
 
 from sidekick.api.app import Container
+from sidekick.contacts.persistence import ContactStore
 from sidekick.journal.domain.analysis import (
     CreateTaskProposal,
     KeyPoint,
@@ -29,8 +30,8 @@ from sidekick.journal.domain.review import (
 from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.persistence.models import JournalDraftRow, JournalProcessingRunRow
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.domain import TaskStatus
+from sidekick.tasks.persistence import ProjectTaskStore
 
 PROVIDER = "fake"
 MODEL_ID = "deterministic-journal-v1"
@@ -46,18 +47,17 @@ _OPEN_TASK_STATUS = {
 def _candidate_catalog(container: Container, session, owner_id: UUID) -> CandidateCatalog:  # type: ignore[no-untyped-def]
     """The visible, still-open records, the way the retired pipeline snapshotted them."""
 
-    store = SqlAlchemyStore
     projects = [
         project
-        for project in store.list_projects(session, owner_id, limit=51)
+        for project in ProjectTaskStore.list_projects(session, owner_id, limit=51)
         if project.status is not ProjectStatus.COMPLETED
     ]
     tasks = [
         task
-        for task in store.list_tasks(session, owner_id, limit=101)
+        for task in ProjectTaskStore.list_tasks(session, owner_id, limit=101)
         if task.status is not TaskStatus.COMPLETED
     ]
-    contacts = store.list_contacts(session, owner_id, limit=50, include_archived=False)
+    contacts = ContactStore.list_contacts(session, owner_id, limit=50, include_archived=False)
     return CandidateCatalog(
         projects=[
             ProjectCandidate(

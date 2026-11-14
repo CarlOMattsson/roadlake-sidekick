@@ -18,12 +18,12 @@ from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.auth import ALL_SCOPES
 from sidekick.shared.errors import ConflictError, NotFoundError, PermissionDeniedError
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor, new_uuid7
 from sidekick.shopping.application.schemas import BatchItem, ItemInput
 from sidekick.shopping.application.service import LOGGER as SHOPPING_LOGGER
 from sidekick.shopping.application.service import ItemPatch
 from sidekick.shopping.persistence.rows import ShoppingStatusRow
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -106,7 +106,7 @@ def test_batch_replay_versions_purchase_history_and_owner_export():
         assert [(r.purchased, r.item_version) for r in history] == [(True, 2), (False, 3)]
         with pytest.raises(DBAPIError):
             session.execute(text("DELETE FROM sidekick.shopping_item_status_history"))
-    document = OwnerExportService(SqlAlchemyStore(factory)).export(actor)
+    document = OwnerExportService(StoreBase(factory)).export(actor)
     assert len(document["collections"]["shopping_items"]) == 2
     assert len(document["collections"]["shopping_item_status_history"]) == 2
     assert build_restore_plan(document, new_uuid7()).status == "ready"

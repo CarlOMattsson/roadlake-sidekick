@@ -22,8 +22,8 @@
 #   ci/drill -> ci.yml and release-drill.yml, called as reusable workflows on exactly this commit (real run only).
 #   gates    -> version sync, input checks, migration class and license public key (release-gates.yml, called as a
 #               reusable workflow: it signs nothing and gets no secret). Nothing is built before all of these pass.
-#   android  -> builds ONLY an unsigned, R8-minified release APK (npm and Gradle dependencies run here, so nothing
-#               here ever sees a secret) and uploads it.
+#   android  -> release-android.yml, called as a reusable workflow: builds ONLY an unsigned, R8-minified release APK
+#               (npm and Gradle dependencies run there, so nothing there ever sees a secret) and uploads it.
 #   sign-apk -> real run, environment `release-signing`: aligns and signs that APK with the pinned build-tools of the runner image and the owner's key,
 #               checks the certificate against ANDROID_CERT_SHA256 and exposes the APK's sha256 as a job output.
 #               No checkout, no npm, no Gradle, so no dependency can swap the file between verification and upload.
@@ -40,10 +40,11 @@
 # token and no id-token and no secret; only release, sign-apk and sign-bundle can push or sign, they never run in a
 # dry run, and none of the jobs that hold a secret or an id-token runs repository code. The environment
 # `release-signing` is limited to the main branch, so a workflow edited on another branch cannot reach its secrets.
-# Only the parts that sign nothing and hold no secret are split into reusable workflows (ci, drill, gates). A reusable
-# workflow would become the signer identity of every signature made inside it (the OIDC claim names the called file),
-# so everything that signs, attests, pushes or reads a signing secret stays in this file, with no local action either:
-# the jobs release, sign-apk, bundle and sign-bundle run only steps written out here and pinned remote actions.
+# Only the parts that sign nothing and hold no secret are split into reusable workflows (ci, drill, gates, android). A
+# reusable workflow would become the signer identity of every signature made inside it (the OIDC claim names the
+# called file), so everything that signs, attests, pushes or reads a signing secret stays in this file, with no local
+# action either: the jobs release, sign-apk, bundle and sign-bundle run only steps written out here and pinned remote
+# actions.
 # There is deliberately no tag or push trigger, and the workflow never creates a tag or a GitHub release:
 # the owner pushes the signed tag and creates the release from the bundle (docs/maintainers/release.md).
 #
@@ -95,6 +96,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    outputs:
+      build_tools_version: ${{ steps.pins.outputs.build_tools_version }}
     env:
       INPUT_VERSION: ${{ inputs.version }}
       SHA: ${{ github.sha }}
@@ -120,6 +123,12 @@ jobs:
             echo "${SHA} is not on main; release from a commit that has landed on main" >&2
             exit 1
           }
+
+      - name: Hand the pinned Android build-tools version to the jobs that need it
+        # The pin lives once, in the top-level env. The called android build takes it as an input, because a called
+        # workflow does not see this file's env; sign-apk reads the env itself. No repository code runs here.
+        id: pins
+        run: echo "build_tools_version=${ANDROID_BUILD_TOOLS_VERSION}" >> "$GITHUB_OUTPUT"
 
   signing-check:
     # Real run only, and the approval gate: `environment: release` (required reviewer: the owner) pauses the run here
@@ -204,55 +213,15 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
 
   android:
-    # Builds the unsigned APK and nothing else. npm and Gradle run third-party code here, so this job has no secret and
-    # signs nothing; the next job signs the uploaded file in isolation.
-    needs: gates
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Check that the pinned Android build-tools exist on this runner image
-        run: |
-          test -x "${ANDROID_HOME}/build-tools/${ANDROID_BUILD_TOOLS_VERSION}/apksigner" || {
-            echo "Android build-tools ${ANDROID_BUILD_TOOLS_VERSION} are not on this runner image; sign-apk would stop. Change ANDROID_BUILD_TOOLS_VERSION to a version the image has (and review it)." >&2
-            exit 1
-          }
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with: { persist-credentials: false }
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version-file: .node-version, cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: gradle
-          cache-dependency-path: |
-            frontend/android/**/*.gradle*
-            frontend/android/gradle/wrapper/gradle-wrapper.properties
-      - run: npm ci
-        working-directory: frontend
-      # Same build as the CI android job (its tests and lint already passed for this commit): the mobile bundle is
-      # built and synced, then Gradle makes the unsigned, R8-minified release APK. The repository holds no signing
-      # configuration; the key is only ever used by sign-apk.
-      - run: npm run build:mobile
-        working-directory: frontend
-      - run: npx cap sync android
-        working-directory: frontend
-      - run: ./gradlew :app:assembleRelease
-        working-directory: frontend/android
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: android-apk-unsigned
-          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          # The R8 mapping de-obfuscates crash reports of exactly this build; keep it with the release.
-          name: android-r8-mapping
-          path: frontend/android/app/build/outputs/mapping/release/mapping.txt
-          if-no-files-found: warn
-          retention-days: 90
+    # Builds the unsigned APK and nothing else, in a workflow of its own (release-android.yml): npm and Gradle run
+    # third-party code there, so it has no secret and signs nothing; sign-apk signs the uploaded file in isolation. Like
+    # ci, drill and gates it is called, so it never touches the signer identity.
+    needs: [source, gates]
+    uses: ./.github/workflows/release-android.yml
+    permissions:
+      contents: read
+    with:
+      build_tools_version: ${{ needs.source.outputs.build_tools_version }}
 
   sign-apk:
     # Real run only (after the owner's approval at signing-check), and isolated: no checkout, no npm, no Gradle, no repository script. It downloads the unsigned APK

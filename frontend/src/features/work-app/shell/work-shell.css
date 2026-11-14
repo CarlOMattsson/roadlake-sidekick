@@ -1,8 +1,6 @@
 /*
- * Fullscreen shell. Narrow frames show one column: when a detail is open the list is hidden and
- * the back button returns to it. Wide frames with a detail open show list and detail side by side
- * (.sk-wide grid, only while data-detail="open"), so the back button hides. Without a detail the
- * list takes the row, capped to a readable width; the board is the exception (see work.css).
+ * Fullscreen shell: the tab row, then the tab panels. A list takes the row, capped to a readable width; the board
+ * is the exception (see work.css).
  */
 
 /* The work root caps itself at 40rem for inline; here the list (48rem) and the board decide width. */
@@ -45,7 +43,7 @@
  * never move when the tab changes. */
 /* Status in columns takes the frame's whole width, so its tab row does too: the tabs and tools line up with the
    board's edges. The tabs share the row about the same middle, so the tab just pressed stays under the pointer. */
-.sk-shell[data-detail="closed"]:has(
+.sk-shell:has(
     .sk-shell-list:not([hidden]) .work-board:not([data-layout="single"])
   )
   > .sk-shell-tabs {
@@ -134,44 +132,11 @@
   }
 }
 
-.sk-shell-back {
-  min-height: 2.75rem;
-  padding-inline: var(--sk-s2, 8px);
-  border: none;
-  background: none;
-  color: var(--color-text-secondary);
-  font: inherit;
-  font-size: var(--font-text-sm-size);
-  cursor: pointer;
-}
-
-.sk-shell[data-detail="open"] .sk-shell-list {
-  display: none;
-}
-
-/* Without a detail, a list (agenda, hierarchy, contacts) stays readable: centred, at most the rooms' one reading
+/* A list (agenda, hierarchy, contacts) stays readable: centred, at most the rooms' one reading
  * width (--sk-room-max, layout.css). The board has columns of its own and keeps the full row. */
-.sk-shell[data-detail="closed"]
-  .sk-shell-list:not(:has(.work-board .work-column)) {
+.sk-shell .sk-shell-list:not(:has(.work-board .work-column)) {
   max-width: var(--sk-room-max);
   margin-inline: auto;
-}
-
-/* layout.css makes .sk-wide a 2fr/3fr grid whenever it has a second child, even without a detail. With
- * two tabs visited (e.g. Agenda and Contacts) the visible list then sits in a narrow 2fr column. Without
- * a detail the tab panel takes the row: .sk-wide is a plain block. */
-.sk-shell[data-detail="closed"] .sk-wide {
-  display: block;
-}
-
-@container sk-frame (min-width: 640px) {
-  .sk-shell[data-detail="open"] .sk-shell-list {
-    display: block;
-  }
-
-  .sk-shell-back {
-    display: none;
-  }
 }
 
 /* A visited tab that is not pressed stays mounted but hidden. This rule comes after the container

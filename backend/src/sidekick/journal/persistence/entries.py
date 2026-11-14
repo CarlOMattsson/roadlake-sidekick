@@ -33,7 +33,7 @@ from sidekick.work.persistence.tags import tag_condition
 class JournalEntryStore:
     """Journal sources, entries, pending items and entry relations.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlJournalStore` adds the transaction boundary.
     """
 
     @staticmethod

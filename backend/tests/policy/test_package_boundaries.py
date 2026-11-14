@@ -9,14 +9,14 @@ have no layer yet and are not restricted by rules 1 and 2.
 2. application -> `sidekick.shared`, its own context, and other contexts' *domain*; never another
                   context's application (or persistence, or any other part).
 3. shared      -> nothing above it: no context, no interface (`api`, `mcp`, `structured`) and no
-                  top-level module such as `composition` or `store`. An entrance that needs the
+                  top-level module such as `composition`. An entrance that needs the
                   composition root (the `admin` CLI) is a context of its own, not part of `shared`.
 4. features    -> never the cross-readers `lifecycle`, `search`, `memory`, `owner_export` or
                   `backup`; they sit above the features.
 5. no SQL      -> a context's modules never import `sqlalchemy`, except its storage modules: a
                   `persistence` or `infrastructure` package or module, and any module named
                   `store` or `*_store`. Everything else (application, service, workers, CLIs) asks
-                  a store for rows (composed into `sidekick.store`) and types the open session as
+                  a store for rows (built in `sidekick.composition`) and types the open session as
                   `sidekick.shared.types.TxSession`.
 
 Every import counts: top level, inside functions (late imports) and inside `if TYPE_CHECKING:`.
@@ -202,7 +202,6 @@ def test_the_rules_classify_imports() -> None:
     assert _broken_rules("sidekick.shared.auth.service", "sidekick.composition") == [RULE_SHARED]
     assert _broken_rules("sidekick.shared.auth.service", "sidekick.admin.cli") == [RULE_SHARED]
     assert _broken_rules("sidekick.shared.worker", "sidekick.api.app") == [RULE_SHARED]
-    assert _broken_rules("sidekick.shared.worker", "sidekick.store") == [RULE_SHARED]
     assert _broken_rules("sidekick.admin.cli", "sidekick.composition") == []
     assert _broken_rules("sidekick.tasks.application.s", "sidekick.lifecycle.application.s") == [
         RULE_APPLICATION,

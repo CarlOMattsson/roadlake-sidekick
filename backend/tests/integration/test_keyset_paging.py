@@ -15,12 +15,12 @@ import pytest
 from sqlalchemy import delete, update
 from sqlalchemy.dialects.postgresql import insert
 
+from sidekick.composition import create_stores
 from sidekick.contacts.application.service import ContactService
 from sidekick.projects.application.service import ProjectService
 from sidekick.shared.errors import InvalidInputError
 from sidekick.shared.persistence.models import ContactRow, ProjectRow, TaskRow
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor, SystemClock, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application.service import TaskService
 from sidekick.work.application.models import WorkQuery
 from tests.support.work_paging import NOW, SCOPES, WorkFixture
@@ -117,7 +117,7 @@ def test_work_list_survives_inserts_and_deletes_between_pages(sort: str) -> None
 def test_task_list_survives_inserts_and_deletes_between_pages() -> None:
     fixture = WorkFixture()
     fixture.seed(0, 30)
-    tasks = TaskService(SqlAlchemyStore(fixture.factory), SystemClock(), fixture.codec)
+    tasks = TaskService(create_stores(fixture.factory).tasks, SystemClock(), fixture.codec)
     actor = fixture.actor
     first = tasks.list(actor, limit=8)
     assert first.next_cursor is not None
@@ -146,7 +146,7 @@ def test_task_list_survives_inserts_and_deletes_between_pages() -> None:
 @pytest.mark.integration
 def test_contact_list_survives_inserts_and_deletes_between_pages() -> None:
     fixture = WorkFixture()
-    contacts = ContactService(SqlAlchemyStore(fixture.factory), SystemClock(), fixture.codec)
+    contacts = ContactService(create_stores(fixture.factory).contacts, SystemClock(), fixture.codec)
     actor = Actor(fixture.owner_id, frozenset({"contacts:read"}))
     with fixture.factory.begin() as session:
         session.execute(
@@ -181,9 +181,9 @@ def test_contact_list_survives_inserts_and_deletes_between_pages() -> None:
 def test_foreign_malformed_and_legacy_cursors_are_rejected() -> None:
     fixture = WorkFixture()
     fixture.seed(12, 12)
-    store = SqlAlchemyStore(fixture.factory)
-    tasks = TaskService(store, SystemClock(), fixture.codec)
-    projects = ProjectService(store, SystemClock(), fixture.codec)
+    stores = create_stores(fixture.factory)
+    tasks = TaskService(stores.tasks, SystemClock(), fixture.codec)
+    projects = ProjectService(stores.tasks, SystemClock(), fixture.codec)
     actor = fixture.actor
     other = Actor(fixture.other_id, SCOPES)
 
@@ -210,7 +210,7 @@ def test_foreign_malformed_and_legacy_cursors_are_rejected() -> None:
 def test_signed_cursor_with_a_forged_position_is_rejected_not_a_server_error() -> None:
     fixture = WorkFixture()
     fixture.seed(3, 12)
-    tasks = TaskService(SqlAlchemyStore(fixture.factory), SystemClock(), fixture.codec)
+    tasks = TaskService(create_stores(fixture.factory).tasks, SystemClock(), fixture.codec)
     actor = fixture.actor
     key = "tasks:v1:project=*:process=*:status=*"
     forged: list[tuple[Any, ...]] = [
@@ -289,7 +289,7 @@ def test_project_list_never_repeats_a_project_with_equal_timestamps() -> None:
                 for n in range(23)
             ],
         )
-    projects = ProjectService(SqlAlchemyStore(fixture.factory), SystemClock(), fixture.codec)
+    projects = ProjectService(create_stores(fixture.factory).tasks, SystemClock(), fixture.codec)
     seen: list[UUID] = []
     cursor: str | None = None
     while True:
@@ -327,7 +327,7 @@ def test_contacts_with_maximum_length_names_keep_paging(character: str) -> None:
     """A 200-character name (4-byte characters too) fits the cursor, and paging goes on."""
 
     fixture = WorkFixture()
-    contacts = ContactService(SqlAlchemyStore(fixture.factory), SystemClock(), fixture.codec)
+    contacts = ContactService(create_stores(fixture.factory).contacts, SystemClock(), fixture.codec)
     actor = Actor(fixture.owner_id, frozenset({"contacts:read"}))
     names = [character * 199 + suffix for suffix in "bcdefg"]
     with fixture.factory.begin() as session:

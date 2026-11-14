@@ -1,14 +1,9 @@
-"""The other checks of tools/drill.sh (workctl drill-*), as functions and as commands."""
+"""The rules of tools/drill.sh: project names, ports, the image pair and what a push reports."""
 
-import io
-import os
-import signal
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
-from tools.workctl import cli, drillpolicy
+from tools.workctl import drillpolicy
 
 from tests.selfhost.work_package.support import REPO_ROOT
 
@@ -121,69 +116,30 @@ def test_the_release_versions_are_the_source_version_and_the_next_patch(tmp_path
     assert all(part.isdigit() for version in real for part in version.split("."))
 
 
-def test_the_commands_print_what_drill_sh_reads(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
-    assert cli.main(["drill-reserved-ports", " 030000, 9000"]) == 0
-    assert capsys.readouterr().out == "30000\n9000\n"
-    assert cli.main(["drill-image-pair", "--from", FROM, "--to", TO]) == 0
-    assert cli.main(["drill-pick-port", "--reserved", "55432 55433", "--used", ""]) == 0
-    assert 20000 <= int(capsys.readouterr().out) <= 39999
-    monkeypatch.setattr(sys, "stdin", io.StringIO("digest: " + DIGEST + " size: 1\n"))
-    assert cli.main(["drill-pushed-digest"]) == 0
-    assert capsys.readouterr().out == DIGEST + "\n"
-    monkeypatch.setattr(sys, "stdin", io.StringIO("nothing\n"))
-    assert cli.main(["drill-pushed-digest"]) == 1
-    assert capsys.readouterr().out == ""
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text('[project]\nversion = "1.2.3"\n', encoding="utf-8")
-    assert cli.main(["drill-release-versions", str(pyproject)]) == 0
-    assert capsys.readouterr().out == "1.2.3 1.2.4\n"
+@pytest.mark.parametrize("name", ["sk-drill-a", "sk-drill-0f3a-sh", "sk-drill-x-y-1"])
+def test_a_drill_project_name_is_accepted(name: str) -> None:
+    assert drillpolicy.require_project(name) == name
 
 
-def test_a_refusal_exits_with_2_and_the_reason_on_stderr(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    assert cli.main(["drill-reserved-ports", "abc"]) == 2
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert captured.err == "SIDEKICK_RESERVED_PORTS must be comma-separated TCP ports (1-65535)\n"
-    assert cli.main(["drill-image-pair", "--from", FROM, "--to", FROM]) == 2
-    assert capsys.readouterr().err == "drill: --from-image and --to-image must differ\n"
+@pytest.mark.parametrize(
+    "name",
+    [
+        "",
+        "evil",
+        "my-drill-x",
+        "SK-DRILL-x",
+        "sk-drill-",
+        "sk-drill--x",
+        "sk-drill-a b",
+        "sk-drill-../x",
+        "sk-drill-a\n",
+    ],
+)
+def test_any_other_project_name_is_refused(name: str) -> None:
+    with pytest.raises(drillpolicy.Refused, match="must start with sk-drill-"):
+        drillpolicy.require_project(name)
+    assert not drillpolicy.valid_project(name)
 
 
-def test_a_pick_with_every_port_taken_exits_1(
-    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(drillpolicy, "pick_port", lambda *_args: None)
-    assert cli.main(["drill-pick-port"]) == 1
-    assert capsys.readouterr().err == "drill: no free port found\n"
-
-
-def _default_signal_handlers() -> None:
-    for number in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-        signal.signal(number, signal.SIG_DFL)
-
-
-def test_the_commands_run_the_way_drill_sh_starts_them() -> None:
-    def run(*args: str, stdin: str = "") -> subprocess.CompletedProcess[str]:
-        return subprocess.run(
-            [sys.executable, "-m", "workctl", *args],
-            input=stdin,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env={**os.environ, "PYTHONPATH": str(Path(REPO_ROOT, "tools"))},
-            # A run under nohup ignores SIGHUP, and an ignored signal stays ignored in the child.
-            preexec_fn=_default_signal_handlers,
-            check=False,
-        )
-
-    ports = run("drill-reserved-ports", " 030000, 9000")
-    assert (ports.returncode, ports.stdout) == (0, "30000\n9000\n")
-    refused = run("drill-image-pair", "--from", FROM, "--to", FROM)
-    assert refused.returncode == 2
-    assert refused.stderr == "drill: --from-image and --to-image must differ\n"
-    digest = run("drill-pushed-digest", stdin="digest: " + DIGEST + " size: 1\n")
-    assert (digest.returncode, digest.stdout) == (0, DIGEST + "\n")
-    assert run("drill-pushed-digest", stdin="nothing\n").returncode == 1
+def test_the_default_reserved_ports_are_the_long_running_instances_and_the_test_pool() -> None:
+    assert set(drillpolicy.RESERVED_PORTS) == {55432, 55433, 55434, 55436, 8100, 8101}

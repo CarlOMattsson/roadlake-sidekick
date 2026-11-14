@@ -4,7 +4,7 @@ import { Progress } from "../../mcp-apps/ui/progress";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { projectStatusLabel } from "../shared/labels";
-import { ContactMenu } from "../contacts/contact-edit";
+import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
 import { MoreIcon } from "../tasks/task-detail-controls";
 import { ProjectEditor } from "./project-edit";
 import { CreateParentTask } from "./parent-task-create";
@@ -167,7 +167,7 @@ export function ProjectFrame({
         {phase === "ready" && project ? project.title : t.project}
       </DetailTitle>
       {phase === "ready" && project && editOffered && menuOpen && (
-        <ContactMenu
+        <DetailMenu
           id={menuId}
           busy={write.kind === "busy" || editing}
           edit={{ label: t.edit, onChoose: startEdit }}

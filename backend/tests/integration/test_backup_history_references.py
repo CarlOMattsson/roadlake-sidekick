@@ -32,8 +32,8 @@ from sidekick.owner_export.restore_remap import (
 )
 from sidekick.shared.cadence import Cadence
 from sidekick.shared.persistence.models import ActivityEntryRow, DomainEventRow, TaskRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from sidekick.work.application.models import UpdateContextCommand
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -60,7 +60,7 @@ class Env:
         self.key = Fernet.generate_key()
 
     def backup(self, directory: Path) -> Path:
-        result = OwnerBackupService(SqlAlchemyStore(self.factory)).create(
+        result = OwnerBackupService(StoreBase(self.factory)).create(
             directory=directory, key=self.key, retention_count=5, retention_days=5
         )
         assert verify_backup_file(result.path, self.key) == result.owner_count
@@ -72,7 +72,7 @@ class Env:
         (export,) = [item for item in bundle["exports"] if item["owner_id"] == str(self.owner)]
         plan = build_restore_plan(export, self.target)
         assert plan.status == "ready"
-        OwnerRestoreService(SqlAlchemyStore(self.factory)).restore(
+        OwnerRestoreService(StoreBase(self.factory)).restore(
             export, target_owner_id=self.target, expected_plan_checksum=plan.plan_checksum
         )
 

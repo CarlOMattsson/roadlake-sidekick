@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { relativeDue } from "../../mcp-apps/ui/due";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { inlineSummaryLabelsFor } from "../inline/inline-summary-labels";
-import { ContactMenu } from "../contacts/contact-edit";
+import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
 import { MoreIcon, TaskProps } from "./task-detail-controls";
 import { useLinkUndo } from "./task-contacts";
 import { TaskEditor } from "./task-edit";
@@ -219,7 +219,7 @@ export function TaskFrame({
         </p>
       )}
       {phase === "ready" && task && menuOffered && menuOpen && (
-        <ContactMenu
+        <DetailMenu
           id={menuId}
           busy={write.kind === "busy" || editing || unlinks.busy}
           edit={

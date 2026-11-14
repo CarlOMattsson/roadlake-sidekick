@@ -5,7 +5,13 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react()],
-  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "./src"),
+      // Shared test helpers, so a test in any folder imports them the same way.
+      "@tests": path.resolve(import.meta.dirname, "./tests"),
+    },
+  },
   // This config is Vitest's only (the MCP App and the mobile shell have their own).
   test: {
     environment: "jsdom",

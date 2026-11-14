@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from "react";
 import { ContactAliasSummary } from "./contact-aliases";
-import { ContactMenu } from "./contact-edit";
+import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
 import type { WorkLabels } from "../shared/labels";
 import { MoreIcon } from "../tasks/task-detail-controls";
 import { ContactProfileLine } from "./contact-journal-entries";
@@ -89,7 +89,7 @@ export function ContactHeader({
         <ContactAliasSummary aliases={ready.aliases} labels={t} />
       )}
       {ready && menuOpen && (
-        <ContactMenu
+        <DetailMenu
           id={menuId}
           busy={busy || editing || unlinks.busy}
           edit={ready.archived ? undefined : { label: t.edit, onChoose: edit }}

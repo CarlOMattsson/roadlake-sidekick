@@ -5,13 +5,16 @@ from uuid import UUID
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from sidekick.contacts.persistence import ContactStore
 from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.persistence.models import ContactRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow
-from sidekick.store import SqlAlchemyStore
 
 
-class ShoppingStore(SqlAlchemyStore):
+class ShoppingStore(StoreBase):
+    """Owner-filtered shopping reads and writes, over the shared session and idempotency."""
+
     @staticmethod
     def ensure_contact_unlinked(session: Session, owner: UUID, contact_id: UUID) -> None:
         # Serialize deletion with recipient validation, then explain the FK refusal.
@@ -141,19 +144,31 @@ class ShoppingStore(SqlAlchemyStore):
         )
 
     @staticmethod
-    def active_contact(session: Session, owner: UUID, contact_id: UUID) -> ContactRow | None:
-        """The owner's live (not archived, not trashed) contact, share-locked against deletion."""
+    def has_active_contact(session: Session, owner: UUID, contact_id: UUID) -> bool:
+        """Whether the owner has this live (not archived, not trashed) contact; the row is
+        share-locked against deletion."""
 
-        return session.scalar(
-            select(ContactRow)
-            .where(
-                ContactRow.id == contact_id,
-                ContactRow.owner_id == owner,
-                ContactRow.archived.is_(False),
-                ContactRow.trashed_at.is_(None),
+        return (
+            session.scalar(
+                select(ContactRow.id)
+                .where(
+                    ContactRow.id == contact_id,
+                    ContactRow.owner_id == owner,
+                    ContactRow.archived.is_(False),
+                    ContactRow.trashed_at.is_(None),
+                )
+                .with_for_update(read=True)
             )
-            .with_for_update(read=True)
+            is not None
         )
+
+    @staticmethod
+    def contact_display_names(
+        session: Session, owner: UUID, contact_ids: tuple[UUID, ...]
+    ) -> dict[UUID, tuple[str, bool]]:
+        """Display name and archived flag of the owner's Contacts that are not in the trash."""
+
+        return ContactStore.contact_display_names(session, owner, contact_ids)
 
     @staticmethod
     def open_count(session: Session, owner: UUID, list_id: UUID) -> int:

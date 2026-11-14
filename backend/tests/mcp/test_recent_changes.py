@@ -23,9 +23,9 @@ from sidekick.mcp.changes import _text as change_text
 from sidekick.mcp.changes import register_change_tools
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.references.domain import ExternalReferenceDetails
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
 from sidekick.shopping.application.schemas import BatchItem
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import UpdateTaskCommand
 from tests.db import database_factory
 from tests.mcp.harness import ActorSwitch
@@ -603,7 +603,7 @@ async def test_alias_removal_names_the_contact_and_legacy_rows_keep_their_text()
     # Rows written before related ids existed: an unlink without one, and an alias removal without
     # one. The first keeps its old text; the second names no contact, so it is left out.
     with container.session_factory() as session:
-        SqlAlchemyStore.append_audit(
+        StoreBase.append_audit(
             session,
             actor_id=owner,
             event="contact.task_unlinked",
@@ -611,7 +611,7 @@ async def test_alias_removal_names_the_contact_and_legacy_rows_keep_their_text()
             target_type="task_contact",
             target_id=contact.id,
         )
-        SqlAlchemyStore.append_audit(
+        StoreBase.append_audit(
             session,
             actor_id=owner,
             event="contact.alias_removed",

@@ -44,8 +44,12 @@ Moved:
   and its restore after a rollback, the lock owner and the snapshot name with the regex for its finished form.
   Reading the journal and the pointer stays in ``update.sh`` (``--check`` and the dry run run without python3).
 * ``drilltimings``: the table of step durations of ``tools/drill.sh`` (plain text and the Markdown job summary).
-* ``drillpolicy``: the other checks of ``tools/drill.sh``: the extra reserved ports, the image pair, the free port,
-  the digest of a push and the versions of a release.
+* ``drillpolicy``: the rules of the drill that decide what it may touch: the project name, the reserved ports, the image
+  pair, the free port, the digest of a push and the versions of a release.
+* ``drillrun`` / ``drillselfhost`` / ``drillwork`` / ``drillimages`` / ``drillsteps`` / ``drillhost``: the whole
+  sequence of ``tools/drill.sh`` (arguments, steps and their timings, the two scenarios, ``--local-images``, the
+  cleanup), run as ``python3 -m workctl.drillrun``; ``drill.sh`` only starts it. The programs it runs go through
+  ``drillhost.Host``, which the tests replace.
 * ``prompts``    : the guide's questions (read one line, hidden input, defaults), yes answers and numbered choices.
 * ``owner``      : the UUID check for the user Claude Desktop acts as.
 * ``setupguide`` : the questions of ``setup`` (memory, model server and key, memory model, allowlist, rooms, app

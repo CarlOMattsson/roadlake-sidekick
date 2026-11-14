@@ -26,8 +26,8 @@ from sidekick.backup.bundle import build_backup_bundle, build_backup_envelope, w
 from sidekick.owner_export.catalogue import EXPORT_SOURCES
 from sidekick.owner_export.document import build_export_document, verify_export
 from sidekick.owner_export.export import OwnerExportService
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -49,7 +49,7 @@ class Sources:
 class Harness:
     def __init__(self, monkeypatch: pytest.MonkeyPatch, key: str | None) -> None:
         self.factory: sessionmaker[Session] = database_factory()
-        self.store = SqlAlchemyStore(self.factory)
+        self.store = StoreBase(self.factory)
         monkeypatch.setattr(backup_cli, "_import_store", lambda: self.store)
         secret = None if key is None else SecretStr(key)
         monkeypatch.setattr(

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 from uuid import UUID, uuid4
 
-from sidekick.composition import create_auth_service
+from sidekick.composition import create_auth_service, create_stores
 from sidekick.contacts.application.service import ContactService, CreateContactCommand
 from sidekick.journal.application.capture import JournalCaptureService
 from sidekick.journal.application.service import JournalService
@@ -29,7 +29,6 @@ from sidekick.shared.auth import ALL_SCOPES, AuthService
 from sidekick.shared.config import Settings, get_settings
 from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.types import Actor, CursorCodec, SystemClock
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskService
 from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.work.application.service import ContextService
@@ -110,20 +109,20 @@ def guard_manual_only(confirmed: bool, settings: Settings) -> None:
 
 def build_services(settings: Settings) -> Services:
     session_factory = create_session_factory(settings.database_url)
-    store = SqlAlchemyStore(session_factory)
+    stores = create_stores(session_factory)
     clock = SystemClock()
     cursor_codec = CursorCodec(settings.cursor_signing_key)
     return Services(
         auth=create_auth_service(session_factory, settings),
         contexts=ContextService(
-            store, clock, cursor_codec, owner_timezone=settings.owner_zone
+            stores.work, clock, cursor_codec, owner_timezone=settings.owner_zone
         ),
-        projects=ProjectService(store, clock, cursor_codec),
-        tasks=TaskService(store, clock, cursor_codec),
-        steps=StepsService(store, clock, cursor_codec),
-        contacts=ContactService(store, clock, cursor_codec),
-        journal=JournalService(store, clock, cursor_codec),
-        journal_capture=JournalCaptureService(store, clock),
+        projects=ProjectService(stores.tasks, clock, cursor_codec),
+        tasks=TaskService(stores.tasks, clock, cursor_codec),
+        steps=StepsService(stores.work, clock, cursor_codec),
+        contacts=ContactService(stores.contacts, clock, cursor_codec),
+        journal=JournalService(stores.journal, clock, cursor_codec),
+        journal_capture=JournalCaptureService(stores.journal, clock),
     )
 
 

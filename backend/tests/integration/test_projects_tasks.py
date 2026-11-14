@@ -5,14 +5,16 @@ from datetime import UTC
 import pytest
 from sqlalchemy import func, select
 
+from sidekick.composition import create_stores
 from sidekick.projects.application import ProjectService, UpdateProjectCommand
 from sidekick.shared.auth import ALL_SCOPES, AuthService
 from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.persistence.models import AuditEventRow
 from sidekick.shared.types import Actor, SystemClock
-from sidekick.store import SqlAlchemyStore
 from sidekick.tasks.application import TaskService
+from sidekick.tasks.persistence import ProjectTaskStore
 from sidekick.work.application.service import ContextService
+from sidekick.work.persistence.tags import WorkTagStore
 from tests.db import database_factory
 from tests.support.fakes import make_cursor_codec
 
@@ -25,10 +27,10 @@ def test_project_task_round_trip_idempotency_and_ownership() -> None:
     other_id = auth.provision_user("other", "Other")
     owner = Actor(owner_id, ALL_SCOPES)
     other = Actor(other_id, ALL_SCOPES)
-    store = SqlAlchemyStore(factory)
-    projects = ProjectService(store, SystemClock(), make_cursor_codec())
-    tasks = TaskService(store, SystemClock(), make_cursor_codec())
-    contexts = ContextService(store, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
+    stores = create_stores(factory)
+    projects = ProjectService(stores.tasks, SystemClock(), make_cursor_codec())
+    tasks = TaskService(stores.tasks, SystemClock(), make_cursor_codec())
+    contexts = ContextService(stores.work, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
     domain = contexts.create_domain(
         owner, name="Operations", description=None, idempotency_key="create-domain"
     )
@@ -67,10 +69,9 @@ def test_stale_version_is_rejected_without_overwrite() -> None:
     auth = AuthService(factory, "pepper" * 8)
     owner_id = auth.provision_user("owner", "Owner")
     actor = Actor(owner_id, ALL_SCOPES)
-    projects = ProjectService(SqlAlchemyStore(factory), SystemClock(), make_cursor_codec())
-    contexts = ContextService(
-        projects.store, SystemClock(), make_cursor_codec(), owner_timezone=UTC
-    )
+    stores = create_stores(factory)
+    projects = ProjectService(stores.tasks, SystemClock(), make_cursor_codec())
+    contexts = ContextService(stores.work, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
     domain = contexts.create_domain(
         actor, name="Operations", description=None, idempotency_key="original-domain"
     )
@@ -100,10 +101,9 @@ def test_tags_only_project_update_advances_version_and_checks_it() -> None:
     factory = database_factory()
     auth = AuthService(factory, "pepper" * 8)
     actor = Actor(auth.provision_user("owner", "Owner"), ALL_SCOPES)
-    projects = ProjectService(SqlAlchemyStore(factory), SystemClock(), make_cursor_codec())
-    contexts = ContextService(
-        projects.store, SystemClock(), make_cursor_codec(), owner_timezone=UTC
-    )
+    stores = create_stores(factory)
+    projects = ProjectService(stores.tasks, SystemClock(), make_cursor_codec())
+    contexts = ContextService(stores.work, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
     domain = contexts.create_domain(
         actor, name="Operations", description=None, idempotency_key="tag-domain"
     )
@@ -139,9 +139,7 @@ def test_tags_only_project_update_advances_version_and_checks_it() -> None:
     with factory() as session:
         slugs = [
             tag.slug
-            for tag in SqlAlchemyStore.list_record_tags(
-                session, actor.user_id, "project", project.id
-            )
+            for tag in WorkTagStore.list_record_tags(session, actor.user_id, "project", project.id)
         ]
     assert slugs == ["alpha"]
 
@@ -152,9 +150,9 @@ def test_domain_accent_and_domain_lookups_are_owner_scoped() -> None:
     auth = AuthService(factory, "pepper" * 8)
     owner = Actor(auth.provision_user("owner", "Owner"), ALL_SCOPES)
     other = Actor(auth.provision_user("other", "Other"), ALL_SCOPES)
-    store = SqlAlchemyStore(factory)
-    projects = ProjectService(store, SystemClock(), make_cursor_codec())
-    contexts = ContextService(store, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
+    stores = create_stores(factory)
+    projects = ProjectService(stores.tasks, SystemClock(), make_cursor_codec())
+    contexts = ContextService(stores.work, SystemClock(), make_cursor_codec(), owner_timezone=UTC)
     owner_domain = contexts.create_domain(
         owner, name="Jobb", description=None, idempotency_key="owner-domain", accent="teal"
     )
@@ -172,17 +170,21 @@ def test_domain_accent_and_domain_lookups_are_owner_scoped() -> None:
         owner, title="Offert", domain_id=owner_domain.id, idempotency_key="owner-project"
     )
     with factory() as session:
-        assert SqlAlchemyStore.domain_accents(
+        assert ProjectTaskStore.domain_accents(
             session, owner.user_id, (owner_domain.id, other_domain.id)
         ) == {owner_domain.id: "teal"}
-        assert SqlAlchemyStore.process_domain_ids(session, owner.user_id, (owner_process.id,)) == {
+        assert ProjectTaskStore.process_domain_ids(session, owner.user_id, (owner_process.id,)) == {
             owner_process.id: owner_domain.id
         }
-        assert SqlAlchemyStore.project_domain_ids(session, owner.user_id, (owner_project.id,)) == {
+        assert ProjectTaskStore.project_domain_ids(session, owner.user_id, (owner_project.id,)) == {
             owner_project.id: owner_domain.id
         }
-        assert SqlAlchemyStore.domain_accents(session, owner.user_id, ()) == {}
+        assert ProjectTaskStore.domain_accents(session, owner.user_id, ()) == {}
 
-        assert SqlAlchemyStore.domain_accents(session, other.user_id, (owner_domain.id,)) == {}
-        assert SqlAlchemyStore.process_domain_ids(session, other.user_id, (owner_process.id,)) == {}
-        assert SqlAlchemyStore.project_domain_ids(session, other.user_id, (owner_project.id,)) == {}
+        assert ProjectTaskStore.domain_accents(session, other.user_id, (owner_domain.id,)) == {}
+        assert (
+            ProjectTaskStore.process_domain_ids(session, other.user_id, (owner_process.id,)) == {}
+        )
+        assert (
+            ProjectTaskStore.project_domain_ids(session, other.user_id, (owner_project.id,)) == {}
+        )

@@ -18,10 +18,10 @@ from sidekick.shared.persistence.models import (
     TaskRow,
 )
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from sidekick.work.application.models import WorkQuery, WorkRow
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.work_lists import WorkListService
+from sidekick.work.persistence.store import SqlWorkStore
 from tests.db import database_factory
 from tests.support.fakes import make_cursor_codec
 
@@ -46,7 +46,7 @@ class WorkFixture:
         self.owner_id = auth.provision_user("owner", "Owner")
         self.other_id = auth.provision_user("other", "Other")
         self.codec = make_cursor_codec()
-        store = SqlAlchemyStore(self.factory)
+        store = SqlWorkStore(self.factory)
         self.contexts = ContextService(store, _FixedClock(), self.codec, owner_timezone=UTC)
         self.work_lists = WorkListService(store, _FixedClock(), self.codec, owner_timezone=UTC)
         self.actor = Actor(self.owner_id, SCOPES)

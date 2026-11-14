@@ -229,22 +229,35 @@ def test_temp_dir_is_removed_by_default(tmp_path: Path) -> None:
     assert len(result.projects) == 1
 
 
+def drill_sources() -> dict[str, str]:
+    """The text of the drill: the shell around it and the modules of its sequence."""
+    files = [DRILL, *sorted((REPO_ROOT / "tools" / "workctl").glob("drill*.py"))]
+    return {path.name: path.read_text() for path in files}
+
+
 def test_script_text_has_no_unscoped_removal_and_only_forbids_the_known_ports() -> None:
-    text = DRILL.read_text()
+    sources = drill_sources()
     removals = [
-        line.strip()
+        (name, line.strip())
+        for name, text in sources.items()
         for line in text.splitlines()
-        if re.search(r"(compose|sh_compose)\b.* down -v", line)
+        if '"down"' in line
     ]
     assert removals
-    for stripped in removals:
-        assert "-p " in stripped or stripped.startswith("sh_compose "), stripped
-    assert "docker system prune" not in text
-    assert "docker rm" not in text.replace("docker volume rm", "")
+    for name, stripped in removals:
+        # Every removal names its project: the cleanup and the work scenario pass `-p`; the
+        # self-hosted one goes through its compose helper, which always does.
+        assert '"-p"' in stripped or "self.compose(" in stripped, (name, stripped)
+    all_text = "\n".join(sources.values())
+    assert "system prune" not in all_text
+    assert "docker rm" not in all_text.replace("docker volume rm", "")
+    assert '"rm", "-f"' not in all_text
     for port in RESERVED_PORTS:
-        occurrences = [line for line in text.splitlines() if str(port) in line]
+        occurrences = [
+            line for text in sources.values() for line in text.splitlines() if str(port) in line
+        ]
         assert all(
-            line.strip().startswith("#") or "RESERVED_PORTS=" in line for line in occurrences
+            line.strip().startswith("#") or "RESERVED_PORTS" in line for line in occurrences
         ), occurrences
 
 
@@ -356,12 +369,18 @@ def test_local_images_cannot_be_combined_with_a_fake_docker_or_given_images(
     assert not list(result.tmp_root.glob("sk-drill.*"))
 
 
-def test_the_script_removes_only_the_images_it_built_by_exact_reference() -> None:
-    text = DRILL.read_text()
-    removals = [line.strip() for line in text.splitlines() if "docker image rm" in line]
+def test_the_drill_removes_only_the_images_it_built_by_exact_reference() -> None:
+    sources = drill_sources()
+    removals = [
+        line.strip()
+        for text in sources.values()
+        for line in text.splitlines()
+        if '"image", "rm"' in line
+    ]
     assert len(removals) == 1
-    assert r"^127\.0\.0\.1:[0-9]+/sidekick[:@]" in removals[0]
-    assert "registry:2@sha256:" in text
+    images = sources["drillimages.py"]
+    assert r"127\.0\.0\.1:[0-9]+/sidekick[:@]" in images
+    assert "registry:2@sha256:" in images
 
 
 @pytest.mark.parametrize(

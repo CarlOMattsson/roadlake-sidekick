@@ -10,7 +10,7 @@ export const contactsRoomLabelsSv = {
   bareTitle: (first: string) => `Inget sparat om ${first} än.`,
   bareAsk: (name: string) =>
     `Jag vill berätta vad jag vet om ${name} så att det sparas på kontakten.`,
-  /** The empty list's own way to start, next to "Säg till Claude": it opens the create field as + does. */
+  /** The empty list's own way to start, next to the empty state's ask-Claude line: it opens the create field as + does. */
   addContact: "Lägg till en kontakt",
   /** A search with no match: the row that creates a Contact with the searched name. */
   createNamed: (name: string) => `Skapa kontakt ”${name}”`,

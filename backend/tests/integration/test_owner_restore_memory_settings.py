@@ -17,8 +17,8 @@ from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.persistence.models import MemorySettingsRow
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import Actor
-from sidekick.store import SqlAlchemyStore
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -51,10 +51,10 @@ def _settings_values(factory: sessionmaker[Session], owner: UUID) -> tuple[Any, 
 def _restore(
     container: Container, factory: sessionmaker[Session], source: UUID, target: UUID
 ) -> None:
-    exported = OwnerExportService(SqlAlchemyStore(factory)).export(Actor(source, frozenset()))
+    exported = OwnerExportService(StoreBase(factory)).export(Actor(source, frozenset()))
     plan = build_restore_plan(exported, target)
     assert plan.status == "ready"
-    OwnerRestoreService(SqlAlchemyStore(factory)).restore(
+    OwnerRestoreService(StoreBase(factory)).restore(
         exported, target_owner_id=target, expected_plan_checksum=plan.plan_checksum
     )
 

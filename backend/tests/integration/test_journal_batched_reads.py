@@ -17,8 +17,8 @@ from sidekick.composition import Container
 from sidekick.journal.domain.entry import KeyPoint, KeyPointKind
 from sidekick.journal.domain.source import SourceType
 from sidekick.journal.domain.summary import entry_fingerprint
+from sidekick.journal.persistence.store import SqlJournalStore
 from sidekick.shared.types import Actor, new_uuid7
-from sidekick.store import SqlAlchemyStore
 from sidekick.structured.journal import journal_day_structured, journal_entries_structured
 from tests.db import count_statements, database_factory
 from tests.support.settings import make_settings
@@ -137,7 +137,7 @@ def test_list_and_day_reads_take_the_same_statements_for_two_and_ten_entries() -
 @pytest.mark.integration
 def test_the_day_fingerprint_reads_no_entry_text() -> None:
     container, factory, actor, _project_id, _contact_id = _world(3)
-    assert isinstance(container.journal.store, SqlAlchemyStore)
+    assert isinstance(container.journal.store, SqlJournalStore)
 
     with count_statements(factory) as statements:
         heads = container.journal.store.transaction(

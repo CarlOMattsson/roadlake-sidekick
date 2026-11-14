@@ -37,7 +37,7 @@ _UUID_ARRAY = ARRAY(PGUUID(as_uuid=True))
 class StepActionStore:
     """Steps and Actions, including the batched reads used by work lists.
 
-    Mixin composed into ``SqlAlchemyStore``; methods are static and owner-filtered.
+    The operations are static and owner-filtered; `SqlWorkStore` adds the transaction boundary.
     """
 
     @staticmethod

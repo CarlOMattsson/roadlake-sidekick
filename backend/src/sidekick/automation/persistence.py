@@ -14,11 +14,14 @@ from sidekick.shared.persistence.models import (
     ActivityEntryRow,
     DomainEventRow,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.types import KeyValue
 
 
-class AutomationStoreMixin:
+class AutomationStore(StoreBase):
+    """The activity ledger and its read projection, over the shared session and idempotency."""
+
     @staticmethod
     def append_activity(session: Session, activity: NewActivity) -> None:
         """Insert the ledger event, then its activity entry, in the open transaction."""
