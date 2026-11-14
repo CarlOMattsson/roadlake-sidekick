@@ -83,7 +83,8 @@ function renderWith(
 }
 
 it("says when the offline copy was read, in both languages, and nothing for a page the server answered", () => {
-  const at = new Date(2026, 10, 12, 8, 5).getTime();
+  // 08:05 on the owner's clock (Europe/Stockholm, UTC+1).
+  const at = Date.parse("2026-11-12T07:05:00.000Z");
   const { transport } = offlineTransport(at);
   const { unmount } = renderWith([task], transport, workSv);
   const line = screen.getByText(/^Ingen anslutning · senast hämtad /);

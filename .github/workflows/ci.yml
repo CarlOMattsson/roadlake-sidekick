@@ -114,6 +114,12 @@ jobs:
       # The same view tests again with the Preact aliases of the shipped bundle (see vitest.mcp-app-preact.config.ts).
       - run: npm run test:mcp-app:preact
         working-directory: frontend
+      # The runner's zone is UTC; the views count days on the owner's calendar, so the unit tests run once more in a zone
+      # that differs from both UTC and the owner's.
+      - run: npm test
+        working-directory: frontend
+        env:
+          TZ: America/Los_Angeles
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       # The MCP App browser probes read backend/src/sidekick/mcp/apps/sidekick.html, so the

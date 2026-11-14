@@ -1,0 +1,276 @@
+name: CI
+
+on:
+  # CI runs only as a release gate (workflow_call from release-image.yml) or on demand (workflow_dispatch).
+  # There is no pull_request, merge_group or push trigger: contributors run the checks locally (pre-commit and
+  # pre-push) and the full run happens on exactly the commit that is released.
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SIDEKICK_ENVIRONMENT: test
+      # pytest-xdist workers; each gets its own database sidekick_test_w0..w(N-1), as tools/test-db-pool.sh does.
+      SIDEKICK_TEST_WORKERS: "4"
+      SIDEKICK_TEST_DATABASE_URL: postgresql+psycopg://sidekick_app:sidekick_app@127.0.0.1:55433/sidekick_test
+      SIDEKICK_TEST_MIGRATION_DATABASE_URL: postgresql+psycopg://sidekick_migrator:sidekick_migrator@127.0.0.1:55433/sidekick_test
+      SIDEKICK_TEST_ADMIN_DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:55433/sidekick_test
+    services:
+      postgres:
+        image: postgres:18.4-alpine@sha256:9a8afca54e7861fd90fab5fdf4c42477a6b1cb7d293595148e674e0a3181de15
+        env:
+          POSTGRES_DB: sidekick_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports: ["55433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d sidekick_test"
+          --health-interval 2s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with: { version: "0.11.8", enable-cache: true }
+      - run: uv sync --project backend --frozen --all-groups
+      - name: Create bounded database roles
+        run: docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U postgres -d sidekick_test -f /dev/stdin < deploy/postgres-init.test-only.sql
+      - name: Create one database per pytest-xdist worker
+        # Same roles and grants as sidekick_test (deploy/postgres-init.test-only.sql). The suite migrates each worker database itself.
+        run: |
+          for i in $(seq 0 $((SIDEKICK_TEST_WORKERS - 1))); do
+            docker exec "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "CREATE DATABASE sidekick_test_w${i}"
+            docker exec -i "${{ job.services.postgres.id }}" psql -v ON_ERROR_STOP=1 -q -U postgres -d "sidekick_test_w${i}" -f /dev/stdin < deploy/postgres-init.test-only.sql
+          done
+      - name: Apply migrations explicitly
+        run: uv run --project backend yoyo apply --batch --database "$SIDEKICK_TEST_MIGRATION_DATABASE_URL" migrations
+      - run: uv run ruff format --check . ../tools/workctl
+        working-directory: backend
+      - run: uv run ruff check --no-cache . ../tools/workctl
+        working-directory: backend
+      - run: uv run pyright
+        working-directory: backend
+      - run: uv run pytest -q --full -n "$SIDEKICK_TEST_WORKERS" --dist loadgroup -m "not policy and not performance" --cov=sidekick --cov-fail-under=90
+        working-directory: backend
+      # Wall-clock bounds run alone and serially, so another worker's load cannot inflate them; the
+      # bounds are generous (a structural regression, not runner noise). The deterministic guards
+      # (statement counts) run in the step above.
+      - name: Performance tests
+        run: uv run pytest -q --full -m performance
+        working-directory: backend
+      # Policy tests read the repository's own source, docs and config (layering, language, version sync, no constant secrets).
+      # They run on their own so a rule violation is named as such, and the step needs no database.
+      - name: Policy tests
+        run: uv run pytest -q --full -m policy
+        working-directory: backend
+      # The reviewed baselines under contracts/reviewed/ are accepted artifacts and are
+      # never regenerated; the suite above compares them with the running implementation.
+      # Only the single snapshot of the current surface is regenerated and diffed.
+      - name: Verify the contract snapshot and the generated references are regenerated, not drifting
+        run: |
+          uv run --project backend python -m sidekick.api.export_openapi --output contracts/openapi.generated.json
+          uv run --project backend python -m sidekick.mcp.export_contract --output contracts/mcp-tools.generated.json
+          uv run --project backend python -m sidekick.api.export_companion_contract --output contracts/companion-api.generated.json
+          git diff --exit-code -- contracts
+          uv run --project backend python -m sidekick.mcp.export_tool_reference --check
+          uv run --project backend python -m sidekick.export_reference --check
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          {
+            node-version-file: .node-version,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
+      - run: npm ci
+        working-directory: frontend
+      - run: npm run lint
+        working-directory: frontend
+      - run: npm run format:check
+        working-directory: frontend
+      - run: npm run typecheck
+        working-directory: frontend
+      # The mobile bundle is built before the unit tests: mobile-csp.test.ts checks the built page and fails
+      # (in CI) when it is missing.
+      - run: npm run build:mobile
+        working-directory: frontend
+      - run: npm run test:coverage
+        working-directory: frontend
+      # The same view tests again with the Preact aliases of the shipped bundle (see vitest.mcp-app-preact.config.ts).
+      - run: npm run test:mcp-app:preact
+        working-directory: frontend
+      - run: npx playwright install --with-deps chromium
+        working-directory: frontend
+      # The MCP App browser probes read backend/src/sidekick/mcp/apps/sidekick.html, so the
+      # resource is rebuilt from source before any probe runs, and the checked-in copy (which
+      # the backend image ships) must equal that build. A probe can then never pass on stale HTML.
+      - run: npm run build:mcp-app
+        working-directory: frontend
+      - name: Checked-in MCP App resource matches the source build
+        run: git diff --exit-code -- backend/src/sidekick/mcp/apps/sidekick.html
+      - run: npm run test:mcp-app
+        working-directory: frontend
+      # The mobile audit runs on the same simulated host.
+      - name: Mobile audit (simulated MCP host)
+        run: npx playwright test --config playwright.mobile-audit.config.ts
+        working-directory: frontend
+        env:
+          MOBILE_AUDIT_OUT: ${{ runner.temp }}/mobile-audit
+
+  migration-policy:
+    # Every shipped migration is checked: since the 0.1.0 baseline each one passes or declares its class.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - run: python3 tools/check-migration-policy.py --all
+
+  android:
+    # JVM unit tests, lint and the R8-minified release build of the Android shell. The release APK is unsigned: no
+    # signing key is available to CI. The emulator smoke test is the separate android-emulator job.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          {
+            node-version-file: .node-version,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            frontend/android/**/*.gradle*
+            frontend/android/gradle/wrapper/gradle-wrapper.properties
+      - run: npm ci
+        working-directory: frontend
+      # Capacitor resolves its Android modules from node_modules and generates the cordova plugin module
+      # and the packaged web assets on sync, so the mobile bundle is built and synced before Gradle runs.
+      - run: npm run build:mobile
+        working-directory: frontend
+      - run: npx cap sync android
+        working-directory: frontend
+      - run: ./gradlew :app:ktlintCheck :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+        working-directory: frontend/android
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sidekick-release-unsigned-apk
+          path: frontend/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  android-emulator:
+    # Instrumented smoke test of pairing and the Capacitor bridge on an emulator (API 36, x86_64). A simulated device,
+    # not a real phone: it proves the wiring, not a manufacturer's battery management or a real network. The image
+    # must ship a WebView at the app's minimum (Chromium 123; this one has 133): on an older one the bridge test is
+    # skipped, because the app then shows its update screen instead of creating a bridge.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          {
+            node-version-file: .node-version,
+            cache: npm,
+            cache-dependency-path: frontend/package-lock.json,
+          }
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+          cache-dependency-path: |
+            frontend/android/**/*.gradle*
+            frontend/android/gradle/wrapper/gradle-wrapper.properties
+      - run: npm ci
+        working-directory: frontend
+      # Same sync as in the android job: Capacitor generates the cordova plugin module and the web assets here.
+      - run: npm run build:mobile
+        working-directory: frontend
+      - run: npx cap sync android
+        working-directory: frontend
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          working-directory: frontend/android
+          script: ./gradlew :app:connectedDebugAndroidTest
+
+  secrets:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { fetch-depth: 0, persist-credentials: false }
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+
+  shellcheck:
+    # Every tracked shell script: *.sh files and extensionless files whose first line is a sh or bash shebang.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends shellcheck
+      - name: shellcheck every tracked shell script
+        run: |
+          git ls-files -z | while IFS= read -r -d '' file; do
+            case "$file" in
+              *.sh) ;;
+              *) [ -f "$file" ] && head -c 128 "$file" | head -n 1 | grep -aEq '^#!.*\b(ba)?sh\b' || continue ;;
+            esac
+            printf '%s\0' "$file"
+          done | xargs -0 -r shellcheck --severity=warning
+
+  dependency-audit:
+    # Part of every CI run, whatever files the release touches: a vulnerable dependency is a defect.
+    # The job itself lives in audit.yml so it can also be started on its own by hand.
+    permissions:
+      contents: read
+    uses: ./.github/workflows/audit.yml
+
+  images:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - run: docker build -f backend/Dockerfile -t roadlake-sidekick:${{ github.sha }} .

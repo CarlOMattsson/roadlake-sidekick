@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { JournalView } from "@/features/journal-app/journal-view";
 import { journalEn, journalSv } from "@/features/journal-app/labels";
@@ -106,6 +106,12 @@ describe("transport arguments", () => {
 
 describe("writing a new entry", () => {
   it("blocks an empty title and sends the day, the words and a key", async () => {
+    // Another day than the one written to, so the entry is placed on that day rather than left to the server.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-12T10:00:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const user = userEvent.setup();
     const writeEntry = vi
       .fn<NonNullable<JournalTransport["writeEntry"]>>()
@@ -145,7 +151,8 @@ describe("writing a new entry", () => {
       journal_date: "2026-10-24",
       title: "Rubrik",
       source_text: "Dagens text",
-      occurred_at: new Date(2026, 9, 24, 12).toISOString(),
+      // Noon on 24 October on the owner's clock (Europe/Stockholm, UTC+2 until the clocks go back on the 25th).
+      occurred_at: "2026-10-24T10:00:00.000Z",
     });
     expect(key.length).toBeGreaterThanOrEqual(8);
     expect(await screen.findByText(journalSv.entryCreated)).toBeVisible();

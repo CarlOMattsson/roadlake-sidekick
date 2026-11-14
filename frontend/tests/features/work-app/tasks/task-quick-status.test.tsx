@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
 import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
@@ -374,17 +374,9 @@ async function dueLine(labels: WorkLabels = workEn): Promise<HTMLElement> {
   return chip.querySelector<HTMLElement>("span") ?? chip;
 }
 
-/** 23:59 local time `days` days from now, as the date choices write it. */
-function endOfDayFromNow(days: number): string {
-  const now = new Date();
-  return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + days,
-    23,
-    59,
-  ).toISOString();
-}
+// Thursday 12 November 2026, 11:00 on the owner's clock (Europe/Stockholm, UTC+1), and the end of the next day there.
+const FROZEN_NOW = new Date("2026-11-12T10:00:00.000Z");
+const END_OF_TOMORROW = "2026-11-13T22:59:00.000Z";
 
 describe("TaskFrame due date", () => {
   it("puts how late a passed date is on its own line above the chips, and a coming date shows only the date, with no Förföll or Förfaller prefix", async () => {
@@ -505,9 +497,14 @@ describe("TaskFrame due date", () => {
   });
 
   it("offers Add date without a due date, and Tomorrow writes due_at 23:59 tomorrow through update_task", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(FROZEN_NOW);
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
     const work = transport({
       updateTask: vi.fn().mockResolvedValue({
-        task: { ...taskA, due_at: endOfDayFromNow(1), version: 2 },
+        task: { ...taskA, due_at: END_OF_TOMORROW, version: 2 },
       }),
     });
     renderTask(work);
@@ -535,7 +532,7 @@ describe("TaskFrame due date", () => {
       expect(work.updateTask).toHaveBeenCalledWith(
         taskA.id,
         1,
-        { due_at: endOfDayFromNow(1) },
+        { due_at: END_OF_TOMORROW },
         expect.any(String),
       ),
     );
@@ -552,7 +549,10 @@ describe("TaskFrame due date", () => {
   it("writes a chosen date from the date input, and Escape closes the choices", async () => {
     const work = transport({
       getTask: vi.fn().mockResolvedValue({
-        task: { ...taskA, due_at: endOfDayFromNow(3) },
+        task: {
+          ...taskA,
+          due_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+        },
       }),
     });
     renderTask(work);

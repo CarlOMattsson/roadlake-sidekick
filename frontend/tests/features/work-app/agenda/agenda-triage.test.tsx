@@ -64,7 +64,7 @@ it("an overdue Task keeps Tomorrow, Next week and Done off its row; its quick ch
   ).toBeEnabled();
 });
 
-it("Tomorrow writes 23:59 local time tomorrow at the version the row shows, and Undo names the move", async () => {
+it("Tomorrow writes 23:59 owner time tomorrow at the version the row shows, and Undo names the move", async () => {
   const user = userEvent.setup();
   const { transport, updateTask } = makeTransport();
   renderAgenda([overdue], transport);
@@ -76,7 +76,7 @@ it("Tomorrow writes 23:59 local time tomorrow at the version the row shows, and 
     expect(updateTask).toHaveBeenCalledWith(
       TASK_ID,
       3,
-      { due_at: new Date(2026, 9, 30, 23, 59).toISOString() },
+      { due_at: "2026-10-30T22:59:00.000Z" },
       expect.any(String),
     ),
   );
@@ -96,7 +96,7 @@ it("Next week writes 23:59 on the Monday of next week, which is 2 November from 
     expect(updateTask).toHaveBeenCalledWith(
       TASK_ID,
       3,
-      { due_at: new Date(2026, 10, 2, 23, 59).toISOString() },
+      { due_at: "2026-11-02T22:59:00.000Z" },
       expect.any(String),
     ),
   );
@@ -218,30 +218,26 @@ it("the Undo line of a due move reads 'Flyttad till imorgon' in Swedish, with th
   expect(line).toHaveTextContent("Flyttad till imorgon");
 });
 
-it("the triage instants are 23:59 local, and next week is always a later Monday", () => {
+it("the triage instants are 23:59 on the owner calendar, and next week is always a later Monday", () => {
   // Monday 26 October: next week starts on Monday 2 November, not on the same day.
-  expect(triageDueAt(new Date(2026, 9, 26, 10), "nextWeek")).toBe(
-    new Date(2026, 10, 2, 23, 59).toISOString(),
+  expect(triageDueAt(new Date("2026-10-26T09:00:00.000Z"), "nextWeek")).toBe(
+    "2026-11-02T22:59:00.000Z",
   );
   // Sunday 1 November: tomorrow and next week are the same Monday.
-  expect(triageDueAt(new Date(2026, 10, 1, 10), "tomorrow")).toBe(
-    new Date(2026, 10, 2, 23, 59).toISOString(),
+  expect(triageDueAt(new Date("2026-11-01T09:00:00.000Z"), "tomorrow")).toBe(
+    "2026-11-02T22:59:00.000Z",
   );
-  expect(triageDueAt(new Date(2026, 10, 1, 10), "nextWeek")).toBe(
-    new Date(2026, 10, 2, 23, 59).toISOString(),
+  expect(triageDueAt(new Date("2026-11-01T09:00:00.000Z"), "nextWeek")).toBe(
+    "2026-11-02T22:59:00.000Z",
   );
   // Thursday 29 October: tomorrow is Friday 30 October at 23:59.
-  expect(triageDueAt(NOW, "tomorrow")).toBe(
-    new Date(2026, 9, 30, 23, 59).toISOString(),
-  );
+  expect(triageDueAt(NOW, "tomorrow")).toBe("2026-10-30T22:59:00.000Z");
 });
 
-it("the Idag instant is 23:59 local on the same day, also late in the day", () => {
-  expect(triageDueAt(NOW, "today")).toBe(
-    new Date(2026, 9, 29, 23, 59).toISOString(),
-  );
-  expect(triageDueAt(new Date(2026, 9, 29, 23, 30), "today")).toBe(
-    new Date(2026, 9, 29, 23, 59).toISOString(),
+it("the Idag instant is 23:59 on the owner calendar on the same day, also late in the day", () => {
+  expect(triageDueAt(NOW, "today")).toBe("2026-10-29T22:59:00.000Z");
+  expect(triageDueAt(new Date("2026-10-29T22:30:00.000Z"), "today")).toBe(
+    "2026-10-29T22:59:00.000Z",
   );
 });
 
@@ -346,7 +342,7 @@ it("the quick choices of a Task that is not overdue offer New date: Tomorrow wri
     expect(updateTask).toHaveBeenCalledWith(
       OTHER_ID,
       1,
-      { due_at: new Date(2026, 9, 30, 23, 59).toISOString() },
+      { due_at: "2026-10-30T22:59:00.000Z" },
       expect.any(String),
     ),
   );
