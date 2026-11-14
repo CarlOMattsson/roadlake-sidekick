@@ -662,6 +662,32 @@ def test_the_api_must_pass_readiness_not_only_run_the_new_image(harness: Harness
     assert exec_calls[-1]["args"][-3:-1] == ["python", "-c"]
 
 
+def test_decrypting_a_snapshot_uses_the_running_api_instead_of_a_second_container(
+    harness: Harness,
+) -> None:
+    """api has a fixed proxy address: a one-off api container beside a running one cannot start."""
+
+    snapshot = harness.directory / "snapshot.enc"
+    snapshot.write_bytes(b"SIDEKICK-SNAPSHOT-1\nfake")
+    result = harness.run("--decrypt-snapshot", str(snapshot), FAKE_READY_IMAGES=PREVIOUS)
+    assert result.returncode == 0, result.stderr
+    subs = [call["sub"] for call in harness.calls()]
+    assert subs == ["exec"]
+
+
+def test_decrypting_a_snapshot_starts_a_one_off_api_container_when_api_is_stopped(
+    harness: Harness,
+) -> None:
+    state = json.loads(harness.state_path.read_text())
+    state["running"]["api"] = False
+    harness.state_path.write_text(json.dumps(state), encoding="utf-8")
+    snapshot = harness.directory / "snapshot.enc"
+    snapshot.write_bytes(b"SIDEKICK-SNAPSHOT-1\nfake")
+    result = harness.run("--decrypt-snapshot", str(snapshot))
+    assert result.returncode == 0, result.stderr
+    assert [call["sub"] for call in harness.calls()] == ["run"]
+
+
 def test_dry_run_names_the_workers_and_calls_nothing(harness: Harness) -> None:
     result = harness.run()
     assert result.returncode == 0

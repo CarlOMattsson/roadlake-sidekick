@@ -130,18 +130,23 @@ class Selfhost:
         files = ["-f", str(self.dir / "compose.yaml"), "-f", str(self.dir / "drill.override.yaml")]
         return ["bash", str(self.dir / "update.sh"), "-p", self.project, *files, *args]
 
-    def crypto_argv(self, mode: str, *options: str) -> list[str]:
+    def crypto_argv(self, step: Step, mode: str, *options: str) -> list[str]:
+        """api keeps a fixed address on the proxy network, so a one-off api container cannot start beside a running
+        one: a running api runs the tool itself, a one-off container is used only when api is stopped (as update.sh
+        does)."""
         script = (self.dir / "snapshot_crypto.py").read_text(encoding="utf-8").rstrip("\n")
-        return self.compose("run", "--rm", "-T", "--no-deps", *options, "api", "python", "-I", "-c", script, mode)
+        running = step.read_bytes(self.compose("ps", "--status", "running", "--quiet", "api")).strip()
+        mode_args = ("exec", "-T") if running else ("run", "--rm", "-T", "--no-deps")
+        return self.compose(*mode_args, *options, "api", "python", "-I", "-c", script, mode)
 
     def crypto(self, step: Step, mode: str, data: bytes) -> bytes:
-        """``data`` through ``snapshot_crypto.py`` in a one-off container, with the key of ``selfhost.env`` (the
+        """``data`` through ``snapshot_crypto.py`` in the api container, with the key of ``selfhost.env`` (the
         container's env_file), the way update.sh does it."""
-        return step.read_bytes(self.crypto_argv(mode), stdin=data)
+        return step.read_bytes(self.crypto_argv(step, mode), stdin=data)
 
     def crypto_with_key(self, step: Step, key: str, mode: str, data: bytes) -> Done:
         """The same with another key (wrong or empty), given through the environment, never on a command line."""
-        return step.call(self.crypto_argv(mode, "-e", KEY_VARIABLE), stdin=data, env={KEY_VARIABLE: key})
+        return step.call(self.crypto_argv(step, mode, "-e", KEY_VARIABLE), stdin=data, env={KEY_VARIABLE: key})
 
     def write_env(self, app: str, backup_key: str, owner: str, tenant: str) -> None:
         target = self.dir / "selfhost.env"

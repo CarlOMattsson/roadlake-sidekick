@@ -274,7 +274,14 @@ compose() { # release.env (if any) is a second env file, so a pinned SIDEKICK_AP
 CRYPTO_SCRIPT="$SCRIPT_DIR/snapshot_crypto.py"
 crypto_run() {
   [ -f "$CRYPTO_SCRIPT" ] || { echo "update.sh: snapshot_crypto.py not found next to this script" >&2; return 1; }
-  compose run --rm -T --no-deps api python -I -c "$(cat "$CRYPTO_SCRIPT")" "$1"
+  # api holds a fixed address on the proxy network (the one peer address Caddy's forwarded headers are trusted from), so
+  # a second api container cannot start beside a running one ("Address already in use"): a running api runs the tool
+  # itself, and a one-off container is used only when api is stopped (as it is while an update takes its snapshot).
+  if [ -n "$(compose ps --status running --quiet api)" ]; then
+    compose exec -T api python -I -c "$(cat "$CRYPTO_SCRIPT")" "$1"
+  else
+    compose run --rm -T --no-deps api python -I -c "$(cat "$CRYPTO_SCRIPT")" "$1"
+  fi
 }
 
 if [ -n "$image" ] && ! [[ "$image" =~ $IMAGE_RE ]]; then

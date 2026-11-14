@@ -182,8 +182,10 @@ jobs:
           retention-days: 7
 
   android-emulator:
-    # Instrumented smoke test of pairing and the Capacitor bridge on an emulator (API 34, x86_64). A simulated device,
-    # not a real phone: it proves the wiring, not a manufacturer's battery management or a real network.
+    # Instrumented smoke test of pairing and the Capacitor bridge on an emulator (API 36, x86_64). A simulated device,
+    # not a real phone: it proves the wiring, not a manufacturer's battery management or a real network. The image
+    # must ship a WebView at the app's minimum (Chromium 123; this one has 133): on an older one the bridge test is
+    # skipped, because the app then shows its update screen instead of creating a bridge.
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -218,8 +220,8 @@ jobs:
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
-          api-level: 34
-          target: default
+          api-level: 36
+          target: google_apis
           arch: x86_64
           disable-animations: true
           working-directory: frontend/android

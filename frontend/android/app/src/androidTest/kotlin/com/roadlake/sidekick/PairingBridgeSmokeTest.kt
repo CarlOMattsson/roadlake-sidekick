@@ -1,6 +1,7 @@
 package com.roadlake.sidekick
 
 import android.content.Context
+import android.view.View
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -33,7 +34,8 @@ import java.util.UUID
  * ends with nothing left behind. There is no server and no network traffic: the pairing is written to local stores.
  *
  * Simulated, not real: this proves the wiring on one emulator image. It says nothing about a real phone's battery
- * management, a real server or a Claude host.
+ * management, a real server or a Claude host. The bridge test needs a WebView at the app's minimum; on an image with an
+ * older one it is skipped and the update-screen test runs in its place.
  */
 @RunWith(AndroidJUnit4::class)
 class PairingBridgeSmokeTest {
@@ -51,11 +53,33 @@ class PairingBridgeSmokeTest {
     }
 
     @Test
+    fun webViewTooOldShowsTheExplanationInsteadOfABlankPage() {
+        val webView = WebViewRequirement.check(context)
+        assumeTrue("the installed WebView is new enough for the page: $webView", webView is WebViewRequirement.Verdict.TooOld)
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                assertNotNull("the update screen is shown", activity.findViewById<View>(R.id.webview_too_old_root))
+                assertNull("no bridge is created for a WebView that is too old", activity.bridge)
+            }
+        }
+    }
+
+    @Test
     fun bridgeRegistersTheSidekickNativePluginWithItsMethods() {
+        // MainActivity creates the bridge synchronously in onCreate, but only when the installed WebView is new enough
+        // for the page. The stock emulator images ship an older WebView than the app's minimum: there the app shows its
+        // update screen and has no bridge, which the test above checks instead.
+        val webView = WebViewRequirement.check(context)
+        assumeTrue(
+            "the installed WebView is older than the app's minimum: $webView",
+            webView !is WebViewRequirement.Verdict.TooOld,
+        )
+
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             scenario.onActivity { activity ->
                 val bridge = activity.bridge
-                assertNotNull("the bridge is created", bridge)
+                assertNotNull("the bridge is created (WebView: $webView)", bridge)
                 assertNotNull("the WebView is created", bridge.webView)
 
                 val handle = bridge.getPlugin("SidekickNative")

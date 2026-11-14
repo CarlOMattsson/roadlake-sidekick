@@ -8,18 +8,24 @@
 # line): a real or random-looking value on an `idempotency_key=` line or in a placeholder constant is a
 # different match and is still reported, as is everything outside the test directories (production code,
 # deploy files, docs, env examples). Changing a fixture value or adding one needs its entry here.
+# Written for gitleaks 8.24.x, the version the CI action installs: the exception sits on the rule itself
+# (`[[rules.allowlists]]`), because the global `[[allowlists]]` table only exists from 8.25 on and older
+# releases ignore it silently, which leaves every finding unexempted.
 # The path pattern accepts both a relative path (history scan) and an absolute one (`gitleaks dir /repo`).
 title = "Roadlake Sidekick gitleaks configuration"
 
 [extend]
 useDefault = true
 
-[[allowlists]]
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
 description = "Synthetic fixtures in test code"
 condition = "AND"
-targetRules = ["generic-api-key"]
 paths = [
   '''(^|/)(backend|frontend)/tests/''',
+  '''(^|/)frontend/android/app/src/(test|testShared|androidTest)/''',
 ]
 regexTarget = "match"
 regexes = [
@@ -30,8 +36,11 @@ regexes = [
   '''^SECRET_NOTE,\ relationship="$''',
   '''^SECRET_TOPIC\ =\ "upSecretTopic123abc"$''',
   '''^TOKEN\ =\ "rsc_0123456789abcdef0123456789abcdef"$''',
+  '''^TOKEN\ =\ "rsc_abcdefghijklmnopqrstuvwxyz0123456789"$''',
+  '''^TOKEN\ =\ "tk_abcdefghijklmnopqrstuvwxyz012"$''',
   '''^TOKEN,\ id_derivation_key="$''',
   '''^TOKEN,\ id_derivation_key=KEY$''',
+  '''^idempotency_key:\ "key\-0123456789"$''',
   '''^idempotency_key":\ "append\-limits\-1"$''',
   '''^idempotency_key":\ "append\-limits\-2"$''',
   '''^idempotency_key":\ "brief\-purchase\-1"$''',
@@ -42,5 +51,6 @@ regexes = [
   '''^idempotency_key="mcp\-pending\-other\-1"$''',
   '''^key,\ correlation_id="$''',
   '''^key:\ Ed25519PrivateKey\ $''',
+  '''^token\ =\ "rsc_abcdefghijklmnopqrstuvwxyz0123456789"$''',
   '''^secret,\ idempotency_key="$''',
 ]

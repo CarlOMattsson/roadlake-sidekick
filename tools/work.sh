@@ -49,10 +49,6 @@ BACKUPS="$WORK/backups"
 LOG="$WORK/work.log"
 PROJECT="${SIDEKICK_WORK_PROJECT:-sidekick-work}"
 GATEWAY_NAME=model.work.internal
-KEEP_BACKUPS="${SIDEKICK_WORK_KEEP_BACKUPS:-7}"
-# The exact form of a finished backup file: only such names are measured and pruned.
-DB_ERE='sidekick-[0-9]{8}-[0-9]{6}\.sql\.enc'
-MEM_ERE='hindsight-[0-9]{8}-[0-9]{6}\.tar\.gz\.enc'
 ALLOW_PARSED=""
 L=sv
 DEFAULT_ROOMS="work,journal,contacts,control"
