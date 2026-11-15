@@ -339,7 +339,7 @@ describe("the tag filter of the day view", () => {
   it("leaves the list when another day is chosen in the strip", async () => {
     // The strip follows today, so today is fixed for the day the test picks in it.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-10-26T12:00:00"));
+    vi.setSystemTime(new Date("2026-10-26T12:00:00Z"));
     onTestFinished(() => {
       vi.useRealTimers();
     });

@@ -82,7 +82,7 @@ afterAll(() => {
 beforeAll(async () => {
   // Today is pinned (the Date only, timers stay real), so "idag" and the year rule are fixed.
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-03T12:00:00"));
+  vi.setSystemTime(new Date("2026-11-03T12:00:00Z"));
   // The Sidekick setting is declared explicitly; the host's en-GB locale must not change it.
   document.head.innerHTML = '<meta name="sidekick-app-locale" content="sv">';
   document.body.innerHTML = '<div id="root"></div>';

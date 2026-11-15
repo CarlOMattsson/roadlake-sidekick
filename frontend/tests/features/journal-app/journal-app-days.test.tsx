@@ -21,7 +21,7 @@ describe("journal day strip dots and Tell Claude more", () => {
   it("marks every day with entries from one dates read for the seven shown days", async () => {
     // Today is Monday 2 November; 24 October is in the seven days that end on 26 October.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const listEntryDates = vi.fn(() => Promise.resolve(["2026-10-21"]));
       const transport = transportMock({ listEntryDates });
@@ -53,7 +53,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("keeps only the read day's dot when the dates read fails", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const listEntryDates = vi.fn(() => Promise.reject(new Error("offline")));
       const transport = transportMock({ listEntryDates });
@@ -77,7 +77,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("offers Tell Claude about the day as a round ink + in the title row before the ⋯ on a day with entries, naming the day in the message", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const user = userEvent.setup();
       const onTellClaude = vi.fn();
@@ -123,7 +123,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("sends the message without a date from today's +, with the date from another day's", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const user = userEvent.setup();
       const onTellClaude = vi.fn();
@@ -148,7 +148,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("asks Claude through the example button, with no + and no Entries heading, on a day with only a summary", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const user = userEvent.setup();
       const onTellClaude = vi.fn();
@@ -181,7 +181,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("draws the empty day as the family's empty state with no + and the example as the main thing", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       render(
         <JournalView
@@ -214,7 +214,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("shows no Entries heading on an empty day, only the sentence and the example to send to Claude", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const user = userEvent.setup();
       const onTellClaude = vi.fn();
@@ -249,7 +249,7 @@ describe("journal day strip dots and Tell Claude more", () => {
 
   it("names the lead and the example button in English and in Swedish", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const empty = { kind: "day" as const, page: emptyDay("2026-11-02") };
       const { unmount } = render(

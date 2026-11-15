@@ -2,7 +2,7 @@
 // folded and open, no section when nothing was done, an older answer without `done`, and the transport's check.
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { doneCountLine } from "@/features/journal-app/done-section";
 import { journalEn, journalSv } from "@/features/journal-app/labels";
 import { JournalView } from "@/features/journal-app/journal-view";
@@ -411,6 +411,15 @@ describe("Gjort in the transport", () => {
 });
 
 describe("Gjort rows per kind", () => {
+  // The day strip shows the seven days that end on today, so the clock is pinned to midday UTC on the fixture's day (the same calendar day in the app's own time zone).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${DATE}T12:00:00Z`));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   /** Six tasks: three more than a kind shows before "Visa alla (6)". */
   function busy(): JournalDone {
     const base = done();

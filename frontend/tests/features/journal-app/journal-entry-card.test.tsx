@@ -122,7 +122,7 @@ afterAll(() => {
 beforeAll(async () => {
   // Today is pinned (the Date only, timers stay real), so "today", "yesterday" and the year rule are fixed.
   vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(new Date("2026-11-03T12:00:00"));
+  vi.setSystemTime(new Date("2026-11-03T12:00:00Z"));
   // The app reads its language once, when sidekick-entry is imported, so the Sidekick setting goes in first.
   document.head.innerHTML = '<meta name="sidekick-app-locale" content="en">';
   document.body.innerHTML = '<div id="root"></div>';

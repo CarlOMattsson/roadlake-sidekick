@@ -132,7 +132,7 @@ describe("journal app navigation", () => {
   it("puts Today on the heading row and removes it while today is shown", async () => {
     // Pin only the clock, so today is 2 November and the shown day is 24 October.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const user = userEvent.setup();
       const transport = transportMock();
@@ -169,7 +169,7 @@ describe("journal app navigation", () => {
     // Today is Monday 2 November; the seven days that end on it include 30 October. The strip's own cell for
     // today is the way back, so the Today button is not offered.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const transport = transportMock();
       render(
@@ -208,7 +208,7 @@ describe("journal app navigation", () => {
   it("steps the day with [ and ] and jumps to today with t", async () => {
     // Pin only the clock, not the timers, so "today" is a known date and not the day the suite runs.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date(2026, 10, 2, 12));
+    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
       const transport = transportMock();
       render(
