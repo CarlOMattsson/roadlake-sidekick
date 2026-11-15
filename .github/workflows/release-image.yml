@@ -644,7 +644,9 @@ jobs:
     # checks the collected files against what the trusted jobs reported: the APK against the sha256 sign-apk
     # computed, the image digest and the SBOM against the digest release pushed. Any difference stops the run.
     needs: [gates, bundle, release, sign-apk]
-    if: ${{ !inputs.dry_run }}
+    # !cancelled(): bundle needs build-dry, which a real run skips, and a skipped ancestor skips every job whose
+    # condition does not say otherwise. The results are checked instead.
+    if: ${{ !cancelled() && !inputs.dry_run && needs.gates.result == 'success' && needs.bundle.result == 'success' && needs.release.result == 'success' && needs.sign-apk.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: release-signing
@@ -781,7 +783,7 @@ jobs:
     # Registry write only: no id-token, no checkout, no repository script. The check that the tag did not exist yet
     # is the one at the start of release; the concurrency group keeps two runs from racing between the two.
     needs: [gates, release, sign-bundle]
-    if: ${{ !inputs.dry_run }}
+    if: ${{ !cancelled() && !inputs.dry_run && needs.gates.result == 'success' && needs.release.result == 'success' && needs.sign-bundle.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: release-signing

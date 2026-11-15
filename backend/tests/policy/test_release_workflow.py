@@ -147,7 +147,7 @@ def test_the_image_is_pushed_by_digest_and_gets_its_version_tag_last() -> None:
     ]
     assert tagging == ["tag-image"]
     assert jobs["tag-image"]["needs"] == ["gates", "release", "sign-bundle"]
-    assert jobs["tag-image"]["if"] == NOT_DRY
+    assert skipped_in_a_dry_run(jobs["tag-image"]["if"])
     assert needs_closure("tag-image") >= {"release", "sign-bundle", "sign-apk", "bundle"}
     assert "id-token" not in permissions(jobs["tag-image"])
     script = next(s for s in steps("tag-image") if "imagetools create" in str(s.get("run")))["run"]
@@ -161,8 +161,29 @@ def test_the_image_is_pushed_by_digest_and_gets_its_version_tag_last() -> None:
     assert refusal < release.index(next(s for s in release if s.get("id") == "build"))
 
 
+def skipped_in_a_dry_run(condition: object) -> bool:
+    """True for `!inputs.dry_run` alone or as one term of a plain `&&` chain (no `||`)."""
+    if condition == NOT_DRY:
+        return True
+    if not isinstance(condition, str) or " || " in condition:
+        return False
+    body = condition.removeprefix("${{ ").removesuffix(" }}")
+    return "!inputs.dry_run" in body.split(" && ")
+
+
+def only_in_a_dry_run(jobs: dict[str, Any]) -> set[str]:
+    """Jobs a real run skips (build-dry): a job downstream of one needs a status function."""
+    return {
+        name
+        for name, job in jobs.items()
+        if " || " not in str(job.get("if", ""))
+        and "inputs.dry_run"
+        in str(job.get("if", "")).removeprefix("${{ ").removesuffix(" }}").split(" && ")
+    }
+
+
 def jobs_skipped_in_a_dry_run() -> set[str]:
-    return {name for name, job in workflow()["jobs"].items() if job.get("if") == NOT_DRY}
+    return {name for name, job in workflow()["jobs"].items() if skipped_in_a_dry_run(job.get("if"))}
 
 
 def permissions(job: dict[str, Any]) -> dict[str, str]:
@@ -738,7 +759,7 @@ def test_the_owner_approves_once_at_one_gate_and_the_signing_jobs_cannot_skip_it
     assert jobs_skipped_in_a_dry_run() >= SIGNING_ENVIRONMENT_JOBS | reviewed
     for name in in_signing:
         assert "signing-check" in needs_closure(name), name
-        assert jobs[name]["if"] == NOT_DRY, name
+        assert skipped_in_a_dry_run(jobs[name]["if"]), name
     # Nothing that signs, pushes or reads a secret sits outside the signing environment.
     for name, job in jobs.items():
         text = yaml.safe_dump(job)
@@ -766,7 +787,7 @@ def test_a_job_that_needs_a_skippable_job_checks_its_needs_with_a_status_functio
     skippable = {name for name, job in jobs.items() if "if" in job}
     for name, job in jobs.items():
         condition = str(job.get("if", ""))
-        if job.get("if") == NOT_DRY:
+        if job.get("if") == NOT_DRY and not needs_closure(name, jobs) & only_in_a_dry_run(jobs):
             continue  # skipped in a dry run, and in a real run every ancestor has succeeded
         if not needs_closure(name, jobs) & skippable:
             continue
@@ -919,3 +940,16 @@ def test_the_version_must_be_higher_than_every_release_tag(
     assert (result.returncode == 0) is accepted, result.stderr
     if not accepted:
         assert "not higher than" in result.stderr
+
+
+def test_the_jobs_after_bundle_run_although_build_dry_is_skipped() -> None:
+    """A real run skips build-dry; without !cancelled() GitHub skips all that depends on it."""
+    jobs = workflow()["jobs"]
+    for name, needed in (
+        ("sign-bundle", ("gates", "bundle", "release", "sign-apk")),
+        ("tag-image", ("gates", "release", "sign-bundle")),
+    ):
+        condition = jobs[name]["if"]
+        assert "!cancelled()" in condition and "!inputs.dry_run" in condition, name
+        for need in needed:
+            assert f"needs.{need}.result == 'success'" in condition, (name, need)
