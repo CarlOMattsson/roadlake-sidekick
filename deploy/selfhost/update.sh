@@ -80,7 +80,7 @@ JOURNAL="$STATE_DIR/journal.log"
 LOCK_FILE="$STATE_DIR/update.lock" # flock target, never deleted
 LOCK_PID_FILE="$STATE_DIR/update.lock.pid" # informational: pid of the run that holds LOCK_FILE
 DEFAULT_ISSUER="https://token.actions.githubusercontent.com"
-HEALTH_TIMEOUT="${SIDEKICK_UPDATE_HEALTH_TIMEOUT:-180}"
+HEALTH_TIMEOUT="${SIDEKICK_UPDATE_HEALTH_TIMEOUT:-300}"
 IMAGE_RE='^[a-z0-9][a-z0-9._:/-]*@sha256:[0-9a-f]{64}$'
 LABEL_CLASS="io.sidekick.migration-class"
 LABEL_VERSION="org.opencontainers.image.version"
@@ -97,14 +97,14 @@ policy() { python3 -I "$POLICY_PY" "$@"; }
 # (start_api only recreates a running caddy, so that it picks up the current network configuration).
 WORKERS=(":automation-worker" "backup:backup" "push:push" "memory:memory-worker")
 # Run inside the api container; exit 0 = ready. The api healthcheck in compose.yaml holds the same code (a test
-# keeps them equal). 1) The running api process must answer HTTP within 3 s: 2xx, or the intended 404 (the public
+# keeps them equal). 1) The running api process must answer HTTP within 10 s: 2xx, or the intended 404 (the public
 # surface hides /health/* in github_oauth mode); any other status (500, 503, ...) or a hung process fails. 2) If this image has the readiness
 # module, the database must answer and the schema must be at the image's revision. An older image has no such
 # module and is judged by 1) alone, so rolling back to it is not refused.
 # shellcheck disable=SC2016
 READINESS_PY='import importlib.util, sys, urllib.error, urllib.request
 try:
-    urllib.request.urlopen("http://127.0.0.1:8000/health/live", timeout=3)
+    urllib.request.urlopen("http://127.0.0.1:8000/health/live", timeout=10)
 except urllib.error.HTTPError as error:
     if error.code != 404:
         sys.exit(1)

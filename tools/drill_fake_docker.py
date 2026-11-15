@@ -343,7 +343,7 @@ class FakeDocker:
         )
         if sub == "config":
             out(
-                "postgres:18.4-alpine\nghcr.io/vectorize-io/hindsight@sha256:"
+                "postgres:18.6-alpine\nghcr.io/vectorize-io/hindsight@sha256:"
                 + "d" * 64
                 + "\n"
             )

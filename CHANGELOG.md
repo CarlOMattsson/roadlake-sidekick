@@ -6,9 +6,11 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-11-14
+## [0.1.1] - 2026-11-15
 
 The first public release.
+
+Version 0.1.0 was never released. A release run stopped at the image scan after it had already pushed an unsigned `v0.1.0` image tag, and a version tag is never moved, so the first release is 0.1.1. The release workflow now scans, signs and attests the image by digest before it creates the version tag.
 
 ### Added
 

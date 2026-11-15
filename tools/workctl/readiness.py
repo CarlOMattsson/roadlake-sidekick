@@ -8,13 +8,13 @@ from collections.abc import Callable
 from .stack import Stack
 
 # Run inside the api container; exit 0 = ready. The same code as READINESS_PY in deploy/selfhost/update.sh and as the
-# selfhost api healthcheck (a test keeps them equal). 1) The running api process must answer HTTP within 3 s: 2xx, or
+# selfhost api healthcheck (a test keeps them equal). 1) The running api process must answer HTTP within 10 s: 2xx, or
 # the intended 404 (the public surface hides /health/* in github_oauth mode); any other status or a hung process fails.
 # 2) If the image has the readiness module, the database must answer with the runtime role and the schema must be at
 # the image's revision. The container merely being up is not enough.
 READINESS_PY = """import importlib.util, sys, urllib.error, urllib.request
 try:
-    urllib.request.urlopen("http://127.0.0.1:8000/health/live", timeout=3)
+    urllib.request.urlopen("http://127.0.0.1:8000/health/live", timeout=10)
 except urllib.error.HTTPError as error:
     if error.code != 404:
         sys.exit(1)
@@ -24,7 +24,7 @@ if importlib.util.find_spec("sidekick.shared.readiness") is None:
     sys.exit(0)
 from sidekick.shared.readiness import main
 main()"""
-DEFAULT_TIMEOUT = "180"
+DEFAULT_TIMEOUT = "300"
 DEFAULT_POLL = "3"
 
 

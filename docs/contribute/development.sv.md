@@ -64,9 +64,10 @@ Docker behövs för shellcheck, gitleaks och Playwright-testerna: de körs i de 
 fel.
 
 Som standard kör den inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna eller
-kontraktsdiffen. Lägg till `--release` för att köra dem också, och drillen, i samma ordning som release-CI (se
+kontraktsdiffen. Lägg till `--release` för att köra dem också, och avbildsskanningen (Trivy över API-avbilden byggd
+från din utcheckning, som releasekörningen skannar den) och drillen, i samma ordning som release-CI (se
 [releasechecklistan](../maintainers/release.sv.md)); beroendegranskningen kräver nätverk och rapporteras som `SKIPPED`
-när det inte nås. Emulatortestet, avbildsbygget och Compose-röktestet lämnas åt release-CI, så kör de nedan som hör
+när det inte nås, och det gör avbildsskanningen utan Docker. Emulatortestet, det fleraplattformiga avbildsbygget och Compose-röktestet lämnas åt release-CI, så kör de nedan som hör
 till det du har ändrat. Före varje release: kör `bash tools/check-all.sh --slot K --release` och starta sedan `ci.yml`
 för hand i det publika repot.
 

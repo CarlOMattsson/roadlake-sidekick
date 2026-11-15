@@ -190,14 +190,21 @@ def test_a_retag_that_fails_is_said_plainly_and_the_old_version_is_not_claimed(
     assert "the previous version runs again" not in shown.out + shown.err
 
 
-@pytest.mark.parametrize(
-    "failing",
-    [MIGRATE, "--force-recreate", "compose up -d --wait --wait-timeout 420"],
-)
+START_ALL = "compose up -d --wait --wait-timeout 600"
+
+
+class StartAllFails(Update):
+    """The start of every service fails; the start of single services (the writers) still works."""
+
+    def __call__(self, call: str) -> object:
+        return False if call == START_ALL else super().__call__(call)
+
+
+@pytest.mark.parametrize("failing", [MIGRATE, "--force-recreate", START_ALL])
 def test_from_the_migration_on_nothing_is_restored_and_the_writers_stay_stopped(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], failing: str
 ) -> None:
-    answer = Update(fail=(failing,))
+    answer = StartAllFails() if failing == START_ALL else Update(fail=(failing,))
     stack = _stack(tmp_path, answer)
     assert _run(stack) == 1
     assert answer.head == AFTER, "the code is not moved back"

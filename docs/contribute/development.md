@@ -63,9 +63,10 @@ prints `SKIPPED: docker missing ...` and is reported as SKIPPED in the summary, 
 a failure.
 
 By default it does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits or the
-contract diff. Add `--release` to run those too, and the drill, in the order of the release CI (see
+contract diff. Add `--release` to run those too, and the image scan (Trivy over the API image built from your
+checkout, as the release run scans it) and the drill, in the order of the release CI (see
 [the release checklist](../maintainers/release.md)); the dependency audit needs the network and is reported as `SKIPPED`
-when it is not reachable. The emulator test, the image build and the Compose smoke test are left to the release CI, so
+when it is not reachable, and so is the image scan without Docker. The emulator test, the multi-platform image build and the Compose smoke test are left to the release CI, so
 run the ones below that match what you changed. Before every release run `bash tools/check-all.sh --slot K --release`,
 then start `ci.yml` by hand in the public repository.
 

@@ -35,7 +35,7 @@ def test_start_passes_no_cache_only_to_the_explicit_build(
     result = run_work(mini_repo, "start", *flags)
     assert result.returncode == 0, result.stderr
     assert " build --no-cache api\n" in docker_calls(mini_repo)
-    assert " up -d --wait --wait-timeout 420\n" in docker_calls(mini_repo)
+    assert " up -d --wait --wait-timeout 600\n" in docker_calls(mini_repo)
 
 
 @pytest.mark.parametrize("flags", [("--no-cache",), ("--force",)])

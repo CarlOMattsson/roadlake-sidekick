@@ -207,6 +207,20 @@ def test_cleanup_runs_down_v_for_the_drill_projects_only(passing: Result) -> Non
     assert not [argv for argv in passing.calls if argv[:2] in (["rm", "-f"], ["system", "prune"])]
 
 
+def test_the_first_scenario_is_taken_down_before_the_second_one_starts(passing: Result) -> None:
+    """Both stacks use the same fixed networks, so they can never be up at the same time."""
+    projects = [compose_project(argv) for argv in passing.calls]
+    selfhost = next(name for name in passing.projects if name.endswith("-sh"))
+    work = next(name for name in passing.projects if name.endswith("-wk"))
+    first_work_call = projects.index(work)
+    brought_down = [
+        index
+        for index, argv in enumerate(passing.calls)
+        if compose_project(argv) == selfhost and "down" in argv and "-f" not in argv
+    ]
+    assert brought_down and brought_down[0] < first_work_call
+
+
 def test_ports_are_random_loopback_and_never_forbidden(passing: Result) -> None:
     ports = [int(port) for port in re.findall(r"on 127\.0\.0\.1:(\d+)", passing.stdout)]
     assert len(ports) == 2

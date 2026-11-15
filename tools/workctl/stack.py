@@ -34,6 +34,11 @@ CRYPTO_MEMORY = "3g"
 CRYPTO_PIDS = "256"
 COMMAND_NOT_FOUND = 127
 HINDSIGHT_IMAGE = "vectorize-io/hindsight"
+# How long ``docker compose up --wait`` may wait (seconds) for the services to be healthy. The healthchecks in
+# deploy/selfhost/compose.yaml give each service at most about 8 minutes (start_period plus the retries), so compose
+# reports an unhealthy service itself, by name, before this limit; the limit only ends a wait that is stuck. Keep the
+# "10 minutes" in messages.json and the --wait-timeout in tools/work.sh in step with it.
+START_TIMEOUT = "600"
 
 
 class Stop(Exception):

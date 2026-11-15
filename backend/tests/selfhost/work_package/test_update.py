@@ -67,7 +67,7 @@ def test_update_stops_the_writers_before_the_backup_and_holds_them_until_the_new
     # The api alone is started and checked first; the workers follow the check.
     lines = calls.splitlines()
     recreates = [i for i, line in enumerate(lines) if "--force-recreate" in line]
-    starts = [i for i, line in enumerate(lines) if line.endswith("--wait-timeout 420")]
+    starts = [i for i, line in enumerate(lines) if line.endswith("--wait-timeout 600")]
     readiness = [i for i, line in enumerate(lines) if f"{READINESS_CALL} import importlib" in line]
     assert len(recreates) == 1 and lines[recreates[0]].endswith("--force-recreate api")
     assert len(starts) == 1 and len(readiness) == 2, (

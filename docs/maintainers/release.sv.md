@@ -159,16 +159,19 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, och ögonblicksbilderna under
    `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning,
    beroendegranskningen i `audit.yml` (pip-audit, `npm audit` för frontend och webbplatsen, OSV-Scanner på
-   Gradle-låsfilerna) och drillen (`tools/drill.sh selfhost --local-images`, cirka 3 minuter, på slumpade portar och i
+   Gradle-låsfilerna), avbildsskanningen (`tools/image-scan.sh`: API-avbilden byggd från denna utcheckning, skannad med
+   den Trivy-version som är fastnålad i `tools/ci-images.sh`, med fel vid HIGH och CRITICAL som har en rättelse, som
+   releasekörningen gör före signeringen; den skannar din maskins plattform, releasekörningen både linux/amd64 och
+   linux/arm64) och drillen (`tools/drill.sh all --local-images`, selfhost och work, cirka 8 minuter, på slumpade portar och i
    ett eget Compose-projekt, så den rör aldrig en körande instans). Frontend-steget omfattar redan MCP-appens vyer på
    Preact. Grinden kör testerna som CI gör: backend- och frontendtester i UTC (frontendtesterna även i
    `America/Los_Angeles`), Playwright-testerna, shellcheck och gitleaks i de avbilder som är fastnålade i
    `tools/ci-images.sh` (samma som CI använder, så webbläsarbygge, typsnitt och verktygsversioner stämmer), och
    steget `published-tree` bygger den publika exporten och kontrollerar den som den publicerade CI kommer att göra
    (lint, prettier, tsc, vitest, policytester, shellcheck, gitleaks, Playwright-testerna). Docker krävs för dem;
-   beroendegranskningen kräver nätverk. En del vars verktyg eller värd inte finns skriver en `SKIPPED: ...`-rad och
+   beroendegranskningen kräver nätverk, och det gör avbildsskanningen första gången (den cachar sårbarhetsdatabasen). En del vars verktyg eller värd inte finns skriver en `SKIPPED: ...`-rad och
    steget rapporteras som `SKIPPED`, aldrig som `ok`; lägg till `--strict` för att göra det till ett fel, och kör
-   grinden på en maskin med Docker och nätverk innan du släpper. Täcks inte lokalt: emulatortestet, avbildsbygget och
+   grinden på en maskin med Docker och nätverk innan du släpper. Täcks inte lokalt: emulatortestet, det fleraplattformiga avbildsbygget och
    Compose-röktestet; releasekörningen gör dem.
    Slå ihop med `main` när det är grönt. Starta sedan arbetsflödet `CI` för hand i det publika repot (Actions, "CI",
    Run workflow) på den commit du ska släppa; själva releasekörningen kör hela CI igen.
@@ -181,10 +184,15 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    väntar sedan på ditt godkännande i miljön `release` (godkänn bara en körning du själv startat); det är releasens enda
    godkännande. Efter det körs kontrollerna (signeringshemligheterna och det fastnålade certifikatet, hela CI och drillen
    på exakt denna commit, versionssynk, en version högre än varje befintlig releasetagg, migrationsklass, licensnyckel),
-   sedan APK:n (byggd osignerad, sedan signerad), sedan imagen (pushad, Trivy-skannad, signerad, attesterad) och till sist
+   sedan APK:n (byggd osignerad, sedan signerad), sedan imagen (pushad på digest utan någon tagg, Trivy-skannad, signerad, attesterad) och till sist
    paketet (signerat och attesterat). `migration_class` är `expand` när föregående
    image fortfarande fungerar mot det nya schemat och `breaking` för ett enkelriktat steg; kontrollen jämför den
    deklarerade klassen med de migreringar som tillkommit sedan föregående release.
+
+   Imagen får sin versionstagg sist. Den pushas först enbart på digest (ingen tagg), skannas med Trivy för båda
+   plattformarna (versionen som är fastnålad i `tools/ci-images.sh`), kontrolleras för SBOM och provenance, signeras och
+   attesteras; taggen `vX.Y.Z` sätts på samma digest av det sista jobbet, efter att paketet signerats. En misslyckad
+   skanning eller signering lämnar därför en otaggad digest och ingen versionstagg som blockerar versionen.
 5. **Verifiera** resultatet enligt nedan, från en dator som inte är byggdatorn.
 6. **Tagga och släpp.** Först efter steg 5:
 
@@ -300,11 +308,16 @@ tillkännagivandet:
 - En grind, CI eller drillen misslyckas: inget byggdes eller pushades; rätta och börja om (versionstaggen är inte
   förbrukad).
 - Godkännandet nekades eller gick ut: inget har byggts eller signerats efter den punkten; starta en ny körning.
-- Imagen pushades men ett senare steg misslyckades (sårbarhetsskanningen, signeringen eller paketet): taggen `vX.Y.Z`
-  finns i GHCR och flyttas aldrig, och arbetsflödet vägrar pusha samma version igen. Rättningen är nästa patchversion
-  (`X.Y.(Z+1)`), eller nästa minor eller en major om ändringen motiverar det, med eget ändringsloggsavsnitt,
-  versionshöjning och kontroller som ovan. Den misslyckade `vX.Y.Z` förblir oanvänd: pusha inte git-taggen för den,
-  publicera inte dess image eller paket, och radera eller tagga aldrig om imagen för att återanvända numret.
+- Imagen pushades men ett senare steg misslyckades (sårbarhetsskanningen, signeringen eller paketet): imagen gick till
+  GHCR enbart på digest, utan tagg. Versionstaggen `vX.Y.Z` sätts på den av det sista jobbet (`tag-image`), först när
+  skanningarna, signaturen, attesteringen och paketet har lyckats, så ingenting har förbrukat versionen: åtgärda
+  orsaken och starta samma version igen (den otaggade digesten är ofarlig; nåla inte fast eller publicera den). När
+  taggen `vX.Y.Z` väl finns i GHCR flyttas den aldrig, och arbetsflödet vägrar pusha samma version igen; om körningen
+  bara föll i `tag-image` (efter att paketet signerats) är digesten signerad och går att verifiera, men versionen bör
+  ändå räknas som förbrukad: ta nästa patchversion (`X.Y.(Z+1)`), eller nästa minor eller en major om ändringen
+  motiverar det, med eget ändringsloggsavsnitt, versionshöjning och kontroller som ovan. En version vars tagg finns men
+  inte publicerades: pusha inte git-taggen för den, publicera inte dess image eller paket, och radera eller tagga aldrig
+  om imagen för att återanvända numret.
 - Signeringsnyckeln läckte eller förlorades: radera miljöhemligheterna, berätta för ägaren av installationerna och
   behandla nästa APK som en ny applinje.
 

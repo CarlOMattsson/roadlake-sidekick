@@ -18,12 +18,11 @@ import sys
 from . import desktopsetup, invocation, secretfiles, stackfiles, stackstate, workenv, worklock
 from .backupflow import WRITERS, Backup, keep_setting
 from .readiness import wait_ready
-from .stack import Stack, Stop
+from .stack import START_TIMEOUT, Stack, Stop
 
 PRE_MIGRATION, MIGRATING = "pre", "migrating"
 # The exit status of tools/check-release-migration-class.py when the declared class is too low.
 CLASS_TOO_LOW = 1
-START_TIMEOUT = "420"
 
 
 def migration_refusal(status: int) -> str:

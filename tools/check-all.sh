@@ -37,9 +37,13 @@
 #                   Runs after backend-static
 #   coverage        the frontend coverage threshold (vitest --coverage, lines >= 91), after the frontend stage
 #   mobile-audit    the Playwright mobile audit on the simulated MCP host, in the same Playwright image, after mcp-app
-#   drill           tools/drill.sh selfhost --local-images: install, update, backup, destroy and restore of the
+#   image-scan      tools/image-scan.sh: the API image built from this checkout (backend/Dockerfile), scanned with the
+#                   pinned Trivy (tools/ci-images.sh) as the release workflow scans it before signing: OS packages and
+#                   libraries, HIGH and CRITICAL findings that have a fix, for the platform of this machine. Needs Docker
+#                   and, the first time, the network (the vulnerability database is cached). Runs before the drill
+#   drill           tools/drill.sh all --local-images (selfhost and work, as the release workflow drills both): install, update, backup, destroy and restore of the
 #                   self-hosted stack from two images built from this checkout, in a throw-away Compose project on random
-#                   ports (about 3 minutes; it never touches a running instance). Needs Docker. Runs last
+#                   ports (about 8 minutes; it never touches a running instance). Needs Docker. Runs last
 #   dependency-audit  what .github/workflows/audit.yml runs: pip-audit, npm audit (frontend and website, runtime
 #                   dependencies, high and above) and OSV-Scanner on the Gradle lockfiles. Every part needs the
 #                   network; one that cannot reach its host (or lacks its tool) prints a "SKIPPED: ..." line and the
@@ -51,8 +55,8 @@
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
 #   --skip-shellcheck     --skip-gitleaks   --skip-published-tree   --skip-website   --skip-android
 #   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit,
-#                         drill); each has its own --skip-contracts, --skip-coverage, --skip-mobile-audit, --skip-audit,
-#                         --skip-drill
+#                         image-scan, drill); each has its own --skip-contracts, --skip-coverage,
+#                         --skip-mobile-audit, --skip-audit, --skip-image-scan, --skip-drill
 #   --strict              a missing Docker, website/node_modules or other tool fails the run (default: that stage prints
 #                         a "SKIPPED: ..." line and is reported as SKIPPED, never as ok)
 #   --keep-going          run the remaining stages after a failure (default: stop at the first failure)
@@ -89,6 +93,7 @@ SKIP_CONTRACTS=0
 SKIP_COVERAGE=0
 SKIP_MOBILE_AUDIT=0
 SKIP_AUDIT=0
+SKIP_IMAGE_SCAN=0
 SKIP_DRILL=0
 RELEASE=0
 STRICT=0
@@ -129,6 +134,7 @@ while [ $# -gt 0 ]; do
     --skip-coverage) SKIP_COVERAGE=1; shift ;;
     --skip-mobile-audit) SKIP_MOBILE_AUDIT=1; shift ;;
     --skip-audit) SKIP_AUDIT=1; shift ;;
+    --skip-image-scan) SKIP_IMAGE_SCAN=1; shift ;;
     --skip-drill) SKIP_DRILL=1; shift ;;
     --release) RELEASE=1; shift ;;
     --keep-going) KEEP_GOING=1; shift ;;
@@ -153,6 +159,7 @@ if [ "$RELEASE" -eq 0 ]; then
   SKIP_COVERAGE=1
   SKIP_MOBILE_AUDIT=1
   SKIP_AUDIT=1
+  SKIP_IMAGE_SCAN=1
   SKIP_DRILL=1
 fi
 
@@ -400,11 +407,17 @@ stage_dependency_audit() {
   fi
 }
 
+# The scan the release workflow runs on the pushed image before it signs it, here on an image built from this checkout.
+# Without Docker the script exits with RC_TOOL_MISSING after a SKIPPED line.
+stage_image_scan() {
+  run bash tools/image-scan.sh
+}
+
 # Install, update, backup, destroy and restore from two images built from this checkout. The drill picks random free
 # ports (never a reserved one) and removes what it created.
 stage_drill() {
   optional_tool docker "https://docs.docker.com/engine/install/"
-  run bash tools/drill.sh selfhost --local-images
+  run bash tools/drill.sh all --local-images
 }
 
 stage_android() {
@@ -463,6 +476,7 @@ run_stage mobile-audit "$SKIP_MOBILE_AUDIT" stage_mobile_audit
 run_stage published-tree "$SKIP_PUBLISHED_TREE" stage_published_tree
 run_stage website "$SKIP_WEBSITE" stage_website
 run_stage android "$SKIP_ANDROID" stage_android
+run_stage image-scan "$SKIP_IMAGE_SCAN" stage_image_scan
 run_stage drill "$SKIP_DRILL" stage_drill
 
 echo

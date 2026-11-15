@@ -31,7 +31,7 @@ from tests.selfhost.work_package.support import (
 from tests.support.polling import wait_until
 
 # Registry manifest lists, checked 2026-11-09 (haproxy 3.4.7-alpine, the LTS line).
-HAPROXY_DIGEST = "sha256:5312d37032c079c4937d45ef63758852434351f3b425a3703521fd999837abcf"
+HAPROXY_DIGEST = "sha256:b9fe316f718d5015c5cfebd8ca019591f3e44656f61d93cb8b59a1028961e530"
 
 
 def _strings(node: Any) -> Iterator[str]:
@@ -92,7 +92,7 @@ def test_every_external_image_of_the_stack_is_pinned_by_digest(merged: dict[str,
         assert re.search(r"@sha256:[0-9a-f]{64}$", image), (name, image)
     # Sidekick's own image is built from this checkout; the database is the self-hosted pinned tag.
     assert re.fullmatch(
-        r"postgres:18\.4-alpine@sha256:[0-9a-f]{64}", merged["services"]["postgres"]["image"]
+        r"postgres:18\.6-alpine@sha256:[0-9a-f]{64}", merged["services"]["postgres"]["image"]
     )
     selfhost = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encoding="utf-8"))
     assert merged["services"]["hindsight"]["image"] == selfhost["services"]["hindsight"]["image"]

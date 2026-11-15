@@ -28,29 +28,34 @@
 #               checks the certificate against ANDROID_CERT_SHA256 and exposes the APK's sha256 as a job output.
 #               No checkout, no npm, no Gradle, so no dependency can swap the file between verification and upload.
 #   release  -> real run, environment `release-signing` (build-dry in a dry run: the same build, nothing pushed) builds
-#               backend/Dockerfile for linux/amd64 and linux/arm64, pushes to ghcr.io/<owner>/roadlake-sidekick,
-#               Trivy-scans each platform of the pushed digest (fixable HIGH/CRITICAL fail the run), signs the
+#               backend/Dockerfile for linux/amd64 and linux/arm64 and pushes it to ghcr.io/<owner>/roadlake-sidekick BY
+#               DIGEST ONLY: no tag at all, so no version tag exists yet. It then Trivy-scans each platform of that digest
+#               (fixable HIGH/CRITICAL fail the run), checks that the SBOM and the provenance are attached, signs the
 #               digest keylessly with cosign (GitHub OIDC) and attests its build provenance (`gh attestation verify`).
 #   bundle   -> SHA256SUMS, the image SBOM, and release notes taken from CHANGELOG.md, collected without any signing right.
 #   sign-bundle -> real run, environment `release-signing`: checks every file of the bundle against the outputs of sign-apk
 #               (APK sha256) and release (image digest, SBOM) and refuses on any difference, then signs SHA256SUMS with
 #               cosign, attests the build provenance of the APK, the SBOM, SHA256SUMS and the release notes, and
 #               uploads the finished bundle as one workflow artifact.
+#   tag-image -> real run, environment `release-signing`, last of all: puts the version tag on the digest that was scanned,
+#               signed and attested (`docker buildx imagetools create`; the manifest is copied unchanged, so the digest
+#               stays the same). A version tag is therefore published only after every check before it has passed, and a
+#               run that fails earlier leaves no tag behind, so the same version can be started again.
 # Privilege is split on purpose: a dry run runs code from any branch, so its jobs (build-dry, bundle) have a read-only
-# token and no id-token and no secret; only release, sign-apk and sign-bundle can push or sign, they never run in a
+# token and no id-token and no secret; only release, sign-apk, sign-bundle and tag-image can push or sign, they never run in a
 # dry run, and none of the jobs that hold a secret or an id-token runs repository code. The environment
 # `release-signing` is limited to the main branch, so a workflow edited on another branch cannot reach its secrets.
 # Only the parts that sign nothing and hold no secret are split into reusable workflows (ci, drill, gates, android). A
 # reusable workflow would become the signer identity of every signature made inside it (the OIDC claim names the
 # called file), so everything that signs, attests, pushes or reads a signing secret stays in this file, with no local
-# action either: the jobs release, sign-apk, bundle and sign-bundle run only steps written out here and pinned remote
+# action either: the jobs release, sign-apk, bundle, sign-bundle and tag-image run only steps written out here and pinned remote
 # actions.
 # There is deliberately no tag or push trigger, and the workflow never creates a tag or a GitHub release:
 # the owner pushes the signed tag and creates the release from the bundle (docs/maintainers/release.md).
 #
 # `dry_run` builds everything unsigned and unpushed, for any version: it keeps the input, version, changelog and
 # migration, version-order checks, builds both image platforms and the APK, and skips the main check, the approval, CI and the drill,
-# the registry, the Trivy scans, signing, attestations and the secrets (the license key only warns).
+# the registry, the Trivy scans, signing, attestations, the version tag and the secrets (the license key only warns).
 name: release-image
 
 on:
@@ -332,7 +337,6 @@ jobs:
           context: .
           file: backend/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ${{ needs.gates.outputs.image }}:${{ inputs.version }}
           build-args: |
             SIDEKICK_MIGRATION_CLASS=${{ inputs.migration_class }}
             SIDEKICK_SCHEMA_HEAD=${{ needs.gates.outputs.schema_head }}
@@ -352,9 +356,10 @@ jobs:
           sbom: false
 
   release:
-    # Real run only (after the owner's approval at signing-check). This is the one job that can write to
-    # the registry and ask for an OIDC token, so a dry run never gets it, and its run steps call no script from the
-    # repository.
+    # Real run only (after the owner's approval at signing-check). The one job that signs the image: it asks for an
+    # OIDC token and writes to the registry, so a dry run never gets it, and its run steps call no script from the
+    # repository. It pushes the image by digest only (no tag): nothing in the registry looks like a release until
+    # tag-image runs at the very end.
     needs: [gates, android]
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
@@ -409,14 +414,17 @@ jobs:
             exit 1
           fi
 
-      - name: Build and push
+      - name: Build and push by digest (no tag)
+        # The image goes to the registry without any tag, so it can be pulled only by its digest. tag-image puts the
+        # version tag on it after the scans, the signature, the attestation and the whole bundle have succeeded; a
+        # failure before that leaves no version tag (a version tag is never moved, so a leftover one would block the
+        # version for good).
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: backend/Dockerfile
           platforms: linux/amd64,linux/arm64
-          tags: ${{ needs.gates.outputs.image }}:${{ inputs.version }}
           build-args: |
             SIDEKICK_MIGRATION_CLASS=${{ inputs.migration_class }}
             SIDEKICK_SCHEMA_HEAD=${{ needs.gates.outputs.schema_head }}
@@ -430,7 +438,7 @@ jobs:
             io.sidekick.migration-class=${{ inputs.migration_class }}
             io.sidekick.schema-head=${{ needs.gates.outputs.schema_head }}
             io.sidekick.min-upgrade-from=${{ needs.gates.outputs.min_upgrade_from }}
-          push: true
+          outputs: type=image,name=${{ needs.gates.outputs.image }},push-by-digest=true,name-canonical=true,push=true
           # BuildKit attaches an SBOM and a max-detail SLSA provenance attestation to the image index. The digest
           # signed below is the index digest, which is also the digest customers pull and pin.
           provenance: mode=max
@@ -446,6 +454,8 @@ jobs:
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           TRIVY_PLATFORM: linux/amd64
         with:
+          # The same Trivy as tools/image-scan.sh and tools/ci-images.sh (TRIVY_IMAGE); a policy test keeps them equal.
+          version: v0.70.0
           image-ref: ${{ needs.gates.outputs.image }}@${{ steps.build.outputs.digest }}
           scanners: vuln
           vuln-type: os,library
@@ -464,6 +474,8 @@ jobs:
           TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
           TRIVY_PLATFORM: linux/arm64
         with:
+          # The same Trivy as tools/image-scan.sh and tools/ci-images.sh (TRIVY_IMAGE); a policy test keeps them equal.
+          version: v0.70.0
           image-ref: ${{ needs.gates.outputs.image }}@${{ steps.build.outputs.digest }}
           scanners: vuln
           vuln-type: os,library
@@ -471,6 +483,19 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
           format: table
+
+      - name: Check that the SBOM and the provenance are attached to the digest
+        # The bundle exports the SBOM from the registry and sign-bundle compares it; failing here, before the digest is
+        # signed, keeps a broken image out of the release as early as possible.
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected digest" >&2; exit 1; }
+          for field in SBOM Provenance; do
+            docker buildx imagetools inspect "${IMAGE}@${DIGEST}" --format "{{ json .${field} }}" | jq -e 'length > 0' > /dev/null \
+              || { echo "the ${field} is missing on ${IMAGE}@${DIGEST}" >&2; exit 1; }
+          done
 
       - name: Sign the image digest (keyless)
         env:
@@ -593,6 +618,7 @@ jobs:
             echo
             if [ "$DRY_RUN" != "true" ]; then
               echo "- Digest: \`${DIGEST}\`"
+              echo "- Version tag: put on this digest by the job tag-image, the last job; the digest above is what to verify and pin"
               echo "- Pin: \`SIDEKICK_API_IMAGE=${IMAGE}@${DIGEST}\`"
               echo "- Migration class: \`${INPUT_MIGRATION_CLASS}\`, schema head: \`${SCHEMA_HEAD}\`"
               echo "- Signer identity: \`${SERVER_URL}/${WORKFLOW_REF}\`"
@@ -746,3 +772,45 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 30
+
+  tag-image:
+    # Real run only, last of all: the version tag is put on the digest that release scanned, signed and attested and
+    # that sign-bundle has checked and bundled. Before this job the image has no tag, so a run that failed anywhere
+    # earlier left no version tag in the registry, and the version can be started again. It copies the manifest as it is
+    # (no rebuild, no change), so the tag points at exactly the signed digest; the digest is compared afterwards.
+    # Registry write only: no id-token, no checkout, no repository script. The check that the tag did not exist yet
+    # is the one at the start of release; the concurrency group keeps two runs from racing between the two.
+    needs: [gates, release, sign-bundle]
+    if: ${{ !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: release-signing
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: ${{ needs.gates.outputs.image }}
+      DIGEST: ${{ needs.release.outputs.digest }}
+      INPUT_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag the signed digest with the version
+        run: |
+          set -euo pipefail
+          [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "unexpected digest" >&2; exit 1; }
+          docker buildx imagetools create --tag "${IMAGE}:${INPUT_VERSION}" "${IMAGE}@${DIGEST}"
+          tagged="$(docker buildx imagetools inspect "${IMAGE}:${INPUT_VERSION}" --format '{{ .Manifest.Digest }}')"
+          [ "$tagged" = "$DIGEST" ] || { echo "${IMAGE}:${INPUT_VERSION} points at ${tagged}, not at the signed digest ${DIGEST}" >&2; exit 1; }
+          {
+            echo "## Version tag ${INPUT_VERSION}"
+            echo
+            echo "- \`${IMAGE}:${INPUT_VERSION}\` points at the signed digest \`${DIGEST}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

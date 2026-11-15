@@ -16,8 +16,8 @@ from tools.workctl.stack import Stack, Stage
 DUMP = b"-- PostgreSQL database dump complete\n"
 ARCHIVE_LISTING = b"./PG_VERSION\n"
 STOP_WRITERS = "compose stop api memory-worker automation-worker"
-START_WRITERS = "compose up -d --wait --wait-timeout 300 api memory-worker automation-worker"
-START_HINDSIGHT = "compose up -d --wait --wait-timeout 300 --no-deps hindsight"
+START_WRITERS = "compose up -d --wait --wait-timeout 600 api memory-worker automation-worker"
+START_HINDSIGHT = "compose up -d --wait --wait-timeout 600 --no-deps hindsight"
 STOP_HINDSIGHT = "compose stop hindsight"
 
 

@@ -22,6 +22,12 @@ def source_version() -> str:
         return tomllib.load(handle)["project"]["version"]
 
 
+def other_version(version: str) -> str:
+    """A valid version that differs from the given one in every component."""
+    major, minor, patch = (int(part) for part in version.split("."))
+    return f"{major + 1}.{minor + 1}.{patch + 1}"
+
+
 def android_version_code(version: str) -> int:
     """The derivation in frontend/android/app/build.gradle."""
     match = SEMVER.match(version)
@@ -121,11 +127,16 @@ def test_the_script_names_every_copy_that_drifted(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     root = copy_version_files(tmp_path)
+    current = source_version()
     init = root / "backend/src/sidekick/__init__.py"
-    init.write_text(init.read_text(encoding="utf-8").replace("0.1.0", "0.1.1"), encoding="utf-8")
+    init.write_text(
+        init.read_text(encoding="utf-8").replace(current, other_version(current)), encoding="utf-8"
+    )
     package = root / "frontend/package.json"
     package.write_text(
-        package.read_text(encoding="utf-8").replace("0.1.0", "0.2.0", 1),
+        package.read_text(encoding="utf-8").replace(
+            current, other_version(other_version(current)), 1
+        ),
         encoding="utf-8",
     )
     assert load_tool().main(["--root", str(root)]) == 1
@@ -152,7 +163,9 @@ def test_the_handshake_versions_must_stay_derived(tmp_path: Path) -> None:
     assert tool.main(["--root", str(root)]) == 0
     server = root / "backend/src/sidekick/mcp/server.py"
     server.write_text(
-        server.read_text(encoding="utf-8").replace("version=__version__,", 'version="0.1.0",'),
+        server.read_text(encoding="utf-8").replace(
+            "version=__version__,", f'version="{source_version()}",'
+        ),
         encoding="utf-8",
     )
     assert tool.main(["--root", str(root)]) == 1
@@ -168,8 +181,9 @@ def test_the_handshake_versions_must_stay_derived(tmp_path: Path) -> None:
 def test_the_tag_must_match_the_source_version(tmp_path: Path) -> None:
     root = copy_version_files(tmp_path)
     tool = load_tool()
-    assert tool.main(["--root", str(root), "--tag", "v0.1.0"]) == 0
-    assert tool.main(["--root", str(root), "--tag", "v0.1.1"]) == 1
+    current = source_version()
+    assert tool.main(["--root", str(root), "--tag", f"v{current}"]) == 0
+    assert tool.main(["--root", str(root), "--tag", f"v{other_version(current)}"]) == 1
 
 
 def test_changelog_rules_before_and_on_the_release_day(tmp_path: Path) -> None:
@@ -177,9 +191,10 @@ def test_changelog_rules_before_and_on_the_release_day(tmp_path: Path) -> None:
     tool = load_tool()
     changelog = tmp_path / "CHANGELOG.md"
     base = ["--root", str(root), "--changelog", str(changelog)]
+    current = source_version()
 
     changelog.write_text(
-        "# Changelog\n\n## [Unreleased]\n\nPlanned as 0.1.0.\n\n- A thing.\n",
+        f"# Changelog\n\n## [Unreleased]\n\nPlanned as {current}.\n\n- A thing.\n",
         encoding="utf-8",
     )
     assert tool.main(base) == 0
@@ -190,7 +205,7 @@ def test_changelog_rules_before_and_on_the_release_day(tmp_path: Path) -> None:
 
     changelog.write_text(
         "# Changelog\n\n## [Unreleased]\n\n"
-        "## [0.1.0] - 2026-11-12\n\n- First release.\n\n"
+        f"## [{current}] - 2026-11-12\n\n- First release.\n\n"
         "## [0.0.9] - 2026-01-01\n\n- Old.\n",
         encoding="utf-8",
     )

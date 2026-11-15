@@ -156,7 +156,7 @@ case "$all" in
   *"RENAME TO sidekick"*) echo sidekick > "$state.dbs" ;;
   *"CREATE DATABASE sidekick"*) echo sidekick >> "$state.dbs" ;;
   *"stop api"*) [ "${STUB_FAIL:-}" = still_running ] || touch "$state.stopped" ;;
-  *"up -d --wait --wait-timeout 300 api"*|*--force-recreate*) rm -f "$state.stopped" ;;
+  *"up -d --wait --wait-timeout 600 api"*|*--force-recreate*) rm -f "$state.stopped" ;;
 esac
 case "$all" in
   *"logs --no-color --tail 80 migrate"*) printf '%s\\n' "${STUB_MIGRATION_LOG:-}" ;;
@@ -218,7 +218,7 @@ case "$all" in
   *"config --images"*) echo ghcr.io/vectorize-io/hindsight@sha256:0000 ;;
   *"run --rm -T --no-deps migrate"*) [ "${STUB_FAIL:-}" = migrate ] && exit 1 ;;
   *"exec -T api python"*) [ "${STUB_FAIL:-}" = notready ] && exit 1 ;;
-  *"up -d --wait --wait-timeout 420")
+  *"up -d --wait --wait-timeout 600")
     if [ -n "${STUB_START_FAIL:-}" ]; then
       printf '%s\\n' "${STUB_START_FAIL}" >&2
       exit 1
@@ -227,7 +227,7 @@ case "$all" in
   *--force-recreate*)
     [ "${STUB_FAIL:-}" = term_recreate ] && kill -TERM "$PPID"
     [ "${STUB_FAIL:-}" = recreate ] && exit 1 ;;
-  *"up -d --wait --wait-timeout 300 api memory-worker automation-worker"*)
+  *"up -d --wait --wait-timeout 600 api memory-worker automation-worker"*)
     if [ "${STUB_FAIL:-}" = term_restart ] && [ ! -e "${STUB_CALLS}.termed" ]; then
       touch "${STUB_CALLS}.termed"
       kill -TERM "$PPID"

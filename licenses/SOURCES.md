@@ -21,10 +21,13 @@ To replace psycopg with your own build, derive an image (the layout is plain fil
 freezing or hash check):
 
 ```dockerfile
+# The image has no pip; build your psycopg in the Python base image it is built on, then copy the files over.
+FROM python:3.13-slim AS psycopg-build
+COPY ./my-psycopg /src/my-psycopg
+RUN pip install --no-deps --target /out /src/my-psycopg
+
 FROM <image>
-USER root
-RUN pip install --no-deps --upgrade --target /app/backend/.venv/lib/python3.13/site-packages ./my-psycopg
-USER sidekick
+COPY --from=psycopg-build --chown=root:root /out/ /app/backend/.venv/lib/python3.13/site-packages/
 ```
 
 - Source of `psycopg` and `psycopg-binary`: https://github.com/psycopg/psycopg at tag `3.3.4`
@@ -62,8 +65,9 @@ Shipped unmodified, as source files. Source: https://github.com/certifi/python-c
 
 ## Base image: Debian (python:3.13-slim)
 
-The runtime image is `python:3.13.15-slim` (Debian 13 "trixie"), pinned by digest in `backend/Dockerfile` and unmodified apart from
-the files we add under `/app` and `/usr/share/doc/sidekick`. It contains Debian packages under GPL, LGPL and
+The runtime image is `python:3.13.18-slim` (Debian 13 "trixie"), pinned by digest in `backend/Dockerfile` and unmodified apart from
+the files we add under `/app` and `/usr/share/doc/sidekick`, the Debian security updates installed on top (`apt-get upgrade`), and
+the removal of pip. It contains Debian packages under GPL, LGPL and
 other licenses (bash, coreutils, glibc, dpkg, and others). Their license texts are in `/usr/share/doc/<package>/copyright`
 inside the image, and their source is the Debian source package of the same name and version:
 

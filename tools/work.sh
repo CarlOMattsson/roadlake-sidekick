@@ -265,7 +265,7 @@ cmd_start() {
   log_start="$(wc -l <"$LOG")"
   # Memory switched off after it ran: stop Hindsight and the memory worker (the volume is kept).
   if [ "$MEMORY" = 0 ]; then compose stop hindsight memory-worker >>"$LOG" 2>&1 || true; fi
-  if ! compose up -d --wait --wait-timeout 420 >>"$LOG" 2>&1; then
+  if ! compose up -d --wait --wait-timeout 600 >>"$LOG" 2>&1; then
     errf up_fail "$LOG"
     tail -n 20 "$LOG" >&2 || true
     stackctl diagnose-first-start --log-start "$log_start" || true

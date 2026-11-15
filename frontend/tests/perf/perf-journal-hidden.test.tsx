@@ -2,24 +2,19 @@ import { act, render, screen } from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 
 import { JournalRoom } from "@/features/journal-app/room";
+import { ownerToday } from "@/features/mcp-apps/app-timezone";
 import type { RoomTransport } from "@/features/mcp-apps/room-types";
 
 // Performance: a journal room mounted without a result reads today's day only while it is shown
 // (props.active !== false). Hidden, it reads nothing; shown, it reads the day once. The numbers are counts of
 // host tool calls on the transport mock.
 
-function localToday(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 const emptyDay = {
-  journal_date: localToday(),
+  journal_date: ownerToday(),
   entries: [],
   next_cursor: null,
   summary: {
-    journal_date: localToday(),
+    journal_date: ownerToday(),
     exists: false,
     status: null,
     content: null,

@@ -430,6 +430,8 @@ class Drill:
         # The steps in order, stopping at the first failure.
         passed = all(self.step(name, step_name, function) for step_name, function in scenario.steps())
         (self.passed if passed else self.failed).append(name)
+        # Both stacks use the same fixed networks, so this one must be gone before the next scenario starts.
+        self.remove_project(scenario.project)
 
     def report_timings(self) -> None:
         """The durations, as text and (in GitHub Actions) as a table in the job summary."""
@@ -449,20 +451,24 @@ class Drill:
         self.append_log(done.out)
         return done.out.decode("utf-8", errors="replace")
 
+    def remove_project(self, project: str) -> None:
+        """Takes one compose project of this run down with its volumes; a name that is not ``sk-drill-*`` is skipped."""
+        if not drillpolicy.valid_project(project):
+            return
+        self.docker("compose", "-p", project, "down", "-v", "--remove-orphans")
+        # Volumes of this project that `down` did not reach (for example one created ahead of the first `up`).
+        listed = self.host.run(
+            ["docker", "volume", "ls", "-q", "--filter", f"label=com.docker.compose.project={project}"],
+            env=self.shared.env,
+        )
+        for volume in listed.out.decode("utf-8", errors="replace").split():
+            if volume.startswith(f"{project}_"):
+                self.docker("volume", "rm", volume)
+
     def cleanup(self) -> None:
         """Only the projects of this run; a name that is not ``sk-drill-*`` is skipped, never passed on to docker."""
         for project in self.projects:
-            if not drillpolicy.valid_project(project):
-                continue
-            self.docker("compose", "-p", project, "down", "-v", "--remove-orphans")
-            # Volumes of this project that `down` did not reach (for example one created ahead of the first `up`).
-            listed = self.host.run(
-                ["docker", "volume", "ls", "-q", "--filter", f"label=com.docker.compose.project={project}"],
-                env=self.shared.env,
-            )
-            for volume in listed.out.decode("utf-8", errors="replace").split():
-                if volume.startswith(f"{project}_"):
-                    self.docker("volume", "rm", volume)
+            self.remove_project(project)
         # The images --local-images built, by their exact references, never by a pattern.
         for reference in self.local_refs:
             if drillimages.is_local_reference(reference):

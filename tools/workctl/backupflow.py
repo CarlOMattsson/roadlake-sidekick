@@ -21,7 +21,7 @@ import re
 from pathlib import Path
 
 from . import backupfiles, backupkey, worklock
-from .stack import Stack, Stage, Stop
+from .stack import START_TIMEOUT, Stack, Stage, Stop
 
 WRITERS = ("api", "memory-worker", "automation-worker")
 # The exact form of a finished backup file: only such names are measured and pruned.
@@ -29,7 +29,6 @@ DB_ERE = r"sidekick-[0-9]{8}-[0-9]{6}\.sql\.enc"
 MEM_ERE = r"hindsight-[0-9]{8}-[0-9]{6}\.tar\.gz\.enc"
 DEFAULT_KEEP = "7"
 DUMP_END = b"PostgreSQL database dump complete"
-START_TIMEOUT = "300"
 
 
 def keep_setting(stack: Stack) -> str:

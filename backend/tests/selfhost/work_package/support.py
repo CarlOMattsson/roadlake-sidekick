@@ -134,13 +134,13 @@ def retired_names(text: str) -> set[str]:
     }
 
 
-RESTART_HINDSIGHT = "up -d --wait --wait-timeout 300 --no-deps hindsight"
+RESTART_HINDSIGHT = "up -d --wait --wait-timeout 600 --no-deps hindsight"
 
 
 STOP_WRITERS = "stop api memory-worker automation-worker"
 
 
-RESTART_WRITERS = "up -d --wait --wait-timeout 300 api memory-worker automation-worker"
+RESTART_WRITERS = "up -d --wait --wait-timeout 600 api memory-worker automation-worker"
 
 
 STUB_IMAGE_ID = "sha256:5ca1ab1e"

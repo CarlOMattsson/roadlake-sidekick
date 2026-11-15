@@ -1,7 +1,17 @@
+import { availableParallelism } from "node:os";
 import path from "node:path";
 
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
+
+/*
+ * Vitest's default is one worker per core but one. Most of this suite is jsdom rendering that is bound by CPU and
+ * memory bandwidth, and `npm run check` and the coverage run share the machine with lint, tsc and a second Vitest
+ * run, so on a many-core workstation that default oversubscribes the cores and tests overrun their timeouts.
+ * Half the cores (never fewer than three, which is the default on a four-core CI runner) finishes the suite about as
+ * fast while leaving room for the rest. `VITEST_MAX_WORKERS` still overrides it, as `scripts/check.mjs` does.
+ */
+const maxWorkers = Math.max(3, Math.floor(availableParallelism() / 2));
 
 export default defineConfig({
   plugins: [react()],
@@ -31,6 +41,7 @@ export default defineConfig({
      * slowest take five to nine seconds in a full run on a busy machine. Fifteen seconds leaves headroom over
      * that without letting a hung test hold a run for half a minute. The ceiling does not slow a passing run down.
      */
+    maxWorkers,
     testTimeout: 15_000,
     hookTimeout: 15_000,
     coverage: {

@@ -325,7 +325,7 @@ def test_image_inspect_answers_the_release_facts(call: Call) -> None:
 
 def test_compose_config_lists_the_images(call: Call) -> None:
     out = call(*compose("config", "--images"))[1].splitlines()
-    assert out[0] == "postgres:18.4-alpine"
+    assert out[0] == "postgres:18.6-alpine"
     assert out[1].startswith("ghcr.io/vectorize-io/hindsight@sha256:")
 
 

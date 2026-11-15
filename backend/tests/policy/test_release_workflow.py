@@ -76,6 +76,7 @@ def test_jobs_run_source_approval_ci_and_drill_then_gates_apk_image_bundle() -> 
         "release",
         "bundle",
         "sign-bundle",
+        "tag-image",
     ]
     assert jobs["ci"]["uses"] == "./.github/workflows/ci.yml"
     assert jobs["drill"]["uses"] == "./.github/workflows/release-drill.yml"
@@ -125,8 +126,39 @@ def test_the_gates_check_the_version_and_signing_check_the_secrets_before_anythi
 def test_the_image_is_multi_arch_and_only_pushed_outside_a_dry_run() -> None:
     build = next(step for step in steps("release") if step.get("id") == "build")
     assert build["with"]["platforms"] == "linux/amd64,linux/arm64"
-    assert build["with"]["push"] is True
+    assert "push=true" in build["with"]["outputs"]
     assert workflow()["jobs"]["release"]["if"] == NOT_DRY
+
+
+def test_the_image_is_pushed_by_digest_and_gets_its_version_tag_last() -> None:
+    """No version tag exists in the registry until everything before it has passed."""
+
+    jobs = workflow()["jobs"]
+    build = next(step for step in steps("release") if step.get("id") == "build")["with"]
+    assert "push-by-digest=true" in build["outputs"] and "name-canonical=true" in build["outputs"]
+    assert "tags" not in build, "the build pushes no tag"
+    assert "tags" not in steps("build-dry")[-1]["with"]
+    # Only tag-image creates a tag, after the bundle is signed.
+    tagging = [
+        name
+        for name, job in jobs.items()
+        for step in job.get("steps", [])
+        if "imagetools create" in str(step.get("run", ""))
+    ]
+    assert tagging == ["tag-image"]
+    assert jobs["tag-image"]["needs"] == ["gates", "release", "sign-bundle"]
+    assert jobs["tag-image"]["if"] == NOT_DRY
+    assert needs_closure("tag-image") >= {"release", "sign-bundle", "sign-apk", "bundle"}
+    assert "id-token" not in permissions(jobs["tag-image"])
+    script = next(s for s in steps("tag-image") if "imagetools create" in str(s.get("run")))["run"]
+    assert "${IMAGE}@${DIGEST}" in script and "--tag" in script
+    assert "{{ .Manifest.Digest }}" in script and '"$tagged" = "$DIGEST"' in script
+    # The refusal to move an existing version tag stays before anything is built or pushed.
+    release = steps("release")
+    refusal = next(
+        i for i, s in enumerate(release) if "a version tag is never moved" in str(s.get("run"))
+    )
+    assert refusal < release.index(next(s for s in release if s.get("id") == "build"))
 
 
 def jobs_skipped_in_a_dry_run() -> set[str]:
@@ -150,6 +182,7 @@ def test_no_job_that_can_write_or_sign_runs_in_a_dry_run() -> None:
         "sign-apk",
         "release",
         "sign-bundle",
+        "tag-image",
     }
     for name, job in workflow()["jobs"].items():
         granted = permissions(job)
@@ -655,11 +688,12 @@ def test_each_image_platform_is_scanned_before_the_image_is_signed() -> None:
     sign = next(i for i, step in enumerate(release) if "cosign sign --yes" in str(step.get("run")))
     for step in scans:
         assert release.index(step) < sign
+        assert step["with"]["version"] == "v0.70.0"
         assert step["with"]["exit-code"] == "1"
         assert "steps.build.outputs" in step["with"]["image-ref"]
 
 
-SIGNING_ENVIRONMENT_JOBS = {"secrets-check", "sign-apk", "release", "sign-bundle"}
+SIGNING_ENVIRONMENT_JOBS = {"secrets-check", "sign-apk", "release", "sign-bundle", "tag-image"}
 
 
 def needs_closure(job: str, jobs: dict[str, Any] | None = None) -> set[str]:

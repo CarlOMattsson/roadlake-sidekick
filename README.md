@@ -9,7 +9,7 @@
 <a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint and format: ruff"></a>
 <a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Type checking: TypeScript strict"></a>
 <a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin style: ktlint"></a>
-<!-- release badges, off until the first release (v0.1.0; the CI and Scorecard badges after their first runs): delete this line and the closing line below to turn them on
+<!-- release badges, off until the first release (v0.1.1; the CI and Scorecard badges after their first runs): delete this line and the closing line below to turn them on
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status of the last run started by hand"></a>
 <a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Latest release"></a>
@@ -31,14 +31,14 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 
 [Svenska](README.sv.md) · [Documentation](docs/README.md) · [Quickstart](QUICKSTART.md) · [License](LICENSE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Decisions](docs/decisions/log.md)
 
-> **Status: first version, not yet released.** Version 0.1.0 has no tag yet, so for now you build the container image and
+> **Status: first version, not yet released.** Version 0.1.1 has no tag yet, so for now you build the container image and
 > the APK from this repository. From the first release on, every release carries a signed image and a signed APK.
 > It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet.
 > Details: [docs/maintainers/release.md](docs/maintainers/release.md).
 
-<!-- After the first release (v0.1.0), replace the status note above with the text between the markers below.
+<!-- After the first release (v0.1.1), replace the status note above with the text between the markers below.
 START
-> **Status: version 0.1.0, the first release.** The signed container image and the signed APK are attached to the
+> **Status: version 0.1.1, the first release.** The signed container image and the signed APK are attached to the
 > [latest release](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); how to verify them is in
 > [Verifying a release](docs/maintainers/release.md#verifying-a-release). It is in daily use with Claude, with the
 > Android app on a real phone and on Linux; macOS has not been tried yet.

@@ -4,10 +4,17 @@
 //   npm run check        lint + tsc -b + vitest run + the MCP App views on Preact (test:mcp-app:preact)
 //   npm run check:bail   same, but vitest stops after 5 failures (--bail=5)
 import { spawn } from "node:child_process";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const bail = process.argv.includes("--bail");
 const frontendDir = fileURLToPath(new URL("../", import.meta.url));
+
+// Both Vitest runs start at once next to lint and tsc, so each gets a quarter of the cores (vite.config.ts gives a
+// lone run half of them): together they use what one run would, and the machine is not oversubscribed.
+const vitestWorkers = String(
+  Math.max(2, Math.floor(availableParallelism() / 4)),
+);
 
 const steps = [
   { name: "lint", args: ["run", "lint"] },
@@ -15,10 +22,12 @@ const steps = [
   {
     name: "test (vitest run)",
     args: ["run", "test", ...(bail ? ["--", "--bail=5"] : [])],
+    env: { VITEST_MAX_WORKERS: vitestWorkers },
   },
   {
     name: "test (MCP App views on Preact)",
     args: ["run", "test:mcp-app:preact", ...(bail ? ["--", "--bail=5"] : [])],
+    env: { VITEST_MAX_WORKERS: vitestWorkers },
   },
 ];
 
@@ -29,7 +38,7 @@ function runStep(step) {
     let finished = false;
     const child = spawn("npm", step.args, {
       cwd: frontendDir,
-      env: process.env,
+      env: { ...process.env, ...step.env },
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
     });

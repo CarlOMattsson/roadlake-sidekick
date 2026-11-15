@@ -1,7 +1,7 @@
 # Two stages. The builder has uv and installs the locked dependencies into a venv; the runtime stage is the same
 # digest-pinned python base plus that venv and the app, so the image that runs holds no package manager.
-# Tag python:3.13.15-slim, pinned by manifest-list digest (resolved 2026-11-14).
-FROM python:3.13.15-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS builder
+# Tag python:3.13.18-slim, pinned by manifest-list digest (resolved 2026-11-14).
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS builder
 
 # The venv's python is a symlink to the base image's interpreter, so uv must use that one and never fetch its own.
 ENV UV_PYTHON_DOWNLOADS=never UV_LINK_MODE=copy UV_COMPILE_BYTECODE=0
@@ -18,8 +18,8 @@ COPY backend/src ./backend/src
 RUN chmod -R a+rX ./backend/src
 RUN cd backend && uv sync --frozen --no-dev
 
-# Tag python:3.13.15-slim, pinned by manifest-list digest (resolved 2026-11-14).
-FROM python:3.13.15-slim@sha256:7c61056e61ac89e852de05f3dc6fa51a6dd2181797bceed46aa725dd7cb2cd3b AS runtime
+# Tag python:3.13.18-slim, pinned by manifest-list digest (resolved 2026-11-14).
+FROM python:3.13.18-slim@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90 AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 # The image is for running an instance, so it defaults to production: the interactive API docs are off
@@ -27,6 +27,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 # (`-e SIDEKICK_ENVIRONMENT=development`); the compose files set it explicitly anyway.
 ENV SIDEKICK_ENVIRONMENT=production
 WORKDIR /app
+
+# Debian security updates published since the base image was pinned (apt-get upgrade only installs newer versions of
+# packages that are already there). The image runs the app and nothing builds in it, so pip goes too: it is not used
+# at run time, and its vendored copies of urllib3, msgpack and others are what image scanners report from the base.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /usr/local/lib/python3.13/site-packages/pip /usr/local/lib/python3.13/site-packages/pip-*.dist-info \
+        /usr/local/lib/python3.13/ensurepip/_bundled/pip-*.whl /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13
 
 RUN groupadd --system sidekick && useradd --system --gid sidekick --home-dir /app sidekick \
     && install -d -o sidekick -g sidekick -m 0700 /var/lib/sidekick

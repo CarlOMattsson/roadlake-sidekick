@@ -157,18 +157,21 @@ so a patch that adds a contract migration cannot declare `expand` either.
    release CI runs on top of them: the contract diff (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, and the snapshots under `contracts/`
    re-exported and compared), the frontend coverage threshold, the Playwright mobile audit, the dependency audit of
-   `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on the Gradle lockfiles) and
-   the drill (`tools/drill.sh selfhost --local-images`, about 3 minutes, on random ports and in its own Compose
+   `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on the Gradle lockfiles), the
+   image scan (`tools/image-scan.sh`: the API image built from this checkout, scanned with the Trivy version pinned in
+   `tools/ci-images.sh`, failing on HIGH and CRITICAL findings that have a fix, as the release run does before it
+   signs; it scans the platform of your machine, the release run both linux/amd64 and linux/arm64) and
+   the drill (`tools/drill.sh all --local-images`, selfhost and work, about 8 minutes, on random ports and in its own Compose
    project, so it never touches a running instance). The frontend stage already includes the MCP App views on
    Preact. The gate runs the tests the way CI does: backend and frontend tests in UTC (the frontend ones also in
    `America/Los_Angeles`), the Playwright tests, shellcheck and gitleaks in the images pinned in
    `tools/ci-images.sh` (the same ones CI uses, so browser build, fonts and tool versions match), and the
    `published-tree` stage builds the public export and checks it as the published CI will (lint, prettier, tsc,
    vitest, policy tests, shellcheck, gitleaks, the Playwright tests). Docker is needed for those; the dependency
-   audit needs the network. A part whose tool or host is not available prints a `SKIPPED: ...` line and the stage is
+   audit needs the network, and so does the image scan the first time (it caches the vulnerability database). A part whose tool or host is not available prints a `SKIPPED: ...` line and the stage is
    reported as `SKIPPED`, never as `ok`; add `--strict` to make that a failure, and run the gate on a machine with
-   Docker and network access before you release. Not covered locally: the emulator test, the image build and the
-   Compose smoke test; the release run does those.
+   Docker and network access before you release. Not covered locally: the emulator test, the multi-platform image
+   build and the Compose smoke test; the release run does those.
    Merge to `main` when it is green. Then start the `CI` workflow by hand in the public repository (Actions, "CI",
    Run workflow) on the commit you are about to release; the release run itself runs the full CI again.
 3. **Dry run first.** Actions, "release-image", Run workflow: `version` = `vX.Y.Z`, `migration_class` (see below),
@@ -180,10 +183,15 @@ so a patch that adds a contract migration cannot declare `expand` either.
    your approval in the environment `release` (approve only a run you started); that is the only approval of the
    release. After it the checks run (the signing secrets and the pinned certificate, the full CI and the drill on
    exactly this commit, version sync, a version higher than every existing release tag, migration class, license key),
-   then the APK (built unsigned, then signed), then the image (pushed, Trivy-scanned, signed, attested), then the
-   bundle (signed and attested). `migration_class` is `expand` when the previous image still
+   then the APK (built unsigned, then signed), then the image (pushed by digest without any tag, Trivy-scanned, signed, attested), then the
+   bundle (signed and attested) and, last of all, the version tag on the image. `migration_class` is `expand` when the previous image still
    works against the new schema and `breaking` for a one-way step; the check compares the declared class with the
    migrations added since the previous release.
+
+   The image gets its version tag last. It is first pushed by digest only (no tag), scanned with Trivy on both
+   platforms (the version pinned in `tools/ci-images.sh`), checked for its SBOM and provenance, signed and attested;
+   the tag `vX.Y.Z` is put on that same digest by the last job, after the bundle is signed. A failed scan or signature
+   therefore leaves an untagged digest and no version tag that would block the version.
 5. **Verify** the result as described below, from a machine that is not the build machine.
 6. **Tag and release.** Only after step 5:
 
@@ -296,11 +304,16 @@ The first release has no predecessor, so there is nothing to update from; the ba
 
 - A gate, the CI or the drill fails: nothing was built or pushed; fix it and start again (the version tag is not used up).
 - The approval was refused or expired: nothing was built or signed past that point; start a new run.
-- The image was pushed but a later step failed (the vulnerability scan, signing, or the bundle): the tag `vX.Y.Z`
-  exists in GHCR and is never moved, and the workflow refuses to push the same version again. The fix is the next patch
-  version (`X.Y.(Z+1)`), or the next minor or a major if the change warrants it, with its own changelog section,
-  version bump and checks as above. The failed `vX.Y.Z` stays unused: do not push the git tag for it, do not publish
-  its image or bundle, and never delete or retag the image to reuse the number.
+- The image was pushed but a later step failed (the vulnerability scan, signing, or the bundle): the image went to
+  GHCR by digest only, with no tag. The version tag `vX.Y.Z` is put on it by the last job (`tag-image`), after the
+  scans, the signature, the attestation and the bundle have all succeeded, so nothing has used the version up: fix the
+  cause and start the same version again (the untagged digest is harmless; do not pin or publish it). Once the tag
+  `vX.Y.Z` exists in GHCR it is never moved, and the workflow refuses to push the same version again; if the run failed
+  only in `tag-image` (after the bundle was signed), the digest is signed and verifiable, but the version is still best
+  treated as used: take the next patch version (`X.Y.(Z+1)`), or the next minor or a major if the change warrants it,
+  with its own changelog section, version bump and checks as above. A version whose tag exists but was not published:
+  do not push the git tag for it, do not publish its image or bundle, and never delete or retag the image to reuse
+  the number.
 - The signing key leaked or was lost: delete the environment secrets, tell the owner of the installations, and treat the
   next APK as a new app lineage.
 

@@ -28,8 +28,14 @@ const quoted = /`[^`]*`|"[^"]*"|“[^”]*”|«[^»]*»/g;
 // Lowercase only: capitalized words are names.
 const swedishLetterWord =
   /(?<![\p{L}\p{N}_])(?=[\p{L}]*[åäö])[a-zåäö]{2,}(?![\p{L}\p{N}_])/u;
-const swedishPlainWords =
-  /(?<![\p{L}\p{N}_-])(?:och|inte|eller|eftersom|alltid|aldrig|bara|utan|ingen|inga|sedan|samma|vilket|annars|redan|kunna|finns|visas|skapa|ska)(?![\p{L}\p{N}_-])/u;
+const plainWordList =
+  "och|inte|eller|eftersom|alltid|aldrig|bara|utan|ingen|inga|sedan|samma|vilket|annars|redan|kunna|finns|visas|skapa|ska";
+const swedishPlainWords = new RegExp(
+  `(?<![\\p{L}\\p{N}_-])(?:${plainWordList})(?![\\p{L}\\p{N}_-])`,
+  "u",
+);
+// Anything isSwedish accepts contains one of these, and finding one is far cheaper than isSwedish itself.
+const swedishHint = new RegExp(`[åäö]|${plainWordList}`);
 
 function scannedFiles(dir: string): string[] {
   return sourceFiles(
@@ -92,6 +98,29 @@ function isSwedish(text: string): boolean {
   return swedishLetterWord.test(text) || swedishPlainWords.test(text);
 }
 
+/**
+ * A cheap, conservative test for whether a file can hold a Swedish comment, so the TypeScript parser only runs on
+ * files that might. It only ever says "no" for a file where `commentsOf` plus `isSwedish` would also find nothing:
+ * every comment line the check can flag contains Swedish text and either holds a comment marker or follows a
+ * block-comment opener that has not been closed since. Strings that look like markers only make it say "maybe"
+ * more often.
+ */
+function mayHoldSwedishComment(source: string): boolean {
+  if (!swedishHint.test(source)) return false;
+  let blockOpen = false;
+  return source.split("\n").some((line) => {
+    const opened = line.lastIndexOf("/*");
+    const closed = line.lastIndexOf("*/");
+    const mayBeComment = blockOpen || opened >= 0 || line.includes("//");
+    const candidate = mayBeComment && swedishHint.test(line) && isSwedish(line);
+    if (opened >= 0 || closed >= 0) {
+      // `/*/` opens a block comment: its slash cannot also close it.
+      blockOpen = opened >= 0 && closed < opened + 2;
+    }
+    return candidate;
+  });
+}
+
 describe("frontend comments are English", () => {
   it("has no Swedish comments in src, tests or the config files", () => {
     const files = [
@@ -100,7 +129,9 @@ describe("frontend comments are English", () => {
     ];
     const hits = files.flatMap((file) => {
       const relative = path.relative(frontendDir, file);
-      return commentsOf(file, readText(file))
+      const source = readText(file);
+      if (!mayHoldSwedishComment(source)) return [];
+      return commentsOf(file, source)
         .filter((comment) => isSwedish(comment.text))
         .map(
           (comment) =>
@@ -111,7 +142,7 @@ describe("frontend comments are English", () => {
       hits,
       `Swedish comments (write English):\n${hits.join("\n")}`,
     ).toEqual([]);
-    // Parses every source file with the TypeScript compiler: seconds alone, longer on a loaded runner.
+    // Parses the source files that might hold a Swedish comment with the TypeScript compiler.
   }, 60_000);
 
   it("finds Swedish comments but not strings, template literals or JSX text", () => {
@@ -129,5 +160,19 @@ describe("frontend comments are English", () => {
       .filter((comment) => isSwedish(comment.text))
       .map((comment) => comment.line);
     expect(flagged).toEqual([2, 4, 5, 7]);
+  });
+
+  it("skips parsing only for files that cannot hold a Swedish comment", () => {
+    expect(mayHoldSwedishComment("const label = 'Köp och sälj';")).toBe(false);
+    expect(mayHoldSwedishComment("// Only English here\nconst a = 1;")).toBe(
+      false,
+    );
+    expect(mayHoldSwedishComment("const a = 1; // inte engelska")).toBe(true);
+    expect(mayHoldSwedishComment("/* Only English */\nconst a = 'på';")).toBe(
+      false,
+    );
+    expect(mayHoldSwedishComment("/*\n en kommentar på\n svenska */")).toBe(
+      true,
+    );
   });
 });

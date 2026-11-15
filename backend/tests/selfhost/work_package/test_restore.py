@@ -360,7 +360,7 @@ def test_a_writer_that_cannot_start_by_itself_is_left_alone(mini_repo: Path, sta
     assert result.returncode == 0, result.stderr
     calls = docker_calls(mini_repo)
     assert "stop api automation-worker\n" in calls
-    assert "up -d --wait --wait-timeout 300 api automation-worker\n" in calls
+    assert "up -d --wait --wait-timeout 600 api automation-worker\n" in calls
 
 
 def test_an_inspect_that_fails_stops_before_anything_is_changed(mini_repo: Path) -> None:

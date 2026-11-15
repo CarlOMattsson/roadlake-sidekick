@@ -16,11 +16,12 @@ from collections.abc import Callable
 from . import drillsteps as sk
 from .drillhost import Done
 from .drillsteps import Run, Step, StepFailed, expect_eq
+from .stack import START_TIMEOUT
 
 KEY_VARIABLE = "SIDEKICK_BACKUP_ENCRYPTION_KEY"
 UUID = re.compile(r"[0-9a-fA-F-]{36}")
 NIL_OWNER = "00000000-0000-4000-8000-000000000000"
-WAIT = ["--wait", "--wait-timeout", "300"]
+WAIT = ["--wait", "--wait-timeout", START_TIMEOUT]
 MARKER_QUERY = "select token from public.drill_marker"
 
 

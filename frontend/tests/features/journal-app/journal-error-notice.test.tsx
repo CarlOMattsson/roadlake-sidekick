@@ -1,6 +1,14 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  onTestFinished,
+  vi,
+} from "vitest";
 import { journalEn } from "@/features/journal-app/labels";
 import { preloadSidekickApp } from "@tests/helpers/preload-sidekick-app";
 
@@ -60,16 +68,16 @@ beforeAll(async () => {
   await import("@/features/mcp-apps/sidekick-entry");
 });
 
-/** Today's calendar date in local time, as the app reads the day it opens on. */
-function localToday(): string {
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-}
-
 describe("journal app error before any view", () => {
   it("shows the shared error notice, and Try again reads today again; a failed read keeps the notice", async () => {
-    const today = localToday();
+    // 00:30 on 15 November on the owner's clock (Europe/Stockholm) while it is still the 14th in UTC and in the
+    // Americas, so the day the app opens on cannot come from the machine's own zone.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-14T23:30:00.000Z"));
+    onTestFinished(() => {
+      vi.useRealTimers();
+    });
+    const today = "2026-11-15";
     act(() => {
       for (const listener of host.toolResult)
         listener({ structuredContent: undefined, isError: true });
