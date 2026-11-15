@@ -43,7 +43,7 @@ bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-a
 
 För att köra hela den lokala sviten som ska vara grön före en push i ett svep finns `tools/check-all.sh`. Den kör
 backendtesterna parallellt på en egen plats i testdatabasen (`--slot`, 1 till 20; se `tools/test-db-pool.md`), därefter
-ruff och pyright, versions- och migrationskontrollerna, shellcheck, gitleaks, frontendkontrollerna, bygget och
+ruff och pyright, versions- och migrationskontrollerna, shellcheck, actionlint, gitleaks, frontendkontrollerna, bygget och
 webbläsartesterna för MCP-appen, en kontroll av den publika exporten (`published-tree`: exporten byggs i en temporär
 katalog och lintas, typkontrolleras och testas där som den publicerade CI kommer att göra) och Androids Gradle-bygge.
 Backendtesterna körs med CI:s täckningsgräns (90 %), testerna körs i UTC som på CI-runnern (frontendens enhetstester
@@ -58,7 +58,7 @@ bash tools/check-all.sh --slot 3 --release        # plus resten av releasegrinde
 bash tools/check-all.sh --help                    # alla flaggor
 ```
 
-Docker behövs för shellcheck, gitleaks och Playwright-testerna: de körs i de avbilder som är fastnålade i
+Docker behövs för shellcheck, actionlint, gitleaks och Playwright-testerna: de körs i de avbilder som är fastnålade i
 `tools/ci-images.sh`, samma som CI använder, så versioner, webbläsare och typsnitt stämmer. Saknas Docker skriver steget
 `SKIPPED: docker missing ...` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett
 fel.
@@ -71,8 +71,8 @@ när det inte nås, och det gör avbildsskanningen utan Docker. Emulatortestet, 
 till det du har ändrat. Före varje release: kör `bash tools/check-all.sh --slot K --release` och starta sedan `ci.yml`
 för hand i det publika repot.
 
-CI körs inte för pull requests, sammanslagningar eller pushar; det är en grind vid varje release (och kan startas för
-hand). Kontrollerna kör alltså du själv innan du pushar: installera hookarna med `pre-commit install --hook-type
+CI körs vid varje push till `main` (i det publika repot varje export), som grind vid varje release och för hand, men
+inte för pull requests. Kontrollerna kör alltså du själv innan du pushar: installera hookarna med `pre-commit install --hook-type
 pre-commit --hook-type pre-push` och kör kommandona som hör till det du har ändrat. Release-CI kör mer än kommandona ovan:
 
 ```bash
@@ -90,10 +90,13 @@ npm --prefix frontend run build:mobile
 # Skalskript (CI kontrollerar också filer utan ändelse som börjar med sh- eller bash-shebang), i CI:s avbild
 bash tools/shellcheck-ci.sh
 
+# GitHub Actions-arbetsflöden (också ShellCheck på deras run:-block), i CI:s avbild, utan nätverk
+bash tools/actionlint-ci.sh
+
 # Beroenden (.github/workflows/audit.yml): pip-audit över alla låsta Python-grupper, `npm audit --audit-level=high --omit=dev`
-# över de levererade frontend-beroendena och OSV-Scanner över Androids Gradle-låsfiler (kräver Docker)
+# över de levererade frontend-beroendena och OSV-Scanner över alla låsfiler, Androids Gradle-låsfiler inklusive (kräver Docker)
 bash .github/audit/pip-audit.sh
-bash .github/audit/osv-gradle.sh
+bash .github/audit/osv-scan.sh
 ```
 
 CI söker också efter incheckade hemligheter (gitleaks) och bygger API-imagen (`backend/Dockerfile`). Flera

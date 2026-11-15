@@ -5,10 +5,12 @@ the bundle; creating the tag, the GitHub release and any store listing is a deli
 workflow never creates a tag or a release. Svenska: [release.sv.md](release.sv.md).
 
 Releases are made at all three levels: major (`X.0.0`), minor (`X.Y.0`) and patch (`X.Y.Z`). Changes are tested
-locally before they are pushed, so CI never runs on a push or on a schedule (it runs by hand and as a release gate). The one
-exception is the CodeQL analysis (`.github/workflows/codeql.yml`): static analysis should see every commit on `main`, as the
-OpenSSF Scorecard "SAST" check expects, so it also runs on every push to `main` and once a week; it needs no secrets and only
-writes code scanning alerts. Every other workflow keeps the rule. The full CI (with the dependency audit) and the
+locally before they are pushed. CI (`ci.yml`) runs on every push to `main` (in the public repository that is every export),
+by hand, and as a release gate; it never runs on pull requests, merge queues or a schedule. The other exception is the CodeQL
+analysis (`.github/workflows/codeql.yml`): static analysis should see every commit on `main`, as the OpenSSF Scorecard "SAST"
+check expects, so it also runs on every push to `main` and once a week; it needs no secrets and only writes code scanning
+alerts. Every other workflow keeps the rule: the dependency audit (a job of CI that is skipped on a push), the drill and the
+release run by hand or at a release. The full CI (with the dependency audit) and the
 update/backup/restore drill run as gates of every real release, a patch included. A patch may only declare the
 migration class `expand` (a fix never ships a one-way schema step).
 
@@ -50,6 +52,7 @@ Expect rough edges and breaking changes until a release is published.
 | Android APK `sidekick-X.Y.Z.apk` | workflow artifact `release-bundle-X.Y.Z` | your Android signing key (`apksigner`); GitHub build provenance attestation |
 | `SHA256SUMS` and its signature bundle | same bundle | cosign keyless (`sign-blob`); GitHub build provenance attestation |
 | the image SBOM (SPDX JSON) and the release notes (taken from the changelog) | same bundle | covered by `SHA256SUMS`; GitHub build provenance attestation |
+| `sidekick-X.Y.Z.intoto.jsonl`, the signed SLSA build provenance of the APK, the SBOM, `SHA256SUMS` and the release notes | same bundle | it is the attestation itself (a Sigstore bundle); publish it with the release |
 | R8 mapping for crash reports | artifact `android-r8-mapping` (90 days) | none (a debugging aid, not part of the release) |
 
 The git tag `vX.Y.Z` is signed by the maintainer (`git tag -s`), so every link from the source tag to the files is
@@ -160,7 +163,7 @@ so a patch that adds a contract migration cannot declare `expand` either.
    release CI runs on top of them: the contract diff (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, and the snapshots under `contracts/`
    re-exported and compared), the frontend coverage threshold, the Playwright mobile audit, the dependency audit of
-   `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on the Gradle lockfiles), the
+   `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on every lockfile, the Gradle ones included), the
    image scan (`tools/image-scan.sh`: the API image built from this checkout, scanned with the Trivy version pinned in
    `tools/ci-images.sh`, failing on HIGH and CRITICAL findings that have a fix, as the release run does before it
    signs; it scans the platform of your machine, the release run both linux/amd64 and linux/arm64) and
@@ -202,7 +205,8 @@ so a patch that adds a contract migration cannot declare `expand` either.
    git tag -s vX.Y.Z -m "vX.Y.Z" <released-commit> && git tag -v vX.Y.Z && git push origin vX.Y.Z
    gh run download <run-id> -n release-bundle-X.Y.Z -D bundle
    gh release create vX.Y.Z --verify-tag --title "vX.Y.Z" --notes-file bundle/release-notes.md \
-     bundle/sidekick-X.Y.Z.apk bundle/SHA256SUMS bundle/SHA256SUMS.sigstore.json bundle/sbom-image-X.Y.Z.spdx.json
+     bundle/sidekick-X.Y.Z.apk bundle/SHA256SUMS bundle/SHA256SUMS.sigstore.json bundle/sbom-image-X.Y.Z.spdx.json \
+     bundle/sidekick-X.Y.Z.intoto.jsonl
    ```
 
    The tag should be signed (`git tag -s`); an annotated tag (`git tag -a`) is the minimum, because the next release
@@ -254,6 +258,9 @@ for file in sidekick-X.Y.Z.apk sbom-image-X.Y.Z.spdx.json SHA256SUMS release-not
   gh attestation verify "$file" --repo <owner>/<repo> \
     --signer-workflow <owner>/<repo>/.github/workflows/release-image.yml
 done
+
+# The same provenance offline, from the published file (no lookup at GitHub for the attestation).
+gh attestation verify sidekick-X.Y.Z.apk --bundle sidekick-X.Y.Z.intoto.jsonl --repo <owner>/<repo>
 
 # APK: the signature must verify and the certificate must be yours (compare with ANDROID_CERT_SHA256).
 apksigner verify --verbose --print-certs sidekick-X.Y.Z.apk
@@ -323,7 +330,7 @@ The first release has no predecessor, so there is nothing to update from; the ba
 ## Tags and the first release
 
 The release workflow (`.github/workflows/release-image.yml`, started by hand) only runs from a commit on `main`, builds
-major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI never runs on pushes or on a schedule, only by hand and as this gate, never on pull requests; changes are tested locally first; only the CodeQL analysis runs on push to `main` and weekly). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
+major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI runs on pushes to `main`, by hand and as this gate, never on pull requests or on a schedule, and its dependency audit only at a release; changes are tested locally first; only the CodeQL analysis also runs weekly). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
 It never creates git tags. After a release, push the signed tag at the released commit yourself; the next release finds its
 comparison point from that tag:
 

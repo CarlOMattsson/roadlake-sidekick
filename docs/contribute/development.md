@@ -43,7 +43,7 @@ bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-a
 
 To run the local suite that should be green before a push in one go, use `tools/check-all.sh`. It runs the backend
 tests in parallel on a disposable test database slot of your own (`--slot`, 1 to 20; see `tools/test-db-pool.md`),
-with the CI coverage gate (90 %), then ruff and pyright, the version and migration policy checks, shellcheck, gitleaks,
+with the CI coverage gate (90 %), then ruff and pyright, the version and migration policy checks, shellcheck, actionlint, gitleaks,
 the frontend checks (the mobile bundle is built first, because `mobile-csp.test.ts` reads it), the MCP App build and
 browser tests, a check of the public export (`published-tree`: the export is built in a temporary directory and linted,
 type-checked and tested there as the published CI will) and the Android Gradle build. Tests run in UTC, as on the CI
@@ -57,7 +57,7 @@ bash tools/check-all.sh --slot 3 --release        # plus the rest of the release
 bash tools/check-all.sh --help                    # all options
 ```
 
-Docker is needed for shellcheck, gitleaks and the Playwright tests: they run in the images pinned in
+Docker is needed for shellcheck, actionlint, gitleaks and the Playwright tests: they run in the images pinned in
 `tools/ci-images.sh`, the same ones CI uses, so versions, browsers and fonts match. When Docker is missing the stage
 prints `SKIPPED: docker missing ...` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into
 a failure.
@@ -70,8 +70,8 @@ when it is not reachable, and so is the image scan without Docker. The emulator 
 run the ones below that match what you changed. Before every release run `bash tools/check-all.sh --slot K --release`,
 then start `ci.yml` by hand in the public repository.
 
-CI does not run on pull requests, merges or pushes; it is a gate of every release (and can be started by hand). So
-the checks are yours to run before you push: install the hooks with `pre-commit install --hook-type pre-commit --hook-type
+CI runs on every push to `main` (in the public repository, every export), as a gate of every release and by hand, but
+not on pull requests. So the checks are yours to run before you push: install the hooks with `pre-commit install --hook-type pre-commit --hook-type
 pre-push`, and run the commands that match what you changed. The release CI runs more than the commands above:
 
 ```bash
@@ -89,9 +89,12 @@ npm --prefix frontend run build:mobile
 # Shell scripts (CI also checks extensionless files that start with a sh or bash shebang), in the CI image
 bash tools/shellcheck-ci.sh
 
-# Dependencies: pip-audit and `npm audit --audit-level=high --omit=dev`, OSV-Scanner on the Gradle lockfiles (.github/workflows/audit.yml)
+# GitHub Actions workflows (also the ShellCheck of their run: blocks), in the CI image, offline
+bash tools/actionlint-ci.sh
+
+# Dependencies: pip-audit and `npm audit --audit-level=high --omit=dev`, OSV-Scanner on every lockfile, the Gradle ones included (.github/workflows/audit.yml)
 bash .github/audit/pip-audit.sh
-bash .github/audit/osv-gradle.sh
+bash .github/audit/osv-scan.sh
 ```
 
 CI also scans for committed secrets (gitleaks) and builds the API image (`backend/Dockerfile`). Several jobs

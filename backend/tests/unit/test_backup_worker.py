@@ -171,4 +171,4 @@ def test_a_too_large_bundle_is_a_safe_refusal_without_a_traceback(
     rendered = json.loads(AllowlistJsonFormatter("%(message)s").format(record))
     assert rendered["backup_run_id"] == record.backup_run_id
     assert "dropped_field_count" not in rendered
-    assert "512" not in json.dumps(rendered)
+    assert "MiB" not in json.dumps(rendered)  # the exception text; a random run id may hold "512"

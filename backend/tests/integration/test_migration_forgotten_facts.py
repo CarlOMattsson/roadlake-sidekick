@@ -1,8 +1,8 @@
 """Migration 108 adds the forgotten-statement tables and the owner's salt, and nothing else.
 
 Each test builds the database as an installation that ran up to migration 107 has it, then applies
-`migrations/`. The tables are new and the salt column is nullable, so an existing installation keeps
-every row it has, and a rollback drops only what 108 added.
+the chain through 108. The tables are new and the salt column is nullable, so an existing
+installation keeps every row it has, and a rollback drops only what 108 added.
 """
 
 from __future__ import annotations
@@ -16,8 +16,6 @@ from yoyo import get_backend, read_migrations
 
 from tests.db import require_test_database_url
 from tests.support.migration_baseline import (
-    BASELINE,
-    DROP_AUTOMATION,
     FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
     TAG_LINKS,
@@ -29,6 +27,8 @@ from tests.support.migration_baseline import (
     _run,
     _snapshot,
     _tables,
+    chain_through,
+    ids_through,
     rebuilt_schema,  # noqa: F401  (a fixture, used through `usefixtures`)
 )
 
@@ -80,21 +80,9 @@ INSERT_UNIT = (
 )
 
 
-def _chain_before_the_forgotten_facts(tmp_path: Path) -> Path:
-    """A migrations directory with every migration up to 107, which is the chain before 108."""
-
-    directory = tmp_path / "before-the-forgotten-facts"
-    directory.mkdir()
-    for name in (BASELINE, DROP_AUTOMATION, TAG_LINKS):
-        (directory / f"{name}.py").write_text(
-            (MIGRATIONS_PATH / f"{name}.py").read_text(encoding="utf-8"), encoding="utf-8"
-        )
-    return directory
-
-
 def _installation_before_the_forgotten_facts(tmp_path: Path) -> None:
     _reset_schema()
-    _apply(_chain_before_the_forgotten_facts(tmp_path))
+    _apply(chain_through(tmp_path, TAG_LINKS))
     for statement in ROWS:
         _run(statement, IDS)
 
@@ -119,7 +107,7 @@ def _tables_now() -> set[str]:
 
 def _migrated(tmp_path: Path) -> None:
     _installation_before_the_forgotten_facts(tmp_path)
-    _apply(MIGRATIONS_PATH)
+    _apply(chain_through(tmp_path, FORGOTTEN_FACTS))
 
 
 @pytest.mark.integration
@@ -130,17 +118,18 @@ def test_the_tables_are_added_and_every_existing_row_is_kept(tmp_path: Path) -> 
     before = _tables_now()
     assert set(NEW_TABLES).isdisjoint(before)
 
-    _apply(MIGRATIONS_PATH)
+    through = chain_through(tmp_path, FORGOTTEN_FACTS)
+    _apply(through)
 
     assert _tables_now() == before | set(NEW_TABLES)
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
+    assert _applied_ids() == ids_through(FORGOTTEN_FACTS)
     assert _scalar("SELECT count(*) FROM sidekick.users") == 2
     assert _scalar("SELECT count(*) FROM sidekick.memory_sources") == 2
     assert _scalar("SELECT count(*) FROM sidekick.memory_settings") == 1
     # The salt column starts empty; the salt is made when the owner first forgets a statement.
     assert _scalar("SELECT forget_salt FROM sidekick.memory_settings") is None
     backend = get_backend(_migration_url())
-    assert not list(backend.to_apply(read_migrations(str(MIGRATIONS_PATH))))
+    assert not list(backend.to_apply(read_migrations(str(through))))
 
 
 @pytest.mark.integration
@@ -452,7 +441,7 @@ def test_a_rollback_drops_only_what_the_migration_added(tmp_path: Path) -> None:
         backend.rollback_one(migration)
 
     assert set(NEW_TABLES).isdisjoint(_tables_now())
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS}
+    assert _applied_ids() == ids_through(TAG_LINKS)
     assert _scalar("SELECT count(*) FROM sidekick.memory_sources") == 2
     assert _scalar("SELECT count(*) FROM sidekick.memory_settings") == 1
     assert (

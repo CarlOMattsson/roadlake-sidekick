@@ -1,5 +1,6 @@
 """Projects, Tasks, board reads and Task status history."""
 
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -30,6 +31,7 @@ from sidekick.shared.persistence.stores.keyset import rows_after
 from sidekick.shared.persistence.stores.task_parents import task_parents_live
 from sidekick.shared.types import KeyValue, TxSession, new_uuid7
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus, TaskStatusHistory
+from sidekick.tasks.domain.review import OPEN_STATUSES, ReviewCandidate
 from sidekick.work.domain.context import Domain, Process
 from sidekick.work.domain.ports import StructureReader, TaskStepStore
 from sidekick.work.domain.steps import Step
@@ -66,6 +68,8 @@ def task_from_row(row: TaskRow) -> Task:
         blocked_last_reminded_at=row.blocked_last_reminded_at,
         recurrence=RecurrenceRule.from_data(row.recurrence),
         last_completed_at=row.last_completed_at,
+        last_reviewed_at=row.last_reviewed_at,
+        ambition_since=row.ambition_since,
     )
 
 
@@ -100,6 +104,8 @@ def task_to_row(task: Task) -> TaskRow:
         blocked_last_reminded_at=task.blocked_last_reminded_at,
         recurrence=task.recurrence.to_data() if task.recurrence else None,
         last_completed_at=task.last_completed_at,
+        last_reviewed_at=task.last_reviewed_at,
+        ambition_since=task.ambition_since,
     )
 
 
@@ -220,8 +226,13 @@ class ProjectTaskStore:
         include_archived: bool = False,
         process_id: UUID | None = None,
         unsorted: bool = False,
+        ambitions: bool | None = None,
     ) -> list[Task]:
-        """Newest change first; `after` is the (updated_at, id) of the last Task already read."""
+        """Newest change first; `after` is the (updated_at, id) of the last Task already read.
+
+        `ambitions` True lists only the open ambitions, False leaves them out, None lists both. A
+        completed ambition is done, not kept in view, so it is an ordinary completed Task here.
+        """
 
         statement = select(TaskRow).where(
             TaskRow.owner_id == owner_id, TaskRow.trashed_at.is_(None), task_parents_live()
@@ -243,6 +254,11 @@ class ProjectTaskStore:
             )
         if status is not None:
             statement = statement.where(TaskRow.status == status.value)
+        if ambitions is not None:
+            ambition = and_(
+                TaskRow.ambition_since.is_not(None), TaskRow.status != TaskStatus.COMPLETED.value
+            )
+            statement = statement.where(ambition if ambitions else ~ambition)
         if after is not None:
             statement = statement.where(
                 rows_after((TaskRow.updated_at, TaskRow.id), after, descending=True)
@@ -425,6 +441,69 @@ class ProjectTaskStore:
         return {row[0]: row[1] for row in rows}
 
     @staticmethod
+    def domain_names(
+        session: Session, owner_id: UUID, domain_ids: tuple[UUID, ...]
+    ) -> dict[UUID, str]:
+        """Name of each named live Domain of the owner, archived ones included, in one query."""
+
+        if not domain_ids:
+            return {}
+        rows = session.execute(
+            select(DomainRow.id, DomainRow.name).where(
+                DomainRow.id.in_(domain_ids),
+                DomainRow.owner_id == owner_id,
+                DomainRow.trashed_at.is_(None),
+            )
+        ).all()
+        return {row[0]: row[1] for row in rows}
+
+    @staticmethod
+    def list_review_candidates(
+        session: Session, owner_id: UUID, *, reviewed_before: datetime, limit: int
+    ) -> list[ReviewCandidate]:
+        """The owner's open, unarchived, visible Tasks not reviewed after `reviewed_before`.
+
+        Each comes with its done and total live Steps, counted in the same query. Ordered by id,
+        so a list cut at `limit` is the same on every read.
+        """
+
+        steps = (
+            select(
+                StepRow.task_id.label("task_id"),
+                func.count(StepRow.id).label("total"),
+                func.count(StepRow.id)
+                .filter(StepRow.status == TaskStatus.COMPLETED.value)
+                .label("done"),
+            )
+            .where(
+                StepRow.owner_id == owner_id,
+                StepRow.archived_at.is_(None),
+                StepRow.trashed_at.is_(None),
+            )
+            .group_by(StepRow.task_id)
+            .subquery()
+        )
+        rows = session.execute(
+            select(TaskRow, func.coalesce(steps.c.done, 0), func.coalesce(steps.c.total, 0))
+            .outerjoin(steps, steps.c.task_id == TaskRow.id)
+            .where(
+                TaskRow.owner_id == owner_id,
+                TaskRow.trashed_at.is_(None),
+                TaskRow.archived_at.is_(None),
+                TaskRow.ambition_since.is_(None),
+                TaskRow.status.in_(sorted(status.value for status in OPEN_STATUSES)),
+                task_parents_live(),
+                or_(
+                    TaskRow.last_reviewed_at.is_(None),
+                    TaskRow.last_reviewed_at <= reviewed_before,
+                ),
+            )
+            .order_by(TaskRow.id)
+            .limit(limit)
+        ).all()
+        return [ReviewCandidate(task_from_row(row[0]), int(row[1]), int(row[2])) for row in rows]
+
+    @staticmethod
     def domain_accents(
         session: Session, owner_id: UUID, domain_ids: tuple[UUID, ...]
     ) -> dict[UUID, str | None]:
@@ -480,6 +559,24 @@ class ProjectTaskStore:
             )
         ).all()
         return {row[0]: row[1] for row in rows}
+
+    @staticmethod
+    def lock_tasks(session: Session, owner_id: UUID, task_ids: Iterable[UUID]) -> None:
+        """Row-lock the owner's Tasks among `task_ids` in id order, until the commit.
+
+        A multi-Task write takes its locks here first, so two of them over the same Tasks lock in
+        the same order whatever order their callers listed the Tasks in, and never deadlock.
+        Ids of other owners or of no Task are simply not locked; the write reports them itself.
+        """
+
+        ids = sorted(set(task_ids))
+        if ids:
+            session.execute(
+                select(TaskRow.id)
+                .where(TaskRow.owner_id == owner_id, TaskRow.id.in_(ids))
+                .order_by(TaskRow.id)
+                .with_for_update()
+            )
 
     @staticmethod
     def list_board_column_tasks(
@@ -546,6 +643,8 @@ class ProjectTaskStore:
             "blocked_last_reminded_at",
             "recurrence",
             "last_completed_at",
+            "last_reviewed_at",
+            "ambition_since",
         ):
             value = getattr(task, field)
             if isinstance(value, (TaskStatus, Priority)):

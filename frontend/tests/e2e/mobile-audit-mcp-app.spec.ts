@@ -1,6 +1,4 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import type { CDPSession, FrameLocator, Locator, Page } from "@playwright/test";
 import { assertAuditClean } from "./mobile-audit-gate";
@@ -18,14 +16,19 @@ import {
 // Android test: every tool answer and every host message is a fixture, and the iframe is a plain
 // sandboxed iframe in headless Chromium. The spec measures and takes screenshots; it asserts
 // nothing about product quality, so it never fails on a defect. Run it with
-// playwright.mobile-audit.config.ts. Output goes to the system temp folder below (override with MOBILE_AUDIT_OUT).
+// playwright.mobile-audit.config.ts. Output goes to the folder MOBILE_AUDIT_OUT names (the config makes a private
+// temporary one when it is not set).
 //
 // AUDIT_SHOTS=1 also writes the screenshots (skarm/hel and the flow shots) to that folder. Without
 // it no screenshot is taken and the iframe/viewport is not resized. Measurements, metrics JSON and
 // assertions always run.
 
 const SHOTS = process.env.AUDIT_SHOTS === "1";
-const OUT = process.env.MOBILE_AUDIT_OUT ?? join(tmpdir(), "sidekick-mobil");
+const OUT = process.env.MOBILE_AUDIT_OUT;
+if (!OUT)
+  throw new Error(
+    "MOBILE_AUDIT_OUT is not set; run the spec with playwright.mobile-audit.config.ts",
+  );
 mkdirSync(OUT, { recursive: true });
 mkdirSync(`${OUT}/metrics`, { recursive: true });
 

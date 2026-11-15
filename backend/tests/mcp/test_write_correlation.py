@@ -492,6 +492,32 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
             },
         )
 
+        # A review that archives a Task, and the restore that undoes it.
+        reviewed = (await call("create_task", {"title": "Sweep", "idempotency_key": key + "tsk5"}))[
+            "task"
+        ]
+        task_review = await call(
+            "review_tasks",
+            {
+                "items": [
+                    {
+                        "task_id": reviewed["id"],
+                        "expected_version": reviewed["version"],
+                        "decision": "archive",
+                    }
+                ],
+                "idempotency_key": key + "review",
+            },
+        )
+        await call(
+            "restore_task",
+            {
+                "task_id": reviewed["id"],
+                "version": task_review["tasks"][0]["version"],
+                "idempotency_key": key + "rtsk",
+            },
+        )
+
         # Shopping: items, patch, purchase one and a batch, rename the list.
         added = await call(
             "add_shopping_items",
@@ -771,6 +797,7 @@ def test_the_board_reorder_replayed_with_the_same_key_records_the_event_once(
         "Shed",
         "A tidy day",
         "Steps",
+        "Sweep",
         "not-a-real-licence-key",
     ],
 )

@@ -5,10 +5,12 @@ paketet; att skapa taggen, GitHub-releasen och eventuell butiksnotering är ett 
 skapar aldrig en tagg eller en release. English: [release.md](release.md).
 
 Releaser görs på alla tre nivåer: major (`X.0.0`), minor (`X.Y.0`) och patch (`X.Y.Z`). Ändringar testas lokalt innan
-de pushas, så CI körs aldrig vid push eller enligt schema (det körs för hand och som releasegrind). Det enda undantaget
-är CodeQL-analysen (`.github/workflows/codeql.yml`): statisk analys ska se varje commit på `main`, som OpenSSF Scorecards
-kontroll "SAST" förväntar sig, så den körs också vid varje push till `main` och en gång i veckan; den behöver inga
-hemligheter och skriver bara kodskanningsvarningar. Alla andra arbetsflöden följer regeln. Hela CI (med beroendegranskningen) och drillen för uppdatering, backup och
+de pushas. CI (`ci.yml`) körs vid varje push till `main` (i det publika repot är det varje export), för hand och som
+releasegrind; det körs aldrig för pull requests, merge queues eller enligt schema. Det andra undantaget är CodeQL-analysen
+(`.github/workflows/codeql.yml`): statisk analys ska se varje commit på `main`, som OpenSSF Scorecards kontroll "SAST"
+förväntar sig, så den körs också vid varje push till `main` och en gång i veckan; den behöver inga hemligheter och skriver
+bara kodskanningsvarningar. Alla andra arbetsflöden följer regeln: beroendegranskningen (ett jobb i CI som hoppas över vid
+push), drillen och releasen körs för hand eller vid en release. Hela CI (med beroendegranskningen) och drillen för uppdatering, backup och
 återställning körs som grindar vid varje riktig release, också en patch. En patch får bara deklarera migrationsklassen
 `expand` (en rättning levererar aldrig ett enkelriktat schemasteg).
 
@@ -50,6 +52,7 @@ Räkna med skavanker och brytande ändringar tills en release är publicerad.
 | Android-APK `sidekick-X.Y.Z.apk` | arbetsflödets artefakt `release-bundle-X.Y.Z` | din Android-signeringsnyckel (`apksigner`); GitHubs byggproveniensattestering |
 | `SHA256SUMS` och dess signaturpaket | samma paket | cosign keyless (`sign-blob`); GitHubs byggproveniensattestering |
 | imagens SBOM (SPDX JSON) och releaseanteckningarna (tagna ur ändringsloggen) | samma paket | täcks av `SHA256SUMS`; GitHubs byggproveniensattestering |
+| `sidekick-X.Y.Z.intoto.jsonl`, den signerade SLSA-byggproveniensen för APK:n, SBOM:en, `SHA256SUMS` och releaseanteckningarna | samma paket | den är själva attesteringen (ett Sigstore-paket); publicera den med releasen |
 | R8-mappning för kraschrapporter | artefakten `android-r8-mapping` (90 dagar) | ingen (ett felsökningshjälpmedel, inte en del av releasen) |
 
 Git-taggen `vX.Y.Z` signeras av underhållaren (`git tag -s`), så varje länk från källtaggen till filerna går att
@@ -162,7 +165,7 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, och ögonblicksbilderna under
    `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning,
    beroendegranskningen i `audit.yml` (pip-audit, `npm audit` för frontend och webbplatsen, OSV-Scanner på
-   Gradle-låsfilerna), avbildsskanningen (`tools/image-scan.sh`: API-avbilden byggd från denna utcheckning, skannad med
+   alla låsfiler, Gradle-låsfilerna inklusive), avbildsskanningen (`tools/image-scan.sh`: API-avbilden byggd från denna utcheckning, skannad med
    den Trivy-version som är fastnålad i `tools/ci-images.sh`, med fel vid HIGH och CRITICAL som har en rättelse, som
    releasekörningen gör före signeringen; den skannar din maskins plattform, releasekörningen både linux/amd64 och
    linux/arm64) och drillen (`tools/drill.sh all --local-images`, selfhost och work, cirka 8 minuter, på slumpade portar och i
@@ -203,7 +206,8 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    git tag -s vX.Y.Z -m "vX.Y.Z" <released-commit> && git tag -v vX.Y.Z && git push origin vX.Y.Z
    gh run download <run-id> -n release-bundle-X.Y.Z -D bundle
    gh release create vX.Y.Z --verify-tag --title "vX.Y.Z" --notes-file bundle/release-notes.md \
-     bundle/sidekick-X.Y.Z.apk bundle/SHA256SUMS bundle/SHA256SUMS.sigstore.json bundle/sbom-image-X.Y.Z.spdx.json
+     bundle/sidekick-X.Y.Z.apk bundle/SHA256SUMS bundle/SHA256SUMS.sigstore.json bundle/sbom-image-X.Y.Z.spdx.json \
+     bundle/sidekick-X.Y.Z.intoto.jsonl
    ```
 
    Taggen ska vara signerad (`git tag -s`); en annoterad tagg (`git tag -a`) är minimum, eftersom nästa release hittar
@@ -255,6 +259,9 @@ for file in sidekick-X.Y.Z.apk sbom-image-X.Y.Z.spdx.json SHA256SUMS release-not
   gh attestation verify "$file" --repo <owner>/<repo> \
     --signer-workflow <owner>/<repo>/.github/workflows/release-image.yml
 done
+
+# The same provenance offline, from the published file (no lookup at GitHub for the attestation).
+gh attestation verify sidekick-X.Y.Z.apk --bundle sidekick-X.Y.Z.intoto.jsonl --repo <owner>/<repo>
 
 # APK: the signature must verify and the certificate must be yours (compare with ANDROID_CERT_SHA256).
 apksigner verify --verbose --print-certs sidekick-X.Y.Z.apk
@@ -327,7 +334,7 @@ tillkännagivandet:
 ## Taggar och den första releasen
 
 Release-arbetsflödet (`.github/workflows/release-image.yml`, startas för hand) körs bara från en incheckning på
-`main`, bygger major-, minor- och patchversioner efter ägarens godkännande och kör hela CI och drillen själv som grindar (CI körs aldrig vid push eller enligt schema, bara för hand och som den här grinden, aldrig för pull requests; ändringar testas lokalt först; bara CodeQL-analysen körs vid push till `main` och varje vecka). Det kontrollerar också den angivna migrationsklassen mot migrationerna som lagts till sedan föregående
+`main`, bygger major-, minor- och patchversioner efter ägarens godkännande och kör hela CI och drillen själv som grindar (CI körs vid push till `main`, för hand och som den här grinden, aldrig för pull requests eller enligt schema, och dess beroendegranskning bara vid en release; ändringar testas lokalt först; bara CodeQL-analysen körs också varje vecka). Det kontrollerar också den angivna migrationsklassen mot migrationerna som lagts till sedan föregående
 release (en patch får bara deklarera `expand`). Det skapar aldrig git-taggar. Pusha den signerade taggen på den släppta incheckningen själv efter en release; nästa
 release hittar sin jämförelsepunkt från den taggen:
 

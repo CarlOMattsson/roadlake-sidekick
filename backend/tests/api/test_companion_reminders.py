@@ -333,7 +333,7 @@ def test_the_same_due_reminder_is_never_queued_twice_but_a_moved_due_at_is_a_new
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("change", ["completed", "trashed", "archived"])
+@pytest.mark.parametrize("change", ["completed", "trashed", "archived", "ambition"])
 def test_a_finished_or_removed_task_gets_no_reminder(change: str) -> None:
     app, client, user_id, token, _device, clock = setup()
     with client:
@@ -344,13 +344,23 @@ def test_a_finished_or_removed_task_gets_no_reminder(change: str) -> None:
             "completed": {"status": "completed", "completed_at": clock.now},
             "trashed": {"trashed_at": clock.now},
             "archived": {"archived_at": clock.now},
+            # A row that disagrees with the domain (an ambition that still has a due date).
+            "ambition": {"ambition_since": clock.now},
         }[change]
         set_task(app, task_id, **fields)
         assert scheduler(app, clock).run_once() == 0
         assert reminders(app) == []
 
         # Finished only after the reminder was queued: it is no longer pending for the phone.
-        set_task(app, task_id, status="todo", completed_at=None, trashed_at=None, archived_at=None)
+        set_task(
+            app,
+            task_id,
+            status="todo",
+            completed_at=None,
+            trashed_at=None,
+            archived_at=None,
+            ambition_since=None,
+        )
         assert scheduler(app, clock).run_once() == 1
         set_task(app, task_id, **fields)
         pending = client.get("/companion/v1/reminders/pending", headers=bearer(token)).json()

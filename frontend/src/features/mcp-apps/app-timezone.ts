@@ -115,20 +115,39 @@ export function ownerToday(zone?: string, now: Date = new Date()): string {
 }
 
 /**
+ * A wall-clock time read as UTC, in milliseconds. `Date.UTC` would read years 0–99 as 1900–1999, so the year is
+ * set on its own.
+ */
+function utcWall(
+  year: number,
+  month: number,
+  date: number,
+  hour: number,
+  minute = 0,
+): number {
+  const wall = new Date(0);
+  wall.setUTCFullYear(year, month - 1, date);
+  wall.setUTCHours(hour, minute);
+  return wall.getTime();
+}
+
+/**
  * The instant 12:00 on the calendar day `day` (YYYY-MM-DD) strikes in the owner's zone (see `ownerToday` for
  * `zone`), as an ISO string, never in the device's zone: a device far from the owner would otherwise land the
- * entry on the neighbouring day. Malformed input yields undefined.
+ * entry on the neighbouring day. Malformed input, and a day that does not exist such as 2026-02-31, yields
+ * undefined.
  */
 export function ownerNoon(day: string, zone?: string): string | undefined {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
   if (!match) return undefined;
-  const wall = Date.UTC(
+  const wall = utcWall(
     Number(match[1]),
-    Number(match[2]) - 1,
+    Number(match[2]),
     Number(match[3]),
     12,
   );
-  if (Number.isNaN(wall)) return undefined;
+  // An out-of-range month or date rolls over into another day; only the day itself is accepted.
+  if (new Date(wall).toISOString().slice(0, 10) !== day) return undefined;
   const clock = new Intl.DateTimeFormat("en-CA", {
     timeZone: resolveZone(zone),
     hourCycle: "h23",
@@ -142,9 +161,9 @@ export function ownerNoon(day: string, zone?: string): string | undefined {
     const parts = clock.formatToParts(new Date(instant));
     const part = (type: string): number =>
       Number(parts.find((p) => p.type === type)?.value);
-    const shown = Date.UTC(
+    const shown = utcWall(
       part("year"),
-      part("month") - 1,
+      part("month"),
       part("day"),
       part("hour"),
       part("minute"),

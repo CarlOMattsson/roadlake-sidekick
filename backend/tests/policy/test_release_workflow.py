@@ -395,23 +395,26 @@ def test_every_gate_of_a_real_release_still_runs_for_a_patch() -> None:
     assert "signing-check" in workflow()["jobs"]["gates"]["needs"]
 
 
-def test_ci_and_drill_are_reusable_and_not_triggered_by_pushes_or_schedules() -> None:
-    """Changes are tested locally; the full CI and the drill run as release gates."""
+def test_ci_and_drill_are_reusable_and_only_ci_runs_on_a_push_to_main() -> None:
+    """CI also runs on a push to main; the audit and the drill run only at a release."""
 
     triggers = {
         name: yaml.safe_load((WORKFLOWS / f"{name}.yml").read_text(encoding="utf-8"))[True]
         for name in ("ci", "audit", "release-drill")
     }
     for name, trigger in triggers.items():
-        assert "push" not in trigger and "schedule" not in trigger, name
+        assert "schedule" not in trigger, name
         assert "workflow_call" in trigger and "workflow_dispatch" in trigger, name
-    assert not {"pull_request", "merge_group"} & set(triggers["ci"])
+        assert ("push" in trigger) == (name == "ci"), name
+    assert triggers["ci"]["push"] == {"branches": ["main"]}
+    assert not {"pull_request", "pull_request_target", "merge_group"} & set(triggers["ci"])
     # The drill takes the same optional inputs whether it is called or started by hand.
     assert set(triggers["release-drill"]["workflow_call"]["inputs"]) == set(
         triggers["release-drill"]["workflow_dispatch"]["inputs"]
     )
     ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
     assert "uses: ./.github/workflows/audit.yml" in ci  # the audit is part of the CI gate
+    assert "if: ${{ github.event_name != 'push' }}" in ci  # but a push does not run it
 
 
 def test_the_android_job_builds_only_an_unsigned_apk_and_holds_no_secret() -> None:
@@ -524,7 +527,7 @@ def test_sign_bundle_binds_the_bundle_to_the_trusted_outputs_before_it_signs() -
     script = check["run"]
     assert 'sha256sum "sidekick-${VERSION}.apk"' in script and '= "$APK_SHA256"' in script
     assert "imagetools inspect" in script and "cmp " in script
-    assert "ls -1A" in script  # no file besides the APK and the SBOM, release-notes.md included
+    assert "find . -mindepth 1 -maxdepth 1" in script  # only the APK and the SBOM
     assert "release-notes.md" not in script.split("names=")[1].split("\n")[0]
     # The notes and the checksums are built here, from the commit and the trusted outputs only.
     text = write["run"]
@@ -845,6 +848,56 @@ def test_the_release_files_and_the_image_have_build_provenance_attestations() ->
     assert attesting == {"release", "sign-bundle"}
     for name in attesting:
         assert permissions(workflow()["jobs"][name])["id-token"] == "write"
+
+
+def provenance_export_step() -> dict[str, Any]:
+    return sign_bundle_step("Add the provenance to the bundle")
+
+
+def test_the_provenance_is_published_as_an_intoto_jsonl_release_file() -> None:
+    """OpenSSF Scorecard recognises a release asset named *.intoto.jsonl as provenance."""
+
+    job_steps = steps("sign-bundle")
+    (attest,) = attest_steps("sign-bundle")
+    export = provenance_export_step()
+    assert attest["id"] == "provenance"
+    assert export["env"]["BUNDLE_PATH"] == "${{ steps.provenance.outputs.bundle-path }}"
+    assert 'dist/sidekick-${VERSION}.intoto.jsonl"' in export["run"]
+    upload = next(s for s in job_steps if s.get("uses", "").startswith("actions/upload-artifact@"))
+    assert job_steps.index(attest) < job_steps.index(export) < job_steps.index(upload)
+
+
+@pytest.mark.parametrize("content", ["", "{}\n"])
+def test_the_provenance_export_copies_the_bundle_and_refuses_an_empty_one(
+    tmp_path: Path, content: str
+) -> None:
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash is needed to run the workflow steps")
+    (tmp_path / "dist").mkdir()
+    bundle = tmp_path / "attestation.json"
+    bundle.write_text(content, encoding="utf-8")
+    result = subprocess.run(
+        [bash, "-c", provenance_export_step()["run"]],
+        cwd=tmp_path,
+        env={"PATH": os.environ["PATH"], "BUNDLE_PATH": str(bundle), "VERSION": "0.1.0"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    exported = tmp_path / "dist" / "sidekick-0.1.0.intoto.jsonl"
+    if content:
+        assert result.returncode == 0, result.stderr
+        assert exported.read_text(encoding="utf-8") == content
+    else:
+        assert result.returncode != 0 and not exported.exists()
+
+
+@pytest.mark.parametrize("name", ["release.md", "release.sv.md"])
+def test_the_maintainer_guide_publishes_the_provenance_file(name: str) -> None:
+    text = (REPO / "docs" / "maintainers" / name).read_text(encoding="utf-8")
+    assert "bundle/sidekick-X.Y.Z.intoto.jsonl" in text
+    assert "--bundle sidekick-X.Y.Z.intoto.jsonl" in text
 
 
 def test_the_release_notes_carry_the_verification_commands(

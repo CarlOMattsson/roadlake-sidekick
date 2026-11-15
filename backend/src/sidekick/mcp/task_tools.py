@@ -1,4 +1,4 @@
-"""The Task tools: get, create, update and complete."""
+"""The Task tools: get, create, update, complete and restore."""
 
 from __future__ import annotations
 
@@ -27,6 +27,7 @@ from sidekick.mcp.work_text import (
     work_item_sentence,
 )
 from sidekick.shared.text_guard import NoImageData
+from sidekick.structured.base import Output
 from sidekick.structured.work import (
     complete_task_structured,
     task_detail_structured,
@@ -210,11 +211,62 @@ def _register_complete_task(mcp: FastMCP, ctx: ToolContext) -> None:
         return _task_reply(structured, "Completed")
 
 
+# The restored Task in brief (get_task reads the rest): one more full Task schema would cost about
+# 4 200 characters of the model-visible outputSchema ceiling.
+class RestoredTaskOutput(Output):
+    id: UUID
+    version: int
+    title: str
+    status: str
+    archived: bool
+
+
+def _register_restore_task(mcp: FastMCP, ctx: ToolContext) -> None:
+    @mcp.tool(
+        name="restore_task",
+        description=(
+            "Bring back one archived task so it is active again, using its current version: "
+            "the undo of archive, e.g. after review_tasks. Repeating the same idempotency key "
+            "safely returns the committed result."
+        ),
+        output_schema=output_schema(RestoredTaskOutput),
+        annotations=WRITE,
+    )
+    @ctx.instrument("restore_task")
+    def restore_task(
+        task_id: UUID,
+        version: _Version,
+        idempotency_key: IdempotencyKey,
+    ) -> ToolResult:
+        task = ctx.container.tasks.restore(
+            ctx.actor_provider(),
+            task_id,
+            version=version,
+            idempotency_key=idempotency_key,
+            correlation_id=request_correlation_id_or_new(),
+        )
+        structured = RestoredTaskOutput(
+            id=task.id,
+            version=task.version,
+            title=task.title,
+            status=task.status.value,
+            archived=task.archived_at is not None,
+        )
+        return result(
+            structured.model_dump(mode="json"),
+            spoken_line(
+                f"Restored task {cell(task.title)}.",
+                record_ref(task.id, task.version, task.title),
+            ),
+        )
+
+
 _REGISTRARS = (
     _register_get_task,
     _register_create_task,
     _register_update_task,
     _register_complete_task,
+    _register_restore_task,
 )
 
 

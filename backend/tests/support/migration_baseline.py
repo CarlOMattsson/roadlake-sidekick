@@ -15,6 +15,7 @@ from tests.db import (
     database_factory,
     ensure_migration_chain_head,
     invalidate_migration_head_cache,
+    migration_ids,
     require_test_database_url,
 )
 from tests.db_guard import validate_test_database_url
@@ -29,6 +30,8 @@ BASELINE = "100_schema_baseline_0_1_0"
 DROP_AUTOMATION = "106_drop_retired_automation_tables"
 TAG_LINKS = "107_contact_and_journal_entry_tags"
 FORGOTTEN_FACTS = "108_memory_forgotten_facts"
+TASK_REVIEW = "109_task_last_reviewed_at"
+TASK_AMBITION = "110_task_ambition"
 
 
 # The catalogue facts a migration can change, each as sorted text rows. Deparsed definitions
@@ -104,6 +107,29 @@ def _apply(path: Path) -> None:
     migrations = read_migrations(str(path))
     with backend.lock():
         backend.apply_migrations(backend.to_apply(migrations))
+
+
+def chain_through(tmp_path: Path, last: str) -> Path:
+    """A migrations directory with every migration up to and including `last`, copied from the repo.
+
+    Applying it gives the database an installation has when `last` is its newest migration, so a
+    migration test stays true when later migrations are added to `migrations/`.
+    """
+
+    directory = tmp_path / f"chain-through-{last}"
+    directory.mkdir(exist_ok=True)
+    for name in ids_through(last):
+        (directory / f"{name}.py").write_text(
+            (MIGRATIONS_PATH / f"{name}.py").read_text(encoding="utf-8"), encoding="utf-8"
+        )
+    return directory
+
+
+def ids_through(last: str) -> set[str]:
+    """The ids `chain_through(..., last)` records once applied."""
+
+    ids = migration_ids()
+    return set(ids[: ids.index(last) + 1])
 
 
 def _applied_ids() -> set[str]:

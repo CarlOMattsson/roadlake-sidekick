@@ -144,6 +144,8 @@ class _TaskFields(Output):
     blocked_last_reminded_at: datetime | None = None
     recurrence: RecurrenceRecord | None = None
     last_completed_at: datetime | None = None
+    last_reviewed_at: datetime | None = None
+    """When a review decision last touched the Task; ordinary edits leave it alone."""
     tags: list[str] = Field(default_factory=list)
 
 
@@ -554,6 +556,9 @@ class TaskChanges(Output):
     """The Task's own repeat rule; null removes it. Independent of any Process."""
     last_completed_at: datetime | None = None
     """Undo of a recurring completion: send the value the Task had before (null for none)."""
+    ambition: bool | None = None
+    """true keeps it as an ambition (clears due, start, waiting, flag and reminders); false: a
+    task again."""
     tags: Annotated[
         list[Annotated[str, NoImageData]] | None,
         Field(max_length=MAX_TAGS_PER_RECORD),
@@ -565,6 +570,8 @@ class TaskChanges(Output):
             raise ValueError("at least one change is required")
         if "title" in self.model_fields_set and self.title is None:
             raise ValueError("title cannot be null")
+        if "ambition" in self.model_fields_set and self.ambition is None:
+            raise ValueError("ambition cannot be null")
         return self
 
 

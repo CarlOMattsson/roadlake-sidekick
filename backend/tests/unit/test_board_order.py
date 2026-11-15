@@ -1,7 +1,7 @@
 """Manual board ordering rules without transport or database."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -61,6 +61,10 @@ class FakeBoardStore:
         ]
         column.sort(key=lambda task: (task.board_rank is None, task.board_rank or 0, str(task.id)))
         return column[:limit]
+
+    def lock_tasks(self, session: Any, owner_id: UUID, task_ids: Iterable[UUID]) -> None:
+        """In memory there is nothing to lock."""
+        del session, owner_id, task_ids
 
     def save_task(self, session: Any, task: Task, expected_version: int | None = None) -> None:
         del session

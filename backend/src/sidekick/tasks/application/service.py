@@ -10,7 +10,7 @@ from uuid import UUID
 
 from sidekick.shared.cadence import Cadence, parse_cadence
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE, parse_owner_timezone
-from sidekick.shared.errors import ConflictError, InvalidInputError
+from sidekick.shared.errors import ConflictError, InvalidInputError, ValidationError
 from sidekick.shared.replay import id_replay_record
 from sidekick.shared.types import (
     TIMED_KEY,
@@ -38,6 +38,7 @@ from sidekick.tasks.domain import (
     derive_domain_id,
 )
 from sidekick.tasks.domain.recurrence import RecurrenceData
+from sidekick.tasks.domain.task import SCHEDULING_FIELDS
 from sidekick.work.domain.tag_assignment import apply_record_tags
 
 DEFAULT_OWNER_ZONE = parse_owner_timezone(DEFAULT_OWNER_TIMEZONE)
@@ -92,7 +93,7 @@ class TaskService:
             )
             for record in records
         ]
-        return self._with_derived_domains(session, actor, tasks)
+        return self.with_derived_domains(session, actor, tasks)
 
     def _write(
         self,
@@ -126,19 +127,22 @@ class TaskService:
         status: TaskStatus | None = None,
         cursor: str | None = None,
         unsorted: bool = False,
+        ambitions: bool | None = None,
     ) -> Page[Task]:
         actor.require("tasks:read")
         validate_limit(limit, maximum=100)
         # The cursor is bound to the whole filter set, so adding the Process context
-        # invalidates a cursor issued for another one. The unsorted suffix is added only when
-        # set, so cursors issued before it existed stay valid.
+        # invalidates a cursor issued for another one. The unsorted and ambition suffixes are
+        # added only when set, so cursors issued before they existed stay valid.
         query_key = (
             f"tasks:v1:project={project_id or '*'}:process={process_id or '*'}"
-            f":status={status.value if status else '*'}" + (":unsorted" if unsorted else "")
+            f":status={status.value if status else '*'}"
+            + (":unsorted" if unsorted else "")
+            + ("" if ambitions is None else f":ambitions={str(ambitions).lower()}")
         )
         after = self.cursor_codec.decode_keyset(actor.user_id, cursor, query_key, kinds=TIMED_KEY)
         tasks = self.store.transaction(
-            lambda session: self._with_derived_domains(
+            lambda session: self.with_derived_domains(
                 session,
                 actor,
                 self.store.list_tasks(
@@ -150,6 +154,7 @@ class TaskService:
                     after,
                     process_id=process_id,
                     unsorted=unsorted,
+                    ambitions=ambitions,
                 ),
             )
         )
@@ -201,9 +206,9 @@ class TaskService:
         return self.store.transaction(read)
 
     def _with_derived_domain(self, session: TxSession, actor: Actor, task: Task) -> Task:
-        return self._with_derived_domains(session, actor, [task])[0]
+        return self.with_derived_domains(session, actor, [task])[0]
 
-    def _with_derived_domains(
+    def with_derived_domains(
         self, session: TxSession, actor: Actor, tasks: Sequence[Task]
     ) -> list[Task]:
         """Expose ancestry without duplicating it in the exclusive Task context.
@@ -486,7 +491,16 @@ class TaskService:
             self.store.get_contact(session, actor.user_id, contact_id)
         now = self.clock.now()
         tags_changed = command.tags is not UNSET
-        updated = task.update(now=now, **changes) if changes else task
+        ambition = changes.pop("ambition", UNSET)
+        # A review that keeps a Task as an ambition stamps it reviewed in the same version; the
+        # stamp alone is no Task change, so it rides along with the ambition's.
+        reviewed_at = (
+            changes.pop("last_reviewed_at", UNSET) if isinstance(ambition, bool) else UNSET
+        )
+        if isinstance(ambition, bool):
+            updated = _with_ambition(task, ambition, changes, now, reviewed_at)
+        else:
+            updated = task.update(now=now, **changes) if changes else task
         if (
             updated.status is TaskStatus.COMPLETED
             and updated.recurrence is not None
@@ -619,6 +633,31 @@ class TaskService:
             )
         )
 
+    def restore(
+        self,
+        actor: Actor,
+        task_id: UUID,
+        *,
+        version: int,
+        idempotency_key: str,
+        correlation_id: str | None = None,
+    ) -> Task:
+        """Bring an archived Task back, at the version the caller read; the undo of archive."""
+
+        actor.require("tasks:write")
+        payload = {"task_id": str(task_id), "version": version}
+
+        return self.store.transaction(
+            lambda session: self._write(
+                session,
+                actor,
+                "restore_task",
+                idempotency_key,
+                payload,
+                lambda: self.restore_in_session(session, actor, task_id, version, correlation_id),
+            )
+        )
+
     def _complete(
         self,
         session: TxSession,
@@ -670,7 +709,7 @@ class TaskService:
             subject_kind="task",
         )
 
-    def _archive(
+    def mark_reviewed_in_session(
         self,
         session: TxSession,
         actor: Actor,
@@ -678,10 +717,50 @@ class TaskService:
         version: int,
         correlation_id: str | None,
     ) -> Task:
+        """Record a review decision that changes nothing else, in the caller's transaction.
+
+        A new version under optimistic concurrency and an audit row, but no activity entry of its
+        own: the caller records one summary for all the Tasks it kept.
+        """
+
+        task = self.store.get_task(session, actor.user_id, task_id)
+        if task.version != version:
+            raise self._stale(task)
+        reviewed = task.mark_reviewed(now=self.clock.now())
+        self.store.save_task(session, reviewed, expected_version=version)
+        self.store.append_audit(
+            session,
+            actor_id=actor.user_id,
+            event="task.reviewed",
+            outcome="success",
+            target_type="task",
+            target_id=task.id,
+            correlation_id=correlation_id,
+        )
+        return reviewed
+
+    def archive_in_session(
+        self,
+        session: TxSession,
+        actor: Actor,
+        task_id: UUID,
+        version: int,
+        correlation_id: str | None,
+        *,
+        reviewed: bool = False,
+        actor_type: str = "user",
+    ) -> Task:
+        """Archive a Task in the caller's transaction; `reviewed` marks a review decision.
+
+        An archived Task is hidden, not deleted, and keeps its data. Already archived is a no-op
+        at the current version.
+        """
+
         task = self.store.get_task(session, actor.user_id, task_id, include_archived=True)
         if task.version != version:
             raise self._stale(task)
-        archived = task.archive(now=self.clock.now())
+        now = self.clock.now()
+        archived = task.archive(now=now, reviewed=reviewed)
         if archived is not task:
             self.store.save_task(session, archived, expected_version=version)
             self.store.append_audit(
@@ -693,20 +772,38 @@ class TaskService:
                 target_id=task.id,
                 correlation_id=correlation_id,
             )
+            if self.activity_ledger is not None:
+                self.activity_ledger.record_task(
+                    session,
+                    task=archived,
+                    before=task,
+                    operation="archive_task",
+                    actor_id=actor.user_id,
+                    actor_type=actor_type,
+                    occurred_at=now,
+                    correlation_id=correlation_id,
+                    changed_fields=frozenset({"archived_at"}),
+                )
         return archived
 
-    def _restore(
+    def restore_in_session(
         self,
         session: TxSession,
         actor: Actor,
         task_id: UUID,
         version: int,
         correlation_id: str | None,
+        *,
+        actor_type: str = "user",
     ) -> Task:
+        """Restore an archived Task in the caller's transaction. Not archived is a no-op at the
+        current version, so a retried undo after a later restore changes nothing."""
+
         task = self.store.get_task(session, actor.user_id, task_id, include_archived=True)
         if task.version != version:
             raise self._stale(task)
-        restored = task.restore(now=self.clock.now())
+        now = self.clock.now()
+        restored = task.restore(now=now)
         if restored is not task:
             self.store.save_task(session, restored, expected_version=version)
             self.store.append_audit(
@@ -718,7 +815,55 @@ class TaskService:
                 target_id=task.id,
                 correlation_id=correlation_id,
             )
+            if self.activity_ledger is not None:
+                self.activity_ledger.record_task(
+                    session,
+                    task=restored,
+                    before=task,
+                    operation="restore_task",
+                    actor_id=actor.user_id,
+                    actor_type=actor_type,
+                    occurred_at=now,
+                    correlation_id=correlation_id,
+                    changed_fields=frozenset({"archived_at"}),
+                )
         return restored
+
+
+def _with_ambition(
+    before: Task,
+    ambition: bool,
+    changes: dict[str, Any],
+    now: datetime,
+    reviewed_at: datetime | UnsetType | None,
+) -> Task:
+    """`before` with `changes` applied, kept as an ambition or made a task again, in one version.
+
+    A command that both asks for an ambition and dates, flags or schedules the Task contradicts
+    itself and is refused, rather than one half silently winning. A command that makes an
+    ambition a task again clears the ambition first, so it can date or flag the Task in the same
+    call. `changes` gains the fields this sets, for the activity entry.
+    """
+
+    if ambition:
+        asked = {name for name, value in changes.items() if value not in (None, False)}
+        if asked & (SCHEDULING_FIELDS | {"waiting_on_contact_id"}):
+            raise ValidationError(
+                "an ambition has no due date, start, waiting, flag, repeat or reminder"
+            )
+        updated = before.update(now=now, **changes) if changes else before
+        fields = updated.ambition_change(True, now=now)
+    else:
+        fields = before.ambition_change(False, now=now)
+        updated = replace(before, **fields) if fields else before
+        updated = updated.update(now=now, **changes) if changes else updated
+    if not fields:
+        return updated
+    changes["ambition_since"] = fields["ambition_since"]
+    if not isinstance(reviewed_at, UnsetType):
+        fields["last_reviewed_at"] = reviewed_at
+        changes["last_reviewed_at"] = reviewed_at
+    return replace(updated, **fields, updated_at=now, version=before.version + 1)
 
 
 def _require_uuid(value: object) -> UUID:

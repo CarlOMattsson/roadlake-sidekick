@@ -17,14 +17,21 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const blocks = collectMermaid(sourceRoot, map);
 const renderer = createMermaidRenderer();
+const force = process.argv.includes('--force');
 let rendered = 0;
 for (const [hash, { code, rel }] of blocks) {
   for (const [mode, theme] of [['light', 'neutral'], ['dark', 'dark']]) {
     const file = path.join(outDir, `${hash}.${mode}.svg`);
-    if (fs.existsSync(file) && !process.argv.includes('--force')) continue;
+    if (!force && fs.existsSync(file)) continue;
     const [result] = await renderer([code], { mermaidConfig: { theme, fontFamily: 'system-ui, sans-serif' } });
     if (result.status !== 'fulfilled') throw new Error(`${rel}: mermaid failed for ${hash}: ${result.reason}`);
-    fs.writeFileSync(file, result.value.svg + '\n');
+    try {
+      // 'wx' fails when the file has appeared since the check above, instead of writing through whatever is there now.
+      fs.writeFileSync(file, result.value.svg + '\n', { flag: force ? 'w' : 'wx' });
+    } catch (error) {
+      if (error.code === 'EEXIST') continue;
+      throw error;
+    }
     rendered++;
   }
 }

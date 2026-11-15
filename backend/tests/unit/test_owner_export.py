@@ -8,12 +8,14 @@ import pytest
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    COLUMNS_ADDED_IN_FORMAT_7,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT_VERSION,
     EXPORT_SOURCES,
     FOLDED_CHAIN_HEADS,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_TAG_LINKS,
+    FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
     SCHEMA_CHAIN,
     SCHEMA_HEAD,
@@ -40,9 +42,11 @@ from sidekick.shared.types import Actor
 from tests.support.older_export_formats import (
     BASELINE_HEAD,
     DROP_AUTOMATION_HEAD,
+    FORGOTTEN_FACTS_HEAD,
+    TAG_LINKS_HEAD,
     as_format_4,
     as_format_5,
-    as_format_6_at_107,
+    as_format_6,
 )
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
@@ -402,11 +406,11 @@ def reseal(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
-def test_current_export_is_format_six_at_the_chain_head() -> None:
+def test_current_export_is_format_seven_at_the_chain_head() -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    assert document["format_version"] == EXPORT_FORMAT_VERSION == 6
+    assert document["format_version"] == EXPORT_FORMAT_VERSION == 7
     assert document["schema_head"] == SCHEMA_HEAD
     assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_6
     assert "external_references" in document["collections"]
@@ -461,14 +465,84 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_head_is_the_forgotten_facts_migration_and_the_tag_link_format_accepts_it() -> None:
-    """Migration 108 leaves the export alone, so an export written at 107 is still current."""
+def test_the_head_is_the_task_ambition_migration_and_format_6_keeps_both_of_its_heads() -> None:
+    """Migrations 109 and 110 each add a Task column, and format 7 is written at 110 (no release
+    stopped at 109); migration 108 left the export alone, so format 6 was written at 107 or 108."""
 
-    assert SCHEMA_HEAD == "108_memory_forgotten_facts"
-    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
-        "107_contact_and_journal_entry_tags",
-        SCHEMA_HEAD,
+    assert SCHEMA_HEAD == "110_task_ambition"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_TASK_REVIEW] == {
+        TAG_LINKS_HEAD,
+        FORGOTTEN_FACTS_HEAD,
     }
+
+
+def _document_with_one_task() -> dict[str, Any]:
+    collections = empty_collections()
+    task = {field: None for field in source_fields(SOURCES_BY_NAME["tasks"])}
+    collections["tasks"] = [{**task, "owner_id": str(OWNER_ID)}]
+    return build_export_document(
+        OWNER_ID, collections, exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("due_at", "2026-12-01T10:00:00+00:00"),
+        ("attention_requested", True),
+        ("follow_up_at", "2026-12-01T10:00:00+00:00"),
+    ],
+)
+def test_an_export_with_a_dated_or_flagged_ambition_is_refused_by_the_plan(
+    field: str, value: object
+) -> None:
+    """A restore writes rows directly, so the domain rule that an ambition has no dates or flag is
+    checked on the document; the refusal names the row and field, not its content."""
+
+    document = _document_with_one_task()
+    row = document["collections"]["tasks"][0]
+    row["ambition_since"] = "2026-11-01T10:00:00+00:00"
+    row[field] = value
+    document = reseal(document)
+
+    with pytest.raises(ExportRefused, match=rf"tasks\[0\]: {field}$"):
+        build_restore_plan(document, OWNER_ID)
+    with pytest.raises(ExportRefused, match="ambition"):
+        verify_restorable(document)
+
+
+def test_an_undated_ambition_in_an_export_is_planned() -> None:
+    document = _document_with_one_task()
+    row = document["collections"]["tasks"][0]
+    row["ambition_since"] = "2026-11-01T10:00:00+00:00"
+    row["attention_requested"] = False
+
+    assert build_restore_plan(reseal(document), OWNER_ID).status == "ready"
+
+
+@pytest.mark.parametrize("head", [TAG_LINKS_HEAD, FORGOTTEN_FACTS_HEAD])
+def test_a_format_6_export_is_still_accepted_without_the_task_review_column(head: str) -> None:
+    document = as_format_6(_document_with_one_task(), head)
+
+    assert "last_reviewed_at" not in document["collections"]["tasks"][0]
+    assert verify_export(document).collection_counts["tasks"] == 1
+
+
+def test_the_task_review_and_ambition_columns_belong_to_format_7_only() -> None:
+    """A format 7 Task row must carry both columns; a format 6 one must carry neither."""
+
+    assert {"tasks": frozenset({"last_reviewed_at", "ambition_since"})} == COLUMNS_ADDED_IN_FORMAT_7
+    current = _document_with_one_task()
+    assert {"last_reviewed_at", "ambition_since"} <= set(current["collections"]["tasks"][0])
+    without = as_format_6(current)
+    with pytest.raises(ExportRefused, match="unexpected row shape"):
+        verify_export(
+            reseal({**without, "format_version": EXPORT_FORMAT_VERSION, "schema_head": SCHEMA_HEAD})
+        )
+    with_column = {**without, "collections": current["collections"]}
+    with pytest.raises(ExportRefused, match="unexpected row shape"):
+        verify_export(reseal(with_column))
 
 
 def test_a_format_5_export_from_migration_106_is_still_accepted_without_tag_links() -> None:
@@ -498,7 +572,7 @@ def test_the_forgotten_statements_and_their_salt_are_not_exported_yet_and_say_so
 def test_an_export_from_migration_107_lists_the_exclusions_it_was_written_with() -> None:
     """Format 6 was written at 107 with the shorter exclusion catalogue and is still accepted."""
 
-    old = as_format_6_at_107(_current_document())
+    old = as_format_6(_current_document(), TAG_LINKS_HEAD)
 
     assert "memory_forgotten_facts" not in old["excluded"]
     assert verify_export(old).owner_id == OWNER_ID
@@ -520,7 +594,7 @@ def test_a_format_5_export_cannot_carry_a_tag_link_collection() -> None:
 
 
 @pytest.mark.parametrize("name", sorted(COLLECTIONS_ADDED_IN_FORMAT_6))
-def test_a_format_6_export_must_carry_every_tag_link_collection(name: str) -> None:
+def test_a_current_export_must_carry_every_tag_link_collection(name: str) -> None:
     document = _current_document()
     del document["collections"][name]
     del document["manifest"]["collection_counts"][name]
@@ -546,7 +620,7 @@ def test_a_format_4_export_must_carry_every_retired_collection() -> None:
         verify_export(reseal(document))
 
 
-def test_a_format_6_export_cannot_carry_a_retired_collection() -> None:
+def test_a_current_export_cannot_carry_a_retired_collection() -> None:
     document = _current_document()
     document["collections"]["assistant_automation_runs"] = []
     document["manifest"]["collection_counts"]["assistant_automation_runs"] = 0
@@ -585,7 +659,7 @@ def test_any_other_schema_head_is_refused(head: object) -> None:
 
 
 def test_an_export_written_before_the_baseline_is_refused() -> None:
-    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 6 are."""
+    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 7 are."""
 
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -648,7 +722,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
     assert document["collections"]["contacts"][0]["relationship"] == "syster"
 
 
-@pytest.mark.parametrize("version", [0, 1, 3, 7, "6", True, None, [6]])
+@pytest.mark.parametrize("version", [0, 1, 3, 8, "7", True, None, [7]])
 def test_a_format_version_that_the_head_never_wrote_is_refused(version: object) -> None:
     current = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)

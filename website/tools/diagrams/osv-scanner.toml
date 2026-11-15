@@ -1,0 +1,12 @@
+# Exceptions for OSV-Scanner for website/tools/diagrams/package-lock.json (.github/audit/osv-scan.sh and the OpenSSF
+# Scorecard Vulnerabilities check, which read this file next to the lockfile). Every entry needs a concrete reason and an
+# ignoreUntil date at most 90 days ahead; backend/tests/policy/test_osv_exceptions.py enforces both. When the date passes,
+# upgrade or decide again.
+
+# katex 0.16.47, fixed in 0.18.x while mermaid-isomorphic 3.1.0 requires ^0.16. The tool is run by hand to render our own
+# committed mermaid diagrams to SVG; it runs neither in CI nor in production, and the advisory needs an Object.prototype
+# that other vulnerable code in the same process has already polluted.
+[[IgnoredVulns]]
+id = "GHSA-238p-pmpm-9mq7"
+ignoreUntil = 2027-02-10
+reason = "Diagram renderer run by hand on our own diagrams; needs a polluted Object.prototype. Not shipped."

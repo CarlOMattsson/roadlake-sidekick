@@ -49,7 +49,7 @@ class RescheduleOutput(Output):
     tasks: list[RescheduledTaskRecord]
 
 
-def _target_day(when: RescheduleWhen, today: date) -> date | None:
+def target_day(when: RescheduleWhen, today: date) -> date | None:
     """The calendar day that `when` names, or None for `clear`."""
 
     if when == "tomorrow":
@@ -65,7 +65,7 @@ def _target_day(when: RescheduleWhen, today: date) -> date | None:
 _WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
 
-def _day_in_words(day: date, today: date) -> str:
+def day_in_words(day: date, today: date) -> str:
     """A day for voice: "tomorrow", or the weekday and date, such as "Monday 2 November"."""
 
     if day == today + timedelta(days=1):
@@ -82,7 +82,7 @@ def _summary(titles: list[str], targets: set[date | None], today: date) -> str:
     (target,) = targets
     if target is None:
         return f"Cleared the due date on {names}."
-    return f"Moved {names} to {_day_in_words(target, today)}."
+    return f"Moved {names} to {day_in_words(target, today)}."
 
 
 def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -115,7 +115,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             RescheduleTaskItem(
                 task_id=item.task_id,
                 expected_version=item.expected_version,
-                due_at=end_of_day_due_at(_target_day(item.when, today), zone),
+                due_at=end_of_day_due_at(target_day(item.when, today), zone),
             )
             for item in items
         ]
@@ -130,7 +130,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             for task in tasks
         ]
         structured = RescheduleOutput(count=len(records), tasks=records).model_dump(mode="json")
-        targets = {_target_day(item.when, today) for item in items}
+        targets = {target_day(item.when, today) for item in items}
         lines = [_summary([task.title for task in tasks], targets, today)]
         for record in records:
             due = record.due_at.isoformat() if record.due_at else "none"

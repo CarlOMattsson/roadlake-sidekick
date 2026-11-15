@@ -73,6 +73,21 @@ nullable `memory_settings.forget_salt`, the owner's salt for the digest. Rolling
 and the key, which discards every forgotten statement made since; no record or setting is touched. The owner export does
 not carry the new tables or the salt yet.
 
+## Migration 109: when a Task was last reviewed
+
+`109_task_last_reviewed_at.py` is an additive (expand) migration. It adds the nullable `tasks.last_reviewed_at`, the
+instant a review decision last touched the Task; existing Tasks read as never reviewed. Rolling it back drops only that
+column. The owner export carries it in each Task row (format 7); a format 6 export has no such column and its Tasks
+restore as never reviewed.
+
+## Migration 110: a Task kept as an ambition
+
+`110_task_ambition.py` is an additive (expand) migration. It adds the nullable `tasks.ambition_since`, the instant the
+owner chose to keep a Task as an ambition: in view, but never dated, reviewed or reminded of. Existing Tasks read as
+ordinary Tasks. Rolling it back drops only that column, so every ambition becomes an ordinary undated Task. The owner
+export carries it in each Task row (format 7, first released with this column); a format 6 export has no such column
+and its Tasks restore as ordinary Tasks.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

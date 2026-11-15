@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from sidekick.license.key import (
     KEY_PREFIX,
+    MAX_KEY_LENGTH,
     UNLICENSED,
     KeyRejected,
     LicensePayload,
@@ -57,6 +58,24 @@ def test_the_key_survives_being_pasted_wrapped_over_lines() -> None:
     text = sign()
     wrapped = f"  {text[:40]}\n{text[40:120]}\r\n{text[120:]}\n"
     assert verify_key(wrapped, OWNER.public_key()) == PAYLOAD
+
+
+def test_a_longest_licensee_in_any_script_gives_a_key_that_verifies() -> None:
+    # As `\uXXXX` escapes, 120 characters outside ASCII made a key over MAX_KEY_LENGTH, which the
+    # app then refused. U+1D504 is a character of four UTF-8 bytes.
+    for name in ("Å" * 120, "株" * 120, "\U0001d504" * 120):
+        payload = LicensePayload("org", name, date(2026, 11, 9), date(2027, 11, 9), "0123456789ab")
+        text = sign(payload)
+        assert len(text) <= MAX_KEY_LENGTH
+        assert verify_key(text, OWNER.public_key()) == payload
+
+
+def test_a_payload_too_long_for_a_key_is_refused_when_signing() -> None:
+    payload = LicensePayload(
+        "org", "\U0001d504" * 120, date(2026, 11, 9), date(2027, 11, 9), "\U0001d504" * 64
+    )
+    with pytest.raises(ValueError, match="longer than"):
+        sign(payload)
 
 
 def test_a_longer_tier_is_just_a_later_expiry() -> None:

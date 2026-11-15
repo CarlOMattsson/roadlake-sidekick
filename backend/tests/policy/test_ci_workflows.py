@@ -61,6 +61,24 @@ def test_shellcheck_covers_every_tracked_shell_script() -> None:
     assert "--severity=warning" in script
 
 
+ACTIONLINT_SCRIPT = ROOT / "tools" / "actionlint-ci.sh"
+
+
+@pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))
+def test_the_actionlint_job_runs_the_shared_script(ci: Path) -> None:
+    script = "\n".join(str(step.get("run", "")) for step in _steps(ci, "actionlint"))
+    assert "bash tools/actionlint-ci.sh" in script
+
+
+def test_actionlint_covers_every_tracked_workflow_offline_and_read_only() -> None:
+    script = ACTIONLINT_SCRIPT.read_text(encoding="utf-8")
+    assert "git ls-files" in script, "the file list comes from git, not from a hand-kept list"
+    assert ":(glob).github/workflows/*.yml" in script
+    assert "tools/*/overlay/.github/workflows/*.yml" in script, "the export overlay's copies too"
+    assert "--network none" in script and "--read-only" in script and "/mnt:ro" in script
+    assert "-shellcheck=" not in script and "-ignore" not in script, "no rule is turned off"
+
+
 @pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))
 def test_the_policy_tests_run_as_their_own_step_and_not_in_the_main_run(ci: Path) -> None:
     runs = [str(step.get("run", "")) for step in _steps(ci, "backend")]
@@ -75,14 +93,16 @@ def test_the_policy_tests_run_as_their_own_step_and_not_in_the_main_run(ci: Path
 
 
 @pytest.mark.parametrize("ci", CI_FILES, ids=lambda path: str(path.relative_to(ROOT)))
-def test_ci_runs_only_as_a_release_gate_or_on_demand(ci: Path) -> None:
-    """CI is a release gate: no runs on pull requests, merge queues or pushes."""
+def test_ci_runs_on_main_pushes_as_a_release_gate_or_on_demand(ci: Path) -> None:
+    """CI runs on a push to main, as a release gate and on demand, never on a pull request."""
 
     workflow = yaml.safe_load(ci.read_text(encoding="utf-8"))
-    assert set(workflow[True]) == {"workflow_dispatch", "workflow_call"}
+    assert set(workflow[True]) == {"push", "workflow_dispatch", "workflow_call"}
+    assert workflow[True]["push"] == {"branches": ["main"]}
     assert "changes" not in workflow["jobs"], "there is no change filter without pull requests"
-    text = ci.read_text(encoding="utf-8")
-    assert "github.event_name" not in text and "paths-filter" not in text
+    assert "paths-filter" not in ci.read_text(encoding="utf-8")
+    audit = workflow["jobs"]["dependency-audit"]
+    assert audit["if"] == "${{ github.event_name != 'push' }}", "the audit is for a release"
 
 
 # The CI of the public copy is a second file that must stay the same workflow as this one.

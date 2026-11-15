@@ -72,6 +72,21 @@ Den lägger också till den nullbara `memory_settings.forget_salt`, ägarens sal
 de två tabellerna, kolumnen och nyckeln, vilket kastar alla glömda påståenden som gjorts sedan dess; ingen post eller
 inställning rörs. Ägarexporten tar ännu inte med de nya tabellerna eller saltet.
 
+## Migrering 109: när en uppgift senast gicks igenom
+
+`109_task_last_reviewed_at.py` är en additiv (expand) migrering. Den lägger till den nullbara `tasks.last_reviewed_at`,
+tidpunkten då ett beslut i en genomgång senast rörde uppgiften; befintliga uppgifter räknas som aldrig genomgångna. En
+återrullning tar bara bort den kolumnen. Ägarexporten bär den på varje uppgiftsrad (format 7); en export i format 6 har
+ingen sådan kolumn, och dess uppgifter återställs som aldrig genomgångna.
+
+## Migrering 110: en uppgift som ambition
+
+`110_task_ambition.py` är en additiv (expand) migrering. Den lägger till den nullbara `tasks.ambition_since`,
+tidpunkten då ägaren valde att ha uppgiften som en ambition: synlig, men aldrig daterad, genomgången eller påmind om.
+Befintliga uppgifter räknas som vanliga uppgifter. En återrullning tar bara bort den kolumnen, så varje ambition blir
+en vanlig odaterad uppgift. Ägarexporten bär den på varje uppgiftsrad (format 7, som släpps första gången med den
+kolumnen); en export i format 6 har ingen sådan kolumn, och dess uppgifter återställs som vanliga uppgifter.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

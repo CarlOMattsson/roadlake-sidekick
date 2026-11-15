@@ -24,6 +24,10 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
         "Set the earliest start no later than the due date, or change the due date as well."
     ),
     "not_completed": "Only a completed task can be reopened.",
+    "not_an_ambition": (
+        "Only an open task that does not repeat can be kept as an ambition; "
+        "choose another decision for the others."
+    ),
     "nul_character": "Remove the NUL (\\u0000) character from the text and retry.",
 }
 

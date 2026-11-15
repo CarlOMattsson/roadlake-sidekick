@@ -31,6 +31,7 @@ from sidekick.mcp.references import register_reference_tools
 from sidekick.mcp.reply_scopes import WriteReplyScopes
 from sidekick.mcp.request_log import McpRequestLogging
 from sidekick.mcp.reschedule import register_reschedule_tools
+from sidekick.mcp.review import register_review_tools
 from sidekick.mcp.rooms import remove_disabled_room_tools, room_actor_provider
 from sidekick.mcp.search import register_search_tools
 from sidekick.mcp.shopping import register_shopping_tools
@@ -112,6 +113,7 @@ def _register_tools(
     register_brief_tools(mcp, ctx)
     register_change_tools(mcp, ctx)
     register_reschedule_tools(mcp, ctx)
+    register_review_tools(mcp, ctx)
     register_batch_task_tools(mcp, ctx)
     register_board_tools(mcp, ctx)
     register_work_tools(mcp, ctx)

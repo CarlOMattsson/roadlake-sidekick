@@ -12,6 +12,8 @@
 #                   tools/check-migration-policy.py --all
 #   ShellCheck      tools/shellcheck-ci.sh: the CI image of shellcheck (tools/ci-images.sh), severity warning, over every
 #                   tracked shell script. Needs Docker
+#   actionlint      tools/actionlint-ci.sh: the CI image of actionlint (tools/ci-images.sh) over every tracked workflow file
+#                   (and the export overlay's copies), with the ShellCheck of that image on the run: blocks. Needs Docker
 #   gitleaks        tools/gitleaks-ci.sh: the CI image of gitleaks (v8.24.3) over the full history, with the repo
 #                   configuration and .gitleaksignore. Needs Docker. In the working repository the history is not what
 #                   CI scans (the public repository starts from an export), so the published-tree stage scans the
@@ -23,7 +25,7 @@
 #                   (test:mcp-app) in the pinned Playwright image of CI (tools/playwright-docker.sh). Needs Docker
 #   published-tree  tools/check-extra.sh: the public export (tools/export/export-repo.sh) built in a temporary directory
 #                   and checked there as the published CI would: links and docs parity, lint, prettier, tsc, vitest in two
-#                   time zones, the MCP App view tests, the policy tests, shellcheck and gitleaks. Not applicable (and
+#                   time zones, the MCP App view tests, the policy tests, shellcheck, actionlint and gitleaks. Not applicable (and
 #                   skipped) in a checkout without the export tooling, i.e. the published repository itself
 #   website         npm --prefix website test, then run build, then run check (the page, link, accessibility and
 #                   price checks; the check script is skipped while website/package.json has none).
@@ -53,7 +55,7 @@
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
 #   --workers N           pytest-xdist workers for backend-tests (default 10)
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
-#   --skip-shellcheck     --skip-gitleaks   --skip-published-tree   --skip-website   --skip-android
+#   --skip-shellcheck     --skip-actionlint   --skip-gitleaks  --skip-published-tree   --skip-website   --skip-android
 #   --release             also run the release-gate stages above (contracts, coverage, mobile-audit, dependency-audit,
 #                         image-scan, drill); each has its own --skip-contracts, --skip-coverage,
 #                         --skip-mobile-audit, --skip-audit, --skip-image-scan, --skip-drill
@@ -86,6 +88,7 @@ SKIP_FRONTEND=0
 SKIP_MCP_APP=0
 SKIP_WEBSITE=0
 SKIP_SHELLCHECK=0
+SKIP_ACTIONLINT=0
 SKIP_GITLEAKS=0
 SKIP_PUBLISHED_TREE=0
 SKIP_ANDROID=0
@@ -126,6 +129,7 @@ while [ $# -gt 0 ]; do
     --skip-mcp-app) SKIP_MCP_APP=1; shift ;;
     --skip-website) SKIP_WEBSITE=1; shift ;;
     --skip-shellcheck) SKIP_SHELLCHECK=1; shift ;;
+    --skip-actionlint) SKIP_ACTIONLINT=1; shift ;;
     --skip-gitleaks) SKIP_GITLEAKS=1; shift ;;
     --skip-published-tree) SKIP_PUBLISHED_TREE=1; shift ;;
     --strict) STRICT=1; shift ;;
@@ -265,10 +269,14 @@ stage_policy() {
   run python3 tools/check-migration-policy.py --all
 }
 
-# The CI shellcheck and secrets jobs run these same scripts (tools/ci-images.sh pins the images). Without Docker they
+# The CI shellcheck, actionlint and secrets jobs run these same scripts (tools/ci-images.sh pins the images). Without Docker they
 # exit with RC_TOOL_MISSING after a SKIPPED line.
 stage_shellcheck() {
   run bash tools/shellcheck-ci.sh
+}
+
+stage_actionlint() {
+  run bash tools/actionlint-ci.sh
 }
 
 stage_gitleaks() {
@@ -397,8 +405,13 @@ stage_dependency_audit() {
     npm --prefix frontend audit --audit-level=high --omit=dev
   audit_step "npm audit (website, runtime dependencies, high and above)" "npm" "registry.npmjs.org" \
     npm --prefix website audit --audit-level=high --omit=dev
-  audit_step "OSV-Scanner (Android Gradle lockfiles)" "docker" "ghcr.io api.osv.dev" \
-    bash .github/audit/osv-gradle.sh
+  # OSV-Scanner reads the published tree, as Scorecard and the public audit do: private tools never ship.
+  local published
+  published="$(mktemp -d)"
+  bash tools/export/export-repo.sh "$published/export" >/dev/null
+  audit_step "OSV-Scanner (all published lockfiles, Gradle included)" "docker" "ghcr.io api.osv.dev" \
+    bash .github/audit/osv-scan.sh "$published/export"
+  rm -rf "$published"
   if [ "$AUDIT_FAILED" -eq 1 ]; then
     exit 1
   fi
@@ -467,6 +480,7 @@ run_stage backend-static "$SKIP_BACKEND_STATIC" stage_backend_static
 run_stage contracts "$SKIP_CONTRACTS" stage_contracts
 run_stage policy "$SKIP_POLICY" stage_policy
 run_stage shellcheck "$SKIP_SHELLCHECK" stage_shellcheck
+run_stage actionlint "$SKIP_ACTIONLINT" stage_actionlint
 run_stage gitleaks "$SKIP_GITLEAKS" stage_gitleaks
 run_stage dependency-audit "$SKIP_AUDIT" stage_dependency_audit
 run_stage frontend "$SKIP_FRONTEND" stage_frontend

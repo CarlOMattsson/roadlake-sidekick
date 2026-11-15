@@ -14,11 +14,13 @@ from uuid import UUID
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    COLUMNS_ADDED_IN_FORMAT_7,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT,
     EXPORT_FORMAT_VERSION,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_TAG_LINKS,
+    FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
     SCHEMA_HEAD,
     SOURCES_BY_NAME,
@@ -154,11 +156,15 @@ def _verify_header(document: Mapping[str, Any]) -> tuple[UUID, int]:
     return owner_id, format_version
 
 
-def _verify_rows(name: str, source: Any, rows_value: Any, owner_id: UUID) -> None:
+def _verify_rows(
+    name: str, source: Any, rows_value: Any, owner_id: UUID, not_yet: frozenset[str]
+) -> None:
+    """Each row has exactly the source's fields, less the `not_yet` columns of an older format."""
+
     if not isinstance(rows_value, list):
         raise ExportRefused(f"collection {name} must be an array")
     rows = cast(list[Any], rows_value)
-    fields = set(source_fields(source))
+    fields = set(source_fields(source)) - not_yet
     for row_value in rows:
         if not isinstance(row_value, Mapping):
             raise ExportRefused(f"collection {name} contains a non-object row")
@@ -207,9 +213,15 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
     for name in sorted(retired):
         if collections[name] != []:
             raise ExportRefused(f"collection {name} of a retired feature must be empty")
+    # Its rows lack the columns added since; those restore as NULL.
+    columns_not_yet: Mapping[str, frozenset[str]] = (
+        COLUMNS_ADDED_IN_FORMAT_7 if format_version <= FORMAT_WITHOUT_TASK_REVIEW else {}
+    )
     for name, source in SOURCES_BY_NAME.items():
         if name not in not_yet:
-            _verify_rows(name, source, collections[name], owner_id)
+            _verify_rows(
+                name, source, collections[name], owner_id, columns_not_yet.get(name, frozenset())
+            )
     checksum = _verify_manifest(document, collections)
     document_counts = {name: len(collections.get(name, ())) for name in SOURCES_BY_NAME}
     return ExportVerification(owner_id, checksum, document_counts)

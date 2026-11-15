@@ -165,10 +165,11 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
         name="list_tasks",
         description=(
             "Use this for a bounded, paged list of tasks, optionally filtered by project_id, "
-            "process_id or status. For what is due or overdue, use get_work_agenda; for status "
-            "columns, get_work_board; for the tree with steps, get_work_hierarchy. Rows have "
-            "description_excerpt (about 160 characters) and description_truncated; when true, "
-            "call get_task for the full text."
+            "process_id or status. ambitions=true lists the user's ambitions instead (kept in "
+            "view, never dated or reminded). For what is due or overdue, use get_work_agenda; "
+            "for status columns, get_work_board; for the tree with steps, get_work_hierarchy. "
+            "Rows have description_excerpt (about 160 characters) and description_truncated; "
+            "when true, call get_task for the full text."
         ),
         output_schema=output_schema(TaskPageOutput),
         annotations=READ,
@@ -181,6 +182,7 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
         cursor: _Cursor = None,
         process_id: UUID | None = None,
         unsorted: bool = False,
+        ambitions: bool = False,
     ) -> ToolResult:
         actor = ctx.actor_provider()
         structured = task_page_structured(
@@ -192,9 +194,16 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
             status=status,
             cursor=cursor,
             unsorted=unsorted,
+            ambitions=ambitions,
         )
         titles = [task.title for task in structured.tasks]
-        if not unsorted:
+        if ambitions:
+            head = (
+                found_sentence(len(titles), "ambition", "ambitions", titles, lead="You have")
+                if titles
+                else "No ambitions noted."
+            )
+        elif not unsorted:
             head = found_sentence(len(titles), "task", "tasks", titles)
         elif not titles:
             head = "You have no unsorted tasks."

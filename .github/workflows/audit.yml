@@ -35,6 +35,9 @@ jobs:
       - name: npm audit (website, runtime dependencies, high and above)
         run: npm audit --audit-level=high --omit=dev
         working-directory: website
-      # The Android app's Maven dependencies, from the Gradle lockfiles, scanned with OSV-Scanner.
-      - name: OSV-Scanner (Android Gradle lockfiles)
-        run: bash .github/audit/osv-gradle.sh
+      # Every lockfile in the repository, development tooling included (the website's Lighthouse and diagram tools, the
+      # frontend's lint chain) and the Android app's Maven dependencies from the Gradle lockfiles, scanned with
+      # OSV-Scanner: the same scanner and files as the OpenSSF Scorecard Vulnerabilities check. Exceptions are in the
+      # osv-scanner.toml next to a lockfile, each with a reason and an expiry date.
+      - name: OSV-Scanner (all lockfiles, Gradle included)
+        run: bash .github/audit/osv-scan.sh

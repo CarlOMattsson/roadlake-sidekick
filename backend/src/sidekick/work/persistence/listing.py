@@ -471,6 +471,10 @@ def _wanted_kinds(spec: WorkListSpec) -> tuple[str, ...]:
     return kinds
 
 
+_UNDER_A_TASK = frozenset({"task", "step", "action"})
+"""The kinds whose branch joins the Task row."""
+
+
 def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> Any:
     """The union of the given kinds, with `agenda_group` added and the agenda filter applied."""
 
@@ -487,7 +491,11 @@ def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> An
     for kind in kinds:
         branch = branches[kind]()
         statement = branch.join(select(*branch.cols.labelled()).select_from(branch.entity))
-        selects.append(statement.where(*branch.where, *_predicates(owner_id, branch.cols, spec)))
+        where = [*branch.where, *_predicates(owner_id, branch.cols, spec)]
+        if spec.agenda is not None and kind in _UNDER_A_TASK:
+            # An ambition is never something to do: not it, nor its Steps or Actions.
+            where.append(TaskRow.ambition_since.is_(None))
+        selects.append(statement.where(*where))
     union = selects[0] if len(selects) == 1 else selects[0].union_all(*selects[1:])
     merged = union.subquery("work")
     if spec.agenda is None:

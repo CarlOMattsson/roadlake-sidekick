@@ -4,9 +4,12 @@
 
 ## Reporting a vulnerability
 
-Please report vulnerabilities **privately via the repository's security advisory feature** (the "Security" tab,
-then "Report a vulnerability"). Do not open a public issue, pull request or discussion for a suspected
+Please report vulnerabilities **privately via the repository's security advisory feature**: open
+[Report a vulnerability](https://github.com/CarlOMattsson/roadlake-sidekick/security/advisories/new) (the
+"Security" tab, then "Report a vulnerability"). Do not open a public issue, pull request or discussion for a suspected
 vulnerability, and do not post exploit details, tokens, logs with user content or real data anywhere public.
+
+This policy is also published at <https://github.com/CarlOMattsson/roadlake-sidekick/security/policy>.
 
 If that feature is not available on the repository, open an issue that says only that you have a security
 report and want a private channel, with no details, and the maintainer will arrange one.

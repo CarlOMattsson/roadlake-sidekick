@@ -1,8 +1,8 @@
 """Migration 107 adds the tag links of Contacts and Journal entries, and nothing else.
 
 Each test builds the database as an installation that ran up to migration 106 has it, then applies
-`migrations/`. The links are new tables, so an existing installation keeps every row it has, and a
-rollback drops only the links: the vocabulary, the contacts and the entries stay.
+the chain through 107. The links are new tables, so an existing installation keeps every row it
+has, and a rollback drops only the links: the vocabulary, the contacts and the entries stay.
 """
 
 from __future__ import annotations
@@ -15,9 +15,7 @@ from sqlalchemy.exc import IntegrityError
 from yoyo import get_backend, read_migrations
 
 from tests.support.migration_baseline import (
-    BASELINE,
     DROP_AUTOMATION,
-    FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
     TAG_LINKS,
     _admin_url,
@@ -28,6 +26,8 @@ from tests.support.migration_baseline import (
     _run,
     _snapshot,
     _tables,
+    chain_through,
+    ids_through,
     rebuilt_schema,  # noqa: F401  (a fixture, used through `usefixtures`)
 )
 
@@ -74,21 +74,9 @@ LINK_ENTRY = (
 )
 
 
-def _chain_before_the_links(tmp_path: Path) -> Path:
-    """A migrations directory with every migration up to 106, which is the chain before 107."""
-
-    directory = tmp_path / "before-the-links"
-    directory.mkdir()
-    for name in (BASELINE, DROP_AUTOMATION):
-        (directory / f"{name}.py").write_text(
-            (MIGRATIONS_PATH / f"{name}.py").read_text(encoding="utf-8"), encoding="utf-8"
-        )
-    return directory
-
-
 def _installation_before_the_links(tmp_path: Path) -> None:
     _reset_schema()
-    _apply(_chain_before_the_links(tmp_path))
+    _apply(chain_through(tmp_path, DROP_AUTOMATION))
     for statement in ROWS:
         _run(statement, IDS)
 
@@ -119,19 +107,16 @@ def test_the_links_are_added_and_every_existing_row_is_kept(tmp_path: Path) -> N
     before = _tables_now()
     assert set(LINK_TABLES).isdisjoint(before)
 
-    _apply(MIGRATIONS_PATH)
+    through = chain_through(tmp_path, TAG_LINKS)
+    _apply(through)
 
-    # Migration 108 adds its own two tables in the same run.
-    assert _tables_now() == before | set(LINK_TABLES) | {
-        "memory_forgotten_facts",
-        "memory_forgotten_units",
-    }
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
+    assert _tables_now() == before | set(LINK_TABLES)
+    assert _applied_ids() == ids_through(TAG_LINKS)
     assert _scalar("SELECT count(*) FROM sidekick.contacts") == 1
     assert _scalar("SELECT count(*) FROM sidekick.journal_entries") == 1
     assert _scalar("SELECT count(*) FROM sidekick.work_tags") == 2
     backend = get_backend(_migration_url())
-    assert not list(backend.to_apply(read_migrations(str(MIGRATIONS_PATH))))
+    assert not list(backend.to_apply(read_migrations(str(through))))
 
 
 @pytest.mark.integration
@@ -175,7 +160,7 @@ def test_a_link_only_joins_one_owners_tag_and_record(tmp_path: Path) -> None:
 @pytest.mark.usefixtures("rebuilt_schema")
 def test_the_links_follow_their_tag_and_their_record(tmp_path: Path) -> None:
     _installation_before_the_links(tmp_path)
-    _apply(MIGRATIONS_PATH)
+    _apply(chain_through(tmp_path, TAG_LINKS))
     _run(LINK_CONTACT, IDS)
     _run(LINK_ENTRY, IDS)
 
@@ -192,7 +177,7 @@ def test_the_links_follow_their_tag_and_their_record(tmp_path: Path) -> None:
 @pytest.mark.usefixtures("rebuilt_schema")
 def test_a_rollback_drops_only_the_links(tmp_path: Path) -> None:
     _installation_before_the_links(tmp_path)
-    _apply(MIGRATIONS_PATH)
+    _apply(chain_through(tmp_path, TAG_LINKS))
     _run(LINK_CONTACT, IDS)
     backend = get_backend(_migration_url())
     migration = next(item for item in read_migrations(str(MIGRATIONS_PATH)) if item.id == TAG_LINKS)
@@ -201,7 +186,7 @@ def test_a_rollback_drops_only_the_links(tmp_path: Path) -> None:
         backend.rollback_one(migration)
 
     assert set(LINK_TABLES).isdisjoint(_tables_now())
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, FORGOTTEN_FACTS}
+    assert _applied_ids() == ids_through(DROP_AUTOMATION)
     assert _scalar("SELECT count(*) FROM sidekick.contacts") == 1
     assert _scalar("SELECT count(*) FROM sidekick.work_tags") == 2
     # And it applies again.

@@ -8,7 +8,12 @@ import type { HostContext } from "@/features/mcp-apps/bridge";
 export type HostStyleContext = HostContext;
 
 const VARIABLE_NAME = /^--[a-z0-9-]{1,64}$/;
-const FORBIDDEN_VALUE = /url\(|@import|;/i;
+/**
+ * A value that could load a resource or end the declaration. Every CSS function that takes a URL is refused, and
+ * so is any backslash, because a CSS escape (`\75 rl(`) spells `url(` without the letters.
+ */
+const FORBIDDEN_VALUE =
+  /(?:url|src|image|image-set|cross-fade|element)\(|@import|;|\\/i;
 const MAX_VALUE_LENGTH = 200;
 const SAFE_AREA_SIDES = ["top", "right", "bottom", "left"] as const;
 

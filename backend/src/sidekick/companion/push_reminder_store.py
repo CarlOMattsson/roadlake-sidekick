@@ -35,10 +35,15 @@ from sidekick.tasks.domain import TaskStatus
 
 
 def _open_live_task() -> list[ColumnElement[bool]]:
-    """A task that is neither completed, trashed, archived nor under a trashed parent."""
+    """A task that is neither completed, an ambition, trashed, archived nor under a trashed parent.
+
+    An ambition is never due or reminded of; the domain keeps its dates empty, and this keeps a
+    reminder away even from a row that disagrees.
+    """
 
     return [
         TaskRow.status != TaskStatus.COMPLETED.value,
+        TaskRow.ambition_since.is_(None),
         TaskRow.trashed_at.is_(None),
         TaskRow.archived_at.is_(None),
         task_parents_live(),

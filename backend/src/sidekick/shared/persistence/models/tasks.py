@@ -84,6 +84,8 @@ class TaskRow(Base):
     blocked_last_reminded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     recurrence: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     last_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ambition_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR,

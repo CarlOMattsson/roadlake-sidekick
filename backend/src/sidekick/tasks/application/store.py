@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -16,6 +17,7 @@ from sidekick.shared.types import (
     TxSession,
 )
 from sidekick.tasks.domain import Task, TaskStatus, TaskStatusHistory
+from sidekick.tasks.domain.review import ReviewCandidate
 from sidekick.work.domain import Domain, Process, Step
 from sidekick.work.domain.planning import WorkTag
 
@@ -37,6 +39,7 @@ class TaskStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
         include_archived: bool = False,
         process_id: UUID | None = None,
         unsorted: bool = False,
+        ambitions: bool | None = None,
     ) -> list[Task]: ...
     def get_task(
         self,
@@ -50,6 +53,10 @@ class TaskStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
     def save_task(
         self, session: TxSession, task: Task, expected_version: int | None = None
     ) -> None: ...
+    def lock_tasks(self, session: TxSession, owner_id: UUID, task_ids: Iterable[UUID]) -> None:
+        """Row-lock the owner's Tasks among `task_ids`, in id order, until the commit."""
+        ...
+
     def save_step(self, session: TxSession, step: Step) -> None: ...
     def get_project(
         self,
@@ -104,6 +111,12 @@ class TaskStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
     def project_domain_ids(
         self, session: TxSession, owner_id: UUID, project_ids: tuple[UUID, ...]
     ) -> dict[UUID, UUID]: ...
+    def domain_names(
+        self, session: TxSession, owner_id: UUID, domain_ids: tuple[UUID, ...]
+    ) -> dict[UUID, str]: ...
+    def list_review_candidates(
+        self, session: TxSession, owner_id: UUID, *, reviewed_before: datetime, limit: int
+    ) -> list[ReviewCandidate]: ...
     def task_step_counts(
         self, session: TxSession, owner_id: UUID, *, task_id: UUID
     ) -> dict[str, int]: ...

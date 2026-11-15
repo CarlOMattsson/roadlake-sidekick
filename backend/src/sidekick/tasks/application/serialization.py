@@ -37,6 +37,7 @@ class TaskPublicData(TypedDict):
     blocked_last_reminded_at: str | None
     recurrence: RecurrenceData | None
     last_completed_at: str | None
+    last_reviewed_at: str | None
 
 
 def task_public_data(task: Task) -> TaskPublicData:
@@ -79,4 +80,5 @@ def task_public_data(task: Task) -> TaskPublicData:
         "last_completed_at": (
             task.last_completed_at.isoformat() if task.last_completed_at else None
         ),
+        "last_reviewed_at": task.last_reviewed_at.isoformat() if task.last_reviewed_at else None,
     }

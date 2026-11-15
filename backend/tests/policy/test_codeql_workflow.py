@@ -1,9 +1,11 @@
-"""CodeQL is the only workflow that runs on push and on a schedule, and it stays read-only.
+"""Only CI and CodeQL run on a push to main, only CodeQL on a schedule, and CodeQL stays read-only.
 
-Every other workflow runs by hand or as a release gate. The CodeQL analysis is the one stated
-exception, because static analysis should see every commit that lands on main (the OpenSSF Scorecard
-SAST check looks for `github/codeql-action/analyze`). The exception must not widen: no other
-workflow, the published copies under the export overlay included, gains an automatic trigger.
+Every other workflow runs by hand or as a release gate. CI also runs on a push to main (every export
+to the public repository), and the CodeQL analysis also runs on a push and weekly, because static
+analysis should see every commit that lands on main (the OpenSSF Scorecard SAST check looks for
+`github/codeql-action/analyze`). The exceptions must not widen: no other workflow, the published
+copies under the export overlay included, gains an automatic trigger, and none runs on pull
+requests, merge queues or (outside CodeQL) a schedule.
 """
 
 from pathlib import Path
@@ -25,6 +27,7 @@ WORKFLOW_DIRS = [
 ]
 WORKFLOWS = sorted(path for directory in WORKFLOW_DIRS for path in directory.glob("*.yml"))
 CODEQL = ROOT / ".github" / "workflows" / "codeql.yml"
+CI_FILE_NAME = "ci.yml"
 AUTOMATIC_TRIGGERS = {"push", "schedule", "pull_request", "pull_request_target", "merge_group"}
 CODEQL_ACTION = "github/codeql-action/"
 
@@ -44,12 +47,27 @@ def triggers(path: Path) -> set[str]:
 
 
 @pytest.mark.parametrize("path", WORKFLOWS, ids=label)
-def test_only_the_codeql_workflow_runs_on_push_or_on_a_schedule(path: Path) -> None:
+def test_only_ci_and_codeql_run_on_push_and_only_codeql_on_a_schedule(path: Path) -> None:
     automatic = triggers(path) & AUTOMATIC_TRIGGERS
     if path == CODEQL:
         assert automatic == {"push", "schedule"}, label(path)
+    elif path.name == CI_FILE_NAME:
+        assert automatic == {"push"}, label(path)
     else:
         assert not automatic, f"{label(path)} runs on {sorted(automatic)}"
+
+
+@pytest.mark.parametrize(
+    "path", [path for path in WORKFLOWS if path.name == CI_FILE_NAME], ids=label
+)
+def test_ci_runs_on_main_only_and_only_a_newer_push_cancels_a_run(path: Path) -> None:
+    workflow = load(path)
+    assert workflow[True]["push"] == {"branches": ["main"]}
+    assert {"workflow_dispatch", "workflow_call"} <= triggers(path)
+    concurrency = workflow["concurrency"]
+    assert concurrency["cancel-in-progress"] == "${{ github.event_name == 'push' }}", (
+        "a run called by the release or started by hand is never cancelled"
+    )
 
 
 def test_codeql_runs_on_main_weekly_and_by_hand() -> None:

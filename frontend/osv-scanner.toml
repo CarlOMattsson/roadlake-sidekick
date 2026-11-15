@@ -1,0 +1,13 @@
+# Exceptions for OSV-Scanner for frontend/package-lock.json (.github/audit/osv-scan.sh and the OpenSSF Scorecard
+# Vulnerabilities check, which read this file next to the lockfile). Every entry needs a concrete reason and an
+# ignoreUntil date at most 90 days ahead; backend/tests/policy/test_osv_exceptions.py enforces both. An entry is a decision
+# for a finding that cannot be fixed by upgrading and does not reach a shipped artifact: when the date passes, upgrade or
+# decide again.
+
+# minimatch 10.2.6, fixed only in 11.x. It is a dev-only dependency of typescript-eslint (typescript-estree asks for
+# ^10.2.2), used by the linter to match our own glob patterns from tsconfig and the ESLint config. The advisory needs
+# attacker-controlled patterns at optimizationLevel >= 2; the linter is fed none, and nothing of it is shipped.
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-02-10
+reason = "Dev-only dependency of typescript-eslint, which requires ^10; the patterns it matches come from our own config, not from input. Not shipped."

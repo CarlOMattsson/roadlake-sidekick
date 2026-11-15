@@ -8,6 +8,7 @@ from .models import (
     RescheduleTaskItem,
     UpdateTaskCommand,
 )
+from .review import TaskReviewService
 from .service import TaskService
 
 __all__ = [
@@ -16,6 +17,7 @@ __all__ = [
     "RescheduleTaskItem",
     "TaskBoardService",
     "TaskBulkService",
+    "TaskReviewService",
     "TaskService",
     "UpdateTaskCommand",
 ]

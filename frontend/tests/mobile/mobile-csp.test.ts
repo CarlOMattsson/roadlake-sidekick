@@ -66,12 +66,15 @@ for (const [label, file] of Object.entries(pages)) {
     });
 
     it("has no inline script, inline style or style attribute the policy would block", () => {
-      // Comments are not content; strip them so the CSP note in the source page does not count.
-      const markup = html().replace(/<!--[\s\S]*?-->/g, "");
-      expect(markup).not.toMatch(/<style[\s>]/i);
-      expect(markup).not.toMatch(/<script(?![^>]*\ssrc=)[^>]*>/i);
-      expect(markup).not.toMatch(/\sstyle\s*=/i);
-      expect(markup).not.toMatch(/\son[a-z]+\s*=/i);
+      // Parsed as a document, so comments (such as the CSP note in the source page) are not content.
+      const page = new DOMParser().parseFromString(html(), "text/html");
+      expect(page.querySelectorAll("style")).toHaveLength(0);
+      expect(page.querySelectorAll("script:not([src])")).toHaveLength(0);
+      const attributes = [...page.querySelectorAll("*")].flatMap((element) =>
+        element.getAttributeNames(),
+      );
+      expect(attributes).not.toContain("style");
+      expect(attributes.filter((name) => name.startsWith("on"))).toEqual([]);
     });
   });
 }

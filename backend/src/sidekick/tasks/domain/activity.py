@@ -4,6 +4,7 @@ Task use cases depend on this protocol, not on the activity application layer; t
 composition root injects the activity ledger, which satisfies it.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -30,3 +31,17 @@ class TaskActivityRecorder(Protocol):
         correlation_id: str | None = None,
         changed_fields: frozenset[str] | None = None,
     ) -> UUID: ...
+
+    def record_unchanged_review(
+        self,
+        session: TxSession,
+        /,
+        *,
+        tasks: Sequence[Task],
+        actor_id: UUID,
+        actor_type: str,
+        occurred_at: datetime,
+        correlation_id: str | None = None,
+    ) -> UUID:
+        """One entry for every Task a review kept unchanged, instead of one per Task."""
+        ...

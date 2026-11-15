@@ -7,7 +7,7 @@ from pydantic import ValidationError as ModelValidationError
 
 # Closed, client-actionable reasons. Only reasons that the domain actually raises belong here.
 SidekickErrorReason = Literal[
-    "stale_version", "not_before_after_due", "not_completed", "nul_character"
+    "stale_version", "not_before_after_due", "not_completed", "nul_character", "not_an_ambition"
 ]
 
 

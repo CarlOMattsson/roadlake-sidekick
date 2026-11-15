@@ -21,6 +21,7 @@ from sidekick.owner_export.restore_remap import (
     user_reference_fields,
     uuid_or_none,
 )
+from sidekick.tasks.domain.task import SCHEDULING_FIELDS
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,6 +177,25 @@ def _plan_collection(
     )
 
 
+def _require_undated_ambitions(tasks: list[Mapping[str, Any]]) -> None:
+    """Refuse an export whose ambition is dated, flagged, waiting, repeating or reminded.
+
+    A restore writes rows directly, so the Task domain's rule that an ambition has none of these
+    would otherwise not apply to it. The refusal names the row position and fields, never content.
+    """
+
+    barred = SCHEDULING_FIELDS | {"waiting_on_contact_id"}
+    for position, row in enumerate(tasks):
+        if row.get("ambition_since") is None:
+            continue
+        fields = sorted(name for name in barred if row.get(name) not in (None, False))
+        if fields:
+            raise ExportRefused(
+                f"export has an ambition with scheduling fields: tasks[{position}]: "
+                + ", ".join(fields)
+            )
+
+
 def build_restore_plan(
     document: Mapping[str, Any],
     target_owner_id: UUID,
@@ -190,6 +210,7 @@ def build_restore_plan(
 
     verification = verify_export(document)
     collections = document_collections(document)
+    _require_undated_ambitions(cast(list[Mapping[str, Any]], collections["tasks"]))
     identity_map = restore_identity_map(document, target_owner_id)
     unresolved: list[str] = []
     collection_plans = tuple(

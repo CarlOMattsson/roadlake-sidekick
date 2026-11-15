@@ -260,6 +260,43 @@ class ActivityLedger:
             occurred_at=occurred_at,
         )
 
+    def record_unchanged_review(
+        self,
+        session: TxSession,
+        *,
+        tasks: Sequence[Task],
+        actor_id: UUID,
+        actor_type: str,
+        occurred_at: datetime,
+        correlation_id: str | None = None,
+    ) -> UUID:
+        """One entry for the Tasks a review kept unchanged, filed under the first of them.
+
+        The entry names the first Task's new version, which no other event carries; the others
+        are listed by id in the evidence. Nothing about the Tasks changed but their review time.
+        """
+
+        if not tasks:
+            raise ValidationError("a review summary needs at least one task")
+        first = tasks[0]
+        titles = ", ".join(task.title for task in tasks)
+        return self.append(
+            session,
+            owner_id=first.owner_id,
+            aggregate_type="task",
+            aggregate_id=first.id,
+            aggregate_version=first.version,
+            event_type="task.reviewed",
+            actor_type=actor_type,
+            actor_id=actor_id,
+            operation="review_tasks",
+            category=category_for_operation("review_tasks"),
+            summary=f"Reviewed without changes ({len(tasks)}): {titles}",
+            evidence={"task_ids": [str(task.id) for task in tasks]},
+            correlation_id=correlation_id,
+            occurred_at=occurred_at,
+        )
+
 
 class ActivityService:
     def __init__(self, store: ActivityStore, cursor_codec: CursorCodec) -> None:

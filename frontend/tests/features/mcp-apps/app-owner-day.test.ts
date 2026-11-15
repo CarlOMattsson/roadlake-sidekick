@@ -46,4 +46,13 @@ describe("ownerNoon", () => {
   it("rejects malformed days", () => {
     expect(ownerNoon("2026-1-1")).toBeUndefined();
   });
+
+  it("rejects a well-shaped day that does not exist instead of rolling it over", () => {
+    for (const day of ["2026-02-31", "2026-13-01", "2026-00-10", "2026-04-00"])
+      expect(ownerNoon(day, "Europe/Stockholm")).toBeUndefined();
+  });
+
+  it("keeps a year below 100 as written", () => {
+    expect(ownerNoon("0099-05-01", "UTC")).toBe("0099-05-01T12:00:00.000Z");
+  });
 });

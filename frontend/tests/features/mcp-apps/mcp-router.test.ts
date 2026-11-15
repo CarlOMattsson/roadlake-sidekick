@@ -84,6 +84,14 @@ it("accepts a tool name the host has namespaced", () => {
   expect(routeForTool("sidekick.unknown_tool")).toBeUndefined();
 });
 
+it("accepts a namespace that ends in an underscore", () => {
+  expect(routeForTool("my_server___get_task")).toEqual({
+    room: "work",
+    view: "task",
+  });
+  expect(routeForTool("_____list_trash")?.room).toBe("control");
+});
+
 const workItem = { kind: "task", id: "t1", title: "Ring", status: "todo" };
 
 const SHAPES: [string, unknown, { room: string; view: string }][] = [

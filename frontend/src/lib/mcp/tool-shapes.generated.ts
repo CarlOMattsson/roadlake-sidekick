@@ -286,6 +286,7 @@ export const getTaskResultShape: Shape = {
         follow_up_at: { anyOf: [{ type: "string" }, { type: "null" }] },
         id: { type: "string" },
         last_completed_at: { anyOf: [{ type: "string" }, { type: "null" }] },
+        last_reviewed_at: { anyOf: [{ type: "string" }, { type: "null" }] },
         not_before: { anyOf: [{ type: "string" }, { type: "null" }] },
         priority: { type: "string" },
         process_id: { anyOf: [{ type: "string" }, { type: "null" }] },

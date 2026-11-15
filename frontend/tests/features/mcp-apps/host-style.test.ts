@@ -80,6 +80,24 @@ describe("applyHostStyle variables", () => {
     expect(variableNames(root)).toEqual([]);
   });
 
+  it("ignores the other URL functions and url( spelled with CSS escapes", () => {
+    applyHostStyle(
+      {
+        styles: {
+          variables: {
+            "--image-set": 'image-set("https://example.com/x.png" 1x)',
+            "--webkit": '-webkit-image-set("https://example.com/x.png" 1x)',
+            "--src": 'src("https://example.com/x.png")',
+            "--hex-escape": "\\75 rl(https://example.com/x.png)",
+            "--char-escape": "u\\rl(https://example.com/x.png)",
+          },
+        },
+      },
+      root,
+    );
+    expect(variableNames(root)).toEqual([]);
+  });
+
   it("accepts a value of exactly 200 characters", () => {
     const value = "a".repeat(200);
     applyHostStyle({ styles: { variables: { "--ok": value } } }, root);

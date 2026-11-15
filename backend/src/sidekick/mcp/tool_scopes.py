@@ -58,7 +58,15 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     **_tools(
         ToolScopes(("projects:read", "tasks:write")), "create_tasks", "update_task", "complete_task"
     ),
-    **_tools(ToolScopes(("tasks:write",)), "reschedule_tasks", "reorder_work_board_column"),
+    **_tools(
+        ToolScopes(("tasks:write",)),
+        "reschedule_tasks",
+        "review_tasks",
+        "restore_task",
+        "reorder_work_board_column",
+    ),
+    # The queue names each Task's Project and Domain only for a session that may read them.
+    "get_review_queue": ToolScopes(("tasks:read",), optional=("projects:read",)),
     **_tools(
         ToolScopes(("tasks:read",)),
         "get_work_board",

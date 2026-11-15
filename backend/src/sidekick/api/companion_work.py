@@ -206,8 +206,10 @@ async def project_tasks(
         # The MCP tool takes any id and returns an empty page; a Project that is not the
         # owner's must be a 404 here, so it is read first (same scopes, owner-checked).
         container.projects.get(actor, project_id)
+        # Ambitions are left out, as in the MCP `list_tasks` default: they are kept in view,
+        # not worked off, and the cursor is bound to this filter.
         return task_page_structured(
-            container, actor, limit=limit, project_id=project_id, cursor=cursor
+            container, actor, limit=limit, project_id=project_id, cursor=cursor, ambitions=False
         ).model_dump(mode="json")
 
     return JSONResponse(headers=no_store_headers, content=await run_in_threadpool(read))

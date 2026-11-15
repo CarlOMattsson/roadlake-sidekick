@@ -45,6 +45,21 @@ class TaskStatusHistory:
     source: str
 
 
+SCHEDULING_FIELDS = frozenset(
+    {
+        "due_at",
+        "not_before",
+        "waiting_since",
+        "follow_up_at",
+        "recurrence",
+        "blocked_reminder_cadence",
+        "blocked_reminder_snoozed_until",
+        "attention_requested",
+    }
+)
+"""What dates, flags or reminds about a Task. An ambition has none of them set."""
+
+
 @dataclass(frozen=True, slots=True)
 class Task:
     id: UUID
@@ -81,6 +96,10 @@ class Task:
     blocked_last_reminded_at: datetime | None = None
     recurrence: RecurrenceRule | None = None
     last_completed_at: datetime | None = None
+    last_reviewed_at: datetime | None = None
+    """When a review decision last touched the Task; ordinary edits leave it alone."""
+    ambition_since: datetime | None = None
+    """When the Task became an ambition: something to keep in view, never due or reminded of."""
 
     def __post_init__(self) -> None:
         title = self.title.strip()
@@ -121,7 +140,19 @@ class Task:
             and self.blocked_reminder_snoozed_until is not None
         ):
             raise ValidationError("blocked reminder snooze requires a blocked Task")
+        if self.ambition_since is not None and self.scheduled_fields():
+            raise ValidationError(
+                "an ambition has no due date, start, waiting, flag, repeat or reminder; "
+                "make it a task again first"
+            )
         object.__setattr__(self, "title", title)
+
+    def scheduled_fields(self) -> frozenset[str]:
+        """The `SCHEDULING_FIELDS` this Task has set; an ambition has none."""
+
+        return frozenset(
+            name for name in SCHEDULING_FIELDS if getattr(self, name) not in (None, False)
+        )
 
     @property
     def waiting(self) -> bool:
@@ -175,6 +206,7 @@ class Task:
         blocked_reminder_snoozed_until: datetime | UnsetType | None = UNSET,
         recurrence: RecurrenceRule | UnsetType | None = UNSET,
         last_completed_at: datetime | UnsetType | None = UNSET,
+        last_reviewed_at: datetime | UnsetType = UNSET,
     ) -> "Task":
         """Apply only mutable Task fields while preserving completion invariants.
 
@@ -184,6 +216,9 @@ class Task:
         `last_completed_at` is the undo of a recurring completion: it can only be set back to an
         earlier value (or cleared) on a recurring Task, never forward, so it cannot claim a
         completion that did not happen.
+
+        `last_reviewed_at` is set by a review decision that also changes the Task; it is not a
+        change on its own (see `mark_reviewed`) and cannot be cleared.
         """
 
         changes = {
@@ -212,6 +247,8 @@ class Task:
         }
         if not changes:
             raise ValidationError("at least one task change is required")
+        if last_reviewed_at is not UNSET:
+            changes["last_reviewed_at"] = last_reviewed_at
         if last_completed_at is not UNSET and last_completed_at != self.last_completed_at:
             if changes.get("recurrence", self.recurrence) is None:
                 raise ValidationError("only a recurring task has a last completion to restore")
@@ -257,6 +294,35 @@ class Task:
             changes["completed_at"] = None
         return replace(self, **changes, updated_at=now, version=self.version + 1)
 
+    def ambition_change(self, ambition: bool, *, now: datetime) -> dict[str, object]:
+        """The fields that keep the Task as an ambition, or make it a task again; none when it
+        already is what was asked.
+
+        Becoming an ambition clears what would date, flag or remind about the Task
+        (`scheduled_fields`, and the waiting Contact with the waiting). A completed or repeating
+        Task cannot become one: the first is done, the second would date itself again.
+        """
+
+        if ambition == (self.ambition_since is not None):
+            return {}
+        if not ambition:
+            return {"ambition_since": None}
+        if self.status is TaskStatus.COMPLETED:
+            raise ValidationError("a completed task cannot become an ambition")
+        if self.recurrence is not None:
+            raise ValidationError(
+                "a repeating task cannot become an ambition; stop the repeat first"
+            )
+        cleared: dict[str, object] = {
+            name: None for name in self.scheduled_fields() - {"attention_requested"}
+        }
+        return {
+            **cleared,
+            "waiting_on_contact_id": None,
+            "attention_requested": False,
+            "ambition_since": now,
+        }
+
     def reopen_for_recurrence(self, *, now: datetime, zone: tzinfo = UTC) -> "Task":
         """Record a completed cycle by reopening the same Task for its next run."""
 
@@ -298,10 +364,28 @@ class Task:
         )
         return completed.reopen_for_recurrence(now=now, zone=zone)
 
-    def archive(self, *, now: datetime) -> "Task":
+    def mark_reviewed(self, *, now: datetime) -> "Task":
+        """Record a review decision that changes nothing else (keep).
+
+        A new version, so a concurrent edit made from an older read is refused; `updated_at` stays,
+        because the Task's content did not change.
+        """
+
+        return replace(self, last_reviewed_at=now, version=self.version + 1)
+
+    def archive(self, *, now: datetime, reviewed: bool = False) -> "Task":
+        """Archive the Task; `reviewed` records that a review decision archived it."""
+
+        reviewed_at = now if reviewed else self.last_reviewed_at
         if self.archived_at is not None:
             return self
-        return replace(self, archived_at=now, updated_at=now, version=self.version + 1)
+        return replace(
+            self,
+            archived_at=now,
+            last_reviewed_at=reviewed_at,
+            updated_at=now,
+            version=self.version + 1,
+        )
 
     def restore(self, *, now: datetime) -> "Task":
         if self.archived_at is None:

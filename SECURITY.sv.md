@@ -4,10 +4,13 @@
 
 ## Rapportera en sårbarhet
 
-Rapportera sårbarheter **privat via repots funktion för säkerhetsmeddelanden** (fliken "Security" och sedan
-"Report a vulnerability"). Öppna inget publikt ärende, ingen pull request och ingen diskussion om en misstänkt
+Rapportera sårbarheter **privat via repots funktion för säkerhetsmeddelanden**: öppna
+[Report a vulnerability](https://github.com/CarlOMattsson/roadlake-sidekick/security/advisories/new) (fliken
+"Security" och sedan "Report a vulnerability"). Öppna inget publikt ärende, ingen pull request och ingen diskussion om en misstänkt
 sårbarhet. Publicera inte heller exploit-detaljer, token, loggar med användarinnehåll eller riktig data
 någonstans där andra kan se dem.
+
+Policyn finns också publicerad på <https://github.com/CarlOMattsson/roadlake-sidekick/security/policy>.
 
 Om funktionen inte finns i repot: öppna ett ärende som bara säger att du har en säkerhetsrapport och vill ha
 en privat kanal, utan detaljer, så ordnar förvaltaren en.

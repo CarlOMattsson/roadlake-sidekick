@@ -65,15 +65,14 @@ def test_stale_version_on_an_open_task_is_still_a_conflict_and_changes_nothing()
 
 
 def _archive(service: TaskService, task_id: UUID, version: int) -> Task:
-    # `_archive` and `_restore` have no public wrapper yet, so they are exercised as the use case.
     return service.store.transaction(
-        lambda session: service._archive(session, _actor(), task_id, version, None)
+        lambda session: service.archive_in_session(session, _actor(), task_id, version, None)
     )
 
 
 def _restore(service: TaskService, task_id: UUID, version: int) -> Task:
     return service.store.transaction(
-        lambda session: service._restore(session, _actor(), task_id, version, None)
+        lambda session: service.restore_in_session(session, _actor(), task_id, version, None)
     )
 
 

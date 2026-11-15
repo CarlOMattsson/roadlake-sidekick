@@ -35,8 +35,9 @@
 #   bundle   -> SHA256SUMS, the image SBOM, and release notes taken from CHANGELOG.md, collected without any signing right.
 #   sign-bundle -> real run, environment `release-signing`: checks every file of the bundle against the outputs of sign-apk
 #               (APK sha256) and release (image digest, SBOM) and refuses on any difference, then signs SHA256SUMS with
-#               cosign, attests the build provenance of the APK, the SBOM, SHA256SUMS and the release notes, and
-#               uploads the finished bundle as one workflow artifact.
+#               cosign, attests the build provenance of the APK, the SBOM, SHA256SUMS and the release notes, adds that
+#               attestation to the bundle as sidekick-X.Y.Z.intoto.jsonl, and uploads the finished bundle as one workflow
+#               artifact.
 #   tag-image -> real run, environment `release-signing`, last of all: puts the version tag on the digest that was scanned,
 #               signed and attested (`docker buildx imagetools create`; the manifest is copied unchanged, so the digest
 #               stays the same). A version tag is therefore published only after every check before it has passed, and a
@@ -689,7 +690,7 @@ jobs:
           cd dist
           # Only the APK and the SBOM come from the bundle job. Any other file, release-notes.md included, is refused.
           names=("sbom-image-${VERSION}.spdx.json" "sidekick-${VERSION}.apk")
-          [ "$(ls -1A | sort)" = "$(printf '%s\n' "${names[@]}" | sort)" ] || { echo "the bundle holds other files than expected" >&2; ls -1A >&2; exit 1; }
+          [ "$(find . -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)" = "$(printf '%s\n' "${names[@]}" | sort)" ] || { echo "the bundle holds other files than expected" >&2; find . -mindepth 1 -maxdepth 1 -printf '%f\n' | sort >&2; exit 1; }
           # The APK is the one sign-apk signed and verified.
           [ "$(sha256sum "sidekick-${VERSION}.apk" | cut -d' ' -f1)" = "$APK_SHA256" ] || { echo "the APK differs from the one sign-apk signed" >&2; exit 1; }
           # The SBOM is the one registered for the digest that release pushed.
@@ -760,6 +761,7 @@ jobs:
 
       - name: Attest the build provenance of the release files (gh attestation verify)
         # The files were just checked against the trusted jobs' outputs and are exactly the ones in SHA256SUMS.
+        id: provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -767,6 +769,19 @@ jobs:
             dist/sbom-image-${{ needs.gates.outputs.version }}.spdx.json
             dist/SHA256SUMS
             dist/release-notes.md
+
+      - name: Add the provenance to the bundle as a release file (.intoto.jsonl)
+        # The attestation action leaves its Sigstore bundle (one JSON line holding the signed in-toto SLSA provenance
+        # of the four files above) in a temporary directory. Published next to them it lets anyone check a downloaded
+        # file offline (`gh attestation verify FILE --bundle sidekick-X.Y.Z.intoto.jsonl --repo ...`), and it is the
+        # file name OpenSSF Scorecard recognises as provenance. It is the attestation itself, so SHA256SUMS does not
+        # list it.
+        env:
+          BUNDLE_PATH: ${{ steps.provenance.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          test -s "$BUNDLE_PATH" || { echo "the attestation bundle is missing or empty" >&2; exit 1; }
+          cp -- "$BUNDLE_PATH" "dist/sidekick-${VERSION}.intoto.jsonl"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

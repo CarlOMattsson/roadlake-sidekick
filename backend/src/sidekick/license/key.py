@@ -157,7 +157,12 @@ def normalize(raw: str) -> str:
 
 
 def sign_key(private_key: Ed25519PrivateKey, payload: LicensePayload) -> str:
-    """The key text for `payload`, signed by the owner's private key."""
+    """The key text for `payload`, signed by the owner's private key.
+
+    The payload is UTF-8 JSON, not `\\uXXXX` escapes, so a licensee of `MAX_LICENSEE_LENGTH`
+    characters in any script still fits in `MAX_KEY_LENGTH`. A payload whose key would not fit
+    raises `ValueError`, so no key is ever issued that `verify_key` refuses.
+    """
 
     body = {
         "v": FORMAT_VERSION,
@@ -168,9 +173,14 @@ def sign_key(private_key: Ed25519PrivateKey, payload: LicensePayload) -> str:
         "expires": payload.expires.isoformat(),
         "key_id": payload.key_id,
     }
-    encoded = _encode(json.dumps(body, separators=(",", ":"), sort_keys=True).encode("utf-8"))
+    encoded = _encode(
+        json.dumps(body, separators=(",", ":"), sort_keys=True, ensure_ascii=False).encode("utf-8")
+    )
     signature = private_key.sign(f"{KEY_PREFIX}.{encoded}".encode("ascii"))
-    return f"{KEY_PREFIX}.{encoded}.{_encode(signature)}"
+    key = f"{KEY_PREFIX}.{encoded}.{_encode(signature)}"
+    if len(key) > MAX_KEY_LENGTH:
+        raise ValueError(f"the key would be longer than {MAX_KEY_LENGTH} characters")
+    return key
 
 
 def verify_key(raw: str, public_key: Ed25519PublicKey) -> LicensePayload:

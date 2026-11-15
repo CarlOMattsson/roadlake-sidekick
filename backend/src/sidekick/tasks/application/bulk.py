@@ -1,13 +1,14 @@
-"""Atomic multi-Task writes: reschedule several Tasks, create a batch of Tasks with Steps.
+"""Atomic multi-Task writes: reschedule or review several Tasks, create a batch with Steps.
 
-Both run every Task through the single-Task use cases of `TaskService` inside one transaction,
+Each runs every Task through the single-Task use cases of `TaskService` inside one transaction,
 so validation, versions, status history and audit are the same as for a single write.
 """
 
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
@@ -17,14 +18,19 @@ from sidekick.tasks.application.models import (
     MAX_BATCH_CREATE_TASKS,
     MAX_BATCH_STEPS_PER_TASK,
     MAX_RESCHEDULE_TASKS,
+    MAX_REVIEW_DECISIONS,
     BatchCreatedTask,
     BatchStep,
     NewTaskItem,
     RescheduleTaskItem,
+    ReviewDecisionItem,
+    ReviewedTask,
+    ReviewPrevious,
     TaskBatch,
     UpdateTaskCommand,
 )
 from sidekick.tasks.domain import Task, TaskStatus
+from sidekick.tasks.domain.review import ReviewDecision
 from sidekick.work.domain import Step
 
 if TYPE_CHECKING:
@@ -68,6 +74,101 @@ def task_batch_replay_record(result: _BatchResult) -> _BatchReplay:
     }
 
 
+# A replay record holds no text, so the status a Task had is kept as a fixed code. The codes are
+# stored in replay records and must never be renumbered.
+_STATUS_CODES: dict[TaskStatus, int] = {
+    TaskStatus.TODO: 0,
+    TaskStatus.IN_PROGRESS: 1,
+    TaskStatus.BLOCKED: 2,
+    TaskStatus.COMPLETED: 3,
+}
+_STATUS_BY_CODE = {code: status for status, code in _STATUS_CODES.items()}
+
+
+class _StoredPrevious(TypedDict):
+    status: int
+    due_at: str | None
+    waiting_since: str | None
+    follow_up_at: str | None
+    attention_requested: bool
+    last_completed_at: str | None
+    archived_at: str | None
+
+
+class _ReviewEntry(TypedDict):
+    """One reviewed Task in the replay record. The decision is not stored: a replay carries the
+    same items as the first call, so it is read from them."""
+
+    id: str
+    previous: _StoredPrevious
+
+
+def _iso(value: datetime | None) -> str | None:
+    return value.isoformat() if value is not None else None
+
+
+def _stored_previous(task: Task) -> _StoredPrevious:
+    """The fields a review decision may change, as `task` has them: what an undo restores."""
+
+    return {
+        "status": _STATUS_CODES[task.status],
+        "due_at": _iso(task.due_at),
+        "waiting_since": _iso(task.waiting_since),
+        "follow_up_at": _iso(task.follow_up_at),
+        "attention_requested": task.attention_requested,
+        "last_completed_at": _iso(task.last_completed_at),
+        "archived_at": _iso(task.archived_at),
+    }
+
+
+def _review_previous(stored: _StoredPrevious) -> ReviewPrevious:
+    return {**stored, "status": _STATUS_BY_CODE[stored["status"]].value}
+
+
+def _review_changes(item: ReviewDecisionItem, before: Task, now: datetime) -> dict[str, Any]:
+    """The Task fields a decision sets, less those that already have that value.
+
+    `keep` sets none; neither does a decision that would change nothing (waiting on a Task that
+    is already waiting, flagging a flagged one), which is then recorded as kept.
+    """
+
+    wanted: dict[str, Any] = {}
+    if item.decision is ReviewDecision.DONE:
+        wanted["status"] = TaskStatus.COMPLETED
+    elif item.decision is ReviewDecision.MOVE:
+        wanted["due_at"] = item.due_at
+    elif item.decision is ReviewDecision.WAITING:
+        wanted["waiting_since"] = before.waiting_since or now
+        if item.follow_up_at is not None:
+            wanted["follow_up_at"] = item.follow_up_at
+    elif item.decision is ReviewDecision.FLAG:
+        wanted["attention_requested"] = True
+    elif item.decision is ReviewDecision.AMBITION:
+        return {} if before.ambition_since is not None else {"ambition": True}
+    return {field: value for field, value in wanted.items() if getattr(before, field) != value}
+
+
+def _require_keepable_ambitions(
+    items: Sequence[ReviewDecisionItem], befores: Sequence[Task], now: datetime
+) -> None:
+    """Refuse the whole call, before anything is written, if an `ambition` decision cannot apply.
+
+    A completed or repeating Task cannot be kept as an ambition. The error names the decision's
+    position and Task id, never the title.
+    """
+
+    for index, (item, before) in enumerate(zip(items, befores, strict=True)):
+        if item.decision is not ReviewDecision.AMBITION:
+            continue
+        try:
+            before.ambition_change(True, now=now)
+        except ValidationError as error:
+            raise ValidationError(
+                f"review item {index} (task {item.task_id}) cannot be kept as an ambition",
+                reason="not_an_ambition",
+            ) from error
+
+
 class TaskBulkService:
     def __init__(self, tasks: TaskService) -> None:
         self.tasks = tasks
@@ -85,7 +186,8 @@ class TaskBulkService:
         """Set the due date of several Tasks in one transaction, through `update_in_session`.
 
         A stale version or any other failure raises before the transaction commits, so no Task in
-        the batch changes. The idempotency key covers the whole batch.
+        the batch changes. The idempotency key covers the whole batch. The rows are locked in id
+        order first (`lock_tasks`), so the answer keeps the caller's order without a deadlock.
         """
         actor.require("tasks:write")
         if not items:
@@ -108,6 +210,7 @@ class TaskBulkService:
         }
 
         def operation(session: TxSession) -> list[Task]:
+            self.store.lock_tasks(session, actor.user_id, (item.task_id for item in items))
             result = self.store.idempotent(
                 session,
                 actor_id=actor.user_id,
@@ -136,6 +239,120 @@ class TaskBulkService:
             return self.tasks.replayed_tasks(session, actor, result["tasks"])
 
         return self.store.transaction(operation)
+
+    def review(
+        self,
+        actor: Actor,
+        items: Sequence[ReviewDecisionItem],
+        *,
+        idempotency_key: str,
+        correlation_id: str | None = None,
+    ) -> list[ReviewedTask]:
+        """Apply 1 to 20 review decisions in one transaction; every Task is marked reviewed.
+
+        A decision that changes the Task goes through `update_in_session` (or the archive), so it
+        has its own activity entry; the Tasks kept unchanged share one summary entry. A stale
+        version or any other failure raises before the commit, so no decision of the call is kept.
+        The idempotency key covers the whole call, and its record keeps what each Task was before,
+        so a retry answers with the same `previous` values. The rows are locked in id order first
+        (`lock_tasks`), so each `previous` is read under the lock and the answer keeps the caller's
+        order without a deadlock.
+        """
+
+        actor.require("tasks:write")
+        if not items:
+            raise ValidationError("at least one task is required")
+        if len(items) > MAX_REVIEW_DECISIONS:
+            raise ValidationError(f"at most {MAX_REVIEW_DECISIONS} tasks can be reviewed at once")
+        if len({item.task_id for item in items}) != len(items):
+            raise ValidationError("each task may appear only once")
+        payload: dict[str, object] = {
+            "items": [
+                {
+                    "task_id": str(item.task_id),
+                    "expected_version": item.expected_version,
+                    "decision": item.decision.value,
+                    "due_at": _iso(item.due_at),
+                    "follow_up_at": _iso(item.follow_up_at),
+                }
+                for item in items
+            ]
+        }
+
+        def operation(session: TxSession) -> list[ReviewedTask]:
+            self.store.lock_tasks(session, actor.user_id, (item.task_id for item in items))
+            result = self.store.idempotent(
+                session,
+                actor_id=actor.user_id,
+                operation="review_tasks",
+                key=idempotency_key,
+                payload=payload,
+                execute=lambda: {
+                    "tasks": self._apply_review(session, actor, items, correlation_id)
+                },
+                replay=lambda result: {"tasks": list(result["tasks"])},
+            )
+            entries = cast(list[_ReviewEntry], result["tasks"])
+            tasks = self.tasks.replayed_tasks(session, actor, entries)
+            return [
+                ReviewedTask(
+                    task=task,
+                    decision=item.decision,
+                    previous=_review_previous(entry["previous"]),
+                )
+                for task, item, entry in zip(tasks, items, entries, strict=True)
+            ]
+
+        return self.store.transaction(operation)
+
+    def _apply_review(
+        self,
+        session: TxSession,
+        actor: Actor,
+        items: Sequence[ReviewDecisionItem],
+        correlation_id: str | None,
+    ) -> list[_ReviewEntry]:
+        now = self.tasks.clock.now()
+        befores = [self.store.get_task(session, actor.user_id, item.task_id) for item in items]
+        _require_keepable_ambitions(items, befores, now)
+        entries: list[_ReviewEntry] = []
+        unchanged: list[Task] = []
+        for item, before in zip(items, befores, strict=True):
+            if item.decision is ReviewDecision.ARCHIVE:
+                self.tasks.archive_in_session(
+                    session,
+                    actor,
+                    item.task_id,
+                    item.expected_version,
+                    correlation_id,
+                    reviewed=True,
+                )
+            elif changes := _review_changes(item, before, now):
+                self.tasks.update_in_session(
+                    session,
+                    actor,
+                    item.task_id,
+                    item.expected_version,
+                    UpdateTaskCommand(**changes, last_reviewed_at=now),
+                    correlation_id,
+                )
+            else:
+                unchanged.append(
+                    self.tasks.mark_reviewed_in_session(
+                        session, actor, item.task_id, item.expected_version, correlation_id
+                    )
+                )
+            entries.append({"id": str(item.task_id), "previous": _stored_previous(before)})
+        if unchanged and self.tasks.activity_ledger is not None:
+            self.tasks.activity_ledger.record_unchanged_review(
+                session,
+                tasks=unchanged,
+                actor_id=actor.user_id,
+                actor_type="user",
+                occurred_at=now,
+                correlation_id=correlation_id,
+            )
+        return entries
 
     def create_batch(
         self,

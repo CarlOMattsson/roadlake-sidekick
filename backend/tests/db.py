@@ -180,8 +180,8 @@ CHAIN_HEAD_TABLES = (
 )
 
 
-def latest_migration_id() -> str:
-    """The id of the newest migration file, e.g. `100_schema_baseline_0_1_0`."""
+def migration_ids() -> list[str]:
+    """The ids of every numbered migration file, oldest first, e.g. `100_schema_baseline_0_1_0`."""
 
     numbered = []
     for path in MIGRATIONS_PATH.glob("*.py"):
@@ -190,19 +190,27 @@ def latest_migration_id() -> str:
             numbered.append((int(number), path.stem))
     if not numbered:
         raise RuntimeError(f"No numbered migrations found in {MIGRATIONS_PATH}")
-    return max(numbered)[1]
+    return [stem for _, stem in sorted(numbered)]
+
+
+def latest_migration_id() -> str:
+    """The id of the newest migration file."""
+
+    return migration_ids()[-1]
 
 
 def ensure_migration_chain_head() -> None:
     """Rebuild the shared test schema when a destructive migration test left it behind,
-    or when the database is not migrated to the newest file in `migrations/`.
+    or when the database is not migrated through every file in `migrations/`.
 
     Migration tests intentionally rebuild the schema (for example the pre-baseline chain in
     `test_migration_baseline.py`), or roll back a migration, while yoyo's records in `public`
     survive. Later tests would then run against a partially migrated database. The check
-    compares the newest migration id with yoyo's `public._yoyo_migration` and also requires
-    the tables of the chain head; it is one cheap query. The rebuild only runs when one of
-    these is missing, and then drops the schema and applies `migrations/` again.
+    compares every migration id with yoyo's `public._yoyo_migration` and also requires
+    the tables of the chain head; it is one cheap query. Every id is checked, not just the
+    newest, because a test that rolls back a middle migration leaves the newest one recorded.
+    The rebuild only runs when one of these is missing, and then drops the schema and applies
+    `migrations/` again.
     """
 
     migration_url = os.getenv("SIDEKICK_TEST_MIGRATION_DATABASE_URL")
@@ -212,7 +220,7 @@ def ensure_migration_chain_head() -> None:
     admin_url = os.getenv("SIDEKICK_TEST_ADMIN_DATABASE_URL") or migration_url
     # Validated before create_engine(): the admin role runs DROP SCHEMA ... CASCADE below.
     validate_test_database_url(admin_url, variable="SIDEKICK_TEST_ADMIN_DATABASE_URL")
-    head = latest_migration_id()
+    wanted = set(migration_ids())
     engine = create_engine(admin_url)
     try:
         with engine.begin() as connection:
@@ -229,7 +237,7 @@ def ensure_migration_chain_head() -> None:
                 applied = set(
                     connection.scalars(text("SELECT migration_id FROM public._yoyo_migration"))
                 )
-            if set(CHAIN_HEAD_TABLES) <= present and head in applied:
+            if set(CHAIN_HEAD_TABLES) <= present and wanted <= applied:
                 return
             connection.execute(text("SET LOCAL ROLE sidekick_owner"))
             connection.execute(text("DROP SCHEMA IF EXISTS sidekick CASCADE"))

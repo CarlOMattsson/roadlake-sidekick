@@ -1,0 +1,22 @@
+# Exceptions for OSV-Scanner for website/tools/lighthouse/package-lock.json (.github/audit/osv-scan.sh and the OpenSSF
+# Scorecard Vulnerabilities check, which read this file next to the lockfile). Every entry needs a concrete reason and an
+# ignoreUntil date at most 90 days ahead; backend/tests/policy/test_osv_exceptions.py enforces both. When the date passes,
+# upgrade or decide again.
+
+# basic-ftp 5.3.1, fixed only in 6.x while get-uri 8.0.1 requires ^5.3.1. It is pulled in by the proxy support of
+# Lighthouse CI and is reachable only through an ftp:// URL. The Lighthouse budget runs in the Pages workflow against the
+# site that was just built, on localhost: no FTP server or ftp:// URL is involved.
+[[IgnoredVulns]]
+id = "GHSA-5pm8-86m8-9m6r"
+ignoreUntil = 2027-02-10
+reason = "Lighthouse CI dev tool, transitive via get-uri; reachable only through an ftp:// URL, which the budget run never uses. Not shipped."
+
+[[IgnoredVulns]]
+id = "GHSA-c475-qrg2-pj4r"
+ignoreUntil = 2027-02-10
+reason = "Lighthouse CI dev tool, transitive via get-uri; reachable only through an ftp:// URL, which the budget run never uses. Not shipped."
+
+[[IgnoredVulns]]
+id = "GHSA-r4jh-29pc-gfqr"
+ignoreUntil = 2027-02-10
+reason = "Lighthouse CI dev tool, transitive via get-uri; reachable only through an ftp:// URL, which the budget run never uses. Not shipped."

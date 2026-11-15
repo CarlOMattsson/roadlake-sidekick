@@ -52,7 +52,12 @@ from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.types import CursorCodec, SystemClock
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
-from sidekick.tasks.application import TaskBoardService, TaskBulkService, TaskService
+from sidekick.tasks.application import (
+    TaskBoardService,
+    TaskBulkService,
+    TaskReviewService,
+    TaskService,
+)
 from sidekick.tasks.persistence import ProjectTaskStore, SqlTaskStore
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
@@ -87,6 +92,7 @@ class Container:
     tasks: TaskService
     task_board: TaskBoardService
     task_bulk: TaskBulkService
+    task_review: TaskReviewService
     contacts: ContactService
     contact_relations: ContactRelationService
     journal: JournalService
@@ -287,6 +293,7 @@ def create_container(
         tasks=tasks,
         task_board=TaskBoardService(stores.tasks, SystemClock()),
         task_bulk=TaskBulkService(tasks),
+        task_review=TaskReviewService(tasks),
         contacts=contacts,
         contact_relations=ContactRelationService(stores.contacts, SystemClock(), cursor_codec),
         journal=JournalService(stores.journal, SystemClock(), cursor_codec),

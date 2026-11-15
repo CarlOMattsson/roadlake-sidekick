@@ -10,6 +10,7 @@ from uuid import UUID
 from sidekick.shared.cadence import Cadence
 from sidekick.shared.types import UNSET, UnsetType
 from sidekick.tasks.domain import Priority, RecurrenceRule, Task, TaskStatus
+from sidekick.tasks.domain.review import ReviewDecision
 from sidekick.work.domain import Step
 from sidekick.work.domain.planning import WorkTag
 
@@ -37,6 +38,10 @@ class UpdateTaskCommand:
     recurrence: RecurrenceRule | dict[str, Any] | UnsetType | None = UNSET
     last_completed_at: datetime | UnsetType | None = UNSET
     """Undo of a recurring completion: an earlier value (or null); never moves it forward."""
+    last_reviewed_at: datetime | UnsetType = UNSET
+    """Set only by a review decision that also changes the Task; never cleared."""
+    ambition: bool | UnsetType = UNSET
+    """True keeps the Task as an ambition (see `Task.ambition_change`); False makes it a task."""
     tags: tuple[str, ...] | UnsetType = UNSET
     """The record's complete intended tag set; applied inside this same update."""
 
@@ -64,12 +69,18 @@ class UpdateTaskCommand:
                 "blocked_reminder_snoozed_until": self.blocked_reminder_snoozed_until,
                 "recurrence": self.recurrence,
                 "last_completed_at": self.last_completed_at,
+                "last_reviewed_at": self.last_reviewed_at,
+                "ambition": self.ambition,
             }.items()
             if value is not UNSET
         }
 
     def has_changes(self) -> bool:
-        return bool(self.changes()) or self.tags is not UNSET
+        """Whether the command changes the Task; marking it reviewed alone is not a change."""
+
+        changes = self.changes()
+        changes.pop("last_reviewed_at", None)
+        return bool(changes) or self.tags is not UNSET
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,6 +102,42 @@ class RescheduleTaskItem:
     task_id: UUID
     expected_version: int
     due_at: datetime | None
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewDecisionItem:
+    """One review decision at the version the caller read.
+
+    `due_at` is the new due date of `move` (None clears it); `follow_up_at` the optional follow-up
+    of `waiting`. Both are ignored by the other decisions, which the transports refuse to send.
+    """
+
+    task_id: UUID
+    expected_version: int
+    decision: ReviewDecision
+    due_at: datetime | None = None
+    follow_up_at: datetime | None = None
+
+
+class ReviewPrevious(TypedDict):
+    """What a decision changed, as it was before: enough to undo it with the ordinary writes."""
+
+    status: str
+    due_at: str | None
+    waiting_since: str | None
+    follow_up_at: str | None
+    attention_requested: bool
+    last_completed_at: str | None
+    archived_at: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ReviewedTask:
+    """A Task as a review decision left it, with the values it had before."""
+
+    task: Task
+    decision: ReviewDecision
+    previous: ReviewPrevious
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,5 +187,6 @@ class BoardPlacement:
 
 MAX_BOARD_COLUMN_REORDER = 100
 MAX_RESCHEDULE_TASKS = 20
+MAX_REVIEW_DECISIONS = 20
 MAX_BATCH_CREATE_TASKS = 20
 MAX_BATCH_STEPS_PER_TASK = 10

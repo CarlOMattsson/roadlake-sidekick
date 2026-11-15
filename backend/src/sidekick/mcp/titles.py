@@ -101,6 +101,8 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "get_today_brief": {"sv": "Dagens läge", "en": "Today\u2019s brief"},
     "list_recent_changes": {"sv": "Senaste ändringar", "en": "Recent changes"},
     "reschedule_tasks": {"sv": "Flytta uppgifter", "en": "Reschedule tasks"},
+    "get_review_queue": {"sv": "Visa uppgifter att gå igenom", "en": "View tasks to review"},
+    "review_tasks": {"sv": "Spara genomgångna uppgifter", "en": "Save task review"},
     "create_tasks": {"sv": "Skapa flera uppgifter", "en": "Create tasks"},
     "reorder_work_board_column": {"sv": "Ordna om tavlans kolumn", "en": "Reorder Status column"},
     "list_projects": {"sv": "Lista projekt", "en": "List projects"},
@@ -143,6 +145,7 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "create_task": {"sv": "Skapa uppgift", "en": "Create task"},
     "update_task": {"sv": "Ändra uppgift", "en": "Update task"},
     "complete_task": {"sv": "Slutför uppgift", "en": "Complete task"},
+    "restore_task": {"sv": "Återställ arkiverad uppgift", "en": "Restore archived task"},
 }
 
 

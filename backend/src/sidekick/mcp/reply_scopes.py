@@ -59,7 +59,9 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
             "create_tasks",
             "update_task",
             "complete_task",
+            "restore_task",
             "reschedule_tasks",  # the spoken line names the moved Tasks by title
+            "review_tasks",  # the spoken line names the reviewed Tasks by title
             "link_external_reference_to_task",
             *_STEP_AND_ACTION_TOOLS,
         ),

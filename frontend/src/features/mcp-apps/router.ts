@@ -80,9 +80,12 @@ export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
   list_assistant_activity: control("activity"),
 };
 
-/** A host may prefix tool names with a server or namespace; the last segment is the tool. */
+/**
+ * A host may prefix tool names with a server or namespace; the last segment is the tool. A run of underscores is one
+ * separator, so a prefix that ends in `_` (`my_server___get_task`) still leaves the tool's own name.
+ */
 export function toolBareName(name: string): string {
-  return name.split(/__|[:/.]/).pop() ?? name;
+  return name.split(/_{2,}|[:/.]/).pop() ?? name;
 }
 
 /** The route of a tool name, or undefined when the name is missing or not one of ours. */

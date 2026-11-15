@@ -54,7 +54,15 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 6
+EXPORT_FORMAT_VERSION = 7
+# Format 6 (written at migrations 107 and 108) has no `tasks.last_reviewed_at` nor
+# `tasks.ambition_since`; migrations 109 and 110 added them, before format 7 was first released. A
+# format 6 export is still read: its Tasks restore as never reviewed and as no ambition. The
+# formats before it lack the columns too.
+FORMAT_WITHOUT_TASK_REVIEW = 6
+COLUMNS_ADDED_IN_FORMAT_7: dict[str, frozenset[str]] = {
+    "tasks": frozenset({"last_reviewed_at", "ambition_since"})
+}
 # Format 5 (written at migration 106) has no tag links for Contacts and Journal entries; migration
 # 107 added them. A format 5 export is still read: those two collections are simply absent and
 # restore as empty.
@@ -82,6 +90,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("106_drop_retired_automation_tables", False),
     ("107_contact_and_journal_entry_tags", False),
     ("108_memory_forgotten_facts", True),
+    ("109_task_last_reviewed_at", False),
+    ("110_task_ambition", False),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -111,10 +121,13 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 
 
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
-# baseline or at a head of the folded chain, a format 5 export at migration 106 and a format 6
-# export at migration 107 or later.
+# baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
+# at migration 107 or 108 and a format 7 export at migration 110 or later.
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
+    FORMAT_WITHOUT_TASK_REVIEW: frozenset(
+        {"107_contact_and_journal_entry_tags", "108_memory_forgotten_facts"}
+    ),
     FORMAT_WITHOUT_TAG_LINKS: frozenset({"106_drop_retired_automation_tables"}),
     FORMAT_WITH_RETIRED_COLLECTIONS: FOLDED_CHAIN_HEADS | {SCHEMA_CHAIN[0][0]},
 }

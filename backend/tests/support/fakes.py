@@ -3,7 +3,7 @@
 import hashlib
 import json
 import secrets
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from types import MappingProxyType
@@ -160,12 +160,18 @@ class InMemoryStore:
         offset: int = 0,
         process_id: UUID | None = None,
         unsorted: bool = False,
+        ambitions: bool | None = None,
     ) -> list[Task]:
         del session
         owned = [
             task
             for task in self.tasks.values()
             if task.owner_id == owner_id
+            and (
+                ambitions is None
+                or (task.ambition_since is not None and task.status is not TaskStatus.COMPLETED)
+                is ambitions
+            )
             and (project_id is None or task.project_id == project_id)
             and (process_id is None or task.process_id == process_id)
             and (status is None or task.status is status)
@@ -196,6 +202,10 @@ class InMemoryStore:
         ):
             raise NotFoundError("task not found")
         return task
+
+    def lock_tasks(self, session: Any, owner_id: UUID, task_ids: Iterable[UUID]) -> None:
+        """In memory there is nothing to lock."""
+        del session, owner_id, task_ids
 
     def save_task(self, session: Any, task: Task, expected_version: int | None = None) -> None:
         del session

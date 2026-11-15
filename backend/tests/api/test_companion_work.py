@@ -17,6 +17,7 @@ from fastmcp import Client
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import TOKEN_SCOPES
 from sidekick.shared.types import MAX_CURSOR_LENGTH, CursorCodec
+from sidekick.tasks.application.models import UpdateTaskCommand
 from tests.support.companion import (
     bearer,
     companion_app,
@@ -360,6 +361,26 @@ def test_a_project_lists_its_tasks_page_by_page_with_a_cursor() -> None:
     assert len(seen) == len(set(seen)) == 5
     assert set(seen) == wanted
     assert [task["id"] for task in other_page.json()["tasks"]] == [str(other.task.id)]
+
+
+@pytest.mark.integration
+def test_a_projects_task_page_leaves_its_ambitions_out_like_the_mcp_list() -> None:
+    app = companion_app()
+    user_id = owner(app)
+    work = seed_work(app, user_id)
+    dream = create_task(app, user_id, title="Segla runt Gotland", project_id=work.project.id)
+    app.state.container.tasks.update(
+        owner_actor(user_id),
+        dream.id,
+        version=dream.version,
+        idempotency_key=f"ambition-{uuid4()}",
+        command=UpdateTaskCommand(ambition=True),
+    )
+    with TestClient(app) as client:
+        token = paired_token(client, app, user_id)
+        page = client.get(f"/companion/v1/projects/{work.project.id}/tasks", headers=bearer(token))
+    assert page.status_code == 200
+    assert [task["id"] for task in page.json()["tasks"]] == [str(work.task.id)]
 
 
 @pytest.mark.integration

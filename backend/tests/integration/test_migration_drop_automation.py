@@ -16,9 +16,7 @@ from yoyo import get_backend, read_migrations
 from tests.support.migration_baseline import (
     BASELINE,
     DROP_AUTOMATION,
-    FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
-    TAG_LINKS,
     _admin_url,
     _applied_ids,
     _apply,
@@ -27,6 +25,8 @@ from tests.support.migration_baseline import (
     _run,
     _snapshot,
     _tables,
+    chain_through,
+    ids_through,
     rebuilt_schema,  # noqa: F401  (a fixture, used through `usefixtures`)
 )
 
@@ -71,20 +71,9 @@ TASK_ROW = (
 )
 
 
-def _baseline_only(tmp_path: Path) -> Path:
-    """A migrations directory with only the baseline, which creates the four tables."""
-
-    directory = tmp_path / "baseline-only"
-    directory.mkdir()
-    (directory / f"{BASELINE}.py").write_text(
-        (MIGRATIONS_PATH / f"{BASELINE}.py").read_text(encoding="utf-8"), encoding="utf-8"
-    )
-    return directory
-
-
 def _installation_on_the_baseline(tmp_path: Path) -> None:
     _reset_schema()
-    _apply(_baseline_only(tmp_path))
+    _apply(chain_through(tmp_path, BASELINE))
     _run(
         "INSERT INTO sidekick.users (id, username, display_name, created_at) "
         "VALUES (:owner, 'kept', 'Kept', now())",
@@ -118,16 +107,11 @@ def test_empty_retired_tables_are_dropped_and_nothing_else_is(tmp_path: Path) ->
     before = _tables_now()
     assert set(RETIRED) <= before
 
-    _apply(MIGRATIONS_PATH)
+    through = chain_through(tmp_path, DROP_AUTOMATION)
+    _apply(through)
 
-    # The retired tables go; migration 107 adds the two tag link tables and 108 the forgotten facts.
-    assert _tables_now() == (before - set(RETIRED)) | {
-        "contact_tags",
-        "journal_entry_tags",
-        "memory_forgotten_facts",
-        "memory_forgotten_units",
-    }
-    assert _applied_ids() == {BASELINE, DROP_AUTOMATION, TAG_LINKS, FORGOTTEN_FACTS}
+    assert _tables_now() == before - set(RETIRED)
+    assert _applied_ids() == ids_through(DROP_AUTOMATION)
     # The ledger keeps its history of automation runs.
     engine = create_engine(_admin_url())
     try:
@@ -146,7 +130,7 @@ def test_empty_retired_tables_are_dropped_and_nothing_else_is(tmp_path: Path) ->
     finally:
         engine.dispose()
     backend = get_backend(_migration_url())
-    assert not list(backend.to_apply(read_migrations(str(MIGRATIONS_PATH))))
+    assert not list(backend.to_apply(read_migrations(str(through))))
 
 
 @pytest.mark.integration

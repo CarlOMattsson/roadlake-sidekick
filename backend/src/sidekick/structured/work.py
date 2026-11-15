@@ -534,6 +534,7 @@ def _task_page(
     status: TaskStatus | None,
     cursor: str | None,
     unsorted: bool,
+    ambitions: bool | None,
 ) -> tuple[list[TaskListRecord], str | None]:
     """One authorized page of Tasks in the list shape with their tags, and the next cursor."""
 
@@ -545,6 +546,7 @@ def _task_page(
         status=status,
         cursor=cursor,
         unsorted=unsorted,
+        ambitions=ambitions,
     )
     slugs = container.work_tags.slug_map(actor)
     rows = [task_list_record(item, slugs.get(("task", item.id), ())) for item in page.items]
@@ -561,9 +563,11 @@ def task_page_structured(
     status: TaskStatus | None = None,
     cursor: str | None = None,
     unsorted: bool = False,
+    ambitions: bool | None = None,
 ) -> TaskPageOutput:
     """The structured content of `list_tasks`, shared with the companion's Project Tasks page:
-    each row carries a description excerpt, not the whole description (`get_task` has it)."""
+    each row carries a description excerpt, not the whole description (`get_task` has it).
+    `ambitions` is the use case's own filter (None: both)."""
 
     rows, next_cursor = _task_page(
         container,
@@ -574,6 +578,7 @@ def task_page_structured(
         status=status,
         cursor=cursor,
         unsorted=unsorted,
+        ambitions=ambitions,
     )
     return TaskPageOutput(tasks=rows, next_cursor=next_cursor)
 

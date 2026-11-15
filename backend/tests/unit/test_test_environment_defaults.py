@@ -260,6 +260,20 @@ def test_the_latest_migration_id_is_the_highest_numbered_file() -> None:
     assert int(head.partition("_")[0]) == max(numbers)
 
 
+def test_the_schema_check_wants_every_migration_file_not_only_the_newest() -> None:
+    """A rolled-back middle migration leaves the newest one recorded; the check sees it anyway."""
+
+    from tests.db import MIGRATIONS_PATH, latest_migration_id, migration_ids
+
+    ids = migration_ids()
+
+    assert ids[-1] == latest_migration_id()
+    assert ids == sorted(ids, key=lambda stem: int(stem.partition("_")[0]))
+    assert set(ids) == {
+        path.stem for path in MIGRATIONS_PATH.glob("*.py") if path.stem.partition("_")[0].isdigit()
+    }
+
+
 def test_urls_on_another_port_or_database_are_left_alone(monkeypatch: pytest.MonkeyPatch) -> None:
     """Only the test container's port and the sidekick_test pool names are ever rewritten."""
 

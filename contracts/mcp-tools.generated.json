@@ -14623,6 +14623,478 @@
       "destructiveHint": false,
       "idempotentHint": true,
       "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Visa uppgifter att g\u00e5 igenom"
+    },
+    "description": "Use this when the user wants to go through or clean up many tasks at once. Returns open tasks not reviewed in 7 days, quickest decisions first: likely_done, long_overdue, follow_up_due, overdue; scope=all adds the rest, last. Rows carry id, version and a spoken reason; line 1 is what to say. Skipping writes nothing: page on with next_cursor.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 25,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "scope": {
+          "default": "suggested",
+          "enum": [
+            "suggested",
+            "all"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "name": "get_review_queue",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket_counts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Bucket Counts",
+          "type": "object"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        },
+        "remaining_total": {
+          "title": "Remaining Total",
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One Task to review; `reason` is the bucket in words, for saying out loud.",
+            "properties": {
+              "bucket": {
+                "enum": [
+                  "likely_done",
+                  "long_overdue",
+                  "follow_up_due",
+                  "overdue",
+                  "other"
+                ],
+                "title": "Bucket",
+                "type": "string"
+              },
+              "domain_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Domain Id"
+              },
+              "domain_name": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Domain Name"
+              },
+              "due_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Due At"
+              },
+              "follow_up_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Follow Up At"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Project Id"
+              },
+              "project_title": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Project Title"
+              },
+              "reason": {
+                "title": "Reason",
+                "type": "string"
+              },
+              "status": {
+                "title": "Status",
+                "type": "string"
+              },
+              "title": {
+                "title": "Title",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "title",
+              "status",
+              "bucket",
+              "reason"
+            ],
+            "title": "ReviewQueueRecord",
+            "type": "object"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks",
+        "remaining_total",
+        "bucket_counts"
+      ],
+      "title": "ReviewQueueOutput",
+      "type": "object"
+    },
+    "title": "Visa uppgifter att g\u00e5 igenom"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Spara genomg\u00e5ngna uppgifter"
+    },
+    "description": "Save 1 to 20 confirmed decisions on get_review_queue rows: keep, done, move (when: tomorrow, next_week, a date or clear), waiting (optional follow_up), flag, archive (undo with restore_task) or ambition (kept in view, undated, never reminded; for what the user wants someday). Each marks the task reviewed. In voice, confirm at most three tasks per mass change. Items need task_id and expected_version; a stale version fails the call. Retry-safe with the same key. previous undoes a change via update_task or reschedule_tasks.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "items": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One confirmed decision: `when` belongs to `move` only, `follow_up` to `waiting`.",
+            "properties": {
+              "decision": {
+                "enum": [
+                  "keep",
+                  "done",
+                  "move",
+                  "waiting",
+                  "flag",
+                  "archive",
+                  "ambition"
+                ],
+                "type": "string"
+              },
+              "expected_version": {
+                "minimum": 1,
+                "type": "integer"
+              },
+              "follow_up": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "tomorrow",
+                      "next_week"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "task_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "when": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "tomorrow",
+                      "next_week",
+                      "clear"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "required": [
+              "task_id",
+              "expected_version",
+              "decision"
+            ],
+            "type": "object"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "items",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "review_tasks",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "archived": {
+                "title": "Archived",
+                "type": "boolean"
+              },
+              "decision": {
+                "enum": [
+                  "keep",
+                  "done",
+                  "move",
+                  "waiting",
+                  "flag",
+                  "archive",
+                  "ambition"
+                ],
+                "title": "Decision",
+                "type": "string"
+              },
+              "due_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Due At"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "previous": {
+                "additionalProperties": false,
+                "description": "The Task before the decision: send these back with update_task or reschedule_tasks to undo\n(status, due date, waiting and follow-up, the flag, a recurring Task's last completion).",
+                "properties": {
+                  "archived_at": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Archived At"
+                  },
+                  "attention_requested": {
+                    "title": "Attention Requested",
+                    "type": "boolean"
+                  },
+                  "due_at": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Due At"
+                  },
+                  "follow_up_at": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Follow Up At"
+                  },
+                  "last_completed_at": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Last Completed At"
+                  },
+                  "status": {
+                    "title": "Status",
+                    "type": "string"
+                  },
+                  "waiting_since": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Waiting Since"
+                  }
+                },
+                "required": [
+                  "status",
+                  "due_at",
+                  "waiting_since",
+                  "follow_up_at",
+                  "attention_requested",
+                  "last_completed_at",
+                  "archived_at"
+                ],
+                "title": "ReviewPreviousRecord",
+                "type": "object"
+              },
+              "status": {
+                "title": "Status",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "version",
+              "decision",
+              "status",
+              "due_at",
+              "archived",
+              "previous"
+            ],
+            "title": "ReviewedTaskRecord",
+            "type": "object"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "tasks"
+      ],
+      "title": "ReviewTasksOutput",
+      "type": "object"
+    },
+    "title": "Spara genomg\u00e5ngna uppgifter"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
       "readOnlyHint": false,
       "title": "Skapa flera uppgifter"
     },
@@ -14919,6 +15391,19 @@
                 ],
                 "default": null,
                 "title": "Last Completed At"
+              },
+              "last_reviewed_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Last Reviewed At"
               },
               "not_before": {
                 "anyOf": [
@@ -20098,10 +20583,14 @@
       "readOnlyHint": true,
       "title": "Lista uppgifter"
     },
-    "description": "Use this for a bounded, paged list of tasks, optionally filtered by project_id, process_id or status. For what is due or overdue, use get_work_agenda; for status columns, get_work_board; for the tree with steps, get_work_hierarchy. Rows have description_excerpt (about 160 characters) and description_truncated; when true, call get_task for the full text.",
+    "description": "Use this for a bounded, paged list of tasks, optionally filtered by project_id, process_id or status. ambitions=true lists the user's ambitions instead (kept in view, never dated or reminded). For what is due or overdue, use get_work_agenda; for status columns, get_work_board; for the tree with steps, get_work_hierarchy. Rows have description_excerpt (about 160 characters) and description_truncated; when true, call get_task for the full text.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "ambitions": {
+          "default": false,
+          "type": "boolean"
+        },
         "cursor": {
           "anyOf": [
             {
@@ -20364,6 +20853,19 @@
                 ],
                 "default": null,
                 "title": "Last Completed At"
+              },
+              "last_reviewed_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Last Reviewed At"
               },
               "not_before": {
                 "anyOf": [
@@ -24432,6 +24934,19 @@
               "default": null,
               "title": "Last Completed At"
             },
+            "last_reviewed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Reviewed At"
+            },
             "not_before": {
               "anyOf": [
                 {
@@ -24977,6 +25492,19 @@
               "default": null,
               "title": "Last Completed At"
             },
+            "last_reviewed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Reviewed At"
+            },
             "not_before": {
               "anyOf": [
                 {
@@ -25179,6 +25707,17 @@
           "additionalProperties": false,
           "description": "Fields to change: omitted stays, null clears where allowed.",
           "properties": {
+            "ambition": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
             "description": {
               "anyOf": [
                 {
@@ -25645,6 +26184,19 @@
               "default": null,
               "title": "Last Completed At"
             },
+            "last_reviewed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Reviewed At"
+            },
             "not_before": {
               "anyOf": [
                 {
@@ -26043,6 +26595,19 @@
               "default": null,
               "title": "Last Completed At"
             },
+            "last_reviewed_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Reviewed At"
+            },
             "not_before": {
               "anyOf": [
                 {
@@ -26228,5 +26793,76 @@
       "type": "object"
     },
     "title": "Slutf\u00f6r uppgift"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "\u00c5terst\u00e4ll arkiverad uppgift"
+    },
+    "description": "Bring back one archived task so it is active again, using its current version: the undo of archive, e.g. after review_tasks. Repeating the same idempotency key safely returns the committed result.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task_id",
+        "version",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "restore_task",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "archived": {
+          "title": "Archived",
+          "type": "boolean"
+        },
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "title",
+        "status",
+        "archived"
+      ],
+      "title": "RestoredTaskOutput",
+      "type": "object"
+    },
+    "title": "\u00c5terst\u00e4ll arkiverad uppgift"
   }
 ]

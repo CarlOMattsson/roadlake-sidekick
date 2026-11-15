@@ -133,3 +133,27 @@ def test_the_node_version_of_the_root_the_website_and_the_frontend_agree() -> No
         assert manifest["engines"]["node"] == f">={version}", project
         lock = json.loads((ROOT / project / "package-lock.json").read_text(encoding="utf-8"))
         assert lock["packages"][""]["engines"] == manifest["engines"], project
+
+
+@pytest.mark.parametrize("path", WORKFLOWS, ids=label)
+def test_a_gradle_wrapper_is_validated_before_any_job_runs_it(path: Path) -> None:
+    """The committed gradle-wrapper.jar is a binary; Gradle publishes the checksums it may have."""
+
+    for name, job in load(path)["jobs"].items():
+        validated = False
+        for step in job.get("steps", []):
+            if step.get("uses", "").startswith("gradle/actions/wrapper-validation@"):
+                validated = True
+            if "gradlew" in step.get("run", ""):
+                assert validated, f"{label(path)}: job {name} runs gradlew before validating it"
+
+
+@pytest.mark.parametrize("path", WORKFLOWS, ids=label)
+def test_workflows_install_npm_packages_only_from_a_lockfile(path: Path) -> None:
+    """`npm ci` checks every package against the lockfile hashes; install and exec do not."""
+
+    unpinned = re.compile(r"\bnpm\b[^\n|;&]*\b(install|i|update|exec|install-test)\b")
+    for name, job in load(path)["jobs"].items():
+        for step in job.get("steps", []):
+            for line in step.get("run", "").splitlines():
+                assert not unpinned.search(line), f"{label(path)}: job {name}: {line.strip()}"

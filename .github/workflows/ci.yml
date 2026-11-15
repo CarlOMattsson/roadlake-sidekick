@@ -1,9 +1,13 @@
 name: CI
 
 on:
-  # CI runs only as a release gate (workflow_call from release-image.yml) or on demand (workflow_dispatch).
-  # There is no pull_request, merge_group or push trigger: contributors run the checks locally (pre-commit and
-  # pre-push) and the full run happens on exactly the commit that is released.
+  # CI runs on every push to main (in the public repository that is every export, whose Actions minutes are free), as
+  # a release gate (workflow_call from release-image.yml) and on demand (workflow_dispatch). There is no
+  # pull_request, pull_request_target, merge_group or schedule trigger: contributors run the checks locally
+  # (pre-commit and pre-push), and the full run still happens on exactly the commit that is released. The dependency
+  # audit, the drill and the release itself do not run on a push; they run at a release.
+  push:
+    branches: [main]
   workflow_dispatch:
   workflow_call:
 
@@ -12,7 +16,9 @@ permissions:
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Only a newer push cancels an older push run, so closely spaced exports do not pile up. A run called by the release
+  # (event workflow_dispatch there) and a run started by hand are never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 jobs:
   backend:
@@ -158,6 +164,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
+      # The committed gradle-wrapper.jar is a binary that runs on every build; only a jar whose checksum Gradle
+      # publishes may run. The OpenSSF Scorecard also reads this step: it does not count a wrapper that is validated
+      # in a successful run on the latest commit as a binary artifact.
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           {
@@ -200,6 +210,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { persist-credentials: false }
+      # The committed gradle-wrapper.jar is a binary that runs on every build; only a jar whose checksum Gradle
+      # publishes may run. The OpenSSF Scorecard also reads this step: it does not count a wrapper that is validated
+      # in a successful run on the latest commit as a binary artifact.
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           {
@@ -257,9 +271,21 @@ jobs:
       # The shellcheck image pinned in tools/ci-images.sh; the file selection is in the script.
       - run: bash tools/shellcheck-ci.sh
 
+  actionlint:
+    # Every tracked workflow file.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      # The actionlint image pinned in tools/ci-images.sh, which runs with no network; the file selection is in the script.
+      - run: bash tools/actionlint-ci.sh
+
   dependency-audit:
     # Part of every CI run, whatever files the release touches: a vulnerable dependency is a defect.
     # The job itself lives in audit.yml so it can also be started on its own by hand.
+    # Not on a push: the audit needs the network and a new advisory would turn an export red; it runs at a release.
+    if: ${{ github.event_name != 'push' }}
     permissions:
       contents: read
     uses: ./.github/workflows/audit.yml

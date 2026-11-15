@@ -105,10 +105,13 @@ EXPECTED_TOOLS = {
     "create_task",
     "update_task",
     "complete_task",
+    "restore_task",
     "list_assistant_activity",
     "show_work_changes",
     "list_recent_changes",
     "reschedule_tasks",
+    "get_review_queue",
+    "review_tasks",
     "create_tasks",
     "get_today_brief",
 }

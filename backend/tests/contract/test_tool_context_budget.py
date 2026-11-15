@@ -39,7 +39,16 @@ CHARS_PER_TOKEN = 3.5
 # 2026-11-13: raised to 19 450 for project progress (`tasks_total`, `tasks_done`) in
 # `get_contact_context`, `changes.status` on `update_step_action` to reopen an Action, and the
 # `order` of `list_journal_entries` (about 90 tokens in all); measured 19 392, rounded up.
-TOKEN_BUDGET = 19_450
+# 2026-11-15: raised to 19 900 for going through many Tasks by voice: `get_review_queue` and
+# `review_tasks` (about 445 tokens together, descriptions already shortened); measured 19 870,
+# rounded up.
+# 2026-11-15: raised to 20 050 for `restore_task`, the undo of archive (also of a review's
+# archive), about 145 tokens; measured 20 015, rounded up. The owner allows up to 25 000 for this
+# work; only what is measured is taken.
+# 2026-11-15: raised to 20 150 for Ambitions (`changes.ambition` on `update_task`, the `ambitions`
+# filter on `list_tasks`, the `ambition` review decision), about 90 tokens; measured 20 106,
+# rounded up. No new tool and no new output field.
+TOKEN_BUDGET = 20_150
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550

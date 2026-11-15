@@ -2,8 +2,8 @@
 place.
 
 tools/ci-images.sh holds them by tag and digest. A local run and CI then see the same shellcheck,
-gitleaks and Playwright browsers and fonts, instead of whatever the runner or the developer's
-machine has installed.
+actionlint, gitleaks and Playwright browsers and fonts, instead of whatever the runner or the
+developer's machine has installed.
 """
 
 import json
@@ -17,7 +17,13 @@ pytestmark = pytest.mark.policy
 
 ROOT = Path(__file__).resolve().parents[3]
 PINS = ROOT / "tools" / "ci-images.sh"
-SCRIPTS = ("playwright-docker.sh", "shellcheck-ci.sh", "gitleaks-ci.sh", "image-scan.sh")
+SCRIPTS = (
+    "playwright-docker.sh",
+    "shellcheck-ci.sh",
+    "actionlint-ci.sh",
+    "gitleaks-ci.sh",
+    "image-scan.sh",
+)
 WORKFLOWS = [
     path
     for path in (
@@ -34,7 +40,13 @@ def _pins() -> dict[str, str]:
 
 def test_every_image_is_pinned_by_tag_and_digest() -> None:
     pins = _pins()
-    assert set(pins) == {"PLAYWRIGHT_IMAGE", "GITLEAKS_IMAGE", "SHELLCHECK_IMAGE", "TRIVY_IMAGE"}
+    assert set(pins) == {
+        "PLAYWRIGHT_IMAGE",
+        "GITLEAKS_IMAGE",
+        "SHELLCHECK_IMAGE",
+        "ACTIONLINT_IMAGE",
+        "TRIVY_IMAGE",
+    }
     for name, reference in pins.items():
         assert re.fullmatch(r"[\w./-]+:v?[\d][\w.-]*@sha256:[0-9a-f]{64}", reference), name
 
@@ -83,7 +95,7 @@ def test_the_local_image_scan_selects_what_the_release_workflow_scans(workflow: 
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: str(path.relative_to(ROOT)))
-def test_ci_runs_the_browser_tests_secret_scan_and_shellcheck_through_the_scripts(
+def test_ci_runs_the_browser_tests_secret_scan_shellcheck_and_actionlint_through_the_scripts(
     workflow: Path,
 ) -> None:
     text = workflow.read_text(encoding="utf-8")
@@ -91,6 +103,7 @@ def test_ci_runs_the_browser_tests_secret_scan_and_shellcheck_through_the_script
     assert "bash tools/playwright-docker.sh npx playwright test --config playwright.mobile" in text
     assert "bash tools/gitleaks-ci.sh" in text
     assert "bash tools/shellcheck-ci.sh" in text
+    assert "bash tools/actionlint-ci.sh" in text
     assert "playwright install" not in text, "the browsers come from the pinned image"
     assert "gitleaks-action" not in text, "the scan runs from the pinned image"
 

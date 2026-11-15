@@ -1,4 +1,4 @@
-"""An owner export as an earlier format (version 4 or 5) wrote it, built from a current one."""
+"""An owner export as an earlier format (version 4, 5 or 6) wrote it, built from a current one."""
 
 from __future__ import annotations
 
@@ -7,9 +7,10 @@ from typing import Any
 
 from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_6,
-    EXPORT_FORMAT_VERSION,
+    COLUMNS_ADDED_IN_FORMAT_7,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_TAG_LINKS,
+    FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
     excluded_collections_for,
 )
@@ -18,6 +19,7 @@ from sidekick.owner_export.document import export_checksum
 BASELINE_HEAD = "100_schema_baseline_0_1_0"
 DROP_AUTOMATION_HEAD = "106_drop_retired_automation_tables"
 TAG_LINKS_HEAD = "107_contact_and_journal_entry_tags"
+FORGOTTEN_FACTS_HEAD = "108_memory_forgotten_facts"
 
 
 def _resealed(
@@ -36,18 +38,34 @@ def _resealed(
     return result
 
 
+def _format_6_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The collections without the columns format 7 added (a Task's `last_reviewed_at`)."""
+
+    return {
+        name: [
+            {
+                field: value
+                for field, value in row.items()
+                if field not in COLUMNS_ADDED_IN_FORMAT_7.get(name, frozenset())
+            }
+            for row in rows
+        ]
+        for name, rows in document["collections"].items()
+    }
+
+
 def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
     return {
         name: rows
-        for name, rows in document["collections"].items()
+        for name, rows in _format_6_collections(document).items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_6
     }
 
 
-def as_format_6_at_107(document: Mapping[str, Any]) -> dict[str, Any]:
-    """The document as migration 107 wrote it: format 6, before the forgotten-statement tables."""
+def as_format_6(document: Mapping[str, Any], head: str = FORGOTTEN_FACTS_HEAD) -> dict[str, Any]:
+    """The document without the review column of Tasks, stamped with `head` and sealed again."""
 
-    return _resealed(document, EXPORT_FORMAT_VERSION, TAG_LINKS_HEAD, document["collections"])
+    return _resealed(document, FORMAT_WITHOUT_TASK_REVIEW, head, _format_6_collections(document))
 
 
 def as_format_5(document: Mapping[str, Any], head: str = DROP_AUTOMATION_HEAD) -> dict[str, Any]:

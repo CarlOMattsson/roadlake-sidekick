@@ -71,6 +71,7 @@ export type ToolResults = {
       follow_up_at: string | null;
       id: string;
       last_completed_at: string | null;
+      last_reviewed_at: string | null;
       not_before: string | null;
       priority: string;
       process_id: string | null;
@@ -305,6 +306,28 @@ export type ToolResults = {
       version: number;
     };
   };
+  get_review_queue: {
+    bucket_counts: {
+      [key: string]: number;
+    };
+    next_cursor: string | null;
+    remaining_total: number;
+    tasks: Array<{
+      bucket:
+        "likely_done" | "long_overdue" | "follow_up_due" | "overdue" | "other";
+      domain_id: string | null;
+      domain_name: string | null;
+      due_at: string | null;
+      follow_up_at: string | null;
+      id: string;
+      project_id: string | null;
+      project_title: string | null;
+      reason: string;
+      status: string;
+      title: string;
+      version: number;
+    }>;
+  };
   get_shopping_list: {
     evaluated_on: string;
     items: Array<ItemRecord>;
@@ -336,6 +359,7 @@ export type ToolResults = {
       follow_up_at: string | null;
       id: string;
       last_completed_at: string | null;
+      last_reviewed_at: string | null;
       not_before: string | null;
       priority: string;
       process_id: string | null;
@@ -622,6 +646,7 @@ export type ToolResults = {
       follow_up_at: string | null;
       id: string;
       last_completed_at: string | null;
+      last_reviewed_at: string | null;
       not_before: string | null;
       priority: string;
       process_id: string | null;
@@ -682,7 +707,35 @@ export type ToolResults = {
   restore_from_trash: TrashItemRecord;
   restore_saved_work_view: SavedViewOutput;
   restore_step_action: ActionOutput;
+  restore_task: {
+    archived: boolean;
+    id: string;
+    status: string;
+    title: string;
+    version: number;
+  };
   restore_task_step: StepOutput;
+  review_tasks: {
+    count: number;
+    tasks: Array<{
+      archived: boolean;
+      decision:
+        "keep" | "done" | "move" | "waiting" | "flag" | "archive" | "ambition";
+      due_at: string | null;
+      id: string;
+      previous: {
+        archived_at: string | null;
+        attention_requested: boolean;
+        due_at: string | null;
+        follow_up_at: string | null;
+        last_completed_at: string | null;
+        status: string;
+        waiting_since: string | null;
+      };
+      status: string;
+      version: number;
+    }>;
+  };
   search: {
     contacts?: {
       hits: Array<{
@@ -1093,6 +1146,11 @@ export type ToolInputs = {
   get_project: {
     project_id: string;
   };
+  get_review_queue: {
+    cursor?: string | null;
+    limit?: number;
+    scope?: "suggested" | "all";
+  };
   get_shopping_list: {
     limit?: number;
     list_id: string;
@@ -1255,6 +1313,7 @@ export type ToolInputs = {
     task_id: string;
   };
   list_tasks: {
+    ambitions?: boolean;
     cursor?: string | null;
     limit?: number;
     process_id?: string | null;
@@ -1370,10 +1429,26 @@ export type ToolInputs = {
     idempotency_key: string;
     version: number;
   };
+  restore_task: {
+    idempotency_key: string;
+    task_id: string;
+    version: number;
+  };
   restore_task_step: {
     idempotency_key: string;
     step_id: string;
     version: number;
+  };
+  review_tasks: {
+    idempotency_key: string;
+    items: Array<{
+      decision:
+        "keep" | "done" | "move" | "waiting" | "flag" | "archive" | "ambition";
+      expected_version: number;
+      follow_up?: "tomorrow" | "next_week" | string | null;
+      task_id: string;
+      when?: "tomorrow" | "next_week" | "clear" | string | null;
+    }>;
   };
   search: {
     cursor?: string | null;
@@ -1658,6 +1733,7 @@ export type ToolInputs = {
   };
   update_task: {
     changes: {
+      ambition?: boolean | null;
       description?: string | null;
       domain_id?: string | null;
       due_at?: string | null;
@@ -2137,6 +2213,7 @@ export type TaskRecord = {
   follow_up_at: string | null;
   id: string;
   last_completed_at: string | null;
+  last_reviewed_at: string | null;
   not_before: string | null;
   priority: string;
   process_id: string | null;

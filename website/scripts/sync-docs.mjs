@@ -48,11 +48,21 @@ export function truncateWords(text, max = 160) {
   return (at > 40 ? cut.slice(0, at) : cut).replace(/[\s.,;:]+$/, '') + '…';
 }
 
+/** Removes HTML tags until none is left, so a tag that only appears once an inner one is removed goes too. */
+function stripTags(text) {
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]+>/g, '');
+  } while (text !== previous);
+  return text;
+}
+
 function stripMarkdown(text) {
-  return text
+  const withoutLinks = text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+  return stripTags(withoutLinks)
     .replace(/[`*_]/g, '')
     .replace(/\s+/g, ' ')
     .trim();

@@ -268,6 +268,12 @@ compose() { # release.env (if any) is a second env file, so a pinned SIDEKICK_AP
   docker compose "${args[@]}" "$@"
 }
 
+# One scalar query against the application database: $1 = SQL, stderr silenced. The SQL travels as an argument, not as
+# a quoted literal next to `exec ... -c`, which keeps OpenSSF Scorecard's shell parser from reading it as shell code.
+db_query() {
+  compose exec -T postgres psql -U postgres -d sidekick -Atc "$1" 2>/dev/null
+}
+
 # stdin to stdout through a one-off api container: $1 = encrypt|decrypt. The one implementation of the snapshot
 # format is snapshot_crypto.py next to this script (its source is passed with python -I -c, the same way tools/work.sh
 # does); the key comes from selfhost.env through compose's env_file, or from a secret file, and is never on a command line.
@@ -339,7 +345,7 @@ if [ "$mode" = "check" ]; then
     echo "  image schema head (label)      : ${img_head:-unknown (image absent locally or no label)}"
     echo "  image migration class (label)  : ${img_class:-unknown}"
     if [ -n "$(compose ps -q --status running postgres 2>/dev/null || true)" ]; then
-      db_head="$(compose exec -T postgres psql -U postgres -d sidekick -Atc 'select migration_id from _yoyo_migration order by applied_at_utc desc, migration_id desc limit 1' 2>/dev/null | grep -E '^[0-9]{3}_' || true)"
+      db_head="$(db_query 'select migration_id from _yoyo_migration order by applied_at_utc desc, migration_id desc limit 1' | grep -E '^[0-9]{3}_' || true)"
       echo "  database schema head (applied) : ${db_head:-unknown}"
       if [ -n "$img_head" ] && [ -n "$db_head" ] && [ "$img_head" != "$db_head" ]; then
         echo "  NOTE: image schema head differs from the database (migrate pending, or db ahead of image)"
@@ -601,7 +607,7 @@ verify_writers_stopped() { # non-zero unless api and every worker are stopped an
 }
 
 migration_count() { # number of applied yoyo migrations, or "unknown"
-  compose exec -T postgres psql -U postgres -d sidekick -Atc 'select count(*) from _yoyo_migration' 2>/dev/null | grep -E '^[0-9]+$' || echo unknown
+  db_query 'select count(*) from _yoyo_migration' | grep -E '^[0-9]+$' || echo unknown
 }
 
 start_api() { # $1 = image ref

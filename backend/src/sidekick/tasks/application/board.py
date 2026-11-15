@@ -38,6 +38,8 @@ class TaskBoardService:
             raise ValidationError("board reorder must list every task exactly once")
 
         def operation(session: TxSession) -> dict[str, Any]:
+            # Id order, not board order, so concurrent reorders and bulk writes cannot deadlock.
+            self.store.lock_tasks(session, actor.user_id, (item_id for item_id, _ in items))
             current = self.store.list_board_column_tasks(
                 session, actor.user_id, status, MAX_BOARD_COLUMN_REORDER + 1
             )
