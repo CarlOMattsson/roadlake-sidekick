@@ -2,7 +2,8 @@
 
 - Status: Accepted (D-075, 2026-11-08); implemented. Revised 2026-11-10 to describe the delivered
   architecture, and corrected 2026-11-11 (the companion routes exist only when `SIDEKICK_COMPANION_ENABLED=true`); the
-  decision is unchanged.
+  decision is unchanged. Amended 2026-11-15 (D-095): the app may also create and edit Work records; see
+  "Amendment 2026-11-15" below.
 - Date: 2026-11-08
 - Owners: Sidekick application maintainers
 
@@ -148,6 +149,41 @@ Code comments refer to these stages:
 | M2 | Push: subscriptions, transactional outbox, worker, reminders and credential renewal. |
 | M3 | The rest of Work in the app: project list, projects, steps. |
 | Later | Shopping and Journal rooms (`companion_rooms.py`). |
+
+## Amendment 2026-11-15: writing from the app (D-095)
+
+The decision above kept the app to reading and checking off, with everything else created through
+Claude. The owner changed that line. The app now has quick forms that create and edit, as a fallback
+for the moments the owner cannot talk to Claude: in a meeting, on a bus, anywhere quiet. Claude stays
+the main way in, and the app still has no model, assistant or voice pipeline of its own.
+
+What the app may write, all through `/companion/v1/` and the same use cases as the MCP tools:
+
+- **Tasks**: create a task (title, optional due date, optional place and note) and edit one (title,
+  note, due date, place, priority); a place is a project, a process or a domain. `POST /companion/v1/tasks` and
+  `POST /companion/v1/tasks/{task_id}/update`; completing and reopening keep their own routes.
+- **Journal entries**: write and edit the owner's own entry by hand. These routes already exist
+  (the journal room, D-076) and are unchanged.
+- **Projects**: change a project's title, status, description and start and target dates.
+  `POST /companion/v1/projects/{project_id}/update`.
+  Creating, moving or restructuring projects, domains and processes stays with Claude.
+
+Rules that do not change: the device holds capabilities, not application scopes. The new
+capability `companion:work:write` maps to the fixed scopes of exactly these three operations
+(`backend/src/sidekick/companion/operations.py`), and each answers with the record it wrote, so it also
+needs `companion:tasks:read`. A device paired before this change gets it with
+`python -m sidekick.companion.cli grant --scope companion:work:write` (it is part of the `app` preset). Every write
+carries an `Idempotency-Key` and, for an edit, the record's version; a stale version is a conflict and
+is never rebased. The request bodies name only the fields the form can change, and the ingress
+allowlist gains exactly these three method and path pairs. The app reuses the Work room's own forms
+(the + in the tabs, the task's edit menu, the due-date and place choices, the project's edit form);
+`CompanionRoomTransport` answers only the fields the routes take, so a control for tags, repeat rules or
+estimates stays hidden on the phone, as before. A write that gets no answer fails visibly, the form keeps
+what was typed, and the retry reuses the first idempotency key, so nothing is written twice. Queuing task
+and project writes in the durable outbox, as for check-offs and shopping, is a later step.
+
+Not part of this amendment, each its own step: deleting and the trash (issue 22) and sharing into
+Sidekick from other apps (issue 23).
 
 ## Alternatives considered
 

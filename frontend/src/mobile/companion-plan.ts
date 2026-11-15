@@ -43,6 +43,10 @@ export type PlanHelpers = {
   keyOf: (given: unknown, signature: string) => string;
 };
 
+/** A UUID in its textual form, in any case. */
+export const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** A real calendar date, YYYY-MM-DD. */

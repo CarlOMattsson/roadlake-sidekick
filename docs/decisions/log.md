@@ -54,6 +54,7 @@ Replaced decisions (D-036, D-051, D-056, D-085, D-086) are in the [archive](arch
 | D-091 | [Memory is derived and optional](#d-091---memory-is-derived-and-optional) |
 | D-092 | [One curated public MCP surface](#d-092---one-curated-public-mcp-surface) |
 | D-093 | [One error tree rooted at SidekickError](#d-093---one-error-tree-rooted-at-sidekickerror) |
+| D-095 | [The Android app can create and edit](#d-095---the-android-app-can-create-and-edit) |
 
 ### D-004 - One set of use cases for HTTP and MCP
 
@@ -369,3 +370,12 @@ Status: Accepted (2026-11-12); recorded as [ADR-010](adr/ADR-010-one-error-tree.
 All exception classes in `backend/src/sidekick` derive from `SidekickError`, which carries a closed `code`. The API,
 MCP and companion boundaries translate errors by class and code, and a policy test fails when a class outside the tree
 is added. It documents the delivered design and changes no behaviour.
+
+### D-095 - The Android app can create and edit
+
+Status: Accepted (2026-11-15); amends [ADR-005](adr/ADR-005-native-android-app.md).
+The Android app is no longer limited to reading and checking off. Through `/companion/v1/` it can create and edit
+tasks, write and edit journal entries by hand, and edit a project's title, status, description and dates, so the app
+works on its own when the owner cannot talk (in a meeting, on a bus, somewhere quiet). Claude remains the main way in.
+Writes use the same device capabilities, idempotency keys and error vocabulary as check-offs. Deleting and the trash,
+and sharing into Sidekick from other apps, come in separate steps.

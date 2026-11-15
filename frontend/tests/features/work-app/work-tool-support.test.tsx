@@ -30,18 +30,32 @@ import { fakeNative, ok } from "@tests/helpers/fake-native";
 
 /*
  * The Work room shows only the write controls whose tool the host answers (RoomTransport.supportsTool and
- * .supportsCall). The host here is the real CompanionRoomTransport's closed list over a fake plugin, so the tests follow
- * what the Android app answers; the views run in jsdom, which is not a real Claude or Android host. A host without the
- * questions (Claude) keeps every control.
+ * .supportsCall). The host here is a host that writes only the tick and the Step tick: the real CompanionRoomTransport's
+ * reads over a fake plugin, with no create, no edit and no project write, so the tests keep checking that a room hides
+ * what its host cannot answer whatever the Android app answers today (tests/mobile covers that). The views run in
+ * jsdom, which is not a real Claude or Android host. A host without the questions (Claude) keeps every control.
  */
 
 afterEach(cleanup);
 
 const companion = new CompanionRoomTransport(fakeNative(() => ok({})));
-/** What the Android app's transport answers: reads, complete, update_task only for the tick, the Step tick. */
+const NO_WRITES = ["create_task", "update_project"];
+/** A host that answers reads, complete, update_task only for the tick and the Step tick, and nothing else that writes. */
 const APP = {
-  supportsTool: companion.supportsTool,
-  supportsCall: companion.supportsCall,
+  supportsTool: (name: string) =>
+    !NO_WRITES.includes(name) && companion.supportsTool(name),
+  supportsCall: (name: string, args: object) => {
+    if (NO_WRITES.includes(name)) return false;
+    if (name !== "update_task") return companion.supportsCall(name, args);
+    const { changes } = args as { changes?: Record<string, unknown> };
+    // The tick and its undo have `status` alone; every edit field is refused.
+    return (
+      changes !== undefined &&
+      Object.keys(changes).length === 1 &&
+      "status" in changes &&
+      companion.supportsCall(name, args)
+    );
+  },
 };
 
 const TASK_ID = "019f0000-0000-7000-8000-0000000000a1";

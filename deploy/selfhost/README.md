@@ -4,8 +4,8 @@
 
 This directory is the Docker Compose package for running Sidekick on a machine you control. It starts
 the Sidekick API, PostgreSQL, a one-shot migrator, the automation worker and, depending on the profile, Caddy
-(TLS), Hindsight (memory), encrypted backups and the push worker (ntfy). There is deliberately no web UI service: the
-product interface is MCP Apps inside your LLM client.
+(TLS) or Tailscale Funnel (home machine), Hindsight (memory), encrypted backups and the push worker (ntfy). There is
+deliberately no web UI service: the product interface is MCP Apps inside your LLM client.
 
 Everything is described in the comments of `compose.yaml`. The guides are in `docs/`, in the order you need them:
 
@@ -16,4 +16,5 @@ Everything is described in the comments of `compose.yaml`. The guides are in `do
 - [Update](../../docs/operate/update.md)
 - [Backup and restore](../../docs/operate/backup-and-restore.md)
 - [Empty the trash](../../docs/operate/empty-trash.md)
+- [Home machine with Tailscale Funnel](../../docs/start/self-hosted-server.md#first-start): `docker compose --env-file selfhost.env --profile tailscale up -d` publishes the API at your `ts.net` name; no router or firewall change.
 - [Compose profiles and files](../../docs/reference/selfhost-profiles.md): what each profile starts and what each file in this directory is for.

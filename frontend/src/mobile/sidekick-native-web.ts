@@ -4,6 +4,7 @@ import type {
   NativeResponse,
   PairingStatus,
   PushStatus,
+  SharedText,
   TestPushResult,
 } from "./sidekick-native";
 
@@ -84,6 +85,9 @@ export class SidekickNativeWeb implements SidekickNativePlugin {
   }
   removeQueuedWrite(): Promise<{ removed: boolean }> {
     return Promise.resolve({ removed: false });
+  }
+  takeShare(): Promise<{ share?: SharedText }> {
+    return Promise.resolve({});
   }
   addListener() {
     return Promise.resolve({ remove: () => Promise.resolve() });

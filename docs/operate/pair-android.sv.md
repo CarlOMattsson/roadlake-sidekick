@@ -184,7 +184,7 @@ Det här får du:
 Att tänka på:
 
 - `--scope` eller `--preset app` är obligatoriskt; kommandot vägrar gissa. `--preset app` ger uppgifter (läsa
-  och klarmarkera), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva) och licensraden. Du kan i
+  och klarmarkera, samt skapa och ändra uppgifter och projekt), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva) och licensraden. Du kan i
   stället ange `--scope companion:…`-värden (kan upprepas) för en telefon med snävare rättigheter.
 - Koden gäller **en gång** och i **10 minuter** (`PAIRING_TTL` i `backend/src/sidekick/companion/service.py`).
 - Utan `--user-id <uuid>` använder kommandot installationens enda aktiva ägare, och det vägrar om det inte
@@ -223,7 +223,7 @@ skulle inte heller hjälpa, eftersom länken måste peka på din server, inte p�
 - Länken tolkas strikt: exakt en `server` och en `code`, ett `https`-ursprung utan sökväg, en kod av rätt form,
   högst 1024 tecken. Allt annat ignoreras.
 - En länk som når en telefon som redan är kopplad släpps, och appen säger det en gång.
-- Manifestet har ett enda filter, för `sidekick://pair`, och inget `https`-filter; `WidgetResourcesTest` fallerar om ett till läggs till.
+- Manifestet har ett enda länkfilter, för `sidekick://pair`, inget `https`-filter och ett delningsmål för ren text (se "Dela till Sidekick"); `WidgetResourcesTest` fallerar om ett till läggs till.
 - Vill du inte förlita dig på länken, använd kopplingsskärmen för hand: koden går då aldrig genom någon annan app.
 
 Det schemat inte kan hindra är en annan installerad app som också registrerar `sidekick://pair` och som Androids
@@ -243,6 +243,18 @@ sedan om lov att visa aviseringar (Android 13 och nyare).
 
 Idag-widgeten är som förval 4x2 rutor stor (du kan ändra storleken). Före kopplingen visar den meddelandet "Koppla
 Sidekick" med en knapp **Koppla** som öppnar appen på kopplingsskärmen.
+
+### Dela till Sidekick
+
+I vilken app som helst med en delaknapp (webbläsare, e-post, chatt) väljer du **Sidekick** för att skicka text eller en länk
+dit. Appen öppnar ett litet ark med den delade texten och en titel du kan ändra, och frågar om det ska sparas som **Uppgift**
+(texten, som innehåller länken, blir dess anteckning) eller läggas i **Dagens dagbok** (ett nytt inlägg på dagens datum).
+Ingenting skrivs innan du trycker **Spara**, och ingenting skickas någon annanstans än till din egen server. Arket kräver samma
+rättigheter som snabbformulären (`companion:work:write`, och dagboksrättigheterna för dagboksvalet). Utan anslutning säger
+arket att det inte gick att spara och behåller din text, så du kan trycka **Spara** igen; nytt försök har samma
+idempotensnyckel, så texten skrivs aldrig två gånger. Inget köas på telefonen och ingen dagbokstext lagras där. Är telefonen
+inte kopplad än säger kopplingsskärmen att den delade texten väntar, och arket öppnas efter kopplingen. Bilder och filer tas
+inte emot, bara ren text.
 
 ### Lista, utöka och spärra telefoner
 

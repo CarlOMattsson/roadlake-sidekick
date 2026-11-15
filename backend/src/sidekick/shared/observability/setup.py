@@ -58,6 +58,11 @@ SAFE_LOG_FIELDS = frozenset(
         # Never a token, pairing secret, device label, task id, title or query value.
         "companion_operation",
         "companion_error",
+        # Webhook entrance (`/webhooks/v1/`): the fixed operation name, a closed error code and the
+        # token's own record id. Never a token, its label, a payload value, a title or a list name.
+        "webhook_operation",
+        "webhook_error",
+        "webhook_token_id",
         # Push delivery (ADR-005, D-078: push through UnifiedPush): the fixed kind (`w` or `r`),
         # the endpoint's host alone, a
         # closed outcome and the endpoint's HTTP status. Never the endpoint URL, topic or payload.

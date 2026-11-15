@@ -180,8 +180,8 @@ What you get:
 Notes:
 
 - `--scope` or `--preset app` is mandatory; the command refuses to guess. `--preset app` grants tasks (read
-  and complete), notifications, Shopping (read and write), Journal (read and write) and the license row. You
-  can instead list `--scope companion:…` values (repeatable) for a narrower phone.
+  and complete, and create and edit tasks and projects), notifications, Shopping (read and write), Journal
+  (read and write) and the license row. You can instead list `--scope companion:…` values (repeatable) for a narrower phone.
 - The code works **once** and for **10 minutes** (`PAIRING_TTL` in `backend/src/sidekick/companion/service.py`).
 - Without `--user-id <uuid>` the command uses the installation's only active owner and refuses if there is not
   exactly one.
@@ -219,7 +219,7 @@ would not help either, because the link has to name your server, not ours. The a
 - The link is parsed strictly: exactly one `server` and one `code`, an `https` origin with no path, a code of the right
   shape, at most 1024 characters. Anything else is ignored.
 - A link that reaches a phone that is already paired is dropped, and the app says so once.
-- The manifest has one filter, for `sidekick://pair`, and no `https` filter; `WidgetResourcesTest` fails if another is added.
+- The manifest has one link filter, for `sidekick://pair`, and no `https` filter, and one share target for plain text (see "Share to Sidekick"); `WidgetResourcesTest` fails if another is added.
 - If you do not want to rely on the link, use the pairing screen by hand: the code then never passes through another app.
 
 What the scheme cannot prevent is another installed app that also registers `sidekick://pair` and is chosen by Android's
@@ -238,6 +238,18 @@ for notification permission (Android 13 and newer).
 
 The Today widget is 4x2 cells by default (you can resize it). Before pairing it shows a "Connect Sidekick" message with
 a **Connect** button that opens the app on the pairing screen.
+
+### Share to Sidekick
+
+In any app that has a share button (a browser, mail, a chat), choose **Sidekick** to send it text or a link. The app opens a
+small sheet with the shared text and a title you can edit, and asks whether to save it as a **Task** (the text, which
+holds the link, becomes its note) or add it to **Today's journal** (a new entry on today's date). Nothing is written
+before you press **Save**, and nothing is sent anywhere but your own server. The sheet needs the same rights as the quick
+forms (`companion:work:write`, and the journal rights for the journal choice). With no connection the sheet says it
+could not save and keeps your text, so you can press **Save** again; the retry carries the same idempotency key, so the
+text is never written twice. Nothing is queued on the phone and no journal text is stored there. If the phone is not
+paired yet, the pairing screen says the shared text waits, and the sheet opens after pairing. Pictures and files are not accepted, only
+plain text.
 
 ### List, extend and revoke phones
 

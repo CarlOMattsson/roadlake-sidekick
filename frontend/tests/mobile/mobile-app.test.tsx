@@ -534,7 +534,7 @@ describe("MobileApp views", () => {
       screen.getByRole("button", { name: "Minne och kontroll" }),
     ).toBeVisible();
   });
-  it("shows the Task detail with 'Markera klar' and the Step checks to write, and no other control that would be refused", async () => {
+  it("shows the Task detail with 'Markera klar', the date and edit choices and the Step checks to write, and no control that would be refused", async () => {
     const native = fakeNative((request) => {
       if (request.path === `/companion/v1/tasks/${TODAY_ID}/steps`)
         return ok({ items: [STEP], next_cursor: null });
@@ -554,24 +554,23 @@ describe("MobileApp views", () => {
       screen.getByRole("checkbox", { name: "Boka flyttbil" }),
     ).toBeVisible();
     expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+    // The due date and the title are written through the edit route (companion-work.ts).
+    expect(
+      screen.getByRole("button", { name: /^Lägg till datum|^Ändra datum/ }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Fler val" })).toBeVisible();
     // Everything else that writes has no route and is not drawn.
-    for (const name of [
-      /^Lägg till datum|^Ändra datum/,
-      /^Ändra status/,
-      "Fler val",
-      "Lägg till steg",
-      "Koppla kontakt",
-    ])
+    for (const name of [/^Ändra status/, "Lägg till steg", "Koppla kontakt"])
       expect(screen.queryByRole("button", { name })).toBeNull();
     // Nothing is written until the owner asks.
     expect(native.requests.filter((r) => r.method !== "GET")).toHaveLength(0);
   });
 
-  it("offers Today without +, and its rows only the tick and 'Klar' in the quick choices", async () => {
+  it("offers Today with +, and no bulk move of the overdue", async () => {
     mount(fakeNative(answer), platformFor());
     await screen.findByText("Skicka offert");
 
-    expect(screen.queryByRole("button", { name: "Ny uppgift" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Ny uppgift" })).toBeVisible();
     expect(screen.queryByText(/^Flytta \d+ försenade/)).toBeNull();
     expect(
       screen.getByRole("button", { name: "Markera Boka målare som klar" }),
@@ -654,7 +653,7 @@ describe("MobileApp Projekt", () => {
     expect(native.requests.filter((r) => r.method !== "GET")).toHaveLength(0);
   });
 
-  it("opens a Project from its Task as the Project page: it reads the Project and its Tasks, and offers neither 'Redigera' nor 'Ny uppgift'", async () => {
+  it("opens a Project from its Task as the Project page: it reads the Project and its Tasks, and offers 'Redigera' and 'Ny uppgift'", async () => {
     const user = userEvent.setup();
     const native = fakeNative((request) => {
       if (request.path === `/companion/v1/tasks/${TODAY_ID}`)
@@ -674,11 +673,10 @@ describe("MobileApp Projekt", () => {
     });
     mount(native, platformFor(`?view=task&id=${TODAY_ID}`));
 
-    // The place chip opens a panel; on the phone it holds only the link to the Project (the place is not written there).
+    // The place chip opens a panel with the place choice and the link to the Project.
     await user.click(
       await screen.findByRole("button", { name: "Ändra plats: Flytten" }),
     );
-    expect(screen.queryByRole("combobox")).toBeNull();
     await user.click(screen.getByRole("button", { name: "Öppna Flytten" }));
 
     expect(
@@ -697,9 +695,11 @@ describe("MobileApp Projekt", () => {
     });
     // The Tasks are listed (the Project page is ready) ...
     expect(await screen.findByText("Packa kartonger")).toBeVisible();
-    // ... and the two controls the phone cannot write are not drawn.
-    expect(screen.queryByRole("button", { name: "Redigera" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Ny uppgift" })).toBeNull();
+    // ... and the two writes of a Project page are drawn: editing it and adding a Task to it.
+    expect(screen.getByRole("button", { name: "Ny uppgift" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: /^Fler val|^Redigera/ }),
+    ).toBeVisible();
     expect(native.requests.filter((r) => r.method !== "GET")).toHaveLength(0);
   });
 });

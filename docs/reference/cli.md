@@ -10,6 +10,7 @@ The operator commands of a Sidekick installation. Each reads its settings from t
 | [`sidekick-backup`](#sidekick-backup) | Create, verify, extract, import and prune encrypted local backups. |
 | [`sidekick-owner-export`](#sidekick-owner-export) | Verify an owner export, plan or apply a restore, and write vCard or Markdown files. |
 | [`sidekick-companion`](#sidekick-companion) | Pair, grant, list and revoke companion devices (the Android app). |
+| [`sidekick-webhooks`](#sidekick-webhooks) | Create, list and revoke webhook tokens for Home Assistant, Tasker and similar tools. |
 | [`sidekick-license`](#sidekick-license) | Store, show and clear the instance's license key. |
 | [`sidekick-memory-worker`](#sidekick-memory-worker) | Run the derived-memory worker, or rebuild, wipe or forget memory. |
 | [`sidekick-automation-worker`](#sidekick-automation-worker) | Run the process-run worker. |
@@ -249,7 +250,7 @@ Issue a 10-minute, single-use pairing secret.
 | --- | --- | --- | --- |
 | `--label` | `LABEL` | yes | The device's name, e.g. Samsung. |
 | `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
-| `--scope` | `SCOPE` | no | Grant this device capability; repeatable, companion scopes only (required unless --preset is given). One of `companion:journal:read`, `companion:journal:write`, `companion:license`, `companion:push`, `companion:shopping:read`, `companion:shopping:write`, `companion:tasks:complete`, `companion:tasks:read`. Repeatable. |
+| `--scope` | `SCOPE` | no | Grant this device capability; repeatable, companion scopes only (required unless --preset is given). One of `companion:journal:read`, `companion:journal:write`, `companion:license`, `companion:push`, `companion:shopping:read`, `companion:shopping:write`, `companion:tasks:complete`, `companion:tasks:read`, `companion:work:write`. Repeatable. |
 | `--preset` | `PRESET` | no | Named set of capabilities, only when written explicitly: app = tasks, Inköp and Dagbok, notifications, license key (companion:tasks:read + companion:tasks:complete + companion:push + companion:shopping:read/write + companion:journal:read/write + companion:license). One of `app`. Repeatable. |
 | `--server-url` | `SERVER_URL` | no | The https address the phone reaches this server on (scheme and host, nothing after); adds a sidekick://pair link that fills in the app's pairing screen, and a check code to compare with the one the app shows. |
 | `--device-days` | `DEVICE_DAYS` | no | Device credential lifetime in days, 1 to 90. Default `30`. |
@@ -262,7 +263,7 @@ Add capabilities to a paired device (never removes).
 | --- | --- | --- | --- |
 | `--device-id` | `DEVICE_ID` | yes | The device to add to. |
 | `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
-| `--scope` | `SCOPE` | no | Add this device capability; repeatable (required unless --preset is given). One of `companion:journal:read`, `companion:journal:write`, `companion:license`, `companion:push`, `companion:shopping:read`, `companion:shopping:write`, `companion:tasks:complete`, `companion:tasks:read`. Repeatable. |
+| `--scope` | `SCOPE` | no | Add this device capability; repeatable (required unless --preset is given). One of `companion:journal:read`, `companion:journal:write`, `companion:license`, `companion:push`, `companion:shopping:read`, `companion:shopping:write`, `companion:tasks:complete`, `companion:tasks:read`, `companion:work:write`. Repeatable. |
 | `--preset` | `PRESET` | no | Add a named set of capabilities, only when written explicitly (see pair). One of `app`. Repeatable. |
 
 ### `sidekick-companion list`
@@ -280,6 +281,51 @@ Revoke one companion device.
 | Argument | Value | Required | Notes |
 | --- | --- | --- | --- |
 | `--device-id` | `DEVICE_ID` | yes | The device to revoke. |
+| `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
+
+## `sidekick-webhooks`
+
+Create, list and revoke webhook tokens for Home Assistant, Tasker and similar tools.
+
+Run it with:
+
+```
+uv run --project backend python -m sidekick.webhooks.cli <command> [arguments]
+```
+
+| Command | What it does |
+| --- | --- |
+| [`create`](#sidekick-webhooks-create) | Issue a webhook token and print it once. |
+| [`list`](#sidekick-webhooks-list) | List the owner's webhook tokens (never a token). |
+| [`revoke`](#sidekick-webhooks-revoke) | Revoke one webhook token. |
+
+### `sidekick-webhooks create`
+
+Issue a webhook token and print it once.
+
+| Argument | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `--label` | `LABEL` | yes | The integration's name, e.g. Home Assistant. |
+| `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
+| `--scope` | `SCOPE` | yes | An action the token may call; repeatable. No scope is implied. One of `webhook:shopping:add`, `webhook:tasks:create`. Repeatable. |
+| `--expires-in-days` | `EXPIRES_IN_DAYS` | no | Token lifetime in days, 1 to 730 (default 365). |
+| `--rate-limit` | `RATE_LIMIT` | no | Calls per minute, 1 to 600 (default 30). |
+
+### `sidekick-webhooks list`
+
+List the owner's webhook tokens (never a token).
+
+| Argument | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
+
+### `sidekick-webhooks revoke`
+
+Revoke one webhook token.
+
+| Argument | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `--token-id` | `TOKEN_ID` | yes | The token to revoke. |
 | `--user-id` | `USER_ID` | no | The owner; default is the only active owner. |
 
 ## `sidekick-license`

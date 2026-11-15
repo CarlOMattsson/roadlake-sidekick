@@ -7,6 +7,7 @@ import {
 } from "@/mobile/companion-transport";
 import { JOURNAL_ROUTES } from "@/mobile/companion-journal";
 import { LICENSE_ROUTES } from "@/mobile/companion-license";
+import { WORK_WRITE_ROUTES } from "@/mobile/companion-work";
 import { SHOPPING_ROUTES } from "@/mobile/companion-shopping";
 import { fakeNative, ok } from "@tests/helpers/fake-native";
 import {
@@ -168,10 +169,11 @@ describe("CompanionRoomTransport tool lists", () => {
       "update_task_step",
     ])
       expect(transport.supportsTool(name)).toBe(true);
+    // The Work writes the app answers (companion-work.ts) are in the list too.
+    for (const name of ["update_project", "create_task", "update_task"])
+      expect(transport.supportsTool(name)).toBe(true);
     // Writes to a Project or a Task that have no route stay out.
     for (const name of [
-      "update_project",
-      "create_task",
       "archive_task_step",
       "reorder_task_steps",
       "add_task_step",
@@ -352,6 +354,7 @@ describe("companion route tables against the published contract", () => {
     ...SHOPPING_ROUTES,
     ...JOURNAL_ROUTES,
     ...LICENSE_ROUTES,
+    ...WORK_WRITE_ROUTES,
   };
   const ours = Object.values(tables).map(
     (route) => `${route.method} ${route.path}`,

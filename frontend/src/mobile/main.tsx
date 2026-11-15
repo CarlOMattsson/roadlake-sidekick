@@ -23,6 +23,8 @@ import { chooseAppLanguage, startAppLanguage } from "./app-language";
 import { MobileApp } from "./mobile-app";
 import { PairingGate } from "./pairing-gate";
 import { createWebPlatform, type MobilePlatform } from "./platform";
+import { shareLabelsFor } from "./share-labels";
+import { useIncomingShare } from "./use-incoming-share";
 
 // The class scopes mobile.css to this app; the MCP App bundle never sets it.
 document.documentElement.classList.add("sk-mobile");
@@ -46,6 +48,8 @@ const root = createRoot(document.getElementById("root")!);
  */
 function LocalizedApp({ platform }: { platform: MobilePlatform }) {
   const [locale, setLocale] = useState<AppLocale>(startLocale);
+  // Text shared from another app waits here until the phone is paired, then the app opens it in the share sheet.
+  const incoming = useIncomingShare(SidekickNative);
   const choose = (next: AppLocale) => {
     chooseAppLanguage(next);
     setLocale(next);
@@ -57,6 +61,9 @@ function LocalizedApp({ platform }: { platform: MobilePlatform }) {
         platform={platform}
         locale={locale}
         onLocale={choose}
+        shareNote={
+          incoming.share ? shareLabelsFor(locale).needsPairing : undefined
+        }
       >
         <MobileApp
           transport={transport}
@@ -64,6 +71,8 @@ function LocalizedApp({ platform }: { platform: MobilePlatform }) {
           locale={locale}
           native={SidekickNative}
           onLocale={choose}
+          share={incoming.share}
+          onShareClosed={incoming.clear}
         />
       </PairingGate>
     </RenderErrorBoundary>

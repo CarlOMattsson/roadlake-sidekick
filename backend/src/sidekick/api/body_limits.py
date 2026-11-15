@@ -19,7 +19,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from sidekick.api.failed_auth import VERIFIED_BEARER_SCOPE_KEY
 from sidekick.api.ingress_problem import refuse_request
-from sidekick.api.public_surface import is_companion_route
+from sidekick.api.public_surface import is_companion_route, is_webhook_route
 from sidekick.mcp import MCP_MOUNT_PATH
 from sidekick.shared.observability import TelemetryPort, safe_http_method, safe_log_fields
 from sidekick.shared.rooms import ROOMS
@@ -29,6 +29,7 @@ LOGGER = logging.getLogger("sidekick.http")
 BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
 MAX_MCP_BODY_BYTES = 1024 * 1024
 MAX_COMPANION_BODY_BYTES = 256 * 1024
+MAX_WEBHOOK_BODY_BYTES = 8 * 1024
 MAX_DEFAULT_BODY_BYTES = 16 * 1024
 
 # Total time budgets for reading a body, from the moment ingress starts reading it. The OAuth forms
@@ -57,9 +58,11 @@ def _is_mcp_endpoint(path: str) -> bool:
     return path in {MCP_MOUNT_PATH, f"{MCP_MOUNT_PATH}/"}
 
 
-def body_limit(path: str, companion: bool) -> int:
+def body_limit(path: str, companion: bool, webhook: bool = False) -> int:
     """The largest body, in bytes, a body-carrying request to this path may send."""
 
+    if webhook:
+        return MAX_WEBHOOK_BODY_BYTES
     if companion:
         return MAX_COMPANION_BODY_BYTES
     if _is_mcp_endpoint(path):
@@ -83,6 +86,7 @@ class RequestBodyLimitMiddleware:
         *,
         companion: bool = False,
         rooms: Collection[str] = ROOMS,
+        webhooks: bool = False,
         oauth_surface: bool = False,
         body_read_timeout: float = DEFAULT_BODY_READ_TIMEOUT_SECONDS,
         oauth_body_read_timeout: float = DEFAULT_OAUTH_BODY_READ_TIMEOUT_SECONDS,
@@ -92,6 +96,7 @@ class RequestBodyLimitMiddleware:
         self.telemetry = telemetry
         self._companion = companion
         self._rooms = rooms
+        self._webhooks = webhooks
         # Only a deployment that serves the OAuth flow has OAuth forms to give the short budget.
         self._oauth_surface = oauth_surface
         self._body_timeout = body_read_timeout
@@ -111,7 +116,8 @@ class RequestBodyLimitMiddleware:
             return
         path = str(scope["path"])
         companion = self._companion and is_companion_route(method, path, self._rooms)
-        limit = body_limit(path, companion)
+        webhook = self._webhooks and is_webhook_route(method, path)
+        limit = body_limit(path, companion, webhook)
         declared = _content_length(scope)
         if declared is None and _has_content_length(scope):
             await self._refuse(scope, receive, send, 411, "length_required", "Length required")
@@ -124,7 +130,7 @@ class RequestBodyLimitMiddleware:
         # client that drips bytes cannot hold a worker.
         timeout = (
             self._oauth_body_timeout
-            if self._oauth_surface and is_oauth_body_path(path, companion)
+            if self._oauth_surface and is_oauth_body_path(path, companion or webhook)
             else self._body_timeout
         )
         cap = self._max_buffered if scope.get(VERIFIED_BEARER_SCOPE_KEY) else self._unverified_cap

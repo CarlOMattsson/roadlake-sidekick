@@ -14,6 +14,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | --- | --- | --- |
 | ingen | `postgres`, `migrate`, `api`, `automation-worker` | API:t, databasen, migreraren som körs en gång och workern som kör schemalagda processer. Bara API:t är publicerat, på `127.0.0.1:8000`. |
 | `vps` | `caddy` | TLS på portarna 80 och 443 med automatiskt certifikat. Lämna den utanför på en hemdator bakom en tunnel. |
+| `tailscale` | `tailscale` | Publik HTTPS för en hemdator genom Tailscale Funnel, utan ändring av router eller brandvägg. Kräver en fil med autentiseringsnyckel; se [Första starten på en server](../start/self-hosted-server.sv.md#första-start). Kombinera den inte med `vps`. |
 | `memory` | `hindsight`, `memory-worker` | Härlett minne. Kräver `hindsight.env` och inställningarna `SIDEKICK_MEMORY_*`; se [Slå på minnet](../operate/memory.sv.md). |
 | `backup` | `backup` | Krypterade backuper. Kräver `SIDEKICK_BACKUP_ENCRYPTION_KEY` i `selfhost.env`; se [Backup och återställning](../operate/backup-and-restore.sv.md). |
 | `push` | `push`, `ntfy` | Påminnelser till Android-appen. Kräver `SIDEKICK_PUSH_ENABLED=true`. Den egna ntfy-servern publiceras genom Caddy, så den kräver profilen `vps`; `up -d push` ensam startar bara workern, som då levererar genom ntfy.sh. Se [Påminnelser via ntfy](../operate/push-reminders.sv.md). |
@@ -28,6 +29,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `hindsight.env.example` | Leverantör, modell och nyckel för profilen `memory`. Kopiera till `hindsight.env`. |
 | `ntfy.env.example` | Inställningarna för den egna ntfy-servern, för profilen `push`. |
 | `Caddyfile.example` | Caddys konfiguration för profilen `vps`. Kopiera till `Caddyfile`. |
+| `tailscale/serve.json` | Funnel-konfigurationen för profilen `tailscale`: den publicerar API:et på nodens `ts.net`-namn. |
 | `ntfy/server.yml` | Den härdade ntfy-serverns konfiguration. |
 | `ntfy-init.sh` | Engångsinställning av ntfy-kontona. Den skriver inte ut någon hemlighet. |
 | `secrets-to-files.sh` | Flyttar hemligheterna i `selfhost.env` till filer i `secrets/` och skriver inte ut något värde. Se [Hemligheter som filer](../operate/limits-and-secrets.sv.md#hemligheter-som-filer). |

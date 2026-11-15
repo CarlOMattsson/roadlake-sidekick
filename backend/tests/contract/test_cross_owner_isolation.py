@@ -294,6 +294,8 @@ COMPANION_NOT_CALLED: dict[str, str] = {
 # The body fields that make a route's generated call a change.
 COMPANION_EXTRA: dict[str, dict[str, Any]] = {
     "POST /journal/entries/{entry_id}/update": {"title": "Renamed entry", "key_points": []},
+    "POST /tasks/{task_id}/update": {"title": "Renamed task"},
+    "POST /projects/{project_id}/update": {"title": "Renamed project"},
 }
 
 # Routes with no record id in the path or the body: the owner is the credential's, so there is

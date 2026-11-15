@@ -41,7 +41,7 @@ from .contacts import (
     ProjectContactRow,
     TaskContactRow,
 )
-from .identity import PersonalAccessTokenRow, UserRow
+from .identity import PersonalAccessTokenRow, UserRow, WebhookTokenRow
 from .journal import (
     DailyJournalSummaryEntryRow,
     DailyJournalSummaryRow,
@@ -154,6 +154,7 @@ __all__ = [
     "Text",
     "UniqueConstraint",
     "UserRow",
+    "WebhookTokenRow",
     "WorkTagRow",
     "date",
     "datetime",

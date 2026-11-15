@@ -14,6 +14,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | --- | --- | --- |
 | none | `postgres`, `migrate`, `api`, `automation-worker` | The API, the database, the one-shot migrator and the worker that runs scheduled processes. Only the API is published, on `127.0.0.1:8000`. |
 | `vps` | `caddy` | TLS on ports 80 and 443 with an automatic certificate. Leave it out on a home machine behind a tunnel. |
+| `tailscale` | `tailscale` | Public HTTPS for a home machine through Tailscale Funnel, with no router or firewall change. Needs an auth key file; see [First start on a server](../start/self-hosted-server.md#first-start). Do not combine it with `vps`. |
 | `memory` | `hindsight`, `memory-worker` | Derived memory. Needs `hindsight.env` and the `SIDEKICK_MEMORY_*` settings; see [Turn on memory](../operate/memory.md). |
 | `backup` | `backup` | Encrypted backups. Needs `SIDEKICK_BACKUP_ENCRYPTION_KEY` in `selfhost.env`; see [Backup and restore](../operate/backup-and-restore.md). |
 | `push` | `push`, `ntfy` | Reminders to the Android app. Needs `SIDEKICK_PUSH_ENABLED=true`. The own ntfy server is published through Caddy, so it needs the `vps` profile; `up -d push` alone starts just the worker, which then delivers through ntfy.sh. See [Reminders through ntfy](../operate/push-reminders.md). |
@@ -28,6 +29,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `hindsight.env.example` | The provider, model and key for the `memory` profile. Copy it to `hindsight.env`. |
 | `ntfy.env.example` | The settings of the own ntfy server, for the `push` profile. |
 | `Caddyfile.example` | The Caddy configuration for the `vps` profile. Copy it to `Caddyfile`. |
+| `tailscale/serve.json` | The Funnel configuration of the `tailscale` profile: it publishes the API at the node's `ts.net` name. |
 | `ntfy/server.yml` | The hardened ntfy server's configuration. |
 | `ntfy-init.sh` | One-time setup of the ntfy accounts. It prints no secret. |
 | `secrets-to-files.sh` | Moves the secrets of `selfhost.env` into files in `secrets/` and prints no value. See [Secrets as files](../operate/limits-and-secrets.md#secrets-as-files). |

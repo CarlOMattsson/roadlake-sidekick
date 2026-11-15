@@ -31,7 +31,6 @@ from sidekick.structured.base import Output
 from sidekick.structured.work import (
     complete_task_structured,
     task_detail_structured,
-    task_record,
     update_task_structured,
 )
 from sidekick.structured.work_records import (
@@ -40,9 +39,8 @@ from sidekick.structured.work_records import (
     TaskDetailOutput,
     TaskOutput,
     WritePriority,
-    end_of_day_due_at,
 )
-from sidekick.tasks.domain import Priority
+from sidekick.structured.work_writes import create_task_structured
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 
@@ -128,30 +126,23 @@ def _register_create_task(mcp: FastMCP, ctx: ToolContext) -> None:
             Field(max_length=MAX_TAGS_PER_RECORD),
         ] = None,
     ) -> ToolResult:
-        container = ctx.container
-        actor = ctx.actor_provider()
-        # The reply lists the tags (projects:read), so refuse before anything is written.
-        container.work_tags.require_record_tags_readable(actor, "task")
-        # Task and contact links share one transaction in the service: an unknown Contact
-        # fails the whole call with not-found and leaves no Task behind.
-        task = container.tasks.create(
-            actor,
+        structured = create_task_structured(
+            ctx.container,
+            ctx.actor_provider(),
             title=title,
             idempotency_key=idempotency_key,
             project_id=project_id,
             domain_id=domain_id,
             process_id=process_id,
+            contact_ids=contact_ids or (),
             description=description,
-            priority=Priority(priority),
-            due_at=end_of_day_due_at(due_at, container.settings.owner_zone),
+            priority=priority,
+            due_at=due_at,
             not_before=not_before,
             estimated_minutes=estimated_minutes,
-            tags=tuple(tags or ()),
-            contact_ids=tuple(contact_ids or ()),
+            tags=tags or (),
             correlation_id=request_correlation_id_or_new(),
         )
-        slugs = [tag.slug for tag in container.work_tags.for_record(actor, "task", task.id)]
-        structured = TaskOutput(task=task_record(task, slugs))
         return _task_reply(structured, "Created")
 
 

@@ -45,6 +45,16 @@
                 <data android:scheme="sidekick" android:host="pair" />
             </intent-filter>
 
+            <!--
+              Share to Sidekick: text and links from other apps. Like the pairing link it acts on nothing by itself: the
+              page shows the text, asks what to make of it and writes only when the owner presses Save.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
         </activity>
 
         <!--

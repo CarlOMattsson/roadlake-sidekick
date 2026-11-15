@@ -21,7 +21,7 @@ APPENDED_FIELDS = {
     "route": "{route_class}",
     "request_id": "{http.request.uuid}",
 }
-ROUTE_CLASSES = {"oauth", "mcp", "well-known", "companion", "push", "unmatched"}
+ROUTE_CLASSES = {"oauth", "mcp", "well-known", "companion", "webhooks", "push", "unmatched"}
 ACCESS_LOG_KEYS = {
     "level",
     "ts",

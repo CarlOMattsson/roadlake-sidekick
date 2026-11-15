@@ -1,6 +1,6 @@
 # Caddy ingress for the VPS profile (docker compose --profile vps). Copy to Caddyfile before use.
 # Only the MCP endpoint, its OAuth sign-in routes, the OAuth discovery documents, the opt-in
-# companion routes and the own ntfy topic path leave this host.
+# companion routes, the opt-in webhook routes and the own ntfy topic path leave this host.
 # Everything else answers 404 here, and the api repeats the same allowlist (api/public_surface.py),
 # so a mistake in one layer does not expose the rest of the API.
 
@@ -29,6 +29,7 @@
 		~(?i)^/mcp(/|$) mcp
 		~(?i)^/\.well-known/oauth-(protected-resource|authorization-server)(/|$) well-known
 		~(?i)^/companion/ companion
+		~(?i)^/webhooks/ webhooks
 		~(?i)^/up[A-Za-z0-9_-]{8,64}(/|$) push
 		default unmatched
 	}
@@ -132,6 +133,11 @@
 		method POST
 		path_regexp ^/companion/v1/steps/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(complete|reopen)$
 	}
+	# Creating and editing a Task, and changing a Project's title or status (api/companion_work_writes.py).
+	@companion_post_work_write {
+		method POST
+		path_regexp ^/companion/v1/(tasks|tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update|projects/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update)$
+	}
 	@companion_put {
 		method PUT
 		path /companion/v1/push/subscription
@@ -156,6 +162,13 @@
 	handle @companion_post_work {
 		request_body {
 			max_size 4KB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_post_work_write {
+		# A title, a description of at most 10 000 characters and a few ids; the api caps the body at 64 KiB.
+		request_body {
+			max_size 64KiB
 		}
 		reverse_proxy api:8000
 	}
@@ -194,6 +207,21 @@
 		reverse_proxy api:8000
 	}
 	handle @companion_delete {
+		reverse_proxy api:8000
+	}
+
+	# The webhook entrance for home and phone automation (api/webhooks.py): exactly these two POST
+	# paths, the same list as api/public_surface.py WEBHOOK_ROUTES. The api answers them only with
+	# SIDEKICK_WEBHOOKS_ENABLED=true; otherwise they are a 404 there too. Nothing else under /webhooks/.
+	@webhooks {
+		method POST
+		path /webhooks/v1/shopping-items /webhooks/v1/tasks
+	}
+	handle @webhooks {
+		# The body is a few short fields; the api also caps it at 8 KiB.
+		request_body {
+			max_size 8KB
+		}
 		reverse_proxy api:8000
 	}
 

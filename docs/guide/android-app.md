@@ -12,7 +12,7 @@ The app is in daily use on a real phone against a real server. It is also built 
 
 ## What the app does
 
-- **Work:** today's agenda, projects, tasks and steps. You can read them, check them off and reopen them.
+- **Work:** today's agenda, projects, tasks and steps. You can read them, check them off and reopen them, add a task with + and change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. Claude is still the main way in; the forms are for when you cannot talk.
 - **Shopping:** lists and items. You can create lists, add, edit, tick off and undo.
 - **Journal:** read days and entries, and write or edit entries by hand.
 - **The Today widget:** today's tasks on your home screen. [Read about the widget and reminders](today-widget.md).
@@ -20,7 +20,8 @@ The app is in daily use on a real phone against a real server. It is also built 
 
 ## What the app does not do
 
-- It does not create tasks or projects. You do that in Claude.
+- It does not create projects, domains or processes, and it does not delete anything. You do that in Claude.
+- A phone paired before this was added needs the new permission once: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:write`. New pairings with `--preset app` have it.
 - It runs no AI and does not talk to Claude.
 - It does not show Contacts or Control.
 - It does not change tags and has no tag filter, and it does not show the actions on a step.

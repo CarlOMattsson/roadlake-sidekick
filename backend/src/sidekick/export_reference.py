@@ -35,6 +35,7 @@ from sidekick.shared.compat import (
     subparser_choice_actions,
 )
 from sidekick.shared.rooms import ROOM_SCOPES
+from sidekick.webhooks.operations import OPERATIONS as WEBHOOK_OPERATIONS
 
 DEFAULT_OUTPUT_DIR = Path("docs/reference")
 CLI_PAGE = "cli.md"
@@ -98,6 +99,13 @@ CLIS: tuple[CliSpec, ...] = (
         "sidekick.companion.cli",
         "build_parser",
         "Pair, grant, list and revoke companion devices (the Android app).",
+    ),
+    CliSpec(
+        "sidekick-webhooks",
+        "uv run --project backend python -m sidekick.webhooks.cli",
+        "sidekick.webhooks.cli",
+        "build_parser",
+        "Create, list and revoke webhook tokens for Home Assistant, Tasker and similar tools.",
     ),
     CliSpec(
         "sidekick-license",
@@ -354,6 +362,14 @@ def _companion_rows() -> list[str]:
     return rows
 
 
+def _webhook_rows() -> list[str]:
+    return [
+        f"| `{operation.scope}` | {_escape(operation.description)} | `{operation.name}` "
+        "| off until named |"
+        for operation in sorted(WEBHOOK_OPERATIONS, key=lambda operation: operation.scope)
+    ]
+
+
 def render_scopes() -> str:
     lines = [
         *_header("Scope reference"),
@@ -388,6 +404,17 @@ def render_scopes() -> str:
         "| Capability | What it gives | Operations | Default |",
         "| --- | --- | --- | --- |",
         *_companion_rows(),
+        "",
+        "## Webhook scopes",
+        "",
+        "Scopes of a webhook token for home and phone automation (Home Assistant, Tasker). They "
+        "are not application scopes either: a webhook token is accepted only by `/webhooks/v1/`, "
+        "and each scope maps to one fixed operation (`sidekick.webhooks.operations`). Name them "
+        "with `sidekick-webhooks create --scope`.",
+        "",
+        "| Scope | What it gives | Operation | Default |",
+        "| --- | --- | --- | --- |",
+        *_webhook_rows(),
     ]
     return "\n".join(lines).rstrip("\n") + "\n"
 

@@ -12,9 +12,11 @@ from sidekick.shared.config import Settings, is_secret_field
 SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 SOURCE = Path(__file__).resolve().parents[2] / "src" / "sidekick"
 WORKERS = ("automation-worker", "backup", "push", "memory-worker")
-LIMITED = ("postgres", "migrate", "api", *WORKERS, "hindsight")
+LIMITED = ("postgres", "migrate", "api", *WORKERS, "hindsight", "tailscale")
 DECLARED = {f"SIDEKICK_{name}".upper() for name in Settings.model_fields}
 SECRET_FIELDS = {name for name, field in Settings.model_fields.items() if is_secret_field(field)}
+# Secrets that no Sidekick setting reads: another product's service holds them (the Tailscale key).
+COMPOSE_ONLY_SECRETS = {"tailscale_authkey": "tailscale"}
 BACKUP_FLOOR_BYTES = 2 * 1024**3  # 512 MiB of plaintext, several copies alive while it is encrypted
 UNITS = {"m": 1024**2, "g": 1024**3}
 
@@ -152,7 +154,7 @@ def _mounted(service: dict) -> set[str]:
 
 def test_the_top_level_secrets_are_the_secret_settings_and_default_to_dev_null() -> None:
     compose = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encoding="utf-8"))
-    assert set(compose["secrets"]) == SECRET_FIELDS
+    assert set(compose["secrets"]) == SECRET_FIELDS | set(COMPOSE_ONLY_SECRETS)
     for field, definition in compose["secrets"].items():
         assert definition == {"file": f"${{SELFHOST_{field.upper()}_FILE:-/dev/null}}"}, field
 
@@ -188,8 +190,18 @@ def test_api_gets_every_secret_as_a_file(services: dict[str, dict]) -> None:
 def test_no_other_service_mounts_a_secret(services: dict[str, dict]) -> None:
     for name, service in services.items():
         if name not in ("api", *WORKERS):
-            assert "secrets" not in service, name
+            assert set(service.get("secrets", [])) == {
+                secret for secret, owner in COMPOSE_ONLY_SECRETS.items() if owner == name
+            }, name
             assert not _file_names(service), name
+
+
+def test_a_compose_only_secret_reaches_only_its_service_and_never_the_api(
+    services: dict[str, dict],
+) -> None:
+    for secret, owner in COMPOSE_ONLY_SECRETS.items():
+        holders = {n for n, service in services.items() if secret in service.get("secrets", [])}
+        assert holders == {owner}, secret
 
 
 def test_the_env_example_documents_a_file_line_for_every_secret_setting() -> None:

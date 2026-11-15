@@ -79,6 +79,7 @@ FLAG_NOTES = {
     "certifi": "MPL-2.0: unmodified CA bundle file; MPL obligations apply only to changes to that file.",
     "python": "Debian base of the API image we publish: contains GPL/LGPL packages, unmodified; licenses/SOURCES.md says where the source is.",
     "binwiederhier/ntfy": "Dual-licensed Apache-2.0 OR GPL-2.0: run as an unmodified separate container; take Apache-2.0.",
+    "tailscale/tailscale": "Alpine base contains GPL components (busybox, iptables): unmodified image pulled by the operator, not distributed by us.",
     "haproxy": "GPL-2.0 (core) with LGPL-2.1 parts: run as an unmodified separate container, not linked.",
     "postgres": "Alpine base contains GPL components (busybox): unmodified image pulled by the operator, not distributed by us.",
 }
@@ -170,6 +171,12 @@ CONTAINERS = {
         "MIT (per upstream repository; re-check on a digest bump)",
         "https://github.com/vectorize-io/hindsight",
         "memory service",
+    ),
+    "tailscale/tailscale": (
+        "v1",
+        "BSD-3-Clause; the Alpine base carries GPL components (busybox, iptables)",
+        "https://github.com/tailscale/tailscale",
+        "Funnel for a home machine",
     ),
     "haproxy": (
         "3.4-alpine",

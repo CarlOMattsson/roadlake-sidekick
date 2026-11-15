@@ -37,6 +37,7 @@ from tests.support.migration_baseline import (
     TAG_LINKS,
     TASK_AMBITION,
     TASK_REVIEW,
+    WEBHOOK_TOKENS,
     _admin_url,
     _applied_ids,
     _apply,
@@ -153,6 +154,7 @@ APP_PRIVILEGES = {
     "task_tags": "SIUD",
     "tasks": "SIUD",
     "users": "SIUD",
+    "webhook_tokens": "SIU",
     "work_tags": "SIUD",
 }
 
@@ -180,6 +182,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
         FORGOTTEN_FACTS,
         TASK_REVIEW,
         TASK_AMBITION,
+        WEBHOOK_TOKENS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -382,7 +385,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
     _apply(MIGRATIONS_PATH)
     _insert_owner()
     before = _snapshot()
-    # A database on the folded chain has not applied migrations 107 to 110 either.
+    # A database on the folded chain has not applied migrations 107 to 111 either.
     _run(
         "SET LOCAL ROLE sidekick_owner; "
         "DROP TABLE sidekick.contact_tags, sidekick.journal_entry_tags, "
@@ -390,7 +393,8 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         "ALTER TABLE sidekick.memory_sources DROP CONSTRAINT uq_memory_sources_id_owner; "
         "ALTER TABLE sidekick.memory_settings DROP COLUMN forget_salt; "
         "ALTER TABLE sidekick.tasks DROP COLUMN last_reviewed_at; "
-        "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since"
+        "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since; "
+        "DROP TABLE sidekick.webhook_tokens"
     )
     _stamp_as_folded_chain(FOLDED_HEAD)
 
@@ -405,6 +409,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         FORGOTTEN_FACTS,
         TASK_REVIEW,
         TASK_AMBITION,
+        WEBHOOK_TOKENS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -427,6 +432,7 @@ def _stamp(ids: list[str]) -> None:
         FORGOTTEN_FACTS,
         TASK_REVIEW,
         TASK_AMBITION,
+        WEBHOOK_TOKENS,
     ):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:

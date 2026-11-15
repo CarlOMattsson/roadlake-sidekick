@@ -20,6 +20,7 @@ from sidekick.api.ingress_problem import problem_response
 from sidekick.api.public_surface import PublicSurfaceAllowlistMiddleware
 from sidekick.api.schemas import Health
 from sidekick.api.unexpected_errors import UnexpectedErrorMiddleware
+from sidekick.api.webhooks import create_webhooks_router
 from sidekick.composition import Container, SessionFactory, create_container
 from sidekick.mcp import MCP_MOUNT_PATH
 from sidekick.mcp.request_log import McpTransportLogging
@@ -114,6 +115,7 @@ def _add_middleware(
         telemetry=telemetry,
         companion=settings.companion_enabled,
         rooms=settings.enabled_room_set,
+        webhooks=settings.webhooks_enabled,
         oauth_surface=oauth_surface,
         body_read_timeout=settings.body_read_timeout_seconds,
         oauth_body_read_timeout=settings.oauth_body_read_timeout_seconds,
@@ -138,6 +140,7 @@ def _add_middleware(
             telemetry=telemetry,
             companion=settings.companion_enabled,
             rooms=settings.enabled_room_set,
+            webhooks=settings.webhooks_enabled,
         )
     app.add_middleware(CorrelationMiddleware, telemetry=telemetry)
 
@@ -269,6 +272,8 @@ def create_app(
 
     if resolved.companion_enabled:
         app.include_router(create_companion_router(rooms=resolved.enabled_room_set))
+    if resolved.webhooks_enabled:
+        app.include_router(create_webhooks_router())
 
     _add_health_routes(app, container)
 

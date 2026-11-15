@@ -100,6 +100,22 @@ class WidgetResourcesTest {
     }
 
     @Test
+    fun theOnlyShareTargetIsPlainTextAndNoPictureOrFileIsAccepted() {
+        val manifest = file("AndroidManifest.xml")
+        val filters = Regex(
+            """<intent-filter>(?:(?!</intent-filter>).)*android.intent.action.SEND(?:(?!</intent-filter>).)*</intent-filter>""",
+            RegexOption.DOT_MATCHES_ALL,
+        )
+            .findAll(manifest).toList()
+        assertEquals(1, filters.size)
+        val text = filters[0].value
+        assertTrue(text.contains("""android:mimeType="text/plain""""))
+        assertFalse(text.contains("BROWSABLE"))
+        assertEquals(1, Regex("android:mimeType").findAll(manifest).count())
+        assertEquals(0, Regex("SEND_MULTIPLE").findAll(manifest).count())
+    }
+
+    @Test
     fun thePairingLinkIsNotAnAppLinkBecauseEveryInstallationSignsItsOwnApp() {
         val manifest = file("AndroidManifest.xml")
         // The domain is the user's own and the app is signed with the user's own key, so no assetlinks.json can verify it.

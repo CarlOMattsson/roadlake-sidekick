@@ -56,6 +56,7 @@ PRESETS: dict[str, frozenset[str]] = {
         {
             "companion:tasks:read",
             "companion:tasks:complete",
+            "companion:work:write",
             "companion:push",
             "companion:shopping:read",
             "companion:shopping:write",
@@ -73,6 +74,10 @@ SCOPE_DESCRIPTIONS: dict[str, LocalizedText] = {
     "companion:tasks:complete": {
         "sv": "bocka av och öppna uppgifter och steg igen",
         "en": "check off and reopen tasks and steps",
+    },
+    "companion:work:write": {
+        "sv": "skapa och ändra uppgifter och ändra projekt (titel, status, beskrivning, datum)",
+        "en": "create and edit tasks, and edit projects (title, status, description, dates)",
     },
     "companion:push": {
         "sv": "ta emot aviseringar (registrera telefonens pushadress)",

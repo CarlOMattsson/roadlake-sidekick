@@ -178,6 +178,13 @@ export type TestPushResult = {
   retryAfterSeconds?: number;
 };
 
+/**
+ * Text another app shared to Sidekick (Android's share sheet). `title` is the suggestion for a task or entry title (the
+ * sender's subject, else the first line, else the link's host; possibly empty), `text` is the shared text and `link` the
+ * first web address in it. Nothing is stored: it lives in the plugin until the page takes it.
+ */
+export type SharedText = { title: string; text: string; link?: string };
+
 export interface SidekickNativePlugin {
   request(request: NativeRequest): Promise<NativeResponse>;
   /** Exchanges the pairing secret for a device credential kept in the Keystore. Rejects with the server's closed code. */
@@ -250,11 +257,17 @@ export interface SidekickNativePlugin {
   /** Removes a failed write for good. `removed: false`: it was not there. */
   removeQueuedWrite(options: { key: string }): Promise<{ removed: boolean }>;
   /**
+   * The text another app shared to Sidekick, once: it is cleared as it is taken. `{}` when there is none. The page
+   * takes it when it can ask the owner what to make of it, so a share that arrives before pairing waits.
+   */
+  takeShare(): Promise<{ share?: SharedText }>;
+  /**
    * `pairingLost`: the server refused the credential (401); it is already removed. `queueChanged`: a run of the
-   * outbox ended (it may have sent queued purchases), so a room reads again.
+   * outbox ended (it may have sent queued purchases), so a room reads again. `shareReceived`: text was shared to the
+   * running app; `takeShare` reads it.
    */
   addListener(
-    eventName: "pairingLost" | "queueChanged",
+    eventName: "pairingLost" | "queueChanged" | "shareReceived",
     listener: () => void,
   ): Promise<PluginListenerHandle>;
 }

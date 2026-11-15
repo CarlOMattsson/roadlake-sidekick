@@ -1,0 +1,89 @@
+/* The share sheet (share-sheet.tsx). Design tokens only; the frame (AppFrame, layout.css) gives the 16 px edge and the
+   safe-area insets. It is a short form that fits one phone screen at 320 px and 110 % text: the shared text is clamped,
+   so no scrolling is needed to reach Save. */
+.mobile-share {
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+
+.mobile-share:focus {
+  outline: none;
+}
+
+.mobile-share__title {
+  margin: var(--sk-s3) 0 var(--sk-s4);
+  font: var(--sk-type-title);
+}
+
+.mobile-share__form {
+  display: grid;
+  gap: var(--sk-s4);
+}
+
+.mobile-share__field {
+  display: grid;
+  gap: var(--sk-s1);
+}
+
+.mobile-share__label {
+  font: var(--sk-type-label);
+  color: var(--sk-muted);
+}
+
+.mobile-share__input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: var(--sk-tap-lg);
+  margin: 0;
+  padding: 0 var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+
+.mobile-share__input[aria-invalid="true"] {
+  border-color: var(--sk-danger-line);
+}
+
+.mobile-share__error {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-danger-fg);
+}
+
+/* The shared text, as it came: line breaks kept, long words and addresses broken, at most six lines. */
+.mobile-share__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+  margin: 0;
+  color: var(--sk-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mobile-share__saved {
+  margin: 0 0 var(--sk-s4);
+}
+
+.mobile-share__actions {
+  display: grid;
+  gap: var(--sk-s2);
+}
+
+.mobile-share__actions .sk-btn {
+  width: 100%;
+}
+
+/* A failure of the save stands in the family's error box, as on the pairing screen. */
+.mobile-share__form .sk-error.sk-error.sk-error--row {
+  padding: var(--sk-s2) var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-danger-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-danger-bg);
+}

@@ -227,6 +227,34 @@ JOURNAL_ENTRY_UPDATE = CompanionOperation(
     also="companion:journal:read",
 )
 
+# --- Work writes ---------------------------------------------------------------------------------
+# The owner's manual creating and editing of Tasks and of a Project's title, status, description
+# and dates, for the moments the owner cannot talk to Claude (ADR-005, "Amendment 2026-11-15").
+# One capability, `companion:work:write`, plus the read capability, because each write answers
+# with the record it wrote. The application scopes are those of the MCP tools of the same name
+# (`create_task` and `update_task` need `projects:read` and `tasks:write`; `update_project` needs
+# `projects:write` and, for the tags in its reply, `projects:read`). Each actor is built only
+# inside the route that calls the one use case, and the request bodies name only the fields the
+# form can change.
+TASK_CREATE = CompanionOperation(
+    "task.create",
+    "companion:work:write",
+    frozenset({"tasks:write", "projects:read"}),
+    also="companion:tasks:read",
+)
+TASK_UPDATE = CompanionOperation(
+    "task.update",
+    "companion:work:write",
+    frozenset({"tasks:write", "projects:read"}),
+    also="companion:tasks:read",
+)
+PROJECT_UPDATE = CompanionOperation(
+    "project.update",
+    "companion:work:write",
+    frozenset({"projects:write", "projects:read"}),
+    also="companion:tasks:read",
+)
+
 OPERATIONS: tuple[CompanionOperation, ...] = (
     WORK_AGENDA,
     WORK_TODAY,
@@ -236,6 +264,9 @@ OPERATIONS: tuple[CompanionOperation, ...] = (
     TASK_EXTERNAL_REFERENCES,
     TASK_COMPLETE,
     TASK_REOPEN,
+    TASK_CREATE,
+    TASK_UPDATE,
+    PROJECT_UPDATE,
     WORK_HIERARCHY,
     PROJECT_DETAIL,
     PROJECT_TASKS,

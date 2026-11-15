@@ -59,6 +59,8 @@ from sidekick.tasks.application import (
     TaskService,
 )
 from sidekick.tasks.persistence import ProjectTaskStore, SqlTaskStore
+from sidekick.webhooks.store import WebhookTokenStore
+from sidekick.webhooks.tokens import WebhookTokenService
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
@@ -112,6 +114,8 @@ class Container:
     companion_devices: CompanionDeviceService
     push_subscriptions: PushSubscriptionService
     reminders: ReminderService
+    # Tokens of the webhook entrance (home and phone automation): checked by `/webhooks/v1/` only.
+    webhook_tokens: WebhookTokenService
     # The instance's license key and its display state (D-081: offline signed license keys);
     # checked offline.
     license: LicenseService
@@ -327,6 +331,7 @@ def create_container(
             SqlPushSubscriptionStore(factory), settings
         ),
         reminders=ReminderService(SqlReminderStore(factory), locale=settings.mcp_app_locale),
+        webhook_tokens=WebhookTokenService(WebhookTokenStore(factory), auth_service),
         license=LicenseService(LicenseStore(factory), settings.license_public_key),
         memory=_memory_provider(settings),
         memory_store=memory_store,

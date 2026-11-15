@@ -94,4 +94,4 @@ Nej. Påminnelserna går via UnifiedPush och appen ntfy, utan Firebase. [Läs om
 
 ### Kan jag skapa uppgifter i appen?
 
-Inte i Android-appen. Där läser och bockar du av arbete, skriver och ändrar dagboksinlägg för hand, och skapar inköpslistor och lägger till varor. Uppgifter skapar du i Claude, genom att be om dem eller med + i rummet Arbete; projekt skapar du genom att be Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).
+Ja, som reservväg när du inte kan prata. I Android-appen kan du lägga till en uppgift med + i rummet Arbete, ändra en uppgifts titel, anteckning, datum, plats och prioritet, och ändra ett projekts titel, status, beskrivning och datum. Du läser och bockar också av arbete, skriver och ändrar dagboksinlägg för hand, och skapar inköpslistor och lägger till varor. Claude är fortfarande huvudvägen, och projekt skapar du genom att be Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).

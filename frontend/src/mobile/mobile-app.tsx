@@ -15,6 +15,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -34,13 +35,14 @@ import {
   type LicenseHost,
 } from "@/features/mcp-apps/license-mark";
 import type { RoomTransport } from "@/features/mcp-apps/room-types";
-import type { SidekickNativePlugin } from "./sidekick-native";
+import type { SharedText, SidekickNativePlugin } from "./sidekick-native";
 import { useSafeAreaInsets } from "./insets";
 import { parseLaunchHint, startEntryOf } from "./launch-hint";
 import { PairingGateContext } from "./pairing-gate";
 import type { MobilePlatform } from "./platform";
 import { PushNotice } from "./push-notice";
 import { QueueNotice, type QueueNoticeProps } from "./queue-notice";
+import { ShareSheet } from "./share-sheet";
 import { useServerLicense, type ServerLicenseNative } from "./server-license";
 import { useServerRooms, type ServerRoomsNative } from "./server-rooms";
 import { SettingsPanel, type SettingsNative } from "./settings-panel";
@@ -79,6 +81,12 @@ export type MobileAppProps = {
   /** Chooses the app's language (Inställningar' Svenska | English). Absent: no choice there. */
   onLocale?: (locale: AppLocale) => void;
   /**
+   * Text another app shared to Sidekick (use-incoming-share.ts): while it is set, the share sheet stands over the
+   * shell, and `onShareClosed` says it was saved or cancelled. `n` opens a fresh sheet for a second share.
+   */
+  share?: { text: SharedText; n: number };
+  onShareClosed?: () => void;
+  /**
    * Tells the home-screen widget the app language, reads whether push can work (the note about a missing
    * distributor) and serves the settings. Absent: the widget keeps the system language, and there is no push note and
    * no settings entry.
@@ -96,6 +104,8 @@ export function MobileApp({
   locale,
   native,
   onLocale,
+  share,
+  onShareClosed,
 }: MobileAppProps) {
   const [start, setStart] = useState(() =>
     startEntryOf(parseLaunchHint(platform.launchSearch())),
@@ -191,9 +201,19 @@ export function MobileApp({
   useEffect(() => {
     settingsShown.current = settingsOpen;
   }, [settingsOpen]);
+  // Back leaves a share sheet that is open before anything else; the shared text is not kept. Set in a layout effect,
+  // so a Back pressed the moment the sheet is on screen already finds it.
+  const shareShown = useRef<(() => void) | undefined>(undefined);
+  useLayoutEffect(() => {
+    shareShown.current = share ? onShareClosed : undefined;
+  }, [share, onShareClosed]);
   useEffect(
     () =>
       platform.onBack(() => {
+        if (shareShown.current) {
+          shareShown.current();
+          return true;
+        }
         if (settingsShown.current) {
           setSettingsOpen(false);
           return true;
@@ -233,7 +253,10 @@ export function MobileApp({
   return (
     <LicenseHostContext.Provider value={licenseHost}>
       <RoomHostContext.Provider value={host}>
-        <div className="mobile-shell" hidden={settingsOpen}>
+        <div
+          className="mobile-shell"
+          hidden={settingsOpen || share !== undefined}
+        >
           {gate?.linkNotice ? (
             <div role="status" className="mobile-link-notice" lang={locale}>
               <p className="mobile-link-notice__text">{gate.linkNotice.text}</p>
@@ -265,7 +288,16 @@ export function MobileApp({
             <PushNotice native={native} locale={locale} refreshKey={pushTick} />
           ) : null}
         </div>
-        {native && settingsOpen ? (
+        {share ? (
+          <ShareSheet
+            key={share.n}
+            transport={noting}
+            share={share.text}
+            locale={locale}
+            onClose={() => onShareClosed?.()}
+          />
+        ) : null}
+        {native && settingsOpen && !share ? (
           <SettingsPanel
             native={native}
             locale={locale}

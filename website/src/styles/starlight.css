@@ -174,8 +174,11 @@ figure.diagram figcaption { font: var(--sk-type-meta); color: var(--sk-muted); m
    overlay, not a taller box, because CSS cannot tell a lone link from one inside a sentence (:only-child ignores
    text), and a taller inline box would break the sentence's line spacing. The overlay is exactly 44 px tall and
    centred on the link, so it does not depend on the font's line box (an inset from the text edge came out 43 px on CI). */
-p > a:only-child { position: relative; }
-p > a:only-child::after { content: ''; position: absolute; inset-inline: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
+p > a:only-child, td > a:only-child { position: relative; }
+/* In a table cell the overlay must stay inside the cell (the table scrolls, so an overflowing overlay would add a scrollbar):
+   a cell holding only a link is 44 px tall, which is its 20 px line plus 12 px above and below. */
+td:has(> a:only-child) { padding-block: 12px; }
+p > a:only-child::after, td > a:only-child::after { content: ''; position: absolute; inset-inline: -4px; top: 50%; height: 44px; transform: translateY(-50%); }
 .crumbs a { display: inline-flex; align-items: center; min-height: 44px; }
 .mobile-preferences .social-icons a { min-width: 48px; min-height: 48px; display: inline-grid; place-items: center; }
 /* Search results: the whole title is the link, not only its text line. */

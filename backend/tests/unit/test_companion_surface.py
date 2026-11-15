@@ -12,6 +12,7 @@ from pydantic import create_model
 from sidekick.api.companion import create_companion_router
 from sidekick.api.public_surface import COMPANION_ROUTES, is_companion_route, is_public_path
 from sidekick.companion.operations import OPERATIONS
+from sidekick.mcp.tool_scopes import TOOL_SCOPES
 from sidekick.shared.auth import (
     ALL_SCOPES,
     COMPANION_SCOPES,
@@ -120,8 +121,12 @@ def test_the_companion_routes_are_public_by_method_and_path(method: str, path: s
         ("GET", f"/companion/v1/tasks/{TASK}/complete"),
         ("POST", f"/companion/v1/tasks/{TASK.upper()}/complete"),
         ("POST", f"/companion/v1/tasks/{TASK}/complete/"),
-        ("POST", f"/companion/v1/tasks/{TASK}/update"),
         ("POST", f"/companion/v1/tasks/{TASK}/contacts"),
+        ("POST", f"/companion/v1/tasks/{TASK}/update/"),
+        ("POST", f"/companion/v1/tasks/{TASK.upper()}/update"),
+        ("PUT", "/companion/v1/tasks"),
+        ("DELETE", f"/companion/v1/projects/{TASK}/update"),
+        ("POST", f"/companion/v1/projects/{TASK}"),
         ("DELETE", f"/companion/v1/tasks/{TASK}/external-references"),
         ("GET", f"/companion/v1/tasks/{TASK}/contacts/"),
         ("GET", f"/companion/v1/tasks/{TASK}/contacts/{TASK}"),
@@ -248,6 +253,7 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
     assert {
         "companion:tasks:read",
         "companion:tasks:complete",
+        "companion:work:write",
         "companion:push",
         "companion:shopping:read",
         "companion:shopping:write",
@@ -265,6 +271,7 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
             "tasks:read",
             "tasks:write",
             "projects:read",
+            "projects:write",
             "contacts:read",
             "shopping:read",
             "shopping:write",
@@ -278,10 +285,23 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
     assert by_name["push.reminders"].application_scopes == frozenset()
     assert by_name["push.reminders"].capability == "companion:push"
     writers = {item.name for item in OPERATIONS if "tasks:write" in item.application_scopes}
-    assert writers == {"task.complete", "task.reopen", "step.complete", "step.reopen"}
-    assert all(
-        item.capability == "companion:tasks:complete" for item in OPERATIONS if item.name in writers
-    )
+    assert writers == {
+        "task.complete",
+        "task.reopen",
+        "step.complete",
+        "step.reopen",
+        "task.create",
+        "task.update",
+    }
+    # Ticking things off needs only the completion capability; creating and editing a Task needs
+    # the work-write capability, which a completion device does not hold.
+    assert {item.capability for item in OPERATIONS if item.name in writers} == {
+        "companion:tasks:complete",
+        "companion:work:write",
+    }
+    for item in OPERATIONS:
+        if item.capability == "companion:work:write":
+            assert item.also == "companion:tasks:read"
 
 
 def test_a_room_write_needs_its_write_and_its_read_capability_and_nothing_else_writes() -> None:
@@ -318,6 +338,28 @@ def test_the_journal_operations_hold_exactly_the_scopes_of_their_mcp_tools() -> 
     }
     for operation, tool in pairs.items():
         assert by_name[operation].application_scopes == frozenset(JOURNAL_TOOL_SCOPES[tool])
+
+
+def test_the_work_writes_hold_the_write_scope_of_their_mcp_tool_and_need_the_read_capability() -> (
+    None
+):
+    by_name = {item.name: item for item in OPERATIONS}
+    pairs = {
+        "task.create": "create_task",
+        "task.update": "update_task",
+        "project.update": "update_project",
+    }
+    for operation, tool in pairs.items():
+        scopes = by_name[operation].application_scopes
+        # Never more than the tool needs; the write scope of the tool is always there.
+        assert scopes <= set(TOOL_SCOPES[tool].requires)
+        assert {scope for scope in TOOL_SCOPES[tool].requires if scope.endswith(":write")} <= scopes
+        assert by_name[operation].capability == "companion:work:write"
+        assert by_name[operation].also == "companion:tasks:read"
+    # A device that may only tick things off cannot create or edit anything.
+    assert "companion:work:write" not in {
+        item.capability for item in OPERATIONS if item.name.endswith(("complete", "reopen"))
+    }
 
 
 def _plain(schema: Any, defs: dict[str, Any]) -> Any:
@@ -465,6 +507,24 @@ def test_the_caddy_example_forwards_the_work_routes_by_exact_method_and_path() -
     # No UUID segment reaches the access log: it logs a fixed route class, never the path.
     assert "log_append route {route_class}" in caddy
     assert "log_append path" not in caddy
+
+
+def test_the_caddy_example_forwards_the_work_writes_by_exact_method_and_path() -> None:
+    caddy = (CONTRACTS.parent / "deploy/selfhost/Caddyfile.example").read_text(encoding="utf-8")
+    uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    matcher = (
+        "@companion_post_work_write {\n\t\tmethod POST\n"
+        "\t\tpath_regexp ^/companion/v1/"
+        f"(tasks|tasks/{uuid}/update|projects/{uuid}/update)$\n\t}}\n"
+    )
+    assert matcher in caddy
+    assert (
+        "handle @companion_post_work_write {\n"
+        "\t\t# A title, a description of at most 10 000 characters and a few ids; "
+        "the api caps the body at 64 KiB.\n"
+        "\t\trequest_body {\n\t\t\tmax_size 64KiB\n\t\t}\n"
+        "\t\treverse_proxy api:8000\n\t}"
+    ) in caddy
 
 
 def test_the_steps_query_takes_the_mcp_limit() -> None:

@@ -76,7 +76,13 @@ COMPANION_ROOM_SCOPES = frozenset(
 # only owner.
 COMPANION_SCOPES = (
     frozenset(
-        {"companion:tasks:read", "companion:tasks:complete", "companion:push", "companion:license"}
+        {
+            "companion:tasks:read",
+            "companion:tasks:complete",
+            "companion:work:write",
+            "companion:push",
+            "companion:license",
+        }
     )
     | COMPANION_ROOM_SCOPES
 )

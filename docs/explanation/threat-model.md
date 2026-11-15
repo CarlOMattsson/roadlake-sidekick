@@ -115,9 +115,9 @@ generated tool list, the tool context budget above and the authentication tests)
 unit run alone. Image and dependency scanning in the release process covers known vulnerabilities between reviews;
 the quarterly review covers the ones that scanners do not flag and the drift that frozen versions invite.
 
-## Phone pairing, credential renewal, push and backups
+## Phone pairing, credential renewal, push, webhooks and backups
 
-The sections below take the four flows that hold a long-lived secret or leave the server and apply the same
+The sections below take the flows that hold a long-lived secret or leave the server and apply the same
 questions to each: what is worth protecting, who can attack it, and which control exists today with the file that
 implements it. Everything here is about one owner's instance; the tests named are the evidence.
 
@@ -172,6 +172,22 @@ that a push reveals.
 
 Residual: the notification server learns that a phone was woken and when, and its IP address. The shared server is
 a third party; use your own for anything beyond a trial.
+
+### Webhook tokens
+
+Assets: the right to add a shopping item or create a task from home or phone automation, held as a bearer token
+in a Home Assistant or Tasker configuration. The entrance is off unless `SIDEKICK_WEBHOOKS_ENABLED=true`.
+
+| Threat | Existing control |
+| --- | --- |
+| A leaked token doing more than the integration needs | Each token carries its own scopes, only `webhook:shopping:add` and `webhook:tasks:create`, and is also limited to the owner's own scopes; it cannot read, change or delete anything (`backend/src/sidekick/webhooks/operations.py`, `backend/tests/api/test_webhooks.py`). |
+| A token kept alive for ever | Every token expires (365 days by default, 730 at most) and the owner can revoke it; only a SHA-256 digest is stored, the token is shown once at creation, and the table grants the app no DELETE (`migrations/111_webhook_tokens.py`). |
+| Guessing or hammering | Failed authentication shares the ingress limiter and answers one generic 401; each token also has its own rate limit per minute with `Retry-After` (`backend/src/sidekick/api/webhooks.py`). |
+| Payload or token in logs | One log line per request holds only the operation, status, token id and correlation id; the body, the token and the title are never logged (`test_no_log_record_carries_a_token_a_payload_value_or_an_idempotency_key`). |
+| A retried request writing twice | The `Idempotency-Key` header is honoured by the same service that the rest of the API uses. |
+
+Residual: whoever holds a live token can add items and tasks until it expires or is revoked. The rate limit is kept
+per API process, so a restart resets it.
 
 ### Backup encryption
 

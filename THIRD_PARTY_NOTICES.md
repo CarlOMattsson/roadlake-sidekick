@@ -224,6 +224,7 @@ Debian-based image under the API image we publish on GHCR. That image carries LI
 | binwiederhier/ntfy | v2 | Apache-2.0 OR GPL-2.0 | https://github.com/binwiederhier/ntfy | push distributor |
 | caddy | 2-alpine | Apache-2.0 | https://github.com/caddyserver/caddy | TLS reverse proxy |
 | ghcr.io/vectorize-io/hindsight | pinned digest | MIT (per upstream repository; re-check on a digest bump) | https://github.com/vectorize-io/hindsight | memory service |
+| tailscale/tailscale | v1 | BSD-3-Clause; the Alpine base carries GPL components (busybox, iptables) | https://github.com/tailscale/tailscale | Funnel for a home machine |
 | haproxy | 3.4-alpine | GPL-2.0-or-later (core), LGPL-2.1 (libraries) | https://www.haproxy.org | egress gateway |
 
 ## Needs attention
@@ -238,6 +239,7 @@ Licenses that can carry obligations (GPL, AGPL, LGPL, MPL, or unknown), with why
 | container | python | PSF-2.0 (CPython); the Debian base carries GPL/LGPL packages | Debian base of the API image we publish: contains GPL/LGPL packages, unmodified; licenses/SOURCES.md says where the source is. |
 | container | postgres | PostgreSQL; the Alpine base carries GPL components (busybox) | Alpine base contains GPL components (busybox): unmodified image pulled by the operator, not distributed by us. |
 | container | binwiederhier/ntfy | Apache-2.0 OR GPL-2.0 | Dual-licensed Apache-2.0 OR GPL-2.0: run as an unmodified separate container; take Apache-2.0. |
+| container | tailscale/tailscale | BSD-3-Clause; the Alpine base carries GPL components (busybox, iptables) | Alpine base contains GPL components (busybox, iptables): unmodified image pulled by the operator, not distributed by us. |
 | container | haproxy | GPL-2.0-or-later (core), LGPL-2.1 (libraries) | GPL-2.0 (core) with LGPL-2.1 parts: run as an unmodified separate container, not linked. |
 
 ## Libraries bundled in the psycopg-binary wheel

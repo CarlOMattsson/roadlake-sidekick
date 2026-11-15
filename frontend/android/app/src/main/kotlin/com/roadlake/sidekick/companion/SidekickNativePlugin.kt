@@ -1,5 +1,6 @@
 package com.roadlake.sidekick.companion
 
+import android.content.Intent
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -8,6 +9,7 @@ import com.getcapacitor.annotation.CapacitorPlugin
 import com.roadlake.sidekick.SidekickRuntime
 import com.roadlake.sidekick.SystemLinks
 import com.roadlake.sidekick.push.PushChannels
+import com.roadlake.sidekick.share.SharedContent
 import com.roadlake.sidekick.today.OutboxKind
 import com.roadlake.sidekick.widget.TodaySync
 import com.roadlake.sidekick.widget.WidgetLocale
@@ -18,6 +20,7 @@ import org.json.JSONObject
 import org.json.JSONTokener
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * The Capacitor plugin `SidekickNative` (frontend/src/mobile/sidekick-native.ts is its TypeScript contract). It only
@@ -39,11 +42,16 @@ import java.util.concurrent.Executors
  * answer in the shared outbox, which the widget's sync sends; event `queueChanged` fires after every run of that sync, so the page reads again.
  * A shopping write that expired or that the server refused stays in the outbox as failed (`queuedWrites().failed`); the page shows it
  * and the user retries it (`retryQueuedWrite`) or removes it (`removeQueuedWrite`).
+ *
+ * Share to Sidekick (an `ACTION_SEND` of `text/plain` from another app): the text is parsed ([SharedContent]) and held here, in
+ * memory only, until the page takes it with `takeShare` (once); event `shareReceived` fires when one arrives while the app
+ * runs. Nothing is stored and nothing is sent: the page asks the owner what to make of it and writes through `request`.
  */
 @CapacitorPlugin(name = "SidekickNative")
 class SidekickNativePlugin : Plugin() {
     private lateinit var client: CompanionClient
     private var executor: ExecutorService? = null
+    private val pendingShare = AtomicReference<SharedContent?>()
     private val onPairingLost: () -> Unit = { notifyListeners(EVENT_PAIRING_LOST, JSObject()) }
     private val onOutboxRan: () -> Unit = { notifyListeners(EVENT_QUEUE_CHANGED, JSObject()) }
 
@@ -55,6 +63,14 @@ class SidekickNativePlugin : Plugin() {
         executor = Executors.newFixedThreadPool(THREADS) { task ->
             Thread(task, "sidekick-native").apply { isDaemon = true }
         }
+        // A cold start by a share: the intent that started the activity.
+        holdShare(activity.intent)
+    }
+
+    // A share while the app runs (the activity is single-task, so it arrives here).
+    override fun handleOnNewIntent(intent: Intent) {
+        super.handleOnNewIntent(intent)
+        if (holdShare(intent)) notifyListeners(EVENT_SHARE_RECEIVED, JSObject())
     }
 
     override fun handleOnResume() {
@@ -227,6 +243,39 @@ class SidekickNativePlugin : Plugin() {
     fun removeQueuedWrite(call: PluginCall) = run(call) {
         val key = RequestPolicy.checkIdempotencyKey(call.getString("key")) ?: throw CompanionException("bad_request")
         JSObject().put("removed", SidekickRuntime.get(context).today.discardFailedWrite(key))
+    }
+
+    /**
+     * Resolves `{ share: { title, text, link? } }` for the text another app shared and clears it, or `{}` when there is
+     * none. The page takes it once it is ready to ask the owner (after pairing), so a share that arrives first waits.
+     */
+    @PluginMethod
+    fun takeShare(call: PluginCall) = run(call) {
+        val result = JSObject()
+        pendingShare.getAndSet(null)?.let { shared ->
+            val share = JSObject().put("title", shared.title).put("text", shared.text)
+            shared.link?.let { share.put("link", it) }
+            result.put("share", share)
+        }
+        result
+    }
+
+    /**
+     * Keeps the text share in [intent], if it is one, and takes it out of the activity's intent so that a restore of the
+     * activity does not offer the same text again. Returns whether a share was kept.
+     */
+    private fun holdShare(intent: Intent?): Boolean {
+        val shared = intent?.let {
+            SharedContent.parse(
+                it.action,
+                it.type,
+                (it.getStringExtra(Intent.EXTRA_SUBJECT) ?: it.getStringExtra(Intent.EXTRA_TITLE)),
+                it.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString(),
+            )
+        } ?: return false
+        pendingShare.set(shared)
+        activity.intent = Intent()
+        return true
     }
 
     /** The page says Today changed. Never fails: the widget is a convenience, not part of the page's work. */
@@ -405,6 +454,7 @@ class SidekickNativePlugin : Plugin() {
     private companion object {
         const val EVENT_PAIRING_LOST = "pairingLost"
         const val EVENT_QUEUE_CHANGED = "queueChanged"
+        const val EVENT_SHARE_RECEIVED = "shareReceived"
 
         val UUID = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         const val THREADS = 4

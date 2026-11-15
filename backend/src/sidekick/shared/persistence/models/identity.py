@@ -1,9 +1,9 @@
-"""Users and personal access tokens (MCP and companion credentials)."""
+"""Users, personal access tokens (MCP and companion credentials) and webhook tokens."""
 
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -40,3 +40,26 @@ class PersonalAccessTokenRow(Base):
     # predecessor's keyed digest and when it stops working. Both or neither.
     previous_token_digest: Mapped[str | None] = mapped_column(String(64))
     previous_valid_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class WebhookTokenRow(Base):
+    """One integration's token for `/webhooks/v1/` (Home Assistant, Tasker, ...).
+
+    Only the keyed digest is stored, plus the first characters of the token (`token_prefix`),
+    which the operator's list shows so tokens can be told apart. The scopes are webhook scopes,
+    never application scopes; `expires_at` is required.
+    """
+
+    __tablename__ = "webhook_tokens"
+    __table_args__ = (Index("ix_webhook_tokens_user", "user_id", "created_at"), {"schema": SCHEMA})
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    label: Mapped[str] = mapped_column(String(120))
+    token_prefix: Mapped[str] = mapped_column(String(12))
+    token_digest: Mapped[str] = mapped_column(String(64), unique=True)
+    scopes: Mapped[list[str]] = mapped_column(JSONB)
+    rate_limit_per_minute: Mapped[int] = mapped_column(Integer)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

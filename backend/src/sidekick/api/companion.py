@@ -26,6 +26,14 @@ app's React rooms read exactly the structured content they read in Claude:
   `Idempotency-Key`)
 - `POST /companion/v1/steps/{step_id}/reopen`   = `update_task_step` with `changes={"status":
   "todo"}`, only for a completed Step (the undo of a tick; `{"version"}` + `Idempotency-Key`)
+- `POST /companion/v1/tasks`                   = `create_task` (`{"title", "due_at", "description",
+  "priority"}` and one place, `project_id`, `process_id` or `domain_id`, + `Idempotency-Key`;
+  `companion:work:write`)
+- `POST /companion/v1/tasks/{task_id}/update`  = `update_task` with `title`, `description`,
+  `due_at`, `project_id`, `process_id`, `domain_id` and `priority` only (`{"version", ...}` +
+  `Idempotency-Key`)
+- `POST /companion/v1/projects/{project_id}/update` = `update_project` with `title`, `status`,
+  `description`, `start_date` and `target_date` only (`{"version", ...}` + `Idempotency-Key`)
 - `POST /companion/v1/pair`                     exchange a pairing secret for a device credential
 - `GET  /companion/v1/device`                   this device's own status, and `enabled_rooms`: the
   rooms this instance shows (`SIDEKICK_ENABLED_ROOMS`, in the app's order, `work` always), which the
@@ -57,9 +65,11 @@ are in
 The route groups live in sibling modules, each added to this router by `create_companion_router`:
 pairing and the device's own routes in `sidekick.api.companion_device`, push and reminders in
 `sidekick.api.companion_push`, the Work reads in `sidekick.api.companion_work`, Tasks and Steps in
-`sidekick.api.companion_tasks`, and the rooms Shopping and Journal (`/companion/v1/shopping/...`,
-`/companion/v1/journal/...`) in `sidekick.api.companion_rooms`. This module holds what they share:
-the problem envelope, the route class, authentication and the body helpers.
+`sidekick.api.companion_tasks`, the Work writes (create and edit a Task, change a Project) in
+`sidekick.api.companion_work_writes`, and the rooms Shopping and Journal
+(`/companion/v1/shopping/...`, `/companion/v1/journal/...`) in `sidekick.api.companion_rooms`. This
+module holds what they share: the problem envelope, the route class, authentication and the body
+helpers.
 
 Every authenticated route verifies the bearer as a companion credential on each request (digest,
 purpose, expiry, revocation, active owner), checks the operation's device capability, and calls
@@ -454,6 +464,7 @@ async def _bounded_body(request: Request, limit: int) -> bytes:
 no_store_headers = _NO_STORE
 bounded_body = _bounded_body
 bearer_token = _bearer
+translate_error = _translate
 
 
 async def authenticated(request: Request) -> CompanionCredential:
@@ -510,11 +521,13 @@ def create_companion_router(
     from sidekick.api.companion_rooms import add_room_routes
     from sidekick.api.companion_tasks import add_task_routes
     from sidekick.api.companion_work import add_work_routes
+    from sidekick.api.companion_work_writes import add_work_write_routes
 
     add_device_routes(router, failed_pairings, enabled_rooms)
     add_push_routes(router)
     add_work_routes(router)
     add_task_routes(router)
+    add_work_write_routes(router)
     add_room_routes(router, rooms)
     add_license_routes(router)
     return router

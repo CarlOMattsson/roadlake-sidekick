@@ -6,11 +6,12 @@
  *
  * Why closed: no generic execute, no URL or path from the caller, and no unknown arguments passed through. A tool
  * not on the list, or arguments its route does not take, fails with NotInAppError before anything is sent.
- * update_task is answered only for the two changes the app makes: completing `{ status: "completed" }` and
- * reopening `{ status: "todo" }`. The network itself is the typed SidekickNative plugin.
+ * update_task is answered for the tick `{ status: "completed" }`, its undo `{ status: "todo" }` and the edit fields of
+ * companion-work.ts (title, note, due date, place, priority); create_task and update_project are answered by that
+ * planner too. The network itself is the typed SidekickNative plugin.
  *
- * Shopping, Journal and license tools are planned by companion-shopping.ts, companion-journal.ts and
- * companion-license.ts; the default branch of plan() asks them in turn.
+ * Shopping, Journal, license and the Work writes are planned by companion-shopping.ts, companion-journal.ts,
+ * companion-license.ts and companion-work.ts; the default branch of plan() asks them in turn.
  *
  * Offline: a call that got no answer because of the connection (the native codes `network` and `timeout`) fails with
  * CompanionNetworkError, so the room says `network`. A shopping purchase that got no answer is put in
@@ -36,13 +37,31 @@ import {
   type SidekickNativePlugin,
   type NativeQuery,
 } from "./sidekick-native";
-import type { PlanHelpers, Planned, Queueable } from "./companion-plan";
+import {
+  UUID,
+  type PlanHelpers,
+  type Planned,
+  type Queueable,
+} from "./companion-plan";
+import {
+  HIERARCHY_QUERY_KEYS,
+  isHierarchyRead,
+  isProcessTaskList,
+  isProjectTaskList,
+  processTaskPage,
+} from "./companion-work-reads";
 import {
   JOURNAL_LINK_KEYS,
   JOURNAL_TOOLS,
   planJournal,
 } from "./companion-journal";
 import { LICENSE_TOOLS, planLicense } from "./companion-license";
+import {
+  WORK_WRITE_TOOLS,
+  isProjectEdit,
+  isTaskEdit,
+  planWorkWrite,
+} from "./companion-work";
 import {
   queuedAddResult,
   queuedItems,
@@ -92,7 +111,7 @@ export const COMPANION_ROUTES = {
   },
 } as const;
 
-/** The tool names the transport answers. update_task is answered only for the completing change. */
+/** The tool names the transport answers. update_task is answered only for the changes `supportsCall` names. */
 export const COMPANION_TOOLS = [
   "get_work_agenda",
   "get_task",
@@ -108,6 +127,7 @@ export const COMPANION_TOOLS = [
   "get_process",
   "complete_task_step",
   "update_task_step",
+  ...WORK_WRITE_TOOLS,
   ...SHOPPING_TOOLS,
   ...JOURNAL_TOOLS,
   ...LICENSE_TOOLS,
@@ -134,7 +154,6 @@ const AGENDA_QUERY_KEYS: ReadonlySet<string> = new Set([
   "waiting",
 ]);
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ERROR_CODE = /^[a-z][a-z0-9_]{0,63}$/;
 
 /**
@@ -264,78 +283,6 @@ function isReopeningChange(changes: unknown): boolean {
   );
 }
 
-/**
- * The one list_tasks the app answers: a Project's tasks, `project_id` with only paging next to it. Anything else
- * (the unsorted page, a Process, a status filter) has no route.
- */
-function isProjectTaskList(args: Args): boolean {
-  return (
-    typeof args.project_id === "string" &&
-    UUID.test(args.project_id) &&
-    Object.keys(args).every((key) =>
-      ["project_id", "limit", "cursor"].includes(key),
-    )
-  );
-}
-
-/** The arguments get_work_hierarchy takes (contracts/mcp-tools.generated.json); anything else is refused. */
-const HIERARCHY_QUERY_KEYS = ["limit", "cursor", "include_tasks", "process_id"];
-
-/**
- * A hierarchy read the route takes: only its own arguments, a whole `limit` of 1 to 100, a text `cursor`, a boolean
- * `include_tasks`, and `process_id` (a uuid) only together with `include_tasks: true`, as the server insists.
- */
-function isHierarchyRead(args: Args): boolean {
-  if (!Object.keys(args).every((key) => HIERARCHY_QUERY_KEYS.includes(key)))
-    return false;
-  const { limit, cursor, include_tasks: tasks, process_id: process } = args;
-  const given = (value: unknown) => value !== undefined && value !== null;
-  if (
-    given(limit) &&
-    !(typeof limit === "number" && Number.isInteger(limit) && limit >= 1)
-  )
-    return false;
-  if (given(cursor) && typeof cursor !== "string") return false;
-  if (given(tasks) && typeof tasks !== "boolean") return false;
-  if (given(process))
-    return typeof process === "string" && UUID.test(process) && tasks === true;
-  return true;
-}
-
-/**
- * The one list_tasks of a Process the app answers: `process_id` with `limit` next to it. The phone has no route that
- * lists a Process's Tasks, so it asks the hierarchy for them (include_tasks with process_id) and answers one page: a
- * cursor other than null is refused, because the hierarchy's cursor pages its nodes, not its Tasks. The server has no
- * cursor for the Tasks past its cap, so the answer says `truncated` instead.
- */
-function isProcessTaskList(args: Args): boolean {
-  return (
-    typeof args.process_id === "string" &&
-    UUID.test(args.process_id) &&
-    (args.cursor === undefined || args.cursor === null) &&
-    Object.keys(args).every((key) =>
-      ["process_id", "limit", "cursor"].includes(key),
-    )
-  );
-}
-
-/**
- * A hierarchy answer as list_tasks answers a Process: its Tasks (id, title, status, version, due date), one page. The
- * server caps the Tasks of a Process and has no cursor for the rest, so `truncated` is carried through for the app to
- * say that the list is cut; `next_cursor` stays null because there is no next page to ask for.
- */
-function processTaskPage(body: Args): Args {
-  if (!Array.isArray(body.tasks)) throw new HostToolError(undefined);
-  const tasks = body.tasks.filter(isArgs).map((task) => ({
-    id: task.id,
-    title: task.title,
-    status: task.status,
-    version: task.version,
-    due_at: task.due_at ?? null,
-  }));
-  return { tasks, next_cursor: null, truncated: body.truncated === true };
-}
-
 /** The closed status -> code table for answers whose body names no code of its own. */
 function codeOfStatus(status: number): CompanionErrorCode | undefined {
   switch (status) {
@@ -461,9 +408,11 @@ export class CompanionRoomTransport implements RoomTransport {
     (COMPANION_TOOLS as readonly string[]).includes(name);
 
   /**
-   * The call itself, for the one tool the list answers in part: update_task with the completing change, and with the
-   * reopening change when the asker names a completed Task (`from_status`; a question without it is answered no).
-   * A room hides a date or status choice that would be refused, and keeps `markDone`, `undo` and `reopenTask`.
+   * The call itself, for the tools the list answers in part: update_task with the completing change, with the
+   * reopening change when the asker names a completed Task (`from_status`; a question without it is answered no), and
+   * with the edit fields of companion-work.ts; update_project with its edit fields. A room hides a choice that would
+   * be refused (a status other than done and open, tags, repeat, waiting, an estimate), and keeps `markDone`, `undo`
+   * and `reopenTask`.
    * update_journal_entry is answered no when the asker names a link change (the Journal device has no right to it) or tags,
    * and list_journal_entries when it asks for tags: the companion routes take neither, so the Journal room shows no tag
    * filter or tag editing on the phone.
@@ -486,9 +435,15 @@ export class CompanionRoomTransport implements RoomTransport {
         !("tags" in args) &&
         JOURNAL_LINK_KEYS.every((key) => !(key in args))
       );
+    if (name === "update_project")
+      return (
+        this.supportsTool(name) &&
+        (!isArgs(args) || !("changes" in args) || isProjectEdit(args.changes))
+      );
     if (name !== "update_task") return this.supportsTool(name);
     if (!isArgs(args)) return false;
-    if (isCompletingChange(args.changes)) return true;
+    if (isCompletingChange(args.changes) || isTaskEdit(args.changes))
+      return true;
     return isReopeningChange(args.changes) && args.from_status === "completed";
   };
 
@@ -692,18 +647,15 @@ export class CompanionRoomTransport implements RoomTransport {
           return this.completion(rawArgs);
         if (isReopeningChange(rawArgs.changes))
           return this.completion(rawArgs, "reopen");
-        throw new NotInAppError();
+        const planned = planWorkWrite(name, rawArgs, this.helpers());
+        if (!planned) throw new NotInAppError();
+        return planned;
       }
       default: {
-        // The Shopping and Journal rooms' closed lists; a name in neither is not in the app.
-        const helpers: PlanHelpers = {
-          invalid,
-          onlyKeys,
-          uuidOf,
-          versionOf: versionValue,
-          keyOf: (given, signature) => this.keyOf(given, signature),
-        };
+        // The Work writes' and the Shopping, Journal and license rooms' closed lists; a name in none is not in the app.
+        const helpers = this.helpers();
         const planned =
+          planWorkWrite(name, rawArgs, helpers) ??
           planShopping(name, rawArgs, helpers) ??
           planJournal(name, rawArgs, helpers) ??
           planLicense(name, rawArgs, helpers);
@@ -711,6 +663,17 @@ export class CompanionRoomTransport implements RoomTransport {
         return planned;
       }
     }
+  }
+
+  /** The transport's own checks, handed to the per-room planners. */
+  private helpers(): PlanHelpers {
+    return {
+      invalid,
+      onlyKeys,
+      uuidOf,
+      versionOf: versionValue,
+      keyOf: (given, signature) => this.keyOf(given, signature),
+    };
   }
 
   private taskList(args: Args, tail: string, allowed: readonly string[]): Plan {

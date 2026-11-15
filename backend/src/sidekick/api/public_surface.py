@@ -63,6 +63,9 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(rf"/companion/v1/tasks/{_UUID}/external-references")),
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/complete")),
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/reopen")),
+    ("POST", re.compile(r"/companion/v1/tasks")),
+    ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/update")),
+    ("POST", re.compile(rf"/companion/v1/projects/{_UUID}/update")),
     # Work beyond the agenda: hierarchy, Project, Domain, Process, and the tick of a Step.
     ("GET", re.compile(r"/companion/v1/work/hierarchy")),
     ("GET", re.compile(rf"/companion/v1/projects/{_UUID}")),
@@ -110,6 +113,20 @@ def is_companion_route(method: str, path: str, rooms: Collection[str] = ROOMS) -
     return any(
         method == allowed and pattern.fullmatch(path) for allowed, pattern in COMPANION_ROUTES
     )
+
+
+# The webhook entrance for home and phone automation (sidekick.api.webhooks), public only with
+# `SIDEKICK_WEBHOOKS_ENABLED=true`: exactly these two POST paths, any other path under `/webhooks/`
+# and any other method is the same plain 404 as the rest.
+WEBHOOK_ROUTES: frozenset[tuple[str, str]] = frozenset(
+    {("POST", "/webhooks/v1/shopping-items"), ("POST", "/webhooks/v1/tasks")}
+)
+
+
+def is_webhook_route(method: str, path: str) -> bool:
+    """True for an allowlisted webhook method and path."""
+
+    return (method, path) in WEBHOOK_ROUTES
 
 
 # Unauthenticated endpoints that create server-side state (a client record, a pending
@@ -179,11 +196,14 @@ class PublicSurfaceAllowlistMiddleware:
         clock: Callable[[], float] = monotonic,
         companion: bool = False,
         rooms: Collection[str] = ROOMS,
+        webhooks: bool = False,
     ) -> None:
         self.app = app
         self.telemetry = telemetry
         # The companion method/path pairs (`SIDEKICK_COMPANION_ENABLED`).
         self._companion = companion
+        # The webhook method/path pairs (`SIDEKICK_WEBHOOKS_ENABLED`).
+        self._webhooks = webhooks
         # With `SIDEKICK_ENABLED_ROOMS`, the companion routes of a room that is off stay out.
         self._rooms = rooms
         self._buckets = {key: TokenBucket(RATE_LIMIT_PER_MINUTE, clock) for key in RATE_LIMITED}
@@ -204,7 +224,8 @@ class PublicSurfaceAllowlistMiddleware:
             scope["raw_path"] = path.encode()
         method = str(scope.get("method", ""))
         companion = self._companion and is_companion_route(method, path, self._rooms)
-        if not companion and not is_public_path(path):
+        webhook = self._webhooks and is_webhook_route(method, path)
+        if not companion and not webhook and not is_public_path(path):
             await self._refuse(scope, receive, send, 404, "not_found", "Not found")
             return
         bucket = self._buckets.get((str(scope.get("method", "")), path))

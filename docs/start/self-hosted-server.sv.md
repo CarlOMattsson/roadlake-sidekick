@@ -11,7 +11,9 @@ Starta Sidekick på en egen Linux-server med Docker Compose. Guiden går från e
 - Linux x86_64 med Docker Engine och pluginet Docker Compose (v2.24 eller nyare, se `docker compose version`), samt
   `git`, `openssl` och `curl`. För uppdateringar till en signerad image senare: `cosign` och `python3` (3.9 eller nyare).
 - Antingen en publik domän vars DNS pekar på maskinen, med portarna 80 och 443 nåbara (profilen `vps`: Caddy
-  hämtar certifikatet), eller en tunnel som skickar HTTPS vidare till `127.0.0.1:8000` (hemdator). Claude når
+  hämtar certifikatet), eller en tunnel som skickar HTTPS vidare till `127.0.0.1:8000` (hemdator). På en hemdator kör
+  profilen `tailscale` den tunneln åt dig (ett gratis Tailscale-konto räcker, se "Hemdator med Tailscale Funnel"
+  nedan). Claude når
   servern från Anthropics moln, så adressen måste vara publik HTTPS i båda fallen.
 - Ett GitHub-konto för inloggningen (du skapar OAuth-appen själv, se [Anslut Claude](../operate/connect-claude.sv.md)).
 - Hemligheter som du själv genererar. Inget hemligt ligger i det här repot.
@@ -91,7 +93,8 @@ Valfritt men rekommenderat: håll Sidekicks hemligheter borta från containrarna
 
 ```bash
 docker compose --env-file selfhost.env --profile vps up -d    # VPS med Caddy och automatisk TLS
-docker compose --env-file selfhost.env up -d                  # hemdator bakom en tunnel
+docker compose --env-file selfhost.env up -d                  # hemdator bakom en egen tunnel
+docker compose --env-file selfhost.env --profile tailscale up -d   # hemdator, Tailscale Funnel i en container
 ```
 
 Valfria profiler kan läggas till på samma kommandorad: `--profile memory` ([Minne](../operate/memory.sv.md)),
@@ -109,6 +112,42 @@ Basstacken startar också `automation-worker` (ingen profil behövs): den kör s
 förfallen processkörning till uppgifter var 30:e sekund. Utan den körs en schemalagd process aldrig. Den når bara
 PostgreSQL (ingen publicerad port, ingen väg ut till internet) och behöver inga egna inställningar. `update.sh`
 stoppar och startar om den tillsammans med API:et.
+
+**Hemdator med Tailscale Funnel.** Profilen `tailscale` startar en Tailscale-container som går med i ditt tailnet och
+publicerar API:et på `https://<värdnamn>.<tailnet>.ts.net` genom Funnel: ingen ändring av router, brandvägg eller DNS och
+ingen Caddy (kombinera den inte med `vps`). Bestäm namnet före steg 1, eftersom det går in i konfigurationen:
+
+1. Slå på MagicDNS och HTTPS-certifikat i Tailscales adminkonsol (sidan DNS) och tillåt Funnel för noden i din
+   policyfil (nodattributet `funnel`; se [Tailscales guide till Funnel](https://tailscale.com/kb/1223/funnel)).
+   Noden får namnet i `SELFHOST_TAILSCALE_HOSTNAME` (förval `sidekick`), så adressen blir
+   `https://sidekick.<ditt-tailnet>.ts.net`, där `<ditt-tailnet>.ts.net` visas på sidan DNS.
+2. Skapa en autentiseringsnyckel (Settings, Keys): inte återanvändbar, med kort giltighetstid och taggad om din policy
+   kräver det. Skriv den till en fil, aldrig in i `selfhost.env`:
+
+   ```bash
+   mkdir -p secrets && chmod 700 secrets
+   printf '%s\n' 'tskey-auth-...' > secrets/tailscale_authkey && chmod 644 secrets/tailscale_authkey
+   ```
+
+   Lägg sedan `SELFHOST_TAILSCALE_AUTHKEY_FILE=./secrets/tailscale_authkey` i `selfhost.env` (och
+   `SELFHOST_TAILSCALE_HOSTNAME` om du inte vill ha förvalda namnet). Nyckeln används bara medan noden ännu inte är
+   inloggad. Utan filen skriver `docker compose --env-file selfhost.env --profile tailscale logs tailscale` ut en
+   inloggningslänk i stället.
+3. Använd exakt det värdnamnet överallt där guiden säger "ditt publika värdnamn":
+   `SELFHOST_DOMAIN=sidekick.<ditt-tailnet>.ts.net`, `SIDEKICK_MCP_PUBLIC_BASE_URL=https://sidekick.<ditt-tailnet>.ts.net`
+   (det är också OAuth-utfärdaren) och GitHub-OAuth-appens callback
+   `https://sidekick.<ditt-tailnet>.ts.net/mcp/auth/callback`. Claudes konnektoradress är den adressen plus `/mcp`.
+4. Starta med raden `--profile tailscale` ovan. Nodens tillstånd ligger i volymen `tsstate`, så en omstart behåller
+   namnet och certifikatet; profilens `serve.json` (i `tailscale/`) pekar Funnel mot API:et på det interna nätverket.
+   Kontrollera med `curl -s https://sidekick.<ditt-tailnet>.ts.net/.well-known/oauth-protected-resource/mcp`.
+
+Genom Funnel besvaras bara de sökvägar som API:ets publika tillåtelselista släpper igenom (MCP, dess OAuth-rutter,
+upptäcktsdokumenten och, när de är påslagna, companion-rutterna); allt annat blir 404. Den egna ntfy-servern publiceras
+bara av Caddy, så på den här profilen går påminnelserna genom ntfy.sh. Funnel tillåter bara portarna 443, 8443 och 10000
+och har bandbreddsgränser som Tailscale inte låter dig ställa in; alla besökare når API:et från en adress, se
+"Överbelastning och gissade nycklar" i [Anslut Claude](../operate/connect-claude.sv.md). Med en sträng umask (nedan) kan
+containern inte läsa `tailscale/serve.json` om inte filen är läsbar för alla:
+`chmod 755 tailscale && chmod 644 tailscale/serve.json`.
 
 **6. Kontrollera.** API:et svarar på sin hälsokontroll när det är uppe (`docker compose --env-file selfhost.env ps`
 visar `healthy`). På själva maskinen, innan DNS eller tunneln finns, kontrollerar du så här:

@@ -92,6 +92,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("108_memory_forgotten_facts", True),
     ("109_task_last_reviewed_at", False),
     ("110_task_ambition", False),
+    # Webhook tokens are credentials; like `personal_access_tokens` they are never exported.
+    ("111_webhook_tokens", True),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 

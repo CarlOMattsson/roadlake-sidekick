@@ -216,6 +216,101 @@
         "title": "CreateListBody",
         "type": "object"
       },
+      "CreateTaskBody": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "domain_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Domain Id"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Due At"
+          },
+          "priority": {
+            "default": "normal",
+            "enum": [
+              "low",
+              "normal",
+              "high"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "process_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Process Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreateTaskBody",
+        "type": "object"
+      },
       "ItemPatchInput": {
         "additionalProperties": false,
         "description": "update_shopping_item input: omitted name keeps the stored one; null or blank is refused.",
@@ -574,6 +669,15 @@
         "title": "Companion problem",
         "type": "object"
       },
+      "ProjectStatus": {
+        "enum": [
+          "active",
+          "paused",
+          "completed"
+        ],
+        "title": "ProjectStatus",
+        "type": "string"
+      },
       "PurchasedBody": {
         "additionalProperties": false,
         "properties": {
@@ -759,6 +863,202 @@
           "version"
         ],
         "title": "UpdateListBody",
+        "type": "object"
+      },
+      "UpdateProjectBody": {
+        "additionalProperties": false,
+        "description": "The fields a Project form changes. An omitted field stays; null clears `description`,\n`start_date` and `target_date`; `title` and `status` cannot be cleared. Tags, the definition\nof done and moving the Project to another Domain stay with Claude.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "start_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Start Date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "target_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Target Date"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "UpdateProjectBody",
+        "type": "object"
+      },
+      "UpdateTaskBody": {
+        "additionalProperties": false,
+        "description": "The fields a Task form changes. An omitted field stays; null clears `due_at`,\n`description` and `project_id`; `title` and `priority` cannot be cleared.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Description"
+          },
+          "domain_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Domain Id"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Due At"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "low",
+                  "normal",
+                  "high"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Priority"
+          },
+          "process_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Process Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Project Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "UpdateTaskBody",
         "type": "object"
       },
       "WriteEntryBody": {
@@ -1749,6 +2049,73 @@
         "x-sidekick-capability": "companion:tasks:read"
       }
     },
+    "/companion/v1/projects/{project_id}/update": {
+      "post": {
+        "operationId": "project.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 65536
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "project.update",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:work:write"
+      }
+    },
     "/companion/v1/push/subscription": {
       "delete": {
         "operationId": "push.subscription.remove",
@@ -2544,6 +2911,63 @@
         "x-sidekick-capability": "companion:tasks:complete"
       }
     },
+    "/companion/v1/tasks": {
+      "post": {
+        "operationId": "task.create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 65536
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "task.create",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:work:write"
+      }
+    },
     "/companion/v1/tasks/{task_id}": {
       "get": {
         "operationId": "task.get",
@@ -2937,6 +3361,73 @@
         ],
         "summary": "task.steps",
         "x-sidekick-capability": "companion:tasks:read"
+      }
+    },
+    "/companion/v1/tasks/{task_id}/update": {
+      "post": {
+        "operationId": "task.update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 65536
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "task.update",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:work:write"
       }
     },
     "/companion/v1/work/agenda": {

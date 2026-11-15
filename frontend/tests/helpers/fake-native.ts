@@ -12,6 +12,7 @@ import type {
   PushStatus,
   QueuePurchaseOptions,
   QueueShoppingAddOptions,
+  SharedText,
   TestPushResult,
 } from "@/mobile/sidekick-native";
 
@@ -32,7 +33,8 @@ type MockedMethod =
   | "queuePurchase"
   | "queueShoppingAdd"
   | "retryQueuedWrite"
-  | "removeQueuedWrite";
+  | "removeQueuedWrite"
+  | "takeShare";
 
 export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
   request: ReturnType<
@@ -83,6 +85,9 @@ export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
   removeQueuedWrite: ReturnType<
     typeof vi.fn<(options: { key: string }) => Promise<{ removed: boolean }>>
   >;
+  takeShare: ReturnType<typeof vi.fn<() => Promise<{ share?: SharedText }>>>;
+  /** Text shared to the app: waits for `takeShare`, and `shareReceived` fires when a listener is there (a running app). */
+  receiveShare: (share: SharedText) => void;
   /** Ends a run of the outbox: `sent` (item ids, or the keys of adds) leave it, then `queueChanged` fires as the native sync does. */
   runOutbox: (sent?: string[]) => void;
 };
@@ -119,6 +124,8 @@ export function fakeNative(
   const requests: NativeRequest[] = [];
   const listeners = new Set<() => void>();
   const queueListeners = new Set<() => void>();
+  const shareListeners = new Set<() => void>();
+  let sharedText: SharedText | undefined;
   const outbox = new Map<string, QueuePurchaseOptions>();
   const addOutbox = new Map<string, QueueShoppingAddOptions>();
   let state: PairingStatus =
@@ -201,8 +208,20 @@ export function fakeNative(
     Promise.resolve({ removed: failedWrites.delete(options.key) }),
   );
 
+  // Cleared as it is taken, as the plugin does.
+  const takeShare = vi.fn(() => {
+    const share = sharedText;
+    sharedText = undefined;
+    return Promise.resolve(share ? { share } : {});
+  });
+
   return {
     request,
+    takeShare,
+    receiveShare: (share) => {
+      sharedText = share;
+      for (const listener of shareListeners) listener();
+    },
     queuePurchase,
     failedWrites,
     completions,
@@ -249,7 +268,12 @@ export function fakeNative(
     deviceStatus,
     sendTestPush,
     addListener: (event, listener) => {
-      const set = event === "queueChanged" ? queueListeners : listeners;
+      const set =
+        event === "queueChanged"
+          ? queueListeners
+          : event === "shareReceived"
+            ? shareListeners
+            : listeners;
       set.add(listener);
       return Promise.resolve({
         remove: () => {

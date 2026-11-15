@@ -38,4 +38,14 @@ Device capabilities of a paired companion app (ADR-005). They are not applicatio
 | `companion:shopping:read` | read shopping lists and items | `shopping.lists`, `shopping.list`; also needed by `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased` | off until named; in preset `app` |
 | `companion:shopping:write` | add, edit, and check off items and lists | `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased` | off until named; in preset `app` |
 | `companion:tasks:complete` | check off and reopen tasks and steps | `task.complete`, `task.reopen`, `step.complete`, `step.reopen` | off until named; in preset `app` |
-| `companion:tasks:read` | read tasks, steps, projects, and today’s agenda | `work.agenda`, `work.today`, `task.get`, `task.steps`, `task.contacts`, `task.external_references`, `work.hierarchy`, `project.get`, `project.tasks`, `domain.get`, `process.get` | off until named; in preset `app` |
+| `companion:tasks:read` | read tasks, steps, projects, and today’s agenda | `work.agenda`, `work.today`, `task.get`, `task.steps`, `task.contacts`, `task.external_references`, `work.hierarchy`, `project.get`, `project.tasks`, `domain.get`, `process.get`; also needed by `task.create`, `task.update`, `project.update` | off until named; in preset `app` |
+| `companion:work:write` | create and edit tasks, and edit projects (title, status, description, dates) | `task.create`, `task.update`, `project.update` | off until named; in preset `app` |
+
+## Webhook scopes
+
+Scopes of a webhook token for home and phone automation (Home Assistant, Tasker). They are not application scopes either: a webhook token is accepted only by `/webhooks/v1/`, and each scope maps to one fixed operation (`sidekick.webhooks.operations`). Name them with `sidekick-webhooks create --scope`.
+
+| Scope | What it gives | Operation | Default |
+| --- | --- | --- | --- |
+| `webhook:shopping:add` | Add one item to a shopping list, the oldest active list when none is named. | `shopping.item_add` | off until named |
+| `webhook:tasks:create` | Create one task with a title and an optional due date. | `task.create` | off until named |

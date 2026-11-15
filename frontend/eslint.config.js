@@ -50,7 +50,7 @@ const MAX_FILE_LINES = 500;
 // never raise a number.
 const OVERSIZED_FILES = {
   "src/features/journal-app/labels.ts": 515,
-  "src/mobile/companion-transport.ts": 610,
+  "src/mobile/companion-transport.ts": 590,
 };
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

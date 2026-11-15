@@ -94,4 +94,4 @@ No. Reminders travel through UnifiedPush and the ntfy app, with no Firebase. [Re
 
 ### Can I create tasks in the app?
 
-Not in the Android app. There you read and check off work, write and edit journal entries by hand, and create shopping lists and add items. You create tasks in Claude, by asking or with + in the Work room; projects you create by asking Claude. [Read what the app does and does not do](guide/android-app.md).
+Yes, as a fallback for when you cannot talk. In the Android app you can add a task with + in the Work room, change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. You also read and check off work, write and edit journal entries by hand, and create shopping lists and add items. Claude stays the main way in, and you create projects by asking Claude. [Read what the app does and does not do](guide/android-app.md).

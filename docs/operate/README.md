@@ -15,6 +15,7 @@ Sidekick 0.1.0 is the first version and runs on Linux in daily use. macOS has no
 - [Connect Claude](connect-claude.md): register the sign-in, add the connector and decide what the session may do.
 - [Build, install and pair Android](pair-android.md): download the signed app or build it from source, and connect the phone with a one-time code.
 - [Reminders through ntfy](push-reminders.md): turn on reminders to the phone, through the public ntfy server or your own.
+- [Webhooks for Home Assistant and Tasker](webhooks.md): let home or phone automation add a shopping item or a task, with one token per integration.
 
 ## Maintain
 

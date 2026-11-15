@@ -13,6 +13,10 @@ GitHub-konton som står i `SIDEKICK_MCP_OAUTH_ALLOWED_IDENTITIES`.
 
 - Homepage URL: `https://<your-domain>`
 - Authorization callback URL: `https://<your-domain>/mcp/auth/callback`
+
+`<your-domain>` är värdnamnet i `SIDEKICK_MCP_PUBLIC_BASE_URL`, som också är OAuth-utfärdaren. Med profilen `tailscale` är
+det nodens Funnel-namn, `<värdnamn>.<ditt-tailnet>.ts.net` (se [Första starten på en server](../start/self-hosted-server.sv.md#första-start)).
+
 - Generera en klienthemlighet. Lägg Client ID och hemligheten i `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_ID` och
   `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`. Sidekick ber inte GitHub om några andra rättigheter än att få veta
   vem du är.

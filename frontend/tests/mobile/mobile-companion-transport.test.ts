@@ -165,7 +165,7 @@ describe("CompanionRoomTransport mapping", () => {
 
   it.each([
     ["an unknown tool", "list_contacts", {}],
-    ["a tool that writes elsewhere", "create_task", { title: "x" }],
+    ["a tool that writes elsewhere", "create_step_action", { title: "x" }],
     [
       "update_task with another status",
       "update_task",
@@ -345,16 +345,25 @@ describe("CompanionRoomTransport mapping", () => {
       { status: "todo" },
       { status: "in_progress" },
       { status: "todo", title: "x" },
-      { due_at: null },
-      { title: "x" },
       { status: "completed", title: "x" },
+      { tags: [] },
+      { recurrence: null },
+      { estimated_minutes: 5 },
       {},
       undefined,
     ])
       expect(transport.supportsCall("update_task", { changes })).toBe(false);
+    // The edit fields of companion-work.ts are answered, with or without a status next to them being refused.
+    for (const changes of [
+      { due_at: null },
+      { title: "x" },
+      { priority: "high" },
+      { project_id: null, process_id: null, domain_id: null },
+    ])
+      expect(transport.supportsCall("update_task", { changes })).toBe(true);
     expect(transport.supportsCall("update_task", {})).toBe(false);
     expect(transport.supportsCall("complete_task", {})).toBe(true);
-    expect(transport.supportsCall("create_task", {})).toBe(false);
+    expect(transport.supportsCall("create_task", {})).toBe(true);
   });
 
   it("works when a room takes `call` out of the object", async () => {

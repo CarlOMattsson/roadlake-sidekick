@@ -80,8 +80,8 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group(
         "Instance",
-        "Time zone, rooms, update reminder and build information.",
-        names=("owner_timezone", "enabled_rooms", "update_reminder_days"),
+        "Time zone, rooms, webhook entrance, update reminder and build information.",
+        names=("owner_timezone", "enabled_rooms", "webhooks_enabled", "update_reminder_days"),
         prefixes=("build_",),
     ),
     Group(

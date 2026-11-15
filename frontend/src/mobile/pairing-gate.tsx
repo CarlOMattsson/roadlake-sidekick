@@ -64,6 +64,8 @@ export type PairingGateProps = {
   children: ReactNode;
   /** Chooses the app's language (Svenska | English at the top of the form). Absent: no switch. */
   onLocale?: (locale: AppLocale) => void;
+  /** Said on the form while text shared from another app waits for the phone to be paired (use-incoming-share.ts). */
+  shareNote?: string;
 };
 
 export function PairingGate({
@@ -72,6 +74,7 @@ export function PairingGate({
   locale,
   children,
   onLocale,
+  shareNote,
 }: PairingGateProps) {
   const labels = pairingLabelsFor(locale);
   const [phase, setPhase] = useState<Phase>("reading");
@@ -200,7 +203,7 @@ export function PairingGate({
           native={native}
           labels={labels}
           locale={locale}
-          note={note && labels[note]}
+          note={[note && labels[note], shareNote].filter(Boolean).join(" ")}
           link={link?.link}
           onPaired={() => {
             setLink(undefined);

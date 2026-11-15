@@ -58,6 +58,7 @@ from sidekick.structured.work_records import (
     ProjectOutput,
     ProjectPageOutput,
 )
+from sidekick.structured.work_writes import update_project_structured
 from sidekick.work.application.models import UpdateContextCommand
 from sidekick.work.application.serialization import domain_public_data, process_public_data
 
@@ -260,21 +261,15 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         idempotency_key: IdempotencyKey,
         changes: ProjectChanges,
     ) -> ToolResult:
-        actor = ctx.actor_provider()
-        # The reply lists the record\'s tags (projects:read); refuse before anything is written.
-        ctx.container.work_tags.require_record_tags_readable(actor, "project")
-        project = ctx.container.projects.update(
-            actor,
+        structured = update_project_structured(
+            ctx.container,
+            ctx.actor_provider(),
             project_id,
             version=version,
             idempotency_key=idempotency_key,
             command=_project_command(changes),
             correlation_id=request_correlation_id_or_new(),
         )
-        slugs = [
-            tag.slug for tag in ctx.container.work_tags.for_record(actor, "project", project_id)
-        ]
-        structured = ProjectOutput(project=project_record(project, slugs))
         record = structured.project
         return result(
             structured.model_dump(mode="json"),

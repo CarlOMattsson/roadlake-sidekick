@@ -1,4 +1,4 @@
-"""The owner's instance: time zone, rooms, update reminder and build information."""
+"""The owner's instance: time zone, rooms, webhooks, update reminder and build information."""
 
 from zoneinfo import ZoneInfo
 
@@ -31,6 +31,11 @@ class InstanceSettings(SettingsGroup):
     enabled_rooms: str = Field(
         default=DEFAULT_ENABLED_ROOMS,
         description="Comma-separated rooms shown: work, journal, shopping, contacts, control.",
+    )
+    webhooks_enabled: bool = Field(
+        default=False,
+        description="Registers the token-protected webhook entrance `/webhooks/v1/` for home and "
+        "phone automation (Home Assistant, Tasker).",
     )
     update_reminder_days: int = Field(
         default=14,

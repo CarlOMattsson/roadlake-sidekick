@@ -13,6 +13,10 @@ Claude signs in to your server through GitHub, but Sidekick decides who gets in:
 
 - Homepage URL: `https://<your-domain>`
 - Authorization callback URL: `https://<your-domain>/mcp/auth/callback`
+
+`<your-domain>` is the host in `SIDEKICK_MCP_PUBLIC_BASE_URL`, which is also the OAuth issuer. With the `tailscale` profile
+it is the node's Funnel name, `<hostname>.<your-tailnet>.ts.net` (see [First start on a server](../start/self-hosted-server.md#first-start)).
+
 - Generate a client secret. Put the Client ID and the secret in `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_ID` and
   `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`. Sidekick asks GitHub for no permissions beyond who you are.
 
