@@ -17,6 +17,7 @@ import {
   type Args,
   type PlanHelpers,
   type Planned,
+  type Queueable,
 } from "./companion-plan";
 
 /** The routes, for reading and for the contract tests that compare them with the backend. Nothing is built from it. */
@@ -111,9 +112,22 @@ export function planWorkWrite(
   args: Args,
   h: PlanHelpers,
 ): Planned | undefined {
-  /** A write: the signature is the action itself, so a retry of the same action sends the same key. */
-  const write = (path: string, body: Args): Planned => {
+  /**
+   * A write: the signature is the action itself, so a retry of the same action sends the same key. Without a network
+   * the phone's outbox keeps it (`queue`) and sends it with that key.
+   */
+  const write = (
+    path: string,
+    body: Args,
+    record: { subjectId?: string; version?: number },
+  ): Planned => {
     const signature = JSON.stringify([name, path, body]);
+    const queue: Queueable = {
+      kind: "record",
+      write: name as "create_task" | "update_task" | "update_project",
+      ...record,
+      body,
+    };
     return {
       request: {
         method: "POST",
@@ -122,6 +136,7 @@ export function planWorkWrite(
         idempotencyKey: h.keyOf(args.idempotency_key, signature),
       },
       signature,
+      queue,
     };
   };
   const text = (value: unknown): string =>
@@ -170,7 +185,7 @@ export function planWorkWrite(
       for (const key of Object.keys(body))
         if (body[key] === null) delete body[key];
       if (typeof body.title !== "string") return h.invalid();
-      return write("/companion/v1/tasks", body);
+      return write("/companion/v1/tasks", body, {});
     }
     case "update_task": {
       h.onlyKeys(args, ["task_id", "version", "idempotency_key", "changes"]);
@@ -191,10 +206,11 @@ export function planWorkWrite(
         },
         ["description", "due_at", "project_id", "process_id", "domain_id"],
       );
-      return write(`/companion/v1/tasks/${taskId}/update`, {
-        version,
-        ...body,
-      });
+      return write(
+        `/companion/v1/tasks/${taskId}/update`,
+        { version, ...body },
+        { subjectId: taskId, version },
+      );
     }
     case "update_project": {
       h.onlyKeys(args, ["project_id", "version", "idempotency_key", "changes"]);
@@ -213,10 +229,11 @@ export function planWorkWrite(
         },
         ["description", "start_date", "target_date"],
       );
-      return write(`/companion/v1/projects/${projectId}/update`, {
-        version,
-        ...body,
-      });
+      return write(
+        `/companion/v1/projects/${projectId}/update`,
+        { version, ...body },
+        { subjectId: projectId, version },
+      );
     }
     default:
       return undefined;

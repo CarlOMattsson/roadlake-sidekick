@@ -38,6 +38,7 @@ import { useMounted } from "../../mcp-apps/ui/use-mounted";
 import { useAgendaSession } from "./parts/use-agenda-session";
 import { useKeepFocus } from "./parts/use-keep-focus";
 import { useOfflineAgenda } from "./parts/use-offline-agenda";
+import { useQueuedRecords } from "../shared/use-queued-records";
 import { useRowMenu } from "./parts/use-row-menu";
 import { useRowOffers } from "./parts/use-row-offers";
 import { useRowState } from "./parts/use-row-state";
@@ -175,6 +176,7 @@ export function AgendaView({
 
   // The phone's offline copy and outbox (the mobile app only): when this page was read, and the ticks still to send.
   const { copiedAt, sending } = useOfflineAgenda(transport, page);
+  const waiting = useQueuedRecords(transport, page);
   const doneTasks = new Set(sending);
   for (const record of page.items) {
     const item = rows.current(record);
@@ -205,6 +207,7 @@ export function AgendaView({
     onOpen,
     notice,
     sending,
+    waiting,
     doneTasks,
   };
 

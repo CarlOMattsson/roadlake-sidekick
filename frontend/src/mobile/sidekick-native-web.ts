@@ -67,17 +67,22 @@ export class SidekickNativeWeb implements SidekickNativePlugin {
   queueShoppingAdd(): Promise<{ queued: boolean }> {
     return Promise.resolve({ queued: false });
   }
+  queueRecordWrite(): Promise<{ queued: boolean }> {
+    return Promise.resolve({ queued: false });
+  }
   queuedWrites(): Promise<{
     purchases: [];
     adds: [];
     failed: [];
     completions: [];
+    records: [];
   }> {
     return Promise.resolve({
       purchases: [],
       adds: [],
       failed: [],
       completions: [],
+      records: [],
     });
   }
   retryQueuedWrite(): Promise<{ retried: boolean }> {

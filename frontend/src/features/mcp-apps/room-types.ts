@@ -95,6 +95,12 @@ export type OfflineSupport = {
    * room can draw them as done though the server still has them open. Absent where the host has no such outbox.
    */
   queuedCompletions?: () => Promise<ReadonlySet<string>>;
+  /**
+   * The ids (lower case) of the records with a write still waiting in the outbox: a Task, Project or journal entry that
+   * was edited, and the stand-in of one that was made, without a network. A room draws them as waiting. Absent where the
+   * host has no such outbox.
+   */
+  queuedRecordIds?: () => Promise<ReadonlySet<string>>;
   /** Calls `listener` when a run of the outbox has ended; returns the unsubscribe. */
   onQueueChanged: (listener: () => void) => () => void;
 };

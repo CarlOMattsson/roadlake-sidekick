@@ -35,14 +35,21 @@
   overflow-wrap: anywhere;
 }
 
-/* Two fixed columns, retry then remove: "Ta bort" keeps its place whether or not "Försök igen" is offered. */
+/* The buttons end at the right edge: "Ta bort" is last and keeps its place whether or not the others are offered. */
 .mobile-queue-notice__actions {
-  display: grid;
-  grid-template-columns: repeat(2, auto);
-  justify-content: end;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--sk-s1);
 }
 
-.mobile-queue-notice__actions > :last-child {
-  grid-column: 2;
+/* What the user wrote, kept so it can be read and copied: one block that scrolls instead of growing the card. */
+.mobile-queue-notice__written {
+  margin: var(--sk-s1) 0;
+  max-height: 6lh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  user-select: text;
+  color: var(--sk-fg-2, var(--sk-fg));
 }

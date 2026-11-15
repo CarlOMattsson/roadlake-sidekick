@@ -23,6 +23,7 @@ import {
   type Args,
   type PlanHelpers,
   type Planned,
+  type Queueable,
 } from "./companion-plan";
 
 /** The routes, for reading and for the contract tests that compare them with the backend. Nothing is built from it. */
@@ -107,9 +108,22 @@ export function planJournal(
   args: Args,
   h: PlanHelpers,
 ): Planned | undefined {
-  /** A write: the signature is the action itself, so a retry of the same action sends the same key. */
-  const write = (path: string, body: Args): Planned => {
+  /**
+   * A write: the signature is the action itself, so a retry of the same action sends the same key. Without a network
+   * the phone's outbox keeps it, encrypted (`queue`), and sends it with that key.
+   */
+  const write = (
+    path: string,
+    body: Args,
+    record: { subjectId?: string; version?: number },
+  ): Planned => {
     const signature = JSON.stringify([name, path, body]);
+    const queue: Queueable = {
+      kind: "record",
+      write: name as "write_journal_entry" | "update_journal_entry",
+      ...record,
+      body,
+    };
     return {
       request: {
         method: "POST",
@@ -118,6 +132,7 @@ export function planJournal(
         idempotencyKey: h.keyOf(args.idempotency_key, signature),
       },
       signature,
+      queue,
     };
   };
   const text = (value: unknown): string =>
@@ -227,7 +242,7 @@ export function planJournal(
         typeof body.source_text !== "string"
       )
         return h.invalid();
-      return write(`${BASE}/entries`, body);
+      return write(`${BASE}/entries`, body, {});
     }
     case "update_journal_entry": {
       h.onlyKeys(args, UPDATE_KEYS);
@@ -250,7 +265,11 @@ export function planJournal(
         // A null summary clears it (the entry editor's replace mode); the other fields have no null.
         ["summary"],
       );
-      return write(`${BASE}/entries/${id}/update`, { version, ...body });
+      return write(
+        `${BASE}/entries/${id}/update`,
+        { version, ...body },
+        { subjectId: id, version },
+      );
     }
     default:
       return undefined;

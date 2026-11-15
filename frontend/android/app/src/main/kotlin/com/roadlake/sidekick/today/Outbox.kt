@@ -5,8 +5,13 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-/** What a queued write does. The wire name is what the file stores; an entry without one is a [TASK_COMPLETION]. */
-enum class OutboxKind(val wire: String) {
+/**
+ * What a queued write does. The wire name is what the file stores (and what the page calls it; the record writes are named
+ * after the tool the room called); an entry without one is a [TASK_COMPLETION]. A [keyed] kind has no row yet, so one
+ * write is told from another by its key. A kind that [sendsPayload] sends the request body the page built, as it is.
+ * A kind that [mergesEdits] may take a second edit of the same row into the one still waiting to be sent.
+ */
+enum class OutboxKind(val wire: String, val keyed: Boolean = false, val sendsPayload: Boolean = false, val mergesEdits: Boolean = false) {
     /** The widget's (and the app's) tick of a Task: `POST /companion/v1/tasks/{id}/complete`. */
     TASK_COMPLETION("task"),
 
@@ -14,8 +19,26 @@ enum class OutboxKind(val wire: String) {
     SHOPPING_PURCHASE("purchase"),
 
     /** A new shopping item (or a few) added without coverage: `POST /companion/v1/shopping/lists/{id}/items`. */
-    SHOPPING_ADD("add"),
+    SHOPPING_ADD("add", keyed = true, sendsPayload = true),
+
+    /** A new Task made without coverage: `POST /companion/v1/tasks`. */
+    TASK_CREATE("create_task", keyed = true, sendsPayload = true),
+
+    /** An edit of a Task (title, note, due date, place, priority) made without coverage: `POST /companion/v1/tasks/{id}/update`. */
+    TASK_EDIT("update_task", sendsPayload = true, mergesEdits = true),
+
+    /** An edit of a Project made without coverage: `POST /companion/v1/projects/{id}/update`. */
+    PROJECT_EDIT("update_project", sendsPayload = true, mergesEdits = true),
+
+    /** A new journal entry written without coverage: `POST /companion/v1/journal/entries`. Held only in the encrypted journal queue. */
+    JOURNAL_CREATE("write_journal_entry", keyed = true, sendsPayload = true),
+
+    /** An edit of a journal entry made without coverage: `POST /companion/v1/journal/entries/{id}/update`. Held only in the encrypted journal queue. */
+    JOURNAL_EDIT("update_journal_entry", sendsPayload = true),
     ;
+
+    /** Whether the write is what the user wrote in the journal: held only in the encrypted journal queue, never in the outbox. */
+    val isJournal: Boolean get() = this == JOURNAL_CREATE || this == JOURNAL_EDIT
 
     companion object {
         fun ofWire(wire: String?): OutboxKind? = if (wire == null) TASK_COMPLETION else entries.firstOrNull { it.wire == wire }
@@ -23,7 +46,7 @@ enum class OutboxKind(val wire: String) {
 }
 
 /**
- * Why a shopping write is no longer sent but kept for the user to see: it grew older than [Outbox.MAX_AGE_MILLIS]
+ * Why a write is no longer sent but kept for the user to see: it grew older than [Outbox.MAX_AGE_MILLIS]
  * ([EXPIRED]), or the server refused it for good ([REJECTED]: changed elsewhere, gone, not valid). The wire name is
  * what the file stores.
  */
@@ -43,8 +66,11 @@ enum class OutboxFailure(val wire: String) {
  * sends the same key and the same version, so a request whose answer was lost is replayed by the server, not applied
  * twice. [purchased] is the state a [OutboxKind.SHOPPING_PURCHASE] asks for (unused for a Task). For a
  * [OutboxKind.SHOPPING_ADD] the [subjectId] is the list and [payload] is the request body the page built
- * (`{ items, merge_duplicates }`), sent as it is; its [version] is unused (0). A shopping write with a [failure] is
- * never sent again by the drain: it waits for the user to retry or remove it. [issuedAtMillis] is when the key was
+ * (`{ items, merge_duplicates }`), sent as it is; its [version] is unused (0). The record writes (a new or edited Task,
+ * Project or journal entry) keep the body the page built in [payload] too: for an edit the [subjectId] is the row and
+ * the [version] the one the edit rests on (it is in the body as well), for a creation the [subjectId] is [Outbox.NEW_SUBJECT].
+ * A write other than a completion with a [failure] is never sent again by the drain: it waits for the user to retry or
+ * remove it. [issuedAtMillis] is when the key was
  * made; unlike [createdAtMillis] it is not renewed by a retry, because the server forgets a key after its idempotency
  * window ([Outbox.MAX_KEY_AGE_MILLIS]) and an older key would make a re-sent write a new one. An entry with a
  * [notBeforeMillis] in the future is [isHeld]: it is queued (and shown as queued) but the drain does not send it yet,
@@ -80,11 +106,16 @@ class OutboxEntry(
             OutboxKind.TASK_COMPLETION -> "/companion/v1/tasks/$subjectId/complete"
             OutboxKind.SHOPPING_PURCHASE -> "/companion/v1/shopping/items/$subjectId/purchased"
             OutboxKind.SHOPPING_ADD -> "/companion/v1/shopping/lists/$subjectId/items"
+            OutboxKind.TASK_CREATE -> "/companion/v1/tasks"
+            OutboxKind.TASK_EDIT -> "/companion/v1/tasks/$subjectId/update"
+            OutboxKind.PROJECT_EDIT -> "/companion/v1/projects/$subjectId/update"
+            OutboxKind.JOURNAL_CREATE -> "/companion/v1/journal/entries"
+            OutboxKind.JOURNAL_EDIT -> "/companion/v1/journal/entries/$subjectId/update"
         }
 
     /** The JSON body of the request: the version, and for a purchase the asked state. */
     fun bodyJson(): String {
-        if (kind == OutboxKind.SHOPPING_ADD) return payload ?: "{}"
+        if (kind.sendsPayload) return payload ?: "{}"
         val body = JSONObject().put("version", version)
         if (kind == OutboxKind.SHOPPING_PURCHASE) body.put("purchased", purchased)
         return body.toString()
@@ -113,8 +144,21 @@ class OutboxEntry(
  * checked-off task was never sent. A shopping write that expires, or that the server refuses ([markRejected]), is not
  * dropped: it stays as a [failed] entry, out of [pending], until the user retries ([retryFailed]) or removes it
  * ([discardFailed]). Nothing the user queued disappears unseen. Failed entries count toward [MAX_ENTRIES].
+ *
+ * With [eraseWhenEmpty] a queue that becomes empty is not written as an empty file: its store is erased (an encrypted store
+ * also removes its key), so nothing of what the user wrote, not even an empty ciphertext, stays on the phone; the next
+ * entry starts a new file, and a new key.
+ *
+ * An entry the drain is sending is [claim]ed until [release]: an edit is never folded into it, because the request on its
+ * way would then carry the old body and the removal that follows it would take the newer edit with it.
  */
-class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit = {}, private val clock: () -> Long) {
+class Outbox(
+    private val store: TextStore,
+    private val onQuarantine: () -> Unit = {},
+    private val maxPayloadChars: Int = MAX_PAYLOAD_CHARS,
+    private val eraseWhenEmpty: Boolean = false,
+    private val clock: () -> Long,
+) {
     /**
      * Adds the completion unless this Task is already queued; returns the entry that is queued either way, or null when it
      * is not safely kept. With a [holdMillis] the entry is held that long before it may be sent (the widget's undo window).
@@ -136,8 +180,22 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
      * Null when it is not safely kept: a full queue, a body over [MAX_PAYLOAD_CHARS], or a failed or uncertain write.
      */
     fun enqueueShoppingAdd(listId: String, bodyJson: String, idempotencyKey: String): OutboxEntry? {
-        if (bodyJson.length > MAX_PAYLOAD_CHARS) return null
+        if (bodyJson.length > maxPayloadChars) return null
         return add(OutboxKind.SHOPPING_ADD, listId, 0, idempotencyKey, purchased = false, payload = bodyJson)
+    }
+
+    /**
+     * Adds a record write: a new Task ([OutboxKind.TASK_CREATE], [subjectId] is [NEW_SUBJECT]), or an edit of the row
+     * [subjectId] written against [version], with the request body the page built ([bodyJson], sent as it is) and the key
+     * the first attempt carried. The same key queued again is the same write. A second edit of a Task or Project that
+     * already has one waiting is folded into it (the later value of a field wins) while the first has never been tried,
+     * under a new key; otherwise, and for any other kind, it is refused (null), never dropped unseen. Null also when it is
+     * not safely kept: a full queue, a body over the cap, or a failed or uncertain write: the caller retries with the same key.
+     */
+    fun enqueueRecordWrite(kind: OutboxKind, subjectId: String, version: Int, bodyJson: String, idempotencyKey: String): OutboxEntry? {
+        require(kind.sendsPayload && kind != OutboxKind.SHOPPING_ADD)
+        if (bodyJson.length > maxPayloadChars) return null
+        return add(kind, subjectId, version, idempotencyKey, purchased = false, payload = bodyJson)
     }
 
     /**
@@ -146,6 +204,26 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
      * the directory again with everything in the queue. A caller is not told "queued" while it is set.
      */
     private var unconfirmed = false
+
+    /** The keys of the entries being sent now; in memory only, a restart sends nothing. */
+    private val sending = HashSet<String>()
+
+    /**
+     * Takes [entry] to send it. False when it is no longer in the queue as it was read (an edit was folded into it, or it
+     * was taken back): the drain skips it, and the entry that is there now is sent by the next run.
+     */
+    @Synchronized
+    fun claim(entry: OutboxEntry): Boolean {
+        val now = read()?.entries?.firstOrNull { it.idempotencyKey == entry.idempotencyKey } ?: return false
+        if (now.failure != null || now.payload != entry.payload || now.version != entry.version) return false
+        return sending.add(entry.idempotencyKey)
+    }
+
+    /** Ends the send that [claim] began, whatever came of it. */
+    @Synchronized
+    fun release(entry: OutboxEntry) {
+        sending.remove(entry.idempotencyKey)
+    }
 
     @Synchronized
     private fun add(
@@ -158,14 +236,26 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
         holdMillis: Long = 0L,
     ): OutboxEntry? {
         val current = read() ?: return null
-        // A row has one pending write per kind; an add has no row, so its key is what makes it the same add.
+        // A row has one pending write per kind; a write with no row yet is told by its key.
         val same: (OutboxEntry) -> Boolean =
-            if (kind == OutboxKind.SHOPPING_ADD) {
+            if (kind.keyed) {
                 { it -> it.kind == kind && it.idempotencyKey == idempotencyKey }
             } else {
                 { it -> it.kind == kind && it.subjectId == subjectId && it.failure == null }
             }
         current.entries.firstOrNull(same)?.let { existing ->
+            if (kind.sendsPayload && existing.idempotencyKey != idempotencyKey) {
+                // A different edit of a row that already has one waiting: folded in, or refused; never dropped.
+                val folded = if (kind.mergesEdits && existing.attempts == 0 &&
+                    existing.idempotencyKey !in sending
+                ) {
+                    fold(existing, version, payload)
+                } else {
+                    null
+                }
+                if (folded == null || folded.payload.orEmpty().length > maxPayloadChars) return null
+                return if (write(current.copy(entries = current.entries.map { if (it === existing) folded else it }))) folded else null
+            }
             // Readable is not durable: after an uncertain commit the entry is on disk, but a power cut may still lose it.
             // It is only reported as queued once the same queue has been written and synced successfully.
             return if (!unconfirmed || write(current)) existing else null
@@ -185,6 +275,33 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
         )
         return if (write(current.copy(entries = current.entries + entry))) entry else null
     }
+
+    /**
+     * [existing] with the fields of [newer] laid over it: the later value of a field wins, the version is the older of the
+     * two (both rest on what the page last read). A new key, so a request of the old one that did get through is not
+     * mistaken for this edit; the entry keeps its place in the queue. Null when a body is not a JSON object.
+     */
+    private fun fold(existing: OutboxEntry, version: Int, newer: String?): OutboxEntry? = try {
+        val body = JSONObject(existing.payload ?: return null)
+        val later = JSONObject(newer ?: return null)
+        val kept = minOf(existing.version, version)
+        for (name in later.keys()) body.put(name, later.get(name))
+        body.put("version", kept)
+        OutboxEntry(
+            existing.subjectId,
+            kept,
+            idempotencyKey = foldedKey(existing.idempotencyKey),
+            createdAtMillis = existing.createdAtMillis,
+            kind = existing.kind,
+            payload = body.toString(),
+            issuedAtMillis = clock(),
+        )
+    } catch (_: JSONException) {
+        null
+    }
+
+    /** The key of the later edit is the one the page made for it; [fold] needs one of its own that cannot clash with either. */
+    private fun foldedKey(first: String): String = "$first.${clock()}".takeLast(MAX_KEY_LENGTH)
 
     /**
      * The entries to send, oldest first. An entry that has expired leaves them: a task completion is dropped (and
@@ -393,6 +510,7 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
     }
 
     private fun write(queue: Queue): Boolean {
+        if (eraseWhenEmpty && queue.entries.isEmpty() && queue.expired == 0) return eraseStore()
         val array = JSONArray()
         for (entry in queue.entries) {
             // "task" is the row's id for every kind (the name predates purchases); a task entry is written exactly as
@@ -429,6 +547,15 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
         }
     }
 
+    /** An empty queue leaves no file and no key (see [eraseWhenEmpty]); false when something of it could not be removed. */
+    private fun eraseStore(): Boolean = try {
+        store.erase()
+        unconfirmed = false
+        true
+    } catch (_: IOException) {
+        false
+    }
+
     /** What the file holds: the entries and the number that expired unsent (a plain count, no task data). */
     private data class Queue(val entries: List<OutboxEntry>, val expired: Int)
 
@@ -438,6 +565,15 @@ class Outbox(private val store: TextStore, private val onQuarantine: () -> Unit 
 
         /** The longest request body an add keeps (a batch of names is far below it): the queue file is rewritten on every change. */
         const val MAX_PAYLOAD_CHARS = 16 * 1024
+
+        /** The longest body the journal queue keeps: the journal routes take up to 256 KB (`RequestPolicy.MAX_BODY_BYTES`). */
+        const val MAX_JOURNAL_PAYLOAD_CHARS = 128 * 1024
+
+        /** The subject of a write that has no row yet (a new Task, a new journal entry): the key tells such writes apart. */
+        const val NEW_SUBJECT = "new"
+
+        /** The longest idempotency key the server and the phone's request policy take. */
+        private const val MAX_KEY_LENGTH = 128
 
         /** The longest a completion may be held for an Undo: a bound, so a held entry is always sent soon. */
         const val MAX_HOLD_MILLIS = 60_000L

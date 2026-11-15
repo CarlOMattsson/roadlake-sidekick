@@ -44,6 +44,7 @@ import { PhoneTrash } from "./phone-trash";
 import type { MobilePlatform } from "./platform";
 import { PushNotice } from "./push-notice";
 import { QueueNotice, type QueueNoticeProps } from "./queue-notice";
+import { useSentRefresh } from "./use-sent-refresh";
 import { ShareSheet } from "./share-sheet";
 import { useServerLicense, type ServerLicenseNative } from "./server-license";
 import { useServerRooms, type ServerRoomsNative } from "./server-rooms";
@@ -206,6 +207,8 @@ export function MobileApp({
   }, [trashOpen]);
   // A restored record is back in its room: the rooms read again, as when the app returns to the foreground.
   const roomsChanged = useCallback(() => setStaleTick((tick) => tick + 1), []);
+  // Records written without a network that the phone has since sent are read again, in place of their stand-ins.
+  useSentRefresh(transport.offline, roomsChanged);
   const gate = useContext(PairingGateContext);
   const settingsLabel = settingsLabelsFor(locale).title;
   const hostSettings = useMemo(
@@ -230,7 +233,8 @@ export function MobileApp({
   useLayoutEffect(() => {
     shareShown.current = share ? onShareClosed : undefined;
   }, [share, onShareClosed]);
-  useEffect(
+  // Registered in a layout effect too: a Back pressed the moment the app is on screen must find a handler.
+  useLayoutEffect(
     () =>
       platform.onBack(() => {
         if (shareShown.current) {

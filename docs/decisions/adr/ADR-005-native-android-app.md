@@ -179,8 +179,8 @@ allowlist gains exactly these three method and path pairs. The app reuses the Wo
 (the + in the tabs, the task's edit menu, the due-date and place choices, the project's edit form);
 `CompanionRoomTransport` answers only the fields the routes take, so a control for tags, repeat rules or
 estimates stays hidden on the phone, as before. A write that gets no answer fails visibly, the form keeps
-what was typed, and the retry reuses the first idempotency key, so nothing is written twice. Queuing task
-and project writes in the durable outbox, as for check-offs and shopping, is a later step.
+what was typed, and the retry reuses the first idempotency key, so nothing is written twice. A write that gets no
+answer because of the connection is kept in the phone's outbox instead (see "Offline writes" below).
 
 ### Deleting and the trash
 
@@ -216,8 +216,35 @@ The app is also a share target for plain text and links (`ACTION_SEND`,
 between a task and a new entry in today's journal; nothing is written before Save. The sheet writes through the
 same two tools as the rooms' forms (`create_task`, `write_journal_entry`), so it needs no new route, scope or
 capability, and it follows the same rule as the forms: no answer means a visible failure that keeps the text and
-retries with the same idempotency key. The shared text lives only in memory until the sheet closes; the journal text is
-never stored on the phone, and queuing shared tasks waits with the other task writes.
+retries with the same idempotency key. The shared text lives only in memory until the sheet closes; when no answer
+comes, the sheet's task or journal write is kept in the outbox like any other (see "Offline writes" below) and the sheet
+says it is waiting for the network.
+
+### Offline writes (2026-11-15)
+
+The owner decided that what is created or edited in the app without a network waits on the phone until it reaches the
+server, and that this changes the earlier rule that journal text is never stored on the phone.
+
+- **Tasks and Projects.** A new task, an edit of a task and an edit of a project that get no answer because of the
+  connection (`network` or `timeout`) are put in the same durable outbox as check-offs and shopping, with the
+  idempotency key of the attempt that got no answer, so a request that did reach the server is replayed, never applied
+  twice. The room is answered with a stand-in of the record (the edit laid over the record as last read, with the
+  version unchanged; a new task under an id that is not a UUID and never reaches the server), and draws it as waiting
+  ("Väntar…") until the server has taken it, after which the rooms read again. A second edit of a task or project that
+  still waits, and has never been tried, is folded into the first (the later value of a field wins, a new key); in every
+  other case it is refused visibly rather than dropped. An edit of a record the app has not read is not queued.
+- **Final refusals are never silent.** A 409, 404, 410 or 422 does not discard the write: it stays in the queue as
+  failed, the app says so in a card with the words the owner wrote, which can be copied, and the owner removes it or, if
+  it can still succeed, tries again. A write older than seven days is kept the same way.
+- **Journal text, encrypted.** A journal entry written or edited without a network, and a journal entry saved from the
+  share sheet, wait in a second queue whose file is encrypted at rest with AES-256-GCM. The key is generated in the
+  Android Keystore and cannot be exported. The text is never in the file, its temporary copy or a quarantined copy in clear
+  text, never in a log or a crash report, and reaches the page only to be drawn as waiting. When the queue
+  becomes empty (the server has confirmed the last entry, or the last refused one was removed by the user) its file and
+  the Keystore key are removed; the next entry creates a new key. Both are also erased when the phone is unpaired. If the key is
+  lost (a restored phone) the queue cannot be read and is moved aside; nothing is guessed. The queue is in the no-backup directory, so it never leaves
+  the phone.
+- **Not queued.** Moving to the trash, restoring and removing for good need the network, as above.
 
 ## Alternatives considered
 

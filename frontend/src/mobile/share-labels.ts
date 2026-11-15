@@ -22,6 +22,8 @@ export type ShareLabels = {
   failed: string;
   savedTask: string;
   savedJournal: string;
+  /** The save is waiting in the phone's outbox: no network, so it is sent when there is one. */
+  savedQueued: string;
   done: string;
   /** Shown on the pairing screen while a share waits: the text is kept until the phone is paired. */
   needsPairing: string;
@@ -41,6 +43,7 @@ export const shareLabelsSv: ShareLabels = {
   failed: "Det gick inte att spara. Texten finns kvar.",
   savedTask: "Sparad som uppgift.",
   savedJournal: "Tillagd i dagens dagbok.",
+  savedQueued: "Sparad på telefonen. Den skickas när nätet finns.",
   done: "Klar",
   needsPairing:
     "Du delade en text till Sidekick. Koppla telefonen först, så kan du spara den.",
@@ -60,6 +63,7 @@ export const shareLabelsEn: ShareLabels = {
   failed: "Couldn’t save. Your text is still here.",
   savedTask: "Saved as a task.",
   savedJournal: "Added to today’s journal.",
+  savedQueued: "Saved on the phone. It is sent when there is a network.",
   done: "Done",
   needsPairing:
     "You shared text to Sidekick. Connect the phone first, then you can save it.",

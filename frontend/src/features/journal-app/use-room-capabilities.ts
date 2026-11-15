@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { createJournalTransport } from "./transport";
+import { createJournalTransport, type JournalTransport } from "./transport";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import type { RoomTransport } from "../mcp-apps/room-types";
 import { toolOffered } from "../mcp-apps/tool-support";
@@ -9,7 +9,7 @@ import { toolOffered } from "../mcp-apps/tool-support";
  * offered (the mobile app has no originals, no drafts and no contact room).
  */
 export function useRoomCapabilities(host: RoomTransport) {
-  const call = host.call;
+  const { call, offline } = host;
   const canReadSource = toolOffered(host, "get_journal_source");
   const canListPending = toolOffered(host, "list_pending_journal");
   // A contact name opens the Contact room only where that room is on; otherwise it stays plain text.
@@ -31,9 +31,11 @@ export function useRoomCapabilities(host: RoomTransport) {
   const canFilterTags =
     canListTags && toolOffered(host, "list_journal_entries", { tags: [] });
   const canWriteTags = toolOffered(host, "update_journal_entry", { tags: [] });
-  const transport = useMemo(
-    () =>
-      createJournalTransport(
+  // The phone's outbox rides along on the transport, where the host has one.
+  const transport = useMemo<JournalTransport>(
+    () => ({
+      ...(offline ? { offline } : {}),
+      ...createJournalTransport(
         call,
         canReadSource,
         canChangeLinks,
@@ -45,6 +47,7 @@ export function useRoomCapabilities(host: RoomTransport) {
           write: canWriteTags,
         },
       ),
+    }),
     [
       call,
       canReadSource,
@@ -54,6 +57,7 @@ export function useRoomCapabilities(host: RoomTransport) {
       canListTags,
       canFilterTags,
       canWriteTags,
+      offline,
     ],
   );
   return { transport, canListPending, contactsOn, canOpenContact };

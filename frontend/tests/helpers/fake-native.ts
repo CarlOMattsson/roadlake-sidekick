@@ -11,6 +11,7 @@ import type {
   PairOptions,
   PushStatus,
   QueuePurchaseOptions,
+  QueueRecordWriteOptions,
   QueueShoppingAddOptions,
   SharedText,
   TestPushResult,
@@ -32,6 +33,7 @@ type MockedMethod =
   | "sendTestPush"
   | "queuePurchase"
   | "queueShoppingAdd"
+  | "queueRecordWrite"
   | "retryQueuedWrite"
   | "removeQueuedWrite"
   | "takeShare";
@@ -71,6 +73,13 @@ export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
       (options: QueueShoppingAddOptions) => Promise<{ queued: boolean }>
     >
   >;
+  queueRecordWrite: ReturnType<
+    typeof vi.fn<
+      (options: QueueRecordWriteOptions) => Promise<{ queued: boolean }>
+    >
+  >;
+  /** The phone's outbox of record writes (new and edited Tasks, Projects, journal entries), by key. */
+  records: Map<string, QueueRecordWriteOptions>;
   /** The phone's outbox of purchases, by item id. */
   outbox: Map<string, QueuePurchaseOptions>;
   /** The phone's outbox of added items, by the key of the add. */
@@ -88,7 +97,7 @@ export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
   takeShare: ReturnType<typeof vi.fn<() => Promise<{ share?: SharedText }>>>;
   /** Text shared to the app: waits for `takeShare`, and `shareReceived` fires when a listener is there (a running app). */
   receiveShare: (share: SharedText) => void;
-  /** Ends a run of the outbox: `sent` (item ids, or the keys of adds) leave it, then `queueChanged` fires as the native sync does. */
+  /** Ends a run of the outbox: `sent` (item ids, or the keys of adds and record writes) leave it, then `queueChanged` fires as the native sync does. */
   runOutbox: (sent?: string[]) => void;
 };
 
@@ -128,6 +137,7 @@ export function fakeNative(
   let sharedText: SharedText | undefined;
   const outbox = new Map<string, QueuePurchaseOptions>();
   const addOutbox = new Map<string, QueueShoppingAddOptions>();
+  const records = new Map<string, QueueRecordWriteOptions>();
   let state: PairingStatus =
     pairing.paired === false
       ? { paired: false }
@@ -199,6 +209,13 @@ export function fakeNative(
     return Promise.resolve({ queued: true });
   });
 
+  // The same write queued again (same key) is the same write.
+  const queueRecordWrite = vi.fn((options: QueueRecordWriteOptions) => {
+    if (!records.has(options.idempotencyKey))
+      records.set(options.idempotencyKey, options);
+    return Promise.resolve({ queued: true });
+  });
+
   const completions = new Map<string, number>();
   const failedWrites = new Map<string, FailedWrite>();
   const retryQueuedWrite = vi.fn((options: { key: string }) =>
@@ -228,6 +245,8 @@ export function fakeNative(
     retryQueuedWrite,
     removeQueuedWrite,
     queueShoppingAdd,
+    queueRecordWrite,
+    records,
     queuedWrites: () =>
       Promise.resolve({
         purchases: [...outbox.values()].map((entry) => ({
@@ -246,13 +265,23 @@ export function fakeNative(
           taskId,
           queuedAt,
         })),
+        records: [...records.values()].map((entry, index) => ({
+          key: entry.idempotencyKey,
+          kind: entry.kind,
+          ...(entry.subjectId ? { subjectId: entry.subjectId } : {}),
+          queuedAt: Date.UTC(2026, 10, 11, 13, 0, index),
+          body: entry.body,
+        })),
       }),
     outbox,
     addOutbox,
-    runOutbox: (sent = [...outbox.keys(), ...addOutbox.keys()]) => {
+    runOutbox: (
+      sent = [...outbox.keys(), ...addOutbox.keys(), ...records.keys()],
+    ) => {
       for (const id of sent) {
         outbox.delete(id);
         addOutbox.delete(id);
+        records.delete(id);
       }
       for (const listener of queueListeners) listener();
     },

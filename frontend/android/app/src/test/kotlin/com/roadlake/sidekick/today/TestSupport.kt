@@ -8,6 +8,7 @@ import com.roadlake.sidekick.companion.HttpTransport
 import com.roadlake.sidekick.companion.Pairing
 import com.roadlake.sidekick.companion.PairingGeneration
 import com.roadlake.sidekick.companion.PairingStore
+import com.roadlake.sidekick.support.MemoryAesKeys
 import java.io.IOException
 
 class MemoryTextStore : TextStore {
@@ -86,12 +87,20 @@ class Harness(paired: Boolean = true) {
     var now = 1_000_000L
     val cache = TodayCache(cacheText)
     val outbox = Outbox(outboxText) { now }
+    val journalText = MemoryTextStore()
+    val journalKeys = MemoryAesKeys()
+    val journalOutbox = Outbox(
+        EncryptedTextStore(journalText, AesGcmCipher(journalKeys, ByteArray(0)), journalKeys),
+        eraseWhenEmpty = true,
+        clock = { now },
+    )
     var keys = 0
     val generation = PairingGeneration()
     val clearing = ClearingPairingStore(pairing, {
         cache.clear()
         outbox.clear()
+        journalOutbox.clear()
     }, {}, generation)
     val client = CompanionClient(clearing, http, allowLocalCleartext = false, generation = generation)
-    val repo = TodayRepository(client, cache, outbox, { now }, { "widget-key-${++keys}" }, generation)
+    val repo = TodayRepository(client, cache, outbox, journalOutbox, { now }, { "widget-key-${++keys}" }, generation)
 }

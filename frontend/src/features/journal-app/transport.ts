@@ -14,6 +14,7 @@ import type {
   ToolResults,
 } from "../../lib/mcp/tool-results.generated";
 import type { RoomTransport } from "../mcp-apps/room-types";
+import { emptyDay } from "./empty-day";
 import { withEntry } from "./entry-result";
 import {
   createTagTransport,
@@ -160,6 +161,8 @@ export type JournalEntryInput = Pick<
 >;
 
 export type JournalTransport = TagTransport & {
+  /** The phone's outbox (the mobile app only): which entries wait to be sent. Absent in Claude. */
+  offline?: RoomTransport["offline"];
   /** One day with entry content and summary status; the view reads it for its own navigation. */
   getDay: (journalDate: string) => Promise<JournalDay>;
   /**
@@ -455,21 +458,6 @@ export {
   writeFailure,
   type WriteFailure,
 } from "../../lib/mcp/errors";
-
-/** A day without entries or summary, the shape the day view draws as an empty day. */
-function emptyDay(journalDate: string): JournalDay {
-  return {
-    journal_date: journalDate,
-    entries: [],
-    next_cursor: null,
-    summary: {
-      journal_date: journalDate,
-      exists: false,
-      status: null,
-      content: null,
-    },
-  };
-}
 
 /**
  * Root of the app from the tool result that opened it. A get_journal_day result (journal_date

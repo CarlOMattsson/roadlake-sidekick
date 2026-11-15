@@ -246,11 +246,25 @@ In any app that has a share button (a browser, mail, a chat), choose **Sidekick*
 small sheet with the shared text and a title you can edit, and asks whether to save it as a **Task** (the text, which
 holds the link, becomes its note) or add it to **Today's journal** (a new entry on today's date). Nothing is written
 before you press **Save**, and nothing is sent anywhere but your own server. The sheet needs the same rights as the quick
-forms (`companion:work:write`, and the journal rights for the journal choice). With no connection the sheet says it
-could not save and keeps your text, so you can press **Save** again; the retry carries the same idempotency key, so the
-text is never written twice. Nothing is queued on the phone and no journal text is stored there. If the phone is not
+forms (`companion:work:write`, and the journal rights for the journal choice). With no connection the sheet saves the
+text on the phone and says it is sent when there is a network (see "Writing without a network"); the retry carries the
+same idempotency key, so the text is never written twice. If the phone cannot keep it either, the sheet says it could not
+save and keeps your text, so you can press **Save** again. If the phone is not
 paired yet, the pairing screen says the shared text waits, and the sheet opens after pairing. Pictures and files are not accepted, only
 plain text.
+
+### Writing without a network
+
+A task you create or edit, a project you edit, and a journal entry you write or edit while the phone has no connection
+wait on the phone and show **Waiting…** in Work and the journal. They are sent, in the order you made them, as soon as there
+is a network, also with the app closed. Each is sent with the key of its first attempt, so nothing is written twice. Journal
+text waits in a file that is encrypted with a key held in the phone's secure key store; it is never stored in clear text,
+never written to a log, and is deleted when the server has taken it and when you disconnect the phone from the server.
+
+If the server refuses a waiting write (the record was changed elsewhere, or no longer exists), the app keeps it in a card
+headed "These weren't sent", with what you wrote, so you can copy it, and you remove it or try again. A write that has waited
+more than seven days is kept the same way. Moving to the trash and restoring need a network and are never queued.
+Editing a record the app has not shown since it was opened is not queued.
 
 ### List, extend and revoke phones
 

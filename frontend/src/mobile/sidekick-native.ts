@@ -65,14 +65,52 @@ export type QueuedShoppingAdd = {
 };
 
 /**
- * A shopping write the phone will not send unless the user says so: it waited in the outbox longer than seven days
+ * The record writes the phone's outbox takes besides purchases and added items, named after the tool the room called:
+ * a new Task, an edit of a Task or a Project, and the journal (written or edited; held encrypted on the phone).
+ */
+export type RecordWriteKind =
+  | "create_task"
+  | "update_task"
+  | "update_project"
+  | "write_journal_entry"
+  | "update_journal_entry";
+
+/**
+ * A record write that got no answer, to be sent again from the outbox with the same key. `generation` is the pairing
+ * the failed request began under, as for [QueuePurchaseOptions]. `body` is the request body the page built (an edit's
+ * carries its `version`); an edit names its row (`subjectId`) and the `version` it rests on.
+ */
+export type QueueRecordWriteOptions = {
+  generation: number;
+  kind: RecordWriteKind;
+  subjectId?: string;
+  version?: number;
+  idempotencyKey: string;
+  body: Record<string, unknown>;
+};
+
+/** A record write waiting in the phone's outbox: its key, what it is, the row it edits (none for a new one) and its body. */
+export type QueuedRecordWrite = {
+  key: string;
+  kind: RecordWriteKind;
+  subjectId?: string;
+  queuedAt: number;
+  body: Record<string, unknown>;
+};
+
+/**
+ * A write the phone will not send unless the user says so: it waited in the outbox longer than seven days
  * (`expired`) or the server refused it for good (`rejected`: changed elsewhere, gone, not valid). `key` names it for
  * `retryQueuedWrite` and `removeQueuedWrite`. An add (`kind: "add"`) carries its list and the items as the page sent
- * them; a purchase carries the item and the state it asked for.
+ * them; a purchase carries the item and the state it asked for; a record write carries its `title` and the `text` the
+ * user wrote (the first of the journal text, the note or a summary), so the words stay where they can be copied.
  */
 export type FailedWrite = {
   key: string;
-  kind: "add" | "purchase";
+  kind: "add" | "purchase" | RecordWriteKind;
+  subjectId?: string;
+  title?: string;
+  text?: string;
   reason: "expired" | "rejected";
   queuedAt: number;
   /**
@@ -242,7 +280,7 @@ export interface SidekickNativePlugin {
     options: QueueShoppingAddOptions,
   ): Promise<{ queued: boolean }>;
   /**
-   * The writes waiting in the outbox: purchases, added items and Task completions. `failed` are the ones that will
+   * The writes waiting in the outbox: purchases, added items, Task completions and record writes. `failed` are the ones that will
    * not be sent unless the user retries them; `completions` are the Tasks ticked (also from the widget) and not yet
    * sent. Both are absent from an older phone build: none. No network.
    */
@@ -251,7 +289,17 @@ export interface SidekickNativePlugin {
     adds: QueuedShoppingAdd[];
     failed?: FailedWrite[];
     completions?: QueuedCompletion[];
+    /** The record writes waiting (new and edited Tasks and Projects, journal writes); absent from an older phone build. */
+    records?: QueuedRecordWrite[];
   }>;
+  /**
+   * Puts a record write that got no answer in the phone's outbox (see [QueueRecordWriteOptions]); what the user wrote in
+   * the journal is kept encrypted. `queued: false` when it could not be kept (no pairing, a full queue, a disk failure),
+   * or when the row already has a different edit waiting that cannot be folded in.
+   */
+  queueRecordWrite(
+    options: QueueRecordWriteOptions,
+  ): Promise<{ queued: boolean }>;
   /** Puts a failed write back in the outbox to be sent again with its own key. `retried: false`: it was not there. */
   retryQueuedWrite(options: { key: string }): Promise<{ retried: boolean }>;
   /** Removes a failed write for good. `removed: false`: it was not there. */

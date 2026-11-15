@@ -6,7 +6,9 @@ import com.roadlake.sidekick.companion.PairingStore
 import com.roadlake.sidekick.companion.RenewalApi
 import com.roadlake.sidekick.companion.TokenRenewal
 import com.roadlake.sidekick.companion.UrlConnectionTransport
+import com.roadlake.sidekick.today.AesGcmCipher
 import com.roadlake.sidekick.today.ClearingPairingStore
+import com.roadlake.sidekick.today.EncryptedTextStore
 import com.roadlake.sidekick.today.Outbox
 import com.roadlake.sidekick.today.TextStore
 import com.roadlake.sidekick.today.TodayCache
@@ -21,7 +23,12 @@ import com.roadlake.sidekick.widget.TodaySyncRun
  * [widgetRedraws] counts what `TodaySync.onPairingChanged` does in the app (the widget redraws at every start and end of
  * a pairing); [pairingLosses] counts the page being told about a 401.
  */
-class PhoneProcess(pairings: PairingStore, textStore: (String) -> TextStore, val now: () -> Long) {
+class PhoneProcess(
+    pairings: PairingStore,
+    textStore: (String) -> TextStore,
+    val now: () -> Long,
+    val journalKeys: MemoryAesKeys = MemoryAesKeys(),
+) {
     var widgetRedraws = 0
         private set
     var pairingLosses = 0
@@ -30,6 +37,11 @@ class PhoneProcess(pairings: PairingStore, textStore: (String) -> TextStore, val
     val generation = PairingGeneration()
     val cache = TodayCache(textStore("today-cache.json"))
     val outbox = Outbox(textStore("outbox.json"), clock = now)
+    val journalOutbox = Outbox(
+        EncryptedTextStore(textStore("journal-outbox.enc"), AesGcmCipher(journalKeys, ByteArray(0)), journalKeys),
+        eraseWhenEmpty = true,
+        clock = now,
+    )
     private val renewalNote = textStore("renewal.json")
 
     val store = ClearingPairingStore(
@@ -37,6 +49,7 @@ class PhoneProcess(pairings: PairingStore, textStore: (String) -> TextStore, val
         clearLocalData = {
             cache.clear()
             outbox.clear()
+            journalOutbox.clear()
             renewal.clearLocal()
         },
         changed = { widgetRedraws++ },
@@ -53,6 +66,6 @@ class PhoneProcess(pairings: PairingStore, textStore: (String) -> TextStore, val
     )
 
     val renewal: TokenRenewal = TokenRenewal(store, RenewalApi { client.renew() }, renewalNote, generation, now)
-    val today = TodayRepository(client, cache, outbox, now, generation = generation)
+    val today = TodayRepository(client, cache, outbox, journalOutbox, now, generation = generation)
     val syncRun = TodaySyncRun(renewal, today, staleAfterMillis = 60_000L)
 }

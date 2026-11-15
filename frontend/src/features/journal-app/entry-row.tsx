@@ -35,6 +35,8 @@ export type EntryRowProps = {
   tagVocabulary?: readonly TagOption[];
   /** The row leads with the entry's day instead of its time, for a list that spans days. */
   dated?: boolean;
+  /** The entry's write waits in the phone's outbox: its meta line ends with "Väntar…". */
+  queued?: boolean;
 };
 
 /** How many linked names the meta line names; the rest are counted. */
@@ -55,6 +57,7 @@ export function EntryRow({
   onOpen,
   tagVocabulary,
   dated = false,
+  queued = false,
 }: EntryRowProps) {
   const wide = useWideFrame();
   const time =
@@ -84,7 +87,7 @@ export function EntryRow({
           <ChevronRightIcon />
         </span>
       ) : null}
-      {time || meta || tags.length > 0 ? (
+      {time || meta || tags.length > 0 || queued ? (
         <span className="journal-entry-meta">
           {time || meta ? (
             <span className="sk-row-meta">
@@ -93,6 +96,7 @@ export function EntryRow({
               {meta}
             </span>
           ) : null}
+          {queued && <span className="sk-queued">{t.queued}</span>}
           {/* A few tags close the meta line; the text before them gives way first (tags.css). */}
           <TagChips
             tags={tags}

@@ -129,7 +129,7 @@ describe("ShareSheet", () => {
     ).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
-  it("keeps the text and the choice when no answer comes, and the retry sends the same key", async () => {
+  it("keeps the text and the choice when no answer comes and the outbox cannot keep it, and the retry sends the same key", async () => {
     const user = userEvent.setup();
     let calls = 0;
     const native = fakeNative(() => {
@@ -137,6 +137,7 @@ describe("ShareSheet", () => {
       if (calls === 1) throw nativeError("network", 0);
       return ok(ENTRY);
     });
+    native.queueRecordWrite.mockResolvedValue({ queued: false });
     mount(native);
 
     await user.click(screen.getByRole("button", { name: "Dagens dagbok" }));
@@ -158,6 +159,26 @@ describe("ShareSheet", () => {
     const keys = native.requests.map((request) => request.idempotencyKey);
     expect(keys[0]).toBeTruthy();
     expect(keys[1]).toBe(keys[0]);
+  });
+
+  it("puts the entry in the phone's outbox when no answer comes, and says it waits", async () => {
+    const user = userEvent.setup();
+    const native = fakeNative(() => {
+      throw nativeError("network", 0);
+    });
+    mount(native);
+
+    await user.click(screen.getByRole("button", { name: "Dagens dagbok" }));
+    await user.click(screen.getByRole("button", { name: "Spara" }));
+
+    expect(await screen.findByText(shareLabelsSv.savedQueued)).toBeVisible();
+    const [kept] = [...native.records.values()];
+    expect(kept).toMatchObject({
+      kind: "write_journal_entry",
+      generation: 0,
+      body: { source_text: "https://example.org/article" },
+    });
+    expect(kept?.idempotencyKey).toBe(native.requests[0]?.idempotencyKey);
   });
 
   it("asks for a title instead of sending an empty one", async () => {
@@ -218,8 +239,9 @@ function platform(): MobilePlatform & { pressBack: () => boolean } {
   return {
     onBack: (handler) => {
       back = handler;
+      // Like the native stack: leaving removes only what this call registered.
       return () => {
-        back = undefined;
+        if (back === handler) back = undefined;
       };
     },
     launchSearch: () => "",

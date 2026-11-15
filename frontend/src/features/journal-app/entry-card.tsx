@@ -57,8 +57,11 @@ export function EntryCard({
   onOpen,
   opening = false,
   onOpenContact,
+  queued = false,
 }: {
   entry: EntryCardData;
+  /** The entry's write waits in the phone's outbox: the meta line starts with "Väntar…". */
+  queued?: boolean;
   /** Today, YYYY-MM-DD, so the saved line can say `yesterday` or leave the day out for today. Passed in, never read here. */
   today: string;
   labels: JournalLabels;
@@ -70,6 +73,7 @@ export function EntryCard({
 }) {
   const summary = summaryRest(entry.title, entry.summary);
   const meta = [
+    queued ? <span className="sk-queued">{t.queued}</span> : undefined,
     entry.summary?.trim() ? t.cardSummarized : undefined,
     ...(entry.links === undefined
       ? legacyLinks(entry, t)

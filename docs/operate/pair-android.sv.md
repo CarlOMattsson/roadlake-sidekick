@@ -251,11 +251,25 @@ I vilken app som helst med en delaknapp (webbläsare, e-post, chatt) väljer du 
 dit. Appen öppnar ett litet ark med den delade texten och en titel du kan ändra, och frågar om det ska sparas som **Uppgift**
 (texten, som innehåller länken, blir dess anteckning) eller läggas i **Dagens dagbok** (ett nytt inlägg på dagens datum).
 Ingenting skrivs innan du trycker **Spara**, och ingenting skickas någon annanstans än till din egen server. Arket kräver samma
-rättigheter som snabbformulären (`companion:work:write`, och dagboksrättigheterna för dagboksvalet). Utan anslutning säger
-arket att det inte gick att spara och behåller din text, så du kan trycka **Spara** igen; nytt försök har samma
-idempotensnyckel, så texten skrivs aldrig två gånger. Inget köas på telefonen och ingen dagbokstext lagras där. Är telefonen
+rättigheter som snabbformulären (`companion:work:write`, och dagboksrättigheterna för dagboksvalet). Utan anslutning sparar
+arket texten på telefonen och säger att den skickas när nätet finns (se "Skriva utan nät"); nytt försök har samma
+idempotensnyckel, så texten skrivs aldrig två gånger. Kan telefonen inte spara den heller säger arket att det inte gick att
+spara och behåller din text, så du kan trycka **Spara** igen. Är telefonen
 inte kopplad än säger kopplingsskärmen att den delade texten väntar, och arket öppnas efter kopplingen. Bilder och filer tas
 inte emot, bara ren text.
+
+### Skriva utan nät
+
+En uppgift du skapar eller ändrar, ett projekt du ändrar och en dagboksanteckning du skriver eller ändrar medan telefonen
+saknar anslutning väntar på telefonen och visas med **Väntar…** i Arbete och dagboken. De skickas, i den ordning du gjorde
+dem, så fort det finns nät, också med appen stängd. Varje skickas med nyckeln från sitt första försök, så inget skrivs två
+gånger. Dagbokstext väntar i en fil som är krypterad med en nyckel i telefonens säkra nyckellager; den lagras aldrig i klartext,
+loggas aldrig och raderas när servern har tagit emot den och när du kopplar bort telefonen från servern.
+
+Om servern vägrar en väntande skrivning (posten ändrades någon annanstans, eller finns inte längre) sparar appen den i ett
+kort med rubriken "Det här skickades inte", med det du skrev, så att du kan kopiera det, och du tar bort den eller försöker
+igen. En skrivning som väntat mer än sju dagar sparas på samma sätt. Papperskorgen och att ta tillbaka kräver nät och köas
+aldrig. En ändring av en post som appen inte har visat sedan den öppnades köas inte.
 
 ### Lista, utöka och spärra telefoner
 

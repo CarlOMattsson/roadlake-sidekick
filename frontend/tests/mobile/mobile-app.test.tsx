@@ -207,8 +207,9 @@ function platformFor(search = ""): TestPlatform {
   return {
     onBack: (handler) => {
       back = handler;
+      // Like the native stack: leaving removes only what this call registered.
       return () => {
-        back = undefined;
+        if (back === handler) back = undefined;
       };
     },
     launchSearch: () => search,

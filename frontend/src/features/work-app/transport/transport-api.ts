@@ -48,11 +48,11 @@ import type {
 export type WorkTransport = ToolSupport & {
   /**
    * The phone's offline help (the mobile app only): when a read is its offline copy, and which Tasks wait in its
-   * outbox to be sent as done. Absent in Claude.
+   * outbox to be sent as done, and which records have a write waiting. Absent in Claude.
    */
   offline?: Pick<
     OfflineSupport,
-    "readAt" | "queuedCompletions" | "onQueueChanged"
+    "readAt" | "queuedCompletions" | "queuedRecordIds" | "onQueueChanged"
   >;
   getTask: (taskId: string) => Promise<{ task: WorkTask }>;
   getProject: (projectId: string) => Promise<{ project: WorkProject }>;

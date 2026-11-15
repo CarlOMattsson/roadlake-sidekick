@@ -27,6 +27,8 @@ import { useDomainName } from "../view/parts/use-domain-name";
 import { WriteStatus } from "../view/parts/write-status";
 import { TagField } from "../../mcp-apps/ui/tags";
 import { KnownTags, useWorkTags } from "../shared/work-tags";
+import { useQueuedRecords } from "../shared/use-queued-records";
+import { WaitingLine } from "../shared/waiting-line";
 
 export function ProjectFrame({
   id,
@@ -52,6 +54,7 @@ export function ProjectFrame({
   const domainName = useDomainName(transport, project?.domain_id);
   // The vocabulary labels the Project's tags and its Tasks' tags; a failed tag change keeps its retry here.
   const tags = useWorkTags(transport, "project");
+  const waiting = useQueuedRecords(transport, project).has(id.toLowerCase());
   const retryTags = useRef<(() => void) | undefined>(undefined);
   useFrameRead(
     frame,
@@ -166,6 +169,10 @@ export function ProjectFrame({
       >
         {phase === "ready" && project ? project.title : t.project}
       </DetailTitle>
+      {/* A Project edited without a network waits in the phone's outbox: said under the title until it is sent. */}
+      {phase === "ready" && project && waiting && (
+        <WaitingLine text={t.queued} />
+      )}
       {phase === "ready" && project && editOffered && menuOpen && (
         <DetailMenu
           id={menuId}

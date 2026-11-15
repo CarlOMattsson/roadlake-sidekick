@@ -396,7 +396,7 @@ class TodayRepositoryTest {
         assertEquals(SyncResult.UPDATED, h.repo.sync())
         assertTrue(h.repo.queuedPurchases().isEmpty())
         assertNull(h.ready().snapshot.notice)
-        val failed = h.repo.failedShoppingWrites().single()
+        val failed = h.repo.failedWrites().single()
         assertEquals(OutboxFailure.REJECTED, failed.failure)
         assertEquals("page-key-0001", failed.idempotencyKey)
         assertTrue("a failed write is not sent again", h.repo.sync() == SyncResult.UPDATED)
@@ -412,16 +412,16 @@ class TodayRepositoryTest {
         h.http.on { if (it.url.endsWith(addPath)) HttpResult(422, """{"code":"invalid_input"}""") else null }
         assertEquals(SyncResult.UPDATED, h.repo.sync())
         assertTrue(h.repo.queuedShoppingAdds().isEmpty())
-        assertEquals(listOf("add-key-0001"), h.repo.failedShoppingWrites().map { it.idempotencyKey })
+        assertEquals(listOf("add-key-0001"), h.repo.failedWrites().map { it.idempotencyKey })
 
         assertTrue(h.repo.retryFailedWrite("add-key-0001"))
-        assertTrue(h.repo.failedShoppingWrites().isEmpty())
+        assertTrue(h.repo.failedWrites().isEmpty())
         assertEquals(1, h.repo.queuedShoppingAdds().size)
         assertEquals(SyncResult.UPDATED, h.repo.sync())
-        assertEquals(1, h.repo.failedShoppingWrites().size)
+        assertEquals(1, h.repo.failedWrites().size)
 
         assertTrue(h.repo.discardFailedWrite("add-key-0001"))
-        assertTrue(h.repo.failedShoppingWrites().isEmpty())
+        assertTrue(h.repo.failedWrites().isEmpty())
         assertFalse(h.repo.discardFailedWrite("add-key-0001"))
     }
 
@@ -431,7 +431,7 @@ class TodayRepositoryTest {
         h.readToday(item(TASK_A, "A"))
         h.repo.enqueueShoppingAdd(h.repo.pairingGeneration(), ITEM, """{"items":[{"name":"Milk"}]}""", "add-key-0001")
         h.now += Outbox.MAX_AGE_MILLIS + 1
-        val failed = h.repo.failedShoppingWrites().single()
+        val failed = h.repo.failedWrites().single()
         assertTrue(h.repo.canRetryFailedWrite(failed))
         h.now += Outbox.MAX_KEY_AGE_MILLIS
         assertFalse(h.repo.canRetryFailedWrite(failed))

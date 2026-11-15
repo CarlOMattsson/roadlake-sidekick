@@ -27,8 +27,11 @@ import com.roadlake.sidekick.push.ReminderFlow
 import com.roadlake.sidekick.push.ReminderSync
 import com.roadlake.sidekick.push.RemindersApi
 import com.roadlake.sidekick.push.UnifiedPushDistributor
+import com.roadlake.sidekick.today.AesGcmCipher
 import com.roadlake.sidekick.today.ClearingPairingStore
+import com.roadlake.sidekick.today.EncryptedTextStore
 import com.roadlake.sidekick.today.FileTextStore
+import com.roadlake.sidekick.today.KeystoreAesKeys
 import com.roadlake.sidekick.today.OfflineReads
 import com.roadlake.sidekick.today.Outbox
 import com.roadlake.sidekick.today.TodayCache
@@ -53,7 +56,7 @@ import java.util.concurrent.CopyOnWriteArraySet
  * The offline copy of the shopping lists ([offlineReads]) is one more piece of the pairing's local data, cleared with
  * the cache.
  *
- * Cache and outbox live in the no-backup directory: they follow the pairing credential's rule of never leaving the
+ * Cache and outboxes live in the no-backup directory: they follow the pairing credential's rule of never leaving the
  * phone (ADR-005).
  */
 class SidekickRuntime private constructor(context: Context) {
@@ -75,6 +78,23 @@ class SidekickRuntime private constructor(context: Context) {
         clock = System::currentTimeMillis,
     )
 
+    /**
+     * What the user wrote in the journal without a network. Encrypted at rest with a Keystore key that never leaves the
+     * Keystore; erased, key included, with the rest of the pairing's data.
+     */
+    private val journalKeys = KeystoreAesKeys("sidekick_journal_queue_v1")
+    private val journalOutbox = Outbox(
+        EncryptedTextStore(
+            textStore("journal-outbox.enc"),
+            AesGcmCipher(journalKeys, "sidekick.journal-queue.v1".toByteArray(Charsets.UTF_8)),
+            journalKeys,
+        ),
+        onQuarantine = { Log.w("SidekickOutbox", "journal queue could not be read; moved aside") },
+        maxPayloadChars = Outbox.MAX_JOURNAL_PAYLOAD_CHARS,
+        eraseWhenEmpty = true,
+        clock = System::currentTimeMillis,
+    )
+
     private val pairings = ClearingPairingStore(
         delegate = KeystorePairingStore(appContext),
         // Every step is proven or throws (and none stops the others): a new pairing is refused until all of them succeed.
@@ -82,6 +102,7 @@ class SidekickRuntime private constructor(context: Context) {
             runAllOrThrow(
                 cache::erase,
                 outbox::erase,
+                journalOutbox::erase,
                 offlineReads::erase,
                 push::clearLocal,
                 renewal::clearLocal,
@@ -164,7 +185,7 @@ class SidekickRuntime private constructor(context: Context) {
         }
     }
 
-    val today: TodayRepository = TodayRepository(client, cache, outbox, System::currentTimeMillis, generation = generation)
+    val today: TodayRepository = TodayRepository(client, cache, outbox, journalOutbox, System::currentTimeMillis, generation = generation)
 
     /** The page's requests, with the offline copy of the shopping lists kept and used ([OfflineReads]). */
     val offlineReads: OfflineReads =

@@ -1,8 +1,9 @@
 /**
- * What the phone could not send of what the user did without a network: a shopping write that waited longer than
- * seven days, or that the server refused. They stand in a card headed with `failed`, each as a short
- * line (the names, then `expired` or `rejected`), with the way out: `retry` puts it back in the outbox, `remove` removes it. Nothing the user queued disappears
- * unseen. Drawn over the rooms (it is the phone's own, like the push note), only while something failed. A refused read
+ * What the phone could not send of what the user did without a network: a write that waited longer than seven days, or
+ * that the server refused. They stand in a card headed with `failed`, each as a short line (the names, or what was
+ * written and its title, then `expired` or `rejected`), with the way out: `retry` puts it back in the outbox, `remove`
+ * removes it; for a Task, Project or journal entry the words the user wrote stay on the line, with `copy` to take them
+ * away, so they are never lost with the write. Nothing the user queued disappears unseen. Drawn over the rooms (it is the phone's own, like the push note), only while something failed. A refused read
  * draws nothing; a refused retry or remove says so on its line and leaves it where it is.
  */
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +24,15 @@ export type QueueNoticeLabels = {
   /** A purchase, by the state it asked for. */
   bought: string;
   putBack: string;
+  /** What a record write was, before its title. */
+  createTask: string;
+  updateTask: string;
+  updateProject: string;
+  writeJournal: string;
+  updateJournal: string;
+  /** Puts the words the user wrote on the clipboard, and says so when it did. */
+  copy: string;
+  copied: string;
   /** Why, in a sentence of its own. Ends with a full stop (designsystem §1.6). */
   expired: string;
   rejected: string;
@@ -37,11 +47,18 @@ export type QueueNoticeLabels = {
 };
 
 export const queueNoticeLabelsSv: QueueNoticeLabels = {
-  failed: "Inköp som inte skickades",
+  failed: "Det här skickades inte",
   items: "varor",
   more: (names, count) => `${names} och ${count} till`,
   bought: "Köp av en vara",
   putBack: "En vara som lades tillbaka på listan",
+  createTask: "Ny uppgift",
+  updateTask: "Ändrad uppgift",
+  updateProject: "Ändrat projekt",
+  writeJournal: "Ny dagboksanteckning",
+  updateJournal: "Ändrad dagboksanteckning",
+  copy: "Kopiera texten",
+  copied: "Kopierad.",
   expired: "Den låg i kön i över 7 dagar.",
   rejected: "Servern tog inte emot den.",
   retry: "Försök igen",
@@ -53,11 +70,18 @@ export const queueNoticeLabelsSv: QueueNoticeLabels = {
 };
 
 export const queueNoticeLabelsEn: QueueNoticeLabels = {
-  failed: "Shopping items that weren’t sent",
+  failed: "These weren’t sent",
   items: "items",
   more: (names, count) => `${names} and ${count} more`,
   bought: "Marking an item as bought",
   putBack: "Putting an item back on the list",
+  createTask: "New task",
+  updateTask: "Edited task",
+  updateProject: "Edited project",
+  writeJournal: "New journal entry",
+  updateJournal: "Edited journal entry",
+  copy: "Copy the text",
+  copied: "Copied.",
   expired: "It waited in the queue for over 7 days.",
   rejected: "The server didn’t accept it.",
   retry: "Try again",
@@ -83,6 +107,24 @@ function nameOf(item: Record<string, unknown>): string | undefined {
     : undefined;
 }
 
+function recordLabel(
+  kind: Exclude<FailedWrite["kind"], "add" | "purchase">,
+  labels: QueueNoticeLabels,
+): string {
+  switch (kind) {
+    case "create_task":
+      return labels.createTask;
+    case "update_task":
+      return labels.updateTask;
+    case "update_project":
+      return labels.updateProject;
+    case "write_journal_entry":
+      return labels.writeJournal;
+    case "update_journal_entry":
+      return labels.updateJournal;
+  }
+}
+
 /** What the write was, in the user's words: the names of the added items, or the purchase. */
 export function describeWrite(
   write: FailedWrite,
@@ -90,6 +132,10 @@ export function describeWrite(
 ): string {
   if (write.kind === "purchase")
     return write.purchased ? labels.bought : labels.putBack;
+  if (write.kind !== "add") {
+    const what = recordLabel(write.kind, labels);
+    return write.title ? `${what}: ${write.title}` : what;
+  }
   const names = (write.items ?? []).flatMap((item) => nameOf(item) ?? []);
   if (names.length === 0) return labels.items;
   if (names.length <= NAMES_SHOWN) return names.join(", ");
@@ -100,13 +146,14 @@ export function describeWrite(
 }
 
 /**
- * A refused purchase was written against a version that has since changed, so sending it again would be refused
- * again: it can only be removed. So can a write whose key is older than the server's idempotency window: sent again
+ * A refused purchase or edit was written against a version that has since changed, or names something that is gone, so
+ * sending it again would be refused again: it can only be removed (a refused Task, Project or journal entry has its words
+ * on the line to copy). So can a write whose key is older than the server's idempotency window: sent again
  * it would be a new write (a second add). Everything else can be tried again.
  */
 function canRetry(write: FailedWrite): boolean {
   if (write.retryable === false) return false;
-  return !(write.kind === "purchase" && write.reason === "rejected");
+  return !(write.kind !== "add" && write.reason === "rejected");
 }
 
 export type QueueNoticeProps = {
@@ -125,6 +172,8 @@ export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
     { key: string; message: keyof QueueNoticeLabels } | undefined
   >();
   const [tick, setTick] = useState(0);
+  // The write whose words were last put on the clipboard.
+  const [copied, setCopied] = useState<string | undefined>();
 
   // A run of the outbox ending (it may have refused something) reads again.
   useEffect(() => {
@@ -169,6 +218,15 @@ export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
     [],
   );
 
+  /** Puts the words of a failed record write on the clipboard; the line says so only when it worked. */
+  const copy = useCallback((write: FailedWrite) => {
+    const words = [write.title, write.text].filter(Boolean).join("\n\n");
+    navigator.clipboard?.writeText(words).then(
+      () => setCopied(write.key),
+      () => undefined,
+    );
+  }, []);
+
   if (failed.length === 0) return null;
   const labels = queueNoticeLabelsFor(locale);
   return (
@@ -185,12 +243,29 @@ export function QueueNotice({ native, locale, refreshKey }: QueueNoticeProps) {
                 {what}.{" "}
                 {write.reason === "expired" ? labels.expired : labels.rejected}
               </p>
+              {write.text ? (
+                <p className="mobile-queue-notice__written">{write.text}</p>
+              ) : null}
+              {copied === write.key ? (
+                <p role="status" className="mobile-queue-notice__text">
+                  {labels.copied}
+                </p>
+              ) : null}
               {refused?.key === write.key ? (
                 <p role="alert" className="mobile-queue-notice__text">
                   {labels[refused.message] as string}
                 </p>
               ) : null}
               <div className="mobile-queue-notice__actions">
+                {write.text || write.title ? (
+                  <Button
+                    variant="quiet"
+                    aria-label={`${labels.copy}: ${what}`}
+                    onClick={() => copy(write)}
+                  >
+                    {labels.copy}
+                  </Button>
+                ) : null}
                 {canRetry(write) ? (
                   <Button
                     variant="quiet"

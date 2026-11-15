@@ -160,7 +160,10 @@ export function draftFixture(
 }
 export const draftRoot: JournalFrame = { kind: "draft", id: draftId };
 
-export type TransportMock = { [K in keyof JournalTransport]: Mock };
+/** Every call of the transport as a mock; the phone's outbox (`offline`) is an object, not a call, and is set by the tests that need it. */
+export type TransportMock = {
+  [K in keyof Omit<JournalTransport, "offline">]: Mock;
+};
 
 export function transportMock(
   overrides: Partial<TransportMock> = {},

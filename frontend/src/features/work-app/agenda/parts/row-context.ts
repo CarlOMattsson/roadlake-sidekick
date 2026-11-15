@@ -27,6 +27,8 @@ export type AgendaRowContext = {
   notice: NoticeSource;
   /** The ids (lower case) of the Tasks whose tick waits in the phone's outbox: drawn done, `sending`. */
   sending: ReadonlySet<string>;
+  /** The ids (lower case) of the Tasks whose edit, or whose own making, waits in the phone's outbox: drawn with "Väntar…". */
+  waiting: ReadonlySet<string>;
   /** The ids (lower case) of the Tasks this agenda draws done: their Steps say so instead of their dates. */
   doneTasks: ReadonlySet<string>;
 };

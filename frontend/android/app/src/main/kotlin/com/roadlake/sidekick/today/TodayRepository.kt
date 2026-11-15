@@ -24,7 +24,7 @@ sealed interface TodayState {
 
 enum class EnqueueResult { QUEUED, UNKNOWN_TASK, NOT_PAIRED, STORAGE_FAILED }
 
-/** How queueing a shopping write (a purchase or an added item) ended, and the entry that is queued when it is [EnqueueResult.QUEUED]. */
+/** How queueing a write (a purchase, an added item, a record write) ended, and the entry that is queued when it is [EnqueueResult.QUEUED]. */
 class QueuedWrite(val result: EnqueueResult, val entry: OutboxEntry?)
 
 /** How a [TodayRepository.sync] ended; [RETRY] asks the scheduler to try again later, with back-off. */
@@ -32,8 +32,10 @@ enum class SyncResult { UPDATED, NOT_PAIRED, RETRY }
 
 /**
  * The widget's and the app's shared Today: the cache, the outbox of completions and the two requests to the server
- * (read Today, complete a Task). The outbox also holds the shopping room's purchases and added items made without a
- * network; they are queued here ([enqueuePurchase], [enqueueShoppingAdd]) and sent by the same drain, in the order they were made, with the same rules. It owns the rules; the Glance widget and the WorkManager workers only call it. It is
+ * (read Today, complete a Task). The outbox also holds the shopping room's purchases and added items, and the Work room's new
+ * and edited Tasks and Projects, made without a network; they are queued here ([enqueuePurchase], [enqueueShoppingAdd],
+ * [enqueueRecordWrite]) and sent by the same drain, in the order they were made, with the same rules. What the user wrote in
+ * the journal waits in a second queue ([journalOutbox]) that is encrypted at rest and drained the same way, after the first. It owns the rules; the Glance widget and the WorkManager workers only call it. It is
  * free of Android types so it is unit tested on the JVM.
  *
  * - The server is authoritative. A completion is sent with the version the row had and the key made at the tap, and
@@ -51,6 +53,7 @@ class TodayRepository(
     private val client: CompanionClient,
     private val cache: TodayCache,
     private val outbox: Outbox,
+    private val journalOutbox: Outbox,
     private val clock: () -> Long,
     private val newKey: () -> String = { "widget-" + UUID.randomUUID() },
     private val generation: PairingGeneration = PairingGeneration(),
@@ -61,7 +64,7 @@ class TodayRepository(
         val captured = generation.current()
         val status = client.status()
         if (!status.paired) {
-            if (cache.hasData() || outbox.hasData()) clearAllIfCurrent(captured)
+            if (cache.hasData() || outbox.hasData() || journalOutbox.hasData()) clearAllIfCurrent(captured)
             return TodayState.NotPaired
         }
         val partition = partitionOf(status.serverHost)
@@ -154,6 +157,36 @@ class TodayRepository(
         }
     }
 
+    /**
+     * Queues a record write the page could not send (no network, or no answer): a new Task, an edit of a Task or a
+     * Project, or a journal entry written or edited. [bodyJson] is the request body the page built and [idempotencyKey]
+     * the key its first attempt carried, so the server replays rather than repeats a write it did receive. A journal write
+     * goes to the encrypted journal queue, the others to the outbox. [underGeneration] binds it to the pairing the failed
+     * attempt began under, as for [enqueuePurchase]. For an edit, [subjectId] is the row and [version] the one it rests on;
+     * a creation has neither ([Outbox.NEW_SUBJECT], 0).
+     */
+    fun enqueueRecordWrite(
+        underGeneration: Long,
+        kind: OutboxKind,
+        subjectId: String,
+        version: Int,
+        bodyJson: String,
+        idempotencyKey: String,
+    ): QueuedWrite {
+        if (!client.status().paired) return QueuedWrite(EnqueueResult.NOT_PAIRED, null)
+        var entry: OutboxEntry? = null
+        val current = generation.runIfCurrent(underGeneration) {
+            entry = boxOf(kind).enqueueRecordWrite(kind, subjectId, version, bodyJson, idempotencyKey)
+        }
+        return when {
+            !current -> QueuedWrite(EnqueueResult.NOT_PAIRED, null)
+            entry != null -> QueuedWrite(EnqueueResult.QUEUED, entry)
+            else -> QueuedWrite(EnqueueResult.STORAGE_FAILED, null)
+        }
+    }
+
+    private fun boxOf(kind: OutboxKind) = if (kind.isJournal) journalOutbox else outbox
+
     /** The pairing generation now. The plugin binds a call to it when the call arrives ([PairingGeneration.bindNow]); [enqueuePurchase] takes that one. */
     fun pairingGeneration(): Long = generation.current()
 
@@ -163,26 +196,40 @@ class TodayRepository(
     /** The added items waiting to be sent, oldest first. Empty without a pairing. */
     fun queuedShoppingAdds(): List<OutboxEntry> = if (client.status().paired) pendingOf(OutboxKind.SHOPPING_ADD) else emptyList()
 
+    /** The record writes waiting to be sent (new and edited Tasks and Projects, journal writes), oldest first. Empty without a pairing. */
+    fun queuedRecordWrites(): List<OutboxEntry> = if (client.status().paired) {
+        (outbox.pending() + journalOutbox.pending()).filter { it.kind.sendsPayload && it.kind != OutboxKind.SHOPPING_ADD }
+    } else {
+        emptyList()
+    }
+
     /** The Task completions waiting to be sent (from the widget or the app), oldest first. */
     fun queuedCompletions(): List<OutboxEntry> = pendingOf(OutboxKind.TASK_COMPLETION)
 
-    /** The shopping writes that failed (expired or refused) and wait for the user, oldest first. Empty without a pairing. */
-    fun failedShoppingWrites(): List<OutboxEntry> =
-        if (client.status().paired) outbox.failed().filter { it.kind != OutboxKind.TASK_COMPLETION } else emptyList()
+    /** The writes that failed (expired or refused) and wait for the user, oldest first. Empty without a pairing. */
+    fun failedWrites(): List<OutboxEntry> = if (client.status().paired) {
+        (outbox.failed() + journalOutbox.failed()).filter {
+            it.kind != OutboxKind.TASK_COMPLETION
+        }
+    } else {
+        emptyList()
+    }
 
     /** Whether a failed write may be sent again: its key is still within the server's idempotency window. Otherwise it can only be removed. */
     fun canRetryFailedWrite(entry: OutboxEntry): Boolean = entry.keyStillSafe(clock())
 
     /** Puts a failed write back in the queue under its own key. False when there is no such failed write or it could not be saved. */
-    fun retryFailedWrite(idempotencyKey: String): Boolean = client.status().paired && outbox.retryFailed(idempotencyKey)
+    fun retryFailedWrite(idempotencyKey: String): Boolean =
+        client.status().paired && (outbox.retryFailed(idempotencyKey) || journalOutbox.retryFailed(idempotencyKey))
 
     /** Removes a failed write for good. */
-    fun discardFailedWrite(idempotencyKey: String): Boolean = client.status().paired && outbox.discardFailed(idempotencyKey)
+    fun discardFailedWrite(idempotencyKey: String): Boolean =
+        client.status().paired && (outbox.discardFailed(idempotencyKey) || journalOutbox.discardFailed(idempotencyKey))
 
     private fun pendingOf(kind: OutboxKind) = outbox.pending().filter { it.kind == kind }
 
     /** True when there is a write to send. */
-    fun hasPending(): Boolean = outbox.pending().isNotEmpty()
+    fun hasPending(): Boolean = outbox.pending().isNotEmpty() || journalOutbox.pending().isNotEmpty()
 
     /** Sends the queued completions, then reads Today again. The one entry point of the workers. */
     fun sync(): SyncResult = syncLock.withLock {
@@ -216,6 +263,7 @@ class TodayRepository(
     fun clearAll() {
         cache.clear()
         outbox.clear()
+        journalOutbox.clear()
     }
 
     /** Like [clearAll], but only while [captured] is the current pairing: a new pairing's data is not ours to delete. */
@@ -229,79 +277,90 @@ class TodayRepository(
     private class Drain(val notice: TodayNotice?, val retryLater: Boolean, val pairingLost: Boolean, val expired: Boolean = false)
 
     private fun drain(captured: Long): Drain {
-        // A completion still in its undo window is queued but not sent: the Undo of the widget may yet take it back.
-        val queued = outbox.pending().filterNot { it.isHeld(clock()) }
         // Completions dropped for age are told to the user, unless a final answer below has something more specific to say.
         val expired = outbox.expiredCount() > 0
         var notice: TodayNotice? = if (expired) TodayNotice.EXPIRED else null
-        for (entry in queued) {
-            val result = try {
-                client.request(
-                    method = "POST",
-                    path = entry.path,
-                    query = null,
-                    bodyJson = entry.bodyJson(),
-                    idempotencyKey = entry.idempotencyKey,
-                )
-            } catch (e: CompanionException) {
-                if (e.code == "not_paired") {
-                    clearAllIfCurrent(captured)
-                    return endedPairing()
-                }
-                if (e.code in REFUSED_BEFORE_SEND) {
-                    // The request itself was refused on the phone: it can never be sent, so it must not hold up the queue.
-                    if (!generation.runIfCurrent(captured) { settle(entry) }) return endedPairing()
+        var skipped = false
+        for (box in listOf(outbox, journalOutbox)) {
+            // A completion still in its undo window is queued but not sent: the Undo of the widget may yet take it back.
+            for (entry in box.pending().filterNot { it.isHeld(clock()) }) {
+                // An edit folded into this entry since it was read: the entry there now is sent by the next run.
+                if (!box.claim(entry)) {
+                    skipped = true
                     continue
                 }
-                if (!generation.runIfCurrent(captured) { outbox.recordAttempt(entry.subjectId, entry.idempotencyKey) }) {
-                    return endedPairing()
-                }
-                return Drain(notice, retryLater = true, pairingLost = false, expired = expired)
-            }
-            when {
-                result.status in 200..299 -> {
-                    if (!generation.runIfCurrent(captured) { finish(entry) }) return endedPairing()
-                }
-
-                result.status == 401 -> {
-                    // The client has already removed the pairing, which cleared the cache and the outbox.
-                    clearAllIfCurrent(captured)
-                    return endedPairing()
-                }
-
-                result.status == 408 || result.status == 429 || result.status >= 500 -> {
-                    if (!generation.runIfCurrent(captured) { outbox.recordAttempt(entry.subjectId, entry.idempotencyKey) }) {
-                        return endedPairing()
+                try {
+                    val result = try {
+                        client.request(
+                            method = "POST",
+                            path = entry.path,
+                            query = null,
+                            bodyJson = entry.bodyJson(),
+                            idempotencyKey = entry.idempotencyKey,
+                        )
+                    } catch (e: CompanionException) {
+                        if (e.code == "not_paired") {
+                            clearAllIfCurrent(captured)
+                            return endedPairing()
+                        }
+                        if (e.code in REFUSED_BEFORE_SEND) {
+                            // The request itself was refused on the phone: it can never be sent, so it must not hold up the queue.
+                            if (!generation.runIfCurrent(captured) { settle(box, entry) }) return endedPairing()
+                            continue
+                        }
+                        if (!generation.runIfCurrent(captured) { box.recordAttempt(entry.subjectId, entry.idempotencyKey) }) {
+                            return endedPairing()
+                        }
+                        return Drain(notice, retryLater = true, pairingLost = false, expired = expired)
                     }
-                    return Drain(notice, retryLater = true, pairingLost = false, expired = expired)
-                }
+                    when {
+                        result.status in 200..299 -> {
+                            if (!generation.runIfCurrent(captured) { finish(box, entry) }) return endedPairing()
+                        }
 
-                else -> {
-                    // 409 (changed elsewhere), 404/410 (gone) and the other refusals are final: no automatic rebase.
-                    if (!generation.runIfCurrent(captured) { settle(entry) }) return endedPairing()
-                    // A shopping write has no row in Today: it stays in the outbox as failed, and the app tells the user.
-                    if (entry.kind != OutboxKind.TASK_COMPLETION) continue
-                    val outcome = if (result.status == 409 || result.status == 404 || result.status == 410) {
-                        TodayNotice.CONFLICT
-                    } else {
-                        TodayNotice.REJECTED
+                        result.status == 401 -> {
+                            // The client has already removed the pairing, which cleared the cache and the outbox.
+                            clearAllIfCurrent(captured)
+                            return endedPairing()
+                        }
+
+                        result.status == 408 || result.status == 429 || result.status >= 500 -> {
+                            if (!generation.runIfCurrent(captured) { box.recordAttempt(entry.subjectId, entry.idempotencyKey) }) {
+                                return endedPairing()
+                            }
+                            return Drain(notice, retryLater = true, pairingLost = false, expired = expired)
+                        }
+
+                        else -> {
+                            // 409 (changed elsewhere), 404/410 (gone) and the other refusals are final: no automatic rebase.
+                            if (!generation.runIfCurrent(captured) { settle(box, entry) }) return endedPairing()
+                            // Any other write has no row in Today: it stays in its queue as failed, and the app tells the user.
+                            if (entry.kind != OutboxKind.TASK_COMPLETION) continue
+                            val outcome = if (result.status == 409 || result.status == 404 || result.status == 410) {
+                                TodayNotice.CONFLICT
+                            } else {
+                                TodayNotice.REJECTED
+                            }
+                            if (notice != TodayNotice.CONFLICT) notice = outcome
+                        }
                     }
-                    if (notice != TodayNotice.CONFLICT) notice = outcome
+                } finally {
+                    box.release(entry)
                 }
             }
         }
-        return Drain(notice, retryLater = false, pairingLost = false, expired = expired)
+        return Drain(notice, retryLater = skipped, pairingLost = false, expired = expired)
     }
 
-    /** The server has answered finally: the entry leaves the outbox and a completed Task's row leaves the cached Today. */
-    private fun finish(entry: OutboxEntry) {
-        outbox.remove(entry.subjectId, entry.idempotencyKey)
+    /** The server has answered finally: the entry leaves its queue and a completed Task's row leaves the cached Today. */
+    private fun finish(box: Outbox, entry: OutboxEntry) {
+        box.remove(entry.subjectId, entry.idempotencyKey)
         if (entry.kind == OutboxKind.TASK_COMPLETION) dropRow(entry.subjectId)
     }
 
-    /** A final refusal: a task completion leaves the queue (the widget's notice tells it); a shopping write stays as failed, for the user to retry or remove. */
-    private fun settle(entry: OutboxEntry) {
-        if (entry.kind == OutboxKind.TASK_COMPLETION) finish(entry) else outbox.markRejected(entry.subjectId, entry.idempotencyKey)
+    /** A final refusal: a task completion leaves the queue (the widget's notice tells it); any other write stays as failed, for the user to retry or remove. */
+    private fun settle(box: Outbox, entry: OutboxEntry) {
+        if (entry.kind == OutboxKind.TASK_COMPLETION) finish(box, entry) else box.markRejected(entry.subjectId, entry.idempotencyKey)
     }
 
     private fun fetch(captured: Long, notice: TodayNotice?): SyncResult {

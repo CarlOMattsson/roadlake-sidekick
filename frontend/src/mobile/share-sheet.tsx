@@ -5,9 +5,10 @@
  *
  * It writes through the rooms' own tools over the transport (`create_task`, `write_journal_entry`), so the companion
  * routes, their scopes and their idempotency are the ones the Work and Journal forms already use: a second Save of the
- * same text sends the same key, so a lost answer never writes twice. When no answer comes the sheet says so and keeps
- * everything that was typed; nothing is queued, and the journal text is never stored on the phone. A phone that is not
- * paired never reaches this sheet: the pairing screen says the text waits (pairing-gate.tsx).
+ * same text sends the same key, so a lost answer never writes twice. When no answer comes, the phone's outbox keeps
+ * the write (the journal text encrypted) and the sheet says it is waiting for the network; when the outbox cannot keep
+ * it, the sheet says so and keeps everything that was typed. A phone that is not paired never reaches this sheet: the
+ * pairing screen says the text waits (pairing-gate.tsx).
  */
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
@@ -22,11 +23,15 @@ import { AppFrame } from "@/features/mcp-apps/ui/layout";
 import { Segmented } from "@/features/mcp-apps/ui/segmented";
 import { ErrorNotice } from "@/features/mcp-apps/ui/states";
 import { useMounted } from "@/features/mcp-apps/ui/use-mounted";
+import { isQueuedRecordId } from "./companion-queued-records";
 import { shareLabelsFor } from "./share-labels";
 import type { SharedText } from "./sidekick-native";
 import "./share-sheet.css";
 
 type Kind = "task" | "journal";
+
+/** What the two write tools answer: the entry or the Task, as stored, or as its stand-in while the write waits. */
+type WrittenRecord = { entry?: { id?: unknown }; task?: { id?: unknown } };
 
 /** A title takes 200 characters, for a task and for a journal entry alike. */
 const TITLE_MAX = 200;
@@ -54,6 +59,8 @@ export function ShareSheet({
   const [kind, setKind] = useState<Kind>("task");
   const [title, setTitle] = useState(share.title);
   const [phase, setPhase] = useState<"editing" | "saving" | "saved">("editing");
+  // The write got no answer and waits in the phone's outbox.
+  const [queued, setQueued] = useState(false);
   const [failure, setFailure] = useState<{ cause: unknown } | undefined>();
   const [missingTitle, setMissingTitle] = useState(false);
 
@@ -72,22 +79,23 @@ export function ShareSheet({
     setFailure(undefined);
     setPhase("saving");
     try {
-      if (kind === "journal") {
-        await transport.call("write_journal_entry", {
-          journal_date: ownerToday(),
-          title: trimmed,
-          source_text: share.text || trimmed,
-        });
-      } else {
-        await transport.call("create_task", {
-          title: trimmed,
-          // The shared text carries its own link; a text that only repeats the title adds nothing.
-          ...(share.text && share.text !== trimmed
-            ? { description: share.text }
-            : {}),
-        });
-      }
-      if (mounted.current) setPhase("saved");
+      const written =
+        kind === "journal"
+          ? await transport.call<WrittenRecord>("write_journal_entry", {
+              journal_date: ownerToday(),
+              title: trimmed,
+              source_text: share.text || trimmed,
+            })
+          : await transport.call<WrittenRecord>("create_task", {
+              title: trimmed,
+              // The shared text carries its own link; a text that only repeats the title adds nothing.
+              ...(share.text && share.text !== trimmed
+                ? { description: share.text }
+                : {}),
+            });
+      if (!mounted.current) return;
+      setQueued(isQueuedRecordId((written.entry ?? written.task)?.id));
+      setPhase("saved");
     } catch (cause) {
       if (!mounted.current) return;
       setFailure({ cause });
@@ -114,7 +122,11 @@ export function ShareSheet({
         >
           <h1 className="mobile-share__title">{labels.title}</h1>
           <p role="status" className="mobile-share__saved">
-            {kind === "journal" ? labels.savedJournal : labels.savedTask}
+            {queued
+              ? labels.savedQueued
+              : kind === "journal"
+                ? labels.savedJournal
+                : labels.savedTask}
           </p>
           <div className="mobile-share__actions">
             <Button variant="primary" onClick={onClose}>

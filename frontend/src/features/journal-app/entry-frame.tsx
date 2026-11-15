@@ -26,6 +26,7 @@ import {
   useEntryTrash,
 } from "./entry-trash";
 import type { FrameProps, LoadPhase } from "./frame-props";
+import { isQueued, useQueuedRecords } from "./use-queued-records";
 
 /** The saved entry offers at most this many "Open the task" buttons, one per created task. */
 const taskOpenLimit = 3;
@@ -68,6 +69,7 @@ export function EntryFrame({
   const tagKey = useRef<PendingKey | undefined>(undefined);
   const vocabulary = useTagVocabulary(transport.listTags, "journal_entry");
   const heading = useRef<HTMLHeadingElement>(null);
+  const queuedIds = useQueuedRecords(transport);
   const trashState = useEntryTrash(transport, entry, reloadEntry);
   // The title is the heading above. A summary that repeats it shows only the rest, as the card does.
   const rest = entry ? summaryRest(entry.title, entry.summary) : undefined;
@@ -295,6 +297,12 @@ export function EntryFrame({
                 <time dateTime={entry.occurred_at}>
                   {formatTime(entry.occurred_at, t.dateLocale)}
                 </time>
+              </>
+            )}
+            {isQueued(queuedIds, entry.id) && (
+              <>
+                {" · "}
+                <span className="sk-queued">{t.queued}</span>
               </>
             )}
           </p>

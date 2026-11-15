@@ -13,6 +13,7 @@ import { EntryRow } from "./entry-row";
 import { DaySummary, hasDaySummary } from "./day-summary";
 import { DayTags, useDayTags } from "./day-tags";
 import { isForbidden } from "./transport";
+import { isQueued, isStandInId, useQueuedRecords } from "./use-queued-records";
 import type { JournalDay, JournalFrame } from "./transport";
 import { useShortcuts } from "../mcp-apps/ui/shortcuts";
 import { useMounted } from "../mcp-apps/ui/use-mounted";
@@ -70,6 +71,7 @@ export function DayFrame({
   // The tags the day is filtered on; the choice is kept in the frame, so Back returns to the tagged list.
   const dayTags = useDayTags(transport, frame.tags, refreshKey);
   const mounted = useMounted();
+  const queuedIds = useQueuedRecords(transport);
   // The owner's today (the zone the day result names, else the declared one), never the device's.
   const today = ownerToday(page.owner_timezone);
   // A failed or forbidden read shows only the notice under the day the owner tried to open. The
@@ -311,7 +313,13 @@ export function DayFrame({
                   entry={entry}
                   labels={t}
                   tagVocabulary={dayTags.vocabulary.suggestions}
-                  onOpen={() => onOpen({ kind: "entry", id: entry.id })}
+                  queued={isQueued(queuedIds, entry.id)}
+                  // A note still in the outbox has no entry on the server to open yet.
+                  onOpen={
+                    isStandInId(entry.id)
+                      ? undefined
+                      : () => onOpen({ kind: "entry", id: entry.id })
+                  }
                 />
               ))}
             </ul>

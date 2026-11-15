@@ -78,7 +78,7 @@ describe("QueueNotice", () => {
     expect(screen.getByText(/Bröd\./)).toBeVisible();
     expect(screen.getByText(/Den låg i kön i över 7 dagar\./)).toBeVisible();
     expect(
-      screen.getByRole("list", { name: "Inköp som inte skickades" }),
+      screen.getByRole("list", { name: "Det här skickades inte" }),
     ).toBeVisible();
   });
 

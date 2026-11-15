@@ -4,13 +4,18 @@
  * The planners import nothing from companion-transport.ts at run time: the transport passes its checks in as
  * `PlanHelpers`, so the transport can list the planners' tools without an import cycle.
  */
-import type { NativeQuery, NativeRequest } from "./sidekick-native";
+import type {
+  NativeQuery,
+  NativeRequest,
+  RecordWriteKind,
+} from "./sidekick-native";
 
 export type Args = Record<string, unknown>;
 
 /**
  * What the phone's outbox needs to send a write later when no answer comes: a purchase (`itemId`, `version`, the asked
- * state) or items added to a list (`listId` and the request body).
+ * state), items added to a list (`listId` and the request body), or a record write (a new or edited Task, Project or
+ * journal entry: the tool, the row it edits and the version it rests on, and the request body).
  */
 export type Queueable =
   | { kind: "purchase"; itemId: string; version: number; purchased: boolean }
@@ -18,6 +23,13 @@ export type Queueable =
       kind: "add";
       listId: string;
       body: { items: Args[]; merge_duplicates?: boolean };
+    }
+  | {
+      kind: "record";
+      write: RecordWriteKind;
+      subjectId?: string;
+      version?: number;
+      body: Args;
     };
 
 /**

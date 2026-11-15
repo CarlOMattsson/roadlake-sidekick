@@ -11,6 +11,7 @@ import { applyResult, resultChanged, startState, withRoot } from "./room-state";
 import type { JournalFrame, JournalPending } from "./transport";
 import { useRoomActions } from "./use-room-actions";
 import { useRoomCapabilities } from "./use-room-capabilities";
+import { isQueued, useQueuedRecords } from "./use-queued-records";
 
 /**
  * The room props, plus the host's message function. `sendMessage` is present only when the host offers
@@ -33,6 +34,7 @@ export function JournalRoom(props: JournalRoomProps) {
   const call = props.transport.call;
   const { transport, canListPending, contactsOn, canOpenContact } =
     useRoomCapabilities(props.transport);
+  const queuedIds = useQueuedRecords(transport);
   const locale = appLocale();
   const labels = locale.startsWith("sv") ? journalSv : journalEn;
   const fullscreen = props.mode === "full";
@@ -137,6 +139,7 @@ export function JournalRoom(props: JournalRoomProps) {
       <EntryCard
         key={state.cardResults}
         entry={card}
+        queued={isQueued(queuedIds, card.id)}
         today={ownerToday(zone)}
         labels={labels}
         onOpen={openCard}

@@ -12,6 +12,8 @@ import { cardKey, type AgendaBucket } from "../../shared/work-items";
 import { domainAccentOf, type WorkItemRecord } from "../../transport/transport";
 import { RecordTitle } from "../../board/board-card";
 import { RecordMeta } from "../../shared/record-meta";
+import { isStandIn } from "../../shared/use-queued-records";
+import { WaitingLine } from "../../shared/waiting-line";
 import { OpenChevron } from "../../tasks/task-detail-controls";
 import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
 import { AgendaNotice, rowSpot } from "./agenda-notice";
@@ -43,7 +45,11 @@ function RowGlyph({
           item.status === "completed" ? t.agendaReopen : t.agendaComplete,
           { title: item.title },
         )}
-        disabled={disabled}
+        // A Task made offline cannot be ticked until it has been sent.
+        disabled={
+          disabled ||
+          (ctx.waiting.has(item.id.toLowerCase()) && isStandIn(item.id))
+        }
         onClick={() => writes.toggleDone(record)}
       >
         <StatusGlyph kind="task" status={item.status} label={statusText} />
@@ -119,6 +125,9 @@ export function AgendaRow({
   const sending =
     drawn.kind === "task" && ctx.sending.has(drawn.id.toLowerCase());
   const item = sending ? { ...drawn, status: "completed" } : drawn;
+  // A Task whose edit, or whose making, waits in the outbox says so in its meta line (a tick has precedence).
+  const waiting =
+    drawn.kind === "task" && ctx.waiting.has(drawn.id.toLowerCase());
   // A Step whose Task is done here (ticked, waiting to be sent, or read so) says so instead of its date.
   const parentDone =
     item.kind !== "task" &&
@@ -233,6 +242,7 @@ export function AgendaRow({
               ) : (
                 <RecordMeta item={item} labels={t} now={now} group={group} />
               )}
+              {waiting && <WaitingLine text={t.queued} />}
               {note !== undefined && (
                 <p className="work-agenda-moved">{note}</p>
               )}

@@ -29,6 +29,8 @@ import { useTaskWrites } from "./use-task-writes";
 import { WriteStatus } from "../view/parts/write-status";
 import { TagField } from "../../mcp-apps/ui/tags";
 import { useWorkTags } from "../shared/work-tags";
+import { useQueuedRecords } from "../shared/use-queued-records";
+import { WaitingLine } from "../shared/waiting-line";
 
 export function TaskFrame({
   id,
@@ -73,6 +75,7 @@ export function TaskFrame({
     unlinkOffered,
   } = useTaskOffers(transport, task);
   const tags = useWorkTags(transport, "task");
+  const waiting = useQueuedRecords(transport, task).has(id.toLowerCase());
   const menuOffered = editOffered || trashOffered;
   const {
     receipt,
@@ -217,6 +220,10 @@ export function TaskFrame({
         <p className="work-task-meta">
           <span className="work-task-late">{late.text}</span>
         </p>
+      )}
+      {/* A Task made or edited without a network waits in the phone's outbox: said under the title until it is sent. */}
+      {phase === "ready" && task && waiting && (
+        <WaitingLine text={t.queued} className="work-task-meta" />
       )}
       {phase === "ready" && task && menuOffered && menuOpen && (
         <DetailMenu

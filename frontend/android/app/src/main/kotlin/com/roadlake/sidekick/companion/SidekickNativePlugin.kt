@@ -10,6 +10,8 @@ import com.roadlake.sidekick.SidekickRuntime
 import com.roadlake.sidekick.SystemLinks
 import com.roadlake.sidekick.push.PushChannels
 import com.roadlake.sidekick.share.SharedContent
+import com.roadlake.sidekick.today.Outbox
+import com.roadlake.sidekick.today.OutboxEntry
 import com.roadlake.sidekick.today.OutboxKind
 import com.roadlake.sidekick.widget.TodaySync
 import com.roadlake.sidekick.widget.WidgetLocale
@@ -40,8 +42,13 @@ import java.util.concurrent.atomic.AtomicReference
  * Offline (the shopping room in a shop without coverage): `request` answers a shopping, Agenda or Task detail read that got no answer from the
  * offline copy, with `cachedAt`; `queuePurchase` and `queueShoppingAdd` put a purchase, or items to add, that got no
  * answer in the shared outbox, which the widget's sync sends; event `queueChanged` fires after every run of that sync, so the page reads again.
- * A shopping write that expired or that the server refused stays in the outbox as failed (`queuedWrites().failed`); the page shows it
+ * A write that expired or that the server refused stays in its queue as failed (`queuedWrites().failed`); the page shows it
  * and the user retries it (`retryQueuedWrite`) or removes it (`removeQueuedWrite`).
+ *
+ * Offline writes of records: `queueRecordWrite` puts a new Task, an edit of a Task or a Project, or a journal entry written
+ * or edited, that got no answer in a queue (`queuedWrites().records` lists them). What the user wrote in the journal waits in
+ * a queue that is encrypted at rest with a Keystore key; it reaches the page only through `queuedWrites`, to be drawn as
+ * waiting, and is erased when the server has taken it and when the phone is unpaired. Nothing of it is logged.
  *
  * Share to Sidekick (an `ACTION_SEND` of `text/plain` from another app): the text is parsed ([SharedContent]) and held here, in
  * memory only, until the page takes it with `takeShare` (once); event `shareReceived` fires when one arrives while the app
@@ -174,6 +181,33 @@ class SidekickNativePlugin : Plugin() {
     }
 
     /**
+     * Queues a record write the page could not send: `{ kind, subjectId?, version?, body, idempotencyKey }` with `kind` the
+     * name of the tool (`create_task`, `update_task`, `update_project`, `write_journal_entry`, `update_journal_entry`), the
+     * `body` the page built for the route (an edit's carries its `version`), the key of the attempt that got no answer and the
+     * `generation` that attempt's rejection carried, bound as for [queuePurchase]. An edit names the row (`subjectId`, a
+     * UUID) and the `version` it rests on. A journal write is kept encrypted. Resolves `{ queued }`; the same key queued again
+     * is the same write. `queued: false` also when the row already has a different edit waiting that cannot be folded in.
+     */
+    @PluginMethod
+    fun queueRecordWrite(call: PluginCall) = run(call) {
+        val kind = OutboxKind.ofWire(call.getString("kind"))?.takeIf { it in RECORD_KINDS } ?: throw CompanionException("bad_request")
+        val key = RequestPolicy.checkIdempotencyKey(call.getString("idempotencyKey"))
+        val generation = call.data.optLong("generation", -1L)
+        val body = objectArgument(call, "body")
+        val subject = if (kind.keyed) Outbox.NEW_SUBJECT else call.getString("subjectId")?.lowercase()
+        val version = if (kind.keyed) 0 else call.getInt("version")
+        val validEdit = kind.keyed || (subject != null && UUID.matches(subject) && version != null && version >= 1)
+        if (body == null || key == null || generation < 0 || subject == null || !validEdit) throw CompanionException("bad_request")
+        val queued = SidekickRuntime.get(context).today.enqueueRecordWrite(generation, kind, subject, version ?: 0, body.toString(), key)
+        if (queued.entry == null) {
+            JSObject().put("queued", false)
+        } else {
+            TodaySync.requestSync(context)
+            JSObject().put("queued", true)
+        }
+    }
+
+    /**
      * The writes waiting in the queue: `{ purchases: [{ itemId, purchased }], adds: [{ listId, key, queuedAt, items,
      * mergeDuplicates }], failed: [{ key, kind: "add" | "purchase", reason: "expired" | "rejected", queuedAt, listId? / items? for
      * an add, itemId? / purchased? for a purchase }] }`. `failed` are the writes that will not be sent unless the user retries
@@ -204,29 +238,60 @@ class SidekickNativePlugin : Plugin() {
             )
         }
         val failed = JSONArray()
-        for (entry in today.failedShoppingWrites()) {
+        for (entry in today.failedWrites()) failed.put(failedRow(entry, today.canRetryFailedWrite(entry)))
+        val records = JSONArray()
+        for (entry in today.queuedRecordWrites()) {
+            val body = bodyOf(entry) ?: continue // not ours to show; the drain still sends it and the server decides
             val row = JSObject()
                 .put("key", entry.idempotencyKey)
-                .put("reason", entry.failure?.wire)
+                .put("kind", entry.kind.wire)
                 .put("queuedAt", entry.createdAtMillis)
-                .put("retryable", today.canRetryFailedWrite(entry))
-            if (entry.kind == OutboxKind.SHOPPING_ADD) {
-                val items = try {
-                    JSONObject(entry.payload ?: "{}").optJSONArray("items")
-                } catch (_: JSONException) {
-                    null
-                }
-                row.put("kind", "add").put("listId", entry.subjectId).put("items", items ?: JSONArray())
-            } else {
-                row.put("kind", "purchase").put("itemId", entry.subjectId).put("purchased", entry.purchased)
-            }
-            failed.put(row)
+                .put("body", body)
+            if (!entry.kind.keyed) row.put("subjectId", entry.subjectId)
+            records.put(row)
         }
         val completions = JSONArray()
         for (entry in today.queuedCompletions()) {
             completions.put(JSObject().put("taskId", entry.subjectId).put("queuedAt", entry.createdAtMillis))
         }
         JSObject().put("purchases", purchases).put("adds", adds).put("failed", failed).put("completions", completions)
+            .put("records", records)
+    }
+
+    /** The row `queuedWrites().failed` shows for a write that will not be sent unless the user retries it. */
+    private fun failedRow(entry: OutboxEntry, retryable: Boolean): JSObject {
+        val row = JSObject()
+            .put("key", entry.idempotencyKey)
+            .put("reason", entry.failure?.wire)
+            .put("queuedAt", entry.createdAtMillis)
+            .put("retryable", retryable)
+        when (entry.kind) {
+            OutboxKind.SHOPPING_ADD -> {
+                val items = bodyOf(entry)?.optJSONArray("items")
+                row.put("kind", "add").put("listId", entry.subjectId).put("items", items ?: JSONArray())
+            }
+
+            OutboxKind.SHOPPING_PURCHASE -> row.put("kind", "purchase").put("itemId", entry.subjectId).put("purchased", entry.purchased)
+
+            else -> {
+                // A record write: what the user wrote stays visible, so it can be copied or written again by hand.
+                val body = bodyOf(entry)
+                row.put("kind", entry.kind.wire)
+                if (!entry.kind.keyed) row.put("subjectId", entry.subjectId)
+                body?.let { b ->
+                    TEXT_FIELDS.firstNotNullOfOrNull { b.optString(it).takeIf { text -> text.isNotBlank() } }?.let { row.put("text", it) }
+                    b.optString("title").takeIf { it.isNotBlank() }?.let { row.put("title", it) }
+                }
+            }
+        }
+        return row
+    }
+
+    /** The request body the entry holds, or null when it is not a JSON object. */
+    private fun bodyOf(entry: OutboxEntry): JSONObject? = try {
+        JSONObject(entry.payload ?: return null)
+    } catch (_: JSONException) {
+        null
     }
 
     /** Puts a failed write (by its `key`) back in the queue to be sent again; resolves `{ retried }`. */
@@ -458,6 +523,18 @@ class SidekickNativePlugin : Plugin() {
 
         val UUID = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
         const val THREADS = 4
+
+        /** The writes `queueRecordWrite` takes. */
+        val RECORD_KINDS = setOf(
+            OutboxKind.TASK_CREATE,
+            OutboxKind.TASK_EDIT,
+            OutboxKind.PROJECT_EDIT,
+            OutboxKind.JOURNAL_CREATE,
+            OutboxKind.JOURNAL_EDIT,
+        )
+
+        /** The body fields that carry what the user wrote, most telling first: a failed write shows the first one it has. */
+        val TEXT_FIELDS = listOf("source_text", "append_text", "description", "summary")
 
         /** The server takes at most 50 items per add (`AddItemsBody`). */
         const val MAX_ADD_ITEMS = 50

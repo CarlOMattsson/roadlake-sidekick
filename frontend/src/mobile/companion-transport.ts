@@ -10,6 +10,11 @@
  * companion-work.ts (title, note, due date, place, priority); create_task and update_project are answered by that
  * planner too. The network itself is the typed SidekickNative plugin.
  *
+ * A new or edited Task or Project, and a journal entry written or edited (the Journal is held encrypted on the phone),
+ * that got no answer are put in the outbox the same way, and the call succeeds with a stand-in of the record
+ * (companion-queued-records.ts): the room shows what the user wrote, and `offline.queuedRecordIds` names the records that
+ * still wait so the room can draw them as waiting.
+ *
  * Shopping, Journal, license, the Work writes and the trash are planned by companion-shopping.ts, companion-journal.ts,
  * companion-license.ts, companion-work.ts and companion-trash.ts; the default branch of plan() asks them in turn.
  *
@@ -33,16 +38,9 @@ import {
   isConnectionCode,
   nativeErrorCode,
   nativeErrorGeneration,
-  type QueuedShoppingAdd,
-  type SidekickNativePlugin,
   type NativeQuery,
 } from "./sidekick-native";
-import {
-  UUID,
-  type PlanHelpers,
-  type Planned,
-  type Queueable,
-} from "./companion-plan";
+import { UUID, type PlanHelpers, type Planned } from "./companion-plan";
 import {
   HIERARCHY_QUERY_KEYS,
   isHierarchyRead,
@@ -65,11 +63,9 @@ import {
   isTaskEdit,
   planWorkWrite,
 } from "./companion-work";
-import {
-  queuedAddResult,
-  queuedItems,
-  withQueuedAdds,
-} from "./companion-queued-adds";
+import { TransportOutbox, type NativeForTransport } from "./companion-queue";
+import { queuedItems } from "./companion-queued-adds";
+import { isQueuedRecordId, queuedRecordIds } from "./companion-queued-records";
 import { SHOPPING_TOOLS, planShopping } from "./companion-shopping";
 
 /** The routes, for reading and for the contract tests that compare them with the backend. Nothing is built from it. */
@@ -297,29 +293,22 @@ function errorCodeOf(status: number, body: unknown): string | undefined {
 /** What was planned for one call: the request, the key to forget when the write is settled, and what to queue. */
 type Plan = Planned;
 
-/** The plugin as the transport uses it: `request`, and the outbox and its event where the plugin has them. */
-type NativeForTransport = Pick<SidekickNativePlugin, "request"> &
-  Partial<
-    Pick<
-      SidekickNativePlugin,
-      "queuePurchase" | "queueShoppingAdd" | "queuedWrites" | "addListener"
-    >
-  >;
-
-const NOTHING_QUEUED = { purchases: [], adds: [], completions: [] } as const;
-
 export class CompanionRoomTransport implements RoomTransport {
   /** Keys of writes that were sent without a key of the room's own, until the write is settled. */
   private readonly pending = new Map<string, PendingKey>();
   /** The answers that came from the phone's offline copy, with when that copy was read. */
   private readonly copies = new WeakMap<object, number>();
-  /** The room's listeners of the outbox, told also when this transport itself put something in it. */
-  private readonly queueListeners = new Set<() => void>();
+  /** What waits in the phone's outbox, and what is kept in it. */
+  private readonly outbox: TransportOutbox;
 
-  constructor(private readonly native: NativeForTransport) {}
+  constructor(private readonly native: NativeForTransport) {
+    this.outbox = new TransportOutbox(native);
+  }
 
   /** Arrow properties, so a room may take `transport.call` out of the object (WorkRoom does). */
   call = async <T>(name: string, args: object): Promise<T> => {
+    if (name === "get_task" && isArgs(args) && isQueuedRecordId(args.task_id))
+      return (await this.outbox.task(args.task_id)) as T;
     const plan = this.plan(name, args);
     let answer;
     try {
@@ -328,13 +317,14 @@ export class CompanionRoomTransport implements RoomTransport {
       // No answer came. The write may or may not have reached the server: its key stays for the retry.
       const code = nativeErrorCode(error);
       if (!isConnectionCode(code)) throw new HostToolError(undefined);
-      if (plan.queue) {
-        const stored = await this.queue(
-          plan,
-          plan.queue,
-          nativeErrorGeneration(error),
-        );
-        if (stored !== undefined) return stored as T;
+      const kept = plan.queue
+        ? await this.outbox.keep(plan, plan.queue, nativeErrorGeneration(error))
+        : undefined;
+      if (kept) {
+        // The outbox owns the action now; its key is no longer the transport's to keep.
+        if (plan.signature !== undefined) this.pending.delete(plan.signature);
+        if ("purchased" in kept) throw new CompanionQueuedError(kept.purchased);
+        return kept.answer as T;
       }
       throw new CompanionNetworkError(code);
     }
@@ -347,41 +337,17 @@ export class CompanionRoomTransport implements RoomTransport {
       throw new HostToolError(errorCodeOf(status, body));
     if (!isArgs(body)) throw new HostToolError(undefined);
     let page: Args = body;
-    if (name === "get_shopping_list") page = await this.withQueued(args, body);
+    if (name === "get_shopping_list")
+      page = await this.outbox.withAdds(args as Args, body);
     else if (name === "list_tasks" && "process_id" in args)
       page = processTaskPage(body);
+    else if (name === "get_journal_day")
+      page = await this.outbox.withEntries(args as Args, body);
+    this.outbox.known.remember(page);
     if (typeof answer.cachedAt === "number")
       this.copies.set(page, answer.cachedAt);
     return page as T;
   };
-
-  /** A list page with the items still waiting in the outbox appended; the page as it is when nothing waits or it is not this list's. */
-  private async withQueued(
-    args: object,
-    body: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const { list_id: listId, store } = args as Args;
-    if (typeof listId !== "string") return body;
-    const { adds } = await this.queuedWrites();
-    return withQueuedAdds(
-      body,
-      listId.toLowerCase(),
-      typeof store === "string" ? store : undefined,
-      adds,
-    );
-  }
-
-  /** The outbox as the phone holds it; nothing when it cannot be read. */
-  private async queuedWrites() {
-    if (!this.native.queuedWrites) return NOTHING_QUEUED;
-    try {
-      // `completions` is absent from an older phone build.
-      const { purchases, adds, completions } = await this.native.queuedWrites();
-      return { purchases, adds, completions: completions ?? [] };
-    } catch {
-      return NOTHING_QUEUED;
-    }
-  }
 
   /**
    * The closed list is the answer: a room hides what it would call outside it (saved views, Control, archived).
@@ -439,7 +405,7 @@ export class CompanionRoomTransport implements RoomTransport {
     readAt: (result) => this.copies.get(result),
     // Items added without a network are listed with the purchases, by the id of their stand-in row: waiting, not bought.
     queuedPurchases: async () => {
-      const { purchases, adds } = await this.queuedWrites();
+      const { purchases, adds } = await this.outbox.writes();
       const waiting = new Map<string, boolean>(
         purchases.map((entry) => [entry.itemId, entry.purchased] as const),
       );
@@ -449,76 +415,16 @@ export class CompanionRoomTransport implements RoomTransport {
     },
     // The Tasks ticked and not yet sent, whoever ticked them (the widget shares the outbox): drawn as done.
     queuedCompletions: async () => {
-      const { completions } = await this.queuedWrites();
+      const { completions } = await this.outbox.writes();
       return new Set(completions.map((entry) => entry.taskId.toLowerCase()));
     },
-    onQueueChanged: (listener) => {
-      this.queueListeners.add(listener);
-      const handle = this.native.addListener?.("queueChanged", listener);
-      return () => {
-        this.queueListeners.delete(listener);
-        void handle?.then((h) => h.remove()).catch(() => undefined);
-      };
+    // The Tasks, Projects and journal entries with a write still waiting, and the stand-ins of the new ones: drawn as waiting.
+    queuedRecordIds: async () => {
+      const { records } = await this.outbox.writes();
+      return queuedRecordIds(records);
     },
+    onQueueChanged: (listener) => this.outbox.listen(listener),
   };
-
-  /**
-   * Puts the write that got no answer in the outbox with the key it was sent with, bound to the pairing generation the
-   * request began under (a late failure after an unpair is refused by the phone). A purchase then fails with
-   * CompanionQueuedError; added items are answered with their stand-in rows (and the room's listeners are told, so it
-   * lists them as waiting). Undefined when it cannot be kept: the caller fails with the connection error.
-   */
-  private async queue(
-    plan: Plan,
-    queue: Queueable,
-    generation: number | undefined,
-  ): Promise<unknown> {
-    const key = plan.request.idempotencyKey;
-    // Without the generation the failed request began under, the phone could not tell a pairing that has since ended.
-    if (!key || generation === undefined) return undefined;
-    if (queue.kind === "purchase") {
-      if (!this.native.queuePurchase) return undefined;
-      let kept;
-      try {
-        kept = await this.native.queuePurchase({
-          itemId: queue.itemId,
-          version: queue.version,
-          purchased: queue.purchased,
-          generation,
-          idempotencyKey: key,
-        });
-      } catch {
-        return undefined;
-      }
-      if (!kept.queued) return undefined;
-      // The outbox owns the action now; its key is no longer the transport's to keep.
-      if (plan.signature !== undefined) this.pending.delete(plan.signature);
-      throw new CompanionQueuedError(kept.purchased ?? queue.purchased);
-    }
-    if (!this.native.queueShoppingAdd) return undefined;
-    try {
-      const kept = await this.native.queueShoppingAdd({
-        generation,
-        listId: queue.listId,
-        idempotencyKey: key,
-        body: queue.body,
-      });
-      if (!kept.queued) return undefined;
-    } catch {
-      return undefined;
-    }
-    if (plan.signature !== undefined) this.pending.delete(plan.signature);
-    const add: QueuedShoppingAdd = {
-      listId: queue.listId,
-      key,
-      queuedAt: Date.now(),
-      items: queue.body.items,
-      mergeDuplicates: queue.body.merge_duplicates === true,
-    };
-    // Before the answer: the room reads the list next, and must already know which of its rows are waiting.
-    for (const listener of [...this.queueListeners]) listener();
-    return queuedAddResult(add);
-  }
 
   /** The mobile app is always full: the room that asks is told it already is. */
   requestDisplayMode: RoomTransport["requestDisplayMode"] = () =>
