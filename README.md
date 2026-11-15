@@ -9,14 +9,12 @@
 <a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint and format: ruff"></a>
 <a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Type checking: TypeScript strict"></a>
 <a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin style: ktlint"></a>
-<!-- release badges, off until the first release (v0.1.1; the CI and Scorecard badges after their first runs): delete this line and the closing line below to turn them on
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status of the last run started by hand"></a>
 <a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Latest release"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml/badge.svg?branch=main" alt="release-image workflow: the last run that built, scanned and signed the image"></a>
 <a href="docs/maintainers/release.md#verifying-a-release"><img src="https://img.shields.io/badge/releases-signed%20%C2%B7%20cosign%20%C2%B7%20provenance-success" alt="Signed releases: cosign (Sigstore) signature and build provenance; see Verifying a release"></a>
 <a href="docs/maintainers/release.md#verifying-a-release"><img src="https://img.shields.io/badge/image-Trivy%20scanned-success" alt="Container image scanned with Trivy before it is signed"></a>
--->
 </p>
 <p align="center">
 <a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white" alt="Python 3.13"></a>
@@ -31,19 +29,10 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 
 [Svenska](README.sv.md) · [Documentation](docs/README.md) · [Quickstart](QUICKSTART.md) · [License](LICENSE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Decisions](docs/decisions/log.md)
 
-> **Status: first version, not yet released.** Version 0.1.1 has no tag yet, so for now you build the container image and
-> the APK from this repository. From the first release on, every release carries a signed image and a signed APK.
-> It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet.
-> Details: [docs/maintainers/release.md](docs/maintainers/release.md).
-
-<!-- After the first release (v0.1.1), replace the status note above with the text between the markers below.
-START
 > **Status: version 0.1.1, the first release.** The signed container image and the signed APK are attached to the
 > [latest release](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); how to verify them is in
 > [Verifying a release](docs/maintainers/release.md#verifying-a-release). It is in daily use with Claude, with the
 > Android app on a real phone and on Linux; macOS has not been tried yet.
-END
--->
 
 Sidekick brings work and tasks, journal, shopping and contacts together in one self-hosted, MCP-first system for one
 person. You talk to it through Claude, and interactive MCP Apps rooms open inside the conversation when you want to
