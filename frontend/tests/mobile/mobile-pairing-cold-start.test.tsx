@@ -166,6 +166,35 @@ describe("B2: a pairing link on a phone that is already paired", () => {
     expect(screen.queryByRole("button")).toBeNull();
   });
 
+  it("says so for a link that arrives in the same instant the app appears", async () => {
+    const { platform, open } = platformFor();
+    render(
+      <PairingGate
+        native={fakeNative(() => ok({}))}
+        platform={platform}
+        locale="sv"
+      >
+        <Probe />
+      </PairingGate>,
+    );
+    // The link is delivered the moment the paired app is in the document, before any effect has run after it.
+    await new Promise<void>((resolve) => {
+      const observer = new MutationObserver(() => {
+        if (!document.body.textContent?.includes("Appen")) return;
+        observer.disconnect();
+        open(link);
+        resolve();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+
+    expect(
+      await screen.findByText(
+        /Telefonen är redan kopplad till sidekick\.example/,
+      ),
+    ).toBeTruthy();
+  });
+
   it("says so for a link that opened the cold start of a paired phone, in English", async () => {
     render(
       <PairingGate

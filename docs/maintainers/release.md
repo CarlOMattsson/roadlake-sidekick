@@ -5,7 +5,10 @@ the bundle; creating the tag, the GitHub release and any store listing is a deli
 workflow never creates a tag or a release. Svenska: [release.sv.md](release.sv.md).
 
 Releases are made at all three levels: major (`X.0.0`), minor (`X.Y.0`) and patch (`X.Y.Z`). Changes are tested
-locally before they are pushed, so CI never runs on a push or on a schedule (it runs by hand and as a release gate): the full CI (with the dependency audit) and the
+locally before they are pushed, so CI never runs on a push or on a schedule (it runs by hand and as a release gate). The one
+exception is the CodeQL analysis (`.github/workflows/codeql.yml`): static analysis should see every commit on `main`, as the
+OpenSSF Scorecard "SAST" check expects, so it also runs on every push to `main` and once a week; it needs no secrets and only
+writes code scanning alerts. Every other workflow keeps the rule. The full CI (with the dependency audit) and the
 update/backup/restore drill run as gates of every real release, a patch included. A patch may only declare the
 migration class `expand` (a fix never ships a one-way schema step).
 
@@ -320,7 +323,7 @@ The first release has no predecessor, so there is nothing to update from; the ba
 ## Tags and the first release
 
 The release workflow (`.github/workflows/release-image.yml`, started by hand) only runs from a commit on `main`, builds
-major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI never runs on pushes or on a schedule, only by hand and as this gate, never on pull requests; changes are tested locally first). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
+major, minor and patch versions after the owner's approval, and runs the full CI and the drill itself as gates (CI never runs on pushes or on a schedule, only by hand and as this gate, never on pull requests; changes are tested locally first; only the CodeQL analysis runs on push to `main` and weekly). It also checks the declared migration class against the migrations added since the previous release (a patch may only declare `expand`).
 It never creates git tags. After a release, push the signed tag at the released commit yourself; the next release finds its
 comparison point from that tag:
 

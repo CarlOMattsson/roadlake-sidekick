@@ -1,0 +1,56 @@
+name: codeql
+
+# CodeQL static analysis (SAST) of the public repository; the results go to code scanning.
+#
+# The one deliberate exception to the rule that workflows run only by hand or as a release gate: CodeQL also runs
+# on every push to main and once a week. Static analysis is meant to see every commit that lands on main, the
+# OpenSSF Scorecard "SAST" check asks for exactly that, and the analysis needs no secrets and writes nothing but
+# code scanning alerts. Every other workflow keeps the release-only rule (docs/maintainers/release.md), and the
+# policy tests allow push and schedule triggers in this file only. There is no pull_request trigger, because CI
+# does not run on pull requests either.
+#
+# Languages: Python (backend), JavaScript/TypeScript (frontend and website) and the workflows themselves
+# ("actions"), all analysed from source without a build. The Android app is Kotlin, which CodeQL can only
+# analyse with a full Gradle build, so it is left out here; CI and the release build compile and test it.
+#
+# Query suite: security-extended, the default security queries plus the lower-precision ones. The server holds
+# personal data and accepts OAuth tokens, so broader coverage is worth a few more alerts to triage; the
+# "security-and-quality" suite adds style findings that belong to the linters.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write # upload the results to code scanning
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript, actions]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { persist-credentials: false }
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+      - name: Analyze
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}

@@ -15,7 +15,6 @@ import {
   Fragment,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -90,27 +89,23 @@ export function PairingGate({
     return first ? { link: first, n: 0 } : undefined;
   });
 
-  const linkNow = useRef(link);
-  useEffect(() => {
-    linkNow.current = link;
-  }, [link]);
-
   useSafeAreaInsets(platform);
 
-  // A link that arrives on a phone that is already paired is dropped: it must not wait there and ask after a
-  // later disconnect.
-  const pairedNow = useRef(false);
-  useEffect(() => {
-    pairedNow.current = phase === "paired";
-  }, [phase]);
   useEffect(
     () =>
       platform.onPairingLink?.((next) => {
-        if (pairedNow.current) setLinkDropped(true);
-        else setLink((current) => ({ link: next, n: (current?.n ?? 0) + 1 }));
+        setLink((current) => ({ link: next, n: (current?.n ?? 0) + 1 }));
       }),
     [platform],
   );
+
+  // A link that is still waiting when the phone turns out to be paired (it opened the cold start, or arrived at any
+  // time after the phone was paired) is dropped, and the app says so. It must not wait and ask after a later
+  // disconnect. Deciding from the committed state, while rendering, leaves no window in which a link slips past.
+  if (phase === "paired" && link) {
+    setLinkDropped(true);
+    setLink(undefined);
+  }
 
   useEffect(() => {
     let live = true;
@@ -118,9 +113,6 @@ export function PairingGate({
       (status) => {
         if (!live) return;
         if (status.paired) {
-          // A link that opened this cold start on a paired phone is dropped, and the app says so.
-          if (linkNow.current) setLinkDropped(true);
-          setLink(undefined);
           setServerHost(status.serverHost);
         }
         setPhase(status.paired ? "paired" : "unpaired");
