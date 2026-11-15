@@ -23,6 +23,10 @@ import: the full gate before a push is what catches the rest.
   own files name them).
 - The policy tests (backend/tests/policy and every file marked `pytest.mark.policy`) and the
   generated-contract test always run: they are quick and read the whole repository.
+- The test files the change itself adds or edits (backend/tests/**/test_*.py, and the Vitest files
+  under frontend/tests) are also listed for the flake guard: check-all.sh runs them again a few
+  times under load, because a test that is new or has just changed is the one most likely to
+  depend on timing, the time zone or the order of tests.
 
 Usage:
     tools/select-checks.py [--base REF] [--root DIR]
@@ -34,6 +38,9 @@ Prints one tab-separated record per line:
     test     <path>            (with `stage backend-tests some`)
     ruff     <path>            (with `stage backend-static some`)
     pyright  <path>            (with `stage backend-static some`)
+    flake-test    <path>       (a backend test file the change adds or edits)
+    flake-vitest  <path>       (a Vitest file the change adds or edits, run by `npm test`)
+    flake-preact  <path>       (a flake-vitest file the MCP App Preact run also covers)
 Paths are relative to the repository root. Exit code 0 = a plan, 2 = git or the base failed.
 Uses only the standard library.
 """
@@ -117,6 +124,16 @@ STAGE_PATTERNS: Mapping[str, tuple[str, ...]] = {
         "tools/actionlint-ci.sh",
     ),
 }
+#: Vitest's own files under frontend/tests (vite.config.ts excludes the Playwright specs and screenshot scripts).
+VITEST_FILE = re.compile(r"\.(test|spec)\.[cm]?[jt]sx?$")
+VITEST_ROOT = "frontend/tests/"
+VITEST_EXCLUDED = (
+    "frontend/tests/e2e/",
+    "frontend/tests/e2e-real/",
+    "frontend/tests/ux/",
+)
+#: What the Preact run of the MCP App views (vitest.mcp-app-preact.config.ts) leaves out.
+PREACT_EXCLUDED = ("frontend/tests/mobile/",)
 #: Within frontend/, the Android project is the android stage's alone.
 ANDROID_ONLY = ("frontend/android/*",)
 WEB_STAGES = ("frontend", "mcp-app")
@@ -315,6 +332,31 @@ def static_targets(
     return None, ruff, pyright
 
 
+def flake_targets(
+    changed: Sequence[str], root: Path
+) -> tuple[list[str], list[str], list[str]]:
+    """(backend test files, Vitest files, of those the ones the Preact run covers) that the change
+    adds or edits. Deleted files are left out."""
+
+    present = [path for path in changed if (root / path).is_file()]
+    backend = [
+        path for path in present if path.startswith(f"{TESTS}/") and _is_test_file(path)
+    ]
+    vitest = [
+        path
+        for path in present
+        if path.startswith(VITEST_ROOT)
+        and VITEST_FILE.search(path)
+        and not path.startswith(VITEST_EXCLUDED)
+    ]
+    preact = [
+        path
+        for path in vitest
+        if path.endswith(".test.tsx") and not path.startswith(PREACT_EXCLUDED)
+    ]
+    return backend, vitest, preact
+
+
 def _git(root: Path, *args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=root, check=True, capture_output=True, text=True
@@ -376,6 +418,10 @@ def plan_lines(
         lines.append("stage\tbackend-static\tskip\tunchanged")
     for stage, (state, reason) in stage_plan(changed, root).items():
         lines.append(f"stage\t{stage}\t{state}\t{reason}")
+    backend, vitest, preact = flake_targets(changed, root)
+    lines += [f"flake-test\t{path}" for path in backend]
+    lines += [f"flake-vitest\t{path}" for path in vitest]
+    lines += [f"flake-preact\t{path}" for path in preact]
     return lines
 
 

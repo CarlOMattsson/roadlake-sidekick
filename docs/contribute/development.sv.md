@@ -18,6 +18,15 @@ docker compose -f deploy/compose.dev.yaml up -d db
 
 Checka aldrig in `.env` eller någon fil med riktiga hemligheter.
 
+I en extra `git worktree` finns inga installerade paket (en arbetskopia delar repot, inte de ospårade katalogerna
+`node_modules` och `.venv`), så de steg i `tools/check-all.sh` som behöver dem hoppas över eller faller. Kör
+`bash tools/worktree-setup.sh` en gång i den nya arbetskopian: skriptet installerar backend (`uv sync --frozen`),
+`frontend/` och `website/` (`npm ci`, från npm-cachen), webbplatskontrollens Playwright-Chromium när den saknas, och
+skriver ut vad som är klart och vad som saknas. En andra körning tar under en sekund, eftersom ett steg hoppas över
+så länge dess lockfil är den som installerades. Android-miljön kontrolleras bara: dess miljöfil (namngiven av
+`SIDEKICK_ANDROID_ENV`) får inte sourcas i skalet som kör de andra stegen, så skriptet skriver ut kommandot som kör
+Android-steget i ett eget skal. `--site-tools` installerar också webbplatsens verktyg, `--force` installerar ändå.
+
 ## Kontroller och tester
 
 ```bash
@@ -70,6 +79,14 @@ redovisas som `skipped (unchanged)`. En ändring i `conftest.py`, testfixturerna
 steg, med backendtesterna men utan täckningsmätning. Täckningen (gränsen 90 %) hör till `--release`.
 `--rerun-failed` kör bara de backendtester som föll i en tidigare körning (de sparas i pytests cache under
 `.cache/check-all/`); finns inga sparade säger den det och avslutar med 0.
+
+Ett test som är nytt eller nyss ändrat klarar den enda körning det får och faller först senare när det beror på
+timing, tidszon eller testernas ordning. Därför kör `--changed` även de backendtestfiler och Vitest-filer (under
+`frontend/tests`) som din ändring lägger till eller ändrar en gång till efter den vanliga körningen: 5 gånger till som
+standard, och `--flake-runs N` ändrar antalet (`0` stänger av). Backendfilerna körs med samma parallella arbetare som
+förut, i UTC. Varje omgång kör Vitest-filerna i UTC och i din lokala tidszon, och MCP-appens vytester även på Preact. Ett
+fel i någon omgång fäller steget och sammanfattningen säger `flaky`; de fallerade backendtesterna sparas, så
+`--rerun-failed` hittar dem. Hela körningen före en push upprepar ingenting.
 
 Docker behövs för shellcheck, actionlint, gitleaks och Playwright-testerna: de körs i de avbilder som är fastnålade i
 `tools/ci-images.sh`, samma som CI använder, så versioner, webbläsare och typsnitt stämmer. Saknas Docker skriver steget

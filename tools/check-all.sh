@@ -71,9 +71,20 @@
 # A stage the change does not touch is reported as "skipped  NAME (unchanged)". The release gate cannot be combined with
 # --changed. The full run before a push still catches what the selection misses (a caller in another package).
 #
+# Flake guard (--changed only): a test that is new or has just changed is the one most likely to depend on timing, the time
+# zone or the order of tests, yet it passes the one run it gets. So after the ordinary run, the backend test files and the
+# Vitest files (frontend/tests) that the change adds or edits run N more times, 5 by default (--flake-runs N, 0 turns it off):
+#   backend         pytest on those files with the same xdist workers and --dist loadgroup as the run before, in TZ=UTC. The
+#                   backend has no random-order plugin, and none is added
+#   frontend        npm test on those files once in TZ=UTC and once in the local time zone per round, and the MCP App
+#                   Preact run (test:mcp-app:preact) on the .test.tsx files it covers
+# A failure in any round fails the stage with the word "flaky": the test passed once and failed in a repeat. The backend
+# nodeids stay in pytest's cache, so --rerun-failed finds them. The full run before a push is unchanged.
+#
 # Options:
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
 #   --changed [BASE]      only the checks that the change since BASE touches (above)
+#   --flake-runs N        with --changed: how often the added or edited test files run again (default 5, 0 = never; above)
 #   --rerun-failed        only the backend tests that failed in an earlier run (pytest --lf on its cache, limited to the
 #                         files that hold them; tests deleted or renamed since are left out); with none saved it says so
 #                         and exits 0. Every other stage is skipped
@@ -127,6 +138,8 @@ STRICT=0
 CHANGED=0
 CHANGED_BASE=""
 RERUN_FAILED=0
+FLAKE_RUNS=5
+FLAKE_RUNS_SET=0
 # pytest's cache for the backend tests: its lastfailed file is what --rerun-failed reads. Git ignores it, since pytest
 # writes a .gitignore into it.
 PYTEST_CACHE="$REPO_ROOT/.cache/check-all/pytest"
@@ -179,6 +192,12 @@ while [ $# -gt 0 ]; do
       fi
       shift
       ;;
+    --flake-runs)
+      [ $# -ge 2 ] || die "--flake-runs needs a value"
+      FLAKE_RUNS="$2"
+      FLAKE_RUNS_SET=1
+      shift 2
+      ;;
     --rerun-failed) RERUN_FAILED=1; shift ;;
     --keep-going) KEEP_GOING=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
@@ -191,6 +210,10 @@ while [ $# -gt 0 ]; do
 done
 
 [[ "$WORKERS" =~ ^[1-9][0-9]?$ ]] || die "--workers must be a number from 1 to 99"
+[[ "$FLAKE_RUNS" =~ ^[0-9]{1,2}$ ]] || die "--flake-runs must be a number from 0 to 99"
+if [ "$FLAKE_RUNS_SET" -eq 1 ] && [ "$CHANGED" -eq 0 ]; then
+  die "--flake-runs belongs to --changed: the full run does not repeat tests"
+fi
 if [ "$CHANGED" -eq 1 ] && [ "$RELEASE" -eq 1 ]; then
   die "--changed and --release cannot be combined: the release gate checks everything"
 fi
@@ -203,6 +226,10 @@ fi
 CHANGED_TESTS=()
 CHANGED_RUFF=()
 CHANGED_PYRIGHT=()
+# The test files the change adds or edits, for the flake guard (repository-relative; Vitest paths without frontend/).
+FLAKE_TESTS=()
+FLAKE_VITEST=()
+FLAKE_PREACT=()
 
 plan_set() {
   printf -v "PLAN_STATE_${1//-/_}" '%s' "$2"
@@ -273,6 +300,9 @@ if [ "$CHANGED" -eq 1 ]; then
       test) CHANGED_TESTS+=("$first") ;;
       ruff) CHANGED_RUFF+=("$first") ;;
       pyright) CHANGED_PYRIGHT+=("$first") ;;
+      flake-test) FLAKE_TESTS+=("$first") ;;
+      flake-vitest) FLAKE_VITEST+=("${first#frontend/}") ;;
+      flake-preact) FLAKE_PREACT+=("${first#frontend/}") ;;
       *) die "unexpected line from tools/select-checks.py: $kind" ;;
     esac
   done <<<"$plan_output"
@@ -281,6 +311,10 @@ if [ "$CHANGED" -eq 1 ]; then
     website android; do
     printf '  %-15s %-5s %s\n' "$stage" "$(plan_state "$stage")" "$(plan_reason "$stage")"
   done
+  if [ "$FLAKE_RUNS" -gt 0 ] && [ $((${#FLAKE_TESTS[@]} + ${#FLAKE_VITEST[@]})) -gt 0 ]; then
+    echo "check-all: flake guard: $FLAKE_RUNS repeat runs of ${#FLAKE_TESTS[@]} backend and ${#FLAKE_VITEST[@]} Vitest" \
+      "test files that the change adds or edits"
+  fi
 fi
 
 if [ "$SKIP_BACKEND_TESTS" -eq 0 ] && [ "$(plan_state backend-tests)" != skip ]; then
@@ -306,6 +340,8 @@ need() {
 
 # Exit code a stage uses when an optional tool or the network is missing; run_stage turns it into SKIPPED (or FAILED with --strict).
 RC_TOOL_MISSING=77
+# Exit code of a stage whose added or edited test passed once and failed in a repeat run (the flake guard).
+RC_FLAKY=78
 
 # optional_tool TOOL INSTALL_HINT: ends the stage with RC_TOOL_MISSING when TOOL is not installed (not in --dry-run).
 optional_tool() {
@@ -329,6 +365,19 @@ run() {
   printf '+ %s\n' "$*"
   if [ "$DRY_RUN" -eq 0 ]; then
     "$@" || exit $?
+  fi
+}
+
+# flake_round LABEL ROUND CMD...: one repeat run of the flake guard. A failure ends the stage as flaky.
+flake_round() {
+  local label="$1" round="$2"
+  shift 2
+  printf '+ [flake guard %s/%s] %s\n' "$round" "$FLAKE_RUNS" "$*"
+  if [ "$DRY_RUN" -eq 0 ]; then
+    "$@" || {
+      echo "check-all: flaky: $label failed in repeat run $round of $FLAKE_RUNS after the ordinary run passed" >&2
+      exit "$RC_FLAKY"
+    }
   fi
 }
 
@@ -368,6 +417,15 @@ stage_backend_tests() {
   # The CI runner's zone is UTC; the owner's machine is not, and date handling that depends on the zone must show here.
   run env TZ=UTC uv run --project backend python -m pytest "${targets[@]}" -n "$workers" --dist loadgroup \
     --no-header -o "cache_dir=$PYTEST_CACHE" -rfE -W ignore ${coverage[@]+"${coverage[@]}"}
+  # The changed test files again, as busy as the run above (the pool environment is still loaded). The failures stay in
+  # pytest's cache, where --rerun-failed reads them.
+  if [ "$FLAKE_RUNS" -gt 0 ] && [ "${#FLAKE_TESTS[@]}" -gt 0 ]; then
+    local round
+    for ((round = 1; round <= FLAKE_RUNS; round++)); do
+      flake_round "backend tests" "$round" env TZ=UTC uv run --project backend python -m pytest "${FLAKE_TESTS[@]}" --full \
+        -n "$workers" --dist loadgroup --no-header -o "cache_dir=$PYTEST_CACHE" -rfE -W ignore
+    done
+  fi
 }
 
 stage_backend_static() {
@@ -459,6 +517,23 @@ stage_frontend() {
   # The runner's zone is UTC; the same tests run again in a zone that differs from both UTC and the owner's.
   run env TZ=UTC npm --prefix frontend run check
   run env TZ=America/Los_Angeles npm --prefix frontend test
+  flake_guard_frontend
+}
+
+# The changed Vitest files again: per round in UTC and in the local zone, and the MCP App Preact run on those it covers.
+flake_guard_frontend() {
+  if [ "$FLAKE_RUNS" -eq 0 ] || [ "${#FLAKE_VITEST[@]}" -eq 0 ]; then
+    return 0
+  fi
+  local round
+  for ((round = 1; round <= FLAKE_RUNS; round++)); do
+    flake_round "Vitest files" "$round" env TZ=UTC npm --prefix frontend test -- "${FLAKE_VITEST[@]}"
+    flake_round "Vitest files (local time zone)" "$round" env -u TZ npm --prefix frontend test -- "${FLAKE_VITEST[@]}"
+    if [ "${#FLAKE_PREACT[@]}" -gt 0 ]; then
+      flake_round "MCP App views on Preact" "$round" env TZ=UTC npm --prefix frontend run test:mcp-app:preact -- \
+        "${FLAKE_PREACT[@]}"
+    fi
+  done
 }
 
 # The CI frontend job runs the unit tests with the coverage threshold after the mobile bundle is built.
@@ -636,6 +711,9 @@ run_stage() {
     RESULTS+=("SKIPPED  $name (a tool or the network was missing, so not fully checked; --strict makes this a failure)")
   elif [ "$rc" -eq "$RC_TOOL_MISSING" ]; then
     RESULTS+=("FAILED   $name (tool or network missing, --strict)")
+    FAILED=1
+  elif [ "$rc" -eq "$RC_FLAKY" ]; then
+    RESULTS+=("FAILED   $name (flaky: a test that passed once failed in a repeat run)")
     FAILED=1
   else
     RESULTS+=("FAILED   $name (exit $rc)")
