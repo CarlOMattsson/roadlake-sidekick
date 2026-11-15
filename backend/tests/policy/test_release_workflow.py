@@ -318,7 +318,9 @@ def test_the_version_has_no_leading_zeros(version: str, accepted: bool) -> None:
     assert "v[0-9]+" not in text  # no version pattern in the workflow accepts a leading zero
 
 
-def patch_rule(version: str, migration_class: str) -> subprocess.CompletedProcess[str]:
+def patch_rule(
+    version: str, migration_class: str, previous_release: str = "v1.2.0"
+) -> subprocess.CompletedProcess[str]:
     step = next(s for s in gate_steps() if s.get("name", "").startswith("Refuse a breaking"))
     bash = shutil.which("bash")
     if bash is None:
@@ -327,6 +329,7 @@ def patch_rule(version: str, migration_class: str) -> subprocess.CompletedProces
         "PATH": os.environ["PATH"],
         "INPUT_VERSION": version,
         "INPUT_MIGRATION_CLASS": migration_class,
+        "INPUT_PREVIOUS_RELEASE": previous_release,
     }
     return subprocess.run(
         [bash, "-c", step["run"]], env=env, capture_output=True, text=True, check=False
@@ -352,6 +355,12 @@ def test_a_patch_release_may_only_declare_the_expand_migration_class(
     assert (result.returncode == 0) is accepted, result.stderr
     if not accepted:
         assert "patch" in result.stderr and "expand" in result.stderr
+
+
+def test_the_first_release_is_exempt_from_the_patch_rule() -> None:
+    """No installation exists to upgrade from; the migration check refuses `none` after a tag."""
+    assert patch_rule("v0.1.1", "breaking", previous_release="none").returncode == 0
+    assert patch_rule("v0.1.1", "breaking", previous_release="").returncode != 0
 
 
 def test_every_gate_of_a_real_release_still_runs_for_a_patch() -> None:

@@ -86,8 +86,14 @@ jobs:
       - name: Refuse a breaking migration class for a patch release
         # A patch fixes without a one-way schema step: it may declare only `expand`. The migration check below
         # compares the declared class with the migrations themselves, so a patch with no migrations declares `expand`.
+        # The first release (previous_release none) is exempt: no installation exists to upgrade from, and the
+        # migration check refuses `none` once any release tag exists.
         run: |
           set -euo pipefail
+          if [ "${INPUT_PREVIOUS_RELEASE:-}" = "none" ]; then
+            echo "first release: no earlier installation, so the patch rule does not apply"
+            exit 0
+          fi
           if [[ "$INPUT_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.[1-9][0-9]*$ ]] && [ "$INPUT_MIGRATION_CLASS" != "expand" ]; then
             echo "${INPUT_VERSION} is a patch release; a patch may only declare migration_class expand. Ship a breaking migration with the next minor or major version." >&2
             exit 1
