@@ -29,7 +29,7 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 
 [Svenska](README.sv.md) · [Documentation](docs/README.md) · [Quickstart](QUICKSTART.md) · [License](LICENSE.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Decisions](docs/decisions/log.md)
 
-> **Status: version 0.1.1, the first release.** The signed container image and the signed APK are attached to the
+> **Status: version 0.1.2.** The signed container image and the signed APK are attached to the
 > [latest release](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); how to verify them is in
 > [Verifying a release](docs/maintainers/release.md#verifying-a-release). It is in daily use with Claude, with the
 > Android app on a real phone and on Linux; macOS has not been tried yet.

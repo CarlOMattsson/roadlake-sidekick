@@ -6,6 +6,31 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-15
+
+### Added
+
+- Android app: create and edit tasks and edit projects from the app, through new companion routes and the device
+  capability `companion:work:write` (in `--preset app`; a device paired earlier needs a new pairing or a grant).
+- Android app: move tasks, journal entries and shopping items to the trash with Undo, a trash screen in the settings,
+  and permanent removal of trashed tasks behind its own capability `companion:work:erase` and an explicit confirmation.
+- Android app: share text and links from other apps to Sidekick as a task or a journal entry.
+- Guided review of many tasks for voice mode: `get_review_queue`, `review_tasks` and `restore_task`, and Ambitions,
+  tasks you want to keep in view without reminders.
+- Token-protected webhooks for home and phone automation (`/webhooks/v1/`, off by default): add a shopping item or
+  create a task, one revocable token per integration, managed with `sidekick-webhooks`.
+- Self-hosting: a `tailscale` Compose profile that publishes Sidekick through Tailscale Funnel from a home machine.
+
+### Changed
+
+- ADR-005: the Android app may now create, edit and delete, as a fallback when you cannot talk to Claude.
+
+### Fixed
+
+- Property-based fuzzing found and fixed four bugs: license keys signed as UTF-8, CSS escaping in the host style,
+  prefixed routing and an invalid-day edge in the owner's noon.
+- CodeQL findings fixed in code.
+
 ## [0.1.1] - 2026-11-15
 
 The first public release.
