@@ -142,6 +142,10 @@ export function StoreRow({
           onSave={(input) =>
             env.onSave(item, input, () => env.onCloseEditor(item.id))
           }
+          onTrash={
+            env.onTrash &&
+            (() => env.onTrash?.(item, () => env.onCloseEditor(item.id)))
+          }
         />
       )}
     </li>

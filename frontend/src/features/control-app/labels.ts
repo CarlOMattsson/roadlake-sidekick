@@ -1,3 +1,4 @@
+import { eraseEn, eraseSv } from "./erase-labels";
 import type { ChangeRecord, MemoryDomain } from "./transport";
 
 /** How a memory domain reads inside a sentence. Swedish has an indefinite and a definite form. */
@@ -93,6 +94,7 @@ export const controlEn = {
   restoreGone: "That item is no longer in Deleted. Refreshing the list.",
   restoreForbidden: "You don’t have permission to restore this.",
   restoreFailed: "Couldn’t restore.",
+  ...eraseEn,
   // History: changes (with Undo/Restore) and activity (read only) in one list
   historyEmpty: "No history yet.",
   historyEmptyHint: "Changes made by you or Claude show up here.",
@@ -299,6 +301,7 @@ export const controlSv: ControlLabels = {
   restoreGone: "Posten ligger inte längre i Borttaget. Listan uppdateras.",
   restoreForbidden: "Du saknar behörighet att återställa den.",
   restoreFailed: "Det gick inte att återställa.",
+  ...eraseSv,
   historyEmpty: "Ingen historik ännu.",
   historyEmptyHint: "Det du eller Claude ändrar visas här.",
   historyAskExample: "Lägg till mjölk på inköpslistan",

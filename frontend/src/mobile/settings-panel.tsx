@@ -9,6 +9,8 @@
  * - `phoneHeading`: the device label, the server it is paired to, when it was paired, and that the sign-in renews itself before it expires,
  *   and `unpair`, which asks first (it clears the phone). After it, the pairing gate takes over.
  *
+ * Under Aviseringar, when the app can read the trash, one row opens the trash screen (phone-trash.tsx).
+ *
  * It fits one phone screen at 320 px and 110 % text: no list, no scroll. Nothing here reaches the network but through
  * the plugin.
  */
@@ -21,6 +23,7 @@ import { LicenseRow } from "@/features/mcp-apps/license-mark";
 import { BackHeader } from "@/features/mcp-apps/ui/back-header";
 import { workDate } from "@/features/mcp-apps/ui/due";
 import { AppFrame } from "@/features/mcp-apps/ui/layout";
+import { ChevronRightIcon } from "@/features/mcp-apps/ui/icons";
 import { ErrorNotice } from "@/features/mcp-apps/ui/states";
 import type { SidekickNativePlugin, DeviceStatus } from "./sidekick-native";
 import { LanguageSwitch } from "./language-switch";
@@ -56,6 +59,8 @@ export type SettingsPanelProps = {
   now?: Date;
   /** Chooses the app's language: Svenska | English first in the settings. Absent: no such section. */
   onLocale?: (locale: AppLocale) => void;
+  /** Opens the trash screen over the settings. Absent: no such row. */
+  onOpenTrash?: () => void;
 };
 
 export function SettingsPanel({
@@ -67,6 +72,7 @@ export function SettingsPanel({
   onUnpaired,
   now,
   onLocale,
+  onOpenTrash,
 }: SettingsPanelProps) {
   const labels = settingsLabelsFor(locale);
   const root = useRef<HTMLElement>(null);
@@ -120,6 +126,16 @@ export function SettingsPanel({
             device.phase === "ready" && device.value.pushEnabled === false
           }
         />
+        {onOpenTrash ? (
+          <button
+            type="button"
+            className="mobile-settings__row"
+            onClick={onOpenTrash}
+          >
+            <span>{labels.trash}</span>
+            <ChevronRightIcon />
+          </button>
+        ) : null}
         <h3 className="mobile-settings__section">{labels.phoneHeading}</h3>
         <DeviceSection
           native={native}

@@ -130,6 +130,9 @@ export function ListRow({
           contacts={env.contacts}
           onCancel={() => env.onEdit(null)}
           onSave={(input) => env.onSave(item, input, () => env.onEdit(null))}
+          onTrash={
+            env.onTrash && (() => env.onTrash?.(item, () => env.onEdit(null)))
+          }
         />
       )}
     </li>

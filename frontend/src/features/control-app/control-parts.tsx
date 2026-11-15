@@ -50,6 +50,7 @@ export function ControlRow({
   receipt,
   receiptAction,
   action,
+  stackedAction = false,
   below,
 }: {
   primary: string;
@@ -57,6 +58,8 @@ export function ControlRow({
   receipt?: string;
   receiptAction?: ReactNode;
   action?: ReactNode;
+  /** Several buttons: the action stands under the text, side by side, not in the end column that fits one word. */
+  stackedAction?: boolean;
   /** Full-width content under the row's text and action (a confirmation, a panel). */
   below?: ReactNode;
 }) {
@@ -85,7 +88,15 @@ export function ControlRow({
           <div className="control-row-action">{receiptAction}</div>
         ) : null
       ) : action ? (
-        <div className="control-row-action">{action}</div>
+        <div
+          className={
+            stackedAction
+              ? "control-row-action control-row-action--stacked"
+              : "control-row-action"
+          }
+        >
+          {action}
+        </div>
       ) : null}
       {below ? <div className="control-row-below">{below}</div> : null}
     </li>

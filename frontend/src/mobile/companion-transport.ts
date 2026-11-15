@@ -10,8 +10,8 @@
  * companion-work.ts (title, note, due date, place, priority); create_task and update_project are answered by that
  * planner too. The network itself is the typed SidekickNative plugin.
  *
- * Shopping, Journal, license and the Work writes are planned by companion-shopping.ts, companion-journal.ts,
- * companion-license.ts and companion-work.ts; the default branch of plan() asks them in turn.
+ * Shopping, Journal, license, the Work writes and the trash are planned by companion-shopping.ts, companion-journal.ts,
+ * companion-license.ts, companion-work.ts and companion-trash.ts; the default branch of plan() asks them in turn.
  *
  * Offline: a call that got no answer because of the connection (the native codes `network` and `timeout`) fails with
  * CompanionNetworkError, so the room says `network`. A shopping purchase that got no answer is put in
@@ -56,9 +56,12 @@ import {
   planJournal,
 } from "./companion-journal";
 import { LICENSE_TOOLS, planLicense } from "./companion-license";
+import { TRASH_TOOLS, planTrash, trashCallSupported } from "./companion-trash";
 import {
   WORK_WRITE_TOOLS,
+  isCompletingChange,
   isProjectEdit,
+  isReopeningChange,
   isTaskEdit,
   planWorkWrite,
 } from "./companion-work";
@@ -131,6 +134,7 @@ export const COMPANION_TOOLS = [
   ...SHOPPING_TOOLS,
   ...JOURNAL_TOOLS,
   ...LICENSE_TOOLS,
+  ...TRASH_TOOLS,
 ] as const;
 
 /** The arguments get_work_agenda takes (contracts/mcp-tools.generated.json); anything else is refused. */
@@ -260,27 +264,6 @@ function agendaQuery(args: Args): NativeQuery {
     if (text !== undefined) query[key] = text;
   }
   return query;
-}
-
-/** The one change update_task is answered for: the tick, `{ status: "completed" }` and nothing else. */
-function isCompletingChange(changes: unknown): boolean {
-  return (
-    isArgs(changes) &&
-    Object.keys(changes).length === 1 &&
-    changes.status === "completed"
-  );
-}
-
-/**
- * The other change update_task is answered for: back to open, `{ status: "todo" }` and nothing else. The backend's
- * reopen route sets exactly "todo" and only on a completed Task, so no other status is ever answered.
- */
-function isReopeningChange(changes: unknown): boolean {
-  return (
-    isArgs(changes) &&
-    Object.keys(changes).length === 1 &&
-    changes.status === "todo"
-  );
 }
 
 /** The closed status -> code table for answers whose body names no code of its own. */
@@ -435,6 +418,10 @@ export class CompanionRoomTransport implements RoomTransport {
         !("tags" in args) &&
         JOURNAL_LINK_KEYS.every((key) => !(key in args))
       );
+    if (name === "move_to_trash" || name === "restore_from_trash")
+      return this.supportsTool(name) && trashCallSupported(args);
+    if (name === "list_trash")
+      return this.supportsTool(name) && trashCallSupported(args);
     if (name === "update_project")
       return (
         this.supportsTool(name) &&
@@ -658,7 +645,8 @@ export class CompanionRoomTransport implements RoomTransport {
           planWorkWrite(name, rawArgs, helpers) ??
           planShopping(name, rawArgs, helpers) ??
           planJournal(name, rawArgs, helpers) ??
-          planLicense(name, rawArgs, helpers);
+          planLicense(name, rawArgs, helpers) ??
+          planTrash(name, rawArgs, helpers);
         if (!planned) throw new NotInAppError();
         return planned;
       }

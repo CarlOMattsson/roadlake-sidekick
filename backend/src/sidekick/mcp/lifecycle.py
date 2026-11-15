@@ -1,18 +1,15 @@
 """Reversible record lifecycle tools: list the trash, move a record there, restore it.
 
 Permanent removal is deliberately not here (D-031: permanent removal is not an MCP tool): nothing in
-this module can reach `RecordLifecycleService.permanently_remove`, and since D-082 (old web shell
-removed) removed the REST
-routes no public surface exposes that method. The tools call the lifecycle use case with the record
-kinds and scopes listed here. The "ask first" wording of `move_to_trash` is an instruction to the
-host model; the server enforces owner, scope, observed version and idempotency, and the move is
-reversible.
+this module can reach `RecordLifecycleService.permanently_remove`. The tools call the lifecycle use
+case through `sidekick.structured.trash`, which the companion API shares. The "ask first" wording of
+`move_to_trash` is an instruction to the host model; the server enforces owner, scope, observed
+version and idempotency, and the move is reversible.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Annotated, Literal, cast
+from typing import Annotated
 from uuid import UUID
 
 from fastmcp import FastMCP
@@ -20,7 +17,7 @@ from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
 from pydantic import Field
 
-from sidekick.lifecycle import RecordKind, TrashItem
+from sidekick.lifecycle import RecordKind
 from sidekick.mcp.annotations import DESTRUCTIVE, READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
@@ -29,58 +26,19 @@ from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import flat
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.types import MAX_CURSOR_LENGTH
-from sidekick.structured.base import Output
+from sidekick.structured.trash import (
+    KindValue,
+    TrashItemRecord,
+    TrashListResult,
+    list_trash_structured,
+    move_to_trash_structured,
+    restore_from_trash_structured,
+)
 
 LIFECYCLE_TOOL_NAMES = ("list_trash", "move_to_trash", "restore_from_trash")
 """Closed on purpose: no tool in this surface removes a record permanently."""
 
-KindValue = Literal[
-    "domain",
-    "process",
-    "project",
-    "task",
-    "step",
-    "action",
-    "contact",
-    "journal_entry",
-    "shopping_item",
-]
 Version = Annotated[int, Field(ge=1)]
-
-
-# A Journal source is immutable and the application role holds no UPDATE grant on its table, so
-# it cannot be trashed at all today, and its label is an excerpt of raw journal text. It is
-# therefore not part of this surface; a Journal source needs a trash path first.
-_KINDS = frozenset(RecordKind) - {RecordKind.JOURNAL_SOURCE}
-
-# Same mapping as the use case's read scopes (service.py `_READ_SCOPE`); a test pins them equal.
-# A label names the record, so it is returned only to an actor who can read that kind.
-_READ_SCOPE_BY_KIND: dict[RecordKind, str] = {
-    RecordKind.DOMAIN: "projects:read",
-    RecordKind.PROCESS: "projects:read",
-    RecordKind.PROJECT: "projects:read",
-    RecordKind.TASK: "tasks:read",
-    RecordKind.STEP: "tasks:read",
-    RecordKind.ACTION: "tasks:read",
-    RecordKind.CONTACT: "contacts:read",
-    RecordKind.JOURNAL_SOURCE: "journal:read",
-    RecordKind.JOURNAL_ENTRY: "journal:read",
-    RecordKind.SHOPPING_ITEM: "shopping:read",
-}
-
-
-class TrashItemRecord(Output):
-    kind: KindValue
-    id: UUID
-    label: str | None
-    trashed_at: datetime | None
-    version: int
-
-
-class TrashListResult(Output):
-    items: list[TrashItemRecord]
-    has_more: bool = False
-    next_cursor: str | None = None
 
 
 def _kind_phrase(kind: str) -> str:
@@ -119,18 +77,6 @@ def _subject(kind: str, label: str | None) -> str:
     return f'{kind.replace("_", " ")} "{flat(label, limit=60)}"'
 
 
-def _record(item: TrashItem, scopes: frozenset[str]) -> TrashItemRecord:
-    readable = _READ_SCOPE_BY_KIND[item.kind] in scopes
-    return TrashItemRecord(
-        # RecordKind also has journal_source, which this surface never lists as trashable.
-        kind=cast("KindValue", item.kind.value),
-        id=item.id,
-        label=item.label if readable else None,
-        trashed_at=item.trashed_at,
-        version=item.version,
-    )
-
-
 def _register_list_trash(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="list_trash",
@@ -154,21 +100,17 @@ def _register_list_trash(mcp: FastMCP, ctx: ToolContext) -> None:
         cursor: Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)] = None,
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        # `within` filters in the query, so excluded kinds never take up slots in the page.
-        page = ctx.container.lifecycle.list_trash(
+        listed = list_trash_structured(
+            ctx.container,
             actor,
             kind=RecordKind(kind) if kind else None,
             limit=limit,
-            within=_KINDS,
             cursor=cursor,
         )
-        visible = [_record(item, actor.scopes) for item in page.items]
-        structured = TrashListResult(
-            items=visible,
-            has_more=page.next_cursor is not None,
-            next_cursor=page.next_cursor,
-        ).model_dump(mode="json")
-        return result(structured, _trash_summary(visible, has_more=structured["has_more"]))
+        return result(
+            listed.model_dump(mode="json"),
+            _trash_summary(listed.items, has_more=listed.has_more),
+        )
 
 
 def _register_move_to_trash(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -189,15 +131,15 @@ def _register_move_to_trash(mcp: FastMCP, ctx: ToolContext) -> None:
         kind: KindValue, record_id: UUID, version: Version, idempotency_key: IdempotencyKey
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        item = ctx.container.lifecycle.trash(
+        record = move_to_trash_structured(
+            ctx.container,
             actor,
             RecordKind(kind),
             record_id,
             version=version,
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
-        )
-        record = _record(item, actor.scopes).model_dump(mode="json")
+        ).model_dump(mode="json")
         subject = _subject(record["kind"], record["label"])
         return result(record, f"Moved {subject} to the trash.")
 
@@ -219,15 +161,15 @@ def _register_restore_from_trash(mcp: FastMCP, ctx: ToolContext) -> None:
         kind: KindValue, record_id: UUID, version: Version, idempotency_key: IdempotencyKey
     ) -> ToolResult:
         actor = ctx.actor_provider()
-        item = ctx.container.lifecycle.restore(
+        record = restore_from_trash_structured(
+            ctx.container,
             actor,
             RecordKind(kind),
             record_id,
             version=version,
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
-        )
-        record = _record(item, actor.scopes).model_dump(mode="json")
+        ).model_dump(mode="json")
         subject = _subject(record["kind"], record["label"])
         return result(record, f"Restored {subject} from the trash.")
 

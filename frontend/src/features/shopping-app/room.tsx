@@ -5,6 +5,7 @@ import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import { AppFrame } from "../mcp-apps/ui/layout";
 import { ErrorNotice, toolResultCause } from "../mcp-apps/ui/states";
 import { toolOffered } from "../mcp-apps/tool-support";
+import type { ToolResults } from "../../lib/mcp/tool-results.generated";
 import { BatchCard, batchSummary, type BatchSummary } from "./batch-card";
 import { shoppingEn, shoppingSv } from "./labels";
 import { ShoppingCard } from "./shopping-card";
@@ -22,10 +23,30 @@ import {
 function createShoppingTransport(
   call: RoomTransport["call"],
   searchContacts: boolean,
+  withTrash: boolean,
   offline?: RoomTransport["offline"],
 ): ShoppingTransport {
   return {
     ...(offline ? { offline } : {}),
+    // Delete with Undo needs both tools; a host that offers only one gets neither.
+    ...(withTrash
+      ? {
+          trashItem: (itemId: string, version: number, key: string) =>
+            call<ToolResults["move_to_trash"]>("move_to_trash", {
+              kind: "shopping_item",
+              record_id: itemId,
+              version,
+              idempotency_key: key,
+            }),
+          restoreItem: (itemId: string, trashVersion: number, key: string) =>
+            call<ToolResults["restore_from_trash"]>("restore_from_trash", {
+              kind: "shopping_item",
+              record_id: itemId,
+              version: trashVersion,
+              idempotency_key: key,
+            }),
+        }
+      : {}),
     // A host without list_contacts (the mobile app) gets no recipient search.
     ...(searchContacts
       ? { contacts: (q: string) => call("list_contacts", { q, limit: 25 }) }
@@ -193,14 +214,21 @@ export function ShoppingRoom(props: RoomProps) {
   // The recipient search needs the Contact room on, and a host that offers its tool.
   const searchContacts =
     roomEnabled("contacts") && toolOffered(props.transport, "list_contacts");
+  // Deleting an item moves it to the trash and Undo restores it, so both tools must be there.
+  const canTrash =
+    toolOffered(props.transport, "move_to_trash", { kind: "shopping_item" }) &&
+    toolOffered(props.transport, "restore_from_trash", {
+      kind: "shopping_item",
+    });
   const api = useMemo(
     () =>
       createShoppingTransport(
         props.transport.call,
         searchContacts,
+        canTrash,
         props.transport.offline,
       ),
-    [props.transport.call, searchContacts, props.transport.offline],
+    [props.transport.call, searchContacts, canTrash, props.transport.offline],
   );
   const locale = appLocale();
   const labels = locale.startsWith("sv") ? shoppingSv : shoppingEn;

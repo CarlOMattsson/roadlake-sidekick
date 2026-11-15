@@ -302,7 +302,7 @@ class LifecycleStore(StoreBase):
         row = LifecycleStore._lifecycle_row(session, owner_id, kind, record_id)
         current_version = int(getattr(row, "version", 1))
         if current_version != version:
-            raise ConflictError(f"stale {kind.value} version")
+            raise ConflictError(f"stale {kind.value} version", reason="stale_version")
         if trashed and row.trashed_at is not None:
             raise ConflictError(f"{kind.value} is already in trash")
         if not trashed and row.trashed_at is None:
@@ -440,7 +440,7 @@ class LifecycleStore(StoreBase):
         if row.trashed_at is None:
             raise ValidationError("only a trashed record can be permanently removed")
         if int(getattr(row, "version", 1)) != version:
-            raise ConflictError(f"stale {kind.value} version")
+            raise ConflictError(f"stale {kind.value} version", reason="stale_version")
         child_count = LifecycleStore._child_count(session, owner_id, kind, record_id)
         if child_count:
             raise ConflictError("remove descendants before permanently removing this record")

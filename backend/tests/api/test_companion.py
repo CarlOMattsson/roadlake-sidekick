@@ -88,6 +88,7 @@ def test_pairing_exchanges_once_and_the_device_credential_works() -> None:
             "companion:shopping:write",
             "companion:tasks:complete",
             "companion:tasks:read",
+            "companion:work:erase",
             "companion:work:write",
         ]
         # A scope added to or removed from the device vocabulary must be a deliberate edit here.

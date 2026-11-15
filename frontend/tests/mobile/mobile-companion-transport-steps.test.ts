@@ -9,6 +9,7 @@ import { JOURNAL_ROUTES } from "@/mobile/companion-journal";
 import { LICENSE_ROUTES } from "@/mobile/companion-license";
 import { WORK_WRITE_ROUTES } from "@/mobile/companion-work";
 import { SHOPPING_ROUTES } from "@/mobile/companion-shopping";
+import { TRASH_ROUTES } from "@/mobile/companion-trash";
 import { fakeNative, ok } from "@tests/helpers/fake-native";
 import {
   KEY,
@@ -355,6 +356,7 @@ describe("companion route tables against the published contract", () => {
     ...JOURNAL_ROUTES,
     ...LICENSE_ROUTES,
     ...WORK_WRITE_ROUTES,
+    ...TRASH_ROUTES,
   };
   const ours = Object.values(tables).map(
     (route) => `${route.method} ${route.path}`,
@@ -371,7 +373,7 @@ describe("companion route tables against the published contract", () => {
 
   it("has a route for every backend path the rooms read or write (work, shopping, journal, license)", () => {
     const wanted =
-      /^[A-Z]+ \/companion\/v1\/(work\/(agenda|hierarchy)|tasks|projects|domains|processes|steps|shopping|journal|license)(\/|$)/;
+      /^[A-Z]+ \/companion\/v1\/(work\/(agenda|hierarchy)|tasks|projects|domains|processes|steps|shopping|journal|license|trash)(\/|$)/;
     const missing = [...contractRoutes()].filter(
       (route) => wanted.test(route) && !ours.includes(route),
     );

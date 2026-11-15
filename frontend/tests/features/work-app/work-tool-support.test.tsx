@@ -39,7 +39,12 @@ import { fakeNative, ok } from "@tests/helpers/fake-native";
 afterEach(cleanup);
 
 const companion = new CompanionRoomTransport(fakeNative(() => ok({})));
-const NO_WRITES = ["create_task", "update_project"];
+const NO_WRITES = [
+  "create_task",
+  "update_project",
+  "move_to_trash",
+  "restore_from_trash",
+];
 /** A host that answers reads, complete, update_task only for the tick and the Step tick, and nothing else that writes. */
 const APP = {
   supportsTool: (name: string) =>

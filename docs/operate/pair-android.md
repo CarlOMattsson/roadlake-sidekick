@@ -11,7 +11,7 @@ Download the signed Android app or build it from source, install it and connect 
 The app is a second surface for the same Sidekick server, next to Claude. It talks to the server's
 companion routes under `/companion/v1/` and to nothing else.
 
-It does not create tasks or projects, run AI, or talk to Claude: those happen in Claude. It has no QR
+It creates and changes tasks, changes projects, and moves tasks, journal entries and shopping items to the trash. It does not create or restructure projects, run AI, or talk to Claude: those happen in Claude. It has no QR
 scanner and no camera permission: the pairing code is typed, pasted, or arrives through a pairing link. It does not back up or transfer
 its credential (`android:allowBackup="false"`). It runs on Android 7.0 or newer (`minSdk` 24).
 Android 13 and newer ask for notification permission once, after pairing. There is no iOS app.
@@ -180,8 +180,9 @@ What you get:
 Notes:
 
 - `--scope` or `--preset app` is mandatory; the command refuses to guess. `--preset app` grants tasks (read
-  and complete, and create and edit tasks and projects), notifications, Shopping (read and write), Journal
-  (read and write) and the license row. You can instead list `--scope companion:…` values (repeatable) for a narrower phone.
+  and complete, create and edit tasks, and move them to the trash and restore them), deleting trashed tasks for good and emptying the trash
+  (`companion:work:erase`, which a phone paired earlier gets only with `grant --scope companion:work:erase`), editing
+  of projects (not creating them), notifications, Shopping (read and write), Journal (read and write) and the license row. You can instead list `--scope companion:…` values (repeatable) for a narrower phone.
 - The code works **once** and for **10 minutes** (`PAIRING_TTL` in `backend/src/sidekick/companion/service.py`).
 - Without `--user-id <uuid>` the command uses the installation's only active owner and refuses if there is not
   exactly one.

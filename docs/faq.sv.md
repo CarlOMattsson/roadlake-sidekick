@@ -44,7 +44,7 @@ Sidekick anropar ingen språkmodell på egen hand. Claude ser det som dess behö
 
 ### Kan jag radera något för gott?
 
-Inte från Claude eller rummen, där allt hamnar i papperskorgen och går att återställa. Den som sköter servern tömmer papperskorgen med ett kommando. Dagboksinlägg och varor går inte att radera för gott alls. [Läs hur du tömmer papperskorgen](operate/empty-trash.sv.md).
+Ja, men bara uppgifter, och bara i Android-appen: i papperskorgen under Inställningar kan du radera en uppgift för gott, efter bekräftelse, när telefonen har den separata rättigheten för det (`companion:work:erase`, med när du parar med `--preset app`). Från Claude och rummen går allt till papperskorgen och kan återställas. Den som sköter servern tömmer hela papperskorgen med ett kommando. Dagboksinlägg och varor går inte att radera för gott alls, varken i appen, i Claude eller av den som sköter servern. [Läs hur du tömmer papperskorgen](operate/empty-trash.sv.md).
 
 ## Licens och pris
 
@@ -94,4 +94,4 @@ Nej. Påminnelserna går via UnifiedPush och appen ntfy, utan Firebase. [Läs om
 
 ### Kan jag skapa uppgifter i appen?
 
-Ja, som reservväg när du inte kan prata. I Android-appen kan du lägga till en uppgift med + i rummet Arbete, ändra en uppgifts titel, anteckning, datum, plats och prioritet, och ändra ett projekts titel, status, beskrivning och datum. Du läser och bockar också av arbete, skriver och ändrar dagboksinlägg för hand, och skapar inköpslistor och lägger till varor. Claude är fortfarande huvudvägen, och projekt skapar du genom att be Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).
+Ja, som reservväg när du inte kan prata. I Android-appen kan du lägga till en uppgift med + i rummet Arbete, ändra en uppgifts titel, anteckning, datum, plats och prioritet, och ändra ett projekts titel, status, beskrivning och datum. Du läser och bockar också av arbete, skriver och ändrar dagboksinlägg för hand, och skapar inköpslistor och lägger till varor. Du kan också flytta en uppgift, ett dagboksinlägg eller en vara till papperskorgen, ångra det direkt och hantera papperskorgen under Inställningar. Claude är fortfarande huvudvägen, och projekt skapar du genom att be Claude. [Läs vad appen gör och inte gör](guide/android-app.sv.md).

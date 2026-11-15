@@ -182,8 +182,42 @@ estimates stays hidden on the phone, as before. A write that gets no answer fail
 what was typed, and the retry reuses the first idempotency key, so nothing is written twice. Queuing task
 and project writes in the durable outbox, as for check-offs and shopping, is a later step.
 
-Not part of this amendment, each its own step: deleting and the trash (issue 22) and sharing into
-Sidekick from other apps (issue 23).
+### Deleting and the trash
+
+The app also moves a task, a journal entry or a shopping item to the trash and takes it back, with an
+Undo right after (the same use case as the MCP tools `move_to_trash` and `restore_from_trash`), and has
+a trash screen in its settings. Moving to the trash and restoring add no device capability: each
+route needs the write and read capability of its room (`companion:work:write` with `companion:tasks:read`,
+`companion:journal:write` with `companion:journal:read`, `companion:shopping:write` with
+`companion:shopping:read`), so a device that may write in a room may trash and restore there, and a device
+paired earlier needs no grant. The routes are
+`POST .../tasks/{id}/trash`, `.../untrash`, the same pair for journal entries and shopping items, and
+`GET /companion/v1/trash`, which lists only the kinds the device may trash. No route reaches a project,
+a domain, a process, a contact or a step.
+
+Permanent removal stays out of MCP (D-031) and is not a general capability here either. The app may
+remove a task that is already in the trash (`POST .../tasks/{id}/erase`) or empty the trash of tasks
+(`POST /companion/v1/trash/empty`). Both need a capability of their own, `companion:work:erase`, besides
+`companion:work:write`, because they cannot be undone. `--preset app` includes it for new pairings; a device
+paired earlier does not get it and keeps trashing and restoring until the owner runs
+`grant --scope companion:work:erase`. `GET /companion/v1/trash` tells the phone with `can_erase` whether
+the device holds it, and the trash screen then shows no "delete for good" and no "empty" without it; the
+server refuses both with 403 either way. They also need an explicit confirmation: the request body must carry
+`confirm: true`, the transport refuses to send it without the trash screen's own yes, and the use case
+still accepts only a trashed record at its current version. A journal entry and a shopping item can never
+be removed this way: the application role has no DELETE on their tables, so they can only be restored.
+A task that still has steps or links stays, and the answer counts it as kept. A delete needs the network
+and is not queued in the outbox.
+
+### Share to Sidekick (issue 23)
+
+The app is also a share target for plain text and links (`ACTION_SEND`,
+`text/plain`; no pictures or files). A small sheet shows the shared text and an editable title, and the owner chooses
+between a task and a new entry in today's journal; nothing is written before Save. The sheet writes through the
+same two tools as the rooms' forms (`create_task`, `write_journal_entry`), so it needs no new route, scope or
+capability, and it follows the same rule as the forms: no answer means a visible failure that keeps the text and
+retries with the same idempotency key. The shared text lives only in memory until the sheet closes; the journal text is
+never stored on the phone, and queuing shared tasks waits with the other task writes.
 
 ## Alternatives considered
 

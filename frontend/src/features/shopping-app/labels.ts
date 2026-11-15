@@ -130,6 +130,13 @@ export const shoppingEn = {
   /** The name of a held row's Undo for assistive technology, the visible text staying "Undo". */
   undoPurchaseNamed: (name: string, bought: boolean) =>
     `Undo ${bought ? "bought" : "not bought"} ${name}`,
+  /** Deleting an item (move to the trash, with Undo): the change form's button, the receipt row and the failures. */
+  deleteItem: "Delete",
+  deleteItemNamed: (name: string) => `Delete ${name}`,
+  itemTrashed: (name: string) => `Deleted: ${name}`,
+  undoTrash: "Undo",
+  undoTrashNamed: (name: string) => `Undo deleting ${name}`,
+  itemRestoreFailed: (name: string) => `Couldn’t undo deleting “${name}”.`,
   queued: "Waiting…",
   /** A purchase made without a network: it waits on the phone and is sent once there is one. */
   waitingForNetwork: "Waiting for connection",
@@ -280,6 +287,13 @@ export const shoppingSv: ShoppingLabels = {
   undoPurchase: "Ångra",
   undoPurchaseNamed: (name: string, bought: boolean) =>
     `Ångra ${bought ? "köpt" : "inte köpt"} ${name}`,
+  deleteItem: "Ta bort",
+  deleteItemNamed: (name: string) => `Ta bort ${name}`,
+  itemTrashed: (name: string) => `Borttagen: ${name}`,
+  undoTrash: "Ångra",
+  undoTrashNamed: (name: string) => `Ångra borttagning av ${name}`,
+  itemRestoreFailed: (name: string) =>
+    `Det gick inte att ångra borttagningen av “${name}”.`,
   queued: "Väntar…",
   waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,

@@ -311,6 +311,43 @@
         "title": "CreateTaskBody",
         "type": "object"
       },
+      "EmptyBody": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirm"
+        ],
+        "title": "EmptyBody",
+        "type": "object"
+      },
+      "EraseBody": {
+        "additionalProperties": false,
+        "description": "Permanent removal needs the explicit `confirm: true`; anything else is a plain 422.",
+        "properties": {
+          "confirm": {
+            "const": true,
+            "title": "Confirm",
+            "type": "boolean"
+          },
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "confirm"
+        ],
+        "title": "EraseBody",
+        "type": "object"
+      },
       "ItemPatchInput": {
         "additionalProperties": false,
         "description": "update_shopping_item input: omitted name keeps the stored one; null or blank is refused.",
@@ -1061,6 +1098,21 @@
         "title": "UpdateTaskBody",
         "type": "object"
       },
+      "VersionBody": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "minimum": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "VersionBody",
+        "type": "object"
+      },
       "WriteEntryBody": {
         "additionalProperties": false,
         "properties": {
@@ -1654,6 +1706,140 @@
         ],
         "summary": "journal.entry",
         "x-sidekick-capability": "companion:journal:read"
+      }
+    },
+    "/companion/v1/journal/entries/{entry_id}/trash": {
+      "post": {
+        "operationId": "journal.entry_trash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "journal.entry_trash",
+        "x-sidekick-also-capability": "companion:journal:read",
+        "x-sidekick-capability": "companion:journal:write"
+      }
+    },
+    "/companion/v1/journal/entries/{entry_id}/untrash": {
+      "post": {
+        "operationId": "journal.entry_untrash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "journal.entry_untrash",
+        "x-sidekick-also-capability": "companion:journal:read",
+        "x-sidekick-capability": "companion:journal:write"
       }
     },
     "/companion/v1/journal/entries/{entry_id}/update": {
@@ -2349,6 +2535,140 @@
           }
         ],
         "summary": "shopping.item_purchased",
+        "x-sidekick-also-capability": "companion:shopping:read",
+        "x-sidekick-capability": "companion:shopping:write"
+      }
+    },
+    "/companion/v1/shopping/items/{item_id}/trash": {
+      "post": {
+        "operationId": "shopping.item_trash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "shopping.item_trash",
+        "x-sidekick-also-capability": "companion:shopping:read",
+        "x-sidekick-capability": "companion:shopping:write"
+      }
+    },
+    "/companion/v1/shopping/items/{item_id}/untrash": {
+      "post": {
+        "operationId": "shopping.item_untrash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Item Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "shopping.item_untrash",
         "x-sidekick-also-capability": "companion:shopping:read",
         "x-sidekick-capability": "companion:shopping:write"
       }
@@ -3151,6 +3471,73 @@
         "x-sidekick-capability": "companion:tasks:read"
       }
     },
+    "/companion/v1/tasks/{task_id}/erase": {
+      "post": {
+        "operationId": "task.erase",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "task.erase",
+        "x-sidekick-also-capability": "companion:work:write",
+        "x-sidekick-capability": "companion:work:erase"
+      }
+    },
     "/companion/v1/tasks/{task_id}/external-references": {
       "get": {
         "operationId": "task.external_references",
@@ -3363,6 +3750,140 @@
         "x-sidekick-capability": "companion:tasks:read"
       }
     },
+    "/companion/v1/tasks/{task_id}/trash": {
+      "post": {
+        "operationId": "task.trash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "task.trash",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:work:write"
+      }
+    },
+    "/companion/v1/tasks/{task_id}/untrash": {
+      "post": {
+        "operationId": "task.untrash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "task.untrash",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:work:write"
+      }
+    },
     "/companion/v1/tasks/{task_id}/update": {
       "post": {
         "operationId": "task.update",
@@ -3428,6 +3949,133 @@
         "summary": "task.update",
         "x-sidekick-also-capability": "companion:tasks:read",
         "x-sidekick-capability": "companion:work:write"
+      }
+    },
+    "/companion/v1/trash": {
+      "get": {
+        "operationId": "trash.list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "task",
+                    "journal_entry",
+                    "shopping_item"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "trash.list"
+      }
+    },
+    "/companion/v1/trash/empty": {
+      "post": {
+        "operationId": "trash.empty",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "trash.empty",
+        "x-sidekick-also-capability": "companion:work:write",
+        "x-sidekick-capability": "companion:work:erase"
       }
     },
     "/companion/v1/work/agenda": {

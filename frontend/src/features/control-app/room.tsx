@@ -25,8 +25,8 @@ import type {
   RecallRequest,
   RecallResult,
   RecalledFact,
-  TrashList,
 } from "./transport";
+import { createTrashTransport } from "./trash-transport";
 
 /** The reads and writes of the card, each one an existing tool called through the room's transport. */
 function createControlTransport(
@@ -38,15 +38,7 @@ function createControlTransport(
     supportsTool?.("recall_memory") !== false &&
     supportsTool?.("exclude_from_memory") !== false;
   return {
-    trash: (cursor) =>
-      call<TrashList>("list_trash", cursor === undefined ? {} : { cursor }),
-    restore: (item, key) =>
-      call("restore_from_trash", {
-        kind: item.kind,
-        record_id: item.id,
-        version: item.version,
-        idempotency_key: key,
-      }),
+    ...createTrashTransport(call, supportsTool),
     changes: () => call<ChangesList>("list_recent_changes", { limit: 20 }),
     undoPurchase: (change, key) =>
       call("set_shopping_item_purchased", {

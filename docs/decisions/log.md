@@ -377,5 +377,6 @@ Status: Accepted (2026-11-15); amends [ADR-005](adr/ADR-005-native-android-app.m
 The Android app is no longer limited to reading and checking off. Through `/companion/v1/` it can create and edit
 tasks, write and edit journal entries by hand, and edit a project's title, status, description and dates, so the app
 works on its own when the owner cannot talk (in a meeting, on a bus, somewhere quiet). Claude remains the main way in.
-Writes use the same device capabilities, idempotency keys and error vocabulary as check-offs. Deleting and the trash,
-and sharing into Sidekick from other apps, come in separate steps.
+Writes use the same device capabilities, idempotency keys and error vocabulary as check-offs. Deleting and the trash
+is delivered too: move a task, journal entry or shopping item to the trash with Undo, a trash screen, and permanent
+removal of trashed tasks only, after an explicit confirmation and with a capability of its own (`companion:work:erase`, granted separately to devices paired earlier). Sharing into Sidekick from other apps is a separate step.

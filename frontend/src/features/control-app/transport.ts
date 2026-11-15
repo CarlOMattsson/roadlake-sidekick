@@ -8,11 +8,15 @@ import type { Item, WithOptional } from "../../lib/mcp/derived";
 import type { ToolResults } from "../../lib/mcp/tool-results.generated";
 
 export type TrashItem = Item<ToolResults["list_trash"]["items"]>;
-/** `next_cursor`: pass it to `trash` to read the page after this one; null when this is the last. */
+/**
+ * `next_cursor`: pass it to `trash` to read the page after this one; null when this is the last. `can_erase` is the
+ * phone's own answer to whether this device may remove for good (`companion:work:erase`); a host that does not say,
+ * Claude among them, is read as no.
+ */
 export type TrashList = Pick<
   ToolResults["list_trash"],
   "items" | "has_more" | "next_cursor"
->;
+> & { can_erase?: boolean };
 
 /** One recent change; `related_id`, `undo_tool` and `actor` are optional because an older server leaves them out. */
 export type ChangeRecord = WithOptional<
@@ -84,10 +88,20 @@ export type MemoryChange = {
   confirm?: boolean;
 };
 
+/** What emptying the trash did: Tasks removed, and Tasks that had Steps or links left and so stayed. */
+export type EmptyResult = { removed: number; kept: number };
+
 export type ControlTransport = {
   /** One page of the trash, newest first; with a cursor, the page after the one that issued it. */
   trash: (cursor?: string) => Promise<TrashList>;
   restore: (item: TrashItem, key: string) => Promise<unknown>;
+  /**
+   * Removes one trashed Task for good. Absent where the host has no such tool (Claude has none; the phone does), and
+   * the trash view then offers no way to delete anything permanently. Only a Task can be removed this way.
+   */
+  erase?: (item: TrashItem, key: string) => Promise<unknown>;
+  /** Removes every trashed Task for good, with how many went and how many had to stay. Absent with `erase`. */
+  empty?: (key: string) => Promise<EmptyResult>;
   changes: () => Promise<ChangesList>;
   /** Reverses a purchase or a put-back with set_shopping_item_purchased (the change's undo_tool). */
   undoPurchase: (change: ChangeRecord, key: string) => Promise<unknown>;
@@ -103,6 +117,12 @@ export type ControlTransport = {
   /** The newest page of the owner's own Activity Center entries. Read only, no write goes through it. */
   activity: () => Promise<ActivityList>;
 };
+
+/** What the trash view needs of a transport: the phone's trash screen builds just this, without the rest of Control. */
+export type TrashTransport = Pick<
+  ControlTransport,
+  "trash" | "restore" | "erase" | "empty"
+>;
 
 export { writeFailure, type WriteFailure } from "../../lib/mcp/errors";
 

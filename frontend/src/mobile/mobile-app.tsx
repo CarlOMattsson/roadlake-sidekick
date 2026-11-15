@@ -10,6 +10,7 @@
  *
  * The phone's settings (settings-panel.tsx) open from the settings entry at the end of every room's ⋯ menu, where
  * Control stands in Claude. They cover the shell, which stays mounted, and Back (‹ Arbete or system Back) returns.
+ * The trash (phone-trash.tsx) opens from a row in the settings and covers them the same way; Back closes it first.
  */
 import {
   useCallback,
@@ -39,6 +40,7 @@ import type { SharedText, SidekickNativePlugin } from "./sidekick-native";
 import { useSafeAreaInsets } from "./insets";
 import { parseLaunchHint, startEntryOf } from "./launch-hint";
 import { PairingGateContext } from "./pairing-gate";
+import { PhoneTrash } from "./phone-trash";
 import type { MobilePlatform } from "./platform";
 import { PushNotice } from "./push-notice";
 import { QueueNotice, type QueueNoticeProps } from "./queue-notice";
@@ -185,6 +187,25 @@ export function MobileApp({
     if (wasOpen.current && !settingsOpen) opener.current?.focus();
     wasOpen.current = settingsOpen;
   }, [settingsOpen]);
+
+  // The trash screen over the settings. The focus goes back to its row when it closes.
+  const [trashOpen, setTrashOpen] = useState(false);
+  const trashOpener = useRef<HTMLElement | null>(null);
+  const openTrash = useCallback(() => {
+    trashOpener.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setTrashOpen(true);
+  }, []);
+  const closeTrash = useCallback(() => setTrashOpen(false), []);
+  const trashWasOpen = useRef(false);
+  useEffect(() => {
+    if (trashWasOpen.current && !trashOpen) trashOpener.current?.focus();
+    trashWasOpen.current = trashOpen;
+  }, [trashOpen]);
+  // A restored record is back in its room: the rooms read again, as when the app returns to the foreground.
+  const roomsChanged = useCallback(() => setStaleTick((tick) => tick + 1), []);
   const gate = useContext(PairingGateContext);
   const settingsLabel = settingsLabelsFor(locale).title;
   const hostSettings = useMemo(
@@ -198,9 +219,11 @@ export function MobileApp({
     shellBack.current = handler;
   }, []);
   const settingsShown = useRef(false);
-  useEffect(() => {
+  const trashShown = useRef(false);
+  useLayoutEffect(() => {
     settingsShown.current = settingsOpen;
-  }, [settingsOpen]);
+    trashShown.current = trashOpen;
+  }, [settingsOpen, trashOpen]);
   // Back leaves a share sheet that is open before anything else; the shared text is not kept. Set in a layout effect,
   // so a Back pressed the moment the sheet is on screen already finds it.
   const shareShown = useRef<(() => void) | undefined>(undefined);
@@ -212,6 +235,10 @@ export function MobileApp({
       platform.onBack(() => {
         if (shareShown.current) {
           shareShown.current();
+          return true;
+        }
+        if (trashShown.current) {
+          setTrashOpen(false);
           return true;
         }
         if (settingsShown.current) {
@@ -298,14 +325,25 @@ export function MobileApp({
           />
         ) : null}
         {native && settingsOpen && !share ? (
-          <SettingsPanel
-            native={native}
+          <div hidden={trashOpen}>
+            <SettingsPanel
+              native={native}
+              locale={locale}
+              from={settingsFrom}
+              refreshKey={pushTick}
+              onLocale={onLocale}
+              onOpenTrash={openTrash}
+              onBack={closeSettings}
+              onUnpaired={(serverRevoked) => gate?.unpaired(serverRevoked)}
+            />
+          </div>
+        ) : null}
+        {native && settingsOpen && trashOpen && !share ? (
+          <PhoneTrash
+            transport={noting}
             locale={locale}
-            from={settingsFrom}
-            refreshKey={pushTick}
-            onLocale={onLocale}
-            onBack={closeSettings}
-            onUnpaired={(serverRevoked) => gate?.unpaired(serverRevoked)}
+            onBack={closeTrash}
+            onChanged={roomsChanged}
           />
         ) : null}
       </RoomHostContext.Provider>

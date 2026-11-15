@@ -6,8 +6,9 @@
 
 Att ta bort något flyttar det bara till papperskorgen. Här tömmer du den för gott med ett kommando, och ser vad som blir kvar ändå.
 
-Att ta bort en post i appen eller via Claude flyttar den bara till papperskorgen, där den går att återställa. Ingenting
-tömmer papperskorgen av sig självt: den som kör servern gör det med ett kommando. Utan `--yes` räknar det bara och
+Att ta bort en post i appen eller via Claude flyttar den bara till papperskorgen, där den går att återställa. I
+Android-appen kan du också radera en uppgift för gott från papperskorgen, efter bekräftelse, om telefonen har rättigheten `companion:work:erase`. Kommandot är fortfarande
+sättet att tömma hela papperskorgen. Ingenting tömmer papperskorgen av sig självt: den som kör servern gör det med ett kommando. Utan `--yes` räknar det bara och
 raderar ingenting:
 
 ```bash

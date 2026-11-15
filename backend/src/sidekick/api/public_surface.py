@@ -88,6 +88,16 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(rf"/companion/v1/journal/sources/{_UUID}")),
     ("POST", re.compile(r"/companion/v1/journal/entries")),
     ("POST", re.compile(rf"/companion/v1/journal/entries/{_UUID}/update")),
+    # Delete with undo, the trash list and emptying it (sidekick.api.companion_trash).
+    ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/trash")),
+    ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/untrash")),
+    ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/erase")),
+    ("POST", re.compile(rf"/companion/v1/journal/entries/{_UUID}/trash")),
+    ("POST", re.compile(rf"/companion/v1/journal/entries/{_UUID}/untrash")),
+    ("POST", re.compile(rf"/companion/v1/shopping/items/{_UUID}/trash")),
+    ("POST", re.compile(rf"/companion/v1/shopping/items/{_UUID}/untrash")),
+    ("GET", re.compile(r"/companion/v1/trash")),
+    ("POST", re.compile(r"/companion/v1/trash/empty")),
     # The instance's license key (sidekick.api.companion_license).
     ("GET", re.compile(r"/companion/v1/license")),
     ("PUT", re.compile(r"/companion/v1/license")),

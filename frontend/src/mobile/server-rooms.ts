@@ -10,8 +10,8 @@
  * backend declares it in the app document (app-timezone.ts), so every date the phone draws is in the owner's zone and not
  * in Stockholm's default or the phone's own. A change of zone starts the shell again, like a change of rooms.
  *
- * Control (`control`) is never on in the phone: the companion API has no trash, history or memory routes, so its
- * views could only fail. Every link to it disappears, and the shell sends the license entry to Inställningar instead.
+ * Control (`control`) is never on in the phone: the companion API has no history or memory routes, so two of its three
+ * views could only fail. The trash it holds has its own screen in the phone's settings (phone-trash.tsx). Every link to it disappears, and the shell sends the license entry to Inställningar instead.
  */
 import { useEffect, useState } from "react";
 

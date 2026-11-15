@@ -34,6 +34,10 @@ app's React rooms read exactly the structured content they read in Claude:
   `Idempotency-Key`)
 - `POST /companion/v1/projects/{project_id}/update` = `update_project` with `title`, `status`,
   `description`, `start_date` and `target_date` only (`{"version", ...}` + `Idempotency-Key`)
+- `POST /companion/v1/tasks/{task_id}/trash`, `.../untrash`, `.../erase`, `GET /companion/v1/trash`
+  and `POST /companion/v1/trash/empty` = `move_to_trash`, `restore_from_trash`, `list_trash`, and
+  the permanent removal of a trashed Task (the Journal and Shopping items have the same `trash` and
+  `untrash`; `sidekick.api.companion_trash`)
 - `POST /companion/v1/pair`                     exchange a pairing secret for a device credential
 - `GET  /companion/v1/device`                   this device's own status, and `enabled_rooms`: the
   rooms this instance shows (`SIDEKICK_ENABLED_ROOMS`, in the app's order, `work` always), which the
@@ -66,8 +70,9 @@ The route groups live in sibling modules, each added to this router by `create_c
 pairing and the device's own routes in `sidekick.api.companion_device`, push and reminders in
 `sidekick.api.companion_push`, the Work reads in `sidekick.api.companion_work`, Tasks and Steps in
 `sidekick.api.companion_tasks`, the Work writes (create and edit a Task, change a Project) in
-`sidekick.api.companion_work_writes`, and the rooms Shopping and Journal
-(`/companion/v1/shopping/...`, `/companion/v1/journal/...`) in `sidekick.api.companion_rooms`. This
+`sidekick.api.companion_work_writes`, the rooms Shopping and Journal
+(`/companion/v1/shopping/...`, `/companion/v1/journal/...`) in `sidekick.api.companion_rooms`, and
+deleting with undo, the trash list and emptying it in `sidekick.api.companion_trash`. This
 module holds what they share: the problem envelope, the route class, authentication and the body
 helpers.
 
@@ -520,6 +525,7 @@ def create_companion_router(
     from sidekick.api.companion_push import add_push_routes
     from sidekick.api.companion_rooms import add_room_routes
     from sidekick.api.companion_tasks import add_task_routes
+    from sidekick.api.companion_trash import add_trash_routes
     from sidekick.api.companion_work import add_work_routes
     from sidekick.api.companion_work_writes import add_work_write_routes
 
@@ -529,5 +535,6 @@ def create_companion_router(
     add_task_routes(router)
     add_work_write_routes(router)
     add_room_routes(router, rooms)
+    add_trash_routes(router, rooms)
     add_license_routes(router)
     return router

@@ -54,6 +54,10 @@ export type SettingsLabels = {
   unpairing: string;
   cancel: string;
   unpairFailed: string;
+  /** The row that opens the trash screen (phone-trash.tsx), and that screen's title. */
+  trash: string;
+  /** The first page of the trash could not be read. */
+  trashFailed: string;
 };
 
 export const settingsLabelsSv: SettingsLabels = {
@@ -106,6 +110,8 @@ export const settingsLabelsSv: SettingsLabels = {
   unpairing: "Kopplar från…",
   cancel: "Avbryt",
   unpairFailed: "Telefonen kunde inte kopplas från.",
+  trash: "Papperskorgen",
+  trashFailed: "Papperskorgen kunde inte läsas.",
 };
 
 export const settingsLabelsEn: SettingsLabels = {
@@ -158,6 +164,8 @@ export const settingsLabelsEn: SettingsLabels = {
   unpairing: "Disconnecting…",
   cancel: "Cancel",
   unpairFailed: "Couldn’t disconnect this phone.",
+  trash: "Trash",
+  trashFailed: "Couldn’t load the trash.",
 };
 
 export function settingsLabelsFor(locale: AppLocale): SettingsLabels {

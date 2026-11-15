@@ -45,6 +45,8 @@ export type RowEnv = {
   onEdit: (item: ShoppingItem | null) => void;
   /** Writes the changed item; `done` runs once it is saved. */
   onSave: (item: ShoppingItem, input: ShoppingInput, done: () => void) => void;
+  /** Moves the item to the trash; `done` runs once it is there. Absent when the host offers no delete. */
+  onTrash?: (item: ShoppingItem, done: () => void) => void;
 };
 
 /**

@@ -37,7 +37,9 @@ export function TabMore({
   children: ReactNode;
 }) {
   const control =
-    onRoute && roomEnabled("control") && supportsTool?.("list_trash") !== false
+    onRoute &&
+    roomEnabled("control") &&
+    supportsTool?.("list_recent_changes") !== false
       ? controlEntry(locale === "en" ? "en" : "sv")
       : undefined;
   return (

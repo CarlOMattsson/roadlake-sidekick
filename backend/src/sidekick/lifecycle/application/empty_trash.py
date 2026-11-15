@@ -66,29 +66,78 @@ def empty_trash(
     result = EmptyTrashResult()
     owner_ids = lifecycle.store.transaction(lifecycle.store.list_trash_owner_ids)
     for owner_id in owner_ids:
-        actor = Actor(owner_id, LIFECYCLE_SCOPES)
-        for item in _ordered(_trashed_items(lifecycle, actor, cutoff)):
-            result.matched[item.kind] += 1
-            if not remove:
-                continue
-            if item.kind in NOT_REMOVABLE or not _remove(
-                lifecycle, actor, item, correlation_id=correlation_id
-            ):
-                result.kept[item.kind] += 1
-            else:
-                result.removed[item.kind] += 1
+        _sweep_owner(
+            lifecycle,
+            Actor(owner_id, LIFECYCLE_SCOPES),
+            result,
+            remove=remove,
+            kinds=None,
+            cutoff=cutoff,
+            correlation_id=correlation_id,
+        )
     return result
 
 
+def empty_owner_trash(
+    lifecycle: RecordLifecycleService,
+    actor: Actor,
+    *,
+    kinds: frozenset[RecordKind],
+    correlation_id: str | None = None,
+) -> EmptyTrashResult:
+    """Permanently remove one owner's trashed records of `kinds`, as the actor's scopes allow.
+
+    The caller names the kinds and holds the scopes (`tasks:read` and `tasks:write` for Tasks); a
+    record the removal rules refuse is counted as kept, exactly as in the operator sweep.
+    """
+
+    result = EmptyTrashResult()
+    _sweep_owner(
+        lifecycle,
+        actor,
+        result,
+        remove=True,
+        kinds=kinds,
+        cutoff=None,
+        correlation_id=correlation_id,
+    )
+    return result
+
+
+def _sweep_owner(
+    lifecycle: RecordLifecycleService,
+    actor: Actor,
+    result: EmptyTrashResult,
+    *,
+    remove: bool,
+    kinds: frozenset[RecordKind] | None,
+    cutoff: datetime | None,
+    correlation_id: str | None,
+) -> None:
+    for item in _ordered(_trashed_items(lifecycle, actor, kinds, cutoff)):
+        result.matched[item.kind] += 1
+        if not remove:
+            continue
+        if item.kind in NOT_REMOVABLE or not _remove(
+            lifecycle, actor, item, correlation_id=correlation_id
+        ):
+            result.kept[item.kind] += 1
+        else:
+            result.removed[item.kind] += 1
+
+
 def _trashed_items(
-    lifecycle: RecordLifecycleService, actor: Actor, cutoff: datetime | None
+    lifecycle: RecordLifecycleService,
+    actor: Actor,
+    kinds: frozenset[RecordKind] | None,
+    cutoff: datetime | None,
 ) -> list[TrashItem]:
     """The owner's whole trash, read before any removal so paging never shifts under it."""
 
     items: list[TrashItem] = []
     cursor: str | None = None
     while True:
-        page = lifecycle.list_trash(actor, limit=_PAGE, cursor=cursor)
+        page = lifecycle.list_trash(actor, limit=_PAGE, within=kinds, cursor=cursor)
         items.extend(
             item
             for item in page.items

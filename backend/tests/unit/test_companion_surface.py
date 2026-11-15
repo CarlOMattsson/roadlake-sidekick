@@ -254,6 +254,7 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
         "companion:tasks:read",
         "companion:tasks:complete",
         "companion:work:write",
+        "companion:work:erase",
         "companion:push",
         "companion:shopping:read",
         "companion:shopping:write",
@@ -292,16 +293,24 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
         "step.reopen",
         "task.create",
         "task.update",
+        "task.trash",
+        "task.untrash",
+        "task.erase",
+        "trash.empty",
     }
     # Ticking things off needs only the completion capability; creating and editing a Task needs
     # the work-write capability, which a completion device does not hold.
     assert {item.capability for item in OPERATIONS if item.name in writers} == {
         "companion:tasks:complete",
         "companion:work:write",
+        "companion:work:erase",
     }
     for item in OPERATIONS:
         if item.capability == "companion:work:write":
             assert item.also == "companion:tasks:read"
+        # Removing for good needs its own capability and the write capability too.
+        if item.capability == "companion:work:erase":
+            assert item.also == "companion:work:write"
 
 
 def test_a_room_write_needs_its_write_and_its_read_capability_and_nothing_else_writes() -> None:
@@ -525,6 +534,56 @@ def test_the_caddy_example_forwards_the_work_writes_by_exact_method_and_path() -
         "\t\trequest_body {\n\t\t\tmax_size 64KiB\n\t\t}\n"
         "\t\treverse_proxy api:8000\n\t}"
     ) in caddy
+
+
+def test_the_caddy_example_forwards_the_trash_routes_by_exact_method_and_path() -> None:
+    caddy = (CONTRACTS.parent / "deploy/selfhost/Caddyfile.example").read_text(encoding="utf-8")
+    uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+    assert "@companion_get_trash {\n\t\tmethod GET\n\t\tpath /companion/v1/trash\n\t}\n" in caddy
+    matcher = (
+        "@companion_post_trash {\n\t\tmethod POST\n"
+        "\t\tpath_regexp ^/companion/v1/"
+        f"(tasks/{uuid}/(trash|untrash|erase)|journal/entries/{uuid}/(trash|untrash)"
+        f"|shopping/items/{uuid}/(trash|untrash)|trash/empty)$\n\t}}\n"
+    )
+    assert matcher in caddy
+    assert (
+        "handle @companion_post_trash {\n"
+        '\t\t# Bodies here are {"version"} and {"confirm": true}; the api caps them at 4 KiB.\n'
+        "\t\trequest_body {\n\t\t\tmax_size 4KB\n\t\t}\n"
+        "\t\treverse_proxy api:8000\n\t}"
+    ) in caddy
+
+
+def test_the_trash_operations_hold_the_scopes_of_one_kind_each_and_nothing_else() -> None:
+    by_name = {item.name: item for item in OPERATIONS}
+    kinds = {
+        "task.trash": "tasks",
+        "task.untrash": "tasks",
+        "journal.entry_trash": "journal",
+        "journal.entry_untrash": "journal",
+        "shopping.item_trash": "shopping",
+        "shopping.item_untrash": "shopping",
+    }
+    for name, area in kinds.items():
+        operation = by_name[name]
+        # The write scope of that kind, and its read scope for the label in the answer.
+        assert operation.application_scopes == {f"{area}:write", f"{area}:read"}
+        assert f"{area}:write" in TOOL_SCOPES["move_to_trash"].any_of
+        assert operation.also == f"companion:{area}:read"
+    # Permanent removal is Task-only, and only these two operations can remove anything.
+    assert {by_name[name].capability for name in ("task.erase", "trash.empty")} == {
+        "companion:work:erase"
+    }
+    assert by_name["task.erase"].application_scopes == {"tasks:write"}
+    assert by_name["trash.empty"].application_scopes == {"tasks:write", "tasks:read"}
+    assert {name for name in by_name if "erase" in name or name == "trash.empty"} == {
+        "task.erase",
+        "trash.empty",
+    }
+    # No trash operation holds a Project or Contact scope, so none can trash those kinds.
+    for name in {*kinds, "task.erase", "trash.empty"}:
+        assert not {"projects:write", "contacts:write"} & by_name[name].application_scopes
 
 
 def test_the_steps_query_takes_the_mcp_limit() -> None:

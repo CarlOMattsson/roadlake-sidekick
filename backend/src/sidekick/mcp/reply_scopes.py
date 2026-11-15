@@ -127,7 +127,7 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         "reorder_work_board_column",  # task ids and versions
         "exclude_from_memory",
         # The trash tools leave out the label unless the caller holds the kind's read scope
-        # (`sidekick.mcp.lifecycle._record`): a receipt of id, version and time.
+        # (`sidekick.structured.trash.trash_item_record`): a receipt of id, version and time.
         "move_to_trash",
         "restore_from_trash",
         # Memory settings carry per-domain scope checks of their own

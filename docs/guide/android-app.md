@@ -15,13 +15,14 @@ The app is in daily use on a real phone against a real server. It is also built 
 - **Work:** today's agenda, projects, tasks and steps. You can read them, check them off and reopen them, add a task with + and change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. Claude is still the main way in; the forms are for when you cannot talk.
 - **Shopping:** lists and items. You can create lists, add, edit, tick off and undo.
 - **Journal:** read days and entries, and write or edit entries by hand.
+- **Trash:** you can move a task, a journal entry or a shopping item to the trash and undo it at once. Under Settings you see what is in the trash, and you can restore it. A task can also be deleted for good there, after a confirmation, if the phone has been given the separate permission for it. A task that still has steps or links must have them removed in Claude first. Journal entries and shopping items can never be deleted for good, not from the app and not from Claude. Deleting for good needs a connection.
 - **The Today widget:** today's tasks on your home screen. [Read about the widget and reminders](today-widget.md).
 - **Settings:** notification status, a test notification, the app's language, the phone's connection, the option to disconnect the phone and the license key.
 
 ## What the app does not do
 
-- It does not create projects, domains or processes, and it does not delete anything. You do that in Claude.
-- A phone paired before this was added needs the new permission once: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:write`. New pairings with `--preset app` have it.
+- It does not create projects, domains or processes. It does not delete them either, and it does not delete contacts or steps. You do that in Claude.
+- A phone paired before this was added needs the new permission once: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:write`. New pairings with `--preset app` have it. Deleting for good and emptying the trash need one more permission, which a phone paired before this does not get by itself: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:erase`. Without it the trash screen shows no delete-for-good button.
 - It runs no AI and does not talk to Claude.
 - It does not show Contacts or Control.
 - It does not change tags and has no tag filter, and it does not show the actions on a step.

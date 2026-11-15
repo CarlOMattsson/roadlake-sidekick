@@ -528,3 +528,41 @@
   gap: var(--sk-s2);
   align-items: center;
 }
+
+/* A row with more than one button (Återställ and Radera för gott): the buttons stand side by side under the text, so
+   neither squeezes the title into a sliver, and they wrap onto a second line when the card is narrow. Each keeps its
+   44 to tap. */
+.sidekick-control .control-row .control-row-action.control-row-action--stacked {
+  grid-area: 3 / 1 / 4 / -1;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+  margin-top: var(--sk-s1);
+}
+
+.sidekick-control
+  .control-row
+  .control-row-action.control-row-action--stacked
+  > .control-row-btn {
+  width: auto;
+  margin: 0;
+}
+
+/* The buttons that start a removal for good are secondary buttons in the destructive text colour. */
+.sidekick-control .control-erase-btn.control-erase-btn,
+.sidekick-control
+  .control-row
+  .control-row-action
+  > .control-row-btn.control-erase-btn.sk-btn--secondary.sk-btn--compact {
+  color: var(--sk-overdue-fg);
+}
+
+/* "Töm papperskorgen" and its question, between the meta line and the rows. */
+.sidekick-control .control-empty-trash {
+  display: grid;
+  gap: var(--sk-s2);
+  justify-items: start;
+}
+
+.sidekick-control .control-empty-trash > .control-confirm {
+  justify-self: stretch;
+}

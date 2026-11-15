@@ -131,6 +131,7 @@ def test_the_app_preset_grants_read_and_complete_only_when_written() -> None:
         "companion:shopping:write",
         "companion:tasks:complete",
         "companion:tasks:read",
+        "companion:work:erase",
         "companion:work:write",
     ]
     assert set(cli.PRESETS["app"]) == set(ticket["scopes"])
@@ -176,6 +177,7 @@ def test_grant_adds_rights_to_a_paired_device_and_never_removes_any() -> None:
                 "companion:push",
                 "companion:shopping:write",
                 "companion:tasks:complete",
+                "companion:work:erase",
                 "companion:work:write",
             ]
         )

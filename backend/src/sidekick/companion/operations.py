@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sidekick.lifecycle import RecordKind
 from sidekick.shared.auth import CompanionCredential
 from sidekick.shared.errors.core import PermissionDeniedError
 from sidekick.shared.types import Actor
@@ -255,6 +256,73 @@ PROJECT_UPDATE = CompanionOperation(
     also="companion:tasks:read",
 )
 
+# --- The trash ------------------------------------------------------------------------------------
+# The owner's manual deleting for the moments the owner cannot talk to Claude (ADR-005, "Amendment
+# 2026-11-15"): move a Task, a Journal entry or a Shopping item to the trash and take it back, which
+# is the use case of the MCP tools `move_to_trash` and `restore_from_trash`, under the room's own
+# write capability and with the room's read capability too, because the answer names the record.
+# Only a trashed Task can be removed permanently (the use case refuses the other two kinds), by its
+# own route with a confirmation in the body; emptying the trash removes the trashed Tasks. Both
+# need `companion:work:erase`, a capability of its own that is irreversible and therefore granted
+# on its own, and `companion:work:write` besides. No route reaches any other kind, so a device
+# cannot trash a Project, a Contact or a Step.
+TASK_TRASH = CompanionOperation(
+    "task.trash",
+    "companion:work:write",
+    frozenset({"tasks:write", "tasks:read"}),
+    also="companion:tasks:read",
+)
+TASK_UNTRASH = CompanionOperation(
+    "task.untrash",
+    "companion:work:write",
+    frozenset({"tasks:write", "tasks:read"}),
+    also="companion:tasks:read",
+)
+TASK_ERASE = CompanionOperation(
+    "task.erase",
+    "companion:work:erase",
+    frozenset({"tasks:write"}),
+    also="companion:work:write",
+)
+TRASH_EMPTY = CompanionOperation(
+    "trash.empty",
+    "companion:work:erase",
+    frozenset({"tasks:write", "tasks:read"}),
+    also="companion:work:write",
+)
+JOURNAL_ENTRY_TRASH = CompanionOperation(
+    "journal.entry_trash",
+    "companion:journal:write",
+    frozenset({"journal:write", "journal:read"}),
+    also="companion:journal:read",
+)
+JOURNAL_ENTRY_UNTRASH = CompanionOperation(
+    "journal.entry_untrash",
+    "companion:journal:write",
+    frozenset({"journal:write", "journal:read"}),
+    also="companion:journal:read",
+)
+SHOPPING_ITEM_TRASH = CompanionOperation(
+    "shopping.item_trash",
+    "companion:shopping:write",
+    frozenset({"shopping:write", "shopping:read"}),
+    also="companion:shopping:read",
+)
+SHOPPING_ITEM_UNTRASH = CompanionOperation(
+    "shopping.item_untrash",
+    "companion:shopping:write",
+    frozenset({"shopping:write", "shopping:read"}),
+    also="companion:shopping:read",
+)
+
+# What the trash list shows: the kinds whose trash operation the device may call, so it never lists
+# what it could not trash or restore. The list route has no operation of its own.
+TRASH_KIND_OPERATIONS: dict[RecordKind, CompanionOperation] = {
+    RecordKind.TASK: TASK_TRASH,
+    RecordKind.JOURNAL_ENTRY: JOURNAL_ENTRY_TRASH,
+    RecordKind.SHOPPING_ITEM: SHOPPING_ITEM_TRASH,
+}
+
 OPERATIONS: tuple[CompanionOperation, ...] = (
     WORK_AGENDA,
     WORK_TODAY,
@@ -267,6 +335,10 @@ OPERATIONS: tuple[CompanionOperation, ...] = (
     TASK_CREATE,
     TASK_UPDATE,
     PROJECT_UPDATE,
+    TASK_TRASH,
+    TASK_UNTRASH,
+    TASK_ERASE,
+    TRASH_EMPTY,
     WORK_HIERARCHY,
     PROJECT_DETAIL,
     PROJECT_TASKS,
@@ -291,6 +363,10 @@ OPERATIONS: tuple[CompanionOperation, ...] = (
     JOURNAL_SOURCE,
     JOURNAL_ENTRY_WRITE,
     JOURNAL_ENTRY_UPDATE,
+    JOURNAL_ENTRY_TRASH,
+    JOURNAL_ENTRY_UNTRASH,
+    SHOPPING_ITEM_TRASH,
+    SHOPPING_ITEM_UNTRASH,
 )
 
 
@@ -306,3 +382,23 @@ def operation_actor(credential: CompanionCredential, operation: CompanionOperati
     if operation.also is not None and operation.also not in credential.scopes:
         raise CapabilityMissing(operation.name)
     return Actor(credential.user_id, operation.application_scopes)
+
+
+def trash_listing_actor(credential: CompanionCredential) -> tuple[Actor, frozenset[RecordKind]]:
+    """The actor that lists the trash, and the kinds it may list: those the device may trash.
+
+    Raises `CapabilityMissing` when the device may trash none of them. The actor holds only the
+    scopes of the kinds it may list, so a label of a kind the device cannot read is never returned.
+    """
+
+    scopes: set[str] = set()
+    kinds: set[RecordKind] = set()
+    for kind, operation in TRASH_KIND_OPERATIONS.items():
+        try:
+            scopes |= operation_actor(credential, operation).scopes
+        except CapabilityMissing:
+            continue
+        kinds.add(kind)
+    if not kinds:
+        raise CapabilityMissing("trash.list")
+    return Actor(credential.user_id, frozenset(scopes)), frozenset(kinds)

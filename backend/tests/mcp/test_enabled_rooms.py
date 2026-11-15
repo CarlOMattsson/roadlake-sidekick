@@ -12,11 +12,11 @@ from fastmcp import FastMCP
 
 from sidekick.api.app import create_container
 from sidekick.lifecycle import RecordKind
-from sidekick.mcp.lifecycle import _READ_SCOPE_BY_KIND
 from sidekick.mcp.rooms import ROOM_TOOLS, TOOL_ROOM
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.config import Settings
 from sidekick.shared.rooms import ROOMS, disabled_scopes
+from sidekick.structured.trash import READ_SCOPE_BY_KIND
 from tests.contract_counts import MCP_TOOLS_SNAPSHOT
 from tests.support.settings import make_settings
 
@@ -54,7 +54,7 @@ async def test_a_work_only_instance_can_still_delete_and_undo() -> None:
 def test_the_trash_skips_the_records_of_a_room_that_is_off() -> None:
     """The trash lists a kind only to an actor who reads it; an off room's scopes are taken off."""
     off = disabled_scopes({"work", "control"})
-    for kind, scope in _READ_SCOPE_BY_KIND.items():
+    for kind, scope in READ_SCOPE_BY_KIND.items():
         if kind in {RecordKind.CONTACT, RecordKind.JOURNAL_ENTRY, RecordKind.SHOPPING_ITEM}:
             assert scope in off, kind
 

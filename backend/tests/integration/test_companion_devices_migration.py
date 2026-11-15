@@ -41,6 +41,7 @@ def test_operator_command_pairs_lists_and_revokes_without_printing_a_device_toke
         "companion:shopping:write",
         "companion:tasks:complete",
         "companion:tasks:read",
+        "companion:work:erase",
         "companion:work:write",
     ]
     assert sorted(PRESETS["app"]) == ticket["scopes"]

@@ -84,6 +84,27 @@ export function isProjectEdit(changes: unknown): boolean {
   return isEditOf(changes, PROJECT_EDIT_KEYS);
 }
 
+/** The one change update_task is answered for: the tick, `{ status: "completed" }` and nothing else. */
+export function isCompletingChange(changes: unknown): boolean {
+  return (
+    isRecord(changes) &&
+    Object.keys(changes).length === 1 &&
+    changes.status === "completed"
+  );
+}
+
+/**
+ * The other change update_task is answered for: back to open, `{ status: "todo" }` and nothing else. The backend's
+ * reopen route sets exactly "todo" and only on a completed Task, so no other status is ever answered.
+ */
+export function isReopeningChange(changes: unknown): boolean {
+  return (
+    isRecord(changes) &&
+    Object.keys(changes).length === 1 &&
+    changes.status === "todo"
+  );
+}
+
 /** The planned call for a Work write tool, or undefined when the name is not one of them (or update_task's tick). */
 export function planWorkWrite(
   name: string,

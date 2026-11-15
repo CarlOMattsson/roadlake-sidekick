@@ -31,15 +31,16 @@ Device capabilities of a paired companion app (ADR-005). They are not applicatio
 
 | Capability | What it gives | Operations | Default |
 | --- | --- | --- | --- |
-| `companion:journal:read` | read journal days and entries | `journal.day`, `journal.entries`, `journal.entry`, `journal.source`; also needed by `journal.entry_write`, `journal.entry_update` | off until named; in preset `app` |
-| `companion:journal:write` | write and edit journal entries by hand (no AI) | `journal.entry_write`, `journal.entry_update` | off until named; in preset `app` |
+| `companion:journal:read` | read journal days and entries | `journal.day`, `journal.entries`, `journal.entry`, `journal.source`; also needed by `journal.entry_write`, `journal.entry_update`, `journal.entry_trash`, `journal.entry_untrash` | off until named; in preset `app` |
+| `companion:journal:write` | write and edit journal entries by hand (no AI), and move them to the trash | `journal.entry_write`, `journal.entry_update`, `journal.entry_trash`, `journal.entry_untrash` | off until named; in preset `app` |
 | `companion:license` | see the license status and enter the instance’s license key (owner only) | `license.show`, `license.set` | off until named; in preset `app` |
 | `companion:push` | receive notifications (register the phone’s push address) | `push.subscription`, `push.reminders` | off until named; in preset `app` |
-| `companion:shopping:read` | read shopping lists and items | `shopping.lists`, `shopping.list`; also needed by `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased` | off until named; in preset `app` |
-| `companion:shopping:write` | add, edit, and check off items and lists | `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased` | off until named; in preset `app` |
+| `companion:shopping:read` | read shopping lists and items | `shopping.lists`, `shopping.list`; also needed by `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased`, `shopping.item_trash`, `shopping.item_untrash` | off until named; in preset `app` |
+| `companion:shopping:write` | add, edit, and check off items and lists, and move items to the trash | `shopping.list_create`, `shopping.list_update`, `shopping.items_add`, `shopping.item_update`, `shopping.item_purchased`, `shopping.item_trash`, `shopping.item_untrash` | off until named; in preset `app` |
 | `companion:tasks:complete` | check off and reopen tasks and steps | `task.complete`, `task.reopen`, `step.complete`, `step.reopen` | off until named; in preset `app` |
-| `companion:tasks:read` | read tasks, steps, projects, and today’s agenda | `work.agenda`, `work.today`, `task.get`, `task.steps`, `task.contacts`, `task.external_references`, `work.hierarchy`, `project.get`, `project.tasks`, `domain.get`, `process.get`; also needed by `task.create`, `task.update`, `project.update` | off until named; in preset `app` |
-| `companion:work:write` | create and edit tasks, and edit projects (title, status, description, dates) | `task.create`, `task.update`, `project.update` | off until named; in preset `app` |
+| `companion:tasks:read` | read tasks, steps, projects, and today’s agenda | `work.agenda`, `work.today`, `task.get`, `task.steps`, `task.contacts`, `task.external_references`, `work.hierarchy`, `project.get`, `project.tasks`, `domain.get`, `process.get`; also needed by `task.create`, `task.update`, `project.update`, `task.trash`, `task.untrash` | off until named; in preset `app` |
+| `companion:work:erase` | remove trashed tasks for good and empty the trash (also needs work:write) | `task.erase`, `trash.empty` | off until named; in preset `app` |
+| `companion:work:write` | create and edit tasks, edit projects (title, status, description, dates), and move tasks to the trash and restore them | `task.create`, `task.update`, `project.update`, `task.trash`, `task.untrash`; also needed by `task.erase`, `trash.empty` | off until named; in preset `app` |
 
 ## Webhook scopes
 

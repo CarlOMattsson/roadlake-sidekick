@@ -70,6 +70,9 @@ COMPANION_ROOM_SCOPES = frozenset(
         "companion:journal:write",
     }
 )
+# `companion:work:erase` is the one irreversible right: it removes a trashed Task for good, or
+# empties the trash of Tasks. It needs `companion:work:write` as well and is granted on its own, so
+# a device paired before it existed keeps what it had until the operator names it with `grant`.
 # `companion:push` registers the device's UnifiedPush endpoint (D-078) and `companion:license` lets
 # the device read the instance's license state and enter a key (D-081: offline signed license
 # keys); neither reaches a domain use case. Setting the key is further limited to the instance's
@@ -80,6 +83,7 @@ COMPANION_SCOPES = (
             "companion:tasks:read",
             "companion:tasks:complete",
             "companion:work:write",
+            "companion:work:erase",
             "companion:push",
             "companion:license",
         }

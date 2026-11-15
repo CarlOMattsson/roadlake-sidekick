@@ -14,7 +14,7 @@ from sidekick.lifecycle.domain import (
     TrashItem,
     TrashPosition,
 )
-from sidekick.shared.errors import ValidationError
+from sidekick.shared.errors import PermissionDeniedError, ValidationError
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
 from sidekick.shared.replay import id_replay_record
 from sidekick.shared.types import (
@@ -223,7 +223,12 @@ class RecordLifecycleService:
         scope filters, so a record restored or trashed between pages never shifts the next page.
         """
 
-        actor.require(_READ_SCOPE[kind] if kind else "projects:read")
+        if kind is not None:
+            actor.require(_READ_SCOPE[kind])
+        elif not actor.scopes & READ_SCOPES:
+            # The kinds are narrowed to the readable ones below; with none readable there is
+            # nothing to list.
+            raise PermissionDeniedError("missing required scope: a read scope of the trash")
         validate_limit(
             limit,
             maximum=100,

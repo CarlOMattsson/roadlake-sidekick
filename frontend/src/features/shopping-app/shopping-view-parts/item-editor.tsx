@@ -36,6 +36,7 @@ export function ItemEditor({
   contacts,
   onCancel,
   onSave,
+  onTrash,
 }: {
   item: ShoppingItem;
   labels: ShoppingLabels;
@@ -44,6 +45,8 @@ export function ItemEditor({
   contacts: ShoppingTransport["contacts"];
   onCancel: () => void;
   onSave: (value: ShoppingInput) => void;
+  /** Deletes the item (to the trash, with Undo). Absent when the host offers no delete. */
+  onTrash?: () => void;
 }) {
   const form = useRef<HTMLFormElement>(null);
   const extraId = useId();
@@ -229,6 +232,16 @@ export function ItemEditor({
           <button type="button" className="sk-btn--quiet" onClick={onCancel}>
             {t.cancel}
           </button>
+          {onTrash && (
+            <button
+              type="button"
+              className="sk-btn--danger"
+              aria-label={t.deleteItemNamed(item.name)}
+              onClick={onTrash}
+            >
+              {t.deleteItem}
+            </button>
+          )}
         </div>
       </fieldset>
     </KeyScope>

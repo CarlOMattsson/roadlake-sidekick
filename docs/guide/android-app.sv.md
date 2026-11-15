@@ -15,13 +15,14 @@ Appen används dagligen på en riktig telefon mot en riktig server. Den byggs oc
 - **Arbete:** dagens agenda, projekt, uppgifter och steg. Du kan läsa dem, bocka av dem och öppna dem igen, lägga till en uppgift med + och ändra en uppgifts titel, anteckning, datum, plats och prioritet, samt ändra ett projekts titel, status, beskrivning och datum. Claude är fortfarande huvudvägen; formulären är till för när du inte kan prata.
 - **Inköp:** listor och varor. Du kan skapa listor, lägga till, ändra, bocka av och ångra.
 - **Dagbok:** läs dagar och inlägg, och skriv eller ändra inlägg för hand.
+- **Papperskorgen:** du kan flytta en uppgift, ett dagboksinlägg eller en vara till papperskorgen och ångra direkt. Under Inställningar ser du vad som ligger där, och du kan återställa det. Där kan du också radera en uppgift för gott, efter bekräftelse, om telefonen har fått den separata rättigheten för det. En uppgift med steg eller länkar tar du bort i Claude först. Dagboksinlägg och varor kan aldrig raderas för gott, varken i appen eller i Claude. Radering för gott kräver nät.
 - **Idag-widgeten:** dagens uppgifter på hemskärmen. [Läs om widgeten och påminnelserna](today-widget.sv.md).
 - **Inställningar:** status för aviseringar, en testavisering, appens språk, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
 
 ## Det här gör appen inte
 
-- Den skapar inte projekt, domäner eller processer, och den tar inte bort något. Det gör du i Claude.
-- En telefon som parades före den här ändringen behöver den nya rättigheten en gång: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:write`. Nya parningar med `--preset app` har den.
+- Den skapar inte projekt, domäner eller processer. Den raderar dem inte heller, och den raderar inte kontakter eller steg. Det gör du i Claude.
+- En telefon som parades före den här ändringen behöver den nya rättigheten en gång: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:write`. Nya parningar med `--preset app` har den. Att radera för gott och tömma papperskorgen kräver ytterligare en rättighet, som en telefon som parades tidigare inte får av sig själv: `python -m sidekick.companion.cli grant --device-id ID --scope companion:work:erase`. Utan den visar papperskorgen ingen knapp för att radera för gott.
 - Den kör ingen AI och pratar inte med Claude.
 - Den visar inte Kontakter eller Kontroll.
 - Den ändrar inte taggar och har inget taggfilter, och den visar inte åtgärderna på ett steg.

@@ -138,6 +138,15 @@
 		method POST
 		path_regexp ^/companion/v1/(tasks|tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update|projects/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update)$
 	}
+	# Delete with undo, the trash list and emptying it (api/companion_trash.py).
+	@companion_get_trash {
+		method GET
+		path /companion/v1/trash
+	}
+	@companion_post_trash {
+		method POST
+		path_regexp ^/companion/v1/(tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(trash|untrash|erase)|journal/entries/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(trash|untrash)|shopping/items/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(trash|untrash)|trash/empty)$
+	}
 	@companion_put {
 		method PUT
 		path /companion/v1/push/subscription
@@ -169,6 +178,16 @@
 		# A title, a description of at most 10 000 characters and a few ids; the api caps the body at 64 KiB.
 		request_body {
 			max_size 64KiB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_get_trash {
+		reverse_proxy api:8000
+	}
+	handle @companion_post_trash {
+		# Bodies here are {"version"} and {"confirm": true}; the api caps them at 4 KiB.
+		request_body {
+			max_size 4KB
 		}
 		reverse_proxy api:8000
 	}

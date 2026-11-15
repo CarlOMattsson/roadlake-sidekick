@@ -40,6 +40,8 @@ import { usePurchases } from "./shopping-view-parts/use-purchases";
 import { useShoppingRead } from "./shopping-view-parts/use-shopping-read";
 import { useShoppingWrites } from "./shopping-view-parts/use-shopping-writes";
 import { useWriteForms } from "./shopping-view-parts/use-write-forms";
+import { TrashReceipts } from "./shopping-view-parts/trash-receipts";
+import { useItemTrash } from "./shopping-view-parts/use-item-trash";
 
 // The compact-view budget and its grouping are part of this module's surface (the room and the tests use them).
 export { COMPACT_ROWS, compactGroups } from "./shopping-view-parts/helpers";
@@ -136,6 +138,7 @@ export function ShoppingView({
   });
   const { list, items, purchased, settled, rows, storeMode, canAdd, folded } =
     view;
+  const trash = useItemTrash({ transport, read, writes });
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
   const forms = useWriteForms({
@@ -166,6 +169,7 @@ export function ShoppingView({
     setOffset(0);
     setEditing(null);
     purchases.resetPurchases();
+    trash.clear();
     setDetail(undefined);
     closeAll();
   }
@@ -175,6 +179,7 @@ export function ShoppingView({
     setOffset(0);
     setEditing(null);
     setHeld({});
+    trash.clear();
     setDetail(undefined);
   }
   function goToPage(next: number) {
@@ -182,6 +187,15 @@ export function ShoppingView({
     setEditing(null);
     setHeld({});
   }
+  const receiptEnv = {
+    labels: t,
+    busy,
+    conflict,
+    error,
+    failedWrite,
+    onRestore: trash.restore,
+    onRelease: trash.release,
+  };
   const rowEnv: RowEnv = {
     labels: t,
     holdTip,
@@ -211,6 +225,7 @@ export function ShoppingView({
         done,
         item.id,
       ),
+    onTrash: trash.onTrash,
   };
   return (
     <section
@@ -363,6 +378,10 @@ export function ShoppingView({
               onClose={forms.closeAddField}
             />
           )}
+          <TrashReceipts
+            receipts={Object.values(trash.trashed)}
+            env={receiptEnv}
+          />
           <ItemGroups
             shownGroups={view.shownGroups}
             rowCount={rows.length}

@@ -6,8 +6,9 @@
 
 Deleting something only moves it to the trash. Here you empty it for good with one command, and see what is kept anyway.
 
-Deleting a record in the app or from Claude only moves it to the trash, where it can be restored. Nothing empties the
-trash by itself: whoever runs the server does it with one command. Without `--yes` it only counts and deletes nothing:
+Deleting a record in the app or from Claude only moves it to the trash, where it can be restored. In the Android app
+you can also delete a task for good from the Trash, after a confirmation, if the phone has the `companion:work:erase` permission. This command is still the way to empty the
+whole trash. Nothing empties the trash by itself: whoever runs the server does it with one command. Without `--yes` it only counts and deletes nothing:
 
 ```bash
 docker compose --env-file selfhost.env run --rm -T api sidekick-admin empty-trash

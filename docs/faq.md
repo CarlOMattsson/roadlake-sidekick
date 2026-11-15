@@ -44,7 +44,7 @@ Sidekick calls no language model on its own. Claude sees what its permissions al
 
 ### Can I delete something for good?
 
-Not from Claude or the rooms, where everything goes to the trash and can be restored. Whoever runs the server empties the trash with a command. Journal entries and shopping items cannot be deleted for good at all. [Read how to empty the trash](operate/empty-trash.md).
+Yes, but only tasks, and only in the Trash in the Android app's Settings, after a confirmation, once the phone has the separate permission for it (`companion:work:erase`, included when you pair with `--preset app`). From Claude and the rooms, everything goes to the trash and can be restored. Whoever runs the server empties the whole trash with a command. Journal entries and shopping items cannot be deleted for good at all, not in the app, not in Claude and not by whoever runs the server. [Read how to empty the trash](operate/empty-trash.md).
 
 ## License and price
 
@@ -94,4 +94,4 @@ No. Reminders travel through UnifiedPush and the ntfy app, with no Firebase. [Re
 
 ### Can I create tasks in the app?
 
-Yes, as a fallback for when you cannot talk. In the Android app you can add a task with + in the Work room, change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. You also read and check off work, write and edit journal entries by hand, and create shopping lists and add items. Claude stays the main way in, and you create projects by asking Claude. [Read what the app does and does not do](guide/android-app.md).
+Yes, as a fallback for when you cannot talk. In the Android app you can add a task with + in the Work room, change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. You also read and check off work, write and edit journal entries by hand, and create shopping lists and add items. You can also move a task, a journal entry or a shopping item to the trash, undo it at once, and manage the trash under Settings. Claude stays the main way in, and you create projects by asking Claude. [Read what the app does and does not do](guide/android-app.md).

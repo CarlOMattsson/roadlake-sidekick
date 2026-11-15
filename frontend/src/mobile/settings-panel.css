@@ -59,6 +59,25 @@
   margin-top: var(--sk-s2);
 }
 
+/* The row that opens a screen of its own (Papperskorgen): the label on the start, a chevron on the end, 48 to tap, no
+   frame. The chevron hangs into the content edge's 12 like the rows of the rooms. */
+.mobile-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sk-tap-lg);
+  margin-top: var(--sk-s2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  text-align: start;
+  cursor: pointer;
+}
+
 .mobile-settings__feedback {
   margin-top: var(--sk-s2);
 }

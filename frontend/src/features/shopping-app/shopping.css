@@ -387,6 +387,20 @@
 .sidekick-shopping .shopping-held {
   font: var(--sk-type-meta);
 }
+/* A deleted item's receipt (designsystem §3 Ångra): the line "Borttagen: name" muted on the start edge, its Undo in the
+   trailing slot on the line's middle. The row is as high as an item's, so the list does not jump when an item goes. */
+.sidekick-shopping .shopping-trash-receipt > .shopping-toolbar {
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+.sidekick-shopping .shopping-trash-line {
+  flex: 1 1 0;
+  min-width: 0;
+  margin: 0;
+  color: var(--sk-muted);
+  overflow-wrap: anywhere;
+}
 /* "+ Lägg till vara" (designsystem §3 Listrad and Skapa): a row 48 high, the + on the ring's column and the text
    on 52, in the row type at 400. It stands 8 under the progress line, and the first shop's heading 24 under its text:
    the heading's 16 collapses with the row's −4 to 12, and the row's text sits 13 inside its 48. */

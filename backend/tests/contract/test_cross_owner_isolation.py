@@ -308,6 +308,8 @@ COMPANION_NO_REFERENCE: dict[str, str] = {
     "GET /work/agenda": "filters are text and enums; reads the caller's own work",
     "GET /work/hierarchy": "reads the caller's own work; its Process filter has own tests",
     "GET /work/today": "reads the caller's own Idag, a limit only",
+    "GET /trash": "pages the caller's own trash",
+    "POST /trash/empty": "removes the caller's own trashed Tasks; takes no id",
 }
 
 

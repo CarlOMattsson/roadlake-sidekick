@@ -57,6 +57,7 @@ PRESETS: dict[str, frozenset[str]] = {
             "companion:tasks:read",
             "companion:tasks:complete",
             "companion:work:write",
+            "companion:work:erase",
             "companion:push",
             "companion:shopping:read",
             "companion:shopping:write",
@@ -76,8 +77,18 @@ SCOPE_DESCRIPTIONS: dict[str, LocalizedText] = {
         "en": "check off and reopen tasks and steps",
     },
     "companion:work:write": {
-        "sv": "skapa och ändra uppgifter och ändra projekt (titel, status, beskrivning, datum)",
-        "en": "create and edit tasks, and edit projects (title, status, description, dates)",
+        "sv": (
+            "skapa och ändra uppgifter, ändra projekt (titel, status, beskrivning, datum) och "
+            "lägga uppgifter i papperskorgen och ta tillbaka dem"
+        ),
+        "en": (
+            "create and edit tasks, edit projects (title, status, description, dates), and move "
+            "tasks to the trash and restore them"
+        ),
+    },
+    "companion:work:erase": {
+        "sv": "radera uppgifter i papperskorgen för gott och tömma den (kräver även work:write)",
+        "en": "remove trashed tasks for good and empty the trash (also needs work:write)",
     },
     "companion:push": {
         "sv": "ta emot aviseringar (registrera telefonens pushadress)",
@@ -88,16 +99,16 @@ SCOPE_DESCRIPTIONS: dict[str, LocalizedText] = {
         "en": "read shopping lists and items",
     },
     "companion:shopping:write": {
-        "sv": "lägga till, ändra och bocka av varor och listor",
-        "en": "add, edit, and check off items and lists",
+        "sv": "lägga till, ändra och bocka av varor och listor, och lägga varor i papperskorgen",
+        "en": "add, edit, and check off items and lists, and move items to the trash",
     },
     "companion:journal:read": {
         "sv": "läsa dagbokens dagar och inlägg",
         "en": "read journal days and entries",
     },
     "companion:journal:write": {
-        "sv": "skriva och ändra dagboksinlägg för hand (ingen AI)",
-        "en": "write and edit journal entries by hand (no AI)",
+        "sv": ("skriva och ändra dagboksinlägg för hand (ingen AI) och lägga dem i papperskorgen"),
+        "en": "write and edit journal entries by hand (no AI), and move them to the trash",
     },
     "companion:license": {
         "sv": "se licensstatus och ange instansens licensnyckel (bara instansens ägare)",

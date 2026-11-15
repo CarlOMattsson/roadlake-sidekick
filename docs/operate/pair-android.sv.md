@@ -11,7 +11,7 @@ Ladda ner den signerade Android-appen eller bygg den ur källkoden, installera d
 Appen är en andra yta mot samma Sidekick-server, bredvid Claude. Den pratar med serverns companion-rutter
 under `/companion/v1/` och inget annat.
 
-Appen skapar inga uppgifter eller projekt, kör ingen AI och pratar inte med Claude: det gör du i Claude. Den
+Appen skapar och ändrar uppgifter, ändrar projekt och lägger uppgifter, dagboksinlägg och varor i papperskorgen. Den skapar eller omstrukturerar inte projekt, kör ingen AI och pratar inte med Claude: det gör du i Claude. Den
 har ingen QR-läsare och ingen kamerabehörighet: kopplingskoden skrivs, klistras in eller kommer med en kopplingslänk. Den säkerhetskopierar
 eller flyttar inte sin inloggningsuppgift (`android:allowBackup="false"`). Den kräver Android 7.0 eller nyare
 (`minSdk` 24). Android 13 och nyare frågar en gång om lov att visa aviseringar, efter parkopplingen. Det finns
@@ -184,7 +184,8 @@ Det här får du:
 Att tänka på:
 
 - `--scope` eller `--preset app` är obligatoriskt; kommandot vägrar gissa. `--preset app` ger uppgifter (läsa
-  och klarmarkera, samt skapa och ändra uppgifter och projekt), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva) och licensraden. Du kan i
+  och klarmarkera, skapa och ändra uppgifter, lägga dem i papperskorgen och återställa dem), att radera uppgifter i papperskorgen för gott och tömma den
+  (`companion:work:erase`, som en telefon som parades tidigare bara får med `grant --scope companion:work:erase`), att ändra projekt (inte skapa dem), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva) och licensraden. Du kan i
   stället ange `--scope companion:…`-värden (kan upprepas) för en telefon med snävare rättigheter.
 - Koden gäller **en gång** och i **10 minuter** (`PAIRING_TTL` i `backend/src/sidekick/companion/service.py`).
 - Utan `--user-id <uuid>` använder kommandot installationens enda aktiva ägare, och det vägrar om det inte

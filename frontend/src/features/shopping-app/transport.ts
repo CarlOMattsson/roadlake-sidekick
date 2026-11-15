@@ -89,6 +89,21 @@ export type ShoppingTransport = {
     item: ShoppingItem,
     key: string,
   ) => Promise<{ item: ShoppingItem }>;
+  /**
+   * Moves the item to the trash at `version` (move_to_trash). The answer carries the trash record's version, which
+   * `restoreItem` needs for Undo. Optional: without it (or without `restoreItem`) the room offers no delete.
+   */
+  trashItem?: (
+    itemId: string,
+    version: number,
+    key: string,
+  ) => Promise<{ version: number }>;
+  /** Takes the item back out of the trash (restore_from_trash) at the trash version `trashItem` answered with. */
+  restoreItem?: (
+    itemId: string,
+    trashVersion: number,
+    key: string,
+  ) => Promise<unknown>;
   /** The host's offline help (the mobile app): the offline copy's time and the queued purchases. Absent in Claude. */
   offline?: OfflineSupport;
 };

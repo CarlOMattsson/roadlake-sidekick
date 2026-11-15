@@ -18,17 +18,12 @@ from sidekick.contacts.application.models import CreateContactCommand
 from sidekick.journal.domain.source import SourceType
 from sidekick.lifecycle import RecordKind
 from sidekick.lifecycle.application.service import _READ_SCOPE
-from sidekick.mcp.lifecycle import (
-    _READ_SCOPE_BY_KIND,
-    LIFECYCLE_TOOL_NAMES,
-    KindValue,
-    TrashItemRecord,
-    _trash_summary,
-)
+from sidekick.mcp.lifecycle import LIFECYCLE_TOOL_NAMES, _trash_summary
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.errors import NotFoundError, ValidationError
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
 from sidekick.shopping.application.schemas import BatchItem
+from sidekick.structured.trash import READ_SCOPE_BY_KIND, KindValue, TrashItemRecord
 from tests.db import create_test_session_factory, database_factory, require_test_database_url
 from tests.mcp.harness import SwitchableServer
 from tests.support.settings import make_settings
@@ -215,9 +210,12 @@ async def test_no_mcp_tool_can_remove_permanently() -> None:
     import ast
 
     import sidekick.mcp.lifecycle as module
+    import sidekick.structured.trash as structured
 
-    tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
-    touched = {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)}
+    touched: set[str] = set()
+    for adapter in (module, structured):
+        tree = ast.parse(Path(adapter.__file__).read_text(encoding="utf-8"))
+        touched |= {node.attr for node in ast.walk(tree) if isinstance(node, ast.Attribute)}
     assert touched.isdisjoint({"permanently_remove", "set_trashed"})
     assert {"trash", "restore", "list_trash"} <= touched
 
@@ -550,7 +548,7 @@ async def test_journal_entry_labels_are_in_the_text_blocks() -> None:
 def test_mcp_read_scope_map_matches_the_use_case() -> None:
     """The MCP label rule must name exactly the kinds the use case lets an actor read."""
 
-    assert _READ_SCOPE_BY_KIND == _READ_SCOPE
+    assert READ_SCOPE_BY_KIND == _READ_SCOPE
 
 
 @pytest.mark.asyncio
