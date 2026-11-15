@@ -43,7 +43,7 @@ bash tools/playwright-docker.sh npx playwright test --config playwright.mobile-a
 
 To run the local suite that should be green before a push in one go, use `tools/check-all.sh`. It runs the backend
 tests in parallel on a disposable test database slot of your own (`--slot`, 1 to 20; see `tools/test-db-pool.md`),
-with the CI coverage gate (90 %), then ruff and pyright, the version and migration policy checks, shellcheck, actionlint, gitleaks,
+then ruff and pyright, the version and migration policy checks, shellcheck, actionlint, gitleaks,
 the frontend checks (the mobile bundle is built first, because `mobile-csp.test.ts` reads it), the MCP App build and
 browser tests, a check of the public export (`published-tree`: the export is built in a temporary directory and linted,
 type-checked and tested there as the published CI will) and the Android Gradle build. Tests run in UTC, as on the CI
@@ -51,18 +51,31 @@ runner, and the frontend unit tests once more in `America/Los_Angeles`. It touch
 container on port 55433. Each part has a `--skip-...` flag, and `--dry-run` prints the commands without running them:
 
 ```bash
-bash tools/check-all.sh --slot 3                  # everything
+bash tools/check-all.sh --slot 3 --changed        # while working: only what your change touches
+bash tools/check-all.sh --slot 3 --rerun-failed   # only the backend tests that failed last time
+bash tools/check-all.sh --slot 3                  # before a push: everything
 bash tools/check-all.sh --slot 3 --skip-android   # without the Android build
 bash tools/check-all.sh --slot 3 --release        # plus the rest of the release gate
 bash tools/check-all.sh --help                    # all options
 ```
+
+There are three levels. While you work, `--changed [BASE]` compares your working tree with the merge base of `HEAD`
+and `BASE` (default `origin/main`) and runs only what that touches: ruff and pyright on the changed Python files, the
+backend test files that name a changed package or file plus the policy tests, and the frontend, MCP App, Android,
+website, export, shellcheck and actionlint stages only when a file they check changed; the others are reported as
+`skipped (unchanged)`. A change to `conftest.py`, the test fixtures, the migrations, `sidekick/shared`,
+`pyproject.toml` or `uv.lock` runs the whole backend suite, and the run says why (`tools/select-checks.py` holds the
+rules). The selection follows names, not every import, so before a push run the full level without a flag: every
+stage, with the backend tests but without coverage measurement. Coverage (the 90 % gate) belongs to `--release`.
+`--rerun-failed` runs only the backend tests that failed in an earlier run (they are kept in pytest's cache under
+`.cache/check-all/`); with none saved it says so and exits 0.
 
 Docker is needed for shellcheck, actionlint, gitleaks and the Playwright tests: they run in the images pinned in
 `tools/ci-images.sh`, the same ones CI uses, so versions, browsers and fonts match. When Docker is missing the stage
 prints `SKIPPED: docker missing ...` and is reported as SKIPPED in the summary, never as ok; `--strict` turns that into
 a failure.
 
-By default it does not run the Playwright mobile audit, the frontend coverage threshold, the dependency audits or the
+By default it does not run the Playwright mobile audit, the backend and frontend coverage gates, the dependency audits or the
 contract diff. Add `--release` to run those too, and the image scan (Trivy over the API image built from your
 checkout, as the release run scans it) and the drill, in the order of the release CI (see
 [the release checklist](../maintainers/release.md)); the dependency audit needs the network and is reported as `SKIPPED`

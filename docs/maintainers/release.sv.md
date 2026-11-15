@@ -163,7 +163,7 @@ release, så en patch som lägger till en contract-migrering kan inte heller dek
    `--release` lägger till, efter de vanliga stegen och i samma ordning som `.github/workflows/ci.yml`, de kontroller
    som release-CI kör utöver dem: kontraktsdiffen (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, och ögonblicksbilderna under
-   `contracts/` som exporteras på nytt och jämförs), frontendens täckningströskel, Playwrights mobilgranskning,
+   `contracts/` som exporteras på nytt och jämförs), backendens täckningsgräns (90 %) och frontendens täckningströskel, Playwrights mobilgranskning,
    beroendegranskningen i `audit.yml` (pip-audit, `npm audit` för frontend och webbplatsen, OSV-Scanner på
    alla låsfiler, Gradle-låsfilerna inklusive), avbildsskanningen (`tools/image-scan.sh`: API-avbilden byggd från denna utcheckning, skannad med
    den Trivy-version som är fastnålad i `tools/ci-images.sh`, med fel vid HIGH och CRITICAL som har en rättelse, som

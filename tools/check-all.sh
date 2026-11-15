@@ -4,9 +4,16 @@
 #
 #   bash tools/check-all.sh --slot K [options]
 #
+# Three levels:
+#   while working   --changed [BASE]: only what the change touches (see "Changed files" below)
+#   before a push   no level flag: every stage below, the backend tests without coverage
+#   release         --release: every stage plus the release gate, the backend tests with the coverage gate
+# and --rerun-failed, which runs only the backend tests that failed in an earlier run.
+#
 # Stages (each can be skipped):
-#   backend-tests   pytest --full in parallel on the disposable test database, slot K (tools/test-db-pool.sh),
-#                   with the CI coverage gate (--cov=sidekick --cov-fail-under=90), in the CI time zone (TZ=UTC)
+#   backend-tests   pytest --full in parallel on the disposable test database, slot K (tools/test-db-pool.sh), in the
+#                   CI time zone (TZ=UTC); with --release also the CI coverage gate (--cov=sidekick --cov-fail-under=90).
+#                   Every run records its failed tests for --rerun-failed in .cache/check-all/pytest (pytest's cache)
 #   backend-static  ruff format --check, ruff check, pyright
 #   policy          tools/check-version-sync.py, tools/third_party_notices.py --check and
 #                   tools/check-migration-policy.py --all
@@ -51,8 +58,25 @@
 #                   network; one that cannot reach its host (or lacks its tool) prints a "SKIPPED: ..." line and the
 #                   stage is reported as SKIPPED, never as ok, and with --strict as FAILED. Runs after gitleaks
 #
+# Changed files (--changed [BASE]): the working tree (staged, unstaged and untracked files) against the merge base of HEAD
+# and BASE (default origin/main, else main). tools/select-checks.py makes the plan; its docstring has the rules. In short:
+#   backend-tests   the test files that name a changed package (sidekick.<package>) or file, changed test files, and
+#                   always the policy tests and the generated-contract test; the whole suite when conftest.py, the test
+#                   fixtures, the migrations, sidekick/shared, pyproject.toml or uv.lock changed (it says why)
+#   backend-static  ruff and pyright on the changed Python files only (everything when pyproject.toml, uv.lock or a
+#                   ruff.toml changed)
+#   frontend, mcp-app, android, website, published-tree, shellcheck, actionlint: the whole stage, only when a file it
+#                   checks changed (android: frontend/android and the mobile build; shellcheck: a shell script)
+#   policy, gitleaks  for any change
+# A stage the change does not touch is reported as "skipped  NAME (unchanged)". The release gate cannot be combined with
+# --changed. The full run before a push still catches what the selection misses (a caller in another package).
+#
 # Options:
 #   --slot K              test database slot 1..20 for backend-tests (required unless that stage is skipped)
+#   --changed [BASE]      only the checks that the change since BASE touches (above)
+#   --rerun-failed        only the backend tests that failed in an earlier run (pytest --lf on its cache, limited to the
+#                         files that hold them; tests deleted or renamed since are left out); with none saved it says so
+#                         and exits 0. Every other stage is skipped
 #   --workers N           pytest-xdist workers for backend-tests (default 10)
 #   --skip-backend-tests  --skip-backend-static  --skip-policy  --skip-frontend  --skip-mcp-app
 #   --skip-shellcheck     --skip-actionlint   --skip-gitleaks  --skip-published-tree   --skip-website   --skip-android
@@ -100,6 +124,12 @@ SKIP_IMAGE_SCAN=0
 SKIP_DRILL=0
 RELEASE=0
 STRICT=0
+CHANGED=0
+CHANGED_BASE=""
+RERUN_FAILED=0
+# pytest's cache for the backend tests: its lastfailed file is what --rerun-failed reads. Git ignores it, since pytest
+# writes a .gitignore into it.
+PYTEST_CACHE="$REPO_ROOT/.cache/check-all/pytest"
 
 usage() {
   sed -n '2,/^[^#]/{/^#/p}' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -141,6 +171,15 @@ while [ $# -gt 0 ]; do
     --skip-image-scan) SKIP_IMAGE_SCAN=1; shift ;;
     --skip-drill) SKIP_DRILL=1; shift ;;
     --release) RELEASE=1; shift ;;
+    --changed)
+      CHANGED=1
+      if [ $# -ge 2 ] && [ "${2#-}" = "$2" ]; then
+        CHANGED_BASE="$2"
+        shift
+      fi
+      shift
+      ;;
+    --rerun-failed) RERUN_FAILED=1; shift ;;
     --keep-going) KEEP_GOING=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h | --help)
@@ -152,7 +191,99 @@ while [ $# -gt 0 ]; do
 done
 
 [[ "$WORKERS" =~ ^[1-9][0-9]?$ ]] || die "--workers must be a number from 1 to 99"
-if [ "$SKIP_BACKEND_TESTS" -eq 0 ]; then
+if [ "$CHANGED" -eq 1 ] && [ "$RELEASE" -eq 1 ]; then
+  die "--changed and --release cannot be combined: the release gate checks everything"
+fi
+if [ "$RERUN_FAILED" -eq 1 ] && { [ "$CHANGED" -eq 1 ] || [ "$RELEASE" -eq 1 ]; }; then
+  die "--rerun-failed cannot be combined with --changed or --release"
+fi
+
+# The plan of a --changed or --rerun-failed run: per stage a state (run, some, skip or rerun) and a reason, kept in
+# PLAN_STATE_<stage> and PLAN_REASON_<stage> (dashes become underscores). A stage without a plan runs as a whole.
+CHANGED_TESTS=()
+CHANGED_RUFF=()
+CHANGED_PYRIGHT=()
+
+plan_set() {
+  printf -v "PLAN_STATE_${1//-/_}" '%s' "$2"
+  printf -v "PLAN_REASON_${1//-/_}" '%s' "$3"
+}
+
+plan_state() {
+  local var="PLAN_STATE_${1//-/_}"
+  printf '%s' "${!var:-run}"
+}
+
+plan_reason() {
+  local var="PLAN_REASON_${1//-/_}"
+  printf '%s' "${!var:-}"
+}
+
+# The failed backend tests that pytest's cache holds from earlier runs: the count on the first line, then the test files
+# that hold them. A failure whose file or test function no longer exists (deleted or renamed) is left out: pytest would
+# otherwise find none of the saved tests and run every test it collected.
+saved_failures() {
+  python3 -c 'import json, pathlib, re, sys
+cache, backend = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+saved = json.loads(cache.read_text(encoding="utf-8")) if cache.is_file() else {}
+files = {}
+for nodeid in saved:
+    name, _, test = nodeid.partition("::")
+    file = backend / name
+    if not file.is_file():
+        continue
+    function = re.sub(r"\[.*$", "", test.rsplit("::", 1)[-1])
+    if function and not re.search(rf"\b(def|class) {re.escape(function)}\b", file.read_text(encoding="utf-8")):
+        continue
+    files[name] = files.get(name, 0) + 1
+print(sum(files.values()))
+for name in sorted(files):
+    print(f"backend/{name}")' "$PYTEST_CACHE/v/cache/lastfailed" "$REPO_ROOT/backend"
+}
+
+SAVED_FAILURES=0
+SAVED_FAILURE_FILES=()
+if [ "$RERUN_FAILED" -eq 1 ]; then
+  saved_output="$(saved_failures)" || die "cannot read $PYTEST_CACHE/v/cache/lastfailed"
+  SAVED_FAILURES="${saved_output%%$'\n'*}"
+  while IFS= read -r file; do
+    [ -z "$file" ] || SAVED_FAILURE_FILES+=("$file")
+  done < <(tail -n +2 <<<"$saved_output")
+  if [ "$SAVED_FAILURES" -eq 0 ]; then
+    echo "check-all: no failed backend tests saved from an earlier run, nothing to rerun"
+    exit 0
+  fi
+  for stage in backend-static contracts policy shellcheck actionlint gitleaks dependency-audit frontend coverage \
+    mcp-app mobile-audit published-tree website android image-scan drill; do
+    plan_set "$stage" skip "--rerun-failed"
+  done
+  plan_set backend-tests rerun "$SAVED_FAILURES failed in an earlier run"
+fi
+
+if [ "$CHANGED" -eq 1 ]; then
+  plan_args=()
+  [ -z "$CHANGED_BASE" ] || plan_args=(--base "$CHANGED_BASE")
+  plan_output="$(python3 tools/select-checks.py ${plan_args[@]+"${plan_args[@]}"})" || die "could not work out what changed"
+  changed_count=0
+  while IFS=$'\t' read -r kind first second third; do
+    case "$kind" in
+      base) echo "check-all: changes since $second (merge base ${first:0:12})" ;;
+      changed) changed_count=$((changed_count + 1)) ;;
+      stage) plan_set "$first" "$second" "$third" ;;
+      test) CHANGED_TESTS+=("$first") ;;
+      ruff) CHANGED_RUFF+=("$first") ;;
+      pyright) CHANGED_PYRIGHT+=("$first") ;;
+      *) die "unexpected line from tools/select-checks.py: $kind" ;;
+    esac
+  done <<<"$plan_output"
+  echo "check-all: $changed_count changed files"
+  for stage in backend-tests backend-static policy shellcheck actionlint gitleaks frontend mcp-app published-tree \
+    website android; do
+    printf '  %-15s %-5s %s\n' "$stage" "$(plan_state "$stage")" "$(plan_reason "$stage")"
+  done
+fi
+
+if [ "$SKIP_BACKEND_TESTS" -eq 0 ] && [ "$(plan_state backend-tests)" != skip ]; then
   [ -n "$SLOT" ] || die "--slot K is required for backend-tests (or pass --skip-backend-tests)"
   [[ "$SLOT" =~ ^([1-9]|1[0-9]|20)$ ]] || die "--slot must be a number from 1 to 20 (the base database is never used)"
 fi
@@ -201,29 +332,62 @@ run() {
   fi
 }
 
+# The whole suite, the test files a --changed plan selected, or (--rerun-failed) the tests pytest's cache saved as failed.
+# Fewer tests than workers get one worker each.
 stage_backend_tests() {
   need uv
   need docker
-  run bash tools/test-db-pool.sh create "$SLOT"
-  run bash tools/test-db-pool.sh workers "$SLOT" "$WORKERS"
-  if [ "$DRY_RUN" -eq 1 ]; then
-    echo "+ pool_env=\$(bash tools/test-db-pool.sh env $SLOT) && eval \"\$pool_env\""
-    echo "+ env TZ=UTC uv run --project backend python -m pytest backend/tests --full -n $WORKERS --dist loadgroup" \
-      "--no-header -p no:cacheprovider -rfE -W ignore --cov=sidekick --cov-fail-under=90"
-    return 0
+  local workers="$WORKERS" count=0
+  local -a targets=(backend/tests --full) coverage=()
+  case "$(plan_state backend-tests)" in
+    some)
+      targets=("${CHANGED_TESTS[@]}" --full)
+      count="${#CHANGED_TESTS[@]}"
+      ;;
+    rerun)
+      targets=("${SAVED_FAILURE_FILES[@]}" --full --last-failed --last-failed-no-failures none)
+      count="$SAVED_FAILURES"
+      ;;
+  esac
+  if [ "$count" -gt 0 ] && [ "$count" -lt "$workers" ]; then
+    workers="$count"
   fi
-  # Assign first so that a failed `env` stops the run instead of falling back to another database.
-  local pool_env
-  pool_env="$(bash tools/test-db-pool.sh env "$SLOT")" || exit $?
-  eval "$pool_env"
+  # Coverage belongs to the release gate; before a push the suite runs without the tracing overhead.
+  if [ "$RELEASE" -eq 1 ]; then
+    coverage=(--cov=sidekick --cov-fail-under=90)
+  fi
+  run bash tools/test-db-pool.sh create "$SLOT"
+  run bash tools/test-db-pool.sh workers "$SLOT" "$workers"
+  echo "+ pool_env=\$(bash tools/test-db-pool.sh env $SLOT) && eval \"\$pool_env\""
+  if [ "$DRY_RUN" -eq 0 ]; then
+    # Assign first so that a failed `env` stops the run instead of falling back to another database.
+    local pool_env
+    pool_env="$(bash tools/test-db-pool.sh env "$SLOT")" || exit $?
+    eval "$pool_env"
+  fi
   # The CI runner's zone is UTC; the owner's machine is not, and date handling that depends on the zone must show here.
-  run env TZ=UTC uv run --project backend python -m pytest backend/tests --full -n "$WORKERS" --dist loadgroup \
-    --no-header -p no:cacheprovider -rfE -W ignore --cov=sidekick --cov-fail-under=90
+  run env TZ=UTC uv run --project backend python -m pytest "${targets[@]}" -n "$workers" --dist loadgroup \
+    --no-header -o "cache_dir=$PYTEST_CACHE" -rfE -W ignore ${coverage[@]+"${coverage[@]}"}
 }
 
 stage_backend_static() {
   need uv
   cd backend || exit 1
+  if [ "$(plan_state backend-static)" = some ]; then
+    local file
+    local -a ruff_files=() pyright_files=()
+    for file in "${CHANGED_RUFF[@]}"; do ruff_files+=("../$file"); done
+    for file in ${CHANGED_PYRIGHT[@]+"${CHANGED_PYRIGHT[@]}"}; do pyright_files+=("../$file"); done
+    # --force-exclude keeps the exclusions of the configuration for files named on the command line.
+    run uv run ruff format --check --force-exclude "${ruff_files[@]}"
+    run uv run ruff check --no-cache --force-exclude "${ruff_files[@]}"
+    if [ "${#pyright_files[@]}" -gt 0 ]; then
+      run uv run pyright "${pyright_files[@]}"
+    else
+      echo "pyright: no changed file under src/ or tools/workctl/"
+    fi
+    return 0
+  fi
   run uv run ruff format --check . ../tools/workctl
   run uv run ruff check --no-cache . ../tools/workctl
   run uv run pyright
@@ -451,6 +615,10 @@ run_stage() {
   local name="$1" skip="$2" func="$3"
   if [ "$skip" -eq 1 ]; then
     RESULTS+=("skipped  $name")
+    return 0
+  fi
+  if [ "$(plan_state "$name")" = skip ]; then
+    RESULTS+=("skipped  $name ($(plan_reason "$name"))")
     return 0
   fi
   if [ "$FAILED" -eq 1 ] && [ "$KEEP_GOING" -eq 0 ]; then

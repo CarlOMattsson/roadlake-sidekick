@@ -162,7 +162,7 @@ so a patch that adds a contract migration cannot declare `expand` either.
    `--release` adds, after the usual stages and in the order of `.github/workflows/ci.yml`, the checks that the
    release CI runs on top of them: the contract diff (`sidekick.export_reference --check`,
    `sidekick.mcp.export_tool_reference --check`, `generate:tool-types --check`, and the snapshots under `contracts/`
-   re-exported and compared), the frontend coverage threshold, the Playwright mobile audit, the dependency audit of
+   re-exported and compared), the backend coverage gate (90 %) and the frontend coverage threshold, the Playwright mobile audit, the dependency audit of
    `audit.yml` (pip-audit, `npm audit` for the frontend and the website, OSV-Scanner on every lockfile, the Gradle ones included), the
    image scan (`tools/image-scan.sh`: the API image built from this checkout, scanned with the Trivy version pinned in
    `tools/ci-images.sh`, failing on HIGH and CRITICAL findings that have a fix, as the release run does before it

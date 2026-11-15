@@ -46,24 +46,37 @@ backendtesterna parallellt på en egen plats i testdatabasen (`--slot`, 1 till 2
 ruff och pyright, versions- och migrationskontrollerna, shellcheck, actionlint, gitleaks, frontendkontrollerna, bygget och
 webbläsartesterna för MCP-appen, en kontroll av den publika exporten (`published-tree`: exporten byggs i en temporär
 katalog och lintas, typkontrolleras och testas där som den publicerade CI kommer att göra) och Androids Gradle-bygge.
-Backendtesterna körs med CI:s täckningsgräns (90 %), testerna körs i UTC som på CI-runnern (frontendens enhetstester
+Testerna körs i UTC som på CI-runnern (frontendens enhetstester
 även en gång i `America/Los_Angeles`), och mobilpaketet byggs före frontendkontrollerna eftersom `mobile-csp.test.ts`
 läser det. Den rör ingen annan databas än testcontainern på port 55433. Varje del har en `--skip-...`-flagga, och `--dry-run` skriver ut
 kommandona utan att köra dem:
 
 ```bash
-bash tools/check-all.sh --slot 3                  # allt
+bash tools/check-all.sh --slot 3 --changed        # medan du arbetar: bara det din ändring berör
+bash tools/check-all.sh --slot 3 --rerun-failed   # bara backendtesterna som föll förra gången
+bash tools/check-all.sh --slot 3                  # före en push: allt
 bash tools/check-all.sh --slot 3 --skip-android   # utan Android-bygget
 bash tools/check-all.sh --slot 3 --release        # plus resten av releasegrinden
 bash tools/check-all.sh --help                    # alla flaggor
 ```
+
+Det finns tre nivåer. Medan du arbetar jämför `--changed [BASE]` din arbetskopia med sammanslagningsbasen för `HEAD`
+och `BASE` (standard `origin/main`) och kör bara det som berörs: ruff och pyright på de ändrade Python-filerna,
+backendtestfilerna som nämner ett ändrat paket eller en ändrad fil plus policytesterna, och stegen för frontend,
+MCP-appen, Android, webbplatsen, exporten, shellcheck och actionlint bara när en fil de kontrollerar har ändrats; övriga
+redovisas som `skipped (unchanged)`. En ändring i `conftest.py`, testfixturerna, migreringarna, `sidekick/shared`,
+`pyproject.toml` eller `uv.lock` kör hela backendsviten, och körningen säger varför (reglerna finns i
+`tools/select-checks.py`). Urvalet följer namn, inte varje import, så kör hela nivån utan flagga före en push: alla
+steg, med backendtesterna men utan täckningsmätning. Täckningen (gränsen 90 %) hör till `--release`.
+`--rerun-failed` kör bara de backendtester som föll i en tidigare körning (de sparas i pytests cache under
+`.cache/check-all/`); finns inga sparade säger den det och avslutar med 0.
 
 Docker behövs för shellcheck, actionlint, gitleaks och Playwright-testerna: de körs i de avbilder som är fastnålade i
 `tools/ci-images.sh`, samma som CI använder, så versioner, webbläsare och typsnitt stämmer. Saknas Docker skriver steget
 `SKIPPED: docker missing ...` och redovisas som SKIPPED i sammanfattningen, aldrig som ok; `--strict` gör det till ett
 fel.
 
-Som standard kör den inte Playwrights mobilgranskning, frontendens täckningsgräns, beroendegranskningarna eller
+Som standard kör den inte Playwrights mobilgranskning, backendens och frontendens täckningsgränser, beroendegranskningarna eller
 kontraktsdiffen. Lägg till `--release` för att köra dem också, och avbildsskanningen (Trivy över API-avbilden byggd
 från din utcheckning, som releasekörningen skannar den) och drillen, i samma ordning som release-CI (se
 [releasechecklistan](../maintainers/release.sv.md)); beroendegranskningen kräver nätverk och rapporteras som `SKIPPED`

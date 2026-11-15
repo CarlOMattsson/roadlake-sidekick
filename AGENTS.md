@@ -78,6 +78,9 @@ npm --prefix frontend run check            # lint + typecheck + vitest
 # The whole local suite before a push (tools/check-all.sh --help; --skip-* flags, --dry-run).
 # Test database slot K (1 to 20) is yours alone; the script touches no other database.
 bash tools/check-all.sh --slot K
+# While working: only what the change since origin/main touches; then only the backend tests that failed.
+bash tools/check-all.sh --slot K --changed
+bash tools/check-all.sh --slot K --rerun-failed
 
 # Keep generated artefacts in sync
 uv run --project backend python -m sidekick.api.export_openapi --output contracts/openapi.generated.json
