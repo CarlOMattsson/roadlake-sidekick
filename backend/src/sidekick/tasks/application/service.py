@@ -31,10 +31,12 @@ from sidekick.tasks.domain import (
     NewTaskPayload,
     Priority,
     RecurrenceRule,
+    StepsMoved,
     Task,
     TaskActivityRecorder,
     TaskStatus,
     TaskStatusHistory,
+    TaskStepCloser,
     derive_domain_id,
 )
 from sidekick.tasks.domain.recurrence import RecurrenceData
@@ -53,12 +55,14 @@ class TaskService:
         activity_ledger: TaskActivityRecorder | None = None,
         *,
         owner_timezone: tzinfo = DEFAULT_OWNER_ZONE,
+        step_closer: TaskStepCloser | None = None,
     ) -> None:
         self.store = store
         self.clock = clock
         self.cursor_codec = cursor_codec
         self.activity_ledger = activity_ledger
         self.owner_timezone = owner_timezone
+        self.step_closer = step_closer
 
     def _replayed_task(
         self, session: TxSession, actor: Actor, record: Mapping[str, object]
@@ -519,6 +523,7 @@ class TaskService:
         if changes or tags_changed:
             self.store.save_task(session, updated, expected_version=version)
         self._record_status_transition(session, actor, task, updated, now, source="updated")
+        moved = self._move_steps_with_status(session, actor, task, updated, now, correlation_id)
         if tags_changed:
             tags = command.tags
             if isinstance(tags, UnsetType):
@@ -552,6 +557,7 @@ class TaskService:
                 occurred_at=now,
                 correlation_id=correlation_id,
                 changed_fields=frozenset(changes) | ({"tags"} if tags_changed else set[str]()),
+                evidence=moved,
             )
         return updated
 
@@ -564,6 +570,52 @@ class TaskService:
             )
         )
 
+    def _move_steps_with_status(
+        self,
+        session: TxSession,
+        actor: Actor,
+        before: Task,
+        after: Task,
+        now: datetime,
+        correlation_id: str | None,
+    ) -> dict[str, int] | None:
+        """Carry the Task's Steps and Actions along when it becomes completed or leaves it.
+
+        A repeating Task that is completed is open again for its next run, so its Steps and
+        Actions start over. Returns what moved, for the activity entry, or None when nothing did.
+        """
+
+        if self.step_closer is None:
+            return None
+        if _completed_a_cycle(before, after, now):
+            moved = self.step_closer.reset(
+                session,
+                actor_id=actor.user_id,
+                task=after,
+                now=now,
+                correlation_id=correlation_id,
+            )
+            return _moved_evidence(moved, "reset")
+        if before.status is not TaskStatus.COMPLETED and after.status is TaskStatus.COMPLETED:
+            moved = self.step_closer.close(
+                session,
+                actor_id=actor.user_id,
+                task=after,
+                now=now,
+                correlation_id=correlation_id,
+            )
+            return _moved_evidence(moved, "closed")
+        if before.status is TaskStatus.COMPLETED and after.status is not TaskStatus.COMPLETED:
+            moved = self.step_closer.reopen(
+                session,
+                actor_id=actor.user_id,
+                task=before,
+                now=now,
+                correlation_id=correlation_id,
+            )
+            return _moved_evidence(moved, "reopened")
+        return None
+
     def _record_status_transition(
         self,
         session: TxSession,
@@ -574,12 +626,7 @@ class TaskService:
         *,
         source: str,
     ) -> None:
-        if (
-            after.recurrence is not None
-            and before.status is not TaskStatus.COMPLETED
-            and after.last_completed_at == changed_at
-            and before.last_completed_at != after.last_completed_at
-        ):
+        if _completed_a_cycle(before, after, changed_at):
             # A recurring completion is represented as two visible lifecycle events,
             # even though the row is immediately reopened for its next occurrence.
             self.store.append_task_status_history(
@@ -680,6 +727,9 @@ class TaskService:
         if completed is not task:
             self.store.save_task(session, completed, expected_version=version)
             self._record_status_transition(session, actor, task, completed, now, source="completed")
+            moved = self._move_steps_with_status(
+                session, actor, task, completed, now, correlation_id
+            )
             self.store.append_audit(
                 session,
                 actor_id=actor.user_id,
@@ -700,6 +750,7 @@ class TaskService:
                     occurred_at=now,
                     correlation_id=correlation_id,
                     changed_fields=frozenset({"status"}),
+                    evidence=moved,
                 )
         return completed
 
@@ -831,6 +882,23 @@ class TaskService:
                     changed_fields=frozenset({"archived_at"}),
                 )
         return restored
+
+
+def _completed_a_cycle(before: Task, after: Task, changed_at: datetime) -> bool:
+    """Whether this change completed a repeating Task, which is open again for its next run."""
+
+    return (
+        after.recurrence is not None
+        and before.status is not TaskStatus.COMPLETED
+        and after.last_completed_at == changed_at
+        and before.last_completed_at != after.last_completed_at
+    )
+
+
+def _moved_evidence(moved: StepsMoved, verb: str) -> dict[str, int] | None:
+    if not moved:
+        return None
+    return {f"steps_{verb}": moved.steps, f"actions_{verb}": moved.actions}
 
 
 def _with_ambition(

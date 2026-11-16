@@ -6,13 +6,13 @@ from datetime import date, datetime
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import Field, model_validator
+from pydantic import Field
 
 from sidekick.contacts.application.serialization import contact_public_data
 from sidekick.contacts.domain.contact import Contact
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
-from sidekick.structured.base import Output
+from sidekick.structured.base import Output, PartialChanges
 from sidekick.structured.contacts import ContactSummaryRecord
 from sidekick.structured.tags import TagMatch, TagsInput
 
@@ -148,7 +148,9 @@ Role = Annotated[str | None, Field(max_length=120), NoImageData]
 Address = Annotated[str | None, Field(max_length=500), NoImageData]
 
 
-class ContactChanges(Output):
+class ContactChanges(PartialChanges):
+    fixed_fields = frozenset({"display_name"})
+
     display_name: Annotated[str | None, Field(min_length=1, max_length=200), NoImageData] = None
     context_note: Annotated[str | None, Field(max_length=10000), NoImageData] = None
     email: Annotated[str | None, Field(max_length=320), NoImageData] = None
@@ -158,14 +160,6 @@ class ContactChanges(Output):
     role: Role = None
     address: Address = None
     tags: TagsInput = Field(default_factory=list)
-
-    @model_validator(mode="after")
-    def require_change(self) -> ContactChanges:
-        if not self.model_fields_set:
-            raise ValueError("at least one change is required")
-        if "display_name" in self.model_fields_set and self.display_name is None:
-            raise ValueError("display_name cannot be null")
-        return self
 
 
 def contact_result(contact: Contact, tags: list[str]) -> ContactResult:

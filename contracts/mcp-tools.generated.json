@@ -1244,8 +1244,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "context_note": {
               "anyOf": [
@@ -1256,8 +1255,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "display_name": {
               "anyOf": [
@@ -1269,8 +1267,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "email": {
               "anyOf": [
@@ -1281,8 +1278,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "organization": {
               "anyOf": [
@@ -1293,8 +1289,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "phone": {
               "anyOf": [
@@ -1305,8 +1300,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "relationship": {
               "anyOf": [
@@ -1317,8 +1311,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "role": {
               "anyOf": [
@@ -1329,8 +1322,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "tags": {
               "description": "Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it.",
@@ -15098,7 +15090,7 @@
       "readOnlyHint": false,
       "title": "Skapa flera uppgifter"
     },
-    "description": "Use this when the user wants several new tasks at once, for example from a photo of a whiteboard or a list. Pass 1 to 20 tasks, each with a title and optional due_at, priority, tags and up to 10 ordered step titles. Pass project_id or domain_id to file all of them there. The whole call fails if any item is invalid, so nothing is created. due_at is an ISO datetime with an offset, or a bare date (YYYY-MM-DD) meaning 23:59 in the owner's zone. Retry-safe with the same idempotency key.",
+    "description": "Use this when the user wants several new tasks at once, for example from a photo of a whiteboard or a list. Pass 1 to 20 tasks, each with a title and optional due_at, priority, tags and up to 10 ordered step titles. Pass project_id or domain_id to file all of them there. The whole call fails if any item is invalid, so nothing is created. due_at is an ISO datetime with an offset, or a bare date (YYYY-MM-DD) meaning 23:59 in the owner's zone. An idempotency_key is required; repeating the call with the same key is safe.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -16502,8 +16494,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "description": {
               "anyOf": [
@@ -16514,8 +16505,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "domain_id": {
               "anyOf": [
@@ -16526,8 +16516,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "start_date": {
               "anyOf": [
@@ -16538,8 +16527,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -16554,8 +16542,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "tags": {
               "anyOf": [
@@ -16569,8 +16556,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "target_date": {
               "anyOf": [
@@ -16581,8 +16567,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "title": {
               "anyOf": [
@@ -16594,8 +16579,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -17347,7 +17331,6 @@
                   "type": "null"
                 }
               ],
-              "default": null,
               "description": "Colour accent shown next to the domain name: one of the eight names slate, blue, teal, green, amber, orange, rose or violet. Null clears it."
             },
             "description": {
@@ -17359,8 +17342,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "last_reviewed_at": {
               "anyOf": [
@@ -17371,8 +17353,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "name": {
               "anyOf": [
@@ -17384,8 +17365,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "review_cadence": {
               "anyOf": [
@@ -17404,8 +17384,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -17419,8 +17398,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "tags": {
               "anyOf": [
@@ -17434,8 +17412,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -17754,8 +17731,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "description": {
               "anyOf": [
@@ -17766,8 +17742,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "domain_id": {
               "anyOf": [
@@ -17778,8 +17753,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "name": {
               "anyOf": [
@@ -17791,8 +17765,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -17808,8 +17781,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "tags": {
               "anyOf": [
@@ -17823,8 +17795,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -18888,8 +18859,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "due_at": {
               "anyOf": [
@@ -18900,8 +18870,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "instruction": {
               "anyOf": [
@@ -18912,8 +18881,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -18929,8 +18897,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "title": {
               "anyOf": [
@@ -18942,8 +18909,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -19715,8 +19681,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "due_at": {
               "anyOf": [
@@ -19727,8 +19692,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "note": {
               "anyOf": [
@@ -19739,8 +19703,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -19754,8 +19717,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "title": {
               "anyOf": [
@@ -19767,8 +19729,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -25822,8 +25783,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "ambition": {
               "anyOf": [
@@ -25833,8 +25793,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "description": {
               "anyOf": [
@@ -25845,8 +25804,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "domain_id": {
               "anyOf": [
@@ -25857,8 +25815,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "due_at": {
               "anyOf": [
@@ -25873,8 +25830,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "estimated_minutes": {
               "anyOf": [
@@ -25886,8 +25842,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "follow_up_at": {
               "anyOf": [
@@ -25898,8 +25853,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "last_completed_at": {
               "anyOf": [
@@ -25910,8 +25864,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "not_before": {
               "anyOf": [
@@ -25922,8 +25875,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "priority": {
               "anyOf": [
@@ -25938,8 +25890,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "process_id": {
               "anyOf": [
@@ -25950,8 +25901,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "project_id": {
               "anyOf": [
@@ -25962,8 +25912,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "recurrence": {
               "anyOf": [
@@ -26026,8 +25975,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "status": {
               "anyOf": [
@@ -26043,8 +25991,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "tags": {
               "anyOf": [
@@ -26058,8 +26005,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "title": {
               "anyOf": [
@@ -26071,8 +26017,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "waiting_on_contact_id": {
               "anyOf": [
@@ -26083,8 +26028,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "waiting_since": {
               "anyOf": [
@@ -26095,8 +26039,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -26514,7 +26457,7 @@
       "readOnlyHint": false,
       "title": "Slutf\u00f6r uppgift"
     },
-    "description": "Mark one owned task complete using its current version. Repeating the same idempotency key safely returns the committed result.",
+    "description": "Mark one owned task complete using its current version. Its open steps and their actions are completed with it; a status change back to todo opens again what this closed. A repeating task starts all its steps and actions over for the next run. Repeating the same idempotency key safely returns the committed result.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

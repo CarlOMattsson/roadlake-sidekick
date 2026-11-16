@@ -22,6 +22,7 @@ from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.tasks.persistence import task_from_row
 from sidekick.work.domain.ai_plan import RunHistory
 from sidekick.work.domain.ai_runs import (
+    ACTIVE_STATES,
     AiRunResult,
     AiRunState,
     AiStepRun,
@@ -217,6 +218,25 @@ class AiRunStore:
             step_id: RunHistory(attempts=len(runs), latest=runs[-1])
             for step_id, runs in grouped.items()
         }
+
+    @staticmethod
+    def list_active_ai_runs(
+        session: Session, owner_id: UUID, step_ids: tuple[UUID, ...]
+    ) -> list[AiStepRun]:
+        """The queued or running attempts among these steps, whatever their lease."""
+
+        if not step_ids:
+            return []
+        rows = session.scalars(
+            select(AiStepRunRow)
+            .where(
+                AiStepRunRow.owner_id == owner_id,
+                AiStepRunRow.step_id == any_(bindparam("step_ids", list(step_ids), _UUID_ARRAY)),
+                AiStepRunRow.state.in_([state.value for state in ACTIVE_STATES]),
+            )
+            .order_by(AiStepRunRow.step_id, AiStepRunRow.attempt)
+        )
+        return [run_from_row(row) for row in rows]
 
     @staticmethod
     def count_ai_runs_since(

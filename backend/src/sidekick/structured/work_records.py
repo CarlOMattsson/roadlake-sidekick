@@ -17,7 +17,7 @@ from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
-from sidekick.structured.base import Output
+from sidekick.structured.base import Output, PartialChanges
 from sidekick.tasks.domain import Priority, RecurrenceRule, TaskStatus
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.domain import ActionStatus, DomainStatus, ProcessStatus
@@ -557,8 +557,10 @@ def end_of_day_due_at(value: datetime | date | None, zone: tzinfo) -> datetime |
     return datetime.combine(value, time(23, 59), tzinfo=zone)
 
 
-class TaskChanges(Output):
+class TaskChanges(PartialChanges):
     """Fields to change: omitted stays, null clears where allowed."""
+
+    fixed_fields = frozenset({"title", "status", "priority", "ambition", "ai_possible"})
 
     title: Annotated[str | None, Field(min_length=1, max_length=200), NoImageData] = None
     description: Annotated[str | None, Field(max_length=10_000), NoImageData] = None
@@ -588,57 +590,33 @@ class TaskChanges(Output):
         Field(max_length=MAX_TAGS_PER_RECORD),
     ] = None
 
-    @model_validator(mode="after")
-    def require_change(self) -> TaskChanges:
-        if not self.model_fields_set:
-            raise ValueError("at least one change is required")
-        if "title" in self.model_fields_set and self.title is None:
-            raise ValueError("title cannot be null")
-        if "ambition" in self.model_fields_set and self.ambition is None:
-            raise ValueError("ambition cannot be null")
-        if "ai_possible" in self.model_fields_set and self.ai_possible is None:
-            raise ValueError("ai_possible cannot be null")
-        return self
 
+class StepChanges(PartialChanges):
+    fixed_fields = frozenset({"title", "status", "attention_requested"})
+    requires_change = False
 
-class StepChanges(Output):
     title: Annotated[str | None, Field(min_length=1, max_length=200)] = None
     status: TaskStatus | None = None
     due_at: datetime | None = None
     attention_requested: bool | None = None
     instruction: Annotated[str | None, Field(max_length=MAX_STEP_INSTRUCTION_LENGTH)] = None
 
-    @model_validator(mode="after")
-    def reject_null_required_fields(self) -> StepChanges:
-        if "title" in self.model_fields_set and self.title is None:
-            raise ValueError("title cannot be null")
-        if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
-        if "attention_requested" in self.model_fields_set and self.attention_requested is None:
-            raise ValueError("attention_requested cannot be null")
-        return self
 
+class ActionChanges(PartialChanges):
+    fixed_fields = frozenset({"title", "status", "attention_requested"})
+    requires_change = False
 
-class ActionChanges(Output):
     title: Annotated[str | None, Field(min_length=1, max_length=200)] = None
     status: ActionStatus | None = None
     due_at: datetime | None = None
     attention_requested: bool | None = None
     note: Annotated[str | None, Field(max_length=MAX_ACTION_NOTE_LENGTH)] = None
 
-    @model_validator(mode="after")
-    def reject_null_required_fields(self) -> ActionChanges:
-        if "title" in self.model_fields_set and self.title is None:
-            raise ValueError("title cannot be null")
-        if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
-        if "attention_requested" in self.model_fields_set and self.attention_requested is None:
-            raise ValueError("attention_requested cannot be null")
-        return self
 
-
-class ProjectChanges(Output):
+class ProjectChanges(PartialChanges):
     """Fields to change: omitted stays, null clears where allowed."""
+
+    fixed_fields = frozenset({"title", "status", "domain_id"})
 
     domain_id: UUID | None = None
     title: Annotated[str | None, Field(min_length=1, max_length=200)] = None
@@ -651,21 +629,11 @@ class ProjectChanges(Output):
     )
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
 
-    @model_validator(mode="after")
-    def require_change(self) -> ProjectChanges:
-        if not self.model_fields_set:
-            raise ValueError("at least one change is required")
-        if "title" in self.model_fields_set and self.title is None:
-            raise ValueError("title cannot be null")
-        if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
-        if "domain_id" in self.model_fields_set and self.domain_id is None:
-            raise ValueError("project domain cannot be cleared")
-        return self
 
-
-class DomainChanges(Output):
+class DomainChanges(PartialChanges):
     """Fields to change: omitted stays, null clears where allowed."""
+
+    fixed_fields = frozenset({"name", "status"})
 
     name: Annotated[str | None, Field(min_length=1, max_length=200)] = None
     description: Annotated[str | None, Field(max_length=10_000)] = None
@@ -677,19 +645,11 @@ class DomainChanges(Output):
     ] = None
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
 
-    @model_validator(mode="after")
-    def require_change(self) -> DomainChanges:
-        if not self.model_fields_set:
-            raise ValueError("at least one change is required")
-        if "name" in self.model_fields_set and self.name is None:
-            raise ValueError("name cannot be null")
-        if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
-        return self
 
-
-class ProcessChanges(Output):
+class ProcessChanges(PartialChanges):
     """Fields to change: omitted stays, null clears where allowed."""
+
+    fixed_fields = frozenset({"name", "status", "domain_id"})
 
     name: Annotated[str | None, Field(min_length=1, max_length=200)] = None
     description: Annotated[str | None, Field(max_length=10_000)] = None
@@ -697,18 +657,6 @@ class ProcessChanges(Output):
     domain_id: UUID | None = None
     cadence: Cadence | None = None
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
-
-    @model_validator(mode="after")
-    def require_change(self) -> ProcessChanges:
-        if not self.model_fields_set:
-            raise ValueError("at least one change is required")
-        if "name" in self.model_fields_set and self.name is None:
-            raise ValueError("name cannot be null")
-        if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
-        if "domain_id" in self.model_fields_set and self.domain_id is None:
-            raise ValueError("process domain cannot be cleared")
-        return self
 
 
 class ReorderItem(Output):

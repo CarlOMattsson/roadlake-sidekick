@@ -3,12 +3,12 @@
 Two paths reject a call before the tool body runs, and both can quote the rejected input:
 
 1. FastMCP's pydantic argument validation raises an error whose text repeats each `input_value`.
-   `RedactedToolArgumentErrors` turns it into a ToolError with `field: error type` pairs.
+   `RedactedToolArgumentErrors` turns it into a ToolError with `field: reason` pairs.
 2. The JSON Schema check of the arguments against the tool's listed input schema. MCP SDK 1.x
    ran it in its low-level `tools/call` handler when `strict_input_validation=True`; SDK 2.x and
    FastMCP 4 dropped it (FastMCP's flag now means strict pydantic instead). `SchemaCheckedArguments`
    runs the same check as middleware, before FastMCP's pydantic validation, and answers with
-   `path: validator` rows. Manual-schema tools such as the agent read wrappers take `**arguments`,
+   `path: reason` rows. Manual-schema tools such as the agent read wrappers take `**arguments`,
    so this check is the only one their input gets before the gateway.
 
 Both keep the field name so the model can correct the call. Neither includes a value.
@@ -86,6 +86,29 @@ _TYPE_LABELS: dict[str, str] = {
     "less_than_equal": "out of range",
     "too_short": "too few items",
     "too_long": "too many items",
+    "enum": "not an allowed value",
+    "uuid_type": "invalid UUID",
+    # Raised by `PartialChanges` with this fixed type; no input is read to describe it.
+    "no_change": "at least one change is required",
+}
+
+# JSON Schema keyword -> fixed description, for the keywords whose name alone does not help the
+# caller. The words come from the keyword, never from the rejected value. A keyword not listed is
+# reported by its own name.
+_KEYWORD_LABELS: dict[str, str] = {
+    "maxLength": "too long",
+    "minLength": "too short",
+    "maxItems": "too many items",
+    "minItems": "too few items",
+    "maximum": "out of range",
+    "minimum": "out of range",
+    "exclusiveMaximum": "out of range",
+    "exclusiveMinimum": "out of range",
+    "enum": "not an allowed value",
+    "const": "not an allowed value",
+    "format": "invalid format",
+    "pattern": "invalid format",
+    "additionalProperties": "unexpected field",
 }
 
 
@@ -119,8 +142,40 @@ def _describe(error: BaseException | None) -> str:
     return _join_rows(_PYDANTIC_PREFIX, rows, _PYDANTIC_FALLBACK)
 
 
+def _expected_types(errors: Iterable[SchemaValidationError]) -> list[str]:
+    """The type names the schema asked for, in the order the schema lists them, once each."""
+
+    names: list[str] = []
+    for error in errors:
+        wanted: object = error.validator_value
+        found = cast("list[object]", wanted) if isinstance(wanted, list) else [wanted]
+        names.extend(name for name in found if isinstance(name, str) and name not in names)
+    return names
+
+
+def _alternative_rows(error: SchemaValidationError) -> list[str]:
+    """Rows for a failed `anyOf` / `oneOf`: what the closest alternative objected to.
+
+    An alternative that accepted the value's type and failed deeper (too long, not allowed) is the
+    one the caller meant. When every alternative failed on type, name the types the schema takes.
+    """
+
+    depth = len(error.absolute_path)
+    branches = list(error.context or ())
+    deeper = [
+        branch
+        for branch in branches
+        if not (branch.validator == "type" and len(branch.absolute_path) == depth)
+    ]
+    if deeper:
+        return [row for branch in deeper for row in _schema_rows(branch)]
+    types = _expected_types(branches)
+    path = _field_path(error.absolute_path)
+    return [f"{path}: expected {' or '.join(types)}"] if types else [f"{path}: {error.validator}"]
+
+
 def _schema_rows(error: SchemaValidationError) -> list[str]:
-    """Return `path: validator` rows for one JSON Schema error. Never reads its message."""
+    """Return `path: reason` rows for one JSON Schema error. Never reads its message."""
 
     path: list[object] = list(error.absolute_path)
     # jsonschema's stubs are looser than their runtime values; `str()` keeps the comparison typed.
@@ -141,7 +196,13 @@ def _schema_rows(error: SchemaValidationError) -> list[str]:
             for name in names
             if isinstance(name, str) and name not in present
         ]
-    return [f"{_field_path(path)}: {keyword}"]
+    if keyword in ("anyOf", "oneOf"):
+        return _alternative_rows(error)
+    if keyword == "type":
+        types = _expected_types([error])
+        if types:
+            return [f"{_field_path(path)}: expected {' or '.join(types)}"]
+    return [f"{_field_path(path)}: {_KEYWORD_LABELS.get(keyword, keyword)}"]
 
 
 @lru_cache(maxsize=_VALIDATOR_CACHE_SIZE)

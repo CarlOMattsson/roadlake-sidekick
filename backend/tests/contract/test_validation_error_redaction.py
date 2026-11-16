@@ -143,7 +143,9 @@ async def test_journal_schema_error_names_the_field_and_hides_the_value(
             raise_on_error=False,
         )
 
-    _assert_redacted(response, TITLE_SENTINEL, SDK_PREFIX, ("title: anyOf",), all_logs, caplog)
+    _assert_redacted(
+        response, TITLE_SENTINEL, SDK_PREFIX, ("title: expected string or null",), all_logs, caplog
+    )
 
 
 @pytest.mark.asyncio

@@ -22,6 +22,7 @@ from sidekick.shared.types import Actor, new_uuid7, utc_now
 from sidekick.shopping.application.schemas import BatchItem
 from sidekick.tasks.application.models import NewTaskItem
 from sidekick.tasks.domain import Priority
+from sidekick.work.domain import ActionStatus
 from sidekick.work.worker import prune_idempotency_records
 from tests.db import database_factory
 from tests.support.settings import make_settings
@@ -208,12 +209,12 @@ def test_work_and_shopping_writes_keep_only_ids_and_a_retry_reads_the_record_aga
         )
         == project
     )
-    assert (
-        container.steps.create_action(
-            actor, step.id, title=secret + " handling", idempotency_key="idem-action-1"
-        )
-        == action
+    # The Task was completed since, which completed the Action too: the retry reads it as it is.
+    replayed_action = container.steps.create_action(
+        actor, step.id, title=secret + " handling", idempotency_key="idem-action-1"
     )
+    assert replayed_action == container.steps.get_action(actor, action.id)
+    assert replayed_action.status is ActionStatus.COMPLETED
     assert (
         container.work_tags.create(actor, label=secret + " etikett", idempotency_key="idem-tag-1")
         == tag

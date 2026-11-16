@@ -222,8 +222,12 @@ class ActivityLedger:
         before: Task | None = None,
         correlation_id: str | None = None,
         changed_fields: frozenset[str] | None = None,
+        evidence: Mapping[str, int] | None = None,
     ) -> UUID:
-        """Record a Task command after its projection has passed optimistic locking."""
+        """Record a Task command after its projection has passed optimistic locking.
+
+        `evidence` carries counts of what the command did to the Task's Steps and Actions.
+        """
 
         def values(item: Task | None) -> JsonObject:
             if item is None:
@@ -256,6 +260,7 @@ class ActivityLedger:
             summary=f"{operation.replace('_', ' ').capitalize()}: {task.title}",
             before_values=values(before),
             after_values=values(task),
+            evidence=dict(evidence) if evidence else None,
             correlation_id=correlation_id,
             occurred_at=occurred_at,
         )

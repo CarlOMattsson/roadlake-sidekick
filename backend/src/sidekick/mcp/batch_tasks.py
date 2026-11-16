@@ -88,8 +88,8 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             "due_at, priority, tags and up to 10 ordered step titles. Pass project_id or "
             "domain_id to file all of them there. The whole call fails if any item is invalid, "
             "so nothing is created. due_at is an ISO datetime with an offset, or a bare date "
-            "(YYYY-MM-DD) meaning 23:59 in the owner's zone. Retry-safe with the same "
-            "idempotency key."
+            "(YYYY-MM-DD) meaning 23:59 in the owner's zone. An idempotency_key is required; "
+            "repeating the call with the same key is safe."
         ),
         output_schema=output_schema(CreateTasksOutput),
         annotations=WRITE,

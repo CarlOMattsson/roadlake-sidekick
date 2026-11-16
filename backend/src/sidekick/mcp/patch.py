@@ -20,7 +20,8 @@ def sent[T](changes: BaseModel, name: str, value: T) -> T | UnsetType:
 def present[T](value: T | None) -> T | UnsetType:
     """`value`, or `UNSET` for a field that cannot be cleared.
 
-    The change models reject an explicit null on such a field, so null means it was not sent.
+    The change models drop an explicit null on such a field (`PartialChanges.fixed_fields`), so
+    null means it was not sent.
     """
 
     return UNSET if value is None else value

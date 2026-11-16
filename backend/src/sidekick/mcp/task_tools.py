@@ -179,8 +179,10 @@ def _register_complete_task(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="complete_task",
         description=(
-            "Mark one owned task complete using its current version. Repeating the same "
-            "idempotency key safely returns the committed result."
+            "Mark one owned task complete using its current version. Its open steps and their "
+            "actions are completed with it; a status change back to todo opens again what this "
+            "closed. A repeating task starts all its steps and actions over for the next run. "
+            "Repeating the same idempotency key safely returns the committed result."
         ),
         output_schema=output_schema(TaskOutput),
         annotations=WRITE,

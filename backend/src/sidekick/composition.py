@@ -69,6 +69,7 @@ from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
 from sidekick.work.application.steps_service import StepsService
 from sidekick.work.application.tags_service import WorkTagService
+from sidekick.work.application.task_closing import TaskStepClosing
 from sidekick.work.application.work_lists import WorkListService
 from sidekick.work.persistence.steps_actions import StepActionStore
 from sidekick.work.persistence.store import SqlWorkStore
@@ -278,6 +279,7 @@ def create_container(
         cursor_codec,
         activity_ledger,
         owner_timezone=settings.owner_zone,
+        step_closer=TaskStepClosing(stores.work),
     )
     projects = ProjectService(stores.tasks, SystemClock(), cursor_codec)
     contexts = ContextService(
