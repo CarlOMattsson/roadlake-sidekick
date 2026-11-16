@@ -82,11 +82,14 @@ def task_record(task: Task, tags: Sequence[str]) -> TaskRecord:
 
 
 def task_list_record(task: Task, tags: Sequence[str]) -> TaskListRecord:
-    """A Task in the list shape: a description excerpt in place of the whole description."""
+    """A Task in the compact list shape: no description, timestamps or reminder fields."""
 
-    return TaskListRecord.model_validate(
-        _list_shape(task_public_data(task), task.description, tags)
-    )
+    row = {
+        name: value
+        for name, value in task_public_data(task).items()
+        if name in TaskListRecord.model_fields and name != "tags"
+    }
+    return TaskListRecord.model_validate({**row, "tags": list(tags)})
 
 
 def project_record(project: Project, tags: Sequence[str]) -> ProjectRecord:
@@ -551,7 +554,7 @@ def _task_page(
     unsorted: bool,
     ambitions: bool | None,
 ) -> tuple[list[TaskListRecord], str | None]:
-    """One authorized page of Tasks in the list shape with their tags, and the next cursor."""
+    """One authorized page of compact Tasks with their tags, and the next cursor."""
 
     page = container.tasks.list(
         actor,
@@ -581,7 +584,7 @@ def task_page_structured(
     ambitions: bool | None = None,
 ) -> TaskPageOutput:
     """The structured content of `list_tasks`, shared with the companion's Project Tasks page:
-    each row carries a description excerpt, not the whole description (`get_task` has it).
+    each row is the compact `TaskListRecord` (`get_task` has the rest).
     `ambitions` is the use case's own filter (None: both)."""
 
     rows, next_cursor = _task_page(

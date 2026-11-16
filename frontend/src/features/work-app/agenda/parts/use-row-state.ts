@@ -6,6 +6,7 @@ import {
   LEAVE_MS,
   afterWrite,
   currentWith,
+  keepHeld,
   type Override,
 } from "./agenda-helpers";
 
@@ -29,8 +30,10 @@ export function useRowState({
   mounted: RefObject<boolean>;
 }) {
   const [overrides, setOverrides] = useState<Record<string, Override>>({});
-  // The changes still offered as Undo, one per row (UNDO_MS each), by row key.
+  // The changes still offered as Undo, one per row (UNDO_MS each), by row key; the ref holds the latest at once, so a
+  // read that ends knows which rows still offer theirs (see `held`).
   const [undos, setUndos] = useState<Record<string, AgendaUndo>>({});
+  const undosRef = useRef<Record<string, AgendaUndo>>({});
   // Rows a triage move changed: they stay in place, muted, with their date choices off, until the list is read again.
   const [triaged, setTriaged] = useState<Record<string, boolean>>({});
   // A row marked done whose Undo has run out leaves its group (it stood on under the Overdue heading as a fifth row
@@ -54,6 +57,12 @@ export function useRowState({
     };
   }, []);
 
+  function patchUndos(
+    next: (all: Record<string, AgendaUndo>) => Record<string, AgendaUndo>,
+  ) {
+    undosRef.current = next(undosRef.current);
+    setUndos(undosRef.current);
+  }
   function patchLeft(next: Record<string, boolean>) {
     leftRef.current = next;
     setLeft(next);
@@ -99,9 +108,30 @@ export function useRowState({
     }
   }
 
+  /**
+   * A change the server answered, shown on its row: the row takes the Task as written (see applyOverride) and, with
+   * `entry`, offers its Ångra. A row that had left its group for Klar idag goes back there when Ångra makes it done
+   * again. The agenda's own writes and a Task marked done in its own view (done-handoff) both come here.
+   */
+  function wrote(
+    key: string,
+    task: WorkTask,
+    due: boolean,
+    entry?: AgendaUndo,
+  ) {
+    // Read before the override takes the row out of `left`.
+    const hadLeft = Boolean(leftRef.current[key]);
+    applyOverride(key, task, due);
+    if (entry)
+      patchUndos((all) => ({
+        ...all,
+        [key]: hadLeft ? { ...entry, hadLeft: true } : entry,
+      }));
+  }
+
   /** Ends the Undo of one row: its time is up, or it was used. */
   function forget(key: string) {
-    setUndos((all) => {
+    patchUndos((all) => {
       const rest = { ...all };
       delete rest[key];
       return rest;
@@ -169,19 +199,21 @@ export function useRowState({
     current,
     latest,
     applyOverride,
+    wrote,
     forget,
     expire,
     /** The recurring cycle the row's last write recorded, if it did (see `afterWrite`). */
     cycleOf: (key: string) => overrides[key]?.cycle,
     /** The Task version the row's last write left (for an Undo queued behind it), if it wrote. */
     versionOf: (key: string) => overridesRef.current[key]?.version,
-    /** Whether the row was left or folding when it is asked (the latest value, not the last render's). */
-    hasLeftNow: (key: string) => Boolean(leftRef.current[key]),
     /** Whether a triage move marked the row (the latest value, for a queued bulk move). */
     isTriagedNow: (key: string) => Boolean(triagedRef.current[key]),
-    /** Remembers the Undo of a change on its row. */
-    setUndo: (key: string, entry: AgendaUndo) =>
-      setUndos((all) => ({ ...all, [key]: entry })),
+    /**
+     * The records of a page just read, with the rows that still offer their Ångra kept where they stood: the agenda
+     * reads only open Tasks, so a Task marked done would leave the list with its Ångra before the time to undo is up.
+     */
+    held: (before: WorkItemRecord[], read: WorkItemRecord[]) =>
+      keepHeld(before, read, (key) => undosRef.current[key] !== undefined),
     /** Sets or clears the triage mark of a row. */
     markTriaged: (key: string, value: boolean) =>
       patchTriaged((all) => ({ ...all, [key]: value })),

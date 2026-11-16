@@ -1,5 +1,6 @@
 """Work lists, the agenda, Today and the board: one filtered, sorted, keyset-paged read model."""
 
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import UTC, datetime, time, timedelta, tzinfo
 from uuid import UUID
@@ -39,6 +40,23 @@ def owner_day_bounds(instant: datetime, zone: tzinfo) -> tuple[datetime, datetim
     start = datetime.combine(day, time.min, tzinfo=zone).astimezone(UTC)
     end = datetime.combine(day + timedelta(days=1), time.min, tzinfo=zone).astimezone(UTC)
     return start, end
+
+
+def board_column_totals(counts: Mapping[tuple[str, str], int]) -> dict[str, int]:
+    """Records per board column from the selection's counts by kind and status.
+
+    A Task status column lists Tasks and Steps; a Project that shares the status (a completed
+    Project) is listed apart from them, so it is not counted there. Every other column counts
+    all its records. The four Task statuses are always present, with 0 for an empty column.
+    """
+
+    task_statuses = {status.value for status in TaskStatus}
+    totals = {status: 0 for status in task_statuses}
+    for (kind, status), count in counts.items():
+        if kind == "project" and status in task_statuses:
+            continue
+        totals[status] = totals.get(status, 0) + count
+    return totals
 
 
 class WorkListService:
@@ -340,8 +358,9 @@ class WorkListService:
         """How many records each board column holds under the board's filters, never the page.
 
         Counted over the same selection as `work_board_page` without its limit or cursor, so a
-        column's total is what paging through it would reach. The four Task statuses are always
-        present, with 0 for an empty column.
+        column's total is what paging through it would reach (see `board_column_totals` for what
+        a Task status column leaves out). The four Task statuses are always present, with 0 for
+        an empty column.
         """
 
         query.validate()
@@ -350,7 +369,7 @@ class WorkListService:
         counts = self.store.transaction(
             lambda s: self.store.work_status_counts(s, actor.user_id, spec)
         )
-        return {**{status.value: 0 for status in TaskStatus}, **counts}
+        return board_column_totals(counts)
 
     def work_board_manual_statuses(self, actor: Actor, query: WorkQuery) -> tuple[str, ...]:
         """Status columns the owner has ordered by hand, under the board's status and Project scope.

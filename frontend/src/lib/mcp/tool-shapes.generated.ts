@@ -362,6 +362,8 @@ export const getWorkAgendaResultShape: Shape = {
         properties: {
           actionable_now: { type: "boolean" },
           agenda_group: { anyOf: [{ type: "string" }, { type: "null" }] },
+          ai_plan_approved: { type: "boolean" },
+          ai_possible: { type: "boolean" },
           archived: { type: "boolean" },
           attention_requested: { type: "boolean" },
           blocked_reminder_cadence: {

@@ -45,6 +45,8 @@ export type WorkItemRecord = Pick<
       | "recurrence"
       | "last_completed_at"
       | "tags"
+      | "ai_possible"
+      | "ai_plan_approved"
     >
   > & {
     /**

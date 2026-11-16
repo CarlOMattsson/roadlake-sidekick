@@ -78,8 +78,11 @@ Returns: `CreateTasksOutput` with `count` (integer), `tasks` (array of CreatedTa
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `tasks` | array of object | yes | 1 to 20 items |
 | `tasks[].title` | string | yes | 1 to 200 characters |
+| `tasks[].description` | string | no | up to 10000 characters; may be null |
+| `tasks[].domain_id` | uuid | no | may be null |
 | `tasks[].due_at` | date-time or date | no | ISO 8601 date and time; ISO 8601 date; may be null |
 | `tasks[].priority` | string | no | default `"normal"`; one of `low`, `normal`, `high` |
+| `tasks[].project_id` | uuid | no | may be null |
 | `tasks[].steps` | array of string | no | up to 10 items |
 | `tasks[].tags` | array of string | no | up to 10 items; may be null |
 | `domain_id` | uuid | no | may be null |

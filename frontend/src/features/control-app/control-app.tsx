@@ -10,6 +10,7 @@ import { Segmented } from "../mcp-apps/ui/segmented";
 import { LicenseRow } from "../mcp-apps/license-mark";
 import { UpdateReminderRow } from "../mcp-apps/update-reminder";
 import type { RoomTarget } from "../mcp-apps/room-types";
+import { AiUsageRow } from "./ai-usage-row";
 import type { ControlLabels } from "./labels";
 import { HistoryView } from "./history-view";
 import { MemoryView } from "./memory-view";
@@ -309,7 +310,15 @@ export function ControlApp({
             />
           ) : null}
         </div>
-        {/* The instance's settings live here: the update reminder is a row of the full view. */}
+        {/* The instance's settings live here: the AI cost (only where it is switched on) and the update reminder are
+            rows of the full view. */}
+        {heading && (
+          <AiUsageRow
+            transport={transport}
+            locale={labels.locale}
+            refreshKey={refreshKey}
+          />
+        )}
         {heading && <UpdateReminderRow locale={labels.locale} now={now} />}
         {/* The license row comes last, after the update row (see docs/decisions/log.md D-083: license terms): the coin of every room leads here. */}
         {heading && <LicenseRow locale={labels.locale} />}

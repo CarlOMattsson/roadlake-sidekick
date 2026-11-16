@@ -115,9 +115,7 @@ class RecurrenceInput(Output):
         return self
 
 
-class _TaskFields(Output):
-    """A Task's fields except its description, which a list shortens (see `TaskListRecord`)."""
-
+class TaskRecord(Output):
     id: UUID
     project_id: UUID | None
     domain_id: UUID | None
@@ -149,17 +147,24 @@ class _TaskFields(Output):
     ai_possible: bool = False
     """The owner marked the Task as possible with AI; Claude can then plan it (`set_ai_plan`)."""
     tags: list[str] = Field(default_factory=list)
-
-
-class TaskRecord(_TaskFields):
     description: str | None
 
 
-class TaskListRecord(_TaskFields):
-    """A Task as list_tasks reads it: the description is only an excerpt; get_task has it all."""
+class TaskListRecord(Output):
+    """A Task as list_tasks reads it: enough to pick and act on one; get_task has the rest."""
 
-    description_excerpt: str | None
-    description_truncated: bool
+    id: UUID
+    title: str
+    status: str
+    priority: str
+    due_at: datetime | None
+    not_before: datetime | None
+    project_id: UUID | None
+    domain_id: UUID | None
+    process_id: UUID | None
+    version: int
+    ai_possible: bool
+    tags: list[str] = Field(default_factory=list)
 
 
 class ProjectDetailRecord(ProjectRecord):
@@ -244,6 +249,10 @@ class WorkItemRecord(Output):
     review_due: bool = False
     review_cadence: Cadence | None = None
     cadence: Cadence | None = None
+    ai_possible: bool = False
+    """A Task the owner marked as possible with AI; false for every other kind."""
+    ai_plan_approved: bool = False
+    """A Task whose AI plan the owner approved; false for every other kind."""
     tags: list[str] = Field(default_factory=list)
 
 
@@ -263,7 +272,8 @@ class WorkBoardOutput(Output):
     manually_ordered: list[str] = Field(default_factory=list)
     column_totals: dict[str, int] = Field(default_factory=dict)
     """Records per status column under the same filters, never just the page: a column shows
-    this number even when only some of its records are on the page. Empty columns read 0."""
+    this number even when only some of its records are on the page. Empty columns read 0. A Task
+    status column leaves out Projects, which the board lists apart from Tasks and Steps."""
 
 
 DomainAccent = Literal["slate", "blue", "teal", "green", "amber", "orange", "rose", "violet"]

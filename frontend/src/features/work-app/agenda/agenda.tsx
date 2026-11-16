@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { copyTime } from "../../mcp-apps/app-timezone";
+import { useDoneHandoff } from "../shared/done-handoff";
 import { WorkEmpty } from "../shared/work-empty";
 import { type WorkLabels } from "../shared/labels";
 import { RowMenuTip } from "../shared/row-menu";
@@ -116,6 +117,15 @@ export function AgendaView({
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
+  // A Task marked done in its own view comes back here on its row, `completed` with its Ångra, as after a tick here.
+  useDoneHandoff("agenda", ({ task, undo }) => {
+    const record = page.items.find(
+      (item) => item.kind === "task" && item.id === task.id,
+    );
+    if (!record) return;
+    const key = cardKey(record);
+    rows.wrote(key, task, false, undo && { ...undo, key });
+  });
 
   const session = useAgendaSession({
     transport,

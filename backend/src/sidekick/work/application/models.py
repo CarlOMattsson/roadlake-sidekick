@@ -212,6 +212,8 @@ class WorkRow:
     review_due: bool = False
     review_cadence: str | None = None
     cadence: str | None = None
+    ai_possible: bool = False
+    ai_plan_approved: bool = False
     tags: tuple[str, ...] = ()
 
     def to_data(self) -> dict[str, object]:

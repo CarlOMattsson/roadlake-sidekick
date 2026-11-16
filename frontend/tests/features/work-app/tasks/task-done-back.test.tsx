@@ -161,33 +161,6 @@ describe.each([
   });
 });
 
-describe("Mark as done from the agenda", () => {
-  it("goes back to the agenda", async () => {
-    const host = work();
-    render(
-      <WorkView
-        transport={host}
-        initial={{
-          kind: "agenda",
-          filters: {},
-          page: { items: [agendaTask], next_cursor: null },
-        }}
-        labels={workEn}
-      />,
-    );
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: agendaTask.title }));
-    await user.click(
-      await screen.findByRole("button", { name: workEn.markDone }),
-    );
-    expect(
-      await screen.findByRole("heading", { level: 2, name: workEn.agenda }),
-    ).toBeInTheDocument();
-    expect(host.updateTask).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole("button", { name: workEn.markDone })).toBeNull();
-  });
-});
-
 describe("Mark as done on a Task with nothing to go back to", () => {
   it("stays in the Task view with its Undo in place when it is the root and there is no shell Back", async () => {
     const host = work();

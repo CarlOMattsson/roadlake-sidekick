@@ -144,6 +144,7 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "list_recent_changes",
         "list_assistant_activity",
         "get_memory_status",
+        "get_ai_usage",
         "set_memory_settings",
         "exclude_from_memory",
     ),

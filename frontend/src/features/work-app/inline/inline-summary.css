@@ -76,6 +76,16 @@
 .sidekick-work .work-compact-row-meta > [data-tone="overdue"] {
   color: var(--sk-overdue-fg);
 }
+/* The AI mark (AiTaskMark), a pill on the meta's line as in the fullscreen rows: its border separates it, so no dot. */
+.sidekick-work .work-compact-row-meta > .sk-ai-mark {
+  min-height: 0;
+  padding-inline: calc(1.5 * var(--sk-s1));
+  font-size: 0.75rem;
+  line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
+}
+.sidekick-work .work-compact-row-meta > .sk-ai-mark::before {
+  content: none;
+}
 
 /* The hierarchy card's rows keep the agenda card's template: the name (two lines at most), the meta line always under
    it, never beside a short name. They are text, so they have no › and no button. */

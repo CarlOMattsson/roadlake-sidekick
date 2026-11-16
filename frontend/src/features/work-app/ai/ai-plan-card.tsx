@@ -3,12 +3,12 @@ import { AiStepMark } from "../../mcp-apps/ui/ai-step-mark";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { usd } from "../../mcp-apps/ui/usd";
 import type { WorkAiPlan, WorkAiPlanStep } from "../transport/transport";
 import {
   aiLabelsFor,
   approvedWhen,
   needsApproval,
-  usd,
   type AiLabels,
 } from "./ai-labels";
 import type { AiPlanState } from "./use-ai-plan";

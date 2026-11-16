@@ -40,9 +40,15 @@ from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 
 
 class BatchTaskInput(Output):
-    """One Task of the batch; `steps` are step titles, created in the order given."""
+    """One Task of the batch; `steps` are step titles, created in the order given.
+
+    A project_id or domain_id here sends the task there instead of where the call files the rest.
+    """
 
     title: Annotated[str, Field(min_length=1, max_length=200), NoImageData]
+    description: Annotated[str | None, Field(max_length=10_000), NoImageData] = None
+    project_id: UUID | None = None
+    domain_id: UUID | None = None
     due_at: DueAtInput = None
     priority: WritePriority = "normal"
     tags: Annotated[
@@ -85,11 +91,11 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         description=(
             "Use this when the user wants several new tasks at once, for example from a photo "
             "of a whiteboard or a list. Pass 1 to 20 tasks, each with a title and optional "
-            "due_at, priority, tags and up to 10 ordered step titles. Pass project_id or "
-            "domain_id to file all of them there. The whole call fails if any item is invalid, "
-            "so nothing is created. due_at is an ISO datetime with an offset, or a bare date "
-            "(YYYY-MM-DD) meaning 23:59 in the owner's zone. An idempotency_key is required; "
-            "repeating the call with the same key is safe."
+            "description, due_at, priority, tags and up to 10 ordered step titles. project_id "
+            "or domain_id on the call files all tasks there; a task's own one files it "
+            "elsewhere. One invalid item fails the whole call. due_at is an ISO datetime with "
+            "an offset, or a bare date meaning 23:59 in the owner's zone. An idempotency_key "
+            "is required; retrying with the same key is safe."
         ),
         output_schema=output_schema(CreateTasksOutput),
         annotations=WRITE,
@@ -112,6 +118,9 @@ def register_batch_task_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             [
                 NewTaskItem(
                     title=item.title,
+                    description=item.description,
+                    project_id=item.project_id,
+                    domain_id=item.domain_id,
                     due_at=end_of_day_due_at(item.due_at, zone),
                     priority=Priority(item.priority),
                     tags=tuple(item.tags or ()),

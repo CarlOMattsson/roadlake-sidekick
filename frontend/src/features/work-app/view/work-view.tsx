@@ -29,7 +29,11 @@ import { ProcessFrame } from "../hierarchy/process-frame";
 import { ProjectFrame } from "../hierarchy/project-frame";
 import { TaskFrame } from "../tasks/task-frame";
 import { useFrameStack } from "./parts/use-frame-stack";
-import { handOffDone, type DoneHandoff } from "../shared/done-handoff";
+import {
+  handOffDone,
+  takesDone,
+  type DoneHandoff,
+} from "../shared/done-handoff";
 import type { WorkViewProps } from "./parts/work-view-props";
 import "../shell/work.css";
 import "../tasks/task-detail.css";
@@ -130,24 +134,17 @@ export function WorkView({
       ? { label: parentLabel(stack.at(-2), t), onBack: back }
       : undefined;
   const ownBackRow = detailView;
-  // A Task opened from a list (Agenda, Status, Projekt) goes back to it when marked done, as its Back does: one step on
-  // this view's stack, else the shell's layer below. A board there shows the Task where it went, with the Ångra
-  // (handOffDone). Opened any other way (a record page, the card's own Task), it stays, with its Ångra in place.
+  // A Task opened from the Agenda or Status goes back to it when marked done, as its Back does: one step on this view's
+  // stack, else the shell's layer below. The list there shows the Task on its row with the Ångra (handOffDone). Opened
+  // any other way (a record page, the card's own Task), it stays, with its Ångra in place.
   const below = stack.length > 1 ? stack.at(-2)?.kind : openedFrom;
-  const fromList =
-    below === "board" || below === "agenda" || below === "hierarchy";
-  const leaveDone = !fromList
-    ? undefined
-    : stack.length > 1
-      ? back
-      : stack.length === 1
-        ? onLeave
-        : undefined;
-  const fromBoard = below === "board";
+  const list = takesDone(below) ? below : undefined;
+  const leaveDone = list && (stack.length > 1 ? back : onLeave);
   const taskDone =
+    list &&
     leaveDone &&
     ((done: DoneHandoff) => {
-      if (fromBoard) handOffDone(done);
+      handOffDone(list, done);
       leaveDone();
     });
   const showAppName =

@@ -1,6 +1,7 @@
 """AI Step runs: one row per attempt, read and written owner-filtered."""
 
 from collections import defaultdict
+from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
@@ -197,26 +198,40 @@ class AiRunStore:
 
     @staticmethod
     def run_histories(
-        session: Session, owner_id: UUID, step_ids: tuple[UUID, ...]
+        session: Session,
+        owner_id: UUID,
+        step_ids: tuple[UUID, ...],
+        since: datetime | None = None,
     ) -> dict[UUID, RunHistory]:
-        """How many attempts each step has had and how the latest one stands."""
+        """How many attempts each step has had since `since` (all of them without it), and how
+        the latest one stands; plus the highest attempt number each step has ever had."""
 
         if not step_ids:
             return {}
-        rows = session.scalars(
-            select(AiStepRunRow)
-            .where(
-                AiStepRunRow.owner_id == owner_id,
-                AiStepRunRow.step_id == any_(bindparam("step_ids", list(step_ids), _UUID_ARRAY)),
-            )
-            .order_by(AiStepRunRow.step_id, AiStepRunRow.attempt)
+        step_filter = AiStepRunRow.step_id == any_(
+            bindparam("step_ids", list(step_ids), _UUID_ARRAY)
         )
+        last_attempts = {
+            step_id: last
+            for step_id, last in session.execute(
+                select(AiStepRunRow.step_id, func.max(AiStepRunRow.attempt))
+                .where(AiStepRunRow.owner_id == owner_id, step_filter)
+                .group_by(AiStepRunRow.step_id)
+            )
+        }
+        statement = select(AiStepRunRow).where(AiStepRunRow.owner_id == owner_id, step_filter)
+        if since is not None:
+            statement = statement.where(AiStepRunRow.created_at > since)
         grouped: dict[UUID, list[AiStepRun]] = defaultdict(list)
-        for row in rows:
+        for row in session.scalars(statement.order_by(AiStepRunRow.step_id, AiStepRunRow.attempt)):
             grouped[row.step_id].append(run_from_row(row))
         return {
-            step_id: RunHistory(attempts=len(runs), latest=runs[-1])
-            for step_id, runs in grouped.items()
+            step_id: RunHistory(
+                attempts=len(grouped[step_id]),
+                latest=grouped[step_id][-1] if grouped[step_id] else None,
+                last_attempt=last_attempt,
+            )
+            for step_id, last_attempt in last_attempts.items()
         }
 
     @staticmethod
@@ -252,6 +267,26 @@ class AiRunStore:
                     AiStepRunRow.owner_id == owner_id,
                     AiStepRunRow.runner == runner.value,
                     AiStepRunRow.created_at >= since,
+                )
+            )
+            or 0
+        )
+
+    @staticmethod
+    def sum_ai_cost_since(
+        session: Session,
+        owner_id: UUID,
+        since: datetime,
+        sources: Collection[CostSource],
+    ) -> int:
+        """Millionths of a dollar the runs created from `since` on cost, for these cost sources."""
+
+        return (
+            session.scalar(
+                select(func.coalesce(func.sum(AiStepRunRow.cost_microusd), 0)).where(
+                    AiStepRunRow.owner_id == owner_id,
+                    AiStepRunRow.created_at >= since,
+                    AiStepRunRow.cost_source.in_([source.value for source in sources]),
                 )
             )
             or 0

@@ -94,7 +94,7 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
         "unlink_external_reference_from_task",
     ),
     # AI steps (ADR-011). `ai:run` is opt-in; the plan and the review need `tasks:write`.
-    **_tools(ToolScopes(("tasks:read",)), "get_ai_plan", "get_ai_step_run"),
+    **_tools(ToolScopes(("tasks:read",)), "get_ai_plan", "get_ai_step_run", "get_ai_usage"),
     **_tools(
         ToolScopes(("tasks:write",)), "set_ai_plan", "approve_ai_plan", "review_ai_step_result"
     ),

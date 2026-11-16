@@ -21,6 +21,7 @@ from sidekick.work.application.ai_store import (
     AiPlanView,
     AiStepEntry,
     AiStepPage,
+    AiUsageSummary,
     StartedAiStep,
 )
 from sidekick.work.domain.ai_runs import AiStepRun
@@ -126,6 +127,21 @@ class AiStepEntryRecord(Output):
 class AiStepPageOutput(Output):
     items: list[AiStepEntryRecord]
     next_cursor: str | None = None
+
+
+class AiUsageOutput(Output):
+    """This calendar month's AI cost against the monthly cap, and today's Claude Code starts.
+
+    `spent_usd` is what counts toward the cap. `client_estimate_usd` is what Claude Code
+    estimated for runs that are not billed per call; it is shown for information and never counts.
+    """
+
+    month_starts_at: datetime
+    spent_usd: float
+    client_estimate_usd: float
+    monthly_cap_usd: float
+    starts_today: int
+    daily_starts_cap: int
 
 
 class StartedAiStepOutput(Output):
@@ -238,6 +254,17 @@ def _entry_record(entry: AiStepEntry) -> AiStepEntryRecord:
 def step_page_output(page: AiStepPage) -> AiStepPageOutput:
     return AiStepPageOutput(
         items=[_entry_record(entry) for entry in page.items], next_cursor=page.next_cursor
+    )
+
+
+def usage_output(usage: AiUsageSummary) -> AiUsageOutput:
+    return AiUsageOutput(
+        month_starts_at=usage.month_starts_at,
+        spent_usd=_usd(usage.spent_microusd),
+        client_estimate_usd=_usd(usage.client_estimate_microusd),
+        monthly_cap_usd=_usd(usage.monthly_cap_microusd),
+        starts_today=usage.starts_today,
+        daily_starts_cap=usage.starts_per_day_cap,
     )
 
 

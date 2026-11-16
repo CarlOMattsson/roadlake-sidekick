@@ -63,6 +63,7 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "create_domain": "creates the caller's own Domain from text fields",
     "create_saved_work_view": "creates the caller's own view; the definition holds filters, no ids",
     "create_shopping_list": "creates the caller's own list from a name",
+    "get_ai_usage": "sums the caller's own runs for this month and today, no input",
     "get_daily_journal_summary": "addressed by a date inside the caller's own journal",
     "get_journal_day": "addressed by a date inside the caller's own journal",
     "get_memory_status": "reads the caller's own memory settings and counts",

@@ -169,6 +169,34 @@ def _require_keepable_ambitions(
             ) from error
 
 
+def _own_fields(item: NewTaskItem) -> dict[str, str]:
+    """The fields an item sets itself, as strings. Absent when unset, so the idempotency payload of
+    a batch that sets none is unchanged and a retry of an older key still matches."""
+
+    own: dict[str, str] = {}
+    if item.description is not None:
+        own["description"] = item.description
+    if item.project_id is not None:
+        own["project_id"] = str(item.project_id)
+    if item.domain_id is not None:
+        own["domain_id"] = str(item.domain_id)
+    return own
+
+
+def _placement(
+    item: NewTaskItem, project_id: UUID | None, domain_id: UUID | None
+) -> tuple[UUID | None, UUID | None]:
+    """The (project, domain) an item goes to: its own, or the batch's when it names none.
+
+    A Task has at most one of project, process and domain, so an item's own placement replaces the
+    batch's whole, not field by field.
+    """
+
+    if item.project_id or item.domain_id:
+        return item.project_id, item.domain_id
+    return project_id, domain_id
+
+
 class TaskBulkService:
     def __init__(self, tasks: TaskService) -> None:
         self.tasks = tasks
@@ -368,7 +396,9 @@ class TaskBulkService:
 
         Each Task goes through `create_in_session`, the same path as `create`, and its Steps are
         saved in the same session. A failing item raises before the transaction commits, so no Task
-        or Step of the batch is kept. The idempotency key covers the whole batch.
+        or Step of the batch is kept. The idempotency key covers the whole batch. `project_id` and
+        `domain_id` are the batch's defaults; an item that names its own project or domain goes
+        there instead, and each one is checked as the owner's when the item is created.
         """
         actor.require("tasks:write")
         if not items:
@@ -387,17 +417,14 @@ class TaskBulkService:
                     "priority": item.priority.value,
                     "tags": list(item.tags),
                     "step_titles": list(item.step_titles),
+                    **_own_fields(item),
                 }
                 for item in items
             ],
         }
 
         def operation(session: TxSession) -> TaskBatch:
-            label: str | None = None
-            if project_id:
-                label = self.store.get_project(session, actor.user_id, project_id).title
-            elif domain_id:
-                label = self.store.get_domain(session, actor.user_id, domain_id).name
+            label = self._container_label(session, actor, items, project_id, domain_id)
             result = cast(
                 _BatchReplay,
                 self.store.idempotent(
@@ -437,6 +464,25 @@ class TaskBulkService:
             )
 
         return self.store.transaction(operation)
+
+    def _container_label(
+        self,
+        session: TxSession,
+        actor: Actor,
+        items: Sequence[NewTaskItem],
+        project_id: UUID | None,
+        domain_id: UUID | None,
+    ) -> str | None:
+        """The title of the one Project, else the name of the one Domain, every Task goes to."""
+
+        placed = [_placement(item, project_id, domain_id) for item in items]
+        projects = {project for project, _ in placed}
+        domains = {domain for _, domain in placed}
+        if len(projects) == 1 and (only_project := next(iter(projects))):
+            return self.store.get_project(session, actor.user_id, only_project).title
+        if len(domains) == 1 and (only_domain := next(iter(domains))):
+            return self.store.get_domain(session, actor.user_id, only_domain).name
+        return None
 
     def _replayed_steps(
         self,
@@ -480,15 +526,16 @@ class TaskBulkService:
         domain_id: UUID | None,
         correlation_id: str | None,
     ) -> _CreatedEntry:
+        placed_project, placed_domain = _placement(item, project_id, domain_id)
         task = self.tasks.create_in_session(
             session,
             actor,
             {
                 "title": item.title,
-                "project_id": str(project_id) if project_id else None,
-                "domain_id": str(domain_id) if domain_id else None,
+                "project_id": str(placed_project) if placed_project else None,
+                "domain_id": str(placed_domain) if placed_domain else None,
                 "process_id": None,
-                "description": None,
+                "description": item.description,
                 "priority": item.priority.value,
                 "due_at": item.due_at,
                 "not_before": None,

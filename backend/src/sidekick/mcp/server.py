@@ -138,6 +138,7 @@ def _register_app_resources(
         update,
         license_view,
         owner_timezone=container.settings.owner_timezone,
+        show_ai_usage=container.settings.mcp_app_show_ai_usage,
     )
 
 

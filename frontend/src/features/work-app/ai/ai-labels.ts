@@ -20,6 +20,8 @@ export const aiLabelsSv = {
   possible: "Möjlig med AI",
   /** The short mark on a Task's row. */
   mark: "AI",
+  /** The row's mark read aloud once the Task's AI plan is approved. */
+  planApproved: "AI-plan godkänd",
   heading: "AI-plan",
   loading: "Läser AI-planen …",
   none: "Ingen plan än.",
@@ -114,6 +116,7 @@ const FORMAT_EN: Record<OutputFormat, string> = {
 export const aiLabelsEn: AiLabels = {
   possible: "Possible with AI",
   mark: "AI",
+  planApproved: "AI plan approved",
   heading: "AI plan",
   loading: "Reading the AI plan …",
   none: "No plan yet.",
@@ -189,14 +192,6 @@ export const aiLabelsEn: AiLabels = {
 /** The words for a work locale: Swedish for "sv-SE", English otherwise. */
 export function aiLabelsFor(dateLocale: string): AiLabels {
   return dateLocale.toLowerCase().startsWith("sv") ? aiLabelsSv : aiLabelsEn;
-}
-
-/** An amount in US dollars with two decimals in the locale's digits: "0,50 USD" / "0.50 USD". */
-export function usd(amount: number, dateLocale: string): string {
-  return `${amount.toLocaleString(dateLocale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} USD`;
 }
 
 /** When the plan was approved: the time today, else the day and the time ("3 nov. 14:02"). */

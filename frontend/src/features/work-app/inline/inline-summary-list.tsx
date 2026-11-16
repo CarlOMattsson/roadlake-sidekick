@@ -11,6 +11,12 @@ import type { WorkItemRecord } from "../transport/transport";
 import { OpenChevron } from "../tasks/task-detail-controls";
 import { rowDue, rowStatus } from "../shared/record-meta";
 import {
+  AiTaskMark,
+  aiMarkLabel,
+  aiMarkOf,
+  type AiMarkState,
+} from "../ai/ai-task-mark";
+import {
   InlineRefreshButton,
   RefreshFailure,
   type ListRefresh,
@@ -244,8 +250,15 @@ export function ListSummary({
   );
 }
 
-/** One part of an inline row's meta line, in its tone ("overdue" is red). */
-export type InlineMetaPart = { text: string; tone?: DueTone };
+/**
+ * One part of an inline row's meta line, in its tone ("overdue" is red). A part with `ai` is the Task's AI mark (the
+ * pill), and its `text` is what the mark says to a screen reader.
+ */
+export type InlineMetaPart = {
+  text: string;
+  tone?: DueTone;
+  ai?: { state: AiMarkState; locale: string };
+};
 
 /**
  * The row of every inline list card (the agenda and the board, designsystem §3 inline card): a button
@@ -280,7 +293,11 @@ export function InlineRow({
               <Fragment key={index}>
                 {/* A space between the title and the meta, and between the parts, so the visible words run on in the button's name (WCAG 2.5.3). */}
                 {index > 0 ? " " : null}
-                <span data-tone={part.tone}>{part.text}</span>
+                {part.ai ? (
+                  <AiTaskMark locale={part.ai.locale} state={part.ai.state} />
+                ) : (
+                  <span data-tone={part.tone}>{part.text}</span>
+                )}
               </Fragment>
             ))}
           </span>
@@ -292,7 +309,8 @@ export function InlineRow({
 
 /**
  * An inline row's meta: the time and the status on one line, how late it is, then the status, from the builder of
- * the fullscreen rows (`rowStatus`, `rowDue`), so the agenda and the board say the same of the same Task. No Project: the card is short.
+ * the fullscreen rows (`rowStatus`, `rowDue`), so the agenda and the board say the same of the same Task, and last the
+ * AI mark (aiMarkOf), as the fullscreen rows show it. No Project: the card is short.
  * Under a group that says the day (`group` "today", the agenda card's `today`), the row does not say it again.
  */
 export function inlineMeta(
@@ -303,9 +321,13 @@ export function inlineMeta(
   group?: string,
 ): InlineMetaPart[] {
   const due = rowDue(item, now, locale, group);
+  const ai = aiMarkOf(item);
   return [
     { text: due?.text ?? "", tone: due?.tone },
     { text: rowStatus(item, word) ?? "" },
+    ...(ai
+      ? [{ text: aiMarkLabel(ai, locale), ai: { state: ai, locale } }]
+      : []),
   ];
 }
 

@@ -107,6 +107,14 @@ export type ToolResults = {
   };
   get_ai_plan: AiPlanOutput;
   get_ai_step_run: AiRunOutput;
+  get_ai_usage: {
+    client_estimate_usd: number;
+    daily_starts_cap: number;
+    month_starts_at: string;
+    monthly_cap_usd: number;
+    spent_usd: number;
+    starts_today: number;
+  };
   get_contact_context: {
     contact: ContactRecord;
     journal_entries: {
@@ -667,42 +675,17 @@ export type ToolResults = {
     next_cursor: string | null;
     tasks: Array<{
       ai_possible: boolean;
-      archived_at: string | null;
-      attention_requested: boolean;
-      blocked_last_reminded_at: string | null;
-      blocked_reminder_cadence:
-        | "daily"
-        | "weekly"
-        | "biweekly"
-        | "monthly"
-        | "quarterly"
-        | "yearly"
-        | null;
-      blocked_reminder_snoozed_until: string | null;
-      completed_at: string | null;
-      created_at: string;
-      derived_domain_id: string | null;
-      description_excerpt: string | null;
-      description_truncated: boolean;
       domain_id: string | null;
       due_at: string | null;
-      estimated_minutes: number | null;
-      follow_up_at: string | null;
       id: string;
-      last_completed_at: string | null;
-      last_reviewed_at: string | null;
       not_before: string | null;
       priority: string;
       process_id: string | null;
       project_id: string | null;
-      recurrence: RecurrenceRecord | null;
       status: string;
       tags: Array<string>;
       title: string;
-      updated_at: string;
       version: number;
-      waiting_on_contact_id: string | null;
-      waiting_since: string | null;
     }>;
   };
   list_trash: {
@@ -1105,8 +1088,11 @@ export type ToolInputs = {
     idempotency_key: string;
     project_id?: string | null;
     tasks: Array<{
+      description?: string | null;
+      domain_id?: string | null;
       due_at?: string | null;
       priority?: "low" | "normal" | "high";
+      project_id?: string | null;
       steps?: Array<string>;
       tags?: Array<string> | null;
       title: string;
@@ -1174,6 +1160,7 @@ export type ToolInputs = {
     include_content?: boolean;
     run_id: string;
   };
+  get_ai_usage: Record<string, unknown>;
   get_contact_context: {
     contact_id: string;
     include_completed?: boolean;
@@ -2518,6 +2505,8 @@ export type TrashItemRecord = {
 export type WorkItemRecord = {
   actionable_now: boolean;
   agenda_group: "overdue" | "today" | "upcoming" | "scheduled_later" | null;
+  ai_plan_approved: boolean;
+  ai_possible: boolean;
   archived: boolean;
   attention_requested: boolean;
   blocked_reminder_cadence:

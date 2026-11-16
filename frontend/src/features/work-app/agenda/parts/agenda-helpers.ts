@@ -138,6 +138,31 @@ export function currentWith(
 }
 
 /**
+ * The records of a page just `read`, with each record of the page `before` that `holds` keeps and the read left out
+ * put back after the record it followed there (or first), so its row stands where it stood.
+ */
+export function keepHeld(
+  before: WorkItemRecord[],
+  read: WorkItemRecord[],
+  holds: (key: string) => boolean,
+): WorkItemRecord[] {
+  const readKeys = new Set(read.map(cardKey));
+  const kept = before.filter(
+    (item) => holds(cardKey(item)) && !readKeys.has(cardKey(item)),
+  );
+  if (!kept.length) return read;
+  const merged = [...read];
+  for (const item of kept) {
+    const earlier = before.slice(0, before.indexOf(item)).reverse();
+    const after = earlier
+      .map((record) => merged.findIndex((m) => cardKey(m) === cardKey(record)))
+      .find((index) => index >= 0);
+    merged.splice(after === undefined ? 0 : after + 1, 0, item);
+  }
+  return merged;
+}
+
+/**
  * A group heading stays at the top while its records scroll under it. The top sits under the host's
  * overlaid navigation (--sk-sticky-top, see the design tokens), so a heading does not slide under it.
  */

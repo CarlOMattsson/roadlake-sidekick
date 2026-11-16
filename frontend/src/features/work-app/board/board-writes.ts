@@ -72,7 +72,7 @@ export type BoardWriteDeps = {
  * The Ångra of a Task's status change, written against the version the answer left (`task`): the status it had
  * (`from`), and for a recurring Task marked done (the server opened it again for its next date, see isRecurringCycle)
  * the due date and last completion it had (`before`), with the line that says so. A move on the board and a Task
- * marked done in its own view (handed to the board, see done-handoff) offer the same Ångra.
+ * marked done in its own view (handed to the list it goes back to, see done-handoff) offer the same Ångra.
  */
 export function statusUndo(
   t: WorkLabels,
@@ -88,9 +88,9 @@ export function statusUndo(
     from,
     to: task.status,
     version: task.version,
+    ...(completing ? { completed: true } : {}),
     ...(cycle
       ? {
-          completed: true,
           lastCompleted: { from: before.lastCompleted },
           due: {
             from: before.due,

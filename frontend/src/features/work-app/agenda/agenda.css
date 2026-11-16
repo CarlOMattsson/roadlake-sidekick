@@ -271,7 +271,7 @@
     .sidekick-work .work-board[data-layout="single"] .work-list > li.work-card
   )
   > .work-card-meta
-  > .sk-tags::before {
+  > :is(.sk-tags, .sk-ai-mark)::before {
   content: none;
 }
 :is(
@@ -280,8 +280,15 @@
   )
   > .work-card-meta
   > *
-  + .sk-tags {
+  + :is(.sk-tags, .sk-ai-mark) {
   margin-block-end: calc(-1 * var(--sk-type-meta-line));
+}
+/* The AI mark (AiTaskMark) is a pill as a tag is, drawn to the meta's line, so a marked row is as tall as any other. */
+:is(.sidekick-work .work-card-meta) > .sk-ai-mark {
+  min-height: 0;
+  padding-inline: calc(1.5 * var(--sk-s1));
+  font-size: 0.75rem;
+  line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
 }
 :is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag {
   display: inline-block;

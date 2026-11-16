@@ -164,7 +164,7 @@ export function BoardView({
   }, [moves]);
   // A Task marked done in its own view comes back here: in its new place at once, with its Ångra where it was
   // (the single layout keeps the card in its section while the Ångra lasts, as after a move on the board).
-  useDoneHandoff(({ task, undo }) => {
+  useDoneHandoff("board", ({ task, undo }) => {
     const offered = undo && isTaskStatus(undo.from) ? undo.from : undefined;
     if (undo && offered) {
       const index = sections

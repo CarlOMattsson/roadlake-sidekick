@@ -15090,7 +15090,7 @@
       "readOnlyHint": false,
       "title": "Skapa flera uppgifter"
     },
-    "description": "Use this when the user wants several new tasks at once, for example from a photo of a whiteboard or a list. Pass 1 to 20 tasks, each with a title and optional due_at, priority, tags and up to 10 ordered step titles. Pass project_id or domain_id to file all of them there. The whole call fails if any item is invalid, so nothing is created. due_at is an ISO datetime with an offset, or a bare date (YYYY-MM-DD) meaning 23:59 in the owner's zone. An idempotency_key is required; repeating the call with the same key is safe.",
+    "description": "Use this when the user wants several new tasks at once, for example from a photo of a whiteboard or a list. Pass 1 to 20 tasks, each with a title and optional description, due_at, priority, tags and up to 10 ordered step titles. project_id or domain_id on the call files all tasks there; a task's own one files it elsewhere. One invalid item fails the whole call. due_at is an ISO datetime with an offset, or a bare date meaning 23:59 in the owner's zone. An idempotency_key is required; retrying with the same key is safe.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -15126,8 +15126,32 @@
         "tasks": {
           "items": {
             "additionalProperties": false,
-            "description": "One Task of the batch; `steps` are step titles, created in the order given.",
+            "description": "One Task of the batch; `steps` are step titles, created in the order given.\n\nA project_id or domain_id here sends the task there instead of where the call files the rest.",
             "properties": {
+              "description": {
+                "anyOf": [
+                  {
+                    "maxLength": 10000,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "domain_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
               "due_at": {
                 "anyOf": [
                   {
@@ -15152,6 +15176,18 @@
                   "high"
                 ],
                 "type": "string"
+              },
+              "project_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
               },
               "steps": {
                 "items": {
@@ -20636,7 +20672,7 @@
       "readOnlyHint": true,
       "title": "Lista uppgifter"
     },
-    "description": "Use this for a bounded, paged list of tasks, optionally filtered by project_id, process_id or status. ambitions=true lists the user's ambitions instead (kept in view, never dated or reminded). For what is due or overdue, use get_work_agenda; for status columns, get_work_board; for the tree with steps, get_work_hierarchy. Rows have description_excerpt (about 160 characters) and description_truncated; when true, call get_task for the full text.",
+    "description": "Use this for a bounded, paged list of tasks, optionally filtered by project_id, process_id or status. ambitions=true lists the user's ambitions instead (kept in view, never dated or reminded). For what is due or overdue, use get_work_agenda; for status columns, get_work_board; for the tree with steps, get_work_hierarchy. Rows are compact (id, title, status, priority, due_at, not_before, project_id, domain_id, process_id, tags, ai_possible, version); call get_task for the description and the rest.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -20729,120 +20765,10 @@
         "tasks": {
           "items": {
             "additionalProperties": false,
-            "description": "A Task as list_tasks reads it: the description is only an excerpt; get_task has it all.",
+            "description": "A Task as list_tasks reads it: enough to pick and act on one; get_task has the rest.",
             "properties": {
               "ai_possible": {
-                "default": false,
                 "title": "Ai Possible",
-                "type": "boolean"
-              },
-              "archived_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Archived At"
-              },
-              "attention_requested": {
-                "default": false,
-                "title": "Attention Requested",
-                "type": "boolean"
-              },
-              "blocked_last_reminded_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Blocked Last Reminded At"
-              },
-              "blocked_reminder_cadence": {
-                "anyOf": [
-                  {
-                    "description": "Declared rhythm, shared by Domain review, Process run, and Task blocked-reminder cadence.",
-                    "enum": [
-                      "daily",
-                      "weekly",
-                      "biweekly",
-                      "monthly",
-                      "quarterly",
-                      "yearly"
-                    ],
-                    "title": "Cadence",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null
-              },
-              "blocked_reminder_snoozed_until": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Blocked Reminder Snoozed Until"
-              },
-              "completed_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Completed At"
-              },
-              "created_at": {
-                "format": "date-time",
-                "title": "Created At",
-                "type": "string"
-              },
-              "derived_domain_id": {
-                "anyOf": [
-                  {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Derived Domain Id"
-              },
-              "description_excerpt": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Description Excerpt"
-              },
-              "description_truncated": {
-                "title": "Description Truncated",
                 "type": "boolean"
               },
               "domain_id": {
@@ -20869,61 +20795,10 @@
                 ],
                 "title": "Due At"
               },
-              "estimated_minutes": {
-                "anyOf": [
-                  {
-                    "type": "integer"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Estimated Minutes"
-              },
-              "follow_up_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Follow Up At"
-              },
               "id": {
                 "format": "uuid",
                 "title": "Id",
                 "type": "string"
-              },
-              "last_completed_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Last Completed At"
-              },
-              "last_reviewed_at": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Last Reviewed At"
               },
               "not_before": {
                 "anyOf": [
@@ -20935,7 +20810,6 @@
                     "type": "null"
                   }
                 ],
-                "default": null,
                 "title": "Not Before"
               },
               "priority": {
@@ -20966,72 +20840,6 @@
                 ],
                 "title": "Project Id"
               },
-              "recurrence": {
-                "anyOf": [
-                  {
-                    "additionalProperties": false,
-                    "description": "The stored recurrence rule, as `RecurrenceRule.to_data()` serialises it.",
-                    "properties": {
-                      "day_of_month": {
-                        "anyOf": [
-                          {
-                            "type": "integer"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ],
-                        "default": null,
-                        "title": "Day Of Month"
-                      },
-                      "frequency": {
-                        "enum": [
-                          "daily",
-                          "weekly",
-                          "monthly",
-                          "yearly"
-                        ],
-                        "title": "Frequency",
-                        "type": "string"
-                      },
-                      "interval": {
-                        "default": 1,
-                        "title": "Interval",
-                        "type": "integer"
-                      },
-                      "until": {
-                        "anyOf": [
-                          {
-                            "format": "date",
-                            "type": "string"
-                          },
-                          {
-                            "type": "null"
-                          }
-                        ],
-                        "default": null,
-                        "title": "Until"
-                      },
-                      "weekdays": {
-                        "items": {
-                          "type": "integer"
-                        },
-                        "title": "Weekdays",
-                        "type": "array"
-                      }
-                    },
-                    "required": [
-                      "frequency"
-                    ],
-                    "title": "RecurrenceRecord",
-                    "type": "object"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null
-              },
               "status": {
                 "title": "Status",
                 "type": "string"
@@ -21047,58 +20855,23 @@
                 "title": "Title",
                 "type": "string"
               },
-              "updated_at": {
-                "format": "date-time",
-                "title": "Updated At",
-                "type": "string"
-              },
               "version": {
                 "title": "Version",
                 "type": "integer"
-              },
-              "waiting_on_contact_id": {
-                "anyOf": [
-                  {
-                    "format": "uuid",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Waiting On Contact Id"
-              },
-              "waiting_since": {
-                "anyOf": [
-                  {
-                    "format": "date-time",
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "default": null,
-                "title": "Waiting Since"
               }
             },
             "required": [
               "id",
-              "project_id",
-              "domain_id",
-              "process_id",
-              "derived_domain_id",
               "title",
               "status",
               "priority",
               "due_at",
-              "completed_at",
-              "created_at",
-              "updated_at",
+              "not_before",
+              "project_id",
+              "domain_id",
+              "process_id",
               "version",
-              "description_excerpt",
-              "description_truncated"
+              "ai_possible"
             ],
             "title": "TaskListRecord",
             "type": "object"
@@ -21318,6 +21091,16 @@
                   ],
                   "default": null,
                   "title": "Agenda Group"
+                },
+                "ai_plan_approved": {
+                  "default": false,
+                  "title": "Ai Plan Approved",
+                  "type": "boolean"
+                },
+                "ai_possible": {
+                  "default": false,
+                  "title": "Ai Possible",
+                  "type": "boolean"
                 },
                 "archived": {
                   "default": false,
@@ -22034,6 +21817,16 @@
                 ],
                 "default": null,
                 "title": "Agenda Group"
+              },
+              "ai_plan_approved": {
+                "default": false,
+                "title": "Ai Plan Approved",
+                "type": "boolean"
+              },
+              "ai_possible": {
+                "default": false,
+                "title": "Ai Possible",
+                "type": "boolean"
               },
               "archived": {
                 "default": false,
@@ -30790,5 +30583,70 @@
       "type": "object"
     },
     "title": "Visa AI-k\u00f6rning"
+  },
+  {
+    "_meta": {
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Visa AI-anv\u00e4ndning"
+    },
+    "description": "App-only. What AI runs cost so far this calendar month against the monthly cap, and how many Claude Code starts today used of the daily cap.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "get_ai_usage",
+    "outputSchema": {
+      "additionalProperties": false,
+      "description": "This calendar month's AI cost against the monthly cap, and today's Claude Code starts.\n\n`spent_usd` is what counts toward the cap. `client_estimate_usd` is what Claude Code\nestimated for runs that are not billed per call; it is shown for information and never counts.",
+      "properties": {
+        "client_estimate_usd": {
+          "title": "Client Estimate Usd",
+          "type": "number"
+        },
+        "daily_starts_cap": {
+          "title": "Daily Starts Cap",
+          "type": "integer"
+        },
+        "month_starts_at": {
+          "format": "date-time",
+          "title": "Month Starts At",
+          "type": "string"
+        },
+        "monthly_cap_usd": {
+          "title": "Monthly Cap Usd",
+          "type": "number"
+        },
+        "spent_usd": {
+          "title": "Spent Usd",
+          "type": "number"
+        },
+        "starts_today": {
+          "title": "Starts Today",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "month_starts_at",
+        "spent_usd",
+        "client_estimate_usd",
+        "monthly_cap_usd",
+        "starts_today",
+        "daily_starts_cap"
+      ],
+      "title": "AiUsageOutput",
+      "type": "object"
+    },
+    "title": "Visa AI-anv\u00e4ndning"
   }
 ]

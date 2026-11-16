@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict
-from datetime import tzinfo
+from datetime import datetime, tzinfo
 from typing import Literal
 from uuid import UUID
 
@@ -30,8 +30,10 @@ from sidekick.work.application.ai_store import (
     AiStepEntry,
     AiStepPage,
     AiStepsStore,
+    AiUsageSummary,
     StartedAiStep,
     day_start,
+    month_start,
 )
 from sidekick.work.domain import Step
 from sidekick.work.domain.ai_plan import (
@@ -47,6 +49,7 @@ from sidekick.work.domain.ai_runs import (
     AiRunState,
     AiStepRun,
     AiUsage,
+    CostSource,
     FailureCategory,
     RunnerKind,
 )
@@ -168,6 +171,29 @@ class AiRunService:
         actor.require("tasks:read")
         return self.store.transaction(lambda s: self.store.get_ai_run(s, actor.user_id, run_id))
 
+    def usage(self, actor: Actor) -> AiUsageSummary:
+        """This month's AI cost against the monthly cap, and today's Claude Code starts."""
+
+        actor.require("tasks:read")
+
+        def read(session: TxSession) -> AiUsageSummary:
+            now = self.clock.now()
+            since = month_start(now, self.owner_timezone)
+            caps = self.limits.money_caps()
+            counted = [source for source in CostSource if caps.counts(source)]
+            return AiUsageSummary(
+                month_starts_at=since,
+                spent_microusd=self.store.sum_ai_cost_since(session, actor.user_id, since, counted),
+                client_estimate_microusd=self.store.sum_ai_cost_since(
+                    session, actor.user_id, since, [CostSource.CLIENT_ESTIMATE]
+                ),
+                monthly_cap_microusd=self.limits.monthly_cap_microusd,
+                starts_today=self._starts_today(session, actor.user_id, now),
+                starts_per_day_cap=self.limits.claude_code_starts_per_day,
+            )
+
+        return self.store.transaction(read)
+
     # Start
 
     def start_step(
@@ -218,11 +244,7 @@ class AiRunService:
         latest = item.history.latest
         if latest is not None and latest.is_stale(now):
             self.store.save_ai_run(session, latest.cancel(now=now), expected_version=latest.version)
-        since = day_start(now, self.owner_timezone)
-        started_today = self.store.count_ai_runs_since(
-            session, owner_id, RunnerKind.CLAUDE_CODE, since
-        )
-        if started_today >= self.limits.claude_code_starts_per_day:
+        if self._starts_today(session, owner_id, now) >= self.limits.claude_code_starts_per_day:
             raise ConflictError(
                 "the daily limit of AI starts is reached", reason="ai_limit_reached"
             )
@@ -231,7 +253,7 @@ class AiRunService:
             owner_id=owner_id,
             task_id=task.id,
             step_id=step_id,
-            attempt=item.history.attempts + 1,
+            attempt=item.history.last_attempt + 1,
             runner=RunnerKind.CLAUDE_CODE,
             plan_digest=view.digest,
             now=now,
@@ -239,6 +261,10 @@ class AiRunService:
         self.store.save_ai_run(session, run)
         self._record(session, actor, run, "ai.run_started", correlation_id)
         return run
+
+    def _starts_today(self, session: TxSession, owner_id: UUID, now: datetime) -> int:
+        since = day_start(now, self.owner_timezone)
+        return self.store.count_ai_runs_since(session, owner_id, RunnerKind.CLAUDE_CODE, since)
 
     def _started(self, session: TxSession, actor: Actor, run: AiStepRun) -> StartedAiStep:
         step = self.store.get_step(session, actor.user_id, run.step_id)

@@ -70,7 +70,8 @@ def load_plan_view(
         PlanStep(step, tuple(action.title for action in actions.get(step.id, ()))) for step in steps
     ]
     ai_ids = tuple(step.id for step in steps if step.performer is Performer.AI)
-    histories = store.run_histories(session, task.owner_id, ai_ids)
+    # A repeating Task starts its steps over at each completed cycle, with their attempts.
+    histories = store.run_histories(session, task.owner_id, ai_ids, since=task.last_completed_at)
     views: list[AiPlanStepView] = []
     earlier_done = True
     for step in steps:

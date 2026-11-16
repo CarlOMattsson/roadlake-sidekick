@@ -1,6 +1,6 @@
 """What the AI Step use cases share: the store port, the limits and the views they return."""
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from datetime import datetime, tzinfo
 from typing import Protocol
@@ -12,7 +12,7 @@ from sidekick.tasks.domain import Task
 from sidekick.work.application.steps_service import StepsStore
 from sidekick.work.domain import Action, Step
 from sidekick.work.domain.ai_plan import AiStepStatus, PlanState, RunHistory
-from sidekick.work.domain.ai_runs import AiStepRun, MoneyCaps, RunnerKind
+from sidekick.work.domain.ai_runs import AiStepRun, CostSource, MoneyCaps, RunnerKind
 
 MICROUSD_PER_USD = 1_000_000
 MAX_STEPS_PER_TASK = 1000
@@ -45,10 +45,21 @@ class AiStepsStore(StepsStore, Protocol):
         self, session: TxSession, run: AiStepRun, expected_version: int | None = None
     ) -> None: ...
     def run_histories(
-        self, session: TxSession, owner_id: UUID, step_ids: tuple[UUID, ...]
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        step_ids: tuple[UUID, ...],
+        since: datetime | None = None,
     ) -> dict[UUID, RunHistory]: ...
     def count_ai_runs_since(
         self, session: TxSession, owner_id: UUID, runner: RunnerKind, since: datetime
+    ) -> int: ...
+    def sum_ai_cost_since(
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        since: datetime,
+        sources: Collection[CostSource],
     ) -> int: ...
     def list_tasks_with_approved_plans(
         self, session: TxSession, owner_id: UUID, limit: int, from_id: UUID | None = None
@@ -139,7 +150,29 @@ class StartedAiStep:
     max_turns: int
 
 
+@dataclass(frozen=True, slots=True)
+class AiUsageSummary:
+    """What AI runs cost this calendar month and how many Claude Code starts today used.
+
+    `spent_microusd` is what counts toward the monthly cap; `client_estimate_microusd` is what
+    Claude Code reported for runs that are not billed per call, which never counts.
+    """
+
+    month_starts_at: datetime
+    spent_microusd: int
+    client_estimate_microusd: int
+    monthly_cap_microusd: int
+    starts_today: int
+    starts_per_day_cap: int
+
+
 def day_start(now: datetime, zone: tzinfo) -> datetime:
     """The start of the day containing `now` in the owner's time zone."""
 
     return now.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+def month_start(now: datetime, zone: tzinfo) -> datetime:
+    """The start of the calendar month containing `now` in the owner's time zone."""
+
+    return day_start(now, zone).replace(day=1)

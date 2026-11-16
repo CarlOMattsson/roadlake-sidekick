@@ -94,11 +94,18 @@ export function useAgendaSession({
     });
     return true;
   }
-  /** Shows a page just read as the list now is: no triage mark, no folding or left row, and the caller told. */
+  /**
+   * Shows a page just read as the list now is: no triage mark, no folding or left row, and the caller told. A row that
+   * still offers its Ångra stays until its time is up (see `held`).
+   */
   function showRead(next: WorkAgendaFrame["page"]) {
     if (!mounted.current) return;
     rows.resetForRead();
-    onChange({ ...frame, filters: filters.current, page: next });
+    onChange({
+      ...frame,
+      filters: filters.current,
+      page: { ...next, items: rows.held(page.items, next.items) },
+    });
     onRead?.();
   }
   /** Reads the agenda again and shows it as the list now is. */

@@ -166,6 +166,8 @@ def task_work_item(
         blocked_reminder_snoozed_until=task.blocked_reminder_snoozed_until,
         recurrence=task.recurrence.to_data() if task.recurrence else None,
         last_completed_at=task.last_completed_at,
+        ai_possible=task.ai_possible_since is not None,
+        ai_plan_approved=task.ai_plan_approved_at is not None,
         tags=tags,
     )
 

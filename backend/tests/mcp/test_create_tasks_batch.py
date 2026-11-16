@@ -204,3 +204,72 @@ async def test_image_data_in_a_title_or_step_is_refused_before_any_write() -> No
     assert in_title.is_error
     assert in_step.is_error
     assert container.tasks.list(actor, limit=100).items == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_each_task_may_carry_its_own_project_domain_and_description() -> None:
+    container, actor = _setup()
+    work = _domain(container, actor)
+    home = container.contexts.create_domain(
+        actor, name="Hem", description=None, idempotency_key=f"domain-{uuid4().hex}"
+    )
+    project = container.projects.create(
+        actor, title="Altan", domain_id=home.id, idempotency_key=f"project-{uuid4().hex}"
+    )
+    notes = [
+        _item("Standard"),
+        _item("I projektet", project_id=str(project.id), description="Beställ virke"),
+        _item("Eget hem", domain_id=str(home.id)),
+    ]
+
+    async with Client(_server(container, actor)) as client:
+        created = await _create(client, notes, "per-item-1", domain_id=str(work.id))
+
+    assert not created.is_error, created.structured_content
+    assert created.structured_content is not None
+    by_title = {task["title"]: task for task in created.structured_content["tasks"]}
+    assert by_title["Standard"]["domain_id"] == str(work.id)
+    assert by_title["Standard"]["project_id"] is None
+    assert by_title["Standard"]["description"] is None
+    assert by_title["I projektet"]["project_id"] == str(project.id)
+    assert by_title["I projektet"]["description"] == "Beställ virke"
+    assert by_title["I projektet"]["domain_id"] is None
+    assert by_title["Eget hem"]["domain_id"] == str(home.id)
+    assert _text_lines(created)[0] == "Created 3 tasks."
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_task_in_someone_elses_project_or_domain_rejects_the_whole_batch() -> None:
+    container, actor = _setup()
+    other = container.auth.provision_user("batch-other", "Other Owner")
+    other_actor = Actor(other, SCOPES)
+    foreign_domain = container.contexts.create_domain(
+        other_actor, name="Främmande", description=None, idempotency_key=f"d-{uuid4().hex}"
+    )
+    foreign_project = container.projects.create(
+        other_actor,
+        title="Främmande projekt",
+        domain_id=foreign_domain.id,
+        idempotency_key=f"p-{uuid4().hex}",
+    )
+
+    async with Client(_server(container, actor)) as client:
+        by_project = await _create(
+            client,
+            [_item("Egen"), _item("Främmande", project_id=str(foreign_project.id))],
+            "per-item-foreign-project-1",
+        )
+        by_domain = await _create(
+            client,
+            [_item("Egen"), _item("Främmande", domain_id=str(foreign_domain.id))],
+            "per-item-foreign-domain-1",
+        )
+
+    for rejected in (by_project, by_domain):
+        assert rejected.is_error
+        assert rejected.structured_content is not None
+        assert rejected.structured_content["code"] == "not_found"
+    assert container.tasks.list(actor, limit=100).items == []
+    assert container.tasks.list(other_actor, limit=100).items == []

@@ -145,13 +145,19 @@ class ReviewedTask:
 
 @dataclass(frozen=True, slots=True)
 class NewTaskItem:
-    """One Task of a batch create, with its Steps as titles in the order they are created."""
+    """One Task of a batch create, with its Steps as titles in the order they are created.
+
+    A `project_id` or `domain_id` of its own replaces the batch's placement.
+    """
 
     title: str
     due_at: datetime | None
     priority: Priority
     tags: tuple[str, ...]
     step_titles: tuple[str, ...]
+    description: str | None = None
+    project_id: UUID | None = None
+    domain_id: UUID | None = None
 
 
 class BatchStep(TypedDict):

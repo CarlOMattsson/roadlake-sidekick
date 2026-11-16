@@ -87,31 +87,32 @@ export function useRowWrites({
           pending.current.delete(key);
           unsure.current.delete(key);
           if (!mounted.current) return;
-          // Read before the override takes the row out of `left`: Undo puts it back there.
-          const hadLeft = rows.hasLeftNow(key);
-          rows.applyOverride(key, task, due);
+          const entry: AgendaUndo | undefined =
+            due || isTaskStatus(item.status)
+              ? {
+                  key,
+                  taskId: item.id,
+                  from: item.status,
+                  to: task.status,
+                  version: task.version,
+                  completed: wanted.status === "completed",
+                  ...(due
+                    ? { due: { from: item.due_at ?? null, label: dueLabel } }
+                    : {}),
+                  // Done on a recurring Task: the server records the completion; Undo puts the earlier record back.
+                  ...(wanted.status === "completed" && item.recurrence != null
+                    ? {
+                        lastCompleted: {
+                          from: item.last_completed_at ?? null,
+                        },
+                      }
+                    : {}),
+                }
+              : undefined;
+          rows.wrote(key, task, due, entry);
           if (triage) rows.markTriaged(key, true);
           // A change that went through closes its quick choices; its Undo takes the meta line.
           closeMenu();
-          if (due || isTaskStatus(item.status)) {
-            const entry: AgendaUndo = {
-              key,
-              taskId: item.id,
-              from: item.status,
-              to: task.status,
-              version: task.version,
-              completed: wanted.status === "completed",
-              ...(hadLeft ? { hadLeft: true } : {}),
-              ...(due
-                ? { due: { from: item.due_at ?? null, label: dueLabel } }
-                : {}),
-              // Done on a recurring Task: the server records the completion; Undo puts the earlier record back.
-              ...(wanted.status === "completed" && item.recurrence != null
-                ? { lastCompleted: { from: item.last_completed_at ?? null } }
-                : {}),
-            };
-            rows.setUndo(key, entry);
-          }
         };
         replay = async () =>
           done(

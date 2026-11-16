@@ -133,10 +133,16 @@ def validate_plan(steps: Sequence[PlanStep], *, task_cap_microusd: int) -> None:
 
 @dataclass(frozen=True, slots=True)
 class RunHistory:
-    """What the runs of one step say: how many were made and how the latest ended."""
+    """What the runs of one step say in the Task's current cycle.
+
+    `attempts` and `latest` count only runs made since the Task's last completed cycle, so a
+    repeating Task gets its attempts back for its next run. `last_attempt` is the highest attempt
+    number the step has ever had, in any cycle: the next run is numbered after it.
+    """
 
     attempts: int = 0
     latest: AiStepRun | None = None
+    last_attempt: int = 0
 
 
 def step_status(

@@ -60,6 +60,16 @@ def with_enabled_rooms(html: str, rooms: Collection[str]) -> str:
     return html.replace("<head>", f'<head><meta name="sidekick-rooms" content="{content}">', 1)
 
 
+def with_ai_usage(html: str, shown: bool) -> str:
+    """Declares that Control shows the month's AI cost (SIDEKICK_MCP_APP_SHOW_AI_USAGE).
+
+    Without the meta (the default) the app draws no such row and never reads `get_ai_usage`.
+    """
+    if not shown:
+        return html
+    return html.replace("<head>", '<head><meta name="sidekick-ai-usage" content="on">', 1)
+
+
 def with_update_reminder(html: str, reminder: UpdateReminder | None) -> str:
     """Declares the running code and when to remind (SIDEKICK_UPDATE_REMINDER_DAYS), for the app.
 
@@ -99,10 +109,15 @@ def with_app_context(
     update: UpdateReminder | None,
     license_view: LicenseView | None = None,
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
+    show_ai_usage: bool = False,
 ) -> str:
-    """The app document with all the instance declares: language, time zone, rooms, update reminder
-    and license state. `license_view` `None` declares no license."""
+    """The app document with all the instance declares: language, time zone, rooms, update reminder,
+    license state and whether Control shows the AI cost. `license_view` `None` declares no
+    license."""
     declared = with_update_reminder(
         with_enabled_rooms(with_app_locale(html, locale), rooms), update
     )
-    return with_owner_timezone(with_license(declared, license_view), owner_timezone)
+    return with_ai_usage(
+        with_owner_timezone(with_license(declared, license_view), owner_timezone),
+        show_ai_usage,
+    )

@@ -17,6 +17,10 @@ class McpServerSettings(SettingsGroup):
     mcp_app_locale: AppLocale = Field(
         default="sv", description="Language of the Sidekick MCP Apps: sv (default) or en."
     )
+    mcp_app_show_ai_usage: bool = Field(
+        default=False,
+        description="Show the month's AI cost as a row in Control; off by default.",
+    )
     mcp_stdio_owner_id: str = Field(
         default="",
         description="User UUID the local stdio entrance acts as; empty means it will not start.",

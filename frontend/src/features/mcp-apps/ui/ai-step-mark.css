@@ -15,6 +15,12 @@
   white-space: nowrap;
 }
 
+/* A Task whose AI plan is approved ("AI ✓"): the text colour and a firmer line, beside the check that says it. */
+.sk-ai-mark[data-approved="true"] {
+  border-color: var(--sk-fg-2);
+  color: var(--sk-fg);
+}
+
 .sk-ai-mark[data-attention="true"] {
   border-color: var(--sk-warning-line);
   background: var(--sk-warning-bg);

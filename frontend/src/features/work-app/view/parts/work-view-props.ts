@@ -67,9 +67,9 @@ export type WorkViewProps = {
    */
   onRoute?: (target: RoomTarget) => void;
   /**
-   * The shell's Back, given when the view is a layer of the shell's stack: a Task opened from a list (`openedFrom`)
-   * goes back with it when marked done. Otherwise a Task marked done stays open with its Ångra, unless the view's own
-   * stack has a list below it.
+   * The shell's Back, given when the view is a layer of the shell's stack: a Task opened from the Agenda or Status
+   * (`openedFrom`) goes back with it when marked done, and the list shows its Ångra. Otherwise a Task marked done stays
+   * open with its Ångra, unless the view's own stack has one of those lists below it.
    */
   onLeave?: () => void;
   /** With `onLeave`: the list view the layer was opened from ("board", "agenda", "hierarchy"), if it was one. */

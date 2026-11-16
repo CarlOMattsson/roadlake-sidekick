@@ -103,6 +103,7 @@ AREAS: tuple[Area, ...] = (
             "report_ai_step_result",
             "review_ai_step_result",
             "get_ai_step_run",
+            "get_ai_usage",
         ),
     ),
     Area(

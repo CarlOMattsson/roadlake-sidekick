@@ -168,8 +168,9 @@ def _register_list_tasks(mcp: FastMCP, ctx: ToolContext) -> None:
             "process_id or status. ambitions=true lists the user's ambitions instead (kept in "
             "view, never dated or reminded). For what is due or overdue, use get_work_agenda; "
             "for status columns, get_work_board; for the tree with steps, get_work_hierarchy. "
-            "Rows have description_excerpt (about 160 characters) and description_truncated; "
-            "when true, call get_task for the full text."
+            "Rows are compact (id, title, status, priority, due_at, not_before, project_id, "
+            "domain_id, process_id, tags, ai_possible, version); call get_task for the "
+            "description and the rest."
         ),
         output_schema=output_schema(TaskPageOutput),
         annotations=READ,

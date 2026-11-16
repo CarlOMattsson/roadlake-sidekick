@@ -88,6 +88,9 @@ export type MemoryChange = {
   confirm?: boolean;
 };
 
+/** The month's AI cost as get_ai_usage reports it: spent of the cap, Claude Code's own estimate, and today's starts. */
+export type AiUsage = ToolResults["get_ai_usage"];
+
 /** What emptying the trash did: Tasks removed, and Tasks that had Steps or links left and so stayed. */
 export type EmptyResult = { removed: number; kept: number };
 
@@ -116,6 +119,11 @@ export type ControlTransport = {
   forget?: (fact: RecalledFact) => Promise<unknown>;
   /** The newest page of the owner's own Activity Center entries. Read only, no write goes through it. */
   activity: () => Promise<ActivityList>;
+  /**
+   * get_ai_usage: the month's AI cost. Absent where the host does not offer the tool; the row is then not drawn. It is
+   * called only where the instance shows the row (ai-usage-row.tsx).
+   */
+  aiUsage?: () => Promise<AiUsage>;
 };
 
 /** What the trash view needs of a transport: the phone's trash screen builds just this, without the rest of Control. */

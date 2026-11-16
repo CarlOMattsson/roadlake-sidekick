@@ -566,3 +566,10 @@
 .sidekick-control .control-empty-trash > .control-confirm {
   justify-self: stretch;
 }
+
+/* The AI cost row (ai-usage-row.tsx), on the update row's shape: what the month cost stands in the text colour, the
+   rest of the row (today's starts, Claude Code's own estimate) stays muted. */
+.sidekick-control .control-ai-usage__spent strong {
+  font-weight: 600;
+  color: var(--sk-fg);
+}

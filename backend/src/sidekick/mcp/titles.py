@@ -131,6 +131,7 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "report_ai_step_result": {"sv": "Rapportera AI-steg", "en": "Report AI step"},
     "review_ai_step_result": {"sv": "Granska AI-resultat", "en": "Review AI result"},
     "get_ai_step_run": {"sv": "Visa AI-körning", "en": "View AI run"},
+    "get_ai_usage": {"sv": "Visa AI-användning", "en": "View AI usage"},
     "archive_task_step": {"sv": "Arkivera steg", "en": "Archive step"},
     "restore_task_step": {"sv": "Återställ steg", "en": "Restore step"},
     "reorder_task_steps": {"sv": "Ordna om steg", "en": "Reorder steps"},

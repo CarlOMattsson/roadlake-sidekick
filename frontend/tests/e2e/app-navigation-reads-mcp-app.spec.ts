@@ -6,6 +6,7 @@ import {
   task,
   workItem,
 } from "./sidekick-domain-fixtures";
+import { setHostReply } from "./mcp-host-fixture";
 import {
   widths,
   themes,
@@ -32,7 +33,7 @@ for (const width of widths) {
   for (const theme of themes) {
     const suffix = `${width} px, ${theme}`;
 
-    test(`agenda to a task, Done: the view returns to the agenda, which is read again and no longer lists the task (${suffix})`, async ({
+    test(`agenda to a task, Done: the view returns to the agenda, which is read again and keeps the task's row with its Ångra (${suffix})`, async ({
       page,
     }) => {
       const { app, failures } = await openSidekick(page, {
@@ -53,15 +54,44 @@ for (const width of widths) {
       await openTask(app).click();
       await expect(h2(app, "Ring Anna om offerten")).toBeVisible();
       await serverRemembersDone(page);
+      const readsBefore = (await callNames(page)).filter(
+        (name) => name === "get_work_agenda",
+      ).length;
       await app.getByRole("button", { name: "Markera klar" }).click();
       await expect
         .poll(async () => (await callNames(page)).includes("update_task"))
         .toBe(true);
       // Done on a Task opened from a list goes back to that list by itself, as Back would.
       await expect(back(app)).toHaveCount(0);
-      // Same view, no manual refresh: the overdue row is gone.
-      await expect(app.getByText("Inget på agendan.")).toBeVisible();
-      await expect(app.getByText(/Försenade/)).toHaveCount(0);
+      // Same view, no manual refresh: the agenda is read again. The read no longer lists the done task, but its row
+      // stays, done, with its Ångra until the time to undo is up, as after a tick in the agenda itself.
+      await expect
+        .poll(
+          async () =>
+            (await callNames(page)).filter((name) => name === "get_work_agenda")
+              .length,
+        )
+        .toBeGreaterThan(readsBefore);
+      const undo = app.getByRole("button", {
+        name: "Ångra Ring Anna om offerten",
+      });
+      await expect(undo).toBeVisible();
+      await expect(app.getByText("Klar · finns i Status")).toBeVisible();
+      // Ångra writes the earlier status back.
+      await setHostReply(
+        page,
+        "update_task",
+        ok({ task: { ...task, version: 3 } }),
+      );
+      await undo.click();
+      await expect
+        .poll(
+          async () =>
+            (await callNames(page)).filter((name) => name === "update_task")
+              .length,
+        )
+        .toBe(2);
+      await expect(undo).toHaveCount(0);
       expect(failures).toEqual([]);
     });
 

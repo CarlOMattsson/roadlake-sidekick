@@ -53,15 +53,13 @@ def register_sidekick_app_resource(
     update: UpdateReminder | None,
     license_view: Callable[[], LicenseView],
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
+    show_ai_usage: bool = False,
 ) -> None:
     @mcp.resource(SIDEKICK_APP_URI, name="Sidekick", app=APP_RESOURCE)
     def sidekick_app() -> str:
         require_any_app_read_scope(actor_provider())
         built = app_html_path()
-        if not built.exists():
-            return with_app_context(
-                _NOT_BUILT, locale, rooms, update, license_view(), owner_timezone
-            )
+        html = built.read_text(encoding="utf-8") if built.exists() else _NOT_BUILT
         return with_app_context(
-            built.read_text(encoding="utf-8"), locale, rooms, update, license_view(), owner_timezone
+            html, locale, rooms, update, license_view(), owner_timezone, show_ai_usage
         )

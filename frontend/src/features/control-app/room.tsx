@@ -19,6 +19,7 @@ import {
 import { controlLabels, type ControlLabels } from "./labels";
 import type {
   ActivityList,
+  AiUsage,
   ChangesList,
   ControlTransport,
   MemoryStatus,
@@ -51,6 +52,9 @@ function createControlTransport(
     memoryStatus: () => call<MemoryStatus>("get_memory_status", {}),
     activity: () =>
       call<ActivityList>("list_assistant_activity", { limit: 25 }),
+    ...(supportsTool?.("get_ai_usage") !== false
+      ? { aiUsage: () => call<AiUsage>("get_ai_usage", {}) }
+      : {}),
     ...(memoryTools
       ? {
           recall: (request: RecallRequest) =>

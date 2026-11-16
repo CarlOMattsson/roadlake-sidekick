@@ -1,4 +1,4 @@
-"""list_tasks and list_projects return a description excerpt; get_* return the whole text."""
+"""list_projects returns a description excerpt and list_tasks none; get_* return the whole text."""
 
 from typing import Any
 
@@ -22,7 +22,7 @@ def _structured(tool_result: Any) -> dict[str, Any]:
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_list_rows_carry_an_excerpt_and_get_returns_the_whole_description() -> None:
+async def test_list_rows_are_short_and_get_returns_the_whole_description() -> None:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("mcp_excerpt_owner", "Owner")
     long_text = " ".join(["detail"] * 100)
@@ -81,13 +81,25 @@ async def test_list_rows_carry_an_excerpt_and_get_returns_the_whole_description(
         )["project"]
 
     assert all("description" not in row for row in [*tasks.values(), *projects])
-    assert tasks["Long"]["description_truncated"] is True
-    assert len(tasks["Long"]["description_excerpt"]) <= 160
-    assert long_text.startswith(tasks["Long"]["description_excerpt"].removesuffix("…"))
-    assert tasks["Short"]["description_excerpt"] == "Just a note"
-    assert tasks["Short"]["description_truncated"] is False
-    assert tasks["Bare"]["description_excerpt"] is None
-    assert tasks["Bare"]["description_truncated"] is False
+    assert all(
+        "description_excerpt" not in row and "description_truncated" not in row
+        for row in tasks.values()
+    )
+    assert set(tasks["Long"]) == {
+        "id",
+        "title",
+        "status",
+        "priority",
+        "due_at",
+        "not_before",
+        "project_id",
+        "domain_id",
+        "process_id",
+        "version",
+        "ai_possible",
+        "tags",
+    }
+    assert tasks["Long"]["project_id"] == project["id"]
     assert projects[0]["description_truncated"] is True
     assert len(projects[0]["description_excerpt"]) <= 160
     assert task["description"] == long_text

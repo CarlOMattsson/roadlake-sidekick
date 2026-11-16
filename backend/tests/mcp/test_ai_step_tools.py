@@ -67,7 +67,14 @@ async def _call(world: World, actor: Actor, name: str, **arguments: Any) -> Call
         return await client.call_tool(name, arguments, raise_on_error=False)
 
 
-_READS = {"get_ai_plan", "list_ai_steps", "get_ai_step_run", "get_task", "list_recent_changes"}
+_READS = {
+    "get_ai_plan",
+    "list_ai_steps",
+    "get_ai_step_run",
+    "get_ai_usage",
+    "get_task",
+    "list_recent_changes",
+}
 
 
 async def _ok(world: World, actor: Actor, name: str, **arguments: Any) -> dict[str, Any]:
@@ -325,6 +332,36 @@ async def test_a_reported_cost_is_stored_as_the_clients_estimate() -> None:
     assert run["cost_source"] == "client_estimate"
     assert run["cost_usd"] == pytest.approx(0.25)
     assert run["model"] == "claude-code"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_the_usage_shows_the_month_and_today_without_any_text() -> None:
+    world = _world()
+    _, started = await _started(world)
+    usage = {"model": "claude-code", "cost_usd_estimate": 0.25}
+    await _ok(world, world.code, "report_ai_step_result", **_report(started["run"], usage=usage))
+
+    read = await _call(world, world.chat, "get_ai_usage")
+
+    assert not read.is_error
+    shown = read.structured_content
+    assert shown is not None
+    assert shown["spent_usd"] == 0
+    assert shown["client_estimate_usd"] == pytest.approx(0.25)
+    assert (shown["starts_today"], shown["daily_starts_cap"]) == (1, 50)
+    assert shown["monthly_cap_usd"] == 50
+    assert "SENTINEL" not in _all_text(read)
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_the_usage_needs_the_read_scope() -> None:
+    world = _world()
+    result = await _call(world, world.ai_only, "get_ai_usage")
+    assert result.is_error
+    assert result.structured_content is not None
+    assert result.structured_content["code"] == "forbidden"
 
 
 @pytest.mark.asyncio

@@ -11,7 +11,8 @@ import {
   type WorkTransport,
   type WriteFailure,
 } from "../transport/transport";
-import { usd, type AiLabels } from "./ai-labels";
+import { usd } from "../../mcp-apps/ui/usd";
+import type { AiLabels } from "./ai-labels";
 
 type Run = WorkAiRun["run"];
 /** The verdicts each state of a run takes (the server refuses the rest). */
