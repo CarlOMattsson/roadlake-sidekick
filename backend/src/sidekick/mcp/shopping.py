@@ -14,6 +14,7 @@ from pydantic import Field
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
+from sidekick.mcp.patch import ignored_nulls_note, updated
 from sidekick.mcp.results import card_result, output_schema, result, spoken_names
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import CARD_NOTE, MAX_ROWS, card_rows, flat, rows_text
@@ -32,7 +33,8 @@ from sidekick.shopping.application.schemas import (
     PurchasedBatchResult,
     PurchaseTarget,
 )
-from sidekick.structured.shopping import ItemPatchInput, item_patch
+from sidekick.structured.base import CLEAR_FIELDS
+from sidekick.structured.shopping import ItemClear, ItemPatchInput, UpdatedItemResult, item_patch
 
 Version = Annotated[int, Field(ge=1)]
 Limit = Annotated[int, Field(ge=1, le=100)]
@@ -300,19 +302,25 @@ def _register_update_shopping_item(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_shopping_item",
         description=(
             "Change one owned item at its current version. Only sent fields change; omitted "
-            "fields keep their stored values. name and quantity may be omitted but never null or "
-            "empty; send null to clear another optional field. Read the item first when unsure of "
-            "its values. Only on an explicit reviewed user instruction; never invent an offer. "
-            "Retry with the same key and arguments after uncertain delivery."
+            "fields keep their stored values. name and quantity may be omitted but never empty. "
+            "Null in item means not sent; to empty another optional field, list it in clear. "
+            "Read the item first when unsure of its values. Only on an explicit reviewed user "
+            "instruction; never invent an offer. Retry with the same key and arguments after "
+            "uncertain delivery."
         ),
         annotations=WRITE,
-        output_schema=output_schema(ItemResult, mode="serialization"),
+        output_schema=output_schema(UpdatedItemResult, mode="serialization"),
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("update_shopping_item")
     def update_shopping_item(
-        item_id: UUID, item: ItemPatchInput, version: Version, idempotency_key: IdempotencyKey
+        item_id: UUID,
+        item: ItemPatchInput,
+        version: Version,
+        idempotency_key: IdempotencyKey,
+        clear: Annotated[list[ItemClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        item.resolve(clear or ())
         data = ctx.container.shopping.update_item(
             ctx.actor_provider(),
             item_id,
@@ -322,8 +330,12 @@ def _register_update_shopping_item(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         return result(
-            data.model_dump(mode="json"),
-            _item_summary(f"Updated shopping item {flat(data.item.name)}.", data.item),
+            updated(UpdatedItemResult, data, item).model_dump(mode="json"),
+            _item_summary(
+                f"Updated shopping item {flat(data.item.name)}."
+                f"{ignored_nulls_note(item.ignored_nulls)}",
+                data.item,
+            ),
         )
 
 

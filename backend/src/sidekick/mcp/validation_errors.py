@@ -88,8 +88,6 @@ _TYPE_LABELS: dict[str, str] = {
     "too_long": "too many items",
     "enum": "not an allowed value",
     "uuid_type": "invalid UUID",
-    # Raised by `PartialChanges` with this fixed type; no input is read to describe it.
-    "no_change": "at least one change is required",
 }
 
 # JSON Schema keyword -> fixed description, for the keywords whose name alone does not help the

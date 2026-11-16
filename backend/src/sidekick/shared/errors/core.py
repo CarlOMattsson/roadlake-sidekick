@@ -1,5 +1,6 @@
 """Transport-neutral errors safe to translate at adapter boundaries."""
 
+from collections.abc import Iterable
 from typing import Literal
 from uuid import UUID
 
@@ -52,6 +53,18 @@ class ValidationError(SidekickError):
     code = "validation_error"
     http_status = 422
     safe_title = "Request validation failed"
+
+
+class FieldValidationError(ValidationError):
+    """A call refused for a reason that names its fields ("changes.due_at: also named in clear").
+
+    The rows hold field names and fixed words, never a value, so the MCP layer sends them to the
+    caller as they are.
+    """
+
+    def __init__(self, rows: Iterable[str]) -> None:
+        self.rows = tuple(rows)
+        super().__init__("; ".join(self.rows))
 
 
 class InvalidInputError(ValueError):

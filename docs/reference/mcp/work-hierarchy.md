@@ -61,11 +61,11 @@ Access: write
 
 Scopes: requires `projects:read`, `projects:write`.
 
-Returns: `DomainOutput` with `domain` (DomainRecord).
+Returns: `UpdatedDomainOutput` with `domain` (DomainRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `changes` | object | yes | Fields to change: omitted stays, null clears where allowed. |
+| `changes` | object | yes | Fields to change: omitted or null stays; to empty a field, list it in clear. |
 | `changes.accent` | string | no | one of `slate`, `blue`, `teal`, `green`, `amber`, `orange`, `rose`, `violet`; may be null; Colour accent shown next to the domain name: one of the eight names slate, blue, teal, green, amber, orange, rose or violet. |
 | `changes.description` | string | no | up to 10000 characters; may be null |
 | `changes.last_reviewed_at` | date-time | no | ISO 8601 date and time; may be null |
@@ -76,6 +76,7 @@ Returns: `DomainOutput` with `domain` (DomainRecord).
 | `domain_id` | uuid | yes | - |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `description`, `review_cadence`, `last_reviewed_at`, `accent`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 
@@ -120,11 +121,11 @@ Access: write
 
 Scopes: requires `projects:read`, `projects:write`.
 
-Returns: `ProcessOutput` with `process` (ProcessRecord).
+Returns: `UpdatedProcessOutput` with `process` (ProcessRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `changes` | object | yes | Fields to change: omitted stays, null clears where allowed. |
+| `changes` | object | yes | Fields to change: omitted or null stays; to empty a field, list it in clear. |
 | `changes.cadence` | string | no | one of `daily`, `weekly`, `biweekly`, `monthly`, `quarterly`, `yearly`; may be null |
 | `changes.description` | string | no | up to 10000 characters; may be null |
 | `changes.domain_id` | uuid | no | may be null |
@@ -134,6 +135,7 @@ Returns: `ProcessOutput` with `process` (ProcessRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `process_id` | uuid | yes | - |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `description`, `cadence`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 
@@ -194,11 +196,11 @@ Access: write
 
 Scopes: requires `projects:read`, `projects:write`.
 
-Returns: `ProjectOutput` with `project` (ProjectRecord).
+Returns: `UpdatedProjectOutput` with `project` (ProjectRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `changes` | object | yes | Fields to change: omitted stays, null clears where allowed. |
+| `changes` | object | yes | Fields to change: omitted or null stays; to empty a field, list it in clear. |
 | `changes.definition_of_done` | string | no | up to 2000 characters; may be null |
 | `changes.description` | string | no | up to 10000 characters; may be null |
 | `changes.domain_id` | uuid | no | may be null |
@@ -210,6 +212,7 @@ Returns: `ProjectOutput` with `project` (ProjectRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `project_id` | uuid | yes | - |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `description`, `start_date`, `target_date`, `definition_of_done`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

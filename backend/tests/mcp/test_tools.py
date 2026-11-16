@@ -55,7 +55,8 @@ async def test_create_project_and_task_have_structured_and_text_results() -> Non
                 "task_id": task.structured_content["task"]["id"],
                 "version": 1,
                 "idempotency_key": "mcp-task-clear",
-                "changes": {"project_id": None, "description": None, "due_at": None},
+                "changes": {},
+                "clear": ["project_id", "description", "due_at"],
             },
         )
         assert cleared.structured_content["task"]["project_id"] is None

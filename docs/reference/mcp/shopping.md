@@ -117,12 +117,12 @@ Access: write
 
 Scopes: requires `shopping:read`, `shopping:write`.
 
-Returns: `ItemResult` with `evaluated_on` (date), `item` (ItemRecord), `list_name` (string), `open_count` (integer or null).
+Returns: `UpdatedItemResult` with `evaluated_on` (date), `item` (ItemRecord), `list_name` (string), `ignored_nulls` (array of string), `open_count` (integer or null).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `idempotency_key` | string | yes | 8 to 128 characters |
-| `item` | object | yes | update_shopping_item input: omitted name keeps the stored one; null or blank is refused. |
+| `item` | object | yes | update_shopping_item input: an omitted or null field stays; `clear` empties one. |
 | `item.name` | string | no | 1 to 200 characters; may be null |
 | `item.note` | string | no | up to 2000 characters; may be null |
 | `item.occasion` | string | no | up to 200 characters; may be null |
@@ -136,13 +136,14 @@ Returns: `ItemResult` with `evaluated_on` (date), `item` (ItemRecord), `list_nam
 | `item.offer.regular_price` | number or string | no | above 0.0; up to 99999999.99; may be null |
 | `item.offer.source_url` | string | no | up to 2000 characters; may be null |
 | `item.product_url` | string | no | up to 2000 characters; may be null |
-| `item.quantity` | number or string | no | default `"1"`; above 0.0; up to 999999.999 |
+| `item.quantity` | number or string | no | above 0.0; up to 999999.999 |
 | `item.recipient_contact_id` | uuid | no | may be null |
 | `item.store` | string | no | up to 200 characters; may be null |
 | `item.target_date` | date | no | ISO 8601 date; may be null |
 | `item.unit` | string | no | up to 30 characters; may be null |
 | `item_id` | uuid | yes | - |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `unit`, `note`, `store`, `product_url`, `recipient_contact_id`, `occasion`, `target_date`, `offer`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

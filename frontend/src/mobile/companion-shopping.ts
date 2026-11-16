@@ -8,13 +8,14 @@
  *   create_shopping_list        -> POST /companion/v1/shopping/lists                    ({ name })
  *   update_shopping_list        -> POST /companion/v1/shopping/lists/{list_id}/update   ({ name, archived, version })
  *   add_shopping_items          -> POST /companion/v1/shopping/lists/{list_id}/items    ({ items, merge_duplicates })
- *   update_shopping_item        -> POST /companion/v1/shopping/items/{item_id}/update   ({ item, version })
+ *   update_shopping_item        -> POST /companion/v1/shopping/items/{item_id}/update   ({ item, version, clear? })
  *   set_shopping_item_purchased -> POST /companion/v1/shopping/items/{item_id}/purchased ({ purchased, version })
  *
  * A purchase and an add that get no answer are kept in the phone's outbox (companion-transport.ts). Every write sends
  * its key in the Idempotency-Key header. Not in the app: list_contacts (the recipient search) and
  * set_shopping_items_purchased; the room hides what needs them (`toolOffered`).
  */
+import { clearWire } from "@/lib/mcp/clear-wire";
 import {
   isRecord,
   queryOf,
@@ -168,10 +169,14 @@ export function planShopping(
       h.onlyKeys(args, ["item_id", "item", "version", "idempotency_key"]);
       const id = h.uuidOf(args.item_id);
       if (!isRecord(args.item)) return h.invalid();
-      return write(`${BASE}/items/${id}/update`, {
-        item: args.item,
-        version: h.versionOf(args.version),
-      });
+      // The route reads null inside `item` as "not sent"; fields to empty travel in `clear`.
+      return write(
+        `${BASE}/items/${id}/update`,
+        clearWire("update_shopping_item", {
+          item: args.item,
+          version: h.versionOf(args.version),
+        }),
+      );
     }
     case "set_shopping_item_purchased": {
       h.onlyKeys(args, ["item_id", "purchased", "version", "idempotency_key"]);

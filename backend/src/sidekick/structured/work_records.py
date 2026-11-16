@@ -17,7 +17,7 @@ from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.cadence import Cadence
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
-from sidekick.structured.base import Output, PartialChanges
+from sidekick.structured.base import Output, PartialChanges, WithIgnoredNulls
 from sidekick.tasks.domain import Priority, RecurrenceRule, TaskStatus
 from sidekick.tasks.domain.planning import MAX_ESTIMATED_MINUTES
 from sidekick.work.domain import ActionStatus, DomainStatus, ProcessStatus
@@ -184,6 +184,10 @@ class ProjectOutput(Output):
     project: ProjectRecord
 
 
+class UpdatedProjectOutput(ProjectOutput, WithIgnoredNulls):
+    """update_project's reply: the Project and the nulls that were not applied."""
+
+
 class ProjectPageOutput(Output):
     projects: list[ProjectListRecord]
     next_cursor: str | None = None
@@ -204,6 +208,10 @@ class TaskDetailOutput(Output):
 
 class TaskOutput(Output):
     task: TaskRecord
+
+
+class UpdatedTaskOutput(TaskOutput, WithIgnoredNulls):
+    """update_task's reply: the Task and the nulls that were not applied."""
 
 
 class TaskPageOutput(Output):
@@ -321,6 +329,10 @@ class DomainOutput(Output):
     domain: DomainRecord
 
 
+class UpdatedDomainOutput(DomainOutput, WithIgnoredNulls):
+    """update_domain's reply: the Domain and the nulls that were not applied."""
+
+
 class ProcessPageOutput(Output):
     processes: list[ProcessRecord]
     next_cursor: str | None = None
@@ -328,6 +340,10 @@ class ProcessPageOutput(Output):
 
 class ProcessOutput(Output):
     process: ProcessRecord
+
+
+class UpdatedProcessOutput(ProcessOutput, WithIgnoredNulls):
+    """update_process's reply: the Process and the nulls that were not applied."""
 
 
 StepStatusName = Literal[
@@ -401,8 +417,16 @@ class StepOutput(Output):
     step: StepRecord
 
 
+class UpdatedStepOutput(StepOutput, WithIgnoredNulls):
+    """update_task_step's reply: the Step and the nulls that were not applied."""
+
+
 class ActionOutput(Output):
     action: ActionRecord
+
+
+class UpdatedActionOutput(ActionOutput, WithIgnoredNulls):
+    """update_step_action's reply: the Action and the nulls that were not applied."""
 
 
 class TagUsage(Output):
@@ -571,7 +595,7 @@ def end_of_day_due_at(value: datetime | date | None, zone: tzinfo) -> datetime |
 
 
 class TaskChanges(PartialChanges):
-    """Fields to change: omitted stays, null clears where allowed."""
+    """Fields to change: omitted or null stays; to empty a field, list it in clear."""
 
     fixed_fields = frozenset({"title", "status", "priority", "ambition", "ai_possible"})
 
@@ -589,9 +613,9 @@ class TaskChanges(PartialChanges):
     follow_up_at: datetime | None = None
     waiting_on_contact_id: UUID | None = None
     recurrence: RecurrenceInput | None = None
-    """The Task's own repeat rule; null removes it. Independent of any Process."""
+    """The Task's own repeat rule; clear it to remove the rule. Independent of any Process."""
     last_completed_at: datetime | None = None
-    """Undo of a recurring completion: send the value the Task had before (null for none)."""
+    """Undo of a recurring completion: send the value the Task had before (clear it for none)."""
     ambition: bool | None = None
     """true keeps it as an ambition (clears due, start, waiting, flag and reminders); false: a
     task again."""
@@ -602,6 +626,22 @@ class TaskChanges(PartialChanges):
         list[Annotated[str, NoImageData]] | None,
         Field(max_length=MAX_TAGS_PER_RECORD),
     ] = None
+
+
+TaskClear = Literal[
+    "description",
+    "project_id",
+    "domain_id",
+    "process_id",
+    "due_at",
+    "not_before",
+    "estimated_minutes",
+    "waiting_since",
+    "follow_up_at",
+    "waiting_on_contact_id",
+    "recurrence",
+    "last_completed_at",
+]
 
 
 class StepChanges(PartialChanges):
@@ -615,6 +655,9 @@ class StepChanges(PartialChanges):
     instruction: Annotated[str | None, Field(max_length=MAX_STEP_INSTRUCTION_LENGTH)] = None
 
 
+StepClear = Literal["due_at", "instruction"]
+
+
 class ActionChanges(PartialChanges):
     fixed_fields = frozenset({"title", "status", "attention_requested"})
     requires_change = False
@@ -626,8 +669,11 @@ class ActionChanges(PartialChanges):
     note: Annotated[str | None, Field(max_length=MAX_ACTION_NOTE_LENGTH)] = None
 
 
+ActionClear = Literal["due_at", "note"]
+
+
 class ProjectChanges(PartialChanges):
-    """Fields to change: omitted stays, null clears where allowed."""
+    """Fields to change: omitted or null stays; to empty a field, list it in clear."""
 
     fixed_fields = frozenset({"title", "status", "domain_id"})
 
@@ -643,8 +689,11 @@ class ProjectChanges(PartialChanges):
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
 
 
+ProjectClear = Literal["description", "start_date", "target_date", "definition_of_done"]
+
+
 class DomainChanges(PartialChanges):
-    """Fields to change: omitted stays, null clears where allowed."""
+    """Fields to change: omitted or null stays; to empty a field, list it in clear."""
 
     fixed_fields = frozenset({"name", "status"})
 
@@ -654,13 +703,16 @@ class DomainChanges(PartialChanges):
     review_cadence: Cadence | None = None
     last_reviewed_at: datetime | None = None
     accent: Annotated[
-        DomainAccent | None, Field(description=f"{DOMAIN_ACCENT_DESCRIPTION} Null clears it.")
+        DomainAccent | None, Field(description=f"{DOMAIN_ACCENT_DESCRIPTION} Clear it to remove.")
     ] = None
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
 
 
+DomainClear = Literal["description", "review_cadence", "last_reviewed_at", "accent"]
+
+
 class ProcessChanges(PartialChanges):
-    """Fields to change: omitted stays, null clears where allowed."""
+    """Fields to change: omitted or null stays; to empty a field, list it in clear."""
 
     fixed_fields = frozenset({"name", "status", "domain_id"})
 
@@ -670,6 +722,9 @@ class ProcessChanges(PartialChanges):
     domain_id: UUID | None = None
     cadence: Cadence | None = None
     tags: Annotated[list[str] | None, Field(max_length=MAX_TAGS_PER_RECORD)] = None
+
+
+ProcessClear = Literal["description", "cadence"]
 
 
 class ReorderItem(Output):

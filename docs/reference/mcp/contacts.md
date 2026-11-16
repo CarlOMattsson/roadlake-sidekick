@@ -90,7 +90,7 @@ Access: write
 
 Scopes: requires `contacts:read`, `contacts:write`.
 
-Returns: `ContactResult` with `contact` (ContactRecord).
+Returns: `UpdatedContactResult` with `contact` (ContactRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -107,6 +107,7 @@ Returns: `ContactResult` with `contact` (ContactRecord).
 | `contact_id` | uuid | yes | - |
 | `expected_version` | integer | yes | - |
 | `idempotency_key` | string | yes | 8 to 128 characters |
+| `clear` | array of string | no | unique; items: `context_note`, `email`, `phone`, `relationship`, `organization`, `role`, `address`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

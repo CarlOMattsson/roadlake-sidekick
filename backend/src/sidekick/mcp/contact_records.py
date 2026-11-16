@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import Field
@@ -12,7 +12,7 @@ from sidekick.contacts.application.serialization import contact_public_data
 from sidekick.contacts.domain.contact import Contact
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
-from sidekick.structured.base import Output, PartialChanges
+from sidekick.structured.base import Output, PartialChanges, WithIgnoredNulls
 from sidekick.structured.contacts import ContactSummaryRecord
 from sidekick.structured.tags import TagMatch, TagsInput
 
@@ -56,6 +56,10 @@ class ContactRecord(Output):
 
 class ContactResult(Output):
     contact: ContactRecord
+
+
+class UpdatedContactResult(ContactResult, WithIgnoredNulls):
+    """update_contact's reply: the Contact and the nulls that were not applied."""
 
 
 class ProjectSummaryRecord(Output):
@@ -160,6 +164,11 @@ class ContactChanges(PartialChanges):
     role: Role = None
     address: Address = None
     tags: TagsInput = Field(default_factory=list)
+
+
+ContactClear = Literal[
+    "context_note", "email", "phone", "relationship", "organization", "role", "address"
+]
 
 
 def contact_result(contact: Contact, tags: list[str]) -> ContactResult:

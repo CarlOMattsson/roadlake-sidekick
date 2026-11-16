@@ -123,6 +123,21 @@ describe("Shopping over the companion transport", () => {
     },
   );
 
+  it("sends a null in the item as a name in clear", async () => {
+    const { native, transport } = setup();
+    await transport.call("update_shopping_item", {
+      item_id: ITEM_ID,
+      item: { name: "Mjölk", note: null },
+      version: 3,
+      idempotency_key: KEY,
+    });
+    expect(native.requests[0]?.body).toEqual({
+      item: { name: "Mjölk" },
+      version: 3,
+      clear: ["note"],
+    });
+  });
+
   it("leaves merge_duplicates out of the body when it was not given", async () => {
     const { native, transport } = setup();
     await transport.call("add_shopping_items", {

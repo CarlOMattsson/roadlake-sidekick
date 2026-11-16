@@ -14,6 +14,7 @@ from pydantic import Field
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
+from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note, updated
 from sidekick.mcp.results import card_result, output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.tool_context import ToolContext
@@ -27,7 +28,7 @@ from sidekick.mcp.work_text import (
     work_item_sentence,
 )
 from sidekick.shared.text_guard import NoImageData
-from sidekick.structured.base import Output
+from sidekick.structured.base import CLEAR_FIELDS, Output
 from sidekick.structured.work import (
     complete_task_structured,
     task_detail_structured,
@@ -36,8 +37,10 @@ from sidekick.structured.work import (
 from sidekick.structured.work_records import (
     DueAtInput,
     TaskChanges,
+    TaskClear,
     TaskDetailOutput,
     TaskOutput,
+    UpdatedTaskOutput,
     WritePriority,
 )
 from sidekick.structured.work_writes import create_task_structured
@@ -48,13 +51,14 @@ from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD
 _Version = Annotated[int, Field(ge=1)]
 
 
-def _task_reply(structured: TaskOutput, verb: str) -> ToolResult:
+def _task_reply(structured: TaskOutput | UpdatedTaskOutput, verb: str) -> ToolResult:
     """`<verb> task <title>.` and the task's reference line, as the tool result."""
     record = structured.task
+    ignored = structured.ignored_nulls if isinstance(structured, UpdatedTaskOutput) else ()
     return result(
         structured.model_dump(mode="json"),
         spoken_line(
-            f"{verb} task {cell(record.title)}.",
+            f"{verb} task {cell(record.title)}.{ignored_nulls_note(ignored)}",
             record_ref(record.id, record.version, record.title, parent=task_parent(record)),
         ),
     )
@@ -151,9 +155,9 @@ def _register_update_task(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_task",
         description=(
             "Update explicit fields of one owned task at its current version; retry-safe with "
-            "the same idempotency key."
+            f"the same idempotency key. {CLEAR_SENTENCE}"
         ),
-        output_schema=output_schema(TaskOutput),
+        output_schema=output_schema(UpdatedTaskOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_task")
@@ -162,7 +166,9 @@ def _register_update_task(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: TaskChanges,
+        clear: Annotated[list[TaskClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         structured = update_task_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -172,7 +178,7 @@ def _register_update_task(mcp: FastMCP, ctx: ToolContext) -> None:
             changes=changes,
             correlation_id=request_correlation_id_or_new(),
         )
-        return _task_reply(structured, "Updated")
+        return _task_reply(updated(UpdatedTaskOutput, structured, changes), "Updated")
 
 
 def _register_complete_task(mcp: FastMCP, ctx: ToolContext) -> None:

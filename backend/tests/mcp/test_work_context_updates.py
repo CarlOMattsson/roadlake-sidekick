@@ -335,7 +335,8 @@ async def test_domain_accent_is_set_listed_and_cleared_over_mcp() -> None:
                 "domain_id": domain_id,
                 "version": 2,
                 "idempotency_key": "accent-clear",
-                "changes": {"accent": None},
+                "changes": {},
+                "clear": ["accent"],
             },
         )
         assert cleared.structured_content["domain"]["accent"] is None

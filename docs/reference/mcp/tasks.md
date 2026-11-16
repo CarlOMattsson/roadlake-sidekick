@@ -98,11 +98,11 @@ Access: write
 
 Scopes: requires `projects:read`, `tasks:read`, `tasks:write`.
 
-Returns: `TaskOutput` with `task` (TaskRecord).
+Returns: `UpdatedTaskOutput` with `task` (TaskRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `changes` | object | yes | Fields to change: omitted stays, null clears where allowed. |
+| `changes` | object | yes | Fields to change: omitted or null stays; to empty a field, list it in clear. |
 | `changes.ai_possible` | boolean | no | may be null |
 | `changes.ambition` | boolean | no | may be null |
 | `changes.description` | string | no | up to 10000 characters; may be null |
@@ -129,6 +129,7 @@ Returns: `TaskOutput` with `task` (TaskRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `task_id` | uuid | yes | - |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `description`, `project_id`, `domain_id`, `process_id`, `due_at`, `not_before`, `estimated_minutes`, `waiting_since`, `follow_up_at`, `waiting_on_contact_id`, `recurrence`, `last_completed_at`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

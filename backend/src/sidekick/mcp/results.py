@@ -15,7 +15,12 @@ from pydantic.json_schema import JsonSchemaMode
 
 from sidekick.mcp.correlation import request_correlation_id
 from sidekick.mcp.text import flat
-from sidekick.shared.errors.core import CLIENT_INPUT_ERRORS, SidekickError, SidekickErrorReason
+from sidekick.shared.errors.core import (
+    CLIENT_INPUT_ERRORS,
+    FieldValidationError,
+    SidekickError,
+    SidekickErrorReason,
+)
 
 # One fixed English sentence per closed SidekickError reason, appended to the error text.
 REASON_ADVICE: dict[SidekickErrorReason, str] = {
@@ -207,6 +212,9 @@ def error_result(error: Exception) -> ToolResult:
         ):
             name = flat(error.subject, limit=_SUBJECT_CHARS)
             message = _STALE_SUBJECT_TEXT[error.subject_kind].format(name=name)
+    if isinstance(error, FieldValidationError):
+        # The rows hold field names and fixed words, never a value, so the caller can correct them.
+        message = f"{message} Fields: {'; '.join(error.rows)}"
     structured_content = {
         "code": code,
         "message": message,

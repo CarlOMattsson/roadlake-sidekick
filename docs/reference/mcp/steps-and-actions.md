@@ -45,7 +45,7 @@ Access: write
 
 Scopes: requires `tasks:read`, `tasks:write`.
 
-Returns: `StepOutput` with `step` (StepRecord).
+Returns: `UpdatedStepOutput` with `step` (StepRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -58,6 +58,7 @@ Returns: `StepOutput` with `step` (StepRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `step_id` | uuid | yes | - |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `due_at`, `instruction`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 
@@ -118,7 +119,7 @@ Access: write
 
 Scopes: requires `tasks:read`, `tasks:write`.
 
-Returns: `ActionOutput` with `action` (ActionRecord).
+Returns: `UpdatedActionOutput` with `action` (ActionRecord), `ignored_nulls` (array of string).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -131,6 +132,7 @@ Returns: `ActionOutput` with `action` (ActionRecord).
 | `changes.title` | string | no | 1 to 200 characters; may be null |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `version` | integer | yes | at least 1 |
+| `clear` | array of string | no | unique; items: `due_at`, `note`; may be null |
 
 A nested field is listed under its parent as `parent.field`; `parent[].field` is a field of each item in the list. Required means required inside its parent.
 

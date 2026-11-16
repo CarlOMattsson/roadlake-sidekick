@@ -186,7 +186,8 @@ def add_work_write_routes(router: CompanionRouter) -> None:
         actor = operation_actor(credential, TASK_UPDATE)
         body = await UPDATE_TASK_BODY.read(request)
         container = container_of(request)
-        changes = TaskChanges.model_validate(
+        # The companion's own clients send null to clear a field.
+        changes = TaskChanges.from_sent(
             {name: getattr(body, name) for name in body.model_fields_set - {"version"}}
         )
 

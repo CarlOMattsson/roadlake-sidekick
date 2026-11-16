@@ -1,7 +1,8 @@
 """Setting, changing and removing a Task's own recurrence through the update use case.
 
 Recurrence is a property of the Task, not of a Process: `update_task` takes the same rule shape
-the domain validates, and null removes it. No database: the in-memory store runs the real service.
+the domain validates, and naming it for clearing removes it. No database: the in-memory store
+runs the real service.
 """
 
 from datetime import UTC, date, datetime
@@ -11,7 +12,7 @@ from uuid import UUID
 import pytest
 from pydantic import ValidationError as PydanticValidationError
 
-from sidekick.shared.errors import ConflictError, ValidationError
+from sidekick.shared.errors import ConflictError, FieldValidationError, ValidationError
 from sidekick.shared.types import Actor
 from sidekick.structured.work_records import TaskChanges
 from sidekick.tasks.application import TaskService, UpdateTaskCommand
@@ -31,7 +32,8 @@ def _actor() -> Actor:
 
 
 def _patch(changes: dict[str, Any]) -> UpdateTaskCommand:
-    return UpdateTaskCommand(**TaskChanges.model_validate(changes).model_dump(exclude_unset=True))
+    # `from_sent` reads null on a clearable field as "clear", the way the companion API sends it.
+    return UpdateTaskCommand(**TaskChanges.from_sent(changes).model_dump(exclude_unset=True))
 
 
 def _service() -> TaskService:
@@ -143,10 +145,13 @@ def test_task_changes_accepts_the_shapes_the_app_offers() -> None:
         changes = TaskChanges.model_validate({"recurrence": rule})
         assert changes.recurrence is not None
         assert "recurrence" in changes.model_dump(exclude_unset=True)
-    # null is a change too (remove the rule); an empty change set is still refused.
-    assert TaskChanges.model_validate({"recurrence": None}).model_fields_set == {"recurrence"}
-    with pytest.raises(PydanticValidationError):
-        TaskChanges.model_validate({})
+    # Null is read as not sent; the rule is removed by clearing it, and an empty update is refused.
+    assert TaskChanges.model_validate({"recurrence": None}).model_fields_set == set()
+    assert TaskChanges.from_sent({"recurrence": None}).model_fields_set == {"recurrence"}
+    with pytest.raises(FieldValidationError):
+        TaskChanges.model_validate({"recurrence": None}).resolve()
+    with pytest.raises(FieldValidationError):
+        TaskChanges.model_validate({}).resolve()
 
 
 def test_undoing_a_recurring_completion_restores_the_last_completion_and_the_due_date() -> None:

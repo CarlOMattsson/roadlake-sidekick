@@ -42,7 +42,9 @@ export type ToolResults = {
   };
   create_manual_journal_entry: JournalEntryResult;
   create_process: ProcessOutput;
-  create_project: ProjectOutput;
+  create_project: {
+    project: ProjectRecord;
+  };
   create_saved_work_view: SavedViewOutput;
   create_shopping_list: ListResult;
   create_step_action: ActionOutput;
@@ -823,7 +825,12 @@ export type ToolResults = {
       domain: "journal" | "contacts" | "projects" | "tasks";
     }>;
   };
-  set_shopping_item_purchased: ItemResult;
+  set_shopping_item_purchased: {
+    evaluated_on: string;
+    item: ItemRecord;
+    list_name: string;
+    open_count: number | null;
+  };
   set_shopping_items_purchased: {
     evaluated_on: string;
     items: Array<ItemRecord>;
@@ -861,18 +868,45 @@ export type ToolResults = {
     reference_removed: boolean;
     task_id: string;
   };
-  update_contact: ContactResult;
-  update_domain: DomainOutput;
+  update_contact: {
+    contact: ContactRecord;
+    ignored_nulls: Array<string>;
+  };
+  update_domain: {
+    domain: DomainRecord;
+    ignored_nulls: Array<string>;
+  };
   update_journal_draft: JournalDraftStatusResult;
   update_journal_entry: JournalEntryResult;
-  update_process: ProcessOutput;
-  update_project: ProjectOutput;
+  update_process: {
+    ignored_nulls: Array<string>;
+    process: ProcessRecord;
+  };
+  update_project: {
+    ignored_nulls: Array<string>;
+    project: ProjectRecord;
+  };
   update_saved_work_view: SavedViewOutput;
-  update_shopping_item: ItemResult;
+  update_shopping_item: {
+    evaluated_on: string;
+    ignored_nulls: Array<string>;
+    item: ItemRecord;
+    list_name: string;
+    open_count: number | null;
+  };
   update_shopping_list: ListResult;
-  update_step_action: ActionOutput;
-  update_task: TaskOutput;
-  update_task_step: StepOutput;
+  update_step_action: {
+    action: ActionRecord;
+    ignored_nulls: Array<string>;
+  };
+  update_task: {
+    ignored_nulls: Array<string>;
+    task: TaskRecord;
+  };
+  update_task_step: {
+    ignored_nulls: Array<string>;
+    step: StepRecord;
+  };
   write_journal_entry: JournalEntryResult;
 };
 /** The arguments each tool accepts, by tool name. */
@@ -1675,6 +1709,15 @@ export type ToolInputs = {
       role?: string | null;
       tags?: Array<string>;
     };
+    clear?: Array<
+      | "context_note"
+      | "email"
+      | "phone"
+      | "relationship"
+      | "organization"
+      | "role"
+      | "address"
+    > | null;
     contact_id: string;
     expected_version: number;
     idempotency_key: string;
@@ -1705,6 +1748,9 @@ export type ToolInputs = {
       status?: "active" | "archived" | null;
       tags?: Array<string> | null;
     };
+    clear?: Array<
+      "description" | "review_cadence" | "last_reviewed_at" | "accent"
+    > | null;
     domain_id: string;
     idempotency_key: string;
     version: number;
@@ -1781,6 +1827,7 @@ export type ToolInputs = {
       status?: "active" | "paused" | "completed" | "archived" | null;
       tags?: Array<string> | null;
     };
+    clear?: Array<"description" | "cadence"> | null;
     idempotency_key: string;
     process_id: string;
     version: number;
@@ -1796,6 +1843,9 @@ export type ToolInputs = {
       target_date?: string | null;
       title?: string | null;
     };
+    clear?: Array<
+      "description" | "start_date" | "target_date" | "definition_of_done"
+    > | null;
     idempotency_key: string;
     project_id: string;
     version: number;
@@ -1840,6 +1890,16 @@ export type ToolInputs = {
     view_id: string;
   };
   update_shopping_item: {
+    clear?: Array<
+      | "unit"
+      | "note"
+      | "store"
+      | "product_url"
+      | "recipient_contact_id"
+      | "occasion"
+      | "target_date"
+      | "offer"
+    > | null;
     idempotency_key: string;
     item: {
       name?: string | null;
@@ -1881,6 +1941,7 @@ export type ToolInputs = {
       status?: "open" | "completed" | null;
       title?: string | null;
     };
+    clear?: Array<"due_at" | "note"> | null;
     idempotency_key: string;
     version: number;
   };
@@ -1911,6 +1972,20 @@ export type ToolInputs = {
       waiting_on_contact_id?: string | null;
       waiting_since?: string | null;
     };
+    clear?: Array<
+      | "description"
+      | "project_id"
+      | "domain_id"
+      | "process_id"
+      | "due_at"
+      | "not_before"
+      | "estimated_minutes"
+      | "waiting_since"
+      | "follow_up_at"
+      | "waiting_on_contact_id"
+      | "recurrence"
+      | "last_completed_at"
+    > | null;
     idempotency_key: string;
     task_id: string;
     version: number;
@@ -1923,6 +1998,7 @@ export type ToolInputs = {
       status?: "todo" | "in_progress" | "blocked" | "completed" | null;
       title?: string | null;
     };
+    clear?: Array<"due_at" | "instruction"> | null;
     idempotency_key: string;
     step_id: string;
     version: number;
@@ -2195,13 +2271,6 @@ export type ItemRecord = {
   version: number;
 };
 
-export type ItemResult = {
-  evaluated_on: string;
-  item: ItemRecord;
-  list_name: string;
-  open_count: number | null;
-};
-
 export type JournalDraftStatusRecord = {
   id: string;
   source_id: string;
@@ -2335,10 +2404,6 @@ export type ProjectContactResult = {
   contact_id: string;
   linked: boolean;
   project_id: string;
-};
-
-export type ProjectOutput = {
-  project: ProjectRecord;
 };
 
 export type ProjectRecord = {

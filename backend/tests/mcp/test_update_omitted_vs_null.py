@@ -1,4 +1,4 @@
-"""An omitted field stays; an explicit null clears it where the record allows, else is refused.
+"""An omitted field stays; a field named in `clear` is emptied; a null is read as not sent.
 
 Covers the partial updates over MCP: update_project, update_domain, update_process,
 update_task_step and update_step_action.
@@ -22,7 +22,7 @@ DUE = datetime(2030, 1, 2, 9, 0, tzinfo=UTC)
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_project_update_keeps_omitted_fields_and_clears_explicit_nulls() -> None:
+async def test_project_update_keeps_omitted_fields_and_clears_named_fields() -> None:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("patch-owner", "Owner")
     actor = Actor(owner, frozenset(MCP_SCOPES))
@@ -56,7 +56,8 @@ async def test_project_update_keeps_omitted_fields_and_clears_explicit_nulls() -
                 "project_id": str(project.id),
                 "version": 2,
                 "idempotency_key": "patch-clear",
-                "changes": {"description": None, "target_date": None},
+                "changes": {},
+                "clear": ["description", "target_date"],
             },
         )
         with pytest.raises(ToolError):
@@ -106,7 +107,8 @@ async def test_domain_and_process_updates_keep_omitted_fields_and_refuse_null_st
                 "domain_id": str(domain.id),
                 "version": 1,
                 "idempotency_key": "patch-domain-clear",
-                "changes": {"description": None},
+                "changes": {},
+                "clear": ["description"],
             },
         )
         process_renamed = await client.call_tool(
@@ -143,7 +145,7 @@ async def test_domain_and_process_updates_keep_omitted_fields_and_refuse_null_st
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_step_and_action_updates_keep_omitted_fields_and_clear_a_null_due_date() -> None:
+async def test_step_and_action_updates_keep_omitted_fields_and_clear_a_named_due_date() -> None:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("patch-owner", "Owner")
     actor = Actor(owner, frozenset(MCP_SCOPES))
@@ -172,7 +174,8 @@ async def test_step_and_action_updates_keep_omitted_fields_and_clear_a_null_due_
                 "step_id": str(step.id),
                 "version": 2,
                 "idempotency_key": "patch-step-clear",
-                "changes": {"due_at": None},
+                "changes": {},
+                "clear": ["due_at"],
             },
         )
         action_renamed = await client.call_tool(
@@ -190,7 +193,8 @@ async def test_step_and_action_updates_keep_omitted_fields_and_clear_a_null_due_
                 "action_id": str(action.id),
                 "version": 2,
                 "idempotency_key": "patch-action-clear",
-                "changes": {"due_at": None},
+                "changes": {},
+                "clear": ["due_at"],
             },
         )
 
@@ -263,7 +267,12 @@ async def test_step_instruction_and_action_note_are_set_kept_and_cleared() -> No
     server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
 
     async def update(
-        tool: str, id_arg: str, record_id: object, version: int, changes: dict[str, object]
+        tool: str,
+        id_arg: str,
+        record_id: object,
+        version: int,
+        changes: dict[str, object],
+        clear: list[str] | None = None,
     ) -> dict[str, dict[str, object]]:
         reply = await client.call_tool(
             tool,
@@ -272,6 +281,7 @@ async def test_step_instruction_and_action_note_are_set_kept_and_cleared() -> No
                 "version": version,
                 "idempotency_key": f"patch-{tool}-{version}",
                 "changes": changes,
+                **({"clear": clear} if clear else {}),
             },
         )
         assert reply.structured_content is not None
@@ -281,14 +291,14 @@ async def test_step_instruction_and_action_note_are_set_kept_and_cleared() -> No
         step_set = await update("update_task_step", "step_id", step.id, 1, {"instruction": "Do"})
         step_kept = await update("update_task_step", "step_id", step.id, 2, {"title": "Renamed"})
         step_cleared = await update(
-            "update_task_step", "step_id", step.id, 3, {"instruction": None}
+            "update_task_step", "step_id", step.id, 3, {}, clear=["instruction"]
         )
         action_set = await update("update_step_action", "action_id", action.id, 1, {"note": "Hi"})
         action_kept = await update(
             "update_step_action", "action_id", action.id, 2, {"title": "Renamed"}
         )
         action_cleared = await update(
-            "update_step_action", "action_id", action.id, 3, {"note": None}
+            "update_step_action", "action_id", action.id, 3, {}, clear=["note"]
         )
 
     assert step_set["step"]["instruction"] == "Do"

@@ -15,21 +15,25 @@ from sidekick.mcp.annotations import DESTRUCTIVE, WRITE
 from sidekick.mcp.contact_records import (
     Address,
     ContactChanges,
+    ContactClear,
     ContactResult,
     Organization,
     Relationship,
     Role,
+    UpdatedContactResult,
     contact_result,
 )
 from sidekick.mcp.contact_text import contact_summary
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
+from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note, updated
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import flat
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import UNSET, UnsetType
+from sidekick.structured.base import CLEAR_FIELDS
 from sidekick.structured.tags import TagsInput
 
 
@@ -120,11 +124,10 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_contact",
         description=(
             "Use this for explicit edits to one known owned active Contact. Supply the "
-            "observed version; omitted fields stay unchanged and explicit null clears "
-            "optional metadata. tags replaces the tag set, [] clears it, null is refused. Do "
-            "not use this for aliases or work links."
+            "observed version; omitted fields stay unchanged. tags replaces the tag set and "
+            f"[] empties it. {CLEAR_SENTENCE} Do not use this for aliases or work links."
         ),
-        output_schema=output_schema(ContactResult),
+        output_schema=output_schema(UpdatedContactResult),
         annotations=WRITE,
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
@@ -134,7 +137,9 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         expected_version: int,
         idempotency_key: IdempotencyKey,
         changes: ContactChanges,
+        clear: Annotated[list[ContactClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         contact = ctx.container.contacts.update(
             ctx.actor_provider(),
             contact_id=contact_id,
@@ -146,8 +151,12 @@ def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         structured = _contact_result(ctx, contact)
         record = structured.contact
         return result(
-            structured.model_dump(mode="json"),
-            contact_summary(f"Updated contact {flat(record.display_name)}.", record),
+            updated(UpdatedContactResult, structured, changes).model_dump(mode="json"),
+            contact_summary(
+                f"Updated contact {flat(record.display_name)}."
+                f"{ignored_nulls_note(changes.ignored_nulls)}",
+                record,
+            ),
         )
 
 

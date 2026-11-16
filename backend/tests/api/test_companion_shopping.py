@@ -287,12 +287,30 @@ def test_item_and_list_updates_change_only_what_is_sent_and_stale_versions_confl
         assert stale_item.status_code == 409
         assert stale_item.json()["reason"] == "stale_version"
         assert "Havremjölk" not in stale_item.text
-        cleared_name = client.post(
+        blank_name = client.post(
             item_url,
             headers=write(token, "shop-item-0000003"),
-            json={"item": {"name": None}, "version": 2},
+            json={"item": {"name": "  "}, "version": 2},
         )
-        assert cleared_name.status_code == 422
+        assert blank_name.status_code == 422
+        # Null in item means not sent: it neither renames nor empties the note.
+        ignored = client.post(
+            item_url,
+            headers=write(token, "shop-item-0000004"),
+            json={"item": {"name": None, "note": None}, "version": 2},
+        )
+        assert ignored.status_code == 200
+        assert ignored.json()["item"]["name"] == item["name"]
+        assert ignored.json()["item"]["note"] == "Ekologisk"
+        # A field is emptied by naming it in clear.
+        emptied = client.post(
+            item_url,
+            headers=write(token, "shop-item-0000005"),
+            json={"item": {}, "clear": ["note"], "version": ignored.json()["item"]["version"]},
+        )
+        assert emptied.status_code == 200
+        assert emptied.json()["item"]["note"] is None
+        assert emptied.json()["item"]["name"] == item["name"]
 
         renamed = client.post(
             list_url,

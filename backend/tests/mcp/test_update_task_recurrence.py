@@ -86,7 +86,8 @@ async def test_update_task_sets_changes_and_removes_recurrence() -> None:
                     "task_id": task["id"],
                     "version": monthly["version"],
                     "idempotency_key": "rec-mcp-clear-01",
-                    "changes": {"recurrence": None},
+                    "changes": {},
+                    "clear": ["recurrence"],
                 },
             )
         )

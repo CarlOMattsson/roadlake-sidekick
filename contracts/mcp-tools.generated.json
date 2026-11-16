@@ -1228,7 +1228,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra kontakt"
     },
-    "description": "Use this for explicit edits to one known owned active Contact. Supply the observed version; omitted fields stay unchanged and explicit null clears optional metadata. tags replaces the tag set, [] clears it, null is refused. Do not use this for aliases or work links.",
+    "description": "Use this for explicit edits to one known owned active Contact. Supply the observed version; omitted fields stay unchanged. tags replaces the tag set and [] empties it. Null in changes means not sent; to empty a field, list it in clear. Do not use this for aliases or work links.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1335,6 +1335,31 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "context_note",
+                  "email",
+                  "phone",
+                  "relationship",
+                  "organization",
+                  "role",
+                  "address"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "contact_id": {
           "format": "uuid",
           "type": "string"
@@ -1359,6 +1384,7 @@
     "name": "update_contact",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_contact's reply: the Contact and the nulls that were not applied.",
       "properties": {
         "contact": {
           "additionalProperties": false,
@@ -1536,12 +1562,20 @@
           ],
           "title": "ContactRecord",
           "type": "object"
+        },
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
         }
       },
       "required": [
         "contact"
       ],
-      "title": "ContactResult",
+      "title": "UpdatedContactResult",
       "type": "object"
     },
     "title": "\u00c4ndra kontakt"
@@ -10814,10 +10848,36 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra vara i ink\u00f6pslistan"
     },
-    "description": "Change one owned item at its current version. Only sent fields change; omitted fields keep their stored values. name and quantity may be omitted but never null or empty; send null to clear another optional field. Read the item first when unsure of its values. Only on an explicit reviewed user instruction; never invent an offer. Retry with the same key and arguments after uncertain delivery.",
+    "description": "Change one owned item at its current version. Only sent fields change; omitted fields keep their stored values. name and quantity may be omitted but never empty. Null in item means not sent; to empty another optional field, list it in clear. Read the item first when unsure of its values. Only on an explicit reviewed user instruction; never invent an offer. Retry with the same key and arguments after uncertain delivery.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "unit",
+                  "note",
+                  "store",
+                  "product_url",
+                  "recipient_contact_id",
+                  "occasion",
+                  "target_date",
+                  "offer"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -10825,7 +10885,7 @@
         },
         "item": {
           "additionalProperties": false,
-          "description": "update_shopping_item input: omitted name keeps the stored one; null or blank is refused.",
+          "description": "update_shopping_item input: an omitted or null field stays; `clear` empties one.",
           "properties": {
             "name": {
               "anyOf": [
@@ -10837,8 +10897,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "note": {
               "anyOf": [
@@ -10849,8 +10908,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "occasion": {
               "anyOf": [
@@ -10861,8 +10919,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "offer": {
               "anyOf": [
@@ -10944,8 +11001,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "product_url": {
               "anyOf": [
@@ -10956,8 +11012,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "quantity": {
               "anyOf": [
@@ -10969,8 +11024,7 @@
                 {
                   "type": "string"
                 }
-              ],
-              "default": "1"
+              ]
             },
             "recipient_contact_id": {
               "anyOf": [
@@ -10981,8 +11035,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "store": {
               "anyOf": [
@@ -10993,8 +11046,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "target_date": {
               "anyOf": [
@@ -11005,8 +11057,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             },
             "unit": {
               "anyOf": [
@@ -11017,8 +11068,7 @@
                 {
                   "type": "null"
                 }
-              ],
-              "default": null
+              ]
             }
           },
           "type": "object"
@@ -11043,11 +11093,20 @@
     "name": "update_shopping_item",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_shopping_item's reply: the item and the nulls that were not applied.",
       "properties": {
         "evaluated_on": {
           "format": "date",
           "title": "Evaluated On",
           "type": "string"
+        },
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
         },
         "item": {
           "additionalProperties": false,
@@ -11331,7 +11390,7 @@
         "evaluated_on",
         "list_name"
       ],
-      "title": "ItemResult",
+      "title": "UpdatedItemResult",
       "type": "object"
     },
     "title": "\u00c4ndra vara i ink\u00f6pslistan"
@@ -16513,13 +16572,13 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra projekt"
     },
-    "description": "Update explicit fields of one owned project at its current version; retry-safe with the same idempotency key.",
+    "description": "Update explicit fields of one owned project at its current version; retry-safe with the same idempotency key. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "changes": {
           "additionalProperties": false,
-          "description": "Fields to change: omitted stays, null clears where allowed.",
+          "description": "Fields to change: omitted or null stays; to empty a field, list it in clear.",
           "properties": {
             "definition_of_done": {
               "anyOf": [
@@ -16620,6 +16679,28 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "description",
+                  "start_date",
+                  "target_date",
+                  "definition_of_done"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -16645,7 +16726,16 @@
     "name": "update_project",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_project's reply: the Project and the nulls that were not applied.",
       "properties": {
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
+        },
         "project": {
           "additionalProperties": false,
           "properties": {
@@ -16823,7 +16913,7 @@
       "required": [
         "project"
       ],
-      "title": "ProjectOutput",
+      "title": "UpdatedProjectOutput",
       "type": "object"
     },
     "title": "\u00c4ndra projekt"
@@ -17340,13 +17430,13 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra dom\u00e4n"
     },
-    "description": "Update explicit fields of one owned domain at its current version; retry-safe with the same idempotency key.",
+    "description": "Update explicit fields of one owned domain at its current version; retry-safe with the same idempotency key. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "changes": {
           "additionalProperties": false,
-          "description": "Fields to change: omitted stays, null clears where allowed.",
+          "description": "Fields to change: omitted or null stays; to empty a field, list it in clear.",
           "properties": {
             "accent": {
               "anyOf": [
@@ -17367,7 +17457,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Colour accent shown next to the domain name: one of the eight names slate, blue, teal, green, amber, orange, rose or violet. Null clears it."
+              "description": "Colour accent shown next to the domain name: one of the eight names slate, blue, teal, green, amber, orange, rose or violet. Clear it to remove."
             },
             "description": {
               "anyOf": [
@@ -17453,6 +17543,28 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "description",
+                  "review_cadence",
+                  "last_reviewed_at",
+                  "accent"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "domain_id": {
           "format": "uuid",
           "type": "string"
@@ -17478,6 +17590,7 @@
     "name": "update_domain",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_domain's reply: the Domain and the nulls that were not applied.",
       "properties": {
         "domain": {
           "additionalProperties": false,
@@ -17586,12 +17699,20 @@
           ],
           "title": "DomainRecord",
           "type": "object"
+        },
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
         }
       },
       "required": [
         "domain"
       ],
-      "title": "DomainOutput",
+      "title": "UpdatedDomainOutput",
       "type": "object"
     },
     "title": "\u00c4ndra dom\u00e4n"
@@ -17742,13 +17863,13 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra process"
     },
-    "description": "Update explicit fields of one owned Process at its current version; retry-safe with the same idempotency key.",
+    "description": "Update explicit fields of one owned Process at its current version; retry-safe with the same idempotency key. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "changes": {
           "additionalProperties": false,
-          "description": "Fields to change: omitted stays, null clears where allowed.",
+          "description": "Fields to change: omitted or null stays; to empty a field, list it in clear.",
           "properties": {
             "cadence": {
               "anyOf": [
@@ -17836,6 +17957,26 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "description",
+                  "cadence"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -17861,7 +18002,16 @@
     "name": "update_process",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_process's reply: the Process and the nulls that were not applied.",
       "properties": {
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
+        },
         "process": {
           "additionalProperties": false,
           "properties": {
@@ -17945,7 +18095,7 @@
       "required": [
         "process"
       ],
-      "title": "ProcessOutput",
+      "title": "UpdatedProcessOutput",
       "type": "object"
     },
     "title": "\u00c4ndra process"
@@ -18880,7 +19030,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra steg"
     },
-    "description": "Update a Step with optimistic version checking.",
+    "description": "Update a Step with optimistic version checking. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -18950,6 +19100,26 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "due_at",
+                  "instruction"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -18975,7 +19145,16 @@
     "name": "update_task_step",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_task_step's reply: the Step and the nulls that were not applied.",
       "properties": {
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
+        },
         "step": {
           "additionalProperties": false,
           "properties": {
@@ -19073,7 +19252,7 @@
       "required": [
         "step"
       ],
-      "title": "StepOutput",
+      "title": "UpdatedStepOutput",
       "type": "object"
     },
     "title": "\u00c4ndra steg"
@@ -19698,7 +19877,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra \u00e5tg\u00e4rd"
     },
-    "description": "Update an Action with optimistic version checking; status completed ticks it off, status open opens it again.",
+    "description": "Update an Action with optimistic version checking; status completed ticks it off, status open opens it again. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -19770,6 +19949,26 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "due_at",
+                  "note"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -19791,6 +19990,7 @@
     "name": "update_step_action",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_step_action's reply: the Action and the nulls that were not applied.",
       "properties": {
         "action": {
           "additionalProperties": false,
@@ -19875,12 +20075,20 @@
           ],
           "title": "ActionRecord",
           "type": "object"
+        },
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
         }
       },
       "required": [
         "action"
       ],
-      "title": "ActionOutput",
+      "title": "UpdatedActionOutput",
       "type": "object"
     },
     "title": "\u00c4ndra \u00e5tg\u00e4rd"
@@ -25567,13 +25775,13 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra uppgift"
     },
-    "description": "Update explicit fields of one owned task at its current version; retry-safe with the same idempotency key.",
+    "description": "Update explicit fields of one owned task at its current version; retry-safe with the same idempotency key. Null in changes means not sent; to empty a field, list it in clear.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
         "changes": {
           "additionalProperties": false,
-          "description": "Fields to change: omitted stays, null clears where allowed.",
+          "description": "Fields to change: omitted or null stays; to empty a field, list it in clear.",
           "properties": {
             "ai_possible": {
               "anyOf": [
@@ -25844,6 +26052,36 @@
           },
           "type": "object"
         },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "enum": [
+                  "description",
+                  "project_id",
+                  "domain_id",
+                  "process_id",
+                  "due_at",
+                  "not_before",
+                  "estimated_minutes",
+                  "waiting_since",
+                  "follow_up_at",
+                  "waiting_on_contact_id",
+                  "recurrence",
+                  "last_completed_at"
+                ],
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "idempotency_key": {
           "maxLength": 128,
           "minLength": 8,
@@ -25869,7 +26107,16 @@
     "name": "update_task",
     "outputSchema": {
       "additionalProperties": false,
+      "description": "update_task's reply: the Task and the nulls that were not applied.",
       "properties": {
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
+        },
         "task": {
           "additionalProperties": false,
           "properties": {
@@ -26244,7 +26491,7 @@
       "required": [
         "task"
       ],
-      "title": "TaskOutput",
+      "title": "UpdatedTaskOutput",
       "type": "object"
     },
     "title": "\u00c4ndra uppgift"

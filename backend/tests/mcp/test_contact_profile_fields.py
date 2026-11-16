@@ -54,14 +54,15 @@ async def test_profile_fields_are_saved_updated_and_cleared() -> None:
     )
     assert contact["address"] == ADDRESS
 
-    # Omitted fields stay unchanged; an explicit null clears one.
+    # Omitted fields stay unchanged; a field named in clear is emptied.
     updated = await server.call_tool(
         "update_contact",
         {
             "contact_id": contact["id"],
             "expected_version": contact["version"],
             "idempotency_key": "profile-update-0001",
-            "changes": {"role": "Styrelseordförande", "address": None},
+            "changes": {"role": "Styrelseordförande"},
+            "clear": ["address"],
         },
     )
     after = updated.structured_content["contact"]
@@ -85,7 +86,8 @@ async def test_profile_fields_are_saved_updated_and_cleared() -> None:
             "contact_id": contact["id"],
             "expected_version": after["version"],
             "idempotency_key": "profile-update-0002",
-            "changes": {"relationship": None, "organization": None, "role": None},
+            "changes": {},
+            "clear": ["relationship", "organization", "role"],
         },
     )
     final = cleared.structured_content["contact"]

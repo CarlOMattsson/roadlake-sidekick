@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -14,7 +15,7 @@ from pydantic import Field
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
-from sidekick.mcp.patch import present, sent
+from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note, present, sent
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_text import (
@@ -26,6 +27,7 @@ from sidekick.mcp.work_text import (
     spoken_line,
 )
 from sidekick.shared.types import MAX_CURSOR_LENGTH
+from sidekick.structured.base import CLEAR_FIELDS
 from sidekick.structured.work import (
     action_record,
     complete_step_structured,
@@ -34,15 +36,19 @@ from sidekick.structured.work import (
 )
 from sidekick.structured.work_records import (
     ActionChanges,
+    ActionClear,
     ActionOutput,
     ActionPageOutput,
     ActionRecord,
     ListedStepPageOutput,
     ReorderItem,
     StepChanges,
+    StepClear,
     StepOutput,
     StepPageOutput,
     StepRecord,
+    UpdatedActionOutput,
+    UpdatedStepOutput,
 )
 from sidekick.work.application.steps_service import MAX_REORDER_STEPS
 
@@ -56,7 +62,9 @@ _ReorderSteps = Annotated[list[ReorderItem], Field(min_length=1, max_length=MAX_
 _ReorderActions = Annotated[list[ReorderItem], Field(min_length=1, max_length=100)]
 
 
-def _record_reply(verb: str, record: StepRecord | ActionRecord) -> ToolResult:
+def _record_reply(
+    verb: str, record: StepRecord | ActionRecord, ignored_nulls: Sequence[str] = ()
+) -> ToolResult:
     """A Step or Action result with one spoken line naming it and its parent."""
 
     if isinstance(record, StepRecord):
@@ -65,9 +73,12 @@ def _record_reply(verb: str, record: StepRecord | ActionRecord) -> ToolResult:
         kind, parent = "action", ("step", record.step_id)
     return result(
         # Fields the record did not set (a new record has no instruction or note) stay out.
-        {kind: record.model_dump(mode="json", exclude_unset=True)},
+        {
+            kind: record.model_dump(mode="json", exclude_unset=True),
+            **({"ignored_nulls": list(ignored_nulls)} if ignored_nulls else {}),
+        },
         spoken_line(
-            f"{verb} {kind} {cell(record.title)}.",
+            f"{verb} {kind} {cell(record.title)}.{ignored_nulls_note(ignored_nulls)}",
             record_ref(record.id, record.version, record.title, parent=parent),
         ),
     )
@@ -234,8 +245,8 @@ def _register_create_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
 def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="update_task_step",
-        description="Update a Step with optimistic version checking.",
-        output_schema=output_schema(StepOutput),
+        description=f"Update a Step with optimistic version checking. {CLEAR_SENTENCE}",
+        output_schema=output_schema(UpdatedStepOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_task_step")
@@ -244,7 +255,9 @@ def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         changes: StepChanges,
         idempotency_key: IdempotencyKey,
+        clear: Annotated[list[StepClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         step = ctx.container.steps.update_step(
             ctx.actor_provider(),
             step_id,
@@ -258,7 +271,7 @@ def _register_update_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = step_record(step)
-        return _record_reply("Updated", record)
+        return _record_reply("Updated", record, changes.ignored_nulls)
 
 
 def _register_complete_task_step(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -379,9 +392,9 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_step_action",
         description=(
             "Update an Action with optimistic version checking; "
-            "status completed ticks it off, status open opens it again."
+            f"status completed ticks it off, status open opens it again. {CLEAR_SENTENCE}"
         ),
-        output_schema=output_schema(ActionOutput),
+        output_schema=output_schema(UpdatedActionOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_step_action")
@@ -390,7 +403,9 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         changes: ActionChanges,
         idempotency_key: IdempotencyKey,
+        clear: Annotated[list[ActionClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         action = ctx.container.steps.update_action(
             ctx.actor_provider(),
             action_id,
@@ -404,7 +419,7 @@ def _register_update_step_action(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         record = action_record(action)
-        return _record_reply("Updated", record)
+        return _record_reply("Updated", record, changes.ignored_nulls)
 
 
 def _register_complete_step_action(mcp: FastMCP, ctx: ToolContext) -> None:

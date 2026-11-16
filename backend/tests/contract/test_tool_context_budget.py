@@ -53,7 +53,11 @@ CHARS_PER_TOKEN = 3.5
 # `review_ai_step_result`, `get_ai_step_run`) and `ai_possible` on `update_task`, about 2 400
 # tokens, of which the plan's spec schema is about 700; measured 22 536, rounded up.
 # `approve_ai_plan` is app-only and costs nothing here.
-TOKEN_BUDGET = 22_600
+# 2026-11-16: raised to 23 350 for the `clear` parameter of the eight update tools (task, project,
+# domain, process, step, action, contact, shopping item): a closed list of the fields that can be
+# emptied, replacing null as the way to clear them, about 710 tokens in all; measured 23 313,
+# rounded up.
+TOKEN_BUDGET = 23_350
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550

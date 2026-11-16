@@ -1,10 +1,8 @@
 """A write tool with a `changes` object accepts it when a client fills in the schema defaults.
 
-The published input schema once gave each field of a `changes` object `"default": null`. A client
-that fills in the defaults before sending then sent every field as an explicit null, and an
-explicit null on a field with no empty value (a title, a status) was refused, so no update went
-through. The schema now advertises no defaults, and an explicit null on such a field reads as "not
-sent". A null on a field that can be cleared still clears it.
+Some clients send every optional field as an explicit null. A null in `changes` therefore means
+"not sent" (the reply lists it in `ignored_nulls`), and a field is emptied only by naming it in the
+tool's `clear` list. A field that is both given a value and named in `clear` is refused.
 """
 
 from collections.abc import Mapping
@@ -16,9 +14,19 @@ import pytest
 from fastmcp import Client
 
 from sidekick.api.app import create_container
+from sidekick.mcp.contact_records import ContactChanges
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from sidekick.structured.base import PartialChanges
+from sidekick.structured.work_records import (
+    ActionChanges,
+    DomainChanges,
+    ProcessChanges,
+    ProjectChanges,
+    StepChanges,
+    TaskChanges,
+)
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -46,6 +54,10 @@ class Case:
     change: dict[str, Any]
     """One real change, sent next to the nulls."""
     changed_field: str
+    changes_model: type[PartialChanges]
+    clear_field: str
+    """A clearable field that `clear_value` sets before the test empties it."""
+    clear_value: Any
 
 
 CASES = [
@@ -57,6 +69,9 @@ CASES = [
         ("title", "status", "priority", "ambition", "ai_possible"),
         {"priority": "high"},
         "priority",
+        TaskChanges,
+        "description",
+        "Two coats",
     ),
     Case(
         "update_task_step",
@@ -66,6 +81,9 @@ CASES = [
         ("title", "status", "attention_requested"),
         {"title": "Renamed step"},
         "title",
+        StepChanges,
+        "instruction",
+        "Use the roller",
     ),
     Case(
         "update_step_action",
@@ -75,6 +93,9 @@ CASES = [
         ("title", "status", "attention_requested"),
         {"title": "Renamed action"},
         "title",
+        ActionChanges,
+        "note",
+        "Matt finish",
     ),
     Case(
         "update_project",
@@ -84,6 +105,9 @@ CASES = [
         ("title", "status", "domain_id"),
         {"description": "Now described"},
         "description",
+        ProjectChanges,
+        "definition_of_done",
+        "All walls painted",
     ),
     Case(
         "update_domain",
@@ -93,6 +117,9 @@ CASES = [
         ("name", "status"),
         {"description": "Now described"},
         "description",
+        DomainChanges,
+        "accent",
+        "teal",
     ),
     Case(
         "update_process",
@@ -102,6 +129,9 @@ CASES = [
         ("name", "status", "domain_id"),
         {"description": "Now described"},
         "description",
+        ProcessChanges,
+        "cadence",
+        "weekly",
     ),
     Case(
         "update_contact",
@@ -111,6 +141,9 @@ CASES = [
         ("display_name",),
         {"role": "Neighbour"},
         "role",
+        ContactChanges,
+        "organization",
+        "Next door",
     ),
 ]
 BY_TOOL = {case.tool: case for case in CASES}
@@ -246,48 +279,141 @@ async def test_nulls_on_fields_without_an_empty_value_alone_change_nothing(case:
     assert NO_CHANGE_ROW in refused.content[0].text
 
 
+async def _with_a_value(client: Client, case: Case) -> dict[str, Any]:
+    """Seed the records and give `case.clear_field` of its record a value; return that record."""
+
+    record = (await _seed(client))[case.record_key]
+    reply = await client.call_tool(
+        case.tool,
+        {
+            case.id_arg: record["id"],
+            case.version_arg: record["version"],
+            "idempotency_key": "set-0001",
+            "changes": {case.clear_field: case.clear_value},
+        },
+    )
+    stored = reply.structured_content[case.record_key]
+    assert stored[case.clear_field] is not None
+    return stored
+
+
+async def _call(client: Client, case: Case, stored: dict[str, Any], **arguments: Any) -> Any:
+    return await client.call_tool(
+        case.tool,
+        {
+            case.id_arg: stored["id"],
+            case.version_arg: stored["version"],
+            "idempotency_key": "after-0001",
+            **arguments,
+        },
+        raise_on_error=False,
+    )
+
+
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_an_explicit_null_still_clears_a_field_that_can_be_cleared() -> None:
+@pytest.mark.parametrize("case", CASES, ids=lambda case: case.tool)
+async def test_nulls_change_nothing_and_clear_empties_only_the_named_field(case: Case) -> None:
     server = _server()
+    tool = next(tool for tool in await server.list_tools() if tool.name == case.tool)
+    # What a client that fills in every nullable property sends.
+    nullable = [
+        name
+        for name, schema in _changes_properties(tool.parameters).items()
+        if any(branch.get("type") == "null" for branch in schema.get("anyOf", []))
+    ]
+    every_field_null = dict.fromkeys(nullable)
     async with Client(server) as client:
-        seeded = await _seed(client)
-        task = seeded["task"]
+        before = await _with_a_value(client, case)
+        ignored = await _call(client, case, before, changes=every_field_null)
+        cleared = await _call(
+            client,
+            case,
+            before,
+            changes=every_field_null,
+            clear=[case.clear_field],
+            idempotency_key="after-0002",
+        )
+
+    # Nothing was sent, so nothing changes.
+    assert ignored.is_error
+    assert not cleared.is_error
+    after = cleared.structured_content[case.record_key]
+    assert after[case.clear_field] is None
+    for name, value in before.items():
+        if name not in (case.clear_field, "version", "updated_at"):
+            assert after[name] == value, name
+    assert cleared.structured_content["ignored_nulls"] == [
+        name
+        for name in case.changes_model.model_fields
+        if name in nullable and name != case.clear_field
+    ]
+    assert "Ignored null for" in cleared.content[0].text
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+@pytest.mark.parametrize("case", CASES, ids=lambda case: case.tool)
+async def test_a_field_given_a_value_and_named_in_clear_is_refused(case: Case) -> None:
+    async with Client(_server()) as client:
+        stored = await _with_a_value(client, case)
+        reply = await _call(
+            client,
+            case,
+            stored,
+            changes={case.clear_field: case.clear_value, **case.change},
+            clear=[case.clear_field],
+        )
+
+    assert reply.is_error
+    assert f"changes.{case.clear_field}: also named in clear" in reply.content[0].text
+    assert str(case.clear_value) not in reply.content[0].text
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_tags_only_change_with_client_filled_nulls_keeps_the_other_fields() -> None:
+    """The reported case: `changes: {"tags": []}` with every other field sent as null."""
+
+    async with Client(_server()) as client:
+        task = (await _seed(client))["task"]
+        assert task["project_id"] is not None
         described = await client.call_tool(
             "update_task",
             {
                 "task_id": task["id"],
                 "version": task["version"],
-                "idempotency_key": "describe-0001",
+                "idempotency_key": "issue-0001",
                 "changes": {"description": "Two coats", "tags": ["home"]},
             },
         )
-        cleared = await client.call_tool(
+        reply = await client.call_tool(
             "update_task",
             {
                 "task_id": task["id"],
                 "version": described.structured_content["task"]["version"],
-                "idempotency_key": "clear-0001",
-                "changes": {"title": None, "description": None, "project_id": None, "tags": None},
-            },
-        )
-        step = seeded["step"]
-        step_cleared = await client.call_tool(
-            "update_task_step",
-            {
-                "step_id": step["id"],
-                "version": step["version"],
-                "idempotency_key": "clear-0002",
-                "changes": {"instruction": None, "status": None, "due_at": None},
+                "idempotency_key": "issue-0002",
+                "changes": {**dict.fromkeys(TaskChanges.model_fields), "tags": []},
             },
         )
 
-    after = cleared.structured_content["task"]
-    assert after["title"] == "Paint"
-    assert after["description"] is None
-    assert after["project_id"] is None
+    after = reply.structured_content["task"]
     assert after["tags"] == []
-    assert step_cleared.structured_content["step"]["status"] == step["status"]
+    assert after["project_id"] == task["project_id"]
+    assert after["description"] == "Two coats"
+    assert reply.structured_content["ignored_nulls"] == [
+        name for name in TaskChanges.model_fields if name != "tags"
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("case", CASES, ids=lambda case: case.tool)
+async def test_the_clear_parameter_lists_exactly_the_clearable_fields(case: Case) -> None:
+    tool = next(tool for tool in await _server().list_tools() if tool.name == case.tool)
+    clear = tool.parameters["properties"]["clear"]
+    listed = next(branch for branch in clear["anyOf"] if branch.get("type") == "array")
+    assert set(listed["items"]["enum"]) == set(case.changes_model.clearable_fields())
+    assert "clear" not in tool.parameters.get("required", [])
 
 
 @pytest.mark.asyncio

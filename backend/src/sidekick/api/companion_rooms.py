@@ -79,6 +79,7 @@ from sidekick.composition import container_of
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.shopping.application.schemas import BatchItem
+from sidekick.structured.base import CLEAR_FIELDS
 from sidekick.structured.journal import (
     JournalKeyPointInput,
     journal_day_structured,
@@ -88,7 +89,7 @@ from sidekick.structured.journal import (
     update_journal_entry_structured,
     write_journal_entry_structured,
 )
-from sidekick.structured.shopping import ItemPatchInput, item_patch
+from sidekick.structured.shopping import ItemClear, ItemPatchInput, item_patch
 
 # Caps on what is read, after authentication. The phone's own plugin refuses a body over 256 KiB
 # (`RequestPolicy.MAX_BODY_BYTES`); these are the server's ceilings for the largest legal body
@@ -121,6 +122,7 @@ class AddItemsBody(_Body):
 class UpdateItemBody(_Body):
     item: ItemPatchInput
     version: Version
+    clear: Annotated[list[ItemClear], CLEAR_FIELDS] | None = None
 
 
 class PurchasedBody(_Body):
@@ -320,11 +322,13 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
         actor = operation_actor(credential, SHOPPING_ITEM_UPDATE)
         body = await UPDATE_ITEM_BODY.read(request)
         service = container_of(request).shopping
+        body.item.resolve(body.clear or ())
+        patch = item_patch(body.item)
         data = await run_in_threadpool(
             lambda: service.update_item(
                 actor,
                 item_id,
-                item_patch(body.item),
+                patch,
                 version=body.version,
                 idempotency_key=idempotency_key,
                 correlation_id=_correlation(request),

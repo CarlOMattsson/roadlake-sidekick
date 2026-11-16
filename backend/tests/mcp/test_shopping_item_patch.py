@@ -1,4 +1,4 @@
-"""update_shopping_item changes only the fields it sends; an explicit null clears a field."""
+"""update_shopping_item changes only the fields it sends; `clear` empties, null is not sent."""
 
 from decimal import Decimal
 from typing import Any
@@ -32,7 +32,7 @@ async def test_update_shopping_item_changes_only_sent_fields() -> None:
         tools = {tool.name: tool for tool in await client.list_tools()}
         description = tools["update_shopping_item"].description or ""
         assert "Omitted optional fields are cleared" not in description
-        assert "null" in description
+        assert "Null in item means not sent" in description
 
         created = await client.call_tool(
             "create_shopping_list", {"name": "Veckohandel", "idempotency_key": "patch-list-001"}
@@ -78,12 +78,13 @@ async def test_update_shopping_item_changes_only_sent_fields() -> None:
         assert item["offer"] is not None
         assert Decimal(str(item["offer"]["price"])) == Decimal("29.90")
 
-        # An explicit null clears store; the omitted offer is still kept.
+        # Naming store in clear empties it; the omitted offer is still kept.
         unstored = await client.call_tool(
             "update_shopping_item",
             {
                 "item_id": item_id,
-                "item": {"name": "Mjölk", "store": None},
+                "item": {"name": "Mjölk"},
+                "clear": ["store"],
                 "version": 2,
                 "idempotency_key": "patch-store-null-001",
             },
@@ -93,12 +94,13 @@ async def test_update_shopping_item_changes_only_sent_fields() -> None:
         assert item["offer"] is not None
         assert Decimal(str(item["quantity"])) == Decimal("2")
 
-        # An explicit null clears the offer and leaves the quantity alone.
+        # Naming offer in clear empties it and leaves the quantity alone.
         unoffered = await client.call_tool(
             "update_shopping_item",
             {
                 "item_id": item_id,
-                "item": {"name": "Mjölk", "offer": None},
+                "item": {"name": "Mjölk"},
+                "clear": ["offer"],
                 "version": 3,
                 "idempotency_key": "patch-offer-null-001",
             },
@@ -150,7 +152,7 @@ async def test_update_shopping_item_without_name_keeps_stored_name() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_update_shopping_item_refuses_null_or_blank_name() -> None:
+async def test_update_shopping_item_refuses_a_blank_name() -> None:
     factory = database_factory()
     container = create_container(make_settings(), factory)
     user_id = container.auth.provision_user("owner", "Owner")
@@ -171,7 +173,7 @@ async def test_update_shopping_item_refuses_null_or_blank_name() -> None:
         )
         item_id = _data(added)["items"][0]["item"]["id"]
 
-        for index, name in enumerate([None, "", "   "]):
+        for index, name in enumerate(["", "   "]):
             with pytest.raises(ToolError):
                 await client.call_tool(
                     "update_shopping_item",
@@ -248,7 +250,7 @@ async def test_rename_keeps_quantity_store_and_note() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_null_note_clears_only_the_note() -> None:
+async def test_clearing_the_note_empties_only_the_note() -> None:
     factory = database_factory()
     container = create_container(make_settings(), factory)
     user_id = container.auth.provision_user("owner", "Owner")
@@ -261,7 +263,8 @@ async def test_null_note_clears_only_the_note() -> None:
             "update_shopping_item",
             {
                 "item_id": item_id,
-                "item": {"note": None},
+                "item": {},
+                "clear": ["note"],
                 "version": 1,
                 "idempotency_key": "clear-note-001",
             },
@@ -357,30 +360,67 @@ async def test_same_key_and_arguments_replay_without_a_second_change() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_null_quantity_is_refused_and_changes_nothing() -> None:
+async def test_null_fields_are_ignored_and_listed_and_change_nothing() -> None:
     factory = database_factory()
     container = create_container(make_settings(), factory)
     user_id = container.auth.provision_user("owner", "Owner")
     actor = Actor(user_id, frozenset({"shopping:read", "shopping:write"}))
     server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
     async with Client(server) as client:
-        list_id, item_id = await _seed_item(client, "null-qty")
+        list_id, item_id = await _seed_item(client, "null-ignored")
 
-        refused = await client.call_tool(
-            "update_shopping_item",
-            {
-                "item_id": item_id,
-                "item": {"quantity": None},
-                "version": 1,
-                "idempotency_key": "null-qty-001",
-            },
-            raise_on_error=False,
+        # A client that fills in null for every optional property changes nothing.
+        result = _data(
+            await client.call_tool(
+                "update_shopping_item",
+                {
+                    "item_id": item_id,
+                    "item": {"name": None, "note": None, "store": None},
+                    "version": 1,
+                    "idempotency_key": "null-ignored-001",
+                },
+            )
         )
-        assert refused.is_error
+        assert sorted(result["ignored_nulls"]) == ["name", "note", "store"]
 
         listed = await client.call_tool(
             "get_shopping_list", {"list_id": list_id, "limit": 100, "offset": 0}
         )
         item = _data(listed)["items"][0]
-        assert item["version"] == 1
+        assert item["name"] == "Mjölk"
+        assert item["note"] == "Ekologisk"
+        assert item["store"] == "ICA"
         assert Decimal(str(item["quantity"])) == Decimal("2")
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_field_given_in_item_and_named_in_clear_is_refused() -> None:
+    factory = database_factory()
+    container = create_container(make_settings(), factory)
+    user_id = container.auth.provision_user("owner", "Owner")
+    actor = Actor(user_id, frozenset({"shopping:read", "shopping:write"}))
+    server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
+    async with Client(server) as client:
+        list_id, item_id = await _seed_item(client, "conflict")
+
+        refused = await client.call_tool(
+            "update_shopping_item",
+            {
+                "item_id": item_id,
+                "item": {"note": "Laktosfri"},
+                "clear": ["note"],
+                "version": 1,
+                "idempotency_key": "conflict-001",
+            },
+            raise_on_error=False,
+        )
+        assert refused.is_error
+        assert "note: also named in clear" in str(refused.content)
+
+        listed = await client.call_tool(
+            "get_shopping_list", {"list_id": list_id, "limit": 100, "offset": 0}
+        )
+        item = _data(listed)["items"][0]
+        assert item["note"] == "Ekologisk"
+        assert item["version"] == 1

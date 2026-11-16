@@ -14,7 +14,7 @@ from pydantic import Field
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
-from sidekick.mcp.patch import present, sent
+from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note, present, sent, updated
 from sidekick.mcp.results import card_result, output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import (
@@ -35,6 +35,7 @@ from sidekick.mcp.work_text import (
 from sidekick.projects.application import UpdateProjectCommand
 from sidekick.projects.domain import ProjectStatus
 from sidekick.shared.types import MAX_CURSOR_LENGTH, UNSET, UnsetType
+from sidekick.structured.base import CLEAR_FIELDS
 from sidekick.structured.work import (
     domain_structured,
     process_structured,
@@ -46,17 +47,23 @@ from sidekick.structured.work_records import (
     DOMAIN_ACCENT_DESCRIPTION,
     DomainAccent,
     DomainChanges,
+    DomainClear,
     DomainOutput,
     DomainPageOutput,
     DomainRecord,
     ProcessChanges,
+    ProcessClear,
     ProcessOutput,
     ProcessPageOutput,
     ProcessRecord,
     ProjectChanges,
+    ProjectClear,
     ProjectDetailOutput,
     ProjectOutput,
     ProjectPageOutput,
+    UpdatedDomainOutput,
+    UpdatedProcessOutput,
+    UpdatedProjectOutput,
 )
 from sidekick.structured.work_writes import update_project_structured
 from sidekick.work.application.models import UpdateContextCommand
@@ -73,7 +80,7 @@ _Description = Annotated[str | None, Field(max_length=10_000)]
 def _tag_set(
     changes: ProjectChanges | DomainChanges | ProcessChanges,
 ) -> tuple[str, ...] | UnsetType:
-    """The intended tag set: unset when not sent, empty for an explicit null."""
+    """The intended tag set: unset when not sent, empty for `[]`."""
 
     return tuple(changes.tags or ()) if "tags" in changes.model_fields_set else UNSET
 
@@ -249,9 +256,9 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_project",
         description=(
             "Update explicit fields of one owned project at its current version; retry-safe with "
-            "the same idempotency key."
+            f"the same idempotency key. {CLEAR_SENTENCE}"
         ),
-        output_schema=output_schema(ProjectOutput),
+        output_schema=output_schema(UpdatedProjectOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_project")
@@ -260,7 +267,9 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: ProjectChanges,
+        clear: Annotated[list[ProjectClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         structured = update_project_structured(
             ctx.container,
             ctx.actor_provider(),
@@ -272,9 +281,9 @@ def _register_update_project(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         record = structured.project
         return result(
-            structured.model_dump(mode="json"),
+            updated(UpdatedProjectOutput, structured, changes).model_dump(mode="json"),
             spoken_line(
-                f"Updated project {cell(record.title)}.",
+                f"Updated project {cell(record.title)}.{ignored_nulls_note(changes.ignored_nulls)}",
                 record_ref(
                     record.id, record.version, record.title, parent=("domain", record.domain_id)
                 ),
@@ -385,9 +394,9 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_domain",
         description=(
             "Update explicit fields of one owned domain at its current version; retry-safe with "
-            "the same idempotency key."
+            f"the same idempotency key. {CLEAR_SENTENCE}"
         ),
-        output_schema=output_schema(DomainOutput),
+        output_schema=output_schema(UpdatedDomainOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_domain")
@@ -396,7 +405,9 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: DomainChanges,
+        clear: Annotated[list[DomainClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         actor = ctx.actor_provider()
         # The reply lists the record\'s tags (projects:read); refuse before anything is written.
         ctx.container.work_tags.require_record_tags_readable(actor, "domain")
@@ -414,9 +425,9 @@ def _register_update_domain(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         record = structured.domain
         return result(
-            structured.model_dump(mode="json"),
+            updated(UpdatedDomainOutput, structured, changes).model_dump(mode="json"),
             spoken_line(
-                f"Updated domain {cell(record.name)}.",
+                f"Updated domain {cell(record.name)}.{ignored_nulls_note(changes.ignored_nulls)}",
                 record_ref(record.id, record.version, record.name),
             ),
         )
@@ -464,9 +475,9 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
         name="update_process",
         description=(
             "Update explicit fields of one owned Process at its current version; retry-safe with "
-            "the same idempotency key."
+            f"the same idempotency key. {CLEAR_SENTENCE}"
         ),
-        output_schema=output_schema(ProcessOutput),
+        output_schema=output_schema(UpdatedProcessOutput),
         annotations=WRITE,
     )
     @ctx.instrument("update_process")
@@ -475,7 +486,9 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
         version: _Version,
         idempotency_key: IdempotencyKey,
         changes: ProcessChanges,
+        clear: Annotated[list[ProcessClear], CLEAR_FIELDS] | None = None,
     ) -> ToolResult:
+        changes.resolve(clear or ())
         actor = ctx.actor_provider()
         # The reply lists the record\'s tags (projects:read); refuse before anything is written.
         ctx.container.work_tags.require_record_tags_readable(actor, "process")
@@ -498,8 +511,11 @@ def _register_update_process(mcp: FastMCP, ctx: ToolContext) -> None:
             record.id, record.version, record.name, parent=("domain", record.domain_id)
         )
         return result(
-            structured.model_dump(mode="json"),
-            spoken_line(f"Updated process {cell(record.name)}.", ref),
+            updated(UpdatedProcessOutput, structured, changes).model_dump(mode="json"),
+            spoken_line(
+                f"Updated process {cell(record.name)}.{ignored_nulls_note(changes.ignored_nulls)}",
+                ref,
+            ),
         )
 
 

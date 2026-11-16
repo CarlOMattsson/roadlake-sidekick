@@ -1262,7 +1262,12 @@ async def test_reopen_undoes_only_a_completion_like_update_task() -> None:
             },
         )
     # The same `update_task` use case and idempotency record as the MCP undo.
-    assert same.structured_content == reopened.json()
+    # (The MCP reply also lists the nulls it ignored, which the companion reply does not.)
+    assert same.structured_content is not None
+    assert {k: v for k, v in same.structured_content.items() if k != "ignored_nulls"} == (
+        reopened.json()
+    )
+    assert same.structured_content["ignored_nulls"] == []
 
 
 @pytest.mark.integration

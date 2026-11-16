@@ -1,3 +1,4 @@
+import { clearWire } from "@/lib/mcp/clear-wire";
 import { applyHostStyle } from "@/features/mcp-apps/host-style";
 
 /**
@@ -371,7 +372,11 @@ export function createHostBridge(app: {
     },
     async call<T>(name: string, args: object): Promise<T> {
       await ready;
-      const raw = await request("tools/call", { name, arguments: args });
+      // The apps empty a field with `null`; the wire names it in `clear` (null there reads as "not sent").
+      const raw = await request("tools/call", {
+        name,
+        arguments: clearWire(name, args),
+      });
       const result = raw as { isError?: boolean; structuredContent?: T };
       if (result.isError)
         throw new HostToolError(

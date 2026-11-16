@@ -350,7 +350,7 @@
       },
       "ItemPatchInput": {
         "additionalProperties": false,
-        "description": "update_shopping_item input: omitted name keeps the stored one; null or blank is refused.",
+        "description": "update_shopping_item input: an omitted or null field stays; `clear` empties one.",
         "properties": {
           "name": {
             "anyOf": [
@@ -363,7 +363,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Name"
           },
           "note": {
@@ -376,7 +375,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Note"
           },
           "occasion": {
@@ -389,7 +387,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Occasion"
           },
           "offer": {
@@ -400,8 +397,7 @@
               {
                 "type": "null"
               }
-            ],
-            "default": null
+            ]
           },
           "product_url": {
             "anyOf": [
@@ -413,7 +409,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Product Url"
           },
           "quantity": {
@@ -427,7 +422,6 @@
                 "type": "string"
               }
             ],
-            "default": "1",
             "title": "Quantity"
           },
           "recipient_contact_id": {
@@ -440,7 +434,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Recipient Contact Id"
           },
           "store": {
@@ -453,7 +446,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Store"
           },
           "target_date": {
@@ -466,7 +458,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Target Date"
           },
           "unit": {
@@ -479,7 +470,6 @@
                 "type": "null"
               }
             ],
-            "default": null,
             "title": "Unit"
           }
         },
@@ -859,6 +849,33 @@
       "UpdateItemBody": {
         "additionalProperties": false,
         "properties": {
+          "clear": {
+            "anyOf": [
+              {
+                "description": "Fields to empty, by name; not also in changes.",
+                "items": {
+                  "enum": [
+                    "unit",
+                    "note",
+                    "store",
+                    "product_url",
+                    "recipient_contact_id",
+                    "occasion",
+                    "target_date",
+                    "offer"
+                  ],
+                  "type": "string"
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Clear"
+          },
           "item": {
             "$ref": "#/components/schemas/ItemPatchInput"
           },
