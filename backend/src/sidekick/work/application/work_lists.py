@@ -14,7 +14,7 @@ from sidekick.shared.types import (
     TxSession,
     paginate,
 )
-from sidekick.tasks.domain import Task, derive_domain_id
+from sidekick.tasks.domain import Task, TaskStatus, derive_domain_id
 from sidekick.work.application.models import WorkQuery, WorkRow, WorkToday
 from sidekick.work.application.serialization import (
     action_work_item,
@@ -335,6 +335,22 @@ class WorkListService:
         for item in page.items:
             columns.setdefault(item.status, []).append(item)
         return columns, page.next_cursor
+
+    def work_board_column_totals(self, actor: Actor, query: WorkQuery) -> dict[str, int]:
+        """How many records each board column holds under the board's filters, never the page.
+
+        Counted over the same selection as `work_board_page` without its limit or cursor, so a
+        column's total is what paging through it would reach. The four Task statuses are always
+        present, with 0 for an empty column.
+        """
+
+        query.validate()
+        actor.require("tasks:read")
+        spec = self._work_spec(query, self.clock.now(), None, board_order=True)
+        counts = self.store.transaction(
+            lambda s: self.store.work_status_counts(s, actor.user_id, spec)
+        )
+        return {**{status.value: 0 for status in TaskStatus}, **counts}
 
     def work_board_manual_statuses(self, actor: Actor, query: WorkQuery) -> tuple[str, ...]:
         """Status columns the owner has ordered by hand, under the board's status and Project scope.

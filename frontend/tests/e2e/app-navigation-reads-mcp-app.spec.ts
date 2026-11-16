@@ -32,7 +32,7 @@ for (const width of widths) {
   for (const theme of themes) {
     const suffix = `${width} px, ${theme}`;
 
-    test(`agenda to a task, Done, Back: the agenda under it is read again and no longer lists the task (${suffix})`, async ({
+    test(`agenda to a task, Done: the view returns to the agenda, which is read again and no longer lists the task (${suffix})`, async ({
       page,
     }) => {
       const { app, failures } = await openSidekick(page, {
@@ -57,7 +57,7 @@ for (const width of widths) {
       await expect
         .poll(async () => (await callNames(page)).includes("update_task"))
         .toBe(true);
-      await back(app).click();
+      // Done on a Task opened from a list goes back to that list by itself, as Back would.
       await expect(back(app)).toHaveCount(0);
       // Same view, no manual refresh: the overdue row is gone.
       await expect(app.getByText("Inget på agendan.")).toBeVisible();

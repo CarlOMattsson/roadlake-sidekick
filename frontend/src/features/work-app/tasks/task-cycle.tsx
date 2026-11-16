@@ -4,13 +4,17 @@ import {
   recurringDoneText,
   type RecurringCycle,
 } from "../agenda/parts/agenda-helpers";
+import { statusUndo } from "../board/board-writes";
+import type { DoneHandoff } from "../shared/done-handoff";
 import type { WorkLabels } from "../shared/labels";
-import type {
-  TaskStatusValue,
-  WorkTask,
-  WorkTaskChanges,
+import {
+  isTaskStatus,
+  type TaskStatusValue,
+  type WorkTask,
+  type WorkTaskChanges,
 } from "../transport/transport";
 import type { useTaskOffers } from "./use-task-offers";
+import type { TaskDone } from "./use-task-writes";
 
 /**
  * The Ångra of a `markDone` receipt: focus starts on its button (the write had moved it to the title), and the
@@ -143,6 +147,24 @@ export function receiptUndo(
   })
     ? { status: receipt.was }
     : undefined;
+}
+
+/**
+ * What a Task marked done hands the board its view goes back to: the Task, and the Ångra the board offers where the
+ * host can write the change back (the same check as the receipt here, see receiptUndo).
+ */
+export function doneHandoff(
+  { task, was, receipt }: TaskDone,
+  offers: ReturnType<typeof useTaskOffers>["offers"],
+  t: WorkLabels,
+): DoneHandoff {
+  if (!receipt || !isTaskStatus(was) || !receiptUndo(receipt, offers))
+    return { task };
+  const before =
+    receipt.kind === "cycle"
+      ? { due: receipt.from, lastCompleted: receipt.lastCompleted ?? null }
+      : { due: null, lastCompleted: null };
+  return { task, undo: statusUndo(t, was, task, before, true) };
 }
 
 /**

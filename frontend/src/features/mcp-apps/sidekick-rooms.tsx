@@ -50,6 +50,8 @@ export type RoomHost = {
   transport: RoomTransport;
   /** True when the host offers fullscreen and the app is not in it. Read at render time. */
   fullscreenAvailable: () => boolean;
+  /** False when the host does not let the app call tools (RoomProps.toolCalls). Absent: true. Read at render time. */
+  toolCalls?: () => boolean;
   /** A room is now shown in the full view: the host granted fullscreen, or the room expanded inline. */
   onExpand: (target?: NavEntry) => void;
   /** Per room, the views the host can serve. Absent (or a room not listed): every view. */
@@ -197,8 +199,16 @@ export function RoomAdapter({
 }) {
   const host = useContext(RoomHostContext);
   if (!host) throw new Error("RoomAdapter needs a RoomHostContext");
-  const { entry, full, visible, refreshKey, navigate, markDirty, sendMessage } =
-    shell;
+  const {
+    entry,
+    full,
+    visible,
+    refreshKey,
+    navigate,
+    back,
+    markDirty,
+    sendMessage,
+  } = shell;
   // A full-view room reads again in place on a new refreshKey and keeps its initial result. An inline
   // card has no state worth keeping: it is mounted again on a refresh and reads its record by id.
   const inlineRefreshed = !full && refreshKey > 0;
@@ -280,6 +290,7 @@ export function RoomAdapter({
       view={entry.view === ROOT_VIEW ? undefined : entry.view}
       mode={full ? "full" : "inline"}
       fullscreenAvailable={!full && host.fullscreenAvailable()}
+      toolCalls={host.toolCalls?.() !== false}
       transport={transport}
       availableViews={host.availableViews?.[entry.room]}
       hostSettings={
@@ -295,6 +306,8 @@ export function RoomAdapter({
               navigate(entryOfTarget(target), { replace: target.replace })
           : undefined
       }
+      onBack={back}
+      from={entry.from}
       onDirty={(domains) => markDirty(domains.filter(isRoomId))}
       onModeGranted={(mode, target) => {
         if (mode === "full")

@@ -66,6 +66,7 @@ export function rootFromToolResult(
         tasks?: { items?: unknown; next_cursor?: unknown };
         columns?: unknown;
         manually_ordered?: string[];
+        column_totals?: unknown;
         items?: unknown;
         filters?: unknown;
         next_cursor?: unknown;
@@ -172,6 +173,7 @@ export function rootFromToolResult(
         columns: columns as Record<string, WorkItemRecord[]>,
         next_cursor: cursorFrom(data),
         manually_ordered: data?.manually_ordered,
+        column_totals: totalsFrom(data?.column_totals),
       },
     };
   const items = data?.items;
@@ -267,4 +269,16 @@ function filtersFrom(
       filters[key] = value;
   }
   return filters;
+}
+
+/** The board's records per status column (`column_totals`), when every value is a count; else none (an older server). */
+function totalsFrom(value: unknown): Record<string, number> | undefined {
+  if (!isPlainObject(value)) return undefined;
+  const totals: Record<string, number> = {};
+  for (const [column, count] of Object.entries(value)) {
+    if (typeof count !== "number" || !Number.isInteger(count) || count < 0)
+      return undefined;
+    totals[column] = count;
+  }
+  return totals;
 }

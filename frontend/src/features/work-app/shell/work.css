@@ -212,6 +212,12 @@
   padding-inline: 0.5rem;
   scroll-snap-align: start;
 }
+/* "Visa fler" last in its column: the text on the heading's start edge, the 44 hit box inside the column's 8 (the
+   family's outdent of 12 would reach over the column's edge). */
+.sk-shell .work-columns > .work-column > .work-column-more {
+  margin-inline-start: -0.5rem;
+  padding-inline: 0.5rem;
+}
 .sk-shell .work-columns > .work-column[data-board-column="project"] {
   grid-column: 1 / -1;
 }

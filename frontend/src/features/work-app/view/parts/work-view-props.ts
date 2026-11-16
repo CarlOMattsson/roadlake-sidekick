@@ -2,6 +2,7 @@ import type { RoomTarget } from "../../../mcp-apps/room-types";
 import type { AgendaControls } from "../../agenda/agenda";
 import type { CardLabels } from "../../shared/card-labels";
 import type { InlineSummaryLabels } from "../../inline/inline-summary-labels";
+import type { ListRefresh } from "../../inline/inline-refresh";
 import type { WorkLabels } from "../../shared/labels";
 import type {
   WorkFilters,
@@ -66,6 +67,14 @@ export type WorkViewProps = {
    */
   onRoute?: (target: RoomTarget) => void;
   /**
+   * The shell's Back, given when the view is a layer of the shell's stack: a Task opened from a list (`openedFrom`)
+   * goes back with it when marked done. Otherwise a Task marked done stays open with its Ångra, unless the view's own
+   * stack has a list below it.
+   */
+  onLeave?: () => void;
+  /** With `onLeave`: the list view the layer was opened from ("board", "agenda", "hierarchy"), if it was one. */
+  openedFrom?: string;
+  /**
    * Whether the host can answer a tool (RoomTransport.supportsTool). Absent: every tool. The Task's Project is
    * a link only when get_project is answered; otherwise its name is shown by the meta line alone.
    */
@@ -78,4 +87,9 @@ export type WorkViewProps = {
   hierarchyQuery?: string;
   /** Called with the filters of the root agenda or board when they first show and whenever they change. */
   onListFilters?: (filters: WorkFilters) => void;
+  /**
+   * The refresh control of an inline board or agenda summary (a corner button that reads the list again with the
+   * filters it was read with). Given only when the host answers that read; absent: the summary has no button.
+   */
+  listRefresh?: ListRefresh;
 };

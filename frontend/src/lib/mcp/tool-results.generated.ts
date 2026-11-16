@@ -424,6 +424,9 @@ export type ToolResults = {
     next_cursor: string | null;
   };
   get_work_board: {
+    column_totals: {
+      [key: string]: number;
+    };
     columns: {
       [key: string]: Array<WorkItemRecord>;
     };

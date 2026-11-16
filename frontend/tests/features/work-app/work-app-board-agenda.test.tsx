@@ -466,20 +466,21 @@ it("shows more board cards with the cursor and the filters of the root", async (
       { status: "todo" },
     ),
   );
+  // The board is filtered to To do, so the board's own next page is that column's: its "Show more" stands last in it.
+  const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
   await user.click(
-    screen.getByRole("button", { name: boardLabelsEn.showMore }),
+    within(todo).getByRole("button", {
+      name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+    }),
   );
   expect(getWorkBoard).toHaveBeenCalledWith({ status: "todo" }, "cursor-2");
-  const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
   expect(
     await within(todo).findByRole("button", { name: "Ny uppgift" }),
   ).toBeInTheDocument();
   expect(
     within(todo).getByRole("button", { name: boardTask.title }),
   ).toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: boardLabelsEn.showMore }),
-  ).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Show more/ })).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.refresh }));
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
   expect(getWorkBoard).toHaveBeenLastCalledWith({ status: "todo" });

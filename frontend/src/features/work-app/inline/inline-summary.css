@@ -314,3 +314,46 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+/* The refresh button of the board and agenda cards: a 44 box in the card's top corner, its glyph level with the head's
+   text and its edge on the card's content edge, so the box overlaps the padding and the card does not grow. The head
+   keeps a button's width free at its end, so its words never run under the glyph. */
+.sidekick-work .work-compact-card {
+  position: relative;
+}
+.sidekick-work .work-compact-card .sk-eyebrow:has(+ .work-inline-refresh) {
+  padding-inline-end: var(--sk-tap);
+}
+.sidekick-work button.sk-iconbtn.work-inline-refresh {
+  --work-refresh-glyph: 20px;
+  position: absolute;
+  inset-block-start: calc(
+    var(--sk-s4) + (var(--sk-type-meta-line) - var(--sk-tap)) / 2
+  );
+  inset-inline-end: calc(
+    var(--sk-s4) - (var(--sk-tap) - var(--work-refresh-glyph)) / 2
+  );
+  color: var(--sk-muted);
+}
+.sidekick-work .work-inline-refresh svg {
+  width: var(--work-refresh-glyph);
+  height: var(--work-refresh-glyph);
+}
+.sidekick-work .work-inline-refresh[aria-busy="true"] {
+  cursor: default;
+}
+.sidekick-work .work-inline-refresh[aria-busy="true"] svg {
+  animation: work-refresh-spin 0.8s linear infinite;
+}
+@keyframes work-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* No turning for a user who asks for less motion: the dimmed glyph says the read runs. */
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-work .work-inline-refresh[aria-busy="true"] svg {
+    animation: none;
+    opacity: 0.5;
+  }
+}

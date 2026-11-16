@@ -9,7 +9,12 @@ import {
   type BoardSegment,
 } from "../../shared/work-items";
 import type { WorkLabels } from "../../shared/labels";
-import { findTaskCard, shownIn, type BoardUndo } from "../board-columns";
+import {
+  findTaskCard,
+  shownIn,
+  unshownIn,
+  type BoardUndo,
+} from "../board-columns";
 import type { RowQueue } from "../../../mcp-apps/ui/row-queue";
 import type {
   TaskStatusValue,
@@ -84,6 +89,13 @@ export function useBoardSections({
       busy: rowQueue.pending(key) > 0,
     };
   }
+  /**
+   * The segment's records not on the page yet, counted in its heading (the server's totals); while the search
+   * narrows the board, the heading counts the cards that match.
+   */
+  function unshownOf(segment: BoardSegment) {
+    return needle ? 0 : unshownIn(page, segment.key);
+  }
   // The single layout lists every status as a section of its own, in board order.
   // `items` are the section's records (its count), `shown` the cards it draws (see shownIn).
   const sections = single
@@ -97,6 +109,7 @@ export function useBoardSections({
           segment,
           items,
           shown: nestSteps(shownIn(segment.key, items, undos, page)),
+          unshown: unshownOf(segment),
         };
       })
     : [];
@@ -105,6 +118,7 @@ export function useBoardSections({
     : boardSegments(page, t).map((segment) => ({
         segment,
         items: shownItems(segment),
+        unshown: unshownOf(segment),
       }));
   const anyShown = single
     ? sections.some(({ shown }) => shown.length)

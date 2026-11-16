@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 import type {
+  TaskStatusValue,
   WorkBoardFrame,
   WorkTask,
   WorkTransport,
@@ -19,7 +20,12 @@ import {
   type BoardNotice,
 } from "../board-notice";
 import type { FocusWanted } from "../board-writes";
-import { boardReadFilters, withTaskMoved } from "../board-columns";
+import {
+  boardReadFilters,
+  withBoardRead,
+  withColumnPage,
+  withTaskMoved,
+} from "../board-columns";
 
 export type Busy = "idle" | BoardAction;
 
@@ -34,7 +40,7 @@ type Options = {
 
 /**
  * The board's reads and the generation every read and write shares: its frame, notice and busy state, the
- * serialized reload, `more`, the per-card write queue and the quiet read that follows the last write.
+ * serialized reload, `more` (the board's next page), `loadColumn` (one column's next records), the per-card write queue and the quiet read that follows the last write.
  */
 export function useBoardCore({
   frame,
@@ -110,7 +116,7 @@ export function useBoardCore({
         boardReadFilters(latest.current),
       );
       if (!fresh()) return;
-      show({ ...latest.current, page: next }, done);
+      show(withBoardRead(latest.current, next), done);
       onRead?.();
     } catch (error) {
       focusWanted.current = undefined;
@@ -134,6 +140,49 @@ export function useBoardCore({
         show({
           ...latest.current,
           page: appendBoardPage(latest.current.page, later),
+        });
+      } catch (error) {
+        notify(failureNotice(error, "more"));
+      }
+    });
+  }
+  /**
+   * The next records of one Task status column, read with the board's filters and that status. The first read of a
+   * column starts at its top, so it reads on past the records already shown until one is new or the column ends.
+   * Once the column is whole its "Visa fler" is gone, and focus goes to the first new card.
+   */
+  function loadColumn(status: TaskStatusValue) {
+    run("more", async () => {
+      const fresh = readToken();
+      try {
+        let cursor = latest.current.columnCursors?.[status] ?? undefined;
+        let page = latest.current.page;
+        const before = new Set(
+          (page.columns[status] ?? []).map((item) => item.id),
+        );
+        for (;;) {
+          const later = await transport.getWorkBoard(
+            { ...boardReadFilters(latest.current), status },
+            cursor,
+          );
+          if (!fresh()) return;
+          const next = withColumnPage(page, later);
+          page = next.page;
+          cursor = later.next_cursor ?? undefined;
+          if (next.added > 0 || !cursor) break;
+        }
+        const firstNew = page.columns[status]?.find(
+          (item) => !before.has(item.id),
+        );
+        if (!cursor && firstNew)
+          focusWanted.current = { kind: "card", id: firstNew.id };
+        show({
+          ...latest.current,
+          page,
+          columnCursors: {
+            ...latest.current.columnCursors,
+            [status]: cursor ?? null,
+          },
         });
       } catch (error) {
         notify(failureNotice(error, "more"));
@@ -165,7 +214,7 @@ export function useBoardCore({
         boardReadFilters(latest.current),
       );
       if (!fresh()) return;
-      commit({ ...latest.current, page: next });
+      commit(withBoardRead(latest.current, next));
       onRead?.();
     } catch (error) {
       notify(failureNotice(error, "reload"));
@@ -174,6 +223,16 @@ export function useBoardCore({
   /** A write succeeded: its Task is shown at once in its new column, with the version the answer gave. */
   function wrote(task: WorkTask) {
     writes.current += 1;
+    const next = withTaskMoved(latest.current.page, task);
+    if (next) commit({ ...latest.current, page: next });
+  }
+
+  /**
+   * A Task written outside the board (marked done in its own view): shown in its new column at once, without counting as
+   * a write of the board (the read the board makes when it is shown again confirms it). `focus` asks focus for its card.
+   */
+  function placeTask(task: WorkTask, focus: boolean) {
+    if (focus) focusWanted.current = { kind: "card", id: task.id };
     const next = withTaskMoved(latest.current.page, task);
     if (next) commit({ ...latest.current, page: next });
   }
@@ -220,8 +279,10 @@ export function useBoardCore({
     reread,
     reload,
     loadMore,
+    loadColumn,
     queueWrite,
     wrote,
+    placeTask,
   };
 }
 

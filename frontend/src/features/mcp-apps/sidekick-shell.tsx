@@ -339,6 +339,7 @@ export function SidekickShell({
       visible: room === nav.active,
       refreshKey: layerId === undefined ? 0 : (layerKeys[layerId] ?? 0),
       navigate: mode === "local" ? navigate : undefined,
+      back: mode === "local" && canGoBack(nav) ? requestBack : undefined,
       markDirty: (domains) => markDirty(layerId ?? room, domains),
       locale,
       sendMessage: features.message ? onSendMessage : undefined,

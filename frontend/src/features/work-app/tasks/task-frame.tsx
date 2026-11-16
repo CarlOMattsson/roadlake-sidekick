@@ -10,7 +10,8 @@ import { TaskPlace } from "./task-place";
 import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
-import { TaskDoneControl, TaskDoneReceipt } from "./task-cycle";
+import { doneHandoff, TaskDoneControl, TaskDoneReceipt } from "./task-cycle";
+import type { DoneHandoff } from "../shared/done-handoff";
 import type { WorkContact, WorkTask } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
 import { DetailTitle } from "../view/parts/detail-title";
@@ -47,11 +48,17 @@ export function TaskFrame({
   refreshKey = 0,
   onSaved,
   back,
+  onDone,
 }: FrameProps & {
   id: string;
   onSaved: () => void;
   /** False when the host cannot answer get_project: the Project is then not offered as a link. */
   projectOpenable?: boolean;
+  /**
+   * Given where the view goes back to the list it was opened from: a `markDone` that succeeded leaves the view with
+   * what the list needs to offer its Ångra, instead of showing the Ångra here.
+   */
+  onDone?: (done: DoneHandoff) => void;
 }) {
   const frame = useDetailFrame({ moves });
   const { phase, write, editing, heading, banner } = frame;
@@ -106,6 +113,7 @@ export function TaskFrame({
     refreshTags: tags.refresh,
     onSaved,
     onTrashStart: () => setMenuOpen(false),
+    onDone: onDone && ((done) => onDone(doneHandoff(done, offers, t))),
   });
   useFrameRead(
     frame,

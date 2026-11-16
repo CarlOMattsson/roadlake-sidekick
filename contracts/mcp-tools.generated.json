@@ -21283,6 +21283,13 @@
       "additionalProperties": false,
       "description": "Work records grouped by status, in manual board order within each column.",
       "properties": {
+        "column_totals": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Column Totals",
+          "type": "object"
+        },
         "columns": {
           "additionalProperties": {
             "items": {

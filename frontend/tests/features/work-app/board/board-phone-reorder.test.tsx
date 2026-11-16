@@ -76,9 +76,12 @@ it("offers no reorder buttons when the column is not whole on the board", async 
   expect(
     screen.queryByRole("button", { name: boardLabelsEn.moveDown }),
   ).toBeNull();
-  // "Show more tasks" sits in the foot, and the refresh icon beside it.
+  // "Show more tasks" stands last in the section, under its last row.
+  const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
   expect(
-    screen.getByRole("button", { name: boardLabelsEn.showMore }),
+    within(todo).getByRole("button", {
+      name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+    }),
   ).toBeInTheDocument();
 });
 

@@ -575,6 +575,17 @@ class WorkListStore:
         return {str(group): int(count) for group, count in session.execute(statement)}
 
     @staticmethod
+    def work_status_counts(session: Session, owner_id: UUID, spec: WorkListSpec) -> dict[str, int]:
+        """How many selected records carry each status: the whole filtered list, no paging."""
+
+        kinds = _wanted_kinds(spec)
+        if not kinds:
+            return {}
+        selected = _selection(owner_id, spec, kinds)
+        statement = select(selected.c.status, func.count()).group_by(selected.c.status)
+        return {str(status): int(count) for status, count in session.execute(statement)}
+
+    @staticmethod
     def work_records_by_ids(
         session: Session, owner_id: UUID, ids_by_kind: Mapping[str, Sequence[UUID]]
     ) -> dict[str, dict[UUID, WorkRecord]]:

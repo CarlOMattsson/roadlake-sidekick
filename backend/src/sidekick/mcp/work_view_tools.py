@@ -239,6 +239,7 @@ def _board_reply(
     actor = ctx.actor_provider()
     columns, next_cursor = ctx.container.work_lists.work_board_page(actor, board_query)
     manually_ordered = ctx.container.work_lists.work_board_manual_statuses(actor, board_query)
+    column_totals = ctx.container.work_lists.work_board_column_totals(actor, board_query)
     filters = applied_filters(values, _BOARD_FILTER_DEFAULTS)
     structured = WorkBoardOutput(
         columns={
@@ -247,6 +248,7 @@ def _board_reply(
         next_cursor=next_cursor,
         filters=filters,
         manually_ordered=list(manually_ordered),
+        column_totals=column_totals,
     )
     sentence = board_sentence(structured.columns, structured.next_cursor)
     return card_result(

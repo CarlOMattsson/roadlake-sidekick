@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { WorkEmpty } from "../shared/work-empty";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
-import { cardKey } from "../shared/work-items";
+import { cardKey, type BoardSegment } from "../shared/work-items";
 import { RowMenuTip } from "../shared/row-menu";
 import { UndoMeta } from "../agenda/agenda-undo";
 import { SearchNoMatch } from "../agenda/agenda";
@@ -11,7 +11,8 @@ import {
   type BoardAction,
   type BoardNotice,
 } from "./board-notice";
-import type { BoardUndo } from "./board-columns";
+import { columnMore, type BoardUndo } from "./board-columns";
+import { useDoneHandoff } from "../shared/done-handoff";
 import { boardLabelsFor } from "./board-labels";
 import {
   useBoardLayout,
@@ -33,11 +34,12 @@ import {
   withFilterTags,
   WorkTagFilter,
 } from "../shared/work-tags";
-import type {
-  WorkBoardFrame,
-  WorkFrame,
-  WorkItemRecord,
-  WorkTransport,
+import {
+  isTaskStatus,
+  type WorkBoardFrame,
+  type WorkFrame,
+  type WorkItemRecord,
+  type WorkTransport,
 } from "../transport/transport";
 
 // The board's notice and layout types live in their own modules; the agenda and the shell import them from here.
@@ -113,7 +115,7 @@ export function BoardView({
     onRead,
     refreshKey,
   });
-  const { busy, notice, reload, loadMore } = core;
+  const { busy, notice, reload, loadMore, loadColumn } = core;
   const { query, clearSearch, searchText, needle } = useBoardSearch(core);
   const { page } = frame;
   const { anyCard, sections, columnSections, anyShown, waitingCards, queueOf } =
@@ -160,6 +162,21 @@ export function BoardView({
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
+  // A Task marked done in its own view comes back here: in its new place at once, with its Ångra where it was
+  // (the single layout keeps the card in its section while the Ångra lasts, as after a move on the board).
+  useDoneHandoff(({ task, undo }) => {
+    const offered = undo && isTaskStatus(undo.from) ? undo.from : undefined;
+    if (undo && offered) {
+      const index = sections
+        .find(({ segment }) => segment.key === offered)
+        ?.shown.findIndex((item) => item.id === task.id);
+      setUndos((all) => ({
+        ...all,
+        [undo.key]: { ...undo, at: offered, index: Math.max(0, index ?? 0) },
+      }));
+    }
+    core.placeTask(task, offered !== undefined);
+  });
   useBoardFocus(core.focusWanted, boardRoot, heading, {
     page,
     preview,
@@ -184,6 +201,7 @@ export function BoardView({
     );
   }
   const cardProps = {
+    moreFor,
     labels: t,
     disabled,
     now,
@@ -203,16 +221,28 @@ export function BoardView({
     <RefreshButton label={t.refresh} disabled={disabled} onClick={reload} />
   );
   const words = boardLabelsFor(t.dateLocale);
-  const more = page.next_cursor && (
-    <button
-      type="button"
-      className="sk-more"
-      disabled={disabled}
-      onClick={loadMore}
-    >
-      {words.showMore}
-    </button>
-  );
+  /**
+   * The "Visa fler" last in one column (or section): a Task status column reads its own next records, the Projects
+   * column the board's next page (see columnMore). Null when the column is whole on the board.
+   */
+  function moreFor(segment: BoardSegment) {
+    const how = columnMore(frame, segment.key);
+    if (!how) return null;
+    const status = isTaskStatus(segment.key) ? segment.key : undefined;
+    return (
+      <button
+        type="button"
+        className="sk-more work-column-more"
+        disabled={disabled}
+        aria-label={status ? words.showMoreIn(segment.label) : undefined}
+        onClick={
+          how === "status" && status ? () => loadColumn(status) : loadMore
+        }
+      >
+        {status ? words.showMore : words.showMoreAll}
+      </button>
+    );
+  }
   // One article for both layouts, so the measured root and the columns row survive a change of layout.
   return (
     <KnownTags.Provider value={tagVocabulary.suggestions}>
@@ -284,13 +314,9 @@ export function BoardView({
             />
           )}
         </div>
-        {single && (more || refresh) ? (
-          <div className="work-board-foot">
-            {more}
-            {refresh}
-          </div>
+        {single && refresh ? (
+          <div className="work-board-foot">{refresh}</div>
         ) : null}
-        {single ? null : more}
         {single && anyShown && <RowMenuTip labels={t} />}
       </article>
     </KnownTags.Provider>

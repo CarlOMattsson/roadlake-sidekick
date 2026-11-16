@@ -12,6 +12,12 @@ import {
   OpenFoot,
   inlineMeta,
 } from "../inline/inline-summary";
+import {
+  InlineRefreshButton,
+  RefreshFailure,
+  refreshedOr,
+  type ListRefresh,
+} from "../inline/inline-refresh";
 import "../inline/inline-summary.css";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { boardLabelsFor } from "./board-labels";
@@ -100,11 +106,14 @@ export function BoardSummary({
   labels: t,
   onOpen,
   onModelContext,
+  refresh,
 }: {
   page: WorkBoardPage;
   labels: WorkLabels;
   /** Asks the host for fullscreen; the caller passes it only when the host can show it. */
   onOpen: () => void;
+  /** Reads the board again from the card's corner; the room passes it only when the host answers the read. */
+  refresh?: ListRefresh;
   /** Sends the counts to the host model once per shown summary; a no-op without host support. */
   onModelContext?: (summary: string) => void;
 }) {
@@ -154,8 +163,14 @@ export function BoardSummary({
       {/* The head of the agenda card (01), so the card says what its rows are: the room, the view and the date,
           and the overdue and open counts. */}
       <h2 tabIndex={-1} className="work-compact-kind sk-eyebrow">
-        {`${t.title} · ${t.status} · ${workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false })}`}
+        {`${t.title} · ${t.status} · ${refreshedOr(refresh, t.dateLocale, workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false }))}`}
       </h2>
+      {refresh ? (
+        <>
+          <InlineRefreshButton refresh={refresh} dateLocale={t.dateLocale} />
+          <RefreshFailure refresh={refresh} dateLocale={t.dateLocale} />
+        </>
+      ) : null}
       {blank ? (
         <InlineEmpty
           locale={t.dateLocale}

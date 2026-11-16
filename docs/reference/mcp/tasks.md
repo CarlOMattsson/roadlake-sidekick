@@ -227,7 +227,7 @@ Access: read
 
 Scopes: requires `tasks:read`.
 
-Returns: `WorkBoardOutput` with `columns` (Columns), `filters` (Filters), `manually_ordered` (array of string), `next_cursor` (string or null).
+Returns: `WorkBoardOutput` with `columns` (Columns), `column_totals` (object), `filters` (Filters), `manually_ordered` (array of string), `next_cursor` (string or null).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |

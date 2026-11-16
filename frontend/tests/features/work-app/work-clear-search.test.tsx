@@ -327,10 +327,20 @@ describe("Rensa sökningen in the fullscreen Work app", () => {
       await user.type(await openSearch(user), "k");
       await screen.findByText("Boka tandläkare");
       await user.click(
-        screen.getByRole("button", { name: boardLabelsEn.showMore }),
+        screen.getByRole("button", {
+          name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+        }),
       );
 
-      expect(fake.getWorkBoard).toHaveBeenLastCalledWith({ q: "k" }, "hits-2");
+      // The column reads its own pages with the search: its first page holds only what is shown, so it reads on.
+      expect(fake.getWorkBoard).toHaveBeenCalledWith(
+        { q: "k", status: "todo" },
+        undefined,
+      );
+      expect(fake.getWorkBoard).toHaveBeenLastCalledWith(
+        { q: "k", status: "todo" },
+        "hits-2",
+      );
       expect(await screen.findByText("Köp mjölk")).toBeInTheDocument();
     });
   });

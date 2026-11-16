@@ -4,7 +4,12 @@ import type { AgendaUndo } from "../agenda/agenda-undo";
 import { failureNotice, type BoardNotice } from "./board-notice";
 import { withStepMoved, type ReorderTo } from "./board-columns";
 import { cardKey } from "../shared/work-items";
-import { sameDue } from "../agenda/parts/agenda-helpers";
+import {
+  isRecurringCycle,
+  recurringDoneText,
+  sameDue,
+} from "../agenda/parts/agenda-helpers";
+import type { WorkLabels } from "../shared/labels";
 import {
   isTaskStatus,
   writeFailure,
@@ -63,6 +68,39 @@ export type BoardWriteDeps = {
  * status is a failure with "Try again", as in the agenda. A recurring Task's recorded cycle (`entry.due`) is
  * undone by writing its earlier due date back; the server keeps the completion on record.
  */
+/**
+ * The Ångra of a Task's status change, written against the version the answer left (`task`): the status it had
+ * (`from`), and for a recurring Task marked done (the server opened it again for its next date, see isRecurringCycle)
+ * the due date and last completion it had (`before`), with the line that says so. A move on the board and a Task
+ * marked done in its own view (handed to the board, see done-handoff) offer the same Ångra.
+ */
+export function statusUndo(
+  t: WorkLabels,
+  from: TaskStatusValue,
+  task: WorkTask,
+  before: { due: string | null; lastCompleted: string | null },
+  completing: boolean,
+): AgendaUndo {
+  const cycle = completing && isRecurringCycle(task, before.due);
+  return {
+    key: `task:${task.id}`,
+    taskId: task.id,
+    from,
+    to: task.status,
+    version: task.version,
+    ...(cycle
+      ? {
+          completed: true,
+          lastCompleted: { from: before.lastCompleted },
+          due: {
+            from: before.due,
+            label: recurringDoneText(t, task.due_at, new Date()),
+          },
+        }
+      : {}),
+  };
+}
+
 export function undoMoveWrite(deps: BoardWriteDeps, entry: AgendaUndo) {
   const {
     forget,

@@ -10,6 +10,11 @@ import { knownLabel } from "../shared/labels";
 import type { WorkItemRecord } from "../transport/transport";
 import { OpenChevron } from "../tasks/task-detail-controls";
 import { rowDue, rowStatus } from "../shared/record-meta";
+import {
+  InlineRefreshButton,
+  RefreshFailure,
+  type ListRefresh,
+} from "./inline-refresh";
 
 export type InlineSummaryKind = "task" | "project";
 
@@ -155,9 +160,12 @@ export function ListSummary({
   className,
   children,
   aside,
+  refresh,
 }: {
   labels: InlineSummaryLabels;
   kindLabel: string;
+  /** Reads the list again from the card's corner; absent when the host cannot answer the read. */
+  refresh?: ListRefresh;
   /** What the rows leave out (the count of the rest), on the line of "Open" at its end. */
   aside?: string;
   /** The kicker in full (the app name, then the overdue, today and upcoming counts); without it the app name alone. */
@@ -186,6 +194,15 @@ export function ListSummary({
       aria-label={kindLabel}
     >
       <p className="work-compact-kind sk-eyebrow">{kicker ?? labels.appName}</p>
+      {refresh ? (
+        <>
+          <InlineRefreshButton
+            refresh={refresh}
+            dateLocale={labels.dateLocale}
+          />
+          <RefreshFailure refresh={refresh} dateLocale={labels.dateLocale} />
+        </>
+      ) : null}
       {blank ? (
         <InlineEmpty
           locale={labels.dateLocale}

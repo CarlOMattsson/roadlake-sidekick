@@ -29,6 +29,7 @@ import { ProcessFrame } from "../hierarchy/process-frame";
 import { ProjectFrame } from "../hierarchy/project-frame";
 import { TaskFrame } from "../tasks/task-frame";
 import { useFrameStack } from "./parts/use-frame-stack";
+import { handOffDone, type DoneHandoff } from "../shared/done-handoff";
 import type { WorkViewProps } from "./parts/work-view-props";
 import "../shell/work.css";
 import "../tasks/task-detail.css";
@@ -51,11 +52,14 @@ export function WorkView({
   onOpenJournalEntry,
   onOpenLink,
   onRoute,
+  onLeave,
+  openedFrom,
   supportsTool,
   refreshKey,
   boardAvailable,
   hierarchyQuery,
   onListFilters,
+  listRefresh,
 }: WorkViewProps) {
   const {
     stack,
@@ -126,6 +130,26 @@ export function WorkView({
       ? { label: parentLabel(stack.at(-2), t), onBack: back }
       : undefined;
   const ownBackRow = detailView;
+  // A Task opened from a list (Agenda, Status, Projekt) goes back to it when marked done, as its Back does: one step on
+  // this view's stack, else the shell's layer below. A board there shows the Task where it went, with the Ångra
+  // (handOffDone). Opened any other way (a record page, the card's own Task), it stays, with its Ångra in place.
+  const below = stack.length > 1 ? stack.at(-2)?.kind : openedFrom;
+  const fromList =
+    below === "board" || below === "agenda" || below === "hierarchy";
+  const leaveDone = !fromList
+    ? undefined
+    : stack.length > 1
+      ? back
+      : stack.length === 1
+        ? onLeave
+        : undefined;
+  const fromBoard = below === "board";
+  const taskDone =
+    leaveDone &&
+    ((done: DoneHandoff) => {
+      if (fromBoard) handOffDone(done);
+      leaveDone();
+    });
   const showAppName =
     chrome &&
     !summaryRoot &&
@@ -180,6 +204,7 @@ export function WorkView({
           refreshKey={refreshKey}
           onSaved={() => setStale(true)}
           back={backTarget}
+          onDone={taskDone}
         />
       )}
       {top?.kind === "contact" && top.context && fullscreen && summaryRoot && (
@@ -303,13 +328,15 @@ export function WorkView({
         />
       )}
       {top?.kind === "board" && fullscreen && (
-        // Inline: the host can open fullscreen, so the board is only summarised here.
+        // Inline: the host can open fullscreen, so the board is only summarised here. The key leaves out `session`: a
+        // refresh from the card's corner replaces the frame, and the card keeps its button (and its focus) through it.
         <BoardSummary
-          key={`${session}:${stack.length}:board-summary`}
+          key={`${stack.length}:board-summary`}
           page={top.page}
           labels={t}
           onOpen={fullscreen}
           onModelContext={onModelContext}
+          refresh={listRefresh}
         />
       )}
       {top?.kind === "board" && !fullscreen && (
@@ -353,11 +380,12 @@ export function WorkView({
       {top?.kind === "agenda" && fullscreen && summaryRoot && (
         // Inline: the host can open fullscreen, so the agenda is only summarised here (rows open, nothing is written).
         <AgendaSummary
-          key={`${session}:${stack.length}:agenda-summary`}
+          key={`${stack.length}:agenda-summary`}
           page={top.page}
           filters={top.filters}
           labels={inlineLabels}
           onOpen={fullscreen}
+          refresh={listRefresh}
           onOpenItem={(item) => {
             open(
               {

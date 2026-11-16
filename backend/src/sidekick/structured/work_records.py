@@ -261,6 +261,9 @@ class WorkBoardOutput(Output):
     filters: dict[str, str | list[str]] = Field(default_factory=dict)
     # Status names whose columns the owner has ordered by hand, in column order. No rank values.
     manually_ordered: list[str] = Field(default_factory=list)
+    column_totals: dict[str, int] = Field(default_factory=dict)
+    """Records per status column under the same filters, never just the page: a column shows
+    this number even when only some of its records are on the page. Empty columns read 0."""
 
 
 DomainAccent = Literal["slate", "blue", "teal", "green", "amber", "orange", "rose", "violet"]

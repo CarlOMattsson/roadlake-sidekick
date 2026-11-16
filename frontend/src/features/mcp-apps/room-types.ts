@@ -142,10 +142,23 @@ export type RoomProps = {
    * whose server has no route for a view lists the others only.
    */
   availableViews?: readonly string[];
+  /**
+   * False when the host does not let the app call tools (its hostCapabilities lack serverTools): a room then offers no
+   * control that only reads again. Absent: true.
+   */
+  toolCalls?: boolean;
   /** Sends a message to Claude in the chat (ui/message). Absent when the host offers no messages. */
   sendMessage?: (text: string) => Promise<boolean>;
   /** A link to another room or view. Absent: the room shows no cross links. */
   onNavigate?: (target: RoomTarget) => void;
+  /**
+   * Goes one layer back, as the shell's Back row does: a room on a layer of the shell's stack that is done with it (a
+   * Task marked done returns to the list it was opened from). Absent at the root, inline, and where the shell cannot
+   * navigate.
+   */
+  onBack?: () => void;
+  /** The list view this layer was opened from (RoomTarget.from), when it was one. */
+  from?: string;
   /** A write may have changed these domains ("work", "journal", "contacts", ...); the shell re-reads other rooms. */
   onDirty?: (domains: string[]) => void;
   /**

@@ -30,6 +30,8 @@ export function SingleSection({
   onToggleDone,
   completeColumn,
   renderCard,
+  more,
+  unshown = 0,
 }: {
   segment: BoardSegment;
   items: WorkItemRecord[];
@@ -47,6 +49,10 @@ export function SingleSection({
     shown: WorkItemRecord[],
     orderable: boolean,
   ) => ReactNode;
+  /** The section's "Visa fler", last under its cards; absent when the section is whole on the board. */
+  more?: ReactNode;
+  /** The section's records not read yet (the server's totals), counted in its heading. */
+  unshown?: number;
 }) {
   const status = isTaskStatus(segment.key) ? segment.key : undefined;
   // Flytta upp and Flytta ned exist only for a column that is whole on the board, shown unfiltered, and listed
@@ -67,10 +73,10 @@ export function SingleSection({
   const away = items.filter(
     (item) => (undos[cardKey(item)]?.at ?? segment.key) !== segment.key,
   ).length;
-  const count = shown.length - kept + away;
+  const count = shown.length - kept + away + unshown;
   // A section with no card of its own still shows when its count is above 0: a card that went here stands
   // in its old section for its Ångra, and the new number must be seen where the card went.
-  if (!shown.length && count <= 0) return null;
+  if (!shown.length && count <= 0 && !more) return null;
   const heading = `${segment.label} (${count})`;
   const folds = status === "completed";
   return (
@@ -86,10 +92,15 @@ export function SingleSection({
           <Counted text={heading} />
         )}
       </h3>
-      {(folds && !doneOpen) || !shown.length ? null : (
-        <ul className="work-list">
-          {shown.map((item, at) => renderCard(item, at, shown, orderable))}
-        </ul>
+      {folds && !doneOpen ? null : (
+        <>
+          {shown.length ? (
+            <ul className="work-list">
+              {shown.map((item, at) => renderCard(item, at, shown, orderable))}
+            </ul>
+          ) : null}
+          {more}
+        </>
       )}
     </section>
   );
@@ -102,6 +113,8 @@ export function ColumnSection({
   target,
   emptyText,
   renderCard,
+  more,
+  unshown = 0,
 }: {
   segment: BoardSegment;
   items: { item: WorkItemRecord }[];
@@ -109,6 +122,10 @@ export function ColumnSection({
   target: boolean;
   emptyText: string;
   renderCard: (item: WorkItemRecord) => ReactNode;
+  /** The column's "Visa fler", right under its last card; absent when the column is whole on the board. */
+  more?: ReactNode;
+  /** The column's records not read yet (the server's totals), counted in its heading. */
+  unshown?: number;
 }) {
   return (
     <section
@@ -118,21 +135,22 @@ export function ColumnSection({
       style={target ? dropTargetStyle : undefined}
     >
       <h3>
-        {segment.label} ({items.length})
+        {segment.label} ({items.length + unshown})
       </h3>
       {items.length ? (
         <ul className="work-list">
           {items.map(({ item }) => renderCard(item))}
         </ul>
-      ) : (
+      ) : more ? null : (
         <p>{emptyText}</p>
       )}
+      {more}
     </section>
   );
 }
 
-/** A circular arrow, the icon of the board refresh. Decorative: the button's label names the action. */
-function RefreshIcon() {
+/** A circular arrow, the icon of every refresh button. Decorative: the button's label names the action. */
+export function RefreshIcon() {
   return (
     <svg
       viewBox="0 0 24 24"

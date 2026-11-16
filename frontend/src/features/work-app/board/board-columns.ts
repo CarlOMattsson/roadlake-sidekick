@@ -1,14 +1,15 @@
 /** Pure helpers of the board: reading and patching a board page, with no React and no tool calls. */
-import { cardKey, shownOrder } from "../shared/work-items";
+import { appendBoardPage, cardKey, shownOrder } from "../shared/work-items";
 import type { AgendaUndo } from "../agenda/agenda-undo";
-import type {
-  TaskStatusValue,
-  WorkBoardFrame,
-  WorkBoardPlacement,
-  WorkBoardPlacementItem,
-  WorkFilters,
-  WorkItemRecord,
-  WorkTask,
+import {
+  isTaskStatus,
+  type TaskStatusValue,
+  type WorkBoardFrame,
+  type WorkBoardPlacement,
+  type WorkBoardPlacementItem,
+  type WorkFilters,
+  type WorkItemRecord,
+  type WorkTask,
 } from "../transport/transport";
 
 export type BoardPage = WorkBoardFrame["page"];
@@ -27,6 +28,85 @@ export function boardReadFilters(source: WorkBoardFrame): WorkFilters {
   return source.search
     ? { ...source.filters, q: source.search }
     : source.filters;
+}
+
+/** A read of the whole board: its page, and every column read again from the start (see `columnCursors`). */
+export function withBoardRead(
+  source: WorkBoardFrame,
+  page: BoardPage,
+): WorkBoardFrame {
+  return { ...source, page, columnCursors: undefined };
+}
+
+/**
+ * How the next records of one column are read, or undefined when the column is whole on the board. The board's
+ * pages run across every column, so its cursor cannot tell which column goes on: a Task status column reads its own
+ * pages (`status`, the board's filters with that status). The Projects segment, and a board already filtered to the
+ * column's status, read the board's next page (`board`).
+ */
+export function columnMore(
+  source: WorkBoardFrame,
+  column: string,
+): "status" | "board" | undefined {
+  const { page } = source;
+  if (!page.next_cursor) return undefined;
+  // With the server's totals, only a column that holds more than it shows offers more.
+  if (page.column_totals && unshownIn(page, column) === 0) return undefined;
+  if (!isTaskStatus(column)) return "board";
+  const status = source.filters.status;
+  if (typeof status === "string" && status !== "")
+    return status === column ? "board" : undefined;
+  return source.columnCursors?.[column] === null ? undefined : "status";
+}
+
+/**
+ * How many records of a board segment are not on the page yet: the server's total less those read, per status column
+ * (`column_totals`). A Task status segment counts its own column; the Projects segment every column that is not a Task
+ * status. 0 without totals (an older server), where the board counts what it has read.
+ */
+export function unshownIn(page: BoardPage, segment: string): number {
+  const totals = page.column_totals;
+  if (!totals) return 0;
+  const columns = isTaskStatus(segment)
+    ? [segment]
+    : Object.keys(totals).filter((column) => !isTaskStatus(column));
+  return columns.reduce(
+    (sum, column) =>
+      sum +
+      Math.max(0, (totals[column] ?? 0) - (page.columns[column]?.length ?? 0)),
+    0,
+  );
+}
+
+/** The totals after one record moved from one status column to another on the page (see column_totals). */
+function totalsMoved(
+  totals: BoardPage["column_totals"],
+  from: string,
+  to: string,
+): BoardPage["column_totals"] {
+  if (!totals || from === to) return totals;
+  return {
+    ...totals,
+    [from]: Math.max(0, (totals[from] ?? 0) - 1),
+    [to]: (totals[to] ?? 0) + 1,
+  };
+}
+
+/**
+ * A page of one column added to the board: the records not shown yet join their columns, while the board's own cursor
+ * and column orders stay (they are the board's, not the column's). `added` counts the records that were new.
+ */
+export function withColumnPage(
+  shown: BoardPage,
+  later: BoardPage,
+): { page: BoardPage; added: number } {
+  const merged = appendBoardPage(shown, later);
+  const count = (page: BoardPage) =>
+    Object.values(page.columns).reduce((sum, list) => sum + list.length, 0);
+  return {
+    page: { ...shown, columns: merged.columns },
+    added: count(merged) - count(shown),
+  };
 }
 
 /** The Task with this id on the board, if it is one. */
@@ -102,7 +182,11 @@ export function withTaskMoved(
   if (!found) return undefined;
   const moved = { ...found, status: task.status, version: task.version };
   columns[task.status] = [...(columns[task.status] ?? []), moved];
-  return { ...now, columns };
+  return {
+    ...now,
+    columns,
+    column_totals: totalsMoved(now.column_totals, found.status, task.status),
+  };
 }
 
 /** A Step was checked or unchecked: its card moves to the column of its new status, with the version the answer gave. */
@@ -119,7 +203,11 @@ export function withStepMoved(
     ...(columns[step.status] ?? []),
     { ...base, status: step.status, version: step.version },
   ];
-  return { ...now, columns };
+  return {
+    ...now,
+    columns,
+    column_totals: totalsMoved(now.column_totals, base.status, step.status),
+  };
 }
 
 /** A column order was written: the column shows the answer's order and versions (else the order it sent). */

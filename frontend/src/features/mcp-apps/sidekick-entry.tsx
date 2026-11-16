@@ -57,6 +57,7 @@ const host: RoomHost = {
       hostContext.availableDisplayModes,
       hostContext.displayMode,
     ),
+  toolCalls: () => bridge.getFeatures().serverTools,
   onExpand: (target) => {
     if (expanded && !target) return;
     expanded = true;

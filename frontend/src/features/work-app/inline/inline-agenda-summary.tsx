@@ -15,6 +15,7 @@ import {
   waitingRows,
 } from "../shared/waiting";
 import { cardKey, groupAgenda, hiddenRows } from "../shared/work-items";
+import { refreshedOr, type ListRefresh } from "./inline-refresh";
 import {
   InlineRow,
   ListSummary,
@@ -59,6 +60,7 @@ export function AgendaSummary({
   labels,
   onOpen,
   onOpenItem,
+  refresh,
 }: {
   page: WorkAgendaPage;
   /** The filters the agenda was read with; waiting=waiting turns the card into the waiting view. */
@@ -70,15 +72,25 @@ export function AgendaSummary({
   onOpenItem?: (item: WorkItemRecord) => void;
   /** Accepted for the caller's sake but unused: the card has no status glyphs and writes nothing. */
   write?: InlineAgendaWrite;
+  /** Reads the agenda again from the card's corner; the room passes it only when the host answers the read. */
+  refresh?: ListRefresh;
 }) {
   if (isWaitingFilter(filters))
-    return <WaitingSummary page={page} labels={labels} onOpen={onOpen} />;
+    return (
+      <WaitingSummary
+        page={page}
+        labels={labels}
+        onOpen={onOpen}
+        refresh={refresh}
+      />
+    );
   return (
     <DatedAgendaSummary
       page={page}
       labels={labels}
       onOpen={onOpen}
       onOpenItem={onOpenItem}
+      refresh={refresh}
     />
   );
 }
@@ -91,10 +103,12 @@ function WaitingSummary({
   page,
   labels,
   onOpen,
+  refresh,
 }: {
   page: WorkAgendaPage;
   labels: InlineSummaryLabels;
   onOpen: () => void;
+  refresh?: ListRefresh;
 }) {
   const words = waitingLabelsFor(labels.dateLocale);
   const rows = waitingRows(page.items, new Date());
@@ -104,6 +118,12 @@ function WaitingSummary({
     <ListSummary
       labels={labels}
       kindLabel={words.kind}
+      kicker={
+        refresh?.at === undefined
+          ? undefined
+          : `${labels.appName} · ${refreshedOr(refresh, labels.dateLocale, "")}`
+      }
+      refresh={refresh}
       lines={[
         {
           key: "waiting",
@@ -184,11 +204,13 @@ function DatedAgendaSummary({
   labels,
   onOpen,
   onOpenItem,
+  refresh,
 }: {
   page: WorkAgendaPage;
   labels: InlineSummaryLabels;
   onOpen: () => void;
   onOpenItem?: (item: WorkItemRecord) => void;
+  refresh?: ListRefresh;
 }) {
   // Read on every render, as the fullscreen agenda does, so the due days match the board after
   // midnight (a frozen clock from mount made the card count one day less).
@@ -232,7 +254,8 @@ function DatedAgendaSummary({
     <ListSummary
       labels={labels}
       kindLabel={labels.kind.agenda}
-      kicker={`${labels.appName} · ${workDate(now.toISOString(), now, locale, { inline: true, relative: false })}`}
+      kicker={`${labels.appName} · ${refreshedOr(refresh, labels.dateLocale, workDate(now.toISOString(), now, locale, { inline: true, relative: false }))}`}
+      refresh={refresh}
       className="work-compact-agenda"
       lines={
         listed > 0

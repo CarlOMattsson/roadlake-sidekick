@@ -298,7 +298,7 @@ def test_the_mcp_and_companion_completion_of_a_repeating_task_start_it_over() ->
         token = paired_token(client, world.app, world.user_id)
         response = client.post(
             f"/companion/v1/tasks/{again.task.id}/complete",
-            headers={**bearer(token), "Idempotency-Key": "companion-repeat-1"},
+            headers={**bearer(token), "Idempotency-Key": "repeat-key-0001"},
             json={"version": again.task.version},
         )
     assert response.status_code == 200, response.text
@@ -537,19 +537,19 @@ def test_the_companion_routes_complete_and_reopen_the_steps_too() -> None:
         token = paired_token(client, world.app, world.user_id)
         done = client.post(
             f"/companion/v1/tasks/{task.id}/complete",
-            headers={**bearer(token), "Idempotency-Key": "companion-done-1"},
+            headers={**bearer(token), "Idempotency-Key": "done-key-0001"},
             json={"version": task.version},
         )
         assert done.status_code == 200, done.text
         checklist.assert_closed()
         replay = client.post(
             f"/companion/v1/tasks/{task.id}/complete",
-            headers={**bearer(token), "Idempotency-Key": "companion-done-1"},
+            headers={**bearer(token), "Idempotency-Key": "done-key-0001"},
             json={"version": task.version},
         )
         reopened = client.post(
             f"/companion/v1/tasks/{task.id}/reopen",
-            headers={**bearer(token), "Idempotency-Key": "companion-reopen-1"},
+            headers={**bearer(token), "Idempotency-Key": "reopen-key-0001"},
             json={"version": done.json()["task"]["version"]},
         )
 
@@ -569,7 +569,7 @@ def test_a_device_cannot_complete_another_owners_task_or_its_steps() -> None:
         token = paired_token(client, world.app, world.user_id)
         response = client.post(
             f"/companion/v1/tasks/{foreign.id}/complete",
-            headers={**bearer(token), "Idempotency-Key": "companion-foreign-1"},
+            headers={**bearer(token), "Idempotency-Key": "foreign-key-0001"},
             json={"version": foreign.version},
         )
 

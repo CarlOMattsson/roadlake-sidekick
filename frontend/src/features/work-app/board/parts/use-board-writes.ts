@@ -1,10 +1,6 @@
 import { useRef, type Dispatch, type SetStateAction } from "react";
 import { keyFor, type PendingKey } from "../../../mcp-apps/idempotency";
 import type { AgendaUndo } from "../../agenda/agenda-undo";
-import {
-  isRecurringCycle,
-  recurringDoneText,
-} from "../../agenda/parts/agenda-helpers";
 import type { WorkLabels } from "../../shared/labels";
 import { failureNotice, type BoardAction } from "../board-notice";
 import {
@@ -16,6 +12,7 @@ import {
   type ReorderTo,
 } from "../board-columns";
 import {
+  statusUndo,
   toggleStepWrite,
   undoMoveWrite,
   type BoardWriteDeps,
@@ -174,29 +171,22 @@ export function useBoardWrites({
           wrote(task);
           focusWanted.current = { kind: "card", id: card.id };
           // Done on a recurring Task: the server reopened it for its next date. Its Ångra puts the due date back.
-          const before = base.due_at ?? null;
-          const cycle = to === "completed" && isRecurringCycle(task, before);
           if (isTaskStatus(from))
             setUndos((all) => ({
               ...all,
               [key]: {
-                key,
-                taskId: card.id,
-                from,
-                to: task.status,
-                version: task.version,
+                ...statusUndo(
+                  t,
+                  from,
+                  task,
+                  {
+                    due: base.due_at ?? null,
+                    lastCompleted: base.last_completed_at ?? null,
+                  },
+                  to === "completed",
+                ),
                 at,
                 index,
-                ...(cycle
-                  ? {
-                      completed: true,
-                      lastCompleted: { from: base.last_completed_at ?? null },
-                      due: {
-                        from: before,
-                        label: recurringDoneText(t, task.due_at, new Date()),
-                      },
-                    }
-                  : {}),
               },
             }));
         };

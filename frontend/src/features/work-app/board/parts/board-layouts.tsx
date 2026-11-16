@@ -25,6 +25,8 @@ type CardProps = {
   onMove: (card: WorkItemRecord, to: TaskStatusValue) => void;
   undoOf: (item: WorkItemRecord) => ReactNode;
   queueOf: (item: WorkItemRecord) => Queue;
+  /** The "Visa fler" of one column or section, last under its cards; null when it is whole on the board. */
+  moreFor: (segment: BoardSegment) => ReactNode;
 };
 
 /** The single layout (a phone): every status as a section, Klar folded, a check on each card. */
@@ -46,11 +48,13 @@ export function SingleLayout({
   onMove,
   undoOf,
   queueOf,
+  moreFor,
 }: CardProps & {
   sections: {
     segment: BoardSegment;
     items: WorkItemRecord[];
     shown: WorkItemRecord[];
+    unshown: number;
   }[];
   needle: string;
   undos: Record<string, BoardUndo>;
@@ -65,7 +69,7 @@ export function SingleLayout({
   toggleStep: (card: WorkItemRecord) => void;
   stepWithin: (card: WorkItemRecord, direction: -1 | 1) => void;
 }) {
-  return sections.map(({ segment, items, shown }) => (
+  return sections.map(({ segment, items, shown, unshown }) => (
     <SingleSection
       key={segment.key}
       segment={segment}
@@ -76,6 +80,8 @@ export function SingleLayout({
       doneOpen={doneOpen}
       onToggleDone={onToggleDone}
       completeColumn={completeColumn}
+      more={moreFor(segment)}
+      unshown={unshown}
       renderCard={(item, at, all, orderable) => (
         <BoardCard
           key={cardKey(item)}
@@ -119,18 +125,25 @@ export function ColumnsLayout({
   onMove,
   undoOf,
   queueOf,
+  moreFor,
 }: CardProps & {
-  columns: { segment: BoardSegment; items: { item: WorkItemRecord }[] }[];
+  columns: {
+    segment: BoardSegment;
+    items: { item: WorkItemRecord }[];
+    unshown: number;
+  }[];
   drag: BoardDragState;
   handleFor: (item: WorkItemRecord) => ReturnType<typeof dragHandle>;
 }) {
-  return columns.map(({ segment, items }) => (
+  return columns.map(({ segment, items, unshown }) => (
     <ColumnSection
       key={segment.key}
       segment={segment}
       items={items}
       target={drag.phase === "dragging" && drag.column === segment.key}
       emptyText={boardLabelsFor(t.dateLocale).noCards}
+      more={moreFor(segment)}
+      unshown={unshown}
       renderCard={(item) => (
         <BoardCard
           key={cardKey(item)}

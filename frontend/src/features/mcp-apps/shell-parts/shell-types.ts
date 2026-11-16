@@ -30,6 +30,8 @@ export type ShellRoomProps = {
   visible: boolean;
   refreshKey: number;
   navigate?: (target: NavEntry, options?: { replace?: boolean }) => void;
+  /** One layer back, as the Back row does; undefined where the Back row is not shown (the root, inline). */
+  back?: () => void;
   markDirty: (domains: readonly RoomId[]) => void;
   locale: AppLocale;
   /** bridge.sendMessage, present only when the host offers ui/message. */

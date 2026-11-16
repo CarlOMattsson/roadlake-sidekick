@@ -6,8 +6,12 @@
  * (board-labels.test.ts checks that). The word set for one locale is picked with boardLabelsFor(t.dateLocale).
  */
 export const boardLabelsSv = {
-  /** The board's next page, after every status: it reads more Tasks of all of them. */
+  /** Last in a status column: reads more of that column's Tasks. */
   showMore: "Visa fler uppgifter",
+  /** Last in the Projects column, which reads the board's next page (of every column). */
+  showMoreAll: "Visa fler",
+  /** The accessible name of a column's `showMore`: every column has one, so it names its column. */
+  showMoreIn: (column: string) => `Visa fler uppgifter: ${column}`,
   /** A status column with no card. */
   noCards: "Inget här.",
   empty: "Inga uppgifter här än.",
@@ -45,6 +49,8 @@ export type BoardLabels = typeof boardLabelsSv;
 
 export const boardLabelsEn: BoardLabels = {
   showMore: "Show more tasks",
+  showMoreAll: "Show more",
+  showMoreIn: (column: string) => `Show more tasks: ${column}`,
   noCards: "Nothing here.",
   empty: "No tasks yet.",
   /** The empty Status: what the view is for, under "No tasks yet." */

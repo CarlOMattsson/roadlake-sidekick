@@ -10,6 +10,13 @@ import {
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import type { DoneReceipt } from "./task-cycle";
 
+/** A `markDone` that succeeded: the Task as the answer left it, the status it had, and what its Ångra writes back. */
+export type TaskDone = {
+  task: WorkTask;
+  was: string;
+  receipt: DoneReceipt | undefined;
+};
+
 /** Which write a failure line names. */
 export type TaskWriteKind = "trash" | "save" | "done";
 
@@ -28,6 +35,7 @@ export function useTaskWrites({
   refreshTags,
   onSaved,
   onTrashStart,
+  onDone,
 }: {
   frame: DetailFrame;
   transport: WorkTransport;
@@ -38,6 +46,11 @@ export function useTaskWrites({
   onSaved: () => void;
   /** Runs when the Task is about to be moved to the trash (the frame closes its ⋯ panel). */
   onTrashStart: () => void;
+  /**
+   * Given where the view goes back once the Task is done: a `markDone` that succeeded hands it the Task, the status it
+   * had and the receipt, and no receipt is shown here (the view is left).
+   */
+  onDone?: (done: TaskDone) => void;
 }) {
   // What the last `markDone` left to undo: the line under the button and the earlier value its Ångra puts back.
   const [receipt, setReceipt] = useState<DoneReceipt>();
@@ -159,9 +172,13 @@ export function useTaskWrites({
       { status },
       (next) => {
         if (status !== "completed") return;
-        if (isRecurringCycle(next, before))
-          setReceipt({ kind: "cycle", from: before, lastCompleted });
-        else if (isTaskStatus(was)) setReceipt({ kind: "finished", was });
+        const done: DoneReceipt | undefined = isRecurringCycle(next, before)
+          ? { kind: "cycle", from: before, lastCompleted }
+          : isTaskStatus(was)
+            ? { kind: "finished", was }
+            : undefined;
+        if (onDone) onDone({ task: next, was, receipt: done });
+        else if (done) setReceipt(done);
       },
       status === "completed",
     );

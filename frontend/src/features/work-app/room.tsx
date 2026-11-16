@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { WorkView } from "./view/work-view";
 import { WorkFullscreen } from "./fullscreen/work-fullscreen";
 import { RoomMessageContext } from "../mcp-apps/ui/room-context";
@@ -16,7 +16,13 @@ import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import type { RoomProps } from "../mcp-apps/room-types";
 import { createWorkTransport } from "./transport/work-transport";
 import { UnsortedView } from "./unsorted/unsorted-view";
-import { rootFromToolResult, type WorkFrame } from "./transport/transport";
+import {
+  rootFromToolResult,
+  type WorkFrame,
+  type WorkTransport,
+} from "./transport/transport";
+import { toolOffered } from "../mcp-apps/tool-support";
+import type { ListRefresh } from "./inline/inline-refresh";
 import { firstReadFor } from "./shared/first-read";
 import type { WorkTab } from "./shell/work-shell";
 
@@ -44,7 +50,37 @@ type RoomState = {
    * Open expands the full view inline instead, so nothing is out of reach. A new result clears it.
    */
   expandedInline: boolean;
+  /** The refresh control of an inline board or agenda card: where the owner's last read stands. A new result clears it. */
+  listRefresh: Pick<ListRefresh, "phase" | "at">;
 };
+
+/** A frame that is a list the card can read again: the agenda or the board. */
+type ListFrame = Extract<WorkFrame, { kind: "agenda" | "board" }>;
+
+const LIST_TOOL = {
+  agenda: "get_work_agenda",
+  board: "get_work_board",
+} as const;
+
+/** Reads the list of a frame again, with the filters it was read with. */
+function readListAgain(
+  transport: WorkTransport,
+  open: ListFrame,
+): Promise<unknown> {
+  return open.kind === "agenda"
+    ? transport.getWorkAgenda(open.filters)
+    : transport.getWorkBoard(open.filters);
+}
+
+/** The state with the page of the open list frame replaced by a newer read; its filters stay. */
+function withPage(
+  prev: RoomState,
+  open: ListFrame,
+  page: unknown,
+  listRefresh = prev.listRefresh,
+): RoomState {
+  return { ...prev, frame: { ...open, page }, listRefresh } as RoomState;
+}
 
 const NO_RESULT: RoomState = {
   received: false,
@@ -52,6 +88,7 @@ const NO_RESULT: RoomState = {
   resultNumber: 0,
   opening: false,
   expandedInline: false,
+  listRefresh: { phase: "idle" },
 };
 
 function resultChanged(state: RoomState, props: RoomProps): boolean {
@@ -82,6 +119,7 @@ function applyResult(prev: RoomState, props: RoomProps): RoomState {
     cause: next.kind === "error" ? toolResultCause(props.initial) : undefined,
     retrying: false,
     expandedInline: false,
+    listRefresh: { phase: "idle" },
     resultNumber: prev.resultNumber + 1,
   };
 }
@@ -150,17 +188,11 @@ export function WorkRoom(props: RoomProps) {
     if (!inlineRefresh || (open?.kind !== "agenda" && open?.kind !== "board"))
       return undefined;
     let live = true;
-    const read: Promise<unknown> =
-      open.kind === "agenda"
-        ? transport.getWorkAgenda(open.filters)
-        : transport.getWorkBoard(open.filters);
-    read
+    readListAgain(transport, open)
       .then((page) => {
         if (!live) return;
         setState((prev) =>
-          prev.frame === open
-            ? ({ ...prev, frame: { ...open, page } } as RoomState)
-            : prev,
+          prev.frame === open ? withPage(prev, open, page) : prev,
         );
       })
       .catch(() => {
@@ -170,6 +202,43 @@ export function WorkRoom(props: RoomProps) {
       live = false;
     };
   }, [inlineRefresh, transport]);
+
+  // The newest refresh from an inline card's corner; an older answer never frees the control of a newer read.
+  const refreshTicket = useRef(0);
+  /**
+   * The owner's refresh of an inline board or agenda card: reads the list again with its filters and replaces its page.
+   * A failed read keeps what the card shows and leaves the control as the retry. An answer for a frame the room has
+   * left since (a new result arrived) is dropped.
+   */
+  function refreshList() {
+    const open = state.frame;
+    if (state.listRefresh.phase === "busy") return;
+    if (open?.kind !== "agenda" && open?.kind !== "board") return;
+    const ticket = ++refreshTicket.current;
+    setState((prev) => ({
+      ...prev,
+      listRefresh: { ...prev.listRefresh, phase: "busy" },
+    }));
+    const settle = (next: (prev: RoomState) => RoomState) =>
+      setState((prev) => {
+        if (prev.frame === open) return next(prev);
+        return ticket === refreshTicket.current &&
+          prev.listRefresh.phase === "busy"
+          ? { ...prev, listRefresh: { ...prev.listRefresh, phase: "idle" } }
+          : prev;
+      });
+    readListAgain(transport, open)
+      .then((page) => {
+        const at = Date.now();
+        settle((prev) => withPage(prev, open, page, { phase: "idle", at }));
+      })
+      .catch(() =>
+        settle((prev) => ({
+          ...prev,
+          listRefresh: { ...prev.listRefresh, phase: "failed" },
+        })),
+      );
+  }
 
   function expandInline() {
     setState((prev) => ({ ...prev, expandedInline: true }));
@@ -218,6 +287,15 @@ export function WorkRoom(props: RoomProps) {
         })),
       );
   }
+
+  // The corner button of an inline board or agenda card, only where the host lets the app call the tool that reads it.
+  const listRefresh: ListRefresh | undefined =
+    !fullscreen &&
+    props.toolCalls !== false &&
+    (frame?.kind === "agenda" || frame?.kind === "board") &&
+    toolOffered(props.transport, LIST_TOOL[frame.kind])
+      ? { ...state.listRefresh, onRefresh: refreshList }
+      : undefined;
 
   // The "To sort" page is a step on the shell's stack (no Back of its own); it holds no result.
   if (fullscreen && onRoute && props.view === "unsorted") {
@@ -313,8 +391,11 @@ export function WorkRoom(props: RoomProps) {
         shortcuts={fullscreen}
         onOpenJournalEntry={onOpenJournalEntry}
         onRoute={onRoute}
+        onLeave={onRoute && props.onBack}
+        openedFrom={props.from}
         supportsTool={props.transport.supportsTool}
         refreshKey={props.refreshKey}
+        listRefresh={listRefresh}
         // Fullscreen has no card: the room strip says where the user is, and the page itself is the frame.
         chrome={!fullscreen}
       />

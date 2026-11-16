@@ -62,6 +62,12 @@ export type WorkBoardPage = {
    * server) is [].
    */
   manually_ordered?: Results["get_work_board"]["manually_ordered"];
+  /**
+   * How many records each status column holds under the board's filters, not only on this page: a column's heading
+   * shows it, and "Visa fler" stands only under a column with more than it shows. Missing (an older server): the board
+   * counts what it has read.
+   */
+  column_totals?: Results["get_work_board"]["column_totals"];
 };
 export type WorkAgendaPage = {
   items: WorkItemRecord[];
@@ -109,6 +115,11 @@ export type WorkBoardFrame = {
   search?: string;
   /** The segment the single-column board shows (a status key); kept when a Task is opened and closed. */
   column?: string;
+  /**
+   * Where each Task status column's own read goes on ("Visa fler" under that column): its cursor, or null once the
+   * column is whole. A column not read on its own has no entry. A read of the whole board starts again without it.
+   */
+  columnCursors?: Record<string, string | null>;
 };
 export type WorkAgendaFrame = {
   kind: "agenda";

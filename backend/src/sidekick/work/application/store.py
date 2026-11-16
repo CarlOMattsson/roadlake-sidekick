@@ -126,6 +126,9 @@ class ContextStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol)
     def work_agenda_group_counts(
         self, session: TxSession, owner_id: UUID, spec: WorkListSpec
     ) -> dict[str, int]: ...
+    def work_status_counts(
+        self, session: TxSession, owner_id: UUID, spec: WorkListSpec
+    ) -> dict[str, int]: ...
     def work_records_by_ids(
         self, session: TxSession, owner_id: UUID, ids_by_kind: Mapping[str, Sequence[UUID]]
     ) -> dict[str, dict[UUID, WorkRecord]]: ...
