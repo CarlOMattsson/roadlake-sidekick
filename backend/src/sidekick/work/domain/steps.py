@@ -9,6 +9,7 @@ from uuid import UUID
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import UNSET, UnsetType
 from sidekick.tasks.domain import TaskStatus
+from sidekick.work.domain.ai_spec import AiStepSpecV1, Performer
 from sidekick.work.domain.planning import MAX_ACTION_NOTE_LENGTH, MAX_STEP_INSTRUCTION_LENGTH
 
 
@@ -42,6 +43,9 @@ class Step:
     """How this step is performed. Especially useful for recurring work."""
     completed_at: datetime | None = None
     """When the step was ticked off; cleared when it is opened again. Older steps have none."""
+    performer: Performer = Performer.OWNER
+    """Who does the step. An AI step has a spec; an owner step has none."""
+    ai_spec: AiStepSpecV1 | None = None
 
     def __post_init__(self) -> None:
         title = self.title.strip()
@@ -51,6 +55,8 @@ class Step:
             raise ValidationError("step position and version must be non-negative/positive")
         if self.instruction is not None and len(self.instruction) > MAX_STEP_INSTRUCTION_LENGTH:
             raise ValidationError("step instruction is too long")
+        if (self.performer is Performer.AI) != (self.ai_spec is not None):
+            raise ValidationError("an AI step has a spec and an owner step has none")
         object.__setattr__(self, "title", title)
 
     def update(

@@ -18,7 +18,8 @@ const apps = {
 };
 // Our own guard rail for the finished HTML (gzip -9), not a host limit. Load time is guarded by perf-mcp-app.spec.ts.
 // 2026-11-13: 200 KiB to 210 KiB for the night's Journal, Work, Shopping and Control fixes (measured 204 889).
-const GZIP_BUDGET_BYTES = 210 * 1024;
+// 2026-11-16: 210 KiB to 220 KiB for the AI plan and result review in Work (measured 218 368).
+const GZIP_BUDGET_BYTES = 220 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;

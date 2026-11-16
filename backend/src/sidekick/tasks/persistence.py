@@ -70,6 +70,10 @@ def task_from_row(row: TaskRow) -> Task:
         last_completed_at=row.last_completed_at,
         last_reviewed_at=row.last_reviewed_at,
         ambition_since=row.ambition_since,
+        ai_possible_since=row.ai_possible_since,
+        ai_plan_digest=row.ai_plan_digest,
+        ai_plan_approved_at=row.ai_plan_approved_at,
+        ai_task_cap_microusd=row.ai_task_cap_microusd,
     )
 
 
@@ -106,6 +110,10 @@ def task_to_row(task: Task) -> TaskRow:
         last_completed_at=task.last_completed_at,
         last_reviewed_at=task.last_reviewed_at,
         ambition_since=task.ambition_since,
+        ai_possible_since=task.ai_possible_since,
+        ai_plan_digest=task.ai_plan_digest,
+        ai_plan_approved_at=task.ai_plan_approved_at,
+        ai_task_cap_microusd=task.ai_task_cap_microusd,
     )
 
 
@@ -645,6 +653,10 @@ class ProjectTaskStore:
             "last_completed_at",
             "last_reviewed_at",
             "ambition_since",
+            "ai_possible_since",
+            "ai_plan_digest",
+            "ai_plan_approved_at",
+            "ai_task_cap_microusd",
         ):
             value = getattr(task, field)
             if isinstance(value, (TaskStatus, Priority)):

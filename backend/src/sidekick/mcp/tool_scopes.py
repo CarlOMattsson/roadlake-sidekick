@@ -93,6 +93,14 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
         "link_external_reference_to_task",
         "unlink_external_reference_from_task",
     ),
+    # AI steps (ADR-011). `ai:run` is opt-in; the plan and the review need `tasks:write`.
+    **_tools(ToolScopes(("tasks:read",)), "get_ai_plan", "get_ai_step_run"),
+    **_tools(
+        ToolScopes(("tasks:write",)), "set_ai_plan", "approve_ai_plan", "review_ai_step_result"
+    ),
+    "list_ai_steps": ToolScopes(any_of=("ai:run", "tasks:read")),
+    "start_ai_step": ToolScopes(("ai:run",), optional=("contacts:read", "projects:read")),
+    "report_ai_step_result": ToolScopes(("ai:run",)),
     # The instance's license key (D-081: offline signed license keys) is an administrative change
     # with a scope of its own.
     "set_license_key": ToolScopes(("license:write",)),

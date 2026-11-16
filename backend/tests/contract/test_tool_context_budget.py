@@ -48,13 +48,20 @@ CHARS_PER_TOKEN = 3.5
 # 2026-11-15: raised to 20 150 for Ambitions (`changes.ambition` on `update_task`, the `ambitions`
 # filter on `list_tasks`, the `ambition` review decision), about 90 tokens; measured 20 106,
 # rounded up. No new tool and no new output field.
-TOKEN_BUDGET = 20_150
+# 2026-11-16: raised to 22 600 for the seven model-visible AI Step tools (`set_ai_plan`,
+# `get_ai_plan`, `list_ai_steps`, `start_ai_step`, `report_ai_step_result`,
+# `review_ai_step_result`, `get_ai_step_run`) and `ai_possible` on `update_task`, about 2 400
+# tokens, of which the plan's spec schema is about 700; measured 22 536, rounded up.
+# `approve_ai_plan` is app-only and costs nothing here.
+TOKEN_BUDGET = 22_600
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
 # Measured 2026-11-11: the 70 model-visible tools carry 170 527 characters of outputSchema; the cap
 # is that plus 5 % (rounded up). App-only tools are not counted, as for the token budget.
-OUTPUT_SCHEMA_CHAR_CAP = 179_100
+# 2026-11-16: raised to 221 100 for the outputs of the AI Step tools (the plan, a step page, a
+# started step and a run, 30 000 characters together); measured 210 488, plus 5 %.
+OUTPUT_SCHEMA_CHAR_CAP = 221_100
 
 
 def _estimated_tokens(tool: dict[str, object]) -> float:

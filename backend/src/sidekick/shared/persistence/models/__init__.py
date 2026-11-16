@@ -63,7 +63,7 @@ from .memory import (
     MemorySourceRow,
     MemoryUsageDailyRow,
 )
-from .tasks import ActionRow, StepRow, TaskRow, TaskStatusHistoryRow
+from .tasks import ActionRow, AiStepRunRow, StepRow, TaskRow, TaskStatusHistoryRow
 from .work import (
     DomainRow,
     DomainTagRow,
@@ -89,6 +89,7 @@ __all__ = [
     "UUID",
     "ActionRow",
     "ActivityEntryRow",
+    "AiStepRunRow",
     "Any",
     "AuditEventRow",
     "Base",

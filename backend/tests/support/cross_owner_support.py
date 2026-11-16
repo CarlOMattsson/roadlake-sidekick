@@ -52,6 +52,7 @@ NAME_KIND: dict[str, str] = {
     "source_id": "source",
     "replaces_source_id": "source",
     "draft_id": "draft",
+    "run_id": "run",
     "list_id": "list",
     "item_id": "item",
     "step_id": "step",
@@ -79,6 +80,7 @@ VERSIONED = frozenset(
         "contact",
         "entry",
         "draft",
+        "run",
         "list",
         "item",
         "step",
@@ -87,6 +89,8 @@ VERSIONED = frozenset(
         "reference",
     }
 )
+# The parameters that carry the version of the record the call changes.
+VERSION_NAMES = ("version", "expected_version", "run_version", "task_version")
 TRASHABLE = ("domain", "process", "project", "task", "step", "action", "contact", "entry", "item")
 
 
@@ -311,6 +315,42 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
         read = await client.call_tool("get_journal_draft", {"draft_id": str(draft_id)})
         assert read.structured_content is not None
         seed.records["draft"] = Record(str(draft_id), read.structured_content["draft"]["version"])
+        # An AI step run that waits for the owner: a plan, its approval, a start and a report.
+        ai_task = await make("task")
+        plan = (
+            await call(
+                "set_ai_plan",
+                {
+                    "task_id": ai_task.id,
+                    "task_version": ai_task.version,
+                    "steps": [
+                        {
+                            "title": label("ai step"),
+                            "performer": "ai",
+                            "ai_spec": {"goal": label("ai goal")},
+                        }
+                    ],
+                },
+            )
+        )["plan"]
+        await call("approve_ai_plan", {"task_id": ai_task.id, "digest": plan["digest"]})
+        started = await call("start_ai_step", {"step_id": plan["steps"][0]["step"]["id"]})
+        reported = (
+            await call(
+                "report_ai_step_result",
+                {
+                    "run_id": started["run"]["id"],
+                    "run_version": started["run"]["version"],
+                    "outcome": "result",
+                    "result": {
+                        "format": "text",
+                        "text": label("ai result"),
+                        "summary": label("ai summary"),
+                    },
+                },
+            )
+        )["run"]
+        seed.records["run"] = Record(reported["id"], reported["version"])
         # A trashed record of each trashable kind.
         for kind in TRASHABLE:
             record = await make(kind)
@@ -488,13 +528,13 @@ class ToolShape:
         value: dict[str, Any] = {}
         local: Local = []
         for name in names:
-            if name in ("version", "expected_version"):
+            if name in VERSION_NAMES:
                 continue
             value[name] = self._value(
                 properties[name], (*path, name), (*parents, name), name, properties, choice,
                 reference, local,
             )  # fmt: skip
-        for name in ("version", "expected_version"):
+        for name in VERSION_NAMES:
             if name in properties:
                 value[name] = next((v for _, v in local if v is not None), 1)
         return value

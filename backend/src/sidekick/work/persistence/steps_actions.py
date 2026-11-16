@@ -263,6 +263,8 @@ class StepActionStore:
         ):
             value = getattr(step, field)
             setattr(row, field, value.value if isinstance(value, TaskStatus) else value)
+        row.performer = step.performer.value
+        row.ai_spec = step.ai_spec.model_dump(mode="json") if step.ai_spec is not None else None
 
     @staticmethod
     def list_actions(

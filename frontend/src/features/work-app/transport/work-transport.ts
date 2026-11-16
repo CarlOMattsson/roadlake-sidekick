@@ -374,5 +374,22 @@ export function createWorkTransport(
       }),
     getDomain: (domainId) => call("get_domain", { domain_id: domainId }),
     getProcess: (processId) => call("get_process", { process_id: processId }),
+    getAiPlan: (taskId) => call("get_ai_plan", { task_id: taskId }),
+    approveAiPlan: (taskId, digest, idempotencyKey) =>
+      call("approve_ai_plan", {
+        task_id: taskId,
+        digest,
+        idempotency_key: idempotencyKey,
+      }),
+    getAiStepRun: (runId) =>
+      call("get_ai_step_run", { run_id: runId, include_content: true }),
+    reviewAiStepResult: (runId, version, decision, comment, idempotencyKey) =>
+      call("review_ai_step_result", {
+        run_id: runId,
+        run_version: version,
+        decision,
+        comment,
+        idempotency_key: idempotencyKey,
+      }),
   };
 }

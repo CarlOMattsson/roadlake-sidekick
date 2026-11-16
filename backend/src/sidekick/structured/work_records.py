@@ -146,6 +146,8 @@ class _TaskFields(Output):
     last_completed_at: datetime | None = None
     last_reviewed_at: datetime | None = None
     """When a review decision last touched the Task; ordinary edits leave it alone."""
+    ai_possible: bool = False
+    """The owner marked the Task as possible with AI; Claude can then plan it (`set_ai_plan`)."""
     tags: list[str] = Field(default_factory=list)
 
 
@@ -315,6 +317,19 @@ class ProcessOutput(Output):
     process: ProcessRecord
 
 
+StepStatusName = Literal[
+    "waiting",
+    "ready",
+    "running",
+    "to_review",
+    "needs_input",
+    "failed",
+    "stopped",
+    "exhausted",
+    "done",
+]
+
+
 class StepRecord(Output):
     id: UUID
     task_id: UUID
@@ -326,6 +341,8 @@ class StepRecord(Output):
     attention_requested: bool = False
     archived_at: datetime | None = None
     instruction: str | None = None
+    performer: Literal["owner", "ai"] = "owner"
+    """Who does the step. The instruction an AI step follows is in `get_ai_plan`."""
 
 
 class ActionRecord(Output):
@@ -346,6 +363,10 @@ class ListedStepRecord(StepRecord):
 
     action_count: int = Field(ge=0)
     action_done_count: int = Field(ge=0, description="How many of the active Actions are done.")
+    ai_status: StepStatusName | None = Field(
+        default=None,
+        description="Where an AI Step stands, such as running; absent for an owner Step.",
+    )
 
 
 class StepPageOutput(Output):
@@ -559,6 +580,9 @@ class TaskChanges(Output):
     ambition: bool | None = None
     """true keeps it as an ambition (clears due, start, waiting, flag and reminders); false: a
     task again."""
+    ai_possible: bool | None = None
+    """true marks the Task as possible with AI (a plan can then be made and approved); false
+    removes the mark and withdraws an approved plan."""
     tags: Annotated[
         list[Annotated[str, NoImageData]] | None,
         Field(max_length=MAX_TAGS_PER_RECORD),
@@ -572,6 +596,8 @@ class TaskChanges(Output):
             raise ValueError("title cannot be null")
         if "ambition" in self.model_fields_set and self.ambition is None:
             raise ValueError("ambition cannot be null")
+        if "ai_possible" in self.model_fields_set and self.ai_possible is None:
+            raise ValueError("ai_possible cannot be null")
         return self
 
 

@@ -1,4 +1,4 @@
-"""An owner export as an earlier format (version 4, 5 or 6) wrote it, built from a current one."""
+"""An owner export as an earlier format (4, 5, 6 or 7) wrote it, built from a current one."""
 
 from __future__ import annotations
 
@@ -7,8 +7,11 @@ from typing import Any
 
 from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    COLLECTIONS_ADDED_IN_FORMAT_8,
     COLUMNS_ADDED_IN_FORMAT_7,
+    COLUMNS_ADDED_IN_FORMAT_8,
     FORMAT_WITH_RETIRED_COLLECTIONS,
+    FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -38,20 +41,43 @@ def _resealed(
     return result
 
 
-def _format_6_collections(document: Mapping[str, Any]) -> dict[str, Any]:
-    """The collections without the columns format 7 added (a Task's `last_reviewed_at`)."""
+HEAD_110 = "110_task_ambition"
+HEAD_111 = "111_webhook_tokens"
 
+
+def _without_columns(
+    collections: Mapping[str, Any], columns: Mapping[str, frozenset[str]]
+) -> dict[str, Any]:
     return {
         name: [
             {
                 field: value
                 for field, value in row.items()
-                if field not in COLUMNS_ADDED_IN_FORMAT_7.get(name, frozenset())
+                if field not in columns.get(name, frozenset())
             }
             for row in rows
         ]
-        for name, rows in document["collections"].items()
+        for name, rows in collections.items()
     }
+
+
+def _format_7_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The collections without what format 8 added: the AI columns and the run collection."""
+
+    return _without_columns(
+        {
+            name: rows
+            for name, rows in document["collections"].items()
+            if name not in COLLECTIONS_ADDED_IN_FORMAT_8
+        },
+        COLUMNS_ADDED_IN_FORMAT_8,
+    )
+
+
+def _format_6_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The collections without the columns format 7 added (a Task's `last_reviewed_at`)."""
+
+    return _without_columns(_format_7_collections(document), COLUMNS_ADDED_IN_FORMAT_7)
 
 
 def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
@@ -60,6 +86,13 @@ def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
         for name, rows in _format_6_collections(document).items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_6
     }
+
+
+def as_format_7(document: Mapping[str, Any], head: str = HEAD_111) -> dict[str, Any]:
+    """The document without the AI columns and runs of format 8, stamped with `head` and sealed
+    again."""
+
+    return _resealed(document, FORMAT_WITHOUT_AI_STEPS, head, _format_7_collections(document))
 
 
 def as_format_6(document: Mapping[str, Any], head: str = FORGOTTEN_FACTS_HEAD) -> dict[str, Any]:

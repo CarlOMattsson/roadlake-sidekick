@@ -87,6 +87,18 @@ Befintliga uppgifter räknas som vanliga uppgifter. En återrullning tar bara bo
 en vanlig odaterad uppgift. Ägarexporten bär den på varje uppgiftsrad (format 7, som släpps första gången med den
 kolumnen); en export i format 6 har ingen sådan kolumn, och dess uppgifter återställs som vanliga uppgifter.
 
+## Migrering 112: AI-steg
+
+`112_ai_steps.py` är en additiv (expand) migrering för steg som Claude Code får köra. Den lägger till
+`tasks.ai_possible_since` (markeringen), `tasks.ai_plan_digest` och `tasks.ai_plan_approved_at` (den godkända planen, båda
+satta eller båda NULL) och `tasks.ai_task_cap_microusd` (utgiftstaket, NULL för instansens förval). Den lägger till
+`steps.performer`, som är `owner` för alla befintliga steg, och `steps.ai_spec`, som bara ett AI-steg bär. Den nya tabellen
+`ai_step_runs` håller en rad per försök. Applikationsrollen får läsa, lägga till och uppdatera den men inte radera: migreringen
+återkallar DELETE, eftersom standardbehörigheterna annars skulle ge den. En rad försvinner bara tillsammans med sitt steg
+eller sin uppgift när de raderas för gott. En återrullning tar bort kolumnerna och tabellen, vilket bara förlorar AI-datan.
+Ägarexporten bär dessa kolumner och samlingen `ai_step_runs` (format 8); en export i format 7 har ingen av dem och
+återställer sina steg som ägarens egna.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

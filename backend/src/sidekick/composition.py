@@ -61,6 +61,9 @@ from sidekick.tasks.application import (
 from sidekick.tasks.persistence import ProjectTaskStore, SqlTaskStore
 from sidekick.webhooks.store import WebhookTokenStore
 from sidekick.webhooks.tokens import WebhookTokenService
+from sidekick.work.application.ai_plans import AiPlanService
+from sidekick.work.application.ai_runs_service import AiRunService
+from sidekick.work.application.ai_store import AiLimits
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
@@ -109,6 +112,9 @@ class Container:
     activity: ActivityService
     lifecycle: RecordLifecycleService
     process_runs: ProcessRunService
+    # AI-delegated steps (ADR-011): the plan the owner approves, and the runs of its AI steps.
+    ai_plans: AiPlanService
+    ai_runs: AiRunService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -281,6 +287,7 @@ def create_container(
         stores.work, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
     )
     steps = StepsService(stores.work, SystemClock(), cursor_codec)
+    ai_limits = AiLimits.from_settings(settings)
     contacts = ContactService(stores.contacts, SystemClock(), cursor_codec)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
@@ -326,6 +333,16 @@ def create_container(
         activity=activity_service,
         lifecycle=create_lifecycle_service(factory, resolved_telemetry, settings),
         process_runs=ProcessRunService(stores.work, tasks, SystemClock(), activity_ledger),
+        ai_plans=AiPlanService(stores.work, SystemClock(), ai_limits, activity_ledger),
+        ai_runs=AiRunService(
+            stores.work,
+            SystemClock(),
+            cursor_codec,
+            ai_limits,
+            owner_timezone=settings.owner_zone,
+            telemetry=resolved_telemetry,
+            activity=activity_ledger,
+        ),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

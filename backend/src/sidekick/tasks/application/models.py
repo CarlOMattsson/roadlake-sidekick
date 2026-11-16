@@ -42,6 +42,8 @@ class UpdateTaskCommand:
     """Set only by a review decision that also changes the Task; never cleared."""
     ambition: bool | UnsetType = UNSET
     """True keeps the Task as an ambition (see `Task.ambition_change`); False makes it a task."""
+    ai_possible: bool | UnsetType = UNSET
+    """True marks the Task as possible with AI; False removes the mark and any approved plan."""
     tags: tuple[str, ...] | UnsetType = UNSET
     """The record's complete intended tag set; applied inside this same update."""
 
@@ -71,6 +73,7 @@ class UpdateTaskCommand:
                 "last_completed_at": self.last_completed_at,
                 "last_reviewed_at": self.last_reviewed_at,
                 "ambition": self.ambition,
+                "ai_possible": self.ai_possible,
             }.items()
             if value is not UNSET
         }

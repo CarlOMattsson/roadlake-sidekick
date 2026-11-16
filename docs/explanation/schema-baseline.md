@@ -88,6 +88,17 @@ ordinary Tasks. Rolling it back drops only that column, so every ambition become
 export carries it in each Task row (format 7, first released with this column); a format 6 export has no such column
 and its Tasks restore as ordinary Tasks.
 
+## Migration 112: AI steps
+
+`112_ai_steps.py` is an additive (expand) migration for steps that Claude Code may run. It adds `tasks.ai_possible_since`
+(the mark), `tasks.ai_plan_digest` and `tasks.ai_plan_approved_at` (the approved plan, both set or both NULL) and
+`tasks.ai_task_cap_microusd` (the spending cap, NULL for the instance default). It adds `steps.performer`, which is
+`owner` for every existing Step, and `steps.ai_spec`, which only an AI Step carries. The new table `ai_step_runs` holds
+one row per attempt. The application role may read, insert and update it but not delete: the migration revokes DELETE,
+because the default privileges would grant it. A row leaves only with its Step or Task when that is erased permanently.
+Rolling back drops the columns and the table, which loses only the AI data. The owner export carries these columns and
+the `ai_step_runs` collection (format 8); a format 7 export has none of them and restores its Steps as the owner's own.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

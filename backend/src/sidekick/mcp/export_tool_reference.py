@@ -92,6 +92,20 @@ AREAS: tuple[Area, ...] = (
         ),
     ),
     Area(
+        "AI steps",
+        "ai-steps",
+        (
+            "set_ai_plan",
+            "get_ai_plan",
+            "approve_ai_plan",
+            "list_ai_steps",
+            "start_ai_step",
+            "report_ai_step_result",
+            "review_ai_step_result",
+            "get_ai_step_run",
+        ),
+    ),
+    Area(
         "External references",
         "external-references",
         (

@@ -1,10 +1,11 @@
+import { useEffect, useRef, type ReactNode } from "react";
 import type { WorkLabels } from "../shared/labels";
 import "./new-task-input.css";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { RowMenuTip } from "../shared/row-menu";
-import type { WorkTransport } from "../transport/transport";
+import type { WorkStep, WorkTransport } from "../transport/transport";
 import { StepCreate } from "../steps/step-create";
 import { useTaskSteps } from "../steps/use-task-steps";
 import { StepRow } from "./step-row";
@@ -21,10 +22,16 @@ export function TaskSteps({
   taskId,
   transport,
   labels: t,
+  stepExtra,
+  refreshKey = 0,
 }: {
   taskId: string;
   transport: WorkTransport;
   labels: WorkLabels;
+  /** What the Task adds under a Step's title (an AI Step's run to review). */
+  stepExtra?: (step: WorkStep) => ReactNode;
+  /** A new value reads the Steps again in place (a reviewed AI Step moved on the server). */
+  refreshKey?: number;
 }) {
   const offers = useToolSupport(transport);
   // What the host cannot write is not offered: the checks need both ways of the tick (complete_task_step, and
@@ -38,6 +45,14 @@ export function TaskSteps({
   const { state, write, manage, banner, listRef, headingRef, undoBox } = steps;
   const { phase, notice, more, undo, archived, status, stepUndo } = state;
   const hasMore = state.nextCursor !== undefined;
+  // Only a new key reads again: the first render keeps the list the hook is already reading.
+  const reloadSteps = useRef(steps.reloadSteps);
+  useEffect(() => {
+    reloadSteps.current = steps.reloadSteps;
+  });
+  useEffect(() => {
+    if (refreshKey > 0) reloadSteps.current();
+  }, [refreshKey]);
 
   const failedStep =
     notice?.kind === "failed"
@@ -52,6 +67,8 @@ export function TaskSteps({
         : undefined;
   // The checkboxes and the list controls wait while any write runs or the list is re-read.
   const listBusy = state.busyId !== undefined || write.busy || state.refreshing;
+  // Who does each Step is said only in a Task where some Step is done by AI; elsewhere every Step is the owner's.
+  const marked = state.steps.some((step) => step.performer === "ai");
   const doneCount = state.steps.filter(
     (step) => step.status === "completed",
   ).length;
@@ -143,6 +160,8 @@ export function TaskSteps({
               onActionCount={(count, done) =>
                 steps.setActionCount(step.id, count, done)
               }
+              marked={marked}
+              extra={stepExtra?.(step)}
             />
           ))}
         </ul>

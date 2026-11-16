@@ -47,6 +47,7 @@ export type WorkTask = WithOptional<
     | "steps_total"
     | "last_completed_at"
     | "tags"
+    | "ai_possible"
   >,
   | "description"
   | "priority"
@@ -59,6 +60,7 @@ export type WorkTask = WithOptional<
   | "steps_total"
   | "last_completed_at"
   | "tags"
+  | "ai_possible"
 >;
 /**
  * Fields update_task accepts. An omitted key is left unchanged; null clears due_at, domain_id or
@@ -136,9 +138,9 @@ export type WorkProject = WithOptional<
  */
 export type WorkProjectChanges = Inputs["update_project"]["changes"];
 /**
- * One Step as the Step tools return it. `action_count` (the Step's active Actions) and
- * `action_done_count` (how many of them are done) come from list_task_steps only: the Step writes
- * leave them out, and an older server never sends them.
+ * One Step as the Step tools return it. `action_count` (the Step's active Actions),
+ * `action_done_count` (how many of them are done) and `ai_status` (where an AI Step stands) come from
+ * list_task_steps only: the Step writes leave them out, and an older server never sends them.
  */
 export type WorkStep = WithOptional<
   Pick<
@@ -152,8 +154,15 @@ export type WorkStep = WithOptional<
     | "archived_at"
     | "action_count"
     | "action_done_count"
+    | "performer"
+    | "ai_status"
   >,
-  "position" | "archived_at" | "action_count" | "action_done_count"
+  | "position"
+  | "archived_at"
+  | "action_count"
+  | "action_done_count"
+  | "performer"
+  | "ai_status"
 >;
 /** One Action under a Step as list_step_actions and the Action writes return it (ActionRecord). */
 export type WorkAction = WithOptional<
@@ -350,9 +359,9 @@ export type WorkProjectSummary = WithOptional<
 export type WorkTaskSummary = WithOptional<
   Pick<
     Item<Results["list_tasks"]["tasks"]>,
-    "id" | "title" | "status" | "due_at" | "tags"
+    "id" | "title" | "status" | "due_at" | "tags" | "ai_possible"
   >,
-  "tags"
+  "tags" | "ai_possible"
 >;
 /** One Journal entry linked to a Contact, as get_contact_context lists it: id, date and title only. */
 export type WorkJournalEntryLink = Item<
@@ -387,3 +396,12 @@ export type WorkRescheduleResult = Pick<
   Results["reschedule_tasks"],
   "count" | "tasks"
 >;
+/**
+ * A Task's plan for AI steps as get_ai_plan and approve_ai_plan return it: who performs each Step, the digest the owner
+ * approves, the plan's state and each AI Step's status with its latest run.
+ */
+export type WorkAiPlan = Results["get_ai_plan"]["plan"];
+export type WorkAiPlanStep = Item<WorkAiPlan["steps"]>;
+/** One run of an AI Step (get_ai_step_run, review_ai_step_result); `content` only when it was asked for. */
+export type WorkAiRun = Results["get_ai_step_run"];
+export type WorkAiReview = Inputs["review_ai_step_result"]["decision"];

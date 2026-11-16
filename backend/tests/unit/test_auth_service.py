@@ -279,7 +279,7 @@ AUTOMATION_SCOPES = frozenset({"automation:read", "automation:write"})
 
 
 def test_automation_scopes_are_opt_in_for_personal_tokens_only() -> None:
-    assert frozenset({"automation:read", "automation:write"}) == OPT_IN_SCOPES
+    assert frozenset({"automation:read", "automation:write", "ai:run"}) == OPT_IN_SCOPES
     assert AUTOMATION_SCOPES <= ALL_SCOPES
     assert set(MCP_SCOPES) >= AUTOMATION_SCOPES
     assert not AUTOMATION_SCOPES & TOKEN_SCOPES
@@ -294,6 +294,18 @@ def test_create_token_with_a_broad_scope_list_still_leaves_out_automation(
     run_create_token(monkeypatch, capsys, "--scope", "tasks:read", "--scope", "tasks:write")
 
     assert not AUTOMATION_SCOPES & granted_token_scopes[0]
+
+
+def test_create_token_leaves_out_ai_run_unless_it_is_named(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    granted_token_scopes: list[frozenset[str]],
+) -> None:
+    run_create_token(monkeypatch, capsys, "--scope", "tasks:read", "--scope", "tasks:write")
+    run_create_token(monkeypatch, capsys, "--scope", "ai:run", "--scope", "tasks:read")
+
+    assert "ai:run" not in granted_token_scopes[0]
+    assert granted_token_scopes[1] == frozenset({"ai:run", "tasks:read"})
 
 
 def test_create_token_with_explicit_automation_write_grants_it(

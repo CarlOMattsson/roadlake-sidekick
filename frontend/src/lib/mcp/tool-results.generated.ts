@@ -16,6 +16,7 @@ export type ToolResults = {
     merged_count: number;
     open_count: number | null;
   };
+  approve_ai_plan: AiPlanOutput;
   archive_contact: ContactResult;
   archive_saved_work_view: SavedViewOutput;
   archive_step_action: ActionOutput;
@@ -49,6 +50,7 @@ export type ToolResults = {
   create_tasks: {
     count: number;
     tasks: Array<{
+      ai_possible: boolean;
       archived_at: string | null;
       attention_requested: boolean;
       blocked_last_reminded_at: string | null;
@@ -103,6 +105,8 @@ export type ToolResults = {
     entry: JournalEntryRecord;
     updated_task_ids: Array<string>;
   };
+  get_ai_plan: AiPlanOutput;
+  get_ai_step_run: AiRunOutput;
   get_contact_context: {
     contact: ContactRecord;
     journal_entries: {
@@ -337,6 +341,7 @@ export type ToolResults = {
   };
   get_task: {
     task: {
+      ai_possible: boolean;
       archived_at: string | null;
       attention_requested: boolean;
       blocked_last_reminded_at: string | null;
@@ -461,6 +466,29 @@ export type ToolResults = {
     reference: ReferenceRecord;
     relation_created: boolean;
     task_id: string;
+  };
+  list_ai_steps: {
+    items: Array<{
+      attempts: number;
+      latest_run: AiRunRecord | null;
+      position: number;
+      startable: boolean;
+      status:
+        | "waiting"
+        | "ready"
+        | "running"
+        | "to_review"
+        | "needs_input"
+        | "failed"
+        | "stopped"
+        | "exhausted"
+        | "done";
+      step_id: string;
+      step_title: string;
+      task_id: string;
+      task_title: string;
+    }>;
+    next_cursor: string | null;
   };
   list_assistant_activity: {
     items: Array<{
@@ -607,11 +635,23 @@ export type ToolResults = {
     items: Array<{
       action_count: number;
       action_done_count: number;
+      ai_status:
+        | "waiting"
+        | "ready"
+        | "running"
+        | "to_review"
+        | "needs_input"
+        | "failed"
+        | "stopped"
+        | "exhausted"
+        | "done"
+        | null;
       archived_at: string | null;
       attention_requested: boolean;
       due_at: string | null;
       id: string;
       instruction: string | null;
+      performer: "owner" | "ai";
       position: number;
       status: string;
       task_id: string;
@@ -623,6 +663,7 @@ export type ToolResults = {
   list_tasks: {
     next_cursor: string | null;
     tasks: Array<{
+      ai_possible: boolean;
       archived_at: string | null;
       attention_requested: boolean;
       blocked_last_reminded_at: string | null;
@@ -695,6 +736,7 @@ export type ToolResults = {
       version: number;
     }>;
   };
+  report_ai_step_result: AiRunOutput;
   reschedule_tasks: {
     count: number;
     tasks: Array<{
@@ -715,6 +757,7 @@ export type ToolResults = {
     version: number;
   };
   restore_task_step: StepOutput;
+  review_ai_step_result: AiRunOutput;
   review_tasks: {
     count: number;
     tasks: Array<{
@@ -775,6 +818,7 @@ export type ToolResults = {
       next_cursor?: string | null;
     } | null;
   };
+  set_ai_plan: AiPlanOutput;
   set_daily_journal_summary: JournalSummaryResult;
   set_license_key: {
     accepted: boolean;
@@ -813,6 +857,13 @@ export type ToolResults = {
       total: number;
       truncated: boolean;
     };
+  };
+  start_ai_step: {
+    brief: string;
+    budget_usd: number;
+    max_turns: number;
+    run: AiRunRecord;
+    step_id: string;
   };
   unlink_contact_from_project: ProjectContactResult;
   unlink_contact_from_task: TaskContactResult;
@@ -870,6 +921,13 @@ export type ToolInputs = {
     }>;
     list_id: string;
     merge_duplicates?: boolean;
+  };
+  approve_ai_plan: {
+    decision?: "approve" | "withdraw";
+    digest: string;
+    idempotency_key: string;
+    task_cap_usd?: number | null;
+    task_id: string;
   };
   archive_contact: {
     contact_id: string;
@@ -1106,6 +1164,13 @@ export type ToolInputs = {
     >;
     title: string;
   };
+  get_ai_plan: {
+    task_id: string;
+  };
+  get_ai_step_run: {
+    include_content?: boolean;
+    run_id: string;
+  };
   get_contact_context: {
     contact_id: string;
     include_completed?: boolean;
@@ -1230,6 +1295,12 @@ export type ToolInputs = {
     task_id: string;
     title: string;
     url?: string | null;
+  };
+  list_ai_steps: {
+    cursor?: string | null;
+    limit?: number;
+    state?: "ready" | "running" | "to_review" | "needs_input" | "failed" | null;
+    task_id?: string | null;
   };
   list_assistant_activity: {
     category?: string | null;
@@ -1391,6 +1462,32 @@ export type ToolInputs = {
     }>;
     status: "todo" | "in_progress" | "blocked" | "completed";
   };
+  report_ai_step_result: {
+    failure_category?:
+      "blocked" | "unclear_goal" | "tool_error" | "budget" | "other" | null;
+    idempotency_key: string;
+    outcome: "result" | "question" | "failed";
+    question?: string | null;
+    result?: {
+      checklist?: Array<{
+        action_id: string;
+        done: boolean;
+      }>;
+      format: "text" | "markdown" | "checklist" | "table" | "email_draft";
+      summary: string;
+      text: string;
+    } | null;
+    run_id: string;
+    run_version: number;
+    usage?: {
+      cache_read_tokens?: number;
+      cache_write_tokens?: number;
+      cost_usd_estimate?: number;
+      input_tokens?: number;
+      model?: string | null;
+      output_tokens?: number;
+    } | null;
+  };
   reschedule_tasks: {
     idempotency_key: string;
     items: Array<{
@@ -1439,6 +1536,13 @@ export type ToolInputs = {
     step_id: string;
     version: number;
   };
+  review_ai_step_result: {
+    comment?: string | null;
+    decision: "accept" | "redo" | "reject" | "answer";
+    idempotency_key: string;
+    run_id: string;
+    run_version: number;
+  };
   review_tasks: {
     idempotency_key: string;
     items: Array<{
@@ -1455,6 +1559,41 @@ export type ToolInputs = {
     kinds?: Array<"task" | "project" | "contact" | "journal"> | null;
     limit?: number;
     query: string;
+  };
+  set_ai_plan: {
+    idempotency_key: string;
+    steps: Array<{
+      ai_spec?: {
+        budget?: {
+          max_turns?: number;
+          max_usd?: number;
+        };
+        capabilities?: Array<
+          "web_search" | "web_fetch" | "read_task_context" | "code"
+        >;
+        context?: {
+          include_contacts?: boolean;
+          include_references?: boolean;
+        };
+        done_when?: Array<string>;
+        effects?: "none" | "draft";
+        goal: string;
+        output?: {
+          format?: "text" | "markdown" | "checklist" | "table" | "email_draft";
+          max_chars?: number;
+        };
+        privacy?: "normal" | "local_only";
+        runner?: "any" | "claude_code" | "server";
+        spec_version?: 1;
+        stop_and_ask?: Array<string>;
+      } | null;
+      instruction?: string | null;
+      performer: "owner" | "ai";
+      step_id?: string | null;
+      title?: string | null;
+    }>;
+    task_id: string;
+    task_version: number;
   };
   set_daily_journal_summary: {
     expected_entry_fingerprint: string;
@@ -1494,6 +1633,10 @@ export type ToolInputs = {
       id: string;
       kind: "domain" | "project" | "task" | "step";
     }>;
+  };
+  start_ai_step: {
+    idempotency_key: string;
+    step_id: string;
   };
   unlink_contact_from_project: {
     contact_id: string;
@@ -1733,6 +1876,7 @@ export type ToolInputs = {
   };
   update_task: {
     changes: {
+      ai_possible?: boolean | null;
       ambition?: boolean | null;
       description?: string | null;
       domain_id?: string | null;
@@ -1814,6 +1958,127 @@ export type ActionRecord = {
   step_id: string;
   title: string;
   version: number;
+};
+
+export type AiBudgetSpec = {
+  max_turns: number;
+  max_usd: number;
+};
+
+export type AiContextSpec = {
+  include_contacts: boolean;
+  include_references: boolean;
+};
+
+export type AiOutputSpec = {
+  format: "text" | "markdown" | "checklist" | "table" | "email_draft";
+  max_chars: number;
+};
+
+export type AiPlanOutput = {
+  plan: AiPlanRecord;
+};
+
+export type AiPlanRecord = {
+  ai_possible: boolean;
+  approved_at: string | null;
+  digest: string;
+  state: "none" | "draft" | "approved" | "changed_since_approval";
+  steps: Array<AiPlanStepRecord>;
+  task_cap_usd: number;
+  task_id: string;
+  task_title: string;
+  task_version: number;
+};
+
+export type AiPlanStepRecord = {
+  action_titles: Array<string>;
+  ai_spec: AiStepSpecV1 | null;
+  ai_status:
+    | "waiting"
+    | "ready"
+    | "running"
+    | "to_review"
+    | "needs_input"
+    | "failed"
+    | "stopped"
+    | "exhausted"
+    | "done"
+    | null;
+  attempts: number;
+  latest_run: AiRunRecord | null;
+  step: StepRecord;
+};
+
+export type AiRunContentRecord = {
+  answer: string | null;
+  checklist: Array<ChecklistRecord>;
+  comment: string | null;
+  note: string;
+  question: string | null;
+  result_format:
+    "text" | "markdown" | "checklist" | "table" | "email_draft" | null;
+  result_summary: string | null;
+  result_text: string | null;
+};
+
+export type AiRunOutput = {
+  content: AiRunContentRecord | null;
+  run: AiRunRecord;
+};
+
+export type AiRunRecord = {
+  attempt: number;
+  cost_source: "provider" | "price_table" | "client_estimate" | "none";
+  cost_usd: number;
+  created_at: string;
+  failure_category: string | null;
+  finished_at: string | null;
+  has_question: boolean;
+  has_result: boolean;
+  id: string;
+  input_tokens: number;
+  lease_until: string | null;
+  model: string | null;
+  output_tokens: number;
+  reviewed_at: string | null;
+  runner: "claude_code" | "server";
+  started_at: string | null;
+  state:
+    | "queued"
+    | "running"
+    | "to_review"
+    | "needs_input"
+    | "failed"
+    | "cancelled"
+    | "accepted"
+    | "rejected"
+    | "redo"
+    | "answered";
+  step_id: string;
+  task_id: string;
+  version: number;
+};
+
+export type AiStepSpecV1 = {
+  budget: AiBudgetSpec;
+  capabilities: Array<
+    "web_search" | "web_fetch" | "read_task_context" | "code"
+  >;
+  context: AiContextSpec;
+  done_when: Array<string>;
+  effects: "none" | "draft";
+  goal: string;
+  output: AiOutputSpec;
+  privacy: "normal" | "local_only";
+  runner: "any" | "claude_code" | "server";
+  spec_version: 1;
+  stop_and_ask: Array<string>;
+};
+
+export type ChecklistRecord = {
+  action_id: string;
+  done: boolean;
 };
 
 export type ContactAliasRecord = {
@@ -2147,6 +2412,7 @@ export type StepRecord = {
   due_at: string | null;
   id: string;
   instruction: string | null;
+  performer: "owner" | "ai";
   position: number;
   status: string;
   task_id: string;
@@ -2197,6 +2463,7 @@ export type TaskOutput = {
 };
 
 export type TaskRecord = {
+  ai_possible: boolean;
   archived_at: string | null;
   attention_requested: boolean;
   blocked_last_reminded_at: string | null;

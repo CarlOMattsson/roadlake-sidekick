@@ -217,6 +217,30 @@ def _remap_restore_value(
     raise ExportRefused(f"unresolved restore reference {source.name}.{field}")
 
 
+# Run states that mean work is in progress; a restored run in one of them is cancelled, since no
+# worker of the new instance holds it.
+ACTIVE_AI_RUN_STATES = frozenset({"queued", "running"})
+# The plan approval and its spending cap belong to the instance the owner approved them on.
+AI_PLAN_APPROVAL_FIELDS = ("ai_plan_digest", "ai_plan_approved_at", "ai_task_cap_microusd")
+
+
+def _apply_restore_rules(remapped: dict[str, list[dict[str, Any]]]) -> None:
+    """Drop what a restored record must not carry over from the instance it was exported from.
+
+    A Task's approved AI plan is not restored: the owner approves again on the new instance, as the
+    consent was given for a specific one. A run that was queued or running is restored as cancelled
+    with no lease. The AI mark, each Step's performer and instruction, and every run's text stay.
+    """
+
+    for task in remapped["tasks"]:
+        for field in AI_PLAN_APPROVAL_FIELDS:
+            task[field] = None
+    for run in remapped["ai_step_runs"]:
+        if run.get("state") in ACTIVE_AI_RUN_STATES:
+            run["state"] = "cancelled"
+            run["lease_until"] = None
+
+
 def remapped_restore_rows(
     document: Mapping[str, Any], target_owner_id: UUID
 ) -> dict[str, list[dict[str, Any]]]:
@@ -245,4 +269,5 @@ def remapped_restore_rows(
             }
             for row in rows
         ]
+    _apply_restore_rules(remapped)
     return remapped

@@ -388,6 +388,17 @@
   + .sk-menu-item {
   border-top: var(--sk-hairline) solid var(--sk-line);
 }
+/* A mark the entry sets or clears (aria-pressed): the chip's tick at the entry's end while it is set. */
+.sk-menu-item[aria-pressed="true"]::after {
+  content: "";
+  flex: none;
+  width: max(var(--sk-glyph), 0.85em);
+  height: max(var(--sk-glyph), 0.85em);
+  margin-inline-start: auto;
+  background: currentColor;
+  -webkit-mask: var(--sk-check) center / 100% no-repeat;
+  mask: var(--sk-check) center / 100% no-repeat;
+}
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
   button.sk-menu-item--danger,
 .sk-menu-item--danger {

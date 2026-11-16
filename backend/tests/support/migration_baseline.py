@@ -33,6 +33,7 @@ FORGOTTEN_FACTS = "108_memory_forgotten_facts"
 TASK_REVIEW = "109_task_last_reviewed_at"
 TASK_AMBITION = "110_task_ambition"
 WEBHOOK_TOKENS = "111_webhook_tokens"
+AI_STEPS = "112_ai_steps"
 
 
 # The catalogue facts a migration can change, each as sorted text rows. Deparsed definitions

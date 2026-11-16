@@ -64,6 +64,11 @@ REPLAYED: tuple[str, ...] = (
     "set_daily_journal_summary",
     "set_memory_settings",
     "exclude_from_memory",
+    "set_ai_plan",
+    "approve_ai_plan",
+    "start_ai_step",
+    "report_ai_step_result",
+    "review_ai_step_result",
 )
 
 #: Write tools the scenario does not exercise yet. Only shrinks; remove a name when it is covered.
@@ -707,6 +712,61 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
             },
         )
 
+        # AI steps: a plan, its approval, one started and reported run, and the owner's decision.
+        ai_task = (
+            await call("create_task", {"title": "Letter task", "idempotency_key": key + "aitsk"})
+        )["task"]
+        plan = (
+            await call(
+                "set_ai_plan",
+                {
+                    "task_id": ai_task["id"],
+                    "task_version": ai_task["version"],
+                    "idempotency_key": key + "aiplan",
+                    "steps": [
+                        {
+                            "title": "Draft the letter",
+                            "performer": "ai",
+                            "ai_spec": {"goal": "Draft the letter to the landlord"},
+                        }
+                    ],
+                },
+            )
+        )["plan"]
+        await call(
+            "approve_ai_plan",
+            {
+                "task_id": ai_task["id"],
+                "digest": plan["digest"],
+                "idempotency_key": key + "aiappr",
+            },
+        )
+        started = await call(
+            "start_ai_step",
+            {"step_id": plan["steps"][0]["step"]["id"], "idempotency_key": key + "aistart"},
+        )
+        reported = (
+            await call(
+                "report_ai_step_result",
+                {
+                    "run_id": started["run"]["id"],
+                    "run_version": started["run"]["version"],
+                    "outcome": "result",
+                    "result": {"format": "text", "text": "Dear landlord", "summary": "A draft"},
+                    "idempotency_key": key + "aireport",
+                },
+            )
+        )["run"]
+        await call(
+            "review_ai_step_result",
+            {
+                "run_id": reported["id"],
+                "run_version": reported["version"],
+                "decision": "accept",
+                "idempotency_key": key + "aireview",
+            },
+        )
+
         # Licence and memory settings. The test instance has no licence public key, so the key is
         # refused and the refusal is audited (closed reason, no key text) under the request's id.
         await call("set_license_key", {"key": "not-a-real-licence-key"})
@@ -798,6 +858,9 @@ def test_the_board_reorder_replayed_with_the_same_key_records_the_event_once(
         "A tidy day",
         "Steps",
         "Sweep",
+        "Letter task",
+        "Draft the letter",
+        "Dear landlord",
         "not-a-real-licence-key",
     ],
 )

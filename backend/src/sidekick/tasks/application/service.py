@@ -497,10 +497,13 @@ class TaskService:
         reviewed_at = (
             changes.pop("last_reviewed_at", UNSET) if isinstance(ambition, bool) else UNSET
         )
+        ai_possible = changes.pop("ai_possible", UNSET)
         if isinstance(ambition, bool):
             updated = _with_ambition(task, ambition, changes, now, reviewed_at)
         else:
             updated = task.update(now=now, **changes) if changes else task
+        if isinstance(ai_possible, bool):
+            updated = _with_ai_possible(task, updated, ai_possible, changes, now)
         if (
             updated.status is TaskStatus.COMPLETED
             and updated.recurrence is not None
@@ -864,6 +867,24 @@ def _with_ambition(
         fields["last_reviewed_at"] = reviewed_at
         changes["last_reviewed_at"] = reviewed_at
     return replace(updated, **fields, updated_at=now, version=before.version + 1)
+
+
+def _with_ai_possible(
+    before: Task, updated: Task, possible: bool, changes: dict[str, Any], now: datetime
+) -> Task:
+    """`updated` marked as possible with AI, or with the mark (and an approved plan) removed.
+
+    The marking rides along with the command's other changes in one version; alone it is the
+    version's only change. `changes` gains the fields this sets, for the activity entry.
+    """
+
+    fields = updated.ai_possible_change(possible, now=now)
+    if not fields:
+        return updated
+    changes.update(fields)
+    if updated is before:
+        return replace(updated, **fields, updated_at=now, version=before.version + 1)
+    return replace(updated, **fields)
 
 
 def _require_uuid(value: object) -> UUID:

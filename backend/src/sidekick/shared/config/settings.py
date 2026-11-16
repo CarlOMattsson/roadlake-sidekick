@@ -1,5 +1,6 @@
 """Validated runtime configuration: the `Settings` class composed from its groups."""
 
+from sidekick.shared.config.ai_steps import AiStepSettings
 from sidekick.shared.config.backup import BackupSettings
 from sidekick.shared.config.database import DatabaseSettings
 from sidekick.shared.config.instance import InstanceSettings
@@ -12,6 +13,7 @@ from sidekick.shared.config.signing import SigningSettings
 
 
 class Settings(
+    AiStepSettings,
     LicenseSettings,
     InstanceSettings,
     RequestLimitSettings,

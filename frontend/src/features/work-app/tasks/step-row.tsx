@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
+import { AiStepMark } from "../../mcp-apps/ui/ai-step-mark";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
@@ -60,6 +61,8 @@ export function StepRow({
   onArchive,
   actions,
   onActionCount,
+  marked = false,
+  extra,
 }: {
   step: WorkStep;
   index: number;
@@ -82,6 +85,10 @@ export function StepRow({
   actions: boolean;
   /** The Step's Actions were read or changed; `count` is how many are active and `done` how many of them are done. */
   onActionCount: (count: number, done: number) => void;
+  /** True in a Task with AI Steps: the title ends in who does the Step ("Du", "AI · att granska"). */
+  marked?: boolean;
+  /** What the Task adds under the title (an AI Step's run to review); drawn before the Actions. */
+  extra?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   // The Step's Actions open from the count under its title; they stay open until that button closes them.
@@ -92,6 +99,16 @@ export function StepRow({
   const actionCount = step.action_count ?? 0;
   const showCount = actions && (actionsOpen || actionCount > 0);
   const s = stepActionsLabelsFor(t.dateLocale);
+  const mark = marked && (
+    <>
+      {" "}
+      <AiStepMark
+        performer={step.performer}
+        state={step.ai_status}
+        locale={t.dateLocale}
+      />
+    </>
+  );
   return (
     <li
       className={
@@ -119,7 +136,10 @@ export function StepRow({
             onChange={() => onToggle(step)}
           />
           <StatusGlyph kind="step" status={step.status} />
-          <span>{step.title}</span>
+          <span>
+            {step.title}
+            {mark}
+          </span>
         </label>
       ) : (
         // The host cannot tick a Step: it is text with its state in words, not a box that looks pressable. An open Step has
@@ -129,7 +149,10 @@ export function StepRow({
             done={step.status === "completed"}
             label={workStatusLabel(t, step.status)}
           />
-          <span>{step.title}</span>
+          <span>
+            {step.title}
+            {mark}
+          </span>
         </div>
       )}
       {undo && (
@@ -155,6 +178,7 @@ export function StepRow({
           <ChevronDownIcon size={16} />
         </button>
       )}
+      {extra}
       {hasMenu && open && (
         <div className="work-step-menu">
           <RowControls

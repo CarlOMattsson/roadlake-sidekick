@@ -12,6 +12,7 @@ from sidekick.work.domain.planning import (
     validate_tag_label,
 )
 
+from .ai_spec import AiStepSpecV1, Performer
 from .context import Domain, DomainStatus, Process, ProcessStatus
 from .runs import (
     MAX_PROCESS_RUN_ACTIONS_PER_STEP,
@@ -39,8 +40,10 @@ __all__ = [
     "Action",
     "ActionCounts",
     "ActionStatus",
+    "AiStepSpecV1",
     "Domain",
     "DomainStatus",
+    "Performer",
     "Process",
     "ProcessRun",
     "ProcessRunActionTemplate",

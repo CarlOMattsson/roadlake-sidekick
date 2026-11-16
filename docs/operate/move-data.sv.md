@@ -10,7 +10,7 @@ Flytta dina poster från en installation av 0.1.0 till en annan, till exempel ti
 
 Använd detta för att flytta till en ny server eller en ny databas. Källan måste vara en 0.1.0-installation som har en
 ägarbackup (`sidekick-backup create`, eller backupprofilen) eller kan göra en ägarexport. Importen läser bara det
-nuvarande formatet (format 7) och de tre formaten före det (format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
+nuvarande formatet (format 8) och de fyra formaten före det (format 7, skrivet innan AI-steg fanns, format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
 importera data från en installation före 0.1.0: backuper, exporter, ögonblicksbilder och SQL-dumpar från före 0.1.0
 läses inte, och `sidekick-backup import` kan inte importera dem. Behåll dem som arkiv.
 
@@ -27,6 +27,9 @@ Det som inte finns i en ägarbackup och därför måste göras om: personliga å
 parade telefoner, push-registreringar, licensraden, driftlås och härledd minnesmetadata. Post-id mappas om till nya id,
 så id som klistrats in i gamla konversationer pekar inte längre på något. Minnet byggs om av minnesarbetaren utifrån de
 importerade posterna.
+
+AI-steg följer med backupen, men en godkänd AI-plan gör det inte: du godkänner den igen i den nya installationen. En körning
+som var köad eller pågick återställs som avbruten.
 
 ## Storleksgräns för de krypterade databassnapshotarna
 

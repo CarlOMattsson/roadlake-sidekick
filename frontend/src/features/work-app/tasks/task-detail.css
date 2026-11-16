@@ -219,6 +219,13 @@
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* The mark after a Step's title in the Steps list: on the title's last line, a little apart from it (also
+   on the phone, where the AI plan is not drawn). */
+.sidekick-work .work-steps :is(label, .work-step-read) > span > .sk-ai-mark {
+  margin-inline-start: var(--sk-s1);
+  vertical-align: 0.0625rem;
+}
+
 /* The Step's square (StatusGlyph, 22 at 24, text colour) in the leading column, and the title on the x of "+ Lägg till
    steg": the + is --sk-icon wide (1.5rem), so the square's 24 takes the rest of that column as air (52 vs
    55 at 110 %). The native box lies over the label, unseen: a tap anywhere on it checks, and its focus is drawn on the

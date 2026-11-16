@@ -1,6 +1,6 @@
 # ADR-009: One curated public MCP surface, rendered in Claude, with the companion API for Android
 
-- Status: Accepted (D-092, 2026-11-11); records the delivered design and supersedes ADR-001 and ADR-002, no behaviour changed
+- Status: Accepted (D-092, 2026-11-11); records the delivered design and supersedes ADR-001 and ADR-002, no behaviour changed. Amended by ADR-011 (D-096, 2026-11-16): the rejection of a model-driven agent inside Sidekick has one narrow exception, owner-approved AI steps.
 - Date: 2026-11-11
 - Owners: Sidekick application maintainers
 

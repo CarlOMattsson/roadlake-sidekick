@@ -29,6 +29,7 @@ from sqlalchemy.engine import Connection
 from yoyo import get_backend, read_migrations
 
 from tests.support.migration_baseline import (
+    AI_STEPS,
     BASELINE,
     DROP_AUTOMATION,
     FORGOTTEN_FACTS,
@@ -103,6 +104,7 @@ RETIRED_TABLES = frozenset(
 # Pinned so that a grant change is a deliberate edit here.
 APP_PRIVILEGES = {
     "actions": "SIUD",
+    "ai_step_runs": "SIU",
     "activity_entries": "SI",
     "audit_events": "SI",
     "companion_pairings": "SIU",
@@ -183,6 +185,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
         TASK_REVIEW,
         TASK_AMBITION,
         WEBHOOK_TOKENS,
+        AI_STEPS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -385,7 +388,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
     _apply(MIGRATIONS_PATH)
     _insert_owner()
     before = _snapshot()
-    # A database on the folded chain has not applied migrations 107 to 111 either.
+    # A database on the folded chain has not applied migrations 107 to 112 either.
     _run(
         "SET LOCAL ROLE sidekick_owner; "
         "DROP TABLE sidekick.contact_tags, sidekick.journal_entry_tags, "
@@ -394,7 +397,12 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         "ALTER TABLE sidekick.memory_settings DROP COLUMN forget_salt; "
         "ALTER TABLE sidekick.tasks DROP COLUMN last_reviewed_at; "
         "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since; "
-        "DROP TABLE sidekick.webhook_tokens"
+        "DROP TABLE sidekick.webhook_tokens; "
+        "DROP TABLE sidekick.ai_step_runs; "
+        "ALTER TABLE sidekick.tasks DROP COLUMN ai_possible_since, "
+        "DROP COLUMN ai_plan_digest, DROP COLUMN ai_plan_approved_at, "
+        "DROP COLUMN ai_task_cap_microusd; "
+        "ALTER TABLE sidekick.steps DROP COLUMN performer, DROP COLUMN ai_spec"
     )
     _stamp_as_folded_chain(FOLDED_HEAD)
 
@@ -410,6 +418,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         TASK_REVIEW,
         TASK_AMBITION,
         WEBHOOK_TOKENS,
+        AI_STEPS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -433,6 +442,7 @@ def _stamp(ids: list[str]) -> None:
         TASK_REVIEW,
         TASK_AMBITION,
         WEBHOOK_TOKENS,
+        AI_STEPS,
     ):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:

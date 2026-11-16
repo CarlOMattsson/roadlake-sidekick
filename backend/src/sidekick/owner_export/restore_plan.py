@@ -11,6 +11,8 @@ from uuid import UUID
 from sidekick.owner_export.catalogue import EXPORT_SOURCES, ExportRefused, ExportSource
 from sidekick.owner_export.document import ExportVerification, canonical_json, verify_export
 from sidekick.owner_export.restore_remap import (
+    ACTIVE_AI_RUN_STATES,
+    AI_PLAN_APPROVAL_FIELDS,
     document_collections,
     foreign_key_targets,
     historical_reference_source,
@@ -22,6 +24,7 @@ from sidekick.owner_export.restore_remap import (
     uuid_or_none,
 )
 from sidekick.tasks.domain.task import SCHEDULING_FIELDS
+from sidekick.work.domain.ai_spec import AiStepSpecV1
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,6 +199,59 @@ def _require_undated_ambitions(tasks: list[Mapping[str, Any]]) -> None:
             )
 
 
+_STEP_PERFORMERS = frozenset({"owner", "ai"})
+
+
+def _require_consistent_ai_steps(steps: list[Mapping[str, Any]]) -> None:
+    """Refuse an export with a Step whose performer and AI instruction disagree or are invalid.
+
+    A restore writes rows directly, so the rule that a Step is performed by `owner` or `ai`, that it
+    has an AI spec exactly when AI performs it, and that the spec is a valid `AiStepSpecV1`, is
+    checked on the document. A Step of a format 7 export has neither field and is the owner's. The
+    refusal names the row position and fields, never content.
+    """
+
+    for position, row in enumerate(steps):
+        performer = row.get("performer", "owner")
+        if not isinstance(performer, str) or performer not in _STEP_PERFORMERS:
+            raise ExportRefused(
+                f"export has an invalid step performer: steps[{position}]: performer"
+            )
+        if (performer == "ai") != (row.get("ai_spec") is not None):
+            raise ExportRefused(
+                f"export has a step whose performer and instruction disagree: "
+                f"steps[{position}]: performer, ai_spec"
+            )
+        if performer == "ai":
+            _require_valid_spec(row["ai_spec"], position)
+
+
+def _require_valid_spec(raw: object, position: int) -> None:
+    try:
+        AiStepSpecV1.model_validate(raw)
+    except ValueError:
+        # The reason is left out: a validation message can quote what the owner wrote.
+        raise ExportRefused(f"export has an invalid AI spec: steps[{position}]: ai_spec") from None
+
+
+def _ai_warnings(tasks: list[Mapping[str, Any]], runs: list[Mapping[str, Any]]) -> tuple[str, ...]:
+    """Warnings for what a restore leaves out of AI steps; they hold counts, never content."""
+
+    warnings: list[str] = []
+    approved = sum(
+        1 for task in tasks if any(task.get(field) is not None for field in AI_PLAN_APPROVAL_FIELDS)
+    )
+    if approved:
+        warnings.append(
+            f"{approved} approved AI plan(s) are not restored; approve them again on the new "
+            "instance."
+        )
+    active = sum(1 for run in runs if run.get("state") in ACTIVE_AI_RUN_STATES)
+    if active:
+        warnings.append(f"{active} queued or running AI run(s) are restored as cancelled.")
+    return tuple(warnings)
+
+
 def build_restore_plan(
     document: Mapping[str, Any],
     target_owner_id: UUID,
@@ -210,7 +266,9 @@ def build_restore_plan(
 
     verification = verify_export(document)
     collections = document_collections(document)
-    _require_undated_ambitions(cast(list[Mapping[str, Any]], collections["tasks"]))
+    tasks = cast(list[Mapping[str, Any]], collections["tasks"])
+    _require_undated_ambitions(tasks)
+    _require_consistent_ai_steps(cast(list[Mapping[str, Any]], collections["steps"]))
     identity_map = restore_identity_map(document, target_owner_id)
     unresolved: list[str] = []
     collection_plans = tuple(
@@ -243,6 +301,7 @@ def build_restore_plan(
             "Dry-run only: no database records were created, changed, or deleted.",
             "Authentication material, sessions, derived memory metadata, and operational "
             "worker state are not restorable from this export.",
+            *_ai_warnings(tasks, cast(list[Mapping[str, Any]], collections["ai_step_runs"])),
         ),
     )
 

@@ -63,6 +63,10 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
             "reschedule_tasks",  # the spoken line names the moved Tasks by title
             "review_tasks",  # the spoken line names the reviewed Tasks by title
             "link_external_reference_to_task",
+            # The reply carries the plan, or the brief with the task's own text.
+            "set_ai_plan",
+            "approve_ai_plan",
+            "start_ai_step",
             *_STEP_AND_ACTION_TOOLS,
         ),
         _TASK_READ,
@@ -133,6 +137,9 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # Memory settings carry per-domain scope checks of their own
         # (`sidekick.memory.application.settings`).
         "set_memory_settings",
+        # A run's state, attempt and cost; its text is only in `get_ai_step_run`.
+        "report_ai_step_result",
+        "review_ai_step_result",
         # The installation licence key; reaches no record.
         "set_license_key",
         # The journal tools that write the user's own text answer with that text and stay

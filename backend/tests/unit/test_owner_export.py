@@ -1,3 +1,4 @@
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -8,12 +9,15 @@ import pytest
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    COLLECTIONS_ADDED_IN_FORMAT_8,
     COLUMNS_ADDED_IN_FORMAT_7,
+    COLUMNS_ADDED_IN_FORMAT_8,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT_VERSION,
     EXPORT_SOURCES,
     FOLDED_CHAIN_HEADS,
     FORMAT_WITH_RETIRED_COLLECTIONS,
+    FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -34,8 +38,11 @@ from sidekick.owner_export.restore_remap import (
 )
 from sidekick.shared.persistence.models import (
     ActivityEntryRow,
+    AiStepRunRow,
     ContactRow,
     DomainRow,
+    StepRow,
+    TaskRow,
     TaskStatusHistoryRow,
 )
 from sidekick.shared.types import Actor
@@ -43,10 +50,13 @@ from tests.support.older_export_formats import (
     BASELINE_HEAD,
     DROP_AUTOMATION_HEAD,
     FORGOTTEN_FACTS_HEAD,
+    HEAD_110,
+    HEAD_111,
     TAG_LINKS_HEAD,
     as_format_4,
     as_format_5,
     as_format_6,
+    as_format_7,
 )
 
 OWNER_ID = UUID("00000000-0000-7000-8000-000000000001")
@@ -406,13 +416,14 @@ def reseal(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
-def test_current_export_is_format_seven_at_the_chain_head() -> None:
+def test_current_export_is_format_eight_at_the_chain_head() -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    assert document["format_version"] == EXPORT_FORMAT_VERSION == 7
+    assert document["format_version"] == EXPORT_FORMAT_VERSION == 8
     assert document["schema_head"] == SCHEMA_HEAD
     assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_6
+    assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_8
     assert "external_references" in document["collections"]
     assert "task_external_references" in document["collections"]
     assert "memory_settings" in document["collections"]
@@ -465,16 +476,15 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_head_is_the_webhook_tokens_migration_and_each_format_keeps_its_heads() -> None:
-    """Migrations 109 and 110 each add a Task column, and format 7 is written at 110 (no release
-    stopped at 109) or at 111, which adds a credential table that is never exported; migration 108
-    left the export alone, so format 6 was written at 107 or 108."""
+def test_the_head_is_the_ai_steps_migration_and_each_format_keeps_its_heads() -> None:
+    """Migration 112 adds Task and Step columns and the run table, so format 8 is written at 112
+    alone. Format 7 was written at 110 (no release stopped at 109) or at 111, which adds a
+    credential table that is never exported; migration 108 left the export alone, so format 6 was
+    written at 107 or 108."""
 
-    assert SCHEMA_HEAD == "111_webhook_tokens"
-    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
-        "110_task_ambition",
-        SCHEMA_HEAD,
-    }
+    assert SCHEMA_HEAD == "112_ai_steps"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_AI_STEPS] == {HEAD_110, HEAD_111}
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_TASK_REVIEW] == {
         TAG_LINKS_HEAD,
         FORGOTTEN_FACTS_HEAD,
@@ -542,9 +552,9 @@ def test_the_task_review_and_ambition_columns_belong_to_format_7_only() -> None:
     without = as_format_6(current)
     with pytest.raises(ExportRefused, match="unexpected row shape"):
         verify_export(
-            reseal({**without, "format_version": EXPORT_FORMAT_VERSION, "schema_head": SCHEMA_HEAD})
+            reseal({**without, "format_version": FORMAT_WITHOUT_AI_STEPS, "schema_head": HEAD_111})
         )
-    with_column = {**without, "collections": current["collections"]}
+    with_column = {**without, "collections": as_format_7(current)["collections"]}
     with pytest.raises(ExportRefused, match="unexpected row shape"):
         verify_export(reseal(with_column))
 
@@ -663,7 +673,7 @@ def test_any_other_schema_head_is_refused(head: object) -> None:
 
 
 def test_an_export_written_before_the_baseline_is_refused() -> None:
-    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 7 are."""
+    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 8 are."""
 
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -726,7 +736,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
     assert document["collections"]["contacts"][0]["relationship"] == "syster"
 
 
-@pytest.mark.parametrize("version", [0, 1, 3, 8, "7", True, None, [7]])
+@pytest.mark.parametrize("version", [0, 1, 3, 9, "8", True, None, [8]])
 def test_a_format_version_that_the_head_never_wrote_is_refused(version: object) -> None:
     current = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -958,3 +968,266 @@ def test_verify_restorable_accepts_a_closed_export_and_names_only_positions_when
     with pytest.raises(ExportRefused) as refused:
         verify_restorable(document)
     assert str(refused.value) == "export has unresolved references: task_status_history[0].task_id"
+
+
+STEP_ID = UUID("00000000-0000-7000-8000-0000000000b1")
+TASK_ID = UUID("00000000-0000-7000-8000-0000000000a1")
+RUN_ID = UUID("00000000-0000-7000-8000-0000000000d1")
+TARGET_OWNER = UUID("00000000-0000-7000-8000-000000000002")
+SECRET = "the-owner-private-result-text"
+AI_SPEC = {"spec_version": 1, "goal": "Summarise the notes"}
+AI_TASK_FIELDS = frozenset(COLUMNS_ADDED_IN_FORMAT_8["tasks"])
+PLAN_DIGEST = "a" * 64
+MOMENT = datetime(2026, 11, 1, 10, 0, tzinfo=UTC)
+
+
+def _ai_rows(*, run_state: str = "to_review") -> dict[type[Any], list[Any]]:
+    """A Task with an approved AI plan, an AI Step and one run holding the owner's text."""
+
+    return {
+        TaskRow: [
+            TaskRow(
+                id=TASK_ID,
+                owner_id=OWNER_ID,
+                ai_possible_since=MOMENT,
+                ai_plan_digest=PLAN_DIGEST,
+                ai_plan_approved_at=MOMENT,
+                ai_task_cap_microusd=2_000_000,
+            )
+        ],
+        StepRow: [
+            StepRow(
+                id=STEP_ID,
+                owner_id=OWNER_ID,
+                task_id=TASK_ID,
+                performer="ai",
+                ai_spec=AI_SPEC,
+            )
+        ],
+        AiStepRunRow: [
+            AiStepRunRow(
+                id=RUN_ID,
+                owner_id=OWNER_ID,
+                task_id=TASK_ID,
+                step_id=STEP_ID,
+                attempt=1,
+                runner="server",
+                state=run_state,
+                plan_digest=PLAN_DIGEST,
+                lease_until=MOMENT,
+                result_text=SECRET,
+                question="Which one?",
+                answer="The first.",
+                feedback="Shorter, please.",
+            )
+        ],
+    }
+
+
+def _ai_export(*, run_state: str = "to_review") -> dict[str, Any]:
+    return OwnerExportService(FakeExportStore(_ai_rows(run_state=run_state))).export(
+        Actor(user_id=OWNER_ID, scopes=frozenset())
+    )
+
+
+def _restored(document: dict[str, Any]) -> dict[type[Any], Any]:
+    plan = build_restore_plan(document, TARGET_OWNER)
+    store = FakeRestoreStore()
+    OwnerRestoreService(store).restore(
+        document, target_owner_id=TARGET_OWNER, expected_plan_checksum=plan.plan_checksum
+    )
+    written = store.session.added
+    kinds = [type(row) for row in written]
+    if AiStepRunRow in kinds:
+        assert kinds.index(AiStepRunRow) > max(kinds.index(TaskRow), kinds.index(StepRow))
+    return {type(row): row for row in written}
+
+
+def test_the_ai_collection_follows_the_steps_and_tasks_it_refers_to() -> None:
+    names = [source.name for source in EXPORT_SOURCES]
+
+    assert names.index("ai_step_runs") > max(names.index("steps"), names.index("tasks"))
+    assert {"performer", "ai_spec"} <= set(source_fields(SOURCES_BY_NAME["steps"]))
+    assert set(source_fields(SOURCES_BY_NAME["tasks"])) >= AI_TASK_FIELDS
+
+
+def test_an_export_with_ai_fields_round_trips_with_remapped_references() -> None:
+    document = _ai_export(run_state="to_review")
+
+    assert verify_restorable(document).owner_id == OWNER_ID
+    task_row = document["collections"]["tasks"][0]
+    assert task_row["ai_plan_digest"] == PLAN_DIGEST
+    assert task_row["ai_task_cap_microusd"] == 2_000_000
+    assert document["collections"]["steps"][0]["performer"] == "ai"
+    assert document["collections"]["steps"][0]["ai_spec"] == AI_SPEC
+
+    restored = _restored(document)
+    task, step, run = restored[TaskRow], restored[StepRow], restored[AiStepRunRow]
+    assert task.id == restore_id(TASK_ID, TARGET_OWNER, "tasks") != TASK_ID
+    assert step.id == restore_id(STEP_ID, TARGET_OWNER, "steps")
+    assert run.id == restore_id(RUN_ID, TARGET_OWNER, "ai_step_runs")
+    assert (run.owner_id, run.task_id, run.step_id) == (TARGET_OWNER, task.id, step.id)
+    assert step.task_id == task.id
+    # What the owner wrote, and the performer and instruction, come back as they were.
+    assert (run.result_text, run.question, run.answer, run.feedback) == (
+        SECRET,
+        "Which one?",
+        "The first.",
+        "Shorter, please.",
+    )
+    assert (step.performer, step.ai_spec) == ("ai", AI_SPEC)
+    assert task.ai_possible_since == MOMENT
+    assert run.state == "to_review"
+
+
+def test_an_approved_ai_plan_is_not_restored_but_the_ai_mark_is() -> None:
+    document = _ai_export()
+    plan = build_restore_plan(document, TARGET_OWNER)
+
+    task = _restored(document)[TaskRow]
+
+    assert task.ai_plan_digest is None
+    assert task.ai_plan_approved_at is None
+    assert task.ai_task_cap_microusd is None
+    assert task.ai_possible_since == MOMENT
+    assert any("approved AI plan" in warning for warning in plan.warnings)
+
+
+@pytest.mark.parametrize("state", ["queued", "running"])
+def test_a_run_in_progress_is_restored_as_cancelled_without_a_lease(state: str) -> None:
+    document = _ai_export(run_state=state)
+
+    run = _restored(document)[AiStepRunRow]
+
+    assert run.state == "cancelled"
+    assert run.lease_until is None
+    assert run.result_text == SECRET
+    # The document itself is not changed by planning or restoring it.
+    assert document["collections"]["ai_step_runs"][0]["state"] == state
+
+
+@pytest.mark.parametrize("state", ["to_review", "needs_input", "failed", "accepted", "cancelled"])
+def test_a_run_that_is_not_in_progress_keeps_its_state(state: str) -> None:
+    assert _restored(_ai_export(run_state=state))[AiStepRunRow].state == state
+
+
+@pytest.mark.parametrize("head", [HEAD_110, HEAD_111])
+def test_a_format_7_export_is_still_read_and_restores_without_ai_data(head: str) -> None:
+    current = _ai_export()
+    document = as_format_7(current, head)
+
+    assert "ai_step_runs" not in document["collections"]
+    assert not AI_TASK_FIELDS & set(document["collections"]["tasks"][0])
+    assert not {"performer", "ai_spec"} & set(document["collections"]["steps"][0])
+    verification = verify_export(document)
+    assert verification.collection_counts["ai_step_runs"] == 0
+    assert verification.collection_counts["tasks"] == 1
+
+    restored = _restored(document)
+
+    assert AiStepRunRow not in restored
+    assert restored[TaskRow].ai_plan_digest is None
+    assert restored[StepRow].ai_spec is None
+
+
+def test_a_format_7_export_cannot_carry_the_ai_collection_or_columns() -> None:
+    with_collection = as_format_7(_ai_export())
+    with_collection["collections"]["ai_step_runs"] = []
+    with_collection["manifest"]["collection_counts"]["ai_step_runs"] = 0
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(with_collection))
+
+    with_column = as_format_7(_ai_export())
+    with_column["collections"]["steps"][0]["performer"] = "owner"
+    with pytest.raises(ExportRefused, match="unexpected row shape"):
+        verify_export(reseal(with_column))
+
+
+def test_a_current_export_must_carry_the_ai_columns_and_collection() -> None:
+    document = _ai_export()
+    del document["collections"]["tasks"][0]["ai_plan_digest"]
+    with pytest.raises(ExportRefused, match="unexpected row shape"):
+        verify_export(reseal(document))
+
+    document = _ai_export()
+    del document["collections"]["ai_step_runs"]
+    del document["manifest"]["collection_counts"]["ai_step_runs"]
+    with pytest.raises(ExportRefused, match="collection catalogue does not match"):
+        verify_export(reseal(document))
+
+
+def _document_with_one_step(**fields: object) -> dict[str, Any]:
+    collections = empty_collections()
+    step = {field: None for field in source_fields(SOURCES_BY_NAME["steps"])}
+    collections["steps"] = [{**step, "owner_id": str(OWNER_ID), "performer": "owner", **fields}]
+    return build_export_document(
+        OWNER_ID, collections, exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
+    )
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"performer": "ai", "ai_spec": None},
+        {"performer": "owner", "ai_spec": {"goal": SECRET}},
+        {"performer": "robot", "ai_spec": None},
+        {"performer": None, "ai_spec": None},
+        {"performer": 7, "ai_spec": {"goal": SECRET}},
+    ],
+)
+def test_a_step_whose_performer_and_instruction_disagree_is_refused_without_its_content(
+    fields: dict[str, object],
+) -> None:
+    document = _document_with_one_step(**fields)
+
+    for refuse in (
+        lambda: build_restore_plan(document, OWNER_ID),
+        lambda: verify_restorable(document),
+    ):
+        with pytest.raises(ExportRefused, match=r"steps\[0\]: performer") as refused:
+            refuse()
+        assert SECRET not in str(refused.value)
+        assert "robot" not in str(refused.value)
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        {"spec_version": 1, "goal": SECRET, "effects": "send"},
+        {"spec_version": 1, "goal": SECRET, "unknown_field": True},
+        {"spec_version": 2, "goal": SECRET},
+        {"spec_version": 1, "goal": ""},
+        {"spec_version": 1, "goal": SECRET, "capabilities": ["code"], "runner": "server"},
+        "not an object",
+    ],
+)
+def test_a_step_with_an_invalid_ai_spec_is_refused_without_its_content(spec: object) -> None:
+    document = _document_with_one_step(performer="ai", ai_spec=spec)
+
+    for refuse in (
+        lambda: build_restore_plan(document, OWNER_ID),
+        lambda: verify_restorable(document),
+    ):
+        with pytest.raises(ExportRefused, match=r"invalid AI spec: steps\[0\]: ai_spec") as refused:
+            refuse()
+        assert SECRET not in str(refused.value)
+
+
+def test_a_consistent_ai_step_is_planned() -> None:
+    document = _document_with_one_step(performer="ai", ai_spec=AI_SPEC)
+
+    assert build_restore_plan(document, OWNER_ID).status == "ready"
+    assert build_restore_plan(_document_with_one_step(), OWNER_ID).status == "ready"
+
+
+def test_the_owners_ai_text_never_reaches_the_plan_or_a_refusal() -> None:
+    document = _ai_export()
+    plan = build_restore_plan(document, TARGET_OWNER)
+
+    assert SECRET not in json.dumps(plan.as_dict())
+
+    document["collections"]["ai_step_runs"][0]["step_id"] = "00000000-0000-7000-8000-0000000000ee"
+    with pytest.raises(ExportRefused) as refused:
+        verify_restorable(reseal(document))
+    assert SECRET not in str(refused.value)
+    assert str(refused.value) == "export has unresolved references: ai_step_runs[0].step_id"

@@ -45,6 +45,7 @@ The records are the files in [`adr/`](adr/); the [index](#adr-index) below lists
 | [ADR-008](adr/ADR-008-derived-memory-with-hindsight.md) | Accepted | Derived, optional memory |
 | [ADR-009](adr/ADR-009-one-curated-public-mcp-surface.md) | Accepted | The current MCP-first architecture |
 | [ADR-010](adr/ADR-010-one-error-tree.md) | Accepted | One error tree rooted at SidekickError |
+| [ADR-011](adr/ADR-011-ai-delegated-steps.md) | Accepted | AI-delegated steps: the owner approves a plan, Claude Code runs the steps |
 
 ## Numbering
 

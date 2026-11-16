@@ -57,6 +57,10 @@ MCP_SCOPE_DESCRIPTIONS: dict[str, str] = {
     "license:write": "Enter the instance's license key (administrative, owner only).",
     "automation:read": "Reserved for reading process runs; no MCP tool uses it yet.",
     "automation:write": "Reserved for starting and changing process runs; no MCP tool uses it yet.",
+    "ai:run": (
+        "Start an approved AI step and report its result, for the owner's own Claude Code. "
+        "It cannot approve a plan or accept a result."
+    ),
 }
 
 

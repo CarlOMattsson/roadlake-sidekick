@@ -31,6 +31,10 @@ import { TagField } from "../../mcp-apps/ui/tags";
 import { useWorkTags } from "../shared/work-tags";
 import { useQueuedRecords } from "../shared/use-queued-records";
 import { WaitingLine } from "../shared/waiting-line";
+import { aiLabelsFor } from "../ai/ai-labels";
+import { AiPlanCard } from "../ai/ai-plan-card";
+import { AiStepRun } from "../ai/ai-step-run";
+import { useAiPlan } from "../ai/use-ai-plan";
 
 export function TaskFrame({
   id,
@@ -71,12 +75,16 @@ export function TaskFrame({
     editOffered,
     tagsOffered,
     trashOffered,
+    aiMarkOffered,
+    aiApproveOffered,
     contactsOn,
     unlinkOffered,
   } = useTaskOffers(transport, task);
+  const ai = useAiPlan(transport, task);
+  const aiWords = aiLabelsFor(t.dateLocale);
   const tags = useWorkTags(transport, "task");
   const waiting = useQueuedRecords(transport, task).has(id.toLowerCase());
-  const menuOffered = editOffered || trashOffered;
+  const menuOffered = editOffered || trashOffered || aiMarkOffered;
   const {
     receipt,
     endReceipt,
@@ -231,6 +239,18 @@ export function TaskFrame({
           busy={write.kind === "busy" || editing || unlinks.busy}
           edit={
             editOffered ? { label: t.edit, onChoose: startEdit } : undefined
+          }
+          toggle={
+            aiMarkOffered
+              ? {
+                  label: aiWords.possible,
+                  pressed: Boolean(task.ai_possible),
+                  onChoose: () => {
+                    setMenuOpen(false);
+                    saveTask({ ai_possible: !task.ai_possible });
+                  },
+                }
+              : undefined
           }
           remove={
             trashOffered
@@ -392,7 +412,32 @@ export function TaskFrame({
               labels={t}
             />
           )}
-          <TaskSteps taskId={task.id} transport={transport} labels={t} />
+          {ai.shown && (
+            <AiPlanCard
+              ai={ai}
+              title={task.title}
+              locale={t.dateLocale}
+              approveOffered={aiApproveOffered}
+            />
+          )}
+          <TaskSteps
+            taskId={task.id}
+            transport={transport}
+            labels={t}
+            refreshKey={ai.stepsKey}
+            stepExtra={(step) => {
+              const entry = ai.byStep.get(step.id);
+              return entry?.step.performer === "ai" ? (
+                <AiStepRun
+                  entry={entry}
+                  transport={transport}
+                  labels={aiWords}
+                  locale={t.dateLocale}
+                  onReviewed={ai.reviewed}
+                />
+              ) : null;
+            }}
+          />
           <TaskReferences taskId={task.id} transport={transport} labels={t} />
           {contactsOn && (
             <TaskContactsSection

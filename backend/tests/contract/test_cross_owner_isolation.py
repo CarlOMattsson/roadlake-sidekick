@@ -95,12 +95,15 @@ REFUSES_WITH_VALIDATION: dict[str, str] = {
     "reorder_work_board_column": "the items must be exactly the column's own active tasks",
     "reorder_task_steps": "the items must be exactly the task's own steps",
     "reorder_step_actions": "the items must be exactly the step's own actions",
+    "report_ai_step_result": "the checklist must name actions of the run's own step",
 }
 
 # The same for one reference slot, where the other optional fields are left out: an entry update
 # that names no link must name a change.
 EXTRA_FOR_SLOT: dict[tuple[str, str], dict[str, Any]] = {
     ("update_journal_entry", "entry_id"): {"title": "Renamed entry", "key_points": []},
+    # A plan step must name an existing step or give a title.
+    ("set_ai_plan", "task_id"): {"steps": [{"title": "Check the lease", "performer": "owner"}]},
 }
 
 # Removing a link that is not there is a defined no-op ("No link changed"): it reads nothing of the

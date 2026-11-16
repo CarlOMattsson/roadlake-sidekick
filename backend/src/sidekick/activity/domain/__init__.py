@@ -13,6 +13,7 @@ class ActivityCategory(StrEnum):
     TASK_UPDATE = "task_update"
     TASK_STATUS_CHANGE = "task_status_change"
     PROJECT_CHANGES = "project_changes"
+    AI_STEPS = "ai_steps"
 
 
 def category_for_operation(

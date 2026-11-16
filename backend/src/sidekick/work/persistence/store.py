@@ -12,13 +12,16 @@ from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import KeyValue, TxSession
 from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.tasks.persistence import ProjectTaskStore
+from sidekick.work.persistence.ai_runs import AiRunStore
 from sidekick.work.persistence.listing import WorkListStore
 from sidekick.work.persistence.steps_actions import StepActionStore
 from sidekick.work.persistence.structure import WorkStructureStore
 from sidekick.work.persistence.tags import RecordTagRelay, WorkTagStore
 
 
-class SqlWorkStore(WorkStructureStore, StepActionStore, WorkListStore, RecordTagRelay, StoreBase):
+class SqlWorkStore(
+    WorkStructureStore, StepActionStore, AiRunStore, WorkListStore, RecordTagRelay, StoreBase
+):
     """The Work operations plus the Project, Task and tag reads the work lists and views need.
 
     Work shows Projects and Tasks beside Domains, Processes, Steps and Actions, so the reads of
@@ -30,6 +33,10 @@ class SqlWorkStore(WorkStructureStore, StepActionStore, WorkListStore, RecordTag
     ) -> None:
         super().__init__(session_factory, telemetry)
         self._tags = WorkTagStore
+
+    @staticmethod
+    def save_task(session: TxSession, task: Task, expected_version: int | None = None) -> None:
+        ProjectTaskStore.save_task(session, task, expected_version)
 
     @staticmethod
     def record_tag_slugs(

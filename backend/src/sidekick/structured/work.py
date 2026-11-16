@@ -32,6 +32,7 @@ from sidekick.structured.work_records import (
     ProjectRecord,
     StepOutput,
     StepRecord,
+    StepStatusName,
     TaskChanges,
     TaskDetailOutput,
     TaskDetailRecord,
@@ -55,6 +56,7 @@ from sidekick.work.application.serialization import (
     process_public_data,
 )
 from sidekick.work.domain import Action, ActionCounts, Step
+from sidekick.work.domain.ai_spec import Performer
 from sidekick.work.listing import (
     WorkActionable,
     WorkArchive,
@@ -341,6 +343,13 @@ def update_task_structured(
     return TaskOutput(task=task_record(task, slugs))
 
 
+def _ai_statuses(container: Container, actor: Actor, task_id: UUID) -> dict[UUID, StepStatusName]:
+    """Where each AI Step of the Task stands; an owner Step has no entry."""
+
+    plan = container.ai_plans.get_plan(actor, task_id)
+    return {item.step.id: item.status.value for item in plan.steps if item.status is not None}
+
+
 def task_steps_structured(
     container: Container,
     actor: Actor,
@@ -355,12 +364,18 @@ def task_steps_structured(
         actor, task_id, limit=limit, cursor=cursor
     )
     no_actions = ActionCounts(0, 0)
+    ai_statuses = (
+        _ai_statuses(container, actor, task_id)
+        if any(step.performer is Performer.AI for step in page.items)
+        else {}
+    )
     return ListedStepPageOutput(
         items=[
             ListedStepRecord(
                 **step_record(step).model_dump(),
                 action_count=action_counts.get(step.id, no_actions).active,
                 action_done_count=action_counts.get(step.id, no_actions).completed,
+                ai_status=ai_statuses.get(step.id),
             )
             for step in page.items
         ],
@@ -642,6 +657,7 @@ def step_record(step: Step) -> StepRecord:
             "attention_requested": step.attention_requested,
             "archived_at": step.archived_at,
             "instruction": step.instruction,
+            "performer": step.performer.value,
         }
     )
 

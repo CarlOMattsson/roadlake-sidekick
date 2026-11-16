@@ -100,6 +100,7 @@ Returns: `TaskOutput` with `task` (TaskRecord).
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `changes` | object | yes | Fields to change: omitted stays, null clears where allowed. |
+| `changes.ai_possible` | boolean | no | may be null |
 | `changes.ambition` | boolean | no | may be null |
 | `changes.description` | string | no | up to 10000 characters; may be null |
 | `changes.domain_id` | uuid | no | may be null |

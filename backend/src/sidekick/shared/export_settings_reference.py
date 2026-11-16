@@ -85,6 +85,11 @@ GROUPS: tuple[Group, ...] = (
         prefixes=("build_",),
     ),
     Group(
+        "AI steps",
+        "Limits on the steps of a task that an AI performs on the owner's approval.",
+        prefixes=("ai_",),
+    ),
+    Group(
         "License", "The key that verifies the instance's licence.", names=("license_public_key",)
     ),
 )

@@ -1,0 +1,145 @@
+"""What the AI Step use cases share: the store port, the limits and the views they return."""
+
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime, tzinfo
+from typing import Protocol
+from uuid import UUID
+
+from sidekick.shared.config import Settings
+from sidekick.shared.types import TxSession
+from sidekick.tasks.domain import Task
+from sidekick.work.application.steps_service import StepsStore
+from sidekick.work.domain import Action, Step
+from sidekick.work.domain.ai_plan import AiStepStatus, PlanState, RunHistory
+from sidekick.work.domain.ai_runs import AiStepRun, MoneyCaps, RunnerKind
+
+MICROUSD_PER_USD = 1_000_000
+MAX_STEPS_PER_TASK = 1000
+LINK_NAMES_LIMIT = 25
+
+
+class AiStepsStore(StepsStore, Protocol):
+    """The Step and Action reads and writes plus the Task save and the run rows."""
+
+    def save_task(
+        self, session: TxSession, task: Task, expected_version: int | None = None
+    ) -> None: ...
+    def list_actions_for_steps(
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        step_ids: tuple[UUID, ...],
+        per_step_limit: int = 1000,
+        include_archived: bool = False,
+    ) -> dict[UUID, list[Action]]: ...
+    def project_titles(
+        self, session: TxSession, owner_id: UUID, project_ids: tuple[UUID, ...]
+    ) -> dict[UUID, str]: ...
+    def step_task_id(self, session: TxSession, owner_id: UUID, step_id: UUID) -> UUID: ...
+    def get_ai_run(self, session: TxSession, owner_id: UUID, run_id: UUID) -> AiStepRun: ...
+    def previous_ai_run(
+        self, session: TxSession, owner_id: UUID, step_id: UUID, attempt: int
+    ) -> AiStepRun | None: ...
+    def save_ai_run(
+        self, session: TxSession, run: AiStepRun, expected_version: int | None = None
+    ) -> None: ...
+    def run_histories(
+        self, session: TxSession, owner_id: UUID, step_ids: tuple[UUID, ...]
+    ) -> dict[UUID, RunHistory]: ...
+    def count_ai_runs_since(
+        self, session: TxSession, owner_id: UUID, runner: RunnerKind, since: datetime
+    ) -> int: ...
+    def list_tasks_with_approved_plans(
+        self, session: TxSession, owner_id: UUID, limit: int, from_id: UUID | None = None
+    ) -> list[Task]: ...
+    def task_contact_names(
+        self, session: TxSession, owner_id: UUID, task_id: UUID, limit: int
+    ) -> list[str]: ...
+    def task_reference_titles(
+        self, session: TxSession, owner_id: UUID, task_id: UUID, limit: int
+    ) -> list[str]: ...
+
+
+@dataclass(frozen=True, slots=True)
+class AiLimits:
+    """The limits on AI Steps, in the units the domain uses (millionths of a dollar)."""
+
+    default_task_cap_microusd: int
+    monthly_cap_microusd: int
+    max_attempts_per_step: int
+    claude_code_starts_per_day: int
+    local_models_exempt: bool
+
+    @classmethod
+    def from_settings(cls, settings: Settings) -> "AiLimits":
+        return cls(
+            default_task_cap_microusd=round(settings.ai_default_task_cap_usd * MICROUSD_PER_USD),
+            monthly_cap_microusd=round(settings.ai_monthly_cap_usd * MICROUSD_PER_USD),
+            max_attempts_per_step=settings.ai_max_attempts_per_step,
+            claude_code_starts_per_day=settings.ai_claude_code_starts_per_day,
+            local_models_exempt=settings.ai_local_models_exempt_from_cap,
+        )
+
+    def money_caps(self) -> MoneyCaps:
+        return MoneyCaps(
+            task_microusd=self.default_task_cap_microusd,
+            month_microusd=self.monthly_cap_microusd,
+            local_models_exempt=self.local_models_exempt,
+        )
+
+    def task_cap(self, task: Task) -> int:
+        """The cap that applies to the Task: the owner's own at approval, else the default."""
+
+        return task.ai_task_cap_microusd or self.default_task_cap_microusd
+
+
+@dataclass(frozen=True, slots=True)
+class AiPlanStepView:
+    """One step of a plan: the step, its active Actions and, for an AI step, where it stands."""
+
+    step: Step
+    actions: Sequence[Action]
+    status: AiStepStatus | None
+    history: RunHistory
+
+
+@dataclass(frozen=True, slots=True)
+class AiPlanView:
+    task: Task
+    state: PlanState
+    digest: str
+    task_cap_microusd: int
+    steps: Sequence[AiPlanStepView]
+
+
+@dataclass(frozen=True, slots=True)
+class AiStepEntry:
+    """An AI step of an approved plan, for the list a runner reads."""
+
+    task: Task
+    step: Step
+    status: AiStepStatus
+    history: RunHistory
+    startable: bool
+
+
+@dataclass(frozen=True, slots=True)
+class AiStepPage:
+    items: Sequence[AiStepEntry]
+    next_cursor: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class StartedAiStep:
+    run: AiStepRun
+    step: Step
+    brief: str
+    budget_microusd: int
+    max_turns: int
+
+
+def day_start(now: datetime, zone: tzinfo) -> datetime:
+    """The start of the day containing `now` in the owner's time zone."""
+
+    return now.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)

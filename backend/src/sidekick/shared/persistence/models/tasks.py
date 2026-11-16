@@ -5,6 +5,7 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Computed,
@@ -86,6 +87,10 @@ class TaskRow(Base):
     last_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ambition_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ai_possible_since: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ai_plan_digest: Mapped[str | None] = mapped_column(String(64))
+    ai_plan_approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ai_task_cap_microusd: Mapped[int | None] = mapped_column(BigInteger)
     trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR,
@@ -147,6 +152,8 @@ class StepRow(Base):
     instruction: Mapped[str | None] = mapped_column(Text)
     trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    performer: Mapped[str] = mapped_column(String(8), default="owner")
+    ai_spec: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class ActionRow(Base):
@@ -178,3 +185,66 @@ class ActionRow(Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     note: Mapped[str | None] = mapped_column(Text)
     trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class AiStepRunRow(Base):
+    """One attempt at an AI Step: its state, the result the owner reviews, and its cost.
+
+    The text columns are the owner's data and are never logged. The application role cannot
+    delete rows; they leave with their Step or Task through the foreign keys.
+    """
+
+    __tablename__ = "ai_step_runs"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["step_id", "owner_id"],
+            [f"{SCHEMA}.steps.id", f"{SCHEMA}.steps.owner_id"],
+            name="fk_ai_step_runs_step_owner",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["task_id", "owner_id"],
+            [f"{SCHEMA}.tasks.id", f"{SCHEMA}.tasks.owner_id"],
+            name="fk_ai_step_runs_task_owner",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("step_id", "attempt", name="uq_ai_step_runs_step_attempt"),
+        Index("ix_ai_step_runs_owner_state", "owner_id", "state"),
+        Index("ix_ai_step_runs_owner_created", "owner_id", "created_at"),
+        Index("ix_ai_step_runs_task", "task_id"),
+        {"schema": SCHEMA},
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    task_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    step_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer)
+    runner: Mapped[str] = mapped_column(String(12))
+    state: Mapped[str] = mapped_column(String(16))
+    plan_digest: Mapped[str] = mapped_column(String(64))
+    provider: Mapped[str | None] = mapped_column(String(40))
+    model: Mapped[str | None] = mapped_column(String(120))
+    worker_id: Mapped[str | None] = mapped_column(String(80))
+    lease_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    queued_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result_format: Mapped[str | None] = mapped_column(String(16))
+    result_text: Mapped[str | None] = mapped_column(Text)
+    result_summary: Mapped[str | None] = mapped_column(String(500))
+    checklist: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
+    question: Mapped[str | None] = mapped_column(String(1000))
+    answer: Mapped[str | None] = mapped_column(String(1000))
+    feedback: Mapped[str | None] = mapped_column(String(1000))
+    input_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    output_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    cache_read_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    cache_write_tokens: Mapped[int] = mapped_column(BigInteger, default=0)
+    reserved_microusd: Mapped[int] = mapped_column(BigInteger, default=0)
+    cost_microusd: Mapped[int] = mapped_column(BigInteger, default=0)
+    cost_source: Mapped[str] = mapped_column(String(16), default="none")
+    error_category: Mapped[str | None] = mapped_column(String(24))
+    version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

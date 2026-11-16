@@ -1,0 +1,149 @@
+/* A Task's AI plan and an AI Step's run (ai-plan-card.tsx, ai-run-review.tsx). A section of the Task view like Steps:
+   the heading, muted meta lines, compact buttons on one wrapping row; no surface of its own, so it reads as part of the
+   page. Only a plan changed since its approval takes the warning colours, as a Step that waits for the owner does. */
+.sidekick-work .work-ai-meta {
+  margin: 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sidekick-work .work-ai-state--changed {
+  margin: var(--sk-s1) 0 0;
+  padding: var(--sk-s2) var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-warning-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-warning-bg);
+  color: var(--sk-warning-fg);
+  font: var(--sk-type-label);
+}
+/* The buttons: compact, 8 apart, wrapping at 320 px; a meta line in the row sits on the buttons' middle. */
+.sidekick-work .work-ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  margin-top: var(--sk-s2);
+}
+.sidekick-work .work-ai-actions > .work-ai-meta {
+  flex: 1 1 100%;
+}
+.sidekick-work button.work-ai-fold {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+}
+.sidekick-work .work-ai-fold[aria-expanded="true"] > svg,
+.sidekick-work .work-ai-step-line[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+/* "Be Claude planera" is not drawn on a phone: the host says it is a finger, or the frame's own query does. */
+:root[data-host-pointer="coarse"] .sidekick-work .work-ai-ask {
+  display: none;
+}
+@media (pointer: coarse) {
+  :root:not([data-host-pointer="fine"]) .sidekick-work .work-ai-ask {
+    display: none;
+  }
+}
+
+/* The plan's Steps: one 44 row each, the mark first, the title, and ⌄ at the end of an AI Step that opens. */
+.sidekick-work .work-ai-steps {
+  margin: var(--sk-s2) 0;
+  padding: 0;
+  list-style: none;
+}
+.sidekick-work .work-ai-step-line {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sk-tap);
+  padding: var(--sk-s1) 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  text-align: start;
+}
+.sidekick-work button.work-ai-step-line:active:not(:disabled) {
+  background: var(--sk-surface);
+}
+.sidekick-work .work-ai-step-line > .sk-ai-mark {
+  flex: none;
+  min-width: 2.25rem;
+  justify-content: center;
+}
+.sidekick-work .work-ai-step-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-ai-step-line > svg {
+  flex: none;
+  color: var(--sk-muted);
+}
+/* What an AI Step will do: short sentences on the title's x, in the meta type. */
+.sidekick-work .work-ai-spec {
+  margin: 0 0 var(--sk-s2) calc(2.25rem + var(--sk-s2));
+  color: var(--sk-fg-2);
+  font: var(--sk-type-meta);
+}
+.sidekick-work .work-ai-spec > p {
+  margin: 0 0 var(--sk-s1);
+}
+
+/* A run opened under its Step: indented to the title, as the Step's Actions are. */
+.sidekick-work .work-ai-run {
+  display: grid;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) 0 var(--sk-s3) calc(var(--sk-icon) + var(--sk-s3));
+  padding-inline-start: var(--sk-s3);
+  border-inline-start: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-work .work-ai-run > p,
+.sidekick-work .work-ai-run > .work-ai-actions {
+  margin: 0;
+}
+.sidekick-work .work-ai-summary {
+  font: var(--sk-type-label-strong);
+}
+/* The result as written: line breaks kept, long words broken, eight lines until "Visa hela". */
+.sidekick-work .work-ai-text {
+  margin: 0;
+  font: var(--sk-type-body);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-ai-text--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  overflow: hidden;
+}
+.sidekick-work .work-ai-question {
+  margin: 0;
+  padding: var(--sk-s2) var(--sk-s3);
+  border-radius: var(--sk-radius);
+  background: var(--sk-surface);
+}
+.sidekick-work .work-ai-question > p {
+  margin: 0;
+}
+.sidekick-work .work-ai-label {
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+}
+.sidekick-work .work-ai-reply {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.sidekick-work .work-ai-reply > label {
+  font: var(--sk-type-label);
+}
+.sidekick-work .work-ai-reply > textarea {
+  box-sizing: border-box;
+  width: 100%;
+  font: var(--sk-type-body);
+}

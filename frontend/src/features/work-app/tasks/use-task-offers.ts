@@ -37,6 +37,12 @@ export function useTaskOffers(
   const editOffered = offers("update_task", { changes: { title: "" } });
   // A tag change writes the whole set; the phone answers no, so there the tags are shown, not edited.
   const tagsOffered = offers("update_task", { changes: { tags: [] } });
+  // "Möjlig med AI" in ⋯ sets and clears the mark; the plan under the description needs get_ai_plan and its approval
+  // the app-only approve_ai_plan.
+  const aiMarkOffered = offers("update_task", {
+    changes: { ai_possible: true },
+  });
+  const aiApproveOffered = offers("approve_ai_plan");
   // Deleting moves the Task to the trash and Ångra restores it, so both tools must be there.
   const trashOffered =
     offers("move_to_trash", { kind: "task" }) &&
@@ -57,6 +63,8 @@ export function useTaskOffers(
     editOffered,
     tagsOffered,
     trashOffered,
+    aiMarkOffered,
+    aiApproveOffered,
     contactsOn,
     unlinkOffered,
   };

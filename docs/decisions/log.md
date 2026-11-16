@@ -55,6 +55,7 @@ Replaced decisions (D-036, D-051, D-056, D-085, D-086) are in the [archive](arch
 | D-092 | [One curated public MCP surface](#d-092---one-curated-public-mcp-surface) |
 | D-093 | [One error tree rooted at SidekickError](#d-093---one-error-tree-rooted-at-sidekickerror) |
 | D-095 | [The Android app can create and edit](#d-095---the-android-app-can-create-and-edit) |
+| D-096 | [AI-delegated steps](#d-096---ai-delegated-steps) |
 
 ### D-004 - One set of use cases for HTTP and MCP
 
@@ -380,3 +381,16 @@ works on its own when the owner cannot talk (in a meeting, on a bus, somewhere q
 Writes use the same device capabilities, idempotency keys and error vocabulary as check-offs. Deleting and the trash
 is delivered too: move a task, journal entry or shopping item to the trash with Undo, a trash screen, and permanent
 removal of trashed tasks only, after an explicit confirmation and with a capability of its own (`companion:work:erase`, granted separately to devices paired earlier). Sharing into Sidekick from other apps is a separate step.
+
+### D-096 - AI-delegated steps
+
+Status: Accepted (2026-11-16); recorded as [ADR-011](adr/ADR-011-ai-delegated-steps.md); amends
+[ADR-009](adr/ADR-009-one-curated-public-mcp-surface.md).
+The owner can mark a task as possible with AI. Claude writes a plan as steps marked for the owner or for AI, each AI
+step with a validated spec. The owner approves the plan with a click in the room (`approve_ai_plan`, app-only and
+bound to a digest of the plan, so a plan changed after approval is not run). The steps are run by the owner's own
+Claude Code over MCP with the new opt-in scope `ai:run`, and a result always lands as "to review" until the owner
+accepts it. AI steps produce text inside Sidekick and never send, buy, delete or publish. Defaults: 2 USD per task,
+50 USD per month, three attempts per step, 50 Claude Code starts per day. The owner has also decided that Sidekick
+may later run approved steps on the server with a separate worker and the owner's own API key (stage 2, to be
+recorded as D-097 and ADR-012). D-084's removal of the chat engine and the provider adapters is not reversed.

@@ -29,6 +29,16 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
         "choose another decision for the others."
     ),
     "nul_character": "Remove the NUL (\\u0000) character from the text and retry.",
+    "plan_changed": "The plan changed. Read it again with get_ai_plan and use its current digest.",
+    "plan_not_approved": (
+        "The owner has not approved this plan. Ask them to approve it in the Work room."
+    ),
+    "step_not_ready": (
+        "That step is not ready: an earlier step is open, a run is active or waits for the "
+        "owner, or its attempts are used. Check list_ai_steps."
+    ),
+    "run_not_open": "That run is not in a state this applies to. Read it with get_ai_step_run.",
+    "ai_limit_reached": "A daily or per-step limit for AI runs was reached; try again later.",
 }
 
 # A stale version on a named record: the spoken first line names it and says what to do.

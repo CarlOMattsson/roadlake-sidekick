@@ -138,11 +138,13 @@ def test_the_scope_table_covers_exactly_the_contract_and_only_real_scopes() -> N
 def test_write_tools_name_a_write_scope_and_read_tools_none() -> None:
     for tool in _contract():
         scopes = TOOL_SCOPES[tool["name"]]
-        named_write = any(s.endswith(":write") for s in (*scopes.requires, *scopes.any_of))
+        named = (*scopes.requires, *scopes.any_of)
+        named_write = any(s.endswith(":write") for s in named)
         if _read_only(tool):
             assert not named_write, tool["name"]
         else:
-            assert named_write, tool["name"]
+            # `ai:run` is the write scope of the tools that run an approved AI step.
+            assert named_write or "ai:run" in named, tool["name"]
 
 
 def test_a_tool_in_no_area_is_an_error() -> None:

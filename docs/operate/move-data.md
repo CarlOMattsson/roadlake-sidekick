@@ -10,7 +10,7 @@ Move your records from one 0.1.0 installation to another, for example to a new s
 
 Use this to move to a new server or a fresh database. The source must be a 0.1.0 installation that has an owner backup
 (`sidekick-backup create`, or the backup profile) or can make an owner export. The importer reads only the current
-format (format 7) and the three formats before it (format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
+format (format 8) and the four formats before it (format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
 installation before 0.1.0: backups, exports, snapshots and SQL dumps from before 0.1.0 are not read, and
 `sidekick-backup import` cannot import them. Keep them as an archive.
 
@@ -27,6 +27,9 @@ What is not in an owner backup and therefore has to be made again: personal acce
 tokens, paired phones, push registrations, the license row, operational locks and derived memory metadata. Record
 ids are mapped to new ids, so ids copied into old conversations no longer point at anything. The memory is rebuilt by
 the memory worker from the imported records.
+
+AI steps come with the backup, but an approved AI plan does not: approve it again on the new installation. A run that
+was queued or running is restored as cancelled.
 
 ## Size limit of the encrypted database snapshots
 

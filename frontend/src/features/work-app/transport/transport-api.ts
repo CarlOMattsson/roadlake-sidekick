@@ -15,6 +15,9 @@ import type {
   TaskStatusValue,
   WorkAction,
   WorkActionPage,
+  WorkAiPlan,
+  WorkAiReview,
+  WorkAiRun,
   WorkBoardPlacement,
   WorkBoardPlacementItem,
   WorkContactChanges,
@@ -341,4 +344,25 @@ export type WorkTransport = ToolSupport & {
   ) => Promise<WorkLinkResult>;
   getDomain: (domainId: string) => Promise<{ domain: WorkDomainRecord }>;
   getProcess: (processId: string) => Promise<{ process: WorkProcessRecord }>;
+  /** The Task's plan for AI steps (get_ai_plan): its state, the digest to approve, and each AI Step's status. */
+  getAiPlan: (taskId: string) => Promise<{ plan: WorkAiPlan }>;
+  /**
+   * The owner's approval of exactly the plan the view shows (approve_ai_plan, app only): `digest` is the one get_ai_plan
+   * returned, and the server answers conflict when the plan has changed since.
+   */
+  approveAiPlan: (
+    taskId: string,
+    digest: string,
+    idempotencyKey: string,
+  ) => Promise<{ plan: WorkAiPlan }>;
+  /** One run of an AI Step with its result text, question and checklist (get_ai_step_run with include_content). */
+  getAiStepRun: (runId: string) => Promise<WorkAiRun>;
+  /** The owner's verdict on a run at `version`: accept, redo (with a comment), reject, or answer its question. */
+  reviewAiStepResult: (
+    runId: string,
+    version: number,
+    decision: WorkAiReview,
+    comment: string | null,
+    idempotencyKey: string,
+  ) => Promise<WorkAiRun>;
 };

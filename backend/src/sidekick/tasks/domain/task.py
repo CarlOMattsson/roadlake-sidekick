@@ -100,6 +100,13 @@ class Task:
     """When a review decision last touched the Task; ordinary edits leave it alone."""
     ambition_since: datetime | None = None
     """When the Task became an ambition: something to keep in view, never due or reminded of."""
+    ai_possible_since: datetime | None = None
+    """When the owner marked the Task as possible with AI; the mark alone costs and runs nothing."""
+    ai_plan_digest: str | None = None
+    """Digest of the plan the owner approved; None when no plan is approved."""
+    ai_plan_approved_at: datetime | None = None
+    ai_task_cap_microusd: int | None = None
+    """Spending cap the owner set when approving the plan; None means the instance default."""
 
     def __post_init__(self) -> None:
         title = self.title.strip()
@@ -145,6 +152,12 @@ class Task:
                 "an ambition has no due date, start, waiting, flag, repeat or reminder; "
                 "make it a task again first"
             )
+        if (self.ai_plan_digest is None) != (self.ai_plan_approved_at is None):
+            raise ValidationError("an approved AI plan has both a digest and an approval time")
+        if self.ai_plan_digest is not None and self.ai_possible_since is None:
+            raise ValidationError("only a task marked as possible with AI has an approved plan")
+        if self.ai_task_cap_microusd is not None and self.ai_task_cap_microusd <= 0:
+            raise ValidationError("the AI spending cap must be positive")
         object.__setattr__(self, "title", title)
 
     def scheduled_fields(self) -> frozenset[str]:
@@ -321,6 +334,25 @@ class Task:
             "waiting_on_contact_id": None,
             "attention_requested": False,
             "ambition_since": now,
+        }
+
+    def ai_possible_change(self, possible: bool, *, now: datetime) -> dict[str, object]:
+        """The fields that mark the Task as possible with AI, or remove the mark; none when it
+        already is what was asked.
+
+        Removing the mark also withdraws an approved plan, so a Task that is no longer for AI
+        cannot start a step.
+        """
+
+        if possible == (self.ai_possible_since is not None):
+            return {}
+        if possible:
+            return {"ai_possible_since": now}
+        return {
+            "ai_possible_since": None,
+            "ai_plan_digest": None,
+            "ai_plan_approved_at": None,
+            "ai_task_cap_microusd": None,
         }
 
     def reopen_for_recurrence(self, *, now: datetime, zone: tzinfo = UTC) -> "Task":

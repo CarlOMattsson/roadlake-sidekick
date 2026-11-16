@@ -18,6 +18,7 @@ from sidekick.shared.errors.core import ValidationError
 from sidekick.shared.persistence.models import (
     ActionRow,
     ActivityEntryRow,
+    AiStepRunRow,
     ContactAliasRow,
     ContactRow,
     ContactTagRow,
@@ -54,7 +55,19 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 7
+EXPORT_FORMAT_VERSION = 8
+# Format 7 (written at migrations 110 and 111) has none of what migration 112 added: a Task's four
+# `ai_*` columns, a Step's `performer` and `ai_spec`, and the `ai_step_runs` collection. A format 7
+# export is still read: its Steps restore as the owner's own, its Tasks as having no AI mark or
+# approved plan, and the missing collection as empty.
+FORMAT_WITHOUT_AI_STEPS = 7
+COLUMNS_ADDED_IN_FORMAT_8: dict[str, frozenset[str]] = {
+    "tasks": frozenset(
+        {"ai_possible_since", "ai_plan_digest", "ai_plan_approved_at", "ai_task_cap_microusd"}
+    ),
+    "steps": frozenset({"performer", "ai_spec"}),
+}
+COLLECTIONS_ADDED_IN_FORMAT_8: frozenset[str] = frozenset({"ai_step_runs"})
 # Format 6 (written at migrations 107 and 108) has no `tasks.last_reviewed_at` nor
 # `tasks.ambition_since`; migrations 109 and 110 added them, before format 7 was first released. A
 # format 6 export is still read: its Tasks restore as never reviewed and as no ambition. The
@@ -94,6 +107,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("110_task_ambition", False),
     # Webhook tokens are credentials; like `personal_access_tokens` they are never exported.
     ("111_webhook_tokens", True),
+    # Adds Task and Step columns and a table that are exported (format 8).
+    ("112_ai_steps", False),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -124,9 +139,11 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
-# at migration 107 or 108 and a format 7 export at migration 110 or later.
+# at migration 107 or 108, a format 7 export at migration 110 or 111 and a format 8 export at
+# migration 112 or later.
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
+    FORMAT_WITHOUT_AI_STEPS: frozenset({"110_task_ambition", "111_webhook_tokens"}),
     FORMAT_WITHOUT_TASK_REVIEW: frozenset(
         {"107_contact_and_journal_entry_tags", "108_memory_forgotten_facts"}
     ),
@@ -161,6 +178,7 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("tasks", TaskRow),
     ExportSource("task_status_history", TaskStatusHistoryRow),
     ExportSource("steps", StepRow),
+    ExportSource("ai_step_runs", AiStepRunRow),
     ExportSource("actions", ActionRow),
     ExportSource("work_tags", WorkTagRow),
     ExportSource("domain_tags", DomainTagRow),

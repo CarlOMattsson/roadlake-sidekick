@@ -14,11 +14,14 @@ from uuid import UUID
 from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     COLLECTIONS_ADDED_IN_FORMAT_6,
+    COLLECTIONS_ADDED_IN_FORMAT_8,
     COLUMNS_ADDED_IN_FORMAT_7,
+    COLUMNS_ADDED_IN_FORMAT_8,
     EXCLUDED_COLLECTIONS,
     EXPORT_FORMAT,
     EXPORT_FORMAT_VERSION,
     FORMAT_WITH_RETIRED_COLLECTIONS,
+    FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -195,6 +198,32 @@ def _verify_manifest(document: Mapping[str, Any], collections: Mapping[str, Any]
     return checksum
 
 
+def _collections_not_yet(format_version: int) -> frozenset[str]:
+    """The collections that a document of `format_version` does not have yet."""
+
+    missing: set[str] = set()
+    if format_version <= FORMAT_WITHOUT_TAG_LINKS:
+        missing |= COLLECTIONS_ADDED_IN_FORMAT_6
+    if format_version <= FORMAT_WITHOUT_AI_STEPS:
+        missing |= COLLECTIONS_ADDED_IN_FORMAT_8
+    return frozenset(missing)
+
+
+def _columns_not_yet(format_version: int) -> dict[str, frozenset[str]]:
+    """The columns, by collection, that a document of `format_version` does not have yet."""
+
+    added_since: list[Mapping[str, frozenset[str]]] = []
+    if format_version <= FORMAT_WITHOUT_TASK_REVIEW:
+        added_since.append(COLUMNS_ADDED_IN_FORMAT_7)
+    if format_version <= FORMAT_WITHOUT_AI_STEPS:
+        added_since.append(COLUMNS_ADDED_IN_FORMAT_8)
+    merged: dict[str, frozenset[str]] = {}
+    for columns in added_since:
+        for name, fields in columns.items():
+            merged[name] = merged.get(name, frozenset()) | fields
+    return merged
+
+
 def verify_export(document: Mapping[str, Any]) -> ExportVerification:
     owner_id, format_version = _verify_header(document)
     collections_value = document.get("collections")
@@ -205,18 +234,14 @@ def verify_export(document: Mapping[str, Any]) -> ExportVerification:
         RETIRED_COLLECTIONS if format_version == FORMAT_WITH_RETIRED_COLLECTIONS else frozenset()
     )
     # A document of an older format does not have the collections added since; they restore empty.
-    not_yet: frozenset[str] = (
-        COLLECTIONS_ADDED_IN_FORMAT_6 if format_version <= FORMAT_WITHOUT_TAG_LINKS else frozenset()
-    )
+    not_yet = _collections_not_yet(format_version)
     if set(collections) != (set(SOURCES_BY_NAME) - not_yet) | retired:
         raise ExportRefused("export collection catalogue does not match format")
     for name in sorted(retired):
         if collections[name] != []:
             raise ExportRefused(f"collection {name} of a retired feature must be empty")
     # Its rows lack the columns added since; those restore as NULL.
-    columns_not_yet: Mapping[str, frozenset[str]] = (
-        COLUMNS_ADDED_IN_FORMAT_7 if format_version <= FORMAT_WITHOUT_TASK_REVIEW else {}
-    )
+    columns_not_yet = _columns_not_yet(format_version)
     for name, source in SOURCES_BY_NAME.items():
         if name not in not_yet:
             _verify_rows(

@@ -7,6 +7,7 @@ import { taskStatusLabel, type WorkLabels } from "../shared/labels";
 import { WriteNotice } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
 import { OpenChevron, RowUndo } from "./task-detail-controls";
+import { AiTaskMark } from "../ai/ai-task-mark";
 import {
   isTaskStatus,
   type TaskStatusValue,
@@ -133,7 +134,11 @@ export function TaskSummaryList({
                     <p role="status" className="work-card-meta">
                       {statusText}
                     </p>
-                  ) : showDue || showStatus || done || tags.length > 0 ? (
+                  ) : showDue ||
+                    showStatus ||
+                    done ||
+                    task.ai_possible ||
+                    tags.length > 0 ? (
                     <p className="work-card-meta">
                       {showDue && task.due_at && (
                         <span className="work-card-due">
@@ -142,6 +147,7 @@ export function TaskSummaryList({
                       )}
                       {showStatus && <span>{statusText}</span>}
                       {done && <span>{statusText}</span>}
+                      {task.ai_possible && <AiTaskMark locale={t.dateLocale} />}
                       <TagChips
                         tags={tags}
                         known={known}

@@ -196,6 +196,10 @@ export function transport(
     restoreContact: vi
       .fn()
       .mockResolvedValue({ contact: { ...anna, version: 2 } }),
+    getAiPlan: vi.fn(),
+    approveAiPlan: vi.fn(),
+    getAiStepRun: vi.fn(),
+    reviewAiStepResult: vi.fn(),
     ...overrides,
   };
 }

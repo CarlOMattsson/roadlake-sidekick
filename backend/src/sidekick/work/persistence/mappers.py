@@ -14,8 +14,10 @@ from sidekick.tasks.domain import Priority, TaskStatus
 from sidekick.work.domain import (
     Action,
     ActionStatus,
+    AiStepSpecV1,
     Domain,
     DomainStatus,
+    Performer,
     Process,
     ProcessRun,
     ProcessRunOutbox,
@@ -151,6 +153,8 @@ def step_from_row(row: StepRow) -> Step:
         row.archived_at,
         row.instruction,
         row.completed_at,
+        Performer(row.performer),
+        AiStepSpecV1.model_validate(row.ai_spec) if row.ai_spec is not None else None,
     )
 
 
@@ -170,6 +174,8 @@ def step_to_row(step: Step) -> StepRow:
         archived_at=step.archived_at,
         instruction=step.instruction,
         completed_at=step.completed_at,
+        performer=step.performer.value,
+        ai_spec=step.ai_spec.model_dump(mode="json") if step.ai_spec is not None else None,
     )
 
 

@@ -1,0 +1,22 @@
+/* The mark of who does a Step ("Du", "AI", "AI · att granska"): a small muted caption beside the Step's title. A Step
+   that waits for the owner (a result to review, a question) takes the warning colours, so it is found in a list. */
+.sk-ai-mark {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-height: 1.25rem;
+  padding: 0 var(--sk-s2);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius-pill);
+  color: var(--sk-muted);
+  font: var(--sk-type-caption);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+
+.sk-ai-mark[data-attention="true"] {
+  border-color: var(--sk-warning-line);
+  background: var(--sk-warning-bg);
+  color: var(--sk-warning-fg);
+}

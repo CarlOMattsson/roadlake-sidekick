@@ -1,6 +1,6 @@
 # ADR-007: Authenticate with purpose-separated, hashed credentials and enforce scopes in the use cases
 
-- Status: Accepted (D-090, 2026-11-11); records the delivered design, no behaviour changed
+- Status: Accepted (D-090, 2026-11-11); records the delivered design, no behaviour changed. Revised 2026-11-16: the vocabulary gains the opt-in scope `ai:run` (ADR-011, D-096); the decision is unchanged.
 - Date: 2026-11-11
 - Owners: Sidekick application maintainers
 
@@ -45,10 +45,12 @@ rewritten at most once a minute.
 
 ### Scopes: a closed vocabulary, clipped at verification, checked in the use case
 
-- MCP scopes are twelve `<domain>:read|write` names and `license:write` (`MCP_SCOPES`). `license:write` is the one
+- MCP scopes are twelve `<domain>:read|write` names, `license:write` and `ai:run` (`MCP_SCOPES`). `license:write` is the one
   administrative scope: it alone allows the app-only `set_license_key` tool, so a client that only changes tasks cannot
-  set the instance's license key. `automation:read` and `automation:write` are
-  opt-in: a default token never has them (`OPT_IN_SCOPES`, `TOKEN_SCOPES`).
+  set the instance's license key. `automation:read`, `automation:write` and `ai:run` are
+  opt-in: a default token never has them (`OPT_IN_SCOPES`, `TOKEN_SCOPES`). `ai:run` alone allows a client to
+  start an approved AI step and report its result (ADR-011); it does not allow approving a plan or accepting a
+  result, which need `tasks:write`.
 - Device scopes are a separate vocabulary (`COMPANION_SCOPES`, `companion:*`). No MCP credential can hold one and a
   device holds nothing else, so a paired phone is never handed `tasks:write` itself; the companion adapter maps each
   capability to a fixed set of operations (`backend/src/sidekick/companion/operations.py`).
