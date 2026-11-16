@@ -18,6 +18,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `memory` | `hindsight`, `memory-worker` | Derived memory. Needs `hindsight.env` and the `SIDEKICK_MEMORY_*` settings; see [Turn on memory](../operate/memory.md). |
 | `backup` | `backup` | Encrypted backups. Needs `SIDEKICK_BACKUP_ENCRYPTION_KEY` in `selfhost.env`; see [Backup and restore](../operate/backup-and-restore.md). |
 | `push` | `push`, `ntfy` | Reminders to the Android app. Needs `SIDEKICK_PUSH_ENABLED=true`. The own ntfy server is published through Caddy, so it needs the `vps` profile; `up -d push` alone starts just the worker, which then delivers through ntfy.sh. See [Reminders through ntfy](../operate/push-reminders.md). |
+| `ai` | `ai-worker` | Runs approved AI steps on the server with your own Anthropic API key. Needs the key as a file (`ai_anthropic_api_key`) and `SIDEKICK_AI_RUNNER_ENABLED=true`; see [Run AI steps](../operate/ai-steps.md#run-ai-steps-on-your-server). |
 
 ## Files in `deploy/selfhost`
 

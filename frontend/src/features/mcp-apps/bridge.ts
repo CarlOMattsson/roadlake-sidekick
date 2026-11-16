@@ -97,14 +97,17 @@ export function featuresFrom(capabilities: unknown): HostFeatures {
 export type HostToolResult = { structuredContent: unknown; isError: boolean };
 /**
  * A tools/call the server answered with isError. `code` is the server's closed error code
- * (for example "forbidden") when present; the message stays generic so no backend text leaks.
+ * (for example "conflict") and `reason` its closed reason (for example "ai_budget_reached") when
+ * present; the message stays generic so no backend text leaks.
  */
 export class HostToolError extends Error {
   readonly code: string | undefined;
-  constructor(code: string | undefined) {
+  readonly reason: string | undefined;
+  constructor(code: string | undefined, reason?: string) {
     super("Tool request failed");
     this.name = "HostToolError";
     this.code = code;
+    this.reason = reason;
   }
 }
 
@@ -180,10 +183,15 @@ function hasId(id: unknown): boolean {
   return id !== undefined && id !== null;
 }
 
-/** Sidekick error results carry a short closed code; anything else is dropped. */
-function errorCode(structured: unknown): string | undefined {
-  const code = (structured as { code?: unknown } | null | undefined)?.code;
-  return typeof code === "string" && code.length <= 64 ? code : undefined;
+/** Sidekick error results carry a short closed code and reason; anything else is dropped. */
+function closedField(
+  structured: unknown,
+  field: "code" | "reason",
+): string | undefined {
+  const value = (structured as Record<string, unknown> | null | undefined)?.[
+    field
+  ];
+  return typeof value === "string" && value.length <= 64 ? value : undefined;
 }
 
 export function createHostBridge(app: {
@@ -366,7 +374,10 @@ export function createHostBridge(app: {
       const raw = await request("tools/call", { name, arguments: args });
       const result = raw as { isError?: boolean; structuredContent?: T };
       if (result.isError)
-        throw new HostToolError(errorCode(result.structuredContent));
+        throw new HostToolError(
+          closedField(result.structuredContent, "code"),
+          closedField(result.structuredContent, "reason"),
+        );
       if (result.structuredContent === undefined)
         throw new HostToolError(undefined);
       return result.structuredContent;

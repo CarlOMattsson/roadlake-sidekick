@@ -46,6 +46,7 @@ The records are the files in [`adr/`](adr/); the [index](#adr-index) below lists
 | [ADR-009](adr/ADR-009-one-curated-public-mcp-surface.md) | Accepted | The current MCP-first architecture |
 | [ADR-010](adr/ADR-010-one-error-tree.md) | Accepted | One error tree rooted at SidekickError |
 | [ADR-011](adr/ADR-011-ai-delegated-steps.md) | Accepted | AI-delegated steps: the owner approves a plan, Claude Code runs the steps |
+| [ADR-012](adr/ADR-012-server-runs-approved-ai-steps.md) | Accepted | The server runs approved AI steps with the owner's own API key |
 
 ## Numbering
 

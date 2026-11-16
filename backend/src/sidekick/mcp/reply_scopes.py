@@ -66,6 +66,7 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
             # The reply carries the plan, or the brief with the task's own text.
             "set_ai_plan",
             "approve_ai_plan",
+            "run_ai_plan",
             "start_ai_step",
             *_STEP_AND_ACTION_TOOLS,
         ),
@@ -140,6 +141,7 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # A run's state, attempt and cost; its text is only in `get_ai_step_run`.
         "report_ai_step_result",
         "review_ai_step_result",
+        "cancel_ai_step_run",
         # The installation licence key; reaches no record.
         "set_license_key",
         # The journal tools that write the user's own text answer with that text and stay

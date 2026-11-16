@@ -23,6 +23,9 @@ SAFE_ATTRIBUTE_NAMES = frozenset(
         "mcp.auth.reason",
         "outcome",
         "ai.runner",
+        "ai.model",
+        "cap",
+        "kind",
         "service.name",
         "service.version",
     }

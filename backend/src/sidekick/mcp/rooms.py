@@ -77,6 +77,8 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "set_ai_plan",
         "get_ai_plan",
         "approve_ai_plan",
+        "run_ai_plan",
+        "cancel_ai_step_run",
         "list_ai_steps",
         "start_ai_step",
         "report_ai_step_result",

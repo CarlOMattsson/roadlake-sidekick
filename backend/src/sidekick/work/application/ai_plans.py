@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import Literal
 from uuid import UUID
 
@@ -11,6 +11,7 @@ from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.replay import id_replay_record, id_result
 from sidekick.shared.types import UNSET, Actor, Clock, TxSession, UnsetType, new_uuid7
 from sidekick.tasks.domain import Task, TaskStatus
+from sidekick.work.application.ai_run_support import with_server_info
 from sidekick.work.application.ai_store import (
     MAX_STEPS_PER_TASK,
     MICROUSD_PER_USD,
@@ -18,6 +19,7 @@ from sidekick.work.application.ai_store import (
     AiPlanStepView,
     AiPlanView,
     AiStepsStore,
+    ServerRunnerConfig,
 )
 from sidekick.work.domain import Step
 from sidekick.work.domain.ai_plan import (
@@ -104,12 +106,17 @@ class AiPlanService:
         store: AiStepsStore,
         clock: Clock,
         limits: AiLimits,
+        config: ServerRunnerConfig,
         activity: RunActivityRecorder | None = None,
+        *,
+        owner_timezone: tzinfo,
     ) -> None:
         self.store = store
         self.clock = clock
         self.limits = limits
+        self.config = config
         self.activity = activity
+        self.owner_timezone = owner_timezone
 
     def get_plan(self, actor: Actor, task_id: UUID) -> AiPlanView:
         actor.require("tasks:read")
@@ -117,7 +124,17 @@ class AiPlanService:
 
     def _view(self, session: TxSession, actor: Actor, task_id: UUID) -> AiPlanView:
         task = self.store.get_task(session, actor.user_id, task_id)
-        return load_plan_view(self.store, session, task, limits=self.limits, now=self.clock.now())
+        now = self.clock.now()
+        view = load_plan_view(self.store, session, task, limits=self.limits, now=now)
+        return with_server_info(
+            view,
+            self.store,
+            session,
+            config=self.config,
+            limits=self.limits,
+            now=now,
+            zone=self.owner_timezone,
+        )
 
     def set_plan(
         self,

@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from sidekick.backup.bundle import BackupTooLarge, OwnerBackupService
 from sidekick.shared.cli_errors import run_guarded
-from sidekick.shared.config import get_settings
+from sidekick.shared.config import get_settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.observability import configure_worker_logging, log_failure
 from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.persistence.stores.base import StoreBase
@@ -27,6 +27,7 @@ async def run_worker(*, once: bool = False) -> bool:
     """
 
     settings = get_settings()
+    refuse_ai_key_outside_ai_worker(settings)
     if not settings.backup_enabled:
         LOGGER.info("encrypted local backups disabled")
         if once:

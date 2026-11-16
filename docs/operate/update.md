@@ -15,7 +15,7 @@ profile so that every worker is found; services that are not running are left al
 
 ```bash
 C="docker compose --env-file selfhost.env"
-$C --profile backup --profile push --profile memory stop api automation-worker backup push memory-worker
+$C --profile backup --profile push --profile memory --profile ai stop api automation-worker backup push memory-worker ai-worker
 $C run --rm -T --no-deps migrate     # if this fails, do not start the new code
 $C --profile vps up -d               # with the profiles you use, as in First start
 ```
@@ -78,7 +78,7 @@ docker buildx imagetools inspect ghcr.io/<owner>/roadlake-sidekick@sha256:<diges
 ```
 
 **If an update fails.** Before it migrates, `update.sh` stops the API and every worker that was running or restarting
-(automation, backup, push, memory), and starts them again afterwards, all with the same image. The last lines it prints, and the last word in
+(automation, backup, push, memory, ai), and starts them again afterwards, all with the same image. The last lines it prints, and the last word in
 `update-state/journal.log`, tell you which case you are in:
 
 - `ABORTED`: the signature, the pull, the backup or the snapshot failed, or the state of a worker could not be

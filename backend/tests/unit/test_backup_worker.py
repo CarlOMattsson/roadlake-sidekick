@@ -40,6 +40,7 @@ class FakeService:
 @pytest.fixture(name="settings")
 def _settings(tmp_path: Path) -> SimpleNamespace:
     return SimpleNamespace(
+        ai_anthropic_api_key=None,
         backup_enabled=True,
         backup_encryption_key=SecretStr("k" * 44),
         backup_directory=str(tmp_path),

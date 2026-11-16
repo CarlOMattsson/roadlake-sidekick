@@ -16,7 +16,7 @@ Sidekick 0.1.0 är den första versionen och körs dagligen på Linux. macOS är
 - [Bygg, installera och para ihop Android](pair-android.sv.md): ladda ner den signerade appen eller bygg den ur källkoden, och koppla telefonen med en engångskod.
 - [Påminnelser via ntfy](push-reminders.sv.md): slå på påminnelser till telefonen, via den publika ntfy-servern eller en egen.
 - [Webhooks för Home Assistant och Tasker](webhooks.sv.md): låt hem- eller telefonautomation lägga till en vara eller en uppgift, med en token per integration.
-- [Kör AI-steg med Claude Code](ai-steps.sv.md): godkänn en plan, låt din egen Claude Code köra AI-stegen och granska det den skriver.
+- [Kör AI-steg](ai-steps.sv.md): godkänn en plan, låt din egen Claude Code eller din egen server köra AI-stegen och granska det den skriver.
 
 ## Sköta
 

@@ -439,6 +439,7 @@ export function TaskFrame({
                 <AiStepRun
                   entry={entry}
                   transport={transport}
+                  server={ai.server}
                   labels={aiWords}
                   locale={t.dateLocale}
                   onReviewed={ai.reviewed}

@@ -381,6 +381,18 @@ export function createWorkTransport(
         digest,
         idempotency_key: idempotencyKey,
       }),
+    runAiPlan: (taskId, digest, idempotencyKey) =>
+      call("run_ai_plan", {
+        task_id: taskId,
+        digest,
+        idempotency_key: idempotencyKey,
+      }),
+    cancelAiStepRun: (runId, version, idempotencyKey) =>
+      call("cancel_ai_step_run", {
+        run_id: runId,
+        run_version: version,
+        idempotency_key: idempotencyKey,
+      }),
     getAiStepRun: (runId) =>
       call("get_ai_step_run", { run_id: runId, include_content: true }),
     reviewAiStepResult: (runId, version, decision, comment, idempotencyKey) =>

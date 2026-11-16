@@ -44,6 +44,7 @@ HEALTH_CHECK_CODE = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encodin
 
 # compose service -> (command of the service, worker name the healthcheck is told)
 COMPOSE_WORKERS = {
+    "ai-worker": ("sidekick-ai-worker", "ai"),
     "automation-worker": ("sidekick-automation-worker", "automation"),
     "backup": ("sidekick-backup-worker", "backup"),
     "memory-worker": ("sidekick-memory-worker", "memory"),
@@ -395,6 +396,22 @@ def test_a_new_worker_is_healthy_until_the_success_window_runs_out(tmp_path: Pat
     assert check_worker("push", directory=tmp_path, now=clock) == "failing"
 
 
+def test_the_ai_worker_is_failing_when_no_iteration_succeeds_within_its_window(
+    tmp_path: Path,
+) -> None:
+    """A worker that stops taking runs once the provider rejects its key never calls succeeded()."""
+
+    clock = _FakeClock()
+    heartbeat = WorkerHeartbeat("ai", directory=tmp_path, clock=clock)
+    heartbeat.beat(5)
+    assert check_worker("ai", directory=tmp_path, now=clock) == "ok"
+    clock.current += SUCCESS_WINDOW_SECONDS["ai"] + 1
+    heartbeat.beat(5)
+    assert check_worker("ai", directory=tmp_path, now=clock) == "failing"
+    heartbeat.succeeded()
+    assert check_worker("ai", directory=tmp_path, now=clock) == "ok"
+
+
 def test_a_success_renews_the_window_and_each_worker_has_its_own(tmp_path: Path) -> None:
     clock = _FakeClock()
     heartbeat = WorkerHeartbeat("memory", directory=tmp_path, clock=clock)
@@ -407,7 +424,7 @@ def test_a_success_renews_the_window_and_each_worker_has_its_own(tmp_path: Path)
     clock.current += SUCCESS_WINDOW_SECONDS["memory"] + 1
     heartbeat.beat(60)
     assert check_worker("memory", directory=tmp_path, now=clock) == "failing"
-    assert set(SUCCESS_WINDOW_SECONDS) == {"automation", "memory", "push"}
+    assert set(SUCCESS_WINDOW_SECONDS) == {"ai", "automation", "memory", "push"}
 
 
 def test_a_stale_heartbeat_is_reported_before_a_failing_one(tmp_path: Path) -> None:

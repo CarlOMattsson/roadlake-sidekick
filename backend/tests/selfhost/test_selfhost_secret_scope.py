@@ -8,15 +8,24 @@ import pytest
 import yaml
 
 from sidekick.shared.config import Settings, is_secret_field
+from sidekick.shared.config.ai_runner import AiRunnerSettings
+from sidekick.shared.config.ai_steps import AiStepSettings
 
 SELFHOST = Path(__file__).resolve().parents[3] / "deploy" / "selfhost"
 SOURCE = Path(__file__).resolve().parents[2] / "src" / "sidekick"
 WORKERS = ("automation-worker", "backup", "push", "memory-worker")
-LIMITED = ("postgres", "migrate", "api", *WORKERS, "hindsight", "tailscale")
+# The AI worker follows the rules of the workers above, plus its own (a key file, its own network).
+AI_WORKER = "ai-worker"
+EVERY_WORKER = (*WORKERS, AI_WORKER)
+LIMITED = ("postgres", "migrate", "api", *EVERY_WORKER, "hindsight", "tailscale")
 DECLARED = {f"SIDEKICK_{name}".upper() for name in Settings.model_fields}
 SECRET_FIELDS = {name for name, field in Settings.model_fields.items() if is_secret_field(field)}
 # Secrets that no Sidekick setting reads: another product's service holds them (the Tailscale key).
 COMPOSE_ONLY_SECRETS = {"tailscale_authkey": "tailscale"}
+# The owner's Anthropic key is a Sidekick setting that only the AI worker may hold.
+AI_KEY = "ai_anthropic_api_key"
+AI_KEY_VARIABLE = "SIDEKICK_AI_ANTHROPIC_API_KEY"
+COMMON_SECRETS = {"database_url", "cursor_signing_secret", "token_pepper"}
 BACKUP_FLOOR_BYTES = 2 * 1024**3  # 512 MiB of plaintext, several copies alive while it is encrypted
 UNITS = {"m": 1024**2, "g": 1024**3}
 
@@ -43,7 +52,7 @@ def _default(expression: str, variable_suffix: str) -> str:
 def test_workers_have_no_env_file_and_api_alone_reads_all_of_selfhost_env(
     services: dict[str, dict],
 ) -> None:
-    for name in WORKERS:
+    for name in EVERY_WORKER:
         assert "env_file" not in services[name], name
     assert services["api"]["env_file"] == [{"path": "./selfhost.env", "required": False}]
     for name in ("postgres", "migrate"):
@@ -52,7 +61,7 @@ def test_workers_have_no_env_file_and_api_alone_reads_all_of_selfhost_env(
 
 
 def test_every_passed_name_is_a_declared_setting(services: dict[str, dict]) -> None:
-    for name in WORKERS:
+    for name in EVERY_WORKER:
         names = _bare_names(services[name])
         assert names, name
         unknown = names - DECLARED
@@ -65,13 +74,13 @@ def test_every_worker_gets_what_production_requires_to_start(services: dict[str,
         "SIDEKICK_CURSOR_SIGNING_SECRET",
         "SIDEKICK_TOKEN_PEPPER",
     }
-    for name in WORKERS:
+    for name in EVERY_WORKER:
         assert services[name]["environment"]["SIDEKICK_ENVIRONMENT"] == "production", name
         assert required <= _bare_names(services[name]), name
 
 
 def test_no_worker_holds_the_oauth_settings(services: dict[str, dict]) -> None:
-    for name in WORKERS:
+    for name in EVERY_WORKER:
         leaked = {n for n in _bare_names(services[name]) if n.startswith("SIDEKICK_MCP_OAUTH_")}
         assert not leaked, (name, leaked)
         assert "SIDEKICK_MCP_AUTH_MODE" not in services[name]["environment"], name
@@ -182,14 +191,14 @@ def test_a_worker_gets_the_file_of_exactly_the_secrets_it_gets_as_variables(
     assert _mounted(service) == held, worker
 
 
-def test_api_gets_every_secret_as_a_file(services: dict[str, dict]) -> None:
-    assert _file_names(services["api"]) == SECRET_FIELDS
-    assert _mounted(services["api"]) == SECRET_FIELDS
+def test_api_gets_every_secret_as_a_file_except_the_ai_key(services: dict[str, dict]) -> None:
+    assert _file_names(services["api"]) == SECRET_FIELDS - {AI_KEY}
+    assert _mounted(services["api"]) == SECRET_FIELDS - {AI_KEY}
 
 
 def test_no_other_service_mounts_a_secret(services: dict[str, dict]) -> None:
     for name, service in services.items():
-        if name not in ("api", *WORKERS):
+        if name not in ("api", *EVERY_WORKER):
             assert set(service.get("secrets", [])) == {
                 secret for secret, owner in COMPOSE_ONLY_SECRETS.items() if owner == name
             }, name
@@ -202,6 +211,107 @@ def test_a_compose_only_secret_reaches_only_its_service_and_never_the_api(
     for secret, owner in COMPOSE_ONLY_SECRETS.items():
         holders = {n for n, service in services.items() if secret in service.get("secrets", [])}
         assert holders == {owner}, secret
+
+
+# --- the AI worker: the owner's Anthropic key reaches it alone, and it alone has a route out ---
+
+
+def test_the_anthropic_key_is_a_secret_setting_and_reaches_only_the_ai_worker(
+    services: dict[str, dict],
+) -> None:
+    assert AI_KEY in SECRET_FIELDS
+    holders = {name for name, service in services.items() if AI_KEY in service.get("secrets", [])}
+    assert holders == {AI_WORKER}
+    for name, service in services.items():
+        environment = service.get("environment", {})
+        assert (f"{AI_KEY_VARIABLE}_FILE" in environment) == (name == AI_WORKER), name
+        # Only as a file: a plain value would also reach api through selfhost.env, which refuses it.
+        assert AI_KEY_VARIABLE not in environment, name
+    assert services[AI_WORKER]["environment"][f"{AI_KEY_VARIABLE}_FILE"] == (
+        f"${{SELFHOST_{AI_KEY.upper()}_FILE:+/run/secrets/{AI_KEY}}}"
+    )
+
+
+def test_the_ai_worker_gets_the_common_secrets_and_the_key_and_no_other_secret(
+    services: dict[str, dict],
+) -> None:
+    service = services[AI_WORKER]
+    assert _file_names(service) == COMMON_SECRETS | {AI_KEY}
+    assert _mounted(service) == COMMON_SECRETS | {AI_KEY}
+    secret_variables = {f"SIDEKICK_{field}".upper() for field in SECRET_FIELDS}
+    common = {f"SIDEKICK_{field}".upper() for field in COMMON_SECRETS}
+    assert _bare_names(service) & secret_variables == common
+
+
+def test_only_the_ai_worker_sets_anthropic_variables_and_nobody_sets_custom_headers(
+    services: dict[str, dict],
+) -> None:
+    # The Anthropic SDK reads ANTHROPIC_* names from the environment (ANTHROPIC_CUSTOM_HEADERS
+    # adds a header to every request), so nothing but the telemetry switch is ever set.
+    for name, service in services.items():
+        anthropic = {v for v in service.get("environment", {}) if v.startswith("ANTHROPIC_")}
+        assert anthropic == ({"ANTHROPIC_OPEN_TELEMETRY"} if name == AI_WORKER else set()), name
+    assert services[AI_WORKER]["environment"]["ANTHROPIC_OPEN_TELEMETRY"] == "false"
+    text = (SELFHOST / "compose.yaml").read_text(encoding="utf-8")
+    assert "ANTHROPIC_CUSTOM_HEADERS" not in text
+    # The SDK's own key name must not be set; the key is only a Sidekick setting, read from a file.
+    assert not re.search(r"(?<![A-Z_])ANTHROPIC_API_KEY", text)
+
+
+def test_the_ai_worker_is_an_opt_in_profile_with_the_worker_hardening(
+    services: dict[str, dict],
+) -> None:
+    service = services[AI_WORKER]
+    assert service["profiles"] == ["ai"]
+    assert service["command"] == ["sidekick-ai-worker"]
+    assert service["image"] == services["api"]["image"]
+    assert service["read_only"] is True and service["tmpfs"] == ["/tmp"]  # noqa: S108
+    assert service["cap_drop"] == ["ALL"] and "cap_add" not in service
+    assert service["security_opt"] == ["no-new-privileges:true"]
+    assert service["restart"] == "unless-stopped"
+    assert "ports" not in service and "volumes" not in service and "privileged" not in service
+    # A model call that is under way must be allowed to finish before Docker kills the container.
+    assert service["stop_grace_period"] == "6m"
+    assert _default(service["mem_limit"], "_MEM_LIMIT") == "512m"
+    assert _default(service["pids_limit"], "_PIDS_LIMIT") == "64"
+    assert service["depends_on"]["migrate"] == {"condition": "service_completed_successfully"}
+
+
+def test_only_the_ai_worker_joins_the_ai_network_and_it_is_on_no_other_route_out(
+    services: dict[str, dict],
+) -> None:
+    compose = yaml.safe_load((SELFHOST / "compose.yaml").read_text(encoding="utf-8"))
+    assert set(services[AI_WORKER]["networks"]) == {"data", "ai"}
+    assert {n for n, s in services.items() if "ai" in (s.get("networks") or [])} == {AI_WORKER}
+    for network in ("edge", "proxy", "push"):
+        assert network not in services[AI_WORKER]["networks"], network
+    # The one network with an internet route (not internal, no fixed addresses); `data` has none.
+    assert compose["networks"]["ai"] in (None, {})
+    assert compose["networks"]["data"] == {"internal": True}
+
+
+def test_the_ai_worker_is_passed_every_non_secret_ai_setting_it_reads(
+    services: dict[str, dict],
+) -> None:
+    # The Claude Code start limit is api's alone; every other AI setting is the worker's.
+    fields = (set(AiRunnerSettings.model_fields) | set(AiStepSettings.model_fields)) - {
+        AI_KEY,
+        "ai_claude_code_starts_per_day",
+    }
+    expected = {f"SIDEKICK_{field}".upper() for field in fields}
+    assert expected <= _bare_names(services[AI_WORKER])
+    assert "SIDEKICK_AI_CLAUDE_CODE_STARTS_PER_DAY" not in _bare_names(services[AI_WORKER])
+
+
+def test_the_ai_settings_are_off_in_the_env_example_and_it_never_carries_a_key_value() -> None:
+    text = (SELFHOST / "selfhost.env.example").read_text(encoding="utf-8")
+    lines = [line.strip() for line in text.splitlines()]
+    # Every SIDEKICK_AI_* line is commented out: nothing is on until the owner opts in.
+    assert not [line for line in lines if line.startswith("SIDEKICK_AI_")]
+    assert "# SIDEKICK_AI_RUNNER_ENABLED=false" in lines
+    assert "#SELFHOST_AI_ANTHROPIC_API_KEY_FILE=./secrets/ai_anthropic_api_key" in lines
+    assert not [line for line in lines if re.match(r"#? ?SIDEKICK_AI_ANTHROPIC_API_KEY=", line)]
+    assert "sk-ant-" not in text
 
 
 def test_the_env_example_documents_a_file_line_for_every_secret_setting() -> None:

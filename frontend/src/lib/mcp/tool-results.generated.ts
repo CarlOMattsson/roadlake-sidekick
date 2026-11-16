@@ -21,6 +21,7 @@ export type ToolResults = {
   archive_saved_work_view: SavedViewOutput;
   archive_step_action: ActionOutput;
   archive_task_step: StepOutput;
+  cancel_ai_step_run: AiRunOutput;
   complete_step_action: ActionOutput;
   complete_task: TaskOutput;
   complete_task_step: StepOutput;
@@ -765,6 +766,7 @@ export type ToolResults = {
       version: number;
     }>;
   };
+  run_ai_plan: AiPlanOutput;
   search: {
     contacts?: {
       hits: Array<{
@@ -934,6 +936,11 @@ export type ToolInputs = {
     idempotency_key: string;
     step_id: string;
     version: number;
+  };
+  cancel_ai_step_run: {
+    idempotency_key: string;
+    run_id: string;
+    run_version: number;
   };
   complete_step_action: {
     action_id: string;
@@ -1454,7 +1461,15 @@ export type ToolInputs = {
   };
   report_ai_step_result: {
     failure_category?:
-      "blocked" | "unclear_goal" | "tool_error" | "budget" | "other" | null;
+      | "blocked"
+      | "unclear_goal"
+      | "tool_error"
+      | "budget"
+      | "other"
+      | "provider"
+      | "refused"
+      | "invalid_output"
+      | null;
     idempotency_key: string;
     outcome: "result" | "question" | "failed";
     question?: string | null;
@@ -1543,6 +1558,11 @@ export type ToolInputs = {
       task_id: string;
       when?: "tomorrow" | "next_week" | "clear" | string | null;
     }>;
+  };
+  run_ai_plan: {
+    digest: string;
+    idempotency_key: string;
+    task_id: string;
   };
   search: {
     cursor?: string | null;
@@ -1973,10 +1993,14 @@ export type AiPlanRecord = {
   ai_possible: boolean;
   approved_at: string | null;
   digest: string;
+  month_cap_usd: number;
+  month_spent_usd: number;
+  server_runner: "available" | "off";
   state: "none" | "draft" | "approved" | "changed_since_approval";
   steps: Array<AiPlanStepRecord>;
   task_cap_usd: number;
   task_id: string;
+  task_spent_usd: number;
   task_title: string;
   task_version: number;
 };
@@ -1997,6 +2021,7 @@ export type AiPlanStepRecord = {
     | null;
   attempts: number;
   latest_run: AiRunRecord | null;
+  server_startable: boolean;
   step: StepRecord;
 };
 

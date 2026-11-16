@@ -30,7 +30,7 @@ from sidekick.companion.push_reminder_store import SqlReminderStore
 from sidekick.companion.push_reminders import ReminderScheduler
 from sidekick.companion.push_sender import HttpPushSender, create_client
 from sidekick.shared.cli_errors import run_guarded
-from sidekick.shared.config import Settings, get_settings
+from sidekick.shared.config import Settings, get_settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging, log_failure, safe_log_fields
 from sidekick.shared.persistence import create_session_factory
@@ -83,6 +83,7 @@ def run_worker(
     once: bool = False,
     build: Callable[[Settings], tuple[DeliveryCycle, ScheduleCycle]] = build_cycles,
 ) -> None:
+    refuse_ai_key_outside_ai_worker(settings)
     heartbeat = WorkerHeartbeat("push")
     if not settings.push_enabled:
         LOGGER.info("push_delivery", extra=safe_log_fields({"push_outcome": "disabled"}))

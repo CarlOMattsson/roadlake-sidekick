@@ -248,3 +248,25 @@ class AiStepRunRow(Base):
     version: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AiErasedRunCostRow(Base):
+    """What an AI Step run cost, kept after its Step or Task was erased permanently.
+
+    Written only by a trigger on `ai_step_runs`; the application role can read it and nothing
+    else. It holds identifiers and numbers, never text, so the spending caps and the daily limit
+    of starts still count the run.
+    """
+
+    __tablename__ = "ai_erased_run_costs"
+    __table_args__ = (
+        Index("ix_ai_erased_run_costs_owner_created", "owner_id", "created_at"),
+        {"schema": SCHEMA},
+    )
+    run_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    task_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), nullable=False)
+    runner: Mapped[str] = mapped_column(String(12))
+    cost_source: Mapped[str] = mapped_column(String(16))
+    cost_microusd: Mapped[int] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

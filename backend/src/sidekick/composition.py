@@ -6,7 +6,7 @@ This module imports neither interface layer, so each of them can depend on it wi
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -46,7 +46,7 @@ from sidekick.references.service import ExternalReferenceService
 from sidekick.search.persistence import SearchStore
 from sidekick.search.service import SearchService
 from sidekick.shared.auth import AuthService
-from sidekick.shared.config import Settings
+from sidekick.shared.config import Settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.observability import TelemetryPort, configure_observability
 from sidekick.shared.persistence import create_session_factory
 from sidekick.shared.types import CursorCodec, SystemClock
@@ -63,7 +63,8 @@ from sidekick.webhooks.store import WebhookTokenStore
 from sidekick.webhooks.tokens import WebhookTokenService
 from sidekick.work.application.ai_plans import AiPlanService
 from sidekick.work.application.ai_runs_service import AiRunService
-from sidekick.work.application.ai_store import AiLimits
+from sidekick.work.application.ai_server_runs import AiServerRunService
+from sidekick.work.application.ai_store import AiLimits, ServerRunnerConfig
 from sidekick.work.application.process_runs import ProcessRunService
 from sidekick.work.application.saved_views import SavedViewService
 from sidekick.work.application.service import ContextService
@@ -116,6 +117,7 @@ class Container:
     # AI-delegated steps (ADR-011): the plan the owner approves, and the runs of its AI steps.
     ai_plans: AiPlanService
     ai_runs: AiRunService
+    ai_server_runs: AiServerRunService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -251,6 +253,47 @@ def create_stores(factory: SessionFactory, telemetry: TelemetryPort | None = Non
     )
 
 
+class _AiServices(NamedTuple):
+    plans: AiPlanService
+    runs: AiRunService
+    server_runs: AiServerRunService
+
+
+def _create_ai_services(
+    settings: Settings,
+    store: SqlWorkStore,
+    cursor_codec: CursorCodec,
+    telemetry: TelemetryPort,
+    activity: ActivityLedger,
+) -> _AiServices:
+    """The AI step use cases, which share the limits and the server runner's configuration."""
+
+    limits = AiLimits.from_settings(settings)
+    runner = ServerRunnerConfig.from_settings(settings)
+    zone = settings.owner_zone
+    return _AiServices(
+        plans=AiPlanService(store, SystemClock(), limits, runner, activity, owner_timezone=zone),
+        runs=AiRunService(
+            store,
+            SystemClock(),
+            cursor_codec,
+            limits,
+            owner_timezone=zone,
+            telemetry=telemetry,
+            activity=activity,
+        ),
+        server_runs=AiServerRunService(
+            store,
+            SystemClock(),
+            limits,
+            runner,
+            owner_timezone=zone,
+            telemetry=telemetry,
+            activity=activity,
+        ),
+    )
+
+
 def create_container(
     settings: Settings,
     session_factory: SessionFactory | None = None,
@@ -267,6 +310,7 @@ def create_container(
         install_wake_hook(
             factory, min_interval=timedelta(seconds=settings.push_wake_min_interval_seconds)
         )
+    refuse_ai_key_outside_ai_worker(settings)
     resolved_telemetry = telemetry or configure_observability(settings.environment)
     stores = create_stores(factory, resolved_telemetry)
     cursor_codec = CursorCodec(settings.cursor_signing_key)
@@ -289,7 +333,9 @@ def create_container(
         stores.work, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
     )
     steps = StepsService(stores.work, SystemClock(), cursor_codec)
-    ai_limits = AiLimits.from_settings(settings)
+    ai_services = _create_ai_services(
+        settings, stores.work, cursor_codec, resolved_telemetry, activity_ledger
+    )
     contacts = ContactService(stores.contacts, SystemClock(), cursor_codec)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
@@ -335,16 +381,9 @@ def create_container(
         activity=activity_service,
         lifecycle=create_lifecycle_service(factory, resolved_telemetry, settings),
         process_runs=ProcessRunService(stores.work, tasks, SystemClock(), activity_ledger),
-        ai_plans=AiPlanService(stores.work, SystemClock(), ai_limits, activity_ledger),
-        ai_runs=AiRunService(
-            stores.work,
-            SystemClock(),
-            cursor_codec,
-            ai_limits,
-            owner_timezone=settings.owner_zone,
-            telemetry=resolved_telemetry,
-            activity=activity_ledger,
-        ),
+        ai_plans=ai_services.plans,
+        ai_runs=ai_services.runs,
+        ai_server_runs=ai_services.server_runs,
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

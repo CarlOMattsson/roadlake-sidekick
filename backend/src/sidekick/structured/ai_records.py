@@ -94,6 +94,7 @@ class AiPlanStepRecord(Output):
     ai_status: StepStatusName | None = None
     attempts: int = 0
     latest_run: AiRunRecord | None = None
+    server_startable: bool = False
 
 
 class AiPlanRecord(Output):
@@ -106,6 +107,10 @@ class AiPlanRecord(Output):
     approved_at: datetime | None = None
     task_cap_usd: float
     steps: list[AiPlanStepRecord]
+    server_runner: Literal["available", "off"] = "off"
+    task_spent_usd: float = 0.0
+    month_spent_usd: float = 0.0
+    month_cap_usd: float = 0.0
 
 
 class AiPlanOutput(Output):
@@ -216,11 +221,13 @@ def _plan_step_record(item: AiPlanStepView) -> AiPlanStepRecord:
         ai_status=item.status.value if item.status else None,
         attempts=item.history.attempts,
         latest_run=run_record(item.history.latest) if item.history.latest else None,
+        server_startable=item.server_startable,
     )
 
 
 def plan_output(view: AiPlanView) -> AiPlanOutput:
     task = view.task
+    server = view.server
     return AiPlanOutput(
         plan=AiPlanRecord(
             task_id=task.id,
@@ -232,6 +239,10 @@ def plan_output(view: AiPlanView) -> AiPlanOutput:
             approved_at=task.ai_plan_approved_at,
             task_cap_usd=_usd(view.task_cap_microusd),
             steps=[_plan_step_record(item) for item in view.steps],
+            server_runner="available" if server is not None and server.available else "off",
+            task_spent_usd=_usd(server.task_spent_microusd) if server else 0.0,
+            month_spent_usd=_usd(server.month_spent_microusd) if server else 0.0,
+            month_cap_usd=_usd(server.month_cap_microusd) if server else 0.0,
         )
     )
 

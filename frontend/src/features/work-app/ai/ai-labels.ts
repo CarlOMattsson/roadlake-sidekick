@@ -57,6 +57,29 @@ export const aiLabelsSv = {
   stepBudget: (usd: string) => `Högst ${usd} per försök.`,
   budget: (steps: string, cap: string) =>
     `Budget: ${steps} för AI-stegen, tak ${cap} för uppgiften.`,
+  /** After the budget, only once the Task's AI Steps have cost something. */
+  spent: (usd: string) => `${usd} använt hittills.`,
+  /** The month's AI cost, only where the instance shows AI cost (the same setting as Control's row). */
+  month: (spent: string, cap: string) => `AI denna månad: ${spent} av ${cap}.`,
+  /** The server runs the plan's next ready Step; a failed one is run again. */
+  run: "Kör nästa steg",
+  runAgain: "Kör igen",
+  /** Under an AI Step the server has queued or is running. */
+  runState: { queued: "I kö på servern", running: "Körs på servern" },
+  cancelRunFor: (title: string) => `Avbryt körningen av ${title}`,
+  cancelFailed: "Körningen avbröts inte.",
+  /** Read aloud when a run the view watched has a result, a question or a failure. */
+  runFinished: (title: string) => `${title}: körningen är klar.`,
+  /** Under the Step "Kör" would have run, when the server said no. */
+  runRefused: {
+    ai_budget_reached: "Kostnadstaket är nått, så steget körs inte nu.",
+    ai_limit_reached:
+      "Gränsen för AI-körningar är nådd, så steget körs inte nu.",
+    ai_runner_off: "Servern kör inte AI-steg just nu.",
+    invalid: "Steget går inte att köra på servern.",
+    forbidden: "Du har inte behörighet att köra planen.",
+    failed: "Körningen startades inte.",
+  },
   /** The opener under an AI Step that has a run to look at, by what the run waits for. */
   openRun: {
     review: "Granska resultatet",
@@ -152,6 +175,26 @@ export const aiLabelsEn: AiLabels = {
   stepBudget: (usd) => `At most ${usd} per attempt.`,
   budget: (steps, cap) =>
     `Budget: ${steps} for the AI steps, a cap of ${cap} for the task.`,
+  spent: (usd) => `${usd} used so far.`,
+  month: (spent, cap) => `AI this month: ${spent} of ${cap}.`,
+  run: "Run the next step",
+  runAgain: "Run again",
+  runState: {
+    queued: "Queued on the server",
+    running: "Running on the server",
+  },
+  cancelRunFor: (title) => `Cancel the run of ${title}`,
+  cancelFailed: "The run was not cancelled.",
+  runFinished: (title) => `${title}: the run has finished.`,
+  runRefused: {
+    ai_budget_reached: "The cost cap is reached, so the step will not run now.",
+    ai_limit_reached:
+      "The limit for AI runs is reached, so the step will not run now.",
+    ai_runner_off: "The server is not running AI steps right now.",
+    invalid: "The step cannot be run on the server.",
+    forbidden: "You don’t have permission to run the plan.",
+    failed: "The run was not started.",
+  },
   openRun: {
     review: "Review the result",
     question: "Answer the question",

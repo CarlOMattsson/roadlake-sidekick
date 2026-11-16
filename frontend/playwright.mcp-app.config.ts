@@ -41,6 +41,7 @@ export default defineConfig({
     "work-inline-styles-mcp-app.spec.ts",
     "work-ai-mark-mcp-app.spec.ts",
     "control-ai-usage-mcp-app.spec.ts",
+    "work-ai-run-mcp-app.spec.ts",
   ],
   fullyParallel: true,
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 6,

@@ -14,7 +14,7 @@ those files are still read, and without the success time nothing is judged on su
 The command answers with one word on stdout and an exit status, like `sidekick.shared.readiness`.
 
 A loop that beats but whose work fails every time (a database that rejects every query, a bug in
-the pass) would look alive forever. So the memory, push and automation loops also call
+the pass) would look alive forever. So the memory, push, automation and ai loops also call
 `WorkerHeartbeat.succeeded()` after an iteration that did its work without an error; an iteration
 with nothing to do counts as a success. When the last success (or, before the first one, the start
 of the worker) is older than `SUCCESS_WINDOW_SECONDS`, the healthcheck answers `failing`. A new
@@ -47,11 +47,12 @@ from sidekick.shared.cli_errors import report_failure
 LOGGER = logging.getLogger("sidekick.worker_health")
 
 # Closed vocabulary: the heartbeat file name is built from one of these, never from free text.
-WORKERS: Final = ("automation", "backup", "memory", "push")
+WORKERS: Final = ("ai", "automation", "backup", "memory", "push")
 
 # What one iteration may take on top of the sleep before the next one, per worker. Only a loop that
 # is silent for longer than this is reported as stuck, so a long legitimate pass is not.
 WORK_BUDGET_SECONDS: Final = {
+    "ai": 1200,  # several model calls, each up to the request timeout (300 s at most)
     "automation": 120,
     "backup": 1800,
     "memory": 1800,
@@ -62,6 +63,7 @@ WORK_BUDGET_SECONDS: Final = {
 # above the poll interval, so a few transient failures do not turn a worker unhealthy, and above the
 # longest legitimate pass. The backup worker is absent: its last backup file is the signal.
 SUCCESS_WINDOW_SECONDS: Final = {
+    "ai": 1800,
     "automation": 900,
     "memory": 3600,
     "push": 900,

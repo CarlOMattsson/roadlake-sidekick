@@ -21,6 +21,9 @@
 # The push profile also starts the hardened ntfy server, published only through Caddy's /up... path
 # on the same domain (vps profile). One-time setup, which prints no secret: sh ntfy-init.sh
 # ntfy alone is optional: `up -d push` starts just the worker, which then delivers through ntfy.sh.
+# Optional AI worker that runs approved AI steps on the server with your own Anthropic key (off by default,
+# SIDEKICK_AI_RUNNER_ENABLED=false; needs the key as a file, see README.md):
+#   docker compose --env-file selfhost.env --profile ai up -d
 
 name: sidekick
 
@@ -104,6 +107,26 @@ x-sidekick-env-push: &sidekick-env-push
   SIDEKICK_PUSH_QUIET_START:
   SIDEKICK_PUSH_QUIET_END:
 
+# The AI worker's settings (everything except the key, which only reaches it as a file, see x-sidekick-secret-files-ai).
+# api needs the first ones too (the switch, the model and the daily start limit for the checks at "Run", and the price
+# overrides), but it reads them from selfhost.env as a whole, so they are not listed again for it. The Claude Code start
+# limit is api's alone and is not listed here.
+x-sidekick-env-ai: &sidekick-env-ai
+  SIDEKICK_AI_RUNNER_ENABLED:
+  SIDEKICK_AI_MODEL:
+  SIDEKICK_AI_MAX_OUTPUT_TOKENS:
+  SIDEKICK_AI_SERVER_STARTS_PER_DAY:
+  SIDEKICK_AI_REQUEST_TIMEOUT_SECONDS:
+  SIDEKICK_AI_POLL_SECONDS:
+  SIDEKICK_AI_PRICE_INPUT_USD_PER_MTOK:
+  SIDEKICK_AI_PRICE_OUTPUT_USD_PER_MTOK:
+  SIDEKICK_AI_PRICE_CACHE_WRITE_USD_PER_MTOK:
+  SIDEKICK_AI_PRICE_CACHE_READ_USD_PER_MTOK:
+  SIDEKICK_AI_DEFAULT_TASK_CAP_USD:
+  SIDEKICK_AI_MONTHLY_CAP_USD:
+  SIDEKICK_AI_MAX_ATTEMPTS_PER_STEP:
+  SIDEKICK_AI_LOCAL_MODELS_EXEMPT_FROM_CAP:
+
 # Secrets as files instead of environment variables. A value in the environment is visible to every process of the
 # container and to `docker inspect`; a file mounted at /run/secrets is neither. Opt in per secret: set
 # SELFHOST_<NAME>_FILE in selfhost.env to the path of the file (relative to this directory, for example
@@ -126,6 +149,11 @@ x-sidekick-secret-files-backup: &sidekick-secret-files-backup
 
 x-sidekick-secret-files-push: &sidekick-secret-files-push
   SIDEKICK_PUSH_AUTH_TOKEN_FILE: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:+/run/secrets/push_auth_token}
+
+# The Anthropic key reaches the AI worker alone, and only as a file: api and the other workers refuse to start in
+# production when they see it, so it has no plain-variable form here.
+x-sidekick-secret-files-ai: &sidekick-secret-files-ai
+  SIDEKICK_AI_ANTHROPIC_API_KEY_FILE: ${SELFHOST_AI_ANTHROPIC_API_KEY_FILE:+/run/secrets/ai_anthropic_api_key}
 
 x-sidekick-secret-files-oauth: &sidekick-secret-files-oauth
   SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:+/run/secrets/mcp_oauth_github_client_secret}
@@ -455,6 +483,48 @@ services:
     logging: *sidekick-logging
     restart: unless-stopped
 
+  ai-worker:
+    # Opt-in server runner for approved AI steps: docker compose --env-file selfhost.env --profile ai up -d. Runs
+    # sidekick-ai-worker from the api image. It takes one queued run at a time, calls the Anthropic API with the owner's
+    # own key and writes the result back to the database. It holds the only copy of that key (a file, see
+    # x-sidekick-secret-files-ai) and is the only service on the `ai` network, the one outbound route that reaches
+    # the internet (api.anthropic.com); it is not on `edge`, so Hindsight and ntfy never share a network with it. It
+    # idles while SIDEKICK_AI_RUNNER_ENABLED is not true, and api needs the same flag in selfhost.env to accept a run.
+    # The Anthropic SDK reads ANTHROPIC_* names from the environment (extra headers, for one); nothing but the
+    # telemetry switch below is ever set here. stop_grace_period lets a call that is under way finish before the
+    # container is killed (one call may take up to SIDEKICK_AI_REQUEST_TIMEOUT_SECONDS).
+    profiles: [ai]
+    image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
+    build: *sidekick-build
+    environment:
+      <<: [*sidekick-env-common, *sidekick-env-ai, *sidekick-secret-files-common, *sidekick-secret-files-ai]
+      SIDEKICK_ENVIRONMENT: production
+      ANTHROPIC_OPEN_TELEMETRY: "false"
+    secrets:
+      - database_url
+      - cursor_signing_secret
+      - token_pepper
+      - ai_anthropic_api_key
+    command:
+      - sidekick-ai-worker
+    healthcheck:
+      <<: *sidekick-worker-health
+      test: ["CMD", "python", "-c", *sidekick-worker-health-check, "ai"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    # Postgres over data, the Anthropic API over ai. No published port.
+    networks: [data, ai]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: ${SELFHOST_AI_MEM_LIMIT:-512m}
+    pids_limit: ${SELFHOST_AI_PIDS_LIMIT:-64}
+    stop_grace_period: 6m
+    logging: *sidekick-logging
+    restart: unless-stopped
+
   ntfy:
     # Own ntfy server for the push path. Pinned to
     # v2.37.2 by digest (checked against Docker Hub 2026-11-09); upgrade on purpose after checking the new digest.
@@ -689,6 +759,9 @@ networks:
   data:
     internal: true
   edge: {}
+  # The AI worker alone: a bridge with a route to the internet, for the Anthropic API. Nothing else joins it, and the
+  # worker is on no other network with a route out (not edge).
+  ai: {}
   # Internal: api and Caddy only, at fixed addresses. The block is TEST-NET-2 (RFC 5737, never routed on the internet),
   # so it cannot collide with a LAN, a VPN or Docker's own address pools. api trusts forwarded headers from Caddy's
   # address here (--forwarded-allow-ips) and from nobody else.
@@ -721,6 +794,8 @@ secrets:
     file: ${SELFHOST_BACKUP_ENCRYPTION_KEY_FILE:-/dev/null}
   push_auth_token:
     file: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:-/dev/null}
+  ai_anthropic_api_key:
+    file: ${SELFHOST_AI_ANTHROPIC_API_KEY_FILE:-/dev/null}
   mcp_oauth_github_client_secret:
     file: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:-/dev/null}
   mcp_oauth_signing_key:

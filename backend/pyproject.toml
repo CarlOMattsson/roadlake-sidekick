@@ -5,6 +5,8 @@ description = "MCP-first personal operations system"
 license = { text = "Roadlake Sidekick Source Available License" }
 requires-python = ">=3.13,<3.14"
 dependencies = [
+  # The AI Step server runner's model adapter (work/infrastructure/anthropic_model.py) is the only importer.
+  "anthropic==2.8.0",
   "anyio==4.16.0",
   "fastapi==0.162.4",
   # Pinned exactly and kept out of Dependabot (.github/dependabot.yml): fastmcp carries
@@ -52,6 +54,7 @@ dev = [
 [project.scripts]
 sidekick-admin = "sidekick.admin.cli:main"
 sidekick-openapi = "sidekick.api.export_openapi:main"
+sidekick-ai-worker = "sidekick.work.ai_worker:main"
 sidekick-automation-worker = "sidekick.work.worker:main"
 sidekick-owner-export = "sidekick.owner_export.cli:main"
 sidekick-backup = "sidekick.backup.cli:main"

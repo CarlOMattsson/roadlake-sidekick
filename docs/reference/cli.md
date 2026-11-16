@@ -13,6 +13,7 @@ The operator commands of a Sidekick installation. Each reads its settings from t
 | [`sidekick-webhooks`](#sidekick-webhooks) | Create, list and revoke webhook tokens for Home Assistant, Tasker and similar tools. |
 | [`sidekick-license`](#sidekick-license) | Store, show and clear the instance's license key. |
 | [`sidekick-memory-worker`](#sidekick-memory-worker) | Run the derived-memory worker, or rebuild, wipe or forget memory. |
+| [`sidekick-ai-worker`](#sidekick-ai-worker) | Run the AI worker, which runs the AI steps the owner queued with the owner's own key. |
 | [`sidekick-automation-worker`](#sidekick-automation-worker) | Run the process-run worker. |
 | [`sidekick-backup-worker`](#sidekick-backup-worker) | Run the local backup worker. |
 | [`sidekick-push-worker`](#sidekick-push-worker) | Run the push delivery worker. |
@@ -390,6 +391,20 @@ uv run --project backend sidekick-memory-worker [arguments]
 | `--and-pause` | - | no | With --wipe: also pause every owner's memory sync before deleting. |
 | `--confirm` | - | no | Confirm a destructive --wipe or --forget-owner. |
 
+## `sidekick-ai-worker`
+
+Run the AI worker, which runs the AI steps the owner queued with the owner's own key.
+
+Run it with:
+
+```
+uv run --project backend sidekick-ai-worker [arguments]
+```
+
+| Argument | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `--once` | - | no | Run what is queued once and exit. |
+
 ## `sidekick-automation-worker`
 
 Run the process-run worker.
@@ -444,4 +459,4 @@ uv run --project backend sidekick-worker-health [arguments]
 
 | Argument | Value | Required | Notes |
 | --- | --- | --- | --- |
-| `worker` | - | yes | The worker to check. One of `automation`, `backup`, `memory`, `push`. |
+| `worker` | - | yes | The worker to check. One of `ai`, `automation`, `backup`, `memory`, `push`. |

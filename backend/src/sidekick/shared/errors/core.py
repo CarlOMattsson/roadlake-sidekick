@@ -17,6 +17,8 @@ SidekickErrorReason = Literal[
     "step_not_ready",
     "run_not_open",
     "ai_limit_reached",
+    "ai_runner_off",
+    "ai_budget_reached",
 ]
 
 

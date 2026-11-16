@@ -95,7 +95,7 @@ policy() { python3 -I "$POLICY_PY" "$@"; }
 # (or, on rollback, the previous) image and keep them stopped when a manual restore is needed. A new worker
 # service in compose.yaml is added here and nowhere else. ntfy, caddy and hindsight are other images, not touched
 # (start_api only recreates a running caddy, so that it picks up the current network configuration).
-WORKERS=(":automation-worker" "backup:backup" "push:push" "memory:memory-worker")
+WORKERS=(":automation-worker" "backup:backup" "push:push" "memory:memory-worker" "ai:ai-worker")
 # Run inside the api container; exit 0 = ready. The api healthcheck in compose.yaml holds the same code (a test
 # keeps them equal). 1) The running api process must answer HTTP within 10 s: 2xx, or the intended 404 (the public
 # surface hides /health/* in github_oauth mode); any other status (500, 503, ...) or a hung process fails. 2) If this image has the readiness
@@ -518,7 +518,7 @@ worker_ready() { # $1 = a WORKERS entry; ready = running, and healthy where the 
 
 # ready = the api runs the expected image and passes the readiness check, AND every worker start_api started (see
 # started_workers) is running and, where compose declares a healthcheck, healthy. An update is not finished while a
-# worker (memory, push, backup, automation) is down, so a worker that never becomes healthy fails the step like the api.
+# worker (memory, push, backup, automation, ai) is down, so a worker that never becomes healthy fails the step like the api.
 wait_healthy() { # $1 = expected image ref
   local deadline=$((SECONDS + HEALTH_TIMEOUT)) cid running entry ok
   while [ "$SECONDS" -lt "$deadline" ]; do

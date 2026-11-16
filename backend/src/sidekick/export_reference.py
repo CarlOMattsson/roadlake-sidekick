@@ -126,6 +126,13 @@ CLIS: tuple[CliSpec, ...] = (
         "Run the derived-memory worker, or rebuild, wipe or forget memory.",
     ),
     CliSpec(
+        "sidekick-ai-worker",
+        "uv run --project backend sidekick-ai-worker",
+        "sidekick.work.ai_worker",
+        "build_parser",
+        "Run the AI worker, which runs the AI steps the owner queued with the owner's own key.",
+    ),
+    CliSpec(
         "sidekick-automation-worker",
         "uv run --project backend sidekick-automation-worker",
         "sidekick.work.worker",

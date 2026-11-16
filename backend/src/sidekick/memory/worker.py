@@ -43,7 +43,7 @@ from sidekick.memory.factory import build_provider
 from sidekick.memory.infrastructure.store import SqlAlchemyMemoryStore
 from sidekick.memory.ports import MemoryProvider, MemoryProviderError
 from sidekick.shared.cli_errors import run_guarded
-from sidekick.shared.config import Settings, get_settings
+from sidekick.shared.config import Settings, get_settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.db_timeouts import database_timeout_reason
 from sidekick.shared.observability import configure_worker_logging
 from sidekick.shared.persistence import create_session_factory
@@ -344,6 +344,7 @@ async def run_worker(
     clock: Clock | None = None,
 ) -> int:
     settings = get_settings()
+    refuse_ai_key_outside_ai_worker(settings)
     clock = clock or SystemClock()
     factory = create_session_factory(
         settings.database_url,

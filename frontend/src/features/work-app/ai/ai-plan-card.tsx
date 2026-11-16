@@ -1,4 +1,5 @@
 import { useContext, useState } from "react";
+import { aiUsageShown } from "../../mcp-apps/ai-usage-shown";
 import { AiStepMark } from "../../mcp-apps/ui/ai-step-mark";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
@@ -19,7 +20,10 @@ import "./ai.css";
  * Claude; the button is not drawn on a phone). With a plan that waits for the owner (a draft, or a plan changed since
  * its approval): every Step with Du or AI, each AI Step folded to what it will do, the budget, "Godkänn plan" (the
  * digest the view read) and "Ändra" (a message to Claude). An approved plan is one line, "Godkänd 14:02", with its Steps
- * folded; each AI Step's state stands on the Step itself in the list below.
+ * folded; each AI Step's state stands on the Step itself in the list below. Where the server runs Steps, an approved
+ * plan whose next Step it may run has "Kör nästa steg" ("Kör igen" after a failure). What AI costs never stands open:
+ * the Task's cost so far follows the budget among the folded Steps once it is above zero, and the month's sum only where
+ * the instance shows AI cost. With the server runner off nothing of this is drawn.
  */
 export function AiPlanCard({
   ai,
@@ -35,7 +39,7 @@ export function AiPlanCard({
   const a = aiLabelsFor(locale);
   const send = useContext(RoomMessageContext);
   const [stepsOpen, setStepsOpen] = useState(false);
-  const { plan, phase, approval } = ai;
+  const { plan, phase, approval, server } = ai;
   return (
     <section className="work-ai-plan">
       <h3>{a.heading}</h3>
@@ -82,10 +86,33 @@ export function AiPlanCard({
                 ))}
               </ol>
               <p className="work-ai-meta">{budgetLine(plan, a, locale)}</p>
+              {plan.server_runner === "available" && aiUsageShown() && (
+                <p className="work-ai-meta">
+                  {a.month(
+                    usd(plan.month_spent_usd, locale),
+                    usd(plan.month_cap_usd, locale),
+                  )}
+                </p>
+              )}
             </>
           )}
           <ApprovalNotice ai={ai} labels={a} locale={locale} />
+          {ai.finished && (
+            <p role="status" className="work-visually-hidden">
+              {a.runFinished(ai.finished)}
+            </p>
+          )}
           <div className="work-ai-actions">
+            {server.next && (
+              <button
+                type="button"
+                className="sk-btn--secondary sk-btn--compact"
+                disabled={server.busy}
+                onClick={server.run}
+              >
+                {server.next.ai_status === "failed" ? a.runAgain : a.run}
+              </button>
+            )}
             {needsApproval(plan) && approveOffered && (
               <button
                 type="button"
@@ -232,11 +259,17 @@ function PlanStep({
   );
 }
 
-/** "Budget: 1,50 USD för AI-stegen, tak 2,00 USD för uppgiften." The AI Steps' budgets per attempt, added up. */
+/**
+ * "Budget: 1,50 USD för AI-stegen, tak 2,00 USD för uppgiften." The AI Steps' budgets per attempt, added up. Where the
+ * server runs Steps and they have cost something, what they cost so far follows, folded with the Steps.
+ */
 function budgetLine(plan: WorkAiPlan, a: AiLabels, locale: string): string {
   const steps = plan.steps.reduce(
     (sum, entry) => sum + (entry.ai_spec?.budget.max_usd ?? 0),
     0,
   );
-  return a.budget(usd(steps, locale), usd(plan.task_cap_usd, locale));
+  const budget = a.budget(usd(steps, locale), usd(plan.task_cap_usd, locale));
+  return plan.server_runner === "available" && plan.task_spent_usd > 0
+    ? `${budget} ${a.spent(usd(plan.task_spent_usd, locale))}`
+    : budget;
 }

@@ -94,6 +94,7 @@ SAFE_SPAN_NAMES: Final = (
     frozenset(
         {
             "mcp.tool",
+            "ai.model_call",
             "search.operation",
             "db.transaction",
             "external_reference.operation",

@@ -355,6 +355,21 @@ export type WorkTransport = ToolSupport & {
     digest: string,
     idempotencyKey: string,
   ) => Promise<{ plan: WorkAiPlan }>;
+  /**
+   * The owner's "Run" (run_ai_plan, app only): the server queues the plan's next ready Step at `digest`. Refused with
+   * the reasons ai_runner_off, ai_budget_reached and ai_limit_reached, and with conflict when the plan changed.
+   */
+  runAiPlan: (
+    taskId: string,
+    digest: string,
+    idempotencyKey: string,
+  ) => Promise<{ plan: WorkAiPlan }>;
+  /** Stops a queued or running run at `version` (cancel_ai_step_run, app only). A model call under way is billed. */
+  cancelAiStepRun: (
+    runId: string,
+    version: number,
+    idempotencyKey: string,
+  ) => Promise<{ run: WorkAiRun["run"] }>;
   /** One run of an AI Step with its result text, question and checklist (get_ai_step_run with include_content). */
   getAiStepRun: (runId: string) => Promise<WorkAiRun>;
   /** The owner's verdict on a run at `version`: accept, redo (with a comment), reject, or answer its question. */

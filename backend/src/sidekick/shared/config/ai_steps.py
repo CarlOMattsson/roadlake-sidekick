@@ -21,7 +21,11 @@ class AiStepSettings(SettingsGroup):
         "per call.",
     )
     ai_max_attempts_per_step: int = Field(
-        default=3, ge=1, le=10, description="Most attempts one AI step may have."
+        default=3,
+        ge=1,
+        le=10,
+        description="Most attempts one AI step may have in a cycle of its task; a repeating task "
+        "gets them back each time it is completed.",
     )
     ai_claude_code_starts_per_day: int = Field(
         default=50,

@@ -126,6 +126,8 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "set_ai_plan": {"sv": "Föreslå AI-plan", "en": "Propose AI plan"},
     "get_ai_plan": {"sv": "Visa AI-plan", "en": "View AI plan"},
     "approve_ai_plan": {"sv": "Godkänn AI-plan", "en": "Approve AI plan"},
+    "run_ai_plan": {"sv": "Kör AI-steg på servern", "en": "Run AI step on the server"},
+    "cancel_ai_step_run": {"sv": "Avbryt AI-körning", "en": "Cancel AI run"},
     "list_ai_steps": {"sv": "Lista AI-steg", "en": "List AI steps"},
     "start_ai_step": {"sv": "Starta AI-steg", "en": "Start AI step"},
     "report_ai_step_result": {"sv": "Rapportera AI-steg", "en": "Report AI step"},

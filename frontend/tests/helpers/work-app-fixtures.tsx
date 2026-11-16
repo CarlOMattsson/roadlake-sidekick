@@ -198,6 +198,8 @@ export function transport(
       .mockResolvedValue({ contact: { ...anna, version: 2 } }),
     getAiPlan: vi.fn(),
     approveAiPlan: vi.fn(),
+    runAiPlan: vi.fn(),
+    cancelAiStepRun: vi.fn(),
     getAiStepRun: vi.fn(),
     reviewAiStepResult: vi.fn(),
     ...overrides,

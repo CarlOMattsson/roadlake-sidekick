@@ -30,6 +30,7 @@ def _revealed(value: object) -> object:
 
 def test_the_secret_settings_are_exactly_the_ones_that_get_a_file_variable() -> None:
     assert SECRET_FIELDS == [
+        "ai_anthropic_api_key",
         "backup_encryption_key",
         "cursor_signing_secret",
         "database_url",

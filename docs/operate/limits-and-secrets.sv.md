@@ -8,7 +8,7 @@ Vilka minnes- och processgränser varje självhostad container har, hur du ändr
 
 ## Resursgränser
 
-Varje container i bastacken och i profilerna `memory`, `backup` och `push` har ett minnestak och en processgräns (`mem_limit` och `pids_limit` i `compose.yaml`). De hindrar en skenande process från att dra ner hela värden. Minnesvärdet är ett tak, inte en reservation. En container som går över det dödas och startas om av Docker; `docker inspect <container>` visar då `OOMKilled`.
+Varje container i bastacken och i profilerna `memory`, `backup`, `push` och `ai` har ett minnestak och en processgräns (`mem_limit` och `pids_limit` i `compose.yaml`). De hindrar en skenande process från att dra ner hela värden. Minnesvärdet är ett tak, inte en reservation. En container som går över det dödas och startas om av Docker; `docker inspect <container>` visar då `OOMKilled`.
 
 | Tjänst | Minne | Processer | Variabelprefix |
 | --- | --- | --- | --- |
@@ -19,6 +19,7 @@ Varje container i bastacken och i profilerna `memory`, `backup` och `push` har e
 | `backup` | 3g | 64 | `SELFHOST_BACKUP_` |
 | `push` | 512m | 64 | `SELFHOST_PUSH_` |
 | `memory-worker` | 512m | 64 | `SELFHOST_MEMORY_` |
+| `ai-worker` | 512m | 64 | `SELFHOST_AI_` |
 | `hindsight` | 4g | 512 | `SELFHOST_HINDSIGHT_` |
 
 Den egna `ntfy`-servern behåller sina fasta gränser (128m, 64 processer).
@@ -38,8 +39,8 @@ Varje `docker compose`-kommando behöver `--env-file selfhost.env`: `up`, `resta
 `selfhost.env` innehåller alla inställningar, men en container får bara de som dess process läser.
 
 - `api` läser hela `selfhost.env`. Det är den enda processen som behöver GitHub-inloggningens inställningar, rummen och begäransgränserna. Den får aldrig `db.env`.
-- `automation-worker`, `backup`, `push` och `memory-worker` får en namngiven lista med inställningar, hämtade ur `--env-file selfhost.env` i kommandot. De har ingen `env_file`. Varje worker får databas-URL:en, de två signeringshemligheterna, tidsbudgetarna och tidszonen, eftersom produktionsläget vägrar starta utan dem.
-- Bara `backup` får `SIDEKICK_BACKUP_ENCRYPTION_KEY` och retentionsinställningarna. Bara `push` får `SIDEKICK_PUSH_AUTH_TOKEN`. Minnestoken och nyckeln som härleder minnes-id går till `memory-worker` och till `automation-worker`, eftersom den senare bygger samma container som API:et.
+- `automation-worker`, `backup`, `push`, `memory-worker` och `ai-worker` får en namngiven lista med inställningar, hämtade ur `--env-file selfhost.env` i kommandot. De har ingen `env_file`. Varje worker får databas-URL:en, de två signeringshemligheterna, tidsbudgetarna och tidszonen, eftersom produktionsläget vägrar starta utan dem.
+- Bara `backup` får `SIDEKICK_BACKUP_ENCRYPTION_KEY` och retentionsinställningarna. Bara `push` får `SIDEKICK_PUSH_AUTH_TOKEN`. Bara `ai-worker` får `SIDEKICK_AI_ANTHROPIC_API_KEY`; eftersom nyckeln är hemlig vägrar `api` starta i produktion om den hittar nyckeln i `selfhost.env`. Minnestoken och nyckeln som härleder minnes-id går till `memory-worker` och till `automation-worker`, eftersom den senare bygger samma container som API:et.
 - Ingen worker får GitHub-klienthemligheten, OAuth-signeringsnyckeln, de tillåtna identiteterna eller scopes.
 - `postgres` och `migrate` läser `db.env`. `hindsight` läser `hindsight.env`. `ntfy` läser `ntfy.env`. Ingen annan tjänst läser de filerna. `migrate` får fortfarande hela `db.env`, med PostgreSQL-superanvändarens lösenord, fast den bara behöver migreringsadressen. Det är en engångscontainer utan väg ut på internet.
 
@@ -52,9 +53,9 @@ Praktiska följder:
 
 ## Hemligheter som filer
 
-En hemlighet i `selfhost.env` är en miljövariabel i containern: varje process i den kan läsa den, och `docker inspect` skriver ut den. Som fil monteras den skrivskyddad på `/run/secrets/<namn>`, bara i de tjänster som läser den (samma listor som ovan), och `docker inspect` visar sökvägen men inte värdet. De nio hemliga inställningarna kan flyttas på det sättet:
+En hemlighet i `selfhost.env` är en miljövariabel i containern: varje process i den kan läsa den, och `docker inspect` skriver ut den. Som fil monteras den skrivskyddad på `/run/secrets/<namn>`, bara i de tjänster som läser den (samma listor som ovan), och `docker inspect` visar sökvägen men inte värdet. De tio hemliga inställningarna kan flyttas på det sättet:
 
-`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY` och `SIDEKICK_PUSH_AUTH_TOKEN`.
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN` och `SIDEKICK_AI_ANTHROPIC_API_KEY` (filnamn `ai_anthropic_api_key`, se [Kör AI-steg](ai-steps.sv.md)).
 
 Befintliga installationer fungerar oförändrat: en vanlig variabel läses fortfarande. Flytta värdena när det passar:
 
@@ -70,7 +71,7 @@ För varje hemlighet som har ett riktigt värde i `selfhost.env` skriver skripte
 Så fungerar det:
 
 - `compose.yaml` monterar varje fil som en Docker-secret och sätter `SIDEKICK_<NAMN>_FILE=/run/secrets/<namn>` i de tjänster som läser den, men bara medan `SELFHOST_<NAMN>_FILE` är satt. Utan den är hemligheten en tom `/dev/null`-montering och backend ignorerar den tomma variabeln.
-- Backend läser filen som `SIDEKICK_<NAMN>_FILE` pekar på för var och en av de nio inställningarna (de som är markerade som hemliga i [konfigurationsreferensen](../reference/configuration.md)), tar bort den avslutande radbrytningen och validerar värdet som vilket annat. En saknad, oläsbar, tom, icke-UTF-8-fil eller en för stor fil stoppar starten med ett fel som nämner variabeln, aldrig innehållet.
+- Backend läser filen som `SIDEKICK_<NAMN>_FILE` pekar på för var och en av de tio inställningarna (de som är markerade som hemliga i [konfigurationsreferensen](../reference/configuration.md)), tar bort den avslutande radbrytningen och validerar värdet som vilket annat. En saknad, oläsbar, tom, icke-UTF-8-fil eller en för stor fil stoppar starten med ett fel som nämner variabeln, aldrig innehållet.
 - Om både `SIDEKICK_<NAMN>` och `SIDEKICK_<NAMN>_FILE` är satta stoppas starten med ett fel. Ett tomt `SIDEKICK_<NAMN>` räknas inte som satt. `SIDEKICK_<NAMN>_FILE` läses bara ur processmiljön, inte ur en `.env`-fil.
 - Katalogen `secrets/` har läge 700 och filerna läge 644, inte 600. Compose bind-monterar en filhemlighet som den är på värden och ignorerar `uid`, `gid` och `mode`, och containerns användare är inte du, så en fil med läge 600 går inte att läsa i containern. Katalogen är det som håller andra användare på värden ute. Den är gitignorerad.
 - Ta backup på `secrets/` tillsammans med `selfhost.env` och håll båda privata. Förlorar du backupnyckeln går backuperna fortfarande inte att läsa.

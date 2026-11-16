@@ -21,6 +21,7 @@ move and this file does not.
 | aiofile | 3.12.3 | Apache-2.0 | Dmitry Orlov (https://github.com/mosquito/aiofile) |
 | annotated-doc | 0.0.4 | MIT | Sebastián Ramírez (https://github.com/fastapi/annotated-doc) |
 | annotated-types | 0.7.0 | MIT License | Adrian Garcia Badaracco (https://github.com/annotated-types/annotated-types) |
+| anthropic | 2.8.0 | Apache-2.0 | Anthropic (https://github.com/anthropics/anthropic-sdk-python) |
 | anyio | 4.16.0 | MIT | Alex Grönholm (https://github.com/agronholm/anyio) |
 | attrs | 26.1.0 | MIT | Hynek Schlawack (https://www.attrs.org/) |
 | authlib | 1.9.5 | BSD-3-Clause | Hsiaoming Yang (https://github.com/authlib/authlib) |
@@ -47,6 +48,7 @@ move and this file does not.
 | httpx2 | 2.16.0 | BSD-3-Clause | Tom Christie (https://github.com/pydantic/httpx2) |
 | idna | 3.18 | BSD-3-Clause | Kim Davies (https://github.com/kjd/idna) |
 | importlib-metadata | 8.7.1 | Apache-2.0 | Jason R. Coombs (https://github.com/python/importlib_metadata) |
+| jiter | 0.19.0 | MIT | Samuel Colvin (https://github.com/pydantic/jiter/) |
 | joserfc | 1.8.0 | BSD-3-Clause | Hsiaoming Yang (https://github.com/authlib/joserfc) |
 | jsonref | 1.1.0 | MIT | Chase Sterling (https://github.com/gazpachoking/jsonref) |
 | jsonschema | 4.26.0 | MIT | Julian Berman (https://github.com/python-jsonschema/jsonschema) |
@@ -81,6 +83,7 @@ move and this file does not.
 | rich | 15.0.0 | MIT | Will McGugan (https://github.com/Textualize/rich) |
 | rich-rst | 2.1.0 | MIT | Wasi Master (https://wasi-master.github.io/rich-rst) |
 | rpds-py | 2026.6.3 | MIT | Julian Berman (https://github.com/crate-py/rpds) |
+| sniffio | 1.3.1 | MIT OR Apache-2.0 | Nathaniel J. Smith (https://github.com/python-trio/sniffio) |
 | sqlalchemy | 2.1.8 | MIT | Mike Bayer (https://www.sqlalchemy.org) |
 | sqlparse | 0.6.1 | BSD License | Andi Albrecht (https://github.com/andialbrecht/sqlparse) |
 | sse-starlette | 3.4.5 | BSD-3-Clause | sysid (https://github.com/sysid/sse-starlette) |

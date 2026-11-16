@@ -5,7 +5,7 @@ from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import any_, bindparam, func, select
+from sqlalchemy import and_, any_, bindparam, func, or_, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from sidekick.references.persistence import ExternalReferenceRow, TaskExternalReferenceRow
 from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.persistence.models import (
+    AiErasedRunCostRow,
     AiStepRunRow,
     ContactRow,
     StepRow,
@@ -155,20 +156,23 @@ class AiRunStore:
 
     @staticmethod
     def previous_ai_run(
-        session: Session, owner_id: UUID, step_id: UUID, attempt: int
+        session: Session,
+        owner_id: UUID,
+        step_id: UUID,
+        attempt: int,
+        since: datetime | None = None,
     ) -> AiStepRun | None:
-        """The attempt just before `attempt` on the step, if there is one."""
+        """The attempt just before `attempt` on the step, if there is one, in the cycle that
+        began at `since` (any cycle without it)."""
 
-        row = session.scalar(
-            select(AiStepRunRow)
-            .where(
-                AiStepRunRow.owner_id == owner_id,
-                AiStepRunRow.step_id == step_id,
-                AiStepRunRow.attempt < attempt,
-            )
-            .order_by(AiStepRunRow.attempt.desc())
-            .limit(1)
+        statement = select(AiStepRunRow).where(
+            AiStepRunRow.owner_id == owner_id,
+            AiStepRunRow.step_id == step_id,
+            AiStepRunRow.attempt < attempt,
         )
+        if since is not None:
+            statement = statement.where(AiStepRunRow.created_at > since)
+        row = session.scalar(statement.order_by(AiStepRunRow.attempt.desc()).limit(1))
         return run_from_row(row) if row is not None else None
 
     @staticmethod
@@ -204,7 +208,8 @@ class AiRunStore:
         since: datetime | None = None,
     ) -> dict[UUID, RunHistory]:
         """How many attempts each step has had since `since` (all of them without it), and how
-        the latest one stands; plus the highest attempt number each step has ever had."""
+        the latest one stands; plus the highest attempt number each step has ever had. A run the
+        server queued but never took is not an attempt."""
 
         if not step_ids:
             return {}
@@ -227,7 +232,7 @@ class AiRunStore:
             grouped[row.step_id].append(run_from_row(row))
         return {
             step_id: RunHistory(
-                attempts=len(grouped[step_id]),
+                attempts=sum(1 for run in grouped[step_id] if run.started_at is not None),
                 latest=grouped[step_id][-1] if grouped[step_id] else None,
                 last_attempt=last_attempt,
             )
@@ -257,20 +262,28 @@ class AiRunStore:
     def count_ai_runs_since(
         session: Session, owner_id: UUID, runner: RunnerKind, since: datetime
     ) -> int:
-        """How many runs of this runner were created from `since` on."""
+        """How many runs of this runner were created from `since` on, including the ones whose
+        Step or Task has been erased since."""
 
-        return (
-            session.scalar(
-                select(func.count())
-                .select_from(AiStepRunRow)
-                .where(
-                    AiStepRunRow.owner_id == owner_id,
-                    AiStepRunRow.runner == runner.value,
-                    AiStepRunRow.created_at >= since,
-                )
+        kept = session.scalar(
+            select(func.count())
+            .select_from(AiStepRunRow)
+            .where(
+                AiStepRunRow.owner_id == owner_id,
+                AiStepRunRow.runner == runner.value,
+                AiStepRunRow.created_at >= since,
             )
-            or 0
         )
+        erased = session.scalar(
+            select(func.count())
+            .select_from(AiErasedRunCostRow)
+            .where(
+                AiErasedRunCostRow.owner_id == owner_id,
+                AiErasedRunCostRow.runner == runner.value,
+                AiErasedRunCostRow.created_at >= since,
+            )
+        )
+        return (kept or 0) + (erased or 0)
 
     @staticmethod
     def sum_ai_cost_since(
@@ -278,19 +291,80 @@ class AiRunStore:
         owner_id: UUID,
         since: datetime,
         sources: Collection[CostSource],
+        task_id: UUID | None = None,
     ) -> int:
-        """Millionths of a dollar the runs created from `since` on cost, for these cost sources."""
+        """Millionths of a dollar the runs created from `since` on cost, for these cost sources:
+        what they cost and what a model call in flight has reserved. Runs whose Step or Task has
+        been erased since still count. Only one Task's runs when `task_id` is given."""
 
-        return (
-            session.scalar(
-                select(func.coalesce(func.sum(AiStepRunRow.cost_microusd), 0)).where(
-                    AiStepRunRow.owner_id == owner_id,
-                    AiStepRunRow.created_at >= since,
-                    AiStepRunRow.cost_source.in_([source.value for source in sources]),
-                )
-            )
-            or 0
+        source_values = [source.value for source in sources]
+        kept = select(
+            func.coalesce(func.sum(AiStepRunRow.cost_microusd + AiStepRunRow.reserved_microusd), 0)
+        ).where(
+            AiStepRunRow.owner_id == owner_id,
+            AiStepRunRow.created_at >= since,
+            AiStepRunRow.cost_source.in_(source_values),
         )
+        erased = select(func.coalesce(func.sum(AiErasedRunCostRow.cost_microusd), 0)).where(
+            AiErasedRunCostRow.owner_id == owner_id,
+            AiErasedRunCostRow.created_at >= since,
+            AiErasedRunCostRow.cost_source.in_(source_values),
+        )
+        if task_id is not None:
+            kept = kept.where(AiStepRunRow.task_id == task_id)
+            erased = erased.where(AiErasedRunCostRow.task_id == task_id)
+        return int(session.scalar(kept) or 0) + int(session.scalar(erased) or 0)
+
+    @staticmethod
+    def lock_owner_spend(session: Session, owner_id: UUID) -> None:
+        """Serialize the owner's spending decisions until the transaction ends, so two model
+        calls cannot both pass a cap that only one of them fits under."""
+
+        session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+            {"key": f"ai-spend:{owner_id}"},
+        )
+
+    @staticmethod
+    def next_queued_server_run(session: Session, now: datetime) -> AiStepRun | None:
+        """The oldest queued server run that has not lapsed. Not locked: the caller locks the
+        run's Task first and then reads the run again, so the lock order is the one every other
+        writer of a run keeps (Task, then run)."""
+
+        row = session.scalar(
+            select(AiStepRunRow)
+            .where(
+                AiStepRunRow.runner == RunnerKind.SERVER.value,
+                AiStepRunRow.state == AiRunState.QUEUED.value,
+                AiStepRunRow.lease_until > now,
+            )
+            .order_by(AiStepRunRow.queued_at, AiStepRunRow.id)
+            .limit(1)
+        )
+        return run_from_row(row) if row is not None else None
+
+    @staticmethod
+    def list_stalled_server_runs(session: Session, now: datetime, limit: int) -> list[AiStepRun]:
+        """Server runs whose lease ran out while queued or running, or while a cancelled run's
+        model call was still reserved. Not locked, for the reason `next_queued_server_run` gives."""
+
+        rows = session.scalars(
+            select(AiStepRunRow)
+            .where(
+                AiStepRunRow.runner == RunnerKind.SERVER.value,
+                AiStepRunRow.lease_until <= now,
+                or_(
+                    AiStepRunRow.state.in_([state.value for state in ACTIVE_STATES]),
+                    and_(
+                        AiStepRunRow.state == AiRunState.CANCELLED.value,
+                        AiStepRunRow.reserved_microusd > 0,
+                    ),
+                ),
+            )
+            .order_by(AiStepRunRow.lease_until)
+            .limit(limit)
+        )
+        return [run_from_row(row) for row in rows]
 
     @staticmethod
     def list_tasks_with_approved_plans(

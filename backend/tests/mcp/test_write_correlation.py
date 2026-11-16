@@ -69,6 +69,8 @@ REPLAYED: tuple[str, ...] = (
     "start_ai_step",
     "report_ai_step_result",
     "review_ai_step_result",
+    "run_ai_plan",
+    "cancel_ai_step_run",
 )
 
 #: Write tools the scenario does not exercise yet. Only shrinks; remove a name when it is covered.
@@ -100,7 +102,9 @@ def scenario() -> Scenario:
 
 
 async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
-    container = create_container(make_settings(), database_factory())
+    container = create_container(
+        make_settings().model_copy(update={"ai_runner_enabled": True}), database_factory()
+    )
     owner = container.auth.provision_user("corr_owner", "Corr Owner")
     admin = _cleanup_factory_for(os.environ["SIDEKICK_TEST_ADMIN_DATABASE_URL"])
     with admin() as session:
@@ -764,6 +768,53 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
                 "run_version": reported["version"],
                 "decision": "accept",
                 "idempotency_key": key + "aireview",
+            },
+        )
+
+        # The server runner: a second plan is queued for the server, then cancelled before a worker
+        # takes it.
+        server_task = (
+            await call("create_task", {"title": "Server task", "idempotency_key": key + "svtsk"})
+        )["task"]
+        server_plan = (
+            await call(
+                "set_ai_plan",
+                {
+                    "task_id": server_task["id"],
+                    "task_version": server_task["version"],
+                    "idempotency_key": key + "svplan",
+                    "steps": [
+                        {
+                            "title": "Summarise the letter",
+                            "performer": "ai",
+                            "ai_spec": {"goal": "Summarise the letter to the landlord"},
+                        }
+                    ],
+                },
+            )
+        )["plan"]
+        await call(
+            "approve_ai_plan",
+            {
+                "task_id": server_task["id"],
+                "digest": server_plan["digest"],
+                "idempotency_key": key + "svappr",
+            },
+        )
+        queued = await call(
+            "run_ai_plan",
+            {
+                "task_id": server_task["id"],
+                "digest": server_plan["digest"],
+                "idempotency_key": key + "svrun",
+            },
+        )
+        await call(
+            "cancel_ai_step_run",
+            {
+                "run_id": queued["plan"]["steps"][0]["latest_run"]["id"],
+                "run_version": queued["plan"]["steps"][0]["latest_run"]["version"],
+                "idempotency_key": key + "svcancel",
             },
         )
 

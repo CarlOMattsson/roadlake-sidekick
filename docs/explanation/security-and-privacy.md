@@ -18,6 +18,7 @@ To self-host means to run Sidekick on a server you control. Your records are sto
 | Claude | What the connector's scopes allow, including journal text if `journal:read` is granted. Also what you type and see in the conversation. | When Claude calls a tool or shows a room |
 | The model provider for memory | Text from the sources you switched on: journal, contacts, projects and tasks. Never contacts' email, phone or address. | Only if you turned memory on |
 | GitHub | That you sign in to your server. Sidekick asks GitHub for nothing beyond who you are. | When you sign in the connector |
+| Anthropic, for AI steps on your server | The brief of each step you run: the task's title and description, the step's instruction, titles of actions, the project's title, and contact names or reference titles if the step allows it. Never e-mail, phone, address, journal text or memory. | Only if you turned the `ai` profile on and press Run |
 | The ntfy server | That a phone was woken, when it happened, and the phone's IP address. No content. | Only if you turned reminders on |
 | The website's host (GitHub) | What a web server sees, such as your IP address, under GitHub's own policy. | When you visit this website |
 
@@ -41,7 +42,18 @@ On a work laptop, the containers (including memory's calls) reach only your comp
 
 ## No telemetry
 
-Sidekick sends no telemetry and no analytics. The server only contacts the services you set up yourself: GitHub for sign-in, an ntfy server for reminders and a model provider for memory. Sidekick calls no language model on its own.
+Sidekick sends no telemetry and no analytics. The server only contacts the services you set up yourself: GitHub for sign-in, an ntfy server for reminders, a model provider for memory and, if you turned it on, Anthropic for AI steps you run on the server. Sidekick calls no language model on its own: a call is made only when you press Run on an approved step.
+
+## AI steps on your server
+
+This section applies only if you turned on the `ai` profile. Then an approved AI step can run on your server: you press Run in the app, and the container `ai-worker` makes a call to the Anthropic API. [Run AI steps](../operate/ai-steps.md) explains how to set it up.
+
+- **The key.** Your Anthropic API key reaches `ai-worker` only, as a file. It is never stored in the database, never written to a log or a trace, and never returned by any tool. In production the API and the other workers refuse to start if they find the key in their environment.
+- **The route out.** `ai-worker` is the only container on its own network, `ai`, which is the one outbound route to the internet. It shares no network with Hindsight or ntfy. The address of the API and the key are fixed in the code, so no environment variable can send the key elsewhere.
+- **What is sent.** The step's brief goes to Anthropic under Anthropic's API terms: the task's title and description, the step's instruction, the titles of the task's actions, the project's title and, if the step allows it, the names of contacts and the titles of references. Never e-mail, phone, address, journal text or memory.
+- **Prompt injection.** A text in a task can try to steer the model. Four things limit what that can do. The approved plan is the only source of instructions, and the server writes it. The owner's text is fenced off as data and stripped of control characters. The model has no tools: it cannot read, write, browse or send anything. Its answer must be strict JSON that the server checks, and the server only stores it as text for you to review. Sidekick does not try to detect injections with filters.
+- **Money.** The worker reserves the most a call can cost before it makes the call, under one lock per owner, and settles the real cost afterwards. Caps apply per step, per task and per month. A call with an unknown outcome is booked at its reserved cost. [Run AI steps](../operate/ai-steps.md) has the details.
+- **Telemetry.** The Anthropic SDK can emit OpenTelemetry spans and trace headers. Sidekick turns that off in the code and in the container, so no trace header or content leaves the process. Logs and telemetry from the worker hold ids, states and counts, never text.
 
 ## Logs
 

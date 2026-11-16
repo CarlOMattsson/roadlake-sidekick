@@ -18,6 +18,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `memory` | `hindsight`, `memory-worker` | Härlett minne. Kräver `hindsight.env` och inställningarna `SIDEKICK_MEMORY_*`; se [Slå på minnet](../operate/memory.sv.md). |
 | `backup` | `backup` | Krypterade backuper. Kräver `SIDEKICK_BACKUP_ENCRYPTION_KEY` i `selfhost.env`; se [Backup och återställning](../operate/backup-and-restore.sv.md). |
 | `push` | `push`, `ntfy` | Påminnelser till Android-appen. Kräver `SIDEKICK_PUSH_ENABLED=true`. Den egna ntfy-servern publiceras genom Caddy, så den kräver profilen `vps`; `up -d push` ensam startar bara workern, som då levererar genom ntfy.sh. Se [Påminnelser via ntfy](../operate/push-reminders.sv.md). |
+| `ai` | `ai-worker` | Kör godkända AI-steg på servern med din egen Anthropic-nyckel. Kräver nyckeln som fil (`ai_anthropic_api_key`) och `SIDEKICK_AI_RUNNER_ENABLED=true`; se [Kör AI-steg](../operate/ai-steps.sv.md#kör-ai-steg-på-din-server). |
 
 ## Filer i `deploy/selfhost`
 

@@ -29,6 +29,15 @@ export function errorCode(error: unknown): string | undefined {
 }
 
 /**
+ * The closed reason a refusal carries beside its code (`SidekickErrorReason` in
+ * `backend/src/sidekick/shared/errors/core.py`, for example "ai_budget_reached"), or undefined.
+ */
+export function errorReason(error: unknown): string | undefined {
+  const reason = (error as { reason?: unknown } | null | undefined)?.reason;
+  return typeof reason === "string" ? reason : undefined;
+}
+
+/**
  * True when the server refused this read for the current token (no permission for the
  * resource). Such a refusal is not transient, so a view shows calm copy instead of retry.
  */

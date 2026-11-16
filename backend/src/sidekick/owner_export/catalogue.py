@@ -109,6 +109,10 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("111_webhook_tokens", True),
     # Adds Task and Step columns and a table that are exported (format 8).
     ("112_ai_steps", False),
+    # An index on `ai_step_runs`; no exported table or column changes.
+    ("113_ai_server_queue", True),
+    # Costs of erased runs, kept for the spending caps; derived and never exported.
+    ("114_ai_erased_run_costs", True),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -140,7 +144,7 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
 # at migration 107 or 108, a format 7 export at migration 110 or 111 and a format 8 export at
-# migration 112 or later.
+# migration 112 or later (113 and 114 change no exported table).
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
     FORMAT_WITHOUT_AI_STEPS: frozenset({"110_task_ambition", "111_webhook_tokens"}),

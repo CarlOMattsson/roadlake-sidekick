@@ -56,6 +56,7 @@ Replaced decisions (D-036, D-051, D-056, D-085, D-086) are in the [archive](arch
 | D-093 | [One error tree rooted at SidekickError](#d-093---one-error-tree-rooted-at-sidekickerror) |
 | D-095 | [The Android app can create and edit](#d-095---the-android-app-can-create-and-edit) |
 | D-096 | [AI-delegated steps](#d-096---ai-delegated-steps) |
+| D-097 | [The server runs approved AI steps](#d-097---the-server-runs-approved-ai-steps) |
 
 ### D-004 - One set of use cases for HTTP and MCP
 
@@ -394,3 +395,19 @@ accepts it. AI steps produce text inside Sidekick and never send, buy, delete or
 50 USD per month, three attempts per step, 50 Claude Code starts per day. The owner has also decided that Sidekick
 may later run approved steps on the server with a separate worker and the owner's own API key (stage 2, to be
 recorded as D-097 and ADR-012). D-084's removal of the chat engine and the provider adapters is not reversed.
+
+### D-097 - The server runs approved AI steps
+
+Status: Accepted (2026-11-16); stage 2 of D-096; recorded as
+[ADR-012](adr/ADR-012-server-runs-approved-ai-steps.md); amends [ADR-011](adr/ADR-011-ai-delegated-steps.md) and
+[ADR-009](adr/ADR-009-one-curated-public-mcp-surface.md).
+Sidekick may run an approved AI step on the server when the owner presses "Run" in the room (or on Android with the
+separately granted capability `companion:ai:review`). A separate worker (`sidekick-ai-worker`, Compose profile `ai`,
+its own network) holds the owner's Anthropic key as a file, and no other process may hold it. The run row in
+`ai_step_runs` is the queue. Before every model call the plan's digest is checked and an upper bound of the call's cost
+is reserved under a per-owner lock, so the caps (2 USD per task and cycle, 50 USD per month, the step's budget)
+cannot be passed. Attempts and the task cap count per cycle of a recurring task, the monthly cap per calendar month;
+50 server starts per day. The model gets the stage 1 brief and answers with one JSON result, question or failure.
+Web tools are not built, nothing goes to memory, and nothing is sent, bought, deleted or published. Default model
+`claude-opus-5-5`. D-084's removal of the chat engine and the provider adapters is not reversed. Local models, web
+tools and automatic continuation are deferred; a step with privacy `local_only` is refused until a local adapter exists.

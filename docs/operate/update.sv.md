@@ -15,7 +15,7 @@ nämner varje profil så att alla workers hittas; tjänster som inte körs lämn
 
 ```bash
 C="docker compose --env-file selfhost.env"
-$C --profile backup --profile push --profile memory stop api automation-worker backup push memory-worker
+$C --profile backup --profile push --profile memory --profile ai stop api automation-worker backup push memory-worker ai-worker
 $C run --rm -T --no-deps migrate     # om den här misslyckas: starta inte den nya koden
 $C --profile vps up -d               # med de profiler du använder, som i Första start
 ```
@@ -80,7 +80,7 @@ docker buildx imagetools inspect ghcr.io/<owner>/roadlake-sidekick@sha256:<diges
 ```
 
 **Om en uppdatering misslyckas.** Innan `update.sh` migrerar stoppar den API:et och varje worker som körde eller startade om
-(automation, backup, push, minne) och startar dem igen efteråt, alla med samma image. De sista raderna den skriver, och det
+(automation, backup, push, minne, ai) och startar dem igen efteråt, alla med samma image. De sista raderna den skriver, och det
 sista ordet i `update-state/journal.log`, visar vilket fall du är i:
 
 - `ABORTED`: signaturen, hämtningen, backupen eller ögonblicksbilden misslyckades, eller så gick det inte att avgöra

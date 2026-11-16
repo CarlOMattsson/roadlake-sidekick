@@ -70,6 +70,10 @@ SAFE_LOG_FIELDS = frozenset(
         "push_host",
         "push_outcome",
         "push_status",
+        # AI worker: the run's own id and a closed outcome of one model call. Never a
+        # prompt, an answer, a key or the provider's error text.
+        "ai_run_id",
+        "ai_call_outcome",
         "outcome",
         # License key (D-081: offline signed license keys, sidekick.license): a closed state and a
         # closed reject reason. Never

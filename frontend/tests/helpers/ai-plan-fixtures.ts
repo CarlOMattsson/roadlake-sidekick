@@ -110,6 +110,7 @@ export function aiPlanStep(
     ai_status: "to_review",
     attempts: 1,
     latest_run: null,
+    server_startable: false,
     step: stepRecord(aiStep),
     ...overrides,
   };
@@ -122,6 +123,7 @@ export function ownerPlanStep(): WorkAiPlanStep {
     ai_status: null,
     attempts: 0,
     latest_run: null,
+    server_startable: false,
     step: stepRecord(ownerStep),
   };
 }
@@ -131,10 +133,14 @@ export function plan(overrides: Partial<WorkAiPlan> = {}): WorkAiPlan {
     ai_possible: true,
     approved_at: null,
     digest: DIGEST,
+    month_cap_usd: 0,
+    month_spent_usd: 0,
+    server_runner: "off",
     state: "draft",
     steps: [ownerPlanStep(), aiPlanStep()],
     task_cap_usd: 2,
     task_id: taskA.id,
+    task_spent_usd: 0,
     task_title: taskA.title,
     task_version: taskA.version,
     ...overrides,
@@ -197,5 +203,48 @@ export function reviewPlan(
       ownerPlanStep(),
       aiPlanStep({ ai_status: state, latest_run: latest }),
     ],
+  });
+}
+
+/**
+ * An approved plan on a server that runs AI Steps. `step` sets the AI Step: by default it is ready and the server may
+ * run it; `serverRun` gives it a run the server holds (queued or running).
+ */
+export function serverPlan(
+  overrides: Partial<WorkAiPlan> = {},
+  step: Partial<WorkAiPlanStep> = {},
+): WorkAiPlan {
+  return plan({
+    state: "approved",
+    approved_at: "2026-11-16T08:00:00Z",
+    server_runner: "available",
+    month_cap_usd: 50,
+    steps: [
+      ownerPlanStep(),
+      aiPlanStep({
+        ai_status: "ready",
+        attempts: 0,
+        server_startable: true,
+        ...step,
+      }),
+    ],
+    ...overrides,
+  });
+}
+
+/** The AI Step's run as the server holds it: queued or under way, not yet finished. */
+export function serverRun(
+  state: "queued" | "running",
+  overrides: Partial<WorkAiRun["run"]> = {},
+): WorkAiRun["run"] {
+  return runRecord({
+    runner: "server",
+    state,
+    has_result: false,
+    finished_at: null,
+    started_at: state === "running" ? "2026-11-16T08:00:10Z" : null,
+    cost_usd: 0,
+    version: 1,
+    ...overrides,
   });
 }

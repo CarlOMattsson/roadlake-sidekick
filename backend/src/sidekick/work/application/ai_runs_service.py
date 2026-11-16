@@ -1,13 +1,12 @@
 """AI Step runs: what may run, starting a step, reporting its result and the owner's review."""
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import datetime, tzinfo
 from typing import Literal
 from uuid import UUID
 
-from sidekick.activity.domain import ActivityCategory
-from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
+from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.replay import id_replay_record, id_result, record_id
 from sidekick.shared.types import (
@@ -22,11 +21,17 @@ from sidekick.shared.types import (
 )
 from sidekick.tasks.domain import Task, TaskStatus
 from sidekick.work.application.ai_plans import load_plan_view
+from sidekick.work.application.ai_run_support import (
+    flag_attention,
+    record_run_event,
+    render_run_brief,
+    replayed_run,
+    require_spec,
+    require_startable,
+)
 from sidekick.work.application.ai_store import (
-    LINK_NAMES_LIMIT,
     AiLimits,
     AiPlanStepView,
-    AiPlanView,
     AiStepEntry,
     AiStepPage,
     AiStepsStore,
@@ -35,13 +40,10 @@ from sidekick.work.application.ai_store import (
     day_start,
     month_start,
 )
-from sidekick.work.domain import Step
 from sidekick.work.domain.ai_plan import (
     STARTABLE,
     AiStepStatus,
-    BriefSource,
     PlanState,
-    render_brief,
     runs_on,
 )
 from sidekick.work.domain.ai_runs import (
@@ -53,7 +55,6 @@ from sidekick.work.domain.ai_runs import (
     FailureCategory,
     RunnerKind,
 )
-from sidekick.work.domain.ai_spec import AiStepSpecV1, Performer
 from sidekick.work.domain.run_ports import RunActivityRecorder
 
 ReportOutcome = Literal["result", "question", "failed"]
@@ -237,8 +238,8 @@ class AiRunService:
         task = self.store.get_task(session, owner_id, task_id)
         now = self.clock.now()
         view = load_plan_view(self.store, session, task, limits=self.limits, now=now)
-        item = _require_startable(view, step_id)
-        spec = _require_spec(item.step)
+        item = require_startable(view, step_id)
+        spec = require_spec(item.step)
         if not runs_on(spec, RunnerKind.CLAUDE_CODE):
             raise ValidationError("this step is not meant for Claude Code")
         latest = item.history.latest
@@ -259,7 +260,7 @@ class AiRunService:
             now=now,
         )
         self.store.save_ai_run(session, run)
-        self._record(session, actor, run, "ai.run_started", correlation_id)
+        self._record(session, run, "ai.run_started", correlation_id)
         return run
 
     def _starts_today(self, session: TxSession, owner_id: UUID, now: datetime) -> int:
@@ -269,24 +270,16 @@ class AiRunService:
     def _started(self, session: TxSession, actor: Actor, run: AiStepRun) -> StartedAiStep:
         step = self.store.get_step(session, actor.user_id, run.step_id)
         task = self.store.get_task(session, actor.user_id, run.task_id)
-        spec = _require_spec(step)
-        earlier = self.store.previous_ai_run(session, actor.user_id, step.id, run.attempt)
-        previous = _carried_over(earlier)
-        actions = self.store.list_actions_for_steps(session, actor.user_id, (step.id,))
-        brief = render_brief(
-            BriefSource(
-                task_title=task.title,
-                task_description=task.description,
-                step=step,
-                spec=spec,
-                actions=actions.get(step.id, ()),
-                run_id=run.id,
-                run_version=run.version,
-                project_title=self._project_title(session, actor, task),
-                contact_names=self._contact_names(session, actor, task, spec),
-                reference_titles=self._reference_titles(session, actor, task, spec),
-                previous=previous,
-            )
+        spec = require_spec(step)
+        brief = render_run_brief(
+            self.store,
+            session,
+            run=run,
+            task=task,
+            step=step,
+            spec=spec,
+            scopes=actor.scopes,
+            runner=RunnerKind.CLAUDE_CODE,
         )
         return StartedAiStep(
             run=run,
@@ -295,26 +288,6 @@ class AiRunService:
             budget_microusd=spec.budget_microusd(),
             max_turns=spec.budget.max_turns,
         )
-
-    def _project_title(self, session: TxSession, actor: Actor, task: Task) -> str | None:
-        if task.project_id is None or "projects:read" not in actor.scopes:
-            return None
-        titles = self.store.project_titles(session, actor.user_id, (task.project_id,))
-        return titles.get(task.project_id)
-
-    def _contact_names(
-        self, session: TxSession, actor: Actor, task: Task, spec: AiStepSpecV1
-    ) -> Sequence[str]:
-        if not spec.context.include_contacts or "contacts:read" not in actor.scopes:
-            return ()
-        return self.store.task_contact_names(session, actor.user_id, task.id, LINK_NAMES_LIMIT)
-
-    def _reference_titles(
-        self, session: TxSession, actor: Actor, task: Task, spec: AiStepSpecV1
-    ) -> Sequence[str]:
-        if not spec.context.include_references or "tasks:read" not in actor.scopes:
-            return ()
-        return self.store.task_reference_titles(session, actor.user_id, task.id, LINK_NAMES_LIMIT)
 
     # Report
 
@@ -338,6 +311,10 @@ class AiRunService:
 
         def operation(session: TxSession) -> dict[str, str]:
             run = self.store.get_ai_run(session, actor.user_id, run_id)
+            if run.runner is not RunnerKind.CLAUDE_CODE:
+                raise ConflictError(
+                    "only the client that started a run reports it", reason="run_not_open"
+                )
             if run.version != run_version:
                 raise ConflictError("stale run version", reason="stale_version")
             reported = self._reported(
@@ -345,14 +322,15 @@ class AiRunService:
             )
             self.store.save_ai_run(session, reported, expected_version=run_version)
             if reported.state in (AiRunState.TO_REVIEW, AiRunState.NEEDS_INPUT):
-                self._ask_for_attention(session, actor, reported)
-            self._record(session, actor, reported, "ai.run_reported", correlation_id)
+                flag_attention(self.store, session, reported, self.clock.now())
+            self._record(session, reported, "ai.run_reported", correlation_id)
             self.telemetry.count(
                 "sidekick.ai_runs", {"ai.runner": reported.runner.value, "outcome": outcome}
             )
             return id_result(reported.id)
 
-        return self._replayed_run(
+        return replayed_run(
+            self.store,
             actor,
             "report_ai_step_result",
             idempotency_key,
@@ -395,7 +373,7 @@ class AiRunService:
         self, session: TxSession, actor: Actor, run: AiStepRun, result: AiRunResult
     ) -> None:
         step = self.store.get_step(session, actor.user_id, run.step_id)
-        spec = _require_spec(step)
+        spec = require_spec(step)
         if result.format is not spec.output.format:
             raise ValidationError("the result is not in the format the step asked for")
         if len(result.text) > spec.output.max_chars:
@@ -405,13 +383,6 @@ class AiRunService:
         }
         if any(item.action_id not in actions for item in result.checklist):
             raise ValidationError("the checklist names an action that is not in the step")
-
-    def _ask_for_attention(self, session: TxSession, actor: Actor, run: AiStepRun) -> None:
-        step = self.store.get_step(session, actor.user_id, run.step_id)
-        if step.attention_requested:
-            return
-        flagged = step.update(now=self.clock.now(), attention_requested=True)
-        self.store.save_step(session, flagged, expected_version=step.version)
 
     # Review
 
@@ -439,13 +410,14 @@ class AiRunService:
                 self._require_current_plan(session, actor, run)
             self.store.save_ai_run(session, reviewed, expected_version=run_version)
             self._apply_to_step(session, actor, reviewed, decision)
-            self._record(session, actor, reviewed, f"ai.run_{reviewed.state.value}", correlation_id)
+            self._record(session, reviewed, f"ai.run_{reviewed.state.value}", correlation_id)
             self.telemetry.count(
                 "sidekick.ai_reviews", {"ai.runner": reviewed.runner.value, "outcome": decision}
             )
             return id_result(reviewed.id)
 
-        return self._replayed_run(
+        return replayed_run(
+            self.store,
             actor,
             "review_ai_step_result",
             idempotency_key,
@@ -504,101 +476,25 @@ class AiRunService:
         if updated is not step:
             self.store.save_step(session, updated, expected_version=step.version)
 
-    def _replayed_run(
-        self,
-        actor: Actor,
-        name: str,
-        key: str,
-        payload: dict[str, object],
-        operation: Callable[[TxSession], dict[str, str]],
-    ) -> AiStepRun:
-        """Run `operation` once per key and answer with the run it wrote, re-read by id."""
-
-        def replayed(session: TxSession) -> AiStepRun:
-            record = self.store.idempotent(
-                session,
-                actor_id=actor.user_id,
-                operation=name,
-                key=key,
-                payload=payload,
-                execute=lambda: operation(session),
-                replay=id_replay_record,
-            )
-            return self.store.get_ai_run(session, actor.user_id, record_id(record))
-
-        return self.store.transaction(replayed)
-
     # Audit
 
     def _record(
         self,
         session: TxSession,
-        actor: Actor,
         run: AiStepRun,
         event: str,
         correlation_id: str | None,
     ) -> None:
-        """One audit event and one activity entry: ids, state and attempt, never any text."""
-
-        self.store.append_audit(
+        record_run_event(
+            self.store,
+            self.activity,
             session,
-            actor_id=actor.user_id,
-            event=event,
-            outcome="success",
-            target_type="ai_step_run",
-            target_id=run.id,
-            related_id=run.step_id,
-            correlation_id=correlation_id,
-        )
-        if self.activity is None:
-            return
-        self.activity.append(
-            session,
-            owner_id=actor.user_id,
-            aggregate_type="ai_step_run",
-            aggregate_id=run.id,
-            aggregate_version=run.version,
-            event_type=event,
+            run,
+            event,
             actor_type="user",
-            actor_id=actor.user_id,
-            operation=event.removeprefix("ai."),
-            category=ActivityCategory.AI_STEPS,
-            summary=f"AI step run {run.state.value.replace('_', ' ')}",
-            after_values={"state": run.state.value, "attempt": run.attempt},
-            evidence={"task_id": run.task_id, "step_id": run.step_id},
+            now=self.clock.now(),
             correlation_id=correlation_id,
-            occurred_at=self.clock.now(),
         )
-
-
-def _require_spec(step: Step) -> AiStepSpecV1:
-    if step.performer is not Performer.AI or step.ai_spec is None:
-        raise ValidationError("this is not an AI step")
-    return step.ai_spec
-
-
-def _require_startable(view: AiPlanView, step_id: UUID) -> AiPlanStepView:
-    if view.state is PlanState.CHANGED_SINCE_APPROVAL:
-        raise ConflictError("the plan changed since it was approved", reason="plan_changed")
-    if view.state is not PlanState.APPROVED:
-        raise ConflictError("the plan is not approved", reason="plan_not_approved")
-    item = next((item for item in view.steps if item.step.id == step_id), None)
-    if item is None:
-        raise NotFoundError("step not found")
-    _require_spec(item.step)
-    if item.status is AiStepStatus.EXHAUSTED:
-        raise ConflictError("every attempt at the step is used", reason="ai_limit_reached")
-    if item.status not in STARTABLE:
-        raise ConflictError("the step is not ready", reason="step_not_ready")
-    return item
-
-
-def _carried_over(earlier: AiStepRun | None) -> AiStepRun | None:
-    """The attempt before this one when the owner's redo or answer is to be carried over."""
-
-    if earlier is None:
-        return None
-    return earlier if earlier.state in (AiRunState.REDO, AiRunState.ANSWERED) else None
 
 
 def _entry(task: Task, item: AiPlanStepView) -> AiStepEntry | None:

@@ -147,3 +147,28 @@
   width: 100%;
   font: var(--sk-type-body);
 }
+
+/* Under an AI Step the server holds: "I kö på servern" in the meta type and "Avbryt" (a quiet compact button, 48 to tap)
+   on one line at the title's x, where the Step's Actions count stands. A refusal of "Kör" is one calm line at the same x
+   in the label type and the second text colour: it says why, and a cap or a limit needs no warning colour. */
+.sidekick-work .work-ai-run-line,
+.sidekick-work .work-ai-run-note {
+  margin-inline-start: calc(var(--sk-icon) + var(--sk-s3));
+}
+.sidekick-work .work-ai-run-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s1);
+  min-height: var(--sk-tap);
+}
+.sidekick-work .work-ai-run-line > p {
+  margin: 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sidekick-work .work-ai-run-note {
+  margin-block: var(--sk-s1);
+  color: var(--sk-fg-2);
+  font: var(--sk-type-label);
+}

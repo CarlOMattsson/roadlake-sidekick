@@ -9,7 +9,7 @@ WARNING in every process before any request is made. A logger level covers the c
 
 import logging
 
-HTTP_CLIENT_LOGGERS = ("httpx", "httpcore", "httpx2", "httpcore2")
+HTTP_CLIENT_LOGGERS = ("httpx", "httpcore", "httpx2", "httpcore2", "anthropic")
 
 
 def silence_http_client_loggers() -> None:

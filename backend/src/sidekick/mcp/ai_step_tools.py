@@ -1,10 +1,12 @@
-"""The AI Step tools (ADR-011): plan a task for AI, run its approved steps, review the results.
+"""The AI Step tools (ADR-011, ADR-012): plan a task for AI, run its steps, review the results.
 
 Claude writes the plan (`set_ai_plan`), the owner approves it in the app (`approve_ai_plan`, hidden
 from the model and always confirmed by a person), and the owner's own Claude Code starts the AI
 steps (`start_ai_step`) and reports back (`report_ai_step_result`). A result waits for the owner,
 who accepts it, asks for another attempt, rejects it or answers its question
-(`review_ai_step_result`). The `ai_steps` prompt tells Claude Code how to work through the steps.
+(`review_ai_step_result`). The owner may instead run a step on the server (`run_ai_plan`,
+ADR-012), which queues it for the AI worker. The `ai_steps` prompt tells Claude Code how to work
+through the steps.
 """
 
 from __future__ import annotations
@@ -70,6 +72,16 @@ APPROVE_DESCRIPTION = (
     "App-only. The owner approves the plan with this digest, or withdraws an approval. The "
     "approval holds only for exactly that plan: a plan changed afterwards is not run until it is "
     "approved again."
+)
+RUN_PLAN_DESCRIPTION = (
+    "App-only. The owner runs the next step of an approved plan on the server, with their own "
+    "Anthropic key: it is queued and the AI worker takes it. The result then waits for the owner "
+    "like any other. Refused when the plan changed, no step is ready, the server runner is off "
+    "or a spending cap is reached."
+)
+CANCEL_DESCRIPTION = (
+    "Stop a queued or running AI step run. A model call already under way is still billed; its "
+    "answer is discarded."
 )
 LIST_DESCRIPTION = (
     "List AI steps of approved plans, by task and position, with where each stands (waiting, "
@@ -220,6 +232,49 @@ def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         return _plan_reply("Approved" if decision == "approve" else "Withdrawn", plan_output(view))
+
+
+def _register_run_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
+    @mcp.tool(
+        name="run_ai_plan",
+        description=RUN_PLAN_DESCRIPTION,
+        output_schema=output_schema(AiPlanOutput),
+        annotations=WRITE,
+        app=AppConfig(visibility=["app"]),
+        # Spending money is the owner's own decision: Claude Code asks a person at every call.
+        meta={"anthropic/requiresUserInteraction": True},
+    )
+    @ctx.instrument("run_ai_plan")
+    def run_ai_plan(task_id: UUID, digest: _Digest, idempotency_key: IdempotencyKey) -> ToolResult:
+        view = ctx.container.ai_server_runs.queue_plan_step(
+            ctx.actor_provider(),
+            task_id,
+            digest=digest,
+            idempotency_key=idempotency_key,
+            correlation_id=request_correlation_id_or_new(),
+        )
+        return _plan_reply("Queued", plan_output(view))
+
+
+def _register_cancel_ai_step_run(mcp: FastMCP, ctx: ToolContext) -> None:
+    @mcp.tool(
+        name="cancel_ai_step_run",
+        description=CANCEL_DESCRIPTION,
+        output_schema=output_schema(AiRunOutput),
+        annotations=WRITE,
+    )
+    @ctx.instrument("cancel_ai_step_run")
+    def cancel_ai_step_run(
+        run_id: UUID, run_version: _Version, idempotency_key: IdempotencyKey
+    ) -> ToolResult:
+        run = ctx.container.ai_server_runs.cancel_run(
+            ctx.actor_provider(),
+            run_id,
+            run_version=run_version,
+            idempotency_key=idempotency_key,
+            correlation_id=request_correlation_id_or_new(),
+        )
+        return _run_reply("Cancelled the run.", run_output(run))
 
 
 def _register_list_ai_steps(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -411,6 +466,8 @@ _REGISTRARS = (
     _register_set_ai_plan,
     _register_get_ai_plan,
     _register_approve_ai_plan,
+    _register_run_ai_plan,
+    _register_cancel_ai_step_run,
     _register_list_ai_steps,
     _register_start_ai_step,
     _register_report_ai_step_result,

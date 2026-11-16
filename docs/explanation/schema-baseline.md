@@ -99,6 +99,23 @@ because the default privileges would grant it. A row leaves only with its Step o
 Rolling back drops the columns and the table, which loses only the AI data. The owner export carries these columns and
 the `ai_step_runs` collection (format 8); a format 7 export has none of them and restores its Steps as the owner's own.
 
+## Migration 113: server queue index
+
+`113_ai_server_queue.py` is a purely additive (expand) migration. It adds one partial index, `ix_ai_step_runs_server_queue`,
+on `ai_step_runs (lease_until)` for server runs, so that the AI worker quickly finds queued and stalled runs. No data
+moves and no grants change. Rolling it back drops the index.
+
+## Migration 114: costs of erased runs
+
+`114_ai_erased_run_costs.py` is an additive (expand) migration. A run leaves `ai_step_runs` with its Step or Task when
+that is erased permanently, so the monthly cap and the daily limit of starts would forget what it cost. The new table
+`ai_erased_run_costs` keeps, per erased run, only identifiers and numbers: the run, its owner and Task, the runner, the
+cost source, the cost (plus any reservation still held) and the creation time. A `BEFORE DELETE` trigger on
+`ai_step_runs` writes the row through a function that runs with the schema owner's rights, so the application role may
+only read the table. When the owner's account itself is erased the trigger writes nothing, and the foreign key removes
+the rows already kept. Rolling it back drops the trigger, the function and the table, which loses only those costs. The
+owner export does not carry the table.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

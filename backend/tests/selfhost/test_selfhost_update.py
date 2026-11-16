@@ -374,6 +374,36 @@ def test_only_the_workers_that_were_running_are_touched(harness: Harness) -> Non
     assert harness.running_now().get("push") is None
 
 
+def test_the_ai_worker_is_stopped_before_the_migration_and_started_again_with_its_profile(
+    harness: Harness,
+) -> None:
+    """A server that runs the opt-in `ai` profile keeps it across an update, on the new image."""
+
+    harness.set_running(ALL_WORKERS + ",ai-worker")
+    result = harness.apply()
+    assert result.returncode == 0, result.stderr
+    calls = harness.calls()
+    migrate = index_of(calls, is_migrate)
+    stopped_before = [c for c in calls[:migrate] if c["sub"] == "stop"]
+    assert [c["profiles"] for c in stopped_before if c["args"][0] == "ai-worker"] == [["ai"]]
+    final_up = [c for c in calls[migrate:] if c["sub"] == "up"][-1]
+    assert final_up["image"] == NEW
+    assert sorted(final_up["profiles"]) == ["ai", "backup", "memory", "push"]
+    assert "ai-worker" in final_up["args"]
+    assert harness.running_now()["ai-worker"] is True
+
+
+def test_a_server_without_the_ai_profile_is_not_given_the_ai_worker(harness: Harness) -> None:
+    """The AI worker is opt-in: an update neither starts it nor passes its profile unless it ran."""
+
+    result = harness.apply()
+    assert result.returncode == 0, result.stderr
+    for call in harness.calls():
+        assert "ai" not in call.get("profiles", []), call
+        assert "ai-worker" not in call["args"], call
+    assert harness.running_now().get("ai-worker") is None
+
+
 def test_the_automation_worker_is_stopped_and_restarted_without_a_profile(
     harness: Harness,
 ) -> None:
@@ -691,7 +721,7 @@ def test_decrypting_a_snapshot_starts_a_one_off_api_container_when_api_is_stoppe
 def test_dry_run_names_the_workers_and_calls_nothing(harness: Harness) -> None:
     result = harness.run()
     assert result.returncode == 0
-    assert "automation-worker backup push memory-worker" in result.stdout
+    assert "automation-worker backup push memory-worker ai-worker" in result.stdout
     assert harness.calls() == []
 
 

@@ -96,7 +96,13 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     # AI steps (ADR-011). `ai:run` is opt-in; the plan and the review need `tasks:write`.
     **_tools(ToolScopes(("tasks:read",)), "get_ai_plan", "get_ai_step_run", "get_ai_usage"),
     **_tools(
-        ToolScopes(("tasks:write",)), "set_ai_plan", "approve_ai_plan", "review_ai_step_result"
+        ToolScopes(("tasks:write",)),
+        "set_ai_plan",
+        "approve_ai_plan",
+        "review_ai_step_result",
+        # ADR-012: the owner runs a step on the server and may stop any run.
+        "run_ai_plan",
+        "cancel_ai_step_run",
     ),
     "list_ai_steps": ToolScopes(any_of=("ai:run", "tasks:read")),
     "start_ai_step": ToolScopes(("ai:run",), optional=("contacts:read", "projects:read")),

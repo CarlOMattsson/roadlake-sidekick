@@ -19,6 +19,8 @@ EXPECTED_TOOLS = {
     "set_ai_plan",
     "get_ai_plan",
     "approve_ai_plan",
+    "run_ai_plan",
+    "cancel_ai_step_run",
     "list_ai_steps",
     "start_ai_step",
     "report_ai_step_result",
@@ -131,6 +133,7 @@ EXPECTED_TOOLS = {
 # below are hidden to keep the model-visible tool budget small.
 APP_ONLY_TOOLS = {
     "approve_ai_plan",
+    "run_ai_plan",
     "get_ai_usage",
     "finalize_journal_draft",
     "reject_journal_draft",
@@ -304,7 +307,7 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    assert len(APP_ONLY_TOOLS) == 27
+    assert len(APP_ONLY_TOOLS) == 28
     assert set(EXPECTED_TOOLS) >= APP_ONLY_TOOLS
     assert app_only_tool_names() == APP_ONLY_TOOLS
     for name in APP_ONLY_TOOLS:
@@ -316,12 +319,13 @@ async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None
 
 
 @pytest.mark.asyncio
-async def test_plan_approval_is_app_only_and_always_asks_a_person() -> None:
+async def test_plan_approval_and_server_run_are_app_only_and_always_ask_a_person() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    meta = tools["approve_ai_plan"].meta or {}
-    assert meta["ui"]["visibility"] == ["app"]
-    assert meta["anthropic/requiresUserInteraction"] is True
+    for pinned in ("approve_ai_plan", "run_ai_plan"):
+        meta = tools[pinned].meta or {}
+        assert meta["ui"]["visibility"] == ["app"]
+        assert meta["anthropic/requiresUserInteraction"] is True
     for name, tool in tools.items():
-        if name != "approve_ai_plan":
+        if name not in ("approve_ai_plan", "run_ai_plan"):
             assert "anthropic/requiresUserInteraction" not in (tool.meta or {}), name

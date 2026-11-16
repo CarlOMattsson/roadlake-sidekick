@@ -1,21 +1,10 @@
+import { aiUsageShown } from "../mcp-apps/ai-usage-shown";
 import { Button } from "../mcp-apps/ui/button";
 import { useRead } from "../mcp-apps/ui/use-read";
 import { usd } from "../mcp-apps/ui/usd";
 import { aiUsageLabelsFor } from "./ai-usage-labels";
 import type { ControlTransport } from "./transport";
 import "../mcp-apps/update-reminder.css";
-
-/**
- * Whether this instance shows the AI cost in Control. It is a Sidekick setting, SIDEKICK_MCP_APP_SHOW_AI_USAGE (off by
- * default), which the backend writes into the app document as `<meta name="sidekick-ai-usage" content="on">`. Without
- * the meta (the default, or a host such as the phone that does not declare it) the row is not drawn and nothing is read.
- */
-export function aiUsageShown(doc: Document = document): boolean {
-  return (
-    doc.querySelector<HTMLMetaElement>('meta[name="sidekick-ai-usage"]')
-      ?.content === "on"
-  );
-}
 
 /**
  * The AI cost row of Control's full view, one of the instance's rows (the update reminder's shape): "AI this month"

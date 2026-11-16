@@ -7,7 +7,7 @@ owner then reviews, and never completes a step by itself: only the owner's accep
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 from sidekick.shared.errors import ConflictError, ValidationError
@@ -17,6 +17,10 @@ MAX_SUMMARY_CHARS = 500
 MAX_DIALOG_CHARS = 1_000
 CLAUDE_CODE_LEASE = timedelta(minutes=30)
 """How long a started run may stay silent before another attempt may replace it."""
+SERVER_QUEUE_TTL = timedelta(minutes=30)
+"""How long a run may wait for the server to take it before it lapses without using an attempt."""
+SERVER_LEASE = timedelta(minutes=15)
+"""How long a run the server took may stay silent; each model call renews it."""
 
 
 class RunnerKind(StrEnum):
@@ -56,6 +60,12 @@ class FailureCategory(StrEnum):
     TOOL_ERROR = "tool_error"
     BUDGET = "budget"
     OTHER = "other"
+    PROVIDER = "provider"
+    """The model provider could not be reached or refused the call."""
+    REFUSED = "refused"
+    """The model declined to answer."""
+    INVALID_OUTPUT = "invalid_output"
+    """The answer did not follow the schema or the step's limits."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,8 +119,22 @@ class AiUsage:
         if any(count < 0 for count in counts):
             raise ValidationError("usage counts cannot be negative")
 
+    def plus(self, call: "AiUsage") -> "AiUsage":
+        """This usage with one more call's tokens and cost added; the reservation is cleared."""
 
-def _dialog(value: str, label: str) -> str:
+        return AiUsage(
+            input_tokens=self.input_tokens + call.input_tokens,
+            output_tokens=self.output_tokens + call.output_tokens,
+            cache_read_tokens=self.cache_read_tokens + call.cache_read_tokens,
+            cache_write_tokens=self.cache_write_tokens + call.cache_write_tokens,
+            reserved_microusd=0,
+            cost_microusd=self.cost_microusd + call.cost_microusd,
+            cost_source=call.cost_source,
+            model=call.model or self.model,
+        )
+
+
+def dialog_text(value: str, label: str) -> str:
     cleaned = clean_text(value, multiline=True).strip()
     if not cleaned or len(cleaned) > MAX_DIALOG_CHARS:
         raise ValidationError(f"{label} has 1-{MAX_DIALOG_CHARS} characters")
@@ -178,6 +202,35 @@ class AiStepRun:
             lease_until=now + lease,
         )
 
+    @classmethod
+    def queue(
+        cls,
+        *,
+        run_id: UUID,
+        owner_id: UUID,
+        task_id: UUID,
+        step_id: UUID,
+        attempt: int,
+        plan_digest: str,
+        now: datetime,
+    ) -> "AiStepRun":
+        """A run for the server to take. It is not an attempt until the server starts it."""
+
+        return cls(
+            id=run_id,
+            owner_id=owner_id,
+            task_id=task_id,
+            step_id=step_id,
+            attempt=attempt,
+            runner=RunnerKind.SERVER,
+            state=AiRunState.QUEUED,
+            plan_digest=plan_digest,
+            created_at=now,
+            updated_at=now,
+            queued_at=now,
+            lease_until=now + SERVER_QUEUE_TTL,
+        )
+
     @property
     def active(self) -> bool:
         return self.state in ACTIVE_STATES
@@ -194,6 +247,76 @@ class AiStepRun:
         if self.state not in states:
             raise ConflictError("the run is not in a state this applies to", reason="run_not_open")
 
+    def claim(
+        self, worker_id: str, *, provider: str, model: str, cost_source: CostSource, now: datetime
+    ) -> "AiStepRun":
+        """The server takes a queued run that has not lapsed."""
+
+        self._require(AiRunState.QUEUED)
+        if self.lease_until is None or self.lease_until <= now:
+            raise ConflictError("the run waited too long", reason="run_not_open")
+        return self._move(
+            AiRunState.RUNNING,
+            now,
+            worker_id=worker_id,
+            provider=provider,
+            started_at=now,
+            lease_until=now + SERVER_LEASE,
+            usage=replace(self.usage, model=model, cost_source=cost_source),
+        )
+
+    def reserve(self, microusd: int, *, now: datetime) -> "AiStepRun":
+        """Set aside the most the next model call can cost; one call at a time holds it."""
+
+        self._require(AiRunState.RUNNING)
+        if self.usage.reserved_microusd:
+            raise ConflictError("a model call is already reserved", reason="run_not_open")
+        return self._move(
+            self.state,
+            now,
+            lease_until=now + SERVER_LEASE,
+            usage=replace(self.usage, reserved_microusd=microusd),
+        )
+
+    def settle(self, call: AiUsage, *, now: datetime) -> "AiStepRun":
+        """Replace the reservation by what the call cost. Allowed in any state: a call that
+        ended after the owner cancelled the run is still billed."""
+
+        return replace(
+            self,
+            updated_at=now,
+            version=self.version + 1,
+            usage=self.usage.plus(call),
+        )
+
+    def holds_lapsed_reservation(self, now: datetime) -> bool:
+        """Whether the server went silent with a model call reserved: a running run whose lease
+        ran out, or a cancelled one whose reserved call never reported back."""
+
+        lapsed = self.lease_until is not None and self.lease_until <= now
+        if self.state is AiRunState.RUNNING:
+            return lapsed
+        return self.state is AiRunState.CANCELLED and lapsed and self.usage.reserved_microusd > 0
+
+    def abandon(self, *, now: datetime) -> "AiStepRun":
+        """End a run whose server went silent. A reserved call may have been billed, so the
+        reservation is booked as cost."""
+
+        if not self.holds_lapsed_reservation(now):
+            raise ConflictError("the run is not stalled", reason="run_not_open")
+        usage = replace(
+            self.usage,
+            reserved_microusd=0,
+            cost_microusd=self.usage.cost_microusd + self.usage.reserved_microusd,
+        )
+        return self._move(
+            AiRunState.CANCELLED,
+            now,
+            finished_at=self.finished_at or now,
+            lease_until=None,
+            usage=usage,
+        )
+
     def report_result(self, result: AiRunResult, usage: AiUsage, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.RUNNING)
         return self._move(
@@ -205,7 +328,7 @@ class AiStepRun:
         return self._move(
             AiRunState.NEEDS_INPUT,
             now,
-            question=_dialog(question, "a question"),
+            question=dialog_text(question, "a question"),
             usage=usage,
             finished_at=now,
             lease_until=None,
@@ -226,7 +349,10 @@ class AiStepRun:
 
     def cancel(self, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.QUEUED, AiRunState.RUNNING)
-        return self._move(AiRunState.CANCELLED, now, finished_at=now, lease_until=None)
+        # A model call still reserved keeps the lease, so a server that dies before it reports
+        # back has the reservation booked as cost when the lease runs out.
+        lease = self.lease_until if self.usage.reserved_microusd else None
+        return self._move(AiRunState.CANCELLED, now, finished_at=now, lease_until=lease)
 
     def accept(self, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.TO_REVIEW)
@@ -234,18 +360,18 @@ class AiStepRun:
 
     def request_redo(self, comment: str | None, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.TO_REVIEW)
-        feedback = _dialog(comment, "a comment") if comment else None
+        feedback = dialog_text(comment, "a comment") if comment else None
         return self._move(AiRunState.REDO, now, reviewed_at=now, feedback=feedback)
 
     def reject(self, comment: str | None, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.TO_REVIEW, AiRunState.NEEDS_INPUT, AiRunState.FAILED)
-        feedback = _dialog(comment, "a comment") if comment else None
+        feedback = dialog_text(comment, "a comment") if comment else None
         return self._move(AiRunState.REJECTED, now, reviewed_at=now, feedback=feedback)
 
     def answer_question(self, answer: str, *, now: datetime) -> "AiStepRun":
         self._require(AiRunState.NEEDS_INPUT)
         return self._move(
-            AiRunState.ANSWERED, now, reviewed_at=now, answer=_dialog(answer, "an answer")
+            AiRunState.ANSWERED, now, reviewed_at=now, answer=dialog_text(answer, "an answer")
         )
 
 
@@ -269,7 +395,7 @@ class MoneyCaps:
             return False
         return not (source is CostSource.NONE and self.local_models_exempt)
 
-    def refuses(
+    def breached_cap(
         self,
         *,
         source: CostSource,
@@ -277,13 +403,23 @@ class MoneyCaps:
         spent_on_task_microusd: int,
         spent_in_month_microusd: int,
         task_cap_microusd: int | None = None,
-    ) -> bool:
-        """Whether reserving `reserve_microusd` more would pass a cap that this source counts to."""
+        spent_on_run_microusd: int = 0,
+        run_budget_microusd: int | None = None,
+    ) -> Literal["step", "task", "month"] | None:
+        """The cap that reserving `reserve_microusd` more would pass, if any: the step's budget
+        for this attempt, the task's cap or the month's. A source that does not count passes
+        none."""
 
         if not self.counts(source):
-            return False
+            return None
         task_cap = self.task_microusd if task_cap_microusd is None else task_cap_microusd
-        return (
-            spent_on_task_microusd + reserve_microusd > task_cap
-            or spent_in_month_microusd + reserve_microusd > self.month_microusd
-        )
+        if (
+            run_budget_microusd is not None
+            and spent_on_run_microusd + reserve_microusd > run_budget_microusd
+        ):
+            return "step"
+        if spent_on_task_microusd + reserve_microusd > task_cap:
+            return "task"
+        if spent_in_month_microusd + reserve_microusd > self.month_microusd:
+            return "month"
+        return None

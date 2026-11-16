@@ -8,7 +8,7 @@ Which memory and process limits each self-hosted container has, how to change th
 
 ## Resource limits
 
-Every container of the base stack and of the `memory`, `backup` and `push` profiles has a memory ceiling and a process limit (`mem_limit` and `pids_limit` in `compose.yaml`). They keep a runaway process from taking the whole host down. The memory value is a ceiling, not a reservation. A container that goes over it is killed and restarted by Docker; `docker inspect <container>` then shows `OOMKilled`.
+Every container of the base stack and of the `memory`, `backup`, `push` and `ai` profiles has a memory ceiling and a process limit (`mem_limit` and `pids_limit` in `compose.yaml`). They keep a runaway process from taking the whole host down. The memory value is a ceiling, not a reservation. A container that goes over it is killed and restarted by Docker; `docker inspect <container>` then shows `OOMKilled`.
 
 | Service | Memory | Processes | Variable prefix |
 | --- | --- | --- | --- |
@@ -19,6 +19,7 @@ Every container of the base stack and of the `memory`, `backup` and `push` profi
 | `backup` | 3g | 64 | `SELFHOST_BACKUP_` |
 | `push` | 512m | 64 | `SELFHOST_PUSH_` |
 | `memory-worker` | 512m | 64 | `SELFHOST_MEMORY_` |
+| `ai-worker` | 512m | 64 | `SELFHOST_AI_` |
 | `hindsight` | 4g | 512 | `SELFHOST_HINDSIGHT_` |
 
 The own `ntfy` server keeps its fixed limits (128m, 64 processes).
@@ -38,8 +39,8 @@ Every `docker compose` command needs `--env-file selfhost.env`: `up`, `restart`,
 `selfhost.env` holds all settings, but a container only receives the ones its process reads.
 
 - `api` reads the whole of `selfhost.env`. It is the one process that needs the GitHub sign-in settings, the rooms and the request limits. It never receives `db.env`.
-- `automation-worker`, `backup`, `push` and `memory-worker` receive a named list of settings, resolved from the `--env-file selfhost.env` of the command. They have no `env_file`. Every worker gets the database URL, the two signing secrets, the time budgets and the time zone, because production refuses to start without them.
-- Only `backup` receives `SIDEKICK_BACKUP_ENCRYPTION_KEY` and the retention settings. Only `push` receives `SIDEKICK_PUSH_AUTH_TOKEN`. The memory token and the key that derives memory ids go to `memory-worker` and to `automation-worker`, because the latter builds the same container as the API.
+- `automation-worker`, `backup`, `push`, `memory-worker` and `ai-worker` receive a named list of settings, resolved from the `--env-file selfhost.env` of the command. They have no `env_file`. Every worker gets the database URL, the two signing secrets, the time budgets and the time zone, because production refuses to start without them.
+- Only `backup` receives `SIDEKICK_BACKUP_ENCRYPTION_KEY` and the retention settings. Only `push` receives `SIDEKICK_PUSH_AUTH_TOKEN`. Only `ai-worker` receives `SIDEKICK_AI_ANTHROPIC_API_KEY`; as the key is secret, `api` refuses to start in production when it finds the key in `selfhost.env`. The memory token and the key that derives memory ids go to `memory-worker` and to `automation-worker`, because the latter builds the same container as the API.
 - No worker receives the GitHub client secret, the OAuth signing key, the allowed identities or the scopes.
 - `postgres` and `migrate` read `db.env`. `hindsight` reads `hindsight.env`. `ntfy` reads `ntfy.env`. No other service reads those files. `migrate` still receives the whole of `db.env`, including the PostgreSQL superuser password, although it only needs the migrator URL. It is a one-shot container with no route to the internet.
 
@@ -52,9 +53,9 @@ Practical consequences:
 
 ## Secrets as files
 
-A secret in `selfhost.env` is an environment variable of the container: every process in it can read it, and `docker inspect` prints it. As a file it is mounted read-only at `/run/secrets/<name>`, only in the services that read it (the same lists as above), and `docker inspect` shows the path but not the value. The nine secret settings can be moved this way:
+A secret in `selfhost.env` is an environment variable of the container: every process in it can read it, and `docker inspect` prints it. As a file it is mounted read-only at `/run/secrets/<name>`, only in the services that read it (the same lists as above), and `docker inspect` shows the path but not the value. The ten secret settings can be moved this way:
 
-`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY` and `SIDEKICK_PUSH_AUTH_TOKEN`.
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN` and `SIDEKICK_AI_ANTHROPIC_API_KEY` (file name `ai_anthropic_api_key`, see [Run AI steps](ai-steps.md)).
 
 Existing installations keep working unchanged: a plain variable is still read. Move the values when you like:
 
@@ -70,7 +71,7 @@ For each secret that has a real value in `selfhost.env` the script writes it to 
 How it works:
 
 - `compose.yaml` mounts each file as a Docker secret and sets `SIDEKICK_<NAME>_FILE=/run/secrets/<name>` in the services that read it, but only while `SELFHOST_<NAME>_FILE` is set. Without it the secret is an empty `/dev/null` mount and the backend ignores the empty variable.
-- The backend reads the file named by `SIDEKICK_<NAME>_FILE` for each of the nine settings (the ones marked secret in the [configuration reference](../reference/configuration.md)), drops the trailing line break and validates the value like any other. A missing, unreadable, empty, non-UTF-8 or oversized file stops the start with an error that names the variable, never the content.
+- The backend reads the file named by `SIDEKICK_<NAME>_FILE` for each of the ten settings (the ones marked secret in the [configuration reference](../reference/configuration.md)), drops the trailing line break and validates the value like any other. A missing, unreadable, empty, non-UTF-8 or oversized file stops the start with an error that names the variable, never the content.
 - Setting both `SIDEKICK_<NAME>` and `SIDEKICK_<NAME>_FILE` stops the start with an error. An empty `SIDEKICK_<NAME>` does not count as set. `SIDEKICK_<NAME>_FILE` is read from the process environment only, not from a `.env` file.
 - The directory `secrets/` has mode 700 and the files mode 644, not 600. Compose bind-mounts a file secret as it is on the host and ignores `uid`, `gid` and `mode`, and the container user is not you, so a mode 600 file could not be read in the container. The directory is what keeps other users of the host out. It is git-ignored.
 - Back up `secrets/` together with `selfhost.env` and keep both private. Losing the backup key still means the backups cannot be read.

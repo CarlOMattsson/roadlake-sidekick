@@ -99,6 +99,23 @@ eller sin uppgift när de raderas för gott. En återrullning tar bort kolumnern
 Ägarexporten bär dessa kolumner och samlingen `ai_step_runs` (format 8); en export i format 7 har ingen av dem och
 återställer sina steg som ägarens egna.
 
+## Migrering 113: serverköns index
+
+`113_ai_server_queue.py` är en rent additiv (expand) migrering. Den lägger till ett partiellt index,
+`ix_ai_step_runs_server_queue`, på `ai_step_runs (lease_until)` för serverkörningar, så att AI-workern snabbt hittar köade och
+avstannade körningar. Inga data flyttas och inga behörigheter ändras. En återrullning släpper indexet.
+
+## Migrering 114: kostnader för raderade körningar
+
+`114_ai_erased_run_costs.py` är en additiv (expand) migrering. En körning lämnar `ai_step_runs` tillsammans med sitt steg
+eller sin uppgift när de raderas permanent, så månadstaket och dagsgränsen för starter skulle glömma vad den kostade. Den
+nya tabellen `ai_erased_run_costs` behåller per raderad körning bara identifierare och siffror: körningen, dess ägare och
+uppgift, körsätt, kostnadskälla, kostnaden (plus en reservation som ännu hölls) och skapandetid. En `BEFORE DELETE`-trigger
+på `ai_step_runs` skriver raden genom en funktion som körs med schemaägarens rättigheter, så applikationsrollen får bara
+läsa tabellen. När ägarens konto självt raderas skriver triggern ingenting, och främmande nyckeln tar bort de rader som
+redan sparats. En återrullning släpper triggern, funktionen och tabellen, vilket bara förlorar de kostnaderna. Ägarexporten
+innehåller inte tabellen.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

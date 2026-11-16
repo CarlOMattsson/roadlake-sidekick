@@ -203,6 +203,14 @@ class BriefSource:
     previous: AiStepRun | None = None
 
 
+def _allowed_tools(spec: AiStepSpecV1, runner: RunnerKind) -> list[str]:
+    """The tools a run may use: what the spec asks for in Claude Code, none on the server."""
+
+    if runner is RunnerKind.SERVER:
+        return []
+    return [capability.value for capability in spec.capabilities]
+
+
 def _inline(value: str) -> str:
     return " ".join(clean_text(value).split())
 
@@ -217,7 +225,8 @@ def _data_block(kind: str, text: str) -> str:
 def _previous_attempt(previous: AiStepRun) -> list[str]:
     lines = ["", "# Previous attempt"]
     if previous.question is not None:
-        lines.append(f"You asked: {_inline(previous.question)}")
+        lines.append("You asked:")
+        lines.append(_data_block("previous_question", previous.question))
     if previous.answer is not None:
         lines.append(_data_block("owner_answer", previous.answer))
     if previous.feedback is not None:
@@ -228,7 +237,23 @@ def _previous_attempt(previous: AiStepRun) -> list[str]:
     return lines
 
 
-def render_brief(source: BriefSource) -> str:
+def _report_section(source: BriefSource, runner: RunnerKind) -> list[str]:
+    spec = source.spec
+    format_line = (
+        f"Result format: {spec.output.format.value}, at most {spec.output.max_chars} characters. "
+        "Report each checklist action as done or not done. "
+        "If you must stop, report a question or a failure instead of guessing."
+    )
+    if runner is RunnerKind.SERVER:
+        return ["# Report", f"Answer with the JSON object of the given schema. {format_line}"]
+    return [
+        "# Report",
+        f"Call report_ai_step_result with run_id {source.run_id} and run_version "
+        f"{source.run_version}. {format_line}",
+    ]
+
+
+def render_brief(source: BriefSource, runner: RunnerKind = RunnerKind.CLAUDE_CODE) -> str:
     """The Markdown brief a run follows: front matter, instructions, then the task as data.
 
     Only the validated spec gives instructions. The task's own text and the owner's earlier
@@ -241,7 +266,7 @@ def render_brief(source: BriefSource) -> str:
         "---",
         f"name: sidekick-step-{str(source.step.id).replace('-', '')[:_NAME_LENGTH]}",
         f"description: {spec.goal}",
-        f"allowed-tools: [{', '.join(capability.value for capability in spec.capabilities)}]",
+        f"allowed-tools: [{', '.join(_allowed_tools(spec, runner))}]",
         f"budget_usd: {spec.budget.max_usd:.2f}",
         f"max_turns: {spec.budget.max_turns}",
         "---",
@@ -260,11 +285,7 @@ def render_brief(source: BriefSource) -> str:
             or ["- (no checklist)"]
         ),
         "",
-        "# Report",
-        f"Call report_ai_step_result with run_id {source.run_id} and run_version "
-        f"{source.run_version}. Result format: {spec.output.format.value}, at most "
-        f"{spec.output.max_chars} characters. Report each checklist action as done or not "
-        "done. If you must stop, report a question or a failure instead of guessing.",
+        *_report_section(source, runner),
     ]
     if source.previous is not None:
         lines.extend(_previous_attempt(source.previous))

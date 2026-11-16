@@ -39,6 +39,13 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
     ),
     "run_not_open": "That run is not in a state this applies to. Read it with get_ai_step_run.",
     "ai_limit_reached": "A daily or per-step limit for AI runs was reached; try again later.",
+    "ai_runner_off": (
+        "Running AI steps on the server is off, or this step needs something the server "
+        "cannot give (a local model, web tools). Ask the owner to run it in Claude Code."
+    ),
+    "ai_budget_reached": (
+        "The spending cap of the task or of the month is reached, so the step was not run."
+    ),
 }
 
 # A stale version on a named record: the spoken first line names it and says what to do.
