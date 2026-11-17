@@ -51,6 +51,8 @@ class ContactRow(Base):
     organization: Mapped[str | None] = mapped_column(String(200))
     role: Mapped[str | None] = mapped_column(String(120))
     address: Mapped[str | None] = mapped_column(String(500))
+    # The normalized profile link of a Slack member (`https://<workspace>.slack.com/team/<id>`).
+    slack: Mapped[str | None] = mapped_column(String(160))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

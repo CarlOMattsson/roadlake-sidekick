@@ -6,6 +6,41 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-17
+
+### Added
+
+- AI-delegated task steps (#26): Claude plans the steps, you approve them, they run, and you review the result.
+  Planning, approving, running and reviewing are all available as tools.
+- Optional server runner for AI steps, off by default: a separate `ai-worker` in the `ai` Compose profile, with your
+  Anthropic key in a file that only the worker reads, a monthly and a per-task spending cap, and attempts counted per
+  cycle.
+- Opt-in "AI this month" row in Control with the month's AI cost (`SIDEKICK_MCP_APP_SHOW_AI_USAGE`, off by default).
+- Android app: tasks, projects and journal entries written without a network are kept and sent when the connection
+  returns; queued journal entries are encrypted.
+- Completing a task completes its open steps, and a repeating task starts its steps over for the next run.
+- Board column headings show the server's real totals, and inline board and agenda cards have a refresh button.
+- Compact `list_tasks` rows, and per-task project, domain and description in `create_tasks`.
+- Contacts: an optional Slack profile link (`https://<workspace>.slack.com/team/<member id>`) shown under ways to
+  reach a contact; it opens the person in Slack, one tap from a direct message.
+
+### Changed
+
+- Update tools (breaking for MCP clients, #29): `null` in `changes` now means "not sent". To empty a field, name it in
+  the new `clear` list. Replies list the nulls that were ignored. The companion API is unchanged.
+
+### Fixed
+
+- Update tools accept a `changes` object that carries schema defaults, and a refused change names the failing path.
+- Shopping: a null quantity in an item update is refused, as the schema has never allowed it.
+- AI steps: accepting a result is bound to the approved plan, only the client that started a run may report it, the
+  cost of erased runs still counts toward the spending caps, and a model call is capped at the time the worker has
+  left when it is stopped.
+- Work app: a Task marked done goes back only to the list it was opened from.
+- Android app: an emptied journal queue is erased, edits are sent whole, and Back is registered before the first paint.
+- `license_issue` treats only a real git repository as a git working tree.
+- Transitive npm dependencies flagged by Dependabot are updated.
+
 ## [0.1.2] - 2026-11-15
 
 ### Added
@@ -18,7 +53,7 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 - Guided review of many tasks for voice mode: `get_review_queue`, `review_tasks` and `restore_task`, and Ambitions,
   tasks you want to keep in view without reminders.
 - Token-protected webhooks for home and phone automation (`/webhooks/v1/`, off by default): add a shopping item or
-  create a task, one revocable token per integration, managed with `sidekick-webhooks`.
+  create a task, one revocable token per integration, managed with `python -m sidekick.webhooks.cli`.
 - Self-hosting: a `tailscale` Compose profile that publishes Sidekick through Tailscale Funnel from a home machine.
 
 ### Changed

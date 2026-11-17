@@ -217,7 +217,7 @@ export function ContactsRoom(props: RoomProps) {
         opening={state.opening}
         shortcuts={fullscreen}
         onOpenJournalEntry={onOpenJournalEntry}
-        // The `waysToReach` fold opens e-mail and phone through the host (ui/open-link).
+        // The `waysToReach` fold opens e-mail, phone and Slack through the host (ui/open-link).
         onOpenLink={openLink && ((url) => void openLink(url))}
         // In the full view of a host that routes, a Contact, Task or Project is a step on the shell's stack.
         onRoute={fullscreen ? onNavigate : undefined}

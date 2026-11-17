@@ -59,13 +59,16 @@ EXPORT_FORMAT_VERSION = 8
 # Format 7 (written at migrations 110 and 111) has none of what migration 112 added: a Task's four
 # `ai_*` columns, a Step's `performer` and `ai_spec`, and the `ai_step_runs` collection. A format 7
 # export is still read: its Steps restore as the owner's own, its Tasks as having no AI mark or
-# approved plan, and the missing collection as empty.
+# approved plan, and the missing collection as empty. The same goes for `contacts.slack`, which
+# migration 115 added before format 8 was first released: such a Contact restores with no Slack
+# profile.
 FORMAT_WITHOUT_AI_STEPS = 7
 COLUMNS_ADDED_IN_FORMAT_8: dict[str, frozenset[str]] = {
     "tasks": frozenset(
         {"ai_possible_since", "ai_plan_digest", "ai_plan_approved_at", "ai_task_cap_microusd"}
     ),
     "steps": frozenset({"performer", "ai_spec"}),
+    "contacts": frozenset({"slack"}),
 }
 COLLECTIONS_ADDED_IN_FORMAT_8: frozenset[str] = frozenset({"ai_step_runs"})
 # Format 6 (written at migrations 107 and 108) has no `tasks.last_reviewed_at` nor
@@ -113,6 +116,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("113_ai_server_queue", True),
     # Costs of erased runs, kept for the spending caps; derived and never exported.
     ("114_ai_erased_run_costs", True),
+    # A Contact's Slack profile link: an exported column (format 8).
+    ("115_contact_slack_profile", False),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -144,7 +149,7 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
 # at migration 107 or 108, a format 7 export at migration 110 or 111 and a format 8 export at
-# migration 112 or later (113 and 114 change no exported table).
+# migration 115 (112 and 115 added exported columns before format 8 was first released).
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
     FORMAT_WITHOUT_AI_STEPS: frozenset({"110_task_ambition", "111_webhook_tokens"}),

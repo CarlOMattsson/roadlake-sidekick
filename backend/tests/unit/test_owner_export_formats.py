@@ -67,6 +67,7 @@ def test_contact_fields_are_written_with_rfc_6350_escaping() -> None:
                 email="anna.lindstrom@example.com",
                 phone="+46 70-174 06 05",
                 address="Storgatan 1, Stockholm\nSverige",
+                slack="https://acme.slack.com/team/U01ABC23DEF",
                 relationship="syster",
                 context_note="Träffades på mässan\nDet är \\ ok; tack, hej",
             )
@@ -83,6 +84,7 @@ def test_contact_fields_are_written_with_rfc_6350_escaping() -> None:
     assert "ROLE:Förvaltare\\, konsult" in lines
     assert "EMAIL:anna.lindstrom@example.com" in lines
     assert "TEL;VALUE=uri:tel:+46701740605" in lines
+    assert "URL:https://acme.slack.com/team/U01ABC23DEF" in lines
     assert "ADR:;;Storgatan 1\\, Stockholm\\nSverige;;;;" in lines
     assert "UID:urn:uuid:" + ANNA_ID in lines
     assert "NOTE:Relation: syster\\nTräffades på mässan\\nDet är \\\\ ok\\; tack\\, hej" in lines

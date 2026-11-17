@@ -29,7 +29,7 @@ Roadlake Sidekick är en personlig assistent som du kör på din egen server: du
 
 [English](README.md) · [Dokumentation](docs/README.sv.md) · [Snabbstart](QUICKSTART.sv.md) · [Licens](LICENSE.md) · [Bidra](CONTRIBUTING.sv.md) · [Säkerhet](SECURITY.sv.md) · [Beslut](docs/decisions/log.md)
 
-> **Status: version 0.1.2.** Den signerade containerimagen och den signerade APK:n ligger som bilagor
+> **Status: version 0.2.0.** Den signerade containerimagen och den signerade APK:n ligger som bilagor
 > i [senaste releasen](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); hur du verifierar dem står i
 > [Verifiera en release](docs/maintainers/release.sv.md#verifiera-en-release). Den används dagligen med Claude, med
 > Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat.

@@ -328,9 +328,9 @@ def _field_names(record_type: type) -> set[str]:
     return {field.name for field in fields(record_type)}
 
 
-def test_contact_input_cannot_carry_email_phone_or_address() -> None:
+def test_contact_input_cannot_carry_email_phone_address_or_slack() -> None:
     names = _field_names(ContactInput)
-    assert not names & {"email", "email_key", "phone", "phone_key", "address"}
+    assert not names & {"email", "email_key", "phone", "phone_key", "address", "slack"}
     assert not names & {"id", "owner_id", "version", "archived", "archived_at"}
 
 

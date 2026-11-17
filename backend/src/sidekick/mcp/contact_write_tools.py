@@ -20,6 +20,7 @@ from sidekick.mcp.contact_records import (
     Organization,
     Relationship,
     Role,
+    Slack,
     UpdatedContactResult,
     contact_result,
 )
@@ -52,6 +53,7 @@ def _update_command(changes: ContactChanges) -> UpdateContactCommand:
         organization=sent("organization"),
         role=sent("role"),
         address=sent("address"),
+        slack=sent("slack"),
         tags=tuple(changes.tags) if "tags" in changes.model_fields_set else UNSET,
     )
 
@@ -91,6 +93,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         organization: Organization = None,
         role: Role = None,
         address: Address = None,
+        slack: Slack = None,
         tags: TagsInput | None = None,
     ) -> ToolResult:
         cmd = CreateContactCommand(
@@ -103,6 +106,7 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             organization=organization,
             role=role,
             address=address,
+            slack=slack,
             tags=tuple(tags or ()),
         )
         contact = ctx.container.contacts.create(

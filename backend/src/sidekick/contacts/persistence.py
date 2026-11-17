@@ -55,6 +55,7 @@ def contact_from_row(row: ContactRow, aliases: list[ContactAliasRow]) -> Contact
         organization=row.organization,
         role=row.role,
         address=row.address,
+        slack=row.slack,
         aliases=[
             ContactAlias(id=a.id, value=a.display_value, created_at=a.created_at) for a in aliases
         ],
@@ -277,6 +278,7 @@ class ContactStore:
                     organization=contact.organization,
                     role=contact.role,
                     address=contact.address,
+                    slack=contact.slack,
                     created_at=contact.created_at,
                     updated_at=contact.updated_at,
                     archived_at=contact.archived_at,
@@ -315,6 +317,7 @@ class ContactStore:
             "organization",
             "role",
             "address",
+            "slack",
             "updated_at",
             "archived_at",
             "archived",

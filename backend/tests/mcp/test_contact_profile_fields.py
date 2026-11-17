@@ -195,3 +195,80 @@ async def test_a_create_replay_with_the_same_profile_returns_the_same_contact() 
     conflict = await server.call_tool("create_contact", {**args, "organization": "Other AB"})
     assert conflict.is_error
     assert conflict.structured_content["code"] == "conflict"
+
+
+SLACK = "https://acme.slack.com/team/U01ABC23DEF"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_the_slack_profile_is_normalized_updated_cleared_and_checked() -> None:
+    server = make_server()
+
+    created = await server.call_tool(
+        "create_contact",
+        {
+            "display_name": "Anna Lind",
+            "idempotency_key": "slack-create-0001",
+            "slack": "acme.slack.com/team/U01ABC23DEF?utm=1",
+        },
+    )
+    contact = created.structured_content["contact"]
+    assert contact["slack"] == SLACK
+
+    # The link is a contact detail like the address: the Contact app and the model read it.
+    context = await server.call_tool("get_contact_context", {"contact_id": contact["id"]})
+    assert context.structured_content["contact"]["slack"] == SLACK
+
+    refused_update = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": contact["version"],
+            "idempotency_key": "slack-update-0001",
+            "changes": {"slack": "https://evil.com/team/U01ABC23DEF"},
+        },
+    )
+    assert refused_update.is_error
+    assert refused_update.structured_content["code"] == "validation_error"
+
+    # Another field is changed: the link stays. Naming it in clear empties it.
+    renamed = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": contact["version"],
+            "idempotency_key": "slack-update-0002",
+            "changes": {"role": "VD"},
+        },
+    )
+    after = renamed.structured_content["contact"]
+    assert after["slack"] == SLACK
+    cleared = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": after["version"],
+            "idempotency_key": "slack-update-0003",
+            "changes": {},
+            "clear": ["slack"],
+        },
+    )
+    assert cleared.structured_content["contact"]["slack"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_slack_link_that_is_not_a_slack_profile_is_refused_on_create() -> None:
+    server = make_server()
+
+    refused = await server.call_tool(
+        "create_contact",
+        {
+            "display_name": "Anna Lind",
+            "idempotency_key": "slack-create-0002",
+            "slack": "javascript:alert(1)",
+        },
+    )
+    assert refused.is_error
+    assert refused.structured_content["code"] == "validation_error"

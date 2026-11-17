@@ -4,10 +4,10 @@
 # for a finding that cannot be fixed by upgrading and does not reach a shipped artifact: when the date passes, upgrade or
 # decide again.
 
-# minimatch 10.2.6, fixed only in 11.x. It is a dev-only dependency of typescript-eslint (typescript-estree asks for
-# ^10.2.2), used by the linter to match our own glob patterns from tsconfig and the ESLint config. The advisory needs
-# attacker-controlled patterns at optimizationLevel >= 2; the linter is fed none, and nothing of it is shipped.
+# picomatch 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS), the newest release; the advisory lists no fixed version. It is a dev-only
+# dependency (vite, vitest and tinyglobby use it to match our own file globs at build and test time). The advisory needs
+# attacker-controlled glob patterns; the build and test tools are fed none, and nothing of it is shipped.
 [[IgnoredVulns]]
-id = "GHSA-g3hv-75wg-m249"
-ignoreUntil = 2027-02-10
-reason = "Dev-only dependency of typescript-eslint, which requires ^10; the patterns it matches come from our own config, not from input. Not shipped."
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-17
+reason = "Build and test-time dependency only (vite, vitest, tinyglobby); globs come from our own config, not from input. No fixed release exists yet. Not shipped."

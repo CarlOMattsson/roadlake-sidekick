@@ -116,6 +116,14 @@ only read the table. When the owner's account itself is erased the trigger write
 the rows already kept. Rolling it back drops the trigger, the function and the table, which loses only those costs. The
 owner export does not carry the table.
 
+## Migration 115: a Contact's Slack profile
+
+`115_contact_slack_profile.py` is an additive (expand) migration. It adds the nullable `contacts.slack`, the normalized
+link to the Contact's Slack profile (`https://<workspace>.slack.com/team/<member id>`), which the application checks
+before it is stored. Existing Contacts read as having none. The owner export carries it in each Contact row (format 8,
+which had not been released yet); a format 7 export has no such column and its Contacts restore with no Slack profile.
+Rolling it back drops the column, which loses only the links entered since.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

@@ -58,6 +58,7 @@ export function ContactBody({
     ![
       contact.email,
       contact.phone,
+      contact.slack,
       contact.address,
       contact.relationship,
       contact.role,
@@ -126,7 +127,7 @@ export function ContactBody({
             }
             locale={t.dateLocale}
           />
-          {/* `waysToReach` ⌄: a fold row of 48 with e-mail, phone and address closed in it. */}
+          {/* `waysToReach` ⌄: a fold row of 48 with e-mail, phone, Slack and address closed in it. */}
           <ContactWays contact={contact} onOpenLink={onOpenLink} labels={dl} />
           {/* No labelled field rows (design system §3, Contact view): the note is a paragraph under `aboutContact`. */}
           {contact.context_note && (

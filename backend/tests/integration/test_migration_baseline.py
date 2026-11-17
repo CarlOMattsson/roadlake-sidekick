@@ -33,6 +33,7 @@ from tests.support.migration_baseline import (
     AI_SERVER_QUEUE,
     AI_STEPS,
     BASELINE,
+    CONTACT_SLACK,
     DROP_AUTOMATION,
     FORGOTTEN_FACTS,
     MIGRATIONS_PATH,
@@ -191,6 +192,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
         AI_STEPS,
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
+        CONTACT_SLACK,
     }
     engine = create_engine(_admin_url())
     try:
@@ -400,6 +402,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         "sidekick.memory_forgotten_units, sidekick.memory_forgotten_facts; "
         "ALTER TABLE sidekick.memory_sources DROP CONSTRAINT uq_memory_sources_id_owner; "
         "ALTER TABLE sidekick.memory_settings DROP COLUMN forget_salt; "
+        "ALTER TABLE sidekick.contacts DROP COLUMN slack; "
         "ALTER TABLE sidekick.tasks DROP COLUMN last_reviewed_at; "
         "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since; "
         "DROP TABLE sidekick.webhook_tokens; "
@@ -428,6 +431,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         AI_STEPS,
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
+        CONTACT_SLACK,
     }
     engine = create_engine(_admin_url())
     try:
@@ -454,6 +458,7 @@ def _stamp(ids: list[str]) -> None:
         AI_STEPS,
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
+        CONTACT_SLACK,
     ):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:

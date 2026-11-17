@@ -16,6 +16,7 @@ from sidekick.contacts.domain.normalization import (
     normalize_name,
     normalize_phone,
     normalize_profile_text,
+    normalize_slack_profile,
 )
 from sidekick.shared.errors import NotFoundError, ValidationError
 from sidekick.shared.replay import id_replay_record
@@ -129,7 +130,7 @@ class ContactService:
             "aliases": command.aliases,
         }
         # Only set profile fields are hashed, so a replay recorded before they existed matches.
-        for field in ("relationship", "organization", "role", "address"):
+        for field in ("relationship", "organization", "role", "address", "slack"):
             if getattr(command, field) is not None:
                 payload[field] = getattr(command, field)
         tags = normalize_tag_selection(command.tags)
@@ -167,6 +168,7 @@ class ContactService:
         organization_val = normalize_profile_text(command.organization, "organization")
         role_val = normalize_profile_text(command.role, "role")
         address_val = normalize_profile_text(command.address, "address")
+        slack_val = normalize_slack_profile(command.slack)
 
         aliases_list: list[ContactAlias] = []
         aliases = command.aliases or []
@@ -200,6 +202,7 @@ class ContactService:
             organization=organization_val,
             role=role_val,
             address=address_val,
+            slack=slack_val,
             aliases=aliases_list,
             archived=False,
             created_at=now,

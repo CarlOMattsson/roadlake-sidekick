@@ -36,6 +36,7 @@ WEBHOOK_TOKENS = "111_webhook_tokens"
 AI_STEPS = "112_ai_steps"
 AI_SERVER_QUEUE = "113_ai_server_queue"
 AI_ERASED_COSTS = "114_ai_erased_run_costs"
+CONTACT_SLACK = "115_contact_slack_profile"
 
 
 # The catalogue facts a migration can change, each as sorted text rows. Deparsed definitions

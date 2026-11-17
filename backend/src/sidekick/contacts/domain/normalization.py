@@ -1,5 +1,6 @@
 """Pure domain value normalization and validation rules for Contacts."""
 
+import re
 import unicodedata
 
 from sidekick.shared.errors import ValidationError
@@ -92,6 +93,54 @@ def normalize_phone(phone: str | None) -> tuple[str | None, str | None]:
     # Exact-match key keeps that optional leading '+' plus ASCII digits
     key = "+" + digits if s.startswith("+") else digits
     return s, key
+
+
+# A Slack member ID: `U` (or `W` on Enterprise Grid) followed by upper-case letters and digits.
+_SLACK_MEMBER_ID = re.compile(r"[UW][A-Z0-9]{2,19}")
+# One or more DNS labels in front of `slack.com`: a workspace (`acme.slack.com`) or an Enterprise
+# Grid organisation (`acme.enterprise.slack.com`). Bare `slack.com` and look-alike hosts such as
+# `slack.com.example.org` or `notslack.com` do not match.
+_SLACK_HOST = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+slack\.com")
+SLACK_PROFILE_LIMIT = 160
+
+
+def normalize_slack_profile(value: str | None) -> str | None:
+    """Normalize a Slack profile link to `https://<workspace>.slack.com/team/<member id>`.
+
+    The owner copies it from a Slack profile (the profile's menu, "Copy link to profile"). Only the
+    two validated parts are kept and the link is built from them, so no other host, scheme, port,
+    credentials, path or query can be stored: the link opens one member's profile in a Slack
+    workspace and nothing else. The scheme may be left out; `http` and every other scheme are
+    refused. A blank value clears the field.
+    """
+    if value is None:
+        return None
+    s = value.strip()
+    if not s:
+        return None
+    if len(s) > 300:
+        raise ValidationError("slack profile link is too long")
+    if not s.isascii() or any(unicodedata.category(char) in {"Cc", "Cf", "Zs"} for char in s):
+        raise ValidationError("slack profile link contains invalid characters")
+
+    if "://" in s:
+        scheme, _, rest = s.partition("://")
+        if scheme.lower() != "https":
+            raise ValidationError("slack profile link must use https")
+    else:
+        rest = s
+    # A fragment or query (such as a tracking parameter) carries nothing that is kept.
+    rest = rest.split("#", 1)[0].split("?", 1)[0]
+    host, slash, path = rest.partition("/")
+    host = host.lower()
+    if not _SLACK_HOST.fullmatch(host):
+        raise ValidationError("slack profile link must be on a slack.com workspace")
+    segments = path.rstrip("/").split("/") if slash else []
+    if len(segments) != 2 or segments[0] != "team" or not _SLACK_MEMBER_ID.fullmatch(segments[1]):
+        raise ValidationError(
+            "slack profile link must look like https://<workspace>.slack.com/team/<member id>"
+        )
+    return f"https://{host}/team/{segments[1]}"
 
 
 def normalize_context_note(note: str | None) -> str | None:

@@ -326,6 +326,7 @@ export type WorkContactRecord = WithOptional<
     | "display_name"
     | "email"
     | "phone"
+    | "slack"
     | "context_note"
     | "relationship"
     | "organization"
@@ -337,7 +338,7 @@ export type WorkContactRecord = WithOptional<
     | "version"
     | "tags"
   >,
-  "tags"
+  "tags" | "slack"
 >;
 /**
  * Fields update_contact accepts. An omitted key is left unchanged; null clears email, phone or the

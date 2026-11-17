@@ -105,6 +105,7 @@ export function BoardSummary({
   page,
   labels: t,
   onOpen,
+  onOpenItem,
   onModelContext,
   refresh,
 }: {
@@ -112,6 +113,8 @@ export function BoardSummary({
   labels: WorkLabels;
   /** Asks the host for fullscreen; the caller passes it only when the host can show it. */
   onOpen: () => void;
+  /** Opens one record from its row, in fullscreen; without it a row opens the board. */
+  onOpenItem?: (item: WorkItemRecord) => void;
   /** Reads the board again from the card's corner; the room passes it only when the host answers the read. */
   refresh?: ListRefresh;
   /** Sends the counts to the host model once per shown summary; a no-op without host support. */
@@ -212,7 +215,7 @@ export function BoardSummary({
                   meta={inlineMeta(item, now, t.dateLocale, (s) =>
                     workStatusLabel(t, s),
                   )}
-                  onOpen={onOpen}
+                  onOpen={() => (onOpenItem ? onOpenItem(item) : onOpen())}
                 />
               ))}
             </ul>

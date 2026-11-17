@@ -116,6 +116,14 @@ läsa tabellen. När ägarens konto självt raderas skriver triggern ingenting, 
 redan sparats. En återrullning släpper triggern, funktionen och tabellen, vilket bara förlorar de kostnaderna. Ägarexporten
 innehåller inte tabellen.
 
+## Migrering 115: en kontakts Slack-profil
+
+`115_contact_slack_profile.py` är en additiv (expand) migrering. Den lägger till den nullbara `contacts.slack`, den
+normaliserade länken till kontaktens Slack-profil (`https://<arbetsyta>.slack.com/team/<medlems-id>`), som programmet
+kontrollerar innan den lagras. Befintliga kontakter läses som utan Slack-profil. Ägarexporten bär den i varje kontaktrad
+(format 8, som ännu inte hade getts ut); en export i format 7 saknar kolumnen och dess kontakter återställs utan
+Slack-profil. En återrullning släpper kolumnen, vilket bara förlorar de länkar som lagts in sedan dess.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

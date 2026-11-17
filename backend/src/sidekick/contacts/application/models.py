@@ -42,6 +42,7 @@ class CreateContactCommand:
     organization: str | None = None
     role: str | None = None
     address: str | None = None
+    slack: str | None = None
     tags: tuple[str, ...] = ()
 
 
@@ -55,6 +56,7 @@ class UpdateContactCommand:
     organization: str | UnsetType | None = UNSET
     role: str | UnsetType | None = UNSET
     address: str | UnsetType | None = UNSET
+    slack: str | UnsetType | None = UNSET
     # The complete intended tag set; tags are not a column, so they stay out of `changes()`.
     tags: tuple[str, ...] | UnsetType = UNSET
 
@@ -70,6 +72,7 @@ class UpdateContactCommand:
                 "organization": self.organization,
                 "role": self.role,
                 "address": self.address,
+                "slack": self.slack,
             }.items()
             if value is not UNSET
         }

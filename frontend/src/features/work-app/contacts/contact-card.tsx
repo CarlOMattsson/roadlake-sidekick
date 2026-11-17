@@ -160,11 +160,20 @@ const initialsStyle: CSSProperties = {
   userSelect: "none",
 };
 
+/** The workspace host of a Slack profile link ("acme.slack.com"); the whole value when it is not a URL. */
+function slackWorkspace(link: string): string {
+  try {
+    return new URL(link).hostname;
+  } catch {
+    return link;
+  }
+}
+
 /**
  * The `waysToReach` fold ⌄ after the `aboutContact` paragraph (design system §3, Contact view):
  * a foldable section, its label in the section heading style of `aboutContact` and `tasks` with ⌄ on the content edge
  * (as a row it read as a list item), and a meta line naming what is there (the `wayWords`). Closed by default. Open, the values are rows on the title's x with no labels;
- * e-mail and phone open through the host (`onOpenLink`, bridge ui/open-link), or as plain links without one.
+ * e-mail, phone and Slack open through the host (`onOpenLink`, bridge ui/open-link), or as plain links without one.
  * Without any value the row is left out.
  */
 export function ContactWays({
@@ -177,13 +186,19 @@ export function ContactWays({
   onOpenLink?: (url: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { email, phone, address } = contact;
-  const values = [
-    email && `mailto:${email}`,
-    phone && `tel:${phone.replace(/[^\d+]/gu, "")}`,
-    address,
+  const { email, phone, slack, address } = contact;
+  // One entry per way, in the order of `wayWords`; `href` is set for those that open as a link.
+  const ways: { text?: string | null; href?: string }[] = [
+    { text: email, href: email ? `mailto:${email}` : undefined },
+    {
+      text: phone,
+      href: phone ? `tel:${phone.replace(/[^\d+]/gu, "")}` : undefined,
+    },
+    // The server keeps the profile link as https://<workspace>.slack.com/team/<member id>: the row shows the workspace.
+    { text: slack && slackWorkspace(slack), href: slack ?? undefined },
+    { text: address },
   ];
-  const kinds = labels.wayWords.filter((_, index) => values[index]);
+  const kinds = labels.wayWords.filter((_, index) => ways[index]?.text);
   if (!kinds.length) return null;
   const meta = new Intl.ListFormat(labels.wayLocale).format(kinds);
   return (
@@ -197,12 +212,10 @@ export function ContactWays({
       />
       {open && (
         <ul className="work-list">
-          {[email, phone, address].map((value, index) => {
-            const href = values[index];
-            if (!value || !href) return null;
-            return (
+          {ways.map(({ text, href }, index) =>
+            text ? (
               <li key={index}>
-                {index < 2 ? (
+                {href ? (
                   <a
                     href={href}
                     onClick={
@@ -213,14 +226,14 @@ export function ContactWays({
                       })
                     }
                   >
-                    {value}
+                    {text}
                   </a>
                 ) : (
-                  value
+                  text
                 )}
               </li>
-            );
-          })}
+            ) : null,
+          )}
         </ul>
       )}
     </section>

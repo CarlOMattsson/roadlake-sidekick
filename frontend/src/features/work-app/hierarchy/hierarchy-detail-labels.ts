@@ -40,10 +40,10 @@ export const hierarchyDetailLabelsSv = {
   changePriority: "Ändra prioritet",
   /** The Contact's note as a paragraph under the `aboutContact` heading (design system §3, Kontaktvyn). */
   aboutContact: (first: string) => `Om ${first}`,
-  /** The closed section with e-mail, phone and address. */
+  /** The closed section with e-mail, phone, Slack and address. */
   waysToReach: "Kontaktvägar",
-  /** The `waysToReach` meta line names what is there (e-mail and phone): the words, and the locale that lists them. */
-  wayWords: ["e-post", "telefon", "adress"],
+  /** The `waysToReach` meta line names what is there (e-mail, phone, Slack and address): the words, and the locale that lists them. */
+  wayWords: ["e-post", "telefon", "Slack", "adress"],
   wayLocale: "sv",
   /** The create field of the Contact list: a new Contact needs only a name. */
   newContactExample: "Ny kontakt, t.ex. Anna Andersson",
@@ -72,7 +72,7 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
   changePriority: "Change priority",
   aboutContact: (first) => `About ${first}`,
   waysToReach: "Contact details",
-  wayWords: ["email", "phone", "address"],
+  wayWords: ["email", "phone", "Slack", "address"],
   wayLocale: "en",
   newContactExample: "New contact, e.g. Anna Andersson",
   close: "Close",

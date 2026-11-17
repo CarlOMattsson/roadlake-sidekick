@@ -476,19 +476,14 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_head_is_the_ai_steps_migration_and_each_format_keeps_its_heads() -> None:
-    """Migration 112 adds Task and Step columns and the run table, so format 8 is written at 112
-    or later: 113 only adds an index and 114 a table of numbers that is never exported. Format 7
-    was written at 110 (no release stopped at 109) or at 111, which adds a credential table that
-    is never exported; migration 108 left the export alone, so format 6 was written at 107 or
-    108."""
+def test_the_head_is_the_contact_slack_migration_and_each_format_keeps_its_heads() -> None:
+    """Migrations 112 and 115 add exported columns before format 8 is first released, so format 8
+    is written at 115 or later. Format 7 was written at 110 (no release stopped at 109) or at 111,
+    which adds a credential table that is never exported; migration 108 left the export alone, so
+    format 6 was written at 107 or 108."""
 
-    assert SCHEMA_HEAD == "114_ai_erased_run_costs"
-    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
-        "112_ai_steps",
-        "113_ai_server_queue",
-        SCHEMA_HEAD,
-    }
+    assert SCHEMA_HEAD == "115_contact_slack_profile"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_AI_STEPS] == {HEAD_110, HEAD_111}
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_TASK_REVIEW] == {
         TAG_LINKS_HEAD,
@@ -731,6 +726,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
             "organization": None,
             "role": None,
             "address": None,
+            "slack": "https://acme.slack.com/team/U01ABC23DEF",
         }
     ]
     document = build_export_document(
@@ -739,6 +735,9 @@ def test_a_current_export_carries_the_profile_columns() -> None:
 
     assert verify_export(document).collection_counts["contacts"] == 1
     assert document["collections"]["contacts"][0]["relationship"] == "syster"
+    assert (
+        document["collections"]["contacts"][0]["slack"] == "https://acme.slack.com/team/U01ABC23DEF"
+    )
 
 
 @pytest.mark.parametrize("version", [0, 1, 3, 9, "8", True, None, [8]])

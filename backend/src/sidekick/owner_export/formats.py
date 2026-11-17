@@ -159,6 +159,10 @@ def _contact_lines(contact: Mapping[str, Any], aliases: list[str]) -> list[str]:
     tel = _tel_uri(phone) if phone is not None else None
     if tel is not None:
         lines.append(f"TEL;VALUE=uri:{tel}")
+    slack = _text(contact, "slack")
+    if slack is not None:
+        # A uri value, not text: the normalized link has nothing to escape.
+        lines.append(f"URL:{slack}")
     address = _text(contact, "address")
     if address is not None:
         # RFC 6350 section 6.3.1: the free-form address is written in the street component.

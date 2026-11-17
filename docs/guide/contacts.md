@@ -15,7 +15,7 @@ Contacts (Kontakter) is the room for people and organisations. Each contact is s
 - **The list** of your contacts, with a search field at the top.
 - **The contact**: name, one line with relation, role and organisation, and a note about the person.
 - **Även kallad** (Nicknames), a line under the name with the contact's other names. It only shows when the contact has any.
-- **Kontaktvägar** (Contact details), a folded row with email and phone. It only shows when there is something to show.
+- **Kontaktvägar** (Contact details), a folded row with email, phone and Slack. It only shows when there is something to show.
 - **Tags** (Taggar), small chips under the contact details. The list rows show the first two.
 - **Tasks, Notes and Projects** linked to the contact. A project row shows its status when it is not active, and how far it has come, for example "3 av 5 klara" (3 of 5 done).
 
@@ -43,9 +43,11 @@ Open the contact, choose ⋯ and then "Redigera" (Edit). You can also tap the na
 
 "Arkivera" (Archive) in the same ⋯ menu hides a contact you no longer want to see in the list. It happens at once, without a question. The page then says "Kontakten är arkiverad." (The contact is archived.) with "Ångra" (Undo), which brings the contact back. An archived contact is read-only and has "Återställ" (Restore) in the menu instead.
 
-## Open an email address or phone number
+## Open an email address, phone number or Slack profile
 
-Open the contact and tap "Kontaktvägar". A tap on an address or a number hands over to the host, which opens the link.
+Open the contact and tap "Kontaktvägar". A tap on an address, a number or the Slack row hands over to the host, which opens the link. The Slack row shows the workspace and opens the person's profile in Slack, where one more tap on "Message" starts the conversation.
+
+To add a Slack profile, open the contact, choose ⋯ and then "Redigera" (Edit), and paste the profile link into the "Slack" field. In Slack, open the person's profile, open its menu (⋮) and choose "Copy link to profile". The link looks like `https://yourteam.slack.com/team/U01ABC23DEF`. Only links to a Slack workspace are accepted; Sidekick keeps just the workspace and the member ID. Clear the field to remove it.
 
 ## Remove a link
 
@@ -68,5 +70,5 @@ A scope is a permission that the server checks on every call.
 | Add and edit | `contacts:write` |
 
 :::note[Contacts and memory]
-If you have turned memory on, contacts can be one of its sources. Email, phone and address are never sent to memory. [Read about Control and memory](control-and-memory.md).
+If you have turned memory on, contacts can be one of its sources. Email, phone, address and the Slack link are never sent to memory. [Read about Control and memory](control-and-memory.md).
 :::

@@ -747,3 +747,59 @@ describe("the inline board card's kicker, title and row meta", () => {
     ).toBeInTheDocument();
   });
 });
+
+it("opens the pressed Task itself, not just the board, and Back returns to the card", async () => {
+  const user = userEvent.setup();
+  const fullscreen = vi.fn();
+  const work = {
+    getWorkBoard: vi.fn().mockResolvedValue({ columns: {}, next_cursor: null }),
+    getTask: vi.fn().mockResolvedValue({ task: { ...dueSoon, version: 1 } }),
+    listTaskContacts: vi
+      .fn()
+      .mockResolvedValue({ items: [], next_cursor: null }),
+    listTaskSteps: vi.fn().mockResolvedValue({ items: [], next_cursor: null }),
+    listTaskExternalReferences: vi
+      .fn()
+      .mockResolvedValue({ items: [], next_cursor: null }),
+  } as unknown as WorkTransport;
+  render(
+    <WorkView
+      transport={work}
+      initial={dueFrame}
+      labels={workEn}
+      fullscreen={fullscreen}
+    />,
+  );
+  await user.click(
+    screen.getByRole("button", { name: new RegExp(`^${dueSoon.title}`) }),
+  );
+  expect(fullscreen).toHaveBeenCalledTimes(1);
+  expect(work.getTask).toHaveBeenCalledWith(dueSoon.id);
+  // Back returns to the board card, as it does from the agenda card.
+  await user.click(
+    await screen.findByRole("button", { name: new RegExp(workEn.board) }),
+  );
+  expect(screen.getByRole("button", { name: openBoardName })).toBeVisible();
+});
+
+it("a row opens the board when no record opener is given, and the foot always opens the board", async () => {
+  const user = userEvent.setup();
+  const onOpen = vi.fn();
+  const onOpenItem = vi.fn();
+  render(
+    <BoardSummary
+      page={dueFrame.page}
+      labels={workEn}
+      onOpen={onOpen}
+      onOpenItem={onOpenItem}
+    />,
+  );
+  await user.click(
+    screen.getByRole("button", { name: new RegExp(`^${dueMid.title}`) }),
+  );
+  expect(onOpenItem).toHaveBeenCalledWith(dueMid);
+  expect(onOpen).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: openBoardName }));
+  expect(onOpen).toHaveBeenCalledTimes(1);
+  expect(onOpenItem).toHaveBeenCalledTimes(1);
+});

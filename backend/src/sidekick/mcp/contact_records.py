@@ -45,6 +45,8 @@ class ContactRecord(Output):
     # Shown to the Contact app and to the model (D-060: the host model may read the owner's own
     # content, within the token's scopes).
     address: str | None = None
+    # The profile link of the Contact in Slack, normalized by the server; the Contact app opens it.
+    slack: str | None = None
     aliases: list[ContactAliasRecord]
     tags: list[str] = Field(default_factory=list)
     archived: bool
@@ -150,6 +152,7 @@ Relationship = Annotated[str | None, Field(max_length=80), NoImageData]
 Organization = Annotated[str | None, Field(max_length=200), NoImageData]
 Role = Annotated[str | None, Field(max_length=120), NoImageData]
 Address = Annotated[str | None, Field(max_length=500), NoImageData]
+Slack = Annotated[str | None, NoImageData]
 
 
 class ContactChanges(PartialChanges):
@@ -163,11 +166,12 @@ class ContactChanges(PartialChanges):
     organization: Organization = None
     role: Role = None
     address: Address = None
+    slack: Slack = None
     tags: TagsInput = Field(default_factory=list)
 
 
 ContactClear = Literal[
-    "context_note", "email", "phone", "relationship", "organization", "role", "address"
+    "context_note", "email", "phone", "relationship", "organization", "role", "address", "slack"
 ]
 
 

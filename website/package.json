@@ -17,13 +17,11 @@
     "check:site": "playwright test",
     "check:pricing": "python3 scripts/check-pricing.py"
   },
-  "dependencies": {
-    "@astrojs/starlight": "0.42.10",
-    "astro": "7.4.11"
-  },
   "devDependencies": {
+    "@astrojs/starlight": "0.42.10",
     "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.65.0",
+    "astro": "7.4.11",
     "html-validate": "11.21.0",
     "starlight-links-validator": "0.27.0"
   }

@@ -19,12 +19,15 @@ export const RELATIONSHIP_MAX_LENGTH = 80;
 export const ORGANIZATION_MAX_LENGTH = 200;
 export const ROLE_MAX_LENGTH = 120;
 export const ADDRESS_MAX_LENGTH = 500;
+/** The Slack profile link of the update_contact schema; the server checks its shape. */
+export const SLACK_MAX_LENGTH = 300;
 
 /** Editable Contact fields as the form shows them; empty text means "no value". */
 export type ContactDraft = {
   displayName: string;
   email: string;
   phone: string;
+  slack: string;
   relationship: string;
   organization: string;
   role: string;
@@ -49,6 +52,7 @@ export function draftFromContact(contact: WorkContactRecord): ContactDraft {
     displayName: contact.display_name,
     email: contact.email ?? "",
     phone: contact.phone ?? "",
+    slack: contact.slack ?? "",
     relationship: contact.relationship ?? "",
     organization: contact.organization ?? "",
     role: contact.role ?? "",
@@ -89,7 +93,7 @@ export function contactFieldProblem(
 
 /**
  * Only the fields that differ from what the user last saw. Text is trimmed the way the form saves
- * it; an empty email, phone or note is sent as null, which clears it.
+ * it; an empty email, phone, Slack link or note is sent as null, which clears it.
  */
 export function changedContactFields(
   state: ContactDraftState,
@@ -102,6 +106,8 @@ export function changedContactFields(
     changes.email = values.email.trim() || null;
   if (values.phone.trim() !== base.phone.trim())
     changes.phone = values.phone.trim() || null;
+  if (values.slack.trim() !== base.slack.trim())
+    changes.slack = values.slack.trim() || null;
   if (values.contextNote.trim() !== base.contextNote.trim())
     changes.context_note = values.contextNote.trim() || null;
   // The profile fields send "" for an empty value; the server stores blank as no value.
@@ -154,6 +160,7 @@ export function ContactEditor({
   const nameId = useId();
   const emailId = useId();
   const phoneId = useId();
+  const slackId = useId();
   const relationshipId = useId();
   const organizationId = useId();
   const roleId = useId();
@@ -270,6 +277,16 @@ export function ContactEditor({
         onChange={(event) => setField("phone", event.target.value)}
       />
       {phoneBad && <p id={phoneErrorId}>{t.phoneTooLong}</p>}
+      <label htmlFor={slackId}>{t.slack}</label>
+      <input
+        id={slackId}
+        inputMode="url"
+        maxLength={SLACK_MAX_LENGTH}
+        placeholder={t.slackExample}
+        value={state.values.slack}
+        disabled={busy}
+        onChange={(event) => setField("slack", event.target.value)}
+      />
       <label htmlFor={relationshipId}>{t.relationship}</label>
       <input
         ref={relationshipInput}

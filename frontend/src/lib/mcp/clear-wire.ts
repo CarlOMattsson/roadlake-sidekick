@@ -76,6 +76,7 @@ const TOOLS: Readonly<Record<string, ClearSpec>> = {
     context_note: true,
     email: true,
     phone: true,
+    slack: true,
     relationship: true,
     organization: true,
     role: true,

@@ -6,11 +6,13 @@ from uuid import UUID
 
 from sidekick.contacts.domain.normalization import (
     PROFILE_FIELD_LIMITS,
+    SLACK_PROFILE_LIMIT,
     normalize_context_note,
     normalize_email,
     normalize_name,
     normalize_phone,
     normalize_profile_text,
+    normalize_slack_profile,
 )
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import UNSET, UnsetType
@@ -44,6 +46,7 @@ class Contact:
     organization: str | None = None
     role: str | None = None
     address: str | None = None
+    slack: str | None = None
 
     def __post_init__(self) -> None:
         # Invariants validation
@@ -59,6 +62,8 @@ class Contact:
             value = getattr(self, field)
             if value is not None and len(value) > limit:
                 raise ValidationError(f"{field} must be at most {limit} characters long")
+        if self.slack is not None and len(self.slack) > SLACK_PROFILE_LIMIT:
+            raise ValidationError("slack profile link is too long")
         if self.version < 1:
             raise ValidationError("version must be greater than or equal to 1")
         if self.archived != (self.archived_at is not None):
@@ -76,6 +81,7 @@ class Contact:
         organization: str | UnsetType | None = UNSET,
         role: str | UnsetType | None = UNSET,
         address: str | UnsetType | None = UNSET,
+        slack: str | UnsetType | None = UNSET,
     ) -> "Contact":
         """Update allowed contact fields and advance aggregate version."""
         if self.archived:
@@ -108,6 +114,9 @@ class Contact:
         ):
             if value is not UNSET:
                 changes[field] = normalize_profile_text(value, field)
+
+        if slack is not UNSET:
+            changes["slack"] = normalize_slack_profile(slack)
 
         if not changes:
             raise ValidationError("at least one contact change is required")

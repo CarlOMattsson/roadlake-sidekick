@@ -3,9 +3,9 @@
 No database, clock, network, or framework code lives here. The inputs are plain dataclasses that
 `sidekick.memory.application.queries` fills from database rows. Each input carries exactly the
 fields that are allowed to leave Sidekick, and nothing else.
-Forbidden values (contact e-mail, phone and address; identifiers; task status, priority, due date,
-estimate and rank; project running status and rank) have no field here, so they cannot reach a
-document.
+Forbidden values (contact e-mail, phone, address and Slack link; identifiers; task status,
+priority, due date, estimate and rank; project running status and rank) have no field here, so they
+cannot reach a document.
 
 `MEMORY_PIPELINE_VERSION` must be bumped whenever the Hindsight mission or the canonical text format
 changes. It is part of every fingerprint, so a bump re-sends every document.
@@ -74,7 +74,7 @@ class JournalEntryInput:
 
 @dataclass(frozen=True, slots=True)
 class ContactInput:
-    """A Contact. Email, phone and address are deliberately not representable here."""
+    """A Contact. Email, phone, address and Slack link are deliberately not representable here."""
 
     display_name: str
     aliases: tuple[str, ...]

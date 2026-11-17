@@ -131,6 +131,7 @@
 "contacts.relationship character varying(80) notnull=false generated= identity= default=",
 "contacts.role character varying(120) notnull=false generated= identity= default=",
 "contacts.search_vector tsvector notnull=false generated=s identity= default=(setweight(to_tsvector('simple'::regconfig, (COALESCE(display_name, ''::character varying))::text), 'A'::\"char\") || setweight(to_tsvector('swedish'::regconfig, COALESCE(context_note, ''::text)), 'B'::\"char\"))",
+"contacts.slack character varying(160) notnull=false generated= identity= default=",
 "contacts.trashed_at timestamp with time zone notnull=false generated= identity= default=",
 "contacts.updated_at timestamp with time zone notnull=true generated= identity= default=",
 "contacts.version integer notnull=true generated= identity= default=",

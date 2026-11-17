@@ -20,6 +20,7 @@ def contact_to_data(contact: Contact) -> dict[str, Any]:
         "organization": contact.organization,
         "role": contact.role,
         "address": contact.address,
+        "slack": contact.slack,
         "aliases": [
             {
                 "id": str(alias.id),

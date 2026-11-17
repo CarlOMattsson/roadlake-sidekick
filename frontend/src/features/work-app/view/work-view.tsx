@@ -34,6 +34,7 @@ import {
   takesDone,
   type DoneHandoff,
 } from "../shared/done-handoff";
+import type { WorkItemRecord } from "../transport/transport";
 import type { WorkViewProps } from "./parts/work-view-props";
 import "../shell/work.css";
 import "../tasks/task-detail.css";
@@ -78,6 +79,15 @@ export function WorkView({
     replaceFrame,
     back,
   } = useFrameStack({ initial, onStackDepth, onRoute });
+  // A row of an inline list card opens its own record: pushed on this view's stack (Back returns to the list), then
+  // fullscreen is asked for. Only the inline cards use it, so it is only called while fullscreen is offered.
+  const openRecordFullscreen = (item: WorkItemRecord) => {
+    open(
+      { kind: item.kind === "project" ? "project" : "task", id: item.id },
+      item.title,
+    );
+    fullscreen?.();
+  };
   // The filters of the agenda or board at the bottom of the stack, told whenever they change (a tag chosen), so the
   // shell saves a view with the filters the list shows now.
   const root = stack[0];
@@ -332,6 +342,7 @@ export function WorkView({
           page={top.page}
           labels={t}
           onOpen={fullscreen}
+          onOpenItem={openRecordFullscreen}
           onModelContext={onModelContext}
           refresh={listRefresh}
         />
@@ -383,16 +394,7 @@ export function WorkView({
           labels={inlineLabels}
           onOpen={fullscreen}
           refresh={listRefresh}
-          onOpenItem={(item) => {
-            open(
-              {
-                kind: item.kind === "project" ? "project" : "task",
-                id: item.id,
-              },
-              item.title,
-            );
-            fullscreen();
-          }}
+          onOpenItem={openRecordFullscreen}
         />
       )}
       {top?.kind === "hierarchy" && (

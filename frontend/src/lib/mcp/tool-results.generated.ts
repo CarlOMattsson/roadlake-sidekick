@@ -1002,6 +1002,7 @@ export type ToolInputs = {
     phone?: string | null;
     relationship?: string | null;
     role?: string | null;
+    slack?: string | null;
     tags?: Array<string> | null;
   };
   create_domain: {
@@ -1707,6 +1708,7 @@ export type ToolInputs = {
       phone?: string | null;
       relationship?: string | null;
       role?: string | null;
+      slack?: string | null;
       tags?: Array<string>;
     };
     clear?: Array<
@@ -1717,6 +1719,7 @@ export type ToolInputs = {
       | "organization"
       | "role"
       | "address"
+      | "slack"
     > | null;
     contact_id: string;
     expected_version: number;
@@ -2192,6 +2195,7 @@ export type ContactRecord = {
   phone: string | null;
   relationship: string | null;
   role: string | null;
+  slack: string | null;
   tags: Array<string>;
   updated_at: string;
   version: number;
