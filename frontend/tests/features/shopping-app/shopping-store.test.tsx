@@ -180,7 +180,7 @@ it("the ⋯ menu has no Control entry when the view cannot navigate", async () =
   ).toBeInTheDocument();
 });
 
-it("inline without fullscreen keeps the full list view with its forms", async () => {
+it("inline without fullscreen keeps the list view with its batch field, without list forms", async () => {
   const transport = adapter();
   render(
     <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
@@ -188,8 +188,8 @@ it("inline without fullscreen keeps the full list view with its forms", async ()
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  expect(screen.getByLabelText(shoppingEn.listName)).toBeInTheDocument();
-  expect(
-    screen.queryByRole("button", { name: shoppingEn.editList }),
-  ).not.toBeInTheDocument();
+  // No standing list forms and no list switcher: only the batch field to add items.
+  expect(screen.getByLabelText(shoppingEn.batch)).toBeInTheDocument();
+  expect(screen.queryByLabelText(shoppingEn.listName)).not.toBeInTheDocument();
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });

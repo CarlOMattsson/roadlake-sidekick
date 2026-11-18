@@ -19,6 +19,10 @@ export const contactsRoomLabelsSv = {
   /** Tags are chosen in the filter and no Contact has them: not an empty room, so no first steps. */
   noContactsWithTags: (tags: string[], search: string) =>
     `Ingen kontakt${search ? ` som matchar ”${search}”` : ""} har ${tags.length === 1 ? "taggen" : "alla taggarna"} ${new Intl.ListFormat("sv-SE", { type: "conjunction" }).format(tags)}.`,
+  /** A new Contact whose name another Contact already has: the warning, its two ways on. */
+  sameName: (name: string) => `Det finns redan en kontakt som heter ”${name}”.`,
+  openExisting: (profile: string) => `Öppna ${profile}`,
+  createAnyway: "Skapa ändå",
   addPhone: "Telefon",
   addEmail: "E-post",
   addRelationship: "Relation",
@@ -41,6 +45,9 @@ export const contactsRoomLabelsEn: ContactsRoomLabels = {
   createNamedAsk: (name) => `Save ${name} as a contact`,
   noContactsWithTags: (tags, search) =>
     `No contact${search ? ` matching “${search}”` : ""} has ${tags.length === 1 ? "the tag" : "all of the tags"} ${new Intl.ListFormat("en-GB", { type: "conjunction" }).format(tags)}.`,
+  sameName: (name) => `You already have a contact named “${name}”.`,
+  openExisting: (profile) => `Open ${profile}`,
+  createAnyway: "Create anyway",
   addPhone: "Phone",
   addEmail: "Email",
   addRelationship: "Relationship",

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, TypedDict
 from uuid import UUID
 
@@ -100,25 +100,29 @@ class TaskDetailRead:
 
 @dataclass(frozen=True, slots=True)
 class RescheduleTaskItem:
-    """One Task's new due date, at the version the caller read; `due_at=None` clears it."""
+    """One Task moved to a calendar day (the owner's), at the version the caller read.
+
+    The service sets the due time from the Task as stored (`due_on_day`); `day=None` clears it.
+    """
 
     task_id: UUID
     expected_version: int
-    due_at: datetime | None
+    day: date | None
 
 
 @dataclass(frozen=True, slots=True)
 class ReviewDecisionItem:
     """One review decision at the version the caller read.
 
-    `due_at` is the new due date of `move` (None clears it); `follow_up_at` the optional follow-up
-    of `waiting`. Both are ignored by the other decisions, which the transports refuse to send.
+    `due_day` is the owner's calendar day `move` goes to (None clears the due date); `follow_up_at`
+    the optional follow-up of `waiting`. Both are ignored by the other decisions, which the
+    transports refuse to send.
     """
 
     task_id: UUID
     expected_version: int
     decision: ReviewDecision
-    due_at: datetime | None = None
+    due_day: date | None = None
     follow_up_at: datetime | None = None
 
 

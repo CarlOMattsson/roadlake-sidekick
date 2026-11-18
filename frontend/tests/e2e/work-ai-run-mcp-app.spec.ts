@@ -300,7 +300,7 @@ test("draws nothing of the server runner when it is off", async ({ page }) => {
     replies: { get_ai_plan: ok(off) },
   });
   await app.getByRole("button", { name: words.sv.fold }).click();
-  await expect(app.getByText(/^Budget:/)).toBeVisible();
+  await expect(app.getByText(/^Beräknad kostnad för AI-stegen:/)).toBeVisible();
   await expect(app.getByText(/använt hittills|AI denna månad/)).toHaveCount(0);
   await expect(app.getByRole("button", { name: words.sv.run })).toHaveCount(0);
   expect(failures).toEqual([]);

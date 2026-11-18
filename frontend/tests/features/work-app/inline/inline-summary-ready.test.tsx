@@ -18,7 +18,7 @@ const task: InlineSummaryData = {
   kind: "task",
   title: "Ring Anna om offerten",
   status: "in_progress",
-  dueDate: "2026-10-30T09:00:00Z",
+  dueDate: "2026-10-30T22:59:00Z",
   datapoints: {
     steps: { done: 2, total: 5 },
     contacts: 1,
@@ -120,6 +120,37 @@ describe("InlineSummary ready state", () => {
     // A Project's date is its target, not a due date.
     expect(screen.getByText("Target date: 15 Nov")).toBeInTheDocument();
     expect(screen.queryByText(/^Due:/)).not.toBeInTheDocument();
+  });
+
+  it("shows the clock time of a Task after its date, in both languages, and none for a bare date", () => {
+    // 17:30 on the owner's clock on Friday 30 October (CET).
+    const timed = { ...task, dueDate: "2026-10-30T16:30:00Z" };
+    const { rerender } = render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsEn}
+        summary={timed}
+      />,
+    );
+    expect(screen.getByText("Due Fri 30 Oct 5:30 pm")).toBeInTheDocument();
+    rerender(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsSv}
+        summary={timed}
+      />,
+    );
+    expect(
+      screen.getByText("Klart senast fre 30 okt kl 17:30"),
+    ).toBeInTheDocument();
+    rerender(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsEn}
+        summary={task}
+      />,
+    );
+    expect(screen.getByText("Due Fri 30 Oct")).toBeInTheDocument();
   });
 
   it("shows the due date in Swedish with the Swedish labels", () => {

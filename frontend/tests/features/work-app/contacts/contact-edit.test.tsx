@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ContactEditor } from "@/features/work-app/contacts/contact-edit";
@@ -28,6 +29,7 @@ describe("Contact editor action row", () => {
         contact={anna}
         busy={false}
         saveFailed={false}
+        rejected={false}
         onSave={vi.fn()}
         onCancel={vi.fn()}
         onAddAlias={vi.fn()}
@@ -43,5 +45,44 @@ describe("Contact editor action row", () => {
     expect(row).toHaveClass("work-actions-sticky");
     expect(cancel.parentElement).toBe(row);
     expect(row?.nextElementSibling).toBeNull();
+  });
+});
+
+describe("Contact editor, a refused save", () => {
+  function editor(rejected: boolean) {
+    return (
+      <ContactEditor
+        contact={anna}
+        busy={false}
+        saveFailed={false}
+        rejected={rejected}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        onAddAlias={vi.fn()}
+        onRemoveAlias={vi.fn()}
+        labels={workEn}
+      />
+    );
+  }
+
+  it("names the Slack field and the link it takes when the Slack value was refused", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(editor(false));
+    await user.type(screen.getByLabelText(workEn.slack), "@anna.andersson");
+    rerender(editor(true));
+
+    expect(screen.getByLabelText(workEn.slack)).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(screen.getByText(workEn.slackInvalid)).toBeInTheDocument();
+    expect(screen.queryByText(workEn.invalidChange)).not.toBeInTheDocument();
+  });
+
+  it("says the values were refused beside Save when no Slack value was changed", () => {
+    render(editor(true));
+
+    expect(screen.getByText(workEn.invalidChange)).toBeInTheDocument();
+    expect(screen.queryByText(workEn.slackInvalid)).not.toBeInTheDocument();
   });
 });

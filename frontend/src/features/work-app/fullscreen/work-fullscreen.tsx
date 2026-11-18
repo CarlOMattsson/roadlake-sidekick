@@ -7,6 +7,7 @@ import type { InlineSummaryLabels } from "../inline/inline-summary-labels";
 import { BoardClearSearch, BoardQuery } from "../board/board";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { manageLabelsFor } from "../shared/manage-labels";
+import { isWaitingFilter } from "../shared/waiting";
 import { NewTaskInput, RecentTasks } from "../tasks/new-task-input";
 import { WorkNewTaskContext } from "../shared/empty-actions";
 import { newTaskInputLabelsFor } from "../tasks/new-task-input-labels";
@@ -270,6 +271,17 @@ export function WorkFullscreen({
     );
   }
 
+  // The Agenda tab is the dated agenda (Idag, Försenade): a waiting view that was left open, read for Claude or chosen
+  // in the agenda, does not hold the tab, so pressing it reads the agenda again without that view.
+  function chooseTab(tab: WorkTab) {
+    setActiveTab(tab);
+    if (
+      tab === "agenda" &&
+      isWaitingFilter(listFilters.agenda ?? filtersOf(entries.agenda))
+    )
+      void clearView("agenda");
+  }
+
   // The saved views bar of the agenda and the board: the tab's own filters, and the open that reads a view.
   const savedLabels = savedViewsLabelsFor(labels.dateLocale);
   const manage = manageLabelsFor(labels.dateLocale);
@@ -423,7 +435,7 @@ export function WorkFullscreen({
           labels={shellLabels}
           initialTab={initialTab}
           tabs={offered}
-          onTabChange={setActiveTab}
+          onTabChange={chooseTab}
           agenda={
             <>
               {search("agenda", agendaOpen)}

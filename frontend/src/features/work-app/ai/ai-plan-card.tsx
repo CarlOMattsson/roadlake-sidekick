@@ -182,12 +182,19 @@ function ApprovalNotice({
   locale: string;
 }) {
   const { approval } = ai;
-  if (approval === "approved")
+  if (approval === "approved") {
+    // Where the server runs AI Steps its "Kör nästa steg" is what comes next; elsewhere Claude takes the next step, and
+    // the line says so instead of leaving the owner waiting.
+    const claudeNext = !ai.server.runnerOn;
     return (
-      <p role="status" className="work-visually-hidden">
-        {a.approvedNow}
+      <p
+        role="status"
+        className={claudeNext ? "work-ai-meta" : "work-visually-hidden"}
+      >
+        {claudeNext ? a.approvedNext : a.approvedNow}
       </p>
     );
+  }
   if (approval === "conflict")
     return (
       <div role="alert" className="work-banner">
@@ -260,7 +267,7 @@ function PlanStep({
 }
 
 /**
- * "Budget: 1,50 USD för AI-stegen, tak 2,00 USD för uppgiften." The AI Steps' budgets per attempt, added up. Where the
+ * "Beräknad kostnad för AI-stegen: högst 1,50 USD (uppgiftens tak: 2,00 USD)." The AI Steps' budgets per attempt, added up. Where the
  * server runs Steps and they have cost something, what they cost so far follows, folded with the Steps.
  */
 function budgetLine(plan: WorkAiPlan, a: AiLabels, locale: string): string {

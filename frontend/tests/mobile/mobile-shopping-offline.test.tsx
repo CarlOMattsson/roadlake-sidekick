@@ -87,11 +87,11 @@ function shoppingOver(transport: CompanionRoomTransport): ShoppingTransport {
       }),
     create: () => Promise.reject(new Error("not used")),
     rename: () => Promise.reject(new Error("not used")),
-    add: (id, names, key, options) =>
+    add: (id, items, key, options) =>
       transport.call("add_shopping_items", {
         list_id: id,
-        items: names.map((name, index) => ({
-          name,
+        items: items.map((item, index) => ({
+          ...item,
           client_ref: String(index),
           ...(options?.store ? { store: options.store } : {}),
         })),

@@ -420,9 +420,9 @@ test("Control app shows the assistant's activity in History, read-only, from lis
               state: "applied",
               aggregate_type: "task",
               aggregate_id: taskId,
-              summary: "Flyttade Förbered pitchen till Klar",
+              summary: "Moved Förbered pitchen to Klar",
               before_values: {},
-              after_values: {},
+              after_values: { title: "Förbered pitchen" },
               evidence: {},
               policy_mode: null,
               correlation_id: null,
@@ -439,9 +439,11 @@ test("Control app shows the assistant's activity in History, read-only, from lis
   await app.getByRole("button", { name: "Historik", exact: true }).click();
   // History is one list (changes and activity together), named "Historik".
   await expect(app.getByRole("list", { name: "Historik" })).toBeVisible();
+  // The row is worded by the app from the operation and the record's name; the stored English summary is not shown.
   await expect(
-    app.getByText("Flyttade Förbered pitchen till Klar", { exact: true }),
+    app.getByText("Uppgift ändrad: Förbered pitchen", { exact: true }),
   ).toBeVisible();
+  await expect(app.getByText(/Moved Förbered/)).toHaveCount(0);
   await expect(app.getByText(/^Claude · /)).toBeVisible();
   // "applied" is the normal case and is not named in the row any more.
   await expect(app.getByText(/tillämpad/)).toHaveCount(0);

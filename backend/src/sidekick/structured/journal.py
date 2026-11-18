@@ -11,10 +11,17 @@ from pydantic import Field
 
 from sidekick.journal.application.models import RelationChange
 from sidekick.journal.domain.day_done import owner_today
-from sidekick.journal.domain.entry import JournalOrder, KeyPoint, KeyPointKind
+from sidekick.journal.domain.entry import (
+    MAX_SUMMARY_LENGTH,
+    JournalOrder,
+    KeyPoint,
+    KeyPointKind,
+)
 from sidekick.journal.domain.records import DaySummaryStatus, EntryRelations, RelationLabels
 from sidekick.journal.domain.source import SourceType
 from sidekick.journal.domain.summary import DailySummary, SummaryContent
+from sidekick.memory.domain import MemoryKind
+from sidekick.shared.change_source import current_change_source
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
@@ -46,6 +53,11 @@ class JournalEntryRecord(Output):
     occurred_at: datetime | None
     title: Annotated[str, Field(min_length=1, max_length=200)]
     summary: Annotated[str, Field(max_length=10_000)] | None
+    # "you" when the summary holds the owner's own words (written or corrected in the app); absent
+    # when Claude wrote it or the server did not record who did.
+    summary_by: Literal["you"] | None = None
+    # The owner keeps this entry out of memory (Claude's recall), so nothing of it is remembered.
+    memory_excluded: bool = False
     key_points: Annotated[list[JournalKeyPoint], Field(max_length=50)]
     project_ids: Annotated[
         list[UUID], Field(max_length=25, json_schema_extra={"uniqueItems": True})
@@ -175,6 +187,8 @@ def entry_record(
     include_content: bool,
     labels: RelationLabels | None = None,
     tags: Sequence[str] = (),
+    summary_by: str | None = None,
+    memory_excluded: bool = False,
 ) -> JournalEntryRecord:
     names = labels or RelationLabels(projects={}, contacts={})
     links = [
@@ -199,6 +213,7 @@ def entry_record(
         occurred_at=entry.occurred_at,
         title=entry.title,
         summary=entry.summary if include_content else None,
+        summary_by="you" if include_content and entry.summary and summary_by == "you" else None,
         key_points=[JournalKeyPoint(kind=point.kind, text=point.text) for point in entry.key_points]
         if include_content
         else [],
@@ -209,6 +224,7 @@ def entry_record(
         tags=list(tags),
         archived=entry.archived_at is not None,
         version=entry.version,
+        memory_excluded=memory_excluded,
     )
 
 
@@ -309,6 +325,9 @@ def entry_records_with_relations(
         actor, tuple(entry.id for entry in entries), with_labels=include_content
     )
     tags = container.work_tags.slugs_for(actor, "journal_entry", [entry.id for entry in entries])
+    ids = [entry.id for entry in entries]
+    authors = _summary_authors(container, actor, ids, include_content)
+    excluded = _memory_excluded(container, actor, ids)
     return [
         entry_record(
             entry,
@@ -316,6 +335,8 @@ def entry_records_with_relations(
             include_content=include_content,
             labels=relations[entry.id][1],
             tags=tags.get(entry.id, ()),
+            summary_by=authors.get(entry.id),
+            memory_excluded=entry.id in excluded,
         )
         for entry in entries
     ]
@@ -329,11 +350,14 @@ def labeled_entry_record(
     tags: Sequence[str],
     *,
     include_content: bool,
+    written_by: str | None = None,
 ) -> JournalEntryRecord:
     """The entry record with its links named; names need the kind's read scope (D-060: Claude reads
     the owner's own text within its scope).
 
-    `tags` are the entry's tag slugs, which the caller already holds or has read.
+    `tags` are the entry's tag slugs, which the caller already holds or has read. `written_by` is
+    the change source of a write that just created the entry, which a write-only caller could not
+    read back.
     """
 
     labels = (
@@ -341,7 +365,42 @@ def labeled_entry_record(
         if include_content
         else None
     )
-    return entry_record(entry, relations, include_content=include_content, labels=labels, tags=tags)
+    authors = (
+        {entry.id: written_by}
+        if written_by
+        else _summary_authors(container, actor, [entry.id], include_content)
+    )
+    return entry_record(
+        entry,
+        relations,
+        include_content=include_content,
+        labels=labels,
+        tags=tags,
+        summary_by=authors.get(entry.id),
+        memory_excluded=entry.id in _memory_excluded(container, actor, [entry.id]),
+    )
+
+
+def _memory_excluded(container: Container, actor: Actor, entry_ids: Sequence[UUID]) -> set[UUID]:
+    """The entries the owner keeps out of memory; none without the read scope."""
+
+    if "journal:read" not in actor.scopes:
+        return set()
+    with container.memory_store.begin() as session:
+        return container.memory_store.excluded_source_ids(
+            session, actor.user_id, MemoryKind.JOURNAL_ENTRY, entry_ids
+        )
+
+
+def _summary_authors(
+    container: Container, actor: Actor, entry_ids: Sequence[UUID], include_content: bool
+) -> dict[UUID, str]:
+    """Who wrote the summaries; empty without content or without the read scope (a write-only
+    caller may not read an entry back)."""
+
+    if not include_content or "journal:read" not in actor.scopes:
+        return {}
+    return container.journal.summary_authors(actor, entry_ids)
 
 
 def _owner_today(container: Container) -> date:
@@ -490,6 +549,9 @@ def write_journal_entry_structured(
         task_ids=tuple(task_ids or ()),
         contact_ids=tuple(contact_ids or ()),
     )
+    if summary is None and not key_points and len(source_text) <= MAX_SUMMARY_LENGTH:
+        # Only her own words were given: they are the entry's text, so the entry shows them.
+        summary = source_text
     _, entry = container.journal_capture.write_entry(
         actor,
         source_type=SourceType.TRANSCRIPT_TEXT,
@@ -511,7 +573,13 @@ def write_journal_entry_structured(
     written = normalize_tag_selection(list(tags or ()))
     return JournalEntryResult(
         entry=labeled_entry_record(
-            container, actor, entry, relations, written, include_content=True
+            container,
+            actor,
+            entry,
+            relations,
+            written,
+            include_content=True,
+            written_by=current_change_source(),
         )
     )
 

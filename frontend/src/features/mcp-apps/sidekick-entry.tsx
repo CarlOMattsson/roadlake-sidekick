@@ -22,7 +22,8 @@ import {
 } from "./sidekick-rooms";
 import { ROOT_VIEW, type NavEntry } from "./nav-state";
 import { fullscreenOffered, roomModeOf, toolArgsOf } from "./room-types";
-import { routeFor, type Route } from "./router";
+import { routeFor, toolBareName, type Route } from "./router";
+import { dirtyDomains } from "./dirty-domains";
 import { StartupError } from "./ui/error-boundary";
 
 const bridge = createHostBridge({ name: "Sidekick", version: APP_VERSION });
@@ -41,6 +42,8 @@ let grantedFullscreen = false;
 // A record the room that asked for the full view wants shown at once (an entry of the day glance).
 let openAt: NavEntry | undefined;
 let hostContext: HostContext = {};
+// Counts the write results the host sent for calls this app did not make; the shell reads the open view again for each.
+let staleTick = 0;
 // The arguments of the tool call whose result is still to come (ui/notifications/tool-input).
 let toolInput: Record<string, unknown> | undefined;
 
@@ -149,6 +152,7 @@ function render() {
               ? collapse
               : undefined
           }
+          staleTick={staleTick}
           features={bridge.getFeatures()}
           onModelContext={(line) => void bridge.updateModelContext(line)}
           onSendMessage={(text) => bridge.sendMessage(text)}
@@ -197,7 +201,14 @@ bridge.onToolResult(({ structuredContent, isError }) => {
   const ofOffRoom = routed !== undefined && route === undefined;
   if (ofOffRoom && start) return;
   // An error with no tool name has no shape to route by; it lands in the room the card is in.
-  if (!route && start && !isError) return;
+  if (!route && start && !isError) {
+    // A write of someone else (Claude moved Tasks) has no card, but the open view no longer shows what is stored.
+    if (toolName !== undefined && dirtyDomains(toolBareName(toolName)).length) {
+      staleTick++;
+      render();
+    }
+    return;
+  }
   const room = route?.room ?? start?.room ?? "work";
   const opened: NavEntry = {
     room,

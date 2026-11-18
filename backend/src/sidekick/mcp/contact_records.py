@@ -10,6 +10,7 @@ from pydantic import Field
 
 from sidekick.contacts.application.serialization import contact_public_data
 from sidekick.contacts.domain.contact import Contact
+from sidekick.contacts.domain.normalization import SLACK_PROFILE_INPUT_LIMIT
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from sidekick.structured.base import Output, PartialChanges, WithIgnoredNulls
@@ -58,6 +59,19 @@ class ContactRecord(Output):
 
 class ContactResult(Output):
     contact: ContactRecord
+
+
+class SameNameContactRecord(Output):
+    # Another Contact that already has the name of the one just created.
+    id: UUID
+    display_name: str
+    organization: str | None = None
+    role: str | None = None
+
+
+class CreatedContactResult(ContactResult):
+    # The new Contact is kept; these are the others with the same name.
+    same_name_contacts: list[SameNameContactRecord] = Field(default_factory=list)
 
 
 class UpdatedContactResult(ContactResult, WithIgnoredNulls):
@@ -152,7 +166,7 @@ Relationship = Annotated[str | None, Field(max_length=80), NoImageData]
 Organization = Annotated[str | None, Field(max_length=200), NoImageData]
 Role = Annotated[str | None, Field(max_length=120), NoImageData]
 Address = Annotated[str | None, Field(max_length=500), NoImageData]
-Slack = Annotated[str | None, NoImageData]
+Slack = Annotated[str | None, Field(max_length=SLACK_PROFILE_INPUT_LIMIT), NoImageData]
 
 
 class ContactChanges(PartialChanges):

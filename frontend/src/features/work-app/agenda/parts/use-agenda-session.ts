@@ -8,10 +8,11 @@ import {
 } from "../../board/board";
 import { useSingleFlight } from "../../shared/use-single-flight";
 import { appendAgendaPage } from "../../shared/work-items";
-import type {
-  WorkAgendaFrame,
-  WorkFilters,
-  WorkTransport,
+import {
+  writeFailure,
+  type WorkAgendaFrame,
+  type WorkFilters,
+  type WorkTransport,
 } from "../../transport/transport";
 import type { RowState } from "./use-row-state";
 
@@ -119,6 +120,16 @@ export function useAgendaSession({
     });
     if (!started) rereadAgain.current = true;
   }
+  /**
+   * A write the server refused because the Task changed since the list was read (someone else moved it): the list is
+   * read again and shows what stands now, instead of a notice that asks the owner to do it. True when `error` was such
+   * a refusal; a read that then fails shows its own notice with Try again.
+   */
+  function readAfterConflict(error: unknown): boolean {
+    if (writeFailure(error) !== "conflict") return false;
+    reread();
+    return true;
+  }
   function loadMore() {
     const cursor = page.next_cursor;
     if (!cursor) return;
@@ -193,6 +204,7 @@ export function useAgendaSession({
     enqueueRow,
     run,
     reread,
+    readAfterConflict,
     showRead,
     loadMore,
     refilter,

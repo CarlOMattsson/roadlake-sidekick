@@ -10,6 +10,7 @@ the statements. Methods return plain values or the `memory_*` rows (typed as the
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import date, datetime, tzinfo
@@ -206,6 +207,10 @@ class MemoryStore(AuditingStore, Protocol):
     def source_row_for_update(
         self, session: TxSession, owner_id: UUID, kind: MemoryKind, source_id: UUID
     ) -> MemorySourceRecord | None: ...
+
+    def excluded_source_ids(
+        self, session: TxSession, owner_id: UUID, kind: MemoryKind, source_ids: Sequence[UUID]
+    ) -> set[UUID]: ...
 
     def upsert_exclusion_marker(
         self,

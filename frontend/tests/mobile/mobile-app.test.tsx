@@ -324,7 +324,7 @@ describe("MobileApp", () => {
     expect(posts[0]?.idempotencyKey).toMatch(/^[0-9a-f-]{36}$/);
   });
 
-  it("shows the room's own failure state when a write is refused, and sends nothing else", async () => {
+  it("reads the agenda again when a write is refused as a conflict, shows no error, and sends nothing else", async () => {
     const user = userEvent.setup();
     const native = fakeNative((request) =>
       request.method === "POST"
@@ -339,7 +339,12 @@ describe("MobileApp", () => {
       }),
     );
 
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    // The task changed elsewhere: the open list is read again and shows what stands, with no error notice.
+    const agendaReads = () =>
+      native.requests.filter((r) => r.path === "/companion/v1/work/agenda")
+        .length;
+    await waitFor(() => expect(agendaReads()).toBeGreaterThan(1));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(native.requests.filter((r) => r.method === "POST")).toHaveLength(1);
   });
 

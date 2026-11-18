@@ -157,6 +157,7 @@ export function BoardView({
     disabled,
     move: writes.move,
     reorder: writes.reorder,
+    toggleDone: writes.toggleDone,
     taskCard: writes.taskCard,
   });
   useEffect(() => {
@@ -300,9 +301,7 @@ export function BoardView({
               doneOpen={doneOpen}
               onToggleDone={() => setDoneOpen((open) => !open)}
               completeColumn={writes.completeColumn}
-              taskTitle={(id) => writes.taskCard(id)?.title}
               toggleDone={writes.toggleDone}
-              toggleStep={writes.toggleStep}
               stepWithin={writes.stepWithin}
             />
           ) : (

@@ -24,10 +24,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, tzinfo
 
+from sidekick.tasks.domain.planning import has_clock_time
+
 SUMMARY_WINDOW = timedelta(hours=2)
 DUE_WINDOW = timedelta(hours=6)
-# A bare date is stored as the last minute of its day.
-DATE_ONLY_TIME = time(23, 59)
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,8 +57,7 @@ class ReminderPolicy:
         return local.date()
 
     def has_clock_time(self, due_at: datetime) -> bool:
-        local = due_at.astimezone(self.zone)
-        return (local.hour, local.minute) != (DATE_ONLY_TIME.hour, DATE_ONLY_TIME.minute)
+        return has_clock_time(due_at, self.zone)
 
     def due_reminder_time(self, due_at: datetime) -> datetime | None:
         """When the reminder for a Task due at `due_at` is shown, or `None` for a bare date."""

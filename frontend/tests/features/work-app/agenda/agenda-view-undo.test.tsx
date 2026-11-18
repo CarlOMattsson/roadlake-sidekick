@@ -97,9 +97,10 @@ it("Undo writes the previous status against the new version with a new key", asy
   );
 });
 
-it("an Undo refused as a conflict shows the conflict notice and keeps the done status", async () => {
+it("an Undo refused as a conflict reads the agenda again, with no conflict notice", async () => {
   const user = userEvent.setup();
   const { transport, mock } = makeTransport();
+  mock.getWorkAgenda.mockResolvedValue({ items: [task], next_cursor: null });
   renderAgenda([task], transport);
   await user.click(glyphOf(task.title));
   const undo = await undoButton();
@@ -107,14 +108,9 @@ it("an Undo refused as a conflict shows the conflict notice and keeps the done s
     Object.assign(new Error("conflict"), { code: "conflict" }),
   );
   await user.click(undo);
-  expect(await screen.findByText(boardLabelsEn.conflict)).toBeInTheDocument();
-  // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
-  expect(
-    screen.getByRole("button", { name: boardLabelsEn.conflictAction }),
-  ).toBeInTheDocument();
-  expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
-    1,
-  );
+  await waitFor(() => expect(mock.getWorkAgenda).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(boardLabelsEn.conflict)).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(mock.updateTask).toHaveBeenCalledTimes(2);
   expect(mock.updateTask).toHaveBeenLastCalledWith(
     TASK_ID,
@@ -296,28 +292,39 @@ it("focus in the Undo line pauses its time as well, until focus leaves it", asyn
   ).not.toBeInTheDocument();
 });
 
-it("a refused change shows the board's conflict notice and keeps the status", async () => {
+it("a change refused because the Task changed elsewhere reads the agenda again and shows the list as it stands, with no notice", async () => {
   const user = userEvent.setup();
   const { transport, mock } = makeTransport();
   mock.updateTask.mockRejectedValueOnce(
     Object.assign(new Error("conflict"), { code: "conflict" }),
   );
+  mock.getWorkAgenda.mockResolvedValue({ items: [task], next_cursor: null });
   renderAgenda([task], transport);
   await user.click(glyphOf(task.title));
-  expect(await screen.findByText(boardLabelsEn.conflict)).toBeInTheDocument();
-  // The notice's button has a name of its own, so "Refresh" stays the toolbar's alone.
-  expect(
-    screen.getByRole("button", { name: boardLabelsEn.conflictAction }),
-  ).toBeInTheDocument();
-  expect(screen.getAllByRole("button", { name: workEn.reload })).toHaveLength(
-    1,
-  );
+  await waitFor(() => expect(mock.getWorkAgenda).toHaveBeenCalledTimes(1));
+  expect(screen.queryByText(boardLabelsEn.conflict)).not.toBeInTheDocument();
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
   // Still not done, so the glyph action still says "mark done".
   expect(glyphOf(task.title)).toBeInTheDocument();
-  expect(mock.getWorkAgenda).not.toHaveBeenCalled();
+});
+
+it("a change refused as a conflict whose re-read also fails shows the failed read with Try again", async () => {
+  const user = userEvent.setup();
+  const { transport, mock } = makeTransport();
+  mock.updateTask.mockRejectedValueOnce(
+    Object.assign(new Error("conflict"), { code: "conflict" }),
+  );
+  mock.getWorkAgenda.mockRejectedValue(new Error("network"));
+  renderAgenda([task], transport);
+  await user.click(glyphOf(task.title));
+  expect(await screen.findByRole("alert")).toBeInTheDocument();
+  expect(screen.queryByText(boardLabelsEn.conflict)).not.toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: /try again/i }),
+  ).toBeInTheDocument();
 });
 
 it("a failed change shows one Try again, and it sends the same write again with its key", async () => {

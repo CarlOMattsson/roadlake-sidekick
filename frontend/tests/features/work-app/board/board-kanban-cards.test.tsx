@@ -83,7 +83,7 @@ describe("due chip on a card", () => {
     id: "019f0000-0000-7000-8000-0000000000d2",
     title: "Skicka kvittot",
     status: "todo",
-    due_at: "2026-10-26T20:00:00Z",
+    due_at: "2026-10-26T22:59:00Z",
     version: 1,
   };
 

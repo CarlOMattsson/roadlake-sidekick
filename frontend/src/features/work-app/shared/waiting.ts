@@ -3,7 +3,13 @@
  * for how long. Pure helpers and the card's words; the inline summary and the fullscreen agenda
  * both read them. The words live here, not in labels.ts, so the two label sets stay untouched.
  */
-import { ownerDayNumber } from "../../mcp-apps/ui/due";
+import {
+  ownerDayNumber,
+  ownerDayPlus,
+  ownerDueAt,
+  parseDueDay,
+  workDate,
+} from "../../mcp-apps/ui/due";
 import type { WorkFilters, WorkItemRecord } from "../transport/transport";
 
 /** A wait of this many days or more is marked as long, and its reminder button is the primary one. */
@@ -14,6 +20,16 @@ const REMIND_HOUR = 9;
 /** Whether an agenda was read with the waiting filter, so the waiting view is shown. */
 export function isWaitingFilter(filters: WorkFilters | undefined): boolean {
   return filters?.waiting === "waiting";
+}
+
+/** The filters with the waiting view turned on or off; every other filter (the chosen tags) stays. */
+export function withWaitingView(
+  filters: WorkFilters | undefined,
+  on: boolean,
+): WorkFilters {
+  const next: WorkFilters = { ...filters };
+  delete next.waiting;
+  return on ? { ...next, waiting: "waiting" } : next;
 }
 
 /** The owner calendar day of an instant as a day number, or null for text that is not a date. */
@@ -93,6 +109,33 @@ export type WaitingLabels = {
   /** The line under a row once its reminder is set: `reminded` with the day and time. */
   reminded: string;
   remindFailed: string;
+  /** "Väntar på Anders sedan 13 nov": who and since when, each part left out when unknown. `since` is a short date. */
+  line: (who: string | null, since: string | null) => string;
+  /** "följ upp 17 nov"; `day` is a short date or the word for today or yesterday. */
+  followUp: (day: string) => string;
+  /** The agenda's switch to the waiting view, and the way back to the dated agenda. */
+  showWaiting: string;
+  showAgenda: string;
+  /** The Task's waiting section: adding it, changing who, the follow-up day and ending the wait. */
+  add: string;
+  changeWho: string;
+  stop: string;
+  pickWho: string;
+  setFollowUp: string;
+  followUpChip: (day: string) => string;
+  followUpPick: string;
+  followUpDay: string;
+  clearFollowUp: string;
+  inThreeDays: string;
+  tomorrow: string;
+  nextWeek: string;
+  /** The editor's fields. */
+  editWho: string;
+  editWhoNone: string;
+  editSince: string;
+  editFollowUp: string;
+  clearSince: string;
+  clearWho: string;
 };
 
 const sv: WaitingLabels = {
@@ -111,6 +154,29 @@ const sv: WaitingLabels = {
   remindName: (title) => `Påminn mig imorgon om ${title}`,
   reminded: "Påminnelse imorgon 09:00",
   remindFailed: "Det gick inte att sätta påminnelsen.",
+  line: (who, since) =>
+    `Väntar på ${who ?? "någon"}${since ? ` sedan ${since}` : ""}`,
+  followUp: (day) => `följ upp ${day}`,
+  showWaiting: "Väntar på",
+  showAgenda: "Visa hela agendan",
+  add: "Jag väntar på någon",
+  changeWho: "Byt person",
+  stop: "Jag väntar inte längre",
+  pickWho: "Väntar på vem?",
+  setFollowUp: "Sätt uppföljning",
+  followUpChip: (day) => `Följ upp: ${day}`,
+  followUpPick: "Följ upp när?",
+  followUpDay: "Uppföljningsdag",
+  clearFollowUp: "Ta bort uppföljning",
+  inThreeDays: "Om 3 dagar",
+  tomorrow: "Imorgon",
+  nextWeek: "Nästa vecka",
+  editWho: "Väntar på (kontakt)",
+  editWhoNone: "Ingen vald",
+  editSince: "Väntar sedan",
+  editFollowUp: "Följ upp",
+  clearSince: "Väntar inte längre",
+  clearWho: "Ta bort kontakt",
 };
 
 const en: WaitingLabels = {
@@ -129,9 +195,103 @@ const en: WaitingLabels = {
   remindName: (title) => `Remind me tomorrow about ${title}`,
   reminded: "Reminder set for tomorrow at 09:00",
   remindFailed: "Couldn’t set the reminder.",
+  line: (who, since) =>
+    `Waiting on ${who ?? "someone"}${since ? ` since ${since}` : ""}`,
+  followUp: (day) => `follow up ${day}`,
+  showWaiting: "Waiting on",
+  showAgenda: "Show the whole agenda",
+  add: "I’m waiting on someone",
+  changeWho: "Change person",
+  stop: "I’m no longer waiting",
+  pickWho: "Waiting on whom?",
+  setFollowUp: "Set a follow-up",
+  followUpChip: (day) => `Follow up: ${day}`,
+  followUpPick: "Follow up when?",
+  followUpDay: "Follow-up day",
+  clearFollowUp: "Remove follow-up",
+  inThreeDays: "In 3 days",
+  tomorrow: "Tomorrow",
+  nextWeek: "Next week",
+  editWho: "Waiting on (contact)",
+  editWhoNone: "None chosen",
+  editSince: "Waiting since",
+  editFollowUp: "Follow up",
+  clearSince: "No longer waiting",
+  clearWho: "Remove contact",
 };
 
 /** Waiting-view words for a date locale such as "sv-SE" or "en-GB"; anything not Swedish gets English. */
 export function waitingLabelsFor(dateLocale: string): WaitingLabels {
   return dateLocale.startsWith("sv") ? sv : en;
+}
+
+/** The Task fields a waiting line reads; a list record and a Task read from get_task both carry them. */
+export type WaitingFields = {
+  waiting_since?: string | null;
+  follow_up_at?: string | null;
+  due_at?: string | null;
+};
+
+/** A day as words, lower case: "idag" or "igår" next to today, else a short date ("13 nov"). */
+export function shortDay(value: string, now: Date, dateLocale: string): string {
+  return workDate(value, now, dateLocale, { inline: true, weekday: false });
+}
+
+/** What a waiting Task says about its wait: the line, and the follow-up with whether its day has come. */
+export type WaitingSummary = {
+  /** "Väntar på Anders sedan 13 nov". */
+  line: string;
+  /** "följ upp 17 nov"; null when no follow-up day is set. */
+  followUp: string | null;
+  /** The follow-up day is today or has passed. */
+  reached: boolean;
+  /** The agenda date of the Task comes from its follow-up: it has no due date, or a later one. */
+  followUpFirst: boolean;
+};
+
+/**
+ * The waiting line of a Task in words, Swedish or English by `dateLocale`. `who` is the Contact's name, or null when
+ * the Task names nobody (or Contacts cannot be read). Null when the Task is not waiting.
+ */
+export function waitingSummary(
+  fields: WaitingFields,
+  who: string | null,
+  now: Date,
+  dateLocale: string,
+): WaitingSummary | null {
+  if (!fields.waiting_since) return null;
+  const wt = waitingLabelsFor(dateLocale);
+  const followDay = parseDueDay(fields.follow_up_at);
+  const dueDay = parseDueDay(fields.due_at);
+  const since = shortDay(fields.waiting_since, now, dateLocale);
+  return {
+    line: wt.line(who, since || null),
+    followUp:
+      fields.follow_up_at && followDay !== null
+        ? wt.followUp(shortDay(fields.follow_up_at, now, dateLocale))
+        : null,
+    reached: followDay !== null && followDay <= ownerDayNumber(now),
+    followUpFirst:
+      followDay !== null && (dueDay === null || followDay < dueDay),
+  };
+}
+
+/** The text with a capital first letter, for a part that starts a line. */
+export function capital(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The time of day a follow-up day is set to, in the owner's zone: the morning, when the agenda is read. */
+const FOLLOW_UP_TIME = "09:00";
+
+/** The instant a follow-up on `day` (`YYYY-MM-DD`) is stored as. */
+export function followUpAtOf(day: string): string {
+  return ownerDueAt(day, FOLLOW_UP_TIME);
+}
+
+/** The instant a wait that began on `day` is stored as: now when it began today, else that morning. */
+export function waitingSinceOf(day: string, now: Date): string {
+  return day === ownerDayPlus(now, 0)
+    ? now.toISOString()
+    : ownerDueAt(day, FOLLOW_UP_TIME);
 }

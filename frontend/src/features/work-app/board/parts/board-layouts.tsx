@@ -37,9 +37,7 @@ export function SingleLayout({
   doneOpen,
   onToggleDone,
   completeColumn,
-  taskTitle,
   toggleDone,
-  toggleStep,
   stepWithin,
   labels: t,
   disabled,
@@ -63,10 +61,7 @@ export function SingleLayout({
   completeColumn: (
     status: TaskStatusValue,
   ) => WorkBoardPlacementItem[] | undefined;
-  /** The title of the Task with this id, for the Step rows that name their parent. */
-  taskTitle: (id: string) => string | undefined;
   toggleDone: (card: WorkItemRecord) => void;
-  toggleStep: (card: WorkItemRecord) => void;
   stepWithin: (card: WorkItemRecord, direction: -1 | 1) => void;
 }) {
   return sections.map(({ segment, items, shown, unshown }) => (
@@ -92,20 +87,12 @@ export function SingleLayout({
           dragging={false}
           onOpen={onOpen}
           onMove={onMove}
-          onToggleDone={item.kind === "step" ? toggleStep : toggleDone}
+          onToggleDone={toggleDone}
           onReorder={orderable ? stepWithin : undefined}
           canMoveUp={at > 0}
           canMoveDown={at < all.length - 1}
           now={now}
           undo={undoOf(item)}
-          nested={
-            item.kind === "step" && all.some((task) => task.id === item.task_id)
-          }
-          parentTitle={
-            item.kind === "step" && item.task_id
-              ? taskTitle(item.task_id)
-              : undefined
-          }
           {...queueOf(item)}
         />
       )}

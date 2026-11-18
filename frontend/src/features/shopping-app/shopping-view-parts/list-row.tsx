@@ -53,14 +53,11 @@ export function ListRow({
           {/* The status sits in the text column under the name, not as a flex sibling of the row. */}
           <span className="shopping-item-text">
             <span>{cardItemText(item, t.dateLocale)}</span>
-            {/* A bought row needs no status line (its ticked box and the purchased section say it), except `bought` (or
+            {/* A row needs no status line (its box and the purchased section say it), except `bought` (or
                   `notBought`) while its Undo holds; the row's status below says it to assistive technology. */}
-            {(!item.purchased || holding) && (
-              <span
-                className="shopping-status"
-                aria-hidden={holding || undefined}
-              >
-                {holding ? heldWord(item, env) : t.wanted}
+            {holding && (
+              <span className="shopping-status" aria-hidden>
+                {heldWord(item, env)}
               </span>
             )}
             {/* Under the `boughtCount` fold the status line is the day it was bought. */}
@@ -73,6 +70,8 @@ export function ListRow({
           ? undoButton(item, env, hold)
           : !env.folded && (
               <button
+                className="sk-btn--quiet sk-btn--compact"
+                aria-label={t.editNamed(item.name)}
                 disabled={env.busy || env.archived || item.id in env.waiting}
                 onClick={() => env.onEdit(item)}
               >
@@ -128,6 +127,8 @@ export function ListRow({
           labels={t}
           busy={env.busy}
           contacts={env.contacts}
+          lists={env.lists}
+          stores={env.stores}
           onCancel={() => env.onEdit(null)}
           onSave={(input) => env.onSave(item, input, () => env.onEdit(null))}
           onTrash={

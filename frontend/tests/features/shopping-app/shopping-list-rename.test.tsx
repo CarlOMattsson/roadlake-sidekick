@@ -73,7 +73,6 @@ describe("fullscreen Edit list renames the open list", () => {
     expect(
       screen.queryByRole("button", { name: shoppingEn.create }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(shoppingEn.select)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: shoppingEn.save })).toBeEnabled();
   });
 

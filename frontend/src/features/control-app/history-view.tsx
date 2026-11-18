@@ -10,6 +10,7 @@ import {
   type ControlLabels,
 } from "./labels";
 import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
+import { activityText, withoutRepeatedActivity } from "./activity-rows";
 import { focusRowNear } from "./focus-row";
 import {
   canUndo,
@@ -119,7 +120,7 @@ export function HistoryView({
       change,
       entry: undefined,
     })),
-    ...(activity?.items ?? []).map((entry) => ({
+    ...withoutRepeatedActivity(changes, activity?.items ?? []).map((entry) => ({
       key: `a:${entry.id}`,
       at: entry.occurred_at,
       change: undefined,
@@ -296,7 +297,7 @@ export function HistoryView({
               return (
                 <ControlRow
                   primary={
-                    entry.summary.trim() ||
+                    activityText(labels, entry) ||
                     kindName(labels, entry.aggregate_type)
                   }
                   secondary={parts.filter(Boolean).join(" · ")}

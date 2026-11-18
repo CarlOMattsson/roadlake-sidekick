@@ -17,6 +17,15 @@ export type TaskDone = {
   receipt: DoneReceipt | undefined;
 };
 
+/**
+ * The Task as an update_task answer left it, with what only get_task carries (the Project's name) kept from the Task the
+ * view held: the write did not change it, unless it moved the Task to another Project.
+ */
+function withCarried(held: WorkTask | undefined, next: WorkTask): WorkTask {
+  if (!held || next.project_id !== held.project_id) return next;
+  return { ...next, project_title: next.project_title ?? held.project_title };
+}
+
 /** Which write a failure line names. */
 export type TaskWriteKind = "trash" | "save" | "done";
 
@@ -33,6 +42,7 @@ export function useTaskWrites({
   task,
   setTask,
   refreshTags,
+  onStepsChanged,
   onSaved,
   onTrashStart,
   onDone,
@@ -43,6 +53,8 @@ export function useTaskWrites({
   task: WorkTask | undefined;
   setTask: (task: WorkTask | undefined) => void;
   refreshTags: () => void;
+  /** Runs after a write that changed the Task's Steps too (a status change reaches them on the server). */
+  onStepsChanged: () => void;
   onSaved: () => void;
   /** Runs when the Task is about to be moved to the trash (the frame closes its ⋯ panel). */
   onTrashStart: () => void;
@@ -62,6 +74,19 @@ export function useTaskWrites({
   const [writeWhat, setWriteWhat] = useState<TaskWriteKind>("trash");
   const { heading } = frame;
 
+  /**
+   * Reads the Task again after a write that put it in a Project: the answer does not carry the Project's name. It shows
+   * unless a newer read or write owns the record by then; a failed read keeps what the answer showed.
+   */
+  function readTaskAgain() {
+    const read = frame.takeTicket();
+    transport
+      .getTask(id)
+      .then((result) => {
+        if (frame.isLatest(read)) setTask(result.task);
+      })
+      .catch(() => undefined);
+  }
   /**
    * Writes only the changed fields against the version the view holds; the key follows the action. Every write ends
    * the receipt of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply is shown by the
@@ -87,7 +112,9 @@ export function useTaskWrites({
       (key) => transport.updateTask(task.id, task.version, changes, key),
       (result) => {
         retryWrite.current = undefined;
-        setTask(result.task);
+        setTask(withCarried(task, result.task));
+        if (changes.status !== undefined) onStepsChanged();
+        if (changes.project_id) readTaskAgain();
         then?.(result.task);
         frame.setEditing(false);
         onSaved();
@@ -111,7 +138,7 @@ export function useTaskWrites({
       (key) => transport.updateTask(task.id, task.version, { tags: next }, key),
       (result) => {
         retryWrite.current = undefined;
-        setTask(result.task);
+        setTask(withCarried(task, result.task));
         onSaved();
         refreshTags();
         done();

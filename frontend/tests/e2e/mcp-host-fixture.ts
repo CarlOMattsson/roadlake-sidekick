@@ -17,6 +17,8 @@ export type SimulatedHostState = {
   initialized: boolean;
   calls: SimulatedCall[];
   displayModeRequests: string[];
+  /** The urls of ui/open-link requests: the links the app asked the host to open. */
+  openLinks: string[];
 };
 export type SimulatedHostConfig = {
   /** Host context returned by ui/initialize. Partial updates come later via setHostContext. */
@@ -97,6 +99,7 @@ function installSimulatedHost({
     initialized: false,
     calls: [],
     displayModeRequests: [],
+    openLinks: [],
   };
   const sequenceCounts = new Map<string, number>();
   const send = (body: object) =>
@@ -116,6 +119,7 @@ function installSimulatedHost({
         name?: string;
         arguments?: Record<string, unknown>;
         mode?: string;
+        url?: string;
       };
     };
     if (message.method === "ui/initialize")
@@ -133,6 +137,9 @@ function installSimulatedHost({
     else if (message.method === "ui/request-display-mode") {
       state.displayModeRequests.push(String(message.params.mode));
       send({ id: message.id, result: { mode: message.params.mode } });
+    } else if (message.method === "ui/open-link") {
+      state.openLinks.push(String(message.params.url));
+      send({ id: message.id, result: {} });
     } else if (message.method === "tools/call") {
       const name = message.params.name ?? "";
       state.calls.push({ name, arguments: message.params.arguments ?? {} });
@@ -281,7 +288,7 @@ export async function settled(frame: FrameLocator): Promise<void> {
     }, SETTLE_CAP_MS);
 }
 
-/** Reads the simulated host state: handshake, tools/call requests and display-mode requests. */
+/** Reads the simulated host state: handshake, tools/call, display-mode and open-link requests. */
 export async function simulatedHostState(
   page: Page,
 ): Promise<SimulatedHostState> {

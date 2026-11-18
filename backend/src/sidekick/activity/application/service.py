@@ -11,6 +11,7 @@ from typing import Protocol, cast
 from uuid import UUID
 
 from sidekick.activity.domain import ActivityCategory, category_for_operation
+from sidekick.shared.change_source import current_change_source
 from sidekick.shared.errors import ValidationError
 from sidekick.shared.types import (
     TIMED_KEY,
@@ -172,6 +173,10 @@ class ActivityLedger:
         correlation_id: str | None = None,
         occurred_at: datetime,
     ) -> UUID:
+        """Store one event. An owner-actor entry written during a model tool call is Claude's."""
+
+        if actor_type == "user" and current_change_source() == "claude":
+            actor_type = "assistant"
         event_id = new_uuid7()
         payload = json_object(
             {

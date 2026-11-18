@@ -100,8 +100,9 @@ export function phoneJournalServer(): PhoneJournalServer {
         journal_date: body.journal_date,
         occurred_at: body.occurred_at ?? null,
         title: body.title,
-        // A hand-written entry: the server saves no summary and no key points of its own.
-        summary: null,
+        // A hand-written entry: her words are the entry's text, as the server saves them.
+        summary: body.source_text,
+        summary_by: "you",
         key_points: [],
         version: 1,
       };

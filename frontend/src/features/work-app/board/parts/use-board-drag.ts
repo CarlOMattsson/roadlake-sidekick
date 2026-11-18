@@ -31,6 +31,8 @@ type Options = {
   disabled: boolean;
   move: (card: WorkItemRecord, to: TaskStatusValue, shown?: boolean) => void;
   reorder: (status: TaskStatusValue, taskId: string, to: ReorderTo) => void;
+  /** Done, or open again when it is done: what a tap on the handle does, as the ring does on a phone. */
+  toggleDone: (card: WorkItemRecord) => void;
   taskCard: (id: string) => WorkItemRecord | undefined;
 };
 
@@ -41,6 +43,7 @@ export function useBoardDrag({
   disabled,
   move,
   reorder,
+  toggleDone,
   taskCard,
 }: Options) {
   // The ref is what the pure reducer reads; the state only repaints it.
@@ -54,9 +57,13 @@ export function useBoardDrag({
     [],
   );
   const measure = () => measureBoard(boardRoot.current);
-  /** Feeds one event to the drag reducer; a drag that ends on another status starts the write. */
+  /**
+   * Feeds one event to the drag reducer; a drag that ends on another status starts the write, and a tap (a press
+   * released before it became a drag) marks the Task done, as the ring does on a phone.
+   */
   function dragEvent(event: BoardDragEvent) {
-    const next = reduceBoardDrag(dragRef.current, event);
+    const before = dragRef.current;
+    const next = reduceBoardDrag(before, event);
     if (next.phase !== "ended") {
       dragRef.current = next;
       setDrag(next);
@@ -66,6 +73,10 @@ export function useBoardDrag({
     setDrag(initialBoardDrag);
     stopTicks();
     if (next.outcome.type === "move") drop(next.outcome.move);
+    else if (next.outcome.reason === "tap" && before.phase === "pending") {
+      const card = taskCard(before.taskId);
+      if (card) toggleDone(card);
+    }
   }
   function startTicks() {
     if (ticks.current) return;

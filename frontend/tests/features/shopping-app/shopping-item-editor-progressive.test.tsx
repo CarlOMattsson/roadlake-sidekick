@@ -45,6 +45,8 @@ function renderEditor(
       busy={false}
       focusFirst={false}
       contacts={vi.fn().mockResolvedValue({ contacts: [] })}
+      lists={[]}
+      stores={[]}
       onCancel={vi.fn()}
       onSave={onSave}
     />,
@@ -170,6 +172,8 @@ describe("the recipient of a gift item", () => {
         busy={false}
         focusFirst={false}
         contacts={options.search === false ? undefined : contacts}
+        lists={[]}
+        stores={[]}
         onCancel={vi.fn()}
         onSave={onSave}
       />,
@@ -192,7 +196,13 @@ describe("the recipient of a gift item", () => {
       group.getByRole("button", { name: "Remove", hidden: true }),
     ).toBeInTheDocument();
     // One control: no drop-down, no standing search field.
-    expect(screen.queryByRole("combobox", { hidden: true })).toBeNull();
+    // (The store field's suggestions make it a combobox of its own, so only the contact search is checked.)
+    expect(
+      screen.queryByRole("combobox", {
+        hidden: true,
+        name: shoppingEn.contactQuery,
+      }),
+    ).toBeNull();
     expect(screen.queryByLabelText(shoppingEn.contactQuery)).toBeNull();
     expect(group.queryByText(shoppingEn.linkedContact)).toBeNull();
   });
@@ -335,6 +345,8 @@ describe("the offer's fields are a fold of their own", () => {
         busy={false}
         focusFirst={false}
         contacts={undefined}
+        lists={[]}
+        stores={[]}
         onCancel={vi.fn()}
         onSave={vi.fn()}
       />,
@@ -413,6 +425,8 @@ describe("the offer's prices follow the app's language", () => {
         busy={false}
         focusFirst={false}
         contacts={undefined}
+        lists={[]}
+        stores={[]}
         onCancel={vi.fn()}
         onSave={vi.fn()}
       />,

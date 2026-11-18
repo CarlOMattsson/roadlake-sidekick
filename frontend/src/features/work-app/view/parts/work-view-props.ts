@@ -37,6 +37,11 @@ export type WorkViewProps = {
    * list is then an inline summary. Absent otherwise, which shows the full view.
    */
   fullscreen?: () => void;
+  /**
+   * An inline list row (agenda, board) opens its Task or Project in the full view: the room asks for fullscreen and
+   * carries the target with it, so the full view shows that record and not its start view. Given with `fullscreen`.
+   */
+  openRecord?: (target: RoomTarget) => void;
   /** True while the host answers the fullscreen request; the work_changes card's Open is busy then. */
   opening?: boolean;
   /** Sends a short model-context line for the shown board summary; absent without host support. */

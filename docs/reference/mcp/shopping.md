@@ -123,6 +123,7 @@ Returns: `UpdatedItemResult` with `evaluated_on` (date), `item` (ItemRecord), `l
 | --- | --- | --- | --- |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `item` | object | yes | update_shopping_item input: an omitted or null field stays; `clear` empties one. |
+| `item.list_id` | uuid | no | may be null |
 | `item.name` | string | no | 1 to 200 characters; may be null |
 | `item.note` | string | no | up to 2000 characters; may be null |
 | `item.occasion` | string | no | up to 200 characters; may be null |

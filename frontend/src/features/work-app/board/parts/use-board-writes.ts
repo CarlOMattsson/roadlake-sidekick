@@ -13,7 +13,6 @@ import {
 } from "../board-columns";
 import {
   statusUndo,
-  toggleStepWrite,
   undoMoveWrite,
   type BoardWriteDeps,
   type LastWrite,
@@ -275,10 +274,6 @@ export function useBoardWrites({
   function toggleDone(card: WorkItemRecord) {
     move(card, card.status === "completed" ? "todo" : "completed");
   }
-  /** The check of a Step in the single layout (see board-writes). */
-  function toggleStep(card: WorkItemRecord) {
-    toggleStepWrite(writeDeps, card);
-  }
   /** Flytta upp / Flytta ned: the Task takes the neighbouring place in its whole column. */
   function stepWithin(card: WorkItemRecord, direction: -1 | 1) {
     if (!isTaskStatus(card.status)) return;
@@ -296,7 +291,7 @@ export function useBoardWrites({
   function retry(action: BoardAction) {
     const last = lastWrite.current;
     const lastKey =
-      last?.kind === "move" || last?.kind === "step"
+      last?.kind === "move"
         ? cardKey(last.card)
         : last?.kind === "undo"
           ? last.entry.key
@@ -309,7 +304,6 @@ export function useBoardWrites({
     else if (action === "move" && last?.kind === "move")
       move(last.card, last.to);
     else if (action === "move" && last?.kind === "undo") undoMove(last.entry);
-    else if (action === "move" && last?.kind === "step") toggleStep(last.card);
     else if (action === "move" && last?.kind === "reorder")
       reorder(last.status, last.taskId, last.to);
     else if (action === "more") loadMore();
@@ -323,7 +317,6 @@ export function useBoardWrites({
     completeColumn,
     reorder,
     toggleDone,
-    toggleStep,
     stepWithin,
     retry,
   };

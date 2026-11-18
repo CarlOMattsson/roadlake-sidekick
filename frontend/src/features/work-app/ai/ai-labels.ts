@@ -36,6 +36,12 @@ export const aiLabelsSv = {
   approvedAt: (when: string) => `Godkänd ${when}`,
   changed: "Planen har ändrats – godkänn igen",
   approvedNow: "Planen är godkänd.",
+  /** Right after the approval where the server runs no AI Steps: who takes the next one. */
+  approvedNext: "Planen är godkänd. Claude tar nästa steg när du ber om det.",
+  /** On the inline Task card while its plan waits for the owner: what is waiting, and the button that opens it. */
+  planWaiting: (aiSteps: number) =>
+    `Plan väntar på granskning · ${aiSteps} AI-steg`,
+  reviewPlan: "Granska planen",
   approveFailed: "Godkännandet sparades inte.",
   approveConflict: "Planen har ändrats sedan du läste den.",
   approveForbidden: "Du har inte behörighet att godkänna planen.",
@@ -56,7 +62,7 @@ export const aiLabelsSv = {
   asks: (items: readonly string[]) => `Frågar dig om ${listOf(items, "och")}.`,
   stepBudget: (usd: string) => `Högst ${usd} per försök.`,
   budget: (steps: string, cap: string) =>
-    `Budget: ${steps} för AI-stegen, tak ${cap} för uppgiften.`,
+    `Beräknad kostnad för AI-stegen: högst ${steps} (uppgiftens tak: ${cap}).`,
   /** After the budget, only once the Task's AI Steps have cost something. */
   spent: (usd: string) => `${usd} använt hittills.`,
   /** The month's AI cost, only where the instance shows AI cost (the same setting as Control's row). */
@@ -115,6 +121,8 @@ export const aiLabelsSv = {
     reject: "Avvisat.",
     answer: "Svaret är skickat.",
   },
+  /** After an answer where the server runs no AI Steps: who goes on. */
+  answeredNext: "Svaret är skickat. Claude fortsätter när du ber om det.",
   reviewFailed: "Det gick inte att spara.",
   reviewConflict: "Körningen har ändrats sedan du läste den.",
   reload: "Läs in igen",
@@ -154,6 +162,11 @@ export const aiLabelsEn: AiLabels = {
   approvedAt: (when) => `Approved ${when}`,
   changed: "The plan has changed – approve it again",
   approvedNow: "The plan is approved.",
+  approvedNext:
+    "The plan is approved. Claude takes the next step when you ask.",
+  planWaiting: (aiSteps) =>
+    `Plan waiting for review · ${aiSteps} AI ${aiSteps === 1 ? "step" : "steps"}`,
+  reviewPlan: "Review the plan",
   approveFailed: "The approval was not saved.",
   approveConflict: "The plan has changed since you read it.",
   approveForbidden: "You don’t have permission to approve the plan.",
@@ -174,7 +187,7 @@ export const aiLabelsEn: AiLabels = {
   asks: (items) => `Asks you about ${listOf(items, "and")}.`,
   stepBudget: (usd) => `At most ${usd} per attempt.`,
   budget: (steps, cap) =>
-    `Budget: ${steps} for the AI steps, a cap of ${cap} for the task.`,
+    `Estimated cost of the AI steps: at most ${steps} (the task’s cap: ${cap}).`,
   spent: (usd) => `${usd} used so far.`,
   month: (spent, cap) => `AI this month: ${spent} of ${cap}.`,
   run: "Run the next step",
@@ -227,6 +240,7 @@ export const aiLabelsEn: AiLabels = {
     reject: "Rejected.",
     answer: "Answer sent.",
   },
+  answeredNext: "Answer sent. Claude carries on when you ask.",
   reviewFailed: "Could not save.",
   reviewConflict: "The run has changed since you read it.",
   reload: "Reload",

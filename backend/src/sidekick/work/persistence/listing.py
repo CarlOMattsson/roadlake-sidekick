@@ -87,6 +87,7 @@ class _Cols(NamedTuple):
     minutes: Any
     waiting: Any
     board_rank: Any
+    follow_up: Any
 
     def labelled(self) -> list[ColumnElement[Any]]:
         names = self._fields
@@ -167,6 +168,7 @@ def _domain_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         _typed_null(Integer),
         false(),
         _typed_null(Integer),
+        _typed_null(_TIMESTAMP),
     )
     where = [
         DomainRow.owner_id == owner_id,
@@ -193,6 +195,7 @@ def _process_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         _typed_null(Integer),
         false(),
         _typed_null(Integer),
+        _typed_null(_TIMESTAMP),
     )
     where = [
         ProcessRow.owner_id == owner_id,
@@ -233,6 +236,7 @@ def _project_branch(owner_id: UUID, include_archived: bool, zone: str) -> _Branc
         _typed_null(Integer),
         false(),
         _typed_null(Integer),
+        _typed_null(_TIMESTAMP),
     )
     where = [
         ProjectRow.owner_id == owner_id,
@@ -244,6 +248,7 @@ def _project_branch(owner_id: UUID, include_archived: bool, zone: str) -> _Branc
 
 def _task_branch(owner_id: UUID, include_archived: bool, project_id: UUID | None) -> _Branch:
     archived = TaskRow.archived_at.is_not(None)
+    waiting = and_(TaskRow.waiting_since.is_not(None), TaskRow.status != "completed")
     cols = _Cols(
         "task",
         TaskRow.id,
@@ -257,9 +262,11 @@ def _task_branch(owner_id: UUID, include_archived: bool, project_id: UUID | None
         archived,
         TaskRow.not_before,
         TaskRow.estimated_minutes,
-        and_(TaskRow.waiting_since.is_not(None), TaskRow.status != "completed"),
+        waiting,
         # The board ranks live, unarchived Tasks only (an archived Task's rank is not shown).
         case((archived, None), else_=TaskRow.board_rank),
+        # A follow-up counts only while the Task waits; the agenda dates the Task by it too.
+        case((waiting, TaskRow.follow_up_at), else_=None),
     )
     where = [
         TaskRow.owner_id == owner_id,
@@ -289,6 +296,7 @@ def _step_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         _typed_null(Integer),
         false(),
         _typed_null(Integer),
+        _typed_null(_TIMESTAMP),
     )
     where = [
         StepRow.owner_id == owner_id,
@@ -324,6 +332,7 @@ def _action_branch(owner_id: UUID, include_archived: bool) -> _Branch:
         _typed_null(Integer),
         false(),
         _typed_null(Integer),
+        _typed_null(_TIMESTAMP),
     )
     where = [
         ActionRow.owner_id == owner_id,
@@ -380,15 +389,23 @@ def _predicates(owner_id: UUID, cols: _Cols, spec: WorkListSpec) -> list[ColumnE
     return found
 
 
+def _agenda_at(source: Any) -> ColumnElement[Any]:
+    """The instant the agenda dates a record by: its due time or, if earlier, its follow-up
+    (`LEAST` skips a missing value, so a record with one of them uses it)."""
+
+    return func.least(source.c.due_at, source.c.follow_up, type_=_TIMESTAMP)
+
+
 def _agenda_group(source: Any, agenda: AgendaSpec) -> ColumnElement[str]:
     not_actionable = and_(
         source.c.earliest_start.is_not(None), source.c.earliest_start > agenda.now
     )
+    at = _agenda_at(source)
     return case(
         (not_actionable, "scheduled_later"),
-        (source.c.due_at.is_(None), "upcoming"),
-        (source.c.due_at < agenda.now, "overdue"),
-        (and_(source.c.due_at >= agenda.day_start, source.c.due_at < agenda.day_end), "today"),
+        (at.is_(None), "upcoming"),
+        (at < agenda.now, "overdue"),
+        (and_(at >= agenda.day_start, at < agenda.day_end), "today"),
         else_="upcoming",
     )
 
@@ -405,16 +422,21 @@ def _agenda_filter(source: Any, agenda: AgendaSpec) -> ColumnElement[bool]:
     )
     return and_(
         source.c.status != "completed",
-        or_(not_actionable, source.c.due_at.is_not(None), undated),
+        or_(not_actionable, _agenda_at(source).is_not(None), undated),
     )
 
 
 def _expression(source: Any, name: str) -> Any:
     """The SQL expression behind one `SortKey` of `work.listing.sort_keys`. Text compares by
-    code point (`COLLATE "C"`)."""
+    code point (`COLLATE "C"`). The due-time key reads the agenda's date: the due time itself
+    outside the agenda."""
 
+    if name == "due_at":
+        return source.c.agenda_at
     if name == "today_first":
         return case((source.c.agenda_group == "today", 0), else_=1)
+    if name == "open_first":
+        return case((source.c.status == "completed", 1), else_=0)
     if name in ("kind", "status"):
         return collate(getattr(source.c, name), "C")
     if name == "title":
@@ -468,6 +490,9 @@ def _wanted_kinds(spec: WorkListSpec) -> tuple[str, ...]:
         kinds = ("task",)
     if spec.kind != "all":
         kinds = tuple(kind for kind in kinds if kind == spec.kind)
+    if spec.board_order:
+        # A Step or an Action is part of its Task: the board counts and lists Tasks.
+        kinds = tuple(kind for kind in kinds if kind not in ("step", "action"))
     return kinds
 
 
@@ -476,7 +501,8 @@ _UNDER_A_TASK = frozenset({"task", "step", "action"})
 
 
 def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> Any:
-    """The union of the given kinds, with `agenda_group` added and the agenda filter applied."""
+    """The union of the given kinds, with `agenda_at` and `agenda_group` added and the agenda
+    filter applied."""
 
     include_archived = spec.archive != "active"
     branches = {
@@ -499,9 +525,17 @@ def _selection(owner_id: UUID, spec: WorkListSpec, kinds: tuple[str, ...]) -> An
     union = selects[0] if len(selects) == 1 else selects[0].union_all(*selects[1:])
     merged = union.subquery("work")
     if spec.agenda is None:
-        return select(*merged.c, cast(null(), String).label("agenda_group")).subquery("selected")
+        return select(
+            *merged.c,
+            merged.c.due_at.label("agenda_at"),
+            cast(null(), String).label("agenda_group"),
+        ).subquery("selected")
     return (
-        select(*merged.c, _agenda_group(merged, spec.agenda).label("agenda_group"))
+        select(
+            *merged.c,
+            _agenda_at(merged).label("agenda_at"),
+            _agenda_group(merged, spec.agenda).label("agenda_group"),
+        )
         .where(_agenda_filter(merged, spec.agenda))
         .subquery("selected")
     )

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../../mcp-apps/idempotency";
-import { isForbidden } from "../../transport/transport";
+import { isForbidden, writeFailure } from "../../transport/transport";
 import {
   failureState,
   readFailurePhase,
@@ -20,10 +20,16 @@ import { useMounted } from "../../../mcp-apps/ui/use-mounted";
 export function useDetailFrame({
   moves,
   startEditing = false,
+  onConflict,
 }: {
   moves: number;
   /** A compact Contact card's "Edit" opens the frame with the existing editor already open. */
   startEditing?: boolean;
+  /**
+   * Given to a frame that reads its record again by itself when a write is refused because the record changed
+   * meanwhile: the banner that asks the owner to refresh is then not shown. Called once the write is over.
+   */
+  onConflict?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [readError, setReadError] = useState<unknown>();
@@ -38,6 +44,10 @@ export function useDetailFrame({
   // Synchronous guard against a second write (double click) before React re-renders.
   const flight = useSingleFlight();
   const pendingWrite = useRef<PendingKey | undefined>(undefined);
+  const readOnConflict = useRef(onConflict);
+  useEffect(() => {
+    readOnConflict.current = onConflict;
+  });
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
@@ -76,6 +86,7 @@ export function useDetailFrame({
     const pendingKey = keyFor(pendingWrite.current, signature);
     pendingWrite.current = pendingKey;
     setWrite({ kind: "busy" });
+    let conflicted = false;
     send(pendingKey.key)
       .then((result) => {
         if (!mounted.current) return;
@@ -88,10 +99,16 @@ export function useDetailFrame({
         setWrite({ kind: receipt ? "idle" : "saved" });
       })
       .catch((error: unknown) => {
-        if (mounted.current) setWrite(failureState(error, action));
+        if (!mounted.current) return;
+        // The record changed meanwhile: the read that follows shows it, so no banner stands in between.
+        conflicted =
+          writeFailure(error) === "conflict" &&
+          readOnConflict.current !== undefined;
+        if (!conflicted) setWrite(failureState(error, action));
       })
       .finally(() => {
         flight.leave();
+        if (conflicted && mounted.current) readOnConflict.current?.();
       });
   }
   /**

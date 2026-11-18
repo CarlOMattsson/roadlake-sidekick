@@ -11,6 +11,8 @@ import {
   type InlineSummaryNotice,
 } from "./inline-summary";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
+import { aiLabelsFor } from "../ai/ai-labels";
+import { useAiPlanWaiting } from "../ai/use-ai-plan-waiting";
 import { isRecurringCycle, sameDue } from "../agenda/parts/agenda-helpers";
 import {
   isTaskStatus,
@@ -89,6 +91,15 @@ export function InlineRootSummary({
   );
   const [read, retryRead, setSummary] = useRead(readSummary, 0, initial);
   const summary = read.phase === "ready" ? read.value : undefined;
+  // A plan Claude laid for a Task that is still open and waits for the owner's approval says so on the card.
+  const waitingPlan = useAiPlanWaiting(
+    transport,
+    id,
+    kind === "task" &&
+      Boolean(summary?.aiPossible) &&
+      summary?.status !== "completed" &&
+      summary?.status !== "cancelled",
+  );
   const phase: Phase =
     read.phase === "failed"
       ? readFailurePhase(read.cause)
@@ -241,6 +252,7 @@ export function InlineRootSummary({
     );
   }
   if (phase === "ready" && summary) {
+    const aiWords = aiLabelsFor(labels.dateLocale);
     const canComplete =
       kind === "task" &&
       summary.status !== "completed" &&
@@ -264,6 +276,14 @@ export function InlineRootSummary({
         }
         focusComplete={focusDone}
         notice={notice}
+        plan={
+          waitingPlan
+            ? {
+                line: aiWords.planWaiting(waitingPlan.aiSteps),
+                reviewLabel: aiWords.reviewPlan,
+              }
+            : undefined
+        }
       />
     );
   }

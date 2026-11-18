@@ -31,6 +31,8 @@ export function useRoomCapabilities(host: RoomTransport) {
   const canFilterTags =
     canListTags && toolOffered(host, "list_journal_entries", { tags: [] });
   const canWriteTags = toolOffered(host, "update_journal_entry", { tags: [] });
+  // Keeping an entry out of Claude's memory needs the tool.
+  const canExcludeFromMemory = toolOffered(host, "exclude_from_memory");
   // The phone's outbox rides along on the transport, where the host has one.
   const transport = useMemo<JournalTransport>(
     () => ({
@@ -46,6 +48,7 @@ export function useRoomCapabilities(host: RoomTransport) {
           filter: canFilterTags,
           write: canWriteTags,
         },
+        canExcludeFromMemory,
       ),
     }),
     [
@@ -57,6 +60,7 @@ export function useRoomCapabilities(host: RoomTransport) {
       canListTags,
       canFilterTags,
       canWriteTags,
+      canExcludeFromMemory,
       offline,
     ],
   );

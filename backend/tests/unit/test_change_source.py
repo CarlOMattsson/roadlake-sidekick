@@ -7,7 +7,7 @@ import pytest
 from starlette.types import Receive, Scope, Send
 
 from sidekick.api.change_source import OwnerAppChangeSource
-from sidekick.mcp.change_source import source_of_tool
+from sidekick.mcp.change_source import APP_ORIGIN_META, source_of_call, source_of_tool
 from sidekick.shared.change_source import change_source, current_change_source
 
 
@@ -39,6 +39,23 @@ def test_the_source_holds_inside_the_block_and_is_restored_after_an_error() -> N
 )
 def test_only_an_app_only_tool_is_the_owners(meta: dict[str, Any] | None, expected: str) -> None:
     assert source_of_tool(meta) == expected
+
+
+@pytest.mark.parametrize(
+    ("tool_meta", "call_meta", "expected"),
+    [
+        ({"ui": {"resourceUri": "ui://x"}}, {APP_ORIGIN_META: "app"}, "you"),
+        ({"ui": {"visibility": ["app"]}}, None, "you"),
+        ({"ui": {"resourceUri": "ui://x"}}, None, "claude"),
+        ({"ui": {"resourceUri": "ui://x"}}, {APP_ORIGIN_META: "model"}, "claude"),
+        ({"ui": {"resourceUri": "ui://x"}}, {"other": "app"}, "claude"),
+        (None, {APP_ORIGIN_META: "app"}, "you"),
+    ],
+)
+def test_a_call_is_the_owners_when_the_app_marks_it(
+    tool_meta: dict[str, Any] | None, call_meta: dict[str, Any] | None, expected: str
+) -> None:
+    assert source_of_call(tool_meta, call_meta) == expected
 
 
 def test_an_http_request_is_the_owners_and_a_non_http_scope_is_left_alone() -> None:

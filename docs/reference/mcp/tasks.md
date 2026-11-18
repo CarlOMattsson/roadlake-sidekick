@@ -225,13 +225,13 @@ A nested field is listed under its parent as `parent.field`; `parent[].field` is
 
 ## `get_work_board`
 
-Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns.
+Use this for the Status view: one page of Work records, most overdue first, grouped into status columns.
 
 Access: read
 
 Scopes: requires `tasks:read`.
 
-Returns: `WorkBoardOutput` with `columns` (Columns), `column_totals` (object), `filters` (Filters), `manually_ordered` (array of string), `next_cursor` (string or null).
+Returns: `WorkBoardOutput` with `columns` (Columns), `column_totals` (object), `filters` (Filters), `manually_ordered` (array of string), `next_cursor` (string or null), `overdue_total` (integer).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -240,7 +240,7 @@ Returns: `WorkBoardOutput` with `columns` (Columns), `column_totals` (object), `
 | `attention` | string | no | default `"all"`; one of `all`, `requested` |
 | `cursor` | string | no | up to 2048 characters; may be null |
 | `estimate` | string | no | default `"all"`; one of `all`, `estimated`, `unestimated` |
-| `limit` | integer | no | default `25`; 1 to 100 |
+| `limit` | integer | no | default `25`; 1 to 50 |
 | `priority` | string | no | one of `low`, `normal`, `high`, `urgent`; may be null |
 | `project_id` | uuid | no | may be null |
 | `q` | string | no | up to 200 characters; may be null |

@@ -522,7 +522,7 @@ def test_a_hand_written_entry_can_be_read_back_through_its_source() -> None:
             ENTRIES, headers=write_headers(token, "journal-source-0001"), json=body()
         )
         entry = created.json()["entry"]
-        assert (entry["summary"], entry["key_points"]) == (None, [])
+        assert (entry["summary"], entry["key_points"]) == (SOURCE, [])
 
         source_path = f"{SOURCES}/{entry['source_id']}"
         read = client.get(source_path, headers=bearer(token))

@@ -61,7 +61,7 @@ const SEVEN = [
   contact("Cecilia"),
 ];
 
-it("lists up to 15 Contacts as one flat list in Swedish order, with no letter headings", () => {
+it("lists up to 30 Contacts as one flat list in Swedish order, with no letter headings", () => {
   renderList(frameOf(SEVEN));
   expect(screen.queryAllByRole("heading", { level: 3 })).toHaveLength(0);
   // The name of each row, without its avatar of initials that leads the row.
@@ -80,8 +80,8 @@ it("lists up to 15 Contacts as one flat list in Swedish order, with no letter he
   ]);
 });
 
-it("groups Contacts under A–Ö letters when the list holds more than 15, with Å, Ä and Ö last", () => {
-  const nine = Array.from({ length: 9 }, (_, i) => contact(`Dag ${i + 1}`));
+it("groups Contacts under A–Ö letters when the list holds more than 30, with Å, Ä and Ö last", () => {
+  const nine = Array.from({ length: 24 }, (_, i) => contact(`Dag ${i + 1}`));
   renderList(frameOf([...SEVEN, ...nine]));
   expect(
     screen
@@ -232,7 +232,7 @@ it("shows a failed first read and retries it", async () => {
 });
 
 it("sticks letter headings below the host's overlay, and the search field asks for a search key", () => {
-  const filler = Array.from({ length: 14 }, (_, i) => contact(`Anna ${i + 1}`));
+  const filler = Array.from({ length: 29 }, (_, i) => contact(`Anna ${i + 1}`));
   renderList(frameOf([contact("Anna Andersson"), contact("Bo"), ...filler]));
   const letter = screen.getByRole("heading", { level: 3, name: "A" });
   expect(letter).toHaveStyle({ position: "sticky" });

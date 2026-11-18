@@ -608,7 +608,7 @@ function entry(overrides: Partial<ActivityRecord> = {}): ActivityRecord {
     id: "019f0000-0000-7000-8000-000000000201",
     category: "task_maintenance",
     source: "assistant",
-    operation: "update_task",
+    operation: "reorder_board_column",
     state: "applied",
     aggregate_type: "task",
     summary: "Flyttade Förbered pitchen till Klar",
@@ -790,5 +790,118 @@ describe("HistoryView empty state and who acted", () => {
         .querySelector(".control-row-secondary")!.textContent;
     expect(metaOf("Du ändrade en rad")).toMatch(/^Du /);
     expect(metaOf("Claude ändrade en rad")).toMatch(/^Claude /);
+  });
+});
+
+describe("HistoryView drops activity that repeats a change", () => {
+  const task: ChangeRecord = {
+    kind: "task",
+    id: "019f0000-0000-7000-8000-0000000003c1",
+    title: "Mejla Lisa",
+    version: 1,
+    action: "created",
+    state: "active",
+    occurred_at: "2026-11-01T09:00:00Z",
+  };
+
+  it("shows one row for an action that is both a change and an activity entry", () => {
+    renderChanges({ changes: [task] }, makeTransport(), {
+      items: [
+        entry({
+          operation: "create_task",
+          aggregate_id: task.id,
+          occurred_at: "2026-11-01T09:00:01Z",
+          summary: "Create task: Mejla Lisa",
+          after_values: { title: "Mejla Lisa" },
+        }),
+      ],
+      next_cursor: null,
+    });
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByText(/Uppgift skapad/)).not.toBeInTheDocument();
+  });
+
+  it("keeps an AI row for the same task", () => {
+    renderChanges({ changes: [task] }, makeTransport(), {
+      items: [
+        entry({
+          category: "ai_steps",
+          operation: "plan_approved",
+          aggregate_id: task.id,
+          occurred_at: "2026-11-01T09:00:01Z",
+          summary: "AI plan approved: Mejla Lisa",
+          after_values: { title: "Mejla Lisa" },
+        }),
+      ],
+      next_cursor: null,
+    });
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+});
+
+describe("HistoryView words activity rows in the app language", () => {
+  function primaryOf(
+    labels: typeof controlSv | typeof controlEn,
+    row: ActivityRecord,
+  ) {
+    render(
+      <HistoryView
+        changes={{ changes: [] }}
+        activity={{ items: [row], next_cursor: null }}
+        transport={makeTransport()}
+        labels={labels}
+        now={now}
+      />,
+    );
+    return document.querySelector(".control-row-primary")?.textContent;
+  }
+
+  it("words an AI plan row in Swedish with the task name", () => {
+    expect(
+      primaryOf(
+        controlSv,
+        entry({
+          category: "ai_steps",
+          operation: "plan_approved",
+          summary: "AI plan approved: Jämföra faktureringssystem",
+          after_values: { title: "Jämföra faktureringssystem" },
+        }),
+      ),
+    ).toBe("AI-plan godkänd: Jämföra faktureringssystem");
+  });
+
+  it("words an AI step run by its state, and reads well without a name", () => {
+    expect(
+      primaryOf(
+        controlSv,
+        entry({
+          category: "ai_steps",
+          operation: "run_reported",
+          summary: "AI step run to review",
+          after_values: { state: "to_review" },
+        }),
+      ),
+    ).toBe("AI-steg väntar på din granskning");
+  });
+
+  it("words a task row in English", () => {
+    expect(
+      primaryOf(
+        controlEn,
+        entry({
+          operation: "update_task",
+          summary: "Update task: Ring Karin",
+          after_values: { title: "Ring Karin" },
+        }),
+      ),
+    ).toBe("Task updated: Ring Karin");
+  });
+
+  it("shows the stored summary for an operation it has no sentence for", () => {
+    expect(
+      primaryOf(controlSv, entry({ summary: "Moved Pitch to Done" })),
+    ).toBe("Moved Pitch to Done");
   });
 });

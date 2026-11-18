@@ -8,6 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
+import { ownerDayPlus, ownerEndOfDay } from "@/features/mcp-apps/ui/due";
 import { hierarchyDetailLabelsEn } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
 import { inlineSummaryLabelsEn } from "@/features/work-app/inline/inline-summary-labels";
 import {
@@ -28,6 +29,11 @@ const taskA: WorkTask = {
   due_at: null,
   version: 1,
 };
+
+/** A bare due date (23:59 on the owner day) `days` from today: no clock time. */
+function inDays(days: number): string {
+  return ownerEndOfDay(ownerDayPlus(new Date(), days));
+}
 
 /** A transport with only the reads TaskFrame makes on open, plus the update under test. */
 function transport(overrides: Partial<WorkTransport> = {}): WorkTransport {
@@ -164,7 +170,7 @@ describe("TaskFrame status", () => {
     expect(await statusChip()).toHaveFocus();
   });
 
-  it("shows the conflict banner when the Task changed elsewhere and keeps the old status pressed", async () => {
+  it("reads the Task again when it changed elsewhere, with no banner, and keeps the old status pressed", async () => {
     const work = transport({
       updateTask: vi.fn().mockRejectedValue(new HostToolError("conflict")),
     });
@@ -178,11 +184,8 @@ describe("TaskFrame status", () => {
       }),
     );
 
-    const banner = await screen.findByRole("alert");
-    expect(banner).toHaveTextContent(workEn.conflict);
-    expect(
-      within(banner).getByRole("button", { name: workEn.reload }),
-    ).toBeVisible();
+    await waitFor(() => expect(work.getTask).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(pressedStatus(await openStatusMenu(user))).toBe(
       workEn.taskStatus.todo,
     );
@@ -380,7 +383,7 @@ const END_OF_TOMORROW = "2026-11-13T22:59:00.000Z";
 
 describe("TaskFrame due date", () => {
   it("puts how late a passed date is on its own line above the chips, and a coming date shows only the date, with no Förföll or Förfaller prefix", async () => {
-    const past = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    const past = inDays(-5);
     const { unmount } = render(
       <WorkView
         transport={transport({
@@ -409,7 +412,7 @@ describe("TaskFrame due date", () => {
     expect(late).not.toHaveTextContent("försenad");
     unmount();
 
-    const coming = new Date(Date.now() + 10 * 86_400_000).toISOString();
+    const coming = inDays(10);
     render(
       <WorkView
         transport={transport({
@@ -437,7 +440,7 @@ describe("TaskFrame due date", () => {
   });
 
   it("keeps only how late it is on the meta line; the project is the place chip's name", async () => {
-    const past = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    const past = inDays(-5);
     const { unmount } = render(
       <WorkView
         transport={transport({
@@ -482,7 +485,7 @@ describe("TaskFrame due date", () => {
   });
 
   it("does not call a done Task late and names only its date", async () => {
-    const past = new Date(Date.now() - 5 * 86_400_000).toISOString();
+    const past = inDays(-5);
     renderTask(
       transport({
         getTask: vi.fn().mockResolvedValue({
@@ -551,7 +554,7 @@ describe("TaskFrame due date", () => {
       getTask: vi.fn().mockResolvedValue({
         task: {
           ...taskA,
-          due_at: new Date(Date.now() + 3 * 86_400_000).toISOString(),
+          due_at: inDays(3),
         },
       }),
     });

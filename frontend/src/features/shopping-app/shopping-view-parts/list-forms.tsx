@@ -22,6 +22,7 @@ export function NameForm({
   value,
   buttonLabel,
   busy,
+  disabled = false,
   onChange,
   onSubmit,
 }: {
@@ -32,6 +33,8 @@ export function NameForm({
   value: string;
   buttonLabel: string;
   busy: boolean;
+  /** The list cannot be changed (it is archived): the button is off. */
+  disabled?: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
 }) {
@@ -54,7 +57,7 @@ export function NameForm({
       <button
         type="button"
         className={primary ? "sk-btn--primary" : undefined}
-        disabled={busy || !value.trim()}
+        disabled={busy || disabled || !value.trim()}
         onClick={() => onSubmit()}
       >
         {buttonLabel}
@@ -101,9 +104,6 @@ type ListsView = {
   lists: ShoppingList[];
   listOffset: number;
   nextLists: number | null;
-  listName: string;
-  onListName: (value: string) => void;
-  onCreate: () => void;
   onOffset: (offset: number) => void;
 };
 
@@ -141,7 +141,7 @@ export function ListPicker({
   onNewOpen,
   sendMessage,
   control,
-}: Omit<ListsView, "listName" | "onListName" | "onCreate"> & {
+}: ListsView & {
   /**
    * The last entry of the picker's ⋯: the Control room's `title`, or the host's own settings (the phone). The ⋯ holds it,
    * so it is one tap away also before any list exists. Absent: no ⋯ (the room cannot open Control).
@@ -304,82 +304,5 @@ export function ListPicker({
         </div>
       )}
     </div>
-  );
-}
-
-/**
- * A list is chosen inline: the create form and the list picker sit above it. Folded (inline) they wait for
- * "Show all".
- */
-export function ListSwitcher({
-  labels: t,
-  busy,
-  lists,
-  listOffset,
-  nextLists,
-  listName,
-  onListName,
-  onCreate,
-  onOffset,
-  id,
-  list,
-  onSelect,
-  onRefresh,
-}: ListsView & {
-  id: string;
-  list: ShoppingList;
-  onSelect: (id: string) => void;
-  onRefresh: () => void;
-}) {
-  return (
-    <>
-      <NameForm
-        labels={t}
-        className="shopping-toolbar"
-        primary={false}
-        value={listName}
-        buttonLabel={t.create}
-        busy={busy}
-        onChange={onListName}
-        onSubmit={onCreate}
-      />
-      <div className="shopping-toolbar">
-        <label>
-          {t.select}
-          <select
-            value={id}
-            disabled={busy}
-            onChange={(e) => onSelect(e.target.value)}
-          >
-            <option value="">{t.select}</option>
-            {!lists.some((entry) => entry.id === list.id) && (
-              <option value={list.id}>{list.name}</option>
-            )}
-            {/* The archived lists stand last, as in the picker. */}
-            {[...lists]
-              .sort((a, b) => Number(a.archived) - Number(b.archived))
-              .map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name}
-                  {entry.archived ? ` · ${t.archived}` : ""}
-                </option>
-              ))}
-          </select>
-        </label>
-        <button disabled={busy} onClick={onRefresh}>
-          {t.refresh}
-        </button>
-        {/* The list pager is shown only when there is more than one page of lists. */}
-        {(listOffset > 0 || nextLists !== null) && (
-          <ListPager
-            labels={t}
-            busy={busy}
-            listOffset={listOffset}
-            nextLists={nextLists}
-            onOffset={onOffset}
-          />
-        )}
-      </div>
-    </>
   );
 }

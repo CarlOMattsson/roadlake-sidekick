@@ -34,6 +34,8 @@ export function ItemEditor({
   busy,
   focusFirst,
   contacts,
+  lists,
+  stores,
   onCancel,
   onSave,
   onTrash,
@@ -43,6 +45,10 @@ export function ItemEditor({
   busy: boolean;
   focusFirst: boolean;
   contacts: ShoppingTransport["contacts"];
+  /** The active lists the item can be moved between; the choice is offered when there is more than one. */
+  lists: { id: string; name: string }[];
+  /** The shops the list's items already name, offered as the store field's suggestions. */
+  stores: string[];
   onCancel: () => void;
   onSave: (value: ShoppingInput) => void;
   /** Deletes the item (to the trash, with Undo). Absent when the host offers no delete. */
@@ -50,6 +56,7 @@ export function ItemEditor({
 }) {
   const form = useRef<HTMLFormElement>(null);
   const extraId = useId();
+  const storesId = useId();
   // Progressive: the item, its amount and its shop first; the rest waits behind `moreFields`.
   const [extraOpen, setExtraOpen] = useState(false);
   // The offer's fields are a fold of their own inside it, closed until opened.
@@ -87,7 +94,10 @@ export function ItemEditor({
     if (quantity === null) return;
     // The price fields check themselves as they are typed, so a value that gets here is a price; it goes out with a point.
     const price = (name: string) => parsePriceInput(value(name));
+    const list = value("list_id");
     onSave({
+      // Only a changed list is sent: it moves the item.
+      ...(list && list !== item.list_id ? { list_id: list } : {}),
       name: value("name"),
       quantity,
       unit: nullable("unit"),
@@ -158,10 +168,28 @@ export function ItemEditor({
             {t.store}
             <input
               name="store"
+              list={storesId}
               defaultValue={item.store ?? ""}
               maxLength={200}
             />
+            <datalist id={storesId}>
+              {stores.map((shop) => (
+                <option key={shop} value={shop} />
+              ))}
+            </datalist>
           </label>
+          {lists.length > 1 && (
+            <label className="shopping-editor-list">
+              {t.list}
+              <select name="list_id" defaultValue={item.list_id}>
+                {lists.map((entry) => (
+                  <option key={entry.id} value={entry.id}>
+                    {entry.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <button
           type="button"

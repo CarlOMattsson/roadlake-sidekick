@@ -1,7 +1,7 @@
 import type { WorkContactSummary } from "../transport/transport";
 
 /** Letter headings show only when the list holds more Contacts than this; a shorter list is one flat list. */
-export const LETTER_HEADINGS_ABOVE = 15;
+export const LETTER_HEADINGS_ABOVE = 30;
 
 /** Swedish order: Å, Ä and Ö come after Z. */
 let swedishCollator: Intl.Collator | undefined;
@@ -38,6 +38,20 @@ export function sectionsOf(
   return [...byLetter]
     .map(([letter, contacts]) => ({ letter, contacts }))
     .sort((a, b) => swedish().compare(a.letter, b.letter));
+}
+
+/**
+ * A Contact's Tasks by how soon they are due: overdue first, then today and later, those without a date last. The
+ * server lists them by last change, so a Task ticked off and back would otherwise move; equal dates keep that order.
+ */
+export function tasksByUrgency<T extends { due_at?: string | null }>(
+  tasks: T[],
+): T[] {
+  const due = (task: T) => task.due_at ?? "￿";
+  // ISO timestamps from the server sort as text.
+  return [...tasks].sort((a, b) =>
+    due(a) < due(b) ? -1 : due(a) > due(b) ? 1 : 0,
+  );
 }
 
 /**

@@ -8,12 +8,13 @@ import { workDate } from "../../mcp-apps/ui/due";
 export const MAX_ADD_ITEMS = 50;
 
 /**
- * The item names typed in an add field: commas and line breaks separate them, each is trimmed and empty
- * ones are dropped. The batch field, the create field and the inline card's quick add all read their text this way.
+ * The item texts typed in an add field: commas and line breaks separate them, each is trimmed and empty
+ * ones are dropped. A comma between two digits is a decimal comma ("1,5 l mjölk"), not a separator. The batch field, the
+ * create field and the inline card's quick add all read their text this way.
  */
 export function splitItemNames(text: string): string[] {
   return text
-    .split(/[,\r\n]+/)
+    .split(/(?<!\d),|,(?!\d)|[\r\n]+/)
     .map((line) => line.trim())
     .filter(Boolean);
 }
@@ -84,7 +85,36 @@ export const [buyAgainUsed, wasBuyAgainUsed] = onceFlag(
 
 const STORE_COLLATOR = new Intl.Collator("sv");
 
-const storeKey = (item: ShoppingItem) => item.store?.trim() || null;
+/**
+ * The spelling each shop is shown in, by its lower-case form. Shops that differ only in case ("ICA", "ica") are one
+ * shop, written the way most of the items write it (the first one on a tie), as the server's shop filter treats them.
+ */
+export function storeSpellings(items: ShoppingItem[]): Map<string, string> {
+  const written = new Map<string, Map<string, number>>();
+  for (const item of items) {
+    const name = item.store?.trim();
+    if (!name) continue;
+    const spellings =
+      written.get(name.toLowerCase()) ?? new Map<string, number>();
+    spellings.set(name, (spellings.get(name) ?? 0) + 1);
+    written.set(name.toLowerCase(), spellings);
+  }
+  const chosen = new Map<string, string>();
+  for (const [folded, spellings] of written) {
+    let best = "";
+    let most = 0;
+    for (const [name, count] of spellings)
+      if (count > most) [best, most] = [name, count];
+    chosen.set(folded, best);
+  }
+  return chosen;
+}
+
+/** The shop's group key: its one spelling (`storeSpellings`), or null for an item with no shop. */
+function storeKey(item: ShoppingItem, spellings: Map<string, string>) {
+  const name = item.store?.trim();
+  return name ? (spellings.get(name.toLowerCase()) ?? name) : null;
+}
 
 /**
  * The order of store groups: the store with the most items on the list first (bought ones count too, so a store does
@@ -109,14 +139,15 @@ export function groupByStore(
   items: ShoppingItem[],
   all: ShoppingItem[] = items,
 ): [string | null, ShoppingItem[]][] {
+  const spellings = storeSpellings(all);
   const groups = new Map<string | null, ShoppingItem[]>();
   for (const item of items) {
-    const key = storeKey(item);
+    const key = storeKey(item, spellings);
     groups.set(key, [...(groups.get(key) ?? []), item]);
   }
   const counts = new Map<string, number>();
   for (const item of all) {
-    const key = storeKey(item);
+    const key = storeKey(item, spellings);
     if (key !== null) counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   const weight = (store: string) => counts.get(store) ?? 0;

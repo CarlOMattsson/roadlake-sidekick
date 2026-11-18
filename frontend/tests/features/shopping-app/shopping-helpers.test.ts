@@ -3,6 +3,7 @@ import {
   emptyAsk,
   groupByStore,
   splitItemNames,
+  storeSpellings,
 } from "@/features/shopping-app/shopping-view-parts/helpers";
 import type { ShoppingItem } from "@/features/shopping-app/transport";
 
@@ -20,6 +21,15 @@ describe("splitItemNames", () => {
     ]);
     expect(splitItemNames("  , ,\n")).toEqual([]);
     expect(splitItemNames("mjölk 2 l")).toEqual(["mjölk 2 l"]);
+  });
+
+  it("keeps a decimal comma between digits, but splits a comma after a number", () => {
+    expect(splitItemNames("1,5 l mjölk, ägg")).toEqual(["1,5 l mjölk", "ägg"]);
+    expect(splitItemNames("ägg 12, mjölk")).toEqual(["ägg 12", "mjölk"]);
+    expect(splitItemNames("2,5 kg potatis\n0,5 l grädde")).toEqual([
+      "2,5 kg potatis",
+      "0,5 l grädde",
+    ]);
   });
 });
 
@@ -62,6 +72,49 @@ describe("groupByStore order", () => {
     expect(names([item("a", null), item("b", null), item("c", "ICA")])).toEqual(
       ["ICA", null],
     );
+  });
+});
+
+describe("shops that differ only in case", () => {
+  const grouped = (items: ShoppingItem[]) =>
+    groupByStore(items).map(([store, rows]) => [
+      store,
+      rows.map((row) => row.name),
+    ]);
+
+  it("are one group, named by the spelling most items use", () => {
+    expect(
+      grouped([
+        item("a", "ICA"),
+        item("b", "ica"),
+        item("c", "ica"),
+        item("d", "Coop"),
+      ]),
+    ).toEqual([
+      ["ica", ["a", "b", "c"]],
+      ["Coop", ["d"]],
+    ]);
+  });
+
+  it("take the first spelling on a tie", () => {
+    expect(grouped([item("a", "ica"), item("b", "ICA")])).toEqual([
+      ["ica", ["a", "b"]],
+    ]);
+  });
+
+  it("storeSpellings maps each lower-case shop to its one spelling and skips items without a shop", () => {
+    const spellings = storeSpellings([
+      item("a", "ICA"),
+      item("b", "Ica"),
+      item("c", "Ica"),
+      item("d", " Coop "),
+      item("e", null),
+      item("f", "  "),
+    ]);
+    expect([...spellings]).toEqual([
+      ["ica", "Ica"],
+      ["coop", "Coop"],
+    ]);
   });
 });
 

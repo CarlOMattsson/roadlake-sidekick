@@ -8,7 +8,6 @@ import {
   PROJECT_SEGMENT,
   boardSegments,
   defaultBoardSegment,
-  nestSteps,
   segmentItems,
   type BoardSegment,
 } from "@/features/work-app/shared/work-items";
@@ -223,64 +222,5 @@ describe("board segment labels", () => {
   it("names the quick choices of a card with the long-press hint, in Swedish and English", () => {
     expect(workSv.rowMenuHint).toBe("Håll inne en uppgift för fler val.");
     expect(workEn.rowMenuHint).toBe("Touch and hold a task for more options.");
-  });
-});
-
-/** A Step whose Task is `taskId`. */
-function step(id: string, taskId: string): WorkItemRecord {
-  return {
-    kind: "step",
-    id,
-    title: `step ${id}`,
-    status: "todo",
-    task_id: taskId,
-  };
-}
-
-describe("nestSteps", () => {
-  it("stands a Step right after its Task, when the Step came before it", () => {
-    const items = [
-      step("s1", "t1"),
-      record("task", "t1", "todo"),
-      record("task", "t2", "todo"),
-    ];
-    expect(nestSteps(items).map((i) => i.id)).toEqual(["t1", "s1", "t2"]);
-  });
-
-  it("keeps the order of several Steps under one Task, after the Task's earlier Steps", () => {
-    const items = [
-      record("task", "t2", "todo"),
-      step("sA", "t1"),
-      record("task", "t1", "todo"),
-      step("sB", "t1"),
-      step("sC", "t2"),
-    ];
-    expect(nestSteps(items).map((i) => i.id)).toEqual([
-      "t2",
-      "sC",
-      "t1",
-      "sA",
-      "sB",
-    ]);
-  });
-
-  it("keeps a Step in its place when its Task is not on the list", () => {
-    const items = [
-      step("sX", "tX"),
-      record("task", "t1", "todo"),
-      step("s1", "tY"),
-    ];
-    expect(nestSteps(items).map((i) => i.id)).toEqual(["sX", "t1", "s1"]);
-  });
-
-  it("leaves the order of the Tasks as it is, and returns the same records", () => {
-    const items = [
-      record("task", "t3", "in_progress"),
-      record("task", "t1", "todo"),
-      record("task", "t2", "completed"),
-    ];
-    const nested = nestSteps(items);
-    expect(nested.map((i) => i.id)).toEqual(["t3", "t1", "t2"]);
-    expect(nested[0]).toBe(items[0]);
   });
 });

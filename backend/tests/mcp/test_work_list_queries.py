@@ -83,7 +83,7 @@ async def _statements_for(task_count: int, key: str) -> dict[str, Any]:
         try:
             for tool, arguments in (
                 ("get_work_agenda", {"waiting": "waiting", "limit": 100}),
-                ("get_work_board", {"limit": 100}),
+                ("get_work_board", {"limit": 50}),
             ):
                 statements.clear()
                 started = time.perf_counter()

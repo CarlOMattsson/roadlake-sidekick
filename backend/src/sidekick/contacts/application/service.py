@@ -35,6 +35,9 @@ from sidekick.shared.types import (
 from sidekick.work.domain.planning import normalize_tag_filter, normalize_tag_selection
 from sidekick.work.domain.tag_assignment import apply_record_tags
 
+SAME_NAME_LIMIT = 5
+"""Most same-name Contacts named in a create reply."""
+
 
 class ContactService:
     def __init__(self, store: ContactStore, clock: Clock, cursor_codec: CursorCodec) -> None:
@@ -111,6 +114,16 @@ class ContactService:
             # record must remain readable so the owner can recover it from the list.
             lambda session: self.store.get_contact(
                 session, actor.user_id, contact_id, include_archived=True
+            )
+        )
+
+    def same_name_contacts(self, actor: Actor, contact: Contact) -> Sequence[Contact]:
+        """The owner's other unarchived Contacts with the same name as `contact` (at most 5)."""
+
+        actor.require("contacts:read")
+        return self.store.transaction(
+            lambda session: self.store.same_name_contacts(
+                session, actor.user_id, contact, SAME_NAME_LIMIT
             )
         )
 

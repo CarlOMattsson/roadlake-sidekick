@@ -98,7 +98,6 @@ it("an inline card after a write in the full view reads its list by id and shows
     ),
   ).toBe(true);
   expect(screen.getByText(shoppingEn.boughtOf(0, 1))).toBeInTheDocument();
-  expect(screen.queryByLabelText(shoppingEn.select)).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: shoppingEn.create }),
   ).not.toBeInTheDocument();

@@ -331,29 +331,34 @@ it("Undo is still offered 9 s after the purchase and sends the item back", async
 });
 
 it("a re-render of the list during the Undo window keeps the Ångra of the held row", async () => {
-  const { transport, user, rerender } = await buyMilk();
+  const { transport, rerender } = await buyMilk();
   await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: shoppingEn.refresh }),
-    ).toBeEnabled(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   const readsBefore = vi.mocked(transport.get).mock.calls.length;
-  await user.click(screen.getByRole("button", { name: shoppingEn.refresh }));
+  // A changed refreshKey reads the list again, as a write in the full view does.
+  rerender(
+    <ShoppingView
+      transport={transport}
+      labels={shoppingEn}
+      initial={detail([milk])}
+      refreshKey={1}
+    />,
+  );
   await waitFor(() =>
     expect(vi.mocked(transport.get).mock.calls.length).toBeGreaterThan(
       readsBefore,
     ),
   );
   await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: shoppingEn.refresh }),
-    ).toBeEnabled(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   rerender(
     <ShoppingView
       transport={transport}
       labels={{ ...shoppingEn }}
       initial={detail([milk])}
+      refreshKey={1}
     />,
   );
   const undoButton = await groupUndo("Milk");

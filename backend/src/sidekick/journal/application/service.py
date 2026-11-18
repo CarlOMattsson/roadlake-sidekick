@@ -19,6 +19,8 @@ from sidekick.journal.application.relations import (
 )
 from sidekick.journal.application.store import JournalStore
 from sidekick.journal.domain.entry import (
+    MAX_SUMMARY_LENGTH,
+    SUMMARY_WRITTEN_EVENT,
     JournalEntry,
     JournalOrder,
     KeyPoint,
@@ -124,6 +126,56 @@ class JournalService:
         actor.require("journal:read")
         return self.store.transaction(
             lambda session: self.store.get_journal_entry(session, actor.user_id, entry_id)
+        )
+
+    def summary_authors(self, actor: Actor, entry_ids: Sequence[UUID]) -> dict[UUID, str]:
+        """Who wrote each entry's summary (`you` or `claude`); unrecorded entries are left out."""
+
+        actor.require("journal:read")
+        return self.store.transaction(
+            lambda session: self.store.journal_summary_authors(session, actor.user_id, entry_ids)
+        )
+
+    def _summary_with_text(
+        self,
+        session: TxSession,
+        actor: Actor,
+        current: JournalEntry,
+        summary: str | None,
+        append_text: str | None,
+    ) -> str | None:
+        """The summary an append leaves. A summary that holds the owner's own words grows with the
+        text she adds, so the entry shows it; a summary Claude wrote, or one the call sets, is left
+        to the caller, and the added text stays in the original."""
+
+        if summary is not None or append_text is None or not current.summary:
+            return summary
+        authors = self.store.journal_summary_authors(session, actor.user_id, [current.id])
+        grown = f"{current.summary}\n\n{append_text}"
+        if authors.get(current.id) != "you" or len(grown) > MAX_SUMMARY_LENGTH:
+            return None
+        return grown
+
+    def _record_summary_change(
+        self,
+        session: TxSession,
+        actor: Actor,
+        before: JournalEntry,
+        after: JournalEntry,
+        correlation_id: str | None,
+    ) -> None:
+        """Note who wrote the new summary, so the entry can say whose words it holds."""
+
+        if before.summary == after.summary:
+            return
+        self.store.append_audit(
+            session,
+            actor_id=actor.user_id,
+            event=SUMMARY_WRITTEN_EVENT,
+            outcome="success",
+            target_type="journal_entry",
+            target_id=after.id,
+            correlation_id=correlation_id,
         )
 
     def change_entry_relations(
@@ -318,7 +370,7 @@ class JournalService:
                 current,
                 expected_version=expected_version,
                 title=title,
-                summary=summary,
+                summary=self._summary_with_text(session, actor, current, summary, append_text),
                 append_key_points=append_key_points,
                 source_id=None if new_source is None else new_source.id,
                 changed_at=now,
@@ -348,6 +400,7 @@ class JournalService:
         self.store.update_journal_entry(
             session, owner_id=actor.user_id, entry=updated, expected_version=expected_version
         )
+        self._record_summary_change(session, actor, current, updated, correlation_id)
         if not relation_change.is_empty():
             apply_relation_change(self.store, session, actor, updated.id, relation_change)
         self._apply_tags(session, actor, updated.id, tags, now)
@@ -498,6 +551,7 @@ class JournalService:
         self.store.update_journal_entry(
             session, owner_id=actor.user_id, entry=updated, expected_version=expected_version
         )
+        self._record_summary_change(session, actor, current, updated, correlation_id)
         if relation_change is not None and not relation_change.is_empty():
             apply_relation_change(self.store, session, actor, updated.id, relation_change)
         self._apply_tags(session, actor, updated.id, tags, self.clock.now())

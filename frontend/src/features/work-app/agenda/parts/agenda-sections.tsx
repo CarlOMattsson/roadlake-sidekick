@@ -11,7 +11,9 @@ import {
 } from "../../shared/work-items";
 import {
   LONG_WAIT_DAYS,
+  capital,
   waitingRows,
+  waitingSummary,
   type WaitingLabels,
   type WaitingRow,
 } from "../../shared/waiting";
@@ -167,7 +169,7 @@ export function DoneTodaySection({
   );
 }
 
-/** The waiting view: the Tasks waiting on someone, who, for how long, and the reminder button. */
+/** The waiting view: the Tasks waiting on someone, who, for how long, the follow-up day, and the reminder button. */
 export function WaitingSection({
   ctx,
   labels: wt,
@@ -184,6 +186,7 @@ export function WaitingSection({
   return (
     <section aria-label={wt.heading(records.length)}>
       <GroupHead>{wt.heading(records.length)}</GroupHead>
+
       <ul className="work-list">
         {waitingRows(records, ctx.now).map((row) => (
           <WaitingRowView
@@ -217,6 +220,10 @@ function WaitingRowView({
   const { disabled, rowQueue, offers } = ctx;
   const key = cardKey(item);
   const long = days !== null && days >= LONG_WAIT_DAYS;
+  const summary = waitingSummary(item, who, ctx.now, ctx.labels.dateLocale);
+  const followUp = summary?.followUp
+    ? { text: summary.followUp, reached: summary.reached }
+    : null;
   return (
     <li
       className="work-agenda-row work-waiting-row"
@@ -225,7 +232,23 @@ function WaitingRowView({
       aria-busy={rowQueue.pending(key) > 0 || undefined}
     >
       <p className="work-waiting-who">
-        <span className="work-waiting-name">{who ?? wt.someone}</span>
+        {who && item.waiting_on_contact_id ? (
+          <button
+            type="button"
+            className="work-waiting-name work-waiting-link"
+            disabled={disabled}
+            onClick={() =>
+              ctx.onOpen({
+                kind: "contact",
+                id: item.waiting_on_contact_id ?? "",
+              })
+            }
+          >
+            {who}
+          </button>
+        ) : (
+          <span className="work-waiting-name">{who ?? wt.someone}</span>
+        )}
         <span
           className="work-waiting-days"
           data-tone={long ? "overdue" : undefined}
@@ -235,6 +258,14 @@ function WaitingRowView({
       </p>
       <div className="work-agenda-body">
         <RecordTitle item={item} disabled={disabled} onOpen={ctx.onOpen} />
+        {followUp && (
+          <p
+            className="work-waiting-follow"
+            data-tone={followUp.reached ? "overdue" : undefined}
+          >
+            {capital(followUp.text)}
+          </p>
+        )}
       </div>
       <AgendaNotice
         spot={rowSpot(key)}

@@ -148,13 +148,34 @@ describe("record meta shows only the parts the record has", () => {
     }
   }
 
+  it("reads the clock time after the date, and under the group Idag the clock time alone", () => {
+    // 17:30 on the owner's clock (CET) on Friday 30 October and on the day of NOW (25 October, CET after the switch).
+    const later: WorkItemRecord = {
+      kind: "task",
+      id: TASK_ID,
+      title: "Hämta paket",
+      status: "todo",
+      due_at: "2026-10-30T16:30:00Z",
+    };
+    expect(metaParts(later, workEn)).toEqual(["Fri 30 Oct 5:30 pm"]);
+    expect(metaParts(later, workSv)).toEqual(["Fre 30 okt kl 17:30"]);
+    const today = { ...later, due_at: "2026-10-25T16:30:00Z" };
+    expect(metaParts(today, workSv, { group: "today" })).toEqual(["kl 17:30"]);
+    // Without a clock time the group says it all.
+    expect(
+      metaParts({ ...today, due_at: "2026-10-25T22:59:00Z" }, workSv, {
+        group: "today",
+      }),
+    ).toEqual([]);
+  });
+
   it("shows the due date and the Project of a blocked Task, and no status words on the board", () => {
     const item: WorkItemRecord = {
       kind: "task",
       id: TASK_ID,
       title: "Vänta på leverans",
       status: "blocked",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
       project_title: "Year-end and tax",
     };
     expect(metaParts(item, workEn, { inStatus: true })).toEqual([
@@ -169,7 +190,7 @@ describe("record meta shows only the parts the record has", () => {
       id: TASK_ID,
       title: "Vänta på leverans",
       status: "blocked",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
       project_title: "Year-end and tax",
     };
     expect(metaParts(item, workEn)).toEqual([
@@ -190,7 +211,7 @@ describe("record meta shows only the parts the record has", () => {
       id: TASK_ID,
       title: "Vänta på leverans",
       status: "blocked",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
       project_title: null,
     };
     const parts = metaParts(item, workEn, { inStatus: true });
@@ -216,14 +237,14 @@ describe("record meta shows only the parts the record has", () => {
       id: TASK_ID,
       title: "Klar",
       status: "completed",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
       project_title: "Year-end and tax",
     };
     expect(metaParts(item, workEn)).toEqual(["Year-end and tax"]);
   });
 
   it("shows a due date further away as its date, in its own time element with the full date as title", () => {
-    const value = "2026-12-01T09:00:00Z";
+    const value = "2026-12-01T22:59:00Z";
     const item: WorkItemRecord = {
       kind: "task",
       id: TASK_ID,
@@ -253,7 +274,7 @@ describe("record meta shows only the parts the record has", () => {
       status: "in_progress",
       project_title: "Kök",
       priority: "high",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
     };
     expect(metaParts(item, workEn)).toEqual([
       "Fri 30 Oct",
@@ -277,14 +298,14 @@ describe("record meta shows only the parts the record has", () => {
       title: "Ring Anna",
       status: "todo",
       project_title: "Kök",
-      due_at: "2026-10-25T09:00:00Z",
+      due_at: "2026-10-25T22:59:00Z",
     };
     // With the agenda's group: no time for today, but the Project stands. Without a group the time shows too.
     expect(metaParts(today, workEn, { group: "today" })).toEqual(["Kök"]);
     expect(metaParts(today, workEn)).toEqual(["Today", "Kök"]);
     const overdue: WorkItemRecord = {
       ...today,
-      due_at: "2026-10-23T09:00:00Z",
+      due_at: "2026-10-23T21:59:00Z",
     };
     expect(metaParts(overdue, workEn, { group: "today" })).toEqual([
       "2 days overdue",
@@ -299,7 +320,7 @@ describe("record meta shows only the parts the record has", () => {
       title: "Ring Anna",
       status: "todo",
       project_title: "Kök",
-      due_at: "2026-10-30T09:00:00Z",
+      due_at: "2026-10-30T22:59:00Z",
     };
     expect(metaParts(item, workEn, { group: "today" })).toEqual([
       "Fri 30 Oct",
@@ -319,7 +340,7 @@ describe("record meta shows an overdue Task as red text under its title, with no
       id: TASK_ID,
       title: "Ring Anna",
       status: "todo",
-      due_at: "2026-10-23T09:00:00Z",
+      due_at: "2026-10-23T21:59:00Z",
     };
     const container = renderMeta(item, workEn);
     const due = container.querySelector(".work-card-due time");
@@ -336,7 +357,7 @@ describe("record meta shows an overdue Task as red text under its title, with no
       id: TASK_ID,
       title: "Ring Anna",
       status: "todo",
-      due_at: "2026-10-20T09:00:00Z",
+      due_at: "2026-10-20T21:59:00Z",
     };
     expect(metaParts(item, workSv)).toEqual(["5 dagar försenad"]);
   });
@@ -360,7 +381,7 @@ describe("record meta marks only a high-priority Task", () => {
   it("shows the High marker after the due date and before the Project", () => {
     expect(
       metaParts(
-        { ...base, priority: "high", due_at: "2026-10-30T09:00:00Z" },
+        { ...base, priority: "high", due_at: "2026-10-30T22:59:00Z" },
         workEn,
       ),
     ).toEqual(["Fri 30 Oct", "High", "Year-end and tax"]);
@@ -397,7 +418,7 @@ describe("record meta of a row in the group Idag", () => {
         id: TASK_ID,
         title: "Boka målare",
         status: "in_progress",
-        due_at: "2026-10-25T09:00:00Z",
+        due_at: "2026-10-25T22:59:00Z",
       },
       workEn,
       { group: "today" },

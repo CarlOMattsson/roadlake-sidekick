@@ -17,6 +17,10 @@ import type { RoomTransport } from "../mcp-apps/room-types";
 import { emptyDay } from "./empty-day";
 import { withEntry } from "./entry-result";
 import {
+  createMemoryTransport,
+  type MemoryTransport,
+} from "./memory-transport";
+import {
   createTagTransport,
   type TagSupport,
   type TagTransport,
@@ -30,11 +34,12 @@ export type JournalEntryLink = Item<
 >;
 /**
  * One Journal entry as get_journal_entry and get_journal_day return it (JournalEntryRecord).
- * `links` (the Projects and Contacts with their names) and `tags` (slugs) are absent from an older server.
+ * `links` (the Projects and Contacts with their names), `tags` (slugs), `summary_by` and `memory_excluded` are absent
+ * from an older server: the summary is then taken as Claude's and the entry as part of its memory.
  */
 export type JournalEntry = WithOptional<
   ToolResults["get_journal_entry"]["entry"],
-  "links" | "tags"
+  "links" | "tags" | "summary_by" | "memory_excluded"
 >;
 type JournalDayResult = ToolResults["get_journal_day"];
 /** Only the daily summary fields the day view shows (JournalSummaryRecord). */
@@ -160,7 +165,7 @@ export type JournalEntryInput = Pick<
   "journal_date" | "title" | "source_text" | "occurred_at"
 >;
 
-export type JournalTransport = TagTransport & {
+type JournalCalls = {
   /** The phone's outbox (the mobile app only): which entries wait to be sent. Absent in Claude. */
   offline?: RoomTransport["offline"];
   /** One day with entry content and summary status; the view reads it for its own navigation. */
@@ -257,6 +262,8 @@ export type JournalTransport = TagTransport & {
   ) => Promise<unknown>;
 };
 
+export type JournalTransport = TagTransport & MemoryTransport & JournalCalls;
+
 /**
  * The journal transport over the host's tools/call. Reads, plus the draft review writes the owner
  * triggers explicitly. The app never creates a source or generates anything; every write carries the
@@ -274,6 +281,8 @@ export function createJournalTransport(
   withTaskTitles = false,
   /** What the host answers of tags: the vocabulary (list_tags), the tagged read and the entry's tag write. */
   withTags: TagSupport = { vocabulary: false, filter: false, write: false },
+  /** True: the host offers exclude_from_memory, so an entry can be kept out of Claude's memory. */
+  withMemoryExclusion = false,
 ): JournalTransport {
   return {
     ...createTagTransport(call, withTags),
@@ -403,6 +412,7 @@ export function createJournalTransport(
         idempotency_key: idempotencyKey,
         append_text: text,
       }).then((result) => withEntry(result, "update_journal_entry")),
+    ...createMemoryTransport(call, withMemoryExclusion),
     ...(withTrash
       ? {
           trashEntry: (

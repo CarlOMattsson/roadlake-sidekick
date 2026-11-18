@@ -147,7 +147,7 @@ def record_run_event(
     now: datetime,
     correlation_id: str | None = None,
 ) -> None:
-    """One audit event and one activity entry: ids, state and attempt, never any text."""
+    """One audit event and one activity entry: ids, state, attempt and the task title."""
 
     store.append_audit(
         session,
@@ -161,6 +161,10 @@ def record_run_event(
     )
     if activity is None:
         return
+    try:
+        title = store.get_task(session, run.owner_id, run.task_id).title
+    except NotFoundError:
+        title = None
     activity.append(
         session,
         owner_id=run.owner_id,
@@ -172,8 +176,13 @@ def record_run_event(
         actor_id=run.owner_id if actor_type == "user" else None,
         operation=event.removeprefix("ai."),
         category=ActivityCategory.AI_STEPS,
-        summary=f"AI step run {run.state.value.replace('_', ' ')}",
-        after_values={"state": run.state.value, "attempt": run.attempt},
+        summary=f"AI step run {run.state.value.replace('_', ' ')}"
+        + (f": {title}" if title else ""),
+        after_values={
+            "state": run.state.value,
+            "attempt": run.attempt,
+            **({"title": title} if title else {}),
+        },
         evidence={"task_id": run.task_id, "step_id": run.step_id},
         correlation_id=correlation_id,
         occurred_at=now,

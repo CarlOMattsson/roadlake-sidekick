@@ -24,7 +24,7 @@ Sidekick exposes 109 MCP tools: 81 that Claude can call and 28 that only the MCP
 - [`reschedule_tasks`](tasks.md#reschedule_tasks): Use this when the user wants to move 1 to 20 tasks at once, for example to tomorrow, next week (Monday), a given date, or to clear the due date. (write)
 - [`get_review_queue`](tasks.md#get_review_queue): Use this when the user wants to go through or clean up many tasks at once. (read)
 - [`review_tasks`](tasks.md#review_tasks): Save 1 to 20 confirmed decisions on get_review_queue rows: keep, done, move (when: tomorrow, next_week, a date or clear), waiting (optional follow_up), flag, archive (undo with restore_task) or ambition (kept in view, undated, never reminded; for what the user wants someday). (write)
-- [`get_work_board`](tasks.md#get_work_board): Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns. (read)
+- [`get_work_board`](tasks.md#get_work_board): Use this for the Status view: one page of Work records, most overdue first, grouped into status columns. (read)
 - [`get_work_agenda`](tasks.md#get_work_agenda): Use this for one bounded page of dated Work records, grouped as overdue, today, upcoming or scheduled later. (read)
 
 ### [Steps and actions](steps-and-actions.md)
@@ -71,7 +71,7 @@ Sidekick exposes 109 MCP tools: 81 that Claude can call and 28 that only the MCP
 
 ### [Contacts](contacts.md)
 
-- [`list_contacts`](contacts.md#list_contacts): Use this to resolve a person the user mentions (name, alias, email or phone) to a Contact id. (read)
+- [`list_contacts`](contacts.md#list_contacts): Use this to resolve a person the user mentions (name, alias, email, phone, company or role) to a Contact id. (read)
 - [`get_contact_context`](contacts.md#get_contact_context): Use this after the Contact id is known, for example from list_contacts or create_contact, to retrieve that owned active Contact, bounded current Project/Task context and up to 10 newest linked Journal entries (id, date and title only; read a Journal entry for its content), or to answer who a Contact is. (read)
 - [`list_task_contacts`](contacts.md#list_task_contacts): Use this after a Task UUID is known to list the owned Contacts linked to that Task as a bounded, paginated page of Contact summaries. (read)
 - [`create_contact`](contacts.md#create_contact): Use this only when the user has asked to create one Contact. (write)

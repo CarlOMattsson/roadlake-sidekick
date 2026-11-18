@@ -7,7 +7,7 @@ so validation, versions, status history and audit are the same as for a single w
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, tzinfo
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 from uuid import UUID
 
@@ -30,6 +30,7 @@ from sidekick.tasks.application.models import (
     UpdateTaskCommand,
 )
 from sidekick.tasks.domain import Task, TaskStatus
+from sidekick.tasks.domain.planning import due_on_day
 from sidekick.tasks.domain.review import ReviewDecision
 from sidekick.work.domain import Step
 
@@ -125,7 +126,9 @@ def _review_previous(stored: _StoredPrevious) -> ReviewPrevious:
     return {**stored, "status": _STATUS_BY_CODE[stored["status"]].value}
 
 
-def _review_changes(item: ReviewDecisionItem, before: Task, now: datetime) -> dict[str, Any]:
+def _review_changes(
+    item: ReviewDecisionItem, before: Task, now: datetime, zone: tzinfo
+) -> dict[str, Any]:
     """The Task fields a decision sets, less those that already have that value.
 
     `keep` sets none; neither does a decision that would change nothing (waiting on a Task that
@@ -136,7 +139,9 @@ def _review_changes(item: ReviewDecisionItem, before: Task, now: datetime) -> di
     if item.decision is ReviewDecision.DONE:
         wanted["status"] = TaskStatus.COMPLETED
     elif item.decision is ReviewDecision.MOVE:
-        wanted["due_at"] = item.due_at
+        wanted["due_at"] = (
+            due_on_day(before.due_at, item.due_day, zone) if item.due_day is not None else None
+        )
     elif item.decision is ReviewDecision.WAITING:
         wanted["waiting_since"] = before.waiting_since or now
         if item.follow_up_at is not None:
@@ -211,7 +216,10 @@ class TaskBulkService:
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> list[Task]:
-        """Set the due date of several Tasks in one transaction, through `update_in_session`.
+        """Move several Tasks to a day in one transaction, through `update_in_session`.
+
+        A Task whose due time has a time of day keeps it on the new day; any other gets 23:59 in
+        the owner's zone. `day=None` clears the due date.
 
         A stale version or any other failure raises before the transaction commits, so no Task in
         the batch changes. The idempotency key covers the whole batch. The rows are locked in id
@@ -231,7 +239,7 @@ class TaskBulkService:
                 {
                     "task_id": str(item.task_id),
                     "expected_version": item.expected_version,
-                    "due_at": item.due_at.isoformat() if item.due_at else None,
+                    "day": item.day.isoformat() if item.day else None,
                 }
                 for item in items
             ]
@@ -247,18 +255,7 @@ class TaskBulkService:
                 payload=payload,
                 execute=lambda: {
                     "tasks": [
-                        {
-                            "id": str(
-                                self.tasks.update_in_session(
-                                    session,
-                                    actor,
-                                    item.task_id,
-                                    item.expected_version,
-                                    UpdateTaskCommand(due_at=item.due_at),
-                                    correlation_id,
-                                ).id
-                            )
-                        }
+                        {"id": str(self._move(session, actor, item, correlation_id).id)}
                         for item in items
                     ]
                 },
@@ -267,6 +264,24 @@ class TaskBulkService:
             return self.tasks.replayed_tasks(session, actor, result["tasks"])
 
         return self.store.transaction(operation)
+
+    def _move(
+        self, session: TxSession, actor: Actor, item: RescheduleTaskItem, correlation_id: str | None
+    ) -> Task:
+        """Move one locked Task to the item's day, keeping a due time of day it already has."""
+
+        due_at = None
+        if item.day is not None:
+            before = self.store.get_task(session, actor.user_id, item.task_id)
+            due_at = due_on_day(before.due_at, item.day, self.tasks.owner_timezone)
+        return self.tasks.update_in_session(
+            session,
+            actor,
+            item.task_id,
+            item.expected_version,
+            UpdateTaskCommand(due_at=due_at),
+            correlation_id,
+        )
 
     def review(
         self,
@@ -300,7 +315,7 @@ class TaskBulkService:
                     "task_id": str(item.task_id),
                     "expected_version": item.expected_version,
                     "decision": item.decision.value,
-                    "due_at": _iso(item.due_at),
+                    "due_day": item.due_day.isoformat() if item.due_day else None,
                     "follow_up_at": _iso(item.follow_up_at),
                 }
                 for item in items
@@ -355,7 +370,7 @@ class TaskBulkService:
                     correlation_id,
                     reviewed=True,
                 )
-            elif changes := _review_changes(item, before, now):
+            elif changes := _review_changes(item, before, now, self.tasks.owner_timezone):
                 self.tasks.update_in_session(
                     session,
                     actor,

@@ -3,7 +3,6 @@ import { appendSteps } from "./step-pages";
 
 export type StepsPhase = "loading" | "ready" | "forbidden" | "error";
 export type StepNotice =
-  | { kind: "conflict" }
   | { kind: "forbidden" }
   | { kind: "invalid" }
   | { kind: "notFound" }

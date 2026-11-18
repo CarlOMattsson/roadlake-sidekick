@@ -36,8 +36,10 @@ from sidekick.structured.work_records import (
     ProjectDetailRecord,
     TaskDetailRecord,
     TaskRecord,
+    WorkBoardOutput,
     WorkItemRecord,
 )
+from sidekick.tasks.domain import TaskStatus
 from sidekick.work.domain import Step
 
 _MAX_SUMMARY_ROWS = 50
@@ -168,25 +170,37 @@ def _other_kinds_phrase(columns: Mapping[str, Sequence[WorkItemRecord]]) -> str:
     return ", ".join(count_phrase(count, kind, f"{kind}s") for kind, count in kinds.items())
 
 
-def board_sentence(columns: Mapping[str, Sequence[WorkItemRecord]], next_cursor: str | None) -> str:
+def _board_task_totals(board: WorkBoardOutput) -> dict[str, int]:
+    """Tasks per status under the board's filters: the server's totals, not the page's."""
+
+    return {
+        status.value: board.column_totals.get(status.value, 0)
+        for status in TaskStatus
+        if board.column_totals.get(status.value, 0)
+    }
+
+
+def board_sentence(board: WorkBoardOutput) -> str:
     """Return line 1 of the board card: the Task count, then the Tasks per status in words.
 
-    Projects and Domains share the board's columns but are not Tasks, so they are never counted
-    in the Task total or in a status; a trailing clause names them apart.
+    The counts are the whole board's (`column_totals`, `overdue_total`), never the page's, so the
+    sentence never makes a long list look short. Projects and Domains share the board's columns
+    but are not Tasks, so they are never counted in the Task total or in a status; a trailing
+    clause names the ones on the page apart.
     """
 
-    total = sum(len(items) for items in columns.values())
-    if total == 0:
+    columns = board.columns
+    if sum(len(items) for items in columns.values()) == 0:
         return "The Work board has no records."
-    per_status = ", ".join(
-        f"{count} {spoken_status(key)}"
-        for key, items in columns.items()
-        if (count := sum(1 for item in items if _is_task(item)))
-    )
-    tasks = sum(1 for items in columns.values() for item in items if _is_task(item))
-    noun = count_phrase(tasks, "task", "tasks") + _on_page(next_cursor)
-    sentence = f"The Work board has {noun}"
-    sentence += f": {per_status}." if per_status else "."
+    totals = _board_task_totals(board)
+    per_status = ", ".join(f"{count} {spoken_status(key)}" for key, count in totals.items())
+    sentence = f"The Work board has {count_phrase(sum(totals.values()), 'task', 'tasks')}"
+    sentence += f": {per_status}" if per_status else ""
+    if board.overdue_total:
+        sentence += f"; {board.overdue_total} overdue"
+    sentence += "."
+    if board.next_cursor is not None:
+        sentence += " The card lists the first ones, most overdue first."
     others = _other_kinds_phrase(columns)
     return f"{sentence} Also listed: {others}." if others else sentence
 
@@ -346,33 +360,32 @@ def waiting_agenda_text(
     return spoken_line(sentence, "\n".join(lines))
 
 
-def board_card_text(
-    columns: Mapping[str, Sequence[WorkItemRecord]],
-    next_cursor: str | None,
-    *,
-    filtered: bool,
-) -> str:
+def board_card_text(board: WorkBoardOutput, *, filtered: bool) -> str:
     """Return the board card's text: Task counts per column, then up to BOARD_ROW_LIMIT rows each.
 
-    Each row names the record's id and version, so a follow-up write needs no extra read. Only
-    Tasks are counted in the head and in the column headings; Projects and Domains, which share
-    the board's columns, are named apart ("also 2 projects") and listed in one section of their
-    own. An empty board says no Work records exist yet when no filter was applied, and that no
-    records match when one was.
+    Each row names the record's id and version, so a follow-up write needs no extra read. The
+    counts in the head and in the column headings are the whole board's (`column_totals`), and a
+    heading says how many of them are listed. Only Tasks are counted; Projects and Domains, which
+    share the board's columns, are named apart ("also 2 projects") and listed in one section of
+    their own. An empty board says no Work records exist yet when no filter was applied, and that
+    no records match when one was.
     """
 
+    columns = board.columns
     total = sum(len(items) for items in columns.values())
     task_columns = {
         key: [item for item in items if _is_task(item)] for key, items in columns.items()
     }
     other = [item for items in columns.values() for item in items if not _is_task(item)]
-    tasks = sum(len(items) for items in task_columns.values())
-    counts = ", ".join(f"{key} {len(items)}" for key, items in task_columns.items() if items)
+    totals = _board_task_totals(board)
+    counts = ", ".join(f"{key} {count}" for key, count in totals.items())
     if total == 0:
         head = "Work board card shown: 0 records."
     else:
-        head = f"Work board card shown: {count_phrase(tasks, 'task', 'tasks')}"
+        head = f"Work board card shown: {count_phrase(sum(totals.values()), 'task', 'tasks')}"
         head += f" ({counts})" if counts else ""
+        if board.overdue_total:
+            head += f", {board.overdue_total} overdue"
         others = _other_kinds_phrase(columns)
         head += f", also {others}." if others else "."
     lines = [head]
@@ -382,11 +395,13 @@ def board_card_text(
         if not items:
             continue
         rows = [card_row(f"{item.id} v{item.version}", item.title) for item in items]
-        lines.extend(card_rows(f"{key} {len(items)}:", rows, limit=BOARD_ROW_LIMIT))
+        of = totals.get(key, len(items))
+        heading = f"{key} {len(items)}" if of <= len(items) else f"{key} {len(items)} of {of}"
+        lines.extend(card_rows(f"{heading}:", rows, limit=BOARD_ROW_LIMIT))
     if other:
         rows = [card_row(f"{item.id} v{item.version}", item.title, item.kind) for item in other]
         lines.extend(card_rows(f"not tasks {len(other)}:", rows, limit=BOARD_ROW_LIMIT))
-    more = _more_text("next_cursor", next_cursor)
+    more = _more_text("next_cursor", board.next_cursor)
     if more is not None:
         lines.append(more)
     lines.append(CARD_NOTE)

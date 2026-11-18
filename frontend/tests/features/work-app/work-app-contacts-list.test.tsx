@@ -380,9 +380,13 @@ it("creates a Contact from its name with one key per action, reuses it on retry 
     .fn()
     .mockRejectedValueOnce(new Error("offline"))
     .mockResolvedValue({ contact: bo });
-  const list = vi
-    .fn()
-    .mockResolvedValue({ items: [listAnna, listBo], next_cursor: null });
+  // The name is looked up before the first create: nobody has it yet, while the whole list holds both rows.
+  const list = vi.fn().mockImplementation(({ q }: { q: string }) =>
+    Promise.resolve({
+      items: q ? [] : [listAnna, listBo],
+      next_cursor: null,
+    }),
+  );
   const work = transport({ createContact: create, listContacts: list });
   render(contactsRoot(work));
   await user.click(screen.getByRole("button", { name: workEn.newContact }));

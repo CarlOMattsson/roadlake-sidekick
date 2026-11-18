@@ -11,7 +11,6 @@ export const shoppingEn = {
   removeRecipient: "Remove",
   noContactFound: "No contact found.",
   title: "Shopping",
-  select: "Choose list",
   create: "Create list",
   newList: "New list",
   noLists: "No lists yet.",
@@ -37,6 +36,10 @@ export const shoppingEn = {
   backToLists: "Lists",
   moreActions: "More options",
   edit: "Edit",
+  /** The change button's name for assistive technology, so each row's button says which item it opens. */
+  editNamed: (name: string) => `Edit ${name}`,
+  /** The change form's list choice: the item moves to the list picked. */
+  list: "List",
   save: "Save",
   cancel: "Cancel",
   name: "Item",
@@ -75,7 +78,6 @@ export const shoppingEn = {
   upcoming: "Upcoming",
   none: "No offer",
   purchased: "Bought",
-  wanted: "To buy",
   archive: "Archive list",
   restore: "Restore list",
   rename: "Rename list",
@@ -103,6 +105,8 @@ export const shoppingEn = {
   /** The batch card's title when the result does not name the list. */
   listFallback: "Shopping list",
   newItemPrefix: "Added:",
+  /** An added item that joined one already on the list: "Milk (now 4 l)". */
+  mergedNow: (name: string, amount: string) => `${name} (now ${amount})`,
   /** The receipt of an add the phone queued without a network: the items are sent when it is back. */
   addQueued: (names: string) =>
     `Waiting for connection: ${names}. Sent when you’re back online.`,
@@ -187,7 +191,6 @@ export const shoppingSv: ShoppingLabels = {
   removeRecipient: "Ta bort",
   noContactFound: "Ingen kontakt hittades.",
   title: "Inköp",
-  select: "Välj lista",
   create: "Skapa lista",
   newList: "Ny lista",
   noLists: "Inga listor än.",
@@ -211,6 +214,8 @@ export const shoppingSv: ShoppingLabels = {
   backToLists: "Listor",
   moreActions: "Fler val",
   edit: "Redigera",
+  editNamed: (name: string) => `Redigera ${name}`,
+  list: "Lista",
   save: "Spara",
   cancel: "Avbryt",
   name: "Vara",
@@ -245,7 +250,6 @@ export const shoppingSv: ShoppingLabels = {
   upcoming: "Kommande",
   none: "Inget erbjudande",
   purchased: "Köpta",
-  wanted: "Att köpa",
   archive: "Arkivera lista",
   restore: "Återställ lista",
   rename: "Byt namn",
@@ -270,6 +274,7 @@ export const shoppingSv: ShoppingLabels = {
       .join(" · ") + (time ? ` ${time}` : ""),
   listFallback: "Inköpslista",
   newItemPrefix: "Tillagd:",
+  mergedNow: (name: string, amount: string) => `${name} (nu ${amount})`,
   addQueued: (names: string) =>
     `Väntar på anslutning: ${names}. Skickas när du är ansluten igen.`,
   updatedPrefix: "Uppdaterad:",

@@ -1,7 +1,12 @@
 import { useContext } from "react";
 import { RepeatIcon } from "../../mcp-apps/ui/icons";
 import { TagChips } from "../../mcp-apps/ui/tags";
-import { relativeDue, workDate, type DueTone } from "../../mcp-apps/ui/due";
+import {
+  dueClockText,
+  relativeDue,
+  workDate,
+  type DueTone,
+} from "../../mcp-apps/ui/due";
 import { AiTaskMark, aiMarkOf } from "../ai/ai-task-mark";
 import { taskPlaceLabelsFor } from "../tasks/task-place-labels";
 import type { WorkItemRecord } from "../transport/transport";
@@ -25,9 +30,10 @@ export function rowStatus(
 /**
  * The time of a row: how late it is when overdue, else the date (a short date, or the `today` word). It starts the meta line, so
  * it starts with a capital, as every line of the app does and as a Contact's or Project's Task rows (TaskDue) write it:
- * The due word, then the status.
- * None for a done or cancelled record, and none under `today` for a Task due today, as the group says it; an overdue
- * time always stands.
+ * The due word, then the status. A Task with a clock time reads it after the date ("Imorgon kl 17:30"); under `today`
+ * only the clock time stands.
+ * None for a done or cancelled record, and none under `today` for a Task due today without a clock time, as the group
+ * says it; an overdue time always stands.
  */
 export function rowDue(
   item: WorkItemRecord,
@@ -46,10 +52,14 @@ export function rowDue(
     now,
     locale.startsWith("sv") ? "sv" : "en",
   );
-  if (!due.text || (group === "today" && due.tone === "today")) return null;
+  if (!due.text) return null;
+  const clock = due.tone === "overdue" ? "" : dueClockText(item.due_at, locale);
+  if (group === "today" && due.tone === "today")
+    return clock ? { text: clock, tone: due.tone, at: item.due_at } : null;
+  const date =
+    due.tone === "overdue" ? due.text : workDate(item.due_at, now, locale);
   return {
-    text:
-      due.tone === "overdue" ? due.text : workDate(item.due_at, now, locale),
+    text: clock ? `${date} ${clock}` : date,
     tone: due.tone,
     at: item.due_at,
   };

@@ -1,3 +1,4 @@
+import { activityEn, activitySv } from "./activity-labels";
 import { eraseEn, eraseSv } from "./erase-labels";
 import type { ChangeRecord, MemoryDomain } from "./transport";
 
@@ -210,6 +211,7 @@ export const controlEn = {
     worker: "Background",
     system: "System",
   } as Record<string, string>,
+  ...activityEn,
   /** The state of an activity entry, in a few words. */
   states: {
     applied: "applied",
@@ -403,6 +405,7 @@ export const controlSv: ControlLabels = {
     worker: "Bakgrund",
     system: "System",
   },
+  ...activitySv,
   states: {
     applied: "tillämpad",
     review: "att granska",

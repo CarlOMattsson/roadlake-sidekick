@@ -1,6 +1,11 @@
 import type { ShoppingDetail, ShoppingItem } from "../transport";
 import type { ShoppingLabels } from "../labels";
-import { COMPACT_ROWS, compactGroups, groupByStore } from "./helpers";
+import {
+  COMPACT_ROWS,
+  compactGroups,
+  groupByStore,
+  storeSpellings,
+} from "./helpers";
 
 type Params = {
   labels: ShoppingLabels;
@@ -63,21 +68,18 @@ export function deriveView({
     (fullscreen || Boolean(store)) && Boolean(list) && !editOpen;
   // "+ Add item" opens the store view, before the first shop (designsystem §3 Skapa), also in an empty list.
   const canAdd = storeMode && !list?.archived;
-  // The folded compact view: the first open rows, the list forms and the hint left out until "Show all".
-  // Without a list read yet there is nothing to fold, so the full view (with the create-list form) shows.
-  const folded =
-    compact && !expanded && !fullscreen && !store && Boolean(detail);
+  // The folded compact view: rows with the name only, no list forms and no hint. "Edit list" in the ⋯ opens the
+  // list's own forms. Without a list read yet there is nothing to fold.
+  const folded = compact && !fullscreen && !store && Boolean(detail);
+  // The folded view stops at the first COMPACT_ROWS open rows until "Show all" lifts the cap (or the list form opens).
+  const limited = folded && !expanded && !editOpen;
   // A chosen list whose read has not answered yet: the loading line only, no forms and no hint.
   const reading = Boolean(id) && !list;
   // The shop view names its shop (`storeRemaining`). The filter ignores case, so the spelling the items
   // already use wins over the spelling that was asked for.
   const shopName = storeMode ? store?.trim() || undefined : undefined;
   const shopLabel = shopName
-    ? (detail?.items
-        .find(
-          (item) => item.store?.trim().toLowerCase() === shopName.toLowerCase(),
-        )
-        ?.store?.trim() ?? shopName)
+    ? (storeSpellings(items).get(shopName.toLowerCase()) ?? shopName)
     : undefined;
   // The header row's title: the shop with its open count, or else the list name.
   const headerTitle = shopLabel
@@ -86,7 +88,7 @@ export function deriveView({
   // The open groups, with the held rows in their places. Folded, the rows shown are the first COMPACT_ROWS of
   // the open list; the bought row may be out of sight, so its Undo line goes after the shown rows instead of among them.
   const groups = groupByStore(rows, items);
-  const shownGroups = compactGroups(groups, folded ? COMPACT_ROWS : Infinity);
+  const shownGroups = compactGroups(groups, limited ? COMPACT_ROWS : Infinity);
   const shownCount = shownGroups.reduce(
     (sum, group) => sum + group.shown.length,
     0,
@@ -100,10 +102,12 @@ export function deriveView({
     storeMode,
     canAdd,
     folded,
+    limited,
     reading,
     shopLabel,
     headerTitle,
     shownGroups,
     shownCount,
+    stores: [...storeSpellings(items).values()],
   };
 }

@@ -3,12 +3,12 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import ColumnElement, and_, delete, func, or_, select, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.contacts.application.models import TaskProgress
 from sidekick.contacts.domain.contact import Contact, ContactAlias
-from sidekick.contacts.domain.normalization import normalize_email, normalize_name, normalize_phone
+from sidekick.contacts.domain.normalization import normalize_name, normalize_phone
 from sidekick.contacts.domain.phonetic import phonetic_match
 from sidekick.projects.domain import Project
 from sidekick.projects.domain.ports import ProjectReader
@@ -67,6 +67,58 @@ def contact_from_row(row: ContactRow, aliases: list[ContactAliasRow]) -> Contact
     )
 
 
+PHONE_SEARCH_MIN_DIGITS = 3
+"""Fewest digits of a search word that is also looked up in the phone numbers."""
+
+SEARCH_WORD_LIMIT = 6
+"""Most words of a search that are matched; the rest are ignored."""
+
+
+def _phone_predicate(text_: str) -> ColumnElement[bool] | None:
+    """Whether the phone number contains `text_` read as a number, if it is one of enough digits."""
+
+    try:
+        phone_key = normalize_phone(text_)[1]
+    except ValidationError:
+        return None
+    if phone_key is None or sum(char.isdigit() for char in phone_key) < PHONE_SEARCH_MIN_DIGITS:
+        return None
+    return ContactRow.phone_key.contains(phone_key, autoescape=True)
+
+
+def _word_predicate(owner_id: UUID, word: str) -> ColumnElement[bool]:
+    """Whether a search word is in the name, alias, e-mail, phone, organization or role."""
+
+    alias_sub = (
+        select(ContactAliasRow.contact_id)
+        .where(
+            ContactAliasRow.owner_id == owner_id,
+            ContactAliasRow.normalized_key.contains(word, autoescape=True),
+        )
+        .scalar_subquery()
+    )
+    predicates = [
+        ContactRow.display_name_key.contains(word, autoescape=True),
+        ContactRow.id.in_(alias_sub),
+        ContactRow.email_key.contains(word, autoescape=True),
+        ContactRow.organization.icontains(word, autoescape=True),
+        ContactRow.role.icontains(word, autoescape=True),
+    ]
+    phone = _phone_predicate(word)
+    if phone is not None:
+        predicates.append(phone)
+    return or_(*predicates)
+
+
+def _search_predicate(owner_id: UUID, normalized_query: str) -> ColumnElement[bool]:
+    """Every word of the search is found in some searchable text, or the whole is a phone number."""
+
+    words = normalized_query.split()[:SEARCH_WORD_LIMIT]
+    by_words = and_(*(_word_predicate(owner_id, word) for word in words))
+    phone = _phone_predicate(normalized_query)
+    return by_words if phone is None else or_(by_words, phone)
+
+
 PHONETIC_CANDIDATE_LIMIT = 200
 """Most owned Contacts compared in Python by the phonetic fallback (bounded read)."""
 
@@ -122,6 +174,26 @@ class ContactStore:
             )
         )
         return contact_from_row(row, aliases)
+
+    @staticmethod
+    def same_name_contacts(
+        session: Session, owner_id: UUID, contact: Contact, limit: int
+    ) -> list[Contact]:
+        """The owner's other live, unarchived Contacts with the same normalized display name."""
+
+        rows = session.scalars(
+            select(ContactRow)
+            .where(
+                ContactRow.owner_id == owner_id,
+                ContactRow.display_name_key == contact.display_name_key,
+                ContactRow.id != contact.id,
+                ContactRow.trashed_at.is_(None),
+                ContactRow.archived.is_(False),
+            )
+            .order_by(ContactRow.created_at.asc(), ContactRow.id.asc())
+            .limit(limit)
+        )
+        return [contact_from_row(row, []) for row in rows]
 
     @staticmethod
     def phonetic_contacts(
@@ -197,32 +269,7 @@ class ContactStore:
             statement = statement.where(ContactRow.archived.is_(False))
 
         if q:
-            norm_q = normalize_name(q)[1]
-            alias_sub = (
-                select(ContactAliasRow.contact_id)
-                .where(
-                    ContactAliasRow.owner_id == owner_id,
-                    ContactAliasRow.normalized_key.contains(norm_q),
-                )
-                .scalar_subquery()
-            )
-            predicates = [
-                ContactRow.display_name_key.contains(norm_q),
-                ContactRow.id.in_(alias_sub),
-            ]
-            try:
-                email_key = normalize_email(q)[1]
-                if email_key is not None:
-                    predicates.append(ContactRow.email_key == email_key)
-            except ValidationError:
-                pass
-            try:
-                phone_key = normalize_phone(q)[1]
-                if phone_key is not None:
-                    predicates.append(ContactRow.phone_key == phone_key)
-            except ValidationError:
-                pass
-            statement = statement.where(or_(*predicates))
+            statement = statement.where(_search_predicate(owner_id, normalize_name(q)[1]))
         if tags:
             statement = statement.where(
                 tag_condition("contact", ContactRow.id, owner_id, tags, tag_match)

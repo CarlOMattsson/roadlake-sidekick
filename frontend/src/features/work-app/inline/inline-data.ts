@@ -26,6 +26,7 @@ export function taskInlineSummary(task: WorkTask): InlineSummaryData {
     description: task.description,
     projectTitle: task.project_title,
     tags: task.tags,
+    aiPossible: task.ai_possible,
     datapoints: { steps },
   };
 }

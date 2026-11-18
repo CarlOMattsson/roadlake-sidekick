@@ -1,4 +1,5 @@
 import { draftConfirmEn, draftConfirmSv } from "./draft-confirm-labels";
+import { memoryEn, memorySv } from "./memory-labels";
 import { queuedEn, queuedSv } from "./queued-labels";
 import { taggedEn, taggedSv } from "./tagged-labels";
 import { taggedReachEn, taggedReachSv } from "./tagged-reach-labels";
@@ -9,10 +10,12 @@ export const partsEn = {
   ...taggedEn,
   ...taggedReachEn,
   ...queuedEn,
+  ...memoryEn,
 };
 export const partsSv = {
   ...draftConfirmSv,
   ...taggedSv,
   ...taggedReachSv,
   ...queuedSv,
+  ...memorySv,
 };

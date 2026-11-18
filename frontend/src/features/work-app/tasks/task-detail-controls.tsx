@@ -5,7 +5,13 @@ import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import { taskStatusLabel, type WorkLabels } from "../shared/labels";
 import { ChevronDownIcon, ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
-import { ownerEndOfDay } from "../../mcp-apps/ui/due";
+import {
+  moveDueToDay,
+  ownerClockTime,
+  ownerDueAt,
+  ownerDayPlus,
+} from "../../mcp-apps/ui/due";
+import { dateInputValue } from "./task-edit";
 import { triageDueAt } from "../shared/work-items";
 import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 
@@ -20,7 +26,9 @@ export type OpenTaskStatus = (typeof OPEN_STATUSES)[number];
  * The Task's property chips under its title (design system §3, egenskapschip): the due date (the date and how late it is, with ⌄)
  * and the status (`todo` with ⌄), each a 40 high pill with a 44 target. The date chip opens the
  * quick choices Idag, Imorgon, Nästa vecka and Välj datum under the row; every choice is one write through `onDue`
- * (update_task with due_at, to 23:59 in the owner zone on the chosen day). The status chip opens a menu with ✓ on the current
+ * (update_task with due_at on the chosen day in the owner zone). A Task with a clock time (`dueAt`) keeps it on the new
+ * day; a bare date is 23:59. Välj datum also shows a time field, written when it is left or Enter is pressed, and a
+ * Task with a time offers "Remove time", which goes back to the bare date. The status chip opens a menu with ✓ on the current
  * status; a choice writes through `onStatus`. Only one panel is open at a time, and Escape closes it and returns focus
  * to its chip. `children` is the date sentence and `sentence` the same words as text, for the chip's name.
  * A chip is drawn only when its handler is given: a host that cannot write the date or the status leaves it out,
@@ -28,6 +36,7 @@ export type OpenTaskStatus = (typeof OPEN_STATUSES)[number];
  */
 export function TaskProps({
   hasDue,
+  dueAt,
   busy,
   status,
   labels: t,
@@ -38,6 +47,8 @@ export function TaskProps({
   children,
 }: {
   hasDue: boolean;
+  /** The Task's due instant: the day choices keep the clock time it carries. */
+  dueAt?: string | null;
   busy: boolean;
   status: string;
   labels: WorkLabels;
@@ -50,6 +61,8 @@ export function TaskProps({
 }) {
   const [open, setOpen] = useState<"due" | "status">();
   const [choosing, setChoosing] = useState(false);
+  // The time field while it is edited; undefined shows the Task's own clock time.
+  const [typedTime, setTypedTime] = useState<string>();
   const dueChip = useRef<HTMLButtonElement>(null);
   const statusChip = useRef<HTMLButtonElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
@@ -61,16 +74,26 @@ export function TaskProps({
     if (refocus) (open === "status" ? statusChip : dueChip).current?.focus();
     setOpen(undefined);
     setChoosing(false);
+    setTypedTime(undefined);
   }
   function toggle(panel: "due" | "status") {
     setChoosing(false);
+    setTypedTime(undefined);
     setOpen(open === panel ? undefined : panel);
   }
-  function choose(dueAt: string) {
+  function choose(next: string) {
     close(false);
-    onDue?.(dueAt);
+    onDue?.(next);
   }
   const now = new Date();
+  const clock = ownerClockTime(dueAt);
+  /** The day a time applies to: the Task's own day, or today for a Task without a date. */
+  const timeDay = dateInputValue(dueAt ?? null) || ownerDayPlus(now, 0);
+  /** Writes the time field when it holds a full time other than the Task's own. */
+  function commitTime() {
+    if (typedTime && typedTime !== clock)
+      choose(ownerDueAt(timeDay, typedTime));
+  }
   const dueName = hasDue ? t.changeDue : t.addDue;
   return (
     <KeyScope
@@ -116,7 +139,9 @@ export function TaskProps({
             type="button"
             className="sk-chip"
             disabled={busy}
-            onClick={() => choose(triageDueAt(now, "today"))}
+            onClick={() =>
+              choose(moveDueToDay(dueAt, triageDueAt(now, "today")))
+            }
           >
             {t.dueToday}
           </button>
@@ -124,7 +149,9 @@ export function TaskProps({
             type="button"
             className="sk-chip"
             disabled={busy}
-            onClick={() => choose(triageDueAt(now, "tomorrow"))}
+            onClick={() =>
+              choose(moveDueToDay(dueAt, triageDueAt(now, "tomorrow")))
+            }
           >
             {dl.dueTomorrow}
           </button>
@@ -132,7 +159,9 @@ export function TaskProps({
             type="button"
             className="sk-chip"
             disabled={busy}
-            onClick={() => choose(triageDueAt(now, "nextWeek"))}
+            onClick={() =>
+              choose(moveDueToDay(dueAt, triageDueAt(now, "nextWeek")))
+            }
           >
             {t.dueNextWeek}
           </button>
@@ -145,17 +174,47 @@ export function TaskProps({
           >
             {t.rescheduleDate}
           </button>
-          {choosing && (
-            <input
-              ref={dateInput}
-              type="date"
-              aria-label={t.rescheduleDate}
+          {clock && (
+            <button
+              type="button"
+              className="sk-chip"
               disabled={busy}
-              onChange={(event) => {
-                const day = event.target.value;
-                if (isCompleteDate(day)) choose(ownerEndOfDay(day));
-              }}
-            />
+              onClick={() => choose(ownerDueAt(timeDay, null))}
+            >
+              {t.removeDueTime}
+            </button>
+          )}
+          {choosing && (
+            <>
+              <input
+                ref={dateInput}
+                type="date"
+                aria-label={t.rescheduleDate}
+                // The picker opens on the Task's own day (today for a Task without a date).
+                defaultValue={timeDay}
+                disabled={busy}
+                onChange={(event) => {
+                  const day = event.target.value;
+                  if (isCompleteDate(day)) choose(moveDueToDay(dueAt, day));
+                }}
+              />
+              <input
+                type="time"
+                aria-label={t.dueTime}
+                value={typedTime ?? clock ?? ""}
+                disabled={busy}
+                onChange={(event) => setTypedTime(event.target.value)}
+                onBlur={commitTime}
+                onKeyDown={(event) => {
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  commitTime();
+                }}
+              />
+            </>
+          )}
+          {(clock || (choosing && typedTime)) && (
+            <p className="work-task-due-note">{t.remindsAtTime}</p>
           )}
         </div>
       )}

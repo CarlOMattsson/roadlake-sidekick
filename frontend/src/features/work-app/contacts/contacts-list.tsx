@@ -169,6 +169,7 @@ export function ContactsView({
           labels={t}
           request={createRequest}
           onCreated={created}
+          onOpenExisting={(id) => onOpen({ kind: "contact", id })}
         />
         <button
           ref={moreButton}

@@ -26,16 +26,21 @@ export type ChangeRecord = WithOptional<
 export type ChangesList = { changes: ChangeRecord[] };
 
 /** One Activity Center entry, the fields the card shows. */
-export type ActivityRecord = Pick<
-  Item<ToolResults["list_assistant_activity"]["items"]>,
-  | "id"
-  | "category"
-  | "source"
-  | "operation"
-  | "state"
-  | "aggregate_type"
-  | "summary"
-  | "occurred_at"
+export type ActivityRecord = WithOptional<
+  Pick<
+    Item<ToolResults["list_assistant_activity"]["items"]>,
+    | "id"
+    | "category"
+    | "source"
+    | "operation"
+    | "state"
+    | "aggregate_type"
+    | "aggregate_id"
+    | "after_values"
+    | "summary"
+    | "occurred_at"
+  >,
+  "aggregate_id" | "after_values"
 >;
 export type ActivityList = {
   items: ActivityRecord[];

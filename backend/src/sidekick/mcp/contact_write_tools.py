@@ -17,9 +17,11 @@ from sidekick.mcp.contact_records import (
     ContactChanges,
     ContactClear,
     ContactResult,
+    CreatedContactResult,
     Organization,
     Relationship,
     Role,
+    SameNameContactRecord,
     Slack,
     UpdatedContactResult,
     contact_result,
@@ -75,9 +77,10 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
         description=(
             "Use this only when the user has asked to create one Contact. Optional aliases, "
             "metadata and tags are stored only in Sidekick; no message or external lookup "
-            "occurs. Safe to retry with the same key and payload."
+            "occurs. Safe to retry with the same key and payload. same_name_contacts in the "
+            "reply: others with this name; tell the user."
         ),
-        output_schema=output_schema(ContactResult),
+        output_schema=output_schema(CreatedContactResult),
         annotations=WRITE,
         app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
@@ -115,12 +118,29 @@ def _register_create_contact(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        structured = _contact_result(ctx, contact)
-        record = structured.contact
-        return result(
-            structured.model_dump(mode="json"),
-            contact_summary(f"Created contact {flat(record.display_name)}.", record),
+        created = _contact_result(ctx, contact)
+        record = created.contact
+        same_name = ctx.container.contacts.same_name_contacts(ctx.actor_provider(), contact)
+        structured = CreatedContactResult(
+            contact=record,
+            same_name_contacts=[
+                SameNameContactRecord(
+                    id=other.id,
+                    display_name=other.display_name,
+                    organization=other.organization,
+                    role=other.role,
+                )
+                for other in same_name
+            ],
         )
+        text = contact_summary(f"Created contact {flat(record.display_name)}.", record)
+        if same_name:
+            others = "; ".join(f"{other.id} ({flat(other.display_name)})" for other in same_name)
+            text += (
+                f"\nAnother Contact already has this name: {others}. Tell the user, and offer "
+                "to archive the new one or to add an alias to the old one."
+            )
+        return result(structured.model_dump(mode="json"), text)
 
 
 def _register_update_contact(mcp: FastMCP, ctx: ToolContext) -> None:

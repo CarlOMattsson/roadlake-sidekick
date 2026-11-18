@@ -281,7 +281,10 @@ class WorkBoardOutput(Output):
     column_totals: dict[str, int] = Field(default_factory=dict)
     """Records per status column under the same filters, never just the page: a column shows
     this number even when only some of its records are on the page. Empty columns read 0. A Task
-    status column leaves out Projects, which the board lists apart from Tasks and Steps."""
+    status column leaves out Projects, which the board lists apart from Tasks. Steps are never
+    counted: the board lists Tasks."""
+    # Open Tasks past their due date under the same filters, never just the page.
+    overdue_total: int = 0
 
 
 DomainAccent = Literal["slate", "blue", "teal", "green", "amber", "orange", "rose", "violet"]

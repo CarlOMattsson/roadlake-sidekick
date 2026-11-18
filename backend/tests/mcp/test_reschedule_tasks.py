@@ -92,7 +92,7 @@ def _text_lines(result: Any) -> list[str]:
 async def test_tomorrow_sets_2359_the_next_day_and_reports_each_new_version() -> None:
     container, actor = _setup()
     first = _make_task(
-        container, actor, "Betala räkningen", datetime(2026, 10, 27, 9, 0, tzinfo=OWNER_ZONE)
+        container, actor, "Betala räkningen", datetime(2026, 10, 27, 23, 59, tzinfo=OWNER_ZONE)
     )
     second = _make_task(container, actor, "Ring Sara")
 
@@ -200,7 +200,7 @@ async def test_bare_date_means_end_of_that_day_and_mixed_whens_use_a_neutral_sum
 async def test_a_stale_version_rolls_back_the_whole_batch() -> None:
     container, actor = _setup()
     fresh = _make_task(
-        container, actor, "Korrekt version", datetime(2026, 10, 27, 9, 0, tzinfo=OWNER_ZONE)
+        container, actor, "Korrekt version", datetime(2026, 10, 27, 23, 59, tzinfo=OWNER_ZONE)
     )
     stale = _make_task(container, actor, "Inaktuell version")
     before = container.tasks.get(actor, fresh.id)
@@ -265,10 +265,10 @@ def test_the_service_refuses_twenty_one_items_without_writing_any_task() -> None
         for number in range(MAX_RESCHEDULE_TASKS)
     ]
     items = [
-        RescheduleTaskItem(task_id=task.id, expected_version=task.version, due_at=None)
+        RescheduleTaskItem(task_id=task.id, expected_version=task.version, day=None)
         for task in tasks
     ]
-    items.append(RescheduleTaskItem(task_id=uuid4(), expected_version=1, due_at=None))
+    items.append(RescheduleTaskItem(task_id=uuid4(), expected_version=1, day=None))
 
     with pytest.raises(ValidationError):
         container.task_bulk.reschedule(actor, items, idempotency_key="service-too-many-1")
@@ -285,7 +285,7 @@ async def test_the_same_idempotency_key_returns_the_committed_result_without_a_n
 ):
     container, actor = _setup()
     task = _make_task(
-        container, actor, "Retry-säker", datetime(2026, 10, 27, 9, 0, tzinfo=OWNER_ZONE)
+        container, actor, "Retry-säker", datetime(2026, 10, 27, 23, 59, tzinfo=OWNER_ZONE)
     )
     items = [_item(task, "tomorrow")]
 
@@ -311,7 +311,7 @@ async def test_the_same_idempotency_key_returns_the_committed_result_without_a_n
 async def test_without_tasks_write_the_call_is_forbidden_and_nothing_moves() -> None:
     container, owner_actor = _setup()
     task = _make_task(
-        container, owner_actor, "Skyddad", datetime(2026, 10, 27, 9, 0, tzinfo=OWNER_ZONE)
+        container, owner_actor, "Skyddad", datetime(2026, 10, 27, 23, 59, tzinfo=OWNER_ZONE)
     )
     reader = Actor(owner_actor.user_id, frozenset({"tasks:read"}))
 

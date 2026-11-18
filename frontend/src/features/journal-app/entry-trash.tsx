@@ -96,18 +96,24 @@ export function useEntryTrash(
 }
 
 /**
- * The entry's ⋯ with its one item, "Delete entry". In the shell's Back row the ⋯ sits at the end of the row (pen,
- * then ⋯); with no shell Back it sits on its own row above the date. The menu opens under the heading. Escape
- * closes it and gives the focus back to ⋯.
+ * The entry's ⋯ with its items: "Keep out of memory" (or "Bring back into memory") where the transport can, then
+ * "Delete entry". In the shell's Back row the ⋯ sits at the end of the row (pen, then ⋯); with no shell Back it sits
+ * on its own row above the date. The menu opens under the heading. Escape closes it and gives the focus back to ⋯.
  */
 export function EntryMenu({
   labels: t,
   disabled,
   onTrash,
+  onToggleMemory,
+  memoryExcluded = false,
 }: {
   labels: JournalLabels;
   disabled: boolean;
   onTrash: () => void;
+  /** Keeps the entry out of Claude's memory, or brings it back. Absent: the menu has no such item. */
+  onToggleMemory?: () => void;
+  /** The entry is out of memory now: the item offers to bring it back. */
+  memoryExcluded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -143,6 +149,20 @@ export function EntryMenu({
             button.current?.focus();
           }}
         >
+          {onToggleMemory && (
+            <button
+              type="button"
+              className="sk-menu-item"
+              onClick={() => {
+                setOpen(false);
+                onToggleMemory();
+              }}
+            >
+              {memoryExcluded
+                ? t.entryBringBackIntoMemory
+                : t.entryKeepOutOfMemory}
+            </button>
+          )}
           <button
             type="button"
             className="sk-menu-item sk-menu-item--danger"

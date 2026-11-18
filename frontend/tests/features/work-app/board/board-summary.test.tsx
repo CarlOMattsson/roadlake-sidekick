@@ -603,28 +603,6 @@ describe("the inline board card's kicker, title and row meta", () => {
     );
   });
 
-  it("counts an open Step with the open Tasks: an overdue Step adds to both counts (en)", () => {
-    // A Step on the page, overdue and open (the open set is Tasks and Steps): the title reads one more of each.
-    const step = {
-      ...task(6, "todo", "2026-10-20T09:00:00+01:00", "Steg i uppgift"),
-      kind: "step",
-      task_id: task(2, "todo", null).id,
-    };
-    const { container } = renderCard(
-      {
-        ...withOverdue,
-        columns: {
-          ...withOverdue.columns,
-          todo: [...(withOverdue.columns.todo ?? []), step],
-        },
-      },
-      workEn,
-    );
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
-      "3 overdue of 5 open",
-    );
-  });
-
   it("marks the title's counts with + while the page has a next cursor, so they read as lower bounds (en)", () => {
     const { container } = renderCard(
       { ...withOverdue, next_cursor: "019f0000-0000-7000-8000-0000000001e3" },
@@ -635,44 +613,68 @@ describe("the inline board card's kicker, title and row meta", () => {
     );
   });
 
-  it("the headline, the bar and the legend count the same open set, Steps included, and say the left-out count (en)", () => {
-    // Four open Tasks and one open Step, all in To do: the legend and the bar carry the five open records.
-    const step = {
-      ...task(6, "todo", null, "Steg i uppgift"),
-      kind: "step",
-      task_id: task(2, "todo", null).id,
-    };
-    const { container } = renderCard(
-      {
-        ...withOverdue,
-        columns: {
-          ...withOverdue.columns,
-          todo: [...(withOverdue.columns.todo ?? []), step],
-        },
+  describe("with the server's totals, the card and the text to the model count the whole board", () => {
+    // A page of three Tasks of a board with 38 open Tasks, 7 of them overdue (the page is only the first part).
+    const bigBoard: WorkBoardPage = {
+      columns: {
+        todo: [
+          task(2, "todo", "2026-10-20T09:00:00+01:00"),
+          task(3, "todo", "2026-10-21T09:00:00+01:00"),
+          task(1, "todo", "2026-12-01T09:00:00+01:00"),
+        ],
       },
-      workEn,
-    );
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
-      "2 overdue of 5 open",
-    );
-    const legend = within(
-      container.querySelector<HTMLElement>(".sk-counts-bar") as HTMLElement,
-    ).getByRole("list");
-    expect(
-      within(legend)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual(["To do4", "In progress1", "Blocked0"]);
-    const segments = Array.from(
-      container.querySelectorAll<HTMLElement>(".sk-counts-bar__segment"),
-    );
-    expect(segments.map((segment) => segment.style.flexGrow)).toEqual([
-      "4",
-      "1",
-    ]);
-    // Two open Tasks have a due date and are listed; the other three open records are said in one line.
-    expect(container.querySelectorAll(".work-compact-row")).toHaveLength(2);
-    expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
+      next_cursor: "019f0000-0000-7000-8000-0000000001e9",
+      column_totals: { todo: 35, in_progress: 2, blocked: 1, completed: 9 },
+      overdue_total: 7,
+    };
+
+    function renderWithContext(labels: typeof workEn) {
+      const onModelContext = vi.fn();
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(WED);
+      const view = render(
+        <BoardSummary
+          page={bigBoard}
+          labels={labels}
+          onOpen={vi.fn()}
+          onModelContext={onModelContext}
+        />,
+      );
+      return { ...view, onModelContext };
+    }
+
+    it("titles the card and fills the bar from the totals, with no + (en)", () => {
+      const { container } = renderWithContext(workEn);
+      expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+        /^7 overdue of 38 open$/,
+      );
+      const legend = within(
+        container.querySelector<HTMLElement>(".sk-counts-bar") as HTMLElement,
+      ).getByRole("list");
+      expect(
+        within(legend)
+          .getAllByRole("listitem")
+          .map((item) => item.textContent),
+      ).toEqual(["To do35", "In progress2", "Blocked1"]);
+      // 38 open, the three listed rows leave 35 for the foot; nothing says "more not shown".
+      expect(screen.getByText("· 35 more")).toHaveClass("work-compact-more");
+      expect(screen.queryByText(boardLabelsEn.more)).toBeNull();
+    });
+
+    it("sends the model the same numbers as the card, without titles (sv and en)", () => {
+      const sv = renderWithContext(workSv);
+      expect(sv.onModelContext).toHaveBeenCalledWith(
+        "Status: 35 att göra, 2 pågår, 1 blockerad, 9 klar; 7 försenade",
+      );
+      expect(
+        sv.container.querySelector("p.work-compact-title"),
+      ).toHaveTextContent("7 försenade av 38 öppna");
+      sv.unmount();
+      const en = renderWithContext(workEn);
+      expect(en.onModelContext).toHaveBeenCalledWith(
+        "Status: 35 to do, 2 in progress, 1 blocked, 9 done; 7 overdue",
+      );
+    });
   });
 
   it("writes the singular form for one overdue record, in English and Swedish", () => {
@@ -703,7 +705,7 @@ describe("the inline board card's kicker, title and row meta", () => {
     const pending = task(
       6,
       "in_progress",
-      "2026-11-04T15:00:00+01:00",
+      "2026-11-04T23:59:00+01:00",
       "Skriv offerten",
     );
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -751,6 +753,7 @@ describe("the inline board card's kicker, title and row meta", () => {
 it("opens the pressed Task itself, not just the board, and Back returns to the card", async () => {
   const user = userEvent.setup();
   const fullscreen = vi.fn();
+  const openRecord = vi.fn();
   const work = {
     getWorkBoard: vi.fn().mockResolvedValue({ columns: {}, next_cursor: null }),
     getTask: vi.fn().mockResolvedValue({ task: { ...dueSoon, version: 1 } }),
@@ -768,12 +771,21 @@ it("opens the pressed Task itself, not just the board, and Back returns to the c
       initial={dueFrame}
       labels={workEn}
       fullscreen={fullscreen}
+      openRecord={openRecord}
     />,
   );
   await user.click(
     screen.getByRole("button", { name: new RegExp(`^${dueSoon.title}`) }),
   );
-  expect(fullscreen).toHaveBeenCalledTimes(1);
+  // The room is told which record to show in the full view; the bare fullscreen request is not what a row sends.
+  expect(openRecord).toHaveBeenCalledWith({
+    room: "work",
+    view: "task",
+    id: dueSoon.id,
+    label: dueSoon.title,
+    from: "board",
+  });
+  expect(fullscreen).not.toHaveBeenCalled();
   expect(work.getTask).toHaveBeenCalledWith(dueSoon.id);
   // Back returns to the board card, as it does from the agenda card.
   await user.click(

@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { keyFor } from "../../../mcp-apps/idempotency";
-import { ownerEndOfDay, workDate } from "../../../mcp-apps/ui/due";
+import { moveDueToDay, workDate } from "../../../mcp-apps/ui/due";
 import type { AgendaUndo } from "../agenda-undo";
 import { failureNotice, type NoticeRow } from "../../board/board-notice";
 import { isCompleteDate } from "../../shared/fields";
@@ -44,7 +44,14 @@ export function useRowWrites({
   /** Closes the quick choices of the row menu. */
   closeMenu: () => void;
 }) {
-  const { reading, pending, armRetry, setNotice, enqueueRow } = session;
+  const {
+    reading,
+    pending,
+    armRetry,
+    setNotice,
+    enqueueRow,
+    readAfterConflict,
+  } = session;
   // A change by row whose delivery is unknown (no answer): the server may have applied it. The row's next write
   // replays it with its own key first and shows its answer, so the next change is judged against what the server holds.
   const unsure = useRef(
@@ -123,7 +130,7 @@ export function useRowWrites({
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(key);
         else if (replay) unsure.current.set(key, { replay, row });
-        if (!mounted.current) return;
+        if (!mounted.current || readAfterConflict(error)) return;
         // "Try again" repeats the write that failed last: the unsure one is only replayed, never made twice.
         armRetry(() =>
           unsure.current.has(key)
@@ -148,6 +155,7 @@ export function useRowWrites({
         unsure.current.delete(key);
         pending.current.delete(key);
       }
+      if (mounted.current && readAfterConflict(error)) return false;
       armRetry(() =>
         enqueueRow(key, async () => void (await settleUnsure(key))),
       );
@@ -161,8 +169,12 @@ export function useRowWrites({
     send(record, { status: to });
   }
 
-  /** A triage move of an overdue Task's due date. Its Undo names the new date: `movedTo` and `undo`. */
-  function moveDue(record: WorkItemRecord, dueAt: string) {
+  /**
+   * A triage move of a Task's due date to the day `target` (a `YYYY-MM-DD` date, or a shortcut day's instant). The Task's
+   * clock time, if it has one, stays on the new day. Its Undo names the new date: `movedTo` and `undo`.
+   */
+  function moveDue(record: WorkItemRecord, target: string) {
+    const dueAt = moveDueToDay(record.due_at, target);
     send(
       record,
       { due_at: dueAt },
@@ -171,15 +183,14 @@ export function useRowWrites({
     );
   }
 
-  /** The ⋯ menu's "Choose …" date: the same move as the triage buttons, to 23:59 on the chosen day. */
+  /** The ⋯ menu's "Choose …" date: the same move as the triage buttons, to the chosen day. */
   function moveDueTo(record: WorkItemRecord, day: string) {
     if (!isCompleteDate(day)) return;
-    const dueAt = ownerEndOfDay(day);
     // The chosen day becomes the menu's chosen chip, and the date chip that took the pick may be redrawn: focus goes
     // back to a control that stays (the hidden menu button when it opened the menu, else the row's own), also when the
     // write itself is held back.
     keepFocus(cardKey(record));
-    moveDue(record, dueAt);
+    moveDue(record, day);
   }
 
   function toggleDone(record: WorkItemRecord) {
@@ -255,7 +266,7 @@ export function useRowWrites({
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(undoKey);
         else if (!answered) unsure.current.set(entry.key, { replay, row });
-        if (!mounted.current) return;
+        if (!mounted.current || readAfterConflict(error)) return;
         // "Try again" repeats the Undo that failed last: an unsure one is only replayed, never made twice.
         armRetry(() =>
           unsure.current.has(entry.key)

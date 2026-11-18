@@ -51,7 +51,7 @@ export function ListSummary({
             />
           </div>
         )
-      ) : folded ? null : (
+      ) : folded || !detail.items.some((item) => item.offer) ? null : (
         <p>
           {t.evaluated}: {formatCalendarDate(detail.evaluated_on, t.dateLocale)}
         </p>
@@ -183,6 +183,7 @@ export function BatchForm({
   names,
   invalid,
   busy,
+  note,
   onNames,
   onKeyDown,
   onAdd,
@@ -192,6 +193,8 @@ export function BatchForm({
   names: string;
   invalid: boolean;
   busy: boolean;
+  /** The receipt of the last add (what was added, what joined an item already there); empty when there is none. */
+  note: string;
   onNames: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onAdd: () => void;
@@ -223,6 +226,7 @@ export function BatchForm({
         </label>
       )}
       {invalid && <p role="alert">{t.invalidBatch}</p>}
+      {note && !invalid && <p role="status">{note}</p>}
       <button
         type="button"
         className="sk-btn--primary"

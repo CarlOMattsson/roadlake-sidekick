@@ -36,6 +36,7 @@ export function ItemGroups({
   rowCount,
   shownCount,
   folded,
+  limited,
   compact,
   expanded,
   storeMode,
@@ -47,6 +48,8 @@ export function ItemGroups({
   rowCount: number;
   shownCount: number;
   folded: boolean;
+  /** The rows are cut at the compact budget: "Show all" is offered. */
+  limited: boolean;
   compact: boolean;
   expanded: boolean;
   storeMode: boolean;
@@ -61,7 +64,7 @@ export function ItemGroups({
   return (
     <>
       {shownGroups.map(({ store, shown }) =>
-        folded && shown.length === 0 ? null : (
+        limited && shown.length === 0 ? null : (
           <section key={store ?? ""} className="shopping-group">
             {storeless ||
             (shopLabel !== undefined && store === shopLabel) ? null : (
@@ -87,7 +90,7 @@ export function ItemGroups({
           </section>
         ),
       )}
-      {folded && rowCount > shownCount && (
+      {limited && rowCount > shownCount && (
         <div className="shopping-more">
           <button
             type="button"
@@ -98,7 +101,7 @@ export function ItemGroups({
           </button>
         </div>
       )}
-      {compact && expanded && (
+      {compact && expanded && !limited && (
         <div className="shopping-more">
           <button
             type="button"

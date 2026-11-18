@@ -86,7 +86,7 @@ async def test_board_groups_owned_records_by_status() -> None:
         ids = await _seed(client, "board")
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
 
     columns = board.structured_content["columns"]
     assert set(columns) == {"todo", "in_progress"}
@@ -150,9 +150,9 @@ async def test_board_filters_by_status_and_rejects_an_oversized_page() -> None:
         ids = await _seed(client, "filter")
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        filtered = await client.call_tool("get_work_board", {"status": "in_progress", "limit": 100})
+        filtered = await client.call_tool("get_work_board", {"status": "in_progress", "limit": 50})
         with pytest.raises(ToolError):
-            await client.call_tool("get_work_board", {"limit": 101})
+            await client.call_tool("get_work_board", {"limit": 51})
         with pytest.raises(ToolError):
             await client.call_tool("get_work_board", {"status": "archived"})
 
@@ -327,14 +327,14 @@ async def test_other_owners_records_never_appear_on_board_or_agenda() -> None:
     other_id = other_task.structured_content["task"]["id"]
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
     assert other_id not in _ids(board.structured_content["columns"])
     assert other_id not in {item["id"] for item in agenda.structured_content["items"]}
     assert _ids(board.structured_content["columns"]) == set(owner_ids.values())
 
     async with Client(_server_for(container, Actor(other, READ_SCOPES))) as client:
-        other_board = await client.call_tool("get_work_board", {"limit": 100})
+        other_board = await client.call_tool("get_work_board", {"limit": 50})
         other_agenda = await client.call_tool("get_work_agenda", {"limit": 100})
     assert _ids(other_board.structured_content["columns"]) == {other_id}
     assert [item["id"] for item in other_agenda.structured_content["items"]] == [other_id]
@@ -393,8 +393,8 @@ async def test_board_filters_to_one_projects_tasks_and_pages_through_them() -> N
         standalone = await create("Fristående", "pf-task-4")
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        scoped = await client.call_tool("get_work_board", {"limit": 100, "project_id": taxes_id})
-        whole = await client.call_tool("get_work_board", {"limit": 100})
+        scoped = await client.call_tool("get_work_board", {"limit": 50, "project_id": taxes_id})
+        whole = await client.call_tool("get_work_board", {"limit": 50})
         page_one = await client.call_tool("get_work_board", {"limit": 1, "project_id": taxes_id})
         page_two = await client.call_tool(
             "get_work_board",
@@ -421,7 +421,7 @@ async def test_empty_unfiltered_board_says_how_to_start() -> None:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("owner", "Owner")
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
 
     assert board.content[0].text == (
         f"The Work board has no records.\nWork board card shown: 0 records.\n"
@@ -435,7 +435,7 @@ async def test_empty_board_card_says_no_tasks_match() -> None:
     container = create_container(make_settings(), database_factory())
     owner = container.auth.provision_user("owner", "Owner")
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100, "q": "zzz-inget-zzz"})
+        board = await client.call_tool("get_work_board", {"limit": 50, "q": "zzz-inget-zzz"})
 
     assert board.structured_content["columns"] == {}
     assert board.content[0].text == (
@@ -506,7 +506,7 @@ async def test_board_and_agenda_name_the_project_of_a_task_only() -> None:
         standalone_id = standalone.structured_content["task"]["id"]
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
 
     by_id = {
@@ -557,7 +557,7 @@ async def test_board_echoes_the_filters_it_was_read_with_but_not_the_defaults() 
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
         scoped = await client.call_tool("get_work_board", {"project_id": project_id})
-        plain = await client.call_tool("get_work_board", {"limit": 100})
+        plain = await client.call_tool("get_work_board", {"limit": 50})
         searched = await client.call_tool("get_work_board", {"q": "zzz-inget-zzz"})
 
     assert scoped.structured_content["filters"] == {"project_id": project_id}
@@ -648,7 +648,7 @@ async def test_board_and_agenda_carry_the_domain_accent_of_tasks_and_projects() 
         plain_task_id = plain_task.structured_content["task"]["id"]
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
 
     columns = board.structured_content["columns"]
@@ -700,7 +700,7 @@ async def test_task_takes_the_domain_accent_of_its_process_or_its_own_domain() -
     )
 
     async with Client(_server_for(container, Actor(owner, READ_SCOPES))) as client:
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
 
     columns = board.structured_content["columns"]

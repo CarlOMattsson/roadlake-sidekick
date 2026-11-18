@@ -21,6 +21,7 @@ import {
 import "../inline/inline-summary.css";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { boardLabelsFor } from "./board-labels";
+import { unshownIn } from "./board-columns";
 import {
   cardKey,
   boardColumns,
@@ -29,6 +30,7 @@ import {
 } from "../shared/work-items";
 import {
   TASK_STATUSES,
+  isTaskStatus,
   type WorkBoardPage,
   type WorkItemRecord,
 } from "../transport/transport";
@@ -47,9 +49,10 @@ const TONE: Record<string, CountsTone> = {
 export type SummaryRow = { key: string; label: string; count: number };
 
 /**
- * One row per Task status column, then one Projects row when the page holds any Project. Every
- * record on the page is counted exactly once, so the rows add up to the records shown. A column
- * that holds only Projects (such as "active") gets no row of its own.
+ * One row per Task status column, then one Projects row when the board holds any Project. With the
+ * server's totals (`column_totals`) a Task status row counts the whole board and the Projects row adds
+ * the Projects the page does not hold; without them (an older server) every record on the page is counted
+ * once. A column that holds only Projects (such as "active") gets no row of its own.
  */
 export function summaryRows(page: WorkBoardPage, t: WorkLabels): SummaryRow[] {
   const taskCounts = new Map<string, number>();
@@ -59,9 +62,11 @@ export function summaryRows(page: WorkBoardPage, t: WorkLabels): SummaryRow[] {
       if (item.kind === "project") projects += 1;
       else taskCounts.set(column, (taskCounts.get(column) ?? 0) + 1);
     }
+  projects += unshownIn(page, PROJECT_ROW);
   const rows: SummaryRow[] = [];
   for (const key of boardColumns(page.columns)) {
-    const count = taskCounts.get(key) ?? 0;
+    const total = isTaskStatus(key) ? page.column_totals?.[key] : undefined;
+    const count = total ?? taskCounts.get(key) ?? 0;
     if (count === 0 && !(TASK_STATUSES as readonly string[]).includes(key))
       continue;
     rows.push({ key, label: workStatusLabel(t, key), count });
@@ -71,29 +76,36 @@ export function summaryRows(page: WorkBoardPage, t: WorkLabels): SummaryRow[] {
   return rows;
 }
 
+/** What the text to the model says besides the status counts. */
+export type SummaryTail = {
+  /** The counts are only the page's and it has a next cursor: the text ends with "more not shown". */
+  more: boolean;
+  /** Open Tasks that are overdue on the whole board; 0 or missing says nothing. */
+  overdue?: number;
+};
+
 /**
  * The text sent to the host model: counts and column names only, never record titles, so
- * "Board: 3 to do, 2 in progress, 0 blocked, 1 done". Only Tasks are counted there; Projects follow
- * apart ("; projects: 2"). When the page has a next cursor, the text ends with "more not shown"
- * (the `more` label).
+ * "Status: 35 to do, 2 in progress, 1 blocked, 9 done; 7 overdue". Only Tasks are counted there;
+ * Projects follow apart ("; projects: 2"). The numbers are the card's own. When the counts are only the
+ * page's and it has a next cursor, the text ends with "more not shown" (the `more` label).
  */
 export function summaryText(
   rows: SummaryRow[],
   t: WorkLabels,
-  more: boolean,
+  tail: SummaryTail,
 ): string {
+  const b = boardLabelsFor(t.dateLocale);
   const parts = rows
     .filter((row) => row.key !== PROJECT_ROW)
     .map((row) => `${row.count} ${row.label.toLocaleLowerCase(t.dateLocale)}`);
   const projects = rows.find((row) => row.key === PROJECT_ROW);
+  const overduePart = tail.overdue ? `; ${b.overdueCount(tail.overdue)}` : "";
   const projectPart = projects
     ? `; ${projects.label.toLocaleLowerCase(t.dateLocale)}: ${projects.count}`
     : "";
-  if (more)
-    parts.push(
-      boardLabelsFor(t.dateLocale).more.toLocaleLowerCase(t.dateLocale),
-    );
-  return `${t.board}: ${parts.join(", ")}${projectPart}`;
+  if (tail.more) parts.push(b.more.toLocaleLowerCase(t.dateLocale));
+  return `${t.board}: ${parts.join(", ")}${overduePart}${projectPart}`;
 }
 
 /**
@@ -123,14 +135,15 @@ export function BoardSummary({
   const b = boardLabelsFor(t.dateLocale);
   const rows = summaryRows(page, t);
   const more = Boolean(page.next_cursor);
-  const text = summaryText(rows, t, more);
+  // With the server's totals the card counts the whole board; only the rows it does not list are left out.
+  const exact = Boolean(page.column_totals) && page.overdue_total !== undefined;
   // Read on every render, as the fullscreen board does, so the due days match the agenda card
   // after midnight (a frozen clock from mount made the board count one day less).
   const now = new Date();
   // Projects get a line of their own below the bar.
   const projectRow = rows.find((row) => row.key === PROJECT_ROW);
-  // One set of open rows: `todo`, `in_progress` and `blocked` as the Status list shows and counts them, Tasks and
-  // Steps. The bar, the headline's open and overdue counts and the more-open count all count it; `completed` is not in the bar.
+  // The open rows: `todo`, `in_progress` and `blocked`, as the Status list counts them; `completed` is not in the bar.
+  // The page's open records feed the nearest-due list; the counts come from the rows (the server's totals).
   const segments: CountsSegment[] = [];
   const open: WorkItemRecord[] = [];
   for (const row of rows)
@@ -146,11 +159,17 @@ export function BoardSummary({
     "",
     open.filter((item) => item.kind === "task" && item.due_at),
   ).slice(0, NEAREST_DUE);
-  const overdue = open.filter(
-    (item) => rowDue(item, now, t.dateLocale)?.tone === "overdue",
-  ).length;
+  const openCount = segments.reduce((sum, segment) => sum + segment.count, 0);
+  const overdue =
+    page.overdue_total ??
+    open.filter((item) => rowDue(item, now, t.dateLocale)?.tone === "overdue")
+      .length;
   // Every open row of the Status list the foot opens, minus the card's rows (one count with the agenda card).
-  const hiddenCount = hiddenRows(open.length, nearest.length);
+  const hiddenCount = hiddenRows(openCount, nearest.length);
+  const text = summaryText(rows, t, {
+    more: more && !exact,
+    overdue: exact ? overdue : 0,
+  });
   useEffect(() => {
     onModelContext?.(text);
   }, [text, onModelContext]);
@@ -188,7 +207,7 @@ export function BoardSummary({
       ) : (
         <>
           <p className="work-compact-title sk-card__title">
-            {b.headline(overdue, open.length, more)}
+            {b.headline(overdue, openCount, more && !exact)}
           </p>
           <CountsBar label={t.status} segments={segments} />
           {projectRow ? (
@@ -226,7 +245,7 @@ export function BoardSummary({
             aside={
               hiddenCount > 0
                 ? b.hiddenCount.replace("{count}", String(hiddenCount))
-                : more
+                : more && !exact
                   ? b.more
                   : undefined
             }

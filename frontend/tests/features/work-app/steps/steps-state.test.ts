@@ -72,7 +72,7 @@ describe("stepsReducer: reading the list", () => {
 
   it("reads again on reload and retry, each with a new attempt; only a retry shows loading", () => {
     const reloaded = run(
-      { ...ready, notice: { kind: "conflict" } },
+      { ...ready, notice: { kind: "invalid" } },
       { type: "reload" },
     );
     expect(reloaded).toMatchObject({

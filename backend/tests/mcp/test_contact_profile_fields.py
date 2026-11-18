@@ -272,3 +272,84 @@ async def test_a_slack_link_that_is_not_a_slack_profile_is_refused_on_create() -
     )
     assert refused.is_error
     assert refused.structured_content["code"] == "validation_error"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_slack_link_over_the_input_limit_is_refused_and_a_long_query_is_dropped() -> None:
+    server = make_server()
+    too_long = "https://acme.slack.com/team/U01ABC23DEF?" + "x" * (301 - len(SLACK) - 1)
+    assert len(too_long) == 301
+    pasted = "https://acme.slack.com/team/U01ABC23DEF?" + "x" * (200 - len(SLACK) - 1)
+    assert len(pasted) == 200
+
+    with pytest.raises(ToolError, match="slack: too long"):
+        await server.call_tool(
+            "create_contact",
+            {
+                "display_name": "Anna",
+                "idempotency_key": "slack-long-create-1",
+                "slack": too_long,
+            },
+        )
+    created = await server.call_tool(
+        "create_contact",
+        {"display_name": "Anna", "idempotency_key": "slack-long-create-2"},
+    )
+    contact = created.structured_content["contact"]
+    with pytest.raises(ToolError, match="slack: too long"):
+        await server.call_tool(
+            "update_contact",
+            {
+                "contact_id": contact["id"],
+                "expected_version": contact["version"],
+                "idempotency_key": "slack-long-update-1",
+                "changes": {"slack": too_long},
+            },
+        )
+    shortened = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": contact["version"],
+            "idempotency_key": "slack-long-update-2",
+            "changes": {"slack": pasted},
+        },
+    )
+    assert shortened.structured_content["contact"]["slack"] == SLACK
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_null_slack_in_changes_leaves_the_link_and_clear_empties_it() -> None:
+    server = make_server()
+    created = await server.call_tool(
+        "create_contact",
+        {"display_name": "Anna Lind", "idempotency_key": "slack-null-0001", "slack": SLACK},
+    )
+    contact = created.structured_content["contact"]
+
+    untouched = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": contact["version"],
+            "idempotency_key": "slack-null-0002",
+            "changes": {"slack": None, "role": "VD"},
+        },
+    )
+    after = untouched.structured_content["contact"]
+    assert after["slack"] == SLACK
+    assert after["role"] == "VD"
+
+    cleared = await server.call_tool(
+        "update_contact",
+        {
+            "contact_id": contact["id"],
+            "expected_version": after["version"],
+            "idempotency_key": "slack-null-0003",
+            "changes": {"slack": None},
+            "clear": ["slack"],
+        },
+    )
+    assert cleared.structured_content["contact"]["slack"] is None

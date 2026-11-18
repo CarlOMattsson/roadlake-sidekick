@@ -42,16 +42,19 @@ export function TaskSteps({
   const canActions = offers("list_step_actions");
   const hasMenu = canMove || canArchive || canActions;
   const steps = useTaskSteps(taskId, transport, t);
-  const { state, write, manage, banner, listRef, headingRef, undoBox } = steps;
+  const { state, write, manage, listRef, headingRef, undoBox } = steps;
   const { phase, notice, more, undo, archived, status, stepUndo } = state;
   const hasMore = state.nextCursor !== undefined;
   // Only a new key reads again: the first render keeps the list the hook is already reading.
   const reloadSteps = useRef(steps.reloadSteps);
+  const seenKey = useRef(refreshKey);
   useEffect(() => {
     reloadSteps.current = steps.reloadSteps;
   });
   useEffect(() => {
-    if (refreshKey > 0) reloadSteps.current();
+    if (refreshKey === seenKey.current) return;
+    seenKey.current = refreshKey;
+    reloadSteps.current();
   }, [refreshKey]);
 
   const failedStep =
@@ -104,14 +107,6 @@ export function TaskSteps({
         }}
         onRetry={steps.retryWrite}
       />
-      {notice?.kind === "conflict" && (
-        <div role="alert" tabIndex={-1} ref={banner} className="work-banner">
-          <p>{t.stepConflict}</p>
-          <button type="button" onClick={steps.reloadSteps}>
-            {t.reload}
-          </button>
-        </div>
-      )}
       {notice?.kind === "forbidden" && <p>{t.forbiddenWrite}</p>}
       {refusal && (
         <ErrorNotice placement="row" locale={t.dateLocale} message={refusal} />

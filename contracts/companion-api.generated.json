@@ -352,6 +352,18 @@
         "additionalProperties": false,
         "description": "update_shopping_item input: an omitted or null field stays; `clear` empties one.",
         "properties": {
+          "list_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "List Id"
+          },
           "name": {
             "anyOf": [
               {

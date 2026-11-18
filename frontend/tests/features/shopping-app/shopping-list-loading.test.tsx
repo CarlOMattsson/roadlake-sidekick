@@ -71,7 +71,6 @@ describe("reading a chosen list in fullscreen", () => {
     expect(
       screen.queryByLabelText(shoppingEn.listName),
     ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(shoppingEn.select)).not.toBeInTheDocument();
     expect(screen.queryByText(shoppingEn.hint)).not.toBeInTheDocument();
 
     act(() => {

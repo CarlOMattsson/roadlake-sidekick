@@ -229,7 +229,7 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
         )["shopping_list"]
 
         # The board reorder: the complete todo column, replayed with the same key.
-        column = (await client.call_tool("get_work_board", {"limit": 100})).structured_content
+        column = (await client.call_tool("get_work_board", {"limit": 50})).structured_content
         assert column is not None
         todo = column["columns"]["todo"]
         assert len(todo) >= 2

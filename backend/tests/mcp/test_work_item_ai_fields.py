@@ -81,7 +81,7 @@ async def test_agenda_and_board_mark_ai_tasks_and_their_approved_plans() -> None
         )
         project = await _project(client, "Hus")
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
 
     expected = {
         plain["id"]: (False, False),
@@ -135,7 +135,7 @@ async def test_a_completed_project_is_not_counted_in_the_task_status_column() ->
                     },
                 )
                 assert not finished.is_error, finished.structured_content
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
 
     totals = board.structured_content["column_totals"]
     assert totals["completed"] == 1

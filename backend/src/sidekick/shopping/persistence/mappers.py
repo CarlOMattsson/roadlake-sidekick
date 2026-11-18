@@ -64,6 +64,7 @@ def apply_item(row: ShoppingItemRow, item: ShoppingItem) -> None:
     """Copy every editable and versioned field of the item onto its row."""
 
     details = item.details
+    row.list_id = item.list_id
     for key in DETAIL_FIELDS:
         setattr(row, key, getattr(details, key))
     for key in OFFER_FIELDS:

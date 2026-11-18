@@ -153,9 +153,17 @@ describe("two presses in one tick", () => {
       .mockReturnValue(deferred<never>().promise);
     render(
       <NewContact
-        transport={{ createContact } as unknown as WorkTransport}
+        transport={
+          {
+            createContact,
+            listContacts: vi
+              .fn()
+              .mockResolvedValue({ items: [], next_cursor: null }),
+          } as unknown as WorkTransport
+        }
         labels={workEn}
         onCreated={vi.fn()}
+        onOpenExisting={vi.fn()}
       />,
     );
     await user.click(screen.getByRole("button", { name: workEn.newContact }));

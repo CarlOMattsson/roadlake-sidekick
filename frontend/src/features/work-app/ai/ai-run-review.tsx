@@ -35,6 +35,7 @@ export function AiRunReview({
   transport,
   labels: a,
   locale,
+  serverRuns = false,
   onReviewed,
 }: {
   runId: string;
@@ -42,6 +43,8 @@ export function AiRunReview({
   transport: WorkTransport;
   labels: AiLabels;
   locale: string;
+  /** True where the server runs the plan's Steps: no line then says that Claude goes on after an answer. */
+  serverRuns?: boolean;
   onReviewed: (decision: WorkAiReview) => void;
 }) {
   const [read, setRead] = useState<{
@@ -204,6 +207,7 @@ export function AiRunReview({
           </label>
           <textarea
             id={fieldId}
+            aria-label={writing === "redo" ? a.redoComment : a.answerLabel}
             rows={3}
             maxLength={1000}
             value={text}
@@ -263,7 +267,9 @@ export function AiRunReview({
       )}
       {sent && "decision" in sent && (
         <p role="status" className="work-ai-meta">
-          {a.reviewed[sent.decision]}
+          {sent.decision === "answer" && !serverRuns
+            ? a.answeredNext
+            : a.reviewed[sent.decision]}
         </p>
       )}
       {failed === "conflict" ? (

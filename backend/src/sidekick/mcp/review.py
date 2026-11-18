@@ -326,7 +326,7 @@ def register_review_tools(mcp: FastMCP, ctx: ToolContext) -> None:
                 task_id=item.task_id,
                 expected_version=item.expected_version,
                 decision=ReviewDecision(item.decision),
-                due_at=end_of_day_due_at(whens.get(item.task_id), zone),
+                due_day=whens.get(item.task_id),
                 follow_up_at=end_of_day_due_at(
                     target_day(item.follow_up, today) if item.follow_up is not None else None,
                     zone,

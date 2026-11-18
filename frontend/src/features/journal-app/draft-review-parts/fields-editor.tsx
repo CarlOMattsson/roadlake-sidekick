@@ -24,6 +24,7 @@ import {
  */
 export function FieldsEditor({
   draft,
+  summaryByOwner = false,
   busy,
   saveFailed,
   onSave,
@@ -32,6 +33,8 @@ export function FieldsEditor({
   labels: t,
 }: {
   draft: Pick<JournalDraft, "title" | "summary" | "key_points">;
+  /** The summary holds the owner's own words: its field is labelled as her text, not as a summary. */
+  summaryByOwner?: boolean;
   busy: boolean;
   saveFailed: boolean;
   onSave: (changes: Partial<JournalDraftFields>) => void;
@@ -113,7 +116,9 @@ export function FieldsEditor({
           {t.titleRequired}
         </p>
       )}
-      <label htmlFor={summaryId}>{t.summaryLabel}</label>
+      <label htmlFor={summaryId}>
+        {summaryByOwner ? t.entryTextLabel : t.summaryLabel}
+      </label>
       <textarea
         id={summaryId}
         maxLength={SUMMARY_MAX}

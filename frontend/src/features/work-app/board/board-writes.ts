@@ -2,8 +2,7 @@ import type { MutableRefObject } from "react";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import type { AgendaUndo } from "../agenda/agenda-undo";
 import { failureNotice, type BoardNotice } from "./board-notice";
-import { withStepMoved, type ReorderTo } from "./board-columns";
-import { cardKey } from "../shared/work-items";
+import type { ReorderTo } from "./board-columns";
 import {
   isRecurringCycle,
   recurringDoneText,
@@ -32,7 +31,6 @@ export type FocusWanted = { kind: "card" | "more"; id: string };
 export type LastWrite =
   | { kind: "move"; card: WorkItemRecord; to: TaskStatusValue }
   | { kind: "undo"; entry: AgendaUndo }
-  | { kind: "step"; card: WorkItemRecord }
   | {
       kind: "reorder";
       status: TaskStatusValue;
@@ -170,71 +168,6 @@ export function undoMoveWrite(deps: BoardWriteDeps, entry: AgendaUndo) {
       const failed = failureNotice(error, "move");
       lastWrite.current = { kind: "undo", entry };
       focusWanted.current = undefined;
-      notify(failed);
-      if (failed.kind === "conflict") await reread(failed);
-    }
-  });
-}
-/**
- * The check of a Step in the single layout: done, or open again when it is done. The Step is written with
- * its own tools (complete_task_step, update_task_step) against the version the board shows, and moves to its new
- * section at once; the board is read again after it, as after every write. A Step has no Undo line: its check is
- * the way back.
- */
-export function toggleStepWrite(deps: BoardWriteDeps, card: WorkItemRecord) {
-  const {
-    notify,
-    queueWrite,
-    latest,
-    pendingMove,
-    transport,
-    writes,
-    commit,
-    focusWanted,
-    lastWrite,
-    reread,
-  } = deps;
-  const key = cardKey(card);
-  // The target is decided at the tap, as a move's is (`move`): a tap queued behind a write keeps its own wish.
-  const wantDone = card.status !== "completed";
-  notify(undefined);
-  queueWrite(key, async () => {
-    const base =
-      Object.values(latest.current.page.columns)
-        .flat()
-        .find((item) => cardKey(item) === key) ?? card;
-    if (typeof base.version !== "number") return;
-    // Already in the wanted state (an earlier tap of this Step got it there): nothing to write.
-    if ((base.status === "completed") === wantDone) return;
-    const pendingKey = keyFor(
-      pendingMove.current.get(key),
-      JSON.stringify([card.id, base.version, wantDone]),
-    );
-    pendingMove.current.set(key, pendingKey);
-    try {
-      const { step } = wantDone
-        ? await transport.completeTaskStep(
-            card.id,
-            base.version,
-            pendingKey.key,
-          )
-        : await transport.updateTaskStep(
-            card.id,
-            base.version,
-            { status: "todo" },
-            pendingKey.key,
-          );
-      pendingMove.current.delete(key);
-      writes.current += 1;
-      commit({
-        ...latest.current,
-        page: withStepMoved(latest.current.page, key, base, step),
-      });
-      focusWanted.current = { kind: "card", id: card.id };
-    } catch (error) {
-      if (writeFailure(error) !== "failed") pendingMove.current.delete(key);
-      const failed = failureNotice(error, "move");
-      lastWrite.current = { kind: "step", card };
       notify(failed);
       if (failed.kind === "conflict") await reread(failed);
     }

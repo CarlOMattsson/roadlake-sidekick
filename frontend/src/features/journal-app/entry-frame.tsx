@@ -26,6 +26,7 @@ import {
   useEntryTrash,
 } from "./entry-trash";
 import type { FrameProps, LoadPhase } from "./frame-props";
+import { EntryMemoryFailure, useEntryMemory } from "./entry-memory";
 import { isQueued, useQueuedRecords } from "./use-queued-records";
 
 /** The saved entry offers at most this many "Open the task" buttons, one per created task. */
@@ -71,6 +72,11 @@ export function EntryFrame({
   const heading = useRef<HTMLHeadingElement>(null);
   const queuedIds = useQueuedRecords(transport);
   const trashState = useEntryTrash(transport, entry, reloadEntry);
+  // Out of memory or back in: the version does not change, so the shown entry only flips its flag.
+  const memory = useEntryMemory(transport, entry, (excluded) => {
+    if (entry) entryChanged({ ...entry, memory_excluded: excluded });
+    setChangedNote(excluded ? t.entryKeptOutOfMemory : t.entryBackInMemory);
+  });
   // The title is the heading above. A summary that repeats it shows only the rest, as the card does.
   const rest = entry ? summaryRest(entry.title, entry.summary) : undefined;
   // The Projects and Contacts show by name when the entry carries its links; an older entry shows the
@@ -268,8 +274,10 @@ export function EntryFrame({
       {canTrash && (
         <EntryMenu
           labels={t}
-          disabled={trashState.busy}
+          disabled={trashState.busy || memory?.busy === true}
           onTrash={trashState.trash}
+          onToggleMemory={memory?.toggle}
+          memoryExcluded={entry?.memory_excluded === true}
         />
       )}
       {phase === "ready" && entry && trashState.trashed && (
@@ -285,6 +293,7 @@ export function EntryFrame({
               onRetry={trashState.trash}
             />
           )}
+          {memory && <EntryMemoryFailure labels={t} state={memory} />}
           <p>
             {formatShortDateWithYear(
               entry.journal_date,
@@ -307,6 +316,9 @@ export function EntryFrame({
             )}
           </p>
           {entry.archived && <p className="journal-muted">{t.archived}</p>}
+          {entry.memory_excluded && (
+            <p className="journal-muted">{t.entryOutOfMemory}</p>
+          )}
           {/* Changed in place (no form); an archived entry shows its tags only. */}
           <TagField
             tags={entry.tags ?? []}
@@ -376,6 +388,7 @@ export function EntryFrame({
               )}
               <FieldsEditor
                 draft={entry}
+                summaryByOwner={entry.summary_by === "you"}
                 busy={editing}
                 saveFailed={
                   editFailure === "failed" || editFailure === "not_found"
@@ -405,7 +418,9 @@ export function EntryFrame({
           {mode !== "edit" && rest && <p className="journal-summary">{rest}</p>}
           {/* The original is always saved with an entry, so the line and its button always show here. */}
           <div className="journal-original-row">
-            <p className="journal-muted">{originalLine(entry.summary, t)}</p>
+            <p className="journal-muted">
+              {originalLine(entry.summary, t, entry.summary_by)}
+            </p>
             {transport.getSource && (
               <button
                 type="button"

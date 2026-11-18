@@ -6,7 +6,7 @@
 
 ## `list_contacts`
 
-Use this to resolve a person the user mentions (name, alias, email or phone) to a Contact id.
+Use this to resolve a person the user mentions (name, alias, email, phone, company or role) to a Contact id.
 
 Access: read
 
@@ -66,7 +66,7 @@ Access: write
 
 Scopes: requires `contacts:read`, `contacts:write`.
 
-Returns: `ContactResult` with `contact` (ContactRecord).
+Returns: `CreatedContactResult` with `contact` (ContactRecord), `same_name_contacts` (array of SameNameContactRecord).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -80,7 +80,7 @@ Returns: `ContactResult` with `contact` (ContactRecord).
 | `phone` | string | no | may be null |
 | `relationship` | string | no | up to 80 characters; may be null |
 | `role` | string | no | up to 120 characters; may be null |
-| `slack` | string | no | may be null |
+| `slack` | string | no | up to 300 characters; may be null |
 | `tags` | array of string | no | up to 10 items; may be null |
 
 ## `update_contact`
@@ -104,7 +104,7 @@ Returns: `UpdatedContactResult` with `contact` (ContactRecord), `ignored_nulls` 
 | `changes.phone` | string | no | up to 64 characters; may be null |
 | `changes.relationship` | string | no | up to 80 characters; may be null |
 | `changes.role` | string | no | up to 120 characters; may be null |
-| `changes.slack` | string | no | may be null |
+| `changes.slack` | string | no | up to 300 characters; may be null |
 | `changes.tags` | array of string | no | up to 10 items; Complete tag set, e.g. 'important', 'waiting', 'family'; replaces the current set, [] clears it. |
 | `contact_id` | uuid | yes | - |
 | `expected_version` | integer | yes | - |

@@ -5,6 +5,8 @@
 const aiStepEn = {
   /** Who does the Step. */
   performer: { owner: "You", ai: "AI" },
+  /** Who does the Step, as the object of "Performed by". */
+  performedBy: { owner: "you", ai: "AI" },
   /** Where an AI Step stands; absent for a done Step. */
   status: {
     waiting: "waiting",
@@ -15,18 +17,19 @@ const aiStepEn = {
     failed: "failed",
     stopped: "stopped",
     exhausted: "out of attempts",
+    /** An AI Step of a plan the owner has not approved yet: it stands still until then. */
+    awaiting_approval: "awaiting approval",
   },
-  /** Read once for the whole mark: who does the Step and, for an AI Step, where it stands. */
-  reading: (performer: string, status?: string) =>
-    status
-      ? `Performed by ${performer}, ${status}`
-      : `Performed by ${performer}`,
+  /** Read once for the whole mark: who does the Step (`performedBy`) and, for an AI Step, where it stands. */
+  reading: (by: string, status?: string) =>
+    status ? `Performed by ${by}, ${status}` : `Performed by ${by}`,
 };
 
 export type AiStepLabels = typeof aiStepEn;
 
 const aiStepSv: AiStepLabels = {
   performer: { owner: "Du", ai: "AI" },
+  performedBy: { owner: "dig", ai: "AI" },
   status: {
     waiting: "väntar",
     ready: "redo",
@@ -36,9 +39,10 @@ const aiStepSv: AiStepLabels = {
     failed: "misslyckades",
     stopped: "stoppad",
     exhausted: "försöken slut",
+    awaiting_approval: "väntar på godkännande",
   },
-  reading: (performer, status) =>
-    status ? `Görs av ${performer}, ${status}` : `Görs av ${performer}`,
+  reading: (by, status) =>
+    status ? `Görs av ${by}, ${status}` : `Görs av ${by}`,
 };
 
 /** The mark's texts for a room's date locale ("sv-SE" or "en-GB"); Swedish unless the locale is English. */

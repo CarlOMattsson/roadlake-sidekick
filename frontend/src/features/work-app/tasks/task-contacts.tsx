@@ -1,31 +1,26 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { WorkLabels } from "../shared/labels";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { useSingleFlight } from "../shared/use-single-flight";
 import { useWorkWrite } from "../shared/use-work-write";
-import { CloseIcon, PlusIcon } from "../../mcp-apps/ui/icons";
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
-import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { WriteFailureRow } from "../shared/write-failure-row";
-import { initialsOf } from "../../mcp-apps/ui/initials";
 import {
-  isForbidden,
   writeFailure,
   type WorkContact,
   type WorkTransport,
   type WriteFailure,
 } from "../transport/transport";
+import {
+  ContactHit,
+  ContactSearchSheet,
+  useContactSearch,
+} from "./contact-search";
 import "./task-contacts.css";
 
-/** list_contacts takes q of 1 to 200 characters; the view searches from two letters on. */
-const SEARCH_MIN_LENGTH = 2;
-const SEARCH_MAX_LENGTH = 200;
-const SEARCH_DEBOUNCE_MS = 300;
 /** The busy marker of the `createContact` row; a Contact id is never this. */
 const CREATE_ROW = "create";
 
-type SearchPhase = "idle" | "loading" | "ready" | "forbidden" | "error";
-type MorePhase = "idle" | "busy" | "failed";
 /** A refused write and what it was, so the calm line names it. */
 type Failed = { failure: WriteFailure; action: "link" | "create" };
 
@@ -92,11 +87,7 @@ export function LinkContact({
   createOffered: boolean;
   onChanged: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const [phase, setPhase] = useState<SearchPhase>("idle");
-  const [results, setResults] = useState<WorkContact[]>([]);
-  const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [more, setMore] = useState<MorePhase>("idle");
+  const search = useContactSearch(transport);
   const [busyId, setBusyId] = useState<string>();
   const [failed, setFailed] = useState<Failed>();
   // Closed, the section shows one quiet `linkContact` line; opening it puts the focus in the search.
@@ -105,15 +96,6 @@ export function LinkContact({
   const addButton = useRef<HTMLButtonElement>(null);
   // Set by a close, so the focus goes back to `linkContact` and not on the first render.
   const returnFocus = useRef(false);
-  const inputId = useId();
-  const hintId = useId();
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  // Bumped by every query change and every search request; only the newest answer is applied.
-  const ticket = useRef(0);
-  // One "Show more" page per query, claimed before React re-renders the button.
-  const pages = useSingleFlight();
-  // The trimmed query the shown results belong to, so Show more pages the same search.
-  const searched = useRef("");
   // The last write, run again by Försök igen with the same key.
   const again = useRef<() => void>(undefined);
   // A Contact created here whose link has not gone through yet: a retry links it instead of creating a second one.
@@ -124,12 +106,8 @@ export function LinkContact({
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
-    const marker = ticket;
-    const pendingSearch = timer;
     return () => {
       mounted.current = false;
-      clearTimeout(pendingSearch.current);
-      marker.current++;
     };
   }, []);
   useEffect(() => {
@@ -140,63 +118,9 @@ export function LinkContact({
     }
   }, [open]);
 
-  function runSearch(q: string) {
-    const current = ++ticket.current;
-    searched.current = q;
-    transport
-      .searchContacts(q)
-      .then((page) => {
-        if (current !== ticket.current) return;
-        setResults(page.items);
-        setNextCursor(page.next_cursor);
-        setPhase("ready");
-      })
-      .catch((error: unknown) => {
-        if (current !== ticket.current) return;
-        setPhase(isForbidden(error) ? "forbidden" : "error");
-      });
-  }
-
   function changeQuery(value: string) {
-    setQuery(value);
     setFailed(undefined);
-    setMore("idle");
-    setResults([]);
-    setNextCursor(null);
-    // An answer to the previous query, or a Show more of it, is now old.
-    ticket.current++;
-    clearTimeout(timer.current);
-    const q = value.trim();
-    if (Array.from(q).length < SEARCH_MIN_LENGTH) {
-      setPhase("idle");
-      return;
-    }
-    setPhase("loading");
-    timer.current = setTimeout(() => runSearch(q), SEARCH_DEBOUNCE_MS);
-  }
-
-  function loadMore() {
-    const current = ticket.current;
-    if (!nextCursor || !pages.enter(current)) return;
-    setMore("busy");
-    transport
-      .searchContacts(searched.current, nextCursor)
-      .then((page) => {
-        if (current !== ticket.current) return;
-        setResults((known) => {
-          const seen = new Set(known.map((contact) => contact.id));
-          return [
-            ...known,
-            ...page.items.filter((contact) => !seen.has(contact.id)),
-          ];
-        });
-        setNextCursor(page.next_cursor);
-        setMore("idle");
-      })
-      .catch(() => {
-        if (current === ticket.current) setMore("failed");
-      })
-      .finally(() => pages.leave(current));
+    search.change(value);
   }
 
   function link(contact: WorkContact) {
@@ -278,141 +202,39 @@ export function LinkContact({
     );
   const linked = new Set(linkedIds);
   const busy = busyId !== undefined;
-  const q = query.trim();
   return (
-    <KeyScope
-      className="work-contact-sheet"
-      aria-busy={busy || undefined}
-      onEscape={close}
-    >
-      <label htmlFor={inputId} className="work-contact-sheet-title">
-        {t.linkContact}
-      </label>
-      {/* The field comes before the hits for the keyboard and screen readers; the sheet draws it at its foot. */}
-      <div className="sk-createfield work-contact-sheet-field">
-        <input
-          id={inputId}
-          ref={inputElement}
-          className="sk-createfield__input"
-          type="search"
-          enterKeyHint="search"
-          autoComplete="off"
-          placeholder={t.contactSearchPlaceholder}
-          value={query}
-          maxLength={SEARCH_MAX_LENGTH}
-          aria-describedby={phase === "idle" ? hintId : undefined}
-          onChange={(event) => changeQuery(event.target.value)}
-        />
-        <button
-          type="button"
-          className="sk-createfield__btn"
-          aria-label={t.closeContactSearch}
+    <ContactSearchSheet
+      title={t.linkContact}
+      labels={t}
+      search={search}
+      busy={busy}
+      inputRef={inputElement}
+      onClose={close}
+      renderHit={(contact) => (
+        <ContactHit
+          contact={contact}
+          note={linked.has(contact.id) ? t.contactAlreadyLinked : undefined}
           disabled={busy}
-          onClick={close}
-        >
-          <CloseIcon />
-        </button>
-      </div>
-      <div className="work-contact-sheet-results">
-        {phase === "idle" && (
-          <p id={hintId} className="work-contact-sheet-note">
-            {t.contactSearchHint}
-          </p>
-        )}
-        {phase === "loading" && (
-          <p role="status" className="work-contact-sheet-note">
-            {t.loading}
-          </p>
-        )}
-        {phase === "forbidden" && (
-          <p className="work-contact-sheet-note">{t.contactsForbidden}</p>
-        )}
-        {phase === "error" && (
-          <ErrorNotice
-            placement="row"
-            locale={t.dateLocale}
-            onRetry={() => {
-              setPhase("loading");
-              runSearch(searched.current);
-            }}
-          />
-        )}
-        {phase === "ready" && results.length > 0 && (
-          <ul className="work-contact-sheet-list">
-            {results.map((contact) => (
-              <li key={contact.id}>
-                {linked.has(contact.id) ? (
-                  <div className="work-contact-sheet-row">
-                    <span className="work-link-avatar" aria-hidden="true">
-                      {initialsOf(contact.display_name)}
-                    </span>
-                    <span className="work-contact-sheet-name">
-                      {contact.display_name}
-                      <span className="work-contact-sheet-meta">
-                        {t.contactAlreadyLinked}
-                      </span>
-                    </span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    className="work-contact-sheet-row"
-                    disabled={busy}
-                    aria-busy={busyId === contact.id || undefined}
-                    onClick={() => link(contact)}
-                  >
-                    <span className="work-link-avatar" aria-hidden="true">
-                      {initialsOf(contact.display_name)}
-                    </span>
-                    <span className="work-contact-sheet-name">
-                      {contact.display_name}
-                    </span>
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-        {phase === "ready" && results.length === 0 && (
-          <>
-            <p className="work-contact-sheet-note">{t.noContactMatches(q)}</p>
-            {createOffered && (
-              <button
-                type="button"
-                className="sk-action-row work-contact-sheet-create"
-                disabled={busy}
-                aria-busy={busyId === CREATE_ROW || undefined}
-                onClick={() => createAndLink(q)}
-              >
-                <PlusIcon />
-                {t.createAndLinkContact(q)}
-              </button>
-            )}
-          </>
-        )}
-        {phase === "ready" && more === "busy" && (
-          <p role="status" className="work-contact-sheet-note">
-            {t.loading}
-          </p>
-        )}
-        {phase === "ready" && more === "failed" && (
-          <ErrorNotice
-            placement="row"
-            locale={t.dateLocale}
-            onRetry={loadMore}
-          />
-        )}
-        {phase === "ready" && nextCursor && more !== "failed" && (
+          busy={busyId === contact.id}
+          onPick={() => link(contact)}
+        />
+      )}
+      empty={(q) =>
+        createOffered && (
           <button
             type="button"
-            className="sk-btn sk-btn--quiet"
-            disabled={more === "busy"}
-            onClick={loadMore}
+            className="sk-action-row work-contact-sheet-create"
+            disabled={busy}
+            aria-busy={busyId === CREATE_ROW || undefined}
+            onClick={() => createAndLink(q)}
           >
-            {t.more}
+            <PlusIcon />
+            {t.createAndLinkContact(q)}
           </button>
-        )}
-        {failed && (
+        )
+      }
+      footer={
+        failed && (
           <ContactFailure
             failure={failed.failure}
             message={
@@ -424,9 +246,9 @@ export function LinkContact({
             onReload={onChanged}
             onRetry={() => again.current?.()}
           />
-        )}
-      </div>
-    </KeyScope>
+        )
+      }
+    />
   );
 }
 

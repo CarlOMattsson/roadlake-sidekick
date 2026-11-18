@@ -49,6 +49,8 @@ export type ShoppingInput = ToolInputs["update_shopping_item"]["item"] &
   >;
 /** An offer as the editor sends it: a price may be a number or a string. */
 export type ShoppingOfferInput = NonNullable<ShoppingInput["offer"]>;
+/** One item to add: its name, and the amount when the typed text named one. */
+export type NewItem = { name: string; quantity?: string; unit?: string };
 export type AddOptions = { store?: string; mergeDuplicates?: boolean };
 export type ShoppingTransport = {
   /** Absent when the host cannot search Contacts (the mobile app): the editor then offers no recipient search. */
@@ -69,13 +71,13 @@ export type ShoppingTransport = {
     key: string,
   ) => Promise<unknown>;
   /**
-   * Adds one item per name. `store` puts the new items in that shop (the store view); `mergeDuplicates`
+   * Adds the items. `store` puts the new items in that shop (the store view); `mergeDuplicates`
    * adds the quantity to an open item with the same name and unit instead of a new row. The MCP tool
    * takes merge_duplicates.
    */
   add: (
     id: string,
-    names: string[],
+    items: NewItem[],
     key: string,
     options?: AddOptions,
   ) => Promise<unknown>;

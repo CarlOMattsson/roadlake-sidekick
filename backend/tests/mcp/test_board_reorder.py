@@ -45,7 +45,7 @@ async def _reorder(client: Client, status: str, pairs: list[tuple[str, int]], ke
 
 
 async def _column_ids(client: Client, status: str) -> list[str]:
-    board = await client.call_tool("get_work_board", {"limit": 100})
+    board = await client.call_tool("get_work_board", {"limit": 50})
     return [item["id"] for item in board.structured_content["columns"][status]]
 
 
@@ -252,7 +252,7 @@ async def test_manually_ordered_names_only_columns_moved_by_hand_in_column_order
         )
         assert not started.is_error, started.structured_content
         # An unranked Task in its column does not make that column manually ordered.
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         assert board.structured_content["manually_ordered"] == []
 
         in_progress = await _reorder(
@@ -270,14 +270,14 @@ async def test_manually_ordered_names_only_columns_moved_by_hand_in_column_order
         )
         assert not todo.is_error, todo.structured_content
 
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         # Column order, not the order in which the columns were moved by hand.
         assert board.structured_content["manually_ordered"] == ["todo", "in_progress"]
         assert "board_rank" not in str(board.structured_content)
 
-        scoped = await client.call_tool("get_work_board", {"limit": 100, "status": "in_progress"})
+        scoped = await client.call_tool("get_work_board", {"limit": 50, "status": "in_progress"})
         assert scoped.structured_content["manually_ordered"] == ["in_progress"]
-        scoped = await client.call_tool("get_work_board", {"limit": 100, "status": "completed"})
+        scoped = await client.call_tool("get_work_board", {"limit": 50, "status": "completed"})
         assert scoped.structured_content["manually_ordered"] == []
 
 
@@ -299,9 +299,9 @@ async def test_other_owners_manual_order_is_not_visible_on_the_board() -> None:
 
     async with Client(_server_for(container, Actor(owner, SCOPES))) as owner_client:
         await _create_tasks(owner_client, "mine", 1)
-        board = await owner_client.call_tool("get_work_board", {"limit": 100})
+        board = await owner_client.call_tool("get_work_board", {"limit": 50})
         assert board.structured_content["manually_ordered"] == []
 
     async with Client(_server_for(container, Actor(other, SCOPES))) as other_client:
-        board = await other_client.call_tool("get_work_board", {"limit": 100})
+        board = await other_client.call_tool("get_work_board", {"limit": 50})
         assert board.structured_content["manually_ordered"] == ["todo"]

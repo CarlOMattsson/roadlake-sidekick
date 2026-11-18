@@ -64,7 +64,7 @@ it("keeps an uncertain batch retry on the same write identity", async () => {
   await user.click(screen.getByRole("button", { name: shoppingEn.add }));
   await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
   expect(add.mock.calls[0]).toEqual(add.mock.calls[1]);
-  expect(add.mock.calls[0]![1]).toEqual(["Shelf", "Lamp"]);
+  expect(add.mock.calls[0]![1]).toEqual([{ name: "Shelf" }, { name: "Lamp" }]);
 });
 
 it("does not turn failed reads into an empty shopping list", async () => {
@@ -206,23 +206,6 @@ it("shows the regular price and calendar dates without the form label or ISO dat
   expect(screen.queryByText(/2026-10-2\d/)).not.toBeInTheDocument();
 });
 
-it("creates a list when Enter is pressed in the list name field", async () => {
-  const transport = adapter();
-  const create = vi
-    .mocked(transport.create)
-    .mockResolvedValue({ shopping_list: list });
-  const user = userEvent.setup();
-  render(
-    <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
-  );
-  await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
-  );
-  await user.type(screen.getByLabelText(shoppingEn.listName), "Garden{Enter}");
-  await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
-  expect(create.mock.calls[0]![0]).toBe("Garden");
-});
-
 it("adds a comma separated batch as separate names", async () => {
   const transport = adapter();
   const add = vi.mocked(transport.add).mockResolvedValue({});
@@ -236,7 +219,12 @@ it("adds a comma separated batch as separate names", async () => {
   await user.type(screen.getByLabelText(shoppingEn.batch), "Mjölk, bröd,\nägg");
   await user.click(screen.getByRole("button", { name: shoppingEn.add }));
   await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
-  expect(add.mock.calls[0]![1]).toEqual(["Mjölk", "bröd", "ägg"]);
+  // Lower-case names start with a capital, as the list's other items do.
+  expect(add.mock.calls[0]![1]).toEqual([
+    { name: "Mjölk" },
+    { name: "Bröd" },
+    { name: "Ägg" },
+  ]);
 });
 
 it("adds the batch when Enter is pressed in the field, and Shift+Enter keeps a line break", async () => {
@@ -255,7 +243,7 @@ it("adds the batch when Enter is pressed in the field, and Shift+Enter keeps a l
   expect(add).not.toHaveBeenCalled();
   await user.type(batch, "{Enter}");
   await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
-  expect(add.mock.calls[0]![1]).toEqual(["Shelf", "Lamp"]);
+  expect(add.mock.calls[0]![1]).toEqual([{ name: "Shelf" }, { name: "Lamp" }]);
   await waitFor(() => expect(batch).toHaveValue(""));
 });
 

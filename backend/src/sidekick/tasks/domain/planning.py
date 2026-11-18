@@ -6,13 +6,16 @@ and follow-up are read by derivation only.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, time, tzinfo
 from uuid import UUID
 
 from sidekick.shared.errors import ValidationError
 
 MAX_ESTIMATED_MINUTES = 12_000
 """One working month. An estimate above this is a plan, not an estimate."""
+
+END_OF_DAY_TIME = time(23, 59)
+"""A bare date is stored as the last minute of its day in the owner's zone."""
 
 ESTIMATE_PRESETS: tuple[int, ...] = (5, 15, 30, 60, 120, 240)
 """Approximate interface shortcuts. Storage is always whole minutes."""
@@ -78,3 +81,19 @@ def is_follow_up_due(
     if not is_waiting(waiting_since=waiting_since, completed=completed):
         return False
     return follow_up_at is not None and follow_up_at <= now
+
+
+def has_clock_time(due_at: datetime, zone: tzinfo) -> bool:
+    """True unless `due_at` is the end of its day in `zone`, which is how a bare date is stored."""
+
+    local = due_at.astimezone(zone)
+    return (local.hour, local.minute) != (END_OF_DAY_TIME.hour, END_OF_DAY_TIME.minute)
+
+
+def due_on_day(current: datetime | None, day: date, zone: tzinfo) -> datetime:
+    """The due time on `day` in `zone`: `current`'s time of day if it has one, else end of day."""
+
+    if current is None or not has_clock_time(current, zone):
+        return datetime.combine(day, END_OF_DAY_TIME, tzinfo=zone)
+    local = current.astimezone(zone)
+    return datetime.combine(day, time(local.hour, local.minute), tzinfo=zone)

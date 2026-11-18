@@ -10,6 +10,10 @@ const base: TaskDraft = {
   description: "",
   priority: "normal",
   due: "",
+  time: "",
+  waitingSince: "",
+  followUp: "",
+  waitingContact: "",
 };
 
 function changesFor(values: Partial<TaskDraft>, from: TaskDraft = base) {

@@ -57,7 +57,9 @@ CHARS_PER_TOKEN = 3.5
 # domain, process, step, action, contact, shopping item): a closed list of the fields that can be
 # emptied, replacing null as the way to clear them, about 710 tokens in all; measured 23 313,
 # rounded up.
-TOKEN_BUDGET = 23_350
+# 2026-11-18: raised to 23 400 for `list_id` in the item of `update_shopping_item`
+# (moving an item to another list), about 80 tokens; measured 23 394, rounded up.
+TOKEN_BUDGET = 23_400
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550

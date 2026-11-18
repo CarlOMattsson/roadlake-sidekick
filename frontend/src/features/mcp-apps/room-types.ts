@@ -66,6 +66,12 @@ export type RoomTransport = Pick<
   "call" | "requestDisplayMode" | "updateModelContext"
 > & {
   /**
+   * Opens a mailto:, tel: or https: link through the host (bridge `openLink`). Absent where the host has no such bridge (the
+   * mobile app, whose WebView opens links itself); a room then draws a plain link. A link in an iframe never navigates
+   * the app by itself: where this is given, the room always goes through it.
+   */
+  openLink?: HostBridge["openLink"];
+  /**
    * Whether the host can answer `call(name, ...)` at all. Absent: every tool (the Claude host proxies the whole
    * server). A host with a closed list of routes (the mobile app) answers false for the rest, and a room then offers
    * no menu item, button or link whose tool is not there, as it does for a view that `availableViews` leaves out.

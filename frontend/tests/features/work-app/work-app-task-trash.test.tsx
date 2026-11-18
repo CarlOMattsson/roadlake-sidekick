@@ -95,13 +95,15 @@ it("retries a failed delete with the same key and says nothing from the backend"
   expect(keyOf(trashTask, 1)).toBe(keyOf(trashTask, 0));
 });
 
-it("says the Task changed elsewhere when the delete meets a stale version", async () => {
+it("reads the Task again, with no banner, when the delete meets a stale version", async () => {
   const user = userEvent.setup();
   const trashTask = vi.fn().mockRejectedValue(new HostToolError("conflict"));
-  render(rootTask(transport({ trashTask })));
+  const getTask = vi.fn().mockResolvedValue({ task: taskA });
+  render(rootTask(transport({ trashTask, getTask })));
   await openMenu(user);
   await user.click(screen.getByRole("button", { name: workEn.deleteTask }));
-  expect(await screen.findByText(workEn.conflict)).toBeInTheDocument();
+  await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText(workEn.conflict)).toBeNull();
   expect(screen.queryByText(workEn.taskTrashed)).toBeNull();
 });
 

@@ -177,9 +177,7 @@ it("answers a question: the answer is needed before it can be sent", async () =>
   await user.type(within(region).getByLabelText(a.answerLabel), "Up to 5 USD");
   expect(send).toBeEnabled();
   await user.click(send);
-  expect(
-    await within(region).findByText(a.reviewed.answer),
-  ).toBeInTheDocument();
+  expect(await within(region).findByText(a.answeredNext)).toBeInTheDocument();
   expect(work.reviewAiStepResult).toHaveBeenCalledWith(
     RUN_ID,
     question.run.version,

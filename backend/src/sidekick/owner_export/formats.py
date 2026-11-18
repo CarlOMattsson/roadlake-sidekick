@@ -24,6 +24,12 @@ _CRLF = "\r\n"
 # one space, so they carry at most 74 octets of content.
 _VCARD_LINE_OCTETS = 75
 _SLUG_MAX_LENGTH = 60
+# The shape the contact store keeps a Slack profile link in. A row that does not match (edited by
+# hand in the database) is left out of the vCard: a uri value cannot be escaped, so a comma,
+# semicolon or line break in it would break the card's structure.
+_SLACK_PROFILE_URL = re.compile(
+    r"https://(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+slack\.com/team/[UW][A-Z0-9]{2,19}"
+)
 
 
 @dataclass(frozen=True)
@@ -160,8 +166,8 @@ def _contact_lines(contact: Mapping[str, Any], aliases: list[str]) -> list[str]:
     if tel is not None:
         lines.append(f"TEL;VALUE=uri:{tel}")
     slack = _text(contact, "slack")
-    if slack is not None:
-        # A uri value, not text: the normalized link has nothing to escape.
+    if slack is not None and _SLACK_PROFILE_URL.fullmatch(slack):
+        # A uri value, not text: only a link in the stored shape is written, so it needs no escape.
         lines.append(f"URL:{slack}")
     address = _text(contact, "address")
     if address is not None:

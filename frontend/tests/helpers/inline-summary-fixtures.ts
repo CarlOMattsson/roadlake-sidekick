@@ -23,7 +23,7 @@ export const agendaItems: WorkItemRecord[] = [
     id: "019f0000-0000-7000-8000-0000000000a3",
     title: "Skriv offerten",
     status: "in_progress",
-    due_at: "2026-10-25T15:00:00Z",
+    due_at: "2026-10-25T22:59:00Z",
     agenda_group: "today",
   },
   {

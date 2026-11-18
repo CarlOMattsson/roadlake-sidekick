@@ -10,7 +10,11 @@ import {
   type WorkFrame,
   type WorkTransport,
 } from "../transport/transport";
-import { isWaitingFilter, waitingLabelsFor } from "../shared/waiting";
+import {
+  isWaitingFilter,
+  waitingLabelsFor,
+  withWaitingView,
+} from "../shared/waiting";
 import {
   filterTags,
   KnownTags,
@@ -250,6 +254,34 @@ export function AgendaView({
           }
           locale={t.dateLocale}
         />
+        {/* The waiting view is one press away, and the dated agenda one press back (also from an empty waiting view): shown once some Task waits. */}
+        {(waitingView || page.items.some((item) => item.waiting)) && (
+          <div className="work-agenda-modes">
+            <button
+              type="button"
+              className="sk-chip"
+              aria-pressed={waitingView}
+              disabled={disabled}
+              onClick={() =>
+                session.refilter(withWaitingView(frame.filters, !waitingView))
+              }
+            >
+              {wt.showWaiting}
+            </button>
+            {waitingView && (
+              <button
+                type="button"
+                className="sk-btn sk-btn--quiet"
+                disabled={disabled}
+                onClick={() =>
+                  session.refilter(withWaitingView(frame.filters, false))
+                }
+              >
+                {wt.showAgenda}
+              </button>
+            )}
+          </div>
+        )}
         {/* The offline copy: the agenda as it was last read, said with when (the phone had no answer). */}
         {copiedAt !== null && (
           <p role="status" className="work-agenda-offline">

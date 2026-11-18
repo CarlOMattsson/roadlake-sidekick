@@ -23,6 +23,7 @@ export type EntryRowData = Pick<
       | "links"
       | "tags"
       | "journal_date"
+      | "memory_excluded"
     >
   >;
 
@@ -128,13 +129,14 @@ export function EntryRow({
 }
 
 /**
- * The metadata after the time: the archived marker first, then the linked names ("Anna Andersson", from `links`) or,
+ * The metadata after the time: the archived marker and the out-of-memory marker first, then the linked names ("Anna Andersson", from `links`) or,
  * from an older result without names, the contact count; then the Task count. Nonzero parts only; undefined when
  * there is nothing to show.
  */
 function metaLine(entry: EntryRowData, t: JournalLabels): string | undefined {
   const parts: string[] = [];
   if (entry.archived) parts.push(t.archived);
+  if (entry.memory_excluded) parts.push(t.entryOutOfMemory);
   if (entry.links) {
     const names = entry.links
       .slice(0, ROW_LINK_LIMIT)

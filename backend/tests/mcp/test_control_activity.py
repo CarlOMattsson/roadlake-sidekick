@@ -106,7 +106,7 @@ async def test_returns_owned_entries_newest_first_with_content_by_default() -> N
 
     [entry] = withheld.structured_content["items"]
     assert entry["operation"] == "create_task"
-    assert entry["source"] == "user"
+    assert entry["source"] == "assistant"
     assert entry["state"] == "applied"
     assert entry["before_values"] == {} and entry["after_values"] == {}
     assert entry["evidence"] == {}

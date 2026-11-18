@@ -112,6 +112,10 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
+# The Android environment file is named by SIDEKICK_ANDROID_ENV for tools/worktree-setup.sh. No stage here reads it, and
+# the backend's Settings refuses any SIDEKICK_ variable it does not declare, so it must not reach the stages.
+unset SIDEKICK_ANDROID_ENV
+
 SLOT=""
 WORKERS=10
 DRY_RUN=0

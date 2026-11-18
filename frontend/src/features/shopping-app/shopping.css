@@ -138,7 +138,7 @@
 }
 .sidekick-shopping
   .shopping-editor-main
-  > :is(.shopping-editor-name, .shopping-editor-store) {
+  > :is(.shopping-editor-name, .shopping-editor-store, .shopping-editor-list) {
   grid-column: 1 / -1;
 }
 .sidekick-shopping .shopping-editor-main > label {
@@ -146,7 +146,7 @@
   gap: var(--sk-s1);
   min-width: 0;
 }
-.sidekick-shopping .shopping-editor-main input {
+.sidekick-shopping .shopping-editor-main :is(input, select) {
   box-sizing: border-box;
   width: 100%;
 }
@@ -295,6 +295,14 @@
   white-space: pre-wrap;
   color: var(--work-muted);
   font-size: 0.9rem;
+}
+/* What a row says under its name (shop, occasion, date, note) is a quiet line under the name, past the ring, so it
+   never reads as a heading for the next row. */
+.sidekick-shopping .shopping-items > li > p:not([role]) {
+  margin: 0;
+  padding-inline-start: calc(var(--sk-icon) + var(--sk-s1) + var(--sk-s2));
+  color: var(--sk-muted);
+  font-size: 0.85rem;
 }
 /* The failure notice (role="alert") takes its box from the family (family.css): one error box, at the row or in the card.
    Its actions go on their own row. */

@@ -380,7 +380,7 @@ test("sandboxed Work App resets its stack on a new root and shows an error frame
   expect(networkRequests).toBe(0);
 });
 
-test("sandboxed Work App recovers from a stale Task version by reloading and saving again", async ({
+test("sandboxed Work App recovers from a stale Task version by reading it again by itself and saving again", async ({
   page,
 }) => {
   const html = withAppLocale(
@@ -492,13 +492,12 @@ test("sandboxed Work App recovers from a stale Task version by reloading and sav
   await app.getByRole("button", { name: "Edit", exact: true }).click();
   await app.getByLabel("Title").fill("Ring Anna idag");
   await app.getByRole("button", { name: "Save" }).click();
-  const banner = app.getByRole("alert");
-  await expect(banner).toContainText("This task was changed elsewhere");
-  await expect(banner).toBeFocused();
-  await banner.getByRole("button", { name: "Refresh" }).click();
+  // A refused write reads the task again by itself: no banner to dismiss, the view shows what stands now, and the
+  // owner's draft stays in the form.
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna (annan)" }),
   ).toBeVisible();
+  await expect(app.getByText("This task was changed elsewhere")).toHaveCount(0);
   await expect(app.getByLabel("Title")).toHaveValue("Ring Anna idag");
   await expect(app.getByRole("alert")).toHaveCount(0);
   await app.getByRole("button", { name: "Save" }).click();

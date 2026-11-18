@@ -79,7 +79,8 @@ def test_the_recorded_journal_answers_have_the_shape_the_routes_send() -> None:
     assert {name: shape(value) for name, value in recorded.items()} == {
         name: shape(value) for name, value in committed.items()
     }
-    # The recording is the scenario the phone test replays: a hand-written entry has no summary.
-    assert committed["write"]["entry"]["summary"] is None
+    # The recording is the scenario the phone test replays: her own words are the entry text.
+    assert committed["write"]["entry"]["summary"] == TEXT
+    assert committed["write"]["entry"]["summary_by"] == "you"
     assert committed["write"]["entry"]["key_points"] == []
     assert committed["source"]["source"]["raw_text"] == TEXT

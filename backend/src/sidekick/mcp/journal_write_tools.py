@@ -35,6 +35,7 @@ from sidekick.mcp.journal_text import (
 from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import rows_text
+from sidekick.shared.change_source import current_change_source
 from sidekick.shared.text_guard import NoImageData
 from sidekick.structured.journal import (
     JournalEntryResult,
@@ -146,6 +147,7 @@ def _register_create_manual_journal_entry(mcp: FastMCP, ctx: JournalToolContext)
                 # A write-only caller may not read the entry back: these are the tags just written.
                 normalize_tag_selection(list(tags or ())),
                 include_content=True,
+                written_by=current_change_source(),
             )
         )
         created = structured.entry

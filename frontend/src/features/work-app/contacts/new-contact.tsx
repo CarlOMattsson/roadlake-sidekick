@@ -13,9 +13,11 @@ import {
   type WorkContactRecord,
   type WorkTransport,
 } from "../transport/transport";
+import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import {
   initialNewContactState,
   newContactReducer,
+  withSameName,
   type CreateRequest,
 } from "./new-contact-state";
 
@@ -23,26 +25,39 @@ import {
  * `newContact` behind + in the room head (design system §3, Create): + opens the shared create field under the head,
  * and a new Contact needs only its name. The same name sends one key, so a retry after a lost answer replays the result
  * instead of creating a second Contact. The created Contact is handed to the parent, which opens it. Esc and × close
- * the field and return the focus to +.
+ * the field and return the focus to +. A name another Contact already has is not created at once: the field says so and offers
+ * to open that Contact or to create anyway (two people may share a name).
  */
 export function NewContact({
   transport,
   labels: t,
   request,
   onCreated,
+  onOpenExisting,
 }: {
   transport: WorkTransport;
   labels: WorkLabels;
   /** Opens the field with this name in it (a search with no match); a new request opens it again. */
   request?: CreateRequest;
   onCreated: (contact: WorkContactRecord) => void;
+  /** Opens a Contact that already has the typed name. */
+  onOpenExisting: (id: string) => void;
 }) {
   const [state, dispatch] = useReducer(
     newContactReducer,
     request,
     initialNewContactState,
   );
-  const { open, prefill, fieldKey, problem, busy, failure } = state;
+  const {
+    open,
+    prefill,
+    fieldKey,
+    problem,
+    busy,
+    failure,
+    sameName,
+    takenName,
+  } = state;
   const openButton = useRef<HTMLButtonElement>(null);
   const lastName = useRef("");
   // Synchronous guard against a second create before React re-renders.
@@ -53,6 +68,7 @@ export function NewContact({
   const draft = useRef("");
   const mounted = useRef(true);
   const dl = hierarchyDetailLabelsFor(t.dateLocale);
+  const words = contactsRoomLabelsFor(t.dateLocale);
   // A new request opens the field afresh with its name; derived while rendering, as the room does for a new result.
   if (request !== state.seenRequest) dispatch({ type: "requested", request });
   useEffect(() => {
@@ -68,7 +84,8 @@ export function NewContact({
 
   function retry() {
     const name = lastName.current;
-    void submit(name).then((created) => {
+    // The name was checked before the first send: a lost answer is replayed, not warned about.
+    void submit(name, true).then((created) => {
       if (created && mounted.current && draft.current.trim() === name.trim()) {
         draft.current = "";
         dispatch({ type: "emptied" });
@@ -81,21 +98,47 @@ export function NewContact({
     dispatch({ type: "closed" });
     openButton.current?.focus();
   }
-  /** true when the Contact was created; false when the write was refused or failed (the create field keeps the name). */
-  function submit(name: string): Promise<boolean> {
-    if (flight.isRunning()) return Promise.resolve(false);
+  /**
+   * true when the Contact was created; false when the write was refused or failed, or the name is taken (the create
+   * field keeps the name). `confirmed`: the user has seen the same-name warning and chose to create anyway.
+   */
+  async function submit(name: string, confirmed = false): Promise<boolean> {
+    if (flight.isRunning()) return false;
     lastName.current = name;
     if (titleProblem(name) === "tooLong") {
       dispatch({ type: "problem", text: t.nameTooLong });
-      return Promise.resolve(false);
+      return false;
     }
+    flight.enter();
+    dispatch({ type: "submitStarted" });
+    try {
+      if (!confirmed) {
+        // The check is a convenience: when it cannot be read the Contact is created as before.
+        const taken = await Promise.resolve()
+          .then(() =>
+            transport.listContacts({ q: name.trim(), includeArchived: false }),
+          )
+          .then((page) => withSameName(name, page.items))
+          .catch(() => []);
+        if (taken.length > 0) {
+          if (mounted.current)
+            dispatch({ type: "sameNameFound", name, contacts: taken });
+          return false;
+        }
+      }
+      return await create(name);
+    } finally {
+      flight.leave();
+      if (mounted.current) dispatch({ type: "submitSettled" });
+    }
+  }
+  /** Sends the create under the key of this name; the caller holds the flight. */
+  function create(name: string): Promise<boolean> {
     const pendingKey = keyFor(
       pendingWrite.current.get(name),
       JSON.stringify([name]),
     );
     pendingWrite.current.set(name, pendingKey);
-    flight.enter();
-    dispatch({ type: "submitStarted" });
     return transport
       .createContact({ display_name: name }, pendingKey.key)
       .then((result) => {
@@ -109,10 +152,6 @@ export function NewContact({
         if (mounted.current)
           dispatch({ type: "submitFailed", failure: writeFailure(error) });
         return false;
-      })
-      .finally(() => {
-        flight.leave();
-        if (mounted.current) dispatch({ type: "submitSettled" });
       });
   }
 
@@ -163,6 +202,45 @@ export function NewContact({
               locale={t.dateLocale}
               message={problem}
             />
+          )}
+          {sameName.length > 0 && (
+            <div role="status" className="work-contacts-same-name">
+              <p>{words.sameName(takenName.trim())}</p>
+              {sameName.map((contact) => (
+                <button
+                  key={contact.id}
+                  type="button"
+                  className="sk-btn--secondary sk-btn--compact"
+                  onClick={() => onOpenExisting(contact.id)}
+                >
+                  {words.openExisting(
+                    [contact.display_name, contact.role, contact.organization]
+                      .filter(Boolean)
+                      .join(" · "),
+                  )}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="sk-btn--secondary sk-btn--compact"
+                disabled={busy}
+                onClick={() => {
+                  const name = lastName.current;
+                  void submit(name, true).then((created) => {
+                    if (
+                      created &&
+                      mounted.current &&
+                      draft.current.trim() === name.trim()
+                    ) {
+                      draft.current = "";
+                      dispatch({ type: "emptied" });
+                    }
+                  });
+                }}
+              >
+                {words.createAnyway}
+              </button>
+            </div>
           )}
           {failure && (
             <WriteFailureRow

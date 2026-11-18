@@ -337,6 +337,7 @@ it("writes nothing from the inline agenda: no update_task call, and a row press 
   const updateTask = vi.fn();
   work.updateTask = updateTask;
   const fullscreen = vi.fn();
+  const openRecord = vi.fn();
   render(
     <WorkView
       transport={work}
@@ -344,6 +345,7 @@ it("writes nothing from the inline agenda: no update_task call, and a row press 
       labels={workEn}
       inlineLabels={inlineSummaryLabelsEn}
       fullscreen={fullscreen}
+      openRecord={openRecord}
     />,
   );
 
@@ -358,7 +360,15 @@ it("writes nothing from the inline agenda: no update_task call, and a row press 
       name: `${task.title}, In progress`,
     }),
   );
-  expect(fullscreen).toHaveBeenCalledTimes(1);
+  expect(openRecord).toHaveBeenCalledWith(
+    expect.objectContaining({
+      room: "work",
+      view: "task",
+      id: task.id,
+      from: "agenda",
+    }),
+  );
+  expect(fullscreen).not.toHaveBeenCalled();
   expect(updateTask).not.toHaveBeenCalled();
   // The press opens the Task in fullscreen, whose own view reads it; the inline row wrote nothing.
   expect(work.getTask).toHaveBeenCalledWith(task.id);

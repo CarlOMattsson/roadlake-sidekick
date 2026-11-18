@@ -104,7 +104,8 @@ async def test_relations_are_optional_and_default_to_empty() -> None:
             },
         )
     entry = response.structured_content["entry"]
-    assert entry["summary"] is None
+    # Only her words were given, so they are the entry's text.
+    assert entry["summary"] == "Kort."
     assert entry["key_points"] == []
     assert (entry["project_ids"], entry["task_ids"], entry["contact_ids"]) == ([], [], [])
 

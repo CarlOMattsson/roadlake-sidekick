@@ -102,6 +102,37 @@ it("drags a Task with the mouse into another status and writes it with its versi
   ).toBeNull();
 });
 
+it("marks a Task done with a tap on its ring in the columns layout, as the ring does on a phone", async () => {
+  const updateTask = vi.fn().mockResolvedValue({
+    task: { ...taskA, status: "completed", version: 2 },
+  });
+  const getWorkBoard = vi.fn().mockResolvedValue(afterMove);
+  render(rootBoard(transport({ updateTask, getWorkBoard })));
+  const handle = handleOf(taskA.title);
+
+  // A press released where it began is a tap.
+  pointer(handle, "pointerdown", 20, 60);
+  pointer(handle, "pointerup", 20, 60);
+  await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+  expect(updateTask).toHaveBeenCalledWith(
+    taskA.id,
+    1,
+    { status: "completed" },
+    expect.stringMatching(KEY),
+  );
+});
+
+it("does not mark a Task done when the press is cancelled before it is released", () => {
+  const updateTask = vi.fn();
+  render(rootBoard(transport({ updateTask })));
+  const handle = handleOf(taskA.title);
+  pointer(handle, "pointerdown", 20, 60);
+  pointer(handle, "pointermove", 150, 60);
+  fireEvent.keyDown(handle, { key: "Escape" });
+  pointer(handle, "pointerup", 150, 60);
+  expect(updateTask).not.toHaveBeenCalled();
+});
+
 it("shows the dragged Task in its target column until the board is read again", async () => {
   let answer: (value: { task: WorkTask }) => void = () => undefined;
   const updateTask = vi.fn(

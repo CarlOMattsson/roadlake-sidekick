@@ -47,7 +47,7 @@ from sidekick.mcp.work_text import (
     work_item_sentence,
 )
 from sidekick.shared.types import Actor
-from sidekick.structured.work_records import WorkItemRecord
+from sidekick.structured.work_records import WorkBoardOutput, WorkItemRecord
 from tests.db import database_factory
 from tests.support.settings import make_settings
 
@@ -812,7 +812,7 @@ async def test_voice_first_line_is_a_sentence_without_ids_for_board_agenda_and_t
             },
         )
         task = created.structured_content["task"]
-        board = await client.call_tool("get_work_board", {"limit": 100})
+        board = await client.call_tool("get_work_board", {"limit": 50})
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
         completed = await client.call_tool(
             "complete_task",
@@ -825,7 +825,7 @@ async def test_voice_first_line_is_a_sentence_without_ids_for_board_agenda_and_t
 
     board_text, agenda_text = board.content[0].text, agenda.content[0].text
     created_text, completed_text = created.content[0].text, completed.content[0].text
-    assert board_text.splitlines()[0] == "The Work board has 1 task: 1 to do."
+    assert board_text.splitlines()[0] == "The Work board has 1 task: 1 to do; 1 overdue."
     assert agenda_text.splitlines()[0] == "1 agenda item: 1 overdue, 0 due today."
     assert created_text.splitlines()[0] == "Created task Ring Rasmus."
     assert completed_text.splitlines()[0] == "Completed task Ring Rasmus."
@@ -1088,13 +1088,31 @@ def test_waiting_agenda_text_keeps_line_one_free_of_ids_and_puts_undated_rows_la
     assert lines[-1] == CARD_NOTE
 
 
+def _board(
+    columns: dict[str, list[WorkItemRecord]],
+    *,
+    totals: dict[str, int] | None = None,
+    overdue: int = 0,
+    next_cursor: str | None = None,
+) -> WorkBoardOutput:
+    """A board page; the totals default to what the page holds (a Task status column's Tasks)."""
+
+    held = {key: sum(1 for item in items if item.kind == "task") for key, items in columns.items()}
+    return WorkBoardOutput(
+        columns=columns,
+        next_cursor=next_cursor,
+        column_totals=held if totals is None else totals,
+        overdue_total=overdue,
+    )
+
+
 def test_board_card_text_names_at_most_eight_ids_per_column_and_counts_the_rest() -> None:
     columns = {
         "todo": [_record(f"td-{number}", version=2, title=f"Todo {number}") for number in range(9)],
         "blocked": [_record("bl-1", version=5, title="Blocked")],
     }
 
-    lines = board_card_text(columns, None, filtered=False).splitlines()
+    lines = board_card_text(_board(columns), filtered=False).splitlines()
 
     assert lines[0] == "Work board card shown: 10 tasks (todo 9, blocked 1)."
     assert lines[1] == "todo 9:"
@@ -1116,7 +1134,7 @@ def test_board_card_text_counts_only_tasks_and_lists_projects_and_domains_apart(
         ],
     }
 
-    lines = board_card_text(columns, None, filtered=False).splitlines()
+    lines = board_card_text(_board(columns), filtered=False).splitlines()
 
     assert lines == [
         "Work board card shown: 1 task (todo 1), also 1 project, 1 domain.",
@@ -1127,7 +1145,7 @@ def test_board_card_text_counts_only_tasks_and_lists_projects_and_domains_apart(
         f"- {_id('d-1')} v2 | Hem | domain",
         CARD_NOTE,
     ]
-    assert board_sentence(columns, None) == (
+    assert board_sentence(_board(columns)) == (
         "The Work board has 1 task: 1 to do. Also listed: 1 project, 1 domain."
     )
 
@@ -1357,15 +1375,34 @@ def test_board_sentence_counts_tasks_per_status_in_words() -> None:
         "todo": [_record("a"), _record("b")],
         "in_progress": [_record("c")],
     }
-    assert board_sentence(columns, None) == ("The Work board has 3 tasks: 2 to do, 1 in progress.")
-    assert board_sentence({}, None) == "The Work board has no records."
-    assert board_sentence({"todo": [_record("a")]}, "cursor-2") == (
-        "The Work board has 1 task on this page (more follow): 1 to do."
-    )
+    assert board_sentence(_board(columns)) == "The Work board has 3 tasks: 2 to do, 1 in progress."
+    assert board_sentence(_board({})) == "The Work board has no records."
     only_project = {"active": [_record("p", kind="project")]}
-    assert board_sentence(only_project, None) == (
+    assert board_sentence(_board(only_project)) == (
         "The Work board has 0 tasks. Also listed: 1 project."
     )
+
+
+def test_board_text_counts_the_whole_board_and_says_how_many_are_overdue() -> None:
+    columns = {"todo": [_record("a"), _record("b")], "in_progress": [_record("c")]}
+    board = _board(
+        columns,
+        totals={"todo": 35, "in_progress": 2, "blocked": 1, "completed": 9},
+        overdue=7,
+        next_cursor="cursor-2",
+    )
+
+    assert board_sentence(board) == (
+        "The Work board has 47 tasks: 35 to do, 2 in progress, 1 blocked, 9 completed; "
+        "7 overdue. The card lists the first ones, most overdue first."
+    )
+    lines = board_card_text(board, filtered=False).splitlines()
+    assert lines[0] == (
+        "Work board card shown: 47 tasks (todo 35, in_progress 2, blocked 1, completed 9), "
+        "7 overdue."
+    )
+    assert "todo 2 of 35:" in lines
+    assert "in_progress 1 of 2:" in lines
 
 
 def test_work_item_sentence_names_status_and_date_without_ids() -> None:

@@ -1,11 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import {
-  box,
-  pseudoStyle,
-  resolved,
-  resolvedWithin,
-  style,
-} from "./computed-style";
+import { box, pseudoStyle, resolved, style } from "./computed-style";
 import {
   deliverToolResult,
   effectiveTargetSize,
@@ -316,12 +310,8 @@ test("the compact card keeps its rows, headings and add field in a phone's measu
     minWidth: "0px",
     overflowWrap: "anywhere",
   });
-  // The status is a muted meta line.
-  const status = check.locator(".shopping-status").first();
-  expect(await style(status, "color", "fontSize")).toEqual({
-    color: await resolvedWithin(card, "color", "var(--work-muted)"),
-    fontSize: await resolved(app, "font-size", "0.9rem"),
-  });
+  // An open row has no status line: its box says it is still to buy. The status only shows while an Undo holds.
+  await expect(openRow.locator(".shopping-status")).toHaveCount(0);
   // The native checkbox is invisible and covers the whole row, so the row is its hit area.
   const checkbox = check.locator('input[type="checkbox"]');
   expect(await style(checkbox, "position", "opacity")).toEqual({
@@ -351,21 +341,31 @@ test("the compact card keeps its rows, headings and add field in a phone's measu
   ).toBeLessThan(2);
   expect(add.x).toBeGreaterThanOrEqual(field.x + field.width - 1);
 
-  // Show all opens the list in place: its rows have no hairline and the add row is 48 high.
+  // Show all only lifts the row cap: the card stays compact (name-only rows, no hairline) and lists every open row.
+  const shown = await card.locator(".shopping-items--folded > li").count();
   await card.getByRole("button", { name: /^Show all/ }).click();
-  const opened = app.locator("section.sidekick-shopping");
-  const listRow = opened.locator(".shopping-items > li").first();
+  await expect(card.locator(".shopping-items--folded > li")).toHaveCount(12);
+  expect(shown).toBeLessThan(12);
   expect(
-    await style(listRow, "paddingTop", "borderTopWidth", "borderBottomWidth"),
+    await style(
+      card.locator(".shopping-items--folded > li").first(),
+      "paddingTop",
+      "borderTopWidth",
+      "borderBottomWidth",
+    ),
   ).toEqual({
-    paddingTop: await resolved(app, "padding-top", "var(--sk-row-pad)"),
+    paddingTop: "0px",
     borderTopWidth: "0px",
     borderBottomWidth: "0px",
   });
-  // A toolbar field takes its own row basis: the list picker is not squeezed beside the buttons.
-  const field12 = opened
-    .locator(".shopping-toolbar > label:not(.shopping-check)")
+  // The list's own forms wait behind the card's ⋯ menu. A labelled field in a toolbar takes its own row basis,
+  // so the list-name field of "Edit list" is not squeezed beside its button.
+  await app.getByRole("button", { name: "More options" }).click();
+  await app.getByRole("button", { name: "Edit list" }).click();
+  const field12 = app
+    .locator(".shopping-rename.shopping-toolbar > label:not(.shopping-check)")
     .first();
+  await expect(field12).toBeVisible();
   expect(await style(field12, "flexBasis", "flexGrow", "flexShrink")).toEqual({
     flexBasis: await resolved(app, "flex-basis", "12rem"),
     flexGrow: "1",

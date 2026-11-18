@@ -67,6 +67,20 @@ describe("The Slack row of a contact's details", () => {
     ).toHaveAttribute("href", SLACK);
   });
 
+  it.each([
+    "javascript:alert(1)",
+    "http://acme.slack.com/team/U01ABC23DEF",
+    "https://evil.example.com/team/U01ABC23DEF",
+    "https://slack.com.evil.example.com/team/U01ABC23DEF",
+    "acme.slack.com/team/U01ABC23DEF",
+    "not a link",
+  ])("renders no Slack row for %s", (value) => {
+    const { container } = render(
+      <ContactWays contact={{ ...anna, slack: value }} labels={labels} />,
+    );
+    expect(container.textContent).toBe("");
+  });
+
   it("names Slack in the meta line and has no row without a link", () => {
     const { rerender, container } = render(
       <ContactWays

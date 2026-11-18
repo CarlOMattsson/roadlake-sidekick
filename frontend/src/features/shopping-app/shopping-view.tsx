@@ -27,11 +27,7 @@ import {
   ListSummary,
   PageSwitcher,
 } from "./shopping-view-parts/list-body";
-import {
-  ListPicker,
-  ListSwitcher,
-  NameForm,
-} from "./shopping-view-parts/list-forms";
+import { ListPicker, NameForm } from "./shopping-view-parts/list-forms";
 import type { RowEnv } from "./shopping-view-parts/row-parts";
 import { ShoppingHeader } from "./shopping-view-parts/shopping-header";
 import { useItemEditing } from "./shopping-view-parts/use-item-editing";
@@ -136,8 +132,17 @@ export function ShoppingView({
     editOpen: panels.editOpen,
     expanded: panels.expanded,
   });
-  const { list, items, purchased, settled, rows, storeMode, canAdd, folded } =
-    view;
+  const {
+    list,
+    items,
+    purchased,
+    settled,
+    rows,
+    storeMode,
+    canAdd,
+    folded,
+    limited,
+  } = view;
   const trash = useItemTrash({ transport, read, writes });
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
@@ -173,15 +178,6 @@ export function ShoppingView({
     setDetail(undefined);
     closeAll();
   }
-  /** The select of the inline list switcher: another list, with the held rows and the open form forgotten. */
-  function switchList(next: string) {
-    setId(next);
-    setOffset(0);
-    setEditing(null);
-    setHeld({});
-    trash.clear();
-    setDetail(undefined);
-  }
   function goToPage(next: number) {
     setOffset(next);
     setEditing(null);
@@ -201,7 +197,7 @@ export function ShoppingView({
     holdTip,
     archived: list?.archived,
     busy,
-    folded,
+    folded: limited,
     held,
     rowQueue,
     waiting,
@@ -212,6 +208,10 @@ export function ShoppingView({
     editorByKey: editor.editorByKey,
     registerRow: editor.registerRow,
     contacts: transport.contacts,
+    stores: view.stores,
+    lists: lists
+      .filter((other) => !other.archived)
+      .map(({ id: listId, name }) => ({ id: listId, name })),
     onToggle: togglePurchase,
     onRelease: purchases.release,
     onRefresh: () => void reload(),
@@ -242,7 +242,7 @@ export function ShoppingView({
         list={list}
         headerTitle={view.headerTitle}
         busy={busy}
-        fullscreen={fullscreen}
+        menu={fullscreen || folded}
         canAdd={canAdd}
         addOpen={panels.addOpen}
         addButton={forms.addButton}
@@ -309,26 +309,9 @@ export function ShoppingView({
           value={forms.renameName}
           buttonLabel={t.save}
           busy={busy}
+          disabled={list.archived}
           onChange={forms.setRenameName}
           onSubmit={forms.rename}
-        />
-      )}
-      {/* A list is chosen inline: the create form and the list picker sit above it. Folded (inline) they wait for "Show all". */}
-      {id && list && !storeMode && !folded && !panels.editOpen && (
-        <ListSwitcher
-          labels={t}
-          busy={busy}
-          lists={lists}
-          listOffset={listOffset}
-          nextLists={nextLists}
-          listName={forms.listName}
-          onListName={forms.setListName}
-          onCreate={forms.create}
-          onOffset={setListOffset}
-          id={id}
-          list={list}
-          onSelect={switchList}
-          onRefresh={() => void reload()}
         />
       )}
       {/* The offline copy: the list as it was last read, said with when (the phone had no answer). */}
@@ -354,7 +337,7 @@ export function ShoppingView({
             detail={detail}
             list={list}
             storeMode={storeMode}
-            folded={folded}
+            folded={folded && !panels.editOpen}
             purchasedCount={purchased.length}
             shopLabel={view.shopLabel}
             busy={busy}
@@ -387,6 +370,7 @@ export function ShoppingView({
             rowCount={rows.length}
             shownCount={view.shownCount}
             folded={folded}
+            limited={limited}
             compact={compact}
             expanded={panels.expanded}
             storeMode={storeMode}
@@ -450,7 +434,8 @@ export function ShoppingView({
               names={forms.names}
               invalid={forms.invalidBatch}
               busy={busy}
-              onNames={forms.setNames}
+              note={error ? "" : forms.addNote}
+              onNames={forms.changeNames}
               onKeyDown={forms.batchKeyDown}
               onAdd={() => forms.add()}
             />

@@ -20,7 +20,7 @@ export function ShoppingHeader({
   list,
   headerTitle,
   busy,
-  fullscreen,
+  menu,
   canAdd,
   addOpen,
   addButton,
@@ -41,7 +41,8 @@ export function ShoppingHeader({
   list?: ShoppingList;
   headerTitle?: string;
   busy: boolean;
-  fullscreen: boolean;
+  /** The + and ⋯ of the list's head: the fullscreen view and the compact card have them. */
+  menu: boolean;
   canAdd: boolean;
   addOpen: boolean;
   addButton: RefObject<HTMLButtonElement | null>;
@@ -76,7 +77,7 @@ export function ShoppingHeader({
             if (!busy) onBack();
           }}
           actions={
-            fullscreen &&
+            menu &&
             list && (
               <>
                 {/* + is the list's primary: a round ink button left of ⋯. It opens the
@@ -113,7 +114,7 @@ export function ShoppingHeader({
           }
         />
       )}
-      {moreOpen && fullscreen && list && (
+      {moreOpen && menu && list && (
         <MoreMenu
           control={control}
           onClose={onCloseMore}

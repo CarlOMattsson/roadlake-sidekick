@@ -100,8 +100,11 @@ def _ref(record_id: UUID) -> IdRecord:
 
 @dataclass(frozen=True, slots=True)
 class ItemPatch:
-    """Editable item fields. UNSET means the caller did not send the field; None clears it."""
+    """Editable item fields. UNSET means the caller did not send the field; None clears it.
 
+    `list_id` moves the item to another list; it has no empty value."""
+
+    list_id: UUID | UnsetType = UNSET
     name: str | UnsetType = UNSET
     quantity: Decimal | UnsetType = UNSET
     unit: str | UnsetType | None = UNSET
@@ -121,10 +124,13 @@ class ItemPatch:
         return {key: getattr(self, key) for key in ITEM_FIELDS if getattr(self, key) is not UNSET}
 
     def payload(self) -> dict[str, object]:
-        return {
+        payload = {
             key: asdict(value) if isinstance(value, Offer) else value
             for key, value in self.changes().items()
         }
+        if self.list_id is not UNSET:
+            payload["list_id"] = str(self.list_id)
+        return payload
 
 
 def merged_details(item: ShoppingItem, patch: ItemPatch) -> ItemDetails:
@@ -539,13 +545,14 @@ class ShoppingService:
 
         def execute(session: TxSession) -> ItemResult:
             current = self.store.get_item(session, actor.user_id, item_id)
-            shopping_list = self.store.get_list(session, actor.user_id, current.list_id, lock=True)
-            self._active(shopping_list)
+            shopping_list = self._lock_lists_for_move(session, actor, current.list_id, patch)
             self._version(current.version, version, current.details.name)
             merged = merged_details(current, patch)
             self._validate_details(session, actor, merged)
+            moved_to = current.list_id if patch.list_id is UNSET else patch.list_id
             updated = replace(
                 current,
+                list_id=moved_to,
                 details=merged,
                 version=current.version + 1,
                 updated_at=self.clock.now(),
@@ -571,6 +578,21 @@ class ShoppingService:
             replay=_item_replay,
             rebuild=lambda session, record: self._item_result(session, actor, record),
         )
+
+    def _lock_lists_for_move(
+        self, session: TxSession, actor: Actor, list_id: UUID, patch: ItemPatch
+    ) -> ShoppingList:
+        """Lock the item's list, and the list it moves to, in id order so two moves cannot
+        wait on each other. Both must be active. Returns the list the item ends up in."""
+
+        target_id = list_id if patch.list_id is UNSET else patch.list_id
+        lists = {
+            wanted: self.store.get_list(session, actor.user_id, wanted, lock=True)
+            for wanted in sorted({list_id, target_id})
+        }
+        for held in lists.values():
+            self._active(held)
+        return lists[target_id]
 
     def set_purchased(
         self,

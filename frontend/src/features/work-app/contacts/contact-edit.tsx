@@ -126,6 +126,7 @@ export function ContactEditor({
   contact,
   busy,
   saveFailed,
+  rejected,
   onSave,
   onCancel,
   onAddAlias,
@@ -136,6 +137,8 @@ export function ContactEditor({
   contact: WorkContactRecord;
   busy: boolean;
   saveFailed: boolean;
+  /** The server refused the values of the last save as invalid; the editor names the field next to it. */
+  rejected: boolean;
   onSave: (changes: WorkContactChanges) => void;
   onCancel: () => void;
   /** Nicknames are written at once (add_contact_alias / remove_contact_alias), not with Save; the typed fields stay. */
@@ -171,6 +174,7 @@ export function ContactEditor({
   const emailErrorId = useId();
   const phoneErrorId = useId();
   const noteErrorId = useId();
+  const slackErrorId = useId();
   // Adjusts state during render when a reload delivers a new Contact (same pattern as ProjectEditor).
   if (contact !== seenContact) {
     setSeenContact(contact);
@@ -197,6 +201,17 @@ export function ContactEditor({
   const emailBad = problem === "emailInvalid";
   const phoneBad = problem === "phoneTooLong";
   const noteBad = problem === "contextNoteTooLong";
+  // The server refused the save: the Slack link is the one value it can refuse that no field check here catches.
+  const slackBad =
+    rejected && state.values.slack.trim() !== state.base.slack.trim();
+  // The refused field is brought into view above the sticky Save row, which can cover it on a narrow screen.
+  const slackInput = useRef<HTMLInputElement>(null);
+  const slackShown = useRef(false);
+  useEffect(() => {
+    if (slackBad && !slackShown.current)
+      slackInput.current?.scrollIntoView?.({ block: "center" });
+    slackShown.current = slackBad;
+  }, [slackBad]);
 
   function setField(field: DraftField, value: string) {
     setProblem(undefined);
@@ -280,13 +295,21 @@ export function ContactEditor({
       <label htmlFor={slackId}>{t.slack}</label>
       <input
         id={slackId}
+        ref={slackInput}
         inputMode="url"
         maxLength={SLACK_MAX_LENGTH}
         placeholder={t.slackExample}
         value={state.values.slack}
         disabled={busy}
+        aria-invalid={slackBad ? true : undefined}
+        aria-describedby={slackBad ? slackErrorId : undefined}
         onChange={(event) => setField("slack", event.target.value)}
       />
+      {slackBad && (
+        <p id={slackErrorId} role="alert">
+          {t.slackInvalid}
+        </p>
+      )}
       <label htmlFor={relationshipId}>{t.relationship}</label>
       <input
         ref={relationshipInput}
@@ -336,6 +359,13 @@ export function ContactEditor({
         onChange={(event) => setField("contextNote", event.target.value)}
       />
       {noteBad && <p id={noteErrorId}>{t.contextNoteTooLong}</p>}
+      {rejected && !slackBad && (
+        <ErrorNotice
+          placement="row"
+          locale={t.dateLocale}
+          message={t.invalidChange}
+        />
+      )}
       {saveFailed && (
         <ErrorNotice
           placement="row"

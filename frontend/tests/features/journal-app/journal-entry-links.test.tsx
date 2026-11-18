@@ -196,16 +196,14 @@ describe("journal entry card links", () => {
   it("says plainly when there are no links and no tasks", () => {
     deliver({ entry: { ...created, links: [], task_ids: [] } });
 
-    expect(metaLine()).toBe(
-      "Summarized by Claude · Not linked to anything yet",
-    );
+    expect(metaLine()).toBe("Summarized by Claude · Not linked to anything");
   });
 
   it("shows only the task count when the entry has tasks but no links", () => {
     deliver({ entry: { ...created, links: [] } });
 
     expect(metaLine()).toBe("Summarized by Claude · 1 task");
-    expect(metaLine()).not.toContain("Not linked to anything yet");
+    expect(metaLine()).not.toContain("Not linked to anything");
   });
 
   it("shows the names without remove buttons when the result has no version", async () => {

@@ -3,8 +3,9 @@
 `reschedule_tasks` calls the same Task update as `update_task` (`TaskBulkService.reschedule` runs
 `TaskService.update_in_session` for each item in one transaction), so validation, versions,
 status history and the activity ledger are shared. A bare date, "tomorrow" and "next_week" all
-become 23:59 in the owner's zone through `end_of_day_due_at`, the helper create_task and
-update_task use. "next_week" is the Monday of next week, counted from the owner's calendar day.
+name a day in the owner's zone; the bulk service keeps a Task's due time of day on the new day
+and gives any other Task 23:59 (`due_on_day`). "next_week" is the Monday of next week, counted
+from the owner's calendar day.
 """
 
 from __future__ import annotations
@@ -24,7 +25,6 @@ from sidekick.mcp.results import output_schema, result, spoken_names
 from sidekick.mcp.text import spoken_date
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.structured.base import Output
-from sidekick.structured.work_records import end_of_day_due_at
 from sidekick.tasks.application.models import MAX_RESCHEDULE_TASKS, RescheduleTaskItem
 
 RescheduleWhen = Literal["tomorrow", "next_week", "clear"] | date
@@ -94,7 +94,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             "Use this when the user wants to move 1 to 20 tasks at once, for example to tomorrow, "
             "next week (Monday), a given date, or to clear the due date. Each item needs task_id "
             "and expected_version from a recent read. The whole call fails if any version is "
-            "stale, so re-read and retry. New due dates are 23:59 in the owner's zone. Retry-safe "
+            "stale, so re-read and retry. A due time of day is kept, otherwise 23:59. Retry-safe "
             "with the same idempotency key. Relative days (tomorrow, next_week) are recomputed on "
             "every call, so a retry after midnight with the same key conflicts."
         ),
@@ -115,7 +115,7 @@ def register_reschedule_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             RescheduleTaskItem(
                 task_id=item.task_id,
                 expected_version=item.expected_version,
-                due_at=end_of_day_due_at(target_day(item.when, today), zone),
+                day=target_day(item.when, today),
             )
             for item in items
         ]

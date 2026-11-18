@@ -17,7 +17,7 @@ from sidekick.contacts.application.paging import contact_cursor
 from sidekick.contacts.application.store import ContactStore
 from sidekick.contacts.domain.contact import Contact
 from sidekick.projects.domain import ProjectStatus
-from sidekick.shared.errors import NotFoundError, ValidationError
+from sidekick.shared.errors import NotFoundError
 from sidekick.shared.types import (
     NAMED_KEY,
     TIMED_KEY,
@@ -343,9 +343,10 @@ class ContactRelationService:
         )
 
         def operation(session: TxSession) -> ContactContext:
-            contact = self.store.get_contact(session, actor.user_id, contact_id)
-            if contact.archived:
-                raise ValidationError("contact is archived")
+            # An archived Contact is read as it is (the app shows it read-only with Restore).
+            contact = self.store.get_contact(
+                session, actor.user_id, contact_id, include_archived=True
+            )
 
             projects = self.store.list_linked_projects(
                 session,

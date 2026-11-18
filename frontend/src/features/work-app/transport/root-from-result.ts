@@ -67,6 +67,7 @@ export function rootFromToolResult(
         columns?: unknown;
         manually_ordered?: string[];
         column_totals?: unknown;
+        overdue_total?: unknown;
         items?: unknown;
         filters?: unknown;
         next_cursor?: unknown;
@@ -174,6 +175,7 @@ export function rootFromToolResult(
         next_cursor: cursorFrom(data),
         manually_ordered: data?.manually_ordered,
         column_totals: totalsFrom(data?.column_totals),
+        overdue_total: countFrom(data?.overdue_total),
       },
     };
   const items = data?.items;
@@ -269,6 +271,13 @@ function filtersFrom(
       filters[key] = value;
   }
   return filters;
+}
+
+/** A count (a whole number from 0), else none (an older server). */
+function countFrom(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : undefined;
 }
 
 /** The board's records per status column (`column_totals`), when every value is a count; else none (an older server). */

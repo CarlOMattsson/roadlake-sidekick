@@ -304,7 +304,8 @@ def _register_update_shopping_item(mcp: FastMCP, ctx: ToolContext) -> None:
             "Change one owned item at its current version. Only sent fields change; omitted "
             "fields keep their stored values. name and quantity may be omitted but never empty. "
             "Null in item means not sent; to empty another optional field, list it in clear. "
-            "Read the item first when unsure of its values. Only on an explicit reviewed user "
+            "item.list_id moves the item to another active list. Read the item first when unsure. "
+            "Only on an explicit reviewed user "
             "instruction; never invent an offer. Retry with the same key and arguments after "
             "uncertain delivery."
         ),

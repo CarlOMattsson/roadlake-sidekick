@@ -80,7 +80,6 @@ it("tapping a list in an inline card shows the folded list, not the edit view", 
   expect(
     screen.queryByRole("button", { name: shoppingEn.create }),
   ).not.toBeInTheDocument();
-  expect(screen.queryByLabelText(shoppingEn.select)).not.toBeInTheDocument();
   expect(screen.queryByLabelText(shoppingEn.listName)).not.toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: shoppingEn.editList }),

@@ -85,7 +85,7 @@ const activity: ActivityList = {
       id: "019f0000-0000-7000-8000-000000000201",
       category: "task_maintenance",
       source: "assistant",
-      operation: "update_task",
+      operation: "reorder_board_column",
       state: "applied",
       aggregate_type: "task",
       summary: "Flyttade Förbered pitchen till Klar",

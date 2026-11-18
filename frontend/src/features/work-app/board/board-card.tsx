@@ -9,11 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { fillLabel } from "../agenda/agenda-undo";
-import {
-  workKindLabel,
-  workStatusLabel,
-  type WorkLabels,
-} from "../shared/labels";
+import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { RecordMeta } from "../shared/record-meta";
 import { boardLabelsFor } from "./board-labels";
 import {
@@ -83,7 +79,8 @@ const MENU_OPENED = "sidekick-work-card-menu-opened";
 
 /**
  * One record on the board: its status glyph, title, meta line and, for a Task, its quick choices. In "columns" the
- * Task's glyph is the drag handle. In "single" (a narrow phone) the glyph is a done toggle with no drag. The row has
+ * Task's glyph is the drag handle, and a tap on it (a press released before it becomes a drag) marks the Task done. In
+ * "single" (a narrow phone) the glyph is a done toggle with no drag. The row has
  * no ⋯ (designsystem §3 "Snabbval"): a long press, Shift+F10 or the menu key opens a group inside the card with
  * the four statuses and, when `onReorder` is given, Flytta upp and Flytta ned. `undo` takes the meta line's place
  * while the last change of this card can be undone (`completed` with `undo`).
@@ -105,8 +102,6 @@ export function BoardCard({
   undo,
   queued = false,
   busy = false,
-  parentTitle,
-  nested,
 }: {
   item: WorkItemRecord;
   labels: WorkLabels;
@@ -135,10 +130,6 @@ export function BoardCard({
   queued?: boolean;
   /** A write of this card is running or waiting. */
   busy?: boolean;
-  /** A Step's Task by title when the Task stands elsewhere: its meta is `stepOf`, on two lines. */
-  parentTitle?: string;
-  /** A Step right after its Task in the same section: indented, its meta `step`. */
-  nested?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const row = useRef<HTMLLIElement>(null);
@@ -147,9 +138,6 @@ export function BoardCard({
   const single = layout === "single";
   const task = item.kind === "task";
   const b = boardLabelsFor(t.dateLocale);
-  // A Step in the single layout (Status) is a row of the Task list: its square check in the ring's column, the title on
-  // the titles' x, and one meta line that names its Task.
-  const step = item.kind === "step" && single;
   // Only one group is open at a time: opening this one tells every other card to close its group.
   useEffect(() => {
     if (!open) return;
@@ -185,8 +173,6 @@ export function BoardCard({
     <li
       ref={row}
       className={accent ? "work-card work-accent" : "work-card"}
-      data-kind={item.kind === "step" ? "step" : undefined}
-      data-nested={nested || undefined}
       // While Ångra shows: the ring is filled, the title in text-2 and › hidden by CSS.
       data-undo={undo ? "on" : undefined}
       data-card-id={item.id}
@@ -209,17 +195,6 @@ export function BoardCard({
             <StatusGlyph kind="task" status={item.status} />
           </button>
         )}
-        {step && (
-          <button
-            type="button"
-            className="work-card-done"
-            disabled={disabled || !onToggleDone}
-            aria-label={doneLabel}
-            onClick={() => onToggleDone?.(item)}
-          >
-            <StatusGlyph kind="step" status={item.status} />
-          </button>
-        )}
         {task && !single && (
           <button
             type="button"
@@ -240,9 +215,9 @@ export function BoardCard({
             <StatusGlyph kind="task" status={item.status} />
           </button>
         )}
-        {/* A Project, and a Step on the columns board (it cannot be dragged): its glyph in the lead, so the title and
-            the meta line keep the other cards' x. */}
-        {(item.kind === "project" || (item.kind === "step" && !single)) && (
+        {/* A Project (it cannot be dragged): its glyph in the lead, so the title and the meta line keep the other
+            cards' x. */}
+        {item.kind === "project" && (
           <span className="work-card-glyph">
             <StatusGlyph
               kind={item.kind}
@@ -261,20 +236,7 @@ export function BoardCard({
       {/* The single layout's rows end in › like every row that opens a view (§3, Chevronregeln); Ångra takes its
           place. */}
       {single && !undo && <OpenChevron />}
-      {undo ??
-        (step ? (
-          // A Step right under its Task has no meta: the indent says
-          // it belongs to the row above. Elsewhere it says whose Step it is.
-          nested ? null : (
-            <p className="work-card-meta work-card-step-of">
-              {parentTitle
-                ? fillLabel(t.stepOf, { title: parentTitle })
-                : workKindLabel(t, "step")}
-            </p>
-          )
-        ) : (
-          <RecordMeta item={item} labels={t} now={now} inStatus />
-        ))}
+      {undo ?? <RecordMeta item={item} labels={t} now={now} inStatus />}
       {queued && <span className="sk-queued">{t.queued}</span>}
       {open && (
         <div

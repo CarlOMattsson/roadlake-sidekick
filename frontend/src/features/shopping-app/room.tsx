@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RoomProps, RoomTransport } from "../mcp-apps/room-types";
 import { appLocale } from "../mcp-apps/app-locale";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
@@ -75,11 +75,11 @@ function createShoppingTransport(
         version: list.version,
         idempotency_key: key,
       }),
-    add: (id, names, key, options) =>
+    add: (id, items, key, options) =>
       call("add_shopping_items", {
         list_id: id,
-        items: names.map((name, index) => ({
-          name,
+        items: items.map((item, index) => ({
+          ...item,
           client_ref: String(index),
           ...(options?.store ? { store: options.store } : {}),
         })),
@@ -236,6 +236,14 @@ export function ShoppingRoom(props: RoomProps) {
   // Inline with fullscreen on offer: the list is a compact card, and Open asks the host for fullscreen.
   const canOpenFullscreen = props.fullscreenAvailable === true;
   const { batch, failed, detail, revision } = state;
+  // A new result (Claude opens a shop view, say) replaces the list on screen: it opens at its top, where its title is,
+  // not where the list before it was scrolled to.
+  const shownRevision = useRef(revision);
+  useEffect(() => {
+    if (shownRevision.current === revision) return;
+    shownRevision.current = revision;
+    window.scrollTo(0, 0);
+  }, [revision]);
   // An inline card mounted again after a write in the full view (refreshKey above 0) reads its list by id
   // itself, as WorkRoom reads its agenda and board. The result it was given stays on screen until the fresh
   // list arrives, so the card never falls back to the list picker meanwhile.

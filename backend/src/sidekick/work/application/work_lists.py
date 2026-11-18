@@ -45,9 +45,10 @@ def owner_day_bounds(instant: datetime, zone: tzinfo) -> tuple[datetime, datetim
 def board_column_totals(counts: Mapping[tuple[str, str], int]) -> dict[str, int]:
     """Records per board column from the selection's counts by kind and status.
 
-    A Task status column lists Tasks and Steps; a Project that shares the status (a completed
-    Project) is listed apart from them, so it is not counted there. Every other column counts
-    all its records. The four Task statuses are always present, with 0 for an empty column.
+    A Task status column lists Tasks only (the board has no Steps); a Project that shares the
+    status (a completed Project) is listed apart from them, so it is not counted there. Every
+    other column counts all its records. The four Task statuses are always present, with 0 for
+    an empty column.
     """
 
     task_statuses = {status.value for status in TaskStatus}
@@ -80,6 +81,9 @@ class WorkListService:
         A record with a future earliest start is grouped by that earliest start
         instead of being presented as due or overdue. A completed record is never
         overdue, due or upcoming, so the agenda leaves it out.
+
+        A waiting, open Task with a follow-up time is dated by the earlier of its due time and
+        that follow-up, so it stands in the agenda on its follow-up day even without a due date.
 
         With `include_undated`, an open, actionable Task without a due date is listed too,
         grouped as "upcoming" for the same reason (Tasks only; Domains, Processes and
@@ -335,9 +339,9 @@ class WorkListService:
     ) -> tuple[dict[str, list[WorkRow]], str | None]:
         """Group the bounded Work page into status columns in manual board order.
 
-        The database orders the whole list by manual `board_rank` first and the requested
-        fallback order after it, and the cursor continues that order, so every page holds the
-        next records of it and each column keeps the owner's order across pages. Ranks are
+        The database orders the whole list with open records first, then by manual `board_rank`,
+        then by the requested fallback order, and the cursor continues that order, so every page
+        holds the next records of it and each column keeps the owner's order across pages. Ranks are
         ordering input only and are not part of any projection payload.
         """
 
@@ -345,7 +349,7 @@ class WorkListService:
             actor,
             query,
             now=self.clock.now(),
-            key_prefix="work:board:v1:",
+            key_prefix="work:board:v2:",
             agenda=None,
             board_order=True,
         )
@@ -370,6 +374,25 @@ class WorkListService:
             lambda s: self.store.work_status_counts(s, actor.user_id, spec)
         )
         return board_column_totals(counts)
+
+    def work_board_overdue_total(self, actor: Actor, query: WorkQuery) -> int:
+        """How many open Tasks are overdue under the board's filters, never just the page.
+
+        An overdue Task is open, actionable now and past its due instant: what the agenda calls
+        overdue, so the board and the agenda give the same count for the same filters.
+        """
+
+        query.validate()
+        actor.require("tasks:read")
+        now = self.clock.now()
+        overdue = replace(query, kind="task", due_to=now, actionable="now")
+        spec = self._work_spec(overdue, now, None, board_order=True)
+        counts = self.store.transaction(
+            lambda s: self.store.work_status_counts(s, actor.user_id, spec)
+        )
+        return sum(
+            count for (_, status), count in counts.items() if status != TaskStatus.COMPLETED.value
+        )
 
     def work_board_manual_statuses(self, actor: Actor, query: WorkQuery) -> tuple[str, ...]:
         """Status columns the owner has ordered by hand, under the board's status and Project scope.

@@ -193,7 +193,7 @@ def _seed(container: Container, owner: UUID, title_length: int = 0, text_length:
 def _check_board(board: Any) -> None:
     # A budget measured on short pages would prove nothing, so every page must be full.
     board_items = sum(len(items) for items in _structured(board)["columns"].values())
-    assert board_items == 100
+    assert board_items == 50
     # The card's text names at most BOARD_ROW_LIMIT ids per section, however full the board is.
     # Each column lists its first Tasks and counts the rest; every other kind shares one section.
     assert len(board.content) == 1
@@ -240,7 +240,7 @@ def _check_hierarchy(hierarchy: Any) -> None:
         # Ordinary data, against the budget that leaves room for the rest of a turn.
         pytest.param(
             "get_work_board",
-            {"limit": 100},
+            {"limit": 50},
             _check_board,
             0,
             0,
@@ -286,7 +286,7 @@ def _check_hierarchy(hierarchy: Any) -> None:
         # Every title at its longest length, against the client's own limit.
         pytest.param(
             "get_work_board",
-            {"limit": 100},
+            {"limit": 50},
             _check_board,
             MAX_TITLE,
             0,

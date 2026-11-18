@@ -12,7 +12,7 @@ from sidekick.journal.application.models import (
 )
 from sidekick.journal.application.relations import bounded_unique_ids, require_active_links
 from sidekick.journal.application.store import JournalStore
-from sidekick.journal.domain.entry import JournalEntry, KeyPoint
+from sidekick.journal.domain.entry import ENTRY_CREATED_EVENT, JournalEntry, KeyPoint
 from sidekick.journal.domain.source import JournalSource, SourceType, replacement_source
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.types import Actor, Clock, TxSession, new_uuid7
@@ -243,7 +243,7 @@ class JournalCaptureService:
         self.store.append_audit(
             session,
             actor_id=actor.user_id,
-            event="journal.manual_entry_created",
+            event=ENTRY_CREATED_EVENT,
             outcome="success",
             target_type="journal_entry",
             target_id=entry.id,

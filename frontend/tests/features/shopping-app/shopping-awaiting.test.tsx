@@ -134,7 +134,7 @@ describe("shopping add and update results", () => {
     expect(screen.getByText(shoppingEn.updatedKicker())).toBeInTheDocument();
     expect(batchRow("Added: Milk")).toBeInTheDocument();
     expect(batchRow("Added: Bread")).toBeInTheDocument();
-    expect(screen.queryByText(shoppingEn.select)).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(screen.queryByText(shoppingEn.empty)).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
     // The host in this test offers no fullscreen, so the card has no Open list button.
@@ -154,7 +154,7 @@ describe("shopping add and update results", () => {
       screen.getByRole("heading", { name: "IKEA someday" }),
     ).toBeInTheDocument();
     expect(batchRow("Updated: Eggs")).toBeInTheDocument();
-    expect(screen.queryByText(shoppingEn.select)).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
   it("a list detail replaces the batch card", () => {

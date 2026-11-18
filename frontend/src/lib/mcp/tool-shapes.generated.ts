@@ -53,6 +53,19 @@ export const createContactResultShape: Shape = {
         "version",
       ],
     },
+    same_name_contacts: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          display_name: { type: "string" },
+          id: { type: "string" },
+          organization: { anyOf: [{ type: "string" }, { type: "null" }] },
+          role: { anyOf: [{ type: "string" }, { type: "null" }] },
+        },
+        required: ["id", "display_name"],
+      },
+    },
   },
   required: ["contact"],
 };

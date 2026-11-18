@@ -41,7 +41,7 @@ async def _set_status(client: Client, task: dict[str, Any], status: str) -> None
 
 
 async def _totals(client: Client, **arguments: Any) -> dict[str, int]:
-    board = await client.call_tool("get_work_board", {"limit": 100, **arguments})
+    board = await client.call_tool("get_work_board", {"limit": 50, **arguments})
     return board.structured_content["column_totals"]
 
 

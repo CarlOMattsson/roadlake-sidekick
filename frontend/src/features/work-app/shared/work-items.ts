@@ -377,25 +377,6 @@ export function shownOrder(
 }
 
 /**
- * Status's list order for Steps: a Step whose Task is in the same list stands right after it (after the
- * Task's earlier Steps), in their order; a Step whose Task is not there keeps its place. The Tasks keep their order.
- */
-export function nestSteps(items: WorkItemRecord[]): WorkItemRecord[] {
-  const tasks = new Set(
-    items.flatMap((i) => (i.kind === "task" ? [i.id] : [])),
-  );
-  const nested = (i: WorkItemRecord) =>
-    i.kind === "step" && !!i.task_id && tasks.has(i.task_id);
-  return items.flatMap((item) =>
-    nested(item)
-      ? []
-      : item.kind === "task"
-        ? [item, ...items.filter((s) => nested(s) && s.task_id === item.id)]
-        : [item],
-  );
-}
-
-/**
  * A title or search text as the server compares them (`fold_text`): NFKC, lower case, then ß as ss, a final sigma as
  * a plain one and a dotted i as i. The board's search holds the loaded cards to the same match the server made.
  */

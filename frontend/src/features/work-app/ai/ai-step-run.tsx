@@ -73,6 +73,7 @@ export function AiStepRun({
             transport={transport}
             labels={a}
             locale={locale}
+            serverRuns={server.runnerOn}
             onReviewed={onReviewed}
           />
         )}
@@ -131,6 +132,7 @@ function RunOpener({
   transport,
   labels: a,
   locale,
+  serverRuns,
   onReviewed,
 }: {
   run: NonNullable<WorkAiPlanStep["latest_run"]>;
@@ -138,6 +140,7 @@ function RunOpener({
   transport: WorkTransport;
   labels: AiLabels;
   locale: string;
+  serverRuns: boolean;
   onReviewed: (decision: WorkAiReview) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -167,6 +170,7 @@ function RunOpener({
           transport={transport}
           labels={a}
           locale={locale}
+          serverRuns={serverRuns}
           onReviewed={onReviewed}
         />
       )}

@@ -46,6 +46,9 @@ export type WorkTask = WithOptional<
     | "steps_done"
     | "steps_total"
     | "last_completed_at"
+    | "waiting_since"
+    | "follow_up_at"
+    | "waiting_on_contact_id"
     | "tags"
     | "ai_possible"
   >,
@@ -59,6 +62,9 @@ export type WorkTask = WithOptional<
   | "steps_done"
   | "steps_total"
   | "last_completed_at"
+  | "waiting_since"
+  | "follow_up_at"
+  | "waiting_on_contact_id"
   | "tags"
   | "ai_possible"
 >;
@@ -279,7 +285,7 @@ export type WorkTaskSummaryPage = {
 };
 export type WorkContact = { id: string; display_name: string };
 export type WorkContactPage = {
-  items: WorkContact[];
+  items: WorkContactSummary[];
   next_cursor: string | null;
 };
 /** One row of list_contacts (ContactSummaryRecord); the profile fields are absent in older results. */

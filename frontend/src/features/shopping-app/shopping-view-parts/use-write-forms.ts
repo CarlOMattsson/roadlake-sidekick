@@ -3,6 +3,8 @@ import type { KeyboardEvent } from "react";
 import type { ShoppingItem, ShoppingTransport } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { isEnter, MAX_ADD_ITEMS, splitItemNames } from "./helpers";
+import { parseTypedItems } from "./parse-items";
+import { quantityText } from "../shopping-card";
 import type { Panels } from "./use-panels";
 import type { ShoppingRead } from "./use-shopping-read";
 import type { ShoppingWrites } from "./use-shopping-writes";
@@ -34,10 +36,14 @@ export function useWriteForms({
   const { id, setId, setOffset, detail, busy } = read;
   const { write } = writes;
   const list = detail?.shopping_list;
-  const [listName, setListName] = useState("");
   // The name typed in the fullscreen "Edit list" field. It starts from the list's name each time the edit opens.
   const [renameName, setRenameName] = useState("");
   const [names, setNames] = useState("");
+  /** The batch field was typed in: the receipt of the last add is out of date. */
+  function changeNames(value: string) {
+    setNames(value);
+    setAddNote("");
+  }
   const [invalidBatch, setInvalidBatch] = useState(false);
   // The receipt under the create field, `newItemPrefix` with the item and its shop (§3 Skapa): the new item may stand far below in
   // its shop, so the field says where it went. The list does not scroll and the field keeps the focus. A failed add
@@ -69,18 +75,11 @@ export function useWriteForms({
   function createNamed(name: string): Promise<boolean> {
     const value = name.trim();
     if (!value) return Promise.resolve(false);
-    return write(
-      `create:${value}`,
-      async (key) => {
-        const result = await transport.create(value, key);
-        setId(result.shopping_list.id);
-        setOffset(0);
-      },
-      () => setListName(""),
-    );
-  }
-  function create() {
-    void createNamed(listName);
+    return write(`create:${value}`, async (key) => {
+      const result = await transport.create(value, key);
+      setId(result.shopping_list.id);
+      setOffset(0);
+    });
   }
   // The name goes to update_shopping_list with the version that was read; the edit closes once it is saved.
   function rename() {
@@ -92,31 +91,15 @@ export function useWriteForms({
       () => setPanel("editOpen", false),
     );
   }
-  function add() {
-    const lines = splitItemNames(names);
-    if (!lines.length || lines.length > MAX_ADD_ITEMS) {
-      setInvalidBatch(true);
-      return;
-    }
-    setInvalidBatch(false);
-    void write(
-      JSON.stringify(["add", id, lines]),
-      (key) => transport.add(id, lines, key),
-      () => setNames(""),
-    );
-  }
-  // Enter adds the batch in both the folded input and the full textarea; Shift+Enter keeps a line break.
-  function batchKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (!isEnter(event) || event.shiftKey) return;
-    event.preventDefault();
-    if (!busy && names.trim()) add();
-  }
-  // Store view: the create field of "+ Add item", through the same add write as the batch field. Commas separate
-  // several items, as in the batch field. In a shop view the items go to that shop, so they show at once; an open
-  // item with the same name is merged. The field empties only when the write succeeded; a failure keeps the text
-  // and shows its line under the field.
-  function addOne(text: string) {
-    const typed = splitItemNames(text);
+  /**
+   * Adds the typed items through one write, for the batch field and the create field alike. Commas separate several
+   * items, and an amount in the text ("2 l mjölk") is read as the item's quantity and unit. In a shop view the items
+   * go to that shop, so they show at once; an open item with the same name and unit takes the amount instead of a new
+   * row. The receipt says what was added and what joined an item that was already there, since in a long list the new
+   * row may stand out of sight. `saved` runs on success; a failure keeps the typed text and shows its line.
+   */
+  function addTyped(text: string, rowId: string | null, saved?: () => void) {
+    const typed = parseTypedItems(text);
     if (!typed.length || typed.length > MAX_ADD_ITEMS)
       return Promise.resolve(false);
     return write(
@@ -124,9 +107,25 @@ export function useWriteForms({
       (key) => transport.add(id, typed, key, { store, mergeDuplicates: true }),
       (result) => {
         const added = (
-          (result as { items?: { item: ShoppingItem }[] } | null)?.items ?? []
-        ).map((entry) => entry.item);
-        const names = added.length ? added.map((item) => item.name) : typed;
+          (
+            result as {
+              items?: { item: ShoppingItem; merged?: boolean }[];
+            } | null
+          )?.items ?? []
+        ).map((entry) =>
+          entry.merged
+            ? {
+                ...entry.item,
+                name: t.mergedNow(
+                  entry.item.name,
+                  quantityText(entry.item, t.dateLocale),
+                ),
+              }
+            : entry.item,
+        );
+        const names = added.length
+          ? added.map((item) => item.name)
+          : typed.map((item) => item.name);
         // The shop is named when every item went to the same one.
         const shops = new Set(added.map((item) => item.store?.trim() ?? ""));
         const [shop] = shops.size === 1 ? shops : [];
@@ -144,24 +143,42 @@ export function useWriteForms({
             },
             () => undefined,
           );
+        saved?.();
       },
-      "add",
+      rowId,
     );
   }
+  // The batch field of the list view.
+  function add() {
+    const count = splitItemNames(names).length;
+    if (!count || count > MAX_ADD_ITEMS) {
+      setInvalidBatch(true);
+      return;
+    }
+    setInvalidBatch(false);
+    void addTyped(names, null, () => setNames(""));
+  }
+  // Enter adds the batch in both the folded input and the full textarea; Shift+Enter keeps a line break.
+  function batchKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (!isEnter(event) || event.shiftKey) return;
+    event.preventDefault();
+    if (!busy && names.trim()) add();
+  }
+  // The create field of "+ Add item": the field empties only when the write succeeded.
+  function addOne(text: string) {
+    return addTyped(text, "add");
+  }
   return {
-    listName,
-    setListName,
     renameName,
     setRenameName,
     names,
-    setNames,
+    changeNames,
     invalidBatch,
     addNote,
     addButton,
     openAddField,
     toggleAddField,
     closeAddField,
-    create,
     createNamed,
     rename,
     add,

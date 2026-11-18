@@ -74,12 +74,12 @@ describe("a hand-written journal entry on the phone", () => {
     await user.paste(TEXT);
     await user.click(screen.getByRole("button", { name: journalSv.save }));
 
-    // Save: the server holds the words in the source; the entry itself has no summary.
+    // Save: the server holds the words in the source, and the entry holds them as its own text.
     const row = await screen.findByRole("button", {
       name: new RegExp(TITLE),
     });
     expect(server.entries()).toHaveLength(1);
-    expect(server.entries()[0]?.entry.summary).toBeNull();
+    expect(server.entries()[0]?.entry.summary).toBe(TEXT);
     expect(server.entries()[0]?.text).toBe(TEXT);
 
     // Read back at once ...

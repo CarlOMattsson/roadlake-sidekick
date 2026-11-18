@@ -70,6 +70,11 @@ export type WorkBoardPage = {
    * counts what it has read.
    */
   column_totals?: Results["get_work_board"]["column_totals"];
+  /**
+   * How many open Tasks are overdue under the board's filters, not only on this page: the inline card's headline and
+   * the text to the model say it. Missing (an older server): the card counts the overdue Tasks it has read.
+   */
+  overdue_total?: Results["get_work_board"]["overdue_total"];
 };
 export type WorkAgendaPage = {
   items: WorkItemRecord[];

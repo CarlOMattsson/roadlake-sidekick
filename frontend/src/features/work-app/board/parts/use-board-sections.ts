@@ -3,7 +3,6 @@ import {
   boardSegments,
   cardKey,
   foldSearchText,
-  nestSteps,
   segmentItems,
   shownOrder,
   type BoardSegment,
@@ -108,7 +107,7 @@ export function useBoardSections({
         return {
           segment,
           items,
-          shown: nestSteps(shownIn(segment.key, items, undos, page)),
+          shown: shownIn(segment.key, items, undos, page),
           unshown: unshownOf(segment),
         };
       })

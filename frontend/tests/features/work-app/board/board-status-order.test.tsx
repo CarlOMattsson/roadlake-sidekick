@@ -52,17 +52,6 @@ const undated = task(3, "todo", "Beställ skåp");
 const laterDoing = task(4, "in_progress", "Bygg webbplatsen", "2099-01-20");
 const earlierDoing = task(5, "in_progress", "Boka målare", "2099-01-10");
 
-/** A step of `early`, due before every Task: it still stands right after its Task (nestSteps). */
-const stepOfEarly: WorkItemRecord = {
-  kind: "step",
-  id: id(6),
-  title: "Steg i Ring Anna",
-  status: "todo",
-  due_at: "2099-01-05",
-  version: 1,
-  task_id: early.id,
-};
-
 /** To do is in the server's order `late, early, undated` (sorted by date: early, late, undated). In progress is
  *  `laterDoing, earlierDoing` and the user has ordered it (manually_ordered), so it keeps that order. */
 const page: WorkBoardPage = {
@@ -254,21 +243,34 @@ describe("the phone's Status list in due-date order", () => {
     );
   });
 
-  it("lists a step right after its Task in a date-sorted section, though the step is due first", () => {
+  it("keeps the shown cards on top, in order, when Show more adds a column's later records at the bottom", async () => {
+    const user = userEvent.setup();
+    const rapport = task(7, "todo", "Skicka rapport", "2099-02-01");
+    const getWorkBoard = vi
+      .fn()
+      .mockResolvedValue({ columns: { todo: [rapport] }, next_cursor: null });
     render(
       <Harness
-        work={transport()}
+        work={transport({ getWorkBoard })}
         initial={{
-          columns: { todo: [late, early, undated, stepOfEarly] },
-          next_cursor: null,
+          // The server sent the column most overdue first; the third record is on the column's next page.
+          columns: { todo: [early, late] },
+          next_cursor: "board-2",
+          column_totals: { todo: 3, in_progress: 0, blocked: 0, completed: 0 },
         }}
       />,
     );
-    expect(titlesIn(workEn.taskStatus.todo)).toEqual([
-      early.title,
-      stepOfEarly.title,
-      late.title,
-      undated.title,
-    ]);
+    expect(titlesIn(workEn.taskStatus.todo)).toEqual(
+      expect.arrayContaining([early.title, late.title]),
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+      }),
+    );
+    await screen.findByText(rapport.title);
+    expect(
+      titlesIn(workEn.taskStatus.todo).filter((title) => title !== ""),
+    ).toEqual([early.title, late.title, rapport.title]);
   });
 });

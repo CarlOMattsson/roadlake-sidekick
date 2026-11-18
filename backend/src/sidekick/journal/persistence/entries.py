@@ -1,5 +1,6 @@
 """Journal sources, entries, pending items and entry relations."""
 
+from collections.abc import Sequence
 from datetime import date
 from uuid import UUID
 
@@ -7,7 +8,14 @@ from sqlalchemy import case, delete, func, literal, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, aliased, joinedload
 
-from sidekick.journal.domain.entry import EntryHead, JournalEntry, JournalOrder, no_occurrence
+from sidekick.journal.domain.entry import (
+    ENTRY_CREATED_EVENT,
+    SUMMARY_WRITTEN_EVENT,
+    EntryHead,
+    JournalEntry,
+    JournalOrder,
+    no_occurrence,
+)
 from sidekick.journal.domain.records import EntryRelations, PendingJournalItem, RelationLabels
 from sidekick.journal.domain.source import JournalSource, SourceType
 from sidekick.journal.persistence.mappers import journal_entry_from_row, journal_source_from_row
@@ -16,6 +24,7 @@ from sidekick.shared.errors import (
     NotFoundError,
 )
 from sidekick.shared.persistence.models import (
+    AuditEventRow,
     ContactRow,
     JournalDraftRow,
     JournalEntryContactRow,
@@ -128,6 +137,30 @@ class JournalEntryStore:
             session.expire(row, ["source"])
         session.flush()
         return entry
+
+    @staticmethod
+    def journal_summary_authors(
+        session: Session, owner_id: UUID, entry_ids: Sequence[UUID]
+    ) -> dict[UUID, str]:
+        """Who last wrote each entry's summary, `you` or `claude`: the source of the newest creation
+        or summary-change event. An entry whose events recorded no source is left out."""
+
+        if not entry_ids:
+            return {}
+        rows = session.execute(
+            select(AuditEventRow.target_id, AuditEventRow.source)
+            .where(
+                AuditEventRow.actor_id == owner_id,
+                AuditEventRow.target_type == "journal_entry",
+                AuditEventRow.target_id.in_(entry_ids),
+                AuditEventRow.event.in_((ENTRY_CREATED_EVENT, SUMMARY_WRITTEN_EVENT)),
+            )
+            .order_by(
+                AuditEventRow.target_id, AuditEventRow.occurred_at.desc(), AuditEventRow.id.desc()
+            )
+            .distinct(AuditEventRow.target_id)
+        )
+        return {target: source for target, source in rows if target is not None and source}
 
     @staticmethod
     def get_journal_entry(session: Session, owner_id: UUID, entry_id: UUID) -> JournalEntry:

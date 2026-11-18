@@ -256,6 +256,7 @@ export function RoomAdapter({
       },
       updateModelContext: (sentence) =>
         host.transport.updateModelContext(sentence),
+      openLink: host.transport.openLink,
       supportsTool: host.transport.supportsTool,
       supportsCall: host.transport.supportsCall,
       offline: host.transport.offline,

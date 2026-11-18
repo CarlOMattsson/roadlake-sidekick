@@ -123,8 +123,9 @@ async def test_each_decision_is_applied_marks_the_task_reviewed_and_keeps_what_i
     assert records[str(done.id)]["status"] == "completed"
     assert records[str(done.id)]["previous"]["status"] == "todo"
     assert datetime.fromisoformat(records[str(done.id)]["previous"]["due_at"]) == old_due
+    # The moved Task had a time of day (12:00), which it keeps on the new day.
     assert datetime.fromisoformat(records[str(move.id)]["due_at"]) == datetime(
-        2026, 11, 16, 23, 59, tzinfo=ZONE
+        2026, 11, 16, 12, 0, tzinfo=ZONE
     )
     assert records[str(drop.id)]["archived"] is True
     assert records[str(drop.id)]["previous"]["archived_at"] is None

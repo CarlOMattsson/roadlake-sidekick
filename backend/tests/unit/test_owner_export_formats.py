@@ -90,6 +90,27 @@ def test_contact_fields_are_written_with_rfc_6350_escaping() -> None:
     assert "NOTE:Relation: syster\\nTräffades på mässan\\nDet är \\\\ ok\\; tack\\, hej" in lines
 
 
+@pytest.mark.parametrize(
+    "slack",
+    [
+        "https://acme.slack.com/team/U01ABC23DEF\r\nNOTE:injected",
+        "https://acme.slack.com/team/U01ABC23DEF,evil;x=1",
+        "https://evil.example.com/team/U01ABC23DEF",
+        "javascript:alert(1)",
+        "https://acme.slack.com/team/U01ABC23DEF\nEND:VCARD",
+    ],
+)
+def test_a_slack_value_that_is_not_a_stored_profile_link_is_left_out_of_the_card(
+    slack: str,
+) -> None:
+    lines = unfold(contacts_to_vcard(export_with(contacts=[contact(slack=slack)])))
+
+    assert not any(line.startswith("URL") for line in lines)
+    assert lines.count("BEGIN:VCARD") == 1
+    assert lines.count("END:VCARD") == 1
+    assert not any(line.startswith("NOTE") for line in lines)
+
+
 def test_relationship_alone_becomes_the_first_note_line() -> None:
     document = export_with(contacts=[contact(relationship="kollega")])
 

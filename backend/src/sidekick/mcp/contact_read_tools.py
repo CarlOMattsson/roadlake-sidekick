@@ -157,13 +157,11 @@ def _register_list_contacts(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="list_contacts",
         description=(
-            "Use this to resolve a person the user mentions (name, alias, email or phone) to a "
-            "Contact id. It returns a bounded set of the authenticated user's Contacts matching "
-            "preferred name, alias, or exact email/phone. If exactly one active Contact matches, "
-            "use its id. If several match, ask the user which one, briefly naming the candidates. "
-            'If no match, try search with kinds=["contacts"] before creating; create the Contact '
-            "only when the user is describing a new person. "
-            "Duplicate candidates are returned separately. tags lists only Contacts with them."
+            "Use this to resolve a person the user mentions (name, alias, email, phone, company "
+            "or role) to a Contact id. It returns a bounded set of the user's Contacts. If "
+            "exactly one active Contact matches, use its id; if several, ask the user which, "
+            'naming the candidates. If none, try search with kinds=["contacts"] before creating; '
+            "create a Contact only for a new person. tags lists only Contacts with them."
         ),
         output_schema=output_schema(ContactPageResult),
         annotations=READ,
@@ -216,7 +214,8 @@ def _register_get_contact_context(mcp: FastMCP, ctx: ToolContext) -> None:
             "create_contact, to retrieve that owned active Contact, bounded current "
             "Project/Task context and up to 10 newest linked Journal entries (id, date and "
             "title only; read a Journal entry for its content), or to answer who a Contact is. "
-            "Do not use it to retrieve archived/future-domain data or read another user's context. "
+            "An archived Contact is returned too, with archived true. "
+            "Do not use it to read another user's context. "
             "When the app card opens, reply in one or two sentences and do not repeat its contents "
             "as a list or table."
         ),

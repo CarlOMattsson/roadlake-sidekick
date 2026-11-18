@@ -98,7 +98,7 @@ it("with a store the inline view shows large rows, reads with the filter and hid
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(1));
 });
 
-it("without a store the inline view keeps the full list view with its forms", async () => {
+it("without a store the inline view keeps the list view with its batch field, without list forms", async () => {
   const transport = adapter();
   render(
     <ShoppingView transport={transport} labels={shoppingEn} listId={list.id} />,
@@ -107,7 +107,10 @@ it("without a store the inline view keeps the full list view with its forms", as
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
   expect(transport.get).toHaveBeenCalledWith(list.id, 0, undefined);
-  expect(screen.getByLabelText(shoppingEn.listName)).toBeInTheDocument();
+  // No standing list forms and no list switcher: only the batch field to add items.
+  expect(screen.getByLabelText(shoppingEn.batch)).toBeInTheDocument();
+  expect(screen.queryByLabelText(shoppingEn.listName)).not.toBeInTheDocument();
+  expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
 });
 it("the shop view names its shop and the open count in the heading", async () => {
   const transport = adapter();

@@ -2,6 +2,7 @@ import { Fragment, useContext, useRef } from "react";
 import {
   type DueLocale,
   type DueTone,
+  dueClockText,
   relativeDue,
   workDate,
 } from "../../mcp-apps/ui/due";
@@ -74,6 +75,8 @@ export type InlineSummaryData = {
   projectTitle?: string | null;
   /** The record's tag slugs; two are shown with "+N" for the rest. Absent or empty means no line. */
   tags?: readonly string[];
+  /** The Task is marked as possible with AI; its plan may then wait for the owner's approval. */
+  aiPossible?: boolean;
 };
 
 /**
@@ -128,6 +131,8 @@ export type InlineSummaryProps =
       /** Moves focus to Done when it appears (after Undo, so focus stays on a control that is still there). */
       focusComplete?: boolean;
       notice?: InlineSummaryNotice;
+      /** A Task whose AI plan waits for the owner: the line that says so and the text of the button that opens the Task. */
+      plan?: { line: string; reviewLabel: string };
     };
 
 /** Puts focus on a button when it mounts, so a control that replaces the one that had focus keeps it. */
@@ -242,8 +247,18 @@ export function InlineSummary(props: InlineSummaryProps) {
     );
   }
 
-  const { summary, onOpen, onComplete, busy, undo, focusComplete, notice } =
-    props;
+  const {
+    summary,
+    onOpen,
+    onComplete,
+    busy,
+    undo,
+    focusComplete,
+    notice,
+    plan,
+  } = props;
+  // A plan that waits for review makes "Granska planen" (which opens the Task) the primary; Done stays beside it.
+  const review = plan && onOpen ? plan : undefined;
   const locale: DueLocale = labels.dateLocale.startsWith("sv") ? "sv" : "en";
   const meta = metaParts(summary, labels, locale, new Date());
   const steps = summary.datapoints?.steps;
@@ -317,15 +332,29 @@ export function InlineSummary(props: InlineSummaryProps) {
           {description}
         </p>
       ) : null}
+      {plan ? <p className="work-compact-status">{plan.line}</p> : null}
       {onComplete || undo || onOpen ? (
         <CardFoot>
           <div className="work-compact-actions">
+            {review ? (
+              <button
+                type="button"
+                className="work-compact-action sk-btn--primary"
+                onClick={onOpen}
+              >
+                {review.reviewLabel}
+              </button>
+            ) : null}
             {undo ? (
               <UndoLine labels={labels} undo={undo} />
             ) : onComplete ? (
               <button
                 type="button"
-                className="work-compact-action sk-btn--primary"
+                className={
+                  review
+                    ? "work-compact-action sk-btn--secondary"
+                    : "work-compact-action sk-btn--primary"
+                }
                 onClick={onComplete}
                 disabled={busy}
                 aria-busy={busy || undefined}
@@ -334,7 +363,7 @@ export function InlineSummary(props: InlineSummaryProps) {
                 {busy ? labels.completing : labels.complete}
               </button>
             ) : null}
-            {onOpen ? (
+            {onOpen && !review ? (
               <button
                 type="button"
                 className="work-compact-action sk-btn--open"
@@ -427,7 +456,8 @@ type MetaPart = { key: string; text: string; tone?: DueTone };
 /**
  * The meta line: due, then a Project's progress and overdue count, then contacts, joined by " · " in that order. A relative due
  * date comes from relativeDue (owner calendar day, given `now`); an overdue text already
- * says so, so it is shown alone and every other due text gets the "Due" label in front.
+ * says so, so it is shown alone and every other due text gets the "Due" label in front, and the Task's clock time
+ * after the date when it has one ("Due today 5:30 pm").
  */
 function metaParts(
   summary: InlineSummaryData,
@@ -455,7 +485,12 @@ function metaParts(
         text:
           due.tone === "overdue"
             ? `${labels.overdueSince} ${workDate(summary.dueDate, now, locale, { inline: true, relative: false })}`
-            : `${labels.due} ${workDate(summary.dueDate, now, locale, { inline: true })}`,
+            : [
+                `${labels.due} ${workDate(summary.dueDate, now, locale, { inline: true })}`,
+                dueClockText(summary.dueDate, locale),
+              ]
+                .filter(Boolean)
+                .join(" "),
         tone: due.tone,
       });
     }

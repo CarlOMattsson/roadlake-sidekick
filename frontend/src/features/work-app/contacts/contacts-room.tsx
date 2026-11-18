@@ -13,7 +13,6 @@ import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { ErrorNotice, toolResultCause } from "../../mcp-apps/ui/states";
 import { createWorkTransport } from "../transport/work-transport";
 import { contactFirstRead } from "../shared/first-read";
-import type { HostBridge } from "../../mcp-apps/bridge";
 import { rootFromToolResult, type WorkFrame } from "../transport/transport";
 
 /**
@@ -130,8 +129,8 @@ export function ContactsRoom(props: RoomProps) {
   const names = contactsRoomNames(locale);
   const fullscreen = props.mode === "full";
   const { onNavigate } = props;
-  // The room transport is the bridge itself; ui/open-link is offered only where it exists.
-  const openLink = (props.transport as Partial<HostBridge>).openLink;
+  // ui/open-link is offered only where the host has it.
+  const { openLink } = props.transport;
   // A Journal entry under the Contact opens in the journal room. Without a host that routes, or with the room off, none is offered.
   const onOpenJournalEntry =
     onNavigate && roomEnabled("journal")

@@ -31,6 +31,9 @@ export const boardLabelsSv = {
       ? `${overdue}${plus} försenad${overdue > 1 ? "e" : ""} av ${open}${plus} öppna`
       : `${open}${plus} öppna`;
   },
+  /** The overdue count in the text to the model: "1 försenad", "7 försenade". */
+  overdueCount: (overdue: number) =>
+    `${overdue} försenad${overdue > 1 ? "e" : ""}`,
   /** Moves a card one place up in its Task status column. */
   moveUp: "Flytta upp",
   /** Moves a card one place down in its Task status column. */
@@ -68,6 +71,7 @@ export const boardLabelsEn: BoardLabels = {
       ? `${overdue}${plus} overdue of ${open}${plus} open`
       : `${open}${plus} open`;
   },
+  overdueCount: (overdue: number) => `${overdue} overdue`,
   moveUp: "Move up",
   moveDown: "Move down",
   moveListFor: (title: string) => `Choose a status for ${title}`,

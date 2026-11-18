@@ -154,6 +154,8 @@ export function useAiServerRun(
       offers("run_ai_plan")
         ? next
         : undefined,
+    /** True where the server runs the plan's Steps itself; otherwise Claude takes each next Step when asked. */
+    runnerOn: plan?.server_runner === "available",
     busy,
     run,
     refusal,

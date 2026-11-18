@@ -6,6 +6,7 @@ stay in `sidekick.memory.application`. Each method filters by owner itself.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from datetime import UTC, date, datetime, tzinfo
 from typing import Any, cast
@@ -323,6 +324,25 @@ class SqlAlchemyMemoryStore:
             .with_for_update()
         )
         return None if row is None else _source_record(row)
+
+    @staticmethod
+    def excluded_source_ids(
+        session: Session, owner_id: UUID, kind: MemoryKind, source_ids: Sequence[UUID]
+    ) -> set[UUID]:
+        """The records of `kind` among `source_ids` the owner keeps out of memory."""
+
+        if not source_ids:
+            return set()
+        return set(
+            session.scalars(
+                select(MemorySourceRow.source_id).where(
+                    MemorySourceRow.owner_id == owner_id,
+                    MemorySourceRow.source_kind == kind.value,
+                    MemorySourceRow.source_id.in_(source_ids),
+                    MemorySourceRow.excluded.is_(True),
+                )
+            )
+        )
 
     @staticmethod
     def upsert_exclusion_marker(

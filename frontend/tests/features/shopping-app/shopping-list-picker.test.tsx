@@ -174,7 +174,7 @@ describe("no list chosen: the lists are rows to tap", () => {
     ).toBeNull();
   });
 
-  it("with a list chosen, 'All lists' is in the room and the list view keeps its create form and select", async () => {
+  it("with a list chosen, 'All lists' is in the room and the list view has no create form or select", async () => {
     const lists = [listOf(1, "Weekly shopping")];
     const transport = adapter(lists, {
       lists: vi.fn().mockResolvedValue({
@@ -197,8 +197,10 @@ describe("no list chosen: the lists are rows to tap", () => {
         name: `Tillbaka till ${shoppingEn.backToLists}`,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(shoppingEn.listName)).toBeInTheDocument();
-    expect(screen.getByLabelText(shoppingEn.select)).toBeInTheDocument();
+    // The list view has no create form and no list switcher: the way back is the room's own.
+    expect(
+      screen.queryByLabelText(shoppingEn.listName),
+    ).not.toBeInTheDocument();
   });
 
   it("a fullscreen view lists every row, without 'Show all'", async () => {

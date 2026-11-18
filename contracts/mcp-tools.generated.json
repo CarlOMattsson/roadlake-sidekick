@@ -7,7 +7,7 @@
       "readOnlyHint": true,
       "title": "Lista kontakter"
     },
-    "description": "Use this to resolve a person the user mentions (name, alias, email or phone) to a Contact id. It returns a bounded set of the authenticated user's Contacts matching preferred name, alias, or exact email/phone. If exactly one active Contact matches, use its id. If several match, ask the user which one, briefly naming the candidates. If no match, try search with kinds=[\"contacts\"] before creating; create the Contact only when the user is describing a new person. Duplicate candidates are returned separately. tags lists only Contacts with them.",
+    "description": "Use this to resolve a person the user mentions (name, alias, email, phone, company or role) to a Contact id. It returns a bounded set of the user's Contacts. If exactly one active Contact matches, use its id; if several, ask the user which, naming the candidates. If none, try search with kinds=[\"contacts\"] before creating; create a Contact only for a new person. tags lists only Contacts with them.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -226,7 +226,7 @@
       "readOnlyHint": true,
       "title": "Visa kontakt med sammanhang"
     },
-    "description": "Use this after the Contact id is known, for example from list_contacts or create_contact, to retrieve that owned active Contact, bounded current Project/Task context and up to 10 newest linked Journal entries (id, date and title only; read a Journal entry for its content), or to answer who a Contact is. Do not use it to retrieve archived/future-domain data or read another user's context. When the app card opens, reply in one or two sentences and do not repeat its contents as a list or table.",
+    "description": "Use this after the Contact id is known, for example from list_contacts or create_contact, to retrieve that owned active Contact, bounded current Project/Task context and up to 10 newest linked Journal entries (id, date and title only; read a Journal entry for its content), or to answer who a Contact is. An archived Contact is returned too, with archived true. Do not use it to read another user's context. When the app card opens, reply in one or two sentences and do not repeat its contents as a list or table.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -907,7 +907,7 @@
       "readOnlyHint": false,
       "title": "Skapa kontakt"
     },
-    "description": "Use this only when the user has asked to create one Contact. Optional aliases, metadata and tags are stored only in Sidekick; no message or external lookup occurs. Safe to retry with the same key and payload.",
+    "description": "Use this only when the user has asked to create one Contact. Optional aliases, metadata and tags are stored only in Sidekick; no message or external lookup occurs. Safe to retry with the same key and payload. same_name_contacts in the reply: others with this name; tell the user.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -1017,6 +1017,7 @@
         "slack": {
           "anyOf": [
             {
+              "maxLength": 300,
               "type": "string"
             },
             {
@@ -1240,12 +1241,60 @@
           ],
           "title": "ContactRecord",
           "type": "object"
+        },
+        "same_name_contacts": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "display_name": {
+                "title": "Display Name",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "organization": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Organization"
+              },
+              "role": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Role"
+              }
+            },
+            "required": [
+              "id",
+              "display_name"
+            ],
+            "title": "SameNameContactRecord",
+            "type": "object"
+          },
+          "title": "Same Name Contacts",
+          "type": "array"
         }
       },
       "required": [
         "contact"
       ],
-      "title": "ContactResult",
+      "title": "CreatedContactResult",
       "type": "object"
     },
     "title": "Skapa kontakt"
@@ -1362,6 +1411,7 @@
             "slack": {
               "anyOf": [
                 {
+                  "maxLength": 300,
                   "type": "string"
                 },
                 {
@@ -3057,6 +3107,11 @@
                 "title": "Links",
                 "type": "array"
               },
+              "memory_excluded": {
+                "default": false,
+                "title": "Memory Excluded",
+                "type": "boolean"
+              },
               "occurred_at": {
                 "anyOf": [
                   {
@@ -3095,6 +3150,19 @@
                   }
                 ],
                 "title": "Summary"
+              },
+              "summary_by": {
+                "anyOf": [
+                  {
+                    "const": "you",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Summary By"
               },
               "tags": {
                 "items": {
@@ -3322,6 +3390,11 @@
               "title": "Links",
               "type": "array"
             },
+            "memory_excluded": {
+              "default": false,
+              "title": "Memory Excluded",
+              "type": "boolean"
+            },
             "occurred_at": {
               "anyOf": [
                 {
@@ -3360,6 +3433,19 @@
                 }
               ],
               "title": "Summary"
+            },
+            "summary_by": {
+              "anyOf": [
+                {
+                  "const": "you",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary By"
             },
             "tags": {
               "items": {
@@ -3758,6 +3844,11 @@
                 "title": "Links",
                 "type": "array"
               },
+              "memory_excluded": {
+                "default": false,
+                "title": "Memory Excluded",
+                "type": "boolean"
+              },
               "occurred_at": {
                 "anyOf": [
                   {
@@ -3796,6 +3887,19 @@
                   }
                 ],
                 "title": "Summary"
+              },
+              "summary_by": {
+                "anyOf": [
+                  {
+                    "const": "you",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Summary By"
               },
               "tags": {
                 "items": {
@@ -5584,6 +5688,11 @@
               "title": "Links",
               "type": "array"
             },
+            "memory_excluded": {
+              "default": false,
+              "title": "Memory Excluded",
+              "type": "boolean"
+            },
             "occurred_at": {
               "anyOf": [
                 {
@@ -5622,6 +5731,19 @@
                 }
               ],
               "title": "Summary"
+            },
+            "summary_by": {
+              "anyOf": [
+                {
+                  "const": "you",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary By"
             },
             "tags": {
               "items": {
@@ -5974,6 +6096,11 @@
               "title": "Links",
               "type": "array"
             },
+            "memory_excluded": {
+              "default": false,
+              "title": "Memory Excluded",
+              "type": "boolean"
+            },
             "occurred_at": {
               "anyOf": [
                 {
@@ -6012,6 +6139,19 @@
                 }
               ],
               "title": "Summary"
+            },
+            "summary_by": {
+              "anyOf": [
+                {
+                  "const": "you",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary By"
             },
             "tags": {
               "items": {
@@ -6414,6 +6554,11 @@
               "title": "Links",
               "type": "array"
             },
+            "memory_excluded": {
+              "default": false,
+              "title": "Memory Excluded",
+              "type": "boolean"
+            },
             "occurred_at": {
               "anyOf": [
                 {
@@ -6452,6 +6597,19 @@
                 }
               ],
               "title": "Summary"
+            },
+            "summary_by": {
+              "anyOf": [
+                {
+                  "const": "you",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary By"
             },
             "tags": {
               "items": {
@@ -9329,6 +9487,11 @@
               "title": "Links",
               "type": "array"
             },
+            "memory_excluded": {
+              "default": false,
+              "title": "Memory Excluded",
+              "type": "boolean"
+            },
             "occurred_at": {
               "anyOf": [
                 {
@@ -9367,6 +9530,19 @@
                 }
               ],
               "title": "Summary"
+            },
+            "summary_by": {
+              "anyOf": [
+                {
+                  "const": "you",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary By"
             },
             "tags": {
               "items": {
@@ -10954,7 +11130,7 @@
       "readOnlyHint": false,
       "title": "\u00c4ndra vara i ink\u00f6pslistan"
     },
-    "description": "Change one owned item at its current version. Only sent fields change; omitted fields keep their stored values. name and quantity may be omitted but never empty. Null in item means not sent; to empty another optional field, list it in clear. Read the item first when unsure of its values. Only on an explicit reviewed user instruction; never invent an offer. Retry with the same key and arguments after uncertain delivery.",
+    "description": "Change one owned item at its current version. Only sent fields change; omitted fields keep their stored values. name and quantity may be omitted but never empty. Null in item means not sent; to empty another optional field, list it in clear. item.list_id moves the item to another active list. Read the item first when unsure. Only on an explicit reviewed user instruction; never invent an offer. Retry with the same key and arguments after uncertain delivery.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -10993,6 +11169,17 @@
           "additionalProperties": false,
           "description": "update_shopping_item input: an omitted or null field stays; `clear` empties one.",
           "properties": {
+            "list_id": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "name": {
               "anyOf": [
                 {
@@ -14663,7 +14850,7 @@
       "readOnlyHint": false,
       "title": "Flytta uppgifter"
     },
-    "description": "Use this when the user wants to move 1 to 20 tasks at once, for example to tomorrow, next week (Monday), a given date, or to clear the due date. Each item needs task_id and expected_version from a recent read. The whole call fails if any version is stale, so re-read and retry. New due dates are 23:59 in the owner's zone. Retry-safe with the same idempotency key. Relative days (tomorrow, next_week) are recomputed on every call, so a retry after midnight with the same key conflicts.",
+    "description": "Use this when the user wants to move 1 to 20 tasks at once, for example to tomorrow, next week (Monday), a given date, or to clear the due date. Each item needs task_id and expected_version from a recent read. The whole call fails if any version is stale, so re-read and retry. A due time of day is kept, otherwise 23:59. Retry-safe with the same idempotency key. Relative days (tomorrow, next_week) are recomputed on every call, so a retry after midnight with the same key conflicts.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -21215,7 +21402,7 @@
       "readOnlyHint": true,
       "title": "Visa tavlan"
     },
-    "description": "Use this for the Status view: one bounded page of Work records in manual order, grouped into status columns. For what is due, use get_work_agenda. Read-only. project_id (from list_projects) shows one project; q matches task text only. When the app card opens, reply in one or two sentences, no repeated list or table. Card edits are invisible until you re-read.",
+    "description": "Use this for the Status view: one page of Work records, most overdue first, grouped into status columns. For what is due, use get_work_agenda. Read-only. project_id (from list_projects) shows one project; q matches task text only. When the app card opens, reply in one or two sentences, no repeated list or table. Card edits are invisible until you re-read.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -21268,7 +21455,7 @@
         },
         "limit": {
           "default": 25,
-          "maximum": 100,
+          "maximum": 50,
           "minimum": 1,
           "type": "integer"
         },
@@ -21870,6 +22057,11 @@
           ],
           "default": null,
           "title": "Next Cursor"
+        },
+        "overdue_total": {
+          "default": 0,
+          "title": "Overdue Total",
+          "type": "integer"
         }
       },
       "required": [

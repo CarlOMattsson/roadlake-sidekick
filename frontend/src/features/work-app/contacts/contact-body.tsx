@@ -7,6 +7,7 @@ import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
 import { ContactArchived } from "./contact-archived";
 import { ContactEditor } from "./contact-edit";
 import { ContactProjects } from "./contact-projects";
+import { tasksByUrgency } from "./contacts-sections";
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import { WriteNotice } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
@@ -94,7 +95,8 @@ export function ContactBody({
         )
       )}
       <WriteStatus
-        write={write}
+        // While the editor is open it shows a refusal next to the field, not at the top of the page.
+        write={editing && write.kind === "invalid" ? { kind: "idle" } : write}
         conflict={t.contactEditConflict}
         onReload={record.reloadContact}
         banner={banner}
@@ -177,6 +179,7 @@ export function ContactBody({
           contact={contact}
           busy={write.kind === "busy"}
           saveFailed={write.kind === "failed" && write.action === "save"}
+          rejected={write.kind === "invalid"}
           onSave={record.saveContact}
           onCancel={frame.stopEdit}
           onAddAlias={record.addAlias}
@@ -189,7 +192,7 @@ export function ContactBody({
         <>
           <h3>{t.tasks}</h3>
           <TaskSummaryList
-            tasks={tasks}
+            tasks={tasksByUrgency(tasks)}
             labels={t}
             empty={t.noTasks}
             onOpen={onOpen}

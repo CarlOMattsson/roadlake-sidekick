@@ -35,6 +35,9 @@ class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTag
         tags: tuple[str, ...] = (),
         tag_match: str = "any",
     ) -> list[Contact]: ...
+    def same_name_contacts(
+        self, session: TxSession, owner_id: UUID, contact: Contact, limit: int
+    ) -> list[Contact]: ...
     def phonetic_contacts(
         self,
         session: TxSession,

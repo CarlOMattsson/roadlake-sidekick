@@ -102,6 +102,8 @@ _SLACK_MEMBER_ID = re.compile(r"[UW][A-Z0-9]{2,19}")
 # `slack.com.example.org` or `notslack.com` do not match.
 _SLACK_HOST = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+slack\.com")
 SLACK_PROFILE_LIMIT = 160
+# The longest pasted link accepted: room for a query string or tracking parameters that are dropped.
+SLACK_PROFILE_INPUT_LIMIT = 300
 
 
 def normalize_slack_profile(value: str | None) -> str | None:
@@ -118,7 +120,7 @@ def normalize_slack_profile(value: str | None) -> str | None:
     s = value.strip()
     if not s:
         return None
-    if len(s) > 300:
+    if len(s) > SLACK_PROFILE_INPUT_LIMIT:
         raise ValidationError("slack profile link is too long")
     if not s.isascii() or any(unicodedata.category(char) in {"Cc", "Cf", "Zs"} for char in s):
         raise ValidationError("slack profile link contains invalid characters")

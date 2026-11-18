@@ -129,6 +129,8 @@ describe("the shopping item editor's failed contact search", () => {
           busy={false}
           focusFirst={false}
           contacts={contacts}
+          lists={[]}
+          stores={[]}
           onCancel={vi.fn()}
           onSave={vi.fn()}
         />,

@@ -18,7 +18,8 @@ import type {
 
 export const TASK_ID = "019f0000-0000-7000-8000-0000000000c1";
 export const OTHER_ID = "019f0000-0000-7000-8000-0000000000c2";
-export const DUE = "2026-10-27T09:00:00.000Z";
+// 23:59 on the owner's clock: a bare date, as the app writes one.
+export const DUE = "2026-10-27T22:59:00.000Z";
 // Thursday 29 October 2026, 10:00 on the owner's clock (Europe/Stockholm, UTC+1 once the clocks went back).
 export const NOW = new Date("2026-10-29T09:00:00.000Z");
 

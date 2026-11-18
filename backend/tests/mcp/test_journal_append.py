@@ -182,7 +182,7 @@ async def test_append_text_saves_her_words_as_a_new_source_replacing_the_old_one
 
 @pytest.mark.asyncio
 @pytest.mark.integration
-async def test_append_text_alone_changes_only_the_source_and_version() -> None:
+async def test_append_text_alone_adds_it_to_her_own_summary_and_replaces_the_source() -> None:
     container, actor = make_container()
     server = create_mcp_server(container, actor_provider=lambda: actor, enable_auth=False)
 
@@ -200,7 +200,8 @@ async def test_append_text_alone_changes_only_the_source_and_version() -> None:
         record = appended.structured_content["entry"]
         assert record["version"] == 2
         assert record["key_points"] == entry["key_points"]
-        assert record["summary"] == entry["summary"]
+        # The summary is the owner's own words (an app-only write), so the added text joins it.
+        assert record["summary"] == "En lugn dag.\n\nOch sedan åt vi glass."
         assert record["source_id"] != entry["source_id"]
         assert _line_one(appended) == "Added your words to the journal from 21 July."
 

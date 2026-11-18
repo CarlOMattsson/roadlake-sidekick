@@ -98,8 +98,9 @@ class WorkListSpec:
     agenda: AgendaSpec | None = None
     # IANA key of the owner's zone; it decides the instants of a Project's date-only fields.
     owner_zone: str = "UTC"
-    # The status board's order: Tasks the owner placed by hand come first, by their rank, ahead
-    # of the requested sort (which orders the rest, and ties between equal ranks).
+    # The status board's order: open records before completed ones, then the Tasks the owner
+    # placed by hand, by their rank, ahead of the requested sort (which orders the rest, and ties
+    # between equal ranks). The board lists Tasks, never their Steps or Actions.
     board_order: bool = False
 
 
@@ -167,6 +168,8 @@ def sort_keys(spec: WorkListSpec) -> tuple[SortKey, ...]:
     if spec.agenda is not None and spec.agenda.today_first:
         found.append(SortKey("today_first", int, False, False, False))
     if spec.board_order:
+        # Open records stand ahead of completed ones, so a page never fills with finished work.
+        found.append(SortKey("open_first", int, False, False, False))
         # Ascending whatever the sort; an unranked Task (NULL) sorts after every ranked one.
         found.append(SortKey("board_rank", int, True, False, False))
     for name, kind, nullable, nulls_first in keys:

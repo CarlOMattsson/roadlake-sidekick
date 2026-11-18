@@ -25,7 +25,15 @@ export type ToolResults = {
   complete_step_action: ActionOutput;
   complete_task: TaskOutput;
   complete_task_step: StepOutput;
-  create_contact: ContactResult;
+  create_contact: {
+    contact: ContactRecord;
+    same_name_contacts: Array<{
+      display_name: string;
+      id: string;
+      organization: string | null;
+      role: string | null;
+    }>;
+  };
   create_domain: DomainOutput;
   create_journal_source: {
     source: {
@@ -446,6 +454,7 @@ export type ToolResults = {
     };
     manually_ordered: Array<string>;
     next_cursor: string | null;
+    overdue_total: number;
   };
   get_work_hierarchy: {
     next_cursor: string | null;
@@ -1905,6 +1914,7 @@ export type ToolInputs = {
     > | null;
     idempotency_key: string;
     item: {
+      list_id?: string | null;
       name?: string | null;
       note?: string | null;
       occasion?: string | null;
@@ -2306,10 +2316,12 @@ export type JournalEntryRecord = {
   journal_date: string;
   key_points: Array<JournalKeyPoint>;
   links: Array<JournalEntryLink>;
+  memory_excluded: boolean;
   occurred_at: string | null;
   project_ids: Array<string>;
   source_id: string;
   summary: string | null;
+  summary_by: "you" | null;
   tags: Array<string>;
   task_ids: Array<string>;
   title: string;

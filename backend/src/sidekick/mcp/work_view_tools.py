@@ -93,6 +93,8 @@ def saved_view_record(item: SavedView) -> SavedViewRecord:
 
 # Parameter types shared by several tools; the JSON schema each produces is pinned by the contract.
 _Limit100 = Annotated[int, Field(ge=1, le=100)]
+# A board page is Task records in full, so a hundred of them would not fit a tool result.
+_BoardLimit = Annotated[int, Field(ge=1, le=50)]
 _Cursor = Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)]
 _Query = Annotated[str | None, Field(max_length=200)]
 _Version = Annotated[int, Field(ge=1)]
@@ -241,6 +243,7 @@ def _board_reply(
     columns, next_cursor = ctx.container.work_lists.work_board_page(actor, board_query)
     manually_ordered = ctx.container.work_lists.work_board_manual_statuses(actor, board_query)
     column_totals = ctx.container.work_lists.work_board_column_totals(actor, board_query)
+    overdue_total = ctx.container.work_lists.work_board_overdue_total(actor, board_query)
     filters = applied_filters(values, _BOARD_FILTER_DEFAULTS)
     structured = WorkBoardOutput(
         columns={
@@ -250,14 +253,12 @@ def _board_reply(
         filters=filters,
         manually_ordered=list(manually_ordered),
         column_totals=column_totals,
+        overdue_total=overdue_total,
     )
-    sentence = board_sentence(structured.columns, structured.next_cursor)
+    sentence = board_sentence(structured)
     return card_result(
         structured.model_dump(mode="json"),
-        spoken_line(
-            sentence,
-            board_card_text(structured.columns, structured.next_cursor, filtered=bool(filters)),
-        ),
+        spoken_line(sentence, board_card_text(structured, filtered=bool(filters))),
     )
 
 
@@ -265,8 +266,8 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="get_work_board",
         description=(
-            "Use this for the Status view: one bounded page of Work records in manual order, "
-            "grouped into status columns. For what is due, use get_work_agenda. Read-only. "
+            "Use this for the Status view: one page of Work records, most overdue first, grouped "
+            "into status columns. For what is due, use get_work_agenda. Read-only. "
             "project_id (from list_projects) shows one project; q matches task text only. When "
             "the app card opens, reply in one or two sentences, no repeated list or table. Card "
             "edits are invisible until you re-read."
@@ -277,7 +278,7 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
     )
     @ctx.instrument("get_work_board")
     def get_work_board(
-        limit: _Limit100 = 25,
+        limit: _BoardLimit = 25,
         q: _Query = None,
         status: TaskStatus | None = None,
         priority: Priority | None = None,
@@ -299,6 +300,7 @@ def _register_get_work_board(mcp: FastMCP, ctx: ToolContext) -> None:
             archive=archive,
             limit=limit,
             cursor=cursor,
+            sort="due_asc",
             tags=tuple(tags or ()),
             tag_match=tag_match,
             actionable=actionable,

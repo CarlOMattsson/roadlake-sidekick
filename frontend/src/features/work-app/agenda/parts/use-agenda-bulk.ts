@@ -38,7 +38,15 @@ export function useAgendaBulk({
   rows: RowState;
   mounted: { readonly current: boolean };
 }) {
-  const { reading, pending, retryWrite, setNotice, enqueueRow, run } = session;
+  const {
+    reading,
+    pending,
+    retryWrite,
+    setNotice,
+    enqueueRow,
+    run,
+    readAfterConflict,
+  } = session;
   // Waiting view: the Tasks whose reminder this view set, by row key.
   const [reminded, setReminded] = useState<Record<string, boolean>>({});
   const remindedRef = useRef(new Set<string>());
@@ -73,7 +81,7 @@ export function useAgendaBulk({
         if (mounted.current) setReminded((all) => ({ ...all, [key]: true }));
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(key);
-        if (!mounted.current) return;
+        if (!mounted.current || readAfterConflict(error)) return;
         retryWrite.current = () => remind(record);
         setNotice(failureNotice(error, "move", { key, title: record.title }));
       }
@@ -140,7 +148,7 @@ export function useAgendaBulk({
         session.showRead(await transport.getWorkAgenda(filters));
         if (mounted.current && landed.length > 0) setMoved(landed);
       } catch (error) {
-        if (!mounted.current) return;
+        if (!mounted.current || readAfterConflict(error)) return;
         retryWrite.current = () => moveAllOverdue(records);
         setNotice(failureNotice(error, "moveAll"));
       }
@@ -172,7 +180,7 @@ export function useAgendaBulk({
         session.showRead(await transport.getWorkAgenda(filters));
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(undoKey());
-        if (!mounted.current) return;
+        if (!mounted.current || readAfterConflict(error)) return;
         retryWrite.current = () => restoreDates(left);
         setNotice(failureNotice(error, "moveAll"));
       }

@@ -103,14 +103,17 @@ ADDITIVE_OUTPUT_FIELDS: dict[str, tuple[str, ...]] = {
 # The entry record names its links and its tags. Only the journal tools that return the
 # record are listed, and each field is removed only from objects that carry the record's own
 # fields, so the same name on another object in those tools is still checked.
+# 2026-11-18: `memory_excluded` (the owner keeps the entry out of Claude's memory) and `summary_by`
+# ("you" when the summary holds the owner's own words) are optional fields with defaults, added on
+# purpose after the baselines were accepted.
 ADDITIVE_RECORD_FIELDS: dict[str, tuple[str, ...]] = {
-    "list_journal_entries": ("links", "tags"),
-    "get_journal_entry": ("links", "tags"),
-    "get_journal_day": ("links", "tags"),
-    "create_manual_journal_entry": ("links", "tags"),
-    "write_journal_entry": ("links", "tags"),
-    "update_journal_entry": ("links", "tags"),
-    "finalize_journal_draft": ("links", "tags"),
+    "list_journal_entries": ("links", "tags", "memory_excluded", "summary_by"),
+    "get_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
+    "get_journal_day": ("links", "tags", "memory_excluded", "summary_by"),
+    "create_manual_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
+    "write_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
+    "update_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
+    "finalize_journal_draft": ("links", "tags", "memory_excluded", "summary_by"),
 }
 ENTRY_RECORD_FIELDS = frozenset({"journal_date", "key_points", "contact_ids"})
 

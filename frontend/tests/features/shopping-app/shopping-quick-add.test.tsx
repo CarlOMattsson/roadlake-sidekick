@@ -198,9 +198,9 @@ it("the Add button sends one add write with the typed name, empties the field an
     screen.getByRole("button", { name: shoppingEn.addItemButton }),
   );
   await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(1));
-  const [id, names, key, options] = vi.mocked(transport.add).mock.calls[0]!;
+  const [id, items, key, options] = vi.mocked(transport.add).mock.calls[0]!;
   expect(id).toBe(list.id);
-  expect(names).toEqual(["Bröd"]);
+  expect(items).toEqual([{ name: "Bröd" }]);
   expect(key).toBeTruthy();
   expect(options).toEqual({ mergeDuplicates: true });
   // The field empties once the write has answered, stays open with the focus, and × is back in place of +.
@@ -219,7 +219,7 @@ it("Enter in the field sends the item, empties it and keeps the focus", async ()
   const field = await openField(user);
   await user.type(field, "Ägg{Enter}");
   await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(1));
-  expect(vi.mocked(transport.add).mock.calls[0]![1]).toEqual(["Ägg"]);
+  expect(vi.mocked(transport.add).mock.calls[0]![1]).toEqual([{ name: "Ägg" }]);
   await waitFor(() => expect(field).toHaveValue(""));
   expect(field).toHaveFocus();
 });
@@ -260,10 +260,11 @@ it("a failed quick add hides the earlier receipt", async () => {
   await waitLoaded();
   const field = await openField(user);
   await user.type(field, "milk{Enter}");
-  expect(await screen.findByText("Added: Milk")).toBeInTheDocument();
+  // The item joined one already on the list, so the receipt gives the amount it now has.
+  expect(await screen.findByText("Added: Milk (now 2 l)")).toBeInTheDocument();
   await user.type(field, "Smör{Enter}");
   await screen.findByRole("alert");
-  expect(screen.queryByText("Added: Milk")).not.toBeInTheDocument();
+  expect(screen.queryByText("Added: Milk (now 2 l)")).not.toBeInTheDocument();
 });
 
 it("Enter with an empty or blank field sends nothing", async () => {
@@ -325,8 +326,8 @@ it("a failed add keeps the text under the field with 'Couldn’t save', and Add 
   );
   await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(2));
   const [first, second] = vi.mocked(transport.add).mock.calls;
-  expect(first![1]).toEqual(["Smör"]);
-  expect(second![1]).toEqual(["Smör"]);
+  expect(first![1]).toEqual([{ name: "Smör" }]);
+  expect(second![1]).toEqual([{ name: "Smör" }]);
   expect(second![2]).toBe(first![2]);
   await waitFor(() => expect(field).toHaveValue(""));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -348,9 +349,9 @@ it("a quick add in a shop view puts the item in that shop and merges a same-name
   const field = await openField(user);
   await user.type(field, "Bröd{Enter}");
   await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(1));
-  const [id, names, , options] = vi.mocked(transport.add).mock.calls[0]!;
+  const [id, items, , options] = vi.mocked(transport.add).mock.calls[0]!;
   expect(id).toBe(list.id);
-  expect(names).toEqual(["Bröd"]);
+  expect(items).toEqual([{ name: "Bröd" }]);
   expect(options).toEqual({ store: "ICA MAXI 4", mergeDuplicates: true });
 });
 
@@ -459,14 +460,77 @@ it("commas in the field add several items in one write, trimmed and without empt
   const field = await openField(user);
   await user.type(field, "glödlampor, mjölk ,{Enter}");
   await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(1));
+  // Lower-case names get a capital, as the list's other items have.
   expect(vi.mocked(transport.add).mock.calls[0]![1]).toEqual([
-    "glödlampor",
-    "mjölk",
+    { name: "Glödlampor" },
+    { name: "Mjölk" },
   ]);
   expect(
     await screen.findByText("Added: Glödlampor, Mjölk · ICA"),
   ).toBeVisible();
   await waitFor(() => expect(field).toHaveValue(""));
+});
+
+it("typed amounts are sent as quantity and unit, and the receipt names what was added", async () => {
+  const transport = adapter({
+    add: vi.fn().mockResolvedValue({
+      items: [
+        {
+          item: item({ id: "a1", name: "Mjölk", quantity: "2", store: null }),
+          merged: false,
+        },
+        {
+          item: item({
+            id: "a2",
+            name: "Ägg",
+            quantity: "12",
+            unit: "st",
+            store: null,
+          }),
+          merged: false,
+        },
+      ],
+    }),
+  });
+  const user = userEvent.setup();
+  render(storeView(transport));
+  await waitLoaded();
+  const field = await openField(user);
+  await user.type(field, "2 l mjölk, ägg 12 st{Enter}");
+  await waitFor(() => expect(transport.add).toHaveBeenCalledTimes(1));
+  expect(vi.mocked(transport.add).mock.calls[0]![1]).toEqual([
+    { name: "Mjölk", quantity: "2", unit: "l" },
+    { name: "Ägg", quantity: "12", unit: "st" },
+  ]);
+  expect(await screen.findByText("Added: Mjölk, Ägg")).toBeVisible();
+});
+
+it("an item that joined one already on the list shows its new amount in the receipt", async () => {
+  const transport = adapter({
+    add: vi.fn().mockResolvedValue({
+      items: [
+        {
+          item: item({ name: "Mjölk", quantity: "4", unit: "l", store: null }),
+          merged: true,
+        },
+        {
+          item: item({
+            id: "a2",
+            name: "Ägg",
+            quantity: undefined,
+            unit: undefined,
+            store: null,
+          }),
+        },
+      ],
+    }),
+  });
+  const user = userEvent.setup();
+  render(storeView(transport));
+  await waitLoaded();
+  const field = await openField(user);
+  await user.type(field, "2 l mjölk, ägg{Enter}");
+  expect(await screen.findByText("Added: Mjölk (now 4 l), Ägg")).toBeVisible();
 });
 
 it("the placeholder is the same in both languages' examples: no quantity is read from the text", () => {

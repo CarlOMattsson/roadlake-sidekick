@@ -449,7 +449,7 @@ class AiPlanService:
         correlation_id: str | None,
         now: datetime,
     ) -> None:
-        """One audit event and one activity entry: ids and counts, never a title or a spec."""
+        """One audit event and one activity entry: the task title, ids and counts, never a spec."""
 
         self.store.append_audit(
             session,
@@ -473,8 +473,8 @@ class AiPlanService:
             actor_id=actor.user_id,
             operation=event.removeprefix("ai."),
             category=ActivityCategory.AI_STEPS,
-            summary=f"AI plan: {event.removeprefix('ai.plan_')}",
-            after_values={"steps": steps, "ai_steps": ai_steps},
+            summary=f"AI plan {event.removeprefix('ai.plan_')}: {task.title}",
+            after_values={"title": task.title, "steps": steps, "ai_steps": ai_steps},
             correlation_id=correlation_id,
             occurred_at=now,
         )

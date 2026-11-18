@@ -758,6 +758,25 @@
   min-width: var(--sk-tap);
 }
 
+/* A waiting Task's own line under its meta line: who it waits on, since when, and the follow-up day. The meta line is
+   one clipped line; this one may wrap at word breaks, so nothing is cut at 360 px or large text. It sits as close under
+   the meta as the meta sits under the title (the meta's own 6 under it are taken back). */
+.sidekick-work .work-agenda-body > .work-agenda-waiting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sk-s2);
+  margin: 0 0 var(--sk-row-pad);
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-agenda-body > .work-card-meta + .work-agenda-waiting {
+  margin-top: calc(-1 * var(--sk-row-pad));
+}
+.sidekick-work .work-agenda-waiting > span + span::before {
+  content: "· ";
+}
+
 /* The waiting view: each row names who is waited on and for how long, then the Task, then a "Påminn" button.
    The name and the days share one line that wraps on a 320 px screen; the Task title is the open button; the
    button is at least 44 px high and wide and sits under the title, so it never pushes the row wider. A wait of
@@ -779,6 +798,32 @@
 }
 .sidekick-work .work-waiting-days[data-tone="overdue"] {
   color: var(--sk-overdue-fg);
+}
+/* The contact's name opens its card: a text button in the row's own type, the 44 px target given by its height. */
+.sidekick-work button.work-waiting-link {
+  min-height: var(--sk-tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--sk-fg);
+  font: inherit;
+  font-weight: var(--sk-weight-semibold);
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+/* The follow-up day under the title, muted, in the overdue tone once it has come. */
+.sidekick-work .work-waiting-follow {
+  margin: 0 0 var(--sk-row-pad);
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The agenda's mode chip "Väntar på" and, in the waiting view, the way back, on a row of their own under the tag filter. */
+.sidekick-work .work-agenda-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) 0;
 }
 .sidekick-work .work-waiting-actions {
   display: flex;

@@ -15,24 +15,29 @@ export function waitsForOwner(state: AiStepState | undefined): boolean {
 }
 
 /**
- * The mark of who does a Step: "Du" or "AI", and for an AI Step where it stands ("AI · att granska"). It only reads;
- * the owner reviews and answers through Claude. A Step from an older server has no performer and no mark.
+ * The mark of who does a Step: "Du" or "AI", and for an AI Step where it stands ("AI · att granska"). While the Step's
+ * plan waits for the owner's approval, a Step that would read "redo" or "väntar" says "väntar på godkännande" instead.
+ * It only reads; the owner reviews and answers through Claude. A Step from an older server has no performer and no mark.
  */
 export function AiStepMark({
   performer,
   state,
+  awaitingApproval = false,
   locale,
 }: {
   performer: StepPerformer | undefined;
   state?: AiStepState;
+  /** True while the Step's plan has not been approved. */
+  awaitingApproval?: boolean;
   locale: string;
 }) {
   if (!performer) return null;
   const t = aiStepLabelsFor(locale);
   const who = t.performer[performer];
+  const held = awaitingApproval && (state === "ready" || state === "waiting");
   const where =
     performer === "ai" && state && state !== "done"
-      ? t.status[state]
+      ? t.status[held ? "awaiting_approval" : state]
       : undefined;
   return (
     <span
@@ -40,7 +45,7 @@ export function AiStepMark({
       data-performer={performer}
       data-attention={waitsForOwner(state) ? "true" : undefined}
       role="img"
-      aria-label={t.reading(who, where)}
+      aria-label={t.reading(t.performedBy[performer], where)}
     >
       <span aria-hidden="true">{where ? `${who} · ${where}` : who}</span>
     </span>

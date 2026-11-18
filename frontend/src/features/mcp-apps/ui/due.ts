@@ -159,21 +159,93 @@ function ownerOffset(instant: number): number {
   return shown - Math.floor(instant / 60_000) * 60_000;
 }
 
-/**
- * The instant 23:59 on the owner calendar day `day` (`YYYY-MM-DD`) ends, as an ISO string: the same zone the
- * app shows dates in, whatever the browser's own zone is. `day` must be a complete, existing date.
- */
-export function ownerEndOfDay(day: string): string {
+/** The instant `hour:minute` on the owner calendar day `day` (`YYYY-MM-DD`), as an ISO string. */
+function ownerWallInstant(day: string, hour: number, minute: number): string {
   const [year, month, date] = day.split("-").map(Number) as [
     number,
     number,
     number,
   ];
-  const wall = Date.UTC(year, month - 1, date, 23, 59);
+  const wall = Date.UTC(year, month - 1, date, hour, minute);
   // Two passes settle the offset at the instant itself, not at the wall time read as UTC.
   let instant = wall - ownerOffset(wall);
   instant = wall - ownerOffset(instant);
   return new Date(instant).toISOString();
+}
+
+/**
+ * The instant 23:59 on the owner calendar day `day` (`YYYY-MM-DD`) ends, as an ISO string: the same zone the
+ * app shows dates in, whatever the browser's own zone is. `day` must be a complete, existing date.
+ * 23:59 is how a bare date is stored; the server reads any other clock time as a time to remind at.
+ */
+export function ownerEndOfDay(day: string): string {
+  return ownerWallInstant(day, 23, 59);
+}
+
+const CLOCK_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/**
+ * The instant of `time` (`HH:MM`, a time input's value) on the owner calendar day `day`; a missing or unreadable
+ * `time` gives the bare date, 23:59.
+ */
+export function ownerDueAt(
+  day: string,
+  time: string | null | undefined,
+): string {
+  const clock = time ? CLOCK_PATTERN.exec(time) : null;
+  return clock
+    ? ownerWallInstant(day, Number(clock[1]), Number(clock[2]))
+    : ownerEndOfDay(day);
+}
+
+/**
+ * The clock time (`HH:MM`, owner zone) a due instant carries, or null for a bare date: 23:59 (what a date without a time
+ * is stored as), a plain `YYYY-MM-DD`, or input that is not a datetime. The server uses the same rule to decide
+ * whether a Task reminds at its time.
+ */
+export function ownerClockTime(
+  value: string | null | undefined,
+): string | null {
+  if (!value || !TIMESTAMP_PATTERN.test(value)) return null;
+  const instant = Date.parse(value.replace(/(\.\d{3})\d+/, "$1"));
+  if (Number.isNaN(instant)) return null;
+  const parts = ownerClock().formatToParts(new Date(instant));
+  const part = (type: string): string =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  const time = `${part("hour")}:${part("minute")}`;
+  return time === "23:59" ? null : time;
+}
+
+/**
+ * The due instant after moving a Task to another day: the same clock time on `target` when the Task has one, else 23:59
+ * (a bare date). `target` is the new day as `YYYY-MM-DD` or as any due value (the 23:59 instant of a shortcut day).
+ * Throws on an unreadable `target`; callers pass a day they have checked.
+ */
+export function moveDueToDay(
+  current: string | null | undefined,
+  target: string,
+): string {
+  const day = parseDueDay(target);
+  if (day === null) throw new RangeError(`Not a due day: ${target}`);
+  return ownerDueAt(
+    new Date(day * DAY_MS).toISOString().slice(0, 10),
+    ownerClockTime(current),
+  );
+}
+
+/**
+ * How a due clock time reads next to the date: "kl 17:30" in Swedish, "5:30 pm" in English; empty for a bare date or
+ * unreadable input. `locale` is a work label locale, as for `workDate`.
+ */
+export function dueClockText(
+  value: string | null | undefined,
+  locale: string,
+): string {
+  const time = ownerClockTime(value);
+  if (time === null) return "";
+  const [hour, minute] = time.split(":").map(Number) as [number, number];
+  if (locale.startsWith("sv")) return `kl ${time}`;
+  return `${hour % 12 === 0 ? 12 : hour % 12}:${String(minute).padStart(2, "0")} ${hour < 12 ? "am" : "pm"}`;
 }
 
 /** The owner calendar day `days` after the one `instant` falls on, as `YYYY-MM-DD`. */

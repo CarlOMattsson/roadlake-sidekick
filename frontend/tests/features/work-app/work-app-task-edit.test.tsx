@@ -331,7 +331,7 @@ it("validates the title on the client and sends nothing when it is empty", async
   expect(updateTask).not.toHaveBeenCalled();
 });
 
-it("shows a conflict banner, reloads the latest version and keeps the typed values", async () => {
+it("reads the latest version at once on a conflict, with no banner, and keeps the typed values", async () => {
   const user = userEvent.setup();
   const latest = { ...taskA, title: "Ring Anna (annan)", version: 2 };
   const getTask = vi
@@ -351,10 +351,6 @@ it("shows a conflict banner, reloads the latest version and keeps the typed valu
   await user.clear(title);
   await user.type(title, "Ring Anna idag");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.conflict);
-  await waitFor(() => expect(banner).toHaveFocus());
-  await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
   expect(getTask).toHaveBeenLastCalledWith(taskA.id);
   expect(
@@ -400,11 +396,6 @@ it("keeps an untouched field at the latest value after a reload", async () => {
   await user.clear(title);
   await user.type(title, "Ny");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  await user.click(
-    within(await screen.findByRole("alert")).getByRole("button", {
-      name: workEn.reload,
-    }),
-  );
   await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
   await user.click(screen.getByRole("button", { name: workEn.save }));
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
@@ -491,11 +482,6 @@ it("sends only the fields that differ from the Task the user last saw", async ()
   await user.clear(title);
   await user.type(title, "Ring Anna idag");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  await user.click(
-    within(await screen.findByRole("alert")).getByRole("button", {
-      name: workEn.reload,
-    }),
-  );
   await waitFor(() => expect(getTask).toHaveBeenCalledTimes(2));
   // The latest Task is done, so Återöppna stands in place of the status chips, and it stays off while the
   // editor is open.
@@ -587,7 +573,7 @@ it("sends one step request for two clicks dispatched before React re-renders", a
   expect(complete).toHaveBeenCalledTimes(1);
 });
 
-it("shows a step conflict banner, disables steps until the re-read arrives, then writes with the new version and key", async () => {
+it("reads the steps again at once on a step conflict, disables them until the re-read arrives, then writes with the new version and key", async () => {
   const user = userEvent.setup();
   const latest = { ...step, version: 4 };
   let resolveRead!: (value: unknown) => void;
@@ -609,12 +595,9 @@ it("shows a step conflict banner, disables steps until the re-read arrives, then
   const work = transport({ listTaskSteps: list, completeTaskStep: complete });
   render(rootTask(work));
   await user.click(await screen.findByRole("checkbox", { name: step.title }));
-  const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.stepConflict);
-  await waitFor(() => expect(banner).toHaveFocus());
-  await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   const checkbox = await screen.findByRole("checkbox", { name: step.title });
   await waitFor(() => expect(checkbox).toBeDisabled());
+  expect(screen.queryByRole("alert")).toBeNull();
   act(() => {
     resolveRead({ items: [latest], next_cursor: null });
   });

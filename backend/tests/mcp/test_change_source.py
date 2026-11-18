@@ -84,6 +84,32 @@ async def test_a_model_tool_is_claude_and_an_app_only_tool_is_you() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.integration
+async def test_a_shared_tool_called_by_the_app_is_you() -> None:
+    """The app calls the same tools Claude does; its call says so in the request metadata."""
+
+    container, actor = _setup()
+    async with _client(container, actor) as client:
+        by_claude = await client.call_tool(
+            "create_task", {"title": "Från Claude", "idempotency_key": f"src-{uuid4()}"}
+        )
+        by_app = await client.call_tool(
+            "create_task",
+            {"title": "Från appen", "idempotency_key": f"src-{uuid4()}"},
+            meta={"com.roadlake.sidekick/origin": "app"},
+        )
+        other = await client.call_tool(
+            "create_task",
+            {"title": "Okänd källa", "idempotency_key": f"src-{uuid4()}"},
+            meta={"com.roadlake.sidekick/origin": "someone"},
+        )
+        by_id = {change["id"]: change["actor"] for change in await _changes(client)}
+    assert by_id[(by_claude.structured_content or {})["task"]["id"]] == "claude"
+    assert by_id[(by_app.structured_content or {})["task"]["id"]] == "you"
+    assert by_id[(other.structured_content or {})["task"]["id"]] == "claude"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_a_change_written_outside_a_request_is_unknown() -> None:
     container, actor = _setup()
     task = container.tasks.create(actor, title="Utan källa", idempotency_key=f"src-{uuid4()}")

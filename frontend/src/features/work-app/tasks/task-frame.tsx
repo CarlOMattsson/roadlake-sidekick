@@ -7,6 +7,7 @@ import { MoreIcon, TaskProps } from "./task-detail-controls";
 import { useLinkUndo } from "./task-contacts";
 import { TaskEditor } from "./task-edit";
 import { TaskPlace } from "./task-place";
+import { TaskWaiting } from "./task-waiting";
 import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
@@ -35,6 +36,7 @@ import { WaitingLine } from "../shared/waiting-line";
 import { aiLabelsFor } from "../ai/ai-labels";
 import { AiPlanCard } from "../ai/ai-plan-card";
 import { AiStepRun } from "../ai/ai-step-run";
+import { AwaitingApproval } from "../ai/awaiting-approval";
 import { useAiPlan } from "../ai/use-ai-plan";
 
 export function TaskFrame({
@@ -60,9 +62,12 @@ export function TaskFrame({
    */
   onDone?: (done: DoneHandoff) => void;
 }) {
-  const frame = useDetailFrame({ moves });
+  // A write refused because the Task changed meanwhile reads it again, and the view shows what stands now.
+  const frame = useDetailFrame({ moves, onConflict: () => reloadTask() });
   const { phase, write, editing, heading, banner } = frame;
   const [task, setTask] = useState<WorkTask>();
+  // Counts the writes that changed the Task's Steps (completing it completes them); the Steps are read again for each.
+  const [stepWrites, setStepWrites] = useState(0);
   // The ⋯ panel under the title; its one entry is `edit` (design system §3, Tillbakarad).
   const [menuOpen, setMenuOpen] = useState(false);
   const menuId = useId();
@@ -111,6 +116,7 @@ export function TaskFrame({
     task,
     setTask,
     refreshTags: tags.refresh,
+    onStepsChanged: () => setStepWrites((count) => count + 1),
     onSaved,
     onTrashStart: () => setMenuOpen(false),
     onDone: onDone && ((done) => onDone(doneHandoff(done, offers, t))),
@@ -277,6 +283,7 @@ export function TaskFrame({
         (dueOffered || statusOffered || doneShown) && (
           <TaskProps
             hasDue={Boolean(task.due_at)}
+            dueAt={task.due_at}
             busy={write.kind === "busy" || editing}
             status={task.status}
             labels={t}
@@ -349,6 +356,17 @@ export function TaskFrame({
           onOpen={onOpen}
         />
       )}
+      {/* Who the Task waits on, since when and when to follow up; each change is one update_task. */}
+      {phase === "ready" && task && (
+        <TaskWaiting
+          task={task}
+          labels={t}
+          transport={transport}
+          writable={offers("update_task")}
+          busy={write.kind === "busy" || editing}
+          onWrite={saveTask}
+        />
+      )}
       {/* The tags under where the Task belongs, as on a Contact: the pills and one quiet button that edits them. */}
       {phase === "ready" && task && (
         <TagField
@@ -418,6 +436,7 @@ export function TaskFrame({
               onSave={saveTask}
               onCancel={frame.stopEdit}
               labels={t}
+              transport={transport}
             />
           )}
           {ai.shown && (
@@ -428,25 +447,27 @@ export function TaskFrame({
               approveOffered={aiApproveOffered}
             />
           )}
-          <TaskSteps
-            taskId={task.id}
-            transport={transport}
-            labels={t}
-            refreshKey={ai.stepsKey}
-            stepExtra={(step) => {
-              const entry = ai.byStep.get(step.id);
-              return entry?.step.performer === "ai" ? (
-                <AiStepRun
-                  entry={entry}
-                  transport={transport}
-                  server={ai.server}
-                  labels={aiWords}
-                  locale={t.dateLocale}
-                  onReviewed={ai.reviewed}
-                />
-              ) : null;
-            }}
-          />
+          <AwaitingApproval plan={ai.plan}>
+            <TaskSteps
+              taskId={task.id}
+              transport={transport}
+              labels={t}
+              refreshKey={refreshKey + ai.stepsKey + stepWrites}
+              stepExtra={(step) => {
+                const entry = ai.byStep.get(step.id);
+                return entry?.step.performer === "ai" ? (
+                  <AiStepRun
+                    entry={entry}
+                    transport={transport}
+                    server={ai.server}
+                    labels={aiWords}
+                    locale={t.dateLocale}
+                    onReviewed={ai.reviewed}
+                  />
+                ) : null;
+              }}
+            />
+          </AwaitingApproval>
           <TaskReferences taskId={task.id} transport={transport} labels={t} />
           {contactsOn && (
             <TaskContactsSection

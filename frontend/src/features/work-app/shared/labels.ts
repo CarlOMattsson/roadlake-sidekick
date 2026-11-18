@@ -54,8 +54,6 @@ export const workEn = {
   offlineCopy: (time: string) => `No connection · last fetched ${time}`,
   steps: "Steps",
   stepsForbidden: "You don’t have access to steps.",
-  stepConflict:
-    "A step was changed elsewhere. Refresh to see the latest version.",
   stepSaveFailed: "Couldn’t update the step.",
   stepsShowMore: "Show more steps",
   stepsReadMoreFailed: "Couldn’t load more steps.",
@@ -78,6 +76,13 @@ export const workEn = {
   dueTomorrow: "Tomorrow",
   dueNextWeek: "Next week",
   dueNone: "No date",
+  /** The optional time of day beside the due date, in the Task editor and the date choices. */
+  dueTime: "Time",
+  /** Takes the time of day off a due date (the date stays, as a bare date). */
+  removeDueTime: "Remove time",
+  /** Under a due date that has a time: the Task reminds at that time. */
+  remindsAtTime: "Reminds at that time",
+  dueTimeIncomplete: "Enter a full time.",
   /** Expands and collapses the Task description in the Task view. */
   descriptionMore: "Show more",
   descriptionLess: "Show less",
@@ -151,6 +156,8 @@ export const workEn = {
   phone: "Phone",
   slack: "Slack",
   slackExample: "acme.slack.com/team/U01ABC23DEF",
+  slackInvalid:
+    "That Slack link isn’t recognised. Paste the link to the person’s profile (in Slack: open the profile, More, Copy link). It looks like acme.slack.com/team/U01ABC23DEF.",
   contextNote: "Note",
   relationship: "Relationship",
   organization: "Organization",
@@ -224,7 +231,6 @@ export const workEn = {
   agendaNoMatches: "No tasks match the filter.",
   /** Glyph action of a task that is not done. */
   agendaComplete: "Mark {title} as done",
-  stepOf: "Step in: {title}",
   /** Glyph action of a task that is done. */
   agendaReopen: "Mark {title} as not done",
   /** Closes a row's quick choices; `completed` would read as the status. */
@@ -301,8 +307,6 @@ export const workSv: WorkLabels = {
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,
   steps: "Steg",
   stepsForbidden: "Du har inte behörighet att se steg.",
-  stepConflict:
-    "Ett steg ändrades någon annanstans. Uppdatera för att se den senaste versionen.",
   stepSaveFailed: "Det gick inte att uppdatera steget.",
   stepsShowMore: "Visa fler steg",
   stepsReadMoreFailed: "Det gick inte att läsa fler steg.",
@@ -326,6 +330,13 @@ export const workSv: WorkLabels = {
   dueTomorrow: "Imorgon",
   dueNextWeek: "Nästa vecka",
   dueNone: "Inget datum",
+  /** The optional time of day beside the due date, in the Task editor and the date choices. */
+  dueTime: "Tid",
+  /** Takes the time of day off a due date (the date stays, as a bare date). */
+  removeDueTime: "Ta bort tid",
+  /** Under a due date that has a time: the Task reminds at that time. */
+  remindsAtTime: "Påminner vid tidpunkten",
+  dueTimeIncomplete: "Ange en fullständig tid.",
   /** Expands and collapses the Task description in the Task view. */
   descriptionMore: "Visa mer",
   descriptionLess: "Visa mindre",
@@ -391,6 +402,8 @@ export const workSv: WorkLabels = {
   phone: "Telefon",
   slack: "Slack",
   slackExample: "acme.slack.com/team/U01ABC23DEF",
+  slackInvalid:
+    "Slack-länken känns inte igen. Klistra in länken till personens profil (i Slack: öppna profilen, Mer, Kopiera länk). Den ser ut som acme.slack.com/team/U01ABC23DEF.",
   contextNote: "Anteckning",
   relationship: "Relation",
   organization: "Organisation",
@@ -456,7 +469,6 @@ export const workSv: WorkLabels = {
   agendaNoMatches: "Inga uppgifter matchar filtret.",
   /** Glyph action of a task that is not done. */
   agendaComplete: "Markera {title} som klar",
-  stepOf: "Steg i: {title}",
   /** Glyph action of a task that is done. */
   agendaReopen: "Markera {title} som inte klar",
   closeMenu: "Stäng",

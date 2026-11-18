@@ -22,6 +22,7 @@ export default defineConfig({
     "app-navigation-control-mcp-app.spec.ts",
     "app-navigation-inline-mcp-app.spec.ts",
     "app-navigation-reads-mcp-app.spec.ts",
+    "app-navigation-record-link-mcp-app.spec.ts",
     "meta-line-mcp-app.spec.ts",
     "journal-styles-mcp-app.spec.ts",
     "ui-family-styles-mcp-app.spec.ts",

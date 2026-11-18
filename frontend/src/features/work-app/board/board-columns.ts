@@ -189,27 +189,6 @@ export function withTaskMoved(
   };
 }
 
-/** A Step was checked or unchecked: its card moves to the column of its new status, with the version the answer gave. */
-export function withStepMoved(
-  now: BoardPage,
-  key: string,
-  base: WorkItemRecord,
-  step: { status: string; version: number },
-): BoardPage {
-  const columns: Record<string, WorkItemRecord[]> = {};
-  for (const [status, list] of Object.entries(now.columns))
-    columns[status] = list.filter((item) => cardKey(item) !== key);
-  columns[step.status] = [
-    ...(columns[step.status] ?? []),
-    { ...base, status: step.status, version: step.version },
-  ];
-  return {
-    ...now,
-    columns,
-    column_totals: totalsMoved(now.column_totals, base.status, step.status),
-  };
-}
-
 /** A column order was written: the column shows the answer's order and versions (else the order it sent). */
 export function withColumnPlaced(
   now: BoardPage,

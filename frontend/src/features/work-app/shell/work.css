@@ -1079,22 +1079,3 @@
   overflow-wrap: break-word;
   hyphens: manual;
 }
-/* A Step's meta, "Steg i: <the Task>" when its Task stands elsewhere: one line, cut with an ellipsis (exactly one meta line; the Task's name is the Step's link and the last part). */
-.sidekick-work
-  .work-board[data-layout="single"]
-  .work-list
-  > li.work-card
-  > .work-card-step-of {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-inline-end: 2px;
-}
-/* A Step right after its Task: the square and the title 24 in, 12 on a narrow frame or at large text
-   (contacts.css @container), so it reads as part of the Task above; it has no meta. */
-.sidekick-work
-  .work-board[data-layout="single"]
-  .work-list
-  > li.work-card[data-nested] {
-  margin-inline-start: var(--work-step-indent, 24px);
-}

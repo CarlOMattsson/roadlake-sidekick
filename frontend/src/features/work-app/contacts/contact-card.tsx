@@ -160,12 +160,18 @@ const initialsStyle: CSSProperties = {
   userSelect: "none",
 };
 
-/** The workspace host of a Slack profile link ("acme.slack.com"); the whole value when it is not a URL. */
-function slackWorkspace(link: string): string {
+/**
+ * The workspace host of a Slack profile link ("acme.slack.com"), or null when the value is not an https link on a
+ * slack.com workspace. The server only stores such links; this check keeps any other value from being rendered as a link.
+ */
+function slackWorkspace(link: string): string | null {
   try {
-    return new URL(link).hostname;
+    const url = new URL(link);
+    return url.protocol === "https:" && url.hostname.endsWith(".slack.com")
+      ? url.hostname
+      : null;
   } catch {
-    return link;
+    return null;
   }
 }
 
@@ -187,6 +193,7 @@ export function ContactWays({
 }) {
   const [open, setOpen] = useState(false);
   const { email, phone, slack, address } = contact;
+  const slackHost = slack ? slackWorkspace(slack) : null;
   // One entry per way, in the order of `wayWords`; `href` is set for those that open as a link.
   const ways: { text?: string | null; href?: string }[] = [
     { text: email, href: email ? `mailto:${email}` : undefined },
@@ -195,7 +202,7 @@ export function ContactWays({
       href: phone ? `tel:${phone.replace(/[^\d+]/gu, "")}` : undefined,
     },
     // The server keeps the profile link as https://<workspace>.slack.com/team/<member id>: the row shows the workspace.
-    { text: slack && slackWorkspace(slack), href: slack ?? undefined },
+    { text: slackHost, href: slackHost ? (slack ?? undefined) : undefined },
     { text: address },
   ];
   const kinds = labels.wayWords.filter((_, index) => ways[index]?.text);

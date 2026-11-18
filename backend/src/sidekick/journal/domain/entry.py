@@ -19,6 +19,12 @@ class KeyPointKind(StrEnum):
     QUESTION = "question"
 
 
+MAX_SUMMARY_LENGTH = 10_000
+ENTRY_CREATED_EVENT = "journal.manual_entry_created"
+SUMMARY_WRITTEN_EVENT = "journal.entry_summary_written"
+"""Audit events that say who wrote an entry's summary: its creation and each later change."""
+
+
 @dataclass(frozen=True, slots=True)
 class KeyPoint:
     kind: KeyPointKind
@@ -64,8 +70,8 @@ class JournalEntry:
             or len(self.title) > 200
         ):
             raise InvalidInputError("title must contain 1 to 200 nonblank characters")
-        if self.summary is not None and len(self.summary) > 10_000:
-            raise InvalidInputError("summary must contain at most 10000 characters")
+        if self.summary is not None and len(self.summary) > MAX_SUMMARY_LENGTH:
+            raise InvalidInputError(f"summary must contain at most {MAX_SUMMARY_LENGTH} characters")
         if len(self.key_points) > 50 or not all(
             isinstance(cast(object, point), KeyPoint) for point in self.key_points
         ):

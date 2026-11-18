@@ -33,6 +33,10 @@ export type RowEnv = {
   /** Registers the row's main button (null when it unmounts), so closing the change form can refocus it. */
   registerRow: (id: string, node: HTMLButtonElement | null) => void;
   contacts: ShoppingTransport["contacts"];
+  /** The active lists, the list an item is in included: where the change form can move it. */
+  lists: { id: string; name: string }[];
+  /** The shops the list's items name, one spelling each. */
+  stores: string[];
   onToggle: (item: ShoppingItem) => void;
   /** The time to undo of the row is up: it goes where it belongs. */
   onRelease: (id: string) => void;

@@ -14,7 +14,7 @@ it("marks an owner Step with Du and an AI Step with AI and where it stands", () 
   const { rerender } = render(
     <AiStepMark performer="owner" state={null} locale="sv-SE" />,
   );
-  expect(screen.getByRole("img", { name: "Görs av Du" })).toHaveTextContent(
+  expect(screen.getByRole("img", { name: "Görs av dig" })).toHaveTextContent(
     "Du",
   );
   rerender(<AiStepMark performer="ai" state="ready" locale="sv-SE" />);
@@ -41,7 +41,7 @@ it("reads in English for an English locale", () => {
     <AiStepMark performer="owner" state={null} locale="en-GB" />,
   );
   expect(
-    screen.getByRole("img", { name: "Performed by You" }),
+    screen.getByRole("img", { name: "Performed by you" }),
   ).toHaveTextContent("You");
   rerender(<AiStepMark performer="ai" state="to_review" locale="en-GB" />);
   expect(

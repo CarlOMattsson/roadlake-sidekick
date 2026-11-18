@@ -95,6 +95,12 @@ export function featuresFrom(capabilities: unknown): HostFeatures {
     openLinks: has("openLinks"),
   };
 }
+/**
+ * The `_meta` mark every tools/call of the app carries, so the server's history can tell the owner's
+ * taps from Claude's calls of the same tools. A label only: the server authorizes by scopes as before.
+ * Keep in step with `APP_ORIGIN_META` in backend/src/sidekick/mcp/change_source.py.
+ */
+export const APP_ORIGIN_META = { "com.roadlake.sidekick/origin": "app" };
 export type HostToolResult = { structuredContent: unknown; isError: boolean };
 /**
  * A tools/call the server answered with isError. `code` is the server's closed error code
@@ -376,6 +382,7 @@ export function createHostBridge(app: {
       const raw = await request("tools/call", {
         name,
         arguments: clearWire(name, args),
+        _meta: APP_ORIGIN_META,
       });
       const result = raw as { isError?: boolean; structuredContent?: T };
       if (result.isError)

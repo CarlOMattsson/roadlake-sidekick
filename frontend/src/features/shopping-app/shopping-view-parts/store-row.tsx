@@ -138,6 +138,8 @@ export function StoreRow({
           busy={env.busy}
           focusFirst={env.editorByKey.current}
           contacts={env.contacts}
+          lists={env.lists}
+          stores={env.stores}
           onCancel={() => env.onCloseEditor(item.id)}
           onSave={(input) =>
             env.onSave(item, input, () => env.onCloseEditor(item.id))

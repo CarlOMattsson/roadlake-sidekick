@@ -197,7 +197,7 @@ it("shows the draft's Steps with who does them and opens an AI Step to what it w
   expect(await within(card).findByText(a.draft)).toBeInTheDocument();
   expect(within(card).getByText(ownerStep.title)).toBeInTheDocument();
   expect(
-    within(card).getByRole("img", { name: "Performed by You" }),
+    within(card).getByRole("img", { name: "Performed by you" }),
   ).toBeInTheDocument();
   expect(
     within(card).getByRole("img", { name: "Performed by AI" }),
@@ -245,7 +245,7 @@ it("approves exactly the digest it read, then shows the approval time and drops 
   );
   expect(await screen.findByText(/^Approved \d{2}:\d{2}$/)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: a.approve })).toBeNull();
-  expect(screen.getByText(a.approvedNow)).toBeInTheDocument();
+  expect(screen.getByText(a.approvedNext)).toBeInTheDocument();
 });
 
 it("retries a failed approval with the same key", async () => {
@@ -411,7 +411,7 @@ it("marks who does each Step in a Task with an AI Step, and where the AI Step st
     within(list).getByRole("img", { name: "Performed by AI, to review" }),
   ).toBeInTheDocument();
   expect(
-    within(list).getByRole("img", { name: "Performed by You" }),
+    within(list).getByRole("img", { name: "Performed by you" }),
   ).toBeInTheDocument();
 });
 

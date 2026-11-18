@@ -53,8 +53,7 @@ export function useTaskSteps(
   t: WorkLabels,
 ) {
   const [state, dispatch] = useReducer(stepsReducer, initialStepsState);
-  const { steps, notice, nextCursor, attempt } = state;
-  const banner = useRef<HTMLDivElement>(null);
+  const { steps, nextCursor, attempt } = state;
   // Bumped by every list request and by every successful write. A list response that is not the
   // newest request, or that crosses a successful write, is stale and must not overwrite the list.
   const ticket = useRef(0);
@@ -120,9 +119,6 @@ export function useTaskSteps(
       marker.current++;
     };
   }, [transport, taskId, attempt]);
-  useEffect(() => {
-    if (notice?.kind === "conflict") banner.current?.focus();
-  }, [notice]);
   // After React has drawn the list again, the wanted control takes focus. A row not drawn yet (a
   // restored Step before its re-read) keeps the wish until it is drawn.
   useLayoutEffect(() => {
@@ -204,8 +200,8 @@ export function useTaskSteps(
       .catch((error: unknown) => {
         if (!mounted.current) return;
         const kind = writeFailure(error);
-        if (kind === "conflict")
-          dispatch({ type: "noticed", notice: { kind: "conflict" } });
+        // The Step changed meanwhile: the list is read again and shows what stands now.
+        if (kind === "conflict") dispatch({ type: "reload" });
         else if (kind === "forbidden")
           dispatch({ type: "noticed", notice: { kind: "forbidden" } });
         else if (kind === "invalid")
@@ -384,7 +380,6 @@ export function useTaskSteps(
     state,
     write,
     manage,
-    banner,
     listRef,
     headingRef,
     undoBox,

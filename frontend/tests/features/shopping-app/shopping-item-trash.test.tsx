@@ -106,7 +106,7 @@ async function openForm(
   name: string,
   labels = shoppingEn,
 ) {
-  const edit = screen.queryByRole("button", { name: labels.edit });
+  const edit = screen.queryByRole("button", { name: labels.editNamed(name) });
   if (edit) await user.click(edit);
   else await user.click(screen.getByText(name));
 }
@@ -170,7 +170,7 @@ describe("deleting an item", () => {
     });
     await open(transport, shoppingEn, false);
     await user.click(
-      screen.getAllByRole("button", { name: shoppingEn.edit })[0]!,
+      screen.getByRole("button", { name: shoppingEn.editNamed("Milk") }),
     );
     const button = screen.getByRole("button", { name: "Delete Milk" });
     button.focus();

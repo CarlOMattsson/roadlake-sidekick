@@ -1,5 +1,6 @@
 """Persistence operations the Journal use cases depend on."""
 
+from collections.abc import Sequence
 from datetime import date, datetime, tzinfo
 from typing import Protocol
 from uuid import UUID
@@ -41,6 +42,10 @@ class JournalStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTag
     def get_journal_entry(
         self, session: TxSession, owner_id: UUID, entry_id: UUID
     ) -> JournalEntry: ...
+
+    def journal_summary_authors(
+        self, session: TxSession, owner_id: UUID, entry_ids: Sequence[UUID]
+    ) -> dict[UUID, str]: ...
 
     def list_journal_entries(
         self,

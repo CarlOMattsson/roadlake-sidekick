@@ -18,6 +18,7 @@ import { OpenChevron } from "../../tasks/task-detail-controls";
 import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
 import { AgendaNotice, rowSpot } from "./agenda-notice";
 import { RowMenuPanel } from "./row-menu-panel";
+import { WaitingMeta } from "./waiting-meta";
 import type { AgendaRowContext } from "./row-context";
 
 /** The ring (or glyph) that leads a row: a button that ticks a Task done or opens it again, else the status glyph alone. */
@@ -241,6 +242,9 @@ export function AgendaRow({
                 <p className="work-card-meta">{a.parentDone}</p>
               ) : (
                 <RecordMeta item={item} labels={t} now={now} group={group} />
+              )}
+              {!parentDone && (
+                <WaitingMeta item={item} now={now} dateLocale={t.dateLocale} />
               )}
               {waiting && <WaitingLine text={t.queued} />}
               {note !== undefined && (

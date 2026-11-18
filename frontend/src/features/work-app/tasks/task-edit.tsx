@@ -10,12 +10,21 @@ import {
 import { DESCRIPTION_MAX_LENGTH } from "../hierarchy/project-edit";
 import {
   parseDueDay,
+  ownerClockTime,
   ownerDayPlus,
   ownerDaysToNextMonday,
+  ownerDueAt,
   ownerEndOfDay,
 } from "../../mcp-apps/ui/due";
-import { type WorkTask, type WorkTaskChanges } from "../transport/transport";
+import {
+  type WorkContact,
+  type WorkTask,
+  type WorkTaskChanges,
+  type WorkTransport,
+} from "../transport/transport";
 import { useUnsavedGuard } from "../../mcp-apps/unsaved-guard";
+import { followUpAtOf, waitingSinceOf } from "../shared/waiting";
+import { EditWaiting, type WaitingDraft } from "./task-edit-waiting";
 
 /** The priorities the form offers; a Task with urgent keeps that value, shown as an extra option. */
 type PriorityChoice = NonNullable<WorkTaskChanges["priority"]>;
@@ -30,28 +39,37 @@ export function isPriorityChoice(value: string): value is PriorityChoice {
 }
 
 /**
- * Editable Task fields as the form shows them; due is an owner-zone YYYY-MM-DD or "". Priority is the raw
+ * Editable Task fields as the form shows them; due is an owner-zone YYYY-MM-DD or "", time the owner-zone HH:MM the
+ * Task is due at or "" for a bare date. Priority is the raw
  * value ("normal" when the Task has none). The status is not here: the status choice in the Task
- * view writes it.
+ * view writes it. The waiting fields are owner-zone days and the waiting Contact's id, "" for none.
  */
 export type TaskDraft = {
   title: string;
   description: string;
   priority: string;
   due: string;
-};
+  time: string;
+} & WaitingDraft;
 /**
  * `base` is the Task as the user last saw it (opening the editor, or the latest reload). A field
  * counts as changed only while it differs from base, so an edit reverted by hand is not sent.
- * `dueIncomplete` is set while the date input holds a partial entry the browser cannot read.
+ * `dueIncomplete`, `timeIncomplete` and `waitingIncomplete` are set while the date or time input holds a partial entry the
+ * browser cannot read.
  */
 export type DraftState = {
   values: TaskDraft;
   base: TaskDraft;
   dueIncomplete: boolean;
+  timeIncomplete?: boolean;
+  waitingIncomplete?: boolean;
 };
 export type FieldProblem =
-  TitleProblem | "descriptionTooLong" | "dueIncomplete";
+  | TitleProblem
+  | "descriptionTooLong"
+  | "dueIncomplete"
+  | "timeIncomplete"
+  | "waitingIncomplete";
 type DraftField = keyof TaskDraft;
 /** The date shortcuts above the due date field: today, tomorrow, the next Monday, or no date. */
 type DueShortcut = "today" | "tomorrow" | "nextWeek" | "none";
@@ -62,6 +80,10 @@ export function draftFromTask(task: WorkTask): TaskDraft {
     description: task.description ?? "",
     priority: task.priority ?? "normal",
     due: dateInputValue(task.due_at),
+    time: ownerClockTime(task.due_at) ?? "",
+    waitingSince: dateInputValue(task.waiting_since ?? null),
+    followUp: dateInputValue(task.follow_up_at ?? null),
+    waitingContact: task.waiting_on_contact_id ?? "",
   };
 }
 
@@ -97,6 +119,14 @@ export function dueAtFromDateInput(value: string): string | null {
   return ownerEndOfDay(value);
 }
 
+/**
+ * The due instant of a draft: the day with its time (23:59 for a bare date, as `dueAtFromDateInput`), or null when there
+ * is no date. The time is kept when only the day changes, so a Task that reminds at 17:30 still does.
+ */
+function dueAtFromDraft(values: TaskDraft): string | null {
+  return values.due ? ownerDueAt(values.due, values.time) : null;
+}
+
 /** The first field problem that blocks Save, or none. */
 export function fieldProblem(state: DraftState): FieldProblem | undefined {
   const title = titleProblem(state.values.title);
@@ -108,7 +138,37 @@ export function fieldProblem(state: DraftState): FieldProblem | undefined {
     (state.values.due !== "" && !isCompleteDate(state.values.due))
   )
     return "dueIncomplete";
+  if (state.timeIncomplete) return "timeIncomplete";
+  if (state.waitingIncomplete) return "waitingIncomplete";
   return undefined;
+}
+
+/**
+ * The waiting fields that differ from base. A Contact and a follow-up day only exist while the Task waits, so an emptied
+ * "waiting since" ends the wait, emptying all three; the editor never leaves a day or a Contact without a wait.
+ */
+function waitingChanges(
+  { values, base }: Pick<DraftState, "values" | "base">,
+  now: Date,
+): WorkTaskChanges {
+  if (values.waitingSince === "")
+    return base.waitingSince === ""
+      ? {}
+      : {
+          waiting_since: null,
+          follow_up_at: null,
+          waiting_on_contact_id: null,
+        };
+  const changes: WorkTaskChanges = {};
+  if (values.waitingSince !== base.waitingSince)
+    changes.waiting_since = waitingSinceOf(values.waitingSince, now);
+  if (values.followUp !== base.followUp)
+    changes.follow_up_at = values.followUp
+      ? followUpAtOf(values.followUp)
+      : null;
+  if (values.waitingContact !== base.waitingContact)
+    changes.waiting_on_contact_id = values.waitingContact || null;
+  return changes;
 }
 
 /**
@@ -116,7 +176,10 @@ export function fieldProblem(state: DraftState): FieldProblem | undefined {
  * never sent, so a reload cannot overwrite someone else's change. An incomplete date is not a
  * change; Save is blocked for it instead. An emptied description is sent as null, which clears it.
  */
-export function changedFields(state: DraftState): WorkTaskChanges {
+export function changedFields(
+  state: DraftState,
+  now: Date = new Date(),
+): WorkTaskChanges {
   const { values, base } = state;
   const changes: WorkTaskChanges = {};
   if (values.title.trim() !== base.title.trim())
@@ -125,8 +188,15 @@ export function changedFields(state: DraftState): WorkTaskChanges {
     changes.description = values.description.trim() || null;
   if (values.priority !== base.priority && isPriorityChoice(values.priority))
     changes.priority = values.priority;
-  if (!state.dueIncomplete && values.due !== base.due)
-    changes.due_at = dueAtFromDateInput(values.due);
+  if (
+    !state.dueIncomplete &&
+    !state.timeIncomplete &&
+    (values.due !== base.due ||
+      (values.due !== "" && values.time !== base.time))
+  )
+    changes.due_at = dueAtFromDraft(values);
+  if (!state.waitingIncomplete)
+    Object.assign(changes, waitingChanges(state, now));
   return changes;
 }
 
@@ -140,6 +210,8 @@ function follow(current: DraftState, task: WorkTask): DraftState {
     values: keepEdits(current, fresh),
     base: fresh,
     dueIncomplete: current.dueIncomplete,
+    timeIncomplete: current.timeIncomplete,
+    waitingIncomplete: current.waitingIncomplete,
   };
 }
 
@@ -150,6 +222,8 @@ export function TaskEditor({
   onSave,
   onCancel,
   labels: t,
+  transport,
+  waitingName = null,
 }: {
   task: WorkTask;
   busy: boolean;
@@ -157,6 +231,10 @@ export function TaskEditor({
   onSave: (changes: WorkTaskChanges) => void;
   onCancel: () => void;
   labels: WorkLabels;
+  /** Searches the Contacts for the waiting-on field; without it the field shows its Contact and cannot change it. */
+  transport?: WorkTransport;
+  /** The name of the Contact the Task waits on, when the caller has it. */
+  waitingName?: string | null;
 }) {
   const [state, setState] = useState<DraftState>(() => {
     const initial = draftFromTask(task);
@@ -164,19 +242,27 @@ export function TaskEditor({
   });
   const [seenTask, setSeenTask] = useState(task);
   const [problem, setProblem] = useState<FieldProblem>();
+  // The name of the waiting Contact: the caller's, or the one chosen here.
+  const [chosen, setChosen] = useState<WorkContact>();
   useUnsavedGuard(
-    state.dueIncomplete || Object.keys(changedFields(state)).length > 0,
+    state.dueIncomplete ||
+      Boolean(state.timeIncomplete) ||
+      Boolean(state.waitingIncomplete) ||
+      Object.keys(changedFields(state)).length > 0,
   );
   const titleInput = useRef<HTMLInputElement>(null);
   const descriptionInput = useRef<HTMLTextAreaElement>(null);
   const dueInput = useRef<HTMLInputElement>(null);
+  const timeInput = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const descriptionId = useId();
   const priorityId = useId();
   const dueId = useId();
+  const timeId = useId();
   const titleErrorId = useId();
   const descriptionErrorId = useId();
   const dueErrorId = useId();
+  const timeErrorId = useId();
   // Adjusts state during render when a reload delivers a new Task (same pattern as WorkView).
   if (task !== seenTask) {
     setSeenTask(task);
@@ -209,6 +295,20 @@ export function TaskEditor({
       dueIncomplete: false,
     }));
   }
+  /** Sets the waiting fields; a Contact or a follow-up day starts the wait today when it has not begun. */
+  function setWaiting(
+    next: Partial<WaitingDraft>,
+    incomplete = false,
+    startsWait = false,
+  ) {
+    setProblem(undefined);
+    setState((current) => {
+      const values = { ...current.values, ...next };
+      if (startsWait && values.waitingSince === "")
+        values.waitingSince = ownerDayPlus(new Date(), 0);
+      return { ...current, values, waitingIncomplete: incomplete };
+    });
+  }
   // Save runs from the button's click, not the form's submit event: the App iframe is sandboxed
   // without allow-forms, where the browser never dispatches submit. Enter still clicks the button.
   function submit() {
@@ -219,6 +319,11 @@ export function TaskEditor({
       dueInput.current?.focus();
       return;
     }
+    if (found === "timeIncomplete") {
+      timeInput.current?.focus();
+      return;
+    }
+    if (found === "waitingIncomplete") return;
     if (found === "descriptionTooLong") {
       descriptionInput.current?.focus();
       return;
@@ -345,6 +450,86 @@ export function TaskEditor({
         )}
       </div>
       {problem === "dueIncomplete" && <p id={dueErrorId}>{t.dueIncomplete}</p>}
+      {state.values.due && (
+        <>
+          <label htmlFor={timeId}>{t.dueTime}</label>
+          <div className="work-due-row">
+            <input
+              id={timeId}
+              ref={timeInput}
+              type="time"
+              value={state.values.time}
+              disabled={busy}
+              aria-invalid={problem === "timeIncomplete" ? true : undefined}
+              aria-describedby={
+                problem === "timeIncomplete" ? timeErrorId : undefined
+              }
+              onChange={(event) => {
+                // A partial entry reads as "" with badInput set; it is neither a time nor a removed time.
+                const incomplete = event.target.validity.badInput;
+                const value = event.target.value;
+                setProblem(undefined);
+                setState((current) => ({
+                  ...current,
+                  values: { ...current.values, time: value },
+                  timeIncomplete: incomplete,
+                }));
+              }}
+            />
+            {state.values.time && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setProblem(undefined);
+                  setState((current) => ({
+                    ...current,
+                    values: { ...current.values, time: "" },
+                    timeIncomplete: false,
+                  }));
+                }}
+              >
+                {t.removeDueTime}
+              </button>
+            )}
+          </div>
+          {state.values.time && <p>{t.remindsAtTime}</p>}
+          {problem === "timeIncomplete" && (
+            <p id={timeErrorId}>{t.dueTimeIncomplete}</p>
+          )}
+        </>
+      )}
+      <EditWaiting
+        values={state.values}
+        contactName={
+          chosen?.id === state.values.waitingContact
+            ? chosen.display_name
+            : state.values.waitingContact === task.waiting_on_contact_id
+              ? waitingName
+              : null
+        }
+        transport={transport}
+        disabled={busy}
+        invalid={problem === "waitingIncomplete"}
+        labels={t}
+        onSince={(day, incomplete) =>
+          setWaiting({ waitingSince: day }, incomplete)
+        }
+        onFollowUp={(day, incomplete) =>
+          setWaiting({ followUp: day }, incomplete, day !== "")
+        }
+        onContact={(contact) => {
+          setChosen(contact ?? undefined);
+          setWaiting(
+            { waitingContact: contact?.id ?? "" },
+            false,
+            contact !== null,
+          );
+        }}
+        onStop={() =>
+          setWaiting({ waitingSince: "", followUp: "", waitingContact: "" })
+        }
+      />
       {saveFailed && (
         <ErrorNotice
           placement="row"

@@ -217,7 +217,7 @@ export const journalEn = {
   cardOpen: "Open",
   cardOpenEntry: "Open entry",
   cardOpening: "Opening…",
-  cardNoLinks: "Not linked to anything yet",
+  cardNoLinks: "Not linked to anything",
   cardSaved: "saved",
   cardWhenToday: (time?: string) => (time ? `today at ${time}` : "today"),
   cardWhenYesterday: (time?: string) =>
@@ -478,7 +478,7 @@ export const journalSv: JournalLabels = {
   cardOpen: "Öppna",
   cardOpenEntry: "Öppna anteckningen",
   cardOpening: "Öppnar…",
-  cardNoLinks: "Inte kopplad till något än",
+  cardNoLinks: "Inte kopplad till något",
   cardSaved: "sparad",
   cardWhenToday: (time?: string) => (time ? `idag ${time}` : "idag"),
   cardWhenYesterday: (time?: string) => (time ? `igår ${time}` : "igår"),

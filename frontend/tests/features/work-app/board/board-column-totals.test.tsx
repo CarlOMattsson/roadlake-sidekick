@@ -194,3 +194,15 @@ it("keeps the totals of a get_work_board result, and none that are not counts", 
   const bad = rootFromToolResult({ ...base, column_totals: { todo: "4" } });
   expect(bad?.kind === "board" && bad.page.column_totals).toBeUndefined();
 });
+
+it("keeps the overdue total of a get_work_board result, and none that is not a count", () => {
+  const base = { columns: { todo: [a] }, next_cursor: null };
+  const root = rootFromToolResult({ ...base, overdue_total: 7 });
+  expect(root?.kind === "board" && root.page.overdue_total).toBe(7);
+  const bad = rootFromToolResult({ ...base, overdue_total: "7" });
+  expect(bad?.kind === "board" && bad.page.overdue_total).toBeUndefined();
+  const missing = rootFromToolResult(base);
+  expect(
+    missing?.kind === "board" && missing.page.overdue_total,
+  ).toBeUndefined();
+});

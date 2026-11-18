@@ -15,6 +15,8 @@ export type EntryCardData = {
   id: string;
   title: string;
   summary: string | null;
+  /** "you": the summary holds the owner's own words (written or corrected by hand), so the card does not credit Claude. */
+  summary_by?: "you" | null;
   /** The entry's source. The card does not read it: the original text is shown in fullscreen only. */
   source_id?: string;
   /** The day the entry belongs to, shown in the saved line when the result carries it. */
@@ -74,7 +76,9 @@ export function EntryCard({
   const summary = summaryRest(entry.title, entry.summary);
   const meta = [
     queued ? <span className="sk-queued">{t.queued}</span> : undefined,
-    entry.summary?.trim() ? t.cardSummarized : undefined,
+    entry.summary?.trim() && entry.summary_by !== "you"
+      ? t.cardSummarized
+      : undefined,
     ...(entry.links === undefined
       ? legacyLinks(entry, t)
       : linkParts(entry, t, onOpenContact)),
@@ -137,14 +141,17 @@ export function EntryCard({
 }
 
 /**
- * The line above a saved original. Claude's summary is named only when the entry has one; an entry
- * without a summary says only that the original is saved.
+ * The line above a saved original. Claude's summary is named only when the entry has one that Claude wrote; an entry
+ * without a summary, or whose summary holds the owner's own words (`summaryBy` "you"), says only that the original is saved.
  */
 export function originalLine(
   summary: string | null | undefined,
   t: JournalLabels,
+  summaryBy?: "you" | null,
 ): string {
-  return summary?.trim() ? t.summarizedNote : t.originalSavedNote;
+  return summary?.trim() && summaryBy !== "you"
+    ? t.summarizedNote
+    : t.originalSavedNote;
 }
 
 /** A result without link names: the counts as before. */
@@ -211,13 +218,16 @@ function linkParts(
   return parts;
 }
 
-/** Separators a summary may put between the title and the rest of its text, such as "Möte: ...". */
+/** A separator a summary may put between the title and the rest of its text, such as "Möte: ..." or "Möte – ...". */
+const TITLE_SEPARATOR = /^\s*[\p{P}\p{S}]/u;
+/** Everything up to the text after that separator. */
 const TITLE_SEPARATORS = /^[\s\p{P}\p{S}]+/u;
 
 /**
- * The summary as the card shows it. A summary that repeats the title (ignoring case) shows nothing;
- * one that starts with the title shows only the rest. A title that is only the start of a longer
- * word ("Möte" in "Mötesanteckningar") does not count as a start.
+ * The summary as the card shows it. A summary that repeats the title (ignoring case) shows nothing. One that starts with
+ * the title followed by a punctuation mark or symbol ("Möte: ...", "Möte – ...", "Möte. ...") shows only the rest. A title that is
+ * merely the first word or the start of a longer word of an ordinary sentence ("Promenad" in "Promenad runt sjön ...",
+ * "Möte" in "Mötesanteckningar") does not count as a start: the whole summary is shown.
  */
 export function summaryRest(
   title: string,
@@ -233,8 +243,8 @@ export function summaryRest(
     return text;
   }
   const after = text.slice(heading.length);
-  if (after === "") return undefined;
-  if (!/^[\s\p{P}\p{S}]/u.test(after)) return text;
+  if (after.trim() === "") return undefined;
+  if (!TITLE_SEPARATOR.test(after)) return text;
   const rest = after.replace(TITLE_SEPARATORS, "");
   return rest === "" ? undefined : rest;
 }

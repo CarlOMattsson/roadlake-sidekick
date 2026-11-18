@@ -378,7 +378,7 @@ for (const viewport of viewports) {
         app.getByRole("button", { name: "Open contacts", exact: true }),
       ).toHaveCount(0);
       expect((await simulatedHostState(page)).displayModeRequests).toEqual([]);
-      // With 15 Contacts or fewer the list has no letter headings (LETTER_HEADINGS_ABOVE in contacts-list.tsx).
+      // With 30 Contacts or fewer the list has no letter headings (LETTER_HEADINGS_ABOVE in contacts-list.tsx).
       for (const letter of ["A", "B", "Å"])
         await expect(
           app.getByRole("heading", { level: 3, name: letter, exact: true }),

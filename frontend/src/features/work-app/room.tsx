@@ -13,7 +13,7 @@ import {
 import { appLocale } from "../mcp-apps/app-locale";
 import { toolResultCause } from "../mcp-apps/ui/states";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
-import type { RoomProps } from "../mcp-apps/room-types";
+import type { RoomProps, RoomTarget } from "../mcp-apps/room-types";
 import { createWorkTransport } from "./transport/work-transport";
 import { UnsortedView } from "./unsorted/unsorted-view";
 import {
@@ -240,17 +240,21 @@ export function WorkRoom(props: RoomProps) {
       );
   }
 
-  function expandInline() {
+  function expandInline(target?: RoomTarget) {
     setState((prev) => ({ ...prev, expandedInline: true }));
-    // The shell then draws the full view, with the room strip.
-    props.onModeGranted?.("full");
+    // The shell then draws the full view, with the room strip, at the target when there is one.
+    props.onModeGranted?.("full", target);
   }
   /** Asks the host for fullscreen; the host may refuse, and the card then stays inline. */
-  function requestFullscreen() {
+  function requestFullscreen(target?: RoomTarget) {
     if (state.opening) return;
     setState((prev) => ({ ...prev, opening: true }));
     props.transport
       .requestDisplayMode("fullscreen")
+      .then((mode) => {
+        if (mode === "fullscreen" && target)
+          props.onModeGranted?.("full", target);
+      })
       .catch(() => undefined)
       .finally(() => setState((prev) => ({ ...prev, opening: false })));
   }
@@ -344,12 +348,12 @@ export function WorkRoom(props: RoomProps) {
 
   // "Open" on a work_changes card, a hierarchy summary or a root frame of WorkView: fullscreen when the
   // host offers it, else the full view expands inline (one card, one screen until the owner asks).
+  const openAt = (target?: RoomTarget) =>
+    props.fullscreenAvailable === true
+      ? requestFullscreen(target)
+      : expandInline(target);
   const openAction =
-    fullscreen || state.expandedInline
-      ? undefined
-      : props.fullscreenAvailable === true
-        ? requestFullscreen
-        : expandInline;
+    fullscreen || state.expandedInline ? undefined : () => openAt();
   if (frame?.kind === "hierarchy" && openAction) {
     // Inline: the hierarchy is only summarised here, Open asks for fullscreen or expands it. Expanded, the work view
     // below shows the Projects list, and a Project or Process opens on its stack.
@@ -384,6 +388,7 @@ export function WorkRoom(props: RoomProps) {
         cardLabels={cardLabels}
         inlineLabels={inlineLabels}
         fullscreen={openAction}
+        openRecord={openAction && openAt}
         opening={state.opening}
         onModelContext={(summary) =>
           void props.transport.updateModelContext(summary)

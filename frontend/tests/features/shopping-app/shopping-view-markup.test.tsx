@@ -62,7 +62,7 @@ function adapter(over: Partial<ShoppingTransport> = {}): ShoppingTransport {
 }
 
 describe("purchase row markup (phone)", () => {
-  it("the status is part of the checkbox label, under the name, not a sibling of the Edit button", async () => {
+  it("an open row has no status line, and the Edit button names its item", async () => {
     render(
       <ShoppingView
         transport={adapter()}
@@ -74,14 +74,13 @@ describe("purchase row markup (phone)", () => {
     await waitFor(() => expect(checkbox).toBeEnabled());
     const row = checkbox.closest("label");
     expect(row).toHaveClass("shopping-check");
-    expect(row).toHaveTextContent(shoppingEn.wanted);
-    const status = screen.getByText(shoppingEn.wanted);
-    expect(status).toHaveClass("shopping-status");
-    expect(row?.contains(status)).toBe(true);
+    // An open row has no "To buy" status line: only the name line and the Edit button.
+    expect(row?.querySelector(".shopping-status")).toBeNull();
     const toolbar = row?.parentElement;
     expect(toolbar).toHaveClass("shopping-toolbar");
-    expect(toolbar?.querySelector(":scope > button")).toHaveTextContent(
-      shoppingEn.edit,
+    expect(toolbar?.querySelector(":scope > button")).toHaveAttribute(
+      "aria-label",
+      shoppingEn.editNamed("Milk"),
     );
     expect(toolbar?.querySelector(":scope > span")).toBeNull();
   });

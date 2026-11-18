@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
+from uuid import UUID
 
 from pydantic import Field, model_validator
 
@@ -18,9 +19,10 @@ from sidekick.structured.base import PartialChanges, WithIgnoredNulls
 class ItemPatchInput(PartialChanges, ItemFields):
     """update_shopping_item input: an omitted or null field stays; `clear` empties one."""
 
-    fixed_fields = frozenset({"name", "quantity"})
+    fixed_fields = frozenset({"name", "quantity", "list_id"})
     requires_change = False
 
+    list_id: UUID | None = None
     name: Annotated[str | None, Field(min_length=1, max_length=200)] = None
 
     @model_validator(mode="after")

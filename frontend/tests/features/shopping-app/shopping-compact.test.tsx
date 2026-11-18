@@ -113,13 +113,94 @@ describe("compact inline view (a host without fullscreen)", () => {
     expect(screen.getAllByRole("checkbox")).toHaveLength(12);
     const fewer = screen.getByRole("button", { name: shoppingEn.showFewer });
     expect(fewer).toHaveAttribute("aria-expanded", "true");
-    // Expanded, the full view is back: the picker, the forms and the hint are shown again.
-    expect(screen.getByText(shoppingEn.hint)).toBeInTheDocument();
-    expect(screen.getByLabelText(shoppingEn.listName)).toBeInTheDocument();
-    expect(screen.getByLabelText(shoppingEn.select)).toBeInTheDocument();
     await user.click(fewer);
     expect(screen.getAllByRole("checkbox")).toHaveLength(COMPACT_ROWS - 1);
+  });
+
+  it("Show all reveals the remaining open rows with their Edit buttons, but no list forms, hint or archive button", async () => {
+    const user = userEvent.setup();
+    render(
+      <ShoppingView
+        transport={adapter(detailOf(twelve))}
+        labels={shoppingEn}
+        initial={detailOf(twelve)}
+        compact
+      />,
+    );
+    // Folded, the rows carry no Edit button.
+    await screen.findByRole("button", { name: shoppingEn.showAll(12) });
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.editNamed("Vara 1") }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.showAll(12) }),
+    );
+    expect(screen.getAllByRole("checkbox")).toHaveLength(12);
+    for (const n of [1, 12]) {
+      expect(
+        screen.getByRole("button", { name: shoppingEn.editNamed(`Vara ${n}`) }),
+      ).toBeInTheDocument();
+    }
+    expect(
+      screen.queryByLabelText(shoppingEn.listName),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: shoppingEn.list }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(shoppingEn.hint)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.archive }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.refresh }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("the ⋯ menu's Edit list shows the rename field and the archive button, and every row uncapped", async () => {
+    const user = userEvent.setup();
+    render(
+      <ShoppingView
+        transport={adapter(detailOf(twelve))}
+        labels={shoppingEn}
+        initial={detailOf(twelve)}
+        compact
+      />,
+    );
+    await screen.findByRole("button", { name: shoppingEn.showAll(12) });
+    expect(screen.getAllByRole("checkbox")).toHaveLength(COMPACT_ROWS - 1);
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.moreActions }),
+    );
+    await user.click(screen.getByRole("button", { name: shoppingEn.editList }));
+    expect(screen.getByLabelText(shoppingEn.listName)).toHaveValue(list.name);
+    expect(
+      screen.getByRole("button", { name: shoppingEn.archive }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("checkbox")).toHaveLength(12);
+  });
+
+  it("with an archived list the rename Save button is disabled", async () => {
+    const user = userEvent.setup();
+    const archivedDetail: ShoppingDetail = {
+      ...detailOf(twelve),
+      shopping_list: { ...list, archived: true },
+    };
+    render(
+      <ShoppingView
+        transport={adapter(archivedDetail)}
+        labels={shoppingEn}
+        initial={archivedDetail}
+        compact
+      />,
+    );
+    await user.click(
+      await screen.findByRole("button", { name: shoppingEn.moreActions }),
+    );
+    await user.click(screen.getByRole("button", { name: shoppingEn.editList }));
+    expect(screen.getByLabelText(shoppingEn.listName)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: shoppingEn.save }),
+    ).toBeDisabled();
   });
 
   it("a store heading takes a line of the budget, so three shops stay within COMPACT_ROWS lines", async () => {
@@ -160,7 +241,6 @@ describe("compact inline view (a host without fullscreen)", () => {
     expect(
       screen.queryByLabelText(shoppingEn.listName),
     ).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(shoppingEn.select)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: shoppingEn.refresh }),
     ).not.toBeInTheDocument();
@@ -268,8 +348,9 @@ describe("compact inline view (a host without fullscreen)", () => {
     await user.type(field, "Bread, Milk{Enter}");
     expect(transport.add).toHaveBeenCalledWith(
       list.id,
-      ["Bread", "Milk"],
+      [{ name: "Bread" }, { name: "Milk" }],
       expect.any(String),
+      expect.objectContaining({ mergeDuplicates: true }),
     );
   });
 
@@ -329,8 +410,11 @@ describe("compact inline view (a host without fullscreen)", () => {
       screen.queryByRole("button", { name: shoppingEn.showAll(12) }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: shoppingEn.edit }),
-    ).toHaveLength(12);
+      screen.getByRole("button", { name: shoppingEn.editNamed("Vara 1") }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /^Edit Vara / })).toHaveLength(
+      12,
+    );
   });
 });
 

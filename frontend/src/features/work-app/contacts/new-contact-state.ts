@@ -1,4 +1,4 @@
-import type { WriteFailure } from "../transport/transport";
+import type { WorkContactSummary, WriteFailure } from "../transport/transport";
 
 /** A request to open the create field with a name in it; `n` makes a repeated request with the same name new. */
 export type CreateRequest = { name: string; n: number };
@@ -14,6 +14,10 @@ export type NewContactState = {
   problem: string | undefined;
   busy: boolean;
   failure: WriteFailure | undefined;
+  /** The Contacts that already have the typed name; the create waits for the user's choice. */
+  sameName: WorkContactSummary[];
+  /** The name `sameName` was found for. */
+  takenName: string;
 };
 
 export type NewContactAction =
@@ -25,6 +29,7 @@ export type NewContactAction =
   /** The field was emptied after a successful retry: it remounts empty. */
   | { type: "emptied" }
   | { type: "problem"; text: string }
+  | { type: "sameNameFound"; name: string; contacts: WorkContactSummary[] }
   | { type: "submitStarted" }
   | { type: "submitFailed"; failure: WriteFailure }
   | { type: "submitSettled" };
@@ -40,6 +45,8 @@ export function initialNewContactState(
     problem: undefined,
     busy: false,
     failure: undefined,
+    sameName: [],
+    takenName: "",
   };
 }
 
@@ -67,16 +74,55 @@ export function newContactReducer(
         open: false,
         problem: undefined,
         failure: undefined,
+        sameName: [],
       };
     case "emptied":
-      return { ...state, prefill: "", fieldKey: state.fieldKey + 1 };
+      return {
+        ...state,
+        prefill: "",
+        fieldKey: state.fieldKey + 1,
+        sameName: [],
+      };
     case "problem":
       return { ...state, problem: action.text };
+    case "sameNameFound":
+      return {
+        ...state,
+        sameName: action.contacts,
+        takenName: action.name,
+      };
     case "submitStarted":
-      return { ...state, busy: true, problem: undefined, failure: undefined };
+      return {
+        ...state,
+        busy: true,
+        problem: undefined,
+        failure: undefined,
+        sameName: [],
+      };
     case "submitFailed":
       return { ...state, failure: action.failure };
     case "submitSettled":
       return { ...state, busy: false };
   }
+}
+
+/** A name as the server compares it: width and case folded, whitespace collapsed. */
+function nameKey(name: string): string {
+  return name
+    .normalize("NFKC")
+    .split(/\s+/u)
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+}
+
+/** The listed Contacts that carry the typed name (the list also holds near and partial matches). */
+export function withSameName(
+  name: string,
+  contacts: WorkContactSummary[],
+): WorkContactSummary[] {
+  const wanted = nameKey(name);
+  return contacts.filter(
+    (contact) => !contact.archived && nameKey(contact.display_name) === wanted,
+  );
 }

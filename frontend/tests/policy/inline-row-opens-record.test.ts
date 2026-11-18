@@ -21,4 +21,15 @@ describe("inline summaries with record rows", () => {
     });
     expect(missing).toEqual([]);
   });
+
+  it("send the record to the full view, and never ask for fullscreen without it", () => {
+    const source = readText(
+      path.join(featuresDir, "work-app", "view", "work-view.tsx"),
+    );
+    const body = source.slice(source.indexOf("const openRecordFullscreen"));
+    const handler = body.slice(0, body.indexOf("\n  };"));
+    // The room asks the host for fullscreen with this target; a bare fullscreen() opens the room's start view.
+    expect(handler).toContain("openRecord?.(");
+    expect(handler).not.toContain("fullscreen?.(");
+  });
 });

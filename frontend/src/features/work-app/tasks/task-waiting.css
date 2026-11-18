@@ -1,0 +1,53 @@
+/* The Task's waiting section: one line of words under the place and repeat chips, its chips (person, follow-up day, end
+   the wait) and the panels they open. The line is muted body text, wrapping at word breaks, never cut; the follow-up
+   part takes the overdue tone once its day has come (the colour only supports the words). */
+.sidekick-work .work-task-waiting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-s2);
+  margin: var(--sk-s2) 0 var(--sk-s3);
+}
+.sidekick-work .work-task-waiting-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--sk-s2);
+  margin: 0;
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+  overflow-wrap: anywhere;
+}
+.sidekick-work .work-task-waiting-line > span + span::before {
+  content: "· ";
+}
+.sidekick-work .work-task-waiting-actions,
+.sidekick-work .work-task-waiting-shortcuts,
+.sidekick-work .work-task-waiting-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+}
+.sidekick-work .work-task-waiting-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-s2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+/* The date field and its buttons keep the 44 px target and wrap at 360 px and large text. */
+.sidekick-work .work-task-waiting-date > input {
+  min-height: var(--sk-tap);
+  max-width: 100%;
+}
+.sidekick-work .work-task-waiting-date > button {
+  min-height: var(--sk-tap);
+}
+/* The editor's waiting-on field: the Contact's name and its buttons on one row that wraps at 360 px. */
+.sidekick-work .work-edit-waiting-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sk-s2);
+  overflow-wrap: anywhere;
+}

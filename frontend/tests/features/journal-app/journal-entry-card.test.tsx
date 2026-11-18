@@ -418,7 +418,7 @@ describe("journal entry card", () => {
     deliver({ entry: { ...created, contact_ids: [], task_ids: [] } });
 
     expect(document.querySelector(".journal-card-links")?.textContent).toBe(
-      "Summarized by Claude · Not linked to anything yet",
+      "Summarized by Claude · Not linked to anything",
     );
   });
 

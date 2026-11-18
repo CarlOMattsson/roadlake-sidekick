@@ -393,7 +393,7 @@ describe("step notices and the Archived list", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("clears the restored notice when a checkbox write starts, so a conflict shows alone", async () => {
+  it("clears the restored notice when a checkbox write starts, and a conflict reads the list again", async () => {
     const user = userEvent.setup();
     const { work, transport } = mockTransport({
       archiveTaskStep: vi
@@ -419,7 +419,8 @@ describe("step notices and the Archived list", () => {
       expect(screen.getByRole("checkbox", { name: stepA.title })).toBeEnabled(),
     );
     await user.click(screen.getByRole("checkbox", { name: stepA.title }));
-    expect(await screen.findByText(workSv.stepConflict)).toBeInTheDocument();
+    await waitFor(() => expect(work.listTaskSteps).toHaveBeenCalledTimes(3));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(
       screen.queryByText(sv.restored(stepB.title)),
     ).not.toBeInTheDocument();

@@ -4,6 +4,7 @@ import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { UndoMeta } from "../agenda/agenda-undo";
+import { useAwaitingApproval } from "../ai/awaiting-approval";
 import { RowControls } from "../shared/manage-controls";
 import type { ManageLabels } from "../shared/manage-labels";
 import { StepActions } from "../steps/step-actions";
@@ -99,12 +100,14 @@ export function StepRow({
   const actionCount = step.action_count ?? 0;
   const showCount = actions && (actionsOpen || actionCount > 0);
   const s = stepActionsLabelsFor(t.dateLocale);
+  const awaitingApproval = useAwaitingApproval();
   const mark = marked && (
     <>
       {" "}
       <AiStepMark
         performer={step.performer}
         state={step.ai_status}
+        awaitingApproval={awaitingApproval}
         locale={t.dateLocale}
       />
     </>
