@@ -103,6 +103,25 @@ export function PlusIcon() {
   );
 }
 
+/** A minus: the step down of an amount. */
+export function MinusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M5 12h14" />
+    </svg>
+  );
+}
+
 /** A chevron pointing right: `open` and the next period. */
 export function ChevronRightIcon() {
   return (

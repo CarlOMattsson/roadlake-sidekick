@@ -133,11 +133,13 @@ describe("journal entry card links", () => {
     expect(metaLine()).toBe(
       "Summarized by Claude · Linked to Anna Berg, Offert Norr, Contact and 2 more · 1 task",
     );
-    // A contact's name is a text button that opens the contact; a project's name is plain text.
+    // A contact's and a project's name are each a text button that opens its record.
     expect(screen.getByRole("button", { name: "Anna Berg" })).toHaveClass(
       "journal-link-name",
     );
-    expect(screen.getByText("Offert Norr").tagName).toBe("SPAN");
+    expect(screen.getByRole("button", { name: "Offert Norr" })).toHaveClass(
+      "journal-link-name",
+    );
     expect(screen.queryByText("Lars Ek")).not.toBeInTheDocument();
     // No chips and no remove buttons on the card.
     expect(document.querySelector(".journal-chips")).toBeNull();

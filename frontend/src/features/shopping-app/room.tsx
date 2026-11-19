@@ -87,7 +87,7 @@ function createShoppingTransport(
         idempotency_key: key,
       }),
     update: (item, input, key) =>
-      call("update_shopping_item", {
+      call<{ item: ShoppingItem }>("update_shopping_item", {
         item_id: item.id,
         item: input,
         version: item.version,

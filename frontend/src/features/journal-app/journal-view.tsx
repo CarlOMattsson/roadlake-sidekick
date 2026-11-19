@@ -7,10 +7,13 @@ import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
 import { appLocale } from "../mcp-apps/app-locale";
 import { RoomSurfaceContext } from "../mcp-apps/ui/room-context";
+import { ownerToday } from "../mcp-apps/app-timezone";
+import { weekStart } from "./dates";
 import { DayFrame } from "./day-frame";
 import { EntryFrame } from "./entry-frame";
 import { SourceFrame } from "./source-frame";
 import { PendingFrame } from "./pending-frame";
+import { WeekFrame } from "./week-frame";
 import "./journal.css";
 
 /**
@@ -38,6 +41,7 @@ export function JournalView({
   fullscreen = false,
   allEntries = false,
   onOpenContact,
+  onOpenProject,
   onOpenTask,
   onRoute,
   refreshKey,
@@ -53,6 +57,8 @@ export function JournalView({
   allEntries?: boolean;
   /** Absent: contact chips are plain names. Present: a contact chip is a button that opens the contact. */
   onOpenContact?: (link: { id: string; label: string | null }) => void;
+  /** Absent: project chips are plain names. Present: a project chip is a button that opens the project. */
+  onOpenProject?: (link: { id: string; label: string | null }) => void;
   /** Absent: the saved entry shows no task buttons. Present: each created task gets an "Open the task" button. */
   onOpenTask?: (id: string) => void;
   /**
@@ -82,6 +88,9 @@ export function JournalView({
   const [moves, setMoves] = useState(0);
   // Drafts the owner rejected or saved in this session; the pending list stops offering them.
   const [handled, setHandled] = useState<string[]>([]);
+  // The Monday of the calendar week the owner switched to; absent: the day view. Kept here, not in a frame, so an
+  // entry opened from the week and Back return to the same week.
+  const [weekFrom, setWeekFrom] = useState<string>();
   // A new initial (a new tool result) replaces the whole navigation stack.
   if (initial !== seen) {
     setSeen(initial);
@@ -89,6 +98,7 @@ export function JournalView({
     setSession((n) => n + 1);
     setMoves(0);
     setHandled([]);
+    setWeekFrom(undefined);
   }
   const top = stack.at(-1);
   function open(frame: JournalFrame) {
@@ -119,6 +129,21 @@ export function JournalView({
     );
     setMoves((n) => n + 1);
   }
+  const control =
+    hostSettings ??
+    (fullscreen && onRoute && roomEnabled("control")
+      ? {
+          label: controlEntry(appLocale()).label,
+          onOpen: () => onRoute(controlEntry(appLocale()).target),
+        }
+      : undefined);
+  /** The calendar week of the day shown; a day after today opens this week, as no later day is offered. */
+  function showWeek(day: Extract<JournalFrame, { kind: "day" }>) {
+    const today = ownerToday(day.page.owner_timezone);
+    const date = day.page.journal_date;
+    setWeekFrom(weekStart(date > today ? today : date));
+    setMoves((n) => n + 1);
+  }
   return (
     <section
       className={
@@ -147,7 +172,25 @@ export function JournalView({
         </button>
       )}
       {!top && <p>{t.empty}</p>}
-      {top?.kind === "day" && (
+      {top?.kind === "day" && weekFrom && fullscreen && (
+        <WeekFrame
+          key={`${session}:${stack.length}:week`}
+          frame={top}
+          start={weekFrom}
+          onStart={setWeekFrom}
+          onShowDay={() => {
+            setWeekFrom(undefined);
+            setMoves((n) => n + 1);
+          }}
+          transport={transport}
+          labels={t}
+          moves={moves}
+          onOpen={open}
+          refreshKey={refreshKey}
+          control={control}
+        />
+      )}
+      {top?.kind === "day" && !(weekFrom && fullscreen) && (
         <DayFrame
           key={`${session}:${stack.length}:day`}
           frame={top}
@@ -160,15 +203,8 @@ export function JournalView({
           allEntries={allEntries}
           refreshKey={refreshKey}
           onTellClaude={onTellClaude}
-          control={
-            hostSettings ??
-            (fullscreen && onRoute && roomEnabled("control")
-              ? {
-                  label: controlEntry(appLocale()).label,
-                  onOpen: () => onRoute(controlEntry(appLocale()).target),
-                }
-              : undefined)
-          }
+          control={control}
+          onShowWeek={fullscreen ? () => showWeek(top) : undefined}
         />
       )}
       {top?.kind === "entry" && (
@@ -181,6 +217,7 @@ export function JournalView({
           moves={moves}
           onOpen={open}
           onOpenContact={onOpenContact}
+          onOpenProject={onOpenProject}
           onOpenTask={onOpenTask}
           refreshKey={refreshKey}
         />

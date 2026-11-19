@@ -91,6 +91,7 @@ class RecurrenceRecord(Output):
     interval: int = 1
     weekdays: list[int] = Field(default_factory=list[int])
     day_of_month: int | None = None
+    last_weekday: bool = False
     until: date | None = None
 
 
@@ -103,6 +104,8 @@ class RecurrenceInput(Output):
     """Weekly only: Monday is 0, Sunday is 6."""
     day_of_month: Annotated[int | None, Field(ge=1, le=31)] = None
     """Monthly only."""
+    last_weekday: bool = False
+    """Monthly only: the last Monday to Friday of the month; not with day_of_month."""
     until: date | None = None
     """Last day an occurrence may fall on, in the owner's zone."""
 

@@ -119,6 +119,7 @@ Returns: `UpdatedTaskOutput` with `task` (TaskRecord), `ignored_nulls` (array of
 | `changes.recurrence.frequency` | string | yes | one of `daily`, `weekly`, `monthly`, `yearly` |
 | `changes.recurrence.day_of_month` | integer | no | 1 to 31; may be null |
 | `changes.recurrence.interval` | integer | no | default `1`; 1 to 12 |
+| `changes.recurrence.last_weekday` | boolean | no | default `false` |
 | `changes.recurrence.until` | date | no | ISO 8601 date; may be null |
 | `changes.recurrence.weekdays` | array of integer | no | up to 7 items |
 | `changes.status` | string | no | one of `todo`, `in_progress`, `blocked`, `completed`; may be null |

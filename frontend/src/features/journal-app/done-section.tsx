@@ -119,12 +119,16 @@ export function DoneSection({
   labels: t,
   open,
   onToggle,
+  level = "h3",
 }: {
   done: JournalDone;
   labels: JournalLabels;
   open: boolean;
   onToggle: () => void;
+  /** The heading level of the fold row: a week view lists days under h3, so its «Gjort» is an h4. */
+  level?: "h3" | "h4";
 }) {
+  const Heading = level;
   const ids = useId();
   const [whole, setWhole] = useState<ReadonlySet<DoneKind>>(new Set());
   const counts = doneCounts(done);
@@ -146,9 +150,9 @@ export function DoneSection({
   });
   return (
     <section className="journal-done" aria-label={t.done}>
-      <h3>
+      <Heading>
         <Fold text={t.done} meta={line} open={open} onToggle={onToggle} />
-      </h3>
+      </Heading>
       {open && (
         <>
           <DoneGroup

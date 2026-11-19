@@ -89,3 +89,19 @@ describe("journal entry card: a contact name opens the contact", () => {
     expect(container.querySelector(".journal-chip-remove")).toBeNull();
   });
 });
+
+describe("journal entry card: a project name opens the project", () => {
+  it("opens the project in fullscreen when its name is pressed", async () => {
+    const user = userEvent.setup();
+    const onOpenProject = vi.fn();
+    renderCard({ onOpenProject });
+
+    const name = screen.getByRole("button", { name: "Köket" });
+    expect(name).toHaveClass("journal-link-name");
+    await user.click(name);
+
+    expect(onOpenProject).toHaveBeenCalledWith(project);
+    // The contact name next to it stays plain text: only the project was given a way to open.
+    expect(screen.getByText("Anna Andersson").tagName).toBe("SPAN");
+  });
+});

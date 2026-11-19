@@ -261,12 +261,12 @@ export type InlineMetaPart = {
 };
 
 /**
- * The row of every inline list card (the agenda and the board, designsystem §3 inline card): a button
- * the width of the card, at least 44 high, that opens its record or the room. The title takes the full width on its
+ * The button of an inline list row (the agenda, the board, the waiting view and the Contact list, designsystem §3 inline
+ * card): the width of the card, at least 44 high, that opens its record or the room. The title takes the full width on its
  * own line, cut with an ellipsis, and the meta line stands under it, always (how late it is, then the status). No ring and
  * no indent: an inline card does not write.
  */
-export function InlineRow({
+export function InlineRowButton({
   title,
   meta,
   onOpen,
@@ -277,32 +277,43 @@ export function InlineRow({
 }) {
   const parts = meta.filter((part) => part.text);
   return (
+    <button
+      type="button"
+      className="work-compact-open"
+      aria-label={[title, ...parts.map((part) => part.text)].join(", ")}
+      onClick={onOpen}
+    >
+      <span className="work-compact-row-title">{title}</span>{" "}
+      {/* The row opens: the fullscreen row's ›, before the meta so the grid puts it on the title's line. */}
+      <OpenChevron />
+      {parts.length > 0 ? (
+        <span className="work-compact-row-meta">
+          {parts.map((part, index) => (
+            <Fragment key={index}>
+              {/* A space between the title and the meta, and between the parts, so the visible words run on in the button's name (WCAG 2.5.3). */}
+              {index > 0 ? " " : null}
+              {part.ai ? (
+                <AiTaskMark locale={part.ai.locale} state={part.ai.state} />
+              ) : (
+                <span data-tone={part.tone}>{part.text}</span>
+              )}
+            </Fragment>
+          ))}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+/** The row of every inline list card: an `InlineRowButton` in its list item. */
+export function InlineRow(props: {
+  title: string;
+  meta: InlineMetaPart[];
+  onOpen: () => void;
+}) {
+  return (
     <li className="work-compact-row">
-      <button
-        type="button"
-        className="work-compact-open"
-        aria-label={[title, ...parts.map((part) => part.text)].join(", ")}
-        onClick={onOpen}
-      >
-        <span className="work-compact-row-title">{title}</span>{" "}
-        {/* The row opens: the fullscreen row's ›, before the meta so the grid puts it on the title's line. */}
-        <OpenChevron />
-        {parts.length > 0 ? (
-          <span className="work-compact-row-meta">
-            {parts.map((part, index) => (
-              <Fragment key={index}>
-                {/* A space between the title and the meta, and between the parts, so the visible words run on in the button's name (WCAG 2.5.3). */}
-                {index > 0 ? " " : null}
-                {part.ai ? (
-                  <AiTaskMark locale={part.ai.locale} state={part.ai.state} />
-                ) : (
-                  <span data-tone={part.tone}>{part.text}</span>
-                )}
-              </Fragment>
-            ))}
-          </span>
-        ) : null}
-      </button>
+      <InlineRowButton {...props} />
     </li>
   );
 }

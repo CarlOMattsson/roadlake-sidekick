@@ -14,6 +14,8 @@ type Params = {
   wanted: Record<string, boolean>;
   /** Purchases waiting in the phone's outbox: drawn in the state that will be sent. */
   waiting?: Record<string, boolean>;
+  /** Amounts asked for with the quick steps and not yet answered: drawn at once, by item id. */
+  asked?: Record<string, string>;
   held: Record<string, ShoppingItem>;
   fullscreen: boolean;
   compact: boolean;
@@ -33,6 +35,7 @@ export function deriveView({
   id,
   wanted,
   waiting = {},
+  asked = {},
   held,
   fullscreen,
   compact,
@@ -41,16 +44,17 @@ export function deriveView({
   expanded,
 }: Params) {
   const list = detail?.shopping_list;
-  // The items as they are drawn: a purchase asked for shows at once, before the server has answered, and one waiting
-  // in the outbox shows the state it will send.
+  // The items as they are drawn: a purchase or an amount asked for shows at once, before the server has answered,
+  // and a purchase waiting in the outbox shows the state it will send.
   const items =
-    detail?.items.map((item) =>
-      item.id in wanted
+    detail?.items.map((row) => {
+      const item = row.id in asked ? { ...row, quantity: asked[row.id]! } : row;
+      return item.id in wanted
         ? { ...item, purchased: wanted[item.id]! }
         : item.id in waiting
           ? { ...item, purchased: waiting[item.id]! }
-          : item,
-    ) ?? [];
+          : item;
+    }) ?? [];
   const open = items.filter((item) => !item.purchased);
   const purchased = items.filter((item) => item.purchased);
   // The rows of the open groups: the open items, and the bought ones whose Undo still holds (`bought`), in the list's order.

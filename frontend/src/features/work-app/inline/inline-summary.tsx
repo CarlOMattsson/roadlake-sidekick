@@ -17,6 +17,7 @@ import { KnownTags } from "../shared/work-tags";
 import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
+  InlineRow,
   ListSummary,
   NoticeRow,
   statusLabel,
@@ -396,6 +397,7 @@ export function ContactsSummary({
   query = "",
   labels,
   onOpen,
+  onOpenContact,
 }: {
   count: number;
   more: boolean;
@@ -404,6 +406,8 @@ export function ContactsSummary({
   labels: InlineSummaryLabels;
   /** Asks the host for fullscreen; the caller passes it only when the host can show it. */
   onOpen: () => void;
+  /** Opens one Contact from its row, in fullscreen; without it the names are plain text. */
+  onOpenContact?: (contact: ContactName) => void;
 }) {
   const wanted = query.trim().toLocaleLowerCase();
   const isExact = (contact: ContactName) =>
@@ -423,6 +427,7 @@ export function ContactsSummary({
     <ListSummary
       labels={labels}
       kindLabel={labels.kind.contacts}
+      className={onOpenContact ? "work-compact-opens" : undefined}
       lines={[
         {
           key: "matches",
@@ -440,11 +445,20 @@ export function ContactsSummary({
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">
-          {shown.map((contact) => (
-            <li key={contact.id} className="work-compact-row">
-              <span className="work-compact-row-title">{contact.name}</span>
-            </li>
-          ))}
+          {shown.map((contact) =>
+            onOpenContact ? (
+              <InlineRow
+                key={contact.id}
+                title={contact.name}
+                meta={[]}
+                onOpen={() => onOpenContact(contact)}
+              />
+            ) : (
+              <li key={contact.id} className="work-compact-row">
+                <span className="work-compact-row-title">{contact.name}</span>
+              </li>
+            ),
+          )}
         </ul>
       ) : null}
     </ListSummary>

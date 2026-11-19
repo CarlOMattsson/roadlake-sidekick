@@ -1,6 +1,6 @@
 """Pure recurring-task and blocked-reminder behavior."""
 
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, tzinfo
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -220,6 +220,189 @@ def test_task_service_completes_a_recurring_task_on_the_owner_weekday() -> None:
 
     assert completed.status is TaskStatus.TODO
     assert completed.due_at == datetime(2026, 8, 30, 23, 30, tzinfo=UTC)
+
+
+def _last_weekdays(rule: RecurrenceRule, start: datetime, count: int, zone: tzinfo) -> list[date]:
+    found: list[date] = []
+    current = start
+    for _ in range(count):
+        next_due = rule.next_due_at(current, zone)
+        assert next_due is not None
+        found.append(next_due.astimezone(zone).date())
+        current = next_due
+    return found
+
+
+def test_last_weekday_of_the_month_steps_back_from_a_weekend() -> None:
+    rule = RecurrenceRule(frequency="monthly", last_weekday=True)
+
+    # Only 31 Oct 2026 ends on a weekend (Saturday), so it lands on Friday the 30th.
+    assert _last_weekdays(rule, datetime(2026, 7, 15, 9, tzinfo=UTC), 5, UTC) == [
+        date(2026, 8, 31),
+        date(2026, 9, 30),
+        date(2026, 10, 30),
+        date(2026, 11, 30),
+        date(2026, 12, 31),
+    ]
+
+
+def test_last_weekday_of_february_in_a_leap_and_a_common_year() -> None:
+    rule = RecurrenceRule(frequency="monthly", last_weekday=True)
+
+    # 29 Feb 2028 is a Tuesday; 28 Feb 2027 is a Sunday, so Friday 26 February.
+    assert rule.next_due_at(datetime(2028, 1, 10, 9, tzinfo=UTC)) == datetime(
+        2028, 2, 29, 9, tzinfo=UTC
+    )
+    assert rule.next_due_at(datetime(2027, 1, 10, 9, tzinfo=UTC)) == datetime(
+        2027, 2, 26, 9, tzinfo=UTC
+    )
+
+
+def test_last_weekday_keeps_local_wall_clock_across_a_clock_change() -> None:
+    rule = RecurrenceRule(frequency="monthly", last_weekday=True)
+    # 09:00 Stockholm (CEST) on Friday 25 September; the last weekday of October is Friday the
+    # 30th, after the clocks went back on the 25th, so 09:00 local is 08:00 UTC.
+    anchor = datetime(2026, 9, 25, 7, tzinfo=UTC)
+    assert rule.next_due_at(anchor, STOCKHOLM) == datetime(2026, 10, 30, 8, tzinfo=UTC)
+
+
+def test_last_weekday_every_second_month_and_until() -> None:
+    rule = RecurrenceRule(
+        frequency="monthly", interval=2, last_weekday=True, until=date(2026, 9, 1)
+    )
+    assert rule.next_due_at(datetime(2026, 6, 10, 9, tzinfo=UTC)) == datetime(
+        2026, 8, 31, 9, tzinfo=UTC
+    )
+    assert rule.next_due_at(datetime(2026, 7, 10, 9, tzinfo=UTC)) is None
+
+
+def test_last_weekday_is_monthly_only_and_excludes_a_day_of_month() -> None:
+    with pytest.raises(ValidationError, match="only supported for monthly"):
+        RecurrenceRule(frequency="weekly", last_weekday=True)
+    with pytest.raises(ValidationError, match="cannot be combined"):
+        RecurrenceRule(frequency="monthly", last_weekday=True, day_of_month=15)
+
+
+def test_last_weekday_round_trips_through_the_stored_data() -> None:
+    rule = RecurrenceRule(frequency="monthly", last_weekday=True)
+    assert rule.to_data()["last_weekday"] is True
+    assert RecurrenceRule.from_data(rule.to_data()) == rule
+    # A rule stored before the field existed reads as not-last-weekday.
+    assert RecurrenceRule.from_data({"frequency": "monthly"}) == RecurrenceRule(frequency="monthly")
+
+
+def test_a_monthly_rule_without_a_day_keeps_the_day_the_task_was_due() -> None:
+    rule = RecurrenceRule(frequency="monthly")
+    # Due on the 15th but completed on the 3rd: the next one is due on the 15th of next month.
+    assert rule.next_due_at(
+        datetime(2026, 11, 3, 9, tzinfo=UTC), UTC, datetime(2026, 11, 15, 9, tzinfo=UTC)
+    ) == datetime(2026, 12, 15, 9, tzinfo=UTC)
+    # Without a due date the completion day stands.
+    assert rule.next_due_at(datetime(2026, 11, 3, 9, tzinfo=UTC)) == datetime(
+        2026, 12, 3, 9, tzinfo=UTC
+    )
+
+
+def test_a_monthly_task_completed_early_moves_on_from_its_due_month() -> None:
+    rule = RecurrenceRule(frequency="monthly")
+    # Due 5 Feb but finished on 30 Jan: the next one is 5 Mar, not 5 Feb again.
+    assert rule.next_due_at(
+        datetime(2026, 1, 30, 9, tzinfo=UTC), UTC, datetime(2026, 2, 5, 9, tzinfo=UTC)
+    ) == datetime(2026, 3, 5, 9, tzinfo=UTC)
+
+
+def test_a_monthly_task_completed_late_does_not_skip_a_month() -> None:
+    rule = RecurrenceRule(frequency="monthly")
+    # Due 28 Jan but finished on 2 Feb: the next one is 28 Feb, not 28 Mar.
+    assert rule.next_due_at(
+        datetime(2026, 2, 2, 9, tzinfo=UTC), UTC, datetime(2026, 1, 28, 9, tzinfo=UTC)
+    ) == datetime(2026, 2, 28, 9, tzinfo=UTC)
+
+
+def test_a_long_overdue_monthly_task_skips_the_occurrences_that_have_passed() -> None:
+    rule = RecurrenceRule(frequency="monthly")
+    due = datetime(2026, 1, 28, 9, tzinfo=UTC)
+    # Due 28 Jan, finished 10 Apr: 28 Feb and 28 Mar are gone, so 28 Apr is next.
+    assert rule.next_due_at(datetime(2026, 4, 10, 9, tzinfo=UTC), UTC, due) == datetime(
+        2026, 4, 28, 9, tzinfo=UTC
+    )
+    # Finished on the 28th itself, that day has passed: the next one is 28 May.
+    assert rule.next_due_at(datetime(2026, 4, 28, 9, tzinfo=UTC), UTC, due) == datetime(
+        2026, 5, 28, 9, tzinfo=UTC
+    )
+
+
+def test_a_long_overdue_monthly_interval_and_until_apply_to_the_final_occurrence() -> None:
+    due = datetime(2026, 1, 15, 9, tzinfo=UTC)
+    done = datetime(2026, 5, 1, 9, tzinfo=UTC)
+    rule = RecurrenceRule(frequency="monthly", interval=2)
+    # 15 Mar has passed too, so the next one is 15 May.
+    assert rule.next_due_at(done, UTC, due) == datetime(2026, 5, 15, 9, tzinfo=UTC)
+    capped = RecurrenceRule(frequency="monthly", interval=2, until=date(2026, 5, 14))
+    assert capped.next_due_at(done, UTC, due) is None
+
+
+def test_last_weekday_completed_early_moves_to_the_next_months_last_weekday() -> None:
+    rule = RecurrenceRule(frequency="monthly", last_weekday=True)
+    # Friday 27 Feb 2026 is the last weekday of February; finished a month early on 30 Jan.
+    due = datetime(2026, 2, 27, 9, tzinfo=UTC)
+    assert rule.next_due_at(datetime(2026, 1, 30, 9, tzinfo=UTC), UTC, due) == datetime(
+        2026, 3, 31, 9, tzinfo=UTC
+    )
+    # Finished two days early, within February, the next one is still March's.
+    assert rule.next_due_at(datetime(2026, 2, 25, 9, tzinfo=UTC), UTC, due) == datetime(
+        2026, 3, 31, 9, tzinfo=UTC
+    )
+
+
+def test_a_monthly_interval_counts_from_the_due_month() -> None:
+    rule = RecurrenceRule(frequency="monthly", interval=2)
+    assert rule.next_due_at(
+        datetime(2026, 1, 30, 9, tzinfo=UTC), UTC, datetime(2026, 2, 5, 9, tzinfo=UTC)
+    ) == datetime(2026, 4, 5, 9, tzinfo=UTC)
+
+
+def test_a_monthly_due_month_is_read_in_the_owner_zone() -> None:
+    rule = RecurrenceRule(frequency="monthly")
+    # 23:30 UTC on 31 Jan is already 1 Feb in Stockholm, so the due month is February.
+    due = datetime(2026, 1, 31, 23, 30, tzinfo=UTC)
+    assert rule.next_due_at(datetime(2026, 1, 20, 9, tzinfo=UTC), STOCKHOLM, due) == datetime(
+        2026, 3, 1, 9, tzinfo=UTC
+    )
+
+
+def test_a_monthly_rule_stops_at_until_measured_from_the_due_month() -> None:
+    rule = RecurrenceRule(frequency="monthly", until=date(2026, 3, 4))
+    due = datetime(2026, 2, 5, 9, tzinfo=UTC)
+    assert rule.next_due_at(datetime(2026, 1, 30, 9, tzinfo=UTC), UTC, due) is None
+    assert RecurrenceRule(frequency="monthly", until=date(2026, 3, 5)).next_due_at(
+        datetime(2026, 1, 30, 9, tzinfo=UTC), UTC, due
+    ) == datetime(2026, 3, 5, 9, tzinfo=UTC)
+
+
+def test_task_service_completes_a_monthly_task_ahead_of_its_due_date() -> None:
+    service = TaskService(InMemoryStore(), FixedClock(), make_cursor_codec())
+    task = service.create(
+        owner(),
+        title="Pay the rent",
+        idempotency_key="monthly-early",
+        due_at=datetime(2026, 9, 5, 10, tzinfo=UTC),
+        recurrence={"frequency": "monthly"},
+    )
+
+    completed = service.complete(owner(), task.id, version=task.version, idempotency_key="cycle-1")
+
+    # Completed on 21 Aug, due 5 Sep: the next one is 5 Oct, not 5 Sep again.
+    assert completed.due_at == datetime(2026, 10, 5, 10, tzinfo=UTC)
+
+
+def test_a_weekly_two_weekday_rule_alternates_between_monday_and_thursday() -> None:
+    rule = RecurrenceRule(frequency="weekly", weekdays=(0, 3))
+    monday = datetime(2026, 8, 24, 9, tzinfo=UTC)
+    assert rule.next_due_at(monday) == datetime(2026, 8, 27, 9, tzinfo=UTC)
+    assert rule.next_due_at(datetime(2026, 8, 27, 9, tzinfo=UTC)) == datetime(
+        2026, 8, 31, 9, tzinfo=UTC
+    )
 
 
 def test_a_task_cannot_be_filed_under_both_a_project_and_a_process() -> None:

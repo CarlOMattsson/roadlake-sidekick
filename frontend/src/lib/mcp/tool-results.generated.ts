@@ -1976,6 +1976,7 @@ export type ToolInputs = {
         day_of_month?: number | null;
         frequency: "daily" | "weekly" | "monthly" | "yearly";
         interval?: number;
+        last_weekday?: boolean;
         until?: string | null;
         weekdays?: Array<number>;
       } | null;
@@ -2443,6 +2444,7 @@ export type RecurrenceRecord = {
   day_of_month: number | null;
   frequency: "daily" | "weekly" | "monthly" | "yearly";
   interval: number;
+  last_weekday: boolean;
   until: string | null;
   weekdays: Array<number>;
 };

@@ -235,9 +235,9 @@ describe("waiting view in the inline card", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("2 waiting")).toBeInTheDocument();
     const rows = screen.getAllByRole("listitem");
-    expect(rows[0]).toHaveTextContent("Anna Berg · 9 days");
+    expect(rows[0]).toHaveTextContent("Anna Berg 9 days");
     expect(rows[0]).toHaveTextContent("Förbered demo");
-    expect(rows[1]).toHaveTextContent("Sara Holm · 1 day");
+    expect(rows[1]).toHaveTextContent("Sara Holm 1 day");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(
       screen.getByRole("button", { name: inlineSummaryLabelsEn.showAll }),
@@ -254,7 +254,8 @@ describe("waiting view in the inline card", () => {
       />,
     );
     expect(screen.getByText("1 väntar")).toBeInTheDocument();
-    expect(screen.getByText("Anna Berg · 9 dagar")).toBeInTheDocument();
+    expect(screen.getByText("Anna Berg")).toBeInTheDocument();
+    expect(screen.getByText("9 dagar")).toBeInTheDocument();
     rerender(
       <AgendaSummary
         page={{ items: [], next_cursor: null }}

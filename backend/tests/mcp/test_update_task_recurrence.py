@@ -59,6 +59,7 @@ async def test_update_task_sets_changes_and_removes_recurrence() -> None:
             "interval": 1,
             "weekdays": [0, 3],
             "day_of_month": None,
+            "last_weekday": False,
             "until": None,
         }
 
@@ -75,6 +76,19 @@ async def test_update_task_sets_changes_and_removes_recurrence() -> None:
         )
         assert monthly["recurrence"]["frequency"] == "monthly"
         assert monthly["recurrence"]["until"] == "2027-06-30"
+        last = _task(
+            await client.call_tool(
+                "update_task",
+                {
+                    "task_id": task["id"],
+                    "version": monthly["version"],
+                    "idempotency_key": "rec-mcp-last-day-1",
+                    "changes": {"recurrence": {"frequency": "monthly", "last_weekday": True}},
+                },
+            )
+        )
+        assert last["recurrence"]["last_weekday"] is True
+        monthly = last
         # The rule reads back through get_task as well.
         read = await client.call_tool("get_task", {"task_id": task["id"]})
         assert read.structured_content["task"]["recurrence"] == monthly["recurrence"]
@@ -115,6 +129,8 @@ async def test_update_task_refuses_a_bad_rule_and_a_reader() -> None:
             (
                 {"frequency": "daily", "weekdays": [1]},
                 {"frequency": "weekly", "interval": 99},
+                {"frequency": "weekly", "last_weekday": True},
+                {"frequency": "monthly", "last_weekday": True, "day_of_month": 3},
                 {"frequency": "fortnightly"},
             )
         ):

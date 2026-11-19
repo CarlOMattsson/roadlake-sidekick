@@ -362,3 +362,8 @@
   flex-wrap: wrap;
   gap: var(--sk-s2);
 }
+
+/* The weekday buttons of a weekly rule share the row's width, so seven of them fill one or two rows at 360 px. */
+.sidekick-work .work-weekday-choices > .sk-chip {
+  flex: 1 1 auto;
+}

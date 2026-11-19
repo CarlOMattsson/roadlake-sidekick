@@ -141,6 +141,18 @@ export const shoppingEn = {
   undoTrash: "Undo",
   undoTrashNamed: (name: string) => `Undo deleting ${name}`,
   itemRestoreFailed: (name: string) => `Couldn’t undo deleting “${name}”.`,
+  /** The quick changes of an open row in the store view: the amount steps and the row menu. */
+  increaseQuantity: (name: string) => `Increase quantity of ${name}`,
+  decreaseQuantity: (name: string) => `Decrease quantity of ${name}`,
+  /** Said politely after a step: the item and its amount now. */
+  quantityNow: (name: string, amount: string) => `${name}: ${amount}`,
+  rowMenu: (name: string) => `More options for ${name}`,
+  moveToList: (list: string) => `Move to ${list}`,
+  /** The receipt of a move, with its Undo. */
+  itemMoved: (name: string, list: string) => `Moved to ${list}: ${name}`,
+  undoMove: "Undo",
+  undoMoveNamed: (name: string) => `Undo moving ${name}`,
+  itemMoveUndoFailed: (name: string) => `Couldn’t undo moving “${name}”.`,
   queued: "Waiting…",
   /** A purchase made without a network: it waits on the phone and is sent once there is one. */
   waitingForNetwork: "Waiting for connection",
@@ -299,6 +311,16 @@ export const shoppingSv: ShoppingLabels = {
   undoTrashNamed: (name: string) => `Ångra borttagning av ${name}`,
   itemRestoreFailed: (name: string) =>
     `Det gick inte att ångra borttagningen av “${name}”.`,
+  increaseQuantity: (name: string) => `Öka antal ${name}`,
+  decreaseQuantity: (name: string) => `Minska antal ${name}`,
+  quantityNow: (name: string, amount: string) => `${name}: ${amount}`,
+  rowMenu: (name: string) => `Fler val för ${name}`,
+  moveToList: (list: string) => `Flytta till ${list}`,
+  itemMoved: (name: string, list: string) => `Flyttad till ${list}: ${name}`,
+  undoMove: "Ångra",
+  undoMoveNamed: (name: string) => `Ångra flytt av ${name}`,
+  itemMoveUndoFailed: (name: string) =>
+    `Det gick inte att ångra flytten av “${name}”.`,
   queued: "Väntar…",
   waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,

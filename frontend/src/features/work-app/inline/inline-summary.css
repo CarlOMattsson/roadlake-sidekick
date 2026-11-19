@@ -8,18 +8,18 @@
    stands under it, always, in --sk-type-meta, muted (red when overdue). Its parts never part from their "·": the dot
    hangs in the gap before its part, and the button's clipped edge hides it when its part starts a line. */
 .sidekick-work
-  :is(.work-compact-agenda, .work-compact-board)
+  :is(.work-compact-agenda, .work-compact-board, .work-compact-opens)
   .work-compact-rows {
   gap: 0;
 }
 .sidekick-work
-  :is(.work-compact-agenda, .work-compact-board)
+  :is(.work-compact-agenda, .work-compact-board, .work-compact-opens)
   .work-compact-row {
   display: block;
   padding: 0;
 }
 .sidekick-work
-  :is(.work-compact-agenda, .work-compact-board)
+  :is(.work-compact-agenda, .work-compact-board, .work-compact-opens)
   .work-compact-open {
   /* The row opens, so it ends in the fullscreen row's ›: a 16 glyph in a 16 box on the card's inner
      edge, in the middle of the first title line (its box is 1lh of the row font, --sk-lead-h); the title takes the width left, 8 before it.
@@ -43,7 +43,7 @@
   text-align: start;
 }
 .sidekick-work
-  :is(.work-compact-agenda, .work-compact-board)
+  :is(.work-compact-agenda, .work-compact-board, .work-compact-opens)
   .work-compact-row-title {
   display: -webkit-box;
   -webkit-line-clamp: 2;

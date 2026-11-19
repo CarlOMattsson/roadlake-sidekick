@@ -93,6 +93,20 @@ export function WorkView({
       from: top?.kind === "board" ? "board" : "agenda",
     });
   };
+  // A Contact named in an inline card (a waiting row, a Contact list row) opens the same way, in the contacts room's full
+  // view. With that room off, or with no fullscreen to open it in, a name stays plain text.
+  const openContactFullscreen =
+    openRecord && roomEnabled("contacts")
+      ? (contact: { id: string; name: string }) => {
+          open({ kind: "contact", id: contact.id }, contact.name);
+          openRecord({
+            room: "contacts",
+            view: "contact",
+            id: contact.id,
+            label: contact.name,
+          });
+        }
+      : undefined;
   // The filters of the agenda or board at the bottom of the stack, told whenever they change (a tag chosen), so the
   // shell saves a view with the filters the list shows now.
   const root = stack[0];
@@ -374,6 +388,7 @@ export function WorkView({
           transport={transport}
           labels={inlineLabels}
           onOpen={fullscreen}
+          onOpenContact={openContactFullscreen}
         />
       )}
       {top?.kind === "contacts" && !summaryRoot && (
@@ -400,6 +415,7 @@ export function WorkView({
           onOpen={fullscreen}
           refresh={listRefresh}
           onOpenItem={openRecordFullscreen}
+          onOpenContact={openContactFullscreen}
         />
       )}
       {top?.kind === "hierarchy" && (

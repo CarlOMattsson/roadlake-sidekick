@@ -9,6 +9,7 @@ import type { RowQueue } from "../../mcp-apps/ui/row-queue";
 import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import { FailureNotice } from "./failure-notice";
 import { intoView } from "./helpers";
+import type { MoveTarget } from "./use-quick-changes";
 
 /** Everything an item row reads from the view: the state it draws and the actions it calls. */
 export type RowEnv = {
@@ -26,7 +27,7 @@ export type RowEnv = {
   /** Purchases waiting in the phone's outbox for a network (item id → the state that will be sent). */
   waiting: Record<string, boolean>;
   conflict: { rowId: string | null } | null;
-  error: { rowId: string | null } | null;
+  error: { rowId: string | null; change?: boolean } | null;
   failedWrite: (() => void) | null;
   editing: ShoppingItem | null;
   editorByKey: RefObject<boolean>;
@@ -50,7 +51,13 @@ export type RowEnv = {
   /** Writes the changed item; `done` runs once it is saved. */
   onSave: (item: ShoppingItem, input: ShoppingInput, done: () => void) => void;
   /** Moves the item to the trash; `done` runs once it is there. Absent when the host offers no delete. */
-  onTrash?: (item: ShoppingItem, done: () => void) => void;
+  onTrash?: (
+    item: ShoppingItem,
+    done: () => void,
+  ) => void; /** Changes an open item's amount by one step (store view). Absent where a row has no quick changes. */
+  onStep?: (item: ShoppingItem, delta: 1 | -1) => void;
+  /** Moves an open item to another list (store view). Absent where a row has no quick changes. */
+  onMove?: (item: ShoppingItem, to: MoveTarget) => void;
 };
 
 /**
@@ -146,7 +153,9 @@ export function rowFailure(item: ShoppingItem, env: RowEnv) {
       retry={env.failedWrite ?? undefined}
       busy={env.busy}
       placement="row"
-      brief={env.editing?.id !== item.id ? item : undefined}
+      brief={
+        env.editing?.id !== item.id && !env.error.change ? item : undefined
+      }
       onRefresh={env.onRefresh}
     />
   );

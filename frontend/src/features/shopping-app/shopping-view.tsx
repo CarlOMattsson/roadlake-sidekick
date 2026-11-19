@@ -36,8 +36,9 @@ import { usePurchases } from "./shopping-view-parts/use-purchases";
 import { useShoppingRead } from "./shopping-view-parts/use-shopping-read";
 import { useShoppingWrites } from "./shopping-view-parts/use-shopping-writes";
 import { useWriteForms } from "./shopping-view-parts/use-write-forms";
-import { TrashReceipts } from "./shopping-view-parts/trash-receipts";
+import { Receipts } from "./shopping-view-parts/receipts";
 import { useItemTrash } from "./shopping-view-parts/use-item-trash";
+import { useQuickChanges } from "./shopping-view-parts/use-quick-changes";
 
 // The compact-view budget and its grouping are part of this module's surface (the room and the tests use them).
 export { COMPACT_ROWS, compactGroups } from "./shopping-view-parts/helpers";
@@ -119,12 +120,22 @@ export function ShoppingView({
   const purchases = usePurchases({ transport, read, writes, onWritten });
   const { rowQueue, wanted, waiting, held, setHeld, togglePurchase } =
     purchases;
+  const trash = useItemTrash({ transport, labels: t, read, writes });
+  const quick = useQuickChanges({
+    transport,
+    labels: t,
+    read,
+    writes,
+    rowQueue,
+    onWritten,
+  });
   const view = deriveView({
     labels: t,
     detail,
     id,
     wanted,
     waiting,
+    asked: quick.asked,
     held,
     fullscreen,
     compact,
@@ -143,7 +154,6 @@ export function ShoppingView({
     folded,
     limited,
   } = view;
-  const trash = useItemTrash({ transport, read, writes });
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
   const forms = useWriteForms({
@@ -174,6 +184,7 @@ export function ShoppingView({
     setOffset(0);
     setEditing(null);
     purchases.resetPurchases();
+    quick.reset();
     trash.clear();
     setDetail(undefined);
     closeAll();
@@ -189,8 +200,10 @@ export function ShoppingView({
     conflict,
     error,
     failedWrite,
-    onRestore: trash.restore,
-    onRelease: trash.release,
+    onRelease: (itemId: string) => {
+      trash.release(itemId);
+      quick.release(itemId);
+    },
   };
   const rowEnv: RowEnv = {
     labels: t,
@@ -226,6 +239,8 @@ export function ShoppingView({
         item.id,
       ),
     onTrash: trash.onTrash,
+    onStep: quick.stepQuantity,
+    onMove: quick.moveItem,
   };
   return (
     <section
@@ -361,8 +376,8 @@ export function ShoppingView({
               onClose={forms.closeAddField}
             />
           )}
-          <TrashReceipts
-            receipts={Object.values(trash.trashed)}
+          <Receipts
+            receipts={[...trash.receipts, ...quick.receipts]}
             env={receiptEnv}
           />
           <ItemGroups

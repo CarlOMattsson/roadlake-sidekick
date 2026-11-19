@@ -8,6 +8,7 @@ import { DayStrip, stripDays } from "./day-strip";
 import { dayStripLabelsEn, dayStripLabelsSv } from "./day-strip-labels";
 import { DayAddButton, DayAddPanel, useDayWrite } from "./day-write";
 import { DoneSection } from "./done-section";
+import { JournalViewSwitch } from "./view-switch";
 import { EntryTextForm } from "./entry-write";
 import { EntryRow } from "./entry-row";
 import { DaySummary, hasDaySummary } from "./day-summary";
@@ -35,6 +36,8 @@ type DayFrameProps = FrameProps & {
    * such entry.
    */
   control?: HostSettingsEntry;
+  /** Present in fullscreen: switches to the calendar week view of the shown day. Absent: no switch. */
+  onShowWeek?: () => void;
 };
 
 /** Inline, a day shows this many entries; "Show all" in the card opens the rest. */
@@ -52,6 +55,7 @@ export function DayFrame({
   refreshKey,
   onTellClaude,
   control,
+  onShowWeek,
 }: DayFrameProps) {
   const moreButton = useRef<HTMLButtonElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -237,16 +241,26 @@ export function DayFrame({
         // The `today` button shows only while the strip shows a week without today: in today's week the strip's own
         // `today` cell is the way back, so the button is gone rather than greyed. The `t` shortcut still works.
         actions={
-          shownDays.includes(today) ? undefined : (
-            <button
-              type="button"
-              className="sk-btn--secondary sk-btn--compact journal-day-today"
-              disabled={phase === "loading"}
-              onClick={() => go(today)}
-            >
-              {dayStripLabels.today}
-            </button>
-          )
+          <>
+            {!shownDays.includes(today) && (
+              <button
+                type="button"
+                className="sk-btn--secondary sk-btn--compact journal-day-today"
+                disabled={phase === "loading"}
+                onClick={() => go(today)}
+              >
+                {dayStripLabels.today}
+              </button>
+            )}
+            {onShowWeek && (
+              <JournalViewSwitch
+                value="day"
+                labels={t}
+                disabled={phase === "loading"}
+                onChange={onShowWeek}
+              />
+            )}
+          </>
         }
       />
       {phase === "loading" && <p role="status">{t.loading}</p>}

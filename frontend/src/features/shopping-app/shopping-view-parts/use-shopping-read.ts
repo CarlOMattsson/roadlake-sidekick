@@ -40,7 +40,11 @@ export function useShoppingRead({
   const [busy, setBusy] = useState(false);
   // The failure notice ("Try again", "Refresh"). A row's own failed write is shown in that row; null is
   // the list-level notice at the top (a failed read, a create, an add or an Undo).
-  const [error, setError] = useState<{ rowId: string | null } | null>(null);
+  const [error, setError] = useState<{
+    rowId: string | null;
+    /** The row's amount or move was refused, not its bought mark: the notice does not name a purchase. */
+    change?: boolean;
+  } | null>(null);
   // When the last read got no answer and was answered from the phone's offline copy: when that copy was read (epoch
   // millis). Null for a read the server answered. Only the mobile app has a copy (`transport.offline`).
   const [copiedAt, setCopiedAt] = useState<number | null>(null);

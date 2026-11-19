@@ -32,6 +32,7 @@ const monthly = {
   interval: 1,
   weekdays: [],
   day_of_month: null,
+  last_weekday: false,
   until: null,
 };
 const NEXT = "2026-11-27T09:00:00.000Z";
@@ -187,9 +188,9 @@ describe("The repeat marker in a row's meta", () => {
 
   it("shares its words with the repeat chip", () => {
     const every2 = { frequency: "weekly" as const, interval: 2 };
-    expect(taskPlaceLabelsSv.repeatsShort(every2)).toBe("var 2:a vecka");
-    expect(taskPlaceLabelsSv.repeats(every2)).toBe("Upprepas var 2:a vecka");
-    expect(taskPlaceLabelsEn.repeatsShort(every2)).toBe("every 2 weeks");
+    expect(taskPlaceLabelsSv.repeatsShort(every2)).toBe("varannan vecka");
+    expect(taskPlaceLabelsSv.repeats(every2)).toBe("Upprepas varannan vecka");
+    expect(taskPlaceLabelsEn.repeatsShort(every2)).toBe("every other week");
     expect(taskPlaceLabelsEn.repeats({ ...every2, interval: 1 })).toBe(
       "Repeats weekly",
     );

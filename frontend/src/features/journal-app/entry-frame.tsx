@@ -40,6 +40,7 @@ export function EntryFrame({
   moves,
   onOpen,
   onOpenContact,
+  onOpenProject,
   onOpenTask,
   refreshKey,
 }: FrameProps & {
@@ -47,6 +48,7 @@ export function EntryFrame({
   notice?: { created: number; updated: number; createdTaskIds?: string[] };
   onOpen: (frame: JournalFrame) => void;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
+  onOpenProject?: (link: { id: string; label: string | null }) => void;
   onOpenTask?: (id: string) => void;
   refreshKey?: number;
 }) {
@@ -457,6 +459,7 @@ export function EntryFrame({
               labels={t}
               transport={transport}
               onOpenContact={onOpenContact}
+              onOpenProject={onOpenProject}
               onChanged={entryChanged}
               onConflict={reloadEntry}
               removable={mode === "edit"}

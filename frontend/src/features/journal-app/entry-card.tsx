@@ -59,6 +59,7 @@ export function EntryCard({
   onOpen,
   opening = false,
   onOpenContact,
+  onOpenProject,
   queued = false,
 }: {
   entry: EntryCardData;
@@ -72,6 +73,8 @@ export function EntryCard({
   opening?: boolean;
   /** Opens a linked Contact in fullscreen. Absent: a contact name is plain text. */
   onOpenContact?: (link: JournalEntryLink) => void;
+  /** Opens a linked Project in fullscreen. Absent: a project name is plain text. */
+  onOpenProject?: (link: JournalEntryLink) => void;
 }) {
   const summary = summaryRest(entry.title, entry.summary);
   const meta = [
@@ -81,7 +84,10 @@ export function EntryCard({
       : undefined,
     ...(entry.links === undefined
       ? legacyLinks(entry, t)
-      : linkParts(entry, t, onOpenContact)),
+      : linkParts(entry, t, {
+          contact: onOpenContact,
+          project: onOpenProject,
+        })),
     // The tags close the same line (two at most, "+N" for the rest), so the card stays as high as without them.
     entry.tags && entry.tags.length > 0 ? (
       <TagChips tags={entry.tags} max={2} locale={t.dateLocale} />
@@ -167,14 +173,16 @@ function legacyLinks(entry: EntryCardData, t: JournalLabels): string[] {
 
 /**
  * The links as parts of the meta line: `linkedTo` with the names and a count of the rest, then `cardTasks`. A
- * contact's name is a text button that opens the contact when the host can; a project's name is plain text. No
+ * linked name is a text button that opens its Contact or Project when the host can, plain text otherwise. No
  * remove button: a link is removed in the entry's fullscreen view. Tasks are not links in the record, so they
  * show as a count.
  */
 function linkParts(
   entry: EntryCardData,
   t: JournalLabels,
-  onOpenContact?: (link: JournalEntryLink) => void,
+  open: Partial<
+    Record<JournalEntryLink["kind"], (link: JournalEntryLink) => void>
+  >,
 ): ReactNode[] {
   const links = entry.links ?? [];
   const tasks = entry.task_ids?.length ?? 0;
@@ -197,11 +205,11 @@ function linkParts(
           return (
             <span key={`${link.kind}:${link.id}`}>
               {separator}
-              {onOpenContact && link.kind === "contact" ? (
+              {open[link.kind] ? (
                 <button
                   type="button"
                   className="journal-link-name"
-                  onClick={() => onOpenContact(link)}
+                  onClick={() => open[link.kind]?.(link)}
                 >
                   {name}
                 </button>

@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 import type { ShoppingItem, ShoppingTransport } from "../transport";
+import type { ShoppingLabels } from "../labels";
+import type { Receipt } from "./receipts";
 import type { ShoppingRead } from "./use-shopping-read";
 import type { ShoppingWrites } from "./use-shopping-writes";
 
@@ -12,6 +14,7 @@ export type TrashedItem = {
 
 type Params = {
   transport: ShoppingTransport;
+  labels: ShoppingLabels;
   read: ShoppingRead;
   writes: ShoppingWrites;
 };
@@ -23,7 +26,7 @@ type Params = {
  * path, so a retry keeps its idempotency key and a stale version is a conflict notice, not a second delete.
  * `onTrash` is absent when the host offers no delete.
  */
-export function useItemTrash({ transport, read, writes }: Params) {
+export function useItemTrash({ transport, labels: t, read, writes }: Params) {
   const { setDetail, written } = read;
   const { write } = writes;
   const [trashed, setTrashed] = useState<Record<string, TrashedItem>>({});
@@ -80,5 +83,14 @@ export function useItemTrash({ transport, read, writes }: Params) {
   /** Forgets every receipt (another list or page was chosen). */
   const clear = useCallback(() => setTrashed({}), []);
 
-  return { trashed, onTrash, restore, release, clear };
+  const receipts: Receipt[] = Object.values(trashed).map((receipt) => ({
+    id: receipt.item.id,
+    line: t.itemTrashed(receipt.item.name),
+    undo: t.undoTrash,
+    undoLabel: t.undoTrashNamed(receipt.item.name),
+    failure: t.itemRestoreFailed(receipt.item.name),
+    onUndo: () => restore(receipt),
+  }));
+
+  return { receipts, onTrash, release, clear };
 }

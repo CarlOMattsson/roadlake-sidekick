@@ -32,8 +32,13 @@ export function JournalRoom(props: JournalRoomProps) {
     setState(applyResult(state, props));
   }
   const call = props.transport.call;
-  const { transport, canListPending, contactsOn, canOpenContact } =
-    useRoomCapabilities(props.transport);
+  const {
+    transport,
+    canListPending,
+    contactsOn,
+    canOpenContact,
+    canOpenProject,
+  } = useRoomCapabilities(props.transport);
   const queuedIds = useQueuedRecords(transport);
   const locale = appLocale();
   const labels = locale.startsWith("sv") ? journalSv : journalEn;
@@ -103,7 +108,7 @@ export function JournalRoom(props: JournalRoomProps) {
     openCard,
     openDay,
     openGlanceEntry,
-    openCardContact,
+    openCardLink,
     openDrafts,
   } = useRoomActions({
     props,
@@ -143,7 +148,8 @@ export function JournalRoom(props: JournalRoomProps) {
         today={ownerToday(zone)}
         labels={labels}
         onOpen={openCard}
-        onOpenContact={contactsOn ? openCardContact : undefined}
+        onOpenContact={contactsOn ? openCardLink : undefined}
+        onOpenProject={canOpenProject ? openCardLink : undefined}
         opening={state.opening}
       />
     );
@@ -193,6 +199,17 @@ export function JournalRoom(props: JournalRoomProps) {
               navigate({
                 room: "contacts",
                 view: "contact",
+                id: link.id,
+                label: link.label ?? undefined,
+              })
+          : undefined
+      }
+      onOpenProject={
+        navigate && canOpenProject
+          ? (link) =>
+              navigate({
+                room: "work",
+                view: "project",
                 id: link.id,
                 label: link.label ?? undefined,
               })

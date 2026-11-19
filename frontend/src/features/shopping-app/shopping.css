@@ -397,12 +397,12 @@
 }
 /* A deleted item's receipt (designsystem §3 Ångra): the line "Borttagen: name" muted on the start edge, its Undo in the
    trailing slot on the line's middle. The row is as high as an item's, so the list does not jump when an item goes. */
-.sidekick-shopping .shopping-trash-receipt > .shopping-toolbar {
+.sidekick-shopping .shopping-receipt > .shopping-toolbar {
   align-items: center;
   justify-content: space-between;
   margin: 0;
 }
-.sidekick-shopping .shopping-trash-line {
+.sidekick-shopping .shopping-receipt-line {
   flex: 1 1 0;
   min-width: 0;
   margin: 0;
@@ -716,6 +716,24 @@
   font-variant-numeric: tabular-nums;
   color: var(--sk-muted);
   white-space: nowrap;
+}
+
+/* The quick changes of an open row (store view): − and + for the amount, then ⋯. Three 44 px glyph buttons in the
+   trailing slot, centred on a one-line row (2 down in its 48) and kept at the top of a taller one. − at 1 is dimmed but
+   stays in the tab order (aria-disabled), so the focus does not leave the row. */
+.sidekick-shopping .shopping-quick {
+  flex: none;
+  display: flex;
+  align-self: flex-start;
+  margin-block: 2px;
+}
+.sidekick-shopping .shopping-step[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: default;
+}
+/* The menu opens under the row, on the row's own edges. */
+.sidekick-shopping .shopping-row-menu {
+  margin-block: 0 var(--sk-s2);
 }
 
 /* Purchase row: the status sits in the text column under the item name, as a meta line. The text column

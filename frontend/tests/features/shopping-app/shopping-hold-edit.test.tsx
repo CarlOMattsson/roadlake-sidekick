@@ -313,14 +313,37 @@ it("the tip is shown in Swedish with the Swedish labels", async () => {
   );
 });
 
-it("a store row ends with a decorative chevron, hidden from assistive tech", async () => {
-  await open();
-  const row = box("Milk");
+it("a bought store row ends with a decorative chevron, hidden from assistive tech", async () => {
+  const user = userEvent.setup();
+  const bread = item({
+    id: "019f0000-0000-7000-8000-0000000000a3",
+    name: "Bread",
+    purchased: true,
+    purchased_at: "2026-10-24T12:00:00Z",
+  });
+  render(
+    <ShoppingView
+      transport={adapter()}
+      labels={shoppingEn}
+      initial={{ ...detail, items: [milk, bread] }}
+      fullscreen
+    />,
+  );
+  await user.click(await screen.findByText("Bought"));
+  const row = box("Bread");
   const chevron = row.querySelector(".shopping-chevron");
   expect(chevron).not.toBeNull();
   expect(row.lastElementChild).toBe(chevron);
   expect(chevron?.lastElementChild?.tagName.toLowerCase()).toBe("svg");
   expect(chevron).toHaveAttribute("aria-hidden", "true");
+});
+
+it("an open store row leaves the chevron's room to its quick controls", async () => {
+  await open();
+  expect(box("Milk").querySelector(".shopping-chevron")).toBeNull();
+  expect(
+    screen.getByRole("button", { name: shoppingEn.increaseQuantity("Milk") }),
+  ).toBeInTheDocument();
 });
 
 // Shift+F10 opens the form with the focus on its first field, so Escape closes it at once and the

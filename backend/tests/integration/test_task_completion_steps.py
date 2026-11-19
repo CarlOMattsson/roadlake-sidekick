@@ -159,6 +159,7 @@ DAILY: RecurrenceData = {
     "interval": 1,
     "weekdays": [],
     "day_of_month": None,
+    "last_weekday": False,
     "until": None,
 }
 

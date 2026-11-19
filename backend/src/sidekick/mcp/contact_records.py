@@ -71,7 +71,9 @@ class SameNameContactRecord(Output):
 
 class CreatedContactResult(ContactResult):
     # The new Contact is kept; these are the others with the same name.
-    same_name_contacts: list[SameNameContactRecord] = Field(default_factory=list)
+    same_name_contacts: list[SameNameContactRecord] = Field(
+        default_factory=list[SameNameContactRecord]
+    )
 
 
 class UpdatedContactResult(ContactResult, WithIgnoredNulls):

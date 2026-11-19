@@ -10,6 +10,41 @@ export function shiftDate(value: string, delta: number): string {
   return day.toISOString().slice(0, 10);
 }
 
+export const calendarDate = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+/** Whole days from `from` to `to` (both YYYY-MM-DD, UTC so no time zone shifts them). */
+export function daysBetween(from: string, to: string): number {
+  return Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
+      86_400_000,
+  );
+}
+
+/** The Monday of the calendar week (Monday to Sunday) that holds a date; malformed input is returned unchanged. */
+export function weekStart(value: string): string {
+  if (!calendarDate.test(value)) return value;
+  const weekday = new Date(`${value}T00:00:00Z`).getUTCDay();
+  return shiftDate(value, -((weekday + 6) % 7));
+}
+
+/** The seven days (YYYY-MM-DD) of the calendar week that holds a date, Monday first. Empty for a malformed date. */
+export function weekDates(value: string): string[] {
+  if (!calendarDate.test(value)) return [];
+  const monday = weekStart(value);
+  return Array.from({ length: 7 }, (_, index) => shiftDate(monday, index));
+}
+
+/**
+ * The ISO 8601 week number (1 to 53) of the week that holds a date: weeks start on Monday and week 1 is the week with
+ * the year's first Thursday. 0 for a malformed date.
+ */
+export function isoWeekNumber(value: string): number {
+  if (!calendarDate.test(value)) return 0;
+  const monday = weekStart(value);
+  const year = shiftDate(monday, 3).slice(0, 4);
+  return 1 + daysBetween(weekStart(`${year}-01-04`), monday) / 7;
+}
+
 /** A calendar date shown as the day it names, whatever the time zone. */
 export function formatCalendarDate(value: string, locale: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);

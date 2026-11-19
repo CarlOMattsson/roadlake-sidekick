@@ -488,6 +488,13 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* A chip with nothing to press (no way to open it, no remove button) is a plain name: no frame, so it does not look tappable. */
+.sidekick-journal .journal-chip.journal-chip--static {
+  min-height: 0;
+  padding-inline: 0;
+  border: 0;
+  border-radius: 0;
+}
 /* A contact chip that opens its contact: the button keeps the chip's look (no frame of its own, the chip's
    border stays) and a 44 px touch height. */
 .sidekick-journal .journal-chip > button.journal-chip-name {
@@ -1140,4 +1147,26 @@ button.journal-entry-card {
    it is cut. The full title is its tooltip and part of its accessible name. */
 .sidekick-journal .journal-task-chips .journal-chip-name {
   max-width: 100%;
+}
+
+/* The day/week switch at the end of the week row: the shared segmented control, 40 px high and a little narrower so it
+   shares the row with the arrows (and "Idag" or "Denna vecka"); the row wraps it to its own line when they do not fit. */
+.sidekick-journal .sk-day-strip-weekrow > .journal-view-switch {
+  margin: 0 0 var(--sk-day-week-reach) var(--sk-s2);
+}
+.sidekick-journal .journal-view-switch .sk-segmented__option {
+  min-height: 2.5rem;
+  padding-inline: var(--sk-s3);
+}
+/* The week view: one section per day. The day heading is the section heading in the title type, and «Gjort» under it
+   (an h4, its fold row in the section type) is a level lower. An empty day is one muted line right under its heading. */
+.sidekick-journal .journal-week-day > h3 {
+  font: var(--sk-type-title);
+  margin-top: var(--sk-s5);
+}
+.sidekick-journal .journal-week-day .journal-empty {
+  margin-top: 0;
+}
+.sidekick-journal .journal-done > h4 {
+  margin: var(--sk-s3) 0 var(--sk-section-below);
 }

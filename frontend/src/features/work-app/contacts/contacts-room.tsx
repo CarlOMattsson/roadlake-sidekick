@@ -8,7 +8,7 @@ import {
 } from "../inline/inline-summary-labels";
 import { appLocale } from "../../mcp-apps/app-locale";
 import { roomEnabled } from "../../mcp-apps/enabled-rooms";
-import type { RoomProps } from "../../mcp-apps/room-types";
+import type { RoomProps, RoomTarget } from "../../mcp-apps/room-types";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { ErrorNotice, toolResultCause } from "../../mcp-apps/ui/states";
 import { createWorkTransport } from "../transport/work-transport";
@@ -139,28 +139,33 @@ export function ContactsRoom(props: RoomProps) {
       : undefined;
 
   /** Asks the host for fullscreen; the host may refuse, and the card then stays inline. */
-  function requestFullscreen() {
+  function requestFullscreen(target?: RoomTarget) {
     if (state.opening) return;
     setState((prev) => ({ ...prev, opening: true }));
     props.transport
       .requestDisplayMode("fullscreen")
+      .then((mode) => {
+        if (mode === "fullscreen" && target)
+          props.onModeGranted?.("full", target);
+      })
       .catch(() => undefined)
       .finally(() => setState((prev) => ({ ...prev, opening: false })));
   }
-  function expandInline() {
+  function expandInline(target?: RoomTarget) {
     setState((prev) => ({ ...prev, expandedInline: true }));
-    // The shell then draws the full view, with the room strip.
-    props.onModeGranted?.("full");
+    // The shell then draws the full view, with the room strip, at the target when there is one.
+    props.onModeGranted?.("full", target);
   }
 
   // Inline with fullscreen on offer the root is a summary and Open asks for fullscreen; with none on
-  // offer Open expands the full view in place. In the full view there is no Open.
+  // offer Open expands the full view in place. In the full view there is no Open. A row of the summary
+  // opens its Contact: the same ask, carrying the Contact as the target of the full view.
+  const openAt = (target?: RoomTarget) =>
+    props.fullscreenAvailable === true
+      ? requestFullscreen(target)
+      : expandInline(target);
   const openAction =
-    fullscreen || state.expandedInline
-      ? undefined
-      : props.fullscreenAvailable === true
-        ? requestFullscreen
-        : expandInline;
+    fullscreen || state.expandedInline ? undefined : () => openAt();
   // A failed first result carries no data: Try again reads the Contact the host named, else the list afresh, and the
   // heading names that read (the Contact, or the Contacts).
   const contactRead = contactFirstRead(props.toolArgs);
@@ -213,6 +218,7 @@ export function ContactsRoom(props: RoomProps) {
         cardLabels={names.cardLabels}
         inlineLabels={names.inlineLabels}
         fullscreen={openAction}
+        openRecord={openAction && openAt}
         opening={state.opening}
         shortcuts={fullscreen}
         onOpenJournalEntry={onOpenJournalEntry}

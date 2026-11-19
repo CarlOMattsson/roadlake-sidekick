@@ -1,44 +1,10 @@
-import type { RecurrenceRecord } from "../../../lib/mcp/tool-results.generated";
-
-type Rule = Pick<RecurrenceRecord, "frequency" | "interval">;
-
-/** A rule in Swedish words: "varje vecka", "var 2:a vecka", "var 11:e dag". */
-function everySv(rule: Rule): string {
-  const unit = {
-    daily: "dag",
-    weekly: "vecka",
-    monthly: "månad",
-    yearly: "år",
-  }[rule.frequency];
-  if (rule.interval <= 1) return `varje ${unit}`;
-  // Swedish ordinals: 1:a and 2:a (but 11:e, 12:e), every other number :e.
-  const tail = rule.interval % 100;
-  const suffix =
-    (rule.interval % 10 === 1 || rule.interval % 10 === 2) &&
-    tail !== 11 &&
-    tail !== 12
-      ? "a"
-      : "e";
-  return `var ${rule.interval}:${suffix} ${unit}`;
-}
-
-/** A rule in English words: "weekly", "every 2 weeks". */
-function everyEn(rule: Rule): string {
-  if (rule.interval <= 1)
-    return {
-      daily: "daily",
-      weekly: "weekly",
-      monthly: "monthly",
-      yearly: "yearly",
-    }[rule.frequency];
-  const unit = {
-    daily: "days",
-    weekly: "weeks",
-    monthly: "months",
-    yearly: "years",
-  }[rule.frequency];
-  return `every ${rule.interval} ${unit}`;
-}
+import {
+  everyEn,
+  everySv,
+  weekdayNamesEn,
+  weekdayNamesSv,
+  type RuleWords,
+} from "./repeat-words";
 
 /**
  * Words of the Task's place chip (the `place` label and the place's name), the repeat chip and its picker, and the `unsortedHeading`
@@ -70,20 +36,26 @@ export const taskPlaceLabelsSv = {
   repeatsNot: "Upprepas inte",
   /** The repeat picker's accessible name: the repeat label and the Task title. */
   repeatPickerFor: (task: string) => `Upprepning för ${task}`,
-  /** The picker's options: no rule, then the simple rules. */
+  /** The weekday buttons' group, when the rule is weekly: the label and the Task title. */
+  repeatWeekdaysFor: (task: string) => `Veckodagar för ${task}`,
+  /** The weekday buttons: the short name on the button, the full name as its accessible name. */
+  weekdayNames: weekdayNamesSv,
+  /** The picker's options: no rule, then the named rules. */
   repeatOptions: {
     none: "Upprepas inte",
     daily: "Varje dag",
     weekly: "Varje vecka",
+    biweekly: "Varannan vecka",
     monthly: "Varje månad",
+    lastWeekday: "Sista vardagen i månaden",
     yearly: "Varje år",
   },
   /** The option that keeps a rule the picker has no word for (every 2nd week, chosen weekdays, an end date). */
   repeatCurrent: (rule: string) => `${rule} (nuvarande)`,
   /** The rule in a list row's meta line, after the repeat glyph: the rule in words. */
-  repeatsShort: (rule: Rule) => everySv(rule),
+  repeatsShort: (rule: RuleWords) => everySv(rule),
   /** The repeat chip's text: the rule in words. */
-  repeats: (rule: Rule) => `Upprepas ${everySv(rule)}`,
+  repeats: (rule: RuleWords) => `Upprepas ${everySv(rule)}`,
 };
 
 export type TaskPlaceLabels = typeof taskPlaceLabelsSv;
@@ -102,11 +74,15 @@ export const taskPlaceLabelsEn: TaskPlaceLabels = {
   changeRepeat: "Change how often it repeats",
   repeatsNot: "Doesn’t repeat",
   repeatPickerFor: (task) => `Repeat settings for ${task}`,
+  repeatWeekdaysFor: (task) => `Repeat days for ${task}`,
+  weekdayNames: weekdayNamesEn,
   repeatOptions: {
     none: "Doesn’t repeat",
     daily: "Every day",
     weekly: "Every week",
+    biweekly: "Every other week",
     monthly: "Every month",
+    lastWeekday: "Last weekday of the month",
     yearly: "Every year",
   },
   repeatCurrent: (rule) => `${rule} (current)`,

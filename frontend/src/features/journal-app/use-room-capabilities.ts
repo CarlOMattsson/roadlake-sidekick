@@ -15,6 +15,9 @@ export function useRoomCapabilities(host: RoomTransport) {
   // A contact name opens the Contact room only where that room is on; otherwise it stays plain text.
   const contactsOn = roomEnabled("contacts");
   const canOpenContact = contactsOn && toolOffered(host, "get_contact_context");
+  // A project name opens the Work room, where that room is on and the host reads a project.
+  const canOpenProject =
+    roomEnabled("work") && toolOffered(host, "get_project");
   // Changing a link needs rights a mobile Journal device does not hold, so the unlink is not offered there.
   const canChangeLinks = toolOffered(host, "update_journal_entry", {
     remove_contact_ids: [],
@@ -64,5 +67,11 @@ export function useRoomCapabilities(host: RoomTransport) {
       offline,
     ],
   );
-  return { transport, canListPending, contactsOn, canOpenContact };
+  return {
+    transport,
+    canListPending,
+    contactsOn,
+    canOpenContact,
+    canOpenProject,
+  };
 }

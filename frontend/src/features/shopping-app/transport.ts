@@ -81,11 +81,12 @@ export type ShoppingTransport = {
     key: string,
     options?: AddOptions,
   ) => Promise<unknown>;
+  /** Writes the changed fields of the item; resolves the item as stored, with its new version. */
   update: (
     item: ShoppingItem,
     input: ShoppingInput,
     key: string,
-  ) => Promise<unknown>;
+  ) => Promise<{ item: ShoppingItem }>;
   /** Sets the item bought or open (the opposite of its `purchased`); resolves the item as stored, with its new version. */
   purchase: (
     item: ShoppingItem,

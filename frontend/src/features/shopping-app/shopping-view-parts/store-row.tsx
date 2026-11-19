@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { ShoppingItem } from "../transport";
 import { isDefaultAmount, quantityText } from "../shopping-card";
@@ -5,6 +6,7 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { boughtOnText, buyAgainUsed, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
+import { hasQuickChanges, moveTargets, RowMenu, RowQuick } from "./row-quick";
 import {
   heldStatus,
   heldWord,
@@ -45,6 +47,10 @@ export function StoreRow({
     : itemMeta(item, t);
   // A row that cannot be changed (an archived list, or a change still in the phone's outbox) cannot be opened either.
   const locked = env.archived || item.id in env.waiting;
+  // An open row can step its amount and move to another list without opening the change form.
+  const quick = hasQuickChanges(item, env, Boolean(locked), holding);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const moreButton = useRef<HTMLButtonElement>(null);
   return (
     <li
       className={`shopping-store-item${holding ? " shopping-held-item" : ""}${
@@ -119,14 +125,35 @@ export function StoreRow({
             {/* What the shop needs to know without opening the form: occasion, date, offer, note. */}
             {meta && <span className="shopping-store-meta">{meta}</span>}
           </span>
-          {/* The row opens the change form, so it ends in › as Arbetes rows; a row that cannot be opened has none. */}
-          {!locked && (
+          {/* The row opens the change form, so it ends in › as Arbetes rows; a row that cannot be opened has none, and
+              a row with its own trailing controls leaves the room to them. */}
+          {!locked && !quick && (
             <span className="shopping-chevron" aria-hidden="true">
               <ChevronRightIcon />
             </span>
           )}
         </button>
+        {quick && (
+          <RowQuick
+            item={item}
+            env={env}
+            menuOpen={menuOpen}
+            moreButton={moreButton}
+            onToggleMenu={() => setMenuOpen((open) => !open)}
+          />
+        )}
       </div>
+      {quick && menuOpen && moveTargets(item, env).length > 0 && (
+        <RowMenu
+          item={item}
+          env={env}
+          onClose={() => setMenuOpen(false)}
+          onEscape={() => {
+            setMenuOpen(false);
+            moreButton.current?.focus();
+          }}
+        />
+      )}
       {holding && undoButton(item, env, hold)}
       {holding && heldStatus(item, env)}
       {(inPlace || !held[item.id]) && rowFailure(item, env)}

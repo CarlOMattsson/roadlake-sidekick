@@ -15864,6 +15864,11 @@
                         "title": "Interval",
                         "type": "integer"
                       },
+                      "last_weekday": {
+                        "default": false,
+                        "title": "Last Weekday",
+                        "type": "boolean"
+                      },
                       "until": {
                         "anyOf": [
                           {
@@ -21871,6 +21876,11 @@
                           "title": "Interval",
                           "type": "integer"
                         },
+                        "last_weekday": {
+                          "default": false,
+                          "title": "Last Weekday",
+                          "type": "boolean"
+                        },
                         "until": {
                           "anyOf": [
                             {
@@ -22601,6 +22611,11 @@
                         "default": 1,
                         "title": "Interval",
                         "type": "integer"
+                      },
+                      "last_weekday": {
+                        "default": false,
+                        "title": "Last Weekday",
+                        "type": "boolean"
                       },
                       "until": {
                         "anyOf": [
@@ -25402,6 +25417,11 @@
                       "title": "Interval",
                       "type": "integer"
                     },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
                     "until": {
                       "anyOf": [
                         {
@@ -25953,6 +25973,11 @@
                       "title": "Interval",
                       "type": "integer"
                     },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
                     "until": {
                       "anyOf": [
                         {
@@ -26252,6 +26277,10 @@
                       "maximum": 12,
                       "minimum": 1,
                       "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "type": "boolean"
                     },
                     "until": {
                       "anyOf": [
@@ -26682,6 +26711,11 @@
                       "title": "Interval",
                       "type": "integer"
                     },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
                     "until": {
                       "anyOf": [
                         {
@@ -27097,6 +27131,11 @@
                       "default": 1,
                       "title": "Interval",
                       "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
                     },
                     "until": {
                       "anyOf": [

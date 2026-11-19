@@ -6,7 +6,13 @@ import {
   useRef,
 } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "../mcp-apps/ui/icons";
-import { formatCalendarDate, formatShortDate, shiftDate } from "./dates";
+import {
+  calendarDate,
+  daysBetween,
+  formatCalendarDate,
+  formatShortDate,
+  shiftDate,
+} from "./dates";
 import type { DayStripLabels } from "./day-strip-labels";
 import "./journal.css";
 
@@ -61,16 +67,6 @@ export function weekRange(days: readonly string[], locale: string): string {
       ? String(Number(first.slice(8, 10)))
       : formatShortDate(first, locale);
   return `${start}–${end}`;
-}
-
-const calendarDate = /^(\d{4})-(\d{2})-(\d{2})$/;
-
-/** Whole days from `from` to `to` (both YYYY-MM-DD, UTC so no time zone shifts them). */
-function daysBetween(from: string, to: string): number {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
-      86_400_000,
-  );
 }
 
 /**

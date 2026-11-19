@@ -118,6 +118,33 @@ describe("ContactsRoom", () => {
     ]);
   });
 
+  it("inline, a Contact row asks for fullscreen and names the Contact as the target of the full view", async () => {
+    const transport = host();
+    const onModeGranted = vi.fn();
+    render(
+      <ContactsRoom
+        mode="inline"
+        fullscreenAvailable
+        transport={transport}
+        onModeGranted={onModeGranted}
+        resultId={1}
+        initial={{ contacts: [bo], next_cursor: null }}
+      />,
+    );
+    await userEvent
+      .setup()
+      .click(await screen.findByRole("button", { name: "Bo Berg" }));
+    expect(transport.requestDisplayMode).toHaveBeenCalledWith("fullscreen");
+    await waitFor(() =>
+      expect(onModeGranted).toHaveBeenCalledWith("full", {
+        room: "contacts",
+        view: "contact",
+        id: bo.id,
+        label: "Bo Berg",
+      }),
+    );
+  });
+
   it("ignores a result that belongs to another room", async () => {
     const transport = host();
     const { rerender } = render(

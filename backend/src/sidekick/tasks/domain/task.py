@@ -360,7 +360,7 @@ class Task:
 
         if self.recurrence is None or self.status is not TaskStatus.COMPLETED:
             return self
-        next_due = self.recurrence.next_due_at(now, zone)
+        next_due = self.recurrence.next_due_at(now, zone, self.due_at)
         if next_due is None:
             return self
         return replace(

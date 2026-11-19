@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import "../agenda/agenda.css";
 import { type DueLocale, workDate } from "../../mcp-apps/ui/due";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import type { AgendaUndo } from "../agenda/agenda-undo";
@@ -18,6 +19,7 @@ import { cardKey, groupAgenda, hiddenRows } from "../shared/work-items";
 import { refreshedOr, type ListRefresh } from "./inline-refresh";
 import {
   InlineRow,
+  InlineRowButton,
   ListSummary,
   inlineMeta,
   statusLabel,
@@ -60,6 +62,7 @@ export function AgendaSummary({
   labels,
   onOpen,
   onOpenItem,
+  onOpenContact,
   refresh,
 }: {
   page: WorkAgendaPage;
@@ -70,6 +73,8 @@ export function AgendaSummary({
   onOpen: () => void;
   /** Opens one record from its row, in fullscreen; without it a row opens the agenda. */
   onOpenItem?: (item: WorkItemRecord) => void;
+  /** Opens the Contact a waiting row names, in fullscreen; without it the name is plain text. */
+  onOpenContact?: (contact: { id: string; name: string }) => void;
   /** Accepted for the caller's sake but unused: the card has no status glyphs and writes nothing. */
   write?: InlineAgendaWrite;
   /** Reads the agenda again from the card's corner; the room passes it only when the host answers the read. */
@@ -81,6 +86,8 @@ export function AgendaSummary({
         page={page}
         labels={labels}
         onOpen={onOpen}
+        onOpenItem={onOpenItem}
+        onOpenContact={onOpenContact}
         refresh={refresh}
       />
     );
@@ -95,19 +102,24 @@ export function AgendaSummary({
   );
 }
 /**
- * Inline waiting view: who each Task waits on and for how long, the longest wait first, as text rows
- * (the name and the wait in days, then the Task). Like every inline list it is read-only: "Open" shows the
+ * Inline waiting view: who each Task waits on and for how long, the longest wait first (the name and the wait in
+ * days, then the Task). Like every inline list it writes nothing: the name opens the Contact and the Task's title opens
+ * the Task, each in fullscreen (`onOpenContact`, `onOpenItem`; without them the rows are text), and "Open" shows the
  * fullscreen view, where each row has its `remind` button.
  */
 function WaitingSummary({
   page,
   labels,
   onOpen,
+  onOpenItem,
+  onOpenContact,
   refresh,
 }: {
   page: WorkAgendaPage;
   labels: InlineSummaryLabels;
   onOpen: () => void;
+  onOpenItem?: (item: WorkItemRecord) => void;
+  onOpenContact?: (contact: { id: string; name: string }) => void;
   refresh?: ListRefresh;
 }) {
   const words = waitingLabelsFor(labels.dateLocale);
@@ -118,6 +130,7 @@ function WaitingSummary({
     <ListSummary
       labels={labels}
       kindLabel={words.kind}
+      className="work-compact-opens"
       kicker={
         refresh?.at === undefined
           ? undefined
@@ -139,23 +152,49 @@ function WaitingSummary({
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">
-          {shown.map(({ item, who, days }) => (
-            <li key={cardKey(item)} className="work-compact-row">
-              <span className="work-compact-row-title">
-                {`${who ?? words.someone} · ${words.days(days)}`}
-              </span>
-              <span
-                className="work-compact-status"
-                data-tone={
-                  days !== null && days >= LONG_WAIT_DAYS
-                    ? "overdue"
-                    : undefined
-                }
-              >
-                {item.title}
-              </span>
-            </li>
-          ))}
+          {shown.map(({ item, who, days }) => {
+            const contactId = item.waiting_on_contact_id;
+            return (
+              <li key={cardKey(item)} className="work-compact-row">
+                <p className="work-waiting-who">
+                  {who && contactId && onOpenContact ? (
+                    <button
+                      type="button"
+                      className="work-waiting-name work-waiting-link"
+                      onClick={() =>
+                        onOpenContact({ id: contactId, name: who })
+                      }
+                    >
+                      {who}
+                    </button>
+                  ) : (
+                    <span className="work-waiting-name">
+                      {who ?? words.someone}
+                    </span>
+                  )}{" "}
+                  <span
+                    className="work-waiting-days"
+                    data-tone={
+                      days !== null && days >= LONG_WAIT_DAYS
+                        ? "overdue"
+                        : undefined
+                    }
+                  >
+                    {words.days(days)}
+                  </span>
+                </p>
+                {onOpenItem ? (
+                  <InlineRowButton
+                    title={item.title}
+                    meta={[]}
+                    onOpen={() => onOpenItem(item)}
+                  />
+                ) : (
+                  <span className="work-compact-status">{item.title}</span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {rows.length > shown.length ? (

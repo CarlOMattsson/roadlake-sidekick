@@ -241,19 +241,20 @@ describe("the repeat chip of the Task page", () => {
     const rule = {
       frequency: "weekly",
       interval: 2,
-      weekdays: [1],
+      weekdays: [],
       day_of_month: null,
+      last_weekday: false,
       until: null,
     };
     const first = makeTransport(makeTask({ recurrence: rule }), phone);
     const { unmount } = renderTask(first.work);
-    const sv = await screen.findByText("Upprepas var 2:a vecka");
+    const sv = await screen.findByText("Upprepas varannan vecka");
     expect(sv.closest("button")).toBeNull();
     unmount();
 
     const second = makeTransport(makeTask({ recurrence: rule }), phone);
     renderTask(second.work, workEn);
-    expect(await screen.findByText("Repeats every 2 weeks")).toBeVisible();
+    expect(await screen.findByText("Repeats every other week")).toBeVisible();
   });
 
   it("shows no repeat chip on the phone for a Task that does not repeat", async () => {
@@ -283,7 +284,7 @@ describe("the repeat chip of the Task page", () => {
     const none = group.getByRole("button", { name: "Upprepas inte" });
     expect(none).toHaveAttribute("aria-pressed", "true");
     expect(none).toHaveFocus();
-    expect(group.getAllByRole("button")).toHaveLength(5);
+    expect(group.getAllByRole("button")).toHaveLength(7);
     await user.click(group.getByRole("button", { name: "Varje vecka" }));
 
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
@@ -305,6 +306,7 @@ describe("the repeat chip of the Task page", () => {
       interval: 1,
       weekdays: [],
       day_of_month: null,
+      last_weekday: false,
       until: null,
     };
     const { work, updateTask } = makeTransport(makeTask({ recurrence: rule }));
@@ -347,9 +349,10 @@ describe("the repeat chip of the Task page", () => {
   it("keeps a rule the picker has no word for as its own option and writes nothing for it", async () => {
     const rule = {
       frequency: "weekly",
-      interval: 2,
+      interval: 3,
       weekdays: [1],
       day_of_month: null,
+      last_weekday: false,
       until: null,
     };
     const { work, updateTask } = makeTransport(makeTask({ recurrence: rule }));
@@ -358,11 +361,11 @@ describe("the repeat chip of the Task page", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Ändra upprepning: Upprepas var 2:a vecka",
+        name: "Ändra upprepning: Upprepas var 3:e vecka, tis",
       }),
     );
     const current = screen.getByRole("button", {
-      name: "Upprepas var 2:a vecka (nuvarande)",
+      name: "Upprepas var 3:e vecka, tis (nuvarande)",
     });
     expect(current).toHaveAttribute("aria-pressed", "true");
     await user.click(current);
@@ -371,6 +374,160 @@ describe("the repeat chip of the Task page", () => {
     expect(
       screen.queryByRole("group", { name: "Upprepning för Måla taket" }),
     ).toBeNull();
+  });
+
+  it("offers every other week and the last weekday of the month, and sets each with one update_task", async () => {
+    const { work, updateTask } = makeTransport(makeTask({ recurrence: null }));
+    const user = userEvent.setup();
+    renderTask(work);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Ändra upprepning: Upprepas inte",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Varannan vecka" }));
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+    expect(updateTask.mock.calls[0]?.[2]).toEqual({
+      recurrence: { frequency: "weekly", interval: 2 },
+    });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /Ändra upprepning/ }),
+      ).toBeEnabled(),
+    );
+    await user.click(screen.getByRole("button", { name: /Ändra upprepning/ }));
+    await user.click(
+      screen.getByRole("button", { name: "Sista vardagen i månaden" }),
+    );
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
+    expect(updateTask.mock.calls[1]?.[2]).toEqual({
+      recurrence: { frequency: "monthly", last_weekday: true },
+    });
+  });
+
+  it("names a last-weekday rule and ticks its option", async () => {
+    const rule = {
+      frequency: "monthly",
+      interval: 1,
+      weekdays: [],
+      day_of_month: null,
+      last_weekday: true,
+      until: null,
+    };
+    const { work } = makeTransport(makeTask({ recurrence: rule }));
+    const user = userEvent.setup();
+    renderTask(work);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Ändra upprepning: Upprepas sista vardagen i månaden",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Sista vardagen i månaden" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    // The weekday buttons belong to a weekly rule only.
+    expect(
+      screen.queryByRole("group", { name: "Veckodagar för Måla taket" }),
+    ).toBeNull();
+  });
+
+  it("toggles the weekdays of a weekly rule, one update_task per tap, and shows them in words", async () => {
+    const rule = {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [0],
+      day_of_month: null,
+      last_weekday: false,
+      until: null,
+    };
+    const { work, updateTask } = makeTransport(makeTask({ recurrence: rule }));
+    const user = userEvent.setup();
+    renderTask(work);
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Ändra upprepning: Upprepas varje måndag",
+      }),
+    ).toBeInTheDocument();
+    const days = within(
+      screen.getByRole("group", { name: "Veckodagar för Måla taket" }),
+    );
+    expect(days.getAllByRole("button")).toHaveLength(7);
+    expect(days.getByRole("button", { name: "måndag" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(days.getByRole("button", { name: "torsdag" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await user.click(days.getByRole("button", { name: "torsdag" }));
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+    expect(updateTask.mock.calls[0]?.[2]).toEqual({
+      recurrence: { frequency: "weekly", interval: 1, weekdays: [0, 3] },
+    });
+  });
+
+  it("keeps the chosen weekdays when the rule changes between weekly and every other week", async () => {
+    const rule = {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [0, 3],
+      day_of_month: null,
+      last_weekday: false,
+      until: null,
+    };
+    const { work, updateTask } = makeTransport(makeTask({ recurrence: rule }));
+    const user = userEvent.setup();
+    renderTask(work);
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Ändra upprepning: Upprepas varje mån och tors",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Varannan vecka" }));
+    await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(1));
+    expect(updateTask.mock.calls[0]?.[2]).toEqual({
+      recurrence: { frequency: "weekly", interval: 2, weekdays: [0, 3] },
+    });
+  });
+
+  it("shows the weekday buttons in English and none on the phone", async () => {
+    const rule = {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [0, 3],
+      day_of_month: null,
+      last_weekday: false,
+      until: null,
+    };
+    const first = makeTransport(makeTask({ recurrence: rule }));
+    const { unmount } = renderTask(first.work, workEn);
+    const days = within(
+      await screen.findByRole("group", { name: "Repeat days for Måla taket" }),
+    );
+    expect(days.getByRole("button", { name: "Thursday" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(days.getByRole("button", { name: "Thursday" })).toHaveTextContent(
+      "Thu",
+    );
+    unmount();
+
+    const phone = makeTransport(makeTask({ recurrence: rule }), {
+      supportsTool: () => true,
+      supportsCall: (name: string) => name !== "update_task",
+    });
+    renderTask(phone.work);
+    expect(
+      await screen.findByText("Upprepas varje mån och tors"),
+    ).toBeVisible();
+    expect(screen.queryByRole("group", { name: /Veckodagar/ })).toBeNull();
   });
 
   it("closes on Escape with focus back on the chip, and speaks English", async () => {
@@ -451,7 +608,9 @@ describe("the wording of the repeat rule", () => {
     expect(sv(rule("weekly", 1))).toBe("Upprepas varje vecka");
     expect(sv(rule("monthly", 1))).toBe("Upprepas varje månad");
     expect(sv(rule("yearly", 1))).toBe("Upprepas varje år");
-    expect(sv(rule("weekly", 2))).toBe("Upprepas var 2:a vecka");
+    expect(sv(rule("weekly", 2))).toBe("Upprepas varannan vecka");
+    expect(sv(rule("yearly", 2))).toBe("Upprepas vartannat år");
+    expect(sv(rule("weekly", 3))).toBe("Upprepas var 3:e vecka");
     expect(sv(rule("daily", 3))).toBe("Upprepas var 3:e dag");
     expect(sv(rule("monthly", 11))).toBe("Upprepas var 11:e månad");
     expect(sv(rule("daily", 21))).toBe("Upprepas var 21:a dag");
@@ -463,8 +622,52 @@ describe("the wording of the repeat rule", () => {
     expect(en(rule("weekly", 1))).toBe("Repeats weekly");
     expect(en(rule("monthly", 1))).toBe("Repeats monthly");
     expect(en(rule("yearly", 1))).toBe("Repeats yearly");
-    expect(en(rule("weekly", 2))).toBe("Repeats every 2 weeks");
+    expect(en(rule("weekly", 2))).toBe("Repeats every other week");
+    expect(en(rule("weekly", 3))).toBe("Repeats every 3 weeks");
     expect(en(rule("yearly", 3))).toBe("Repeats every 3 years");
+  });
+
+  it("names weekdays, the last weekday and a day of the month in both languages", () => {
+    const sv = taskPlaceLabelsSv.repeatsShort;
+    const en = taskPlaceLabelsEn.repeatsShort;
+    const weekly = (weekdays: number[], interval = 1) => ({
+      frequency: "weekly" as const,
+      interval,
+      weekdays,
+    });
+    expect(sv(weekly([0]))).toBe("varje måndag");
+    expect(sv(weekly([3, 0]))).toBe("varje mån och tors");
+    expect(sv(weekly([0, 2, 4]))).toBe("varje mån, ons och fre");
+    expect(sv(weekly([0, 1, 2, 3, 4, 5, 6]))).toBe("varje dag");
+    expect(sv(weekly([0, 3], 2))).toBe("varannan vecka, mån och tors");
+    expect(en(weekly([0]))).toBe("every Monday");
+    expect(en(weekly([3, 0]))).toBe("every Mon and Thu");
+    expect(en(weekly([0, 2, 4]))).toBe("every Mon, Wed and Fri");
+    expect(en(weekly([0, 3], 2))).toBe("every other week, Mon and Thu");
+
+    const last = {
+      frequency: "monthly" as const,
+      interval: 1,
+      last_weekday: true,
+    };
+    expect(sv(last)).toBe("sista vardagen i månaden");
+    expect(en(last)).toBe("on the last weekday of the month");
+    expect(sv({ ...last, interval: 2 })).toBe("sista vardagen varannan månad");
+    expect(en({ ...last, interval: 2 })).toBe(
+      "on the last weekday of every other month",
+    );
+    expect(taskPlaceLabelsEn.repeats(last)).toBe(
+      "Repeats on the last weekday of the month",
+    );
+
+    const day = {
+      frequency: "monthly" as const,
+      interval: 1,
+      day_of_month: 21,
+    };
+    expect(sv(day)).toBe("varje månad den 21:a");
+    expect(en(day)).toBe("monthly on the 21st");
+    expect(en({ ...day, day_of_month: 12 })).toBe("monthly on the 12th");
   });
 
   it("keeps identical keys in both languages", () => {

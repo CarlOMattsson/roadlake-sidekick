@@ -385,11 +385,14 @@ export function ContactsRootSummary({
   transport,
   labels,
   onOpen,
+  onOpenContact,
 }: {
   frame: WorkContactsFrame;
   transport: WorkTransport;
   labels: InlineSummaryLabels;
   onOpen: () => void;
+  /** Opens one Contact from its row, in fullscreen; without it the names are plain text. */
+  onOpenContact?: (contact: { id: string; name: string }) => void;
 }) {
   // A frame that already holds its page needs no read; a retry reads the first page again.
   const held = useMemo(
@@ -428,6 +431,7 @@ export function ContactsRootSummary({
         query={frame.q}
         labels={labels}
         onOpen={onOpen}
+        onOpenContact={onOpenContact}
       />
     );
   }

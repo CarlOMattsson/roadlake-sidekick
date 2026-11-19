@@ -143,14 +143,14 @@ export function useRoomActions({
   }
 
   /**
-   * A contact name on the entry card opens that Contact in the full view (design 5.1): fullscreen
-   * first when the host offers it, then the shell shows the Contact on top of this card's entry. The
+   * A linked name on the entry card opens that Contact or Project in the full view (design 5.1): fullscreen
+   * first when the host offers it, then the shell shows the record on top of this card's entry. The
    * name is the only thing sent as the target's label; no journal text leaves the card.
    */
-  function openCardContact(link: JournalEntryLink) {
+  function openCardLink(link: JournalEntryLink) {
     const target = {
-      room: "contacts" as const,
-      view: "contact",
+      room: link.kind === "contact" ? ("contacts" as const) : ("work" as const),
+      view: link.kind,
       id: link.id,
       label: link.label ?? undefined,
     };
@@ -193,7 +193,7 @@ export function useRoomActions({
     openCard,
     openDay,
     openGlanceEntry,
-    openCardContact,
+    openCardLink,
     openDrafts,
   };
 }

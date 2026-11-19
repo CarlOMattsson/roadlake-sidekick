@@ -25,8 +25,9 @@ type Removed = { entryId: string; link: JournalEntryLink };
 type Failure = "remove" | "restore" | "conflict";
 
 /**
- * The linked Projects and Contacts of one entry as chips, in the entry's fullscreen view. A contact's name
- * opens the contact when the host passes `onOpenContact`. While the entry is being changed (`removable`), each chip has
+ * The linked Projects and Contacts of one entry as chips, in the entry's fullscreen view. A chip's name
+ * opens its Contact or Project when the host passes `onOpenContact` or `onOpenProject` (a chip with neither is plain, with no
+ * frame). While the entry is being changed (`removable`), each chip has
  * a remove button (when the transport can write links) that first asks, then removes the link at the entry's version and offers Undo for it.
  * The parent owns the entry: `onChanged` hands it the answer (new version and links), which it passes back as
  * `entry`. Nothing renders when the entry has no links and there is nothing to undo or report.
@@ -36,6 +37,7 @@ export function EntryLinks({
   labels: t,
   transport,
   onOpenContact,
+  onOpenProject,
   onChanged,
   onConflict,
   removable = true,
@@ -44,6 +46,7 @@ export function EntryLinks({
   labels: JournalLabels;
   transport: JournalTransport;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
+  onOpenProject?: (link: { id: string; label: string | null }) => void;
   onChanged: (entry: JournalEntry) => void;
   /** Runs when the write was refused for a stale version; the parent reads the entry again. */
   onConflict: () => void;
@@ -129,6 +132,13 @@ export function EntryLinks({
       .finally(() => setBusy(false));
   }
 
+  /** What a chip's name does: opens its Contact or Project when the host gave the way to; otherwise nothing, and the chip is plain. */
+  function opener(link: JournalEntryLink): (() => void) | undefined {
+    const open = link.kind === "contact" ? onOpenContact : onOpenProject;
+    if (!open || (link.kind === "contact" && !contactsOn)) return undefined;
+    return () => open({ id: link.id, label: link.label });
+  }
+
   const undoable =
     removed && removed.entryId === entry.id ? removed : undefined;
   if (links.length === 0 && !undoable && !failure && !asking) return null;
@@ -175,16 +185,24 @@ export function EntryLinks({
             <ul className="journal-chips">
               {links.map((link) => {
                 const name = linkName(link, t);
+                const open = opener(link);
+                const canRemove =
+                  canWrite && (contactsOn || link.kind !== "contact");
                 return (
-                  <li key={`${link.kind}:${link.id}`} className="journal-chip">
-                    {contactsOn && onOpenContact && link.kind === "contact" ? (
+                  <li
+                    key={`${link.kind}:${link.id}`}
+                    className={
+                      open || canRemove
+                        ? "journal-chip"
+                        : "journal-chip journal-chip--static"
+                    }
+                  >
+                    {open ? (
                       <button
                         type="button"
                         className="journal-chip-name"
                         title={name}
-                        onClick={() =>
-                          onOpenContact({ id: link.id, label: link.label })
-                        }
+                        onClick={open}
                       >
                         {name}
                       </button>
@@ -193,7 +211,7 @@ export function EntryLinks({
                         {name}
                       </span>
                     )}
-                    {canWrite && (contactsOn || link.kind !== "contact") && (
+                    {canRemove && (
                       <button
                         ref={
                           lastAsked && sameLink(lastAsked, link)
