@@ -563,7 +563,7 @@ services:
   caddy:
     profiles: [vps]
     # Caddy 2.11.9, pinned by exact tag and manifest-list digest (the digest decides what runs). Bump deliberately.
-    image: caddy:2.11.9-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
     environment:
       SIDEKICK_DOMAIN: ${SELFHOST_DOMAIN:?set SELFHOST_DOMAIN in selfhost.env}
     volumes:
