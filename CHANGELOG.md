@@ -6,6 +6,39 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-19
+
+### Added
+
+- Repeating tasks on chosen weekdays, every other week, or the last weekday of the month (a weekend falls back to the
+  Friday before); the rule is shown in plain words on the task.
+- A calendar week view (Monday to Sunday) in the full-screen journal, beside the day view, which stays the default.
+- In the full-screen shopping list and store view: step an item's amount with + and −, and move an item to another list
+  from its row, with undo.
+- Contact and project names in inline cards open the record in the full view.
+- Waiting-on for tasks; due times shown and settable, kept when the date changes or tasks are moved in bulk; follow-ups
+  stand in the agenda on their day.
+- Journal: an entry written by hand keeps your own words and says whose summary it is; an entry can be kept out of
+  memory.
+- `update_shopping_item` can move an item to another list.
+
+### Changed
+
+- A monthly repeat without a day now follows the task's due date. It counts from the month the task was due and skips
+  occurrences that have already passed, instead of counting from the day it was completed.
+- The status board reads tasks only, most overdue first, and its column totals come from the server.
+- History rows name the right actor (you, not Claude, for changes made in the app), one row per action, with the
+  record's name.
+- After a conflicting change, the app reloads the fresh state quietly instead of showing an error.
+
+### Fixed
+
+- A row in an inline card opens that record, not the start view.
+- Slack, e-mail and phone links on a contact open through the host instead of emptying the app.
+- Contact search matches what a row shows, archived contacts can be opened, and creating a contact with an existing
+  name warns you.
+- The compact shopping card and add flow work one-handed on a phone.
+
 ## [0.2.0] - 2026-11-17
 
 ### Added
