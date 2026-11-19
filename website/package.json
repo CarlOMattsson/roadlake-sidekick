@@ -18,11 +18,11 @@
     "check:pricing": "python3 scripts/check-pricing.py"
   },
   "devDependencies": {
-    "@astrojs/starlight": "0.42.10",
+    "@astrojs/starlight": "0.43.1",
     "@axe-core/playwright": "4.14.0",
-    "@playwright/test": "1.65.0",
-    "astro": "7.4.11",
-    "html-validate": "11.21.0",
+    "@playwright/test": "1.65.1",
+    "astro": "7.4.12",
+    "html-validate": "11.21.1",
     "starlight-links-validator": "0.27.0"
   }
 }
