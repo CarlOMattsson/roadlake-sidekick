@@ -8,7 +8,7 @@ dependencies = [
   # The AI Step server runner's model adapter (work/infrastructure/anthropic_model.py) is the only importer.
   "anthropic==2.8.0",
   "anyio==4.16.0",
-  "fastapi==0.162.4",
+  "fastapi==0.163.1",
   # Pinned exactly and kept out of Dependabot (.github/dependabot.yml): fastmcp carries
   # the MCP tool/schema contract the apps rely on, so an upgrade needs a contract review first.
   "fastmcp==4.1.6",
@@ -16,16 +16,16 @@ dependencies = [
   # (mcp/auth.py and mcp/oauth.py hand it an httpx2.AsyncClient), so that import cannot move to
   # httpx; the push sender and the Hindsight adapter use httpx.
   "httpx==0.28.1",
-  "httpx2==2.16.0",
+  "httpx2==2.16.2",
   "jsonschema==4.26.0",
   "mcp==2.3.0",
   "cryptography==50.0.2",
   "opentelemetry-api==1.45.2",
   "opentelemetry-sdk==1.45.2",
-  "psycopg[binary]==3.3.8",
+  "psycopg[binary]==3.3.9",
   "py-key-value-aio[filetree,memory]==0.4.6",
   "pydantic==2.14.3",
-  "pydantic-settings==2.16.2",
+  "pydantic-settings==2.16.3",
   "python-json-logger==4.2.0",
   "sqlalchemy==2.1.8",
   "starlette==1.10.0",
@@ -44,11 +44,11 @@ dev = [
   "pre-commit==4.7.0",
   "pyright==1.1.414",
   "pytest==9.2.0",
-  "pytest-asyncio==1.4.1.post1",
+  "pytest-asyncio==1.5.0",
   "pytest-cov==7.1.0",
   "pytest-xdist==3.8.0",
   "pyyaml==6.0.3",
-  "ruff==0.17.4",
+  "ruff==0.17.5",
 ]
 
 [project.scripts]
