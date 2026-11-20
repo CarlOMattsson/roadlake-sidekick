@@ -1,0 +1,71 @@
+/* Message box (message-box.tsx): a panel at the top of a view. Radius 12, padding 12, a 1 px edge and a light tint in
+   the severity's tone, a 24 glyph in the tone's line colour at the start, the title in 600 and the sentence in the
+   text colour. The action ends the row; when the row is narrow it moves under the text (wrap), never squeezed. */
+.sk-message {
+  display: grid;
+  grid-template-columns: var(--sk-icon, 24px) minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--sk-s3);
+  row-gap: var(--sk-s2);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+}
+.sk-message .sk-message__glyph {
+  align-self: start;
+  margin-top: 0;
+  color: var(--sk-muted);
+}
+.sk-message__body {
+  min-width: 0;
+}
+.sk-message .sk-message__title {
+  margin: 0;
+  font-weight: var(--sk-weight-semibold);
+  overflow-wrap: break-word;
+}
+.sk-message .sk-message__text {
+  margin: 2px 0 0;
+  overflow-wrap: break-word;
+}
+.sk-message .sk-message__action {
+  justify-self: end;
+}
+
+.sk-message--warning {
+  border-color: var(--sk-warning-line);
+  background: var(--sk-warning-bg);
+  color: var(--sk-warning-fg);
+}
+.sk-message--warning .sk-message__glyph {
+  color: var(--sk-warning-line);
+}
+.sk-message--error {
+  border-color: var(--sk-danger-line);
+  background: var(--sk-danger-bg);
+  color: var(--sk-danger-fg);
+}
+.sk-message--error .sk-message__glyph {
+  color: var(--sk-danger-line);
+}
+/* The action keeps the page colour under its outline, so it reads as the same secondary button on every tint. */
+.sk-message:is(.sk-message--warning, .sk-message--error) .sk-message__action {
+  background: var(--sk-bg);
+  color: var(--sk-fg);
+}
+
+/* Narrow (a 320 px phone, or large text): the action goes under the text, aligned with it. */
+@container (max-width: 22rem) {
+  .sk-message {
+    grid-template-columns: var(--sk-icon, 24px) minmax(0, 1fr);
+  }
+  .sk-message .sk-message__action {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

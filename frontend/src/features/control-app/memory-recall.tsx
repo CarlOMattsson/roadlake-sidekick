@@ -72,7 +72,7 @@ export function SourceRecall({
   name: string;
   tools: RecallTools;
   labels: ControlLabels;
-  onForgotten?: () => void;
+  onForgotten?: (message: string) => void;
   onModelContext?: (summary: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -126,8 +126,8 @@ export function RecallResults({
   sample?: boolean;
   tools: RecallTools;
   labels: ControlLabels;
-  /** Called after a record was kept out of memory, so the view can read its counts again. */
-  onForgotten?: () => void;
+  /** Called after a record was kept out of memory, with the sentence for the receipt, so the view can read its counts again. */
+  onForgotten?: (message: string) => void;
   onModelContext?: (summary: string) => void;
 }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
@@ -139,6 +139,7 @@ export function RecallResults({
   const [notice, setNotice] = useState<Notice | undefined>();
   const confirmRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const forgetButtons = useRef(new Map<number, HTMLButtonElement>());
 
   const { query, kind } = request;
@@ -206,20 +207,14 @@ export function RecallResults({
       setConfirming(null);
       setGone((current) => [...current, sourceKey(fact)]);
       onModelContext?.(labels.modelNote.forgotten);
-      setNotice({
-        tone: "ok",
-        text: labels.forgotten(
-          domainOfKind(fact.source.kind),
-          fact.source.title,
-        ),
-      });
-      onForgotten?.();
-      // The row and its button are gone: the status line is where focus rests.
-      queueMicrotask(() => noticeRef.current?.focus());
+      onForgotten?.(
+        labels.forgotten(domainOfKind(fact.source.kind), fact.source.title),
+      );
+      // The row and its button are gone: the panel is where focus rests.
+      queueMicrotask(() => panelRef.current?.focus());
     } catch (error) {
       setConfirming(null);
       setNotice({
-        tone: "error",
         text:
           writeFailure(error) === "forbidden"
             ? labels.forgetForbidden
@@ -235,7 +230,7 @@ export function RecallResults({
   }
 
   return (
-    <div className="control-recall">
+    <div className="control-recall" ref={panelRef} tabIndex={-1}>
       {notice ? (
         <div ref={noticeRef} tabIndex={-1}>
           <NoticeLine notice={notice} locale={labels.locale} />
@@ -375,7 +370,7 @@ export function MemorySearch({
 }: {
   tools: RecallTools;
   labels: ControlLabels;
-  onForgotten?: () => void;
+  onForgotten?: (message: string) => void;
   onModelContext?: (summary: string) => void;
 }) {
   const inputId = useId();

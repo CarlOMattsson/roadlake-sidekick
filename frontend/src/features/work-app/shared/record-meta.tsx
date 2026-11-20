@@ -9,6 +9,7 @@ import {
 } from "../../mcp-apps/ui/due";
 import { AiTaskMark, aiMarkOf } from "../ai/ai-task-mark";
 import { taskPlaceLabelsFor } from "../tasks/task-place-labels";
+import { followUpLead } from "./waiting";
 import type { WorkItemRecord } from "../transport/transport";
 import { workKindLabel, workStatusLabel, type WorkLabels } from "./labels";
 import { KnownTags } from "./work-tags";
@@ -86,7 +87,10 @@ export function RecordMeta({
   item: WorkItemRecord;
   labels: WorkLabels;
   now: Date;
-  /** The agenda group of the row; the meta never repeats it (the `today` word under the group heading). */
+  /**
+   * The agenda group of the row; the meta never repeats it (the `today` word under the group heading). Where it is
+   * given, a waiting Task the follow-up places leads with "Följ upp igår" (followUpLead) and WaitingMeta carries its due date.
+   */
   group?: string | null;
   inStatus?: boolean;
 }) {
@@ -106,7 +110,10 @@ export function RecordMeta({
     item.priority === "high" &&
     item.status !== "completed" &&
     item.status !== "cancelled";
-  const due = rowDue(item, now, t.dateLocale, group);
+  // A waiting Task the agenda places by its follow-up leads with that day; its due date is on the waiting line.
+  const due =
+    followUpLead(item, now, t.dateLocale, group) ??
+    rowDue(item, now, t.dateLocale, group);
   // A Task that repeats says so after its time (the repeat glyph and the rule in words).
   const repeat =
     item.kind === "task" && item.recurrence

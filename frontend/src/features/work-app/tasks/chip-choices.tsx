@@ -13,6 +13,7 @@ export type ChipChoice = { value: string; label: string };
  */
 export function ChipChoices({
   name,
+  label,
   text,
   groupLabel,
   options,
@@ -22,6 +23,8 @@ export function ChipChoices({
 }: {
   /** The chip's accessible name: the `changePriority` or `changeStatus` label, then the value. */
   name: string;
+  /** The property row's name before the value (PropLabel); none draws the value alone. */
+  label?: string;
   /** What the chip shows. */
   text: ReactNode;
   /** The name of the unfolded group: the `repeatPickerFor` label. */
@@ -66,6 +69,7 @@ export function ChipChoices({
           if (open) onEscapeKey(event, close);
         }}
       >
+        {label !== undefined && <PropLabel text={label} />}
         <span>{text}</span>
         <ChevronDownIcon size={16} />
       </button>
@@ -92,6 +96,23 @@ export function ChipChoices({
           ))}
         </KeyScope>
       )}
+    </>
+  );
+}
+
+/**
+ * The name of a property row of the Task detail ("Datum", "Upprepas"), muted, in a column of its own before the value,
+ * so every row reads name · value and none needs a "Plats:" prefix. Hidden from assistive technology: the row's
+ * accessible name already says what it changes.
+ */
+export function PropLabel({ text }: { text: string }) {
+  return (
+    <>
+      <span className="work-prop-label" aria-hidden="true">
+        {text}
+      </span>
+      {/* A space between name and value, so the visible text reads "Status Pågår" and the row's accessible name
+          ("Ändra status: Pågår") holds it (axe label-content-name-mismatch; speech control finds the row by it). */}{" "}
     </>
   );
 }

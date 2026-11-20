@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
 
@@ -12,6 +12,8 @@ import type {
 } from "@/features/work-app/transport/transport";
 import { elementWithText } from "@tests/helpers/exact-text";
 import { deferred } from "@tests/helpers/deferred";
+import { columnTab, tabNames } from "./column-tabs";
+import { boardLabelsEn } from "@/features/work-app/board/board-labels";
 
 const todoCard: WorkItemRecord = {
   kind: "task",
@@ -76,12 +78,13 @@ function Harness({
   );
 }
 
-it("reads again in place when refreshKey changes: every section stays, old cards stay until the answer lands", async () => {
+it("reads again in place when refreshKey changes: every column tab stays, old cards stay until the answer lands", async () => {
   const answer = deferred<WorkBoardPage>();
   const getWorkBoard = vi.fn().mockReturnValue(answer.promise);
   const transport = { getWorkBoard } as unknown as WorkTransport;
   const { rerender } = render(<Harness transport={transport} refreshKey={0} />);
 
+  fireEvent.click(columnTab(workEn.taskStatus.in_progress));
   expect(
     elementWithText(`${workEn.taskStatus.in_progress} (1)`, "h3"),
   ).toBeInTheDocument();
@@ -104,7 +107,11 @@ it("reads again in place when refreshKey changes: every section stays, old cards
   expect(
     elementWithText(`${workEn.taskStatus.in_progress} (2)`, "h3"),
   ).toBeInTheDocument();
-  // No status is picked by the read: To do stays on the board too.
+  expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+    `${workEn.taskStatus.in_progress} 2`,
+  );
+  // No status is picked by the read: the To do tab stays, with its card one press away.
+  fireEvent.click(columnTab(workEn.taskStatus.todo));
   expect(screen.getByText(todoCard.title)).toBeInTheDocument();
 });
 
@@ -117,6 +124,7 @@ it("a read again that fails is the family's refresh row (ErrorNotice), over the 
   const { rerender, container } = render(
     <Harness transport={transport} refreshKey={0} />,
   );
+  fireEvent.click(columnTab(workEn.taskStatus.in_progress));
   rerender(<Harness transport={transport} refreshKey={1} />);
 
   const alert = await screen.findByRole("alert");

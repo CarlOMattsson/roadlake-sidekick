@@ -49,6 +49,8 @@ export function useWriteForms({
   // its shop, so the field says where it went. The list does not scroll and the field keeps the focus. A failed add
   // hides it, so the error line never stands under an old receipt.
   const [addNote, setAddNote] = useState("");
+  // The rows the last add made or grew: the folded card shows them also past its row budget, so what was typed is seen.
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
   const addButton = useRef<HTMLButtonElement>(null);
   // Closing the field gives the focus back to "+ Add item" once that row is drawn again.
   const refocusAdd = useRef(false);
@@ -123,6 +125,7 @@ export function useWriteForms({
               }
             : entry.item,
         );
+        setFresh(new Set(added.map((item) => item.id)));
         const names = added.length
           ? added.map((item) => item.name)
           : typed.map((item) => item.name);
@@ -175,6 +178,7 @@ export function useWriteForms({
     changeNames,
     invalidBatch,
     addNote,
+    fresh,
     addButton,
     openAddField,
     toggleAddField,

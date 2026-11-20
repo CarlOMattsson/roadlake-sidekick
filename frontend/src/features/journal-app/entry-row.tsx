@@ -4,10 +4,12 @@ import { TagChips } from "../mcp-apps/ui/tags";
 import type { TagOption } from "../mcp-apps/ui/tag-vocabulary";
 import { formatShortDateWithYear, formatTime } from "./dates";
 import { linkName, summaryRest } from "./entry-card";
+import { MemoryChip } from "./entry-memory";
 import type { JournalLabels } from "./labels";
 import type { JournalEntry } from "./transport";
 import { useWideFrame } from "./use-wide-frame";
 import "./journal.css";
+import "./entry.css";
 
 /** What one row shows of an entry. The link fields are optional: a missing count is not shown. */
 export type EntryRowData = Pick<
@@ -88,7 +90,7 @@ export function EntryRow({
           <ChevronRightIcon />
         </span>
       ) : null}
-      {time || meta || tags.length > 0 || queued ? (
+      {time || meta || tags.length > 0 || queued || entry.memory_excluded ? (
         <span className="journal-entry-meta">
           {time || meta ? (
             <span className="sk-row-meta">
@@ -98,6 +100,7 @@ export function EntryRow({
             </span>
           ) : null}
           {queued && <span className="sk-queued">{t.queued}</span>}
+          {entry.memory_excluded && <MemoryChip labels={t} />}
           {/* A few tags close the meta line; the text before them gives way first (tags.css). */}
           <TagChips
             tags={tags}
@@ -129,14 +132,13 @@ export function EntryRow({
 }
 
 /**
- * The metadata after the time: the archived marker and the out-of-memory marker first, then the linked names ("Anna Andersson", from `links`) or,
+ * The metadata after the time: the archived marker first (the out-of-memory marker is its own chip, entry-memory.tsx), then the linked names ("Anna Andersson", from `links`) or,
  * from an older result without names, the contact count; then the Task count. Nonzero parts only; undefined when
  * there is nothing to show.
  */
 function metaLine(entry: EntryRowData, t: JournalLabels): string | undefined {
   const parts: string[] = [];
   if (entry.archived) parts.push(t.archived);
-  if (entry.memory_excluded) parts.push(t.entryOutOfMemory);
   if (entry.links) {
     const names = entry.links
       .slice(0, ROW_LINK_LIMIT)

@@ -113,17 +113,18 @@ export type WaitingLabels = {
   line: (who: string | null, since: string | null) => string;
   /** "följ upp 17 nov"; `day` is a short date or the word for today or yesterday. */
   followUp: (day: string) => string;
+  /** "förfaller imorgon": the due day on a waiting line whose row the follow-up places; `day` as for `followUp`. */
+  dueOn: (day: string) => string;
   /** The agenda's switch to the waiting view, and the way back to the dated agenda. */
   showWaiting: string;
   showAgenda: string;
-  /** The Task's waiting section: adding it, changing who, the follow-up day and ending the wait. */
-  add: string;
+  /** The Task's waiting section, a row of the property list: its value when nobody is waited on, since when, changing who, ending the wait and the follow-up day. */
+  none: string;
+  /** "sedan 13 nov"; `day` is a short date or the word for today or yesterday. */
+  since: (day: string) => string;
   changeWho: string;
   stop: string;
   pickWho: string;
-  setFollowUp: string;
-  followUpChip: (day: string) => string;
-  followUpPick: string;
   followUpDay: string;
   clearFollowUp: string;
   inThreeDays: string;
@@ -157,15 +158,14 @@ const sv: WaitingLabels = {
   line: (who, since) =>
     `Väntar på ${who ?? "någon"}${since ? ` sedan ${since}` : ""}`,
   followUp: (day) => `följ upp ${day}`,
+  dueOn: (day) => `förfaller ${day}`,
   showWaiting: "Väntar på",
   showAgenda: "Visa hela agendan",
-  add: "Jag väntar på någon",
+  none: "Ingen",
+  since: (day) => `sedan ${day}`,
   changeWho: "Byt person",
   stop: "Jag väntar inte längre",
   pickWho: "Väntar på vem?",
-  setFollowUp: "Sätt uppföljning",
-  followUpChip: (day) => `Följ upp: ${day}`,
-  followUpPick: "Följ upp när?",
   followUpDay: "Uppföljningsdag",
   clearFollowUp: "Ta bort uppföljning",
   inThreeDays: "Om 3 dagar",
@@ -198,15 +198,14 @@ const en: WaitingLabels = {
   line: (who, since) =>
     `Waiting on ${who ?? "someone"}${since ? ` since ${since}` : ""}`,
   followUp: (day) => `follow up ${day}`,
+  dueOn: (day) => `due ${day}`,
   showWaiting: "Waiting on",
   showAgenda: "Show the whole agenda",
-  add: "I’m waiting on someone",
+  none: "No one",
+  since: (day) => `since ${day}`,
   changeWho: "Change person",
   stop: "I’m no longer waiting",
   pickWho: "Waiting on whom?",
-  setFollowUp: "Set a follow-up",
-  followUpChip: (day) => `Follow up: ${day}`,
-  followUpPick: "Follow up when?",
   followUpDay: "Follow-up day",
   clearFollowUp: "Remove follow-up",
   inThreeDays: "In 3 days",
@@ -243,6 +242,8 @@ export type WaitingSummary = {
   line: string;
   /** "följ upp 17 nov"; null when no follow-up day is set. */
   followUp: string | null;
+  /** "förfaller imorgon"; null when the Task has no due date. */
+  due: string | null;
   /** The follow-up day is today or has passed. */
   reached: boolean;
   /** The agenda date of the Task comes from its follow-up: it has no due date, or a later one. */
@@ -270,6 +271,10 @@ export function waitingSummary(
       fields.follow_up_at && followDay !== null
         ? wt.followUp(shortDay(fields.follow_up_at, now, dateLocale))
         : null,
+    due:
+      fields.due_at && dueDay !== null
+        ? wt.dueOn(shortDay(fields.due_at, now, dateLocale))
+        : null,
     reached: followDay !== null && followDay <= ownerDayNumber(now),
     followUpFirst:
       followDay !== null && (dueDay === null || followDay < dueDay),
@@ -279,6 +284,60 @@ export function waitingSummary(
 /** The text with a capital first letter, for a part that starts a line. */
 export function capital(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The waiting summary of an open waiting Task as a list or agenda row shows it; null for anything else. */
+export function itemWaitingSummary(
+  item: WorkItemRecord,
+  now: Date,
+  dateLocale: string,
+): WaitingSummary | null {
+  if (
+    item.kind !== "task" ||
+    !item.waiting ||
+    item.status === "completed" ||
+    item.status === "cancelled"
+  )
+    return null;
+  return waitingSummary(
+    item,
+    item.waiting_on_contact_name?.trim() || null,
+    now,
+    dateLocale,
+  );
+}
+
+/**
+ * Whether the follow-up leads the row of an agenda group: the server groups a waiting Task by the earlier of its due
+ * date and its follow-up (`group` is given only where that grouping stands), so when the follow-up is the earlier one the
+ * row leads with it ("Följ upp igår") and the due date moves to the waiting line. One rule for both lines.
+ */
+export function followUpLeads(
+  summary: WaitingSummary | null,
+  group: string | null | undefined,
+): boolean {
+  return !!group && !!summary?.followUp && summary.followUpFirst;
+}
+
+/** The time slot of a row the follow-up leads (see `followUpLeads`): the follow-up in words, in the overdue tone once reached. */
+export function followUpLead(
+  item: WorkItemRecord,
+  now: Date,
+  dateLocale: string,
+  group: string | null | undefined,
+): { text: string; tone: "overdue" | "none"; at: string } | null {
+  const summary = itemWaitingSummary(item, now, dateLocale);
+  if (
+    !summary?.followUp ||
+    !item.follow_up_at ||
+    !followUpLeads(summary, group)
+  )
+    return null;
+  return {
+    text: capital(summary.followUp),
+    tone: summary.reached ? "overdue" : "none",
+    at: item.follow_up_at,
+  };
 }
 
 /** The time of day a follow-up day is set to, in the owner's zone: the morning, when the agenda is read. */

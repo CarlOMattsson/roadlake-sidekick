@@ -178,7 +178,8 @@ test("Task view: a long place wraps inside its chip, the ⌄ stays at its end, a
   const [chipBox, glyph, text] = await Promise.all([
     box(chip),
     box(chip.locator("svg")),
-    box(chip.locator("span").first()),
+    // The value, not the row name (work-prop-label) before it.
+    box(chip.locator("span:not(.work-prop-label)").first()),
   ]);
   expect(chipBox.height).toBeGreaterThanOrEqual(44);
   // Wrapped onto more than one line, the text stays inside the chip and the glyph stays at its end.
@@ -186,7 +187,11 @@ test("Task view: a long place wraps inside its chip, the ⌄ stays at its end, a
   expect(text.x + text.width).toBeLessThanOrEqual(glyph.x + 1);
   expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(320);
   expect(
-    await style(chip.locator("span").first(), "minWidth", "overflowWrap"),
+    await style(
+      chip.locator("span:not(.work-prop-label)").first(),
+      "minWidth",
+      "overflowWrap",
+    ),
   ).toEqual({ minWidth: "0px", overflowWrap: "anywhere" });
   expect((await style(chip.locator("svg"), "flexShrink")).flexShrink).toBe("0");
   expect(failures).toEqual([]);

@@ -138,3 +138,99 @@ it("words the question, the confirming button and the done line in Swedish and E
   expect(workSv.moveAllFailed).toBe("Det gick inte att flytta de försenade.");
   expect(workEn.moveAllFailed).toBe("Couldn’t move the overdue tasks.");
 });
+
+const waitingTask = (
+  id: string,
+  title: string,
+  due: string,
+  follow: string,
+): WorkItemRecord => ({
+  ...overdue(id, title, due),
+  waiting: true,
+  waiting_since: "2026-10-15T09:00:00",
+  follow_up_at: follow,
+  follow_up_due: true,
+});
+
+it("moves the follow-up that has come too, only the follow-up of a Task that is overdue by it alone, and Undo writes both dates back", async () => {
+  const user = userEvent.setup();
+  const { transport, mock } = makeTransport();
+  const both = waitingTask(
+    "t-1",
+    "Svar från banken",
+    "2026-10-20T09:00:00",
+    "2026-10-22T09:00:00",
+  );
+  // Its due date is in the future: only its follow-up put it in Overdue.
+  const followOnly = waitingTask(
+    "t-2",
+    "Svar från hyresvärden",
+    "2099-01-01T09:00:00",
+    "2026-10-22T09:00:00",
+  );
+  const plain = overdue("t-3", "Betala hyran", "2026-10-21T09:00:00");
+  const reschedule = vi.fn((items: { taskId: string }[]) =>
+    Promise.resolve({
+      count: items.length,
+      tasks: items.map((item) => ({
+        id: item.taskId,
+        version: 4,
+        due_at: "2026-10-29T23:59:00",
+      })),
+    }),
+  );
+  Object.assign(mock, {
+    rescheduleTasks: reschedule,
+    getWorkAgenda: vi.fn(() =>
+      Promise.resolve({ items: [], next_cursor: null }),
+    ),
+  });
+  renderAgenda([both, followOnly, plain], transport);
+  await user.click(
+    screen.getByRole("button", { name: workEn.moveAllOverdue(3) }),
+  );
+  await user.click(
+    screen.getByRole("button", { name: workEn.moveAllConfirmYes }),
+  );
+  await waitFor(() => expect(mock.updateTask).toHaveBeenCalledTimes(2));
+  // The due date moves for the Tasks that are overdue by it, and for no other.
+  expect(
+    (reschedule.mock.calls[0]![0] as { taskId: string }[]).map((r) => r.taskId),
+  ).toEqual(["t-1", "t-3"]);
+  const moves = mock.updateTask.mock.calls as [
+    string,
+    number,
+    { follow_up_at: string },
+    string,
+  ][];
+  // The follow-up moves to 09:00 tomorrow, against the version the reschedule left (the read one when it did not run).
+  expect(moves.map(([id, version]) => [id, version])).toEqual([
+    ["t-1", 4],
+    ["t-2", 3],
+  ]);
+  for (const [, , changes] of moves) {
+    const at = new Date(changes.follow_up_at);
+    expect(at.getTime()).toBeGreaterThan(Date.now());
+    expect(at.getHours()).toBe(9);
+  }
+  expect(new Set(moves.map((call) => call[3])).size).toBe(2);
+  const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
+  await waitFor(() => expect(undo).toBeEnabled());
+  mock.updateTask.mockClear();
+  await user.click(undo);
+  await waitFor(() => expect(mock.updateTask).toHaveBeenCalledTimes(3));
+  const back = (mock.updateTask.mock.calls as unknown[][]).map(
+    ([id, , changes]) => [id, changes],
+  );
+  expect(back).toEqual([
+    [
+      "t-1",
+      {
+        due_at: "2026-10-20T09:00:00",
+        follow_up_at: "2026-10-22T09:00:00",
+      },
+    ],
+    ["t-3", { due_at: "2026-10-21T09:00:00" }],
+    ["t-2", { follow_up_at: "2026-10-22T09:00:00" }],
+  ]);
+});

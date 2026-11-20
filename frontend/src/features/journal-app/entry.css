@@ -1,0 +1,74 @@
+/* The entry view and its write forms: the text fields of a diary and the "Utanför minnet" chip.
+   Loaded after journal.css by entry-frame, entry-write, entry-memory and entry-row. Where a rule here replaces an older
+   one in journal.css it is the more specific selector, so the order of the two files does not decide. */
+
+/* A diary field is a page, not a form line (the entry's "Din text", a new entry's text, the text to add): at least eight
+   lines high, growing with what is written up to 60 % of the window and then scrolling, 17 px text on a 1.5 line, and no
+   resize handle. `field-sizing: content` does the growing; where it is missing the field stays at its eight lines and
+   scrolls. `[id]` raises the specificity above journal.css's `.journal-edit textarea` / `.journal-write textarea`. */
+.sidekick-journal .journal-edit textarea[id],
+.sidekick-journal .journal-write textarea[id] {
+  --journal-field-size: 1.0625rem;
+  --journal-field-line: 1.5;
+  box-sizing: border-box;
+  font: var(--sk-weight-normal) var(--journal-field-size) /
+    var(--journal-field-line) var(--sk-font);
+  /* Eight lines plus the field's own padding (0.5 rem above and below) and its hairline. */
+  min-height: calc(
+    8 * var(--journal-field-line) * var(--journal-field-size) + 1rem + 2 *
+      var(--sk-hairline)
+  );
+  max-height: 60vh;
+  max-height: 60dvh;
+  overflow-y: auto;
+  resize: none;
+  field-sizing: content;
+}
+
+/* "Utanför minnet": a marker in the tag chip's shape (a pill, 28 px high in the entry), with a crossed-out eye. It is
+   not a button. In the entry it stands on its own line; in a list row it joins the meta line in the row's tag size. */
+.sidekick-journal .journal-memory-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  box-sizing: border-box;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 1.75rem;
+  margin: var(--sk-s1) 0;
+  padding: 0 var(--sk-s2);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius-pill);
+  background: var(--sk-surface);
+  color: var(--sk-fg-2);
+  font: var(--sk-type-caption);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+}
+.sidekick-journal .journal-memory-chip > svg {
+  flex: none;
+}
+/* In the row the chip sits in the meta line beside the time, the names and the tags, as small as a row's tag pill. */
+.sidekick-journal .journal-entry-meta > .journal-memory-chip {
+  display: inline-flex;
+  min-height: 0;
+  margin: 0;
+  line-height: 1.125rem;
+}
+.sidekick-journal .journal-entry-meta:has(> .journal-memory-chip) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px var(--sk-s1);
+  overflow: visible;
+  text-overflow: clip;
+}
+.sidekick-journal
+  .journal-entry-meta:has(> .journal-memory-chip)
+  > .sk-row-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

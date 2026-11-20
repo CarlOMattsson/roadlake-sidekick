@@ -118,8 +118,8 @@ async function settle() {
 }
 
 describe.each([
-  { view: "list view", props: {} },
-  { view: "store view", props: { fullscreen: true } },
+  { view: "inline card", props: {} },
+  { view: "fullscreen room", props: { fullscreen: true } },
 ])("buying an item in the $view", ({ props }) => {
   async function buyMilk() {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -131,10 +131,9 @@ describe.each([
     });
     renderView(transport, [milk], props);
     await settle();
-    // The list view ticks a checkbox, the store view its ring.
+    // Every mode ticks the row's ring.
     await user.click(
-      screen.queryByRole("checkbox", { name: /^Milk/ }) ??
-        screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+      screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
     );
     const undo = await screen.findByRole("button", { name: undoName("Milk") });
     await waitFor(() => expect(undo).toBeEnabled());
@@ -231,7 +230,9 @@ it("says 'Köpt' in Swedish and 'Bought' in English", async () => {
     />,
   );
   await settle();
-  await user.click(screen.getByRole("checkbox", { name: /^Milk/ }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingSv.markBought("Milk") }),
+  );
   expect(await screen.findByRole("status")).toHaveTextContent("Köpt: Milk");
   expect(shoppingEn.bought).toBe("Bought");
 });
@@ -243,14 +244,16 @@ describe("ticking a bought item back to open", () => {
     renderView(transport, [eggs]);
     await settle();
     await user.click(elementWithText(shoppingEn.boughtCount(1), "button"));
-    await user.click(screen.getByRole("checkbox", { name: /^Eggs/ }));
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
+    );
     const undo = await screen.findByRole("button", { name: undoName("Eggs") });
     expect(screen.getByRole("status")).toHaveTextContent(
       `${shoppingEn.notBought}: Eggs`,
     );
     expect(undo.closest("li")).toHaveClass("shopping-held-item");
     expect(
-      undo.closest("li")!.querySelector(".shopping-status"),
+      undo.closest("li")!.querySelector(".shopping-held"),
     ).toHaveTextContent(shoppingEn.notBought);
     await waitFor(() => expect(undo).toBeEnabled());
     await user.click(undo);
@@ -265,7 +268,9 @@ describe("ticking a bought item back to open", () => {
     renderView(server([eggs]), [eggs]);
     await settle();
     await user.click(elementWithText(shoppingEn.boughtCount(1), "button"));
-    await user.click(screen.getByRole("checkbox", { name: /^Eggs/ }));
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
+    );
     const undo = await screen.findByRole("button", {
       name: "Undo not bought Eggs",
     });

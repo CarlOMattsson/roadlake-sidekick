@@ -4,6 +4,7 @@ import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { JournalView } from "@/features/journal-app/journal-view";
 import { journalEn, journalSv } from "@/features/journal-app/labels";
+import { receiptText } from "@/features/journal-app/receipt-text";
 import {
   createJournalTransport,
   type JournalDay,
@@ -155,7 +156,7 @@ describe("writing a new entry", () => {
       occurred_at: "2026-10-24T10:00:00.000Z",
     });
     expect(key.length).toBeGreaterThanOrEqual(8);
-    expect(await screen.findByText(journalSv.entryCreated)).toBeVisible();
+    expect(await screen.findByText("Anteckningen sparades")).toBeVisible();
     expect(getDay).toHaveBeenCalledWith("2026-10-24");
   });
 
@@ -241,7 +242,9 @@ describe("changing an entry by hand", () => {
       key_points: entry.key_points,
     });
     expect(key.length).toBeGreaterThanOrEqual(8);
-    expect(await screen.findByText(journalSv.entryUpdated)).toBeVisible();
+    expect(
+      await screen.findByText(receiptText(journalSv.entryUpdated)),
+    ).toBeVisible();
     expect(screen.getByRole("heading", { name: "Ny titel" })).toBeVisible();
   });
 
@@ -351,7 +354,9 @@ describe("changing an entry by hand", () => {
       5,
       "More",
     ]);
-    expect(await screen.findByText(journalEn.entryTextAdded)).toBeVisible();
+    expect(
+      await screen.findByText(receiptText(journalEn.entryTextAdded)),
+    ).toBeVisible();
   });
 
   it("asks before dropping changed text", async () => {

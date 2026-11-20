@@ -100,15 +100,12 @@ async function open(
   );
 }
 
-/** Opens the change form of an item: the store view's row, or the list view's Edit button. */
+/** Opens the change form of an item: a tap on its row. */
 async function openForm(
   user: ReturnType<typeof userEvent.setup>,
   name: string,
-  labels = shoppingEn,
 ) {
-  const edit = screen.queryByRole("button", { name: labels.editNamed(name) });
-  if (edit) await user.click(edit);
-  else await user.click(screen.getByText(name));
+  await user.click(screen.getByText(name));
 }
 
 beforeEach(() => {
@@ -163,15 +160,16 @@ describe("deleting an item", () => {
     expect(screen.queryByText("Deleted: Milk")).not.toBeInTheDocument();
   });
 
-  it("works in the list view too, and is reached with the keyboard", async () => {
+  it("works in the inline card too, and is reached with the keyboard", async () => {
     const user = userEvent.setup();
     const transport = adapter({
       get: vi.fn().mockResolvedValueOnce(without),
     });
     await open(transport, shoppingEn, false);
-    await user.click(
-      screen.getByRole("button", { name: shoppingEn.editNamed("Milk") }),
-    );
+    // The row opens its change form with the keyboard as well.
+    const row = screen.getByText("Milk").closest("button")!;
+    row.focus();
+    await user.keyboard("{Enter}");
     const button = screen.getByRole("button", { name: "Delete Milk" });
     button.focus();
     expect(button).toHaveFocus();
@@ -186,7 +184,7 @@ describe("deleting an item", () => {
       get: vi.fn().mockResolvedValueOnce(without),
     });
     await open(transport, shoppingSv);
-    await openForm(user, "Milk", shoppingSv);
+    await openForm(user, "Milk");
     const button = screen.getByRole("button", { name: "Ta bort Milk" });
     expect(button).toHaveTextContent("Ta bort");
     await user.click(button);

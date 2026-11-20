@@ -8,7 +8,7 @@ import {
   weekRange,
   type DayStripProps,
 } from "@/features/journal-app/day-strip";
-import { shiftDate } from "@/features/journal-app/dates";
+import { shiftDate, weekDates } from "@/features/journal-app/dates";
 import {
   dayStripLabelsEn,
   dayStripLabelsSv,
@@ -77,45 +77,33 @@ function sevenEndingOn(end: string): string[] {
 }
 
 describe("stripDays", () => {
-  it("returns the seven days that end on today while the selected day is among them", () => {
-    expect(stripDays(SELECTED, TODAY)).toEqual(WEEK);
-    expect(stripDays(TODAY, TODAY)).toEqual(WEEK);
-    expect(stripDays("2026-10-19", TODAY)).toEqual(WEEK);
+  it("returns the calendar week of the selected day, Monday to Sunday (dagbok-ui fynd 3)", () => {
+    // 2026-11-20 is a Friday; its week is Monday 16 to Sunday 22 November.
+    expect(stripDays("2026-11-20")).toEqual(sevenEndingOn("2026-11-22"));
+    expect(stripDays("2026-11-16")[0]).toBe("2026-11-16");
+    expect(stripDays("2026-11-22")[0]).toBe("2026-11-16");
   });
 
-  it("never shows a day after today: on a Wednesday the strip runs Thursday to Wednesday", () => {
-    // 2026-11-04 is a Wednesday.
-    expect(stripDays("2026-11-03", "2026-11-04")).toEqual(
-      sevenEndingOn("2026-11-04"),
-    );
-    expect(stripDays("2026-11-03", "2026-11-04")[0]).toBe("2026-10-29");
-  });
-
-  it("pages back from today in whole weeks, so the selected day is always shown", () => {
-    expect(stripDays("2026-10-18", TODAY)).toEqual(sevenEndingOn("2026-10-18"));
-    expect(stripDays("2026-10-12", TODAY)).toEqual(sevenEndingOn("2026-10-18"));
-    expect(stripDays("2026-10-11", TODAY)).toEqual(sevenEndingOn("2026-10-11"));
+  it("is the same week the week view shows, so it never slides with today", () => {
+    expect(stripDays("2026-11-18")).toEqual(weekDates("2026-11-18"));
+    expect(stripDays("2026-11-15")[0]).toBe("2026-11-09");
   });
 
   it("crosses a year boundary", () => {
-    expect(stripDays("2026-12-30", "2027-01-02")).toEqual([
-      "2026-12-27",
+    expect(stripDays("2026-12-30")).toEqual([
       "2026-12-28",
       "2026-12-29",
       "2026-12-30",
       "2026-12-31",
       "2027-01-01",
       "2027-01-02",
+      "2027-01-03",
     ]);
   });
 
-  it("shows the seven days that end on a selected day after today", () => {
-    expect(stripDays("2026-10-28", TODAY)).toEqual(sevenEndingOn("2026-10-28"));
-  });
-
   it("returns nothing for a malformed date", () => {
-    expect(stripDays("2026-10-2", TODAY)).toEqual([]);
-    expect(stripDays("not a date", TODAY)).toEqual([]);
+    expect(stripDays("2026-10-2")).toEqual([]);
+    expect(stripDays("not a date")).toEqual([]);
   });
 });
 
@@ -193,7 +181,7 @@ describe("DayStrip rendering", () => {
     expect(dayButton(TODAY)).toHaveAccessibleName("Idag 25 oktober, söndag");
   });
 
-  it("puts the title, ⋯ and the week row ('‹ range ›' and then 'Idag') in the head, in that order", () => {
+  it("puts the title, Idag and ⋯, and the week row ('‹ range ›') in the head, in that order", () => {
     render(
       <DayStrip
         {...props({
@@ -224,11 +212,11 @@ describe("DayStrip rendering", () => {
     );
     expect(title?.querySelector("h2")).toHaveTextContent("Onsdag 21 oktober");
     expect(title?.querySelector("p.journal-day-range")).toBeNull();
-    // The tools hold ⋯ only; the arrows and Idag are in the week row.
+    // The tools hold Idag and ⋯ (Idag before ⋯, so its coming moves nothing else); the arrows are in the week row.
     const tools = head?.querySelector<HTMLElement>(".sk-day-strip-tools");
     expect(
       Array.from(tools?.querySelectorAll("button") ?? [], (b) => b.textContent),
-    ).toEqual(["Mer"]);
+    ).toEqual(["Idag", "Mer"]);
     const weekRow = head?.querySelector<HTMLElement>(".sk-day-strip-weekrow");
     expect(
       Array.from(
@@ -238,7 +226,41 @@ describe("DayStrip rendering", () => {
           child.className ||
           child.textContent,
       ),
-    ).toEqual(["Previous week", "journal-day-range", "Next week", "Idag"]);
+    ).toEqual(["Previous week", "journal-day-range", "Next week"]);
+  });
+
+  it("with tabs: Dag | Vecka and the tools on the first row, the week's name between the arrows, the title under the strip", () => {
+    render(
+      <DayStrip
+        {...props({
+          heading: <h2>Onsdag 21 oktober</h2>,
+          tabs: <div role="group" aria-label="Visning" />,
+          weekLabel: "Vecka 43 · 19–25 okt",
+          more: <button type="button">Mer</button>,
+        })}
+      />,
+    );
+    const head = document.querySelector<HTMLElement>(".sk-day-strip-head");
+    expect(head).toHaveAttribute("data-tabs", "true");
+    expect(
+      Array.from(head?.children ?? [], (child) => child.className),
+    ).toEqual([
+      "sk-day-strip-tabs",
+      "sk-day-strip-tools",
+      "sk-day-strip-weekrow",
+    ]);
+    expect(head?.querySelector(".journal-day-range")).toHaveTextContent(
+      "Vecka 43 · 19–25 okt",
+    );
+    // The title follows the strip, not the head.
+    const below = document.querySelector(".sk-day-strip-title--below");
+    expect(below).toHaveTextContent("Onsdag 21 oktober");
+    expect(head?.contains(below ?? null)).toBe(false);
+    expect(
+      document
+        .querySelector(".sk-day-strip")
+        ?.compareDocumentPosition(below as Node),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("puts '‹ range ›' in the week row, with no aria-description on the strip", () => {
@@ -527,7 +549,7 @@ describe("DayStrip week steps and days after today", () => {
     expect(document.querySelector(".sk-day-strip-nav")).toBeNull();
   });
 
-  it("shows no day after today: the strip ends on today", () => {
+  it("shows the calendar week and offers no day after today", () => {
     render(
       <DayStrip {...props({ selected: "2026-10-19", today: "2026-10-21" })} />,
     );
@@ -535,9 +557,9 @@ describe("DayStrip week steps and days after today", () => {
       document.querySelectorAll<HTMLButtonElement>("button[data-date]"),
       (button) => button.dataset.date,
     );
-    expect(shown).toEqual(sevenEndingOn("2026-10-21"));
+    expect(shown).toEqual(weekDates("2026-10-21"));
     expect(dayButton("2026-10-21")).toBeEnabled();
-    expect(document.querySelector('button[data-date="2026-10-22"]')).toBeNull();
+    expect(dayButton("2026-10-22")).toBeDisabled();
     // The shown week holds today, so › is aria-disabled (not disabled); a press does nothing (next tests).
     const next = screen.getByRole("button", { name: "Next week" });
     expect(next).toHaveAttribute("aria-disabled", "true");

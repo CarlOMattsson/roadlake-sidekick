@@ -297,9 +297,7 @@ describe("journal draft review", () => {
       await screen.findByRole("heading", { level: 2, name: "Sparad post" }),
     ).toHaveFocus();
     expect(transport.getEntry).toHaveBeenCalledWith(savedEntryId);
-    expect(
-      screen.getByText("Entry saved. 1 task created."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Entry saved. 1 task created")).toBeInTheDocument();
     // The saved entry replaced the draft: Back has nothing handled to return to.
     expect(
       screen.queryByRole("button", { name: "Back" }),

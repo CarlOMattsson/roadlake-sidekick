@@ -35,8 +35,8 @@ export function ListSummary({
   return (
     <>
       {/* The list name (or the shop's "ICA · 8 left") is the title of the header row above, not repeated here. */}
-      {storeMode ? (
-        // Fullscreen: a full-width stripe under the list name (shopping.css, .shopping-progress). An empty list has
+      {storeMode || folded ? (
+        // Fullscreen and the folded card alike (one progress, design rule 8): a full-width stripe under the list name (shopping.css, .shopping-progress). An empty list has
         // nothing to count (`boughtOf` with 0 of 0): its empty state says so instead.
         detail.items.length > 0 && (
           <div className="shopping-progress">
@@ -51,7 +51,7 @@ export function ListSummary({
             />
           </div>
         )
-      ) : folded || !detail.items.some((item) => item.offer) ? null : (
+      ) : !detail.items.some((item) => item.offer) ? null : (
         <p>
           {t.evaluated}: {formatCalendarDate(detail.evaluated_on, t.dateLocale)}
         </p>

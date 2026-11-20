@@ -165,24 +165,24 @@ describe("journal app navigation", () => {
     }
   });
 
-  it("keeps Today out while the seven shown days already include today, even on another day", () => {
-    // Today is Monday 2 November; the seven days that end on it include 30 October. The strip's own cell for
-    // today is the way back, so the Today button is not offered.
+  it("keeps Today out while the shown week already includes today, even on another day", () => {
+    // Today is Monday 2 November; the strip shows its calendar week, Monday 2 to Sunday 8 November, and today's
+    // own cell is the way back, so the Today button is not offered.
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
+    vi.setSystemTime(new Date("2026-11-04T12:00:00Z"));
     try {
       const transport = transportMock();
       render(
         <JournalView
           transport={transport}
-          initial={{ kind: "day", page: day("2026-10-30", []) }}
+          initial={{ kind: "day", page: day("2026-11-02", []) }}
           labels={journalEn}
         />,
       );
 
       expect(screen.queryByRole("button", { name: "Today" })).toBeNull();
       expect(
-        document.querySelector('button[data-date="2026-11-02"]'),
+        document.querySelector('button[data-date="2026-11-04"]'),
       ).toHaveAttribute("data-today", "true");
     } finally {
       vi.useRealTimers();
@@ -364,7 +364,10 @@ describe("journal app navigation", () => {
       expect(
         screen.getByRole("button", { name: journalEn.moreActions }),
       ).toBeInTheDocument();
-      expect(screen.getByRole("status")).toBeInTheDocument();
+      // The receipt bar's slot is a status region too; it is empty.
+      expect(
+        screen.getAllByRole("status").filter((el) => el.textContent !== ""),
+      ).toHaveLength(1);
     } finally {
       document.head.innerHTML = "";
       localStorage.clear();

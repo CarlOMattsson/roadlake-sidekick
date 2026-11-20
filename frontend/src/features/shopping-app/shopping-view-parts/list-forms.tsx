@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { CardFoot } from "../../mcp-apps/ui/card";
+import { OpenListButton } from "../shopping-card";
 import type { HostSettingsEntry } from "../../mcp-apps/room-types";
 import type { ShoppingList } from "../transport";
 import type { ShoppingLabels } from "../labels";
@@ -141,7 +143,10 @@ export function ListPicker({
   onNewOpen,
   sendMessage,
   control,
+  onOpenFull,
 }: ListsView & {
+  /** Inline on a host with fullscreen: the card ends on "Open Shopping ›" (design rule 2). */
+  onOpenFull?: () => void;
   /**
    * The last entry of the picker's ⋯: the Control room's `title`, or the host's own settings (the phone). The ⋯ holds it,
    * so it is one tap away also before any list exists. Absent: no ⋯ (the room cannot open Control).
@@ -196,7 +201,12 @@ export function ListPicker({
   return (
     <div className="shopping-picker">
       <div className="shopping-picker-head">
-        <h2 className="shopping-picker-title">{t.lists}</h2>
+        {/* Inline the heading is a count (design rule 1), fullscreen the room's own word. */}
+        <h2 className="shopping-picker-title">
+          {fullscreen || active.length === 0
+            ? t.lists
+            : t.listsCount(active.length)}
+        </h2>
         <button
           ref={addButton}
           type="button"
@@ -302,6 +312,17 @@ export function ListPicker({
             onOffset={onOffset}
           />
         </div>
+      )}
+      {!fullscreen && onOpenFull && lists.length > 0 && (
+        <CardFoot>
+          <OpenListButton
+            labels={t}
+            text={t.openShopping}
+            hidden={0}
+            hiddenText={t.hiddenItems}
+            onOpen={onOpenFull}
+          />
+        </CardFoot>
       )}
     </div>
   );

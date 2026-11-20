@@ -1,15 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { EmptyState } from "../mcp-apps/ui/states";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
 import {
   actionName,
   actorName,
   kindName,
+  receiptText,
   sourceName,
   stateName,
   type ControlLabels,
 } from "./labels";
-import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
+import {
+  ControlRow,
+  INLINE_ROWS,
+  NoticeLine,
+  RowList,
+  ViewOpenLink,
+  rowLimit,
+  type Notice,
+} from "./control-parts";
 import { activityText, withoutRepeatedActivity } from "./activity-rows";
 import { focusRowNear } from "./focus-row";
 import {
@@ -21,7 +31,6 @@ import {
   type ControlTransport,
   type TrashItem,
 } from "./transport";
-import { useReceipts } from "./use-receipts";
 import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
@@ -29,7 +38,10 @@ import { whenText } from "./when";
  * History as one list, newest first: the changes (Undo when the server named an existing tool for it,
  * set_shopping_item_purchased; Restore when the record is in the trash, the same restore_from_trash call as
  * the trash card) and the assistant's activity (read only). A row without an action has nothing at the end.
- * Either part may be missing (its read failed or has not come yet); the list shows what there is.
+ * Either part may be missing (its read failed or has not come yet); the list shows what there is. A saved Undo or Restore
+ * says what happened in the receipt bar; a failure stays in its row.
+ *
+ * The inline card lists three rows; its one main link, "Öppna Historik › · 4 till", opens the full view.
  */
 export function HistoryView({
   changes: initial,
@@ -40,9 +52,8 @@ export function HistoryView({
   onData,
   sendMessage,
   onModelContext,
+  onOpenFull,
   full = false,
-  expanded,
-  onExpandedChange,
 }: {
   changes?: ChangesList;
   activity?: ActivityList;
@@ -55,23 +66,18 @@ export function HistoryView({
   sendMessage?: (text: string) => Promise<boolean>;
   /** Called once an undo is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
-  /** The full view lists every row read; the inline card lists three behind "Show all". */
+  /** Opens this view in fullscreen (the inline card's main link); absent: the card has no link and lists every row. */
+  onOpenFull?: () => void;
+  /** The full view lists every row read; the inline card lists three behind its open link. */
   full?: boolean;
-  /** Whether "Show all" is open; the card keeps it across tabs. */
-  expanded?: boolean;
-  onExpandedChange?: (next: boolean) => void;
 }) {
   const [list, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | undefined>();
   // The row a failed write was on: its notice stands in that row, where the owner is looking, not at the top of the list.
   const [failedRow, setFailedRow] = useState<string | null>(null);
-  // The rows a saved Undo or Restore was on, by row key: each says what happened in its meta line for a while. The
-  // change is kept so the row stays even when the list read again no longer holds it.
-  const [receipts, showReceipt] = useReceipts<{
-    text: string;
-    change: ChangeRecord;
-  }>();
+  // What a saved Undo or Restore did, in the bar at the foot of the view.
+  const receipt = useReceipt();
   const pending = useRef<PendingKey | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -103,19 +109,9 @@ export function HistoryView({
   }, [busy, list]);
 
   const changes = list?.changes ?? [];
-  // Receipts of rows the list read again no longer holds: shown on their place, but not rows of the list.
-  const receiptOnly = [...receipts.entries()].filter(
-    ([key]) => !changes.some((row) => `c:${rowKey(row)}` === key),
-  );
   const rows = [
     ...changes.map((change) => ({
       key: `c:${rowKey(change)}`,
-      at: change.occurred_at,
-      change,
-      entry: undefined,
-    })),
-    ...receiptOnly.map(([key, { change }]) => ({
-      key,
       at: change.occurred_at,
       change,
       entry: undefined,
@@ -152,12 +148,13 @@ export function HistoryView({
       await transport.undoPurchase(change, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.undone);
-      showReceipt(rowId, {
-        text:
+      receipt.show({
+        message: receiptText(
           change.action === "purchased"
             ? labels.undoneUnbought
             : labels.undoneBought,
-        change,
+          change.title,
+        ),
       });
       await reload();
     } catch (error) {
@@ -166,13 +163,11 @@ export function HistoryView({
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
         setNotice({
-          tone: "error",
           text: labels.undoConflict(change.title),
         });
         await reload();
       } else {
         setNotice({
-          tone: "error",
           text:
             failure === "forbidden"
               ? labels.undoForbidden
@@ -210,7 +205,7 @@ export function HistoryView({
       await transport.restore(item, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.restored);
-      showReceipt(rowId, { text: labels.restored, change });
+      receipt.show({ message: receiptText(labels.restored, change.title) });
       await reload();
     } catch (error) {
       setFailedRow(rowId);
@@ -218,7 +213,6 @@ export function HistoryView({
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
         setNotice({
-          tone: "error",
           text:
             failure === "conflict"
               ? labels.restoreConflict(change.title)
@@ -227,7 +221,6 @@ export function HistoryView({
         await reload();
       } else {
         setNotice({
-          tone: "error",
           text:
             failure === "forbidden"
               ? labels.restoreForbidden
@@ -243,118 +236,127 @@ export function HistoryView({
 
   // A failure stays at the top only when its row is gone (the list was read again and no longer holds it).
   const failureInRow =
-    notice?.tone === "error" &&
+    notice !== undefined &&
     failedRow !== null &&
     rows.some((row) => row.key === failedRow);
+  const hidden = Math.max(0, rows.length - INLINE_ROWS);
   return (
-    <div className="control-view" ref={rootRef}>
-      {/* Where focus rests when the row it was on has no button left (a receipt stands in its place). */}
-      <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
-        {labels.views.history}
-      </h2>
-      {/* The tab's one meta line, as the view's first content. */}
-      {rows.length > 0 ? (
-        <p className="control-meta">{labels.historyMeta}</p>
-      ) : null}
-      {notice && !failureInRow ? (
-        <div ref={noticeRef} tabIndex={-1}>
-          <NoticeLine notice={notice} locale={labels.locale} />
-        </div>
-      ) : null}
-      {rows.length === 0 ? (
-        <EmptyState
-          title={labels.historyEmpty}
-          hint={labels.historyEmptyHint}
-          ask={{
-            locale: labels.locale,
-            example: labels.historyAskExample,
-            ...(sendMessage
-              ? { onSend: () => void sendMessage(labels.historyAskExample) }
-              : {}),
-          }}
-        />
-      ) : (
-        <RowList
-          items={rows}
-          keyOf={(row) => row.key}
-          label={labels.views.history}
-          wrapMeta
-          isReceipt={(row) => receiptOnly.some(([key]) => key === row.key)}
-          showAll={(count) => labels.showAll(count)}
-          showFewer={labels.showFewer}
-          full={full}
-          expanded={expanded}
-          onExpandedChange={onExpandedChange}
-          renderRow={({ key, change, entry, at }) => {
-            const when = whenText(at, now(), labels.locale);
-            if (entry) {
-              // "applied" is the normal case, so only the other states are named.
+    <>
+      <div className="control-view" ref={rootRef}>
+        {/* Where focus rests when the row it was on has no button left (the list was read again without it). */}
+        <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
+          {labels.views.history}
+        </h2>
+        {/* The tab's one meta line, as the view's first content. */}
+        {rows.length > 0 ? (
+          <p className="control-meta">{labels.historyMeta}</p>
+        ) : null}
+        {notice && !failureInRow ? (
+          <div ref={noticeRef} tabIndex={-1}>
+            <NoticeLine notice={notice} locale={labels.locale} />
+          </div>
+        ) : null}
+        {rows.length === 0 ? (
+          <EmptyState
+            title={labels.historyEmpty}
+            hint={labels.historyEmptyHint}
+            ask={{
+              locale: labels.locale,
+              example: labels.historyAskExample,
+              ...(sendMessage
+                ? { onSend: () => void sendMessage(labels.historyAskExample) }
+                : {}),
+            }}
+          />
+        ) : (
+          <RowList
+            items={rows}
+            keyOf={(row) => row.key}
+            label={labels.views.history}
+            wrapMeta
+            limit={rowLimit(full, onOpenFull)}
+            renderRow={({ key, change, entry, at }) => {
+              const when = whenText(at, now(), labels.locale);
+              if (entry) {
+                // "applied" is the normal case, so only the other states are named.
+                const parts = [
+                  sourceName(labels, entry.source),
+                  entry.state === "applied"
+                    ? ""
+                    : stateName(labels, entry.state),
+                  when,
+                ];
+                return (
+                  <ControlRow
+                    primary={
+                      activityText(labels, entry) ||
+                      kindName(labels, entry.aggregate_type)
+                    }
+                    secondary={parts.filter(Boolean).join(" · ")}
+                  />
+                );
+              }
               const parts = [
-                sourceName(labels, entry.source),
-                entry.state === "applied" ? "" : stateName(labels, entry.state),
+                kindName(labels, change.kind),
+                actionName(labels, change.action, change.kind),
+                actorName(labels, change.actor),
                 when,
               ];
+              if (change.state === "trashed" && change.action !== "trashed")
+                parts.push(labels.nowTrashed);
+              const isBusy = busy === key;
               return (
                 <ControlRow
-                  primary={
-                    activityText(labels, entry) ||
-                    kindName(labels, entry.aggregate_type)
-                  }
+                  primary={change.title}
                   secondary={parts.filter(Boolean).join(" · ")}
+                  action={
+                    canUndo(change) ? (
+                      <button
+                        type="button"
+                        className="sk-btn--secondary sk-btn--compact control-row-btn"
+                        aria-label={labels.undoLabel(labels.undo, change.title)}
+                        disabled={busy !== null}
+                        onClick={() => void undo(change)}
+                      >
+                        {isBusy ? labels.undoing : labels.undo}
+                      </button>
+                    ) : change.state === "trashed" ? (
+                      <button
+                        type="button"
+                        className="sk-btn--secondary sk-btn--compact control-row-btn"
+                        aria-label={labels.restoreLabel(change.title)}
+                        disabled={busy !== null}
+                        onClick={() => void restore(change)}
+                      >
+                        {isBusy ? labels.restoring : labels.restore}
+                      </button>
+                    ) : undefined
+                  }
+                  below={
+                    failureInRow && failedRow === key ? (
+                      <NoticeLine notice={notice} locale={labels.locale} />
+                    ) : undefined
+                  }
                 />
               );
-            }
-            const parts = [
-              kindName(labels, change.kind),
-              actionName(labels, change.action, change.kind),
-              actorName(labels, change.actor),
-              when,
-            ];
-            if (change.state === "trashed" && change.action !== "trashed")
-              parts.push(labels.nowTrashed);
-            const isBusy = busy === key;
-            return (
-              <ControlRow
-                primary={change.title}
-                secondary={parts.filter(Boolean).join(" · ")}
-                receipt={receipts.get(key)?.text}
-                action={
-                  canUndo(change) ? (
-                    <button
-                      type="button"
-                      className="sk-btn--secondary sk-btn--compact control-row-btn"
-                      aria-label={labels.undoLabel(labels.undo, change.title)}
-                      disabled={busy !== null}
-                      onClick={() => void undo(change)}
-                    >
-                      {isBusy ? labels.undoing : labels.undo}
-                    </button>
-                  ) : change.state === "trashed" ? (
-                    <button
-                      type="button"
-                      className="sk-btn--secondary sk-btn--compact control-row-btn"
-                      aria-label={labels.restoreLabel(change.title)}
-                      disabled={busy !== null}
-                      onClick={() => void restore(change)}
-                    >
-                      {isBusy ? labels.restoring : labels.restore}
-                    </button>
-                  ) : undefined
-                }
-                below={
-                  failureInRow && failedRow === key ? (
-                    <NoticeLine notice={notice} locale={labels.locale} />
-                  ) : undefined
-                }
-              />
-            );
-          }}
+            }}
+          />
+        )}
+        {(full || !onOpenFull || hidden === 0) &&
+        activity &&
+        activity.next_cursor !== null ? (
+          <p className="control-note">{labels.activityTruncated}</p>
+        ) : null}
+        <ViewOpenLink
+          labels={labels}
+          view="history"
+          hidden={hidden}
+          full={full}
+          onOpenFull={onOpenFull}
         />
-      )}
-      {activity && activity.next_cursor !== null ? (
-        <p className="control-note">{labels.activityTruncated}</p>
-      ) : null}
-    </div>
+      </div>
+      <ReceiptBar receipt={receipt} />
+    </>
   );
 }
 

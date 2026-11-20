@@ -85,14 +85,14 @@ describe("MemoryView status", () => {
     expect(on).toHaveAttribute("aria-checked", "true");
     expect(off).toHaveAttribute("aria-checked", "false");
     for (const element of [on, off]) {
-      expect(element.querySelector(".control-switch-track")).not.toBeNull();
-      expect(element.querySelector(".control-switch-knob")).not.toBeNull();
+      expect(element.querySelector(".sk-switch__track")).not.toBeNull();
+      expect(element.querySelector(".sk-switch__knob")).not.toBeNull();
     }
     // The switch has no word of its own: its name is the aria-label, its visible content is the track alone.
     for (const element of [on, off]) {
-      expect(element.querySelector(".control-switch-label")).toBeNull();
+      expect(element.querySelector(".sk-switch__label")).toBeNull();
       expect(element.textContent).toBe("");
-      expect(element.querySelector(".control-switch-track")).toHaveAttribute(
+      expect(element.querySelector(".sk-switch__track")).toHaveAttribute(
         "aria-hidden",
         "true",
       );
@@ -292,7 +292,7 @@ describe("MemoryView status", () => {
     expect(screen.getByRole("heading", { name: headline })).toBeVisible();
   });
 
-  it("a provider that is off says so in the headline and a warning line", () => {
+  it("a provider that is off says so in a warning box at the top, without a button", () => {
     const first = render(
       <MemoryView
         initial={{ ...status, provider: "off" }}
@@ -300,19 +300,24 @@ describe("MemoryView status", () => {
         labels={controlSv}
       />,
     );
-    const heading = screen.getByRole("heading", {
-      name: "Minnet är på, men tjänsten är avstängd",
-    });
-    expect(heading).toBeVisible();
-    expect(heading).toHaveClass("control-heading-warning");
-    const note = screen.getByText(controlSv.providerOff);
-    expect(note).toBeVisible();
-    expect(note).toHaveClass("control-notice-warning");
-    expect(note).not.toHaveClass("control-note");
+    // The headline stays the plain state; the service problem is the box above everything else in the view.
+    expect(screen.getByRole("heading", { name: "Minnet är på" })).toBeVisible();
+    const box = screen
+      .getByText(controlSv.providerOffTitle)
+      .closest(".sk-message") as HTMLElement;
+    expect(box).toHaveClass("sk-message--warning");
+    expect(box).toHaveAttribute("role", "status");
+    expect(box).toHaveTextContent(controlSv.providerOff);
+    expect(within(box).queryByRole("button")).toBeNull();
+    expect(
+      box.compareDocumentPosition(
+        screen.getByRole("heading", { name: "Minnet är på" }),
+      ),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     first.unmount();
   });
 
-  it("a fake provider says it is a test service in the headline and a warning line", () => {
+  it("a fake provider says it is a test service in an info box at the top", () => {
     render(
       <MemoryView
         initial={{ ...status, provider: "fake" }}
@@ -320,17 +325,15 @@ describe("MemoryView status", () => {
         labels={controlSv}
       />,
     );
-    const heading = screen.getByRole("heading", {
-      name: "Minnet använder en testtjänst",
-    });
-    expect(heading).toHaveClass("control-heading-warning");
-    const note = screen.getByText(controlSv.providerFake);
-    expect(note).toBeVisible();
-    expect(note).toHaveClass("control-notice-warning");
-    expect(note).not.toHaveClass("control-note");
+    expect(screen.getByRole("heading", { name: "Minnet är på" })).toBeVisible();
+    const box = screen
+      .getByText(controlSv.providerFakeTitle)
+      .closest(".sk-message") as HTMLElement;
+    expect(box).toHaveClass("sk-message--info");
+    expect(box).toHaveTextContent(controlSv.providerFake);
   });
 
-  it("a paused memory with a provider that is off keeps the paused headline, without the warning colour", () => {
+  it("a paused memory with a provider that is off keeps the paused headline and the warning box", () => {
     render(
       <MemoryView
         initial={{
@@ -342,14 +345,15 @@ describe("MemoryView status", () => {
         labels={controlSv}
       />,
     );
-    const heading = screen.getByRole("heading", { name: "Minnet är pausat" });
-    expect(heading).not.toHaveClass("control-heading-warning");
-    expect(screen.getByText(controlSv.providerOff)).toHaveClass(
-      "control-notice-warning",
-    );
+    expect(
+      screen.getByRole("heading", { name: "Minnet är pausat" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(controlSv.providerOffTitle).closest(".sk-message"),
+    ).toHaveClass("sk-message--warning");
   });
 
-  it("a healthy provider keeps the plain headline and shows no provider line", () => {
+  it("a healthy provider keeps the plain headline and shows no message box", () => {
     render(
       <MemoryView
         initial={status}
@@ -357,10 +361,9 @@ describe("MemoryView status", () => {
         labels={controlSv}
       />,
     );
-    const heading = screen.getByRole("heading", { name: "Minnet är på" });
-    expect(heading).not.toHaveClass("control-heading-warning");
-    expect(screen.queryByText(controlSv.providerOff)).toBeNull();
-    expect(screen.queryByText(controlSv.providerFake)).toBeNull();
+    expect(screen.getByRole("heading", { name: "Minnet är på" })).toBeVisible();
+    expect(screen.queryByText(controlSv.providerOffTitle)).toBeNull();
+    expect(screen.queryByText(controlSv.providerFakeTitle)).toBeNull();
   });
 });
 
@@ -622,9 +625,11 @@ describe("MemoryView turning a domain OFF needs an explicit confirmation", () =>
       screen.getByRole("button", { name: "Ja, radera minnet av dagboken" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Minnet av dagboken är avslaget. Det Sidekick mindes raderas inom några minuter.",
-    );
+    expect(
+      await screen.findByText(
+        "Minnet av dagboken är avslaget, det Sidekick mindes raderas inom några minuter",
+      ),
+    ).toBeVisible();
     expect(screen.getByText("· raderas…")).toBeVisible();
     expect(
       screen.queryByText(metaLine("På · 12 anteckningar i minnet · 2 på väg")),

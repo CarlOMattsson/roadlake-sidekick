@@ -8,7 +8,6 @@ import { toolOffered } from "../mcp-apps/tool-support";
 import type { ToolResults } from "../../lib/mcp/tool-results.generated";
 import { BatchCard, batchSummary, type BatchSummary } from "./batch-card";
 import { shoppingEn, shoppingSv } from "./labels";
-import { ShoppingCard } from "./shopping-card";
 import { ShoppingView } from "./shopping-view";
 import {
   localDay,
@@ -256,7 +255,13 @@ export function ShoppingRoom(props: RoomProps) {
     api
       .get(refreshId, 0, refreshStore)
       .then((fresh) => {
-        if (live) setState((prev) => ({ ...prev, detail: fresh }));
+        // A new revision mounts the view on the fresh list: the view takes its list only when it mounts.
+        if (live)
+          setState((prev) => ({
+            ...prev,
+            detail: fresh,
+            revision: prev.revision + 1,
+          }));
       })
       .catch(() => {
         // The card keeps what it shows; the next read corrects it.
@@ -316,16 +321,6 @@ export function ShoppingRoom(props: RoomProps) {
   }
   // A read with a store filter is the shop view: large rows right in the conversation, no Open step.
   const shop = detail?.store ?? undefined;
-  if (detail && canOpenFullscreen && !shop) {
-    return (
-      <ShoppingCard
-        detail={detail}
-        labels={labels}
-        onOpen={requestFullscreen}
-        sendMessage={props.sendMessage}
-      />
-    );
-  }
   // Open after a batch shows the batch's list, selected and read. The last list read is not used
   // then, so the view never shows a stale list while the new one loads.
   const batchList = batch?.listId;
@@ -352,6 +347,13 @@ export function ShoppingRoom(props: RoomProps) {
       onNavigate={props.onNavigate}
       hostSettings={fullscreen ? props.hostSettings : undefined}
       sendMessage={props.sendMessage}
+      // Inline with fullscreen on offer, the list and the picker are the same compact card as everywhere (one row
+      // component), ending on the open link that asks for fullscreen. The shop view is complete inline: no link.
+      onOpenFull={
+        !fullscreen && canOpenFullscreen && shop === undefined
+          ? requestFullscreen
+          : undefined
+      }
     />
   );
 }

@@ -4,7 +4,7 @@ import { describe, expect, it, vi, type Mock } from "vitest";
 
 import { controlEn, controlSv } from "@/features/control-app/labels";
 import { HistoryView } from "@/features/control-app/history-view";
-import { RESTORED_MS } from "@/features/control-app/use-receipts";
+import { RECEIPT_MS } from "@/features/mcp-apps/ui/receipt";
 import type {
   ActivityList,
   ActivityRecord,
@@ -76,6 +76,7 @@ function renderChanges(
   changes: ChangesList | undefined,
   transport: ControlTransport,
   activity?: ActivityList,
+  onOpenFull?: () => void,
 ) {
   return render(
     <HistoryView
@@ -84,6 +85,7 @@ function renderChanges(
       transport={transport}
       labels={controlSv}
       now={now}
+      onOpenFull={onOpenFull}
     />,
   );
 }
@@ -243,11 +245,8 @@ describe("HistoryView rows", () => {
       expect.any(String),
     );
     expect(transport.undoPurchase).not.toHaveBeenCalled();
-    const status = await screen.findByRole("status");
-    expect(status).toHaveTextContent("Återställd");
-    expect(
-      within(status.closest("li") as HTMLElement).queryByRole("button"),
-    ).toBeNull();
+    // The receipt bar says it; the row's own line says nothing new.
+    expect(await screen.findByText("Återställd: Ring Bo")).toBeInTheDocument();
   });
 
   it("shows nothing at the end of a row with no action", () => {
@@ -314,80 +313,20 @@ describe("HistoryView undo", () => {
       expect.any(String),
     );
 
-    // The row stays on its place with a receipt and no button, even though the list read again no longer holds it.
-    const status = await screen.findByRole("status");
-    expect(status).toHaveTextContent("Inte längre köpt");
-    const row = status.closest("li") as HTMLElement;
-    expect(row).toHaveTextContent("Mjölk");
-    expect(within(row).queryByRole("button")).toBeNull();
+    // The receipt bar says what happened; the list is the one read again.
+    expect(
+      await screen.findByText("Inte längre köpt: Mjölk"),
+    ).toBeInTheDocument();
     expect(transport.changes).toHaveBeenCalledTimes(1);
     expect(await screen.findByText("Ring Anna")).toBeInTheDocument();
-    expect(screen.getByText("Mjölk")).toBeInTheDocument();
-  });
-
-  it("counts only the listed changes in Visa alla while the receipt of a row the list no longer holds stands", async () => {
-    const rest: ChangeRecord[] = Array.from({ length: 4 }, (_, index) => ({
-      ...other,
-      id: `019f0000-0000-7000-8000-0000000003c${index}`,
-      title: `Ändring ${index + 1}`,
-      occurred_at: `2026-10-2${index}T08:00:00Z`,
-    }));
-    const transport = makeTransport();
-    transport.changes.mockResolvedValueOnce({ changes: rest });
-    renderChanges({ changes: [bought, ...rest] }, transport);
     expect(
-      screen.getByRole("button", { name: "Visa alla (5)" }),
-    ).toBeInTheDocument();
-
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Ångra Mjölk" }));
-    await screen.findByRole("status");
-    await waitFor(() => expect(transport.changes).toHaveBeenCalledTimes(1));
-
-    // Five rows stand on screen (four changes and the receipt), but only four are changes.
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "Visa alla (4)" }),
-      ).toBeInTheDocument(),
-    );
-    expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
-  });
-
-  it("shows no Visa alla while the listed changes fit and the receipt of a row the list no longer holds makes one more", async () => {
-    const newer: ChangeRecord[] = Array.from({ length: 3 }, (_, index) => ({
-      ...other,
-      id: `019f0000-0000-7000-8000-0000000003d${index}`,
-      title: `Ändring ${index + 1}`,
-      occurred_at: `2026-11-01T08:0${index}:00Z`,
-    }));
-    const transport = makeTransport();
-    transport.changes.mockResolvedValueOnce({ changes: newer });
-    const latest = { ...bought, occurred_at: "2026-11-01T09:00:00Z" };
-    renderChanges({ changes: [latest, ...newer] }, transport);
-    expect(
-      screen.getByRole("button", { name: "Visa alla (4)" }),
-    ).toBeInTheDocument();
-
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Ångra Mjölk" }));
-    await screen.findByRole("status");
-    await waitFor(() => expect(transport.changes).toHaveBeenCalledTimes(1));
-
-    // Three changes are left and the receipt stands before them: four rows, no toggle.
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull(),
-    );
-    expect(
-      within(screen.getByRole("list", { name: "Historik" })).getAllByRole(
-        "listitem",
+      within(screen.getByRole("list", { name: "Historik" })).queryByText(
+        "Mjölk",
       ),
-    ).toHaveLength(4);
-    expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
+    ).toBeNull();
   });
 
-  it("takes the receipt away after RESTORED_MS and the row goes with it when the list no longer holds it", async () => {
+  it("goes away by itself after RECEIPT_MS", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const transport = makeTransport();
@@ -397,14 +336,13 @@ describe("HistoryView undo", () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
       await screen.findByText("Ring Anna");
-      expect(screen.getByRole("status")).toHaveTextContent("Inte längre köpt");
+      expect(screen.getByText("Inte längre köpt: Mjölk")).toBeInTheDocument();
 
       act(() => {
-        vi.advanceTimersByTime(RESTORED_MS + 100);
+        vi.advanceTimersByTime(RECEIPT_MS + 100);
       });
 
-      expect(screen.queryByRole("status")).toBeNull();
-      expect(screen.queryByText("Mjölk")).not.toBeInTheDocument();
+      expect(screen.queryByText("Inte längre köpt: Mjölk")).toBeNull();
       expect(screen.getByText("Ring Anna")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
@@ -424,7 +362,7 @@ describe("HistoryView undo", () => {
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
     expect(transport.undoPurchase.mock.calls[0]?.[0]).toEqual(reopened);
-    expect(await screen.findByRole("status")).toHaveTextContent("Köpt igen");
+    expect(await screen.findByText("Köpt igen: Mjölk")).toBeInTheDocument();
     expect(transport.changes).toHaveBeenCalledTimes(1);
   });
 
@@ -471,9 +409,9 @@ describe("HistoryView undo", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Inte längre köpt",
-    );
+    expect(
+      await screen.findByText("Inte längre köpt: Mjölk"),
+    ).toBeInTheDocument();
     expect(transport.changes).toHaveBeenCalledTimes(1);
     const list = screen.getByRole("list", { name: "Historik" });
     expect(within(list).getByText("Mjölk")).toBeInTheDocument();
@@ -671,22 +609,27 @@ describe("HistoryView merges changes and activity", () => {
     ).toBeInTheDocument();
   });
 
-  it("folds rows past the first four behind Show all", () => {
+  it("lists three rows and ends with the open link that names the rest", async () => {
     const items = Array.from({ length: 7 }, (_, index) =>
       entry({ id: `row-${index}`, summary: `Rad ${index}` }),
     );
-    renderChanges({ changes: [] }, makeTransport(), {
-      items,
-      next_cursor: null,
-    });
+    const onOpenFull = vi.fn();
+    renderChanges(
+      { changes: [] },
+      makeTransport(),
+      { items, next_cursor: null },
+      onOpenFull,
+    );
 
     expect(screen.queryByText("Rad 4")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Visa alla (7)" }),
-    ).toBeInTheDocument();
+    const open = screen.getByRole("button", { name: /Öppna Historik/ });
+    expect(open).toHaveTextContent("Öppna Historik · 4 till");
+    expect(open.querySelector("svg")).not.toBeNull();
+    await userEvent.setup().click(open);
+    expect(onOpenFull).toHaveBeenCalledOnce();
   });
 
-  it("lists every row in the full view, with no Show all", () => {
+  it("lists every row in the full view, with no open link", () => {
     const items = Array.from({ length: 7 }, (_, index) =>
       entry({ id: `row-${index}`, summary: `Rad ${index}` }),
     );
@@ -702,7 +645,7 @@ describe("HistoryView merges changes and activity", () => {
     );
 
     expect(screen.getByText("Rad 6")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Visa alla/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Öppna Historik/ })).toBeNull();
   });
 
   it("says the list is cut only when there is a next cursor", () => {

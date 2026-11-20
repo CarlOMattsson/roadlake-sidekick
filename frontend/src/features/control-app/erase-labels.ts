@@ -12,7 +12,7 @@ export type EraseLabels = {
   eraseYes: string;
   eraseNo: string;
   erasing: string;
-  /** The row's receipt after a task was deleted for good, after the kind ("Task · deleted permanently"). */
+  /** The receipt after a task was deleted for good ("Deleted permanently: Pitch", see `receiptText`). */
   erased: string;
   /** A 409: the Task has Steps or links left, or its version moved on. */
   eraseConflict: string;
@@ -36,7 +36,7 @@ export const eraseEn: EraseLabels = {
   eraseYes: "Delete",
   eraseNo: "Cancel",
   erasing: "Deleting…",
-  erased: "deleted permanently",
+  erased: "Deleted permanently",
   eraseConflict:
     "Can’t delete: the task still has steps or links, or it was changed. Remove them in Claude.",
   eraseForbidden: "You don’t have permission to delete this.",
@@ -59,7 +59,7 @@ export const eraseSv: EraseLabels = {
   eraseYes: "Radera",
   eraseNo: "Avbryt",
   erasing: "Raderar…",
-  erased: "raderad för gott",
+  erased: "Raderad för gott",
   eraseConflict:
     "Kan inte raderas: uppgiften har steg eller länkar kvar, eller ändrades. Ta bort dem i Claude.",
   eraseForbidden: "Du saknar behörighet att radera den.",

@@ -22,9 +22,12 @@ import {
 import type { FocusWanted } from "../board-writes";
 import {
   boardReadFilters,
+  columnsToFill,
   withBoardRead,
   withColumnPage,
+  withColumnsRead,
   withTaskMoved,
+  type ColumnRead,
 } from "../board-columns";
 
 export type Busy = "idle" | BoardAction;
@@ -108,15 +111,46 @@ export function useBoardCore({
     });
     return true;
   }
+  /**
+   * Reads, with each column's own status, the first page of the Task columns `source` counts records in but shows none
+   * of, so a read of the board never draws such a column empty. A column that cannot be read stays as it is (its "Show
+   * more" still works); the reads run at once. One read per column and call, so nothing loops.
+   */
+  async function readEmptyColumns(source: WorkBoardFrame) {
+    const reads = await Promise.all(
+      columnsToFill(source).map(
+        async (status): Promise<ColumnRead | undefined> => {
+          try {
+            const page = await transport.getWorkBoard({
+              ...boardReadFilters(source),
+              status,
+            });
+            return { status, page };
+          } catch {
+            return undefined;
+          }
+        },
+      ),
+    );
+    return reads.filter((read) => read !== undefined);
+  }
+  /** A read of the whole board, with the empty columns it counts read too, before anything is shown. */
+  async function readBoard(fresh: () => boolean) {
+    const next = withBoardRead(
+      latest.current,
+      await transport.getWorkBoard(boardReadFilters(latest.current)),
+    );
+    if (!fresh()) return undefined;
+    const reads = await readEmptyColumns(next);
+    return fresh() ? withColumnsRead(next, reads) : undefined;
+  }
   /** Reads the board again with the same filters; `done` is the notice a successful read leaves. */
   async function reread(done?: BoardNotice) {
     const fresh = readToken();
     try {
-      const next = await transport.getWorkBoard(
-        boardReadFilters(latest.current),
-      );
-      if (!fresh()) return;
-      show(withBoardRead(latest.current, next), done);
+      const next = await readBoard(fresh);
+      if (!next) return;
+      show(next, done);
       onRead?.();
     } catch (error) {
       focusWanted.current = undefined;
@@ -210,11 +244,9 @@ export function useBoardCore({
     synced.current = writes.current;
     const fresh = readToken();
     try {
-      const next = await transport.getWorkBoard(
-        boardReadFilters(latest.current),
-      );
-      if (!fresh()) return;
-      commit(withBoardRead(latest.current, next));
+      const next = await readBoard(fresh);
+      if (!next) return;
+      commit(next);
       onRead?.();
     } catch (error) {
       notify(failureNotice(error, "reload"));
@@ -256,6 +288,18 @@ export function useBoardCore({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a stale board reads again once on mount, which sets its loading state first, by design.
     reloadIfStale();
+  }, []);
+  // The board a tool result opened is completed once, quietly (no busy line): a column the server counts records in
+  // but the first page shows none of reads its own first page. A stale board reads again instead, which does the same.
+  const fillOnMount = useEffectEvent(async () => {
+    if (stale) return;
+    const fresh = readToken();
+    const reads = await readEmptyColumns(latest.current);
+    if (!fresh() || reads.length === 0) return;
+    commit(withColumnsRead(latest.current, reads));
+  });
+  useEffect(() => {
+    void fillOnMount();
   }, []);
   // A changed refreshKey reads the board again in place; the value at mount is not a request.
   const seenRefreshKey = useRef(refreshKey);

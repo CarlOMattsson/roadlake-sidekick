@@ -1,8 +1,9 @@
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import { priorityLabel, type WorkLabels } from "../shared/labels";
 import type { WorkTask, WorkTaskChanges } from "../transport/transport";
-import { ChipChoices } from "./chip-choices";
+import { ChipChoices, PropLabel } from "./chip-choices";
 import { PRIORITY_CHOICES, isPriorityChoice } from "./task-edit";
+import { taskPlaceLabelsFor } from "./task-place-labels";
 
 /**
  * The Task's priority as a property chip beside its place and repeat rule: the `priority` label with its value, the word `high` in the
@@ -25,20 +26,19 @@ export function TaskPriority({
 }) {
   const value = task.priority ?? "normal";
   const word = priorityLabel(t, value);
+  const label = taskPlaceLabelsFor(t.dateLocale).props.priority;
   const text = (
-    <>
-      {t.priority}:{" "}
-      <span
-        className="work-card-priority"
-        data-priority={value === "high" ? "high" : undefined}
-      >
-        {word}
-      </span>
-    </>
+    <span
+      className="work-card-priority"
+      data-priority={value === "high" ? "high" : undefined}
+    >
+      {word}
+    </span>
   );
   if (!writable)
     return value === "high" ? (
       <span className="sk-chip work-prop-chip work-prop-static">
+        <PropLabel text={label} />
         <span>{text}</span>
       </span>
     ) : null;
@@ -52,6 +52,7 @@ export function TaskPriority({
   return (
     <ChipChoices
       name={`${hierarchyDetailLabelsFor(t.dateLocale).changePriority}: ${word}`}
+      label={label}
       text={text}
       groupLabel={t.priority}
       options={options}

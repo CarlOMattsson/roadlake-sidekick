@@ -97,6 +97,11 @@ function adapter(read: ShoppingDetail): ShoppingTransport {
   };
 }
 
+/** The ring that marks an open row bought. */
+function ring(name: string): HTMLElement {
+  return screen.getByRole("button", { name: shoppingEn.markBought(name) });
+}
+
 /**
  * The Ångra of a held row inside its shop group. The purchased list repeats a bought row, so a held row can
  * show its Ångra twice; the one in its group is the row's own place.
@@ -130,9 +135,9 @@ it("open items without a store sit under their own No store heading", () => {
     name: shoppingEn.otherStore,
   });
   const group = heading.closest("section")!;
-  expect(within(group).getByText(/^Lamp ·/)).toBeInTheDocument();
+  expect(within(group).getByText("Lamp")).toBeInTheDocument();
   // The item without a store is not listed under a store heading.
-  expect(within(group).queryByText(/^Milk ·/)).not.toBeInTheDocument();
+  expect(within(group).queryByText("Milk")).not.toBeInTheDocument();
 });
 
 it("the Swedish label for items without a store is Utan butik", () => {
@@ -159,10 +164,14 @@ it("Köpta shows its items once the section is opened", () => {
   const fold = elementWithText(`${shoppingEn.purchased} (1)`, "button");
   const section = fold.closest("div")!;
   expect(section).toHaveClass("shopping-purchased");
-  expect(within(section).queryByText(/^Eggs ·/)).toBeNull();
+  expect(within(section).queryByText("Eggs")).toBeNull();
   fireEvent.click(fold);
   expect(fold).toHaveAttribute("aria-expanded", "true");
-  expect(within(section).getByText(/^Eggs ·/)).toBeVisible();
+  expect(within(section).getByText("Eggs")).toBeVisible();
+  // A bought row offers its ring to mark it open again.
+  expect(
+    within(section).getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
+  ).toBeVisible();
 });
 
 it("the page switcher is hidden on a single page and shown when there are more pages", () => {
@@ -207,16 +216,15 @@ it("ticking an item holds the row in its place as 'Bought · Undo'; Undo marks i
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(ring("Milk"));
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(1));
   const undoButton = await groupUndo("Milk");
-  // The row stays where it was. In the inline list its status line says "Bought" and Undo is a tonal button in the
-  // toolbar, where Edit stood. There is no notice any more.
+  // The row stays where it was. Its line says "Bought" in the amount's place and Undo is a tonal button under it.
+  // There is no notice any more.
   const row = undoButton.closest("li")!;
   expect(row).toHaveClass("shopping-held-item");
   expect(undoButton).toHaveClass("sk-btn--secondary", "sk-btn--compact");
-  expect(undoButton.closest(".shopping-toolbar")).not.toBeNull();
-  expect(row.querySelector(".shopping-status")).toHaveTextContent(
+  expect(row.querySelector(".shopping-held")).toHaveTextContent(
     shoppingEn.bought,
   );
   expect(undoButton.closest(".sk-notice")).toBeNull();
@@ -262,14 +270,16 @@ it("a refused Undo shows Try again in its row, and Try again repeats the same wr
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(ring("Milk"));
   const undoButton = await groupUndo("Milk");
   await waitFor(() => expect(undoButton).toBeEnabled());
+  // The failed write may take Undo's own button with it, so the group is taken before the click.
+  const group = groupOf(undoButton);
   await user.click(undoButton);
-  const alert = await within(groupOf(undoButton)).findByRole("alert");
+  const alert = await within(group).findByRole("alert");
   expect(alert).toHaveTextContent(shoppingEn.markFailed("Milk", false));
   await user.click(
-    within(groupOf(undoButton)).getByRole("button", {
+    within(group).getByRole("button", {
       name: shoppingEn.retry,
     }),
   );
@@ -310,7 +320,7 @@ async function buyMilk() {
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(ring("Milk"));
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(1));
   const undoButton = await groupUndo("Milk");
   await waitFor(() => expect(undoButton).toBeEnabled());
@@ -364,7 +374,7 @@ it("a re-render of the list during the Undo window keeps the Ångra of the held 
   const undoButton = await groupUndo("Milk");
   expect(undoButton).toBeEnabled();
   expect(
-    undoButton.closest("li")!.querySelector(".shopping-status"),
+    undoButton.closest("li")!.querySelector(".shopping-held"),
   ).toHaveTextContent(shoppingEn.bought);
   // Only the purchase itself was written; the re-render and the reload wrote nothing.
   expect(transport.purchase).toHaveBeenCalledTimes(1);
@@ -384,7 +394,7 @@ it("a purchase the server answers as still open is a failure, not a bought item"
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox"));
+  await user.click(ring("Milk"));
   expect(await screen.findByRole("alert")).toBeInTheDocument();
   expect(
     screen.queryAllByRole("button", {
@@ -418,13 +428,13 @@ it("a bought row keeps its place between its neighbours in the shop group", asyn
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox", { name: /^Milk/ }));
+  await user.click(ring("Milk"));
   const undo = await groupUndo("Milk");
   const row = undo.closest("li")!;
   expect(row).toHaveClass("shopping-held-item");
   // The bought row still stands between Bread and Pasta in the ICA MAXI 4 group.
-  expect(row.previousElementSibling).toHaveTextContent(/^Bread ·/);
-  expect(row.nextElementSibling).toHaveTextContent(/^Pasta ·/);
+  expect(row.previousElementSibling).toHaveTextContent(/^Bread/);
+  expect(row.nextElementSibling).toHaveTextContent(/^Pasta/);
   // The group heading carries no count: it is the store's name alone.
   expect(groupOf(undo).querySelector("h3")?.textContent).toBe(milk.store);
 });
@@ -445,7 +455,7 @@ it("a bought row keeps its place when it was its group's last open row; the grou
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox", { name: /^Milk/ }));
+  await user.click(ring("Milk"));
   const undo = await groupUndo("Milk");
   const group = groupOf(undo);
   expect(group.querySelector("h3")?.textContent).toBe(milk.store);
@@ -496,12 +506,10 @@ it("two purchases hold two rows, each with its own Ångra; each Ångra buys back
   await waitFor(() =>
     expect(screen.queryByRole("status")).not.toBeInTheDocument(),
   );
-  await user.click(screen.getByRole("checkbox", { name: /^Milk/ }));
+  await user.click(ring("Milk"));
   await groupUndo("Milk");
-  await waitFor(() =>
-    expect(screen.getByRole("checkbox", { name: /^Bread/ })).toBeEnabled(),
-  );
-  await user.click(screen.getByRole("checkbox", { name: /^Bread/ }));
+  await waitFor(() => expect(ring("Bread")).toBeEnabled());
+  await user.click(ring("Bread"));
   await groupUndo("Bread");
   expect(
     container.querySelectorAll(".shopping-group .shopping-undo"),
@@ -535,7 +543,7 @@ it("a list where no item has a store draws no store heading at all (ua-14)", () 
     />,
   );
   expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
-  expect(screen.getByText(/^Lamp ·/)).toBeInTheDocument();
+  expect(screen.getByText("Lamp")).toBeInTheDocument();
 });
 
 it("offers the host's settings in the list's ⋯ in place of Kontroll (ua-8)", async () => {

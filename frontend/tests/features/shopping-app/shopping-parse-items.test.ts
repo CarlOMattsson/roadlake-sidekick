@@ -13,6 +13,9 @@ describe("parseTypedItem reads an amount in the text", () => {
     ["2 x mjölk", { name: "Mjölk", quantity: "2" }],
     ["2x mjölk", { name: "Mjölk", quantity: "2" }],
     ["2 mjölk", { name: "Mjölk", quantity: "2" }],
+    ["läsk 2", { name: "Läsk", quantity: "2" }],
+    ["Läsk 2", { name: "Läsk", quantity: "2" }],
+    ["bröd 12", { name: "Bröd", quantity: "12" }],
   ])("%s", (text, expected) => {
     expect(parseTypedItem(text)).toEqual(expected);
   });
@@ -22,6 +25,11 @@ describe("parseTypedItem leaves text without a plain amount as a name", () => {
   it.each([
     ["blöjor stl 4", "Blöjor stl 4"],
     ["iPhone 15", "iPhone 15"],
+    ["Coca Cola 2", "Coca Cola 2"],
+    ["läsk 0", "Läsk 0"],
+    ["läsk 100", "Läsk 100"],
+    ["läsk 2,5", "Läsk 2,5"],
+    ["B12", "B12"],
     ["5 kg", "5 kg"],
     ["3-pack", "3-pack"],
   ])("%s", (text, name) => {

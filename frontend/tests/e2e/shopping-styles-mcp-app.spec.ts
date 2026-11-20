@@ -64,7 +64,7 @@ async function openShopping(
       locale: "en",
       theme: "light",
       displayMode: mode === "fullscreen" ? "fullscreen" : "inline",
-      // A host that cannot open fullscreen gets the compact list card; one that can gets the summary card.
+      // Inline the list is the folded view either way; a host that can open fullscreen also gets its open link.
       availableDisplayModes:
         mode === "card"
           ? ["inline", "fullscreen"]
@@ -283,52 +283,49 @@ test("the compact card keeps its rows, headings and add field in a phone's measu
   });
   const card = app.locator("section.sidekick-shopping.shopping-folded");
   await expect(card).toBeVisible();
-  // A store heading is one line of small text, cut with an ellipsis.
+  // A store heading is one line, cut with an ellipsis, in the section type every mode uses (2026-11-20: the 12.8 px
+  // heading was too small to read in a shop).
   const heading = card.locator(".shopping-group > h3").first();
   expect(
     await style(heading, "whiteSpace", "textOverflow", "fontSize"),
   ).toEqual({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
-    fontSize: await resolved(app, "font-size", "0.8rem"),
+    fontSize: await resolved(app, "font-size", "var(--sk-type-section-size)"),
   });
-  // An open row is a 44 px tap target with no padding of its own; its text column takes the width and may shrink.
+  // An open row is the store view's row (2026-11-20: one row in every mode): no padding of its own, the ring and the
+  // row button both at least 44 px high, and the name column takes the width and may shrink.
   const openRow = card.locator(".shopping-items--folded > li").first();
-  const check = openRow.locator(".shopping-check");
   expect(await style(openRow, "paddingTop", "paddingBottom")).toEqual({
     paddingTop: "0px",
     paddingBottom: "0px",
   });
-  expect(await style(check, "position", "minHeight")).toEqual({
-    position: "relative",
-    minHeight: await resolved(app, "min-height", "2.75rem"),
-  });
-  expect((await box(check)).height).toBeGreaterThanOrEqual(44);
-  const text = check.locator(".shopping-item-text");
-  expect(await style(text, "flexGrow", "minWidth", "overflowWrap")).toEqual({
-    flexGrow: "1",
-    minWidth: "0px",
-    overflowWrap: "anywhere",
-  });
-  // An open row has no status line: its box says it is still to buy. The status only shows while an Undo holds.
-  await expect(openRow.locator(".shopping-status")).toHaveCount(0);
-  // The native checkbox is invisible and covers the whole row, so the row is its hit area.
-  const checkbox = check.locator('input[type="checkbox"]');
-  expect(await style(checkbox, "position", "opacity")).toEqual({
-    position: "absolute",
-    opacity: "0",
-  });
-  const [rowBox, checkboxBox] = await Promise.all([box(check), box(checkbox)]);
-  expect(checkboxBox.x).toBeCloseTo(rowBox.x, 0);
-  expect(checkboxBox.y).toBeCloseTo(rowBox.y, 0);
-  expect(checkboxBox.width).toBeCloseTo(rowBox.width, 0);
-  expect(checkboxBox.height).toBeCloseTo(rowBox.height, 0);
-  // The status glyph is the visible ring, 24 px in the leading column.
-  const glyph = check.locator(".sk-status-glyph");
-  expect(await style(glyph, "width", "height")).toEqual({
-    width: await resolved(app, "width", "var(--sk-icon)"),
-    height: await resolved(app, "height", "var(--sk-icon)"),
-  });
+  const ring = openRow.locator(".shopping-ring");
+  const rowButton = openRow.locator(".shopping-store-row");
+  expect((await box(ring)).height).toBeGreaterThanOrEqual(44);
+  expect((await box(ring)).width).toBeGreaterThanOrEqual(44);
+  expect((await box(rowButton)).height).toBeGreaterThanOrEqual(44);
+  expect(
+    await style(
+      openRow.locator(".shopping-store-body"),
+      "flexGrow",
+      "minWidth",
+    ),
+  ).toEqual({ flexGrow: "1", minWidth: "0px" });
+  // The folded card is one phone screen: a long name takes two lines at most, and the row has no - + (they wait in
+  // "Show all" and the full list); the row menu stays.
+  const name = openRow.locator(".shopping-store-name");
+  expect(
+    await name.evaluate((element) =>
+      getComputedStyle(element).getPropertyValue("-webkit-line-clamp"),
+    ),
+  ).toBe("2");
+  await expect(openRow.locator(".shopping-step")).toHaveCount(0);
+  // An open row has no status line: its ring says it is still to buy. The status only shows while an Undo holds.
+  await expect(openRow.locator(".shopping-held")).toHaveCount(0);
+  // The ring is the 24 px status glyph.
+  const glyph = ring.locator(".sk-status-glyph");
+  expect((await box(glyph)).width).toBeCloseTo(24, 0);
   // The add field and its button share one row, both 44 px high.
   const [field, add] = await Promise.all([
     box(card.locator(".shopping-batch > input")),
@@ -341,7 +338,7 @@ test("the compact card keeps its rows, headings and add field in a phone's measu
   ).toBeLessThan(2);
   expect(add.x).toBeGreaterThanOrEqual(field.x + field.width - 1);
 
-  // Show all only lifts the row cap: the card stays compact (name-only rows, no hairline) and lists every open row.
+  // Show all only lifts the row cap: the card stays compact (no hairline) and lists every open row.
   const shown = await card.locator(".shopping-items--folded > li").count();
   await card.getByRole("button", { name: /^Show all/ }).click();
   await expect(card.locator(".shopping-items--folded > li")).toHaveCount(12);
@@ -360,10 +357,10 @@ test("the compact card keeps its rows, headings and add field in a phone's measu
   });
   // The list's own forms wait behind the card's ⋯ menu. A labelled field in a toolbar takes its own row basis,
   // so the list-name field of "Edit list" is not squeezed beside its button.
-  await app.getByRole("button", { name: "More options" }).click();
+  await app.getByRole("button", { name: "More options", exact: true }).click();
   await app.getByRole("button", { name: "Edit list" }).click();
   const field12 = app
-    .locator(".shopping-rename.shopping-toolbar > label:not(.shopping-check)")
+    .locator(".shopping-rename.shopping-toolbar > label")
     .first();
   await expect(field12).toBeVisible();
   expect(await style(field12, "flexBasis", "flexGrow", "flexShrink")).toEqual({
@@ -399,23 +396,25 @@ test("the shop view in the conversation keeps its + Add item row 48 high", async
 test("the inline card grows with its content, and its title and rows wrap to two lines before they are clipped", async ({
   page,
 }) => {
+  // With fullscreen on offer the inline list is the folded view (2026-11-20: one row in every mode), the card itself.
   const { app, failures } = await openShopping(page, "card");
-  const body = app.locator(".shopping-card-body");
-  const title = app.locator(".sk-card__title");
-  const items = app.locator(".shopping-card-item");
+  const card = app.locator("section.sidekick-shopping.shopping-folded");
+  await expect(card).toBeVisible();
+  const title = card.locator(".sk-back-header__title");
+  const name = card.locator(".shopping-store-name").first();
   // Its height is its content's: the card ends where its last child and its own padding end, nothing is reserved below.
-  const slack = await body.evaluate((card) => {
-    const last = card.lastElementChild!.getBoundingClientRect();
-    const own = getComputedStyle(card);
+  const slack = await card.evaluate((element) => {
+    const last = element.lastElementChild!.getBoundingClientRect();
+    const own = getComputedStyle(element);
     return (
-      card.getBoundingClientRect().bottom -
+      element.getBoundingClientRect().bottom -
       (last.bottom +
         Number.parseFloat(own.paddingBottom) +
         Number.parseFloat(own.borderBottomWidth))
     );
   });
   expect(Math.abs(slack)).toBeLessThan(1);
-  for (const target of [title, items.first()] as Locator[]) {
+  for (const target of [title, name] as Locator[]) {
     const clamp = await target.evaluate((element) => {
       const computed = getComputedStyle(element);
       return {

@@ -282,14 +282,11 @@ describe("control entry shows the card for each answer", () => {
     ).toBeInTheDocument();
   });
 
-  it("get_memory_status with the fake provider says it is a test service, not that memory is on", () => {
+  it("get_memory_status with the fake provider says in a box that it is a test service", () => {
     deliver({ ...memoryOn, provider: "fake" });
     expect(
-      screen.getByRole("heading", { name: "Minnet använder en testtjänst" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Minnet är på" }),
-    ).not.toBeInTheDocument();
+      screen.getByText("Minnet använder en testtjänst").closest(".sk-message"),
+    ).toHaveClass("sk-message--info");
   });
 
   it("a new answer replaces the card that was shown", () => {

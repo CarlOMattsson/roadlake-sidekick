@@ -387,7 +387,7 @@ describe("Forget this", () => {
     );
     expect(
       screen.getByText(
-        "Sidekick har glömt ”Söndag”. Själva anteckningen ändras inte. Det kan ta några minuter innan det försvinner ur sökningen.",
+        "Sidekick har glömt ”Söndag”, det kan ta några minuter innan det försvinner ur sökningen",
       ),
     ).toBeInTheDocument();
     // The other record's fact stays.
@@ -435,7 +435,7 @@ describe("Forget this", () => {
     );
     expect(
       await screen.findByText(
-        "Sidekick has forgotten “Söndag”. The entry itself won’t change. It can take a few minutes before it stops showing up in search.",
+        "Sidekick has forgotten “Söndag”, it can take a few minutes before it stops showing up in search",
       ),
     ).toBeInTheDocument();
   });

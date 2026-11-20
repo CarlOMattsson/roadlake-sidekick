@@ -30,6 +30,20 @@ export const contactsRoomLabelsSv = {
   addPhoneLabel: "Lägg till telefon",
   addEmailLabel: "Lägg till e-post",
   addRelationshipLabel: "Lägg till relation",
+  /** The Contact's own "new Task" action: the + beside Tasks, or the row where the section would stand. */
+  newTaskFor: (first: string) => `Ny uppgift för ${first}`,
+  /** The Contact card's standing line: who you wait on and for how long (`days` null when the wait has no date). */
+  waitingOn: (first: string, days: number | null) =>
+    days === null
+      ? `Du väntar på ${first}`
+      : days === 0
+        ? `Du väntar på ${first} sedan idag`
+        : `Du väntar på ${first} sedan ${days} ${days === 1 ? "dag" : "dagar"}`,
+  /** The meta line under it: the Task waited on, and how many more wait on her. */
+  waitingTask: (title: string, more: number) =>
+    more > 0 ? `${title} · ${more} till` : title,
+  /** The newest linked journal entry's day: when you last had contact, as far as the journal knows. */
+  lastInJournal: (day: string) => `Senast i dagboken ${day}`,
 };
 
 export type ContactsRoomLabels = typeof contactsRoomLabelsSv;
@@ -54,6 +68,15 @@ export const contactsRoomLabelsEn: ContactsRoomLabels = {
   addPhoneLabel: "Add phone",
   addEmailLabel: "Add email",
   addRelationshipLabel: "Add relationship",
+  newTaskFor: (first) => `New task for ${first}`,
+  waitingOn: (first, days) =>
+    days === null
+      ? `You are waiting on ${first}`
+      : days === 0
+        ? `You are waiting on ${first} since today`
+        : `You are waiting on ${first} for ${days} ${days === 1 ? "day" : "days"}`,
+  waitingTask: (title, more) => (more > 0 ? `${title} · ${more} more` : title),
+  lastInJournal: (day) => `Last in the journal ${day}`,
 };
 
 export function contactsRoomLabelsFor(locale: string): ContactsRoomLabels {

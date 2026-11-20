@@ -218,12 +218,26 @@ export function ContactWays({
         onToggle={() => setOpen(!open)}
       />
       {open && (
-        <ul className="work-list">
-          {ways.map(({ text, href }, index) =>
-            text ? (
+        <ul className="work-list work-contact-way-list">
+          {ways.map(({ text, href }, index) => {
+            if (!text) return null;
+            // Each way names its kind over its value, so a Slack workspace or a bare number says what it is.
+            const kind = labels.wayWords[index] ?? "";
+            const body = (
+              <>
+                <span className="work-contact-way-kind">
+                  {kind.charAt(0).toUpperCase() + kind.slice(1)}
+                </span>
+                {/* A space between the two, so the link's accessible name reads "Email anna@…", not "Emailanna@…". */}{" "}
+                <span className="work-contact-way-value">{text}</span>
+              </>
+            );
+            return (
               <li key={index}>
                 {href ? (
+                  // The whole row is the target, at least 44 px high (design system §1, Tryckyta).
                   <a
+                    className="work-contact-way"
                     href={href}
                     onClick={
                       onOpenLink &&
@@ -233,14 +247,14 @@ export function ContactWays({
                       })
                     }
                   >
-                    {text}
+                    {body}
                   </a>
                 ) : (
-                  text
+                  <span className="work-contact-way">{body}</span>
                 )}
               </li>
-            ) : null,
-          )}
+            );
+          })}
         </ul>
       )}
     </section>

@@ -4,7 +4,9 @@ import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { linkName } from "./entry-card";
 import { KeyScope } from "../mcp-apps/ui/key-scope";
+import type { ReceiptState } from "../mcp-apps/ui/receipt";
 import type { JournalLabels } from "./labels";
+import { receiptText } from "./receipt-text";
 import {
   writeFailure,
   type JournalEntry,
@@ -18,9 +20,6 @@ function sameLink(a: JournalEntryLink, b: JournalEntryLink): boolean {
   return a.kind === b.kind && a.id === b.id;
 }
 
-/** The link removed last, with the entry it was removed from, so an Undo never follows another entry. */
-type Removed = { entryId: string; link: JournalEntryLink };
-
 /** The link writes that can fail: a removal, the Undo of a removal, or a version conflict. */
 type Failure = "remove" | "restore" | "conflict";
 
@@ -30,24 +29,31 @@ type Failure = "remove" | "restore" | "conflict";
  * frame). While the entry is being changed (`removable`), each chip has
  * a remove button (when the transport can write links) that first asks, then removes the link at the entry's version and offers Undo for it.
  * The parent owns the entry: `onChanged` hands it the answer (new version and links), which it passes back as
- * `entry`. Nothing renders when the entry has no links and there is nothing to undo or report.
+ * `entry`. A removal is confirmed in the entry's receipt bar (`receipt`), with Undo as the receipt's undo. Nothing renders
+ * when the entry has no links and there is nothing to ask or report.
  */
 export function EntryLinks({
   entry,
   labels: t,
   transport,
+  receipt,
   onOpenContact,
   onOpenProject,
   onChanged,
+  onEmptied,
   onConflict,
   removable = true,
 }: {
   entry: JournalEntry;
   labels: JournalLabels;
   transport: JournalTransport;
+  /** The entry view's receipt: a removal is confirmed there, with Undo. */
+  receipt: ReceiptState;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
   onOpenProject?: (link: { id: string; label: string | null }) => void;
   onChanged: (entry: JournalEntry) => void;
+  /** Runs after the last link was removed: the group is gone with it, so focus needs a new place. */
+  onEmptied?: () => void;
   /** Runs when the write was refused for a stale version; the parent reads the entry again. */
   onConflict: () => void;
   /**
@@ -64,9 +70,13 @@ export function EntryLinks({
   const [asking, setAsking] = useState<JournalEntryLink | undefined>();
   // The link asked about last: its remove button gets focus back when the question closes without a removal.
   const [lastAsked, setLastAsked] = useState<JournalEntryLink | undefined>();
-  const [removed, setRemoved] = useState<Removed | undefined>();
   const [failure, setFailure] = useState<Failure | undefined>();
   const [busy, setBusy] = useState(false);
+  // The receipt's Undo runs long after this render (a newer entry version by then): it always calls the latest closure.
+  const latestChange = useRef(changeLink);
+  useEffect(() => {
+    latestChange.current = changeLink;
+  });
   // The key of the write in flight or the last failed one: a retry of the same write reuses it.
   const pendingKey = useRef<PendingKey | undefined>(undefined);
   // Where focus goes after the question opens or closes: its `linkRemoveConfirm` when it opens, the chip's × when it
@@ -97,9 +107,12 @@ export function EntryLinks({
   }
 
   /** Removes the link, or adds it back (Undo), at the entry's current version. */
-  function changeLink(action: "remove" | "restore", link: JournalEntryLink) {
+  function changeLink(
+    action: "remove" | "restore",
+    link: JournalEntryLink,
+  ): Promise<void> {
     const write = transport.updateEntryLinks;
-    if (!write || busy) return;
+    if (!write || busy) return Promise.resolve();
     const signature = JSON.stringify([
       action,
       entry.id,
@@ -111,16 +124,22 @@ export function EntryLinks({
     pendingKey.current = pending;
     setBusy(true);
     setFailure(undefined);
-    if (action === "remove") setRemoved(undefined);
     const field =
       `${action === "remove" ? "remove" : "add"}_${link.kind}_ids` as const;
-    write(entry.id, entry.version, { [field]: [link.id] }, pending.key)
+    return write(entry.id, entry.version, { [field]: [link.id] }, pending.key)
       .then((result) => {
         pendingKey.current = undefined;
-        setRemoved(
-          action === "remove" ? { entryId: entry.id, link } : undefined,
-        );
         onChanged(result.entry);
+        if (action === "remove") {
+          receipt.show({
+            message: receiptText(t.linkRemoved(linkName(link, t))),
+            undo: {
+              label: t.undo,
+              onUndo: () => latestChange.current("restore", link),
+            },
+          });
+          if ((result.entry.links ?? []).length === 0) onEmptied?.();
+        }
       })
       .catch((error: unknown) => {
         const conflict = writeFailure(error) === "conflict";
@@ -139,9 +158,7 @@ export function EntryLinks({
     return () => open({ id: link.id, label: link.label });
   }
 
-  const undoable =
-    removed && removed.entryId === entry.id ? removed : undefined;
-  if (links.length === 0 && !undoable && !failure && !asking) return null;
+  if (links.length === 0 && !failure && !asking) return null;
 
   return (
     <div
@@ -166,7 +183,7 @@ export function EntryLinks({
             onClick={() => {
               const link = asking;
               closeAsk("list");
-              changeLink("remove", link);
+              void changeLink("remove", link);
             }}
           >
             {t.linkRemoveConfirm}
@@ -231,19 +248,6 @@ export function EntryLinks({
                 );
               })}
             </ul>
-          )}
-          {undoable && (
-            <div className="journal-undo">
-              <p role="status">{t.linkRemoved(linkName(undoable.link, t))}</p>
-              <button
-                type="button"
-                className="sk-btn--quiet"
-                onClick={() => changeLink("restore", undoable.link)}
-                disabled={busy}
-              >
-                {t.undo}
-              </button>
-            </div>
           )}
           {failure && (
             <ErrorNotice

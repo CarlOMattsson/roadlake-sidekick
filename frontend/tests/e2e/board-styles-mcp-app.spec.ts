@@ -167,40 +167,32 @@ test("Status on a wide frame: four columns share the row from 13.25rem, Projects
   expect(failures).toEqual([]);
 });
 
-test("Status on a phone: each section is headed in the section type, a card is a 48 row with no padding of its own, and the dot stands before Hög", async ({
+test("Status on a phone: one column at a time under 44 px column tabs, the section heading kept for screen readers, a card is a 48 row with no padding of its own, and the dot stands before Hög", async ({
   page,
 }) => {
   const { app, failures } = await openBoard(page, 375);
   const single = app.locator('.work-board[data-layout="single"]');
   await expect(single).toBeVisible();
-  // A section's heading takes the section type and the text colour; Klar (n) is the shared fold row in the same.
+  // The phone shows one status at a time (user test 2026-11-20): column tabs, each a 44 px target with its count,
+  // Pågår chosen first while something is in progress. The chosen section keeps its heading for screen readers
+  // (visually hidden: the tab names it), and Klar under its tab opens at once, with no fold.
+  const tabs = single.getByRole("group", { name: "Visa kolumn" });
+  await expect(tabs).toBeVisible();
+  const tab = (name: string) =>
+    tabs.getByRole("button", { name: new RegExp(`^${name}\\s+\\d+$`) });
+  for (const name of ["Att göra", "Pågår", "Blockerad", "Klar"])
+    expect((await box(tab(name))).height).toBeGreaterThanOrEqual(44);
+  await expect(tab("Pågår")).toHaveAttribute("aria-pressed", "true");
+  await expect(tab("Att göra")).toHaveAccessibleName(/^Att göra\s+2$/);
   const heading = single.locator(".work-column > h3").first();
-  const section = await heading.evaluate((element) => {
-    const probe = document.createElement("span");
-    element.appendChild(probe);
-    probe.style.font = "var(--sk-type-section)";
-    const computed = getComputedStyle(probe);
-    const out = {
-      fontSize: computed.fontSize,
-      fontWeight: computed.fontWeight,
-      lineHeight: computed.lineHeight,
-    };
-    probe.remove();
-    return out;
-  });
-  expect(await style(heading, "fontSize", "fontWeight", "lineHeight")).toEqual(
-    section,
-  );
-  const ink = await resolved(app, "color", "var(--sk-fg)");
-  expect((await style(heading, "color")).color).toBe(ink);
-  const fold = single.locator("button.sk-fold").first();
-  await expect(fold).toBeVisible();
-  expect(
-    await style(fold, "fontSize", "fontWeight", "lineHeight", "color"),
-  ).toEqual({
-    ...section,
-    color: ink,
-  });
+  await expect(heading).toHaveClass(/work-visually-hidden/);
+  await expect(heading).toHaveText("Pågår (1)");
+  await tab("Klar").click();
+  await expect(single.locator("button.sk-fold")).toHaveCount(0);
+  await expect(
+    single.getByRole("button", { name: "Betala fakturan", exact: true }),
+  ).toBeVisible();
+  await tab("Att göra").click();
   // A card has no padding of its own and a floor of the row template's 48.
   const card = single.locator("li.work-card").first();
   expect(await style(card, "paddingTop", "paddingBottom", "minHeight")).toEqual(

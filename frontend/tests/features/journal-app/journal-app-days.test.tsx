@@ -38,7 +38,7 @@ describe("journal day strip dots and Tell Claude more", () => {
         ).toHaveAttribute("data-has-entries", "true"),
       );
       expect(listEntryDates).toHaveBeenCalledTimes(1);
-      expect(listEntryDates).toHaveBeenCalledWith("2026-10-20", "2026-10-26");
+      expect(listEntryDates).toHaveBeenCalledWith("2026-10-19", "2026-10-25");
       // The day the view has read has entries, so it keeps its dot even though the range read missed it.
       expect(
         document.querySelector('button[data-date="2026-10-24"]'),

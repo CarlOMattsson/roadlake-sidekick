@@ -13,6 +13,8 @@ import { useLicenseMenu } from "../mcp-apps/license-mark";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
 import { EmptyState } from "../mcp-apps/ui/states";
 import { PlusIcon } from "../mcp-apps/ui/icons";
+import { CardFoot } from "../mcp-apps/ui/card";
+import { OpenListButton } from "./shopping-card";
 import type { HostSettingsEntry, RoomTarget } from "../mcp-apps/room-types";
 import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
@@ -62,6 +64,7 @@ export function ShoppingView({
   onWritten,
   writtenTick,
   sendMessage,
+  onOpenFull,
 }: {
   transport: ShoppingTransport;
   labels: ShoppingLabels;
@@ -99,6 +102,11 @@ export function ShoppingView({
   writtenTick?: number;
   /** Sends a message to Claude (ui/message); absent when the host offers none. The empty states then show their example as text. */
   sendMessage?: (text: string) => Promise<boolean>;
+  /**
+   * Inline on a host that offers fullscreen: the card ends on one open link (design rule 2), "Open list · N more" for a
+   * list and "Open Shopping" for the picker, instead of "Show all" growing the card in place.
+   */
+  onOpenFull?: () => void;
 }) {
   // The row's hint: the long press on touch, the right click and Shift+F10 with a fine pointer.
   const holdTip = finePointer() ? t.holdKeys : t.holdTip;
@@ -129,6 +137,15 @@ export function ShoppingView({
     rowQueue,
     onWritten,
   });
+  const forms = useWriteForms({
+    transport,
+    labels: t,
+    read,
+    writes,
+    store,
+    addOpen: panels.addOpen,
+    setPanel,
+  });
   const view = deriveView({
     labels: t,
     detail,
@@ -142,6 +159,7 @@ export function ShoppingView({
     store,
     editOpen: panels.editOpen,
     expanded: panels.expanded,
+    fresh: forms.fresh,
   });
   const {
     list,
@@ -156,15 +174,6 @@ export function ShoppingView({
   } = view;
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
-  const forms = useWriteForms({
-    transport,
-    labels: t,
-    read,
-    writes,
-    store,
-    addOpen: panels.addOpen,
-    setPanel,
-  });
   // The ⋯ menu in the header of the fullscreen view. It holds "Edit list" and closes when an item is chosen.
   const moreButton = useRef<HTMLButtonElement>(null);
   // The license coin asks (Control off): this ⋯ opens on its row.
@@ -313,6 +322,7 @@ export function ShoppingView({
           onNewOpen={(value) => setPanel("newOpen", value)}
           sendMessage={sendMessage}
           control={control}
+          onOpenFull={onOpenFull}
         />
       )}
       {/* Edit list (fullscreen): the field renames the open list with update_shopping_list. No create form, no picker. */}
@@ -388,20 +398,21 @@ export function ShoppingView({
             limited={limited}
             compact={compact}
             expanded={panels.expanded}
-            storeMode={storeMode}
+            openFull={Boolean(onOpenFull)}
             shopLabel={view.shopLabel}
             env={rowEnv}
             onExpanded={(value) => setPanel("expanded", value)}
           />
           {/* Everything bought: the fold alone would not say the list is done (the card says it too). */}
-          {storeMode &&
+          {(storeMode || folded) &&
             rows.length === 0 &&
             purchased.length > 0 &&
             !list.archived && (
               <p className="shopping-all-bought">{t.allBought}</p>
             )}
+          {/* The folded card is one phone screen: the bought ones wait behind "Show all" or the open link. */}
           <PurchasedFold
-            purchased={settled}
+            purchased={limited && rows.length > view.shownCount ? [] : settled}
             open={panels.boughtOpen}
             storeMode={storeMode}
             env={rowEnv}
@@ -454,6 +465,17 @@ export function ShoppingView({
               onKeyDown={forms.batchKeyDown}
               onAdd={() => forms.add()}
             />
+          )}
+          {/* The card's one open link, last (design rules 1 and 2): the full list, with the open rows it leaves out. */}
+          {folded && onOpenFull && (
+            <CardFoot>
+              <OpenListButton
+                labels={t}
+                hidden={rows.length - view.shownCount}
+                hiddenText={t.hiddenItems}
+                onOpen={onOpenFull}
+              />
+            </CardFoot>
           )}
         </>
       )}

@@ -12,6 +12,7 @@ import {
 import { GroupSelect } from "../hierarchy/group-select";
 import { groupSelectLabelsFor } from "../hierarchy/group-select-labels";
 import type { WorkLabels } from "../shared/labels";
+import { PropLabel } from "./chip-choices";
 import { taskPlaceLabelsFor } from "./task-place-labels";
 import { TaskPriority } from "./task-priority";
 import { TaskRepeat } from "./task-repeat";
@@ -121,12 +122,14 @@ export function TaskPlace({
             setOpened(true);
           }}
         >
-          <span>{words.chipValue(name)}</span>
+          <PropLabel text={words.props.place} />
+          <span>{name}</span>
           <ChevronDownIcon size={16} />
         </button>
       ) : (
         <span className="sk-chip work-prop-chip work-prop-static">
-          <span>{words.chipValue(name)}</span>
+          <PropLabel text={words.props.place} />
+          <span>{name}</span>
         </span>
       )}
       <TaskRepeat
@@ -135,6 +138,7 @@ export function TaskPlace({
         words={words}
         writable={repeatWritable}
         busy={busy}
+        dueAt={task.due_at}
         onChoose={onChoose}
       />
       <TaskPriority

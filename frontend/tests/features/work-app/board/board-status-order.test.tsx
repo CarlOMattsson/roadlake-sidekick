@@ -21,6 +21,7 @@ import type {
   WorkItemRecord,
   WorkTransport,
 } from "@/features/work-app/transport/transport";
+import { chooseColumn } from "./column-tabs";
 
 /*
  * The phone's Status list (the "single" layout) sorts each section by due date, the overdue first and the undated
@@ -182,13 +183,16 @@ describe("appendBoardPage keeps the later page's fields", () => {
 });
 
 describe("the phone's Status list in due-date order", () => {
-  it("sorts an unordered section by due date and keeps an ordered section in the server's order", () => {
+  it("sorts an unordered section by due date and keeps an ordered section in the server's order", async () => {
+    const user = userEvent.setup();
     render(<Harness work={transport()} initial={page} />);
+    await chooseColumn(user, workEn.taskStatus.todo);
     expect(titlesIn(workEn.taskStatus.todo)).toEqual([
       early.title,
       late.title,
       undated.title,
     ]);
+    await chooseColumn(user, workEn.taskStatus.in_progress);
     expect(titlesIn(workEn.taskStatus.in_progress)).toEqual([
       laterDoing.title,
       earlierDoing.title,
@@ -215,6 +219,7 @@ describe("the phone's Status list in due-date order", () => {
         initial={page}
       />,
     );
+    await chooseColumn(user, workEn.taskStatus.todo);
     // Shown: early, late, undated. Moving early down one step gives late, early, undated. The server's order
     // (late, early, undated) moved early down would give late, undated, early, so the test tells them apart.
     fireEvent.contextMenu(rowOf(early.title));
@@ -260,6 +265,7 @@ describe("the phone's Status list in due-date order", () => {
         }}
       />,
     );
+    await chooseColumn(user, workEn.taskStatus.todo);
     expect(titlesIn(workEn.taskStatus.todo)).toEqual(
       expect.arrayContaining([early.title, late.title]),
     );

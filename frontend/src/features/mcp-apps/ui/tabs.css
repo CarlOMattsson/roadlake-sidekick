@@ -1,0 +1,95 @@
+/* Tabs (tabs.tsx, designsystem §3 Flikar): level 2 navigation. No fill and no frame; the chosen tab is 600 in --sk-fg
+   with a 3 px line in --sk-fg under it, the others 500 in --sk-muted. A tab is --sk-tabs-h high (44, at most 56 at
+   large text) and its ::after makes the target 48. The rules use two classes so an app's own `button` rule cannot
+   override them. Host tokens via tokens.css. */
+.sk-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  /* 4 between wrapped rows at 200 % text, so a tab's target never reaches into the row above. */
+  row-gap: var(--sk-s1);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+.sk-tabs.sk-tabs--rule {
+  border-bottom: var(--sk-hairline) solid var(--sk-line);
+}
+
+.sk-tabs .sk-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: max-content;
+  height: auto;
+  min-height: var(--sk-tabs-h);
+  /* The 3 px line lies on the row's hairline: the tab reaches 1 px over it. */
+  margin: 0 0 calc(-1 * var(--sk-hairline));
+  padding: 3px var(--sk-s3) 0;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+  white-space: nowrap;
+  text-align: center;
+  cursor: pointer;
+}
+/* The bold label's width is held by a hidden copy, so choosing a tab moves nothing sideways (fit="content"). */
+.sk-tabs .sk-tabs__tab::before {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: var(--sk-weight-semibold);
+}
+/* 48 to tap: 2 above, and 2 below past the line. */
+.sk-tabs .sk-tabs__tab::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0 -5px;
+}
+.sk-tabs.sk-tabs--equal .sk-tabs__tab {
+  flex: 1 0 0;
+}
+.sk-tabs.sk-tabs--content .sk-tabs__tab {
+  flex: 0 0 auto;
+}
+/* The first content-packed tab starts its text on the content edge, as a title would. */
+.sk-tabs.sk-tabs--content .sk-tabs__tab:first-child {
+  margin-inline-start: calc(-1 * var(--sk-s3));
+}
+
+.sk-tabs .sk-tabs__tab[aria-pressed="true"] {
+  border-bottom-color: var(--sk-fg);
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+.sk-tabs .sk-tabs__tab:focus-visible {
+  outline-offset: -2px;
+}
+.sk-tabs .sk-tabs__tab:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* A narrow container (a 320 px phone): 6 at the sides, so three labels keep one row. */
+@container (max-width: 20rem) {
+  .sk-tabs .sk-tabs__tab {
+    padding-inline: 6px;
+  }
+  .sk-tabs.sk-tabs--content .sk-tabs__tab:first-child {
+    margin-inline-start: -6px;
+  }
+}
+
+@media (forced-colors: active) {
+  .sk-tabs .sk-tabs__tab[aria-pressed="true"] {
+    border-bottom-color: Highlight;
+  }
+}

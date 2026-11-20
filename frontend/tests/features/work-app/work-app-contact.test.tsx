@@ -80,11 +80,20 @@ it("shows the Contact's note under 'About Anna' and keeps e-mail and phone behin
   expect(container.querySelector("a")).toBeNull();
   await user.click(ways);
   expect(ways).toHaveAttribute("aria-expanded", "true");
+  // Each way is one row: its kind over its value, and the whole row is the link.
+  const emailRow = screen.getByRole("link", {
+    name: `Email ${anna.email as string}`,
+  });
+  expect(emailRow).toHaveAttribute("href", `mailto:${anna.email}`);
+  expect(emailRow).toHaveClass("work-contact-way");
+  expect(emailRow.querySelector(".work-contact-way-kind")).toHaveTextContent(
+    "Email",
+  );
+  expect(emailRow.querySelector(".work-contact-way-value")).toHaveTextContent(
+    anna.email as string,
+  );
   expect(
-    screen.getByRole("link", { name: anna.email as string }),
-  ).toHaveAttribute("href", `mailto:${anna.email}`);
-  expect(
-    screen.getByRole("link", { name: anna.phone as string }),
+    screen.getByRole("link", { name: `Phone ${anna.phone as string}` }),
   ).toHaveAttribute("href", "tel:+46700000001");
   expect(screen.queryByText(`${workEn.email}: ${anna.email}`)).toBeNull();
   expect(screen.queryByText(`${workEn.phone}: ${anna.phone}`)).toBeNull();

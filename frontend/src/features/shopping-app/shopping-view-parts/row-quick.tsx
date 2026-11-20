@@ -2,12 +2,22 @@ import type { RefObject } from "react";
 import type { ShoppingItem } from "../transport";
 import { quantityText } from "../shopping-card";
 import { KeyScope, onEscapeKey } from "../../mcp-apps/ui/key-scope";
-import { MinusIcon, MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
+import {
+  CloseIcon,
+  MinusIcon,
+  MoreIcon,
+  PlusIcon,
+} from "../../mcp-apps/ui/icons";
 import type { RowEnv } from "./row-parts";
 
 /** The lists an item can be moved to: the active ones other than its own. */
 export function moveTargets(item: ShoppingItem, env: RowEnv) {
   return env.lists.filter((list) => list.id !== item.list_id);
+}
+
+/** Whether the row's ⋯ has anything to hold: a list to move the item to, or Delete. */
+export function hasRowMenu(item: ShoppingItem, env: RowEnv) {
+  return moveTargets(item, env).length > 0 || Boolean(env.onTrash);
 }
 
 /**
@@ -48,26 +58,31 @@ export function RowQuick({
   const atMinimum = Number(item.quantity) <= 1;
   return (
     <span className="shopping-quick">
-      <button
-        type="button"
-        className="sk-iconbtn sk-iconbtn--row shopping-step"
-        aria-label={t.decreaseQuantity(item.name)}
-        aria-disabled={atMinimum || undefined}
-        onClick={() => {
-          if (!atMinimum) env.onStep?.(item, -1);
-        }}
-      >
-        <MinusIcon />
-      </button>
-      <button
-        type="button"
-        className="sk-iconbtn sk-iconbtn--row shopping-step"
-        aria-label={t.increaseQuantity(item.name)}
-        onClick={() => env.onStep?.(item, 1)}
-      >
-        <PlusIcon />
-      </button>
-      {moveTargets(item, env).length > 0 && (
+      {/* The folded card (one phone screen) leaves the steps to "Show all" and the full list: the name keeps the width. */}
+      {!env.folded && (
+        <>
+          <button
+            type="button"
+            className="sk-iconbtn sk-iconbtn--row shopping-step"
+            aria-label={t.decreaseQuantity(item.name)}
+            aria-disabled={atMinimum || undefined}
+            onClick={() => {
+              if (!atMinimum) env.onStep?.(item, -1);
+            }}
+          >
+            <MinusIcon />
+          </button>
+          <button
+            type="button"
+            className="sk-iconbtn sk-iconbtn--row shopping-step"
+            aria-label={t.increaseQuantity(item.name)}
+            onClick={() => env.onStep?.(item, 1)}
+          >
+            <PlusIcon />
+          </button>
+        </>
+      )}
+      {hasRowMenu(item, env) && (
         <button
           ref={moreButton}
           type="button"
@@ -89,7 +104,11 @@ export function RowQuick({
   );
 }
 
-/** The row's menu, under the row: one entry per list the item can move to. Escape closes it. */
+/**
+ * The row's menu, under the row: the item's name as its head with a close button (so it is plain which row it belongs
+ * to, and there is a way out other than ⋯ again), one entry per list the item can move to, then Delete in the danger
+ * colour last. Delete needs no question first: the trash and Undo undo it. Escape closes it.
+ */
 export function RowMenu({
   item,
   env,
@@ -104,6 +123,17 @@ export function RowMenu({
   const { labels: t } = env;
   return (
     <KeyScope className="sk-menu-panel shopping-row-menu" onEscape={onEscape}>
+      <div className="shopping-row-menu-head">
+        <p className="shopping-row-menu-name">{item.name}</p>
+        <button
+          type="button"
+          className="sk-iconbtn shopping-row-menu-close"
+          aria-label={t.closeMenu}
+          onClick={onEscape}
+        >
+          <CloseIcon />
+        </button>
+      </div>
       {moveTargets(item, env).map((list) => (
         <button
           key={list.id}
@@ -117,6 +147,19 @@ export function RowMenu({
           {t.moveToList(list.name)}
         </button>
       ))}
+      {env.onTrash && (
+        <button
+          type="button"
+          className="sk-menu-item sk-menu-item--danger"
+          disabled={env.busy}
+          onClick={() => {
+            onClose();
+            env.onTrash?.(item, () => undefined);
+          }}
+        >
+          {t.deleteItem}
+        </button>
+      )}
     </KeyScope>
   );
 }

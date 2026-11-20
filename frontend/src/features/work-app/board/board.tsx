@@ -21,6 +21,7 @@ import {
 } from "./board-layout";
 import { RefreshButton } from "./board-sections";
 import { ColumnsLayout, SingleLayout } from "./parts/board-layouts";
+import { ColumnTabs, useChosenColumn } from "./parts/board-column-tabs";
 import { useBoardCore } from "./parts/use-board-core";
 import { useBoardDrag } from "./parts/use-board-drag";
 import { useBoardFocus } from "./parts/use-board-focus";
@@ -128,6 +129,9 @@ export function BoardView({
       preview,
       rowQueue: core.rowQueue,
     });
+  // A phone shows one column at a time, chosen with its tabs; a search shows its hits in every section at once.
+  const tabs = useChosenColumn(sections);
+  const tabbed = single && !needle && anyCard;
   const writes = useBoardWrites({
     core,
     frame,
@@ -286,6 +290,15 @@ export function BoardView({
             <p>{t.agendaNoMatches}</p>
           )
         ) : null}
+        {tabbed && (
+          <ColumnTabs
+            sections={sections}
+            undos={undos}
+            column={tabs.column}
+            onChoose={tabs.choose}
+            locale={t.dateLocale}
+          />
+        )}
         <div
           ref={columnsRow}
           className="work-columns"
@@ -303,6 +316,7 @@ export function BoardView({
               completeColumn={writes.completeColumn}
               toggleDone={writes.toggleDone}
               stepWithin={writes.stepWithin}
+              chosen={tabbed ? tabs.column : undefined}
             />
           ) : (
             <ColumnsLayout

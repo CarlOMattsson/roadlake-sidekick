@@ -69,10 +69,9 @@ describe("a waiting Task in the dated agenda", () => {
   it("says who it waits on, since when, and that the follow-up is the reason it is listed", () => {
     renderAgenda([waitingTask()]);
     const row = screen.getByRole("listitem");
-    // No due date of its own: the follow-up day put it here, so the line leads with it.
-    const line = within(row).getByText("Följ upp igår").closest("p");
-    expect(line).toHaveTextContent(
-      "Följ upp igår Väntar på Anders sedan 13 nov",
+    // No due date of its own: the follow-up day put it here, so the meta line leads with it.
+    expect(row.querySelector(".work-agenda-waiting")).toHaveTextContent(
+      "Väntar på Anders sedan 13 nov",
     );
     expect(within(row).getByText("Följ upp igår")).toHaveAttribute(
       "data-tone",
@@ -80,12 +79,43 @@ describe("a waiting Task in the dated agenda", () => {
     );
   });
 
+  it("leads the meta line with the follow-up that places the row and moves the due date to the waiting line, each date once", () => {
+    renderAgenda([waitingTask({ due_at: "2026-11-19T23:59:00+01:00" })]);
+    const row = screen.getByRole("listitem");
+    const lead = row.querySelector(".work-card-meta time");
+    expect(lead).toHaveTextContent("Följ upp igår");
+    expect(lead).toHaveAttribute("data-tone", "overdue");
+    expect(within(row).queryByText("Imorgon")).toBeNull();
+    expect(within(row).getAllByText(/förfaller imorgon/)).toHaveLength(1);
+    expect(within(row).getAllByText(/Följ upp igår/i)).toHaveLength(1);
+    const line = row.querySelector(".work-agenda-waiting");
+    expect(line).toHaveTextContent("Väntar på Anders sedan 13 nov");
+    expect(line).not.toHaveTextContent(/följ upp/i);
+  });
+
+  it("says the due day in English too", () => {
+    renderAgenda([waitingTask({ due_at: "2026-11-19T23:59:00+01:00" })], {
+      labels: workEn,
+    });
+    const row = screen.getByRole("listitem");
+    expect(row.querySelector(".work-card-meta time")).toHaveTextContent(
+      "Follow up yesterday",
+    );
+    expect(within(row).getAllByText(/due tomorrow/)).toHaveLength(1);
+  });
+
   it("puts the wait first and the follow-up after it when the Task has an earlier due date", () => {
     renderAgenda([waitingTask({ due_at: "2026-11-16T23:59:00+01:00" })]);
     const row = screen.getByRole("listitem");
-    expect(
-      within(row).getByText("följ upp igår").closest("p"),
-    ).toHaveTextContent("Väntar på Anders sedan 13 nov följ upp igår");
+    // Two parts of one meta line: the "·" between them is drawn by CSS, not written.
+    const parts = row.querySelectorAll(".work-agenda-waiting > span");
+    expect([...parts].map((part) => part.textContent)).toEqual([
+      "Väntar på Anders sedan 13 nov",
+      "följ upp igår",
+    ]);
+    expect(row.querySelector(".work-agenda-waiting")).not.toHaveTextContent(
+      "·",
+    );
   });
 
   it("shows a follow-up that has not come in the plain tone, with its date", () => {
@@ -97,7 +127,7 @@ describe("a waiting Task in the dated agenda", () => {
       }),
     ]);
     const follow = screen.getByText("Följ upp 25 nov");
-    expect(follow).not.toHaveAttribute("data-tone");
+    expect(follow).not.toHaveAttribute("data-tone", "overdue");
   });
 
   it("reads in English with the English locale", () => {

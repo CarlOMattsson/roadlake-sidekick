@@ -18,14 +18,18 @@ export type UndoHoldHandlers = {
 /**
  * The countdown of one Ångra. While `running` it counts down `UNDO_MS` and then calls `onExpire`; the time stops while
  * the pointer is over the element that gets `handlers` or focus is in it, and runs on with the time left when both
- * leave. When `running` ends the time starts over. `held` says the countdown stands still: put it on the element as
+ * leave. When `running` ends the time starts over. `ms` is the time to count (a receipt without Ångra counts less). `held` says the countdown stands still: put it on the element as
  * `data-held` so the time line under the button (`.sk-undo-time`, undo.css) stands still too.
  */
-export function useUndoHold(running: boolean, onExpire: () => void) {
+export function useUndoHold(
+  running: boolean,
+  onExpire: () => void,
+  ms: number = UNDO_MS,
+) {
   const [pointer, setPointer] = useState(false);
   const [focused, setFocused] = useState(false);
   const held = pointer || focused;
-  const left = useRef(UNDO_MS);
+  const left = useRef(ms);
   // The latest callback, so a new function on every render does not restart the countdown.
   const latest = useRef(onExpire);
   useEffect(() => {
@@ -33,7 +37,7 @@ export function useUndoHold(running: boolean, onExpire: () => void) {
   });
   useEffect(() => {
     if (!running) {
-      left.current = UNDO_MS;
+      left.current = ms;
       return undefined;
     }
     if (held) return undefined;
@@ -43,7 +47,7 @@ export function useUndoHold(running: boolean, onExpire: () => void) {
       clearTimeout(timer);
       left.current -= Date.now() - since;
     };
-  }, [running, held]);
+  }, [running, held, ms]);
   const handlers: UndoHoldHandlers = {
     onPointerEnter: () => setPointer(true),
     onPointerLeave: () => setPointer(false),

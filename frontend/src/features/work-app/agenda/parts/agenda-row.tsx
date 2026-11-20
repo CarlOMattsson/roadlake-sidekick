@@ -14,11 +14,11 @@ import { RecordTitle } from "../../board/board-card";
 import { RecordMeta } from "../../shared/record-meta";
 import { isStandIn } from "../../shared/use-queued-records";
 import { WaitingLine } from "../../shared/waiting-line";
+import { WaitingMeta } from "../../shared/waiting-meta";
 import { OpenChevron } from "../../tasks/task-detail-controls";
 import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
 import { AgendaNotice, rowSpot } from "./agenda-notice";
 import { RowMenuPanel } from "./row-menu-panel";
-import { WaitingMeta } from "./waiting-meta";
 import type { AgendaRowContext } from "./row-context";
 
 /** The ring (or glyph) that leads a row: a button that ticks a Task done or opens it again, else the status glyph alone. */
@@ -244,7 +244,12 @@ export function AgendaRow({
                 <RecordMeta item={item} labels={t} now={now} group={group} />
               )}
               {!parentDone && (
-                <WaitingMeta item={item} now={now} dateLocale={t.dateLocale} />
+                <WaitingMeta
+                  item={item}
+                  now={now}
+                  dateLocale={t.dateLocale}
+                  group={group}
+                />
               )}
               {waiting && <WaitingLine text={t.queued} />}
               {note !== undefined && (

@@ -62,7 +62,7 @@ function adapter(over: Partial<ShoppingTransport> = {}): ShoppingTransport {
 }
 
 describe("purchase row markup (phone)", () => {
-  it("an open row has no status line, and the Edit button names its item", async () => {
+  it("an open row is a ring and a row button side by side, with no status line", async () => {
     render(
       <ShoppingView
         transport={adapter()}
@@ -70,22 +70,26 @@ describe("purchase row markup (phone)", () => {
         initial={detail}
       />,
     );
-    const checkbox = await screen.findByRole("checkbox", { name: /Milk/ });
-    await waitFor(() => expect(checkbox).toBeEnabled());
-    const row = checkbox.closest("label");
-    expect(row).toHaveClass("shopping-check");
-    // An open row has no "To buy" status line: only the name line and the Edit button.
-    expect(row?.querySelector(".shopping-status")).toBeNull();
-    const toolbar = row?.parentElement;
-    expect(toolbar).toHaveClass("shopping-toolbar");
-    expect(toolbar?.querySelector(":scope > button")).toHaveAttribute(
-      "aria-label",
-      shoppingEn.editNamed("Milk"),
-    );
-    expect(toolbar?.querySelector(":scope > span")).toBeNull();
+    const ring = await screen.findByRole("button", {
+      name: shoppingEn.markBought("Milk"),
+    });
+    await waitFor(() => expect(ring).toBeEnabled());
+    expect(ring).toHaveClass("shopping-ring");
+    const line = ring.parentElement;
+    expect(line).toHaveClass("shopping-store-line");
+    // The row's own button is the ring's sibling, never nested in it, and there is no "To buy" status line.
+    const rowButton = line?.querySelector(":scope > .shopping-store-row");
+    expect(rowButton).toBeInTheDocument();
+    expect(rowButton).not.toContainElement(ring);
+    expect(line?.closest("li")?.querySelector(".shopping-status")).toBeNull();
+    // No checkbox and no Edit button remain: the row itself opens the change form.
+    expect(screen.queryByRole("checkbox")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.editNamed("Milk") }),
+    ).toBeNull();
   });
 
-  it("the name line keeps its own text, so the item reads as 'name · quantity unit'", async () => {
+  it("the name and the amount keep their own text, so the row reads as 'name' and 'quantity unit'", async () => {
     render(
       <ShoppingView
         transport={adapter()}
@@ -94,12 +98,15 @@ describe("purchase row markup (phone)", () => {
       />,
     );
     await waitFor(() =>
-      expect(screen.getByRole("checkbox", { name: /Milk/ })).toBeEnabled(),
+      expect(
+        screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+      ).toBeEnabled(),
     );
-    expect(screen.getByText("Milk · 2 l")).toBeInTheDocument();
+    expect(screen.getByText("Milk")).toHaveClass("shopping-store-name");
+    expect(screen.getByText("2 l")).toHaveClass("shopping-store-qty");
   });
 
-  it("a bought item has no status line; its checkbox is ticked", async () => {
+  it("a bought item has no status line; its ring reads 'not bought'", async () => {
     const bought = { ...milk, purchased: true };
     const boughtDetail = { ...detail, items: [bought] };
     render(
@@ -113,11 +120,15 @@ describe("purchase row markup (phone)", () => {
     );
     // A bought item stands under the folded "Bought (1)": open it.
     fireEvent.click(await screen.findByRole("button", { name: /^Bought/ }));
-    const name = await screen.findByText("Milk · 2 l");
-    const row = name.closest("label");
-    expect(row).toHaveClass("shopping-check");
+    const ring = await screen.findByRole("button", {
+      name: shoppingEn.markOpen("Milk"),
+    });
+    const row = ring.closest("li");
+    expect(row).toHaveClass("shopping-store-item");
     expect(row?.querySelector(".shopping-status")).toBeNull();
-    expect(row?.querySelector('input[type="checkbox"]')).toBeChecked();
+    expect(row?.querySelector(".shopping-store-name")).toHaveTextContent(
+      "Milk",
+    );
   });
 });
 
@@ -163,10 +174,14 @@ describe("list quantities read like the card", () => {
         initial={amountDetail}
       />,
     );
-    expect(await screen.findByText("Mjölk · 2 l")).toBeInTheDocument();
-    expect(screen.getByText("Ägg · 12 st")).toBeInTheDocument();
+    expect(await screen.findByText("Mjölk")).toBeInTheDocument();
+    expect(screen.getByText("2 l")).toHaveClass("shopping-store-qty");
+    expect(screen.getByText("12 st")).toHaveClass("shopping-store-qty");
     expect(screen.getByText("Bröd")).toBeInTheDocument();
-    expect(screen.getByText("Yoghurt · 1,5 l")).toBeInTheDocument();
+    expect(screen.getByText("1,5 l")).toHaveClass("shopping-store-qty");
+    // No amount for 1 with no unit: the name stands alone.
+    const bread = screen.getByText("Bröd").closest("li");
+    expect(bread?.querySelector(".shopping-store-qty")).toBeNull();
     expect(screen.queryByText(/1\.000|2\.000|12\.000/)).toBeNull();
   });
 });
@@ -181,7 +196,9 @@ describe("list pager shows only when there is more than one page of lists", () =
       />,
     );
     await waitFor(() =>
-      expect(screen.getByRole("checkbox", { name: /Milk/ })).toBeEnabled(),
+      expect(
+        screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+      ).toBeEnabled(),
     );
     expect(
       screen.queryByRole("button", { name: shoppingEn.previous }),

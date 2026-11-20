@@ -164,13 +164,15 @@ it("groups open items by store and keeps purchased items in a collapsed section"
   // The purchased item is drawn when the fold is opened.
   fireEvent.click(fold);
   expect(fold).toHaveAttribute("aria-expanded", "true");
-  // The store is shown once, in the group heading. Only the purchased item, which has no heading, repeats it.
-  expect(screen.getAllByText(`${shoppingEn.store}: ICA MAXI 4`)).toHaveLength(
-    1,
-  );
+  // The bought item stands as a row of its own, its ring offering to mark it open again. The store is only in the
+  // group heading: a row never repeats it.
+  expect(
+    screen.getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
+  ).toBeInTheDocument();
+  expect(screen.getAllByText("ICA MAXI 4")).toHaveLength(1);
 });
 
-it("shows the regular price and calendar dates without the form label or ISO dates", () => {
+it("shows the offer's price, regular price and status on the row's meta line, without the form label or ISO dates", () => {
   const transport = adapter();
   const withOffer: ShoppingDetail = {
     ...detail,
@@ -200,9 +202,11 @@ it("shows the regular price and calendar dates without the form label or ISO dat
     />,
   );
   expect(screen.queryByText(shoppingEn.regular)).not.toBeInTheDocument();
-  expect(screen.getByText(/Regular price: 17\.90/)).toBeInTheDocument();
-  expect(screen.getByText(/23 Oct 2026 – 30 Oct 2026/)).toBeInTheDocument();
-  expect(screen.getByText(/Date checked: 25 Oct 2026/)).toBeInTheDocument();
+  // The row carries the price and the regular price in one short line; the validity dates and the date checked are
+  // read in the change form, not on the row.
+  expect(screen.getByText("SEK 14.90 (was SEK 17.90)")).toHaveClass(
+    "shopping-store-meta",
+  );
   expect(screen.queryByText(/2026-10-2\d/)).not.toBeInTheDocument();
 });
 
@@ -247,7 +251,7 @@ it("adds the batch when Enter is pressed in the field, and Shift+Enter keeps a l
   await waitFor(() => expect(batch).toHaveValue(""));
 });
 
-it("writes the offer's prices in the list's decimal style in the detail lines", () => {
+it("writes the offer's prices in the list's decimal style on the row's meta line", () => {
   const withOffer: ShoppingDetail = {
     ...detail,
     items: [
@@ -274,8 +278,9 @@ it("writes the offer's prices in the list's decimal style in the detail lines", 
       initial={withOffer}
     />,
   );
-  expect(screen.getByText(/14,90 SEK/)).toBeInTheDocument();
-  expect(screen.getByText(/Ordinarie pris: 17,90/)).toBeInTheDocument();
+  expect(screen.getByText("14,90 kr (ord. 17,90 kr)")).toHaveClass(
+    "shopping-store-meta",
+  );
 });
 
 describe("price text helpers", () => {

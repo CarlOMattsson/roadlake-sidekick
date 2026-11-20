@@ -16,7 +16,7 @@ import type {
 import { WorkView } from "@/features/work-app/view/work-view";
 
 /*
- * The place chip of the Task page ("Plats: Renovering av köket ⌄") and the repeat chip (a picker, read-only on the phone). The transports here
+ * The place chip of the Task page (the row "Plats" · "Renovering av köket" ⌄) and the repeat chip (a picker, read-only on the phone). The transports here
  * are simulated and not a real Claude or Android host; the phone case only imitates the companion's refusal of every
  * update_task but the completing one (supportsCall).
  */
@@ -100,14 +100,22 @@ function renderTask(work: WorkTransport, labels = workSv) {
   );
 }
 
+/** A property row: the name is aria-hidden (its own span), the value is its own span. */
+function expectPropRow(row: HTMLElement, name: string, value: string) {
+  expect(row.querySelector(".work-prop-label")?.textContent).toBe(name);
+  expect(within(row).getByText(value)).toBeInTheDocument();
+}
+
 describe("the place chip of the Task page", () => {
   it("shows a Domain Task's place by the Domain's name, read from the hierarchy", async () => {
     const { work } = makeTransport(makeTask({ domain_id: HOME }));
     renderTask(work);
 
-    expect(
+    expectPropRow(
       await screen.findByRole("button", { name: "Ändra plats: Hem" }),
-    ).toHaveTextContent("Plats: Hem");
+      "Plats",
+      "Hem",
+    );
   });
 
   it("shows 'Att sortera' for a Task with no place and reads no hierarchy until the panel opens", async () => {
@@ -118,7 +126,7 @@ describe("the place chip of the Task page", () => {
     const chip = await screen.findByRole("button", {
       name: "Ändra plats: Att sortera",
     });
-    expect(chip).toHaveTextContent("Plats: Att sortera");
+    expectPropRow(chip, "Plats", "Att sortera");
     expect(work.getWorkHierarchy).not.toHaveBeenCalled();
     expect(chip).toHaveAttribute("aria-expanded", "false");
 
@@ -226,8 +234,12 @@ describe("the place chip of the Task page", () => {
     });
     renderTask(work);
 
-    const text = await screen.findByText("Plats: Hem");
-    expect(text.closest("button")).toBeNull();
+    const value = await screen.findByText("Hem");
+    expect(value.closest("button")).toBeNull();
+    expect(value.parentElement).toHaveClass("work-prop-static");
+    expect(
+      value.parentElement?.querySelector(".work-prop-label")?.textContent,
+    ).toBe("Plats");
   });
 });
 
@@ -248,19 +260,30 @@ describe("the repeat chip of the Task page", () => {
     };
     const first = makeTransport(makeTask({ recurrence: rule }), phone);
     const { unmount } = renderTask(first.work);
-    const sv = await screen.findByText("Upprepas varannan vecka");
+    const sv = await screen.findByText("Varannan vecka");
     expect(sv.closest("button")).toBeNull();
+    expectPropRow(
+      sv.parentElement as HTMLElement,
+      "Upprepas",
+      "Varannan vecka",
+    );
     unmount();
 
     const second = makeTransport(makeTask({ recurrence: rule }), phone);
     renderTask(second.work, workEn);
-    expect(await screen.findByText("Repeats every other week")).toBeVisible();
+    const en = await screen.findByText("Every other week");
+    expect(en).toBeVisible();
+    expectPropRow(
+      en.parentElement as HTMLElement,
+      "Repeats",
+      "Every other week",
+    );
   });
 
   it("shows no repeat chip on the phone for a Task that does not repeat", async () => {
     const { work } = makeTransport(makeTask({ recurrence: null }), phone);
     renderTask(work);
-    await screen.findByText("Plats: Att sortera");
+    await screen.findByText("Att sortera");
     expect(screen.queryByText(/Upprepas/)).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Ändra upprepning/ }),
@@ -273,7 +296,7 @@ describe("the repeat chip of the Task page", () => {
     renderTask(work);
 
     const chip = await screen.findByRole("button", {
-      name: "Ändra upprepning: Upprepas inte",
+      name: "Ändra upprepning: Upprepas aldrig",
     });
     expect(chip).toHaveAttribute("aria-expanded", "false");
     await user.click(chip);
@@ -383,7 +406,7 @@ describe("the repeat chip of the Task page", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Ändra upprepning: Upprepas inte",
+        name: "Ändra upprepning: Upprepas aldrig",
       }),
     );
     await user.click(screen.getByRole("button", { name: "Varannan vecka" }));
@@ -524,9 +547,7 @@ describe("the repeat chip of the Task page", () => {
       supportsCall: (name: string) => name !== "update_task",
     });
     renderTask(phone.work);
-    expect(
-      await screen.findByText("Upprepas varje mån och tors"),
-    ).toBeVisible();
+    expect(await screen.findByText("Varje mån och tors")).toBeVisible();
     expect(screen.queryByRole("group", { name: /Veckodagar/ })).toBeNull();
   });
 
@@ -536,7 +557,7 @@ describe("the repeat chip of the Task page", () => {
     renderTask(work, workEn);
 
     const chip = await screen.findByRole("button", {
-      name: "Change how often it repeats: Doesn’t repeat",
+      name: "Change how often it repeats: Repeats never",
     });
     await user.click(chip);
     expect(
@@ -559,7 +580,7 @@ describe("the priority chip of the Task page", () => {
     const chip = await screen.findByRole("button", {
       name: "Ändra prioritet: Hög",
     });
-    expect(chip).toHaveTextContent("Prioritet: Hög");
+    expectPropRow(chip, "Prioritet", "Hög");
     await user.click(chip);
     const group = within(screen.getByRole("group", { name: "Prioritet" }));
     expect(group.getByRole("button", { name: "Låg" })).toHaveAttribute(

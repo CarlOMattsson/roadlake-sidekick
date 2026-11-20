@@ -100,7 +100,7 @@ for (const [width, gap] of [
   [500, 4],
   [320, 2],
 ] as const) {
-  test(`Journal day view at ${width} px: seven equal day cells ${gap} px apart, no frame on a day, a selected day drawn as the chosen room`, async ({
+  test(`Journal day view at ${width} px: seven equal day cells ${gap} px apart, no frame on a day, a selected day filled in the chosen tone`, async ({
     page,
   }) => {
     const { app, failures } = await openDay(page, width);
@@ -130,7 +130,8 @@ for (const [width, gap] of [
     expect(
       await style(days.first(), "borderTopWidth", "borderLeftWidth"),
     ).toEqual({ borderTopWidth: "0px", borderLeftWidth: "0px" });
-    // The chosen day: the page colour, a 2 px inset outline in the text colour, the text colour; no border.
+    // The chosen day: a cell filled in the chosen tone (--sk-selected-bg), the text colour, the number at 600; no frame
+    // and no shadow, so it cannot be read as the focus ring.
     const selected = app.locator('.sk-day-strip-day[aria-current="date"]');
     expect(
       await style(selected, "backgroundColor", "color", "boxShadow"),
@@ -138,15 +139,18 @@ for (const [width, gap] of [
       backgroundColor: await resolved(
         app,
         "background-color",
-        "var(--sk-nav-active-bg)",
+        "var(--sk-selected-bg)",
       ),
-      color: await resolved(app, "color", "var(--sk-nav-active-fg)"),
-      boxShadow: await resolved(
-        app,
-        "box-shadow",
-        "inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line)",
-      ),
+      color: await resolved(app, "color", "var(--sk-fg)"),
+      boxShadow: "none",
     });
+    expect((await style(selected, "borderTopWidth")).borderTopWidth).toBe(
+      "0px",
+    );
+    expect(
+      (await style(selected.locator(".sk-day-strip-number"), "fontWeight"))
+        .fontWeight,
+    ).toBe("600");
     const dot = await box(app.locator(".sk-day-strip-dot"));
     expect(dot.width).toBe(6);
     expect(dot.height).toBe(6);
@@ -158,24 +162,30 @@ for (const [width, gap] of [
   });
 }
 
-test("Journal day view: the title row holds the title and the + at its end, the week row sits under it at the start in 48 px icon buttons", async ({
+test("Journal day view: the tabs row holds Dag | Vecka with the + at its end, the week row sits under it at the start in 48 px icon buttons, the title stands under the strip", async ({
   page,
 }) => {
   const { app, failures } = await openDay(page, 360);
   const head = app.locator(".sk-day-strip-head");
-  const title = await box(app.locator(".sk-day-strip-title"));
+  await expect(head).toHaveAttribute("data-tabs", "true");
+  const tabs = await box(app.locator(".sk-day-strip-tabs"));
   const add = app.locator(".journal-day-add");
   const weekrow = await box(app.locator(".sk-day-strip-weekrow"));
   expect(await style(head, "display")).toEqual({ display: "grid" });
-  const gapUnder = await resolved(app, "margin-top", "var(--sk-s3)");
+  const gapUnder = await resolved(app, "margin-top", "var(--sk-s1)");
   expect((await style(head, "marginTop")).marginTop).toBe(gapUnder);
-  // Title and + share a row, the + at the end; the week row is under both and starts at the title's edge.
+  // Row 1 is the tabs "Dag | Vecka" (two pressed-state buttons, one of them pressed) with the + at the end; the week row
+  // is under both and starts at the head's edge.
+  await expect(app.locator(".sk-day-strip-tabs button")).toHaveCount(2);
+  await expect(
+    app.locator('.sk-day-strip-tabs button[aria-pressed="true"]'),
+  ).toHaveCount(1);
   const addBox = await box(add);
   expect(
-    Math.abs(addBox.y + addBox.height / 2 - (title.y + title.height / 2)),
+    Math.abs(addBox.y + addBox.height / 2 - (tabs.y + tabs.height / 2)),
   ).toBeLessThan(addBox.height);
-  expect(addBox.x).toBeGreaterThan(title.x + title.width - 1);
-  expect(weekrow.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
+  expect(addBox.x).toBeGreaterThan(tabs.x + tabs.width - 1);
+  expect(weekrow.y).toBeGreaterThanOrEqual(tabs.y + tabs.height - 1);
   // The + and the week arrows are 48 x 48 boxes with a 24 px glyph at every text size.
   for (const button of [
     add,
@@ -186,18 +196,26 @@ test("Journal day view: the title row holds the title and the + at its end, the 
     const glyph = await box(button.locator("svg"));
     expect([glyph.width, glyph.height]).toEqual([24, 24]);
   }
-  // The first arrow's glyph, not its box, starts at the title's edge.
+  // The first arrow's glyph, not its box, starts at the tabs' edge.
   const firstGlyph = await box(app.locator(".sk-day-strip-arrow svg").first());
-  expect(firstGlyph.x).toBeCloseTo(title.x, 0);
-  // The range is one line of meta type between the arrows.
+  expect(firstGlyph.x).toBeCloseTo(tabs.x, 0);
+  // The week's name ("Week 43 · 19-25 Oct") stands between the arrows, centred, in the section type.
   const range = app.locator(".journal-day-range");
-  expect((await style(range, "whiteSpace")).whiteSpace).toBe("nowrap");
+  expect((await style(range, "textAlign")).textAlign).toBe("center");
   const [arrowA, arrowB] = await Promise.all(
     (await app.locator(".sk-day-strip-arrow").all()).map(box),
   );
   const rangeBox = await box(range);
   expect(rangeBox.x).toBeGreaterThanOrEqual(arrowA!.x + arrowA!.width - 1);
   expect(rangeBox.x + rangeBox.width).toBeLessThanOrEqual(arrowB!.x + 1);
+  // The day's title is the page's h2 and stands under the strip, not in the head.
+  const below = app.locator(".sk-day-strip-title--below");
+  const strip = await box(app.locator(".sk-day-strip"));
+  expect((await box(below)).y).toBeGreaterThanOrEqual(
+    strip.y + strip.height - 1,
+  );
+  await expect(head.locator("h2")).toHaveCount(0);
+  await expect(below.getByRole("heading", { level: 2 })).toHaveCount(1);
   // The spent next-week arrow reads in the border colour at full opacity, not as faded ink.
   expect(
     await style(

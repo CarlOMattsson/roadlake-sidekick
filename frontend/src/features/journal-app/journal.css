@@ -310,13 +310,6 @@
   max-width: 100%;
   box-sizing: border-box;
 }
-.sidekick-journal .journal-edit textarea {
-  min-height: 6rem;
-  resize: vertical;
-}
-.sidekick-journal .journal-write textarea {
-  min-height: 8rem;
-}
 /* The focused field keeps room above and below it, so the phone's keyboard and the day strip do not cover it. */
 .sidekick-journal .journal-edit input,
 .sidekick-journal .journal-edit textarea {
@@ -894,13 +887,13 @@ button.journal-entry-card {
   font-weight: var(--sk-weight-medium);
   font-variant-numeric: tabular-nums;
 }
-/* The chosen day is drawn as the chosen room: the page colour, a 2 px outline in the
-   text colour with radius 8, the weekday in --sk-fg and the number at 600. Navigation has one chosen form. Forced colours
-   drop the shadow, so there the cell keeps a real outline. */
+/* The chosen day: a filled cell in the chosen tone, the weekday in --sk-fg and the number at 600. Never a frame, so it
+   cannot be read as the focus ring (helhet rule 3); the weight and the text colour carry the choice beside the fill.
+   Forced colours drop the fill, so there the cell keeps a real outline. */
 .sidekick-journal .sk-day-strip-day[aria-current="date"] {
-  background: var(--sk-nav-active-bg);
-  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line);
-  color: var(--sk-nav-active-fg);
+  background: var(--sk-selected-bg);
+  box-shadow: none;
+  color: var(--sk-fg);
 }
 @media (forced-colors: active) {
   .sidekick-journal .sk-day-strip-day[aria-current="date"] {
@@ -1149,20 +1142,105 @@ button.journal-entry-card {
   max-width: 100%;
 }
 
-/* The day/week switch at the end of the week row: the shared segmented control, 40 px high and a little narrower so it
-   shares the row with the arrows (and "Idag" or "Denna vecka"); the row wraps it to its own line when they do not fit. */
-.sidekick-journal .sk-day-strip-weekrow > .journal-view-switch {
-  margin: 0 0 var(--sk-day-week-reach) var(--sk-s2);
+/* The head with tabs (day and week view in fullscreen), the same two rows in both views and every week:
+   row 1 is Dag | Vecka (ui/tabs, packed from the start) with `today`, + and ⋯ at its end and one hairline under the
+   whole row; row 2 is "‹ Vecka 47 · 16–22 nov ›". Nothing on these rows comes or goes except `today`, which stands
+   before + so its arrival moves nothing else (dagbok-ui fynd 3–5). The day's title follows under the strip. */
+.sidekick-journal .sk-day-strip-head[data-tabs] {
+  grid-template-areas: "tabs tools" "arrows arrows";
+  align-items: stretch;
+  margin-top: var(--sk-s1);
 }
-.sidekick-journal .journal-view-switch .sk-segmented__option {
-  min-height: 2.5rem;
-  padding-inline: var(--sk-s3);
+.sidekick-journal .sk-day-strip-tabs {
+  grid-area: tabs;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
 }
-/* The week view: one section per day. The day heading is the section heading in the title type, and «Gjort» under it
-   (an h4, its fold row in the section type) is a level lower. An empty day is one muted line right under its heading. */
+.sidekick-journal
+  .sk-day-strip-head[data-tabs]
+  > :is(.sk-day-strip-tabs, .sk-day-strip-tools) {
+  border-bottom: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-journal .sk-day-strip-head[data-tabs] > .sk-day-strip-tools {
+  align-items: center;
+  margin-block: 0;
+  /* ⋯'s glyph box ends on the content edge, as on the title row. */
+  margin-inline-end: -12px;
+}
+.sidekick-journal
+  .sk-day-strip-head[data-tabs]
+  > .sk-day-strip-tools
+  > .sk-iconbtn {
+  align-content: center;
+  padding-top: 0;
+}
+.sidekick-journal
+  .sk-day-strip-head[data-tabs]
+  > .sk-day-strip-tools
+  > .journal-day-add {
+  margin-block-start: 0;
+}
+.sidekick-journal .sk-day-strip-tools > .journal-day-today {
+  margin-inline-end: var(--sk-s1);
+}
+.sidekick-journal .sk-day-strip-head[data-tabs] > .sk-day-strip-weekrow {
+  margin-top: var(--sk-s1);
+}
+.sidekick-journal
+  .sk-day-strip-head[data-tabs]
+  .sk-day-strip-weekrow
+  > .sk-iconbtn {
+  margin-top: 0;
+}
+/* The week's name between the arrows, in the section type: the same words in both views ("Vecka 47 · 16–22 nov"). In
+   the week view it is the view's h2. */
+.sidekick-journal .sk-day-strip-head[data-tabs] .journal-day-range {
+  margin: 0;
+  white-space: normal;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+  text-align: center;
+}
+.sidekick-journal .journal-day-range > h2 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+/* The day's title under the strip (with tabs), 16 under the cells, as the first heading of the day's content. */
+.sidekick-journal .sk-day-strip-title--below {
+  margin-top: var(--sk-s4);
+}
+.sidekick-journal .sk-day-strip-title--below > h2 {
+  margin: 0;
+  font: var(--sk-type-title);
+}
+
+/* The week view: one section per day. The day heading is the section heading in the title type, 32 above it so the days
+   read as a rhythm, and «Gjort» under it (an h4, its fold row in the section type) is a level lower. An empty day is
+   one muted line right under its heading. */
 .sidekick-journal .journal-week-day > h3 {
   font: var(--sk-type-title);
-  margin-top: var(--sk-s5);
+  margin: var(--sk-s6) 0 var(--sk-s1);
+}
+/* An entry in the week (dagbok-ui fynd 6): the title in 600, then what was written in --sk-fg-2, then the links and tags
+   last in the muted meta type, and 8 between entries, so title, summary and metadata are three clear levels. */
+.sidekick-journal .journal-week-day .journal-entry-card > .sk-row-primary {
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-journal .journal-week-day .journal-entry-excerpt {
+  order: 2;
+  margin-top: 2px;
+  font: var(--sk-type-body);
+  font-size: var(--sk-type-meta-size);
+  line-height: 1.4;
+}
+.sidekick-journal .journal-week-day .journal-entry-meta {
+  order: 3;
+  margin-top: var(--sk-s1);
+}
+.sidekick-journal .journal-week-day .journal-timeline > li + li {
+  margin-top: var(--sk-s2);
 }
 .sidekick-journal .journal-week-day .journal-empty {
   margin-top: 0;

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
@@ -71,22 +71,30 @@ function mount(
   return { ...fake, onWrite };
 }
 
+const ROW = "Väntar på";
+
 describe("TaskWaiting", () => {
-  it("says who the Task waits on, since when and the follow-up day, the day in the overdue tone once it has passed", () => {
+  it("reads as one row: the name over since when and the follow-up day, each said once, the follow-up in the overdue tone once it has passed", () => {
     mount(waiting, { contactName: "Anders" });
-    expect(
-      screen.getByText("Väntar på Anders sedan 13 nov"),
-    ).toBeInTheDocument();
+    const row = screen.getByRole("button", { name: /^Väntar på: Anders/ });
+    expect(row).toHaveTextContent("Väntar på");
+    expect(row).toHaveTextContent("Anders");
+    expect(screen.getAllByText(/sedan 13 nov/)).toHaveLength(1);
+    expect(screen.getAllByText(/följ upp igår/)).toHaveLength(1);
+    expect(row).toHaveTextContent("sedan 13 nov · följ upp igår");
     expect(screen.getByText("följ upp igår")).toHaveAttribute(
       "data-tone",
       "overdue",
     );
+    // The panel is closed: no action and no date field is on the screen yet.
+    expect(row).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "Byt person" })).toBeNull();
   });
 
   it("reads the Contact's name when the record carries only the id", async () => {
     const { getContactContext } = mount(waiting);
     expect(
-      await screen.findByText("Väntar på Anders Berg sedan 13 nov"),
+      await screen.findByRole("button", { name: /^Väntar på: Anders Berg/ }),
     ).toBeInTheDocument();
     expect(getContactContext).toHaveBeenCalledWith(ANDERS);
   });
@@ -94,9 +102,9 @@ describe("TaskWaiting", () => {
   it("starts a wait on the Contact found in the search, beginning now", async () => {
     const user = userEvent.setup();
     const { onWrite } = mount(idle);
-    await user.click(
-      screen.getByRole("button", { name: "Jag väntar på någon" }),
-    );
+    const row = screen.getByRole("button", { name: "Väntar på: Ingen" });
+    expect(row).toHaveTextContent("Ingen");
+    await user.click(row);
     await user.type(screen.getByRole("searchbox"), "Anders");
     await user.click(
       await screen.findByRole("button", { name: "Anders Berg" }),
@@ -110,6 +118,7 @@ describe("TaskWaiting", () => {
   it("changes the person without touching when the wait began", async () => {
     const user = userEvent.setup();
     const { onWrite } = mount(waiting, { contactName: "Erik" });
+    await user.click(screen.getByRole("button", { name: /^Väntar på: Erik/ }));
     await user.click(screen.getByRole("button", { name: "Byt person" }));
     await user.type(screen.getByRole("searchbox"), "Anders");
     await user.click(
@@ -118,38 +127,77 @@ describe("TaskWaiting", () => {
     expect(onWrite).toHaveBeenCalledWith({ waiting_on_contact_id: ANDERS });
   });
 
-  it("sets the follow-up day from a shortcut and from the date field, and removes it", async () => {
+  it("sets the follow-up day from a shortcut and removes it", async () => {
     const user = userEvent.setup();
     const { onWrite } = mount(waiting, { contactName: "Anders" });
-    await user.click(screen.getByRole("button", { name: /Följ upp: igår/ }));
+    await user.click(
+      screen.getByRole("button", { name: /^Väntar på: Anders/ }),
+    );
     await user.click(screen.getByRole("button", { name: "Om 3 dagar" }));
     expect(
       dateInputValue(onWrite.mock.calls[0]?.[0].follow_up_at ?? null),
     ).toBe("2026-11-21");
 
-    await user.click(screen.getByRole("button", { name: /Följ upp: igår/ }));
-    // The field starts on the day it has, so Spara alone changes nothing wrong.
-    const day = screen.getByLabelText("Uppföljningsdag");
-    expect(day).toHaveValue("2026-11-17");
-    await user.clear(day);
-    await user.type(day, "2026-11-30");
-    await user.click(screen.getByRole("button", { name: "Spara" }));
-    expect(
-      dateInputValue(onWrite.mock.calls[1]?.[0].follow_up_at ?? null),
-    ).toBe("2026-11-30");
-
-    await user.click(screen.getByRole("button", { name: /Följ upp: igår/ }));
+    await user.click(
+      screen.getByRole("button", { name: /^Väntar på: Anders/ }),
+    );
     await user.click(
       screen.getByRole("button", { name: "Ta bort uppföljning" }),
     );
     expect(onWrite).toHaveBeenLastCalledWith({ follow_up_at: null });
   });
 
+  it("writes the follow-up day when a complete date is chosen, with no Spara button", async () => {
+    const user = userEvent.setup();
+    const { onWrite } = mount(waiting, { contactName: "Anders" });
+    await user.click(
+      screen.getByRole("button", { name: /^Väntar på: Anders/ }),
+    );
+    expect(screen.queryByRole("button", { name: "Spara" })).toBeNull();
+    // The field starts on the day it has.
+    const day = screen.getByLabelText("Uppföljningsdag");
+    expect(day).toHaveValue("2026-11-17");
+    // An input event, as the browser sends and as both React and Preact (whose onChange is onInput) take it.
+    fireEvent.input(day, { target: { value: "2026-11-30" } });
+    expect(onWrite).toHaveBeenCalledTimes(1);
+    expect(
+      dateInputValue(onWrite.mock.calls[0]?.[0].follow_up_at ?? null),
+    ).toBe("2026-11-30");
+  });
+
+  it("closes its panel with Escape and returns focus to the row", async () => {
+    const user = userEvent.setup();
+    mount(waiting, { contactName: "Anders" });
+    const row = screen.getByRole("button", { name: /^Väntar på: Anders/ });
+    await user.click(row);
+    expect(screen.getByRole("group", { name: ROW })).toBeInTheDocument();
+    await user.click(screen.getByLabelText("Uppföljningsdag"));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("group", { name: ROW })).toBeNull();
+    expect(row).toHaveFocus();
+    expect(row).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("closes the person search with Escape and returns focus to the row", async () => {
+    const user = userEvent.setup();
+    mount(idle);
+    const row = screen.getByRole("button", { name: "Väntar på: Ingen" });
+    await user.click(row);
+    expect(screen.getByRole("searchbox")).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("searchbox")).toBeNull();
+    expect(row).toHaveFocus();
+  });
+
   it("ends the wait, emptying the person and the follow-up day with it", async () => {
     const { onWrite } = mount(waiting, { contactName: "Anders" });
-    await userEvent
-      .setup()
-      .click(screen.getByRole("button", { name: "Jag väntar inte längre" }));
+    const user = userEvent.setup();
+    await user.click(
+      screen.getByRole("button", { name: /^Väntar på: Anders/ }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Jag väntar inte längre" }),
+    );
     expect(onWrite).toHaveBeenCalledWith({
       waiting_since: null,
       follow_up_at: null,
@@ -159,9 +207,8 @@ describe("TaskWaiting", () => {
 
   it("only says what it waits on where the host cannot write, and says nothing for a Task that does not wait", () => {
     mount(waiting, { writable: false, contactName: "Anders" });
-    expect(
-      screen.getByText("Väntar på Anders sedan 13 nov"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Anders")).toBeInTheDocument();
+    expect(screen.getByText(/sedan 13 nov/)).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
   });
 
@@ -196,7 +243,7 @@ describe("TaskWaiting", () => {
     const { searchContacts } = mount(idle, { labels: workEn });
     const user = userEvent.setup();
     await user.click(
-      screen.getByRole("button", { name: "I’m waiting on someone" }),
+      screen.getByRole("button", { name: "Waiting on: No one" }),
     );
     await user.type(screen.getByRole("searchbox"), "An");
     await waitFor(() => expect(searchContacts).toHaveBeenCalledWith("An"));

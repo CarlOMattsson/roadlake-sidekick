@@ -195,16 +195,13 @@ describe("ControlApp heading and switch", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows the test-service heading for the fake provider instead of memory is on", () => {
+  it("says in a box that the fake provider is a test service", () => {
     renderApp(makeTransport(), "memory", {
       memory: { ...memoryOn, provider: "fake" },
     });
     expect(
-      screen.getByRole("heading", { name: "Minnet använder en testtjänst" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("heading", { name: "Minnet är på" }),
-    ).not.toBeInTheDocument();
+      screen.getByText("Minnet använder en testtjänst").closest(".sk-message"),
+    ).toHaveClass("sk-message--info");
   });
 
   it("shows that memory is off when every domain is off", () => {
@@ -381,7 +378,7 @@ describe("ControlApp keeps what the owner changed in a view", () => {
     );
     // Leave the tab as soon as the restore is saved, with no wait for a frame or a timer: the view tells the card in the
     // same step that removes the row, so the change follows it to the other tab and back.
-    await screen.findByText("Uppgift · återställd");
+    await screen.findByText("Återställd: Förbered pitchen");
     await user.click(viewButton("Historik"));
     await screen.findByRole("heading", { name: "Historik" });
     await user.click(viewButton("Borttaget"));
@@ -487,7 +484,7 @@ describe("ControlApp keeps what the owner changed in a view", () => {
     expect(transport.activity).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps Show all open when the owner comes back to the tab", async () => {
+  it("ends the inline card with one open link that opens the full view on the tab on screen", async () => {
     const user = userEvent.setup();
     const items: TrashItem[] = Array.from({ length: 6 }, (_, index) => ({
       kind: "task",
@@ -496,19 +493,53 @@ describe("ControlApp keeps what the owner changed in a view", () => {
       trashed_at: "2026-10-31T13:30:00Z",
       version: 4,
     }));
-    const transport = makeTransport();
-    renderApp(transport, "trash", {
-      trash: { items, has_more: false, next_cursor: null },
-    });
+    const onOpenFull = vi.fn();
+    render(
+      <ControlApp
+        transport={makeTransport()}
+        labels={controlSv}
+        initialView="trash"
+        initialData={{ trash: { items, has_more: false, next_cursor: null } }}
+        now={now}
+        onOpenFull={onOpenFull}
+      />,
+    );
 
-    expect(screen.queryByText("Post 5")).not.toBeInTheDocument();
-    await user.click(viewButton("Visa alla (6)"));
-    expect(screen.getByText("Post 5")).toBeInTheDocument();
+    expect(screen.queryByText("Post 4")).not.toBeInTheDocument();
+    const open = screen.getByRole("button", { name: /^Öppna Borttaget/ });
+    expect(open.querySelector("svg")).not.toBeNull();
+    await user.click(open);
+    expect(onOpenFull).toHaveBeenLastCalledWith("trash");
 
+    // The link follows the tab: History has its own.
     await user.click(viewButton("Historik"));
-    await user.click(viewButton("Borttaget"));
+    await user.click(
+      await screen.findByRole("button", { name: /^Öppna Historik/ }),
+    );
+    expect(onOpenFull).toHaveBeenLastCalledWith("history");
+  });
 
-    expect(screen.getByText("Post 5")).toBeInTheDocument();
-    expect(viewButton("Visa färre")).toHaveAttribute("aria-expanded", "true");
+  it("has no open link in the full view, which lists every row", () => {
+    const items: TrashItem[] = Array.from({ length: 6 }, (_, index) => ({
+      kind: "task",
+      id: `019f0000-0000-7000-8000-00000000031${index}`,
+      label: `Post ${index + 1}`,
+      trashed_at: "2026-10-31T13:30:00Z",
+      version: 4,
+    }));
+    render(
+      <ControlApp
+        transport={makeTransport()}
+        labels={controlSv}
+        initialView="trash"
+        initialData={{ trash: { items, has_more: false, next_cursor: null } }}
+        now={now}
+        onOpenFull={vi.fn()}
+        heading
+      />,
+    );
+
+    expect(screen.getByText("Post 6")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Öppna/ })).toBeNull();
   });
 });

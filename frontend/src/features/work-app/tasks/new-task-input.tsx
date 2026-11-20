@@ -52,6 +52,7 @@ export function NewTaskInput({
   showAdded = false,
   hidden = false,
   placeChoice = false,
+  fields,
 }: {
   /** The id of the wrapper, which + names in aria-controls. */
   id?: string;
@@ -71,6 +72,8 @@ export function NewTaskInput({
   hidden?: boolean;
   /** True adds a "Place" row under the field (default: no place); false creates every Task in To sort. */
   placeChoice?: boolean;
+  /** Further create_task fields every Task here is made with (a Contact's `contact_ids`); part of the idempotency signature. */
+  fields?: Partial<WorkTaskCreate>;
 }) {
   const [failure, setFailure] = useState<{
     title: string;
@@ -121,8 +124,8 @@ export function NewTaskInput({
     // The server checks the length: a title over the limit answers "invalid", named under the field.
     const clean = text.trim();
     if (!clean) return Promise.resolve(false);
-    // The same title in another place is another Task, so the place is part of what a key stands for.
-    const signature = `${placeValue(at)}\n${clean}`;
+    // The same title in another place, or for another Contact, is another Task, so both are part of what a key stands for.
+    const signature = `${placeValue(at)}\n${clean}${fields ? `\n${JSON.stringify(fields)}` : ""}`;
     // A title already in flight is not sent again: a second key for it would make a second Task.
     if (inflight.current.has(signature)) return Promise.resolve(false);
     inflight.current.add(signature);
@@ -131,7 +134,7 @@ export function NewTaskInput({
     setFailure(undefined);
     setAdded(undefined);
     return transport
-      .createTask({ title: clean, ...placeFields(at) }, attempt.key)
+      .createTask({ title: clean, ...fields, ...placeFields(at) }, attempt.key)
       .then(({ task }) => {
         if (mounted.current) {
           if (pending.current.get(signature) === attempt)

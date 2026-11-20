@@ -13,6 +13,7 @@ import { entryFitsBody, TEXT_MAX, TITLE_MAX } from "./entry-limits";
 import type { JournalLabels } from "./labels";
 import { writeFailure, type WriteFailure } from "./transport";
 import "./journal.css";
+import "./entry.css";
 
 /**
  * Keeps the focused field in view when the on-screen keyboard opens (phones): the browser scrolls the field into

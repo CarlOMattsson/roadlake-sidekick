@@ -19,8 +19,10 @@ host. That is not a test in a real Claude or Android host, and nothing here clai
 1. **Buttons: four levels, the same in every room.** Primary (ink, one per screen), secondary (outline),
    tertiary (text, 600) and destructive (red text). Compact is 40 drawn and 48 to tap. There is no tonal
    (grey-filled) level.
-2. **One chosen state.** The surface colour, a 2 px outline in `--sk-fg`, weight 600, and a 16 px tick on chips
-   and segments. A chosen tab is 600 with a 3 px line under it.
+2. **One chosen state per level, never a frame on navigation.** The active room is a raised pill on the strip
+   (`--sk-nav-active-bg` and `--sk-nav-active-shadow`) at 600; a chosen tab (level 2, `Tabs`) is 600 with a 3 px line
+   under it; a chosen day is filled in `--sk-selected-bg` at 600. Chips and value segments keep the fill, 2 px outline
+   and 16 px tick. The blue focus ring is the only ring on navigation (2026-11-20).
 3. **One row template.** Every list row has 6 of air over its title and under its last text line, a 48 floor,
    a title of at most 3 lines (up to about 133 % text), exactly one meta line whose last part may end in an
    ellipsis, and at most one trailing control. No dividers between rows. The ring's column is 0 px wide.
@@ -29,8 +31,10 @@ host. That is not a test in a real Claude or Android host, and nothing here clai
    title row carries the day-step arrows and ⋯. Control's back row reads "‹ Arbete" and its title "Kontroll"
    stands under it.
 6. **States.** The frame is always real; only the content changes. The loading skeleton has no visible text and
-   follows the row template. Undo keeps the row in place with a filled ring. A failure is an icon, a heading,
-   one sentence and "Försök igen".
+   follows the row template. Every change is confirmed in the receipt bar (`useReceipt`/`ReceiptBar`, `ui/receipt.tsx`)
+   at the view's foot, with Ångra when it can be undone; a row keeps its height and shows its new state. A failure is an
+   icon, a heading, one sentence and "Försök igen"; a message about a shown view is `MessageBox` (info, warning, error).
+   The component APIs are in `frontend/src/features/mcp-apps/ui/README.md`.
 7. **Inline cards** end in a single link row ("Öppna Status · 10 fler ›").
 8. **Fold row** (`Fold`, `ui/fold.tsx`): one component for every collapsible group: "Text (n) ⌄" in the section
    type, an optional meta line, the chevron on the content edge, 48 target, full width, no surface.
@@ -132,7 +136,8 @@ An accent palette (`--sk-accent-<name>-line`, eight names) exists for domain col
 ## 3. Components
 
 **Room strip (Rumsremsan).** Four equal tabs (`flex: 1 1 0`) in `--sk-type-label`, 40 high: cells 32 drawn in a
-4 px frame, each with a 48 target. The active room is drawn *chosen*; the others are `--sk-muted` 500, so only
+4 px frame; each room button's own box is 44 high (the drawn cell is its `::before`) with a 48 target. The active room
+is a raised pill without a frame; the others are `--sk-muted` 500, so only
 the current place is bold and the weight change moves nothing sideways. When the four labels do not fit on one
 line (measured, no breakpoint) the strip becomes a room picker: the active room's name and ⌄ ("Arbete ⌄"),
 opening the same menu with a tick on the chosen room. There is no 2 × 2 grid. The strip shows in every
@@ -267,7 +272,9 @@ The row below is "‹ 29 okt–4 nov ›": ‹ and › are 48 × 48 icon buttons
 after › when the week lacks today. They step one week to the same weekday; the strip chooses a day, a swipe steps a week and the arrow keys a day. › is
 `aria-disabled` (`--sk-border`) in the week containing today and never hidden. The strip shows seven days ending today (or the week of the chosen day), no future days;
 cells are equal width, 56 high, with weekday (caption, muted), date (18/22 500) and a marker row where a 6 px `--sk-muted` dot means "has notes". The chosen day is
-drawn *chosen* (active-navigation pair).
+filled in `--sk-selected-bg` at 600, without a frame. Since 2026-11-20 the strip is the calendar week, Monday to Sunday (days after today disabled), the same week as the
+week view; in fullscreen the head's first row is the `Tabs` "Dag | Vecka" with "Idag", + and ⋯ at its end, the second row is "‹ Vecka 47 · 16–22 nov ›" in both views,
+and the day's title stands under the strip.
 
 **Day summary (Dagens sammanfattning).** The label "Dagen i korthet" is meta-sized, 15.4/600 `--sk-muted`, 4 above the summary, which is an ingress
 in body type. "Anteckningar" follows 16 under the summary. A day with a summary or notes has no button in the content: the add action is the + in the title row.

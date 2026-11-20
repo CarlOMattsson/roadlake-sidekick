@@ -9,6 +9,7 @@ import {
   journalSv,
   type JournalLabels,
 } from "@/features/journal-app/labels";
+import { receiptText } from "@/features/journal-app/receipt-text";
 import {
   createJournalTransport,
   type JournalEntry,
@@ -87,7 +88,7 @@ describe("keeping an entry out of Claude's memory", () => {
         screen.getByRole("button", { name: labels.entryKeepOutOfMemory }),
       );
       expect(
-        await screen.findByText(labels.entryKeptOutOfMemory),
+        await screen.findByText(receiptText(labels.entryKeptOutOfMemory)),
       ).toBeVisible();
       expect(excludeEntryFromMemory).toHaveBeenCalledWith(entryId, true);
       expect(screen.getByText(labels.entryOutOfMemory)).toBeVisible();
@@ -103,7 +104,9 @@ describe("keeping an entry out of Claude's memory", () => {
       await user.click(
         screen.getByRole("button", { name: labels.entryBringBackIntoMemory }),
       );
-      expect(await screen.findByText(labels.entryBackInMemory)).toBeVisible();
+      expect(
+        await screen.findByText(receiptText(labels.entryBackInMemory)),
+      ).toBeVisible();
       expect(excludeEntryFromMemory).toHaveBeenLastCalledWith(entryId, false);
       expect(screen.queryByText(labels.entryOutOfMemory)).toBeNull();
     },
@@ -166,7 +169,7 @@ describe("keeping an entry out of Claude's memory", () => {
 
     await user.click(screen.getByRole("button", { name: /Försök igen/ }));
     expect(
-      await screen.findByText(journalSv.entryKeptOutOfMemory),
+      await screen.findByText(receiptText(journalSv.entryKeptOutOfMemory)),
     ).toBeVisible();
     expect(excludeEntryFromMemory).toHaveBeenCalledTimes(2);
     expect(excludeEntryFromMemory).toHaveBeenLastCalledWith(entryId, true);
@@ -196,7 +199,7 @@ describe("keeping an entry out of Claude's memory", () => {
 });
 
 describe("the memory marker on a day row", () => {
-  it("names an excluded entry in the row's meta line, with no extra line", () => {
+  it("marks an excluded entry with a chip in the row's meta line, with no extra line", () => {
     const { container } = render(
       <ul>
         <EntryRow
@@ -205,9 +208,15 @@ describe("the memory marker on a day row", () => {
         />
       </ul>,
     );
-    expect(container.querySelector(".sk-row-meta")?.textContent).toBe(
-      journalSv.entryOutOfMemory,
+    const chip = container.querySelector(
+      ".journal-entry-meta > .journal-memory-chip",
     );
+    expect(chip?.textContent).toBe(journalSv.entryOutOfMemory);
+    // A marker, not a control: no button of its own, and its icon is not announced.
+    expect(chip?.closest("button")).toBeNull();
+    expect(chip?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    // The meta text carries no marker any more.
+    expect(container.querySelector(".sk-row-meta")).toBeNull();
   });
 
   it("shows no marker for an entry in memory", () => {

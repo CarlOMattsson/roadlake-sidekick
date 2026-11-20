@@ -163,6 +163,12 @@ export function AgendaView({
   });
 
   const disabled = session.busy !== "idle";
+  // A search narrows what was read, so while one is typed the agenda reads its remaining pages, one after the other:
+  // the hits are then all there, "Visa fler" has nothing left to offer, and "no hit" is the truth.
+  const searching = query.trim() !== "";
+  useEffect(() => {
+    if (searching && page.next_cursor && !disabled) session.loadMore();
+  }, [searching, page.next_cursor, disabled, session]);
   // The tags in use on Tasks and Projects, for the filter row and the labels of the rows' tags.
   const tagVocabulary = useWorkTags(transport, ["task", "project"]);
   const chosenTags = filterTags(frame.filters);
@@ -244,44 +250,48 @@ export function AgendaView({
             onRefresh={session.reread}
           />
         )}
-        {/* The tag filter reads the agenda again with every chosen tag; the search above narrows what it read. */}
-        <WorkTagFilter
-          options={tagVocabulary.options}
-          selected={chosenTags}
-          settled={!disabled}
-          onChange={(tags) =>
-            session.refilter(withFilterTags(frame.filters, tags))
-          }
-          locale={t.dateLocale}
-        />
-        {/* The waiting view is one press away, and the dated agenda one press back (also from an empty waiting view): shown once some Task waits. */}
-        {(waitingView || page.items.some((item) => item.waiting)) && (
-          <div className="work-agenda-modes">
-            <button
-              type="button"
-              className="sk-chip"
-              aria-pressed={waitingView}
-              disabled={disabled}
-              onClick={() =>
-                session.refilter(withWaitingView(frame.filters, !waitingView))
-              }
-            >
-              {wt.showWaiting}
-            </button>
-            {waitingView && (
+        {/* One filter row: the waiting view's chip first, then the tags (it wraps under it only in the waiting view, where
+          the way back stands beside the chip). The tag filter reads the agenda again with every chosen tag; the search
+          above narrows what it read. */}
+        <div className="work-agenda-filters">
+          {/* The waiting view is one press away, and the dated agenda one press back (also from an empty waiting view): shown once some Task waits. */}
+          {(waitingView || page.items.some((item) => item.waiting)) && (
+            <div className="work-agenda-modes">
               <button
                 type="button"
-                className="sk-btn sk-btn--quiet"
+                className="sk-chip"
+                aria-pressed={waitingView}
                 disabled={disabled}
                 onClick={() =>
-                  session.refilter(withWaitingView(frame.filters, false))
+                  session.refilter(withWaitingView(frame.filters, !waitingView))
                 }
               >
-                {wt.showAgenda}
+                {wt.showWaiting}
               </button>
-            )}
-          </div>
-        )}
+              {waitingView && (
+                <button
+                  type="button"
+                  className="sk-btn sk-btn--quiet"
+                  disabled={disabled}
+                  onClick={() =>
+                    session.refilter(withWaitingView(frame.filters, false))
+                  }
+                >
+                  {wt.showAgenda}
+                </button>
+              )}
+            </div>
+          )}
+          <WorkTagFilter
+            options={tagVocabulary.options}
+            selected={chosenTags}
+            settled={!disabled}
+            onChange={(tags) =>
+              session.refilter(withFilterTags(frame.filters, tags))
+            }
+            locale={t.dateLocale}
+          />
+        </div>
         {/* The offline copy: the agenda as it was last read, said with when (the phone had no answer). */}
         {copiedAt !== null && (
           <p role="status" className="work-agenda-offline">
@@ -317,7 +327,7 @@ export function AgendaView({
               labels={t}
             />
           ))}
-        {page.items.length > 0 && !visible.length && (
+        {page.items.length > 0 && !visible.length && !page.next_cursor && (
           <SearchNoMatch query={query} labels={t} onClear={clearSearch} />
         )}
         {waitingView && visible.length > 0 && (
@@ -364,7 +374,7 @@ export function AgendaView({
             onToggle={() => setDoneOpen((open) => !open)}
           />
         )}
-        {page.next_cursor && (
+        {page.next_cursor && !searching && (
           <button type="button" disabled={disabled} onClick={session.loadMore}>
             {t.more}
           </button>

@@ -160,9 +160,9 @@ describe("journal entry view: tasks created by a saved draft", () => {
     expect(
       screen.queryByRole("button", { name: "Open task" }),
     ).not.toBeInTheDocument();
-    // The saved notice itself still shows, as before.
+    // The saved notice itself still shows, as the receipt (no closing full stop).
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Entry saved. 4 tasks created.",
+      /^Entry saved. 4 tasks created$/,
     );
   });
 });

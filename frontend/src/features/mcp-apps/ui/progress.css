@@ -33,5 +33,16 @@
   height: 100%;
   max-width: 100%;
   border-radius: inherit;
-  background: var(--color-text-info, light-dark(#2563eb, #7aa7ff));
+  /* One colour for every progress bar: the text colour. Blue is the focus ring's alone. */
+  background: var(--sk-fg, light-dark(#1f1f1f, #ededed));
+}
+
+/* layout="bar": the text first, then the bar over the rest of the row. */
+.sk-progress.sk-progress--bar {
+  display: flex;
+  width: 100%;
+  gap: var(--sk-s3, 0.75rem);
+}
+.sk-progress--bar .sk-progress__track {
+  flex: 1 1 auto;
 }

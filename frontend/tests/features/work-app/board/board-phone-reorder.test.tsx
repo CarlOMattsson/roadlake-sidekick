@@ -26,6 +26,7 @@ import {
   rowOf,
   openGroup,
 } from "@tests/helpers/board-phone-fixtures";
+import { chooseColumn, tabNames } from "./column-tabs";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -33,6 +34,7 @@ it("Flytta ned writes the whole column in its new order, and Flytta upp is disab
   const user = userEvent.setup();
   const reorderBoardColumn = vi.fn().mockResolvedValue({ items: [] });
   render(<Harness work={transport({ reorderBoardColumn })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   // A right click on the card opens the same group as Shift+F10.
   fireEvent.contextMenu(rowOf(a.title));
   const group = screen.getByRole("group", {
@@ -66,6 +68,7 @@ it("offers no reorder buttons when the column is not whole on the board", async 
       }}
     />,
   );
+  await chooseColumn(user, workEn.taskStatus.todo);
   await openGroup(user, a.title);
   expect(
     screen.getByRole("group", { name: boardLabelsEn.moveListFor(a.title) }),
@@ -123,6 +126,7 @@ it("offers no Flytta buttons in a section whose rows are not in the column's ord
       }}
     />,
   );
+  await chooseColumn(user, workEn.taskStatus.todo);
   await openGroup(user, b.title);
   await user.click(
     within(
@@ -142,6 +146,7 @@ it("offers no Flytta buttons in a section whose rows are not in the column's ord
     within(lower).queryByRole("button", { name: boardLabelsEn.moveDown }),
   ).toBeNull();
   // "Boka målare" has "Skicka faktura" between it and "Bygg webbplatsen" in the column, but not on the screen.
+  await chooseColumn(user, workEn.taskStatus.in_progress);
   await openGroup(user, f.title);
   const upper = screen.getByRole("group", {
     name: boardLabelsEn.moveListFor(f.title),
@@ -154,11 +159,12 @@ it("offers no Flytta buttons in a section whose rows are not in the column's ord
   ).toBeNull();
 });
 
-it("a conflict keeps the banner and the sections", async () => {
+it("a conflict keeps the banner and the chosen column with its count", async () => {
   const user = userEvent.setup();
   const { HostToolError } = await import("@/features/mcp-apps/bridge");
   const updateTask = vi.fn().mockRejectedValue(new HostToolError("conflict"));
   render(<Harness work={transport({ updateTask })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   await user.click(
     screen.getByRole("button", {
       name: fillLabel(workEn.agendaComplete, { title: a.title }),
@@ -168,6 +174,10 @@ it("a conflict keeps the banner and the sections", async () => {
   expect(
     elementWithText(`${workEn.taskStatus.todo} (2)`, "h3"),
   ).toBeInTheDocument();
+  expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+    `${workEn.taskStatus.todo} 2`,
+  );
+  expect(screen.getByRole("button", { name: a.title })).toBeInTheDocument();
 });
 
 it("has the top refresh row only in the columns layout", () => {
@@ -244,19 +254,30 @@ it("auto turns single under 640 px and back to columns at 640 px or more", () =>
   spy.mockRestore();
 });
 
-it("uses Swedish labels for the section headings, the fold and the move list", async () => {
+it("uses Swedish labels for the column tabs, the section headings and the move list", async () => {
   const user = userEvent.setup();
   render(<Harness work={transport()} labels={workSv} />);
   expect(screen.queryByRole("group", { name: "Kolumner" })).toBeNull();
+  expect(tabNames(boardLabelsSv.columnTabs)).toEqual([
+    `${workSv.taskStatus.todo} 2`,
+    `${workSv.taskStatus.in_progress} 1`,
+    `${workSv.taskStatus.blocked} 0`,
+    `${workSv.taskStatus.completed} 1`,
+    `${workSv.projects} 1`,
+  ]);
+  await chooseColumn(user, workSv.taskStatus.todo);
   expect(
     elementWithText(`${workSv.taskStatus.todo} (2)`, "h3"),
   ).toBeInTheDocument();
+  await chooseColumn(user, workSv.taskStatus.blocked);
   expect(
-    elementWithText(`${workSv.taskStatus.completed} (1)`, "button"),
-  ).toHaveAttribute("aria-expanded", "false");
+    screen.getByRole("region", { name: workSv.taskStatus.blocked }),
+  ).toHaveTextContent(boardLabelsSv.noCards);
+  await chooseColumn(user, workSv.projects);
   expect(
     screen.getByRole("region", { name: workSv.projects }),
   ).toBeInTheDocument();
+  await chooseColumn(user, workSv.taskStatus.todo);
   await openGroup(user, a.title);
   const group = screen.getByRole("group", {
     name: boardLabelsSv.moveListFor(a.title),

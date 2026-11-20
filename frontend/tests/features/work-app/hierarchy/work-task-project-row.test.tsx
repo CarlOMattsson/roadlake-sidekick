@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,7 +10,7 @@ import type {
 } from "@/features/work-app/transport/transport";
 
 /*
- * The Task detail names its Project in the place chip ("Plats: Flytt"); the title the Task already carries is the
+ * The Task detail names its Project in the place row ("Plats" · "Flytt"); the title the Task already carries is the
  * name, so get_project is read only when the link is followed. A host that cannot answer get_project (the Android
  * app's companion transport before it had a Project route) keeps the chip but offers no link to the Project. The
  * simulated transport here is not a real Claude or Android host.
@@ -78,7 +78,8 @@ describe("the place chip of a Task in a Project", () => {
     const chip = await screen.findByRole("button", {
       name: "Ändra plats: Flytt",
     });
-    expect(chip).toHaveTextContent("Plats: Flytt");
+    expect(chip.querySelector(".work-prop-label")?.textContent).toBe("Plats");
+    expect(within(chip).getByText("Flytt")).toBeInTheDocument();
     expect(getProject).not.toHaveBeenCalled();
 
     await user.click(chip);

@@ -474,7 +474,10 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
   await expect(link).toHaveAttribute("aria-pressed", "true");
   await app.getByRole("button", { name: "Save as entry" }).click();
   await app.getByRole("button", { name: "Yes, save the entry" }).click();
-  await expect(app.getByText("Entry saved.")).toBeVisible();
+  // The saved draft is confirmed once in the receipt bar, a message without a full stop that goes away by itself.
+  await expect(
+    app.locator(".sk-receipt-slot").getByText("Entry saved", { exact: true }),
+  ).toBeVisible();
   await expect(
     app.getByText("Kunden vill ha offerten före fredag."),
   ).toBeVisible();
@@ -626,9 +629,10 @@ test("sandboxed Journal App day strip fits seven days at 320 px and scrolls insi
   expect(failures).toEqual([]);
 });
 
-// The week row "‹ 29 okt–4 nov ›" with "Idag" after it (an older week) at 360 px and 200 % text
-// must not be wider than its frame. "Idag" may drop to a line of its own; the arrows keep their place. A simulated host.
-test("sandboxed Journal App week row with Today shown fits 360 px at 200 % text without sideways overflow", async ({
+// The head with tabs: row 1 is "Dag | Vecka" with "Idag" (an older week), + and ⋯ at its end, row 2 the week row
+// "‹ Vecka 43 · 19–25 okt ›". At 360 px and 200 % text neither row may be wider than its frame; a row may wrap a
+// control onto a line of its own, but the arrows keep their place. A simulated host.
+test("sandboxed Journal App head with Today shown fits 360 px at 200 % text without sideways overflow", async ({
   page,
 }) => {
   await page.clock.setFixedTime(new Date("2026-11-20T12:00:00Z"));
@@ -661,29 +665,48 @@ test("sandboxed Journal App week row with Today shown fits 360 px at 200 % text 
   await app.locator("html").evaluate((root) => {
     root.style.fontSize = "32px";
   });
-  const weekrow = app.locator(".sk-day-strip-weekrow");
+  const head = app.locator(".sk-day-strip-head");
+  const weekrow = head.locator(".sk-day-strip-weekrow");
   await expect(weekrow).toBeVisible();
-  await expect(weekrow.getByRole("button", { name: "Today" })).toBeVisible();
+  // "Idag" stands on the first row, in the tools before + and ⋯ (it is not on the week row any more).
+  await expect(
+    head
+      .locator(".sk-day-strip-tools")
+      .getByRole("button", { name: "Today", exact: true }),
+  ).toBeVisible();
+  await expect(weekrow.getByRole("button", { name: "Today" })).toHaveCount(0);
   const read = () =>
-    weekrow.evaluate((row) => {
+    head.evaluate((element) => {
       const frame = document.documentElement;
-      const box = row.getBoundingClientRect();
-      const kids = Array.from(row.children, (child) =>
+      const rows = [
+        element.querySelector(".sk-day-strip-tabs"),
+        element.querySelector(".sk-day-strip-tools"),
+        element.querySelector(".sk-day-strip-weekrow"),
+      ] as HTMLElement[];
+      const week = rows[2]!;
+      const kids = Array.from(week.children, (child) =>
+        child.getBoundingClientRect(),
+      );
+      const tools = Array.from(rows[1]!.children, (child) =>
         child.getBoundingClientRect(),
       );
       return {
-        rowRight: box.right,
         contentRight: frame.clientWidth,
-        rowScrolls: row.scrollWidth > row.clientWidth + 0.5,
+        rowsScroll: rows.some((row) => row.scrollWidth > row.clientWidth + 0.5),
+        rowsRight: Math.max(
+          ...rows.map((row) => row.getBoundingClientRect().right),
+        ),
         pageScrolls: frame.scrollWidth > frame.clientWidth + 0.5,
         kidsRight: Math.max(...kids.map((kid) => kid.right)),
-        arrowsLeft: [kids[0]?.left, kids[2]?.left],
+        toolsRight: Math.max(...tools.map((kid) => kid.right)),
       };
     });
-  await expect.poll(async () => (await read()).rowScrolls).toBe(false);
+  await expect.poll(async () => (await read()).rowsScroll).toBe(false);
   const measured = await read();
   expect(measured.pageScrolls).toBe(false);
+  expect(measured.rowsRight).toBeLessThanOrEqual(measured.contentRight + 0.5);
   expect(measured.kidsRight).toBeLessThanOrEqual(measured.contentRight + 0.5);
+  expect(measured.toolsRight).toBeLessThanOrEqual(measured.contentRight + 0.5);
   expect(failures).toEqual([]);
 });
 

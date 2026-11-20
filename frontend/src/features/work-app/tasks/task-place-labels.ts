@@ -13,8 +13,17 @@ import {
 export const taskPlaceLabelsSv = {
   /** The chip's accessible name, before the place: `changePlace` and the place. */
   changePlace: "Ändra plats",
-  /** The chip's text: the word, then the place's name. */
-  chipValue: (place: string) => `Plats: ${place}`,
+  /** The names of the Task's property rows (the detail's property list), each before its value. */
+  props: {
+    due: "Datum",
+    status: "Status",
+    place: "Plats",
+    repeat: "Upprepas",
+    priority: "Prioritet",
+    waiting: "Väntar på",
+  },
+  /** The repeat row's value for a Task that does not repeat. */
+  repeatNever: "Aldrig",
   /** A Task in no Domain, Project or Process. */
   unsortedName: "Att sortera",
   /** Stand-ins while a place's name cannot be read. */
@@ -32,14 +41,23 @@ export const taskPlaceLabelsSv = {
     "Ingen plats än. Tryck på en domän, eller välj ett projekt eller en process.",
   /** The repeat chip's accessible name, before its text: the change-repeat label and the repeat text. */
   changeRepeat: "Ändra upprepning",
-  /** The repeat chip of a Task that does not repeat (only drawn where the host can set a rule). */
-  repeatsNot: "Upprepas inte",
   /** The repeat picker's accessible name: the repeat label and the Task title. */
   repeatPickerFor: (task: string) => `Upprepning för ${task}`,
   /** The weekday buttons' group, when the rule is weekly: the label and the Task title. */
   repeatWeekdaysFor: (task: string) => `Veckodagar för ${task}`,
   /** The weekday buttons: the short name on the button, the full name as its accessible name. */
   weekdayNames: weekdayNamesSv,
+  /** The panel under a repeating Task's row: its accessible name, with the Task title. */
+  repeatDetailsFor: (task: string) => `Upprepningens detaljer för ${task}`,
+  /** The question above the weekday buttons of a weekly rule. */
+  weekdaysQuestion: "Vilka dagar?",
+  /** The hint under the weekday buttons when none is chosen: the server repeats a whole number of weeks after completion. */
+  noWeekdayHint: (weeks: number) =>
+    `Utan vald dag: ${weeks === 1 ? "en vecka" : weeks === 2 ? "två veckor" : `${weeks} veckor`} efter att uppgiften bockats av.`,
+  /** The line closing the panel: when the rule next falls, written as a short date ("tis 24 nov"). */
+  repeatNext: (when: string) => `Nästa gång: ${when}`,
+  /** The locale the short date in `repeatNext` is written in. */
+  dateLocale: "sv-SE",
   /** The picker's options: no rule, then the named rules. */
   repeatOptions: {
     none: "Upprepas inte",
@@ -62,7 +80,15 @@ export type TaskPlaceLabels = typeof taskPlaceLabelsSv;
 
 export const taskPlaceLabelsEn: TaskPlaceLabels = {
   changePlace: "Change what it’s filed under",
-  chipValue: (place) => `Filed under: ${place}`,
+  props: {
+    due: "Date",
+    status: "Status",
+    place: "Filed under",
+    repeat: "Repeats",
+    priority: "Priority",
+    waiting: "Waiting on",
+  },
+  repeatNever: "Never",
   unsortedName: "Unsorted",
   domainName: "Area",
   projectName: "Project",
@@ -72,10 +98,15 @@ export const taskPlaceLabelsEn: TaskPlaceLabels = {
   choosePlace: "Choose where…",
   unsortedIntro: "Not filed yet. Tap an area, or choose a project or process.",
   changeRepeat: "Change how often it repeats",
-  repeatsNot: "Doesn’t repeat",
   repeatPickerFor: (task) => `Repeat settings for ${task}`,
   repeatWeekdaysFor: (task) => `Repeat days for ${task}`,
   weekdayNames: weekdayNamesEn,
+  repeatDetailsFor: (task) => `Repeat details for ${task}`,
+  weekdaysQuestion: "Which days?",
+  noWeekdayHint: (weeks) =>
+    `No day chosen: ${weeks === 1 ? "a week" : weeks === 2 ? "two weeks" : `${weeks} weeks`} after the task is completed.`,
+  repeatNext: (when) => `Next: ${when}`,
+  dateLocale: "en-GB",
   repeatOptions: {
     none: "Doesn’t repeat",
     daily: "Every day",

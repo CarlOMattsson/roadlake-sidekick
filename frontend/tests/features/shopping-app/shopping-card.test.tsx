@@ -1,15 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import type { RoomTransport } from "@/features/mcp-apps/room-types";
+import { ShoppingRoom } from "@/features/shopping-app/room";
 import {
+  cardItemText,
   formatQuantity,
+  isDefaultAmount,
+  OpenListButton,
   quantityText,
-  ShoppingCard,
 } from "@/features/shopping-app/shopping-card";
+import {
+  COMPACT_ROWS,
+  ShoppingView,
+} from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
 import type {
   ShoppingDetail,
   ShoppingItem,
+  ShoppingTransport,
 } from "@/features/shopping-app/transport";
 
 const list = {
@@ -47,143 +56,249 @@ function item(over: Partial<ShoppingItem>): ShoppingItem {
 
 const names = ["Milk", "Bread", "Eggs", "Shelf", "Lamp", "Tea"];
 
-it("shows the list name, the open count and only the first four open items as text", () => {
-  const detail: ShoppingDetail = {
+function detailOf(items: ShoppingItem[]): ShoppingDetail {
+  return {
     shopping_list: list,
     evaluated_on: "2026-10-24",
     next_offset: null,
-    items: [
-      ...names.map((name, index) =>
-        item({ id: `019f0000-0000-7000-8000-0000000000${index + 10}`, name }),
-      ),
+    items,
+  };
+}
+
+function adapter(detail: ShoppingDetail): ShoppingTransport {
+  return {
+    lists: vi.fn().mockResolvedValue({ lists: [list], next_offset: null }),
+    get: vi.fn().mockResolvedValue(detail),
+    contacts: vi.fn().mockResolvedValue({ contacts: [] }),
+    create: vi.fn(),
+    rename: vi.fn(),
+    add: vi.fn(),
+    update: vi.fn(),
+    purchase: vi.fn(),
+  };
+}
+
+/** The inline card the way the room draws it where fullscreen is on offer: the compact view with the open link. */
+function card(
+  detail: ShoppingDetail,
+  labels = shoppingEn,
+  onOpenFull: () => void = vi.fn(),
+) {
+  return render(
+    <ShoppingView
+      transport={adapter(detail)}
+      labels={labels}
+      initial={detail}
+      compact
+      onOpenFull={onOpenFull}
+    />,
+  );
+}
+
+const openRings = () =>
+  screen.queryAllByRole("button", {
+    name: /^(Mark .+ as bought|Markera .+ som köpt)$/,
+  });
+
+const sixOpen = names.map((name, index) =>
+  item({ id: `019f0000-0000-7000-8000-0000000000${index + 10}`, name }),
+);
+
+it("shows the list name, the amounts as row text and counts the rows it leaves out in the open link", async () => {
+  card(
+    detailOf([
+      ...sixOpen,
       item({
         id: "019f0000-0000-7000-8000-0000000000f0",
         name: "Coffee",
         purchased: true,
       }),
-    ],
-  };
-  render(<ShoppingCard detail={detail} labels={shoppingEn} onOpen={vi.fn()} />);
+    ]),
+  );
   expect(
-    screen.getByRole("heading", { name: "Weekly shopping" }),
+    await screen.findByRole("heading", { name: "Weekly shopping" }),
   ).toBeInTheDocument();
-  expect(screen.getByText(shoppingEn.boughtOf(1, 7))).toBeInTheDocument();
-  expect(screen.getAllByRole("listitem")).toHaveLength(4);
-  expect(screen.getByText("Milk · 2 l")).toBeInTheDocument();
-  expect(screen.getByText("Shelf · 2 l")).toBeInTheDocument();
-  expect(screen.queryByText(/^Lamp/)).not.toBeInTheDocument();
-  expect(screen.queryByText(/^Coffee/)).not.toBeInTheDocument();
-  // What the card leaves out is counted in the foot link, after its name: "Open list · 2 more".
+  // The same row as everywhere: a ring, the name and the amount.
+  expect(openRings()).toHaveLength(COMPACT_ROWS - 1);
+  expect(
+    screen.getByText("Milk", { selector: ".shopping-store-name" }),
+  ).toBeInTheDocument();
+  expect(
+    screen
+      .getByText("Milk", { selector: ".shopping-store-name" })
+      .parentElement?.querySelector(".shopping-store-qty"),
+  ).toHaveTextContent("2 l");
+  expect(screen.queryByText("Tea")).not.toBeInTheDocument();
+  expect(screen.queryByText("Coffee")).not.toBeInTheDocument();
+  // What the card leaves out is counted in the link, after its name: "Open list · 2 more".
   expect(
     screen.getByRole("button", { name: /^Open list\s*· 2 more$/ }),
   ).toHaveTextContent(`${shoppingEn.openList} · ${shoppingEn.hiddenItems(2)}`);
   expect(screen.queryByText(shoppingEn.moreItems(2))).not.toBeInTheDocument();
 });
 
-it("says nothing about hidden items when all open items are listed", () => {
-  render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: names.slice(0, 4).map((name, index) =>
-          item({
-            id: `019f0000-0000-7000-8000-0000000000${index + 10}`,
-            name,
-          }),
-        ),
-      }}
-      labels={shoppingSv}
-      onOpen={vi.fn()}
-    />,
-  );
-  expect(screen.getAllByRole("listitem")).toHaveLength(4);
-  expect(
-    screen.getByRole("button", { name: shoppingSv.openList }),
-  ).toBeInTheDocument();
-  expect(screen.queryByText(/ fler$/)).not.toBeInTheDocument();
-});
-
-it("counts the hidden open items in the foot link, in both languages", () => {
+it("counts the hidden open items in the open link, in both languages", async () => {
   const many = Array.from({ length: 6 }, (_, index) =>
     item({
       id: `019f0000-0000-7000-8000-0000000000${index + 20}`,
       name: "Ost",
     }),
   );
-  const detail = {
-    shopping_list: list,
-    evaluated_on: "2026-10-24",
-    next_offset: null,
-    items: many,
-  };
-  const { unmount } = render(
-    <ShoppingCard detail={detail} labels={shoppingSv} onOpen={vi.fn()} />,
-  );
+  const { unmount } = card(detailOf(many), shoppingSv);
   expect(
-    screen.getByRole("button", { name: /^Öppna listan\s*· 2 fler$/ }),
+    await screen.findByRole("button", { name: /^Öppna listan\s*· 2 fler$/ }),
   ).toHaveTextContent("Öppna listan · 2 fler");
   unmount();
-  render(<ShoppingCard detail={detail} labels={shoppingEn} onOpen={vi.fn()} />);
+  card(detailOf(many), shoppingEn);
   expect(
-    screen.getByRole("button", { name: /^Open list\s*· 2 more$/ }),
+    await screen.findByRole("button", { name: /^Open list\s*· 2 more$/ }),
   ).toHaveTextContent("Open list · 2 more");
 });
 
-it("draws no progress line for an empty list", () => {
-  render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: [],
-      }}
-      labels={shoppingSv}
-      onOpen={vi.fn()}
-    />,
-  );
-  expect(screen.getByText(shoppingSv.empty)).toBeInTheDocument();
+it("says nothing about hidden items when all open items fit", async () => {
+  card(detailOf(sixOpen.slice(0, 4)), shoppingSv);
+  expect(
+    await screen.findByRole("button", { name: shoppingSv.openList }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/ fler$/)).not.toBeInTheDocument();
+});
+
+it("draws no progress line for an empty list, which says what to ask for", async () => {
+  card(detailOf([]), shoppingSv);
+  expect(await screen.findByText(shoppingSv.empty)).toBeInTheDocument();
   expect(screen.queryByText(shoppingSv.boughtOf(0, 0))).not.toBeInTheDocument();
   expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 });
 
 it("Open asks for fullscreen through the callback", async () => {
-  const onOpen = vi.fn();
+  const onOpenFull = vi.fn();
+  const user = userEvent.setup();
+  card(detailOf([item({})]), shoppingEn, onOpenFull);
+  await user.click(
+    await screen.findByRole("button", { name: shoppingEn.openList }),
+  );
+  expect(onOpenFull).toHaveBeenCalledTimes(1);
+});
+
+it("the room draws an inline list as this card where fullscreen is on offer, and its link requests fullscreen", async () => {
+  const requestDisplayMode = vi.fn().mockResolvedValue("fullscreen");
+  const transport: RoomTransport = {
+    call: vi.fn(async () => new Promise(() => undefined)) as never,
+    requestDisplayMode,
+    updateModelContext: vi.fn(),
+  };
   const user = userEvent.setup();
   render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: [item({})],
-      }}
+    <ShoppingRoom
+      initial={detailOf(sixOpen)}
+      resultId={1}
+      mode="inline"
+      fullscreenAvailable
+      transport={transport}
+    />,
+  );
+  await user.click(
+    await screen.findByRole("button", { name: /^Open list\s*· 2 more$/ }),
+  );
+  expect(requestDisplayMode).toHaveBeenCalledWith("fullscreen");
+  expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+});
+
+it("leaves out a quantity of one when the item has no unit", async () => {
+  card(
+    detailOf([
+      item({
+        id: "019f0000-0000-7000-8000-0000000000b1",
+        name: "Havregryn",
+        quantity: "1.000",
+        unit: null,
+      }),
+      item({
+        id: "019f0000-0000-7000-8000-0000000000b2",
+        name: "Ägg",
+        quantity: "1",
+        unit: "st",
+      }),
+      item({
+        id: "019f0000-0000-7000-8000-0000000000b3",
+        name: "Bröd",
+        quantity: "2",
+        unit: null,
+      }),
+    ]),
+  );
+  const amountOf = (name: string) =>
+    screen
+      .getByText(name, { selector: ".shopping-store-name" })
+      .parentElement?.querySelector(".shopping-store-qty");
+  await screen.findByText("Havregryn");
+  expect(amountOf("Havregryn")).toBeNull();
+  expect(amountOf("Ägg")).toHaveTextContent("1 st");
+  expect(amountOf("Bröd")).toHaveTextContent("2");
+});
+
+it("shows the formatted quantity in the row with the Swedish labels", async () => {
+  card(detailOf([item({ quantity: "1.500", unit: "l" })]), shoppingSv);
+  const name = await screen.findByText("Milk", {
+    selector: ".shopping-store-name",
+  });
+  expect(
+    name.parentElement?.querySelector(".shopping-store-qty"),
+  ).toHaveTextContent("1,5 l");
+});
+
+it("cardItemText leaves the default amount out and keeps a unit's one", () => {
+  expect(cardItemText(item({ quantity: "1", unit: null }), "sv-SE")).toBe(
+    "Milk",
+  );
+  expect(cardItemText(item({ quantity: "1", unit: "st" }), "sv-SE")).toBe(
+    "Milk · 1 st",
+  );
+  expect(cardItemText(item({ quantity: "2", unit: "l" }), "en-GB")).toBe(
+    "Milk · 2 l",
+  );
+  expect(
+    isDefaultAmount(item({ quantity: "1.000", unit: null }), "en-GB"),
+  ).toBe(true);
+  expect(isDefaultAmount(item({ quantity: "1", unit: "st" }), "en-GB")).toBe(
+    false,
+  );
+});
+
+it("OpenListButton names the link, counts the hidden rows after it and opens", async () => {
+  const onOpen = vi.fn();
+  const user = userEvent.setup();
+  const { unmount } = render(
+    <OpenListButton
       labels={shoppingEn}
+      text={shoppingEn.openShopping}
+      hidden={0}
+      hiddenText={shoppingEn.hiddenItems}
       onOpen={onOpen}
     />,
   );
-  await user.click(screen.getByRole("button", { name: shoppingEn.openList }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.openShopping }),
+  );
   expect(onOpen).toHaveBeenCalledTimes(1);
-});
-
-it("says that everything is bought when no open item is left", () => {
+  unmount();
   render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: [item({ purchased: true })],
-      }}
-      labels={shoppingEn}
-      onOpen={vi.fn()}
+    <OpenListButton
+      labels={shoppingSv}
+      hidden={3}
+      hiddenText={shoppingSv.hiddenItems}
+      onOpen={onOpen}
     />,
   );
-  expect(screen.getByText(shoppingEn.boughtOf(1, 1))).toBeInTheDocument();
-  expect(screen.getByText(shoppingEn.allBought)).toBeInTheDocument();
-  expect(screen.queryByRole("listitem")).not.toBeInTheDocument();
+  expect(screen.getByRole("button")).toHaveTextContent("Öppna listan · 3 fler");
+});
+
+beforeAll(() => {
+  document.head.innerHTML = '<meta name="sidekick-app-locale" content="en">';
+});
+
+afterAll(() => {
+  document.head.innerHTML = "";
 });
 
 it("reads decimal string quantities without trailing zeros in the list locale", () => {
@@ -217,58 +332,4 @@ it("counts a unitless quantity in pieces: st in Swedish, the bare number otherwi
     "8 st",
   );
   expect(quantityText(item({ quantity: "8", unit: null }), "en-GB")).toBe("8");
-});
-
-it("leaves out a quantity of one when the item has no unit", () => {
-  render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: [
-          item({
-            id: "019f0000-0000-7000-8000-0000000000b1",
-            name: "Havregryn",
-            quantity: "1.000",
-            unit: null,
-          }),
-          item({
-            id: "019f0000-0000-7000-8000-0000000000b2",
-            name: "Ägg",
-            quantity: "1",
-            unit: "st",
-          }),
-          item({
-            id: "019f0000-0000-7000-8000-0000000000b3",
-            name: "Bröd",
-            quantity: "2",
-            unit: null,
-          }),
-        ],
-      }}
-      labels={shoppingEn}
-      onOpen={vi.fn()}
-    />,
-  );
-  expect(screen.getByText("Havregryn")).toBeInTheDocument();
-  expect(screen.queryByText("Havregryn · 1")).not.toBeInTheDocument();
-  expect(screen.getByText("Ägg · 1 st")).toBeInTheDocument();
-  expect(screen.getByText("Bröd · 2")).toBeInTheDocument();
-});
-
-it("shows the formatted quantity in the card with the Swedish labels", () => {
-  render(
-    <ShoppingCard
-      detail={{
-        shopping_list: list,
-        evaluated_on: "2026-10-24",
-        next_offset: null,
-        items: [item({ quantity: "1.500", unit: "l" })],
-      }}
-      labels={shoppingSv}
-      onOpen={vi.fn()}
-    />,
-  );
-  expect(screen.getByText("Milk · 1,5 l")).toBeInTheDocument();
 });

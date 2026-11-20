@@ -16,6 +16,35 @@ const dropTargetStyle: CSSProperties = {
 };
 
 /**
+ * The count of one section of the single layout, as its heading and its column tab say it: where the cards are now. A
+ * card standing in a section for its Ångra counts in the section it went to at once, not in the one it stands in; the
+ * records not read yet (`unshown`) count too.
+ */
+export function sectionCount({
+  segment,
+  items,
+  shown,
+  undos,
+  unshown,
+}: {
+  segment: BoardSegment;
+  items: WorkItemRecord[];
+  shown: WorkItemRecord[];
+  undos: Record<string, BoardUndo>;
+  unshown: number;
+}): number {
+  const kept = Object.values(undos).filter(
+    (entry) =>
+      entry.at === segment.key &&
+      !items.some((item) => cardKey(item) === entry.key),
+  ).length;
+  const away = items.filter(
+    (item) => (undos[cardKey(item)]?.at ?? segment.key) !== segment.key,
+  ).length;
+  return shown.length - kept + away + unshown;
+}
+
+/**
  * One status section of the single layout (a phone): its heading with the count (Klar folded until opened,
  * designsystem §3 "Chevronregeln") and its cards, drawn by `renderCard`. `items` are the section's records (its
  * count), `shown` the cards it draws.
@@ -32,6 +61,8 @@ export function SingleSection({
   renderCard,
   more,
   unshown = 0,
+  tabbed = false,
+  emptyText,
 }: {
   segment: BoardSegment;
   items: WorkItemRecord[];
@@ -53,6 +84,10 @@ export function SingleSection({
   more?: ReactNode;
   /** The section's records not read yet (the server's totals), counted in its heading. */
   unshown?: number;
+  /** The section is the chosen column tab: its heading is left to the tab (kept for screen readers), Klar does not fold. */
+  tabbed?: boolean;
+  /** What a chosen tab with no card says. */
+  emptyText?: string;
 }) {
   const status = isTaskStatus(segment.key) ? segment.key : undefined;
   // Flytta upp and Flytta ned exist only for a column that is whole on the board, shown unfiltered, and listed
@@ -63,29 +98,20 @@ export function SingleSection({
     whole !== undefined &&
     whole.length === shown.length &&
     whole.every((item, at) => item.taskId === shown[at]?.id);
-  // The count says where the cards are now (a card standing
-  // here for its Ångra counts in the section it went to at once, not in the one it stands in.
-  const kept = Object.values(undos).filter(
-    (entry) =>
-      entry.at === segment.key &&
-      !items.some((item) => cardKey(item) === entry.key),
-  ).length;
-  const away = items.filter(
-    (item) => (undos[cardKey(item)]?.at ?? segment.key) !== segment.key,
-  ).length;
-  const count = shown.length - kept + away + unshown;
+  const count = sectionCount({ segment, items, shown, undos, unshown });
   // A section with no card of its own still shows when its count is above 0: a card that went here stands
-  // in its old section for its Ångra, and the new number must be seen where the card went.
-  if (!shown.length && count <= 0 && !more) return null;
+  // in its old section for its Ångra, and the new number must be seen where the card went. The chosen tab always shows.
+  if (!tabbed && !shown.length && count <= 0 && !more) return null;
   const heading = `${segment.label} (${count})`;
-  const folds = status === "completed";
+  // Under the column tabs Klar is the tab the owner chose: it opens at once, and the tab already names it and its count.
+  const folds = status === "completed" && !tabbed;
   return (
     <section
       className="work-column"
       aria-label={segment.label}
       data-board-column={segment.key}
     >
-      <h3>
+      <h3 className={tabbed ? "work-visually-hidden" : undefined}>
         {folds ? (
           <Fold text={heading} open={doneOpen} onToggle={onToggleDone} />
         ) : (
@@ -98,6 +124,8 @@ export function SingleSection({
             <ul className="work-list">
               {shown.map((item, at) => renderCard(item, at, shown, orderable))}
             </ul>
+          ) : tabbed && !more && count <= 0 ? (
+            <p className="work-column-empty">{emptyText}</p>
           ) : null}
           {more}
         </>

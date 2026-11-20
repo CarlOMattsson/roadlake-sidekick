@@ -39,7 +39,7 @@ export function ContactAliases({
           ))}
         </ul>
       ) : (
-        <p>{t.noAliases}</p>
+        <p className="work-alias-empty">{t.noAliases}</p>
       )}
       {editable && <AliasAdd busy={busy} onAdd={onAdd} labels={t} />}
     </>

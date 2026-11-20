@@ -16,8 +16,30 @@ import type { RowState } from "./use-row-state";
 /** How many Tasks one reschedule_tasks call takes at most. */
 const RESCHEDULE_CHUNK = 20;
 
-/** A Task a move-all moved: the version the move left and the due date it had (null for none), for Ångra. */
-type MovedTask = { id: string; version: number; was: string | null };
+/**
+ * A Task a move-all moved: the version the move left and, for Ångra, the due date it had (null for none) and the
+ * follow-up it had (null for none). A date the move did not touch is absent.
+ */
+type MovedTask = {
+  id: string;
+  version: number;
+  was?: string | null;
+  followWas?: string | null;
+};
+
+/** Whether a Task stands in Overdue by a follow-up that has come: waiting, and the follow-up time has passed. */
+function followUpReached(item: WorkItemRecord, now: Date): boolean {
+  return (
+    !!item.waiting &&
+    !!item.follow_up_at &&
+    new Date(item.follow_up_at).getTime() <= now.getTime()
+  );
+}
+
+/** Whether the Task's own due date (not its follow-up) is what makes it overdue; a Task with none, or a later one, is not. */
+function dueOverdue(item: WorkItemRecord, now: Date): boolean {
+  return !!item.due_at && new Date(item.due_at).getTime() <= now.getTime();
+}
 
 /**
  * The two writes that are not one status change: `remind` in the waiting view and `moveAllOverdue`
@@ -90,7 +112,9 @@ export function useAgendaBulk({
 
   /**
    * `moveAllOverdue`, once the owner confirmed: every open Task of the overdue group moves to 23:59
-   * tomorrow with reschedule_tasks, which takes 20 at most, so the group goes in chunks. Then the agenda is read
+   * tomorrow with reschedule_tasks, which takes 20 at most, so the group goes in chunks. A waiting Task whose follow-up
+   * has come also gets its follow-up moved to 09:00 tomorrow (update_task), or it would stay in the group; one that is
+   * there only by its follow-up keeps its due date. Then the agenda is read
    * again, so the rows show the new dates, and the move can be undone for a while. A refused or stale write shows the
    * notice; "Try again" repeats the move.
    */
@@ -117,6 +141,12 @@ export function useAgendaBulk({
             version:
               item.version ?? (await transport.getTask(item.id)).task.version,
             was: item.due_at ?? null,
+            // A Task in Overdue only by its follow-up keeps its due date; one overdue by a follow-up that has come
+            // moves the follow-up too, or it would stand in Overdue still.
+            reschedule: dueOverdue(item, now) || !followUpReached(item, now),
+            followWas: followUpReached(item, now)
+              ? (item.follow_up_at ?? null)
+              : undefined,
           })),
         );
         const signature = JSON.stringify(
@@ -124,13 +154,16 @@ export function useAgendaBulk({
         );
         const attempt = keyFor(bulkPending.current, signature);
         bulkPending.current = attempt;
-        const wasDue = new Map(
-          targets.map((row) => [row.id.toLowerCase(), row.was]),
-        );
+        const byId = new Map(targets.map((row) => [row.id.toLowerCase(), row]));
         const landed: MovedTask[] = [];
-        for (let start = 0; start < targets.length; start += RESCHEDULE_CHUNK) {
+        const dueTargets = targets.filter((row) => row.reschedule);
+        for (
+          let start = 0;
+          start < dueTargets.length;
+          start += RESCHEDULE_CHUNK
+        ) {
           const { tasks } = await transport.rescheduleTasks(
-            targets.slice(start, start + RESCHEDULE_CHUNK).map((row) => ({
+            dueTargets.slice(start, start + RESCHEDULE_CHUNK).map((row) => ({
               taskId: row.id,
               version: row.version,
               when: "tomorrow" as const,
@@ -141,7 +174,30 @@ export function useAgendaBulk({
             landed.push({
               id: task.id,
               version: task.version,
-              was: wasDue.get(task.id.toLowerCase()) ?? null,
+              was: byId.get(task.id.toLowerCase())?.was ?? null,
+            });
+        }
+        // The follow-ups that have come move to tomorrow 09:00, each with its own key, against the version the
+        // reschedule left (the read version for a Task whose due date stayed).
+        for (const row of targets) {
+          if (row.followWas === undefined) continue;
+          const at = landed.find(
+            (task) => task.id.toLowerCase() === row.id.toLowerCase(),
+          );
+          const { task } = await transport.updateTask(
+            row.id,
+            at?.version ?? row.version,
+            { follow_up_at: remindAt(now) },
+            `${attempt.key}-follow-${row.id}`,
+          );
+          if (at) {
+            at.version = task.version;
+            at.followWas = row.followWas;
+          } else
+            landed.push({
+              id: row.id,
+              version: task.version,
+              followWas: row.followWas,
             });
         }
         bulkPending.current = undefined;
@@ -156,7 +212,7 @@ export function useAgendaBulk({
   }
 
   /**
-   * Ångra of the move: each Task gets its old due date back with its own key, against the version the move left. A
+   * Ångra of the move: each Task gets its old due date (and its old follow-up, when the move moved it) back with its own key, against the version the move left. A
    * Task that is back stays back; "Try again" after a failure carries on with those that are not.
    */
   function restoreDates(back: MovedTask[]) {
@@ -166,8 +222,11 @@ export function useAgendaBulk({
       const undoKey = () => `undo-all:${left[0]?.id}`;
       try {
         while (left.length > 0) {
-          const { id, version, was } = left[0]!;
-          const changes: WorkTaskChanges = { due_at: was };
+          const { id, version, was, followWas } = left[0]!;
+          const changes: WorkTaskChanges = {
+            ...(was !== undefined ? { due_at: was } : {}),
+            ...(followWas !== undefined ? { follow_up_at: followWas } : {}),
+          };
           const attempt = keyFor(
             pending.current.get(undoKey()),
             JSON.stringify([id, version, changes]),

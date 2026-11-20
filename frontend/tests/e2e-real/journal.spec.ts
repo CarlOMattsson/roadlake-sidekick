@@ -28,7 +28,12 @@ test("a note written in the day view is stored under that day", async ({
   await form.getByLabel("Titel").fill(title);
   await form.getByLabel("Din text").fill(text);
   await form.getByRole("button", { name: "Spara" }).click();
-  await expect(app.getByText("Anteckningen sparades.")).toBeVisible();
+  // The receipt bar says it without a full stop and takes it away after 6 s, so it is looked for right after saving.
+  await expect(
+    app.locator(".sk-receipt-slot").getByText("Anteckningen sparades", {
+      exact: true,
+    }),
+  ).toBeVisible();
 
   const day = await callTool("get_journal_day", { journal_date: today });
   const entries = day.structuredContent?.entries as {

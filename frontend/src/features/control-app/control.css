@@ -16,14 +16,22 @@
 }
 
 /* The three tabs stay under the room strip while the view scrolls, as Work's tab row. */
-.sidekick-control .sk-segmented {
+.sidekick-control .sk-tabs {
   position: sticky;
   top: var(--sk-sticky-top);
   z-index: 2;
   background: transparent;
 }
+/* Control's tabs are 48 high, drawn (the family's default is 44 with a 48 target), so a wrapped row's target never reaches
+   into the row above. */
+.sidekick-control .sk-tabs .sk-tabs__tab {
+  min-height: var(--sk-tap-lg);
+}
+.sidekick-control .sk-tabs .sk-tabs__tab::after {
+  inset: 0;
+}
 /* Only the full view scrolls under the tabs, so only there do they need the page colour to cover the rows. */
-.sk-rooms__pane .sidekick-control .sk-segmented {
+.sk-rooms__pane .sidekick-control .sk-tabs {
   background: var(--sk-bg);
 }
 
@@ -137,14 +145,6 @@
   gap: var(--sk-s2);
 }
 
-/* The foot of the whole list ("Show more" for the next page, or the note that the activity is cut) waits until
-   "Show all" is open. In the collapsed list "Show all (N)" already says there is more, and the line kept the trash
-   card over 560 px at 320. */
-.sidekick-control .control-more[aria-expanded="false"] ~ .control-note,
-.sidekick-control .control-more[aria-expanded="false"] ~ .control-page-more {
-  display: none;
-}
-
 /* "Minnet är på" alone on its line; Pausa minnet is the action row under it (memory-view.tsx). */
 .sidekick-control .control-headrow {
   display: flex;
@@ -187,68 +187,9 @@
   margin-top: calc(var(--sk-section-above) - 2 * var(--sk-s2));
 }
 
-/* The memory switch (role="switch", aria-checked): on is a track in the text colour with the knob
-   in the page colour, at the right; off is a 2 px outline in --sk-border with the knob in --sk-muted, at the left. No
-   green and no word beside it: the state leads the row's meta line, and the knob's place and the filled track say it
-   without colour. The button is 48 wide and 40 high around the 44 × 24 track, which ends on the content edge, and its
-   ::after makes the target 48 × 48, so a source row keeps the row template's 54. */
-.sidekick-control .control-switch {
-  position: relative;
-  display: inline-grid;
-  place-items: center end;
-  box-sizing: border-box;
-  min-width: 48px;
-  height: var(--sk-compact);
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--sk-fg);
-}
-.sidekick-control .control-switch::after {
-  content: "";
-  position: absolute;
-  inset: calc((var(--sk-compact) - 48px) / 2) 0;
-}
-
-.sidekick-control .control-switch-track {
-  position: relative;
-  box-sizing: border-box;
-  width: 2.75rem;
-  height: 1.5rem;
-  border: 2px solid var(--sk-border);
-  border-radius: 999px;
-  background: transparent;
-}
-
-.sidekick-control .control-switch-knob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: calc(1.5rem - 8px);
-  height: calc(1.5rem - 8px);
-  border-radius: 50%;
-  background: var(--sk-muted);
-}
-
-.sidekick-control .control-switch[data-on="true"] .control-switch-track {
-  border-color: var(--sk-fg);
-  background: var(--sk-fg);
-}
-
-.sidekick-control .control-switch[data-on="true"] .control-switch-knob {
-  background: var(--sk-bg);
-  transform: translateX(1.25rem);
-}
-
-/* A status line sits flush in the card (the card's gap spaces it). Its tone and frame come from sk-notice. */
+/* A line of text sits flush in the card (the card's gap spaces it). */
 .sidekick-control .control-notice {
   margin: 0;
-}
-
-/* Memory with a provider that is off or a test one: the headline is a warning (the note uses sk-notice--warning). */
-.sidekick-control .control-heading-warning {
-  color: var(--sk-warning-fg);
 }
 
 /* Memory paused: the domain rows are quiet; the switches keep their state and stay usable. */
@@ -301,10 +242,6 @@
   background: transparent;
 }
 
-.sk-rooms__pane .sidekick-control .sk-segmented {
-  margin-inline: 0;
-}
-
 /* The full view (§4 Kontroll): the shell's Back row is "‹ Arbete" (52–100 at 412), where it leads, as in
    every detail view; the title "Kontroll" stands right under its box as "Anna Andersson" does in 09 (the −4 gives back
    the pane's gap), the tabs follow 12 under the title and the first content 12 under the tabs. The title scrolls away
@@ -321,72 +258,6 @@
   color: var(--sk-fg);
   overflow-wrap: anywhere;
 }
-/* The three views (Borttaget, Historik, Sidekicks minne) as tabs (designsystem §3, Flikar): 44 px
-   high, no fill, --sk-type-label, a hairline under the whole row. The chosen tab is 600 in --sk-fg with a 3 px line
-   under the whole tab; the others are 500 in --sk-muted. The tabs share the row in equal cells,
-   as Work's, so the weight change moves nothing, never narrower than their label with 12 at each side (6 on a narrow
-   row). They never scroll or clip: at 200 % they wrap. The component stays the shared Segmented (a group of
-   aria-pressed buttons with arrow keys); only its look changes here. */
-.sidekick-control .sk-segmented {
-  flex-wrap: wrap;
-  /* 4 between wrapped rows (200 %), plus the 1 a tab gives back below: a tab's target reaches 4 up, into the gap and
-     not into the row above. */
-  gap: calc(var(--sk-s1) + 1px) 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  border-bottom: var(--sk-hairline) solid var(--sk-line);
-}
-
-/* The tab is 48 px high, the touch target (44 before): it reaches 4 px up into the air
-   under the title "Kontroll" (padding, taken back by the margin), so the line, the text and the underline stay where
-   they were. A pseudo-element would count as overflow and read as a clipped tab. Its 3 px line lies on the row's hairline. */
-.sidekick-control .sk-segmented .sk-segmented__option {
-  flex: 1 0 0;
-  min-width: max-content;
-  height: 48px;
-  min-height: 48px;
-  margin: -4px 0 -1px;
-  padding: 6px var(--sk-s3) 0;
-  border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--sk-muted);
-  font: var(--sk-type-label);
-}
-
-.sidekick-control .sk-segmented .sk-segmented__option[aria-pressed="true"] {
-  border-bottom-color: var(--sk-fg);
-  background: transparent;
-  box-shadow: none;
-  color: var(--sk-fg);
-  font-weight: var(--sk-weight-semibold);
-}
-/* A tab has no tick: the line under it is its mark. */
-.sidekick-control
-  .sk-segmented
-  .sk-segmented__option[aria-pressed="true"]
-  > .sk-segmented__label::before {
-  content: none;
-}
-
-.sidekick-control .sk-segmented .sk-segmented__option:focus-visible {
-  outline-offset: -2px;
-}
-
-.sidekick-control .sk-segmented__label {
-  white-space: nowrap;
-}
-
-/* A 320 px phone (inner width about 286): 6 at the sides, so the three labels keep one row also with a wider
-   fallback font (8 wrapped "Sidekicks minne" to a second row in e2e and pushed the inline card to 575 > 560). */
-@container sk-control (max-width: 20rem) {
-  .sidekick-control .sk-segmented .sk-segmented__option {
-    padding-inline: 6px;
-  }
-}
-
 /* A narrow card (16 rem: 256 px at 100 %, so every phone at 200 %). The row stacks, so the action sits under the
    title at full width, and a word is never broken in the middle. */
 @container sk-control (max-width: 16rem) {
@@ -426,12 +297,6 @@
   padding: 0 calc(var(--sk-s4) - var(--sk-hairline));
   color: var(--sk-fg);
   font: var(--sk-type-button);
-}
-
-/* "Öppna ›" on a restored row's receipt: a text link at the row's end, its text on the content edge (the 12 of
-   padding hangs into the margin, as the row's other actions do). */
-.sidekick-control .control-row-action > .sk-btn--open {
-  margin-inline: 0 calc(-1 * var(--sk-s3));
 }
 
 /* A recalled fact is a sentence, and "Glöm anteckningen" is as wide as a third of a phone: beside it the text gets about

@@ -7,14 +7,14 @@ import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
 import { ContactArchived } from "./contact-archived";
 import { ContactEditor } from "./contact-edit";
 import { ContactProjects } from "./contact-projects";
-import { tasksByUrgency } from "./contacts-sections";
+import { ContactStanding } from "./contact-standing";
+import { ContactTasks } from "./contact-tasks";
 import { hierarchyDetailLabelsFor } from "../hierarchy/hierarchy-detail-labels";
 import { WriteNotice } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
 import type { WorkContactRecord } from "../transport/transport";
 import { ContactJournalEntries } from "./contact-journal-entries";
 import type { FrameProps } from "../view/parts/frame-types";
-import { TaskSummaryList } from "../tasks/task-summary-list";
 import type { ContactRecord } from "./use-contact-record";
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import { WriteStatus } from "../view/parts/write-status";
@@ -113,6 +113,16 @@ export function ContactBody({
       {/* While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
       {!editing && (
         <>
+          {/* Where you stand with her first: the wait on her and the last time the journal saw her (the question before a meeting). */}
+          {!contact.archived && (
+            <ContactStanding
+              name={contact.display_name}
+              tasks={tasks}
+              journal={journal}
+              dateLocale={t.dateLocale}
+              onOpen={onOpen}
+            />
+          )}
           {/* The tags first, under the name and nicknames, so they are the Contact's own and not part of the ways
               to reach her: the pills and one quiet button that edits them in place. */}
           <TagField
@@ -187,20 +197,18 @@ export function ContactBody({
           labels={t}
         />
       )}
-      {/* No Task can be linked from here, so an empty Tasks section is left out (design system §3, Tomt). */}
-      {tasks.length > 0 && (
-        <>
-          <h3>{t.tasks}</h3>
-          <TaskSummaryList
-            tasks={tasksByUrgency(tasks)}
-            labels={t}
-            empty={t.noTasks}
-            onOpen={onOpen}
-            transport={transport}
-            onReload={record.reloadContact}
-          />
-        </>
-      )}
+      {/* An empty Tasks section is left out (design system §3, Tomt); a new Task for her is offered where it would stand. */}
+      <ContactTasks
+        contactId={contact.id}
+        firstName={first}
+        tasks={tasks}
+        labels={t}
+        transport={transport}
+        onOpen={onOpen}
+        onReload={record.reloadContact}
+        canCreate={!contact.archived && !editing && offers("create_task")}
+        reloading={write.kind === "busy"}
+      />
       {more === "busy" && <p role="status">{t.loading}</p>}
       {more === "failed" && <p role="alert">{t.failed}</p>}
       {nextCursor && (

@@ -139,7 +139,7 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
     "padding-top",
     "16px",
   );
-  await app.getByRole("checkbox").click();
+  await app.getByRole("button", { name: /^Mark .* as bought$/ }).click();
   // A purchased item stays in its place while its Undo holds: the row's meta line says "Bought" and "Undo" is a
   // compact secondary button in the row (`li .shopping-undo`). "Bought (n)" does not count it until the time is up.
   const heldRow = app
@@ -147,11 +147,13 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
     .filter({ has: app.getByRole("button", { name: /^Undo bought / }) });
   await expect(heldRow).toHaveCount(1);
   await expect(app.getByText("Bought (1)", { exact: true })).toHaveCount(0);
-  // The folded inline row shows the name, the Undo and no status line (.shopping-items--folded hides it).
+  // The folded inline row shows the name, the Undo, and its ring now marks it open again.
   await expect(
     heldRow.getByRole("button", { name: /^Undo bought / }),
   ).toBeVisible();
-  await expect(heldRow.getByRole("checkbox")).toBeChecked();
+  await expect(
+    heldRow.getByRole("button", { name: /^Mark .* as not bought$/ }),
+  ).toBeVisible();
   // Enter in the add field (one line in the inline view) adds the items. The App iframe has no allow-forms, so a form submit would be blocked.
   const addField = app.getByRole("textbox", { name: "Items", exact: true });
   await addField.fill("Bread");

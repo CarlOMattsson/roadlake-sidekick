@@ -69,7 +69,7 @@ test("a Step added to a task and checked off in the app is completed on the serv
   expect(failures).toEqual([]);
 });
 
-test("a task changed on the server after it was read is refused, shown as a conflict and read again", async ({
+test("a task changed on the server after it was read is refused and read again, with no alarm", async ({
   page,
 }) => {
   const title = uniqueTitle("Skicka offert");
@@ -95,20 +95,17 @@ test("a task changed on the server after it was read is refused, shown as a conf
     changes: { title: changed },
   });
 
+  // The write carries the old version: the server refuses it, and the app reads the Task again without an alarm
+  // (the silent conflict reload, d5cbfe8f), so the newer title shows and the Task is still open.
   await app.getByRole("button", { name: "Mark as done", exact: true }).click();
-  const banner = app.getByRole("alert");
-  await expect(banner).toContainText("This task was changed elsewhere");
-  await expect(banner).toBeFocused();
+  await expect(
+    app.getByRole("heading", { level: 2, name: changed, exact: true }),
+  ).toBeVisible();
+  await expect(app.getByRole("alert")).toHaveCount(0);
   const refused = await callTool("get_task", { task_id: task.id });
   expect((refused.structuredContent?.task as { status: string }).status).toBe(
     "todo",
   );
-
-  await banner.getByRole("button", { name: "Refresh" }).click();
-  await expect(app.getByRole("alert")).toHaveCount(0);
-  await expect(
-    app.getByRole("heading", { level: 2, name: changed, exact: true }),
-  ).toBeVisible();
 
   // Read again, the app holds the current version and the same action now goes through.
   await app.getByRole("button", { name: "Mark as done", exact: true }).click();

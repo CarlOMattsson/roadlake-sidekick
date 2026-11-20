@@ -48,6 +48,63 @@ describe("Contact editor action row", () => {
   });
 });
 
+describe("Contact editor layout", () => {
+  function renderEditor() {
+    return render(
+      <ContactEditor
+        contact={anna}
+        busy={false}
+        saveFailed={false}
+        rejected={false}
+        onSave={vi.fn()}
+        onCancel={vi.fn()}
+        onAddAlias={vi.fn()}
+        onRemoveAlias={vi.fn()}
+        labels={workEn}
+      />,
+    );
+  }
+
+  it("lists the nicknames after Role and Note, last before the action row", () => {
+    renderEditor();
+    const group = screen.getByRole("group", { name: workEn.aliasesHeading });
+    const after = Node.DOCUMENT_POSITION_FOLLOWING;
+    for (const label of [
+      workEn.email,
+      workEn.phone,
+      workEn.slack,
+      workEn.relationship,
+      workEn.organization,
+      workEn.role,
+      workEn.address,
+      workEn.contextNote,
+    ]) {
+      expect(
+        screen.getByLabelText(label).compareDocumentPosition(group) & after,
+      ).toBeTruthy();
+    }
+    const row = screen.getByRole("button", { name: workEn.save }).parentElement;
+    expect(group.compareDocumentPosition(row as Element) & after).toBeTruthy();
+  });
+
+  it("carries the class that gives the fields room above the sticky row", () => {
+    renderEditor();
+    expect(screen.getByRole("form", { name: workEn.edit })).toHaveClass(
+      "work-contact-edit",
+    );
+  });
+
+  it("scrolls a focused field into view with the sticky row's room, without animation", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+    const slack = screen.getByLabelText(workEn.slack);
+    const scroll = vi.fn();
+    slack.scrollIntoView = scroll;
+    await user.click(slack);
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
+  });
+});
+
 describe("Contact editor, a refused save", () => {
   function editor(rejected: boolean) {
     return (

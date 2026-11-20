@@ -10,6 +10,7 @@ import { keyFor } from "../mcp-apps/idempotency";
 import type { PendingKey } from "../mcp-apps/idempotency";
 import { originalLine, summaryRest } from "./entry-card";
 import { labelFor } from "./labels";
+import { receiptText } from "./receipt-text";
 import { isForbidden, writeFailure } from "./transport";
 import type {
   JournalDraftFields,
@@ -17,6 +18,7 @@ import type {
   JournalFrame,
 } from "./transport";
 import { ErrorNotice } from "../mcp-apps/ui/states";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
 import { TagField } from "../mcp-apps/ui/tags";
 import { useTagVocabulary } from "../mcp-apps/ui/tag-vocabulary";
 import {
@@ -26,8 +28,9 @@ import {
   useEntryTrash,
 } from "./entry-trash";
 import type { FrameProps, LoadPhase } from "./frame-props";
-import { EntryMemoryFailure, useEntryMemory } from "./entry-memory";
+import { EntryMemoryFailure, MemoryChip, useEntryMemory } from "./entry-memory";
 import { isQueued, useQueuedRecords } from "./use-queued-records";
+import "./entry.css";
 
 /** The saved entry offers at most this many "Open the task" buttons, one per created task. */
 const taskOpenLimit = 3;
@@ -62,7 +65,6 @@ export function EntryFrame({
     ReturnType<typeof writeFailure> | undefined
   >();
   const [editing, setEditing] = useState(false);
-  const [changedNote, setChangedNote] = useState<string>();
   const editKey = useRef<PendingKey | undefined>(undefined);
   // The tags are written on their own, as one update of the complete set; the key and the failure are theirs too.
   const [tagBusy, setTagBusy] = useState(false);
@@ -73,11 +75,19 @@ export function EntryFrame({
   const vocabulary = useTagVocabulary(transport.listTags, "journal_entry");
   const heading = useRef<HTMLHeadingElement>(null);
   const queuedIds = useQueuedRecords(transport);
+  // Every confirmation ("Anteckningen är ändrad") is one floating bar at the foot of the view, never a line in the
+  // content; it belongs to this entry and goes away with it (resetKey) and by itself.
+  const receipt = useReceipt(id);
+  const { show: showReceipt } = receipt;
   const trashState = useEntryTrash(transport, entry, reloadEntry);
   // Out of memory or back in: the version does not change, so the shown entry only flips its flag.
   const memory = useEntryMemory(transport, entry, (excluded) => {
     if (entry) entryChanged({ ...entry, memory_excluded: excluded });
-    setChangedNote(excluded ? t.entryKeptOutOfMemory : t.entryBackInMemory);
+    showReceipt({
+      message: receiptText(
+        excluded ? t.entryKeptOutOfMemory : t.entryBackInMemory,
+      ),
+    });
   });
   // The title is the heading above. A summary that repeats it shows only the rest, as the card does.
   const rest = entry ? summaryRest(entry.title, entry.summary) : undefined;
@@ -96,6 +106,13 @@ export function EntryFrame({
           : []),
       ].filter((link) => link.count > 0)
     : [];
+  // The saved draft's notice ("Anteckningen sparades"): shown once as the receipt of the save that opened this entry.
+  useEffect(() => {
+    if (notice)
+      showReceipt({
+        message: receiptText(t.entrySaved(notice.created, notice.updated)),
+      });
+  }, [notice, showReceipt, t]);
   useEffect(() => {
     if (moves > 0) heading.current?.focus();
   }, [moves]);
@@ -148,7 +165,7 @@ export function EntryFrame({
   function closeForm(note: string) {
     setMode("view");
     setEditFailure(undefined);
-    setChangedNote(note);
+    if (note) showReceipt({ message: receiptText(note) });
     heading.current?.focus();
   }
   function saveEdit(changes: Partial<JournalDraftFields>) {
@@ -189,7 +206,7 @@ export function EntryFrame({
   function restoreEntry() {
     trashState.restore(() => {
       reloadEntry();
-      setChangedNote(t.entryRestored);
+      showReceipt({ message: receiptText(t.entryRestored) });
       heading.current?.focus();
     });
   }
@@ -245,9 +262,6 @@ export function EntryFrame({
       <h2 ref={heading} tabIndex={-1}>
         {phase === "ready" && entry ? entry.title : t.entry}
       </h2>
-      {notice && (
-        <p role="status">{t.entrySaved(notice.created, notice.updated)}</p>
-      )}
       {notice && onOpenTask && notice.createdTaskIds && (
         <ul className="journal-chips">
           {notice.createdTaskIds.slice(0, taskOpenLimit).map((taskId) => (
@@ -318,9 +332,7 @@ export function EntryFrame({
             )}
           </p>
           {entry.archived && <p className="journal-muted">{t.archived}</p>}
-          {entry.memory_excluded && (
-            <p className="journal-muted">{t.entryOutOfMemory}</p>
-          )}
+          {entry.memory_excluded && <MemoryChip labels={t} />}
           {/* Changed in place (no form); an archived entry shows its tags only. */}
           <TagField
             tags={entry.tags ?? []}
@@ -350,7 +362,6 @@ export function EntryFrame({
               }
             />
           )}
-          {changedNote && <p role="status">{changedNote}</p>}
           {canEdit && (transport.updateEntry || transport.appendEntryText) && (
             <div className="journal-actions">
               {transport.updateEntry && (
@@ -358,7 +369,7 @@ export function EntryFrame({
                   type="button"
                   className="sk-btn--secondary"
                   onClick={() => {
-                    setChangedNote(undefined);
+                    receipt.clear();
                     setMode("edit");
                   }}
                 >
@@ -370,7 +381,7 @@ export function EntryFrame({
                   type="button"
                   className="sk-btn--secondary"
                   onClick={() => {
-                    setChangedNote(undefined);
+                    receipt.clear();
                     setMode("append");
                   }}
                 >
@@ -418,21 +429,26 @@ export function EntryFrame({
             />
           )}
           {mode !== "edit" && rest && <p className="journal-summary">{rest}</p>}
-          {/* The original is always saved with an entry, so the line and its button always show here. */}
-          <div className="journal-original-row">
-            <p className="journal-muted">
-              {originalLine(entry.summary, t, entry.summary_by)}
-            </p>
-            {transport.getSource && (
-              <button
-                type="button"
-                className="sk-btn--quiet journal-toggle"
-                onClick={() => onOpen({ kind: "source", id: entry.source_id })}
-              >
-                {t.showOriginal}
-              </button>
-            )}
-          </div>
+          {/* The original is always saved with an entry, so the line and its button show here, except while the text is
+              being edited: then they would blur which text is the one in the field. */}
+          {mode !== "edit" && (
+            <div className="journal-original-row">
+              <p className="journal-muted">
+                {originalLine(entry.summary, t, entry.summary_by)}
+              </p>
+              {transport.getSource && (
+                <button
+                  type="button"
+                  className="sk-btn--quiet journal-toggle"
+                  onClick={() =>
+                    onOpen({ kind: "source", id: entry.source_id })
+                  }
+                >
+                  {t.showOriginal}
+                </button>
+              )}
+            </div>
+          )}
           {mode !== "edit" && entry.key_points.length > 0 && (
             <>
               <h3>{t.keyPoints}</h3>
@@ -458,9 +474,11 @@ export function EntryFrame({
               entry={entry}
               labels={t}
               transport={transport}
+              receipt={receipt}
               onOpenContact={onOpenContact}
               onOpenProject={onOpenProject}
               onChanged={entryChanged}
+              onEmptied={() => heading.current?.focus()}
               onConflict={reloadEntry}
               removable={mode === "edit"}
             />
@@ -482,6 +500,7 @@ export function EntryFrame({
           )}
         </>
       )}
+      <ReceiptBar receipt={receipt} />
     </article>
   );
 }

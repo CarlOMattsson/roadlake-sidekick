@@ -194,10 +194,19 @@
   --sk-selected-bg: light-dark(#e8e8e8, #3a3a3a);
   --sk-selected-line: var(--sk-fg);
   --sk-selected-width: 2px;
-  /* The active room and the chosen day: the page colour on the strip's surface with the chosen outline (see docs/reference/design-system.md). Ink is kept for the primary action. */
-  --sk-nav-active-bg: var(--sk-bg);
+  /* The active room (level 1, helhet rule 3): a raised pill on the strip's surface, never a frame, so it cannot be
+     read as the focus ring. Light: the page colour with a soft shadow; dark: the surface lifted toward the text colour.
+     The label at 600 in --sk-fg (the others 500 muted) carries the choice without colour. Ink is kept for the primary
+     action. --sk-nav-active-line is kept for forced colours and older callers. */
+  --sk-nav-active-bg: light-dark(
+    var(--sk-bg),
+    color-mix(in srgb, var(--sk-fg) 17%, var(--sk-surface))
+  );
   --sk-nav-active-fg: var(--sk-fg);
   --sk-nav-active-line: var(--sk-fg);
+  --sk-nav-active-shadow:
+    0 1px 3px light-dark(rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.5)),
+    0 0 0 0.5px light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.06));
   /* The 16 px tick of a chosen chip or segment, drawn as a mask in the text colour (family.css .sk-check). */
   --sk-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 

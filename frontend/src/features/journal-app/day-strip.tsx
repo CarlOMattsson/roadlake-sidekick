@@ -7,11 +7,10 @@ import {
 } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "../mcp-apps/ui/icons";
 import {
-  calendarDate,
-  daysBetween,
   formatCalendarDate,
   formatShortDate,
   shiftDate,
+  weekDates,
 } from "./dates";
 import type { DayStripLabels } from "./day-strip-labels";
 import "./journal.css";
@@ -26,7 +25,7 @@ const dayStyle = { minHeight: "56px" };
 const swipeMinimum = 48;
 
 export type DayStripProps = {
-  /** The selected day, YYYY-MM-DD. The strip shows the seven days of `stripDays(selected, today)`. */
+  /** The selected day, YYYY-MM-DD. The strip shows the seven days of `stripDays(selected)`. */
   selected: string;
   /**
    * No day is chosen: the view lists entries from many days (a tag filter). No cell is filled or read as selected;
@@ -41,9 +40,16 @@ export type DayStripProps = {
   labels: DayStripLabels;
   disabled?: boolean;
   onSelect: (date: string) => void;
-  /** The day's heading, alone on the title row with ⋯ (designsystem §3, Dagremsan). */
+  /**
+   * The day's heading. Without `tabs` it stands on the head's first row with the tools; with `tabs` it stands under
+   * the strip, so the first two rows are the same in the day and the week view.
+   */
   heading?: ReactNode;
-  /** A secondary control after › on the week row: the view's `today` button. */
+  /** Level 2 navigation (Dag | Vecka) on the head's first row, before the tools. */
+  tabs?: ReactNode;
+  /** The week row's name between ‹ and › ("Vecka 47 · 16–22 nov"). Absent: the range alone. */
+  weekLabel?: ReactNode;
+  /** A quiet control before + and ⋯ on the first row: the view's `today` button, shown when the week lacks today. */
   actions?: ReactNode;
   /** The room's ⋯ on the title row (x 383 as in every room head). */
   more?: ReactNode;
@@ -70,19 +76,12 @@ export function weekRange(days: readonly string[], locale: string): string {
 }
 
 /**
- * The seven days (YYYY-MM-DD, oldest first) the strip shows for `selected`. The strip pages back from today in
- * whole weeks: the seven days that end on today, then the seven before those, and so on, so no day after today is
- * ever shown and stepping one day at a time moves the strip a full page only when it leaves the shown seven.
- * A selected day after today (a tool result can name one) shows the seven days that end on it. Empty for a
- * malformed date.
+ * The seven days (YYYY-MM-DD, Monday first) the strip shows for `selected`: its calendar week, Monday to Sunday, the
+ * same week the week view shows, so ‹ › step the same weeks in both views and the strip never slides. Days after
+ * today are drawn but cannot be chosen. Empty for a malformed date.
  */
-export function stripDays(selected: string, today: string): string[] {
-  if (!calendarDate.test(selected)) return [];
-  const anchor = calendarDate.test(today) ? today : selected;
-  const back = daysBetween(selected, anchor);
-  const end =
-    back <= 0 ? selected : shiftDate(anchor, -7 * Math.floor(back / 7));
-  return Array.from({ length: 7 }, (_, index) => shiftDate(end, index - 6));
+export function stripDays(selected: string): string[] {
+  return weekDates(selected);
 }
 
 /** The short weekday name, "mån" in Swedish and "Mon" in English. */
@@ -131,6 +130,8 @@ export function DayStrip({
   disabled = false,
   onSelect,
   heading,
+  tabs,
+  weekLabel,
   actions,
   more,
   panel,
@@ -142,7 +143,7 @@ export function DayStrip({
   const followFocus = useRef(false);
   // Where the current touch started, for a swipe that steps one week.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const days = stripDays(selected, today);
+  const days = stripDays(selected);
   const marked = new Set(unmarked ? [] : daysWithEntries);
   // Today when it is in the shown week, otherwise the selected day. Below ~250 px, and at large text in a phone frame,
   // the week scrolls (journal.css); then this day is centred in it. Keyed on this value, so a tap in the same week does not move it.
@@ -225,7 +226,9 @@ export function DayStrip({
         <ChevronLeftIcon />
       </button>
       {days.length > 0 && (
-        <p className="journal-day-range">{weekRange(days, t.dateLocale)}</p>
+        <p className="journal-day-range">
+          {weekLabel ?? weekRange(days, t.dateLocale)}
+        </p>
       )}
       <button
         type="button"
@@ -237,16 +240,23 @@ export function DayStrip({
       >
         <ChevronRightIcon />
       </button>
-      {actions}
     </div>
   );
 
   return (
     <>
-      {/* The title row, "Tisdag 3 november" and ⋯, and under it the week row. */}
-      <div className="sk-day-strip-head">
-        <div className="sk-day-strip-title">{heading}</div>
-        <div className="sk-day-strip-tools">{more}</div>
+      {/* The first row: the tabs (or, without them, the title "Tisdag 3 november"), then `today`, + and ⋯ at its end;
+          under it the week row. */}
+      <div className="sk-day-strip-head" data-tabs={tabs ? "true" : undefined}>
+        {tabs ? (
+          <div className="sk-day-strip-tabs">{tabs}</div>
+        ) : (
+          <div className="sk-day-strip-title">{heading}</div>
+        )}
+        <div className="sk-day-strip-tools">
+          {actions}
+          {more}
+        </div>
         {arrows}
       </div>
       {panel}
@@ -330,6 +340,11 @@ export function DayStrip({
           {unmarked ? "" : formatCalendarDate(selected, t.dateLocale)}
         </span>
       </div>
+      {tabs && heading ? (
+        <div className="sk-day-strip-title sk-day-strip-title--below">
+          {heading}
+        </div>
+      ) : null}
       {below}
     </>
   );

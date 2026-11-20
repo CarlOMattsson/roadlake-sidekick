@@ -1,16 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { EmptyState } from "../mcp-apps/ui/states";
-import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
 import type { RoomTarget } from "../mcp-apps/room-types";
 import {
-  actionName,
+  receiptText,
   kindName,
   trashedWhen,
   type ControlLabels,
 } from "./labels";
 import { ConfirmErase } from "./confirm-erase";
-import { ControlRow, NoticeLine, RowList, type Notice } from "./control-parts";
+import {
+  ControlRow,
+  INLINE_ROWS,
+  NoticeLine,
+  RowList,
+  ViewOpenLink,
+  rowLimit,
+  type Notice,
+} from "./control-parts";
 import { focusRowNear } from "./focus-row";
 import { openTargetOf } from "./open-target";
 import {
@@ -19,7 +27,6 @@ import {
   type TrashList,
   type TrashTransport,
 } from "./transport";
-import { useReceipts } from "./use-receipts";
 import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
@@ -31,10 +38,11 @@ import { whenText } from "./when";
  * the transport only after the owner chose the red button. A Journal entry or a Shopping item never gets the button:
  * the server cannot remove them, only restore them.
  *
- * A restore or a delete that is saved leaves the row on its place and its meta line says what happened (the kind and the
- * word, a status, no buttons) for RESTORED_MS, then the row goes. When the room can open the record, the open link stands at
- * the end of the row meanwhile. It has no Undo: no tool puts an item back in the trash. A failure stays in its row
- * until the next action.
+ * A restore or a delete that is saved takes the row out of the list at once and says what happened in the receipt bar
+ * ("Återställd: Mjölk", "Raderad för gott: Pitchen"); a restored record the room can open has "Visa" in the bar. It has
+ * no Undo: no tool puts an item back in the trash. A failure stays in its row until the next action.
+ *
+ * The inline card lists three rows; its one main link, "Öppna Borttaget › · 4 till", opens the full view.
  */
 export function TrashView({
   initial,
@@ -44,9 +52,8 @@ export function TrashView({
   onData,
   onModelContext,
   onOpen,
+  onOpenFull,
   full = false,
-  expanded,
-  onExpandedChange,
 }: {
   initial: TrashList;
   transport: TrashTransport;
@@ -58,11 +65,10 @@ export function TrashView({
   onModelContext?: (summary: string) => void;
   /** Opens a restored record in its room; absent: the receipt offers no link. */
   onOpen?: (target: RoomTarget) => void;
-  /** The full view lists every row read so far; the inline card lists three behind "Show all". */
+  /** Opens this view in fullscreen (the inline card's main link); absent: the card has no link and lists every row. */
+  onOpenFull?: () => void;
+  /** The full view lists every row read so far; the inline card lists three behind its open link. */
   full?: boolean;
-  /** Whether "Show all" is open; the card keeps it across tabs. */
-  expanded?: boolean;
-  onExpandedChange?: (next: boolean) => void;
 }) {
   const [more, setMore] = useState<"idle" | "busy" | "failed">("idle");
   // Counts the reads that replace the list, so a page that was asked for before one lands on nothing.
@@ -75,13 +81,10 @@ export function TrashView({
   const [notice, setNotice] = useState<Notice | undefined>();
   // The row a failed restore was on: its notice stands in that row, where the owner is looking, not at the top of the list.
   const [failedRow, setFailedRow] = useState<string | null>(null);
-  // Restored rows: gone from the list (and from the card's data) at once, shown on their place until the receipt ends.
-  // `index` is how many rows of the list stood before the item.
-  const [receipts, showReceipt] = useReceipts<Receipt>();
+  // What a saved restore or delete did, in the bar at the foot of the view; the row itself is gone from the list at once.
+  const receipt = useReceipt();
   // The question asked before anything is removed for good: one Task, or the whole trash.
   const [confirming, setConfirming] = useState<Confirming>(null);
-  // The list with the restored rows put back on their places, for as long as their receipts stand.
-  const shown = withReceiptRows(list.items, receipts);
   const pending = useRef<PendingKey | undefined>(undefined);
   const rootRef = useRef<HTMLDivElement>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -156,7 +159,7 @@ export function TrashView({
 
   async function restore(item: TrashItem) {
     if (busy) return;
-    focusIndex.current = shown.findIndex((row) => row.id === item.id);
+    focusIndex.current = list.items.findIndex((row) => row.id === item.id);
     setBusy(item.id);
     setNotice(undefined);
     setFailedRow(null);
@@ -168,13 +171,12 @@ export function TrashView({
       await transport.restore(item, pending.current.key);
       pending.current = undefined;
       onModelContext?.(labels.modelNote.restored);
-      showReceipt(item.id, {
-        item,
-        index: Math.max(
-          0,
-          list.items.findIndex((row) => row.id === item.id),
-        ),
-        how: "restored",
+      const target = onOpen && openTargetOf(item);
+      receipt.show({
+        message: receiptText(labels.restored, item.label),
+        ...(target
+          ? { action: { label: labels.show, onClick: () => onOpen?.(target) } }
+          : {}),
       });
       change((current) => ({
         ...current,
@@ -186,7 +188,6 @@ export function TrashView({
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
         setNotice({
-          tone: "error",
           text:
             failure === "conflict"
               ? labels.restoreConflict(item.label)
@@ -195,7 +196,6 @@ export function TrashView({
         await reload();
       } else {
         setNotice({
-          tone: "error",
           text:
             failure === "forbidden"
               ? labels.restoreForbidden
@@ -211,7 +211,7 @@ export function TrashView({
   /** Removes one Task for good, after the owner said yes in the row's question. */
   async function erase(item: TrashItem) {
     if (busy || !transport.erase) return;
-    focusIndex.current = shown.findIndex((row) => row.id === item.id);
+    focusIndex.current = list.items.findIndex((row) => row.id === item.id);
     setBusy(item.id);
     setNotice(undefined);
     setFailedRow(null);
@@ -223,14 +223,7 @@ export function TrashView({
       await transport.erase(item, pending.current.key);
       pending.current = undefined;
       setConfirming(null);
-      showReceipt(item.id, {
-        item,
-        index: Math.max(
-          0,
-          list.items.findIndex((row) => row.id === item.id),
-        ),
-        how: "erased",
-      });
+      receipt.show({ message: receiptText(labels.erased, item.label) });
       change((current) => ({
         ...current,
         items: current.items.filter((row) => row.id !== item.id),
@@ -242,14 +235,12 @@ export function TrashView({
       if (failure === "conflict" || failure === "not_found") {
         pending.current = undefined;
         setNotice({
-          tone: "error",
           text:
             failure === "conflict" ? labels.eraseConflict : labels.restoreGone,
         });
         await reload();
       } else {
         setNotice({
-          tone: "error",
           text:
             failure === "forbidden"
               ? labels.eraseForbidden
@@ -277,15 +268,11 @@ export function TrashView({
       pending.current = undefined;
       setConfirming(null);
       await reload();
-      setNotice({
-        tone: "ok",
-        text: labels.emptyDone(result.removed, result.kept),
-      });
+      receipt.show({ message: labels.emptyDone(result.removed, result.kept) });
     } catch (error) {
       setConfirming(null);
       const forbidden = writeFailure(error) === "forbidden";
       setNotice({
-        tone: "error",
         text: forbidden ? labels.eraseForbidden : labels.emptyFailed,
         retry: forbidden ? undefined : () => void emptyAll(tasks),
       });
@@ -299,196 +286,165 @@ export function TrashView({
   const canErase = transport.erase !== undefined;
   // A failure stays at the top only when its row is gone (the list was read again and no longer holds it).
   const failureInRow =
-    notice?.tone === "error" &&
+    notice !== undefined &&
     failedRow !== null &&
     items.some((row) => row.id === failedRow);
+  const hidden = Math.max(0, items.length - INLINE_ROWS);
+  // The foot of the list (the next page, the note on what cannot be deleted) belongs to the full view; the inline card
+  // leaves what it does not list behind its open link.
+  const showFoot = full || !onOpenFull || hidden === 0;
   return (
-    <div className="control-view" ref={rootRef}>
-      {/* The `trash` tab names the view (designsystem §5): the heading is for assistive technology only, and is
-          where focus rests when the "Restored" line it was on goes away. With rows, the view's first content is one meta
-          line (the deleted count and the restore note). */}
-      <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
-        {labels.trashTitle}
-      </h2>
-      {items.length > 0 ? (
-        <p className="control-meta">
-          {labels.trashMeta(items.length, list.has_more)}
-        </p>
-      ) : null}
-      {transport.empty && tasks.length > 0 ? (
-        <div className="control-empty-trash">
-          <button
-            ref={emptyButton}
-            type="button"
-            className="sk-btn--secondary sk-btn--compact control-erase-btn"
-            disabled={busy !== null || confirming !== null}
-            onClick={() => setConfirming({ what: "all" })}
-          >
-            {labels.emptyTrash}
-          </button>
-          {confirming?.what === "all" ? (
-            <ConfirmErase
-              question={labels.emptyQuestion(tasks.length, list.has_more)}
-              yes={busy === EMPTYING ? labels.erasing : labels.eraseYes}
-              no={labels.eraseNo}
-              busy={busy !== null}
-              onYes={() => void emptyAll(tasks)}
-              onNo={cancelConfirm}
-            />
-          ) : null}
-        </div>
-      ) : null}
-      {notice && !failureInRow ? (
-        <div ref={noticeRef} tabIndex={-1}>
-          <NoticeLine notice={notice} locale={labels.locale} />
-        </div>
-      ) : null}
-      {shown.length === 0 ? (
-        <EmptyState title={labels.trashEmpty} hint={labels.trashEmptyHint} />
-      ) : (
-        <RowList
-          items={shown}
-          keyOf={(item) => item.id}
-          label={labels.trashTitle}
-          isReceipt={(item) => receipts.has(item.id)}
-          showAll={(count) => labels.showAll(count, list.has_more)}
-          showFewer={labels.showFewer}
-          full={full}
-          expanded={expanded}
-          onExpandedChange={onExpandedChange}
-          renderRow={(item) => {
-            const title = item.label ?? labels.hiddenTitle;
-            const when = whenText(item.trashed_at, now(), labels.locale);
-            const target = onOpen && openTargetOf(item);
-            const receipt = receipts.get(item.id);
-            const erasable = canErase && item.kind === "task";
-            return (
-              <ControlRow
-                primary={title}
-                secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
-                receipt={
-                  receipt
-                    ? `${kindName(labels, item.kind)} · ${receipt.how === "erased" ? labels.erased : actionName(labels, "restored", item.kind)}`
-                    : undefined
-                }
-                receiptAction={
-                  target && receipt?.how !== "erased" ? (
-                    <button
-                      type="button"
-                      className="sk-btn--open"
-                      aria-label={labels.openLabel(title)}
-                      onClick={() => onOpen(target)}
-                    >
-                      {labels.open}
-                      <ChevronRightIcon />
-                    </button>
-                  ) : undefined
-                }
-                stackedAction={erasable}
-                action={
-                  <>
-                    <button
-                      type="button"
-                      className="sk-btn--secondary sk-btn--compact control-row-btn"
-                      aria-label={labels.restoreLabel(title)}
-                      disabled={busy !== null || confirming !== null}
-                      onClick={() => void restore(item)}
-                    >
-                      {busy === item.id && confirming === null
-                        ? labels.restoring
-                        : labels.restore}
-                    </button>
-                    {erasable ? (
+    <>
+      <div className="control-view" ref={rootRef}>
+        {/* The `trash` tab names the view (designsystem §5): the heading is for assistive technology only, and is
+          where focus rests when the row it was on is gone. With rows, the view's first content is one meta line (the
+          deleted count). */}
+        <h2 ref={headingRef} tabIndex={-1} className="control-sr-only">
+          {labels.trashTitle}
+        </h2>
+        {items.length > 0 ? (
+          <p className="control-meta">
+            {labels.trashMeta(items.length, list.has_more)}
+          </p>
+        ) : null}
+        {transport.empty && tasks.length > 0 ? (
+          <div className="control-empty-trash">
+            <button
+              ref={emptyButton}
+              type="button"
+              className="sk-btn--secondary sk-btn--compact control-erase-btn"
+              disabled={busy !== null || confirming !== null}
+              onClick={() => setConfirming({ what: "all" })}
+            >
+              {labels.emptyTrash}
+            </button>
+            {confirming?.what === "all" ? (
+              <ConfirmErase
+                question={labels.emptyQuestion(tasks.length, list.has_more)}
+                yes={busy === EMPTYING ? labels.erasing : labels.eraseYes}
+                no={labels.eraseNo}
+                busy={busy !== null}
+                onYes={() => void emptyAll(tasks)}
+                onNo={cancelConfirm}
+              />
+            ) : null}
+          </div>
+        ) : null}
+        {notice && !failureInRow ? (
+          <div ref={noticeRef} tabIndex={-1}>
+            <NoticeLine notice={notice} locale={labels.locale} />
+          </div>
+        ) : null}
+        {items.length === 0 ? (
+          <EmptyState title={labels.trashEmpty} hint={labels.trashEmptyHint} />
+        ) : (
+          <RowList
+            items={items}
+            keyOf={(item) => item.id}
+            label={labels.trashTitle}
+            limit={rowLimit(full, onOpenFull)}
+            renderRow={(item) => {
+              const title = item.label ?? labels.hiddenTitle;
+              const when = whenText(item.trashed_at, now(), labels.locale);
+              const erasable = canErase && item.kind === "task";
+              return (
+                <ControlRow
+                  primary={title}
+                  secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
+                  stackedAction={erasable}
+                  action={
+                    <>
                       <button
                         type="button"
-                        className="sk-btn--secondary sk-btn--compact control-row-btn control-erase-btn"
-                        aria-label={labels.eraseLabel(title)}
+                        className="sk-btn--secondary sk-btn--compact control-row-btn"
+                        aria-label={labels.restoreLabel(title)}
                         disabled={busy !== null || confirming !== null}
-                        ref={(node) => {
-                          if (node) eraseButtons.current.set(item.id, node);
-                          else eraseButtons.current.delete(item.id);
-                        }}
-                        onClick={() =>
-                          setConfirming({ what: "task", id: item.id })
-                        }
+                        onClick={() => void restore(item)}
                       >
-                        {labels.erase}
+                        {busy === item.id && confirming === null
+                          ? labels.restoring
+                          : labels.restore}
                       </button>
-                    ) : null}
-                  </>
-                }
-                below={
-                  confirming?.what === "task" && confirming.id === item.id ? (
-                    <ConfirmErase
-                      question={labels.eraseQuestion(item.label)}
-                      yes={busy === item.id ? labels.erasing : labels.eraseYes}
-                      no={labels.eraseNo}
-                      busy={busy !== null}
-                      onYes={() => void erase(item)}
-                      onNo={cancelConfirm}
-                    />
-                  ) : failureInRow && failedRow === item.id ? (
-                    <NoticeLine notice={notice} locale={labels.locale} />
-                  ) : undefined
-                }
+                      {erasable ? (
+                        <button
+                          type="button"
+                          className="sk-btn--secondary sk-btn--compact control-row-btn control-erase-btn"
+                          aria-label={labels.eraseLabel(title)}
+                          disabled={busy !== null || confirming !== null}
+                          ref={(node) => {
+                            if (node) eraseButtons.current.set(item.id, node);
+                            else eraseButtons.current.delete(item.id);
+                          }}
+                          onClick={() =>
+                            setConfirming({ what: "task", id: item.id })
+                          }
+                        >
+                          {labels.erase}
+                        </button>
+                      ) : null}
+                    </>
+                  }
+                  below={
+                    confirming?.what === "task" && confirming.id === item.id ? (
+                      <ConfirmErase
+                        question={labels.eraseQuestion(item.label)}
+                        yes={
+                          busy === item.id ? labels.erasing : labels.eraseYes
+                        }
+                        no={labels.eraseNo}
+                        busy={busy !== null}
+                        onYes={() => void erase(item)}
+                        onNo={cancelConfirm}
+                      />
+                    ) : failureInRow && failedRow === item.id ? (
+                      <NoticeLine notice={notice} locale={labels.locale} />
+                    ) : undefined
+                  }
+                />
+              );
+            }}
+          />
+        )}
+        {showFoot && canErase && items.some((row) => row.kind !== "task") ? (
+          <p className="control-note">{labels.eraseHelp}</p>
+        ) : null}
+        {showFoot && list.has_more && list.next_cursor ? (
+          <div className="control-page-more">
+            {more === "failed" ? (
+              <NoticeLine
+                locale={labels.locale}
+                notice={{
+                  text: labels.trashMoreFailed,
+                  retry: () => void loadMore(),
+                }}
               />
-            );
-          }}
+            ) : null}
+            <button
+              type="button"
+              className="control-more sk-more"
+              disabled={more === "busy"}
+              onClick={() => void loadMore()}
+            >
+              {more === "busy" ? labels.loading : labels.trashMore}
+            </button>
+          </div>
+        ) : null}
+        <ViewOpenLink
+          labels={labels}
+          view="trash"
+          hidden={hidden}
+          moreRead={list.has_more}
+          full={full}
+          onOpenFull={onOpenFull}
         />
-      )}
-      {canErase && items.some((row) => row.kind !== "task") ? (
-        <p className="control-note">{labels.eraseHelp}</p>
-      ) : null}
-      {list.has_more && list.next_cursor ? (
-        <div className="control-page-more">
-          {more === "failed" ? (
-            <NoticeLine
-              locale={labels.locale}
-              notice={{
-                tone: "error",
-                text: labels.trashMoreFailed,
-                retry: () => void loadMore(),
-              }}
-            />
-          ) : null}
-          <button
-            type="button"
-            className="control-more sk-more"
-            disabled={more === "busy"}
-            onClick={() => void loadMore()}
-          >
-            {more === "busy" ? labels.loading : labels.trashMore}
-          </button>
-        </div>
-      ) : null}
-    </div>
+      </div>
+      <ReceiptBar receipt={receipt} />
+    </>
   );
 }
-
-/** A row kept on its place for a moment after a write: what it was and how many rows stood before it. */
-type Receipt = { item: TrashItem; index: number; how: "restored" | "erased" };
 
 /** The question that stands open: one Task to delete for good, or all of them. */
 type Confirming = { what: "task"; id: string } | { what: "all" } | null;
 
 /** `busy` while the whole trash is being emptied (no row has this id). */
 const EMPTYING = "empty";
-
-/** `items` with each restored row back where it stood: after the `index` rows that stood before it. */
-function withReceiptRows(
-  items: readonly TrashItem[],
-  receipts: ReadonlyMap<string, Receipt>,
-): TrashItem[] {
-  if (receipts.size === 0) return [...items];
-  const restored = [...receipts.values()].sort((a, b) => a.index - b.index);
-  const at = (position: number) =>
-    restored
-      .filter(({ index }) =>
-        position === items.length ? index >= position : index === position,
-      )
-      .map(({ item }) => item);
-  return [
-    ...items.flatMap((row, position) => [...at(position), row]),
-    ...at(items.length),
-  ];
-}

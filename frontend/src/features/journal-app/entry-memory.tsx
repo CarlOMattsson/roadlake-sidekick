@@ -8,6 +8,7 @@ import {
   type WriteFailure,
 } from "./transport";
 import "./journal.css";
+import "./entry.css";
 
 /** What the entry view knows about keeping the entry out of Claude's memory. */
 export type EntryMemory = {
@@ -55,6 +56,35 @@ export function useEntryMemory(
       if (failure) apply(failure.excluded);
     },
   };
+}
+
+/**
+ * "Utanför minnet" as a small chip in the tag chip's shape (28 px high, the same pill), with a crossed-out eye. It is a
+ * marker, not a control: nothing happens when it is pressed, the choice is made in the entry's ⋯. In a list row it is
+ * drawn in the row's tag size (entry.css).
+ */
+export function MemoryChip({ labels: t }: { labels: JournalLabels }) {
+  return (
+    <span className="journal-memory-chip">
+      <svg
+        viewBox="0 0 24 24"
+        width="14"
+        height="14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+        <path d="M4 4l16 16" />
+      </svg>
+      {t.entryOutOfMemory}
+    </span>
+  );
 }
 
 /** The line under a failed memory choice, with a retry. */

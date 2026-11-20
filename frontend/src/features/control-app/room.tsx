@@ -250,6 +250,25 @@ export function ControlRoom(props: RoomProps) {
       });
   }
 
+  /**
+   * The inline card's main link: the fullscreen view on the tab on screen. Where the host offers fullscreen it is
+   * asked for first (and may refuse, the card then stays); where it does not, the shell expands the view inline. Neither
+   * way: no link, the card lists all its rows.
+   */
+  function openFull(view: ControlViewName) {
+    const target = { room: "control" as const, view };
+    if (props.fullscreenAvailable === true)
+      props.transport
+        .requestDisplayMode("fullscreen")
+        .then((mode) => {
+          if (mode === "fullscreen") props.onModeGranted?.("full", target);
+        })
+        .catch(() => undefined);
+    else props.onModeGranted?.("full", target);
+  }
+  const canOpenFull =
+    props.fullscreenAvailable === true || props.onModeGranted !== undefined;
+
   // Inline the card names itself in its kicker; the full view names it with the title `control` under the shell's
   // Back (to the room), since Control is a step of the room it was opened from.
   const titled = props.mode === "inline";
@@ -270,6 +289,7 @@ export function ControlRoom(props: RoomProps) {
         void props.transport.updateModelContext(sentence)
       }
       onOpen={props.onNavigate}
+      onOpenFull={canOpenFull ? openFull : undefined}
     />
   );
 }

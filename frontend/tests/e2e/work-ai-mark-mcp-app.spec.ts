@@ -98,6 +98,15 @@ async function measure(app: FrameLocator, title: string, name: string) {
   });
 }
 
+/** Chooses the column tab `name` when the board shows column tabs (a phone's Status); nothing elsewhere. */
+async function inColumn(app: FrameLocator, name: string) {
+  const tabs = app.getByRole("group", { name: "Visa kolumn" });
+  if ((await tabs.count()) === 0) return;
+  await tabs
+    .getByRole("button", { name: new RegExp(`^${name}\\s+\\d+$`) })
+    .click();
+}
+
 async function metaHeight(app: FrameLocator, title: string) {
   return app
     .locator("li", { hasText: title })
@@ -118,9 +127,12 @@ for (const width of [320, 412])
       }) => {
         // A board result opens on Status, an agenda result on the Agenda.
         const app = await open(page, view, mode, width, theme);
+        // A phone's Status shows one column at a time: each card is measured under its own column tab.
+        await inColumn(app, "Att göra");
         const one = await measure(app, possible.title, "Möjlig med AI");
-        const two = await measure(app, approved.title, "AI-plan godkänd");
         const line = await metaHeight(app, plain.title);
+        await inColumn(app, "Pågår");
+        const two = await measure(app, approved.title, "AI-plan godkänd");
         for (const mark of [one, two]) {
           expect(mark.inMeta).toBe(true);
           expect(mark.inView).toBe(true);

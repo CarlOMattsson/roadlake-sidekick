@@ -190,6 +190,12 @@ export const shoppingEn = {
   /** The example under "No lists yet." and under an empty list: one sentence to say to Claude. */
   emptyListsExample: "Add milk and eggs to my shopping list",
   emptyListExample: (list: string) => `Add coffee to ${list}`,
+  /** The inline picker's heading, a count (design rule 1): "2 lists". */
+  listsCount: (count: number) => (count === 1 ? "1 list" : `${count} lists`),
+  /** The inline picker's open link (design rule 2): the room in fullscreen. */
+  openShopping: "Open Shopping",
+  /** The row menu's way out, beside the item's name. */
+  closeMenu: "Close menu",
 };
 export type ShoppingLabels = typeof shoppingEn;
 export const shoppingSv: ShoppingLabels = {
@@ -344,4 +350,7 @@ export const shoppingSv: ShoppingLabels = {
   archivedLists: (count: number) => `Arkiverade (${count})`,
   emptyListsExample: "Lägg till mjölk och ägg på inköpslistan",
   emptyListExample: (list: string) => `Lägg till kaffe på listan ${list}`,
+  listsCount: (count: number) => (count === 1 ? "1 lista" : `${count} listor`),
+  openShopping: "Öppna Inköp",
+  closeMenu: "Stäng menyn",
 };

@@ -6,7 +6,7 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { boughtOnText, buyAgainUsed, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
-import { hasQuickChanges, moveTargets, RowMenu, RowQuick } from "./row-quick";
+import { hasQuickChanges, hasRowMenu, RowMenu, RowQuick } from "./row-quick";
 import {
   heldStatus,
   heldWord,
@@ -39,12 +39,15 @@ export function StoreRow({
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
-  // A bought row is done: it keeps its name, and under the `boughtCount` fold the day it was bought.
-  const meta = item.purchased
-    ? inPlace
-      ? ""
-      : boughtOnText(item, t)
-    : itemMeta(item, t);
+  // A bought row is done: it keeps its name, and under the `boughtCount` fold the day it was bought. The folded card
+  // (one phone screen) draws the name and amount only; the row opens the rest, as "Show all" and the full list show it.
+  const meta = env.folded
+    ? ""
+    : item.purchased
+      ? inPlace
+        ? ""
+        : boughtOnText(item, t)
+      : itemMeta(item, t);
   // A row that cannot be changed (an archived list, or a change still in the phone's outbox) cannot be opened either.
   const locked = env.archived || item.id in env.waiting;
   // An open row can step its amount and move to another list without opening the change form.
@@ -143,7 +146,7 @@ export function StoreRow({
           />
         )}
       </div>
-      {quick && menuOpen && moveTargets(item, env).length > 0 && (
+      {quick && menuOpen && hasRowMenu(item, env) && (
         <RowMenu
           item={item}
           env={env}

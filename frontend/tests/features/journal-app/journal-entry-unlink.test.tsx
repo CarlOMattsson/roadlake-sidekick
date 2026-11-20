@@ -8,6 +8,8 @@ import {
   journalSv,
   type JournalLabels,
 } from "@/features/journal-app/labels";
+import { receiptText } from "@/features/journal-app/receipt-text";
+import { ReceiptBar, useReceipt } from "@/features/mcp-apps/ui/receipt";
 import type {
   JournalEntry,
   JournalLinkChange,
@@ -83,18 +85,23 @@ function Harness({
   withWrite?: boolean;
 }) {
   const [entry, setEntry] = useState(initial);
+  const receipt = useReceipt(initial.id);
   const transport = (
     withWrite ? { updateEntryLinks: write } : {}
   ) as JournalTransport;
   return (
-    <EntryLinks
-      entry={entry}
-      labels={labels}
-      transport={transport}
-      onOpenContact={onOpenContact}
-      onChanged={setEntry}
-      onConflict={onConflict}
-    />
+    <>
+      <EntryLinks
+        entry={entry}
+        labels={labels}
+        transport={transport}
+        receipt={receipt}
+        onOpenContact={onOpenContact}
+        onChanged={setEntry}
+        onConflict={onConflict}
+      />
+      <ReceiptBar receipt={receipt} />
+    </>
   );
 }
 
@@ -164,7 +171,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
         initial={{ ...created, links: [] }}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(container.querySelector(".journal-entry-links")).toBeNull();
     rerender(
       <Harness
         key="2"
@@ -173,7 +180,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
         initial={{ ...created, links: undefined }}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+    expect(container.querySelector(".journal-entry-links")).toBeNull();
   });
 
   it("shows the names without remove buttons when the transport cannot write links", () => {
@@ -248,26 +255,31 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
       const onChanged = vi.fn();
       const Wrapper = () => {
         const [entry, setEntry] = useState(created);
+        const receipt = useReceipt(entry.id);
         return (
-          <EntryLinks
-            entry={entry}
-            labels={t}
-            transport={
-              { updateEntryLinks: write } as unknown as JournalTransport
-            }
-            onChanged={(next) => {
-              onChanged(next);
-              setEntry(next);
-            }}
-            onConflict={() => undefined}
-          />
+          <>
+            <EntryLinks
+              entry={entry}
+              labels={t}
+              transport={
+                { updateEntryLinks: write } as unknown as JournalTransport
+              }
+              receipt={receipt}
+              onChanged={(next) => {
+                onChanged(next);
+                setEntry(next);
+              }}
+              onConflict={() => undefined}
+            />
+            <ReceiptBar receipt={receipt} />
+          </>
         );
       };
       render(<Wrapper />);
       await removeLink("Anna Berg");
 
       expect(
-        await screen.findByText(t.linkRemoved("Anna Berg")),
+        await screen.findByText(receiptText(t.linkRemoved("Anna Berg"))),
       ).toBeInTheDocument();
       expect(write).toHaveBeenCalledWith(
         entryId,
@@ -304,7 +316,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
       expect.any(String),
     );
     expect(
-      await screen.findByText(t.linkRemoved("Offert Norr")),
+      await screen.findByText(receiptText(t.linkRemoved("Offert Norr"))),
     ).toBeInTheDocument();
   });
 
@@ -312,14 +324,14 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
     const write = standardWrite();
     render(<Harness write={write} labels={t} />);
     await removeLink("Anna Berg");
-    await screen.findByText(t.linkRemoved("Anna Berg"));
+    await screen.findByText(receiptText(t.linkRemoved("Anna Berg")));
     const removeKey = (write.mock.calls[0] as unknown[])[3];
 
     await userEvent.click(screen.getByRole("button", { name: t.undo }));
 
     await waitFor(() =>
       expect(
-        screen.queryByText(t.linkRemoved("Anna Berg")),
+        screen.queryByText(receiptText(t.linkRemoved("Anna Berg"))),
       ).not.toBeInTheDocument(),
     );
     expect(write).toHaveBeenLastCalledWith(
@@ -372,7 +384,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
     await screen.findByRole("alert");
 
     await removeLink("Anna Berg");
-    await screen.findByText(t.linkRemoved("Anna Berg"));
+    await screen.findByText(receiptText(t.linkRemoved("Anna Berg")));
 
     expect(write).toHaveBeenCalledTimes(2);
     expect((write.mock.calls[1] as unknown[])[3]).toBe(
@@ -396,7 +408,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
     expect(onConflict).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the Undo line and shows an alert when Undo fails", async () => {
+  it("shows an alert when Undo fails and the link stays removed", async () => {
     const write = vi.fn<Write>((_id, version, change) =>
       change.add_contact_ids
         ? Promise.reject(new Error("Host request failed"))
@@ -406,15 +418,16 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
     );
     render(<Harness write={write} labels={t} />);
     await removeLink("Anna Berg");
-    await screen.findByText(t.linkRemoved("Anna Berg"));
+    await screen.findByText(receiptText(t.linkRemoved("Anna Berg")));
 
     await userEvent.click(screen.getByRole("button", { name: t.undo }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       t.linkRestoreFailed,
     );
-    expect(screen.getByText(t.linkRemoved("Anna Berg"))).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: t.undo })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: t.linkRemove("Anna Berg") }),
+    ).not.toBeInTheDocument();
   });
 
   it("disables the link buttons while a link write waits for the host", async () => {
@@ -435,7 +448,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
       answer({ entry: without(created, projectOffer, 4) });
     });
     expect(
-      await screen.findByText(t.linkRemoved("Offert Norr")),
+      await screen.findByText(receiptText(t.linkRemoved("Offert Norr"))),
     ).toBeInTheDocument();
     expect(removeButton("Anna Berg")).toBeEnabled();
   });
@@ -483,7 +496,7 @@ describe.each(sets)("EntryLinks (%s)", (_name, t) => {
 
       await userEvent.click(removeButton("Anna Berg"));
       await userEvent.click(confirm());
-      await screen.findByText(t.linkRemoved("Anna Berg"));
+      await screen.findByText(receiptText(t.linkRemoved("Anna Berg")));
 
       expect(screen.getByRole("group", { name: t.linked })).toHaveFocus();
     });

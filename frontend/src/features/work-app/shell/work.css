@@ -864,6 +864,36 @@
   font: var(--sk-type-section);
   color: var(--sk-fg);
 }
+/* The phone's column tabs (ColumnTabs): one status at a time, the counts in the tabs. They sit 8 under the tab row and the
+   first row 12 under them; the section's own heading is left to the tab (visually hidden). */
+.sidekick-work .work-board[data-layout="single"] .work-column-tabs {
+  margin: var(--sk-s2) 0 var(--sk-s3);
+}
+/* Each tab is two lines, the status over its count, so all four fit side by side from 320 px with no tab wrapping on
+   its own. The 2 px outline, the fill and 600 say which is chosen: the tick is left out here, it would push the
+   longest name ("Blockerad") onto a third line. */
+.sidekick-work .work-column-tabs .sk-segmented .sk-segmented__option {
+  flex: 1 1 auto;
+  padding-inline: var(--sk-s1);
+}
+.sidekick-work .work-column-tabs .sk-segmented__label {
+  white-space: pre-line;
+  font-variant-numeric: tabular-nums;
+}
+.sidekick-work
+  .work-column-tabs
+  .sk-segmented__option[aria-pressed="true"]
+  > .sk-segmented__label::before {
+  content: none;
+}
+.sidekick-work
+  .work-board[data-layout="single"]
+  .work-column
+  > .work-column-empty {
+  margin: var(--sk-s3) 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
 /* The first heading rests ≈ 10 under the tab row's edge, glyph to edge, as the agenda's. */
 .sidekick-work .work-board[data-layout="single"] .work-column:first-child > h3 {
   margin-top: var(--sk-s2);

@@ -2,6 +2,7 @@
 import { appendBoardPage, cardKey, shownOrder } from "../shared/work-items";
 import type { AgendaUndo } from "../agenda/agenda-undo";
 import {
+  TASK_STATUSES,
   isTaskStatus,
   type TaskStatusValue,
   type WorkBoardFrame,
@@ -76,6 +77,44 @@ export function unshownIn(page: BoardPage, segment: string): number {
       Math.max(0, (totals[column] ?? 0) - (page.columns[column]?.length ?? 0)),
     0,
   );
+}
+
+/** One Task status column's first page, read on its own (see `columnsToFill`). */
+export type ColumnRead = { status: TaskStatusValue; page: BoardPage };
+
+/**
+ * The Task status columns the server counts records in (`column_totals`) while the page shows none: the board's pages
+ * run across every column in board order, so a long column can fill the first page and leave the others empty with only
+ * a "Show more". Those columns read their own first page. A column whose own read already ended (cursor null) is not
+ * asked again, and on a board filtered to one status only that column is looked at.
+ */
+export function columnsToFill(source: WorkBoardFrame): TaskStatusValue[] {
+  const { page, filters, columnCursors } = source;
+  const totals = page.column_totals;
+  if (!totals) return [];
+  const only = typeof filters.status === "string" ? filters.status : "";
+  return TASK_STATUSES.filter(
+    (status) =>
+      (only === "" || only === status) &&
+      (totals[status] ?? 0) > 0 &&
+      (page.columns[status]?.length ?? 0) === 0 &&
+      columnCursors?.[status] !== null,
+  );
+}
+
+/** The frame with the columns' own first pages merged in; each column goes on from the cursor its read gave (null: whole). */
+export function withColumnsRead(
+  source: WorkBoardFrame,
+  reads: ColumnRead[],
+): WorkBoardFrame {
+  if (reads.length === 0) return source;
+  let page = source.page;
+  const columnCursors = { ...source.columnCursors };
+  for (const { status, page: later } of reads) {
+    page = withColumnPage(page, later).page;
+    columnCursors[status] = later.next_cursor ?? null;
+  }
+  return { ...source, page, columnCursors };
 }
 
 /** The totals after one record moved from one status column to another on the page (see column_totals). */

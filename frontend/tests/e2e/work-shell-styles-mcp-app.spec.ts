@@ -151,7 +151,7 @@ test("Work fullscreen: the tab row and the room strip stay stuck under each othe
   expect(failures).toEqual([]);
 });
 
-test("Kontroll: the segmented tabs are 48 high and stick under the room strip when the rows scroll", async ({
+test("Kontroll: the tabs are 48 high and stick under the room strip when the rows scroll", async ({
   page,
 }) => {
   const { app, failures } = await openSidekick(page, {
@@ -162,9 +162,9 @@ test("Kontroll: the segmented tabs are 48 high and stick under the room strip wh
     replies: controlReplies,
   });
   await settled(app);
-  const group = app.locator(".sidekick-control .sk-segmented").first();
+  const group = app.locator(".sidekick-control .sk-tabs").first();
   await expect(group).toBeVisible();
-  for (const option of await group.locator(".sk-segmented__option").all())
+  for (const option of await group.locator(".sk-tabs__tab").all())
     expect((await box(option)).height).toBe(48);
   await app.locator("html").evaluate((html) => {
     html.scrollTop = html.scrollHeight;

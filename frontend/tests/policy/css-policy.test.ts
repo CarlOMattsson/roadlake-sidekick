@@ -303,7 +303,10 @@ describe("the design tokens", () => {
   it("the progress bar reads host text colours first", () => {
     const progress = readCss("mcp-apps/ui/progress.css").replace(/\s+/g, " ");
     expect(progress).toMatch(/var\(\s*--color-text-secondary,\s*light-dark\(/);
-    expect(progress).toMatch(/var\(\s*--color-text-info,\s*light-dark\(/);
+    // One colour for every progress bar since 2026-11-20 (helhet rule 8): the text colour, which reads the host's
+    // --color-text-primary first (tokens.css); blue is the focus ring's alone.
+    expect(progress).toMatch(/var\(\s*--sk-fg,\s*light-dark\(/);
+    expect(tokens).toMatch(/--sk-fg:\s*var\(\s*--color-text-primary/);
   });
 
   it("has no tonal tokens", () => {

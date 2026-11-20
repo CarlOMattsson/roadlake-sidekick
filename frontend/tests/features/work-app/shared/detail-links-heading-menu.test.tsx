@@ -308,7 +308,9 @@ describe("ContactWays", () => {
         name: new RegExp(`^${hierarchyDetailLabelsEn.waysToReach}`),
       }),
     );
-    const mail = screen.getByRole("link", { name: anna.email as string });
+    const mail = screen.getByRole("link", {
+      name: `Email ${anna.email as string}`,
+    });
     expect(mail).toHaveAttribute("href", `mailto:${anna.email}`);
     await user.click(mail);
     expect(onOpenLink).toHaveBeenCalledTimes(1);

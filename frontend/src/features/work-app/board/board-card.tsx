@@ -11,6 +11,7 @@ import {
 import { fillLabel } from "../agenda/agenda-undo";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { RecordMeta } from "../shared/record-meta";
+import { WaitingMeta } from "../shared/waiting-meta";
 import { boardLabelsFor } from "./board-labels";
 import {
   RowMenuButton,
@@ -236,7 +237,12 @@ export function BoardCard({
       {/* The single layout's rows end in › like every row that opens a view (§3, Chevronregeln); Ångra takes its
           place. */}
       {single && !undo && <OpenChevron />}
-      {undo ?? <RecordMeta item={item} labels={t} now={now} inStatus />}
+      {undo ?? (
+        <>
+          <RecordMeta item={item} labels={t} now={now} inStatus />
+          <WaitingMeta item={item} now={now} dateLocale={t.dateLocale} />
+        </>
+      )}
       {queued && <span className="sk-queued">{t.queued}</span>}
       {open && (
         <div

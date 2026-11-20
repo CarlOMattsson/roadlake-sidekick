@@ -1,4 +1,6 @@
-import { ChipChoices } from "./chip-choices";
+import { ownerDayNumber, parseDueDay, workDate } from "../../mcp-apps/ui/due";
+import { ChipChoices, PropLabel } from "./chip-choices";
+import { dayText, nextOccurrenceDay, weekdayOf } from "./repeat-next";
 import type { TaskPlaceLabels } from "./task-place-labels";
 import type { WorkTask, WorkTaskChanges } from "../transport/transport";
 
@@ -85,6 +87,7 @@ export function TaskRepeat({
   words,
   writable,
   busy,
+  dueAt,
   onChoose,
 }: {
   rule: WorkTask["recurrence"];
@@ -92,15 +95,23 @@ export function TaskRepeat({
   words: TaskPlaceLabels;
   writable: boolean;
   busy: boolean;
+  /** The Task's due date, which a monthly rule counts its months from. */
+  dueAt?: string | null;
   onChoose: (changes: WorkTaskChanges) => void;
 }) {
   const current = rule ?? null;
   const choice = choiceOf(current);
-  const text = current ? words.repeats(current) : words.repeatsNot;
+  // The row's value: the rule in short ("Varje måndag"), its name ("Upprepas") stands before it.
+  const shown = current
+    ? capitalFirst(words.repeatsShort(current))
+    : words.repeatNever;
 
   if (!writable)
     return current ? (
-      <span className="sk-chip work-prop-chip work-prop-static">{text}</span>
+      <span className="sk-chip work-prop-chip work-prop-static">
+        <PropLabel text={words.props.repeat} />
+        <span>{shown}</span>
+      </span>
     ) : null;
 
   const value = current ? (choice ?? CURRENT) : "none";
@@ -119,35 +130,114 @@ export function TaskRepeat({
   return (
     <>
       <ChipChoices
-        name={`${words.changeRepeat}: ${text}`}
-        text={text}
+        // The name holds the row's visible text ("Upprepas varje vecka", axe label-content-name-mismatch).
+        name={`${words.changeRepeat}: ${words.props.repeat} ${current ? words.repeatsShort(current) : words.repeatNever.toLowerCase()}`}
+        label={words.props.repeat}
+        text={shown}
         groupLabel={words.repeatPickerFor(title)}
         options={options}
         value={value}
         busy={busy}
         onChoose={(next) => onChoose(repeatChanges(next, current))}
       />
-      {current?.frequency === "weekly" && (
+      {current && (
         <div
           role="group"
-          aria-label={words.repeatWeekdaysFor(title)}
-          className="work-chip-choices work-weekday-choices"
+          aria-label={words.repeatDetailsFor(title)}
+          className="work-repeat-details"
         >
-          {words.weekdayNames.short.map((name, day) => (
-            <button
-              key={name}
-              type="button"
-              className="sk-chip"
-              aria-label={words.weekdayNames.full[day]}
-              aria-pressed={(current.weekdays ?? []).includes(day)}
-              disabled={busy}
-              onClick={() => onChoose(toggledWeekday(current, day))}
-            >
-              {name}
-            </button>
-          ))}
+          {current.frequency === "weekly" && (
+            <WeekdayChoices
+              rule={current}
+              title={title}
+              words={words}
+              busy={busy}
+              onChoose={onChoose}
+            />
+          )}
+          <NextLine rule={current} dueAt={dueAt} words={words} />
         </div>
       )}
     </>
   );
+}
+
+/**
+ * The seven weekday buttons of a weekly rule under their question, on one row of seven equal columns. Two letters stand
+ * on the button when the row is narrow (a phone at 320 px); the full name is always its accessible name. With none
+ * chosen, a hint says what the server does: it repeats a whole number of weeks after the Task is completed.
+ */
+function WeekdayChoices({
+  rule,
+  title,
+  words,
+  busy,
+  onChoose,
+}: {
+  rule: Rule;
+  title: string;
+  words: TaskPlaceLabels;
+  busy: boolean;
+  onChoose: (changes: WorkTaskChanges) => void;
+}) {
+  const chosen = rule.weekdays ?? [];
+  return (
+    <div className="work-weekday-block">
+      <p className="work-repeat-question">{words.weekdaysQuestion}</p>
+      <div
+        role="group"
+        aria-label={words.repeatWeekdaysFor(title)}
+        className="work-weekday-choices"
+      >
+        {words.weekdayNames.short.map((name, day) => (
+          <button
+            key={name}
+            type="button"
+            className="sk-chip"
+            aria-label={words.weekdayNames.full[day]}
+            aria-pressed={chosen.includes(day)}
+            disabled={busy}
+            onClick={() => onChoose(toggledWeekday(rule, day))}
+          >
+            <span className="work-day-long">{name}</span>
+            <span className="work-day-short" aria-hidden="true">
+              {name.slice(0, 2)}
+            </span>
+          </button>
+        ))}
+      </div>
+      {chosen.length === 0 && (
+        <p className="work-repeat-hint">{words.noWeekdayHint(rule.interval)}</p>
+      )}
+    </div>
+  );
+}
+
+/** "Nästa gång: tis 24 nov": when the rule falls next if the Task is completed today; nothing when the rule has ended. */
+function NextLine({
+  rule,
+  dueAt,
+  words,
+}: {
+  rule: Rule;
+  dueAt: string | null | undefined;
+  words: TaskPlaceLabels;
+}) {
+  const now = new Date();
+  const next = nextOccurrenceDay(rule, ownerDayNumber(now), parseDueDay(dueAt));
+  if (next === null) return null;
+  const date = workDate(dayText(next), now, words.dateLocale, {
+    inline: true,
+    relative: false,
+    weekday: false,
+  });
+  const weekday = words.weekdayNames.short[weekdayOf(next)];
+  return (
+    <p className="work-repeat-next">{words.repeatNext(`${weekday} ${date}`)}</p>
+  );
+}
+
+/** The text with its first letter in capitals: the short rule starts a row's value. */
+function capitalFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }

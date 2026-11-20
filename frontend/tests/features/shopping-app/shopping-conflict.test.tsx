@@ -91,7 +91,9 @@ it("a conflict reads the list again, shows the change notice and offers no retry
   );
   await waitLoaded();
 
-  await user.click(screen.getByRole("checkbox", { name: /Milk/ }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+  );
   await waitFor(() =>
     expect(screen.getByRole("alert")).toHaveTextContent(shoppingEn.conflict),
   );
@@ -104,7 +106,9 @@ it("a conflict reads the list again, shows the change notice and offers no retry
   await waitLoaded();
 
   // The next tap is a new write against the new version, with a new key.
-  await user.click(screen.getByRole("checkbox", { name: /Milk/ }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+  );
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
   const [first, second] = vi.mocked(transport.purchase).mock.calls;
   expect(first![0].version).toBe(1);
@@ -125,7 +129,9 @@ it("an HTTP 409 counts as a conflict too", async () => {
   );
   await waitLoaded();
 
-  await user.click(screen.getByRole("checkbox", { name: /Milk/ }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+  );
   await waitFor(() =>
     expect(screen.getByRole("alert")).toHaveTextContent(shoppingEn.conflict),
   );
@@ -144,7 +150,9 @@ it("a failure that is not a conflict keeps the generic message and Try again", a
   );
   await waitLoaded();
 
-  await user.click(screen.getByRole("checkbox", { name: /Milk/ }));
+  await user.click(
+    screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
+  );
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: shoppingEn.retry }),

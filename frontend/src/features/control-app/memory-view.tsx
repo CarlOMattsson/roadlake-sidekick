@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import type { ControlLabels } from "./labels";
-import { ControlRow, NoticeLine, type Notice } from "./control-parts";
+import {
+  ControlRow,
+  NoticeLine,
+  ViewOpenLink,
+  type Notice,
+} from "./control-parts";
 import { PauseIcon, PlayIcon } from "../mcp-apps/ui/icons";
+import { MessageBox } from "../mcp-apps/ui/message-box";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
+import { Switch } from "../mcp-apps/ui/switch";
 import { MemorySearch, SourceRecall, recallTools } from "./memory-recall";
 import {
   DOMAIN_KIND,
@@ -25,9 +33,9 @@ type PendingOff = {
 };
 
 /**
- * Memory as an inline card. The first line says on, paused or off; when the provider is off or a test
- * one, the headline says so in warning colour and a warning line explains it. Under it, one row per
- * domain with its stored count and a visible On/Off switch. Turning a domain on or pausing is sent at
+ * Memory as an inline card. A message box leads the view when the provider is off (warning) or a test one (info);
+ * nothing in the card can fix that, so it has no button. Then the first line says on, paused or off. Under it, one row per
+ * domain with its stored count and a visible On/Off switch. A saved change says so in the receipt bar. Turning a domain on or pausing is sent at
  * once. Turning a domain off first asks the host (set_memory_settings without confirm), which changes
  * nothing and answers needs_confirmation with what would be deleted. Only the owner's explicit
  * "Delete the memory of ..." sends confirm: true; Cancel sends nothing.
@@ -41,6 +49,7 @@ export function MemoryView({
   labels,
   onData,
   onModelContext,
+  onOpenFull,
   recall = true,
 }: {
   initial: MemoryStatus;
@@ -50,6 +59,8 @@ export function MemoryView({
   onData?: (data: MemoryStatus) => void;
   /** Called once a memory change is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
+  /** Opens this view in fullscreen (the inline card's main link); absent: the card has no link. */
+  onOpenFull?: () => void;
   /**
    * The full view's parts: the sentence on what the memory is, `recallShow` and the search. The full view only: the inline card stays one phone screen of
    * status and switches, and Öppna leads to the rest.
@@ -60,6 +71,7 @@ export function MemoryView({
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState<PendingOff | undefined>();
   const [notice, setNotice] = useState<Notice | undefined>();
+  const receipt = useReceipt();
   /** Domains switched off with confirm; their count reads "deleting" until a later status read. */
   const [deleting, setDeleting] = useState<MemoryDomain[]>([]);
   const confirmRef = useRef<HTMLDivElement>(null);
@@ -88,6 +100,12 @@ export function MemoryView({
     } catch {
       if (fallback) change((current) => ({ ...current, settings: fallback }));
     }
+  }
+
+  /** A fact was forgotten: the receipt says so (the sentence comes from the list) and the counts are read again. */
+  function forgotten(message: string) {
+    receipt.show({ message });
+    void readAgain();
   }
 
   async function send(
@@ -125,23 +143,19 @@ export function MemoryView({
           ...current.filter((domain) => domain !== removed),
           removed,
         ]);
-        setNotice({
-          tone: "ok",
-          text: labels.deletionStarted(removed),
-        });
+        receipt.show({ message: labels.deletionStarted(removed) });
       } else {
-        setNotice({ tone: "ok", text: labels.memorySaved });
+        receipt.show({ message: labels.memorySaved });
       }
       await readAgain(result.settings, removed !== undefined);
     } catch (error) {
       setConfirming(undefined);
       const failure = writeFailure(error);
       if (failure === "conflict") {
-        setNotice({ tone: "error", text: labels.memoryConflict });
+        setNotice({ text: labels.memoryConflict });
         await readAgain();
       } else {
         setNotice({
-          tone: "error",
           text:
             failure === "forbidden"
               ? labels.memoryForbidden
@@ -157,189 +171,176 @@ export function MemoryView({
     }
   }
 
-  const providerNote =
-    status.provider === "off"
-      ? labels.providerOff
-      : status.provider === "fake"
-        ? labels.providerFake
-        : undefined;
-  const providerHeadline =
-    status.provider === "off"
-      ? labels.memoryOnProviderOff
-      : status.provider === "fake"
-        ? labels.memoryFakeProvider
-        : undefined;
-  const warningHeadline =
-    anyOn && !settings.paused && providerHeadline !== undefined;
   const headline = !anyOn
     ? labels.memoryOff
     : settings.paused
       ? labels.memoryPaused
-      : (providerHeadline ?? labels.memoryOn);
+      : labels.memoryOn;
 
   return (
-    <div className="control-view">
-      {/* The memory's own row : `memoryOn` with its meta, how many sources are on, alone on
+    <>
+      <div className="control-view">
+        {/* The view's one message about the service, at its top: off is a warning, a test service is for information. The
+          card has no way to turn the service on, so neither has a button. */}
+        {status.provider === "off" ? (
+          <MessageBox severity="warning" title={labels.providerOffTitle}>
+            {labels.providerOff}
+          </MessageBox>
+        ) : status.provider === "fake" ? (
+          <MessageBox severity="info" title={labels.providerFakeTitle}>
+            {labels.providerFake}
+          </MessageBox>
+        ) : null}
+        {/* The memory's own row : `memoryOn` with its meta, how many sources are on, alone on
           its line. Under it `pause` is the list's action row (row.css .sk-action-row, as `moveAllOverdue`
           and `addStep`): a pause glyph in the leading column and the text at 500, a global action and no source;
           the screen has no ink. */}
-      <div className="control-headrow">
-        <div className="control-headrow-text">
-          <h2
-            className={
-              warningHeadline
-                ? "control-heading sk-card__title control-heading-warning"
-                : "control-heading sk-card__title"
-            }
-          >
-            {headline}
-          </h2>
-          <p className="control-headrow-meta">
-            {labels.sourcesOn(
-              MEMORY_DOMAINS.filter((domain) => settings[domain]).length,
-              MEMORY_DOMAINS.length,
-            )}
-          </p>
-          {/* What the memory is and where it goes: in the full view, beside what it holds. The inline card stays one
+        <div className="control-headrow">
+          <div className="control-headrow-text">
+            <h2 className="control-heading sk-card__title">{headline}</h2>
+            <p className="control-headrow-meta">
+              {labels.sourcesOn(
+                MEMORY_DOMAINS.filter((domain) => settings[domain]).length,
+                MEMORY_DOMAINS.length,
+              )}
+            </p>
+            {/* What the memory is and where it goes: in the full view, beside what it holds. The inline card stays one
               phone screen of status and switches (owner's rule); Öppna leads here. */}
-          {recall && <p className="control-explain">{labels.memoryExplain}</p>}
-        </div>
-      </div>
-      {anyOn ? (
-        <button
-          type="button"
-          className="sk-action-row control-pause"
-          disabled={busy || confirming !== undefined}
-          onClick={() => void send({ paused: !settings.paused })}
-        >
-          {settings.paused ? <PlayIcon /> : <PauseIcon />}
-          {busy
-            ? labels.memoryBusy
-            : settings.paused
-              ? labels.resume
-              : labels.pause}
-        </button>
-      ) : null}
-      {providerNote ? (
-        <p className="sk-notice sk-notice--warning control-notice control-notice-warning">
-          {providerNote}
-        </p>
-      ) : null}
-      <NoticeLine notice={notice} locale={labels.locale} />
-      <h3 className="control-section">{labels.sourcesTitle}</h3>
-      <ul
-        className={
-          settings.paused
-            ? "control-list control-list-wrap control-list-paused"
-            : "control-list control-list-wrap"
-        }
-        aria-label={labels.views.memory}
-      >
-        {MEMORY_DOMAINS.map((domain) => {
-          const on = settings[domain];
-          const name = labels.domains[domain];
-          return (
-            <ControlRow
-              key={domain}
-              primary={name}
-              secondary={
-                // The state leads the meta line: the switch carries no word of its own.
-                on
-                  ? `${settings.paused ? labels.domainOnPaused : labels.domainOn} · ${countText(
-                      status,
-                      domain,
-                      labels,
-                      deleting.includes(domain),
-                      held,
-                    )}`
-                  : `${labels.domainOff} · ${countText(status, domain, labels, deleting.includes(domain), held)}`
-              }
-              below={
-                tools && on ? (
-                  <SourceRecall
-                    kind={DOMAIN_KIND[domain]}
-                    name={name}
-                    tools={tools}
-                    labels={labels}
-                    onForgotten={() => void readAgain()}
-                    onModelContext={onModelContext}
-                  />
-                ) : undefined
-              }
-              action={
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={on}
-                  aria-label={labels.domainLabel(name, on)}
-                  className="control-switch"
-                  data-on={on ? "true" : "false"}
-                  disabled={busy || confirming !== undefined}
-                  onClick={() => void send({ domain, value: !on })}
-                >
-                  <span className="control-switch-track" aria-hidden="true">
-                    <span className="control-switch-knob" />
-                  </span>
-                </button>
-              }
-            />
-          );
-        })}
-      </ul>
-      {confirming ? (
-        <div
-          ref={confirmRef}
-          tabIndex={-1}
-          role="group"
-          aria-labelledby="control-confirm-title"
-          className="control-confirm"
-        >
-          <p id="control-confirm-title" className="control-confirm-title">
-            {labels.confirmTitle(confirming.domain)}
-          </p>
-          <p>
-            {labels.confirmCount(confirming.domain, confirming.documents)}{" "}
-            {labels.confirmCost}
-          </p>
-          <div className="control-confirm-actions">
-            {/* Cancel comes first in the DOM, so Tab reaches the safe button before the red one. */}
-            <button
-              type="button"
-              className="sk-btn--quiet"
-              disabled={busy}
-              onClick={() => setConfirming(undefined)}
-            >
-              {labels.confirmNo}
-            </button>
-            <button
-              type="button"
-              className="sk-btn--danger control-confirm-yes"
-              disabled={busy}
-              onClick={() =>
-                void send(
-                  {
-                    domain: confirming.domain,
-                    value: false,
-                    confirm: true,
-                  },
-                  confirming.version,
-                )
-              }
-            >
-              {labels.confirmYes(confirming.domain)}
-            </button>
+            {recall && (
+              <p className="control-explain">{labels.memoryExplain}</p>
+            )}
           </div>
         </div>
-      ) : null}
-      {tools && anyOn ? (
-        <MemorySearch
-          tools={tools}
+        {anyOn ? (
+          <button
+            type="button"
+            className="sk-action-row control-pause"
+            disabled={busy || confirming !== undefined}
+            onClick={() => void send({ paused: !settings.paused })}
+          >
+            {settings.paused ? <PlayIcon /> : <PauseIcon />}
+            {busy
+              ? labels.memoryBusy
+              : settings.paused
+                ? labels.resume
+                : labels.pause}
+          </button>
+        ) : null}
+        <NoticeLine notice={notice} locale={labels.locale} />
+        <h3 className="control-section">{labels.sourcesTitle}</h3>
+        <ul
+          className={
+            settings.paused
+              ? "control-list control-list-wrap control-list-paused"
+              : "control-list control-list-wrap"
+          }
+          aria-label={labels.views.memory}
+        >
+          {MEMORY_DOMAINS.map((domain) => {
+            const on = settings[domain];
+            const name = labels.domains[domain];
+            return (
+              <ControlRow
+                key={domain}
+                primary={name}
+                secondary={
+                  // The state leads the meta line: the switch carries no word of its own.
+                  on
+                    ? `${settings.paused ? labels.domainOnPaused : labels.domainOn} · ${countText(
+                        status,
+                        domain,
+                        labels,
+                        deleting.includes(domain),
+                        held,
+                      )}`
+                    : `${labels.domainOff} · ${countText(status, domain, labels, deleting.includes(domain), held)}`
+                }
+                below={
+                  tools && on ? (
+                    <SourceRecall
+                      kind={DOMAIN_KIND[domain]}
+                      name={name}
+                      tools={tools}
+                      labels={labels}
+                      onForgotten={forgotten}
+                      onModelContext={onModelContext}
+                    />
+                  ) : undefined
+                }
+                action={
+                  <Switch
+                    checked={on}
+                    label={labels.domainLabel(name, on)}
+                    disabled={busy || confirming !== undefined}
+                    onChange={(next) => void send({ domain, value: next })}
+                  />
+                }
+              />
+            );
+          })}
+        </ul>
+        {confirming ? (
+          <div
+            ref={confirmRef}
+            tabIndex={-1}
+            role="group"
+            aria-labelledby="control-confirm-title"
+            className="control-confirm"
+          >
+            <p id="control-confirm-title" className="control-confirm-title">
+              {labels.confirmTitle(confirming.domain)}
+            </p>
+            <p>
+              {labels.confirmCount(confirming.domain, confirming.documents)}{" "}
+              {labels.confirmCost}
+            </p>
+            <div className="control-confirm-actions">
+              {/* Cancel comes first in the DOM, so Tab reaches the safe button before the red one. */}
+              <button
+                type="button"
+                className="sk-btn--quiet"
+                disabled={busy}
+                onClick={() => setConfirming(undefined)}
+              >
+                {labels.confirmNo}
+              </button>
+              <button
+                type="button"
+                className="sk-btn--danger control-confirm-yes"
+                disabled={busy}
+                onClick={() =>
+                  void send(
+                    {
+                      domain: confirming.domain,
+                      value: false,
+                      confirm: true,
+                    },
+                    confirming.version,
+                  )
+                }
+              >
+                {labels.confirmYes(confirming.domain)}
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {tools && anyOn ? (
+          <MemorySearch
+            tools={tools}
+            labels={labels}
+            onForgotten={forgotten}
+            onModelContext={onModelContext}
+          />
+        ) : null}
+        <ViewOpenLink
           labels={labels}
-          onForgotten={() => void readAgain()}
-          onModelContext={onModelContext}
+          view="memory"
+          full={recall}
+          onOpenFull={onOpenFull}
         />
-      ) : null}
-    </div>
+      </div>
+      <ReceiptBar receipt={receipt} />
+    </>
   );
 }
 

@@ -758,23 +758,26 @@
   min-width: var(--sk-tap);
 }
 
-/* A waiting Task's own line under its meta line: who it waits on, since when, and the follow-up day. The meta line is
-   one clipped line; this one may wrap at word breaks, so nothing is cut at 360 px or large text. It sits as close under
-   the meta as the meta sits under the title (the meta's own 6 under it are taken back). */
-.sidekick-work .work-agenda-body > .work-agenda-waiting {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 var(--sk-s2);
+/* A waiting Task's own line under its meta line (WaitingMeta): who it waits on and since when, then the one date the meta
+   line does not carry. It is a meta line itself (.work-card-meta, whose parts hang their "·" in the gap, so a wrapped line
+   never starts with one), but its parts may wrap at word breaks, so nothing is cut at 360 px or large text. In the
+   Agenda it sits as close under the meta as the meta sits under the title (the meta's own 6 under it are taken back);
+   on the Status board it is the card's third row. */
+.sidekick-work .work-card-meta.work-agenda-waiting {
   margin: 0 0 var(--sk-row-pad);
-  font: var(--sk-type-meta);
-  color: var(--sk-muted);
   overflow-wrap: anywhere;
+}
+.sidekick-work .work-card-meta.work-agenda-waiting > * {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
 }
 .sidekick-work .work-agenda-body > .work-card-meta + .work-agenda-waiting {
   margin-top: calc(-1 * var(--sk-row-pad));
 }
-.sidekick-work .work-agenda-waiting > span + span::before {
-  content: "· ";
+.sidekick-work .work-list > li.work-card > .work-card-meta.work-agenda-waiting {
+  grid-row: 3;
+  margin: 0;
 }
 
 /* The waiting view: each row names who is waited on and for how long, then the Task, then a "Påminn" button.
@@ -819,11 +822,28 @@
   color: var(--sk-muted);
 }
 /* The agenda's mode chip "Väntar på" and, in the waiting view, the way back, on a row of their own under the tag filter. */
-.sidekick-work .work-agenda-modes {
+/* The filter row: the waiting chip, then the tag filter taking the rest of the line (it scrolls sideways on its own). In
+   the waiting view the chip and its way back fill the line and the tags wrap under them. */
+.sidekick-work .work-agenda-filters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--sk-s2);
   margin: var(--sk-s2) 0;
+}
+.sidekick-work .work-agenda-filters > .sk-tag-filter {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+}
+.sidekick-work .work-agenda-filters:empty {
+  display: none;
+}
+.sidekick-work .work-agenda-modes {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--sk-s2);
 }
 .sidekick-work .work-waiting-actions {
   display: flex;

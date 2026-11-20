@@ -2,30 +2,8 @@ import { Fold } from "../../mcp-apps/ui/fold";
 import { finePointer } from "../../mcp-apps/ui/shortcuts";
 import type { ShoppingItem } from "../transport";
 import { wasBuyAgainUsed } from "./helpers";
-import { ListRow } from "./list-row";
 import { StoreRow } from "./store-row";
 import type { RowEnv } from "./row-parts";
-
-/** One row, drawn as the store view's large row or the list view's row. */
-function ItemRow({
-  item,
-  grouped,
-  inPlace = true,
-  storeMode,
-  env,
-}: {
-  item: ShoppingItem;
-  grouped: boolean;
-  inPlace?: boolean;
-  storeMode: boolean;
-  env: RowEnv;
-}) {
-  return storeMode ? (
-    <StoreRow item={item} inPlace={inPlace} env={env} />
-  ) : (
-    <ListRow item={item} grouped={grouped} inPlace={inPlace} env={env} />
-  );
-}
 
 /**
  * The open groups (a heading and its rows per store; no heading when no row has a store), then, in the compact view, the row that expands or folds
@@ -39,7 +17,7 @@ export function ItemGroups({
   limited,
   compact,
   expanded,
-  storeMode,
+  openFull,
   shopLabel,
   env,
   onExpanded,
@@ -52,7 +30,8 @@ export function ItemGroups({
   limited: boolean;
   compact: boolean;
   expanded: boolean;
-  storeMode: boolean;
+  /** The card ends on an open link to the full list instead: no "Show all" here. */
+  openFull: boolean;
   /** The shop the view was opened for: its own heading is left out, the view's title already names it. */
   shopLabel?: string;
   env: RowEnv;
@@ -78,19 +57,13 @@ export function ItemGroups({
               }
             >
               {shown.map((row) => (
-                <ItemRow
-                  key={row.id}
-                  item={row}
-                  grouped={store !== null}
-                  storeMode={storeMode}
-                  env={env}
-                />
+                <StoreRow key={row.id} item={row} inPlace env={env} />
               ))}
             </ul>
           </section>
         ),
       )}
-      {limited && rowCount > shownCount && (
+      {limited && !openFull && rowCount > shownCount && (
         <div className="shopping-more">
           <button
             type="button"
@@ -149,14 +122,7 @@ export function PurchasedFold({
       {open && (
         <ul className="shopping-items">
           {purchased.map((row) => (
-            <ItemRow
-              key={row.id}
-              item={row}
-              grouped={false}
-              inPlace={false}
-              storeMode={storeMode}
-              env={env}
-            />
+            <StoreRow key={row.id} item={row} inPlace={false} env={env} />
           ))}
         </ul>
       )}

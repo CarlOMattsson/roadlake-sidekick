@@ -28,37 +28,41 @@ import {
   rowOf,
   openGroup,
 } from "@tests/helpers/board-phone-fixtures";
+import { chooseColumn, columnTab, tabNames } from "./column-tabs";
 
 afterEach(() => vi.unstubAllGlobals());
 
-it("lists the statuses as sections with counts, in board order, and leaves out an empty status", () => {
+it("shows one status at a time under column tabs with counts, in board order, with an empty status as a tab too", async () => {
+  const user = userEvent.setup();
   render(<Harness work={transport()} />);
   expect(screen.queryByRole("group", { name: "Columns" })).toBeNull();
-  expect(
-    elementWithText(`${workEn.taskStatus.todo} (2)`, "h3"),
-  ).toBeInTheDocument();
-  expect(
-    elementWithText(`${workEn.taskStatus.in_progress} (1)`, "h3"),
-  ).toBeInTheDocument();
-  expect(
-    elementWithText(`${workEn.taskStatus.completed} (1)`, "button"),
-  ).toBeInTheDocument();
-  expect(elementWithText(`${workEn.projects} (1)`, "h3")).toBeInTheDocument();
-  expect(
-    screen.queryByRole("region", { name: workEn.taskStatus.blocked }),
-  ).toBeNull();
+  expect(tabNames(boardLabelsEn.columnTabs)).toEqual([
+    `${workEn.taskStatus.todo} 2`,
+    `${workEn.taskStatus.in_progress} 1`,
+    `${workEn.taskStatus.blocked} 0`,
+    `${workEn.taskStatus.completed} 1`,
+    `${workEn.projects} 1`,
+  ]);
+  // Only the chosen column draws a section; its heading stays for screen readers.
+  await chooseColumn(user, workEn.taskStatus.todo);
+  expect(columnTab(workEn.taskStatus.todo)).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   expect(
     screen
       .getAllByRole("region")
       .map((region) => region.getAttribute("aria-label")),
-  ).toEqual([
-    workEn.taskStatus.todo,
-    workEn.taskStatus.in_progress,
-    workEn.taskStatus.completed,
-    workEn.projects,
-  ]);
+  ).toEqual([workEn.taskStatus.todo]);
+  expect(elementWithText(`${workEn.taskStatus.todo} (2)`, "h3")).toHaveClass(
+    "work-visually-hidden",
+  );
   expect(screen.getByRole("button", { name: a.title })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: b.title })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: c.title })).toBeNull();
+  await chooseColumn(user, workEn.taskStatus.in_progress);
   expect(screen.getByRole("button", { name: c.title })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: a.title })).toBeNull();
   expect(screen.queryByRole("button", { name: /^Drag / })).toBeNull();
   expect(document.querySelector(".work-board")).toHaveAttribute(
     "data-layout",
@@ -66,14 +70,19 @@ it("lists the statuses as sections with counts, in board order, and leaves out a
   );
 });
 
-it("folds Klar: its rows show only after the heading button opens it", async () => {
+it("an empty status tab says so, and Klar is a tab whose rows are open at once (no fold)", async () => {
   const user = userEvent.setup();
   render(<Harness work={transport()} />);
-  const fold = elementWithText(`${workEn.taskStatus.completed} (1)`, "button");
-  expect(fold).toHaveAttribute("aria-expanded", "false");
-  expect(screen.queryByRole("button", { name: d.title })).toBeNull();
-  await user.click(fold);
-  expect(fold).toHaveAttribute("aria-expanded", "true");
+  await chooseColumn(user, workEn.taskStatus.blocked);
+  expect(
+    screen.getByRole("region", { name: workEn.taskStatus.blocked }),
+  ).toHaveTextContent(boardLabelsEn.noCards);
+  await chooseColumn(user, workEn.taskStatus.completed);
+  expect(
+    screen.queryByRole("button", {
+      name: `${workEn.taskStatus.completed} (1)`,
+    }),
+  ).toBeNull();
   expect(screen.getByRole("button", { name: d.title })).toBeInTheDocument();
   expect(
     screen.getByRole("button", {
@@ -143,6 +152,7 @@ it("the glyph marks a Task done with update_task, its version and a key; the car
   const getWorkBoard = vi.fn().mockResolvedValue(moved);
   const work = transport({ updateTask, getWorkBoard });
   render(<Harness work={work} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   await user.click(
     screen.getByRole("button", {
       name: fillLabel(workEn.agendaComplete, { title: a.title }),
@@ -171,14 +181,18 @@ it("the glyph marks a Task done with update_task, its version and a key; the car
   if (!glyph) throw new Error("no done toggle on the card");
   await waitFor(() => expect(glyph).toHaveFocus());
   // The row stands on its place for its Ångra, but the counts say where the card is now: To do no
-  // longer counts it and Klar does. The row says Klar and carries data-undo for the ring, title and › in CSS.
+  // longer counts it and Klar does (heading and tabs). The row says Klar and carries data-undo for the ring, title and › in CSS.
   expect(card).toHaveAttribute("data-undo", "on");
   expect(
     elementWithText(`${workEn.taskStatus.todo} (1)`, "h3"),
   ).toBeInTheDocument();
-  const fold = elementWithText(`${workEn.taskStatus.completed} (2)`, "button");
-  expect(fold).toHaveAttribute("aria-expanded", "false");
-  expect(fold).toHaveClass("sk-fold");
+  expect(tabNames(boardLabelsEn.columnTabs)).toEqual([
+    `${workEn.taskStatus.todo} 1`,
+    `${workEn.taskStatus.in_progress} 1`,
+    `${workEn.taskStatus.blocked} 0`,
+    `${workEn.taskStatus.completed} 2`,
+    `${workEn.projects} 1`,
+  ]);
 });
 
 it("the counts of Status change when the card is tapped, and stay as they are when the Ångra has run out", async () => {
@@ -203,6 +217,7 @@ it("the counts of Status change when the card is tapped, and stay as they are wh
         })}
       />,
     );
+    fireEvent.click(columnTab(workEn.taskStatus.todo));
     fireEvent.click(
       screen.getByRole("button", {
         name: fillLabel(workEn.agendaComplete, { title: a.title }),
@@ -214,9 +229,12 @@ it("the counts of Status change when the card is tapped, and stay as they are wh
     expect(
       elementWithText(`${workEn.taskStatus.todo} (1)`, "h3"),
     ).toBeInTheDocument();
-    expect(
-      elementWithText(`${workEn.taskStatus.completed} (2)`, "button"),
-    ).toBeInTheDocument();
+    expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+      `${workEn.taskStatus.todo} 1`,
+    );
+    expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+      `${workEn.taskStatus.completed} 2`,
+    );
     expect(rowOf(a.title)).toHaveAttribute("data-undo", "on");
     expect(within(rowOf(a.title)).getByRole("status")).toHaveTextContent(
       workEn.taskStatus.completed,
@@ -227,9 +245,12 @@ it("the counts of Status change when the card is tapped, and stay as they are wh
     expect(
       elementWithText(`${workEn.taskStatus.todo} (1)`, "h3"),
     ).toBeInTheDocument();
-    expect(
-      elementWithText(`${workEn.taskStatus.completed} (2)`, "button"),
-    ).toBeInTheDocument();
+    expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+      `${workEn.taskStatus.todo} 1`,
+    );
+    expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+      `${workEn.taskStatus.completed} 2`,
+    );
     expect(screen.queryByRole("button", { name: a.title })).toBeNull();
   } finally {
     vi.useRealTimers();
@@ -240,6 +261,7 @@ it("while a move is written, the single layout shows no status line above the li
   const user = userEvent.setup();
   const updateTask = vi.fn(() => new Promise<never>(() => {}));
   render(<Harness work={transport({ updateTask })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   await user.click(
     screen.getByRole("button", {
       name: fillLabel(workEn.agendaComplete, { title: a.title }),
@@ -260,10 +282,8 @@ it("the glyph of a done Task opens it again as To do", async () => {
     .mockResolvedValue({ task: { ...d, status: "todo", version: 2 } });
   const work = transport({ updateTask });
   render(<Harness work={work} />);
-  // Klar is folded: the Task's glyph is reached once the heading button opens it.
-  await user.click(
-    elementWithText(`${workEn.taskStatus.completed} (1)`, "button"),
-  );
+  // Klar is its own tab: the Task's glyph is reached once the tab is chosen.
+  await chooseColumn(user, workEn.taskStatus.completed);
   await user.click(
     screen.getByRole("button", {
       name: fillLabel(workEn.agendaReopen, { title: d.title }),
@@ -283,6 +303,7 @@ it("a status picked in the expanded group is written, and the card's own status 
     .fn()
     .mockResolvedValue({ task: { ...a, status: "blocked", version: 2 } });
   render(<Harness work={transport({ updateTask })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   await openGroup(user, a.title);
   const group = screen.getByRole("group", {
     name: boardLabelsEn.moveListFor(a.title),
@@ -323,10 +344,11 @@ it("a card moved to an empty status section shows that section with its new coun
       })}
     />,
   );
-  // Blocked has no card, so it draws no section before the move.
-  expect(
-    screen.queryByRole("region", { name: workEn.taskStatus.blocked }),
-  ).toBeNull();
+  // Blocked has no card, so its tab counts 0 before the move.
+  expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+    `${workEn.taskStatus.blocked} 0`,
+  );
+  await chooseColumn(user, workEn.taskStatus.todo);
   await openGroup(user, a.title);
   await user.click(
     within(
@@ -335,13 +357,20 @@ it("a card moved to an empty status section shows that section with its new coun
   );
   await screen.findByRole("button", { name: /^Undo/ });
   // The card stands in To do for its Ångra, but the new number is seen where it went.
-  expect(
-    elementWithText(`${workEn.taskStatus.blocked} (1)`, "h3"),
-  ).toBeInTheDocument();
+  expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+    `${workEn.taskStatus.blocked} 1`,
+  );
+  expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+    `${workEn.taskStatus.todo} 1`,
+  );
   expect(
     elementWithText(`${workEn.taskStatus.todo} (1)`, "h3"),
   ).toBeInTheDocument();
   expect(rowOf(a.title)).toHaveAttribute("data-undo", "on");
+  await chooseColumn(user, workEn.taskStatus.blocked);
+  expect(
+    elementWithText(`${workEn.taskStatus.blocked} (1)`, "h3"),
+  ).toBeInTheDocument();
   const blocked = screen.getByRole("region", {
     name: workEn.taskStatus.blocked,
   });
@@ -352,6 +381,7 @@ it("a status picked in the row menu keeps the focus: on the hidden menu button w
   const user = userEvent.setup();
   const updateTask = vi.fn(() => new Promise<never>(() => {}));
   render(<Harness work={transport({ updateTask })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   // Opened by the hidden button: the focus goes back to it.
   await user.click(
     screen.getByRole("button", { name: workEn.rowMenuButton(a.title) }),
@@ -375,6 +405,7 @@ it("a status picked in a menu opened by the keyboard returns the focus to the ro
   const user = userEvent.setup();
   const updateTask = vi.fn(() => new Promise<never>(() => {}));
   render(<Harness work={transport({ updateTask })} />);
+  await chooseColumn(user, workEn.taskStatus.todo);
   await openGroup(user, b.title);
   await user.click(
     within(

@@ -74,6 +74,7 @@ function makeTransport(getList: (id: string) => Promise<ShoppingDetail>) {
   return { transport, call };
 }
 
+// The fresh list mounts the card again (a new revision): the view takes its list only when it mounts.
 it("an inline card after a write in the full view reads its list by id and shows the fresh state", async () => {
   let answer: (value: ShoppingDetail) => void = () => undefined;
   const pending = new Promise<ShoppingDetail>((resolve) => {
@@ -97,18 +98,24 @@ it("an inline card after a write in the full view reads its list by id and shows
         name === "get_shopping_list" && args?.list_id === list.id,
     ),
   ).toBe(true);
-  expect(screen.getByText(shoppingEn.boughtOf(0, 1))).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: shoppingEn.markBought("Lampa") }),
+  ).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: shoppingEn.create }),
   ).not.toBeInTheDocument();
-  // The fresh list arrives: the card shows that Lampa is bought, not the old count.
+  // The fresh list arrives: the card shows that Lampa is bought, not the old open row.
   answer(fresh);
-  expect(await screen.findByText(shoppingEn.allBought)).toBeInTheDocument();
   await waitFor(() =>
     expect(
-      screen.queryByText(shoppingEn.boughtOf(0, 1)),
+      screen.queryByRole("button", { name: shoppingEn.markBought("Lampa") }),
     ).not.toBeInTheDocument(),
   );
+  // The card is still the list (its title and its open link), not the picker; the bought row is left to the full list.
+  expect(screen.getByRole("heading", { name: list.name })).toBeInTheDocument();
+  expect(
+    screen.getByRole("button", { name: shoppingEn.openList }),
+  ).toBeInTheDocument();
 });
 
 it("a first inline card with its result does not read the list again", async () => {
@@ -124,7 +131,7 @@ it("a first inline card with its result does not read the list again", async () 
     />,
   );
   expect(
-    await screen.findByText(shoppingEn.boughtOf(0, 1)),
+    await screen.findByRole("button", { name: shoppingEn.markBought("Lampa") }),
   ).toBeInTheDocument();
   expect(
     call.mock.calls.filter(([name]) => name === "get_shopping_list"),

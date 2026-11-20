@@ -68,8 +68,9 @@ describe("no list chosen: the lists are rows to tap", () => {
     render(<ShoppingView transport={adapter(lists)} labels={shoppingEn} />);
     await row("Weekly shopping");
     await row("IKEA someday");
+    // Inline (not fullscreen) the heading is a count of the lists, not the room's word.
     expect(
-      screen.getByRole("heading", { name: shoppingEn.lists }),
+      screen.getByRole("heading", { name: shoppingEn.listsCount(2) }),
     ).toBeInTheDocument();
     expect(screen.queryByText(shoppingEn.hint)).toBeNull();
     expect(screen.queryByRole("textbox")).toBeNull();
@@ -137,6 +138,97 @@ describe("no list chosen: the lists are rows to tap", () => {
     expect(await row("Done list")).toHaveTextContent("Nothing left");
   });
 
+  it("fullscreen keeps the room's own word as the heading, not a count", async () => {
+    const lists = [listOf(1, "Weekly shopping"), listOf(2, "IKEA someday")];
+    render(
+      <ShoppingView
+        transport={adapter(lists)}
+        labels={shoppingEn}
+        fullscreen
+      />,
+    );
+    await row("Weekly shopping");
+    expect(
+      screen.getByRole("heading", { name: shoppingEn.lists }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(shoppingEn.listsCount(2))).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.openShopping }),
+    ).toBeNull();
+  });
+
+  it("inline with fullscreen on offer the picker ends on 'Open Shopping ›', which asks for fullscreen", async () => {
+    const user = userEvent.setup();
+    const onOpenFull = vi.fn();
+    const lists = [listOf(1, "Weekly shopping"), listOf(2, "IKEA someday")];
+    render(
+      <ShoppingView
+        transport={adapter(lists)}
+        labels={shoppingEn}
+        onOpenFull={onOpenFull}
+      />,
+    );
+    await row("Weekly shopping");
+    expect(
+      screen.getByRole("heading", { name: "2 lists" }),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.openShopping }),
+    );
+    expect(onOpenFull).toHaveBeenCalledTimes(1);
+  });
+
+  it("the picker's heading and open link read Swedish: '2 listor', 'Öppna Inköp'", async () => {
+    const lists = [listOf(1, "Veckohandling"), listOf(2, "Klart")];
+    render(
+      <ShoppingView
+        transport={adapter(lists)}
+        labels={shoppingSv}
+        onOpenFull={() => undefined}
+      />,
+    );
+    await row("Veckohandling");
+    expect(
+      screen.getByRole("heading", { name: "2 listor" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Öppna Inköp" }),
+    ).toBeInTheDocument();
+  });
+
+  it("one list reads '1 list' / '1 lista'", () => {
+    expect(shoppingEn.listsCount(1)).toBe("1 list");
+    expect(shoppingSv.listsCount(1)).toBe("1 lista");
+  });
+
+  it("no open link without fullscreen on offer, and none when there are no lists", async () => {
+    const { unmount } = render(
+      <ShoppingView
+        transport={adapter([
+          listOf(1, "Weekly shopping"),
+          listOf(2, "IKEA someday"),
+        ])}
+        labels={shoppingEn}
+      />,
+    );
+    await row("Weekly shopping");
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.openShopping }),
+    ).toBeNull();
+    unmount();
+    render(
+      <ShoppingView
+        transport={adapter([])}
+        labels={shoppingEn}
+        onOpenFull={() => undefined}
+      />,
+    );
+    expect(await screen.findByText(shoppingEn.noLists)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: shoppingEn.openShopping }),
+    ).toBeNull();
+  });
+
   it("the picker and its meta line are Swedish with Swedish labels", async () => {
     const lists = [
       listOf(1, "Veckohandling", { open_count: 7 }),
@@ -145,7 +237,9 @@ describe("no list chosen: the lists are rows to tap", () => {
     render(<ShoppingView transport={adapter(lists)} labels={shoppingSv} />);
     expect(await row("Veckohandling")).toHaveTextContent("7 kvar · uppdaterad");
     expect(await row("Klart")).toHaveTextContent("Inget kvar");
-    expect(screen.getByRole("heading", { name: "Listor" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "2 listor" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ny lista" }),
     ).toBeInTheDocument();

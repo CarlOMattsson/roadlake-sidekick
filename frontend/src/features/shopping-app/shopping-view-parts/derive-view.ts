@@ -22,6 +22,8 @@ type Params = {
   store?: string;
   editOpen: boolean;
   expanded: boolean;
+  /** Rows just added: a folded view shows them past its budget, in their group. */
+  fresh?: ReadonlySet<string>;
 };
 
 /** When an item was bought, in ms; an item with no recorded time counts as the oldest. */
@@ -42,6 +44,7 @@ export function deriveView({
   store,
   editOpen,
   expanded,
+  fresh,
 }: Params) {
   const list = detail?.shopping_list;
   // The items as they are drawn: a purchase or an amount asked for shows at once, before the server has answered,
@@ -92,7 +95,20 @@ export function deriveView({
   // The open groups, with the held rows in their places. Folded, the rows shown are the first COMPACT_ROWS of
   // the open list; the bought row may be out of sight, so its Undo line goes after the shown rows instead of among them.
   const groups = groupByStore(rows, items);
-  const shownGroups = compactGroups(groups, limited ? COMPACT_ROWS : Infinity);
+  // A row just added stands among the shown ones also past the budget, so the card never hides what was typed.
+  const shownGroups = compactGroups(
+    groups,
+    limited ? COMPACT_ROWS : Infinity,
+  ).map((group) =>
+    limited && fresh?.size
+      ? {
+          ...group,
+          shown: group.rows.filter(
+            (row) => group.shown.includes(row) || fresh.has(row.id),
+          ),
+        }
+      : group,
+  );
   const shownCount = shownGroups.reduce(
     (sum, group) => sum + group.shown.length,
     0,

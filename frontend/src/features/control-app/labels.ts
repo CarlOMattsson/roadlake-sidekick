@@ -56,10 +56,10 @@ export const controlEn = {
   locale: "en" as const,
   loading: "Loading…",
   retry: "Try again",
-  /** `more`: the server holds rows beyond the ones read, so the count is "at least". */
-  showAll: (count: number, more = false) =>
-    `Show all (${count}${more ? "+" : ""})`,
-  showFewer: "Show fewer",
+  /** The inline card's main link: "Open Deleted ›" (the open-link component adds the arrow). */
+  openView: (view: string) => `Open ${view}`,
+  /** What the card does not show: "4 more"; `more`: the server holds rows beyond the ones read, so "at least". */
+  moreRows: (count: number, more = false) => `${count}${more ? "+" : ""} more`,
   views: {
     trash: "Deleted",
     history: "History",
@@ -85,11 +85,10 @@ export const controlEn = {
   restore: "Restore",
   restoreLabel: (title: string) => `Restore ${title}`,
   restoring: "Restoring…",
-  /** The history row's receipt after a restore; a trash row's receipt is its kind and `actions.restored`. */
+  /** The receipt after a restore ("Restored: Milk", see `receiptText`). */
   restored: "Restored",
-  /** Opens a restored record in its room; the label names the record for a screen reader. */
-  open: "Open",
-  openLabel: (title: string) => `Open ${title}`,
+  /** The receipt's way on to the restored record. */
+  show: "Show",
   restoreConflict: (title: string | null) =>
     `${title ? `“${title}”` : "This item"} was changed elsewhere. The list is up to date. Choose Restore again.`,
   restoreGone: "That item is no longer in Deleted. Refreshing the list.",
@@ -118,10 +117,10 @@ export const controlEn = {
   memoryOn: "Memory is on",
   memoryPaused: "Memory is paused",
   memoryOff: "Memory is off",
-  memoryOnProviderOff: "Memory is on, but the service is off",
-  memoryFakeProvider: "Memory is using a test service",
-  providerOff: "The memory service is off, so nothing is being saved.",
-  providerFake: "Test memory: no real memory is in use.",
+  providerOffTitle: "The memory service is off",
+  providerOff: "Nothing is being saved right now.",
+  providerFakeTitle: "Memory is using a test service",
+  providerFake: "No real memory is in use.",
   pause: "Pause memory",
   resume: "Resume memory",
   domainOn: "On",
@@ -139,7 +138,7 @@ export const controlEn = {
   countOff: "not in memory",
   countDeleting: "deleting…",
   deletionStarted: (domain: MemoryDomain) =>
-    `Memory is off for your ${EN_DOMAIN_FORMS[domain].definite}. What Sidekick remembered will be deleted within a few minutes.`,
+    `Memory is off for your ${EN_DOMAIN_FORMS[domain].definite}, what Sidekick remembered is deleted within a few minutes`,
   confirmTitle: (domain: MemoryDomain) =>
     `Turn off memory for your ${EN_DOMAIN_FORMS[domain].definite}?`,
   confirmCount: (domain: MemoryDomain, count: number | null) => {
@@ -153,7 +152,7 @@ export const controlEn = {
     `Yes, delete what Sidekick remembers about your ${EN_DOMAIN_FORMS[domain].definite}`,
   confirmNo: "Cancel",
   memoryBusy: "Saving…",
-  memorySaved: "Saved.",
+  memorySaved: "Saved",
   memoryConflict: "Memory settings were changed elsewhere. Refreshing.",
   memoryForbidden: "You don’t have permission to change this.",
   memoryFailed: "Couldn’t save.",
@@ -195,7 +194,7 @@ export const controlEn = {
   forgetNo: "Cancel",
   forgetting: "Forgetting…",
   forgotten: (domain: MemoryDomain, title: string | null) =>
-    `Sidekick has forgotten ${title ? `“${title}”` : `the ${EN_RECORD_NOUNS[domain][0]}`}. The ${EN_RECORD_NOUNS[domain][0]} itself won’t change. It can take a few minutes before it stops showing up in search.`,
+    `Sidekick has forgotten ${title ? `“${title}”` : `the ${EN_RECORD_NOUNS[domain][0]}`}, it can take a few minutes before it stops showing up in search`,
   forgetForbidden: "You don’t have permission to change memory.",
   forgetFailed: "Couldn’t forget it.",
   domains: {
@@ -274,8 +273,8 @@ export const controlSv: ControlLabels = {
   locale: "sv",
   loading: "Laddar…",
   retry: "Försök igen",
-  showAll: (count, more = false) => `Visa alla (${count}${more ? "+" : ""})`,
-  showFewer: "Visa färre",
+  openView: (view) => `Öppna ${view}`,
+  moreRows: (count, more = false) => `${count}${more ? "+" : ""} till`,
   views: {
     trash: "Borttaget",
     history: "Historik",
@@ -296,8 +295,7 @@ export const controlSv: ControlLabels = {
   restoreLabel: (title) => `Återställ ${title}`,
   restoring: "Återställer…",
   restored: "Återställd",
-  open: "Öppna",
-  openLabel: (title) => `Öppna ${title}`,
+  show: "Visa",
   restoreConflict: (title) =>
     `${title ? `”${title}”` : "Posten"} har ändrats på annat håll. Listan är uppdaterad – tryck Återställ igen.`,
   restoreGone: "Posten ligger inte längre i Borttaget. Listan uppdateras.",
@@ -321,10 +319,10 @@ export const controlSv: ControlLabels = {
   memoryOn: "Minnet är på",
   memoryPaused: "Minnet är pausat",
   memoryOff: "Minnet är av",
-  memoryOnProviderOff: "Minnet är på, men tjänsten är avstängd",
-  memoryFakeProvider: "Minnet använder en testtjänst",
-  providerOff: "Minnestjänsten är avstängd, så ingenting sparas.",
-  providerFake: "Testminne: inget riktigt minne används.",
+  providerOffTitle: "Minnestjänsten är avstängd",
+  providerOff: "Ingenting sparas just nu.",
+  providerFakeTitle: "Minnet använder en testtjänst",
+  providerFake: "Inget riktigt minne används.",
   pause: "Pausa minnet",
   resume: "Återuppta minnet",
   domainOn: "På",
@@ -340,7 +338,7 @@ export const controlSv: ControlLabels = {
   countOff: "inte med i minnet",
   countDeleting: "raderas…",
   deletionStarted: (domain: MemoryDomain) =>
-    `Minnet av ${SV_DOMAIN_FORMS[domain].definite} är avslaget. Det Sidekick mindes raderas inom några minuter.`,
+    `Minnet av ${SV_DOMAIN_FORMS[domain].definite} är avslaget, det Sidekick mindes raderas inom några minuter`,
   confirmTitle: (domain: MemoryDomain) =>
     `Slå av minnet av ${SV_DOMAIN_FORMS[domain].definite}?`,
   confirmCount: (domain: MemoryDomain, count: number | null) => {
@@ -354,7 +352,7 @@ export const controlSv: ControlLabels = {
     `Ja, radera minnet av ${SV_DOMAIN_FORMS[domain].definite}`,
   confirmNo: "Avbryt",
   memoryBusy: "Sparar…",
-  memorySaved: "Sparat.",
+  memorySaved: "Sparat",
   memoryConflict:
     "Minnesinställningarna har ändrats på annat håll. De uppdateras.",
   memoryForbidden: "Du saknar behörighet att ändra det.",
@@ -390,7 +388,7 @@ export const controlSv: ControlLabels = {
   forgetNo: "Avbryt",
   forgetting: "Glömmer…",
   forgotten: (domain, title) =>
-    `Sidekick har glömt ${title ? `”${title}”` : SV_RECORD_DEFINITE[domain]}. Själva ${SV_RECORD_DEFINITE[domain]} ändras inte. Det kan ta några minuter innan det försvinner ur sökningen.`,
+    `Sidekick har glömt ${title ? `”${title}”` : SV_RECORD_DEFINITE[domain]}, det kan ta några minuter innan det försvinner ur sökningen`,
   forgetForbidden: "Du saknar behörighet att ändra minnet.",
   forgetFailed: "Det gick inte att glömma den.",
   domains: {
@@ -471,6 +469,11 @@ export const controlLabels = {
   sv: controlSv,
   en: controlEn as ControlLabels,
 };
+
+/** A receipt sentence that names its record: "Återställd: Mjölk"; without a title only the words. */
+export function receiptText(what: string, title: string | null): string {
+  return title ? `${what}: ${title}` : what;
+}
 
 /** The spoken name of a storage kind; an unknown kind reads as its name with spaces. */
 export function kindName(labels: ControlLabels, kind: string): string {

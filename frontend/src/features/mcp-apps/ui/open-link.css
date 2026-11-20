@@ -1,0 +1,10 @@
+/* The card's main link (open-link.tsx): the shared open button (family.css .sk-btn--open), the open phrase in
+   --sk-type-label-strong and what the card leaves out after it, " · 12 till", in the meta type and colour. */
+.sk-open-link .sk-open-link__text {
+  min-width: 0;
+  text-align: start;
+}
+.sk-open-link .sk-open-link__more {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}

@@ -447,8 +447,30 @@
   font: var(--sk-type-row);
   overflow-wrap: anywhere;
 }
-.sidekick-work .work-contact-ways a {
+/* Each way is a row of its own: the kind (E-post, Telefon, Slack) as a meta line over the value, the whole row the target
+   and at least 44 high, so a thumb never has to find an 18 px line of text. */
+.sidekick-work .work-contact-ways .work-contact-way {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--sk-tap-lg);
+  padding: var(--sk-s1) 0;
   color: var(--sk-fg);
+}
+.sidekick-work .work-contact-ways a.work-contact-way {
+  text-decoration: none;
+}
+.sidekick-work .work-contact-ways .work-contact-way-kind {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-work .work-contact-ways a.work-contact-way .work-contact-way-value {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+.sidekick-work .work-contact-ways .work-contact-way-list > li + li {
+  border-top: 1px solid var(--sk-hairline);
 }
 
 /* A row's › on a narrow frame or at large text: below 400 px or at
@@ -507,4 +529,89 @@
    user's text size as the labels do. */
 .sidekick-work .work-contact .work-edit :is(input, select, textarea) {
   font: var(--sk-type-body);
+}
+
+/* The Contact editor's sticky Save row (work.css, .work-actions-sticky) rests --sk-foot-reserve above the bottom edge and is
+   about 4rem tall. A focused field keeps that much room under it (scroll-margin-bottom, also used by scrollIntoView), and
+   the form ends with the same room so the last field can scroll up above the row. */
+.sidekick-work .work-contact-edit {
+  --work-contact-actions-h: 4rem;
+  --work-contact-actions-clear: calc(
+    var(--sk-foot-reserve, 6rem) + var(--work-contact-actions-h) + 0.75rem
+  );
+  padding-bottom: var(--work-contact-actions-h);
+}
+.sidekick-work .work-contact-edit :is(input, select, textarea) {
+  scroll-margin-bottom: var(--work-contact-actions-clear);
+}
+/* "Inga andra namn." in an empty alias list: a muted meta line, not a body paragraph, so the nicknames take little room. */
+.sidekick-work .work-contact-edit .work-alias-empty {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* "Uppgifter" with "+ Ny uppgift för Anna" at its end: the heading and the 44 glyph button on one row. The section
+   margins move from the heading to the row, so the row is the 44 of the button and no taller. */
+.sidekick-work article.work-contact .work-contact-tasks-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  margin: var(--sk-section-above) 0 var(--sk-section-below);
+}
+.sidekick-work article.work-contact .work-contact-tasks-head h3 {
+  margin: 0;
+}
+
+/* Where you stand with her, first under the name: the wait as one row that opens the Task (two lines and ›, the whole row
+   the target), in the overdue tone after a week as the agenda's waiting view, and the last day in the journal as a meta line. */
+.sidekick-work article.work-contact .work-contact-standing {
+  margin-top: var(--sk-s3);
+}
+.sidekick-work article.work-contact button.work-contact-waiting {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  width: 100%;
+  min-height: var(--sk-tap-lg);
+  padding: var(--sk-s2) var(--sk-s3);
+  border: 1px solid var(--sk-warning-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-warning-bg);
+  color: var(--sk-fg);
+  font: inherit;
+  text-align: start;
+}
+.sidekick-work article.work-contact .work-contact-waiting-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.sidekick-work article.work-contact .work-contact-waiting-line {
+  font: var(--sk-type-row);
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-work
+  article.work-contact
+  .work-contact-waiting[data-tone="overdue"]
+  .work-contact-waiting-line {
+  color: var(--sk-overdue-fg);
+}
+.sidekick-work article.work-contact .work-contact-waiting-task {
+  overflow: hidden;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidekick-work article.work-contact .work-contact-last {
+  margin: var(--sk-s2) 0 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* The open new-Task field keeps the row air above the Tasks under it. */
+.sidekick-work article.work-contact .work-contact-task-new:has(input) {
+  margin-bottom: var(--sk-s3);
 }

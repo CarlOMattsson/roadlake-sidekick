@@ -69,13 +69,13 @@
   white-space: nowrap;
 }
 
-/* The active room, once the host has named the tool: chosen as in the real strip (--sk-nav-active-*): the page colour and a 2 px outline in the text colour. */
+/* The active room, once the host has named the tool: chosen as in the real strip (--sk-nav-active-*): a raised pill, no frame. */
 .sidekick-wait-room[data-current="true"] {
   background: var(
     --sk-nav-active-bg,
     var(--color-background-primary, light-dark(#ffffff, #1c1c1e))
   );
-  box-shadow: inset 0 0 0 2px var(--sk-nav-active-line, var(--w-fg));
+  box-shadow: var(--sk-nav-active-shadow, 0 1px 3px rgb(0 0 0 / 0.18));
   color: var(--w-fg);
   font-weight: var(--font-weight-semibold, 600);
 }

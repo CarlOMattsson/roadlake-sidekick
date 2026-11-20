@@ -159,7 +159,7 @@ test("Rooms: every room's root is transparent, and a focused control shows a foc
   expect(failures).toEqual([]);
 });
 
-test("Room strip: the chosen room is the page colour with a 2 px contour, the round + is an ink disc, an open icon button has no fill", async ({
+test("Room strip: the chosen room is a raised pill with no contour, the round + is an ink disc, an open icon button has no fill", async ({
   page,
 }) => {
   const { app, failures } = await openJournal(page);
@@ -171,11 +171,8 @@ test("Room strip: the chosen room is the page colour with a 2 px contour, the ro
       "background-color",
       "var(--sk-nav-active-bg)",
     ),
-    boxShadow: await resolved(
-      app,
-      "box-shadow",
-      "inset 0 0 0 var(--sk-selected-width) var(--sk-nav-active-line)",
-    ),
+    // A raised pill, never a frame: a frame read as the focus ring (ux-live 2026-11-20, helhet rule 3).
+    boxShadow: await resolved(app, "box-shadow", "var(--sk-nav-active-shadow)"),
   });
   // A full frame paints its page in the colour of the strip's bar, so no band shows under the head.
   const [pageColour, barColour] = await Promise.all([

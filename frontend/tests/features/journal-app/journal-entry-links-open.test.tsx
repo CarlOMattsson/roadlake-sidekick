@@ -26,6 +26,12 @@ function renderLinks(props: Partial<Parameters<typeof EntryLinks>[0]> = {}) {
       entry={entry}
       labels={journalEn}
       transport={readOnly}
+      receipt={{
+        current: null,
+        show: vi.fn(),
+        clear: vi.fn(),
+        dismiss: vi.fn(),
+      }}
       onChanged={vi.fn()}
       onConflict={vi.fn()}
       removable={false}

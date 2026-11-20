@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type FocusEvent } from "react";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { keepEdits, titleProblem } from "../shared/fields";
@@ -122,6 +122,17 @@ export function changedContactFields(
   return changes;
 }
 
+/**
+ * Brings the focused field above the sticky Save row. The fields' `scroll-margin-bottom` (contacts.css) holds the row's
+ * height, so `nearest` scrolls only when the field sits under the row or outside the view, and not at all otherwise.
+ * No `behavior` is passed: the jump is instant, which also respects `prefers-reduced-motion`.
+ */
+function keepFocusAboveActions(event: FocusEvent<HTMLFormElement>) {
+  const field = event.target;
+  if (field.matches("input, textarea, select"))
+    field.scrollIntoView?.({ block: "nearest" });
+}
+
 export function ContactEditor({
   contact,
   busy,
@@ -236,7 +247,12 @@ export function ContactEditor({
   }
 
   return (
-    <form className="work-edit" aria-label={t.edit} noValidate>
+    <form
+      className="work-edit work-contact-edit"
+      aria-label={t.edit}
+      onFocus={keepFocusAboveActions}
+      noValidate
+    >
       <label htmlFor={nameId}>{t.nameLabel}</label>
       <input
         id={nameId}
@@ -253,17 +269,6 @@ export function ContactEditor({
           {problem === "nameRequired" ? t.nameRequired : t.nameTooLong}
         </p>
       )}
-      <div role="group" aria-labelledby={aliasesHeadingId}>
-        <h3 id={aliasesHeadingId}>{t.aliasesHeading}</h3>
-        <ContactAliases
-          aliases={contact.aliases}
-          busy={busy}
-          editable
-          onAdd={onAddAlias}
-          onRemove={onRemoveAlias}
-          labels={t}
-        />
-      </div>
       <label htmlFor={emailId}>{t.email}</label>
       <input
         id={emailId}
@@ -359,6 +364,17 @@ export function ContactEditor({
         onChange={(event) => setField("contextNote", event.target.value)}
       />
       {noteBad && <p id={noteErrorId}>{t.contextNoteTooLong}</p>}
+      <div role="group" aria-labelledby={aliasesHeadingId}>
+        <h3 id={aliasesHeadingId}>{t.aliasesHeading}</h3>
+        <ContactAliases
+          aliases={contact.aliases}
+          busy={busy}
+          editable
+          onAdd={onAddAlias}
+          onRemove={onRemoveAlias}
+          labels={t}
+        />
+      </div>
       {rejected && !slackBad && (
         <ErrorNotice
           placement="row"

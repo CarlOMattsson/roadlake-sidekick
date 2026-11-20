@@ -114,11 +114,21 @@ export function WeekFrame({
 
   return (
     <article>
-      <div className="sk-day-strip-head">
-        <div className="sk-day-strip-title">
-          <DayHeading ref={heading} long={title} short={title} />
+      {/* The same two rows as the day view: Dag | Vecka with the tools, then the week row, whose name is the heading. */}
+      <div className="sk-day-strip-head" data-tabs="true">
+        <div className="sk-day-strip-tabs">
+          <JournalViewSwitch value="week" labels={t} onChange={onShowDay} />
         </div>
         <div className="sk-day-strip-tools">
+          {!atThisWeek && (
+            <button
+              type="button"
+              className="sk-btn sk-btn--quiet sk-btn--compact journal-day-today"
+              onClick={() => onStart(thisWeek)}
+            >
+              {t.weekThis}
+            </button>
+          )}
           {more.hasMore && <DayMoreButton more={more} buttonRef={moreButton} />}
         </div>
         <div className="sk-day-strip-weekrow">
@@ -130,6 +140,9 @@ export function WeekFrame({
           >
             <ChevronLeftIcon />
           </button>
+          <div className="journal-day-range">
+            <DayHeading ref={heading} long={title} short={title} />
+          </div>
           <button
             type="button"
             className="sk-iconbtn sk-day-strip-arrow"
@@ -139,16 +152,6 @@ export function WeekFrame({
           >
             <ChevronRightIcon />
           </button>
-          {!atThisWeek && (
-            <button
-              type="button"
-              className="sk-btn--secondary sk-btn--compact journal-day-today"
-              onClick={() => onStart(thisWeek)}
-            >
-              {t.weekThis}
-            </button>
-          )}
-          <JournalViewSwitch value="week" labels={t} onChange={onShowDay} />
         </div>
       </div>
       {more.hasMore && <DayMorePanel more={more} buttonRef={moreButton} />}

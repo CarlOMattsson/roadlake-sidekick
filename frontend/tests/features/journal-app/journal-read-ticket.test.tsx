@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { JournalView } from "@/features/journal-app/journal-view";
 import { journalEn } from "@/features/journal-app/labels";
+import { receiptText } from "@/features/journal-app/receipt-text";
 import type {
   JournalEntry,
   JournalFrame,
@@ -89,7 +90,7 @@ describe("Journal entry: a late read does not undo a link change", () => {
       screen.getByRole("button", { name: journalEn.linkRemoveConfirm }),
     );
     expect(
-      await screen.findByText(journalEn.linkRemoved("Anna Berg")),
+      await screen.findByText(receiptText(journalEn.linkRemoved("Anna Berg"))),
     ).toBeInTheDocument();
     expect(updateEntryLinks).toHaveBeenCalledTimes(1);
 
@@ -104,7 +105,7 @@ describe("Journal entry: a late read does not undo a link change", () => {
       }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText(journalEn.linkRemoved("Anna Berg")),
+      screen.getByText(receiptText(journalEn.linkRemoved("Anna Berg"))),
     ).toBeInTheDocument();
     expect(screen.getByText("Offert Norr")).toBeInTheDocument();
   });

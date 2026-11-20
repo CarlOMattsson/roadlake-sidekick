@@ -2,7 +2,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
-import { ShoppingCard } from "@/features/shopping-app/shopping-card";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
 import type {
   ShoppingDetail,
@@ -99,10 +98,12 @@ it("the inline card's empty state carries the same ask", async () => {
   const sendMessage = vi.fn().mockResolvedValue(true);
   const user = userEvent.setup();
   render(
-    <ShoppingCard
-      detail={empty}
+    <ShoppingView
+      transport={adapter([list])}
       labels={shoppingSv}
-      onOpen={() => undefined}
+      initial={empty}
+      compact
+      onOpenFull={() => undefined}
       sendMessage={sendMessage}
     />,
   );

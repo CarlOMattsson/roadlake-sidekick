@@ -9,6 +9,7 @@ import { dayStripLabelsEn, dayStripLabelsSv } from "./day-strip-labels";
 import { DayAddButton, DayAddPanel, useDayWrite } from "./day-write";
 import { DoneSection } from "./done-section";
 import { JournalViewSwitch } from "./view-switch";
+import { weekTitle } from "./week-frame";
 import { EntryTextForm } from "./entry-write";
 import { EntryRow } from "./entry-row";
 import { DaySummary, hasDaySummary } from "./day-summary";
@@ -21,6 +22,8 @@ import { useMounted } from "../mcp-apps/ui/use-mounted";
 import type { HostSettingsEntry } from "../mcp-apps/room-types";
 import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
+import { receiptText } from "./receipt-text";
 import type { FrameProps } from "./frame-props";
 
 type DayFrameProps = FrameProps & {
@@ -132,6 +135,16 @@ export function DayFrame({
     dayMessage,
   });
   const { canWrite, composing, created, addOpen } = write;
+  // A saved note is confirmed in the receipt bar, which goes by itself and is cleared on another day: it never stays
+  // in the day's content to come back later (dagbok-ui fynd 1).
+  const receipt = useReceipt(page.journal_date);
+  const { show: showReceipt } = receipt;
+  const { clearCreated } = write;
+  useEffect(() => {
+    if (!created || composing) return;
+    showReceipt({ message: receiptText(t.entryCreated) });
+    clearCreated();
+  }, [created, composing, showReceipt, clearCreated, t.entryCreated]);
 
   function go(date: string) {
     // One day read at a time, as the disabled step buttons allowed before.
@@ -153,7 +166,7 @@ export function DayFrame({
       });
   }
 
-  const shownDays = stripDays(shownDate, today);
+  const shownDays = stripDays(shownDate);
   const rangeFrom = shownDays[0];
   const rangeTo = shownDays[shownDays.length - 1];
   // The day the view has read is newer than the range read, so it decides its own dot.
@@ -202,6 +215,18 @@ export function DayFrame({
         labels={dayStripLabels}
         disabled={phase === "loading"}
         onSelect={go}
+        tabs={
+          onShowWeek ? (
+            <JournalViewSwitch
+              value="day"
+              labels={t}
+              disabled={phase === "loading"}
+              onChange={onShowWeek}
+            />
+          ) : undefined
+        }
+        // The same name as the week view's: "Vecka 47 · 16–22 nov", for the Monday-to-Sunday week the strip shows.
+        weekLabel={shownDays[0] ? weekTitle(shownDays[0], t, today) : undefined}
         heading={
           <DayHeading
             ref={heading}
@@ -239,28 +264,19 @@ export function DayFrame({
         }
         below={<DayAddPanel write={write} buttonRef={addButton} labels={t} />}
         // The `today` button shows only while the strip shows a week without today: in today's week the strip's own
-        // `today` cell is the way back, so the button is gone rather than greyed. The `t` shortcut still works.
+        // `today` cell is the way back, so the button is gone rather than greyed. It stands before + and ⋯ at the end
+        // of the first row, so its coming and going moves nothing else. The `t` shortcut still works.
         actions={
-          <>
-            {!shownDays.includes(today) && (
-              <button
-                type="button"
-                className="sk-btn--secondary sk-btn--compact journal-day-today"
-                disabled={phase === "loading"}
-                onClick={() => go(today)}
-              >
-                {dayStripLabels.today}
-              </button>
-            )}
-            {onShowWeek && (
-              <JournalViewSwitch
-                value="day"
-                labels={t}
-                disabled={phase === "loading"}
-                onChange={onShowWeek}
-              />
-            )}
-          </>
+          !shownDays.includes(today) ? (
+            <button
+              type="button"
+              className="sk-btn sk-btn--quiet sk-btn--compact journal-day-today"
+              disabled={phase === "loading"}
+              onClick={() => go(today)}
+            >
+              {dayStripLabels.today}
+            </button>
+          ) : undefined
         }
       />
       {phase === "loading" && <p role="status">{t.loading}</p>}
@@ -274,7 +290,6 @@ export function DayFrame({
           }}
         />
       )}
-      {created && !composing && <p role="status">{t.entryCreated}</p>}
       {composing && canWrite && (
         <EntryTextForm
           labels={t}
@@ -352,6 +367,7 @@ export function DayFrame({
           {page.next_cursor && <p role="status">{t.moreEntries}</p>}
         </>
       )}
+      <ReceiptBar receipt={receipt} />
     </article>
   );
 }

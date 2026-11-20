@@ -9,6 +9,7 @@ import {
   journalSv,
   type JournalLabels,
 } from "@/features/journal-app/labels";
+import { receiptText } from "@/features/journal-app/receipt-text";
 import {
   createJournalTransport,
   type JournalEntry,
@@ -142,7 +143,9 @@ describe("deleting an entry", () => {
         expect.stringMatching(/.{8,}/),
       ),
     );
-    expect(await screen.findByText(journalSv.entryRestored)).toBeVisible();
+    expect(
+      await screen.findByText(receiptText(journalSv.entryRestored)),
+    ).toBeVisible();
     expect(
       screen.getByRole("button", { name: journalSv.editEntry }),
     ).toBeVisible();
@@ -214,7 +217,9 @@ describe("deleting an entry", () => {
     );
     expect(await screen.findByText(journalEn.entryRestoreFailed)).toBeVisible();
     await user.click(screen.getByRole("button", { name: journalEn.undo }));
-    expect(await screen.findByText(journalEn.entryRestored)).toBeVisible();
+    expect(
+      await screen.findByText(receiptText(journalEn.entryRestored)),
+    ).toBeVisible();
     expect(restoreEntry.mock.calls[1]![2]).toBe(restoreEntry.mock.calls[0]![2]);
   });
 

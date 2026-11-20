@@ -26,6 +26,7 @@ import {
   task,
   transport,
 } from "@tests/helpers/board-phone-fixtures";
+import { chooseColumn } from "./column-tabs";
 
 // "Show more" under each status column of the board, with a fake transport standing in for the host. These are
 // simulated-host tests (the board with a fake transport), not tests in a real Claude or Android host.
@@ -400,11 +401,14 @@ describe("Show more in the columns layout", () => {
 });
 
 describe("Show more in the single layout (a phone)", () => {
-  it("puts the button last in each section, also in a section with no card, and folds Klar's under its heading", async () => {
+  it("puts the button last in the chosen section, also in a section with no card, Klar's included", async () => {
     const user = userEvent.setup();
     render(<Harness work={transport()} layout="single" initial={frameOf()} />);
-    const names = ["todo", "in_progress", "blocked"] as const;
+    const names = ["todo", "in_progress", "blocked", "completed"] as const;
     for (const status of names) {
+      await chooseColumn(user, workEn.taskStatus[status]);
+      // Only the chosen column is drawn, so no other section's button stands on the page.
+      expect(screen.getAllByRole("region")).toHaveLength(1);
       const section = region(workEn.taskStatus[status]);
       const button = within(section).getByRole("button", {
         name: moreIn(workEn.taskStatus[status]),
@@ -417,31 +421,18 @@ describe("Show more in the single layout (a phone)", () => {
             Node.DOCUMENT_POSITION_FOLLOWING,
         ).toBeTruthy();
     }
-    // The empty Blocked section exists only for its button.
+    // The empty Blocked section exists only for its button (no "Nothing here" line beside it).
+    await chooseColumn(user, workEn.taskStatus.blocked);
     expect(
       region(workEn.taskStatus.blocked).querySelector("ul.work-list"),
     ).toBeNull();
+    expect(screen.queryByText(boardLabelsEn.noCards)).toBeNull();
+    await chooseColumn(user, workEn.projects);
     expect(
       within(region(workEn.projects)).getByRole("button", {
         name: boardLabelsEn.showMoreAll,
       }),
     ).toBeInTheDocument();
-    // Klar is folded: its button shows only once it is opened.
-    const klar = region(workEn.taskStatus.completed);
-    expect(
-      within(klar).queryByRole("button", {
-        name: moreIn(workEn.taskStatus.completed),
-      }),
-    ).toBeNull();
-    await user.click(
-      within(klar).getByRole("button", {
-        name: new RegExp(`^${workEn.taskStatus.completed}`),
-      }),
-    );
-    const button = within(klar).getByRole("button", {
-      name: moreIn(workEn.taskStatus.completed),
-    });
-    expect(klar.lastElementChild).toBe(button);
     // No button stands in a foot outside the sections.
     for (const each of screen.getAllByRole("button", { name: /^Show more/ }))
       expect(each.closest("section[aria-label]")).not.toBeNull();
@@ -454,6 +445,7 @@ describe("Show more in the single layout (a phone)", () => {
       .mockResolvedValue(answer({ in_progress: [g] }, null));
     const work = transport({ getWorkBoard });
     render(<Harness work={work} layout="single" initial={frameOf()} />);
+    await chooseColumn(user, workEn.taskStatus.in_progress);
     await user.click(
       within(region(workEn.taskStatus.in_progress)).getByRole("button", {
         name: moreIn(workEn.taskStatus.in_progress),

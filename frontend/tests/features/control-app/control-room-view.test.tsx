@@ -109,3 +109,78 @@ describe("Control room, a failed answer of the history tools", () => {
     },
   );
 });
+
+describe("Control room inline open link", () => {
+  function inlineProps(extra: Partial<RoomProps>) {
+    const call = vi.fn<Call>((name) => answer(name));
+    const requestDisplayMode = vi.fn(() => Promise.resolve("fullscreen"));
+    const props: RoomProps = {
+      mode: "inline",
+      view: "memory",
+      transport: {
+        call: call as RoomTransport["call"],
+        requestDisplayMode:
+          requestDisplayMode as unknown as RoomTransport["requestDisplayMode"],
+        updateModelContext: vi.fn(),
+      },
+      ...extra,
+    };
+    return { props, requestDisplayMode };
+  }
+
+  it("asks the host for fullscreen and opens the full view on the tab on screen", async () => {
+    const onModeGranted = vi.fn();
+    const { props, requestDisplayMode } = inlineProps({
+      fullscreenAvailable: true,
+      onModeGranted,
+    });
+    render(<ControlRoom {...props} />);
+
+    await userEvent
+      .setup()
+      .click(
+        await screen.findByRole("button", { name: /^Öppna Sidekicks minne/ }),
+      );
+
+    expect(requestDisplayMode).toHaveBeenCalledWith("fullscreen");
+    await vi.waitFor(() =>
+      expect(onModeGranted).toHaveBeenCalledWith("full", {
+        room: "control",
+        view: "memory",
+      }),
+    );
+  });
+
+  it("expands the view through the shell when the host has no fullscreen", async () => {
+    const onModeGranted = vi.fn();
+    const { props, requestDisplayMode } = inlineProps({ onModeGranted });
+    render(<ControlRoom {...props} />);
+
+    await userEvent
+      .setup()
+      .click(
+        await screen.findByRole("button", { name: /^Öppna Sidekicks minne/ }),
+      );
+
+    expect(requestDisplayMode).not.toHaveBeenCalled();
+    expect(onModeGranted).toHaveBeenCalledWith("full", {
+      room: "control",
+      view: "memory",
+    });
+  });
+
+  it("has no link when the card cannot be opened, and none in the full view", async () => {
+    const first = render(<ControlRoom {...inlineProps({}).props} />);
+    await screen.findByRole("heading", { name: "Minnet är på" });
+    expect(screen.queryByRole("button", { name: /^Öppna/ })).toBeNull();
+    first.unmount();
+
+    render(
+      <ControlRoom
+        {...inlineProps({ mode: "full", fullscreenAvailable: true }).props}
+      />,
+    );
+    await screen.findByRole("heading", { name: "Minnet är på" });
+    expect(screen.queryByRole("button", { name: /^Öppna/ })).toBeNull();
+  });
+});

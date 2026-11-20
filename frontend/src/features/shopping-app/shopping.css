@@ -27,6 +27,15 @@
   margin: auto;
   overflow-wrap: anywhere;
 }
+/* Inline the view is itself the card (sk-card sk-card--root, family.css): the same fill, edge and padding as every other
+   app's card, not the transparent root above (which drew Shopping as the one card without a fill). */
+.sidekick-shopping.sk-card--root {
+  max-width: none;
+  margin: var(--host-safe-top, 0px) var(--host-safe-right, 0px)
+    var(--host-safe-bottom, 0px) var(--host-safe-left, 0px);
+  padding: var(--sk-s4);
+  background: var(--sk-surface);
+}
 /* The app name in fullscreen is the h1 with class sk-eyebrow (family.css): the shared eyebrow, not a heading style.
    Every h2 here is a card title or the BackHeader title, which bring their own style, so the room has no h2 rule. */
 .sidekick-shopping p {
@@ -85,13 +94,6 @@
 .shopping-items > li {
   padding: var(--sk-row-pad) 0;
 }
-.sidekick-shopping .shopping-check {
-  position: relative;
-  flex-direction: row;
-  gap: var(--sk-s2);
-  align-items: center;
-  font-weight: 400;
-}
 /* Bought or not is the same 24 px ring as Arbete's "Markera klar" (designsystem §3 Listrad): the status
    glyph in the 36 px leading column. The checkbox stays for assistive technology and the keyboard, invisible over the
    whole row (its label), so the target covers the leading column and the row. (The store view's row is not this
@@ -105,15 +107,6 @@
   margin: 0;
   opacity: 0;
   cursor: pointer;
-}
-.sidekick-shopping .shopping-check > .sk-status-glyph {
-  width: var(--sk-icon);
-  height: var(--sk-icon);
-  margin-right: var(--sk-s1);
-}
-.sidekick-shopping .shopping-check:has(> input:focus-visible) {
-  outline: 2px solid var(--sk-ring);
-  outline-offset: -2px;
 }
 .shopping-grid {
   display: grid;
@@ -387,9 +380,7 @@
   align-items: start;
   gap: var(--sk-s1);
 }
-.sidekick-shopping
-  .shopping-held-item
-  :is(.shopping-store-text, .shopping-item-text) {
+.sidekick-shopping .shopping-held-item .shopping-store-text {
   color: var(--sk-muted);
 }
 .sidekick-shopping .shopping-held {
@@ -725,7 +716,17 @@
   flex: none;
   display: flex;
   align-self: flex-start;
+  gap: var(--sk-s1);
   margin-block: 2px;
+  margin-inline-start: var(--sk-s1);
+}
+/* ⋯ stands apart from the − + pair, so a thumb on + in a trolley does not open the menu: 4 between − and +, 12 before ⋯. */
+.sidekick-shopping .shopping-quick > .shopping-row-more {
+  margin-inline-start: var(--sk-s2);
+}
+/* ⋯ of an open menu reads as pressed: the selected tint, as + reads while its field is open. */
+.sidekick-shopping .shopping-row-more[aria-expanded="true"] {
+  background: var(--sk-selected-bg);
 }
 .sidekick-shopping .shopping-step[aria-disabled="true"] {
   opacity: 0.4;
@@ -734,53 +735,29 @@
 /* The menu opens under the row, on the row's own edges. */
 .sidekick-shopping .shopping-row-menu {
   margin-block: 0 var(--sk-s2);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-bg);
 }
-
-/* Purchase row: the status sits in the text column under the item name, as a meta line. The text column
-   takes the free width of the row, so a long name wraps instead of pushing the Edit button out. */
-.sidekick-shopping .shopping-item-text {
+/* The menu's head names the item it belongs to, with × to close it on the head's end. */
+.sidekick-shopping .shopping-row-menu-head {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: var(--sk-s2);
+  margin-inline-end: calc(-1 * var(--sk-s3));
+  border-bottom: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-shopping .shopping-row-menu-name {
   flex: 1;
   min-width: 0;
+  margin: 0;
+  font: var(--sk-type-label-strong);
   overflow-wrap: anywhere;
-}
-.sidekick-shopping .shopping-status {
-  color: var(--work-muted);
-  font-size: 0.9rem;
-  font-weight: 400;
 }
 
 /* Compact inline card (a host without fullscreen): the list name is the card title (sk-card__title, family.css),
    the first open rows follow it, and the picker, the forms and the hint wait behind "Show all". Only the folded
    state uses these rules. */
-.sidekick-shopping.shopping-folded .shopping-toolbar {
-  margin: 0.4rem 0;
-}
-/* A store heading is one short line: the store name, then the count, cut with an ellipsis if it is long. */
-.shopping-folded .shopping-group > h3 {
-  margin: 0.4rem 0 0;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.3;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-/* Open rows: the name line only, and the whole row is the 44 px tap target. "Att köpa" is the meaning of the
-   open section, so the status is left out. */
-.shopping-items--folded > li {
-  padding: 0;
-}
-.sidekick-shopping .shopping-items--folded .shopping-check {
-  min-height: 2.75rem;
-}
-.sidekick-shopping .shopping-items--folded .shopping-toolbar {
-  margin: 0;
-}
-.shopping-items--folded .shopping-status {
-  display: none;
-}
 /* The add field: one input and the "Add" button on one row, both 44 px high. */
 .shopping-folded .shopping-batch {
   display: grid;
@@ -934,4 +911,27 @@
 [data-shopping-hold] .shopping-hold-tip,
 [data-shopping-buy-again] .shopping-buy-again-tip {
   display: none;
+}
+
+/* The folded card is one phone screen: a long name takes two lines at most and ends in an ellipsis; the row opens the
+   rest. */
+.sidekick-shopping.shopping-folded .shopping-store-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+/* The folded card's title and store headings: the title two lines at most, a heading one line with an ellipsis. */
+.sidekick-shopping.shopping-folded .sk-back-header__title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+.sidekick-shopping.shopping-folded .shopping-group > h3 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

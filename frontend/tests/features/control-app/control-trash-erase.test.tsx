@@ -144,7 +144,9 @@ describe("Radera för gott on a task row", () => {
     await waitFor(() => expect(erase).toHaveBeenCalledTimes(1));
     expect(erase).toHaveBeenCalledWith(task, expect.any(String));
     // The row stays a moment as a receipt, with no buttons, then goes.
-    expect(await screen.findByText("Uppgift · raderad för gott")).toBeVisible();
+    expect(
+      await screen.findByText("Raderad för gott: Förbered pitchen"),
+    ).toBeVisible();
     expect(screen.queryByRole("button", { name: /Radera/ })).toBeNull();
   });
 

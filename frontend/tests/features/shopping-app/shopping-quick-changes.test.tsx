@@ -452,15 +452,17 @@ describe("move to another list", () => {
   });
 });
 
-describe("where the quick changes are not", () => {
-  it("the compact inline card has neither the steps nor the menu", async () => {
+describe("where the quick changes are not, and the compact card where they are too", () => {
+  it("the folded compact card has the same row and menu, and leaves the steps to Show all (one phone screen)", async () => {
     await open(adapter(), { compact: true, fullscreen: false });
-    await screen.findByText(/Milk/);
-    expect(screen.queryByRole("button", { name: /quantity/i })).toBeNull();
+    await screen.findByText("Milk", { selector: ".shopping-store-name" });
+    expect(more("Milk")).toBeInTheDocument();
+    expect(document.querySelector(".shopping-quick")).not.toBeNull();
     expect(
-      screen.queryByRole("button", { name: /More options for/ }),
+      screen.queryByRole("button", {
+        name: shoppingEn.increaseQuantity("Milk"),
+      }),
     ).toBeNull();
-    expect(document.querySelector(".shopping-quick")).toBeNull();
   });
 
   it("an archived list has none", async () => {

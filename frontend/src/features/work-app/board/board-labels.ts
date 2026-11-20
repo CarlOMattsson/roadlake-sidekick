@@ -14,6 +14,9 @@ export const boardLabelsSv = {
   showMoreIn: (column: string) => `Visa fler uppgifter: ${column}`,
   /** A status column with no card. */
   noCards: "Inget här.",
+  /** The phone's column tabs: the group's accessible name, and one tab, its status over its count ("Pågår\n1"). */
+  columnTabs: "Visa kolumn",
+  columnTab: (column: string, count: number) => `${column}\n${count}`,
   empty: "Inga uppgifter här än.",
   emptyHint:
     "Dina uppgifter efter status: att göra, pågår, blockerad och klar.",
@@ -55,6 +58,8 @@ export const boardLabelsEn: BoardLabels = {
   showMoreAll: "Show more",
   showMoreIn: (column: string) => `Show more tasks: ${column}`,
   noCards: "Nothing here.",
+  columnTabs: "Show column",
+  columnTab: (column: string, count: number) => `${column}\n${count}`,
   empty: "No tasks yet.",
   /** The empty Status: what the view is for, under "No tasks yet." */
   emptyHint: "Your tasks by status: to do, in progress, blocked, and done.",

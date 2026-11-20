@@ -114,6 +114,28 @@ describe("due chip on a card", () => {
     );
   }
 
+  it("shows the waiting line under the meta line of a waiting Task, leading the meta with its due date, and none on a Task that is not waiting", () => {
+    renderDueBoard([
+      {
+        ...overdue,
+        waiting: true,
+        waiting_since: "2026-10-20T09:00:00Z",
+        waiting_on_contact_name: "Anders",
+        follow_up_at: "2026-10-27T09:00:00Z",
+      },
+      dueToday,
+    ]);
+    const card = screen.getByText("Betala hyran").closest("li")!;
+    expect(within(card).getByText("1 day overdue")).toBeInTheDocument();
+    const parts = card.querySelectorAll(".work-agenda-waiting > span");
+    expect([...parts].map((part) => part.textContent)).toEqual([
+      "Waiting on Anders since 20 Oct",
+      "follow up tomorrow",
+    ]);
+    const other = screen.getByText("Skicka kvittot").closest("li")!;
+    expect(other.querySelector(".work-agenda-waiting")).toBeNull();
+  });
+
   it("shows an overdue Task in the overdue tone and a Task due today in the today tone, with the exact date in the title", () => {
     renderDueBoard([overdue, dueToday]);
 

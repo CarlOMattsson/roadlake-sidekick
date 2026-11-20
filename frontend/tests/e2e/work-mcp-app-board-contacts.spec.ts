@@ -355,7 +355,12 @@ test("sandboxed Work board opens from get_work_board, moves a card to In progres
   await expect(
     todo.getByRole("button", { name: "Ring Anna om offerten", exact: true }),
   ).toHaveCount(0);
-  // The Status view has no chip row any more: every status is a section of its own, so Pågår is in view.
+  // On a phone Status shows one column at a time (user test 2026-11-20): the column tab the move was made in stays
+  // chosen, and the tab of the target column shows the card that landed there.
+  await app
+    .getByRole("group", { name: "Visa kolumn" })
+    .getByRole("button", { name: /^Pågår\s+1$/ })
+    .click();
   const doing = app.getByRole("region", { name: "Pågår" });
   await expect(
     doing.getByRole("heading", { level: 3, name: "Pågår (1)" }),

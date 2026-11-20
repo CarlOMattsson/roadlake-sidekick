@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import { ErrorNotice, Skeleton } from "../mcp-apps/ui/states";
-import { Segmented } from "../mcp-apps/ui/segmented";
+import { Tabs } from "../mcp-apps/ui/tabs";
 import { LicenseRow } from "../mcp-apps/license-mark";
 import { UpdateReminderRow } from "../mcp-apps/update-reminder";
 import type { RoomTarget } from "../mcp-apps/room-types";
@@ -99,7 +99,7 @@ function isActivityEntry(item: unknown): boolean {
 }
 
 /**
- * The Control card: a visible switch between Trash, Changes and Memory, and the chosen view below.
+ * The Control card: tabs between Trash, Changes and Memory, and the chosen view below.
  * The tool that opened the app decides the first view; the other two are read through their own
  * existing tools the first time they are chosen, and kept for the life of the card (each view reads
  * again after its own actions). Reading a view never blocks the others.
@@ -114,6 +114,7 @@ export function ControlApp({
   sendMessage,
   onModelContext,
   onOpen,
+  onOpenFull,
   titled = true,
   heading = false,
 }: {
@@ -146,22 +147,19 @@ export function ControlApp({
   onModelContext?: (summary: string) => void;
   /** A link to a record in another room (room-types `onNavigate`); absent: the card offers no links. */
   onOpen?: (target: RoomTarget) => void;
+  /**
+   * Opens the fullscreen view on a tab: the inline card's one main link ("Öppna Borttaget ›"). Absent: the card has no
+   * link, and lists all the rows of a tab.
+   */
+  onOpenFull?: (view: ControlViewName) => void;
 }) {
   const [view, setView] = useState(initialView);
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(false);
   // False, or what the failed read threw: the notice names the connection only when it may be that.
   const [failed, setFailed] = useState<false | { cause: unknown }>(false);
-  // "Show all" per tab. It lives here, not in the views: a view unmounts when another tab is chosen,
-  // and the owner's choice must still hold when they come back.
-  const [expanded, setExpanded] = useState<
-    Partial<Record<ControlViewName, boolean>>
-  >({});
-  const expandedOf = (name: ControlViewName) => ({
-    expanded: expanded[name] ?? false,
-    onExpandedChange: (next: boolean) =>
-      setExpanded((current) => ({ ...current, [name]: next })),
-  });
+  // The inline card's main link opens the fullscreen view on the tab on screen; the full view has no such link.
+  const openFull = !heading && onOpenFull ? () => onOpenFull(view) : undefined;
   // The newest read wins: choosing another view while one loads drops the older answer.
   const newest = useRef(0);
   const remember = useCallback(
@@ -258,11 +256,12 @@ export function ControlApp({
         ) : titled ? (
           <p className="sk-eyebrow">{labels.title}</p>
         ) : null}
-        <Segmented
+        <Tabs
           label={labels.title}
           options={options}
           value={view}
           onChange={choose}
+          fit="equal"
         />
         <div className="control-body" aria-busy={loading}>
           {failed ? (
@@ -283,8 +282,8 @@ export function ControlApp({
               onData={onTrash}
               onModelContext={onModelContext}
               onOpen={onOpen}
+              onOpenFull={openFull}
               full={heading}
-              {...expandedOf("trash")}
             />
           ) : view === "history" ? (
             <HistoryView
@@ -296,8 +295,8 @@ export function ControlApp({
               onData={onChanges}
               sendMessage={sendMessage}
               onModelContext={onModelContext}
+              onOpenFull={openFull}
               full={heading}
-              {...expandedOf("history")}
             />
           ) : view === "memory" && data.memory ? (
             <MemoryView
@@ -306,6 +305,7 @@ export function ControlApp({
               labels={labels}
               onData={onMemory}
               onModelContext={onModelContext}
+              onOpenFull={openFull}
               recall={heading}
             />
           ) : null}

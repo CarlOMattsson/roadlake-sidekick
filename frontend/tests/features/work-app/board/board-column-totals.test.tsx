@@ -24,6 +24,7 @@ import {
   task,
   transport,
 } from "@tests/helpers/board-phone-fixtures";
+import { chooseColumn, tabNames } from "./column-tabs";
 
 // The board's column headings count the server's totals (column_totals), and "Show more" stands only under a column
 // that holds more than it shows. Simulated-host tests (the board with a fake transport), not a real host.
@@ -55,10 +56,20 @@ const region = (name: string) => screen.getByRole("region", { name });
 const heading = (name: string) =>
   within(region(name)).getByRole("heading").textContent;
 
+/** The single layout shows one column at a time: choose it. The columns layout shows all of them. */
+async function show(
+  user: ReturnType<typeof userEvent.setup>,
+  layout: "columns" | "single",
+  label: string,
+) {
+  if (layout === "single") await chooseColumn(user, label);
+}
+
 describe.each(["columns", "single"] as const)(
   "Column totals (%s layout)",
   (layout) => {
-    it("counts the server's total in each heading and offers more only where the total is larger", () => {
+    it("counts the server's total in each heading and offers more only where the total is larger", async () => {
+      const user = userEvent.setup();
       render(
         <Harness
           work={transport()}
@@ -66,23 +77,35 @@ describe.each(["columns", "single"] as const)(
           initial={frameOf(totalsPage)}
         />,
       );
+      if (layout === "single")
+        expect(tabNames(boardLabelsEn.columnTabs)).toEqual([
+          `${workEn.taskStatus.todo} 7`,
+          `${workEn.taskStatus.in_progress} 1`,
+          `${workEn.taskStatus.blocked} 0`,
+          `${workEn.taskStatus.completed} 3`,
+          `${workEn.projects} 1`,
+        ]);
+      await show(user, layout, workEn.taskStatus.todo);
       expect(heading(workEn.taskStatus.todo)).toContain("(7)");
-      expect(heading(workEn.taskStatus.in_progress)).toContain("(1)");
       expect(
         within(region(workEn.taskStatus.todo)).getByRole("button", {
           name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
         }),
       ).toBeInTheDocument();
       // In progress shows all of its one record; Projects all of its one.
+      await show(user, layout, workEn.taskStatus.in_progress);
+      expect(heading(workEn.taskStatus.in_progress)).toContain("(1)");
       expect(
         screen.queryByRole("button", {
           name: boardLabelsEn.showMoreIn(workEn.taskStatus.in_progress),
         }),
       ).toBeNull();
+      await show(user, layout, workEn.projects);
       expect(
         screen.queryByRole("button", { name: boardLabelsEn.showMoreAll }),
       ).toBeNull();
       // An empty Blocked (0) offers nothing to read.
+      await show(user, layout, workEn.taskStatus.blocked);
       expect(
         screen.queryByRole("button", {
           name: boardLabelsEn.showMoreIn(workEn.taskStatus.blocked),
@@ -91,20 +114,27 @@ describe.each(["columns", "single"] as const)(
       if (layout === "columns")
         expect(heading(workEn.taskStatus.blocked)).toContain("(0)");
       else
-        expect(
-          screen.queryByRole("region", { name: workEn.taskStatus.blocked }),
-        ).toBeNull();
+        expect(region(workEn.taskStatus.blocked)).toHaveTextContent(
+          boardLabelsEn.noCards,
+        );
     });
 
-    it("counts what it has read when the server sends no totals (an older server)", () => {
+    it("counts what it has read when the server sends no totals (an older server)", async () => {
+      const user = userEvent.setup();
       const older = { ...totalsPage, column_totals: undefined };
       render(
         <Harness work={transport()} layout={layout} initial={frameOf(older)} />,
       );
+      await show(user, layout, workEn.taskStatus.todo);
       expect(heading(workEn.taskStatus.todo)).toContain("(2)");
+      if (layout === "single")
+        expect(tabNames(boardLabelsEn.columnTabs)).toContain(
+          `${workEn.taskStatus.todo} 2`,
+        );
+      // The board's own next page still gives a button (here under To do, the first section that shows).
       expect(
         screen.getAllByRole("button", { name: /^Show more/ }).length,
-      ).toBeGreaterThan(1);
+      ).toBeGreaterThan(layout === "single" ? 0 : 1);
     });
   },
 );

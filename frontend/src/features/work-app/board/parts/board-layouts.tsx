@@ -47,6 +47,7 @@ export function SingleLayout({
   undoOf,
   queueOf,
   moreFor,
+  chosen,
 }: CardProps & {
   sections: {
     segment: BoardSegment;
@@ -63,10 +64,19 @@ export function SingleLayout({
   ) => WorkBoardPlacementItem[] | undefined;
   toggleDone: (card: WorkItemRecord) => void;
   stepWithin: (card: WorkItemRecord, direction: -1 | 1) => void;
+  /** The column tab chosen (see ColumnTabs): only its section is drawn. Undefined draws every section (a search). */
+  chosen?: string;
 }) {
-  return sections.map(({ segment, items, shown, unshown }) => (
+  const words = boardLabelsFor(t.dateLocale);
+  const drawn =
+    chosen === undefined
+      ? sections
+      : sections.filter(({ segment }) => segment.key === chosen);
+  return drawn.map(({ segment, items, shown, unshown }) => (
     <SingleSection
       key={segment.key}
+      tabbed={chosen !== undefined}
+      emptyText={words.noCards}
       segment={segment}
       items={items}
       shown={shown}

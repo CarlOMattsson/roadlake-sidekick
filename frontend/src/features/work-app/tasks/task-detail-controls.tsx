@@ -14,6 +14,8 @@ import {
 import { dateInputValue } from "./task-edit";
 import { triageDueAt } from "../shared/work-items";
 import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
+import { PropLabel } from "./chip-choices";
+import { taskPlaceLabelsFor } from "./task-place-labels";
 
 /** The ⋯ is the one shared glyph of mcp-apps/ui/icons.tsx. */
 export { MoreIcon } from "../../mcp-apps/ui/icons";
@@ -67,6 +69,7 @@ export function TaskProps({
   const statusChip = useRef<HTMLButtonElement>(null);
   const dateInput = useRef<HTMLInputElement>(null);
   const dl = hierarchyDetailLabelsFor(t.dateLocale);
+  const names = taskPlaceLabelsFor(t.dateLocale).props;
   useEffect(() => {
     if (choosing) dateInput.current?.focus();
   }, [choosing]);
@@ -110,6 +113,7 @@ export function TaskProps({
           disabled={busy}
           onClick={() => toggle("due")}
         >
+          <PropLabel text={names.due} />
           <span>{hasDue && children ? children : dueName}</span>
           <ChevronDownIcon size={16} />
         </button>
@@ -124,6 +128,7 @@ export function TaskProps({
           disabled={busy}
           onClick={() => toggle("status")}
         >
+          <PropLabel text={names.status} />
           <span>{taskStatusLabel(t, status)}</span>
           <ChevronDownIcon size={16} />
         </button>

@@ -237,7 +237,22 @@ for (const { view, tool, result, selector } of VIEWS)
           return document.fonts.check(`400 16px '${family}'`);
         }, ROBOTO_FAMILY),
       ).toBe(true);
+      // On a phone Status shows one column at a time under its column tabs (user test 2026-11-20): every column's
+      // meta lines are read, tab by tab, so the rule is still checked on every row of the board.
       const metas = await readMetas(app, selector);
+      const tabs = app.getByRole("group", {
+        name: locale === "sv" ? "Visa kolumn" : "Show column",
+      });
+      if ((await tabs.count()) > 0) {
+        const buttons = tabs.getByRole("button");
+        for (let at = 0; at < (await buttons.count()); at += 1) {
+          if ((await buttons.nth(at).getAttribute("aria-pressed")) === "true")
+            continue;
+          await buttons.nth(at).click();
+          await settled(app);
+          metas.push(...(await readMetas(app, selector)));
+        }
+      }
       expect(metas.length).toBeGreaterThanOrEqual(3);
       const statusWords =
         locale === "sv" ? ["Pågår", "Blockerad"] : ["In progress", "Blocked"];

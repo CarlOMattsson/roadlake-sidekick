@@ -1,0 +1,69 @@
+/* Receipt (receipt.tsx). The slot is the last thing in its view, so a receipt only ever adds room at the view's foot
+   and nothing above it moves. Inline: 8 under the card's content. Fullscreen: sticky at the foot of the window, above
+   the host's reply field (--sk-notice-bottom, family.css), so in a long list it floats over the rows and at the end it
+   rests under them. Not `position: fixed`: the frame and the rooms are size containers, which would pin a fixed bar
+   to the end of the page instead of the window. At most 30rem wide. */
+.sk-receipt-slot {
+  margin: 0;
+}
+.sk-receipt-slot:not(:empty) {
+  margin-top: var(--sk-s2);
+}
+.sk-frame[data-mode="full"] .sk-receipt-slot {
+  position: sticky;
+  bottom: calc(var(--sk-notice-bottom, 0px) + var(--sk-s2));
+  z-index: 4;
+  max-width: 30rem;
+}
+
+/* The bar: an elevated panel in the page colour (no ink: ink is the primary action), radius 12, 1 px --sk-border and a
+   soft shadow, 48 high at least. A tick in the success line colour, the message in row type, then the actions as
+   compact tertiary buttons at the end, the last one 4 from the edge. */
+.sk-receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  box-sizing: border-box;
+  min-height: var(--sk-tap-lg);
+  padding: var(--sk-s1) var(--sk-s1) var(--sk-s1) var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-bg);
+  box-shadow:
+    0 6px 20px rgb(0 0 0 / 0.16),
+    0 1px 3px rgb(0 0 0 / 0.1);
+  color: var(--sk-fg);
+  animation: sk-receipt-in 160ms ease-out;
+}
+.sk-receipt .sk-receipt__glyph {
+  flex: none;
+  color: var(--sk-success-line);
+}
+.sk-receipt .sk-receipt__message {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: var(--sk-s2) 0;
+  font: var(--sk-type-row);
+  overflow-wrap: break-word;
+}
+.sk-receipt__actions {
+  display: flex;
+  flex: none;
+  gap: var(--sk-s1);
+}
+@keyframes sk-receipt-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-receipt {
+    animation: none;
+  }
+}
+@media (forced-colors: active) {
+  .sk-receipt {
+    border-color: CanvasText;
+  }
+}

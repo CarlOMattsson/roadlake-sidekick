@@ -77,12 +77,11 @@ test("Control app lists the trash and restores an item through the host on a mob
   await expect(app.getByText("1 borttagen · kan återställas")).toBeVisible();
   await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
   await app.getByRole("button", { name: "Återställ Skicka offert" }).click();
-  // The row stays on its place with a receipt for a few seconds, then it goes.
-  await expect(app.getByRole("status")).toHaveText("Uppgift · återställd");
-  await expect(app.getByText("Skicka offert", { exact: true })).toBeVisible();
-  await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0, {
-    timeout: 8000,
-  });
+  // A saved restore takes the row out at once; the receipt bar says what happened (no full stop, no row receipt).
+  await expect(app.getByRole("status")).toContainText(
+    "Återställd: Skicka offert",
+  );
+  await expect(app.getByText("Skicka offert", { exact: true })).toHaveCount(0);
   await expect(app.getByText("Inget borttaget.")).toBeVisible();
   const { calls } = await simulatedHostState(page);
   const restore = calls.find((call) => call.name === "restore_from_trash");
@@ -131,19 +130,19 @@ test("Control app keeps the title, the action and the tabs whole at 195 px (200 
   await expect(
     app.getByRole("button", { name: `Återställ ${title}` }),
   ).toBeVisible();
-  // No horizontal overflow in the frame, and no tab label cut off: each label is as wide as its text.
+  // No horizontal overflow in the frame, and no tab label cut off: each tab is as wide as its text.
   const dimensions = await app.locator("body").evaluate((body) => ({
     width: body.scrollWidth,
     viewport: window.innerWidth,
   }));
   expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewport);
-  const clippedTabs = await app
-    .locator(".sk-segmented__label")
-    .evaluateAll((labels) =>
-      labels
-        .filter((label) => label.scrollWidth > label.clientWidth + 1)
-        .map((label) => label.textContent),
-    );
+  const tabButtons = app.locator(".sidekick-control .sk-tabs__tab");
+  await expect(tabButtons).toHaveCount(3);
+  const clippedTabs = await tabButtons.evaluateAll((tabs) =>
+    tabs
+      .filter((tab) => tab.scrollWidth > tab.clientWidth + 1)
+      .map((tab) => tab.textContent),
+  );
   expect(clippedTabs).toEqual([]);
   expect(failures).toEqual([]);
   expect(networkRequests()).toBe(0);
@@ -184,51 +183,33 @@ for (const width of [320, 190]) {
       app.getByRole("button", { name: "Sidekicks minne", exact: true }),
     ).toBeVisible();
     // No tab text is replaced by an ellipsis (a CSS ellipsis is not in textContent, so the style is checked too),
-    // and no label is cut or broken: each label is as wide as its text and one line high.
+    // and no label is cut or broken: each tab is as wide as its text and one line high.
+    const tabs = app.locator(".sidekick-control .sk-tabs__tab");
+    await expect(tabs).toHaveCount(3);
     const groups = await app
-      .locator(".sk-segmented")
+      .locator(".sidekick-control .sk-tabs")
       .evaluateAll((segments) =>
         segments.map((segment) => segment.textContent ?? ""),
       );
     expect(groups.join("")).not.toContain("…");
-    const ellipsed = await app
-      .locator(".sk-segmented__label")
-      .evaluateAll((labels) =>
-        labels
-          .filter(
-            (label) => getComputedStyle(label).textOverflow === "ellipsis",
-          )
-          .map((label) => label.textContent),
-      );
+    const ellipsed = await tabs.evaluateAll((labels) =>
+      labels
+        .filter((label) => getComputedStyle(label).textOverflow === "ellipsis")
+        .map((label) => label.textContent),
+    );
     expect(ellipsed).toEqual([]);
-    const labelFit = await app
-      .locator(".sk-segmented__label")
-      .evaluateAll((labels) =>
-        labels
-          .filter((label) => {
-            const style = getComputedStyle(label);
-            return (
-              label.scrollWidth > label.clientWidth + 1 ||
-              label.getBoundingClientRect().height >
-                parseFloat(style.fontSize) * 1.5
-            );
-          })
-          .map((label) => label.textContent),
-      );
+    const labelFit = await tabs.evaluateAll((labels) =>
+      labels
+        .filter((label) => {
+          const style = getComputedStyle(label);
+          return (
+            label.scrollWidth > label.clientWidth + 1 ||
+            style.whiteSpace !== "nowrap"
+          );
+        })
+        .map((label) => label.textContent),
+    );
     expect(labelFit).toEqual([]);
-    // No tab is cut inside its own box, and the row does not scroll sideways: the tabs wrap onto more rows.
-    const clipped = await app
-      .locator(".sk-segmented__option")
-      .evaluateAll((elements) =>
-        elements
-          .filter(
-            (element) =>
-              element.scrollWidth > element.clientWidth + 1 ||
-              element.scrollHeight > element.clientHeight + 1,
-          )
-          .map((element) => element.textContent),
-      );
-    expect(clipped).toEqual([]);
     // No horizontal overflow in the frame: the page does not scroll sideways.
     const dimensions = await app.locator("body").evaluate((body) => ({
       width: body.scrollWidth,
@@ -236,14 +217,12 @@ for (const width of [320, 190]) {
     }));
     expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewport);
     const rowScrolls = await app
-      .locator(".sk-segmented")
+      .locator(".sidekick-control .sk-tabs")
       .evaluateAll((rows) =>
         rows.some((row) => row.scrollWidth > row.clientWidth + 1),
       );
     expect(rowScrolls).toBe(false);
     // Every tab is reachable without scrolling: each one sits whole inside the frame.
-    const tabs = app.locator(".sk-segmented__option");
-    await expect(tabs).toHaveCount(3);
     for (let index = 0; index < 3; index++) {
       const tab = tabs.nth(index);
       await expect(tab).toBeInViewport();
@@ -339,13 +318,9 @@ test("Control app has three views, History in the middle, one row at 390 px", as
   });
   await waitForAppInitialized(page);
   await deliverToolResult(page, { items: [], has_more: false });
-  const tabs = app.locator(".sk-segmented__option");
+  const tabs = app.locator(".sidekick-control .sk-tabs__tab");
   await expect(tabs).toHaveCount(3);
-  await expect(app.locator(".sk-segmented__label")).toHaveText([
-    "Borttaget",
-    "Historik",
-    "Sidekicks minne",
-  ]);
+  await expect(tabs).toHaveText(["Borttaget", "Historik", "Sidekicks minne"]);
   // At 390 px all three tabs sit on one row and inside the frame.
   const layout = await tabs.evaluateAll((buttons) => ({
     tops: new Set(buttons.map((b) => Math.round(b.getBoundingClientRect().top)))
@@ -371,7 +346,7 @@ test("Control app wraps its three tabs at 195 px without clipping any label", as
   });
   await waitForAppInitialized(page);
   await deliverToolResult(page, { items: [], has_more: false });
-  const tabs = app.locator(".sk-segmented__option");
+  const tabs = app.locator(".sidekick-control .sk-tabs__tab");
   await expect(tabs).toHaveCount(3);
   const layout = await tabs.evaluateAll((buttons) => ({
     tops: new Set(buttons.map((b) => Math.round(b.getBoundingClientRect().top)))
@@ -382,13 +357,11 @@ test("Control app wraps its three tabs at 195 px without clipping any label", as
   }));
   expect(layout.tops).toBeGreaterThan(1);
   expect(layout.fits).toBe(true);
-  const clippedTabs = await app
-    .locator(".sk-segmented__label")
-    .evaluateAll((labels) =>
-      labels
-        .filter((label) => label.scrollWidth > label.clientWidth + 1)
-        .map((label) => label.textContent),
-    );
+  const clippedTabs = await tabs.evaluateAll((labels) =>
+    labels
+      .filter((label) => label.scrollWidth > label.clientWidth + 1)
+      .map((label) => label.textContent),
+  );
   expect(clippedTabs).toEqual([]);
   const dimensions = await app.locator("body").evaluate((body) => ({
     width: body.scrollWidth,
@@ -585,7 +558,7 @@ test("Control app buttons have a touch target of at least 44 px on a phone", asy
   const targets = [
     ...(await app.getByRole("button", { name: /Dölj|Glöm/ }).all()),
     ...(await app.getByRole("switch").all()),
-    ...(await app.locator(".sk-segmented__option").all()),
+    ...(await app.locator(".sk-tabs__tab").all()),
   ];
   expect(targets.length).toBeGreaterThanOrEqual(5);
   for (const target of targets) {

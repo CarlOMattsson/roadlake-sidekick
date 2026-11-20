@@ -8,72 +8,127 @@
   border-radius: 0;
   background: transparent;
 }
-/* The Task's control row: [date ⌄] [status ⌄] [Markera klar], 8 apart, 8 under the
-   meta line and 12 to the description. The values are chips (family.css .sk-chip) and "Markera klar" is the screen's one primary, compact,
-   last in the row. A panel a chip opens takes a line of its own under the row. At 360 px or large text the row wraps. */
+/* The Task's properties (user test 2026-11-20, F3): a list of rows, name · value · ⌄, each 48 high across the whole
+   width with a hairline under it, so the date, status, place, repeat rule and priority read as one table and no row
+   changes its place when a value grows ("fre 20 nov kl 14:30"). "Markera klar", the screen's one primary, stands on a
+   line of its own above the list (order -1), so it never wraps next to a chip. A panel a row opens (the date choices, the
+   statuses, the place picker, the repeat rules, the priorities) opens right under that row, inset on the surface tone, so
+   a choice never looks like a property. */
 .sidekick-work .work-task-props {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sk-s2);
-  /* 8 under the meta line and 12 over the description: with the description's own half-leading ≈ 18 lie between the
-     buttons' edge and its glyphs, so the row reads as a block of its own and not as pressed onto the text (4
-     left ≈ 8, which read as cramped next to the sections' rhythm). */
-  margin: var(--sk-s2) 0 var(--sk-s3);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  margin: var(--sk-s3) 0 0;
 }
-/* The property chip shows a value, not a choice, so it is never drawn chosen: the chip's edge, no surface, 500 and a
-   closing ⌄ of 16. A long value wraps inside it (a word longer than the line breaks anywhere) and the ⌄ stays at the
-   end of its first line's row, never on a line of its own. The family's chip rule names the button element, so this
-   one does too, or its nowrap would win. 44 drawn (--sk-tap), as "Markera klar" beside it: the room's controls are
-   the ones a finger meets first. */
+.sidekick-work .work-task-props + .work-task-place,
+.sidekick-work .work-task-props + [role="alert"] + .work-task-place {
+  margin-top: 0;
+}
+.sidekick-work .work-task-place {
+  margin-bottom: var(--sk-s3);
+}
 .sidekick-work button.sk-chip.work-prop-chip,
 .sidekick-work .sk-chip.work-prop-chip {
+  display: flex;
   flex-wrap: nowrap;
+  align-items: center;
   justify-content: flex-start;
+  gap: var(--sk-s3);
+  width: 100%;
   min-width: 0;
-  padding-block: calc(var(--sk-s1) - var(--sk-hairline));
+  min-height: var(--sk-tap-lg);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--sk-s1) 0;
+  border: 0;
+  border-bottom: var(--sk-hairline) solid var(--sk-line);
+  border-radius: 0;
+  background: transparent;
+  font: var(--sk-type-body);
   text-align: start;
   white-space: normal;
 }
-.sidekick-work .work-prop-chip > span {
+/* The row's name: a column of 6.5rem, muted, so the values start in one line down the list. In a very narrow frame
+   (190 px) it gives way with the value, so the row never grows past the frame. */
+.sidekick-work .work-prop-label {
+  flex: 0 1 6.5rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+  font-weight: var(--sk-weight-normal);
+}
+.sidekick-work .work-prop-chip > span:not(.work-prop-label) {
+  flex: 1 1 auto;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.sidekick-work button.sk-chip.work-prop-chip,
 .sidekick-work button.sk-btn--compact.work-task-done {
   min-height: var(--sk-tap);
 }
 .sidekick-work .work-prop-chip::after {
-  inset: calc(-4px - var(--sk-hairline)) 0;
+  inset: 0;
 }
 .sidekick-work .work-prop-chip svg {
   flex: none;
+  margin-inline-start: auto;
   color: var(--sk-muted);
 }
 .sidekick-work .work-prop-chip[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
-/* The date stays whole: "fre 30 okt" (how late it is stands on the meta line above). */
+.sidekick-work .work-prop-chip:focus-visible {
+  outline-offset: -2px;
+}
+/* The date ("fre 20 nov kl 14:30") breaks only between its words, and only where the value has no room (190 px). */
 .sidekick-work .work-prop-chip time {
-  white-space: nowrap;
+  overflow-wrap: normal;
 }
-.sidekick-work .work-task-props > [role="group"] {
-  flex: 1 0 100%;
-  margin: 0;
+/* "Markera klar" (or "Öppna igen") first, on its own line, at its own width. */
+.sidekick-work .work-task-props > :not(.work-prop-chip):not([role="group"]) {
+  order: -1;
+  align-self: flex-start;
+  margin-bottom: var(--sk-s3);
 }
-/* The place row follows the date and status row: 8 apart, the first row's 12 under it taken back. */
-.sidekick-work .work-task-props + .work-task-place {
-  margin-top: calc(-1 * var(--sk-s1));
+/* The date and status panels follow their own row: the date row, its choices, the status row, its choices. */
+.sidekick-work
+  .work-task-props:not(.work-task-place)
+  > .work-prop-chip:first-of-type {
+  order: 1;
 }
-/* The place chip may hold a long title: it wraps at word breaks inside the line, never past it. */
-.sidekick-work .work-task-place .work-prop-chip {
-  max-width: 100%;
-  box-sizing: border-box;
+.sidekick-work .work-task-props > .work-task-due-choices {
+  order: 2;
 }
-/* A read-only chip (a place the host cannot change, the repeat rule) is a value, not a control: no edge, muted. */
+.sidekick-work
+  .work-task-props:not(.work-task-place)
+  > .work-prop-chip
+  ~ .work-prop-chip {
+  order: 3;
+}
+.sidekick-work
+  .work-task-props:not(.work-task-place)
+  > [role="group"]:not(.work-task-due-choices) {
+  order: 4;
+}
+/* The place picker follows the place row, before the repeat and priority rows. */
+.sidekick-work .work-task-place > .work-prop-chip:first-child {
+  order: -2;
+}
+.sidekick-work .work-task-place > .work-place-panel {
+  order: -1;
+}
+/* An opened row's choices: inset on the surface tone under their row, so they read as choices and not as properties. */
+.sidekick-work .work-task-props > [role="group"],
+.sidekick-work .work-task-props > .work-place-panel {
+  flex: none;
+  margin: var(--sk-s2) 0;
+  padding: var(--sk-s3);
+  border-radius: var(--sk-radius);
+  background: var(--sk-surface);
+}
+/* A read-only row (a place the host cannot change, the repeat rule) is a value, not a control: no ⌄, muted value. */
 .sidekick-work .work-prop-static {
-  border-color: transparent;
-  padding-inline: 0;
   color: var(--sk-muted);
   pointer-events: none;
 }
@@ -363,7 +418,43 @@
   gap: var(--sk-s2);
 }
 
-/* The weekday buttons of a weekly rule share the row's width, so seven of them fill one or two rows at 360 px. */
+/* The weekday buttons of a weekly rule: always one row of seven equal columns, 44 high. Narrower than 18 rem (a phone at
+   320 or 360 px inside the panel's padding) the buttons show two letters; their full name stays their accessible name.
+   The tick of a pressed chip is left out here, there is no room: the outline and the tone show it. */
+.sidekick-work .work-weekday-choices {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--sk-s1);
+  container-type: inline-size;
+}
 .sidekick-work .work-weekday-choices > .sk-chip {
-  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--sk-tap, 44px);
+  padding-inline: 0;
+}
+.sidekick-work .work-weekday-choices > .sk-chip[aria-pressed="true"]::before {
+  display: none;
+}
+.sidekick-work .work-day-short {
+  display: none;
+}
+@container (max-width: 18rem) {
+  .sidekick-work .work-day-long {
+    display: none;
+  }
+  .sidekick-work .work-day-short {
+    display: inline;
+  }
+}
+
+/* The repeat details under the repeat row (the weekday question, its buttons, the hint, the next occurrence). */
+.sidekick-work .work-repeat-question {
+  margin: 0 0 var(--sk-s2);
+  font: var(--sk-type-label-strong);
+}
+.sidekick-work .work-repeat-hint,
+.sidekick-work .work-repeat-next {
+  margin: var(--sk-s2) 0 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
 }

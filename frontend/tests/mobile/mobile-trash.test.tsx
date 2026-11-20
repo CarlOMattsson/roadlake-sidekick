@@ -197,7 +197,9 @@ describe("the phone's trash screen", () => {
       ]),
     );
     expect(writes(native)[0]?.body).toEqual({ version: 4 });
-    expect(await screen.findByText("Uppgift · återställd")).toBeVisible();
+    expect(
+      await screen.findByText("Återställd: Förbered pitchen"),
+    ).toBeVisible();
   });
 
   it("sends nothing to delete until the owner says yes, then sends confirm", async () => {

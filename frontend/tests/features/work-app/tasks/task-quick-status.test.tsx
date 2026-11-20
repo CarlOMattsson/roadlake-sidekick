@@ -368,13 +368,14 @@ describe("TaskFrame Markera klar", () => {
 
 /**
  * The date in the date chip under the title, once the Task has loaded. The chip's name starts with the date
- * label; its first span holds the date alone ("fre 30 okt"). How late a Task is stands on its own line.
+ * label; its value span (the span after the aria-hidden label) holds the date alone ("fre 30 okt"). How late a Task
+ * is stands on its own line.
  */
 async function dueLine(labels: WorkLabels = workEn): Promise<HTMLElement> {
   const chip = await screen.findByRole("button", {
     name: new RegExp(`^${labels.changeDue}: `),
   });
-  return chip.querySelector<HTMLElement>("span") ?? chip;
+  return chip.querySelector<HTMLElement>("span:not(.work-prop-label)") ?? chip;
 }
 
 // Thursday 12 November 2026, 11:00 on the owner's clock (Europe/Stockholm, UTC+1), and the end of the next day there.
@@ -463,9 +464,9 @@ describe("TaskFrame due date", () => {
     expect(Array.from(meta.children, (child) => child.className)).toEqual([
       "work-task-late",
     ]);
-    expect(
-      screen.getByRole("button", { name: "Ändra plats: Kök" }),
-    ).toHaveTextContent("Plats: Kök");
+    const place = screen.getByRole("button", { name: "Ändra plats: Kök" });
+    expect(place.querySelector(".work-prop-label")?.textContent).toBe("Plats");
+    expect(within(place).getByText("Kök")).toBeInTheDocument();
     unmount();
 
     render(

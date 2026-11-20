@@ -24,7 +24,7 @@ describe("Swedish memory sentences use the definite form of the domain", () => {
       `Bara Sidekicks minne av ${definite} raderas. ${capitalised} ändras inte.`,
     );
     expect(controlSv.deletionStarted(domain)).toBe(
-      `Minnet av ${definite} är avslaget. Det Sidekick mindes raderas inom några minuter.`,
+      `Minnet av ${definite} är avslaget, det Sidekick mindes raderas inom några minuter`,
     );
   });
 
@@ -50,7 +50,7 @@ describe("English memory sentences", () => {
       "This deletes only what Sidekick remembers about your contacts (2 records). Your contacts won’t change.",
     );
     expect(controlEn.deletionStarted("projects")).toBe(
-      "Memory is off for your projects. What Sidekick remembered will be deleted within a few minutes.",
+      "Memory is off for your projects, what Sidekick remembered is deleted within a few minutes",
     );
     expect(controlEn.forget("contacts")).toBe("Forget the contact");
     expect(controlEn.countStuck(2)).toBe("2 waiting for memory");
@@ -199,9 +199,11 @@ describe("Control deleted-items wording", () => {
     );
     expect(controlEn.trashMeta(30, true)).toBe("30+ deleted · can be restored");
     expect(controlSv.trashMeta(1)).toBe("1 borttagen · kan återställas");
-    expect(controlSv.showAll(30, true)).toBe("Visa alla (30+)");
-    expect(controlEn.showAll(30, true)).toBe("Show all (30+)");
-    expect(controlEn.showAll(30)).toBe("Show all (30)");
+    expect(controlSv.moreRows(30, true)).toBe("30+ till");
+    expect(controlEn.moreRows(30, true)).toBe("30+ more");
+    expect(controlEn.moreRows(4)).toBe("4 more");
+    expect(controlSv.openView(controlSv.views.trash)).toBe("Öppna Borttaget");
+    expect(controlEn.openView(controlEn.views.trash)).toBe("Open Deleted");
   });
 
   it("says Claude asks Sidekick about the memory", () => {

@@ -90,10 +90,15 @@ describe("a failed row write shows its notice in that row", () => {
         initial={detail}
       />,
     );
-    await user.click(screen.getByRole("checkbox", { name: /Item 5/ }));
+    await user.click(
+      screen.getByRole("button", { name: shoppingEn.markBought("Item 5") }),
+    );
 
     const alert = await screen.findByRole("alert");
-    const row = screen.getByRole("checkbox", { name: /Item 5/ }).closest("li");
+    const row = screen
+      .getByRole("button", { name: shoppingEn.markBought("Item 5") })
+      .closest("li");
+    expect(row).toHaveClass("shopping-store-item");
     expect(row).toContainElement(alert);
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     await waitFor(() =>
@@ -125,37 +130,6 @@ describe("a failed row write shows its notice in that row", () => {
     await waitFor(() =>
       expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
     );
-  });
-
-  it("in the store view the notice sits in the failing store row", async () => {
-    const user = userEvent.setup();
-    const transport = adapter();
-    vi.mocked(transport.purchase).mockRejectedValueOnce(new Error("network"));
-    render(
-      <ShoppingView
-        transport={transport}
-        labels={shoppingEn}
-        initial={detail}
-        fullscreen
-      />,
-    );
-    await user.click(
-      screen.getByRole("button", { name: "Mark Item 5 as bought" }),
-    );
-
-    const alert = await screen.findByRole("alert");
-    const row = screen
-      .getByRole("button", { name: "Mark Item 5 as bought" })
-      .closest("li");
-    expect(row).toHaveClass("shopping-store-item");
-    expect(row).toContainElement(alert);
-    await waitFor(() =>
-      expect(alert.closest(".shopping-failure")).toHaveFocus(),
-    );
-    expect(alert).toHaveTextContent(shoppingEn.markFailed("Item 5", true));
-    expect(
-      within(alert).getByRole("button", { name: shoppingEn.retry }),
-    ).toBeInTheDocument();
   });
 });
 
@@ -194,7 +168,7 @@ describe("a failed read stays at the top of the list", () => {
     expect(refresh.parentElement).toHaveClass("shopping-failure-actions");
     // The rows the list already showed stay in place.
     expect(
-      screen.getByRole("checkbox", { name: /Item 1/ }),
+      screen.getByRole("button", { name: shoppingEn.markBought("Item 1") }),
     ).toBeInTheDocument();
   });
 });

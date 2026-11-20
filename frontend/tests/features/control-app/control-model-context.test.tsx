@@ -149,9 +149,9 @@ describe("trash: a saved restore tells the host model once", () => {
       screen.getByRole("button", { name: "Återställ Förbered pitchen" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "Uppgift · återställd",
-    );
+    expect(
+      await screen.findByText("Återställd: Förbered pitchen"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -232,7 +232,7 @@ describe("memory: a saved change tells the host model once", () => {
 
     await user.click(screen.getByRole("button", { name: "Pausa minnet" }));
 
-    expect(await screen.findByText("Sparat.")).toBeInTheDocument();
+    expect(await screen.findByText("Sparat")).toBeInTheDocument();
     expect(onModelContext).toHaveBeenCalledTimes(1);
     expect(onModelContext).toHaveBeenCalledWith(PAUSED);
   });
@@ -261,7 +261,7 @@ describe("memory: a saved change tells the host model once", () => {
 
     await user.click(screen.getByRole("button", { name: "Återuppta minnet" }));
 
-    expect(await screen.findByText("Sparat.")).toBeInTheDocument();
+    expect(await screen.findByText("Sparat")).toBeInTheDocument();
     expect(onModelContext).toHaveBeenCalledWith(RESUMED);
   });
 
@@ -289,7 +289,7 @@ describe("memory: a saved change tells the host model once", () => {
 
     await user.click(screen.getByRole("switch", { name: "Kontakter: av" }));
 
-    expect(await screen.findByText("Sparat.")).toBeInTheDocument();
+    expect(await screen.findByText("Sparat")).toBeInTheDocument();
     expect(onModelContext).toHaveBeenCalledWith(MEMORY_CHANGED);
   });
 
@@ -345,7 +345,7 @@ describe("memory: a saved change tells the host model once", () => {
 
     await user.click(screen.getByRole("button", { name: "Pausa minnet" }));
 
-    expect(await screen.findByText("Sparat.")).toBeInTheDocument();
+    expect(await screen.findByText("Sparat")).toBeInTheDocument();
     expect(onModelContext).not.toHaveBeenCalled();
   });
 });
