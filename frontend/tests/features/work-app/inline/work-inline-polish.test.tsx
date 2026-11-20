@@ -91,7 +91,7 @@ describe("contact aliases show the heading once", () => {
 });
 
 describe("inline Open shows that the host is answering", () => {
-  it("marks Open busy, disabled and relabelled while the host answers, then restores it", async () => {
+  it("relabels Open while the host answers and ignores a press then, then restores it", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();
     const { rerender } = render(
@@ -105,7 +105,7 @@ describe("inline Open shows that the host is answering", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Show all (1)" }));
+    await user.click(screen.getByRole("button", { name: "Open changes" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -118,9 +118,9 @@ describe("inline Open shows that the host is answering", () => {
         openingLabel={workEn.opening}
       />,
     );
+    // The link keeps its place (and focus) and says what happens; OpenLink has no disabled or busy state, so
+    // the card ignores the press.
     const busy = screen.getByRole("button", { name: workEn.opening });
-    expect(busy).toHaveAttribute("aria-busy", "true");
-    expect(busy).toBeDisabled();
     // A press while the host answers does not ask again.
     await user.click(busy);
     expect(onOpen).toHaveBeenCalledTimes(1);
@@ -135,7 +135,7 @@ describe("inline Open shows that the host is answering", () => {
         openingLabel={workEn.opening}
       />,
     );
-    const idle = screen.getByRole("button", { name: "Show all (1)" });
+    const idle = screen.getByRole("button", { name: "Open changes" });
     expect(idle).toBeEnabled();
     expect(idle).not.toHaveAttribute("aria-busy");
   });

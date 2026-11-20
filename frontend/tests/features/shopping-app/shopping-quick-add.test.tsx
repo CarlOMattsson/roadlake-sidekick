@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
 import type {
@@ -9,6 +9,12 @@ import type {
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
 import { elementWithText } from "@tests/helpers/exact-text";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptSlot,
+  receiptText,
+} from "@tests/helpers/receipt-bar";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -87,7 +93,7 @@ function storeView(
 
 async function waitLoaded() {
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 }
 
@@ -224,7 +230,7 @@ it("Enter in the field sends the item, empties it and keeps the focus", async ()
   expect(field).toHaveFocus();
 });
 
-it("a quick add says where the item went under the field, keeps the focus, and Esc clears it", async () => {
+it("a quick add says where the item went in the receipt bar, keeps the focus, and the field has no note", async () => {
   const added = item({
     id: "019f0000-0000-7000-8000-0000000000a9",
     name: "Oats",
@@ -238,15 +244,20 @@ it("a quick add says where the item went under the field, keeps the focus, and E
   await waitLoaded();
   const field = await openField(user);
   await user.type(field, "oats{Enter}");
-  const note = await screen.findByText("Added: Oats · ICA");
-  expect(note).toHaveAttribute("aria-live", "polite");
+  await waitFor(() => expect(receiptText()).toBe("Added: Oats · ICA"));
+  // The bar is the polite live region; nothing is said under the field any more.
+  expect(receiptSlot()).toHaveAttribute("aria-live", "polite");
+  expect(screen.getAllByText("Added: Oats · ICA")).toHaveLength(1);
+  expect(field.closest(".shopping-create")?.textContent).not.toContain(
+    "Added:",
+  );
   expect(field).toHaveFocus();
+  // Esc closes the field; the receipt is the bar's and runs its own time.
   await user.keyboard("{Escape}");
-  await user.click(addRow());
-  expect(screen.queryByText("Added: Oats · ICA")).not.toBeInTheDocument();
+  expect(receiptText()).toBe("Added: Oats · ICA");
 });
 
-it("a failed quick add hides the earlier receipt", async () => {
+it("a failed quick add shows its error under the field and leaves the earlier receipt, since that add happened", async () => {
   const transport = adapter({
     add: vi
       .fn()
@@ -261,10 +272,102 @@ it("a failed quick add hides the earlier receipt", async () => {
   const field = await openField(user);
   await user.type(field, "milk{Enter}");
   // The item joined one already on the list, so the receipt gives the amount it now has.
-  expect(await screen.findByText("Added: Milk (now 2 l)")).toBeInTheDocument();
+  await waitFor(() => expect(receiptText()).toBe("Added: Milk (now 2 l)"));
   await user.type(field, "Smör{Enter}");
-  await screen.findByRole("alert");
-  expect(screen.queryByText("Added: Milk (now 2 l)")).not.toBeInTheDocument();
+  const alert = await screen.findByRole("alert");
+  expect(field.closest(".shopping-create")).toContainElement(alert);
+  expect(receiptText()).toBe("Added: Milk (now 2 l)");
+});
+
+describe("Ångra of an add", () => {
+  const newOats = item({
+    id: "019f0000-0000-7000-8000-0000000000b1",
+    name: "Oats",
+    store: "ICA",
+    version: 1,
+  });
+
+  async function addOne(transport: ShoppingTransport, text = "oats") {
+    const user = userEvent.setup();
+    render(storeView(transport));
+    await waitLoaded();
+    const field = await openField(user);
+    await user.type(field, `${text}{Enter}`);
+    await waitFor(() => expect(receiptNow()).not.toBeNull());
+    return user;
+  }
+
+  it("one new item can be taken back: Ångra moves it to the trash at its version", async () => {
+    const trashItem = vi.fn().mockResolvedValue({ version: 5 });
+    const transport = adapter({
+      add: vi
+        .fn()
+        .mockResolvedValue({ items: [{ item: newOats, merged: false }] }),
+      trashItem,
+      restoreItem: vi.fn().mockResolvedValue({}),
+    });
+    const user = await addOne(transport);
+    await user.click(await findReceiptUndo("Undo"));
+    await waitFor(() => expect(trashItem).toHaveBeenCalledTimes(1));
+    expect(trashItem).toHaveBeenCalledWith(
+      newOats.id,
+      newOats.version,
+      expect.stringMatching(/^[0-9a-f-]{36}$/),
+    );
+    // Taking an add back has no receipt of its own: the bar empties.
+    await waitFor(() => expect(receiptNow()).toBeNull());
+  });
+
+  it("is not offered when the amount joined an item that was already there", async () => {
+    const transport = adapter({
+      add: vi
+        .fn()
+        .mockResolvedValue({ items: [{ item: newOats, merged: true }] }),
+      trashItem: vi.fn().mockResolvedValue({ version: 5 }),
+      restoreItem: vi.fn().mockResolvedValue({}),
+    });
+    await addOne(transport);
+    expect(receiptText()).toContain("Oats");
+    expect(
+      within(receiptSlot()).queryByRole("button", { name: "Undo" }),
+    ).toBeNull();
+  });
+
+  it("is not offered for several items at once", async () => {
+    const second = {
+      ...newOats,
+      id: `${newOats.id.slice(0, -1)}2`,
+      name: "Rye",
+    };
+    const transport = adapter({
+      add: vi.fn().mockResolvedValue({
+        items: [
+          { item: newOats, merged: false },
+          { item: second, merged: false },
+        ],
+      }),
+      trashItem: vi.fn().mockResolvedValue({ version: 5 }),
+      restoreItem: vi.fn().mockResolvedValue({}),
+    });
+    await addOne(transport, "oats, rye");
+    expect(receiptText()).toBe("Added: Oats, Rye · ICA");
+    expect(
+      within(receiptSlot()).queryByRole("button", { name: "Undo" }),
+    ).toBeNull();
+  });
+
+  it("is not offered when the host has no trash tools", async () => {
+    const transport = adapter({
+      add: vi
+        .fn()
+        .mockResolvedValue({ items: [{ item: newOats, merged: false }] }),
+    });
+    await addOne(transport);
+    expect(receiptText()).toBe("Added: Oats · ICA");
+    expect(
+      within(receiptSlot()).queryByRole("button", { name: "Undo" }),
+    ).toBeNull();
+  });
 });
 
 it("Enter with an empty or blank field sends nothing", async () => {
@@ -534,8 +637,8 @@ it("an item that joined one already on the list shows its new amount in the rece
 });
 
 it("the placeholder is the same in both languages' examples: no quantity is read from the text", () => {
-  expect(shoppingEn.addItemPlaceholder).toBe("New item, e.g. milk, eggs");
-  expect(shoppingSv.addItemPlaceholder).toBe("Ny vara, t.ex. mjölk, ägg");
+  expect(shoppingEn.addItemPlaceholder).toBe("New item, e.g. 2 l milk, eggs");
+  expect(shoppingSv.addItemPlaceholder).toBe("Ny vara, t.ex. 2 l mjölk, ägg");
 });
 
 it("Esc closes the field also when the focus has moved to a button outside it", async () => {

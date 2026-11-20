@@ -63,7 +63,7 @@
   padding-inline: 0.25rem;
   border-radius: calc(var(--w-radius) - 2px);
   color: var(--w-muted);
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
   font-weight: var(--font-weight-medium, 500);
   line-height: 1.125rem;
   white-space: nowrap;
@@ -153,15 +153,18 @@
 
 /* A ring, as the real one: a 2 px contour in the ring's box (not a filled disc), centred on the first title line. */
 .sidekick-wait-glyph {
+  box-sizing: border-box;
   width: var(--sk-ring-glyph, 1.5rem);
   height: var(--sk-ring-glyph, 1.5rem);
   margin-top: calc(
     (var(--sk-type-row-line, 1.3rem) - var(--sk-ring-glyph, 1.5rem)) / 2
   );
+  /* A 2 px ring 2 inside the box (where an outline at -4 offset drew it): an inset shadow inside a clear 2 px border.
+     An outline is the focus ring's alone (css-policy). */
+  border: 2px solid transparent;
   border-radius: 50%;
   background: transparent;
-  outline: 2px solid var(--sk-skeleton, var(--w-skeleton));
-  outline-offset: -4px;
+  box-shadow: inset 0 0 0 2px var(--sk-skeleton, var(--w-skeleton));
 }
 
 .sidekick-wait-text {
@@ -206,7 +209,8 @@
   width: 2rem;
   height: 2rem;
   margin: 0;
-  outline: 0;
+  border: 0;
+  box-shadow: none;
   background: var(--sk-skeleton, var(--w-skeleton));
 }
 .sidekick-wait[data-room="contacts"] .sidekick-wait-meta {
@@ -236,7 +240,7 @@
 .sidekick-wait-note {
   margin: 1rem 0 0;
   color: var(--w-muted);
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
   line-height: 1.25rem;
 }
 

@@ -27,7 +27,7 @@ import {
   manageLabelsEn,
   manageLabelsSv,
 } from "@/features/work-app/shared/manage-labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import { useWorkWrite } from "@/features/work-app/shared/use-work-write";
 import {
   WorkCard,

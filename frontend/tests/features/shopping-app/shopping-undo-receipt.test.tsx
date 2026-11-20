@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -17,6 +18,13 @@ import type {
 } from "@/features/shopping-app/transport";
 import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { elementWithText } from "@tests/helpers/exact-text";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptSlot,
+  receiptText,
+  receiptRunning,
+} from "@tests/helpers/receipt-bar";
 
 const list: ShoppingList = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -94,8 +102,6 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-const undoName = (name: string) => new RegExp(`^Undo (not )?bought ${name}$`);
-
 function renderView(
   transport: ShoppingTransport,
   items: ShoppingItem[],
@@ -113,7 +119,7 @@ function renderView(
 
 async function settle() {
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 }
 
@@ -135,18 +141,26 @@ describe.each([
     await user.click(
       screen.getByRole("button", { name: shoppingEn.markBought("Milk") }),
     );
-    const undo = await screen.findByRole("button", { name: undoName("Milk") });
+    const undo = await findReceiptUndo("Undo");
     await waitFor(() => expect(undo).toBeEnabled());
+    await receiptRunning();
     return { transport, user, undo };
   }
 
-  it("says what happened in the row's status, and Ångra takes it back against the new version", async () => {
+  it("says what happened in the bar, the row keeps its place, and Ångra takes it back against the new version", async () => {
     const { transport, user, undo } = await buyMilk();
+    expect(receiptText()).toBe(`${shoppingEn.bought}: Milk`);
     expect(screen.getByRole("status")).toHaveTextContent(
       `${shoppingEn.bought}: Milk`,
     );
-    expect(undo).toHaveAccessibleName("Undo bought Milk");
     expect(undo).toHaveTextContent(/^Undo$/);
+    // The row is the row's state, not a receipt: muted in its place with "Bought", and no Ångra of its own.
+    const row = document.querySelector<HTMLElement>(".shopping-held-item")!;
+    expect(row).toHaveTextContent("Milk");
+    expect(row.querySelector(".shopping-held")).toHaveTextContent(
+      shoppingEn.bought,
+    );
+    expect(within(row).queryByRole("button", { name: /Undo/ })).toBeNull();
     await user.click(undo);
     await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
     const [first, firstKey] = vi.mocked(transport.purchase).mock.calls[0]!;
@@ -155,52 +169,53 @@ describe.each([
     expect(back).toMatchObject({ id: milk.id, purchased: true, version: 2 });
     expect(backKey).not.toBe(firstKey);
     await waitFor(() =>
-      expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      expect(document.querySelector(".shopping-loading")).toBeNull(),
     );
-    expect(screen.queryByRole("button", { name: undoName("Milk") })).toBeNull();
+    await waitFor(() => expect(receiptNow()).toBeNull());
+    expect(document.querySelector(".shopping-held-item")).toBeNull();
   });
 
   it("holds the row for UNDO_MS, then it moves to Köpta", async () => {
     await buyMilk();
-    // While Ångra holds the row stands in its place, and "Köpta" does not count it yet.
+    // While the bar shows the row stands in its place, and "Köpta" does not count it yet.
     expect(screen.queryByRole("button", { name: /^Bought/ })).toBeNull();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS - 1_000);
     });
-    expect(
-      screen.getByRole("button", { name: undoName("Milk") }),
-    ).toBeInTheDocument();
+    expect(receiptNow()).not.toBeNull();
+    expect(document.querySelector(".shopping-held-item")).not.toBeNull();
     expect(screen.queryByRole("button", { name: /^Bought/ })).toBeNull();
     act(() => {
       vi.advanceTimersByTime(1_500);
     });
-    expect(screen.queryByRole("button", { name: undoName("Milk") })).toBeNull();
-    expect(screen.queryByRole("status")).toBeNull();
+    expect(receiptNow()).toBeNull();
+    // The slot stays in the page (a polite live region) and is empty.
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(document.querySelector(".shopping-held-item")).toBeNull();
     // The bought item is listed under Köpta (1), no longer among the open rows.
     expect(
       elementWithText(shoppingEn.boughtCount(1), "button"),
     ).toBeInTheDocument();
   });
 
-  it("stands still while the pointer is over Ångra, and runs on when it leaves", async () => {
-    const { undo } = await buyMilk();
+  it("stands still while the pointer is over the bar, and runs on when it leaves", async () => {
+    await buyMilk();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS - 1_000);
     });
-    fireEvent.pointerEnter(undo);
-    expect(undo).toHaveAttribute("data-held");
+    const bar = receiptNow()!;
+    fireEvent.pointerEnter(bar);
+    expect(bar).toHaveAttribute("data-held");
     act(() => {
       vi.advanceTimersByTime(60_000);
     });
-    expect(
-      screen.getByRole("button", { name: undoName("Milk") }),
-    ).toBeInTheDocument();
-    fireEvent.pointerLeave(undo);
-    expect(undo).not.toHaveAttribute("data-held");
+    expect(receiptNow()).not.toBeNull();
+    fireEvent.pointerLeave(bar);
+    expect(bar).not.toHaveAttribute("data-held");
     act(() => {
       vi.advanceTimersByTime(1_500);
     });
-    expect(screen.queryByRole("button", { name: undoName("Milk") })).toBeNull();
+    expect(receiptNow()).toBeNull();
   });
 
   it("stands still while focus is in Ångra", async () => {
@@ -209,14 +224,21 @@ describe.each([
     act(() => {
       vi.advanceTimersByTime(UNDO_MS * 2);
     });
-    expect(
-      screen.getByRole("button", { name: undoName("Milk") }),
-    ).toBeInTheDocument();
+    expect(receiptNow()).not.toBeNull();
     act(() => undo.blur());
     act(() => {
       vi.advanceTimersByTime(UNDO_MS + 100);
     });
-    expect(screen.queryByRole("button", { name: undoName("Milk") })).toBeNull();
+    expect(receiptNow()).toBeNull();
+  });
+
+  it("has the bar in the page before any change: one empty polite live region", async () => {
+    renderView(server([milk]), [milk], props);
+    await settle();
+    const slot = receiptSlot();
+    expect(slot).toHaveAttribute("role", "status");
+    expect(slot).toHaveAttribute("aria-live", "polite");
+    expect(slot).toBeEmptyDOMElement();
   });
 });
 
@@ -238,7 +260,7 @@ it("says 'Köpt' in Swedish and 'Bought' in English", async () => {
 });
 
 describe("ticking a bought item back to open", () => {
-  it("says 'Not bought' with Ångra, which buys it again against the new version", async () => {
+  async function untickEggs() {
     const transport = server([eggs]);
     const user = userEvent.setup();
     renderView(transport, [eggs]);
@@ -247,40 +269,43 @@ describe("ticking a bought item back to open", () => {
     await user.click(
       screen.getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
     );
-    const undo = await screen.findByRole("button", { name: undoName("Eggs") });
+    const undo = await findReceiptUndo("Undo");
+    return { transport, user, undo };
+  }
+
+  it("says 'Not bought' with Ångra, which buys it again against the new version", async () => {
+    const { transport, user, undo } = await untickEggs();
     expect(screen.getByRole("status")).toHaveTextContent(
       `${shoppingEn.notBought}: Eggs`,
     );
-    expect(undo.closest("li")).toHaveClass("shopping-held-item");
-    expect(
-      undo.closest("li")!.querySelector(".shopping-held"),
-    ).toHaveTextContent(shoppingEn.notBought);
+    const row = document.querySelector<HTMLElement>(".shopping-held-item")!;
+    expect(row).toHaveTextContent("Eggs");
+    expect(row.querySelector(".shopping-held")).toHaveTextContent(
+      shoppingEn.notBought,
+    );
     await waitFor(() => expect(undo).toBeEnabled());
     await user.click(undo);
     await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
     const [back] = vi.mocked(transport.purchase).mock.calls[1]!;
     expect(back).toMatchObject({ id: eggs.id, purchased: false, version: 2 });
-    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    await waitFor(() => expect(receiptNow()).toBeNull());
   });
 
-  it("names Ångra after the item and what it takes back, while its visible text stays 'Undo'", async () => {
-    const user = userEvent.setup();
-    renderView(server([eggs]), [eggs]);
-    await settle();
-    await user.click(elementWithText(shoppingEn.boughtCount(1), "button"));
+  it("takes the change back from the held row's ring too, and the bar then offers no second Ångra", async () => {
+    const { transport, user } = await untickEggs();
+    const row = document.querySelector<HTMLElement>(".shopping-held-item")!;
+    // The held row now reads as open ("Mark bought"); a tap on its ring takes the change back.
     await user.click(
-      screen.getByRole("button", { name: shoppingEn.markOpen("Eggs") }),
+      within(row).getByRole("button", { name: shoppingEn.markBought("Eggs") }),
     );
-    const undo = await screen.findByRole("button", {
-      name: "Undo not bought Eggs",
-    });
-    expect(undo).toHaveTextContent(/^Undo$/);
-    expect(shoppingSv.undoPurchaseNamed("Mjölk", true)).toBe(
-      "Ångra köpt Mjölk",
-    );
-    expect(shoppingSv.undoPurchaseNamed("Mjölk", false)).toBe(
-      "Ångra inte köpt Mjölk",
-    );
+    await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
+    const [back] = vi.mocked(transport.purchase).mock.calls[1]!;
+    expect(back).toMatchObject({ id: eggs.id, purchased: false, version: 2 });
+    // The bar says what happened, without Ångra (the change it would undo is already taken back).
+    expect(receiptText()).toBe(`${shoppingEn.bought}: Eggs`);
+    expect(
+      within(receiptSlot()).queryByRole("button", { name: "Undo" }),
+    ).toBeNull();
   });
 
   it("in Swedish the receipt is 'Inte köpt'", () => {

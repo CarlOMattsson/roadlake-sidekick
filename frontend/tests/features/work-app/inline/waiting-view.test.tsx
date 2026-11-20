@@ -240,7 +240,7 @@ describe("waiting view in the inline card", () => {
     expect(rows[1]).toHaveTextContent("Sara Holm 1 day");
     expect(screen.getAllByRole("button")).toHaveLength(1);
     expect(
-      screen.getByRole("button", { name: inlineSummaryLabelsEn.showAll }),
+      screen.getByRole("button", { name: "Open Waiting on" }),
     ).toBeInTheDocument();
   });
 

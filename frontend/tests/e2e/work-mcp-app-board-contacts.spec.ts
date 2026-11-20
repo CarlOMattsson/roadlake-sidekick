@@ -331,17 +331,14 @@ test("sandboxed Work board opens from get_work_board, moves a card to In progres
     .getByRole("group", { name: "Välj status för Ring Anna om offerten" })
     .getByRole("button", { name: "Pågår", exact: true })
     .click();
-  // The card keeps its place in its section while its Undo lasts: the row's meta line says "Pågår", and "Ångra"
-  // is a compact secondary button in the row's trailing slot. `.work-agenda-undo` is display: contents, so the button is
-  // checked, not the wrapper's box.
+  // The card keeps its place in its section while its Ångra lasts: the row's meta line says "Pågår" and the row has no
+  // button of its own. The Ångra, the message and the time are the receipt bar's at the board's foot (designsystem §0.6).
   const undoLine = todo.locator(".work-agenda-undo");
   await expect(undoLine.getByRole("status")).toHaveText("Pågår");
-  await expect(
-    undoLine.getByRole("button", {
-      name: "Ångra Ring Anna om offerten",
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(undoLine.getByRole("button")).toHaveCount(0);
+  const receipt = app.locator(".sk-receipt-slot");
+  await expect(receipt).toContainText("Pågår: Ring Anna om offerten");
+  await expect(receipt.getByRole("button", { name: "Ångra" })).toBeVisible();
   // The section count says where the card is now: it left "Att göra" at once, while its row stands here
   // for its Ångra.
   await expect(
@@ -349,6 +346,7 @@ test("sandboxed Work board opens from get_work_board, moves a card to In progres
   ).toBeVisible();
   // When the Undo time (UNDO_MS, 15 s) has run out the card leaves the shown list and lands in Pågår.
   await expect(undoLine).toHaveCount(0, { timeout: 20000 });
+  await expect(receipt.getByRole("button", { name: "Ångra" })).toHaveCount(0);
   await expect(
     todo.getByRole("heading", { level: 3, name: "Att göra (1)" }),
   ).toBeVisible();
@@ -537,16 +535,21 @@ test("sandboxed Work App edits a Contact's note with a stale version first, adds
   await app.getByRole("button", { name: "Edit", exact: true }).click();
   await app.getByLabel("Note", { exact: true }).fill("Ny anteckning");
   await app.getByRole("button", { name: "Save" }).click();
-  const banner = app.getByRole("alert");
-  await expect(banner).toContainText("This contact was changed elsewhere");
+  const conflict = "This contact was changed elsewhere";
+  const banner = app.locator("div[tabindex='-1']", {
+    has: app.getByText(conflict),
+  });
   await expect(banner).toBeFocused();
   await banner.getByRole("button", { name: "Refresh" }).click();
-  await expect(app.getByRole("alert")).toHaveCount(0);
+  await expect(app.getByText(conflict)).toHaveCount(0);
   await expect(app.getByLabel("Note", { exact: true })).toHaveValue(
     "Ny anteckning",
   );
   await app.getByRole("button", { name: "Save" }).click();
-  await expect(app.getByText("Saved", { exact: true })).toBeVisible();
+  // The write is confirmed in the receipt bar, not as a line in the view.
+  await expect(app.locator(".sk-receipt-slot .sk-receipt__message")).toHaveText(
+    "Contact saved",
+  );
   await expect(app.getByText("Ny anteckning", { exact: true })).toBeVisible();
   // Without nicknames there is no "Also known as" line. Nicknames are edited in the editor ("More options" > "Edit"),
   // in the "Also known as" group: the "New alternative name" field and its own "Add another name" button.
@@ -766,18 +769,25 @@ test("sandboxed Work App opens the Contact list from list_contacts, searches, op
       .getByRole("button", { name: "Bo Berg", exact: true })
       .evaluate((element) => getComputedStyle(element).display),
   ).resolves.toBe("flex");
-  // The archive switch sits in the "More options" panel of the Contact list.
+  // The archive switch sits in the "More options" panel of the Contact list: a switch (not a checkbox) off at first,
+  // on a row that is a 44 px target at least.
   await app.getByRole("button", { name: "More options", exact: true }).click();
-  await expect(
-    app
-      .getByRole("checkbox", { name: "Show archived" })
-      .evaluate((element) => getComputedStyle(element).width),
-  ).resolves.toBe("20px");
+  const archiveSwitch = app.getByRole("switch", { name: "Show archived" });
+  await expect(archiveSwitch).toHaveAttribute("aria-checked", "false");
+  await expect(app.getByRole("checkbox")).toHaveCount(0);
+  const archiveRow = app.locator(".work-contact-menu-switch");
+  // The whole row is one 48 px target (contacts.css).
+  expect((await archiveRow.boundingBox())!.height).toBeGreaterThanOrEqual(48);
   const dimensions = await app.locator("body").evaluate((body) => ({
     width: body.scrollWidth,
     viewport: window.innerWidth,
   }));
   expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewport);
+  // A tap on the words of the row flips the switch too: the switch's target is stretched over the whole row. The click
+  // is forced because Playwright refuses a click on a span that another element (the switch) covers; it still lands
+  // at the span's point, where the page's own hit test sends it to the switch.
+  await app.getByText("Show archived", { exact: true }).click({ force: true });
+  await expect(archiveSwitch).toHaveAttribute("aria-checked", "true");
   expect(failures).toEqual([]);
   expect(networkRequests).toBe(0);
 });

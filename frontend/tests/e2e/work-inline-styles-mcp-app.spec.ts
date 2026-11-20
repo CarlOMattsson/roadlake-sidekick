@@ -92,7 +92,10 @@ test("Inline Task card: Mark as done and Open are text buttons of at least the 4
     replies: workReplies,
   });
   await settled(app);
-  const actions = await app.locator(".work-compact-action").all();
+  // Done (primary) and the card's one main link (OpenLink), last.
+  const actions = await app
+    .locator(".work-compact-action, .sk-open-link")
+    .all();
   expect(actions.length).toBeGreaterThanOrEqual(2);
   const floor = await resolved(app, "min-height", "var(--sk-tap)");
   expect(floor).toBe("44px");
@@ -105,8 +108,8 @@ test("Inline Task card: Mark as done and Open are text buttons of at least the 4
     expect((await box(action)).height).toBeGreaterThanOrEqual(44);
     expect(await action.getAttribute("style")).toBeNull();
   }
-  // The Open action is the family's open text button with its chevron, beside the primary Done.
-  const openAction = app.locator(".work-compact-action.sk-btn--open");
+  // The Open action is the family's open text button with its chevron (OpenLink), the card's last control, under Done.
+  const openAction = app.locator(".sk-open-link.sk-btn--open");
   await expect(openAction).toHaveCount(1);
   await expect(openAction.locator("svg")).toHaveCount(1);
   expect(failures).toEqual([]);

@@ -186,9 +186,10 @@ describe("work card supersession", () => {
         "Ersatt av ett nyare kort",
       ),
     );
+    // A replaced card has no way into the room: its line says a newer card took over.
     expect(
-      olderCard.getByRole("button", { name: "Visa alla (1)" }),
-    ).toBeDisabled();
+      olderCard.queryByRole("button", { name: /^Öppna ändringar/ }),
+    ).toBeNull();
     for (const button of olderCard.getAllByRole("button", {
       name: /Klar|Blockerad|Pågår|Att göra/,
     })) {
@@ -232,8 +233,8 @@ describe("work card supersession", () => {
       ),
     );
     expect(
-      within(older.container).getByRole("button", { name: "Show all (1)" }),
-    ).toBeDisabled();
+      within(older.container).queryByRole("button", { name: /^Open changes/ }),
+    ).toBeNull();
     younger.unmount();
   });
 
@@ -269,7 +270,7 @@ describe("work card supersession", () => {
     const youngerCard = within(younger.container);
     expect(youngerCard.queryByText(cardLabelsEn.superseded)).toBeNull();
     expect(
-      youngerCard.getByRole("button", { name: "Show all (1)" }),
+      youngerCard.getByRole("button", { name: "Open changes" }),
     ).toBeEnabled();
 
     const user = userEvent.setup();

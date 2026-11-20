@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Segmented } from "../../../mcp-apps/ui/segmented";
+import { Tabs } from "../../../mcp-apps/ui/tabs";
 import type { BoardUndo } from "../board-columns";
 import { boardLabelsFor } from "../board-labels";
 import { sectionCount } from "../board-sections";
@@ -78,11 +78,12 @@ export function ColumnTabs({
   }));
   return (
     <div className="work-column-tabs">
-      <Segmented
+      <Tabs
         label={words.columnTabs}
         options={options}
         value={column}
         onChange={onChoose}
+        fit="equal"
       />
     </div>
   );

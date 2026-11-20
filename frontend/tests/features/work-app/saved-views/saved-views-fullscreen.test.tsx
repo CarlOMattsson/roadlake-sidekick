@@ -312,7 +312,7 @@ describe("WorkFullscreen with saved views", () => {
     expect(await screen.findByText("High item")).toBeInTheDocument();
     expect(screen.queryByText("Board item")).not.toBeInTheDocument();
     expect(
-      screen.queryByText(savedViewsLabelsEn.severalPriorities),
+      screen.queryByText(savedViewsLabelsEn.severalPrioritiesTitle),
     ).not.toBeInTheDocument();
   });
 
@@ -329,7 +329,7 @@ describe("WorkFullscreen with saved views", () => {
 
     expect(fake.getWorkBoard).toHaveBeenLastCalledWith({});
     expect(
-      await screen.findByText(savedViewsLabelsEn.severalPriorities),
+      await screen.findByText(savedViewsLabelsEn.severalPrioritiesTitle),
     ).toBeInTheDocument();
 
     // The menu folded away with the opening; the next view is opened from it again.
@@ -340,7 +340,7 @@ describe("WorkFullscreen with saved views", () => {
     await user.click(await screen.findByRole("button", { name: "High" }));
     expect(fake.getWorkBoard).toHaveBeenLastCalledWith({ priority: "high" });
     expect(
-      screen.queryByText(savedViewsLabelsEn.severalPriorities),
+      screen.queryByText(savedViewsLabelsEn.severalPrioritiesTitle),
     ).not.toBeInTheDocument();
     // The receipt names the newest view only.
     expect(

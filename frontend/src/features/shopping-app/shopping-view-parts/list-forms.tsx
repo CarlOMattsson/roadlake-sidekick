@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CardFoot } from "../../mcp-apps/ui/card";
-import { OpenListButton } from "../shopping-card";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import type { HostSettingsEntry } from "../../mcp-apps/room-types";
 import type { ShoppingList } from "../transport";
 import type { ShoppingLabels } from "../labels";
@@ -295,12 +294,25 @@ export function ListPicker({
           )}
         </div>
       )}
+      {/* The empty recipe (designsystem §3 Tomt): what is empty, what lists are for, the ask, then the create row,
+          which opens the same field as + (gone while the field is open). */}
       {!busy && lists.length === 0 && !hasError && (
         <EmptyState
           title={t.noLists}
           hint={t.pickerHint}
           ask={emptyAsk(t.dateLocale, t.emptyListsExample, sendMessage)}
-        />
+        >
+          {!newOpen && (
+            <button
+              type="button"
+              className="sk-action-row"
+              onClick={() => onNewOpen(true)}
+            >
+              <PlusIcon />
+              {t.newList}
+            </button>
+          )}
+        </EmptyState>
       )}
       {(listOffset > 0 || nextLists !== null) && (
         <div className="shopping-toolbar">
@@ -314,15 +326,7 @@ export function ListPicker({
         </div>
       )}
       {!fullscreen && onOpenFull && lists.length > 0 && (
-        <CardFoot>
-          <OpenListButton
-            labels={t}
-            text={t.openShopping}
-            hidden={0}
-            hiddenText={t.hiddenItems}
-            onOpen={onOpenFull}
-          />
-        </CardFoot>
+        <OpenLink label={t.openShopping} onOpen={onOpenFull} />
       )}
     </div>
   );

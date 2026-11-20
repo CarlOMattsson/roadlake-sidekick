@@ -64,7 +64,10 @@ describe("reading a chosen list in fullscreen", () => {
       await screen.findByRole("button", { name: new RegExp(`^${ikea.name}`) }),
     );
     // The read is pending: the loading line shows, and the old form does not.
-    expect(screen.getByRole("status")).toHaveTextContent(shoppingEn.loading);
+    // The receipt bar's slot is always a status too, so the loading line is found by its own class.
+    expect(document.querySelector(".shopping-loading")).toHaveTextContent(
+      shoppingEn.loading,
+    );
     expect(
       screen.queryByRole("button", { name: shoppingEn.create }),
     ).not.toBeInTheDocument();
@@ -79,6 +82,6 @@ describe("reading a chosen list in fullscreen", () => {
     expect(
       await screen.findByRole("heading", { name: ikea.name }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(document.querySelector(".shopping-loading")).toBeNull();
   });
 });

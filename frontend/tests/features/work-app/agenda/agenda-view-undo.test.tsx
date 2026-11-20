@@ -24,13 +24,14 @@ import {
   rowOf,
   undoButton,
   undoLineOf,
+  receiptBar,
   openRow,
   resetAgendaEnvironment,
 } from "@tests/helpers/agenda-view-fixtures";
 
 afterEach(resetAgendaEnvironment);
 
-it("a glyph tap marks the Task done at its version and offers Undo beside the status of the changed row", async () => {
+it("a glyph tap marks the Task done at its version and confirms it in the receipt bar, whose Undo the row does not repeat", async () => {
   const user = userEvent.setup();
   const { transport, mock } = makeTransport();
   renderAgenda([task], transport);
@@ -43,14 +44,16 @@ it("a glyph tap marks the Task done at its version and offers Undo beside the st
       expect.any(String),
     ),
   );
+  // The row says its new state and has no button of its own; the bar names the Task and holds the Undo.
   const line = await undoLineOf(task.title);
   expect(line).toHaveTextContent("Done");
   expect(line.parentElement).toHaveClass("work-agenda-undo");
-  expect(
-    within(line.parentElement as HTMLElement).getByRole("button", {
-      name: `Undo ${task.title}`,
-    }),
-  ).toHaveTextContent(/^Undo$/);
+  const bar = receiptBar();
+  expect(bar).toHaveAttribute("role", "status");
+  expect(bar).toHaveAttribute("aria-live", "polite");
+  expect(bar).toHaveTextContent(`Done: ${task.title}`);
+  expect(within(bar).getByRole("button", { name: "Undo" })).toBeEnabled();
+  expect(rowOf(task.title)).toHaveAttribute("data-undo", "on");
 });
 
 it("a long Task title stays whole in its row, and its Undo line names only the status", async () => {
@@ -154,7 +157,7 @@ it("an Undo whose reply does not show the restored status fails with Try again a
   expect((retryCall as unknown[])[3]).not.toBe((undoCall as unknown[])[3]);
 });
 
-it("the Undo line stays for fifteen seconds, then ends", async () => {
+it("the receipt bar stays for fifteen seconds, then ends and the row settles with it", async () => {
   vi.useFakeTimers();
   expect(UNDO_MS).toBe(15000);
   const { transport } = makeTransport();
@@ -169,12 +172,18 @@ it("the Undo line stays for fifteen seconds, then ends", async () => {
     vi.advanceTimersByTime(UNDO_MS - 1);
   });
   expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
+  // The row keeps its state line while the bar's time runs.
+  expect(document.querySelector(".work-agenda-undo")).not.toBeNull();
   act(() => {
     vi.advanceTimersByTime(1);
   });
   expect(
     screen.queryByRole("button", { name: /^Undo/ }),
   ).not.toBeInTheDocument();
+  expect(receiptBar()).toBeEmptyDOMElement();
+  // The bar and the row end together: the done row has folded away with its state line.
+  expect(document.querySelector(".work-agenda-undo")).toBeNull();
+  expect(screen.queryByRole("button", { name: task.title })).toBeNull();
 });
 
 it("the Undo time starts when the server has answered, not at the click, and the line says Moving until then", async () => {
@@ -226,7 +235,7 @@ it("the Undo time starts when the server has answered, not at the click, and the
   ).not.toBeInTheDocument();
 });
 
-it("the pointer over the Undo line pauses its time, and it runs on with the time left when the pointer leaves", async () => {
+it("the pointer over the receipt pauses its time, and it runs on with the time left when the pointer leaves", async () => {
   vi.useFakeTimers();
   const { transport } = makeTransport();
   renderAgenda([task], transport);
@@ -235,9 +244,9 @@ it("the pointer over the Undo line pauses its time, and it runs on with the time
     await vi.advanceTimersByTimeAsync(0);
   });
   const undo = screen.getByRole("button", { name: /^Undo/ });
-  // The pause sits on the Undo line's wrapper, which holds both the status text and the button.
-  const line = undo.closest(".work-agenda-undo");
-  if (!line) throw new Error("no Undo line");
+  // The pause sits on the receipt, which holds the message and the button.
+  const line = undo.closest(".sk-receipt");
+  if (!line) throw new Error("no receipt");
   act(() => {
     vi.advanceTimersByTime(10000);
   });
@@ -261,7 +270,7 @@ it("the pointer over the Undo line pauses its time, and it runs on with the time
   ).not.toBeInTheDocument();
 });
 
-it("focus in the Undo line pauses its time as well, until focus leaves it", async () => {
+it("focus in the receipt pauses its time as well, until focus leaves it", async () => {
   vi.useFakeTimers();
   const { transport } = makeTransport();
   renderAgenda([task], transport);

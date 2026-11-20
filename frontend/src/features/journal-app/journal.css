@@ -1,6 +1,5 @@
 .sidekick-journal {
-  font: var(--font-text-md-size, 16px)/var(--font-text-md-line-height, 1.5)
-    var(--sk-font);
+  font: var(--sk-type-body);
   color: var(--sk-fg);
   background: transparent;
   padding: calc(1rem + var(--host-safe-top, 0px))
@@ -156,7 +155,7 @@
   width: 100%;
 }
 .sidekick-journal .journal-list > li > p {
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   opacity: 0.85;
   margin: 0.25rem 0 0;
 }
@@ -173,7 +172,7 @@
 }
 .sidekick-journal .journal-muted {
   opacity: 0.85;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
 }
 /* The original line under a summary: the muted note and the quiet button share one row when there is room.
    Both are 14 px; the button is 44 px high. */
@@ -184,14 +183,14 @@
   column-gap: 0.75rem;
 }
 .sidekick-journal .journal-original-row .journal-muted {
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
 }
 .sidekick-journal .journal-original-row .journal-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--sk-s1);
   min-height: 44px;
-  font-size: 0.9375rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--sk-fg);
 }
 .sidekick-journal .journal-original-row p {
@@ -282,7 +281,7 @@
   overflow-wrap: anywhere;
 }
 .sidekick-journal .journal-tag {
-  font-size: 0.85rem;
+  font-size: var(--sk-type-meta-size);
   opacity: 0.85;
 }
 .sidekick-journal .journal-edit {
@@ -291,7 +290,7 @@
   margin: 0.75rem 0;
 }
 .sidekick-journal .journal-edit label {
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   font-weight: 550;
 }
 .sidekick-journal .journal-edit input,
@@ -471,7 +470,7 @@
   padding-inline: 0.6rem;
   border: var(--sk-hairline) solid var(--sk-border);
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: var(--sk-type-meta-size);
   line-height: 1.3;
 }
 .sidekick-journal .journal-chip-name {
@@ -509,7 +508,7 @@
   margin-block: 0;
   margin-inline-end: -0.6rem;
   padding: 0;
-  font-size: 1rem;
+  font-size: var(--sk-type-body-size);
   line-height: 1;
 }
 /* The links group takes focus after a removal (the chip is gone); the focus ring is for keyboard focus only. */
@@ -540,7 +539,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: stretch;
-  font-size: 0.95rem;
+  font-size: var(--sk-type-row-size);
   padding: 0;
   border-top: var(--sk-hairline) solid var(--sk-border);
 }
@@ -607,6 +606,10 @@
 button.journal-entry-card {
   cursor: pointer;
   touch-action: manipulation;
+}
+/* The one ring with the button radius, as the hover tone has (row.css [data-sk-row]): the square ring read as a frame. */
+.sidekick-journal button.journal-entry-card:focus-visible {
+  border-radius: var(--sk-radius);
 }
 .sidekick-journal .journal-entry-card > * {
   grid-column: 1;
@@ -897,7 +900,7 @@ button.journal-entry-card {
 }
 @media (forced-colors: active) {
   .sidekick-journal .sk-day-strip-day[aria-current="date"] {
-    outline: 2px solid CanvasText;
+    outline: 2px solid Highlight;
     outline-offset: -2px;
   }
 }
@@ -1056,7 +1059,7 @@ button.journal-entry-card {
   .journal-decision-bar
   > button {
   padding-inline: 0.5rem;
-  font-size: 0.85rem;
+  font-size: var(--sk-type-meta-size);
   white-space: nowrap;
 }
 

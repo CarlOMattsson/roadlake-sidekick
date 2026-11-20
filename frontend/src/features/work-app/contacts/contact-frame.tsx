@@ -1,3 +1,4 @@
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { ContactBody } from "./contact-body";
 import { ContactHeader } from "./contact-header";
@@ -25,7 +26,16 @@ export function ContactFrame({
 }) {
   // A compact Contact card's `edit` action opens the frame with the existing editor already open.
   const frame = useDetailFrame({ moves, startEditing });
-  const record = useContactRecord({ id, transport, frame, refreshKey });
+  // The one receipt of the page: every stored write is confirmed in its bar, and another Contact clears it.
+  const receipt = useReceipt(id);
+  const record = useContactRecord({
+    id,
+    transport,
+    frame,
+    refreshKey,
+    receipt,
+    labels: t,
+  });
   const { phase } = frame;
   const { contact } = record;
   function startEdit() {
@@ -77,6 +87,7 @@ export function ContactFrame({
           </button>
         </p>
       )}
+      <ReceiptBar receipt={receipt} />
     </article>
   );
 }

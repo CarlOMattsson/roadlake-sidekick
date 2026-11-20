@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { AiStepMark } from "../../mcp-apps/ui/ai-step-mark";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
@@ -55,9 +56,8 @@ export function StepRow({
   labels: t,
   manage,
   onToggle,
+  receipt,
   undo,
-  onUndo,
-  onExpire,
   onMove,
   onArchive,
   actions,
@@ -74,10 +74,10 @@ export function StepRow({
   manage: ManageLabels;
   /** Absent: the Step is shown, not checked (the host cannot complete it). */
   onToggle?: (step: WorkStep) => void;
-  /** The check this row was just given: its meta line says `completed` or `stepReopened` and Ångra stands in the row. */
+  /** The Task view's receipt bar: the Step's Actions confirm their ticks there. */
+  receipt: ReceiptState;
+  /** The check this row was just given: its meta line says `completed` or `stepReopened`; Ångra is in the receipt bar. */
   undo?: StepUndo;
-  onUndo: () => void;
-  onExpire: () => void;
   /** Absent: no Up and Down. */
   onMove?: (delta: -1 | 1) => void;
   /** Absent: no Archive. */
@@ -163,11 +163,7 @@ export function StepRow({
         <UndoMeta
           key={`${undo.id}:${undo.version}`}
           text={undo.done ? t.stepDone : t.stepReopened}
-          title={step.title}
           labels={t}
-          disabled={listBusy}
-          onUndo={onUndo}
-          onExpire={onExpire}
         />
       )}
       {showCount && (
@@ -203,6 +199,7 @@ export function StepRow({
           transport={transport}
           labels={t}
           open={actionsOpen}
+          receipt={receipt}
           onCount={onActionCount}
         />
       )}

@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useEffectEvent, useReducer, useRef } from "react";
 import type { WorkLabels } from "../shared/labels";
 import { titleProblem } from "../shared/fields";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
@@ -26,7 +26,8 @@ import {
  * and a new Contact needs only its name. The same name sends one key, so a retry after a lost answer replays the result
  * instead of creating a second Contact. The created Contact is handed to the parent, which opens it. Esc and × close
  * the field and return the focus to +. A name another Contact already has is not created at once: the field says so and offers
- * to open that Contact or to create anyway (two people may share a name).
+ * to open that Contact or to create anyway (two people may share a name). A request marked `immediate` skips the typing:
+ * the name is created at once, and the field opens only for that question or for a failure.
  */
 export function NewContact({
   transport,
@@ -81,6 +82,16 @@ export function NewContact({
   useEffect(() => {
     draft.current = prefill;
   }, [prefill, fieldKey]);
+
+  // An immediate request (a search with no match, "Create contact ”X”") creates at once through the same checks and
+  // key as the field does; the request mounted with is not one to start.
+  const startedRequest = useRef(request);
+  const createNow = useEffectEvent((name: string) => void submit(name));
+  useEffect(() => {
+    if (!request?.immediate || startedRequest.current === request) return;
+    startedRequest.current = request;
+    createNow(request.name);
+  }, [request]);
 
   function retry() {
     const name = lastName.current;

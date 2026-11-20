@@ -43,7 +43,11 @@ export function ContactJournalEntries({
       {journal.readable ? (
         <ul className="work-list">
           {journal.items.slice(0, 10).map((entry) => (
-            <li key={entry.id} className="work-agenda-row work-open-row">
+            <li
+              key={entry.id}
+              className="work-agenda-row work-open-row"
+              data-sk-row=""
+            >
               <div className="work-agenda-line">
                 <div className="work-agenda-body">
                   <button

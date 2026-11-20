@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
 import { shoppingEn, shoppingSv } from "@/features/shopping-app/labels";
 import type {
@@ -16,6 +17,12 @@ import type {
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
 import { elementWithText } from "@tests/helpers/exact-text";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptText,
+  receiptRunning,
+} from "@tests/helpers/receipt-bar";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -103,23 +110,29 @@ function ring(name: string): HTMLElement {
 }
 
 /**
- * The Ångra of a held row inside its shop group. The purchased list repeats a bought row, so a held row can
- * show its Ångra twice; the one in its group is the row's own place.
+ * The row of an item that the last tick holds in its place inside its shop group. The Ångra is not on the row: it is
+ * the receipt bar's (`findReceiptUndo`).
  */
-async function groupUndo(name: string): Promise<HTMLElement> {
-  return waitFor(() => {
-    const undo = screen
-      .getAllByRole("button", {
-        name: shoppingEn.undoPurchaseNamed(name, true),
-      })
-      .find((button) => button.closest(".shopping-group"));
-    if (!undo) throw new Error(`no Undo for ${name} in its group`);
-    return undo;
+async function heldRow(name: string): Promise<HTMLElement> {
+  const held = await waitFor(() => {
+    const row = [
+      ...document.querySelectorAll<HTMLElement>(
+        ".shopping-group .shopping-held-item",
+      ),
+    ].find(
+      (entry) =>
+        entry.querySelector(".shopping-store-name")?.textContent === name,
+    );
+    if (!row) throw new Error(`no held row for ${name} in its group`);
+    return row;
   });
+  // The receipt that holds it counts its time from here: the tests move the fake clock next.
+  await receiptRunning();
+  return held;
 }
 
-function groupOf(undo: HTMLElement): HTMLElement {
-  return undo.closest("section.shopping-group")!;
+function groupOf(row: HTMLElement): HTMLElement {
+  return row.closest("section.shopping-group")!;
 }
 
 it("open items without a store sit under their own No store heading", () => {
@@ -198,7 +211,7 @@ it("the page switcher is hidden on a single page and shown when there are more p
   ).toBeInTheDocument();
 });
 
-it("ticking an item holds the row in its place as 'Bought · Undo'; Undo marks it open again", async () => {
+it("ticking an item holds the row in its place as 'Bought'; the bar's Undo marks it open again", async () => {
   const bought = detail([{ ...milk, purchased: true }]);
   const transport = adapter(detail([milk]));
   // The read on mount shows the item open; the reads after the write show it bought.
@@ -214,19 +227,20 @@ it("ticking an item holds the row in its place as 'Bought · Undo'; Undo marks i
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(1));
-  const undoButton = await groupUndo("Milk");
-  // The row stays where it was. Its line says "Bought" in the amount's place and Undo is a tonal button under it.
-  // There is no notice any more.
-  const row = undoButton.closest("li")!;
-  expect(row).toHaveClass("shopping-held-item");
-  expect(undoButton).toHaveClass("sk-btn--secondary", "sk-btn--compact");
+  const row = await heldRow("Milk");
+  // The row stays where it was. Its line says "Bought" in the amount's place; it has no Ångra of its own.
   expect(row.querySelector(".shopping-held")).toHaveTextContent(
     shoppingEn.bought,
   );
+  expect(within(row).queryByRole("button", { name: /Undo/ })).toBeNull();
+  // The Ångra is in the bar: a compact quiet button next to the message.
+  const undoButton = await findReceiptUndo("Undo");
+  expect(undoButton).toHaveClass("sk-btn--quiet", "sk-btn--compact");
+  expect(receiptText()).toBe(`${shoppingEn.bought}: Milk`);
   expect(undoButton.closest(".sk-notice")).toBeNull();
   const [, firstKey] = vi.mocked(transport.purchase).mock.calls[0]!;
   await waitFor(() => expect(undoButton).toBeEnabled());
@@ -238,16 +252,10 @@ it("ticking an item holds the row in its place as 'Bought · Undo'; Undo marks i
   expect(undone).toMatchObject({ id: milk.id, purchased: true, version: 2 });
   expect(undoKey).toBeTruthy();
   expect(undoKey).not.toBe(firstKey);
-  await waitFor(() =>
-    expect(
-      screen.queryAllByRole("button", {
-        name: /^Undo (not )?bought /,
-      }),
-    ).toHaveLength(0),
-  );
+  await waitFor(() => expect(receiptNow()).toBeNull());
 });
 
-it("a refused Undo shows Try again in its row, and Try again repeats the same write with its key", async () => {
+it("a refused Undo of the bar shows Try again in the view once its row is folded away, and Try again repeats the same write with its key", async () => {
   const bought = { ...milk, purchased: true, version: 2 };
   const transport = adapter(detail([milk]));
   vi.mocked(transport.purchase)
@@ -268,20 +276,24 @@ it("a refused Undo shows Try again in its row, and Try again repeats the same wr
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
-  const undoButton = await groupUndo("Milk");
+  await heldRow("Milk");
+  const undoButton = await findReceiptUndo("Undo");
   await waitFor(() => expect(undoButton).toBeEnabled());
-  // The failed write may take Undo's own button with it, so the group is taken before the click.
-  const group = groupOf(undoButton);
   await user.click(undoButton);
-  const alert = await within(group).findByRole("alert");
+  await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
+  // The refused Undo leaves the bar only once its write has run, and the row falls back to its bought state under the
+  // closed Köpta fold. Its error names the item wherever the row is: under the row while drawn, else the view's box.
+  await waitFor(() => expect(receiptNow()).toBeNull());
+  await waitFor(() =>
+    expect(document.querySelector(".sk-message--error")).not.toBeNull(),
+  );
+  const alert = screen.getByRole("alert");
   expect(alert).toHaveTextContent(shoppingEn.markFailed("Milk", false));
   await user.click(
-    within(group).getByRole("button", {
-      name: shoppingEn.retry,
-    }),
+    within(alert).getByRole("button", { name: shoppingEn.retry }),
   );
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(3));
   const [, failedKey] = vi.mocked(transport.purchase).mock.calls[1]!;
@@ -318,11 +330,12 @@ async function buyMilk() {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(1));
-  const undoButton = await groupUndo("Milk");
+  await heldRow("Milk");
+  const undoButton = await findReceiptUndo("Undo");
   await waitFor(() => expect(undoButton).toBeEnabled());
   return { transport, user, rerender };
 }
@@ -333,14 +346,14 @@ it("Undo is still offered 9 s after the purchase and sends the item back", async
   act(() => {
     vi.advanceTimersByTime(9_000);
   });
-  const undoButton = await groupUndo("Milk");
+  const undoButton = await findReceiptUndo("Undo");
   await user.click(undoButton);
   await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(2));
   const [undone] = vi.mocked(transport.purchase).mock.calls[1]!;
   expect(undone).toMatchObject({ id: milk.id, purchased: true, version: 2 });
 });
 
-it("a re-render of the list during the Undo window keeps the Ångra of the held row", async () => {
+it("a re-render of the list during the Undo window keeps the bar's Ångra and the held row", async () => {
   const { transport, rerender } = await buyMilk();
   await waitFor(() =>
     expect(document.querySelector(".shopping-loading")).toBeNull(),
@@ -371,10 +384,10 @@ it("a re-render of the list during the Undo window keeps the Ångra of the held 
       refreshKey={1}
     />,
   );
-  const undoButton = await groupUndo("Milk");
+  const undoButton = await findReceiptUndo("Undo");
   expect(undoButton).toBeEnabled();
   expect(
-    undoButton.closest("li")!.querySelector(".shopping-held"),
+    (await heldRow("Milk")).querySelector(".shopping-held"),
   ).toHaveTextContent(shoppingEn.bought);
   // Only the purchase itself was written; the re-render and the reload wrote nothing.
   expect(transport.purchase).toHaveBeenCalledTimes(1);
@@ -392,15 +405,12 @@ it("a purchase the server answers as still open is a failure, not a bought item"
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
   expect(await screen.findByRole("alert")).toBeInTheDocument();
-  expect(
-    screen.queryAllByRole("button", {
-      name: /^Undo (not )?bought /,
-    }),
-  ).toHaveLength(0);
+  // A refused tick takes its receipt back: the bar never says "Bought" for it, and nothing is held.
+  await waitFor(() => expect(receiptNow()).toBeNull());
   expect(container.querySelector(".shopping-held")).toBeNull();
 });
 
@@ -426,17 +436,15 @@ it("a bought row keeps its place between its neighbours in the shop group", asyn
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
-  const undo = await groupUndo("Milk");
-  const row = undo.closest("li")!;
-  expect(row).toHaveClass("shopping-held-item");
+  const row = await heldRow("Milk");
   // The bought row still stands between Bread and Pasta in the ICA MAXI 4 group.
   expect(row.previousElementSibling).toHaveTextContent(/^Bread/);
   expect(row.nextElementSibling).toHaveTextContent(/^Pasta/);
   // The group heading carries no count: it is the store's name alone.
-  expect(groupOf(undo).querySelector("h3")?.textContent).toBe(milk.store);
+  expect(groupOf(row).querySelector("h3")?.textContent).toBe(milk.store);
 });
 
 it("a bought row keeps its place when it was its group's last open row; the group stays", async () => {
@@ -453,11 +461,10 @@ it("a bought row keeps its place when it was its group's last open row; the grou
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
-  const undo = await groupUndo("Milk");
-  const group = groupOf(undo);
+  const group = groupOf(await heldRow("Milk"));
   expect(group.querySelector("h3")?.textContent).toBe(milk.store);
   expect(group.querySelectorAll("li")).toHaveLength(1);
   // The No store group follows the held row's group, as before the purchase.
@@ -466,12 +473,12 @@ it("a bought row keeps its place when it was its group's last open row; the grou
   );
 });
 
-it("two purchases hold two rows, each with its own Ångra; each Ångra buys back only its row", async () => {
+/** A small server: the purchase flips the stored flag, and the reads show what is stored. */
+function twoRowServer() {
   const bread = item({
     id: "019f0000-0000-7000-8000-0000000000a4",
     name: "Bread",
   });
-  // A small server: the purchase flips the stored flag, and the reads show what is stored.
   const stored = new Map<string, boolean>([
     [milk.id, false],
     [bread.id, false],
@@ -495,8 +502,13 @@ it("two purchases hold two rows, each with its own Ångra; each Ångra buys back
       ]),
     ),
   );
+  return { transport, stored, bread };
+}
+
+it("two purchases hold both rows under one bar; its Ångra buys back only the last, and the other row is released with it", async () => {
+  const { transport, stored, bread } = twoRowServer();
   const user = userEvent.setup();
-  const { container } = render(
+  render(
     <ShoppingView
       transport={transport}
       labels={shoppingEn}
@@ -504,30 +516,93 @@ it("two purchases hold two rows, each with its own Ångra; each Ångra buys back
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(ring("Milk"));
-  await groupUndo("Milk");
+  await heldRow("Milk");
   await waitFor(() => expect(ring("Bread")).toBeEnabled());
   await user.click(ring("Bread"));
-  await groupUndo("Bread");
+  await heldRow("Bread");
+  // One receipt at a time: the bar names the last tick and has one Ångra; both rows are still held in their places.
+  await waitFor(() =>
+    expect(receiptText()).toBe(`${shoppingEn.bought}: Bread`),
+  );
   expect(
-    container.querySelectorAll(".shopping-group .shopping-undo"),
+    document.querySelectorAll(".shopping-group .shopping-held-item"),
   ).toHaveLength(2);
-  // Both rows are still held with their Ångra, so "Bought" does not count them yet.
+  expect(
+    document.querySelectorAll(".sk-receipt .sk-receipt__action"),
+  ).toHaveLength(1);
+  // Both rows are still held, so "Bought" does not count them yet.
   expect(
     screen.queryByRole("button", { name: /^Bought/ }),
   ).not.toBeInTheDocument();
 
-  await user.click(await groupUndo("Bread"));
-  await waitFor(() =>
-    expect(
-      container.querySelectorAll(".shopping-group .shopping-undo"),
-    ).toHaveLength(1),
-  );
+  await user.click(await findReceiptUndo("Undo"));
+  await waitFor(() => expect(transport.purchase).toHaveBeenCalledTimes(3));
+  const [back] = vi.mocked(transport.purchase).mock.calls[2]!;
+  expect(back).toMatchObject({ id: bread.id, purchased: true, version: 2 });
   expect(stored.get(bread.id)).toBe(false);
   expect(stored.get(milk.id)).toBe(true);
-  expect(await groupUndo("Milk")).toBeInTheDocument();
+  // The bar is empty again, so the held row of Milk goes where it belongs (the fold) and Bread is simply open.
+  await waitFor(() => expect(receiptNow()).toBeNull());
+  await waitFor(() =>
+    expect(document.querySelector(".shopping-held-item")).toBeNull(),
+  );
+  expect(
+    elementWithText(shoppingEn.boughtCount(1), "button"),
+  ).toBeInTheDocument();
+});
+
+it("a run of two ticks holds both rows until the bar is empty, then releases them together", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  const { transport, bread } = twoRowServer();
+  const user = userEvent.setup({
+    advanceTimers: (ms) => {
+      if (vi.isFakeTimers()) vi.advanceTimersByTime(ms);
+    },
+  });
+  render(
+    <ShoppingView
+      transport={transport}
+      labels={shoppingEn}
+      initial={detail([milk, bread])}
+    />,
+  );
+  await waitFor(() =>
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
+  );
+  await user.click(ring("Milk"));
+  await heldRow("Milk");
+  // Milk's receipt runs for a while, then Bread is ticked: the new receipt replaces it and its time starts over.
+  act(() => {
+    vi.advanceTimersByTime(UNDO_MS - 2_000);
+  });
+  await waitFor(() => expect(ring("Bread")).toBeEnabled());
+  await user.click(ring("Bread"));
+  await heldRow("Bread");
+  act(() => {
+    vi.advanceTimersByTime(UNDO_MS - 2_000);
+  });
+  // Longer than the first receipt's own time has passed, yet the first row has not moved under the thumb.
+  expect(receiptNow()).not.toBeNull();
+  expect(
+    document.querySelectorAll(".shopping-group .shopping-held-item"),
+  ).toHaveLength(2);
+  expect(
+    screen.queryByRole("button", { name: /^Bought/ }),
+  ).not.toBeInTheDocument();
+  act(() => {
+    vi.advanceTimersByTime(2_500);
+  });
+  // The bar ran out: both rows leave their places at the same moment and are counted under Köpta.
+  expect(receiptNow()).toBeNull();
+  expect(document.querySelector(".shopping-held-item")).toBeNull();
+  expect(
+    elementWithText(shoppingEn.boughtCount(2), "button"),
+  ).toBeInTheDocument();
+  // Nothing but the two ticks was written.
+  expect(transport.purchase).toHaveBeenCalledTimes(2);
 });
 
 it("a list where no item has a store draws no store heading at all (ua-14)", () => {

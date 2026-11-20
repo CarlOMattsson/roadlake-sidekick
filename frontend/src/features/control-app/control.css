@@ -7,7 +7,7 @@
   padding: var(--host-safe-top, 0px) var(--host-safe-right, 0px)
     var(--host-safe-bottom, 0px) var(--host-safe-left, 0px);
   font-family: var(--sk-font);
-  font-size: var(--sk-text-md);
+  font-size: var(--sk-type-body-size);
   line-height: var(--sk-line-height);
   color: var(--sk-fg);
   overflow-wrap: anywhere;
@@ -61,7 +61,7 @@
 
 .sidekick-control .control-note {
   margin: 0;
-  font-size: var(--sk-text-sm);
+  font-size: var(--sk-type-meta-size);
   color: var(--sk-muted);
 }
 

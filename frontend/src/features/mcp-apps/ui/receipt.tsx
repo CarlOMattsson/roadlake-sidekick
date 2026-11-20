@@ -29,29 +29,63 @@ export type ReceiptInput = {
   undo?: { label: string; onUndo: () => unknown };
   /** One way on, e.g. "Visa" to the restored object. Pressing it also closes the receipt. */
   action?: { label: string; onClick: () => void };
+  /**
+   * Called once when the receipt leaves the bar without its Ångra: its time ran out, a newer receipt replaced it,
+   * `clear` or `dismiss` removed it, or `resetKey` changed. Not after Ångra (the undo handles its own state) and not
+   * when the view unmounts (its state goes with it). A row that holds its new state while Ångra is offered settles
+   * here, so the row and the bar always end together.
+   */
+  onEnd?: () => void;
 };
 
 export type Receipt = ReceiptInput & { id: number };
 
 export type ReceiptState = {
   current: Receipt | null;
-  show: (input: ReceiptInput) => void;
+  /** Shows the receipt in place of the one shown; returns its id (for `dismiss`). */
+  show: (input: ReceiptInput) => number;
   clear: () => void;
-  /** Clears the receipt only if it is still `id` (a newer one stays). */
-  dismiss: (id: number) => void;
+  /**
+   * Clears the receipt only if it is still `id` (a newer one stays). `undone` says its Ångra was used, so its
+   * `onEnd` is not called.
+   */
+  dismiss: (id: number, undone?: boolean) => void;
 };
 
 export function useReceipt(resetKey?: unknown): ReceiptState {
   const [current, setCurrent] = useState<Receipt | null>(null);
   const next = useRef(0);
-  const show = useCallback((input: ReceiptInput) => {
-    next.current += 1;
-    setCurrent({ ...input, id: next.current });
+  // The receipt shown now, at once, so a receipt that leaves calls its `onEnd` outside a state update.
+  const shown = useRef<Receipt | null>(null);
+  const end = useCallback((receipt: Receipt | null, undone = false) => {
+    if (!receipt || shown.current?.id !== receipt.id) return;
+    shown.current = null;
+    if (!undone) receipt.onEnd?.();
   }, []);
-  const clear = useCallback(() => setCurrent(null), []);
+  const show = useCallback(
+    (input: ReceiptInput) => {
+      next.current += 1;
+      const receipt = { ...input, id: next.current };
+      end(shown.current);
+      shown.current = receipt;
+      setCurrent(receipt);
+      return receipt.id;
+    },
+    [end],
+  );
+  const leave = useCallback(
+    (id?: number, undone = false) => {
+      const receipt = shown.current;
+      if (!receipt || (id !== undefined && receipt.id !== id)) return;
+      end(receipt, undone);
+      setCurrent((now) => (now?.id === receipt.id ? null : now));
+    },
+    [end],
+  );
+  const clear = useCallback(() => leave(), [leave]);
   const dismiss = useCallback(
-    (id: number) => setCurrent((shown) => (shown?.id === id ? null : shown)),
-    [],
+    (id: number, undone = false) => leave(id, undone),
+    [leave],
   );
   // A new day, entry or tab: the receipt belonged to the old one.
   const firstKey = useRef(true);
@@ -60,8 +94,8 @@ export function useReceipt(resetKey?: unknown): ReceiptState {
       firstKey.current = false;
       return;
     }
-    setCurrent(null);
-  }, [resetKey]);
+    leave();
+  }, [resetKey, leave]);
   return useMemo(
     () => ({ current, show, clear, dismiss }),
     [current, show, clear, dismiss],
@@ -93,7 +127,7 @@ function ReceiptItem({
   onDismiss,
 }: {
   receipt: Receipt;
-  onDismiss: (id: number) => void;
+  onDismiss: (id: number, undone?: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const { held, handlers } = useUndoHold(
@@ -135,7 +169,7 @@ function ReceiptItem({
                 setBusy(true);
                 void Promise.resolve()
                   .then(() => undo.onUndo())
-                  .finally(() => onDismiss(receipt.id));
+                  .finally(() => onDismiss(receipt.id, true));
               }}
             >
               {undo.label}

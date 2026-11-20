@@ -28,8 +28,8 @@ export const savedViewsLabelsSv = {
   statusIs: (status: string) => `Status: ${status}`,
   queryIs: (query: string) => `Sök: ${query}`,
   openFailed: "Vyn kunde inte öppnas.",
-  severalPriorities:
-    "Vyn filtrerar på flera prioriteter. Här visas alla prioriteter.",
+  severalPrioritiesTitle: "Vyn filtrerar på flera prioriteter",
+  severalPriorities: "Här visas alla prioriteter.",
   nameRequired: "Skriv ett namn.",
   nameTooLong: "Namnet får vara högst 120 tecken.",
   blockedProject: "Ett enskilt projekts bräde kan inte sparas som vy.",
@@ -69,8 +69,8 @@ export const savedViewsLabelsEn: SavedViewsLabels = {
   statusIs: (status) => `Status: ${status}`,
   queryIs: (query) => `Search: ${query}`,
   openFailed: "Couldn’t open the view.",
-  severalPriorities:
-    "This view filters by several priorities. All priorities are shown here.",
+  severalPrioritiesTitle: "This view filters by several priorities",
+  severalPriorities: "All priorities are shown here.",
   nameRequired: "Enter a name.",
   nameTooLong: "The name can be up to 120 characters.",
   blockedProject: "A single project’s board can’t be saved as a view.",

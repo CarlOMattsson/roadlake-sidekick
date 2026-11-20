@@ -4,7 +4,9 @@
 //      fallback inside var() or light-dark().
 //   2. Every var(--sk-*) is defined in tokens.css or in the stylesheet that reads it.
 //   3. A file with a transition or an animation switches both off under prefers-reduced-motion.
-//   4. font-size is never given in px outside a var() fallback.
+//   4. A size in font or font-size is a type-scale role: no rem or px literal and no read of the host's --font-text-*
+//      or the retired --sk-text-* outside tokens.css. An outline is none, the ring or (forced colours) Highlight, so
+//      there is one focus mark. A :hover rule stands inside @media (hover: hover), so a phone never draws a stuck hover.
 //   5. A rule for a button that sets min-height reaches 44 px.
 //   6. Inline-mode rules never scroll on the y axis.
 //   7. The palette has the eight accent lines and no other accent token; a status token reads a host variable first.
@@ -22,9 +24,16 @@ import {
   declarationsOf,
   lineOf,
   loadCssFiles,
+  nestedCssRules,
   readCss,
+  type CssFile,
 } from "@tests/helpers/css-contract";
-import { readText, sourceFiles, srcDir } from "@tests/helpers/source-files";
+import {
+  featuresDir,
+  readText,
+  sourceFiles,
+  srcDir,
+} from "@tests/helpers/source-files";
 
 // The shared MCP-app kit, its room shell and the four rooms, with their subfolders.
 const scannedDirs = [
@@ -102,6 +111,85 @@ function meetsTouchTarget(value: string): boolean {
   if (!match) return false;
   const size = Number(match[1]);
   return match[2] === "rem" ? size >= 2.75 : size >= 44;
+}
+
+const isTokens = (file: CssFile) => file.rel === "mcp-apps/ui/tokens.css";
+
+/** font and font-size declarations that give a size as a rem or px literal (a var() fallback too), outside tokens.css. */
+function fontLiterals(sheets: CssFile[]): string[] {
+  const violations: string[] = [];
+  for (const file of sheets) {
+    if (isTokens(file)) continue;
+    for (const rule of cssRules(file.css))
+      for (const { property, value } of declarationsOf(rule.body))
+        if (
+          (property === "font" || property === "font-size") &&
+          /(?<![\w.-])\d*\.?\d+(?:rem|px)\b/.test(value)
+        )
+          violations.push(
+            `${file.rel}:${rule.line} ${rule.selector} { ${property}: ${value.replace(/\s+/g, " ")} }`,
+          );
+  }
+  return violations;
+}
+
+/** Reads of the host's --font-text-* or the retired --sk-text-* in the apps' stylesheets and views, outside tokens.css. */
+function textTokenReads(): string[] {
+  const reads: string[] = [];
+  for (const dir of scannedDirs)
+    for (const file of sourceFiles(
+      path.join(featuresDir, dir),
+      /\.(css|tsx?)$/,
+    )) {
+      const rel = path.relative(featuresDir, file).split(path.sep).join("/");
+      if (rel === "mcp-apps/ui/tokens.css") continue;
+      const text = readText(file);
+      for (const match of text.matchAll(/var\(\s*(--(?:sk|font)-text-[\w-]+)/g))
+        reads.push(`${rel}:${lineOf(text, match.index ?? 0)} ${match[1]}`);
+    }
+  return reads;
+}
+
+/** outline and outline-color values other than none, the ring, or Highlight inside @media (forced-colors: active). */
+function outlineViolations(sheets: CssFile[]): string[] {
+  const violations: string[] = [];
+  for (const file of sheets)
+    for (const rule of nestedCssRules(file.css)) {
+      const forced = rule.within.some((prelude) =>
+        /forced-colors\s*:\s*active/.test(prelude),
+      );
+      for (const { property, value } of declarationsOf(rule.body)) {
+        if (property !== "outline" && property !== "outline-color") continue;
+        const colour = value.replace(
+          /^(?:\d*\.?\d+(?:px|rem)\s+)?solid\s+/,
+          "",
+        );
+        const allowed =
+          /^(?:none|0)$/.test(value) ||
+          colour === "var(--sk-ring)" ||
+          (forced && colour === "Highlight");
+        if (!allowed)
+          violations.push(
+            `${file.rel}:${rule.line} ${rule.selector} { ${property}: ${value} }`,
+          );
+      }
+    }
+  return violations;
+}
+
+/** Rules with :hover in their selector that do not stand inside @media (hover: hover). */
+function unguardedHover(sheets: CssFile[]): string[] {
+  return sheets.flatMap((file) =>
+    nestedCssRules(file.css)
+      .filter(
+        (rule) =>
+          /:hover\b/.test(rule.selector) &&
+          !rule.within.some((prelude) =>
+            /@media\b.*\(\s*hover\s*:\s*hover\s*\)/.test(prelude),
+          ),
+      )
+      .map((rule) => `${file.rel}:${rule.line} ${rule.selector}`),
+  );
 }
 
 describe("stylesheets leave light or dark to the host", () => {
@@ -198,25 +286,84 @@ describe("stylesheet rules", () => {
     expect(violations).toEqual([]);
   });
 
-  it("font-size is never set in px outside a var() fallback", () => {
-    const violations: string[] = [];
-    for (const file of ruleFiles) {
-      for (const rule of cssRules(file.css)) {
-        for (const declaration of declarationsOf(rule.body)) {
-          if (
-            declaration.property !== "font-size" &&
-            declaration.property !== "font"
-          )
-            continue;
-          const withoutVar = declaration.value.replace(/var\([^()]*\)/g, "");
-          if (/\d(?:\.\d+)?px\b/.test(withoutVar))
-            violations.push(
-              `${file.rel}:${rule.line} ${rule.selector} { ${declaration.property}: ${declaration.value} }`,
-            );
-        }
-      }
-    }
-    expect(violations).toEqual([]);
+  it("a size in font or font-size is a type-scale role: no rem or px literal outside tokens.css", () => {
+    expect(fontLiterals(files)).toEqual([]);
+  });
+
+  it("finds a rem or px literal in font and font-size, also inside a var() fallback", () => {
+    const sheet = (css: string) => [{ rel: "x.css", raw: css, css }];
+    expect(fontLiterals(sheet(".a { font-size: 0.9rem; }"))).toHaveLength(1);
+    expect(
+      fontLiterals(sheet(".a { font: 600 18px / 24px var(--sk-font); }")),
+    ).toHaveLength(1);
+    expect(
+      fontLiterals(
+        sheet(".a { font-size: var(--font-text-sm-size, 0.85rem); }"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      fontLiterals(
+        sheet(
+          ".a { font: var(--sk-type-row); } .b { font-size: var(--sk-type-meta-size); } .c { font-size: 1em; }",
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("the host's --font-text-* and the retired --sk-text-* are read only in tokens.css, and tokens.css no longer defines --sk-text-*", () => {
+    expect(textTokenReads()).toEqual([]);
+    expect(readCss("mcp-apps/ui/tokens.css")).not.toMatch(/--sk-text-/);
+  });
+
+  it("an outline is none, the one ring (--sk-ring) or, under forced colours, Highlight", () => {
+    expect(outlineViolations(files)).toEqual([]);
+  });
+
+  it("finds an outline that is not the ring", () => {
+    const sheet = (css: string) => [{ rel: "x.css", raw: css, css }];
+    expect(
+      outlineViolations(
+        sheet(".a:focus-visible { outline: 2px solid var(--sk-fg); }"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      outlineViolations(
+        sheet(".a { outline: 2px solid var(--sk-ring, currentColor); }"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      outlineViolations(sheet(".a { outline: 2px solid Highlight; }")),
+    ).toHaveLength(1);
+    expect(
+      outlineViolations(
+        sheet(
+          ".a { outline: none; } .b { outline: 2px solid var(--sk-ring); outline-offset: -2px; } @media (forced-colors: active) { .c { outline: 2px solid Highlight; } }",
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("a :hover rule stands inside @media (hover: hover)", () => {
+    expect(unguardedHover(files)).toEqual([]);
+  });
+
+  it("finds a :hover outside @media (hover: hover)", () => {
+    const sheet = (css: string) => [{ rel: "x.css", raw: css, css }];
+    expect(unguardedHover(sheet(".a:hover { color: red; }"))).toHaveLength(1);
+    expect(
+      unguardedHover(
+        sheet(
+          "@media (min-width: 1px) { .a:is(:hover, :focus) { color: red; } }",
+        ),
+      ),
+    ).toHaveLength(1);
+    expect(
+      unguardedHover(
+        sheet(
+          "@media (hover: hover) { :root:not([x]) .a:hover::before { color: red; } } .b:focus-visible { color: red; }",
+        ),
+      ),
+    ).toEqual([]);
   });
 
   it("button rules with min-height reach 2.75rem or 44px", () => {

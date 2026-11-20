@@ -4,19 +4,27 @@ import { CloseIcon } from "../../mcp-apps/ui/icons";
 import { finePointer } from "../../mcp-apps/ui/shortcuts";
 import type { WorkLabels } from "./labels";
 
+/** Where a pointer opened a row's menu, in client px. */
+export type MenuPoint = { x: number; y: number };
+
 /**
  * The keys and the long press that open a row's quick choices (designsystem §3 "Snabbval"): `contextmenu` (a
  * long press on touch, a right click), Shift+F10 and the menu key toggle them, and Escape closes them. A context menu
- * the drag handle already took (it prevents the default) is left alone.
+ * the drag handle already took (it prevents the default) is left alone. The pointer's place goes with a pointer's
+ * open (`set`'s second argument), so a popover menu can stand there; the keys open it at the row.
  */
-export function rowMenuHandlers(open: boolean, set: (open: boolean) => void) {
+export function rowMenuHandlers(
+  open: boolean,
+  set: (open: boolean, at?: MenuPoint) => void,
+) {
   return {
     onContextMenu(event: MouseEvent) {
       if (event.defaultPrevented) return;
       event.preventDefault();
       menuUsed();
       forgetMenuButton(event.currentTarget);
-      set(!open);
+      // Where the pointer asked: a row whose menu is a popover opens it there (menu.tsx).
+      set(!open, { x: event.clientX, y: event.clientY });
     },
     onKeyDown(event: KeyboardEvent) {
       // A menu inside this row (an Action under a Step) handled the key first.

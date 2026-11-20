@@ -3,11 +3,11 @@ import "../../mcp-apps/ui/tokens.css";
 import { initialsOf } from "../../mcp-apps/ui/initials";
 import { Fold } from "../../mcp-apps/ui/fold";
 import { useRead } from "../../mcp-apps/ui/use-read";
-import { CardFoot } from "../../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import type { HierarchyDetailLabels } from "../hierarchy/hierarchy-detail-labels";
 import type { CardLabels } from "../shared/card-labels";
+import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import {
   writeFailure,
   type WorkContactRecord,
@@ -28,7 +28,7 @@ export type ContactCardProps = {
 
 /**
  * Compact card for one Contact: the kind as an eyebrow paragraph, initials, name, the relationship as a chip, role and organization on one line, the
- * address (fullscreen only), the note in two lines, the number of linked Tasks and two actions, `open` and `edit`. The initials are text on a CSS circle, never an image, and
+ * address (fullscreen only), the note in two lines, the number of linked Tasks and `edit` and, last, the main link that opens the Contact. The initials are text on a CSS circle, never an image, and
  * are hidden from assistive tech because the name is already read out. The count comes from
  * get_contact_context; if that read fails the line is left out and the card keeps its other content.
  */
@@ -41,6 +41,7 @@ export function ContactCard({
   onEdit,
   showAddress = false,
 }: ContactCardProps) {
+  const words = contactsRoomLabelsFor(locale);
   // The count is kept with the Contact it belongs to, so a count for another Contact is never shown.
   const readCount = useCallback(
     () =>
@@ -114,19 +115,11 @@ export function ContactCard({
           {`${labels.connections}: ${linked.count}${linked.more ? "+" : ""}`}
         </p>
       ) : null}
-      <CardFoot>
-        <button
-          type="button"
-          className="work-compact-action sk-btn--open"
-          onClick={onOpen}
-        >
-          {labels.open}
-          <ChevronRightIcon />
-        </button>
-      </CardFoot>
       <button type="button" className="work-compact-action" onClick={onEdit}>
         {labels.edit}
       </button>
+      {/* The card's one main link, last: the edit action stands before it. */}
+      <OpenLink label={words.openContact} onOpen={onOpen} />
     </section>
   );
 }
@@ -154,7 +147,7 @@ const initialsStyle: CSSProperties = {
   border: "var(--sk-hairline) solid var(--sk-line)",
   color: "var(--sk-fg)",
   fontFamily: "var(--sk-font)",
-  fontSize: "var(--sk-text-sm)",
+  fontSize: "var(--sk-type-meta-size)",
   fontWeight: "var(--sk-weight-semibold)",
   lineHeight: 1,
   userSelect: "none",
@@ -201,8 +194,13 @@ export function ContactWays({
       text: phone,
       href: phone ? `tel:${phone.replace(/[^\d+]/gu, "")}` : undefined,
     },
-    // The server keeps the profile link as https://<workspace>.slack.com/team/<member id>: the row shows the workspace.
-    { text: slackHost, href: slackHost ? (slack ?? undefined) : undefined },
+    // The server keeps the profile link as https://<workspace>.slack.com/team/<member id>: it has no readable name, so the row says what it does.
+    {
+      text: slackHost
+        ? contactsRoomLabelsFor(labels.wayLocale).openInSlack
+        : null,
+      href: slackHost ? (slack ?? undefined) : undefined,
+    },
     { text: address },
   ];
   const kinds = labels.wayWords.filter((_, index) => ways[index]?.text);

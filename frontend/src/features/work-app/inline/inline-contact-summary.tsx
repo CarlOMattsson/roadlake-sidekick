@@ -1,5 +1,5 @@
-import { CardFoot } from "../../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { Card } from "../../mcp-apps/ui/card";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import "./inline-summary.css";
@@ -13,7 +13,7 @@ export type ContactLinkCounts = {
 };
 
 /**
- * The inline Contact card: the kind label, the name, the relationship as a small chip (when set), one
+ * The inline Contact card, in the family's `Card` (kicker: the app and the kind; title: the name): the relationship as a small chip (when set), one
  * meta line with "role · organization" (or the e-mail when neither is set) and the counts of its
  * Projects and Tasks (a count is shown only when there is one), and "Open", which asks the host for
  * fullscreen. The address is never shown inline. The card has no fields and no Edit: the Contact view
@@ -61,13 +61,13 @@ export function ContactSummary({
       `${labels.taskCount}: ${counts.tasks}${counts.tasksMore ? "+" : ""}`,
     );
   return (
-    <section
-      className="work-compact-card sk-card work-compact-contact"
+    <Card
+      className="work-compact-card work-compact-contact"
       aria-label={kindLabel}
+      eyebrow={`${labels.appName} · ${kindLabel}`}
+      title={name}
     >
       <div className="work-compact-contact-text">
-        <p className="work-compact-kind sk-eyebrow">{kindLabel}</p>
-        <p className="work-compact-title sk-card__title">{name}</p>
         {relationship ? (
           <p>
             <span className="work-chip">{relationship}</span>
@@ -87,16 +87,7 @@ export function ContactSummary({
           </p>
         ) : null}
       </div>
-      <CardFoot>
-        <button
-          type="button"
-          className="work-compact-action sk-btn--open"
-          onClick={onOpen}
-        >
-          {labels.showContact}
-          <ChevronRightIcon />
-        </button>
-      </CardFoot>
-    </section>
+      <OpenLink label={labels.showContact} onOpen={onOpen} />
+    </Card>
   );
 }

@@ -9,7 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { expect, it, vi } from "vitest";
-import { StepActions } from "@/features/work-app/steps/step-actions";
+import { StepActions } from "@tests/helpers/steps-with-bar";
 import {
   stepActionsLabelsEn,
   stepActionsLabelsSv,

@@ -78,7 +78,7 @@ describe("a first visit reads the lists once", () => {
       await screen.findByRole("heading", { name: weekly.name }),
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      expect(document.querySelector(".shopping-loading")).toBeNull(),
     );
     expect(countOf(call, "list_shopping_lists")).toBe(1);
     expect(countOf(call, "get_shopping_list")).toBe(1);
@@ -95,7 +95,7 @@ describe("a first visit reads the lists once", () => {
       await screen.findByRole("heading", { name: ikea.name }),
     ).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      expect(document.querySelector(".shopping-loading")).toBeNull(),
     );
     expect(countOf(call, "list_shopping_lists")).toBe(1);
     expect(countOf(call, "get_shopping_list")).toBe(1);

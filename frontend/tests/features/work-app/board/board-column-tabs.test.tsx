@@ -42,6 +42,25 @@ it("opens on Pågår when something is in progress", () => {
   expect(screen.queryByRole("button", { name: a.title })).toBeNull();
 });
 
+it("the column tabs are the shared Tabs: equal cells in one named group of pressed buttons", () => {
+  render(<Harness work={transport()} />);
+  const group = screen.getByRole("group", { name: boardLabelsEn.columnTabs });
+  expect(group).toHaveClass("sk-tabs", "sk-tabs--equal");
+  expect(group.querySelector(".sk-segmented")).toBeNull();
+  const tabs = screen.getAllByRole("button", { name: /\s\d+$/ });
+  expect(tabs.length).toBeGreaterThan(0);
+  tabs.forEach((tab) => {
+    expect(tab).toHaveClass("sk-tabs__tab");
+    expect(tab).toHaveAttribute("aria-pressed");
+  });
+  // Exactly one tab of the group is a tab stop (roving focus), as in every Tabs row.
+  expect(
+    Array.from(group.querySelectorAll("button")).filter(
+      (tab) => tab.tabIndex === 0,
+    ),
+  ).toHaveLength(1);
+});
+
 it("opens on the first column when nothing is in progress", () => {
   const idle: WorkBoardPage = {
     ...page,

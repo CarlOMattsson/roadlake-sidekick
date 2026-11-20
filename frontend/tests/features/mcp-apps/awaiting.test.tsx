@@ -131,12 +131,12 @@ describe("AwaitingResult with the room the tool belongs to", () => {
     expect(head).toHaveAttribute("aria-hidden", "true");
     expect(head).toHaveAttribute("inert");
     const tabs = Array.from(
-      head?.querySelectorAll(".work-view-tabs__tab") ?? [],
+      head?.querySelectorAll(".sk-tabs__tab") ?? [],
       (tab) => tab.textContent,
     );
     expect(tabs).toEqual(["Agenda", "Status", "Projekt"]);
     expect(
-      head?.querySelector('.work-view-tabs__tab[aria-pressed="true"]'),
+      head?.querySelector('.sk-tabs__tab[aria-pressed="true"]'),
     ).toHaveTextContent("Status");
     // Search and + (held off while loading) and ⋯; no standing create field (designsystem §3 Skapa).
     const icons = head?.querySelectorAll(".sk-iconbtn");

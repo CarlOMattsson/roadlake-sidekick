@@ -248,7 +248,7 @@ describe("InlineSummary ready state", () => {
     expect(screen.getByText("Target date: 15 Nov")).toBeInTheDocument();
   });
 
-  it("offers at most two actions, Done beside Open task, each a 44 px button", async () => {
+  it("offers Done and then the card's one main link, Open task, last, each a 44 px button", async () => {
     const onOpen = vi.fn();
     const onComplete = vi.fn();
     render(
@@ -265,16 +265,15 @@ describe("InlineSummary ready state", () => {
       "Mark as done",
       "Open task",
     ]);
-    // Done is the primary action and Open task the open text button with ›, side by side in one row.
+    // Done is the primary action; Open task is the card's OpenLink (the open text button with ›), the card's last
+    // child, not beside Done.
     expect(buttons[0]).toHaveClass("sk-btn--primary");
-    expect(buttons[1]).toHaveClass("sk-btn--open");
+    expect(buttons[1]).toHaveClass("sk-btn--open", "sk-open-link");
     expect(buttons[1]?.querySelector("svg")).not.toBeNull();
-    expect(buttons[0]?.parentElement).toBe(buttons[1]?.parentElement);
+    expect(buttons[1]?.closest(".sk-card")?.lastElementChild).toBe(buttons[1]);
     // The 44 px minimum is the family stylesheet's (measured in work-inline-styles-mcp-app.spec.ts), not an inline style.
-    for (const button of buttons) {
-      expect(button).not.toHaveAttribute("style");
-      expect(button).toHaveClass("work-compact-action");
-    }
+    for (const button of buttons) expect(button).not.toHaveAttribute("style");
+    expect(buttons[0]).toHaveClass("work-compact-action");
 
     await userEvent.click(screen.getByRole("button", { name: "Mark as done" }));
     await userEvent.click(screen.getByRole("button", { name: "Open task" }));
@@ -457,7 +456,7 @@ describe("InlineSummary other states", () => {
     const { container } = render(
       <InlineSummary state="loading" labels={inlineSummaryLabelsEn} />,
     );
-    expect(container.querySelector("section")).toHaveAttribute(
+    expect(container.querySelector("[aria-busy]")).toHaveAttribute(
       "aria-busy",
       "true",
     );
@@ -491,7 +490,7 @@ describe("InlineSummary other states", () => {
       "Sidekick svarade inte.",
     );
     expect(
-      screen.getByText(inlineSummaryLabelsSv.kind.task),
+      screen.getByText(`Arbete · ${inlineSummaryLabelsSv.kind.task}`),
     ).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Försök igen" }));
     expect(onRetry).toHaveBeenCalledTimes(1);

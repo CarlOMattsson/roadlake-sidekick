@@ -372,7 +372,9 @@ it("a refused drag shows the conflict banner and puts the Task back in its colum
   pointer(handle, "pointermove", 150, 60);
   pointer(handle, "pointerup", 150, 60);
 
-  const banner = await screen.findByRole("alert");
+  const banner = (await screen.findByText(boardLabelsEn.conflict)).closest(
+    ".sk-message--warning",
+  );
   expect(banner).toHaveTextContent(boardLabelsEn.conflict);
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   expect(

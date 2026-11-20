@@ -138,7 +138,8 @@ export function useTaskSteps(
     const drawn = row?.querySelector(
       `[data-manage^="${CSS.escape(wish.stepId)}:"]`,
     );
-    if (!drawn) return;
+    // A box that waits for the write's answer cannot take focus yet: the wish stays until it can.
+    if (!drawn || (drawn instanceof HTMLInputElement && drawn.disabled)) return;
     focusWish.current = undefined;
     // A row whose menu is closed (a restored Step) takes the focus on its check, which opens the menu.
     if (
@@ -235,9 +236,18 @@ export function useTaskSteps(
     });
   }
 
-  /** Undo writes the other state of the check, against the version the check left. */
+  /**
+   * Undo writes the other state of the check, against the version the check left. It comes from the receipt bar, whose
+   * button leaves with it, so focus goes back to the Step's box.
+   */
   function undoToggle(undoItem: StepUndo) {
-    setDone(undoItem, !undoItem.done, () => undefined);
+    setDone(undoItem, !undoItem.done, () => {
+      focusWish.current = {
+        kind: "row",
+        stepId: undoItem.id,
+        prefer: "archive",
+      };
+    });
   }
 
   /** Moves the Step one place up or down; the whole order goes to the server with the versions held. */

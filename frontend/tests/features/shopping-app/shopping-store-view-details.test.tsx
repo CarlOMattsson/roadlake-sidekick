@@ -96,7 +96,7 @@ function adapter(): ShoppingTransport {
 
 async function settled() {
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 }
 

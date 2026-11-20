@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type {
   ShoppingDetail,
   ShoppingItem,
@@ -13,14 +13,14 @@ import { useLicenseMenu } from "../mcp-apps/license-mark";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
 import { EmptyState } from "../mcp-apps/ui/states";
 import { PlusIcon } from "../mcp-apps/ui/icons";
-import { CardFoot } from "../mcp-apps/ui/card";
-import { OpenListButton } from "./shopping-card";
+import { MessageBox } from "../mcp-apps/ui/message-box";
+import { OpenLink } from "../mcp-apps/ui/open-link";
+import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
 import type { HostSettingsEntry, RoomTarget } from "../mcp-apps/room-types";
 import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
 import "./shopping.css";
 import { deriveView } from "./shopping-view-parts/derive-view";
-import { FailureNotice } from "./shopping-view-parts/failure-notice";
 import { emptyAsk, intoView, wasHoldUsed } from "./shopping-view-parts/helpers";
 import { ItemGroups, PurchasedFold } from "./shopping-view-parts/item-groups";
 import {
@@ -38,9 +38,9 @@ import { usePurchases } from "./shopping-view-parts/use-purchases";
 import { useShoppingRead } from "./shopping-view-parts/use-shopping-read";
 import { useShoppingWrites } from "./shopping-view-parts/use-shopping-writes";
 import { useWriteForms } from "./shopping-view-parts/use-write-forms";
-import { Receipts } from "./shopping-view-parts/receipts";
 import { useItemTrash } from "./shopping-view-parts/use-item-trash";
 import { useQuickChanges } from "./shopping-view-parts/use-quick-changes";
+import { useTickReceipt } from "./shopping-view-parts/use-tick-receipt";
 
 // The compact-view budget and its grouping are part of this module's surface (the room and the tests use them).
 export { COMPACT_ROWS, compactGroups } from "./shopping-view-parts/helpers";
@@ -121,14 +121,34 @@ export function ShoppingView({
   });
   const { lists, listOffset, setListOffset, nextLists, id, setId } = read;
   const { offset, setOffset, detail, setDetail, busy, error, reload } = read;
+  const { refreshLists } = read;
   const { copiedAt } = read;
   const writes = useShoppingWrites(read);
   const { conflict, failedWrite, write } = writes;
   const { panels, setPanel, closeAll } = usePanels();
+  // The view's one receipt bar (designsystem §3 Ångra): bought, moved, added and deleted items are confirmed there,
+  // with Ångra, and nothing in the list moves for it. Another list or page clears it.
+  const receipt = useReceipt(`${id}:${offset}`);
+  // A failed Ångra whose row is gone from the list (a delete or a move taken back): the view's error box names it.
+  const [undoFailure, setUndoFailure] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
+  const onUndoFailed = useCallback(
+    (itemId: string, message: string) =>
+      setUndoFailure({ id: itemId, message }),
+    [],
+  );
   const purchases = usePurchases({ transport, read, writes, onWritten });
-  const { rowQueue, wanted, waiting, held, setHeld, togglePurchase } =
-    purchases;
-  const trash = useItemTrash({ transport, labels: t, read, writes });
+  const { rowQueue, wanted, waiting, held, setHeld } = purchases;
+  const trash = useItemTrash({
+    transport,
+    labels: t,
+    read,
+    writes,
+    receipt,
+    onUndoFailed,
+  });
   const quick = useQuickChanges({
     transport,
     labels: t,
@@ -136,6 +156,8 @@ export function ShoppingView({
     writes,
     rowQueue,
     onWritten,
+    receipt,
+    onUndoFailed,
   });
   const forms = useWriteForms({
     transport,
@@ -145,6 +167,8 @@ export function ShoppingView({
     store,
     addOpen: panels.addOpen,
     setPanel,
+    receipt,
+    discard: trash.discard,
   });
   const view = deriveView({
     labels: t,
@@ -172,6 +196,14 @@ export function ShoppingView({
     folded,
     limited,
   } = view;
+  const toggle = useTickReceipt({
+    labels: t,
+    receipt,
+    purchases,
+    items,
+    error,
+    conflict,
+  });
   const editor = useItemEditing(list?.archived);
   const { setEditing } = editor;
   // The ⋯ menu in the header of the fullscreen view. It holds "Edit list" and closes when an item is chosen.
@@ -194,26 +226,37 @@ export function ShoppingView({
     setEditing(null);
     purchases.resetPurchases();
     quick.reset();
-    trash.clear();
     setDetail(undefined);
     closeAll();
+    // Back to the overview: ticks and moves made in the list are not reads of the lists, so its counts are read now.
+    if (next === "") void refreshLists();
   }
   function goToPage(next: number) {
     setOffset(next);
     setEditing(null);
     setHeld({});
   }
-  const receiptEnv = {
-    labels: t,
-    busy,
-    conflict,
-    error,
-    failedWrite,
-    onRelease: (itemId: string) => {
-      trash.release(itemId);
-      quick.release(itemId);
-    },
-  };
+  // A failure the list cannot show on a row (a read, a batch add, an Ångra whose row is gone) is the view's error box
+  // at its top, with "Try again"; one of a row stays under that row. The create field shows its own.
+  // A row's failure shows under the row only when the row is drawn: a row gone from the list, or folded away under
+  // "Köpta" or past the card's budget, has its failure here instead.
+  const drawnRows = new Set([
+    ...view.shownGroups.flatMap((group) => group.shown.map((row) => row.id)),
+    ...(panels.boughtOpen ? settled.map((row) => row.id) : []),
+  ]);
+  const viewError =
+    error !== null &&
+    error.rowId !== "add" &&
+    (error.rowId === null || !drawnRows.has(error.rowId));
+  const failedItem = error?.rowId
+    ? items.find((item) => item.id === error.rowId)
+    : undefined;
+  const viewErrorTitle =
+    error?.rowId && undoFailure?.id === error.rowId
+      ? undoFailure.message
+      : failedItem && !error?.change
+        ? t.markFailed(failedItem.name, !failedItem.purchased)
+        : t.failedTitle;
   const rowEnv: RowEnv = {
     labels: t,
     holdTip,
@@ -234,8 +277,7 @@ export function ShoppingView({
     lists: lists
       .filter((other) => !other.archived)
       .map(({ id: listId, name }) => ({ id: listId, name })),
-    onToggle: togglePurchase,
-    onRelease: purchases.release,
+    onToggle: toggle,
     onRefresh: () => void reload(),
     onOpenEditor: editor.openEditor,
     onCloseEditor: editor.closeEditor,
@@ -286,20 +328,26 @@ export function ShoppingView({
           setPanel("moreOpen", false);
         }}
       />
-      {error?.rowId === null && (
-        <FailureNotice
-          labels={t}
-          retry={failedWrite ?? undefined}
-          busy={busy}
-          placement="card"
-          onRefresh={() => void reload()}
-        />
+      {viewError && (
+        <div ref={intoView}>
+          <MessageBox
+            severity="error"
+            title={viewErrorTitle}
+            action={{
+              label: t.retry,
+              busy,
+              onClick: () => (failedWrite ? failedWrite() : void reload()),
+            }}
+          />
+        </div>
       )}
       {conflict &&
         !detail?.items.some((item) => item.id === conflict.rowId) && (
-          <p role="alert" ref={intoView}>
-            {t.conflict}
-          </p>
+          <div ref={intoView}>
+            <MessageBox severity="warning" title={t.conflictTitle}>
+              {t.conflictText}
+            </MessageBox>
+          </div>
         )}
       {/* No list chosen: the lists are rows to tap, and "New list" sits last behind a button. */}
       {!id && (
@@ -341,7 +389,10 @@ export function ShoppingView({
       )}
       {/* The offline copy: the list as it was last read, said with when (the phone had no answer). */}
       {copiedAt !== null && (
-        <p role="status">{t.offlineCopy(copyTime(copiedAt, t.dateLocale))}</p>
+        <MessageBox
+          severity="info"
+          title={t.offlineCopy(copyTime(copiedAt, t.dateLocale))}
+        />
       )}
       <p aria-live="polite" className="shopping-visually-hidden">
         {items.some((item) => rowQueue.queued(item.id))
@@ -378,18 +429,12 @@ export function ShoppingView({
               labels={t}
               fullscreen={fullscreen}
               open={panels.addOpen}
-              hasError={Boolean(error)}
-              note={forms.addNote}
               addButton={forms.addButton}
               onCreate={forms.addOne}
               onOpen={forms.openAddField}
               onClose={forms.closeAddField}
             />
           )}
-          <Receipts
-            receipts={[...trash.receipts, ...quick.receipts]}
-            env={receiptEnv}
-          />
           <ItemGroups
             shownGroups={view.shownGroups}
             rowCount={rows.length}
@@ -418,10 +463,14 @@ export function ShoppingView({
             env={rowEnv}
             onToggle={() => setPanel("boughtOpen", !panels.boughtOpen)}
           />
-          {/* Last in the list, after the `boughtCount` fold, as the Work room's tip stands after its `completed` fold. */}
-          {storeMode && rows.length > 0 && !list.archived && !wasHoldUsed() && (
-            <p className="shopping-hold-tip">{holdTip}</p>
-          )}
+          {/* Last in the list, after the `boughtCount` fold, as the Work room's tip stands after its `completed` fold. It
+              teaches the first tick: once anything in the list is bought it is noise, also where the host keeps no
+              storage for the flag. */}
+          {storeMode &&
+            rows.length > 0 &&
+            purchased.length === 0 &&
+            !list.archived &&
+            !wasHoldUsed() && <p className="shopping-hold-tip">{holdTip}</p>}
           {/* An empty list says what it is for and how to fill it (§3 Tomt); in fullscreen, where + sits in the
               Back row, the `addItem` row opens the same field here. Gone while the field is open. */}
           {!detail.items.length && !panels.addOpen && (
@@ -460,7 +509,6 @@ export function ShoppingView({
               names={forms.names}
               invalid={forms.invalidBatch}
               busy={busy}
-              note={error ? "" : forms.addNote}
               onNames={forms.changeNames}
               onKeyDown={forms.batchKeyDown}
               onAdd={() => forms.add()}
@@ -468,17 +516,20 @@ export function ShoppingView({
           )}
           {/* The card's one open link, last (design rules 1 and 2): the full list, with the open rows it leaves out. */}
           {folded && onOpenFull && (
-            <CardFoot>
-              <OpenListButton
-                labels={t}
-                hidden={rows.length - view.shownCount}
-                hiddenText={t.hiddenItems}
-                onOpen={onOpenFull}
-              />
-            </CardFoot>
+            <OpenLink
+              label={t.openList}
+              more={
+                rows.length > view.shownCount
+                  ? t.hiddenItems(rows.length - view.shownCount)
+                  : undefined
+              }
+              onOpen={onOpenFull}
+            />
           )}
         </>
       )}
+      {/* Last in the view: inline under the card's content, in fullscreen floating over the foot of the list. */}
+      <ReceiptBar receipt={receipt} />
     </section>
   );
 }

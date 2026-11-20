@@ -709,7 +709,7 @@ const scenarios: Scenario[] = [
   },
   {
     // Inline, a host without fullscreen shows the board as a summary: the oldest overdue rows and an
-    // "Öppna Status · N fler" button. There are no board cards to probe here, so this scenario measures
+    // "Öppna Status · N till" button. There are no board cards to probe here, so this scenario measures
     // the summary's tap targets; work-02b measures the full board the summary opens in place.
     name: "work-02-tavla-inline-sammanfattning-utan-helskarm",
     resource: "work",
@@ -1653,8 +1653,11 @@ test.describe("touch flows", () => {
       .getByRole("button", { name: /^Markera .* som klar$/ })
       .first()
       .tap();
-    // "Klar · Ångra" replaces the card's meta line (one .work-agenda-undo per row).
+    // "Klar" replaces the card's meta line (one .work-agenda-undo per row); its Ångra is the receipt bar's.
     await expect(app.locator(".work-agenda-undo")).toBeVisible();
+    await expect(
+      app.locator(".sk-receipt-slot").getByRole("button", { name: "Ångra" }),
+    ).toBeVisible();
     const calls = (await simulatedHostState(page)).calls
       .slice(before)
       .map((c) => ({
@@ -1692,6 +1695,9 @@ test.describe("touch flows", () => {
       .first()
       .tap();
     await expect(app.locator(".work-agenda-undo")).toBeVisible();
+    await expect(
+      app.locator(".sk-receipt-slot").getByRole("button", { name: "Ångra" }),
+    ).toBeVisible();
     await settle(900);
     if (SHOTS)
       await page.screenshot({

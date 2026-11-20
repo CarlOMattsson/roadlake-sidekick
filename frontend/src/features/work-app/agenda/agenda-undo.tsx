@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { WorkLabels } from "../shared/labels";
 import { agendaLabelsFor } from "./agenda-labels";
 
@@ -126,76 +125,31 @@ export function useNearest<T extends HTMLElement>(key?: unknown) {
 }
 
 /**
- * The Undo of one row, in the row itself (designsystem §3 "Tillstånd", Ångra): the meta line gives way to `completed`
- * (or `movedTo` with the new date) while the change can be undone, and `undo` is a compact secondary button in the row's
- * trailing slot, level with the title line. The row stays where it was and keeps its height. While the change is
- * written the line says "Moving…" and offers no Undo. Every row has its own Undo and its own time, which pauses while
- * the pointer is over it or focus is in it. The line is a polite live region (`role="status"`); focus is not moved.
- * The wrapper (`.work-agenda-undo`) has `display: contents`, so the line and the button are placed by the row's grid.
- * When the title would wrap beside the button, the button moves down to the meta line, so the row never grows. The
- * line scrolls itself above the reply field when it shows (`useNearest`), and the button with it.
- * `onExpire` is called when the time to undo is up.
+ * The state line of a row whose change can still be undone (designsystem §0.6): the meta line gives way to `completed`
+ * (or `movedTo` with the new date) and the row stays where it was, with its height. While the change is written the
+ * line says "Moving…". The Ångra and its time are the view's receipt bar's (`useUndoReceipts`), never the row's. The
+ * line is a polite live region (`role="status"`); focus is not moved, and it scrolls itself above the reply field when
+ * it shows (`useNearest`). The wrapper (`.work-agenda-undo`) has `display: contents`, so the line is placed by the
+ * row's grid.
  */
 export function UndoMeta({
   text,
-  title,
   moving = false,
   labels: t,
-  disabled,
-  onUndo,
-  onExpire,
 }: {
   /** What the change did, in the meta line's words: `completed`, `movedTo`. */
   text: string;
-  /** The title of the row, which names the button for a screen reader (`undo` and the title). */
-  title: string;
-  /** The change is being written: the line says so and offers no Undo. */
+  /** The change is being written: the line says so. */
   moving?: boolean;
   labels: WorkLabels;
-  disabled: boolean;
-  /** Absent: the line says what happened and offers no Ångra (the host cannot write the change back). */
-  onUndo?: () => void;
-  onExpire: () => void;
 }) {
   const done = !moving;
-  // The time to undo only runs down while the change is done, and stands still while the Undo is held.
-  const { held, handlers } = useUndoHold(done, onExpire);
-  // The line and its Ångra come into view when it shows: the line is the row's lowest part, and the button
-  // stands beside the title or, when it moved down, on the line itself.
   const nearest = useNearest<HTMLParagraphElement>(done);
-
   return (
-    <div
-      className="work-agenda-undo"
-      // The time line under Ångra stands still while the timer does.
-      data-held={held ? "" : undefined}
-      {...handlers}
-    >
+    <div className="work-agenda-undo">
       <p role="status" ref={nearest}>
         {done ? text : agendaLabelsFor(t.dateLocale).moving}
       </p>
-      {done && onUndo && (
-        <button
-          type="button"
-          className="sk-btn--secondary sk-btn--compact sk-undo-time"
-          disabled={disabled}
-          aria-label={`${t.agendaUndo} ${title}`}
-          onClick={onUndo}
-          ref={(button) => {
-            // A title that wraps beside the button (taller than one line) sends it down to the meta line (data-low).
-            // One line is the 44 title box, the button 40; a second line adds at least 22, so 52 lies between.
-            const box = button?.parentElement;
-            if (
-              box &&
-              box.previousElementSibling!.clientHeight >
-                button.offsetHeight + 12
-            )
-              box.dataset.low = "";
-          }}
-        >
-          {t.agendaUndo}
-        </button>
-      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
+import { receiptRunning } from "@tests/helpers/receipt-bar";
 
 import {
   controlEn,
@@ -522,6 +523,7 @@ describe("TrashView receipt", () => {
       await screen.findByText("Återställd: Förbered pitchen"),
     ).toBeInTheDocument();
     expect(screen.getByText("Inget borttaget.")).toBeInTheDocument();
+    await receiptRunning();
 
     act(() => {
       vi.advanceTimersByTime(RECEIPT_MS - 100);

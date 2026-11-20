@@ -116,7 +116,7 @@ it("shows a work_changes card inline as a compact list with Open and no status b
   ).toBeNull();
   expect(screen.getAllByRole("button")).toHaveLength(1);
   expect(
-    screen.getByRole("button", { name: "Show all (1)" }),
+    screen.getByRole("button", { name: "Open changes" }),
   ).toBeInTheDocument();
   expect(work.updateTask).not.toHaveBeenCalled();
 });

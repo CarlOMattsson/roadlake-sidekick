@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../../../mcp-apps/idempotency";
 import { failureNotice } from "../../board/board";
 import {
@@ -77,6 +77,10 @@ export function useAgendaBulk({
   // The Tasks of the last move-all while Ångra is offered; undefined when there is nothing to undo.
   const [moved, setMoved] = useState<MovedTask[]>();
   const dismissMoveUndo = useCallback(() => setMoved(undefined), []);
+  const moveUndo = useMemo(
+    () => (moved ? { count: moved.length } : undefined),
+    [moved],
+  );
 
   /**
    * `remind` in the waiting view: sets the Task's follow-up time to 09:00 tomorrow with update_task, so
@@ -250,8 +254,8 @@ export function useAgendaBulk({
     reminded,
     remind,
     moveAllOverdue,
-    /** The last move-all while Ångra is offered: how many Tasks it moved. */
-    moveUndo: moved ? { count: moved.length } : undefined,
+    /** The last move-all while Ångra is offered: how many Tasks it moved (the same object until it changes). */
+    moveUndo,
     undoMoveAll: () => {
       if (moved) restoreDates(moved);
     },

@@ -1,6 +1,6 @@
 import { useCallback, useId, useState, type ReactNode } from "react";
 
-import { Notice } from "../../mcp-apps/ui/notice";
+import { MessageBox } from "../../mcp-apps/ui/message-box";
 import { AgendaSearch } from "../agenda/agenda-toolbar";
 import type { CardLabels } from "../shared/card-labels";
 import type { InlineSummaryLabels } from "../inline/inline-summary-labels";
@@ -351,7 +351,12 @@ export function WorkFullscreen({
           onClear={() => clearView(tab)}
         />
         {ui.severalPriorities[tab] ? (
-          <Notice tone="warning">{savedLabels.severalPriorities}</Notice>
+          <MessageBox
+            severity="warning"
+            title={savedLabels.severalPrioritiesTitle}
+          >
+            {savedLabels.severalPriorities}
+          </MessageBox>
         ) : null}
       </>
     );

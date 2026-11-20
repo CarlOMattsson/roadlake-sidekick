@@ -21,7 +21,8 @@ import { stepActionsLabelsFor } from "./step-actions-labels";
  * done one, which is dimmed while it is done. A host that can do neither (`onComplete` and `onReopen` absent) shows the
  * state as a mark without a box; with only one of them, the box is read-only in the state the other one would change.
  * Under the title stands one meta line: the due day (red once it has passed, left out when the Action is done) and the
- * note, which gives way with "…". A tick or an untick keeps the row in its place with "Klar" and Ångra for a short while.
+ * note, which gives way with "…". A tick or an untick keeps the row in its place with "Klar" for a short while; its Ångra
+ * is in the view's receipt bar.
  */
 export function StepActionRow({
   action,
@@ -31,8 +32,6 @@ export function StepActionRow({
   labels: t,
   manage,
   undo,
-  onUndo,
-  onExpire,
   onComplete,
   onReopen,
   onMove,
@@ -44,10 +43,8 @@ export function StepActionRow({
   disabled: boolean;
   labels: WorkLabels;
   manage: ManageLabels;
-  /** The tick this row was just given: its meta line says `completed` or `stepReopened` and Ångra stands in the row. */
+  /** The tick this row was just given: its meta line says `completed` or `stepReopened`; Ångra is in the receipt bar. */
   undo?: Pick<StepUndo, "id" | "version" | "done">;
-  onUndo: () => void;
-  onExpire: () => void;
   /** Absent: the host cannot complete an Action, so the row is shown, not ticked. */
   onComplete?: () => void;
   /** Absent: the host cannot open an Action again, so a done Action stays ticked. */
@@ -156,11 +153,7 @@ export function StepActionRow({
         <UndoMeta
           key={`${undo.id}:${undo.version}`}
           text={undo.done ? t.stepDone : t.stepReopened}
-          title={action.title}
           labels={t}
-          disabled={disabled}
-          onUndo={onUndo}
-          onExpire={onExpire}
         />
       )}
       {hasMenu && open && (

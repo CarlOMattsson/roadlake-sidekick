@@ -148,7 +148,14 @@ describe("TaskFrame status", () => {
       await screen.findByRole("button", {
         name: `${hierarchyDetailLabelsEn.changeStatus}: ${workEn.taskStatus.in_progress}`,
       }),
-    ).toBeVisible();
+    ).toBeVisible(); // A plain save is confirmed in the receipt bar, with no Ångra and no line in the content.
+    const slot = document.querySelector(".sk-receipt-slot") as HTMLElement;
+    expect(within(slot).getByText(workEn.saved)).toBeVisible();
+    expect(
+      screen
+        .queryAllByText(workEn.saved)
+        .filter((node) => !node.closest(".sk-receipt-slot")),
+    ).toHaveLength(0);
   });
 
   it("does not write when the stored status is chosen again, and closes the menu with focus on the chip", async () => {
@@ -236,7 +243,7 @@ describe("TaskFrame Markera klar", () => {
     );
   });
 
-  it("writes Klar through the status write, with the shown version and key, and shows Ångra in its place", async () => {
+  it("writes Klar through the status write, with the shown version and key, and shows Återöppna with Ångra in the receipt bar", async () => {
     const work = transport();
     renderTask(work);
 
@@ -253,18 +260,21 @@ describe("TaskFrame Markera klar", () => {
         expect.any(String),
       ),
     );
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("button", { name: workEn.markDone }),
-      ).not.toBeInTheDocument(),
-    );
-    // Until the time to undo is up, Ångra stands where Återöppna will.
+    // The control shows its new state at once and keeps focus; Ångra is only in the receipt bar.
+    const reopen = await screen.findByRole("button", {
+      name: workEn.reopenTask,
+    });
+    await waitFor(() => expect(reopen).toHaveFocus());
     expect(
-      screen.getByRole("button", { name: workEn.agendaUndo }),
+      screen.queryByRole("button", { name: workEn.markDone }),
+    ).not.toBeInTheDocument();
+    const slot = document.querySelector(".sk-receipt-slot") as HTMLElement;
+    expect(
+      within(slot).getByRole("button", { name: workEn.agendaUndo }),
     ).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: workEn.reopenTask }),
-    ).not.toBeInTheDocument();
+      screen.getAllByRole("button", { name: workEn.agendaUndo }),
+    ).toHaveLength(1);
     expect(
       screen.queryByRole("group", { name: workEn.status }),
     ).not.toBeInTheDocument();

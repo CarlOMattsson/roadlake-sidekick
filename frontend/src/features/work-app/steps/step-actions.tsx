@@ -2,9 +2,11 @@ import {
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import type { WorkLabels } from "../shared/labels";
@@ -17,6 +19,7 @@ import {
   moveItem,
 } from "../shared/manage-controls";
 import { manageLabelsFor } from "../shared/manage-labels";
+import { rowReceipt, useUndoReceipts } from "../shared/use-undo-receipts";
 import { StepActionRow } from "./step-action-row";
 import { stepActionsLabelsFor } from "./step-actions-labels";
 import {
@@ -34,6 +37,8 @@ export type StepActionsProps = {
   labels: WorkLabels;
   /** Opened by the count under the Step's title; nothing is drawn while it is false. */
   open: boolean;
+  /** The Task view's receipt bar: a tick is confirmed there, with Ångra. */
+  receipt: ReceiptState;
   /** Called with the number of active Actions and how many are done whenever the list changes, so the Step's row can follow it. */
   onCount: (count: number, done: number) => void;
 };
@@ -48,7 +53,7 @@ type ArchivedAction = {
   index: number;
 };
 
-/** The Action ticked last, whose row shows `completed` with `undo` (or `stepReopened`) until it runs out or another write is made. */
+/** The Action ticked last, whose row shows `completed` (or `stepReopened`) until its receipt runs out or another write is made. */
 type TickUndo = { id: string; version: number; done: boolean };
 
 /**
@@ -67,6 +72,7 @@ export function StepActions({
   transport,
   labels: t,
   open,
+  receipt,
   onCount,
 }: StepActionsProps) {
   const manage = manageLabelsFor(t.dateLocale);
@@ -216,6 +222,14 @@ export function StepActions({
       return;
     }
     settle();
+    // An Ångra from the receipt bar leaves nothing to press: focus goes back to the Action's box.
+    if (undoing)
+      pendingFocus.current = () =>
+        listRef.current
+          ?.querySelector<HTMLElement>(
+            `[data-manage="${CSS.escape(action.id)}:more"]`,
+          )
+          ?.focus();
     show(result.action);
     setTickUndo(
       undoing
@@ -225,6 +239,31 @@ export function StepActions({
   }
 
   const expireTickUndo = useCallback(() => setTickUndo(undefined), []);
+  // The tick just made: "Klar: {title}" with Ångra in the bar; the row keeps its state until the bar's time is up.
+  const tickUndos = useMemo(
+    () => (tickUndo ? { [tickUndo.id]: tickUndo } : {}),
+    [tickUndo],
+  );
+  useUndoReceipts({
+    undos: tickUndos,
+    receipt,
+    describe: (key, undo) => {
+      const action = actions.find((item) => item.id === key);
+      return action
+        ? {
+            message: rowReceipt(
+              undo.done ? t.stepDone : t.stepReopened,
+              action.title,
+            ),
+            undo: {
+              label: t.agendaUndo,
+              onUndo: () => tickAction(action, !undo.done, true),
+            },
+          }
+        : undefined;
+    },
+    onEnd: expireTickUndo,
+  });
 
   async function archiveAction(action: WorkAction) {
     const index = actions.findIndex((item) => item.id === action.id);
@@ -321,10 +360,6 @@ export function StepActions({
                   labels={t}
                   manage={manage}
                   undo={tickUndo?.id === action.id ? tickUndo : undefined}
-                  onUndo={() => {
-                    if (tickUndo) void tickAction(action, !tickUndo.done, true);
-                  }}
-                  onExpire={expireTickUndo}
                   onComplete={
                     canComplete
                       ? () => {

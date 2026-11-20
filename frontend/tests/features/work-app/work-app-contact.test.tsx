@@ -10,6 +10,10 @@ import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { ContactsView } from "@/features/work-app/contacts/contacts-list";
 import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import {
+  contactsRoomLabelsEn,
+  contactsRoomLabelsSv,
+} from "@/features/work-app/contacts/contacts-room-labels";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import { type WorkContactRecord } from "@/features/work-app/transport/transport";
 import {
@@ -203,7 +207,11 @@ it("saves only the changed Contact fields with the expected version and a key", 
   await user.clear(note);
   await user.type(note, "Ny anteckning");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  expect(await screen.findByText(workEn.saved)).toBeInTheDocument();
+  expect(
+    await screen.findByText(contactsRoomLabelsEn.receiptSaved),
+  ).toBeInTheDocument();
+  // The receipt bar answers the save: no plain "Saved" line stands in the page.
+  expect(screen.queryByText(workEn.saved)).toBeNull();
   expect(updateContact).toHaveBeenCalledTimes(1);
   expect(updateContact).toHaveBeenCalledWith(
     anna.id,
@@ -355,7 +363,9 @@ it("sends only the changed organization to update_contact", async () => {
   await user.type(organization, "Nordic AB");
   await user.click(screen.getByRole("button", { name: workEn.save }));
 
-  expect(await screen.findByText(workEn.saved)).toBeInTheDocument();
+  expect(
+    await screen.findByText(contactsRoomLabelsEn.receiptSaved),
+  ).toBeInTheDocument();
   expect(updateContact).toHaveBeenCalledTimes(1);
   expect(updateContact).toHaveBeenCalledWith(
     anna.id,
@@ -393,17 +403,19 @@ it("shows a conflict on save, reloads the latest Contact and keeps the typed not
   await user.clear(note);
   await user.type(note, "Min anteckning");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.contactEditConflict);
+  const message = await screen.findByText(workEn.contactEditConflict);
+  const banner = message.closest("[tabindex='-1']") as HTMLElement;
   await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   await waitFor(() => expect(getContactContext).toHaveBeenCalledTimes(2));
   expect(screen.getByLabelText(workEn.contextNote)).toHaveValue(
     "Min anteckning",
   );
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText(workEn.contactEditConflict)).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  expect(await screen.findByText(workEn.saved)).toBeInTheDocument();
+  expect(
+    await screen.findByText(contactsRoomLabelsEn.receiptSaved),
+  ).toBeInTheDocument();
   expect(updateContact).toHaveBeenCalledTimes(2);
   expect(updateContact.mock.calls[0]).toEqual([
     anna.id,
@@ -568,9 +580,7 @@ it("archives at once, shows the receipt with Undo, and restores the Contact from
   );
   // No question first: the write goes out and the menu closes.
   expect(
-    await screen.findByText(workEn.contactArchived, {
-      selector: "[role=status]",
-    }),
+    await screen.findByText(contactsRoomLabelsEn.receiptArchived),
   ).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: workEn.confirmChange }),
@@ -587,16 +597,16 @@ it("archives at once, shows the receipt with Undo, and restores the Contact from
     1,
     expect.stringMatching(KEY),
   );
-  // The keyboard stays on the page, on the receipt's Undo.
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: workEn.undo })).toHaveFocus(),
-  );
+  // Undo is in the receipt bar, and the archived page shows the same calm fact it always does.
+  expect(screen.getByRole("button", { name: workEn.undo })).toBeInTheDocument();
+  expect(screen.getByText(workEn.archivedLabel)).toBeInTheDocument();
   await openMoreMenu(user);
   expect(screen.queryByRole("button", { name: workEn.edit })).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.restoreContact }));
-  await waitFor(() =>
-    expect(screen.queryByText(workEn.contactArchived)).toBeNull(),
-  );
+  expect(
+    await screen.findByText(contactsRoomLabelsEn.receiptRestored),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(contactsRoomLabelsEn.receiptArchived)).toBeNull();
   expect(screen.queryByText(workEn.archivedReadOnly)).toBeNull();
   expect(restoreContact).toHaveBeenCalledWith(
     anna.id,
@@ -627,12 +637,13 @@ it("Undo on the archive receipt restores the Contact at the version the archive 
     exact: false,
   });
   expect(failed).toBeInTheDocument();
-  // The receipt stays while the Contact is still archived.
-  expect(screen.getByText(workEn.contactArchived)).toBeInTheDocument();
+  // The Contact is still archived, and the failure row offers Try again.
+  expect(screen.getByText(workEn.archivedReadOnly)).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: workEn.retry }));
-  await waitFor(() =>
-    expect(screen.queryByText(workEn.contactArchived)).toBeNull(),
-  );
+  expect(
+    await screen.findByText(contactsRoomLabelsEn.receiptRestored),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(workEn.archivedReadOnly)).toBeNull();
   expect(restoreContact).toHaveBeenCalledTimes(2);
   expect(restoreContact).toHaveBeenNthCalledWith(
     1,
@@ -654,9 +665,35 @@ it("shows the archive receipt in Swedish", async () => {
   );
   await user.click(screen.getByRole("button", { name: workSv.archiveContact }));
   expect(
-    await screen.findByText("Kontakten är arkiverad."),
+    await screen.findByText(contactsRoomLabelsSv.receiptArchived),
   ).toBeInTheDocument();
+  expect(contactsRoomLabelsSv.receiptArchived).toBe("Kontakten är arkiverad");
   expect(screen.getByRole("button", { name: "Ångra" })).toBeInTheDocument();
+});
+
+it("keeps the Tasks shown and offers Try again in a message box when the next page of Tasks fails", async () => {
+  const user = userEvent.setup();
+  const getContactContext = vi
+    .fn()
+    .mockResolvedValueOnce({
+      contact: anna,
+      projects: { items: [], next_cursor: null },
+      tasks: { items: annaTasks, next_cursor: "p2" },
+    })
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValue({
+      contact: anna,
+      projects: { items: [], next_cursor: null },
+      tasks: { items: [], next_cursor: null },
+    });
+  render(contactRoot(transport({ getContactContext })));
+  await user.click(await screen.findByRole("button", { name: workEn.more }));
+  const failed = await screen.findByRole("alert");
+  expect(failed).toHaveTextContent(contactsRoomLabelsEn.moreFailed);
+  expect(screen.getByText(annaTasks[0]!.title)).toBeInTheDocument();
+  await user.click(within(failed).getByRole("button", { name: workEn.retry }));
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  expect(getContactContext).toHaveBeenLastCalledWith(anna.id, "p2");
 });
 
 it("puts Edit and the archive action behind the ⋯ menu on the heading row, with no pen", async () => {

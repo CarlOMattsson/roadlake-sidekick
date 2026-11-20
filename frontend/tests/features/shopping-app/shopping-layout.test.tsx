@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
@@ -8,6 +8,7 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import { findReceiptUndo, receiptSlot } from "@tests/helpers/receipt-bar";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -81,8 +82,8 @@ describe("loading", () => {
   });
 });
 
-describe("a bought row holds its Ångra in place", () => {
-  it("the Ångra is a compact secondary button beside the row's text, not a notice", async () => {
+describe("a bought row holds its place and its Ångra is in the receipt bar", () => {
+  it("the row keeps its room and says 'Bought' with no button of its own; the bar's Ångra is a compact quiet button, last in the view", async () => {
     const user = userEvent.setup();
     const { container } = render(
       <ShoppingView
@@ -97,26 +98,29 @@ describe("a bought row holds its Ångra in place", () => {
         screen.getByRole("button", { name: /^Mark Milk as/ }),
       ).toBeEnabled(),
     );
+    const openRow = screen.getByText("Milk").closest("li")!;
     await user.click(screen.getByRole("button", { name: /^Mark Milk as/ }));
-    const undo = await screen.findByRole("button", {
-      name: shoppingEn.undoPurchaseNamed("Milk", true),
-    });
+    const undo = await findReceiptUndo("Undo");
     expect(undo.tagName).toBe("BUTTON");
-    expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");
-    expect(undo).not.toHaveClass("sk-btn--tonal");
-    expect(undo.closest("li")).toHaveClass("shopping-held-item");
-    // A sibling of the row's line (ring and open button), never inside the meta line ("Bought · 2 l").
-    expect(undo.parentElement).toBe(undo.closest("li"));
-    expect(undo.closest(".shopping-held")).toBeNull();
-    expect(
-      undo.closest("li")!.querySelector(".shopping-held"),
-    ).toHaveTextContent(`${shoppingEn.bought} · 2 l`);
+    expect(undo).toHaveClass("sk-btn--quiet", "sk-btn--compact");
+    // The Ångra is the bar's, in the one polite status slot at the foot of the view; it is not a notice.
+    expect(undo.closest(".sk-receipt-slot")).toBe(receiptSlot());
+    expect(receiptSlot().parentElement?.lastElementChild).toBe(receiptSlot());
     expect(undo.closest(".sk-notice")).toBeNull();
-    // The visible line is for the eye; the row's one status (role="status") tells assistive technology what happened.
-    expect(undo.closest("li")!.querySelector(".shopping-held")).toHaveAttribute(
+    const row = container.querySelector<HTMLElement>(".shopping-held-item")!;
+    expect(row).toBe(openRow);
+    // The row has no Ångra and keeps the room of its quick controls (unseen), so its height does not change.
+    expect(within(row).queryByRole("button", { name: /Undo/ })).toBeNull();
+    expect(row.querySelector(".shopping-quick-held")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
+    // "Bought" stands in the room of the quick controls, hidden from assistive technology; the amount keeps its place.
+    expect(
+      row.querySelector(".shopping-quick-held .shopping-held"),
+    ).toHaveTextContent(shoppingEn.bought);
+    expect(row.querySelector(".shopping-store-qty")).toHaveTextContent("2 l");
+    // The one status (role="status") tells assistive technology what happened.
     expect(container.querySelectorAll('[role="status"]')).toHaveLength(1);
     expect(container.querySelector('[role="status"]')).toHaveTextContent(
       `${shoppingEn.bought}: Milk`,

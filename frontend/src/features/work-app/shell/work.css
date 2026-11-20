@@ -17,7 +17,7 @@
   --work-danger-fg: var(--color-text-danger, light-dark(#7a1a12, #ffd2cc));
   --work-warning-fg: var(--color-text-warning, light-dark(#78350f, #fde68a));
   font-family: var(--sk-font);
-  font-size: var(--font-text-md-size, 16px);
+  font-size: var(--sk-type-body-size);
   line-height: 1.5;
   color: var(--work-fg);
   background: transparent;
@@ -39,7 +39,7 @@
 /* Title eyebrow of the hierarchy view: the family's sk-eyebrow look (small, normal weight, no capitals). The
    Work header's h1 ("Arbete") is hidden, see work-visually-hidden. */
 .sidekick-work h1 {
-  font-size: var(--sk-text-sm);
+  font-size: var(--sk-type-meta-size);
   font-weight: var(--sk-weight-normal);
   color: var(--work-muted);
   margin: 0;
@@ -47,7 +47,7 @@
 /* The board summary's heading is an eyebrow too (h2.sk-eyebrow). It takes the same look over the page h2 rule. */
 .sidekick-work h2.sk-eyebrow {
   margin: 0;
-  font-size: var(--sk-text-sm);
+  font-size: var(--sk-type-meta-size);
   font-weight: var(--sk-weight-normal);
   line-height: 1.3;
 }
@@ -58,16 +58,14 @@
    muted colour, row titles 16 px weight 500, metadata 14 px weight 400. Only the page title and the section headings
    are semibold, so a heading stands out from the rows under it. */
 .sidekick-work h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.3;
+  font: var(--sk-type-title);
   margin: 0.25rem 0 0.5rem;
   /* A record title (the detail heading) breaks inside one long word rather than widening the frame. */
   overflow-wrap: anywhere;
 }
 /* Sections (Steg, Kontakter, Uppgifter) get air and a quiet divider. */
 .sidekick-work h3 {
-  font-size: 1rem;
+  font-size: var(--sk-type-row-size);
   font-weight: 600;
   margin: 1.5rem 0 0.5rem;
   padding-top: 0.75rem;
@@ -85,7 +83,7 @@
   padding: 0.1rem 0.6rem;
   border: var(--work-border-width) solid var(--work-line);
   border-radius: 999px;
-  font-size: var(--font-text-sm-size, 0.85rem);
+  font-size: var(--sk-type-meta-size);
   line-height: 1.6;
   color: var(--work-muted);
   overflow-wrap: break-word;
@@ -150,20 +148,18 @@
   padding: 0.25rem 0;
 }
 .sidekick-work .work-list > li:not(.work-card) > p {
-  font-size: var(--font-text-sm-size, 0.85rem);
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
   margin: 0 0 0.35rem 0.25rem;
 }
 /* Errors are the family's error box ([role="alert"] in family.css), in the apps and in cards alike. */
 .sidekick-work [role="status"] {
   color: var(--work-muted);
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
 }
 .sidekick-work .work-banner {
   margin: 0.5rem 0;
 }
-/* Stays in work.css, not task-detail.css: .work-actions-sticky (later in this file) sets margin-top: 0 on the same
-   element (contact editor), so this rule must come before it. */
 .sidekick-work .work-actions {
   display: flex;
   flex-wrap: wrap;
@@ -183,7 +179,7 @@
   margin: 0 0 0.5rem;
   padding: 0;
   border: 0;
-  font-size: 0.95rem;
+  font-size: var(--sk-type-row-size);
 }
 /* The four Task statuses side by side, sharing the row equally. A column is never narrower than 13.25rem, where a
    card title keeps whole words ("sammanställningen", 158 at 110 %, has 162; the card's lead is 36, see below): the
@@ -306,12 +302,14 @@
   /* No automatic hyphens (see the end of this file). */
   hyphens: manual;
 }
-.sidekick-work
-  .work-list
-  > li.work-card
-  > .work-card-head
-  > button:not(.work-drag-handle):hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .sidekick-work
+    .work-list
+    > li.work-card
+    > .work-card-head
+    > button:not(.work-drag-handle):hover {
+    text-decoration: underline;
+  }
 }
 /* The handle reads as draggable: a grip of dots at its left edge, a grab cursor, and a clear ring
    when it has focus. The status glyph stays as it is; the grip is drawn with CSS only. */
@@ -358,11 +356,6 @@
   .work-list
   > li.work-card
   > .work-card-head
-  > .work-drag-handle:hover,
-.sidekick-work
-  .work-list
-  > li.work-card
-  > .work-card-head
   > .work-drag-handle:focus-visible {
   background: color-mix(in srgb, currentColor 8%, transparent);
   border-radius: var(--work-radius);
@@ -371,13 +364,25 @@
   .work-list
   > li.work-card
   > .work-card-head
-  > .work-drag-handle:hover::before,
-.sidekick-work
-  .work-list
-  > li.work-card
-  > .work-card-head
   > .work-drag-handle:focus-visible::before {
   opacity: 0.9;
+}
+@media (hover: hover) {
+  .sidekick-work
+    .work-list
+    > li.work-card
+    > .work-card-head
+    > .work-drag-handle:hover {
+    background: color-mix(in srgb, currentColor 8%, transparent);
+    border-radius: var(--work-radius);
+  }
+  .sidekick-work
+    .work-list
+    > li.work-card
+    > .work-card-head
+    > .work-drag-handle:hover::before {
+    opacity: 0.9;
+  }
 }
 .sidekick-work
   .work-list
@@ -394,7 +399,7 @@
   margin: 0;
   /* The drag handle and its gap: the meta line starts under the title text. */
   padding-left: calc(2.75rem + 0.25rem);
-  font-size: var(--font-text-sm-size, 0.85rem);
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 /* A date is plain text, never a chip; an overdue date is red ("5 dagar försenad"). */
@@ -481,9 +486,11 @@
   background: transparent;
   color: var(--work-muted);
 }
-.sidekick-work .work-icon-button:hover:not(:disabled) {
-  background: var(--work-surface);
-  color: var(--work-fg);
+@media (hover: hover) {
+  .sidekick-work .work-icon-button:hover:not(:disabled) {
+    background: var(--work-surface);
+    color: var(--work-fg);
+  }
 }
 /* The board's refresh is an icon with the word "Uppdatera" beside it (A8): a 44 px text button. */
 .sidekick-work .work-refresh-text {
@@ -491,7 +498,7 @@
   gap: var(--sk-s1, 0.25rem);
   padding: 0 var(--sk-s3, 0.75rem);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
 }
 /* The status symbol is a 24 px ring in the 44 px done button and the drag grip (A2). The ring of a Task card on the
    board (its drag handle) is the same size as a Step card's glyph; the card's lead and the ring's place on the
@@ -504,7 +511,7 @@
 }
 .sidekick-work .work-card-meta {
   margin: 0.25rem 0 0;
-  font-size: var(--font-text-sm-size, 0.85rem);
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 /* The high-priority marker: the word carries it; the warning text and weight only make it stand out a little. */
@@ -561,7 +568,7 @@
 /* Stays in work.css, not inline-summary.css: the generic [role="status"] rule above must lose to it (equal
    specificity, later wins), and the inline status line carries role="status". */
 .sidekick-work .work-compact-status {
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 
@@ -760,18 +767,28 @@
 .sidekick-work
   .work-board:not([data-layout="single"])
   .work-list
-  > li.work-card:hover
-  > .work-card-head
-  > .work-drag-handle:not(:disabled)::before {
-  opacity: 0.4;
-}
-.sidekick-work
-  .work-board:not([data-layout="single"])
-  .work-list
   > li.work-card
   > .work-card-head
-  > .work-drag-handle:is(:hover, :focus-visible):not(:disabled)::before {
+  > .work-drag-handle:focus-visible:not(:disabled)::before {
   opacity: 0.9;
+}
+@media (hover: hover) {
+  .sidekick-work
+    .work-board:not([data-layout="single"])
+    .work-list
+    > li.work-card:hover
+    > .work-card-head
+    > .work-drag-handle:not(:disabled)::before {
+    opacity: 0.4;
+  }
+  .sidekick-work
+    .work-board:not([data-layout="single"])
+    .work-list
+    > li.work-card
+    > .work-card-head
+    > .work-drag-handle:hover:not(:disabled)::before {
+    opacity: 0.9;
+  }
 }
 .sidekick-work
   .work-board:not([data-layout="single"])
@@ -870,21 +887,11 @@
   margin: var(--sk-s2) 0 var(--sk-s3);
 }
 /* Each tab is two lines, the status over its count, so all four fit side by side from 320 px with no tab wrapping on
-   its own. The 2 px outline, the fill and 600 say which is chosen: the tick is left out here, it would push the
-   longest name ("Blockerad") onto a third line. */
-.sidekick-work .work-column-tabs .sk-segmented .sk-segmented__option {
-  flex: 1 1 auto;
+   its own (the shared Tabs, tabs.css; the count's line break is the label's own). */
+.sidekick-work .work-column-tabs .sk-tabs__tab {
   padding-inline: var(--sk-s1);
-}
-.sidekick-work .work-column-tabs .sk-segmented__label {
   white-space: pre-line;
   font-variant-numeric: tabular-nums;
-}
-.sidekick-work
-  .work-column-tabs
-  .sk-segmented__option[aria-pressed="true"]
-  > .sk-segmented__label::before {
-  content: none;
 }
 .sidekick-work
   .work-board[data-layout="single"]
@@ -1000,20 +1007,6 @@
   justify-content: space-between;
   gap: 0.5rem;
   margin: 0.5rem 0;
-}
-/* Contact editor: Save and Cancel stay on screen while the long form scrolls (phone-first, principle 4).
-   The row sticks to the bottom edge with an opaque base like the Undo line. It rests on the foot reserve, above the
-   host's reply field in fullscreen (the frame keeps the same reserve below the content), so it is only as tall as its
-   buttons. It is not position: fixed. */
-.sidekick-work .work-actions-sticky {
-  position: sticky;
-  bottom: var(--sk-foot-reserve, 6rem);
-  z-index: 2;
-  margin-top: 0;
-  padding: 0.5rem 0;
-  background-color: light-dark(#ffffff, #1c1c1e);
-  background-image: linear-gradient(var(--work-bg), var(--work-bg));
-  box-shadow: 0 -2px 6px rgb(0 0 0 / 0.12);
 }
 
 /* A row with quick choices opens them with a long press: the press must not select text or open the host's own

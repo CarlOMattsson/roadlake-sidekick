@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { UndoMeta, fillLabel } from "../agenda/agenda-undo";
 import {
   failureNotice,
@@ -22,6 +29,8 @@ import { useToolSupport } from "../../mcp-apps/tool-support";
 import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import "./unsorted.css";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
+import { rowReceipt, useUndoReceipts } from "../shared/use-undo-receipts";
 import {
   domainAccentOf,
   writeFailure,
@@ -254,17 +263,32 @@ export function UnsortedView({
   // The sorted row stays in its place with `movedTo` and `undo` in place of its Domain buttons (designsystem),
   // so it covers no row; while a write runs it says "Moving…" there, so a quick second tap lands where it aimed.
   const at = undo ? Math.min(Math.max(undo.index, 0), list.length) : -1;
+  // The sort is confirmed in the receipt bar at the view's foot, with Ångra; the row keeps its state line until the
+  // bar's time is up (designsystem §0.6).
+  const receipt = useReceipt();
+  const undos = useMemo(
+    (): Record<string, UnsortedUndo> => (undo ? { sort: undo } : {}),
+    [undo],
+  );
+  useUndoReceipts({
+    undos,
+    receipt,
+    describe: (_key, entry) => ({
+      message: rowReceipt(
+        fillLabel(t.movedTo, { status: entry.label }),
+        entry.task.title,
+      ),
+      undo: { label: t.agendaUndo, onUndo: () => undoSort(entry) },
+    }),
+    onEnd: () => setUndo(undefined),
+  });
   const line = undo && (
     <li className="work-unsorted-row" data-undo="on">
       <p className="work-unsorted-title">{undo.task.title}</p>
       <UndoMeta
         text={fillLabel(t.movedTo, { status: undo.label })}
-        title={undo.task.title}
         moving={moving}
         labels={t}
-        disabled={disabled}
-        onUndo={() => undoSort(undo)}
-        onExpire={() => setUndo(undefined)}
       />
     </li>
   );
@@ -379,6 +403,7 @@ export function UnsortedView({
           {t.more}
         </button>
       )}
+      <ReceiptBar receipt={receipt} />
     </div>
   );
 }

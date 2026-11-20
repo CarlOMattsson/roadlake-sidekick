@@ -7,7 +7,6 @@ import {
   cardItemText,
   formatQuantity,
   isDefaultAmount,
-  OpenListButton,
   quantityText,
 } from "@/features/shopping-app/shopping-card";
 import {
@@ -146,8 +145,8 @@ it("counts the hidden open items in the open link, in both languages", async () 
   );
   const { unmount } = card(detailOf(many), shoppingSv);
   expect(
-    await screen.findByRole("button", { name: /^Öppna listan\s*· 2 fler$/ }),
-  ).toHaveTextContent("Öppna listan · 2 fler");
+    await screen.findByRole("button", { name: /^Öppna listan\s*· 2 till$/ }),
+  ).toHaveTextContent("Öppna listan · 2 till");
   unmount();
   card(detailOf(many), shoppingEn);
   expect(
@@ -160,7 +159,7 @@ it("says nothing about hidden items when all open items fit", async () => {
   expect(
     await screen.findByRole("button", { name: shoppingSv.openList }),
   ).toBeInTheDocument();
-  expect(screen.queryByText(/ fler$/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/· \d+ till$/)).not.toBeInTheDocument();
 });
 
 it("draws no progress line for an empty list, which says what to ask for", async () => {
@@ -265,32 +264,47 @@ it("cardItemText leaves the default amount out and keeps a unit's one", () => {
   );
 });
 
-it("OpenListButton names the link, counts the hidden rows after it and opens", async () => {
+it("the list picker's open link names the shopping, counts nothing and opens", async () => {
   const onOpen = vi.fn();
   const user = userEvent.setup();
+  const transport = adapter(detailOf([]));
+  vi.mocked(transport.lists).mockResolvedValue({
+    lists: [
+      { ...list, open_count: 1 },
+      {
+        ...list,
+        id: `${list.id.slice(0, -1)}2`,
+        name: "Garden",
+        open_count: 3,
+      },
+    ],
+    next_offset: null,
+  });
   const { unmount } = render(
-    <OpenListButton
+    <ShoppingView
+      transport={transport}
       labels={shoppingEn}
-      text={shoppingEn.openShopping}
-      hidden={0}
-      hiddenText={shoppingEn.hiddenItems}
-      onOpen={onOpen}
+      onOpenFull={onOpen}
     />,
   );
-  await user.click(
-    screen.getByRole("button", { name: shoppingEn.openShopping }),
-  );
+  const open = await screen.findByRole("button", {
+    name: shoppingEn.openShopping,
+  });
+  expect(open).toHaveClass("sk-open-link");
+  expect(open).toHaveTextContent(new RegExp(`^${shoppingEn.openShopping}$`));
+  await user.click(open);
   expect(onOpen).toHaveBeenCalledTimes(1);
   unmount();
   render(
-    <OpenListButton
+    <ShoppingView
+      transport={transport}
       labels={shoppingSv}
-      hidden={3}
-      hiddenText={shoppingSv.hiddenItems}
-      onOpen={onOpen}
+      onOpenFull={onOpen}
     />,
   );
-  expect(screen.getByRole("button")).toHaveTextContent("Öppna listan · 3 fler");
+  expect(
+    await screen.findByRole("button", { name: shoppingSv.openShopping }),
+  ).toHaveClass("sk-open-link");
 });
 
 beforeAll(() => {

@@ -20,6 +20,7 @@ import {
   DUE,
   NOW,
   overdue,
+  receiptBar,
   renderAgenda,
   rowOf,
 } from "@tests/helpers/agenda-triage-fixtures";
@@ -119,8 +120,18 @@ describe("Agenda: done on a recurring Task", () => {
         expect.any(String),
       );
 
+      // The receipt bar names the Task and holds the Ångra; the row has no button of its own.
+      // The bar fills in an effect after the row has changed, so it is waited for, not read at once.
+      await waitFor(() =>
+        expect(receiptBar()).toHaveTextContent(`Done: ${rent.title}`),
+      );
+      expect(
+        row.queryByRole("button", { name: /^Undo/ }),
+      ).not.toBeInTheDocument();
       await user.click(
-        row.getByRole("button", { name: `${workEn.agendaUndo} ${rent.title}` }),
+        await within(receiptBar()).findByRole("button", {
+          name: workEn.agendaUndo,
+        }),
       );
       await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
       expect(updateTask.mock.calls[1]?.[2]).toEqual({
@@ -198,7 +209,7 @@ describe("The repeat marker in a row's meta", () => {
 });
 
 describe("Task view: Mark as done on a recurring Task", () => {
-  it("shows Done · next: <date> under the button, and Undo writes the old date back", async () => {
+  it("says Done · next: <date> in the receipt bar, keeps the button where it is, and Undo writes the old date back", async () => {
     const user = userEvent.setup();
     const task: WorkTask = {
       id: overdue.id,
@@ -233,13 +244,14 @@ describe("Task view: Mark as done on a recurring Task", () => {
       await screen.findByRole("button", { name: workEn.markDone }),
     );
     const line = await screen.findByText(/^Done · next: /);
-    expect(line).toHaveAttribute("role", "status");
-    expect(line.closest(".work-task-cycle")).not.toBeNull();
+    const slot = line.closest(".sk-receipt-slot") as HTMLElement;
+    expect(slot).not.toBeNull();
+    // Nothing is added in the content; the Task is open again for its next date, so the button still says Mark as done.
+    expect(document.querySelector(".work-task-cycle")).toBeNull();
+    const again = screen.getByRole("button", { name: workEn.markDone });
+    await waitFor(() => expect(again).toHaveFocus());
     await user.click(
-      within(line.closest(".work-task-cycle") as HTMLElement).getByRole(
-        "button",
-        { name: workEn.agendaUndo },
-      ),
+      within(slot).getByRole("button", { name: workEn.agendaUndo }),
     );
     await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
     expect(updateTask.mock.calls[1]?.[2]).toEqual({
@@ -248,6 +260,11 @@ describe("Task view: Mark as done on a recurring Task", () => {
     });
     await waitFor(() =>
       expect(screen.queryByText(/^Done · next: /)).toBeNull(),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: workEn.markDone }),
+      ).toHaveFocus(),
     );
   });
 });

@@ -7,7 +7,7 @@ import type { ShoppingRead } from "./use-shopping-read";
  * changed elsewhere) and the failed write that "Try again" repeats.
  */
 export function useShoppingWrites(read: ShoppingRead) {
-  const { busy, setBusy, setError, reload } = read;
+  const { busyNow, setBusy, setError, reload } = read;
   // The last write was refused because the row changed elsewhere. The list is read again; no retry of the old version.
   // The notice stands in the row the user tapped (at the top it was out of sight in a scrolled list), else at the top.
   const [conflict, setConflict] = useState<{ rowId: string | null } | null>(
@@ -23,7 +23,7 @@ export function useShoppingWrites(read: ShoppingRead) {
     success?: (result: R) => void,
     rowId: string | null = null,
   ): Promise<boolean> {
-    if (busy) return false;
+    if (busyNow.current) return false;
     setConflict(null);
     if (intent.current?.fingerprint !== fingerprint)
       intent.current = { fingerprint, key: writeKey() };

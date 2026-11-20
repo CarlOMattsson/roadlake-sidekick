@@ -275,7 +275,7 @@ describe("a record that no longer exists when it is read", () => {
         goneKey="goneProject"
       />,
     );
-    expect(screen.getByText("Project")).toBeInTheDocument();
+    expect(screen.getByText("Work · Project")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(
       "This project no longer exists",
     );

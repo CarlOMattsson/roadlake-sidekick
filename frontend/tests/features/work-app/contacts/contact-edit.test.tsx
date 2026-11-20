@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -23,7 +23,7 @@ const anna: WorkContactRecord = {
 };
 
 describe("Contact editor action row", () => {
-  it("keeps Save and Cancel in one sticky row at the foot of the form", () => {
+  it("keeps Save and Cancel in one row at the foot of the form, in the flow (never over a field)", () => {
     render(
       <ContactEditor
         contact={anna}
@@ -42,7 +42,7 @@ describe("Contact editor action row", () => {
     const cancel = screen.getByRole("button", { name: workEn.cancel });
     const row = save.parentElement;
 
-    expect(row).toHaveClass("work-actions-sticky");
+    expect(row).toHaveClass("sk-form-actions");
     expect(cancel.parentElement).toBe(row);
     expect(row?.nextElementSibling).toBeNull();
   });
@@ -87,21 +87,89 @@ describe("Contact editor layout", () => {
     expect(group.compareDocumentPosition(row as Element) & after).toBeTruthy();
   });
 
-  it("carries the class that gives the fields room above the sticky row", () => {
-    renderEditor();
-    expect(screen.getByRole("form", { name: workEn.edit })).toHaveClass(
-      "work-contact-edit",
+  function editorFor(contact: WorkContactRecord, onCancel = vi.fn()) {
+    return (
+      <ContactEditor
+        contact={contact}
+        busy={false}
+        saveFailed={false}
+        rejected={false}
+        onSave={vi.fn()}
+        onCancel={onCancel}
+        onAddAlias={vi.fn()}
+        onRemoveAlias={vi.fn()}
+        labels={workEn}
+      />
     );
+  }
+
+  it("does nothing on Escape while a field differs from what was saved", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    render(editorFor(anna, onCancel));
+    await user.type(screen.getByLabelText(workEn.role), "Grundare");
+    await user.keyboard("{Escape}");
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(workEn.role)).toHaveValue("Grundare");
   });
 
-  it("scrolls a focused field into view with the sticky row's room, without animation", async () => {
+  it("empties the nickname field on Escape and leaves the editor open", async () => {
     const user = userEvent.setup();
-    renderEditor();
-    const slack = screen.getByLabelText(workEn.slack);
-    const scroll = vi.fn();
-    slack.scrollIntoView = scroll;
-    await user.click(slack);
-    expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
+    const onCancel = vi.fn();
+    render(editorFor(anna, onCancel));
+    const field = screen.getByLabelText(workEn.aliasValue);
+    await user.type(field, "Annie");
+    await user.keyboard("{Escape}");
+    expect(field).toHaveValue("");
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("closes the remove-nickname question on Escape and leaves the editor open", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const withAlias = {
+      ...anna,
+      aliases: [
+        { id: "a1", value: "Annie", created_at: "2026-11-01T00:00:00Z" },
+      ],
+    };
+    render(editorFor(withAlias, onCancel));
+    await user.click(
+      screen.getByRole("button", { name: workEn.removeAliasFor("Annie") }),
+    );
+    expect(
+      screen.getByRole("button", { name: workEn.confirmChange }),
+    ).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("button", { name: workEn.confirmChange }),
+    ).not.toBeInTheDocument();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("cancels on Escape from a field, as the Cancel button does, and not while a save is in flight", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    const editor = (busy: boolean) => (
+      <ContactEditor
+        contact={anna}
+        busy={busy}
+        saveFailed={false}
+        rejected={false}
+        onSave={vi.fn()}
+        onCancel={onCancel}
+        onAddAlias={vi.fn()}
+        onRemoveAlias={vi.fn()}
+        labels={workEn}
+      />
+    );
+    const { rerender } = render(editor(false));
+    await user.click(screen.getByLabelText(workEn.role));
+    await user.keyboard("{Escape}");
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    rerender(editor(true));
+    fireEvent.keyDown(screen.getByLabelText(workEn.role), { key: "Escape" });
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -53,24 +53,26 @@ export const inlineSummaryLabelsEn = {
   /** The word before a priority level: "Priority: High". */
   priorityLabel: workEn.priority,
   contacts: "Contacts",
-  /** The agenda card's title, its groups in the list's order: "1 today, 2 overdue", "1 today";
-   * ", more not shown" when the read is partial. */
+  /** The agenda card's title, its groups in the list's order: "1 today, 2 overdue", "1 today". With another page to
+   * read (`more`) the counts are a floor, "1+ today, 2+ overdue"; the title never says "more exist", the link counts them. */
   agendaTitle: (overdue: number, today: number, more: boolean) =>
     [
-      ...(today ? [`${today} today`] : []),
-      ...(overdue ? [`${overdue} overdue`] : []),
-      ...(more ? ["more not shown"] : []),
+      ...(today ? [`${today}${more ? "+" : ""} today`] : []),
+      ...(overdue ? [`${overdue}${more ? "+" : ""} overdue`] : []),
     ].join(", "),
-  /** Under the empty sentence, when other groups have records: "3 upcoming", "3 upcoming, more exist". */
+  /** Under the empty sentence, when other groups have records: "3 upcoming", "3+ upcoming" with another page to read. */
   agendaRest: (upcoming: number, more: boolean) =>
-    [
-      ...(upcoming ? [`${upcoming} upcoming`] : []),
-      ...(more ? ["more on the agenda"] : []),
-    ].join(", "),
+    upcoming
+      ? `${upcoming}${more ? "+" : ""} upcoming`
+      : more
+        ? "More on the agenda"
+        : "",
   /** After "Open Agenda · ", "Open Projects · ", "Open contacts · ": every row of the view the card leaves out,
    * "7 more". With another page to read (`more`) the count is a floor, "7+ more", never an exact number. */
   moreRows: (hidden: number, more = false) =>
     hidden > 0 ? `${hidden}${more ? "+" : ""} more` : "",
+  /** "Open <view>" for a view that has no label of its own here (the waiting view). */
+  openView: (view: string) => `Open ${view}`,
   agendaEmpty: "Nothing overdue or due today.",
   /** The empty card of a room, in the words of its full view: what is missing, what the room is for, and the
    * one sentence to say to Claude. Contacts without a match have a sentence of their own. */
@@ -118,8 +120,6 @@ export const inlineSummaryLabelsEn = {
   retry: "Try again",
   /** Opens a summary's full view: "Show all", "Open task", "Open project", "Open contact". */
   open: "Open",
-  /** The foot of a list card; its title already says how many ("12 contacts"), so the button does not repeat it. */
-  showAll: "Show all",
   /** The Open button of the agenda card; the counts stand in its kicker. */
   openAgenda: "Open Agenda",
   /** The Open links of the Projects and Contacts cards: they open that view in fullscreen. */
@@ -188,22 +188,25 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
    * a `more` suffix when the read is partial. */
   agendaTitle: (overdue: number, today: number, more: boolean) =>
     [
-      ...(today ? [`${today} idag`] : []),
+      ...(today ? [`${today}${more ? "+" : ""} idag`] : []),
       ...(overdue
-        ? [`${overdue} ${overdue === 1 ? "försenad" : "försenade"}`]
+        ? [
+            `${overdue}${more ? "+" : ""} ${overdue === 1 && !more ? "försenad" : "försenade"}`,
+          ]
         : []),
-      ...(more ? ["fler finns"] : []),
     ].join(", "),
-  /** Under the empty sentence, when other groups have records: the upcoming count, and that more exist. */
+  /** Under the empty sentence, when other groups have records: the upcoming count (a floor with another page to read). */
   agendaRest: (upcoming: number, more: boolean) =>
-    [
-      ...(upcoming ? [`${upcoming} kommande`] : []),
-      ...(more ? ["fler på agendan"] : []),
-    ].join(", "),
+    upcoming
+      ? `${upcoming}${more ? "+" : ""} kommande`
+      : more
+        ? "Fler på agendan"
+        : "",
   /** After the open-room label and a separator: every row of the view the card does not
    * show. When there is another page to read (`more`) the count is a floor, never an exact number. */
   moreRows: (hidden: number, more = false) =>
-    hidden > 0 ? `${hidden}${more ? "+" : ""} fler` : "",
+    hidden > 0 ? `${hidden}${more ? "+" : ""} till` : "",
+  openView: (view: string) => `Öppna ${view}`,
   agendaEmpty: "Inget försenat och inget för idag.",
   blank: {
     agenda: {
@@ -243,7 +246,6 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
   empty: "Inget att visa.",
   retry: "Försök igen",
   open: "Öppna",
-  showAll: "Visa alla",
   /** The `open` button on the agenda card; the counts stand in the kicker. */
   openAgenda: "Öppna Agenda",
   openHierarchy: "Öppna Projekt",

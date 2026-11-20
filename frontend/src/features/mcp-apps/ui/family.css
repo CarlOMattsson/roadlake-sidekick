@@ -117,7 +117,7 @@
   background: transparent;
   color: var(--sk-fg);
   font: inherit;
-  font-size: var(--sk-text-md);
+  font-size: var(--sk-type-body-size);
   font-weight: var(--sk-weight-normal);
   cursor: pointer;
 }
@@ -420,7 +420,7 @@
   background-color: var(--sk-bg);
   background-image: linear-gradient(var(--sk-surface), var(--sk-surface));
   color: var(--sk-fg);
-  font-size: var(--sk-text-sm);
+  font-size: var(--sk-type-meta-size);
 }
 
 .sk-notice__message {
@@ -532,6 +532,133 @@
   color: var(--sk-muted);
 }
 
+/* ---- Pointer feedback (designsystem §2 Hovring): every control a mouse can reach answers it, in its own form. A
+   frameless or framed control without a fill takes --sk-hover as its fill, held --sk-press. A chip lays the tone over
+   the fill it has (chosen chips keep theirs), so the chosen state still reads. The ink primary lightens toward its
+   text. Only with a hovering pointer and never when the host reports a coarse one (row.css has the rows' rule), so a
+   phone draws what it drew before. ---- */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  :is(
+    button.sk-btn--secondary,
+    button.sk-btn--quiet,
+    button.sk-btn--open,
+    button.sk-btn--danger,
+    button.sk-iconbtn:not(.sk-iconbtn--primary),
+    button.sk-action-row
+  ) {
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    :is(
+      button.sk-btn--secondary,
+      button.sk-btn--quiet,
+      button.sk-btn--open,
+      button.sk-btn--danger,
+      button.sk-iconbtn:not(.sk-iconbtn--primary),
+      button.sk-action-row
+    ):not(:disabled, [aria-disabled="true"]):hover {
+    background-color: var(--sk-hover);
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    :is(
+      button.sk-btn--secondary,
+      button.sk-btn--quiet,
+      button.sk-btn--open,
+      button.sk-btn--danger,
+      button.sk-iconbtn:not(.sk-iconbtn--primary),
+      button.sk-action-row
+    ):not(:disabled, [aria-disabled="true"]):active {
+    background-color: var(--sk-press);
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    button.sk-chip:not(:disabled, [aria-disabled="true"]):hover {
+    background-image: linear-gradient(var(--sk-hover), var(--sk-hover));
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    button.sk-chip:not(:disabled, [aria-disabled="true"]):active {
+    background-image: linear-gradient(var(--sk-press), var(--sk-press));
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    :is(button.sk-btn--primary, button[type="submit"]):not(
+      :disabled,
+      [aria-disabled="true"]
+    ):hover {
+    border-color: var(--sk-inverse-hover);
+    background: var(--sk-inverse-hover);
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    button.sk-iconbtn--primary:not(
+      :disabled,
+      [aria-disabled="true"],
+      [aria-expanded="true"]
+    ):hover {
+    background: var(--sk-inverse-hover) content-box;
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(
+      .sidekick-work,
+      .sidekick-journal,
+      .sidekick-shopping,
+      .sidekick-control
+    )
+    button.sk-iconbtn--primary[aria-expanded="true"]:not(
+      :disabled,
+      [aria-disabled="true"]
+    ):hover {
+    background: var(--sk-press) content-box;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+    :is(
+      button.sk-btn--secondary,
+      button.sk-btn--quiet,
+      button.sk-btn--open,
+      button.sk-btn--danger,
+      button.sk-iconbtn,
+      button.sk-action-row
+    ) {
+    transition: none;
+  }
+}
+
 /* ---- Error: one box, in the card or at the row where it happened. ---- */
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
   [role="alert"],
@@ -543,7 +670,7 @@
   border-radius: var(--sk-radius);
   background: var(--sk-danger-bg);
   color: var(--sk-danger-fg);
-  font-size: var(--sk-text-sm);
+  font-size: var(--sk-type-meta-size);
 }
 
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)

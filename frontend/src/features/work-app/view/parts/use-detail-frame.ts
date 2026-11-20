@@ -51,6 +51,14 @@ export function useDetailFrame({
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
+  // When the editor closes the title takes the focus; the view then scrolls to it only if removing the form left it out
+  // of view or under the rows that stay on top (the title's scroll-margin keeps it clear of them).
+  const wasEditing = useRef(editing);
+  useEffect(() => {
+    if (wasEditing.current && !editing)
+      heading.current?.scrollIntoView?.({ block: "nearest" });
+    wasEditing.current = editing;
+  }, [editing]);
   useEffect(() => {
     if (write.kind === "conflict") banner.current?.focus();
   }, [write.kind]);

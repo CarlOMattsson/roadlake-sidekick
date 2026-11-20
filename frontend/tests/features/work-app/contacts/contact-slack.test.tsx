@@ -47,7 +47,7 @@ describe("The Slack row of a contact's details", () => {
         name: new RegExp(`^${labels.waysToReach}`),
       }),
     );
-    const link = screen.getByRole("link", { name: "Slack acme.slack.com" });
+    const link = screen.getByRole("link", { name: "Slack Open in Slack" });
     expect(link).toHaveAttribute("href", SLACK);
 
     await userEvent.click(link);
@@ -63,7 +63,7 @@ describe("The Slack row of a contact's details", () => {
       }),
     );
     expect(
-      screen.getByRole("link", { name: "Slack acme.slack.com" }),
+      screen.getByRole("link", { name: "Slack Open in Slack" }),
     ).toHaveAttribute("href", SLACK);
   });
 

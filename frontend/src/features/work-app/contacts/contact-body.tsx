@@ -3,8 +3,8 @@ import { ContactWays } from "./contact-card";
 import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
+import { MessageBox } from "../../mcp-apps/ui/message-box";
 import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
-import { ContactArchived } from "./contact-archived";
 import { ContactEditor } from "./contact-edit";
 import { ContactProjects } from "./contact-projects";
 import { ContactStanding } from "./contact-standing";
@@ -80,19 +80,11 @@ export function ContactBody({
   ] as const;
   return (
     <>
-      {contact.archived && record.archivedHere ? (
-        <ContactArchived
-          labels={t}
-          busy={write.kind === "busy"}
-          onRestore={() => record.setArchived(false)}
-        />
-      ) : (
-        contact.archived && (
-          <>
-            <p>{t.archivedLabel}</p>
-            <p>{t.archivedReadOnly}</p>
-          </>
-        )
+      {/* An archived Contact is always the same calm fact, whether it was archived here or earlier; Undo is in the receipt bar. */}
+      {contact.archived && (
+        <MessageBox severity="info" title={t.archivedLabel}>
+          {t.archivedReadOnly}
+        </MessageBox>
       )}
       <WriteStatus
         // While the editor is open it shows a refusal next to the field, not at the top of the page.
@@ -210,7 +202,13 @@ export function ContactBody({
         reloading={write.kind === "busy"}
       />
       {more === "busy" && <p role="status">{t.loading}</p>}
-      {more === "failed" && <p role="alert">{t.failed}</p>}
+      {more === "failed" && (
+        <MessageBox
+          severity="error"
+          title={words.moreFailed}
+          action={{ label: t.retry, onClick: record.loadMore }}
+        />
+      )}
       {nextCursor && (
         <button
           type="button"

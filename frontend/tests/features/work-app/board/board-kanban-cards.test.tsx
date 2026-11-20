@@ -388,7 +388,9 @@ describe("card and Shift+arrow", () => {
 
     await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
 
-    const banner = await screen.findByRole("alert");
+    const banner = (await screen.findByText(boardLabelsEn.conflict)).closest(
+      ".sk-message--warning",
+    );
     expect(banner).toHaveTextContent(boardLabelsEn.conflict);
     await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
     expect(

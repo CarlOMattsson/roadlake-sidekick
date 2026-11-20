@@ -91,8 +91,11 @@ it.each(roots)(
     ).toBeInTheDocument();
     expect(screen.getByText(title)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: open })).toBeVisible();
-    // The full view is not rendered inline: no level-2 heading with the record's title.
-    expect(screen.queryByRole("heading", { level: 2, name: title })).toBeNull();
+    // The full view is not rendered inline: its detail title is absent; the one heading is the card's own title.
+    expect(document.querySelector(".work-detail-title")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: title })).toHaveClass(
+      "sk-card__title",
+    );
     expect(work[read]).toHaveBeenCalledWith(id);
   },
 );
@@ -162,7 +165,10 @@ it.each(roots)(
       />,
     );
     expect(await screen.findByRole("button", { name: open })).toBeVisible();
-    expect(screen.queryByRole("heading", { level: 2, name: title })).toBeNull();
+    expect(document.querySelector(".work-detail-title")).toBeNull();
+    expect(screen.getByRole("heading", { level: 2, name: title })).toHaveClass(
+      "sk-card__title",
+    );
   },
 );
 

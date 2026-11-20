@@ -1,4 +1,10 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type FrameLocator,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { box, pseudoStyle, resolved, style } from "./computed-style";
 import {
   deliverToolResult,
@@ -54,11 +60,12 @@ async function openShopping(
     replies?: Record<string, unknown>;
     safeBottom?: number;
     tool?: string;
+    width?: number;
   } = {},
 ) {
   const opened = await openSimulatedApp(page, {
     resource: readBuiltApp("shopping", "en"),
-    width: 375,
+    width: options.width ?? 375,
     height: 800,
     hostContext: {
       locale: "en",
@@ -124,15 +131,15 @@ test("the store view keeps its rows, amounts, progress and reserve in the right 
       "var(--font-text-md-size, 16px)",
     ),
   });
-  // Nothing in the list is sticky, so no Undo owns a strip of the screen.
+  // Nothing in the list is sticky: the receipt bar is the one sticky thing, and it has no box while empty, so no row
+  // or Undo of its own owns a strip of the screen.
   expect(
-    await root.evaluate(
-      (section) =>
-        [...section.querySelectorAll("*")].filter(
-          (element) => getComputedStyle(element).position === "sticky",
-        ).length,
+    await root.evaluate((section) =>
+      [...section.querySelectorAll("*")]
+        .filter((element) => getComputedStyle(element).position === "sticky")
+        .map((element) => element.className),
     ),
-  ).toBe(0);
+  ).toEqual(["sk-receipt-slot"]);
 
   // A store row is a 48 px tap target; its list item has no padding of its own and no hairline.
   const row = app.locator(".shopping-store-row").first();
@@ -179,7 +186,7 @@ test("the store view keeps its rows, amounts, progress and reserve in the right 
   expect(await style(qty, "textAlign")).toEqual(
     await style(qty.locator(".."), "textAlign"),
   );
-  // The progress is one line: the meta text, then a 6 px bar that takes the rest, 12 after it.
+  // The progress is one line: the meta text, then the shared 4 px bar that takes the rest, 12 after it.
   const progress = app.locator(".shopping-progress > .sk-progress");
   expect(
     await style(progress, "display", "alignItems", "gap", "flexDirection"),
@@ -203,8 +210,14 @@ test("the store view keeps its rows, amounts, progress and reserve in the right 
     flexGrow: "1",
     flexShrink: "1",
     flexBasis: "auto",
-    minWidth: "0px",
-    height: "6px",
+    minWidth: await resolved(app, "min-width", "3rem"),
+    height: "4px",
+  });
+  // The fill is the text colour, the one colour every progress bar has.
+  expect(
+    await style(progress.locator(".sk-progress__fill"), "backgroundColor"),
+  ).toEqual({
+    backgroundColor: await resolved(app, "background-color", "var(--sk-fg)"),
   });
   const [text, bar] = await Promise.all([
     box(progress.locator(".sk-progress__text")),
@@ -238,7 +251,7 @@ test("the store view keeps its rows, amounts, progress and reserve in the right 
   expect(failures).toEqual([]);
 });
 
-test("a bought row holds its Undo as a compact secondary button with a 48 px target", async ({
+test("a bought row's Undo is the receipt bar's compact tertiary button with a 48 px target, and the row keeps its look", async ({
   page,
 }) => {
   const { app, failures } = await openShopping(page, "fullscreen", {
@@ -253,16 +266,20 @@ test("a bought row holds its Undo as a compact secondary button with a 48 px tar
     },
   });
   await app.getByRole("button", { name: "Mark Mjölk as bought" }).click();
-  const undo = app.getByRole("button", { name: /^Undo bought / });
+  const undo = app
+    .locator(".sk-receipt-slot")
+    .getByRole("button", { name: "Undo" });
   await expect(undo).toBeVisible();
+  await expect(undo).toHaveClass(/sk-btn--quiet/);
   expect(await style(undo, "minHeight", "borderTopWidth")).toEqual({
     minHeight: await resolved(app, "min-height", "var(--sk-compact)"),
     borderTopWidth: await resolved(app, "padding-top", "var(--sk-hairline)"),
   });
   const target = await effectiveTargetSize(undo);
   expect(target?.height).toBeCloseTo(48, 0);
-  // The meta text names what happened, and the rows have no hairline between them.
+  // The row has no Undo of its own and no hairline, and the rows have none between them.
   const held = app.locator(".shopping-held-item").first();
+  await expect(held.getByRole("button", { name: /^Undo/ })).toHaveCount(0);
   expect(await style(held, "borderBottomWidth")).toEqual({
     borderBottomWidth: "0px",
   });
@@ -458,10 +475,10 @@ test("the batch card does not clip the names it lists", async ({ page }) => {
   expect(opened.failures).toEqual([]);
 });
 
-test("the failure notice puts its actions on their own row under the message", async ({
+test("a failed read is the view's error box: its one action fits, is a 48 px target and nothing is clipped", async ({
   page,
 }) => {
-  // The lists read fine, the list that opens does not: the card-level notice shows with its actions.
+  // The lists read fine, the list that opens does not: the view's MessageBox shows, with "Try again" as its one action.
   const { app, failures } = await openShopping(page, "compact", {
     tool: "list_shopping_lists",
     result: { lists: [sList], next_offset: null },
@@ -471,6 +488,50 @@ test("the failure notice puts its actions on their own row under the message", a
       },
     },
   });
+  const alert = app.getByRole("alert");
+  await expect(alert).toHaveClass(/sk-message--error/);
+  const retry = alert.getByRole("button", { name: "Try again" });
+  await expect(retry).toBeVisible();
+  await expect(alert.getByRole("button")).toHaveCount(1);
+  const [alertBox, retryBox, target] = await Promise.all([
+    box(alert),
+    box(retry),
+    effectiveTargetSize(retry),
+  ]);
+  // The action stands inside the box, and its target is 44 px high at least.
+  expect(retryBox.x).toBeGreaterThanOrEqual(alertBox.x);
+  expect(retryBox.x + retryBox.width).toBeLessThanOrEqual(
+    alertBox.x + alertBox.width + 0.5,
+  );
+  expect(retryBox.y + retryBox.height).toBeLessThanOrEqual(
+    alertBox.y + alertBox.height + 0.5,
+  );
+  expect(target?.height ?? retryBox.height).toBeGreaterThanOrEqual(44);
+  // No text is cut off: neither the box nor its title and text scroll or clip their content.
+  expect(
+    await alert.evaluate((element) =>
+      [element, ...element.querySelectorAll("p")].every(
+        (node) =>
+          node.scrollWidth <= node.clientWidth + 0.5 &&
+          node.scrollHeight <= node.clientHeight + 0.5,
+      ),
+    ),
+  ).toBe(true);
+  expect(
+    await app
+      .locator("html")
+      .evaluate((root) => root.scrollWidth <= root.clientWidth),
+  ).toBe(true);
+  expect(failures).toEqual([]);
+});
+
+test("the failure notice under a row puts its actions on their own row under the message", async ({
+  page,
+}) => {
+  // A refused quantity step is not the bought mark: the row's notice shows the full message, with its two actions
+  // wrapped on their own row under it.
+  const { app, failures } = await openShopping(page, "fullscreen");
+  await app.getByRole("button", { name: "Increase quantity of Mjölk" }).click();
   const actions = app.locator(".shopping-failure-actions");
   await expect(actions).toBeVisible();
   expect(await style(actions, "flexWrap")).toEqual({ flexWrap: "wrap" });
@@ -479,5 +540,93 @@ test("the failure notice puts its actions on their own row under the message", a
     box(actions),
   ]);
   expect(buttons.y).toBeGreaterThanOrEqual(message.y + message.height - 1);
+  expect(failures).toEqual([]);
+});
+
+// A tick is in place: it moves nothing under the thumb, and the receipt bar floats over the foot of the window without
+// covering the list's header. Simulated host, 390 px wide, fullscreen: not a real Claude or Android run.
+const twoLineName = "Krossade tomater ekologiska";
+const tickItems = [
+  sItem(1, twoLineName, { store: "ICA" }),
+  sItem(2, "Mjölk", { quantity: "2", unit: "l", store: "ICA" }),
+  ...Array.from({ length: 14 }, (_, index) =>
+    sItem(10 + index, `Vara ${index + 1}`, {
+      store: index % 2 === 0 ? "Coop" : "Hemköp",
+    }),
+  ),
+];
+
+/** The store view at 390 px; `ticked` is the item whose purchase the host accepts. */
+function openTicking(page: Page, ticked: (typeof tickItems)[number]) {
+  const tickDetail = { ...detail, items: tickItems };
+  return openShopping(page, "fullscreen", {
+    width: 390,
+    result: tickDetail,
+    replies: {
+      list_shopping_lists: {
+        structuredContent: { lists: [sList], next_offset: null },
+      },
+      get_shopping_list: { structuredContent: tickDetail },
+      set_shopping_item_purchased: {
+        structuredContent: {
+          item: { ...ticked, purchased: true, version: 2 },
+          evaluated_on: "2026-11-13",
+        },
+      },
+    },
+  });
+}
+
+/** Ticks `name`, lets the page settle and scrolls back to the top (the tap scrolled the ring into view). */
+async function tick(app: FrameLocator, name: string) {
+  await app.getByRole("button", { name: `Mark ${name} as bought` }).click();
+  await expect(app.locator(".sk-receipt-slot .sk-receipt")).toBeVisible();
+  await settled(app);
+  await app.locator("html").evaluate(() => window.scrollTo(0, 0));
+}
+
+const storeHeadingTops = (app: FrameLocator) =>
+  app
+    .locator(".shopping-group > h3")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().top),
+    );
+
+test("a tick moves no store heading, and the bar rests in the window below the list's header", async ({
+  page,
+}) => {
+  const { app, failures } = await openTicking(page, tickItems[2]!);
+  const before = await storeHeadingTops(app);
+  expect(before.length).toBeGreaterThanOrEqual(3);
+  await tick(app, "Vara 1");
+  // The held row stays in its place, so the headings under it have not moved.
+  await expect(app.locator(".shopping-held-item")).toHaveCount(1);
+  expect(await storeHeadingTops(app)).toEqual(before);
+  // The bar lies inside the window (fullscreen is 800 high) and does not cover the header with the list's name.
+  const [barBox, headBox] = await Promise.all([
+    box(app.locator(".sk-receipt-slot .sk-receipt")),
+    box(app.locator(".shopping-head")),
+  ]);
+  expect(barBox.x).toBeGreaterThanOrEqual(0);
+  expect(barBox.x + barBox.width).toBeLessThanOrEqual(390 + 0.5);
+  expect(barBox.y).toBeGreaterThanOrEqual(headBox.y + headBox.height);
+  expect(barBox.y + barBox.height).toBeLessThanOrEqual(800 + 0.5);
+  expect(failures).toEqual([]);
+});
+
+// A held row says "Bought" in the room its quick changes had, so its name keeps its width and wraps as before.
+test("a two-line row keeps its height when it is ticked", async ({ page }) => {
+  const { app, failures } = await openTicking(page, tickItems[0]!);
+  const row = app
+    .locator("li.shopping-store-item")
+    .filter({ hasText: twoLineName });
+  const before = await box(row);
+  expect(before.height).toBeGreaterThan(48);
+  await tick(app, twoLineName);
+  const after = await box(
+    app.locator(".shopping-held-item").filter({ hasText: twoLineName }),
+  );
+  expect(after.y).toBeCloseTo(before.y, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
   expect(failures).toEqual([]);
 });

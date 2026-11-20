@@ -11,7 +11,7 @@ import { effectiveTargetSize, settled } from "./mcp-host-fixture";
 import { FIXTURE_NOW, iso, task, workReplies } from "./one-screen-fixtures";
 
 // The Work agenda measured in a real Chromium from computed style and boxes, instead of read out of agenda.css:
-// the meta line, the row's type and ring, the Undo line, the quick choices and the open row's surface. Simulated host
+// the meta line, the row's type and ring, the state line and receipt bar of an Undo, the quick choices and the open row's surface. Simulated host
 // (see mcp-host-fixture.ts), not a real Claude or Android host: every tool answer is a fixture. Where a value comes
 // from a design token, the expected value is the token resolved in the page.
 
@@ -56,10 +56,15 @@ const agenda = {
   next_cursor: null,
 };
 
-async function openAgenda(page: Page, width = 375) {
+async function openAgenda(
+  page: Page,
+  width = 375,
+  platform?: "mobile" | "desktop",
+) {
   await page.clock.setFixedTime(FIXTURE_NOW);
   const opened = await openSidekick(page, {
     width,
+    platform,
     theme: "light",
     tool: "get_work_agenda",
     result: agenda,
@@ -303,7 +308,7 @@ test("a finished Task's row is dimmed by its check glyph, a read shows Loading o
   expect(failures).toEqual([]);
 });
 
-test("the Undo line has no surface of its own, holds no room below the list and never takes the pointer; Ångra is a compact button with a 48 target", async ({
+test("the row's state line has no surface of its own and no button, and the receipt bar holds Ångra as a compact button with a 48 target", async ({
   page,
 }) => {
   const { app, failures } = await openAgenda(page);
@@ -311,8 +316,11 @@ test("the Undo line has no surface of its own, holds no room below the list and 
   const list = app.locator(".work-agenda").first();
   const foot = (await style(list, "paddingBottom")).paddingBottom;
   await row.locator("button.work-agenda-glyph").click();
-  const undo = row.getByRole("button", { name: /^Ångra/ });
+  // Ångra is the receipt bar's, at the foot of the agenda, and never in the row.
+  const bar = list.locator(".sk-receipt-slot");
+  const undo = bar.getByRole("button", { name: /^Ångra/ });
   await expect(undo).toBeVisible();
+  await expect(row.getByRole("button", { name: /^Ångra/ })).toHaveCount(0);
   const wrapper = row.locator(".work-agenda-undo");
   const line = wrapper.locator("p");
   expect((await style(wrapper, "display")).display).toBe("contents");
@@ -335,23 +343,26 @@ test("the Undo line has no surface of its own, holds no room below the list and 
     expect((await style(part, "position")).position).not.toBe("sticky");
   expect((await style(line, "pointerEvents")).pointerEvents).not.toBe("none");
   expect((await style(list, "paddingBottom")).paddingBottom).toBe(foot);
-  // Ångra stands in the trailing column on the title's row and the line under it, inside the row.
-  const [rowBox, undoBox, titleBox] = await Promise.all([
-    box(row),
+  // The bar is a polite status region that names the Task, and its Ångra stands inside the bar's own panel.
+  await expect(bar).toHaveAttribute("role", "status");
+  await expect(bar).toContainText("Ring Anna");
+  const [barBox, undoBox] = await Promise.all([
+    box(bar.locator(".sk-receipt")),
     box(undo),
-    box(row.locator(".work-agenda-body > button")),
   ]);
-  expect(undoBox.x).toBeGreaterThan(titleBox.x);
+  expect(undoBox.x).toBeGreaterThanOrEqual(barBox.x - 0.5);
   expect(undoBox.x + undoBox.width).toBeLessThanOrEqual(
-    rowBox.x + rowBox.width + 0.5,
+    barBox.x + barBox.width + 0.5,
   );
-  expect(undoBox.y).toBeGreaterThanOrEqual(rowBox.y - 0.5);
-  // A compact secondary button: 40 drawn; its target reaches down into the row but never up into the one above; the time line runs along its foot for 15 s.
+  expect(undoBox.y).toBeGreaterThanOrEqual(barBox.y - 0.5);
+  expect(undoBox.y + undoBox.height).toBeLessThanOrEqual(
+    barBox.y + barBox.height + 0.5,
+  );
+  // A compact quiet button: 40 drawn with a 44 target at least; the time line runs along its foot for 15 s.
   expect((await style(undo, "minHeight")).minHeight).toBe(
     await resolved(app, "min-height", "var(--sk-compact)"),
   );
   expect((await effectiveTargetSize(undo))?.height).toBeGreaterThanOrEqual(44);
-  expect((await pseudoStyle(undo, "::after", "top")).top).toBe("0px");
   expect(
     await pseudoStyle(
       undo,
@@ -369,7 +380,7 @@ test("the Undo line has no surface of its own, holds no room below the list and 
     animationFillMode: "forwards",
     animationPlayState: "running",
   });
-  // The time line stands still while the pointer is over the line.
+  // The time line stands still while the pointer is over the receipt.
   await undo.hover();
   await expect
     .poll(
@@ -388,7 +399,9 @@ test("the Undo time line is not drawn with reduced motion", async ({
   const { app, failures } = await openAgenda(page);
   const row = rowOf(app.locator("body"), "Ring Anna");
   await row.locator("button.work-agenda-glyph").click();
-  const undo = row.getByRole("button", { name: /^Ångra/ });
+  const undo = app
+    .locator(".sk-receipt-slot")
+    .getByRole("button", { name: /^Ångra/ });
   await expect(undo).toBeVisible();
   expect(
     await pseudoStyle(undo, "::before", "content", "animationName"),
@@ -399,7 +412,9 @@ test("the Undo time line is not drawn with reduced motion", async ({
 test("an opened row is one surface with the card radius and a border edge; its choices wrap, the date input lies invisibly over its chip", async ({
   page,
 }) => {
-  const { app, failures } = await openAgenda(page);
+  // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+  // popover a mouse gets (ui/menu.tsx).
+  const { app, failures } = await openAgenda(page, 375, "mobile");
   const row = rowOf(app.locator("body"), "Ring Anna");
   await row.click({ button: "right" });
   const menu = row.locator(".work-agenda-menu");
@@ -463,7 +478,9 @@ test("an opened row is one surface with the card radius and a border edge; its c
 test("the long-press tip under the list is drawn in the meta type, muted, until a row's menu has been opened once", async ({
   page,
 }) => {
-  const { app, failures } = await openAgenda(page);
+  // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+  // popover a mouse gets (ui/menu.tsx).
+  const { app, failures } = await openAgenda(page, 375, "mobile");
   const tip = app.locator(".work-row-tip").first();
   await expect(tip).toBeVisible();
   expect(await style(tip, "color", "marginTop")).toEqual({

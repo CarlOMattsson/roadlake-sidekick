@@ -16,3 +16,15 @@
 .sidekick-work .work-frame-meta__part + .work-frame-meta__part::before {
   content: "\00a0·\00a0";
 }
+/* A progress bar in the line (layout="bar", ui/progress.tsx) takes the rest of the row: its part grows, and the "·"
+   before it becomes a flex item beside the bar instead of a line above it. */
+.sidekick-work .work-frame-meta__part:has(> .sk-progress--bar) {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+}
+.sidekick-work .work-frame-meta__part > .sk-progress--bar {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}

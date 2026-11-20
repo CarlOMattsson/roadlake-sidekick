@@ -3,7 +3,7 @@ import { isConflict, writeKey } from "../transport";
 import type { ShoppingItem, ShoppingTransport } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import type { RowQueue } from "../../mcp-apps/ui/row-queue";
-import type { Receipt } from "./receipts";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import type { ShoppingRead } from "./use-shopping-read";
 import type { ShoppingWrites } from "./use-shopping-writes";
 
@@ -13,7 +13,7 @@ export const QUANTITY_DELAY_MS = 400;
 /** A list an item can be moved to. */
 export type MoveTarget = { id: string; name: string };
 
-/** An item that was moved to another list and can still be taken back from its receipt row. */
+/** An item that was moved to another list and can still be taken back from its receipt. */
 type Moved = {
   /** The item as the move answered (in its new list, at its new version); the row as it was until then. */
   item: ShoppingItem;
@@ -22,6 +22,8 @@ type Moved = {
   from: string;
   /** The server has answered, so there is a version to undo from. */
   confirmed: boolean;
+  /** The bar's receipt of the move, dismissed when the move is refused. */
+  receiptId: number;
 };
 
 type Params = {
@@ -32,6 +34,10 @@ type Params = {
   rowQueue: RowQueue;
   /** Called when an item's reply was stored in `written`, also by a view that has since been replaced. */
   onWritten?: () => void;
+  /** The view's receipt bar: a move is confirmed there, with Ångra. */
+  receipt: ReceiptState;
+  /** A failed Ångra: the view names it in its message box, since the row is gone from the list. */
+  onUndoFailed: (id: string, message: string) => void;
 };
 
 /** An amount as the tools take it: a plain decimal without trailing zeros. */
@@ -39,8 +45,8 @@ const amountText = (value: number) => String(Number(value.toFixed(3)));
 
 /**
  * The two quick changes of an open row in the store view: the amount up or down by one, and a move to another
- * list. Both save at once and draw at once: the row shows the asked amount (`asked`) or has left the list (and
- * stands as a receipt with its Undo) before the server has answered, and a refusal puts it back as it was.
+ * list. Both save at once and draw at once: the row shows the asked amount (`asked`) or has left the list (and the
+ * receipt bar says where, with Ångra) before the server has answered, and a refusal puts it back as it was.
  * Taps on the amount that follow each other close together are one write. Each is one write of that row, queued
  * behind the row's other writes, against the newest version this view knows of it; a stale version is a conflict
  * notice and a new read, like the rest of the view.
@@ -52,6 +58,8 @@ export function useQuickChanges({
   writes,
   rowQueue,
   onWritten,
+  receipt,
+  onUndoFailed,
 }: Params) {
   const { written, detailNow, setDetail, setError, reload } = read;
   const { setConflict, setFailedWrite, write } = writes;
@@ -61,8 +69,8 @@ export function useQuickChanges({
   const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   // One key per write intent, kept across an uncertain delivery, so a retry cannot apply the change twice.
   const keys = useRef(new Map<string, string>());
-  const [moved, setMoved] = useState<Record<string, Moved>>({});
-  const movedNow = useRef(moved);
+  // The moves this view made, by item id: what the bar's Ångra takes back. Nothing is drawn from them.
+  const movedNow = useRef<Record<string, Moved>>({});
 
   const changeAsked = useCallback((id: string, text: string | null) => {
     const next = { ...askedNow.current };
@@ -76,7 +84,6 @@ export function useQuickChanges({
     if (entry === null) delete next[id];
     else next[id] = entry;
     movedNow.current = next;
-    setMoved(next);
   }, []);
   /** The newest version of the item this view knows of: the one it has written itself, or else the one it has read. */
   function newest(id: string, fallback?: ShoppingItem) {
@@ -218,11 +225,17 @@ export function useQuickChanges({
     stopTimer(id);
     setConflict(null);
     setError(null);
+    // The bar says it at once; its Ångra waits behind the move in the row's queue, so it never runs before the move.
+    const receiptId = receipt.show({
+      message: t.itemMoved(snapshot.name, to.name),
+      undo: { label: t.undoMove, onUndo: () => undoQueued(id) },
+    });
     changeMoved(id, {
       item: snapshot,
       to,
       from: snapshot.list_id,
       confirmed: false,
+      receiptId,
     });
     setDetail(
       (before) =>
@@ -252,9 +265,12 @@ export function useQuickChanges({
           to,
           from: snapshot.list_id,
           confirmed: true,
+          receiptId,
         });
       } catch (caught) {
-        // The row comes back where it stood, with the newest version this view knows of it.
+        // The row comes back where it stood, with the newest version this view knows of it; the bar no longer says
+        // it moved.
+        receipt.dismiss(receiptId);
         changeMoved(id, null);
         changeAsked(id, null);
         const back = newest(id, snapshot) ?? snapshot;
@@ -278,7 +294,7 @@ export function useQuickChanges({
     });
   }
 
-  /** The time to undo of a receipt is up (or the item came back): the receipt goes. */
+  /** The item came back: its move is forgotten. */
   const release = useCallback(
     (id: string) => {
       if (id in movedNow.current) changeMoved(id, null);
@@ -287,9 +303,9 @@ export function useQuickChanges({
   );
 
   /** Takes the item back to its list; the list is then read again and shows it. */
-  function undoMove(entry: Moved) {
+  async function undoMove(entry: Moved) {
     const { item } = entry;
-    void write(
+    const ok = await write(
       JSON.stringify(["unmove", item.id, item.version, entry.from]),
       (key) =>
         transport.update(
@@ -300,7 +316,21 @@ export function useQuickChanges({
       () => release(item.id),
       item.id,
     );
+    if (!ok) onUndoFailed(item.id, t.itemMoveUndoFailed(item.name));
   }
+
+  /** The bar's Ångra: behind the move in the row's queue, then from the version the move answered with. */
+  function undoQueued(id: string) {
+    return rowQueue.enqueue(id, async () => {
+      const entry = movedNow.current[id];
+      if (entry?.confirmed) await undoMoveNow.current(entry);
+    });
+  }
+  // The bar's Ångra outlives the render that showed it: it always runs the newest `undoMove`.
+  const undoMoveNow = useRef(undoMove);
+  useEffect(() => {
+    undoMoveNow.current = undoMove;
+  });
 
   /** Forgets every asked amount and receipt (another list was chosen). */
   function reset() {
@@ -309,7 +339,6 @@ export function useQuickChanges({
     askedNow.current = {};
     movedNow.current = {};
     setAsked({});
-    setMoved({});
   }
   // The cleanup runs the flush of the last render, which knows the newest rows and writes.
   const flushNow = useRef(flushQuantities);
@@ -318,15 +347,5 @@ export function useQuickChanges({
   });
   useEffect(() => () => flushNow.current(), []);
 
-  const receipts: Receipt[] = Object.values(moved).map((entry) => ({
-    id: entry.item.id,
-    line: t.itemMoved(entry.item.name, entry.to.name),
-    undo: t.undoMove,
-    undoLabel: t.undoMoveNamed(entry.item.name),
-    failure: t.itemMoveUndoFailed(entry.item.name),
-    pending: !entry.confirmed,
-    onUndo: () => undoMove(entry),
-  }));
-
-  return { asked, receipts, stepQuantity, moveItem, release, reset };
+  return { asked, stepQuantity, moveItem, reset };
 }

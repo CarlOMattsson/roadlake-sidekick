@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { relativeDue } from "../../mcp-apps/ui/due";
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { inlineSummaryLabelsFor } from "../inline/inline-summary-labels";
 import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
+import { menuButtonKeys } from "../../mcp-apps/ui/menu";
 import { MoreIcon, TaskProps } from "./task-detail-controls";
 import { useLinkUndo } from "./task-contacts";
 import { TaskEditor } from "./task-edit";
@@ -11,7 +13,7 @@ import { TaskWaiting } from "./task-waiting";
 import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
-import { doneHandoff, TaskDoneControl, TaskDoneReceipt } from "./task-cycle";
+import { doneHandoff, TaskDoneControl, useDoneReceipt } from "./task-cycle";
 import type { DoneHandoff } from "../shared/done-handoff";
 import type { WorkContact, WorkTask } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
@@ -97,8 +99,13 @@ export function TaskFrame({
   const tags = useWorkTags(transport, "task");
   const waiting = useQueuedRecords(transport, task).has(id.toLowerCase());
   const menuOffered = editOffered || trashOffered || aiMarkOffered;
+  // Every stored change is confirmed in the bar at the view's foot; the controls keep their place (designsystem §0.6).
+  const bar = useReceipt(id);
+  // After a `markDone` or its Ångra, focus returns to the done control once it is drawn with its new state.
+  const doneButton = useRef<HTMLButtonElement>(null);
+  const refocusDone = useRef(false);
   const {
-    receipt,
+    receipt: doneReceipt,
     endReceipt,
     trashed,
     writeWhat,
@@ -112,6 +119,8 @@ export function TaskFrame({
   } = useTaskWrites({
     frame,
     transport,
+    labels: t,
+    bar,
     id,
     task,
     setTask,
@@ -120,7 +129,25 @@ export function TaskFrame({
     onSaved,
     onTrashStart: () => setMenuOpen(false),
     onDone: onDone && ((done) => onDone(doneHandoff(done, offers, t))),
+    onDoneWritten: () => {
+      refocusDone.current = true;
+    },
   });
+  useDoneReceipt({
+    done: doneReceipt,
+    task,
+    offers,
+    labels: t,
+    bar,
+    write: undoDone,
+    onEnd: endReceipt,
+  });
+  useEffect(() => {
+    if (!refocusDone.current || write.kind === "busy") return;
+    refocusDone.current = false;
+    const control = doneButton.current;
+    (control && !control.disabled ? control : heading.current)?.focus();
+  }, [write, task, heading]);
   useFrameRead(
     frame,
     useCallback(() => transport.getTask(id), [transport, id]),
@@ -216,6 +243,7 @@ export function TaskFrame({
               aria-controls={menuOpen ? menuId : undefined}
               disabled={write.kind === "busy" || editing}
               onClick={() => setMenuOpen(!menuOpen)}
+              onKeyDown={menuButtonKeys(menuOpen, setMenuOpen)}
             >
               <MoreIcon />
             </button>
@@ -250,6 +278,7 @@ export function TaskFrame({
       {phase === "ready" && task && menuOffered && menuOpen && (
         <DetailMenu
           id={menuId}
+          anchor={moreButton}
           busy={write.kind === "busy" || editing || unlinks.busy}
           edit={
             editOffered ? { label: t.edit, onChoose: startEdit } : undefined
@@ -296,13 +325,10 @@ export function TaskFrame({
               doneShown && (
                 <TaskDoneControl
                   task={task}
-                  receipt={receipt}
-                  offers={offers}
                   labels={t}
                   disabled={write.kind === "busy" || editing}
                   onChoose={chooseStatus}
-                  onUndo={undoDone}
-                  onExpire={endReceipt}
+                  buttonRef={doneButton}
                 />
               )
             }
@@ -333,17 +359,6 @@ export function TaskFrame({
             onRetry={retryLast}
           />
         )}
-      {phase === "ready" && task && receipt?.kind === "cycle" && (
-        <TaskDoneReceipt
-          receipt={receipt}
-          task={task}
-          labels={t}
-          disabled={write.kind === "busy" || editing}
-          offers={offers}
-          save={undoDone}
-          onExpire={endReceipt}
-        />
-      )}
       {/* Where the Task belongs and how it repeats; a place choice is one update_task through saveTask. */}
       {phase === "ready" && task && (
         <TaskPlace
@@ -427,6 +442,7 @@ export function TaskFrame({
             onReload={reloadTask}
             banner={banner}
             labels={t}
+            savedLine={false}
           />
           {editing && (
             <TaskEditor
@@ -452,6 +468,7 @@ export function TaskFrame({
               taskId={task.id}
               transport={transport}
               labels={t}
+              receipt={bar}
               refreshKey={refreshKey + ai.stepsKey + stepWrites}
               stepExtra={(step) => {
                 const entry = ai.byStep.get(step.id);
@@ -487,6 +504,7 @@ export function TaskFrame({
           )}
         </>
       )}
+      <ReceiptBar receipt={bar} />
     </article>
   );
 }

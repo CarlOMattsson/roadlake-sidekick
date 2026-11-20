@@ -670,17 +670,23 @@ test("sandboxed Work App opens a Task's Project, recovers from a stale Project v
   await app.getByRole("button", { name: "Edit" }).click();
   await app.getByLabel("Title").fill("Offert idag");
   await app.getByRole("button", { name: "Save" }).click();
-  const banner = app.getByRole("alert");
-  await expect(banner).toContainText("This project was changed elsewhere");
+  // A warning message box in a wrapper that takes focus.
+  const conflict = "This project was changed elsewhere";
+  const banner = app.locator("div[tabindex='-1']", {
+    has: app.getByText(conflict),
+  });
   await expect(banner).toBeFocused();
   await banner.getByRole("button", { name: "Refresh" }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Offert (annan)" }),
   ).toBeVisible();
   await expect(app.getByLabel("Title")).toHaveValue("Offert idag");
-  await expect(app.getByRole("alert")).toHaveCount(0);
+  await expect(app.getByText(conflict)).toHaveCount(0);
   await app.getByRole("button", { name: "Save" }).click();
-  await expect(app.getByText("Saved", { exact: true })).toBeVisible();
+  // "Saved" is confirmed in the receipt bar at the view's foot.
+  await expect(
+    app.locator(".sk-receipt-slot").getByText("Saved", { exact: true }),
+  ).toBeVisible();
   await app.getByRole("button", { name: "Back" }).click();
   await expect(
     app.getByRole("heading", { level: 2, name: "Ring Anna om offerten" }),

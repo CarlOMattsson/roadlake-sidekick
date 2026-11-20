@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
-import { ErrorNotice } from "../../mcp-apps/ui/states";
+import { MessageBox } from "../../mcp-apps/ui/message-box";
+import { ErrorNotice, errorLabelsFor } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { boardLabelsFor } from "./board-labels";
 import { writeFailure } from "../transport/transport";
@@ -48,9 +49,10 @@ export function noticeSpot(notice: BoardNotice | undefined): string {
 }
 
 /**
- * The notice of a board or agenda action, with its banner focus and calm text. A failed read keeps the list and is the
- * family's refresh row (ErrorNotice): ⚠, the text and a secondary `retry`. A failed change is the family's write
- * error row: the line in the danger tone and `retry` as a text button.
+ * The notice of a board or agenda action, with its banner focus and calm text. A conflict is a warning `MessageBox` with
+ * the reload that fixes it. A failed read keeps the list and is an error `MessageBox` at the top of it, with "Försök
+ * igen". A failed change is the family's write error row (ErrorNotice): the line in the danger tone and `retry` as a
+ * text button.
  */
 export function NoticeView({
   notice,
@@ -69,13 +71,15 @@ export function NoticeView({
   }, [notice]);
   if (!notice) return null;
   const b = boardLabelsFor(t.dateLocale);
+  // The box takes no ref of its own: the wrapper takes the focus (as write-status.tsx does).
   if (notice.kind === "conflict")
     return (
-      <div role="alert" tabIndex={-1} ref={banner} className="work-banner">
-        <p>{b.conflict}</p>
-        <button type="button" onClick={onReload}>
-          {b.conflictAction}
-        </button>
+      <div tabIndex={-1} ref={banner}>
+        <MessageBox
+          severity="warning"
+          title={b.conflict}
+          action={{ label: b.conflictAction, onClick: onReload }}
+        />
       </div>
     );
   const failed = notice.kind === "failed";
@@ -83,6 +87,18 @@ export function NoticeView({
     notice.kind === "invalid" ||
     notice.kind === "not_found" ||
     notice.action !== "reload";
+  // The whole list could not be read again: the list stays, and the error box stands at the top of it.
+  if (!change && failed)
+    return (
+      <MessageBox
+        severity="error"
+        title={errorLabelsFor(t.dateLocale).refresh}
+        action={{
+          label: errorLabelsFor(t.dateLocale).retry,
+          onClick: () => onRetry(notice.action),
+        }}
+      />
+    );
   const writing = notice.action === "move" || notice.action === "moveAll";
   return (
     <ErrorNotice

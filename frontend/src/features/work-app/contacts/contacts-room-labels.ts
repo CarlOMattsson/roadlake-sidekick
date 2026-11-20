@@ -44,6 +44,21 @@ export const contactsRoomLabelsSv = {
     more > 0 ? `${title} · ${more} till` : title,
   /** The newest linked journal entry's day: when you last had contact, as far as the journal knows. */
   lastInJournal: (day: string) => `Senast i dagboken ${day}`,
+  /** The receipt bar's messages after a Contact write (no closing full stop). */
+  receiptArchived: "Kontakten är arkiverad",
+  receiptRestored: "Kontakten är återställd",
+  receiptSaved: "Kontakten sparades",
+  /** The inline card's one main link. */
+  openContact: "Öppna kontakten",
+  /** A next page that could not be read while the first is shown: the message box's title (its button is Try again). */
+  moreFailed: "Det gick inte att läsa fler",
+  /** A search with no match: empties the search field. */
+  clearSearch: "Rensa sökningen",
+  /** A search with no match among the listed Contacts, but some among the archived: the row that shows them. */
+  showArchivedMatches: (count: number) =>
+    `Visa ${count} ${count === 1 ? "arkiverad som matchar" : "arkiverade som matchar"}`,
+  /** A Slack workspace link has no readable name, so the row says what it does. */
+  openInSlack: "Öppna i Slack",
 };
 
 export type ContactsRoomLabels = typeof contactsRoomLabelsSv;
@@ -77,6 +92,15 @@ export const contactsRoomLabelsEn: ContactsRoomLabels = {
         : `You are waiting on ${first} for ${days} ${days === 1 ? "day" : "days"}`,
   waitingTask: (title, more) => (more > 0 ? `${title} · ${more} more` : title),
   lastInJournal: (day) => `Last in the journal ${day}`,
+  receiptArchived: "Contact archived",
+  receiptRestored: "Contact restored",
+  receiptSaved: "Contact saved",
+  openContact: "Open contact",
+  moreFailed: "Couldn’t load more",
+  clearSearch: "Clear search",
+  showArchivedMatches: (count) =>
+    `Show ${count} archived ${count === 1 ? "match" : "matches"}`,
+  openInSlack: "Open in Slack",
 };
 
 export function contactsRoomLabelsFor(locale: string): ContactsRoomLabels {

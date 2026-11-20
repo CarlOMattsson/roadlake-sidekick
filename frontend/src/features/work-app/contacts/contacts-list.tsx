@@ -9,6 +9,8 @@ import {
 import "./contacts.css";
 import type { WorkLabels } from "../shared/labels";
 import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
+import { MessageBox } from "../../mcp-apps/ui/message-box";
+import { Switch } from "../../mcp-apps/ui/switch";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { contactsRoomLabelsFor } from "./contacts-room-labels";
@@ -45,6 +47,7 @@ import {
 import { pageMatches } from "./contacts-list-state";
 import { NewContact } from "./new-contact";
 import type { CreateRequest } from "./new-contact-state";
+import { useArchivedMatches } from "./use-archived-matches";
 import { useContactsList } from "./use-contacts-list";
 import { TagFilter } from "../../mcp-apps/ui/tags";
 import { useWorkTags } from "../shared/work-tags";
@@ -124,6 +127,15 @@ export function ContactsView({
   // The tags in use on Contacts, for the filter row; none (or no list_tags on the host) draws no row.
   const vocabulary = useWorkTags(transport, "contact");
   const tagWords = tagLabelsFor(t.dateLocale);
+  // A search with no live hit may still have archived ones: the empty list offers to show them.
+  const archivedMatches = useArchivedMatches(
+    transport,
+    query,
+    fresh &&
+      page.items.length === 0 &&
+      !frame.includeArchived &&
+      chosenTags.length === 0,
+  );
 
   function created(contact: WorkContactRecord) {
     list.forgetPage();
@@ -193,14 +205,18 @@ export function ContactsView({
           moreButton.current?.focus();
         }}
       >
-        <label className="work-toggle work-contact-menu-item">
-          <input
-            type="checkbox"
+        {/* The switch is the row's one control; its target is stretched over the whole row (contacts.css), so the words
+            beside it toggle it too and the row is a 48 target. */}
+        <div className="work-contact-menu-item work-contact-menu-switch">
+          <span className="work-contact-menu-switch-text">
+            {t.showArchived}
+          </span>
+          <Switch
             checked={frame.includeArchived}
-            onChange={(event) => list.changeArchived(event.target.checked)}
+            onChange={list.changeArchived}
+            label={t.showArchived}
           />
-          {t.showArchived}
-        </label>
+        </div>
         {onRoute && controlOn && (
           <button
             type="button"
@@ -271,7 +287,29 @@ export function ContactsView({
                   : undefined,
               }}
             >
-              {/* The hand-made way next to the ask-Claude line: it opens the create field as + does, with the search text as the name. */}
+              {archivedMatches !== undefined && (
+                <button
+                  type="button"
+                  className="work-add-row sk-action-row"
+                  onClick={() => list.changeArchived(true)}
+                >
+                  {words.showArchivedMatches(archivedMatches)}
+                </button>
+              )}
+              {query && (
+                <button
+                  type="button"
+                  className="work-add-row sk-action-row"
+                  onClick={() => {
+                    list.changeQuery("");
+                    searchField.current?.focus();
+                  }}
+                >
+                  <CloseIcon />
+                  {words.clearSearch}
+                </button>
+              )}
+              {/* The hand-made way next to the ask-Claude line: with a search text it creates that Contact at once; without one it opens the create field as + does. */}
               {offers("create_contact") && (
                 <button
                   type="button"
@@ -280,6 +318,8 @@ export function ContactsView({
                     setCreateRequest((last) => ({
                       name: query,
                       n: (last?.n ?? 0) + 1,
+                      // A named create is made at once (the name is already typed); without a name the field opens.
+                      immediate: query !== "",
                     }))
                   }
                 >
@@ -308,7 +348,13 @@ export function ContactsView({
           </ul>
         ))}
       {fresh && more === "busy" && <p role="status">{t.loading}</p>}
-      {fresh && more === "failed" && <p role="alert">{t.failed}</p>}
+      {fresh && more === "failed" && (
+        <MessageBox
+          severity="error"
+          title={words.moreFailed}
+          action={{ label: t.retry, onClick: list.loadMore }}
+        />
+      )}
       {fresh && page.next_cursor && (
         <button
           type="button"

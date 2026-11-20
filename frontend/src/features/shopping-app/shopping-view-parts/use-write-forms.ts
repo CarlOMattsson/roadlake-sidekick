@@ -8,6 +8,7 @@ import { quantityText } from "../shopping-card";
 import type { Panels } from "./use-panels";
 import type { ShoppingRead } from "./use-shopping-read";
 import type { ShoppingWrites } from "./use-shopping-writes";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 
 type Params = {
   transport: ShoppingTransport;
@@ -17,6 +18,10 @@ type Params = {
   store?: string;
   addOpen: boolean;
   setPanel: (key: keyof Panels, value: boolean) => void;
+  /** The view's receipt bar: an add is confirmed there. */
+  receipt: ReceiptState;
+  /** Deletes a just-added item: the Ångra of an add of one new item. Absent when the host offers no delete. */
+  discard?: (item: ShoppingItem) => Promise<boolean>;
 };
 
 /**
@@ -32,6 +37,8 @@ export function useWriteForms({
   store,
   addOpen,
   setPanel,
+  receipt,
+  discard,
 }: Params) {
   const { id, setId, setOffset, detail, busy } = read;
   const { write } = writes;
@@ -39,16 +46,10 @@ export function useWriteForms({
   // The name typed in the fullscreen "Edit list" field. It starts from the list's name each time the edit opens.
   const [renameName, setRenameName] = useState("");
   const [names, setNames] = useState("");
-  /** The batch field was typed in: the receipt of the last add is out of date. */
   function changeNames(value: string) {
     setNames(value);
-    setAddNote("");
   }
   const [invalidBatch, setInvalidBatch] = useState(false);
-  // The receipt under the create field, `newItemPrefix` with the item and its shop (§3 Skapa): the new item may stand far below in
-  // its shop, so the field says where it went. The list does not scroll and the field keeps the focus. A failed add
-  // hides it, so the error line never stands under an old receipt.
-  const [addNote, setAddNote] = useState("");
   // The rows the last add made or grew: the folded card shows them also past its row budget, so what was typed is seen.
   const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
   const addButton = useRef<HTMLButtonElement>(null);
@@ -59,14 +60,12 @@ export function useWriteForms({
     refocusAdd.current = false;
     addButton.current?.focus();
   }, [addOpen]);
-  /** The "Add item" row opens the field; the receipt of an earlier add is dropped. */
+  /** The "Add item" row opens the field. */
   function openAddField() {
-    setAddNote("");
     setPanel("addOpen", true);
   }
   /** The + of the fullscreen header opens or closes the field. */
   function toggleAddField() {
-    setAddNote("");
     setPanel("addOpen", !addOpen);
   }
   function closeAddField() {
@@ -97,8 +96,10 @@ export function useWriteForms({
    * Adds the typed items through one write, for the batch field and the create field alike. Commas separate several
    * items, and an amount in the text ("2 l mjölk") is read as the item's quantity and unit. In a shop view the items
    * go to that shop, so they show at once; an open item with the same name and unit takes the amount instead of a new
-   * row. The receipt says what was added and what joined an item that was already there, since in a long list the new
-   * row may stand out of sight. `saved` runs on success; a failure keeps the typed text and shows its line.
+   * row. The receipt bar says what was added and what joined an item that was already there (`newItemPrefix` with the
+   * items and their shop), since in a long list the new row may stand out of sight; the field keeps the focus and the
+   * list does not scroll. One new item has Ångra, which deletes it again. `saved` runs on success; a failure keeps the
+   * typed text and shows its line.
    */
   function addTyped(text: string, rowId: string | null, saved?: () => void) {
     const typed = parseTypedItems(text);
@@ -108,13 +109,13 @@ export function useWriteForms({
       JSON.stringify(["add", id, typed]),
       (key) => transport.add(id, typed, key, { store, mergeDuplicates: true }),
       (result) => {
-        const added = (
+        const entries =
           (
             result as {
               items?: { item: ShoppingItem; merged?: boolean }[];
             } | null
-          )?.items ?? []
-        ).map((entry) =>
+          )?.items ?? [];
+        const added = entries.map((entry) =>
           entry.merged
             ? {
                 ...entry.item,
@@ -132,9 +133,19 @@ export function useWriteForms({
         // The shop is named when every item went to the same one.
         const shops = new Set(added.map((item) => item.store?.trim() ?? ""));
         const [shop] = shops.size === 1 ? shops : [];
-        setAddNote(
-          `${t.newItemPrefix} ${names.join(", ")}${shop ? ` · ${shop}` : ""}`,
-        );
+        // Ångra of an add takes back one new row; an amount that joined an item already there is not a row to delete.
+        const [only] = entries;
+        const undoable =
+          entries.length === 1 && only && !only.merged && discard
+            ? only.item
+            : undefined;
+        receipt.show({
+          message: `${t.newItemPrefix} ${names.join(", ")}${shop ? ` · ${shop}` : ""}`,
+          undo:
+            undoable && discard
+              ? { label: t.undoAdd, onUndo: () => discard(undoable) }
+              : undefined,
+        });
         // Without a network the phone queues the add and answers with stand-in rows that wait in its outbox: the
         // receipt then says the items are sent once the network is back, not that they were added.
         const offline = transport.offline;
@@ -142,7 +153,7 @@ export function useWriteForms({
           void offline.queuedPurchases().then(
             (queued) => {
               if (added.some((item) => queued.has(item.id)))
-                setAddNote(t.addQueued(names.join(", ")));
+                receipt.show({ message: t.addQueued(names.join(", ")) });
             },
             () => undefined,
           );
@@ -177,7 +188,6 @@ export function useWriteForms({
     names,
     changeNames,
     invalidBatch,
-    addNote,
     fresh,
     addButton,
     openAddField,

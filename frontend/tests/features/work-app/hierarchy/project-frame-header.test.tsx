@@ -40,6 +40,8 @@ describe("the Project page's head", () => {
     );
     const progress = await screen.findByText("1 av 3 klara");
     await waitFor(() => expect(progress.closest("p")).toHaveTextContent("Hem"));
+    // The page's head carries the shared bar layout: the text, then the bar over the rest of the row.
+    expect(progress.closest(".sk-progress")).toHaveClass("sk-progress--bar");
     // An active Project carries no status chip.
     expect(screen.queryByText(new RegExp(`^${workSv.status}:`))).toBeNull();
   });

@@ -4,9 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 import { workSv } from "@/features/work-app/shared/labels";
 import { linksLabelsSv } from "@/features/work-app/shared/links-labels";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
-import { StepActions } from "@/features/work-app/steps/step-actions";
 import { TaskReferences } from "@/features/work-app/tasks/task-references";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { StepActions, TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkAction,
   WorkExternalReference,

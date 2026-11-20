@@ -68,7 +68,7 @@
 /* A state the box does not say ("Pågår", "Blockerad") stands after the title. */
 .sidekick-work .work-step-action-status {
   margin-inline-start: var(--sk-s2);
-  font-size: 0.85rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 /* A done Action is dimmed as a done Step is; its box cannot be changed (the server cannot open an Action again), so it

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { openSidekick } from "./app-navigation-fixtures";
 import { box, resolved, style } from "./computed-style";
-import { settled } from "./mcp-host-fixture";
+import { effectiveTargetSize, settled } from "./mcp-host-fixture";
 import {
   bigContactContext,
   bigContactList,
@@ -15,7 +15,7 @@ import { ok } from "./sidekick-domain-fixtures";
 // The Work room's contact and waiting views measured in a real Chromium from computed style and boxes. Simulated host
 // (see mcp-host-fixture.ts), not a real Claude or Android host: every tool answer is a fixture.
 
-test("Contact editor: Save and Cancel are one sticky row resting on the foot reserve, as tall as its buttons plus 8 px over and under", async ({
+test("Contact editor: Save and Cancel are one row in the flow, like the other editors, 44 px tall at least", async ({
   page,
 }) => {
   const { app, failures } = await openSidekick(page, {
@@ -28,22 +28,13 @@ test("Contact editor: Save and Cancel are one sticky row resting on the foot res
   await settled(app);
   await app.getByRole("button", { name: "Fler val", exact: true }).click();
   await app.getByRole("button", { name: "Redigera", exact: true }).click();
-  const row = app.locator(".work-actions-sticky");
+  const row = app.locator("form.work-contact-edit > .sk-form-actions");
   await expect(row).toBeVisible();
-  expect(await style(row, "position", "bottom")).toEqual({
-    position: "sticky",
-    bottom: await resolved(app, "bottom", "var(--sk-foot-reserve)"),
-  });
-  expect(await style(row, "paddingTop", "paddingBottom")).toEqual({
-    paddingTop: "8px",
-    paddingBottom: "8px",
-  });
+  expect(await style(row, "position")).toEqual({ position: "static" });
   const buttons = await row.getByRole("button").all();
   expect(buttons).toHaveLength(2);
-  const heights = await Promise.all(
-    buttons.map(async (button) => (await box(button)).height),
-  );
-  expect((await box(row)).height).toBeCloseTo(Math.max(...heights) + 16, 0);
+  for (const button of buttons)
+    expect((await box(button)).height).toBeGreaterThanOrEqual(44);
   expect(failures).toEqual([]);
 });
 
@@ -143,7 +134,7 @@ for (const width of [320, 500]) {
   });
 }
 
-test("Inline Task card: after Markera klar the Ångra button is a 44 px target", async ({
+test("Inline Task card: after Markera klar the Ångra button is in the receipt bar, a 48 px target, and focus stays on the card's open link", async ({
   page,
 }) => {
   const { app, failures } = await openSidekick(page, {
@@ -162,10 +153,15 @@ test("Inline Task card: after Markera klar the Ångra button is a 44 px target",
   });
   await settled(app);
   await app.getByRole("button", { name: "Markera klar", exact: true }).click();
-  const undo = app.getByRole("button", { name: "Ångra", exact: true });
+  // The card shows its new state; Ångra is the receipt bar's, under the card's content, never a button of the card.
+  const undo = app.locator(".sk-receipt").getByRole("button", {
+    name: "Ångra",
+    exact: true,
+  });
   await expect(undo).toBeVisible();
-  await expect(undo).toBeFocused();
-  expect((await box(undo)).height).toBeGreaterThanOrEqual(44);
+  // Done's button went: focus stays on the card, on its open link, and never falls to the page.
+  await expect(app.locator(".sk-open-link")).toBeFocused();
+  expect((await effectiveTargetSize(undo))?.height).toBeGreaterThanOrEqual(44);
   expect(failures).toEqual([]);
 });
 

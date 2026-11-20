@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState, type FocusEvent } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { WorkLabels } from "../shared/labels";
 import { keepEdits, titleProblem } from "../shared/fields";
@@ -122,17 +123,6 @@ export function changedContactFields(
   return changes;
 }
 
-/**
- * Brings the focused field above the sticky Save row. The fields' `scroll-margin-bottom` (contacts.css) holds the row's
- * height, so `nearest` scrolls only when the field sits under the row or outside the view, and not at all otherwise.
- * No `behavior` is passed: the jump is instant, which also respects `prefers-reduced-motion`.
- */
-function keepFocusAboveActions(event: FocusEvent<HTMLFormElement>) {
-  const field = event.target;
-  if (field.matches("input, textarea, select"))
-    field.scrollIntoView?.({ block: "nearest" });
-}
-
 export function ContactEditor({
   contact,
   busy,
@@ -165,7 +155,8 @@ export function ContactEditor({
   });
   const [seenContact, setSeenContact] = useState(contact);
   const [problem, setProblem] = useState<ContactFieldProblem>();
-  useUnsavedGuard(Object.keys(changedContactFields(state)).length > 0);
+  const dirty = Object.keys(changedContactFields(state)).length > 0;
+  useUnsavedGuard(dirty);
   const nameInput = useRef<HTMLInputElement>(null);
   const emailInput = useRef<HTMLInputElement>(null);
   const phoneInput = useRef<HTMLInputElement>(null);
@@ -215,7 +206,7 @@ export function ContactEditor({
   // The server refused the save: the Slack link is the one value it can refuse that no field check here catches.
   const slackBad =
     rejected && state.values.slack.trim() !== state.base.slack.trim();
-  // The refused field is brought into view above the sticky Save row, which can cover it on a narrow screen.
+  // Save sits under the whole form, so the refused field can be far above the view: it is brought to the middle.
   const slackInput = useRef<HTMLInputElement>(null);
   const slackShown = useRef(false);
   useEffect(() => {
@@ -247,10 +238,13 @@ export function ContactEditor({
   }
 
   return (
-    <form
+    <KeyScope
+      as="form"
       className="work-edit work-contact-edit"
       aria-label={t.edit}
-      onFocus={keepFocusAboveActions}
+      // Escape is Cancel, but it never throws edits away unasked: it does nothing while a field differs from what was
+      // saved, or while a save is in flight. The Cancel button stays the deliberate way out.
+      onEscape={busy || dirty ? undefined : onCancel}
       noValidate
     >
       <label htmlFor={nameId}>{t.nameLabel}</label>
@@ -391,7 +385,7 @@ export function ContactEditor({
           onRetry={() => submit()}
         />
       )}
-      <div className="sk-form-actions work-actions-sticky">
+      <div className="sk-form-actions">
         <button
           type="submit"
           disabled={busy}
@@ -411,6 +405,6 @@ export function ContactEditor({
           {t.cancel}
         </button>
       </div>
-    </form>
+    </KeyScope>
   );
 }

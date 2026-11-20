@@ -42,7 +42,6 @@
   background: var(--sk-surface);
   color: var(--sk-fg-2);
   font: var(--sk-type-caption);
-  font-size: 0.8125rem;
   line-height: 1.25rem;
   white-space: nowrap;
 }

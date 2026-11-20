@@ -1,5 +1,5 @@
 import { useState, type RefObject } from "react";
-import { menuButtonOf } from "../../shared/row-menu";
+import { menuButtonOf, type MenuPoint } from "../../shared/row-menu";
 import { useLargeText } from "../../../mcp-apps/ui/large-text";
 
 /** The groups of the row menu that fold at large text. */
@@ -9,6 +9,8 @@ export type MenuGroup = "status" | "due";
 export function useRowMenu(root: RefObject<HTMLElement | null>) {
   // The row whose quick choices are open; one at a time.
   const [menu, setMenu] = useState<string>();
+  // Where the pointer opened it (a right click, a long press); absent when the keys or the hidden button did.
+  const [at, setAt] = useState<MenuPoint>();
   // At large text the row menu shows one group at a time: Status first, the shorter of the two.
   const largeText = useLargeText();
   const [menuGroup, setMenuGroup] = useState<MenuGroup | undefined>("status");
@@ -17,15 +19,20 @@ export function useRowMenu(root: RefObject<HTMLElement | null>) {
     menu,
     menuGroup,
     largeText,
+    at,
     /** Closes the quick choices of whichever row has them open. */
     closeMenu: () => setMenu(undefined),
     /** At large text one group is open at a time: opening one folds the other. */
     foldGroup: (group: MenuGroup) => {
       setMenuGroup(menuGroup === group ? undefined : group);
     },
-    /** Opens or closes the quick choices of a row. Closing hands focus back to the title, where the keys opened them. */
-    setOpen: (key: string, next: boolean) => {
+    /**
+     * Opens or closes the quick choices of a row, `place` the pointer's when a pointer opened them. Closing hands
+     * focus back to the title, where the keys opened them.
+     */
+    setOpen: (key: string, next: boolean, place?: MenuPoint) => {
       setMenu(next ? key : undefined);
+      setAt(next ? place : undefined);
       setMenuGroup("status");
       if (!next) {
         const row = root.current?.querySelector<HTMLElement>(

@@ -213,7 +213,9 @@ it("a refused order shows the conflict banner and puts the Tasks back in the ord
 
   dragTaskABelowTaskB();
 
-  const banner = await screen.findByRole("alert");
+  const banner = (await screen.findByText(boardLabelsEn.conflict)).closest(
+    ".sk-message--warning",
+  );
   expect(banner).toHaveTextContent(boardLabelsEn.conflict);
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   await waitFor(() =>

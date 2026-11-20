@@ -91,7 +91,7 @@ export function HierarchySummary({
       blank={blank ? labels.blank.hierarchy : undefined}
       onOpen={onOpen}
       openLabel={labels.openHierarchy}
-      aside={labels.moreRows(
+      more={labels.moreRows(
         Math.max(0, listed.length - SUMMARY_PROJECTS),
         frame.truncated,
       )}

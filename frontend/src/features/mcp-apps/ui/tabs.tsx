@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import { KeyScope } from "./key-scope";
 import "./tabs.css";
 
@@ -10,7 +12,9 @@ import "./tabs.css";
  *
  * `fit="equal"` shares the row in equal cells (Control's three tabs); `fit="content"` packs them from the start with
  * their own width, for a row that also holds tools at its end (Journal's Dag/Vecka beside + and ⋯). `rule` draws the
- * hairline under the tabs; turn it off when the row around them draws one across its full width.
+ * hairline under the tabs; turn it off when the row around them draws one across its full width. `wrap={false}` keeps
+ * the tabs on one line (they overflow instead of wrapping), for a caller that measures whether they fit and swaps
+ * in another control when they do not (Work's view picker); `ref` is the group element it measures.
  */
 export type TabOption<T extends string = string> = {
   value: T;
@@ -27,7 +31,11 @@ export type TabsProps<T extends string = string> = {
   disabled?: boolean;
   fit?: "equal" | "content";
   rule?: boolean;
+  /** Wrap onto further lines when the tabs do not fit (default). `false` = one line, overflowing. */
+  wrap?: boolean;
   className?: string;
+  /** The group element, for a caller that measures it. */
+  ref?: Ref<HTMLDivElement>;
 };
 
 export function Tabs<T extends string>({
@@ -38,7 +46,9 @@ export function Tabs<T extends string>({
   disabled = false,
   fit = "equal",
   rule = true,
+  wrap = true,
   className,
+  ref,
 }: TabsProps<T>) {
   const chosenIndex = options.findIndex((option) => option.value === value);
   const tabStop = chosenIndex === -1 ? 0 : chosenIndex;
@@ -46,12 +56,19 @@ export function Tabs<T extends string>({
     "sk-tabs",
     `sk-tabs--${fit}`,
     rule ? "sk-tabs--rule" : "",
+    wrap ? "" : "sk-tabs--nowrap",
     className ?? "",
   ]
     .filter(Boolean)
     .join(" ");
   return (
-    <KeyScope roving role="group" aria-label={label} className={classes}>
+    <KeyScope
+      roving
+      ref={ref}
+      role="group"
+      aria-label={label}
+      className={classes}
+    >
       {options.map((option, index) => {
         const chosen = index === chosenIndex;
         return (

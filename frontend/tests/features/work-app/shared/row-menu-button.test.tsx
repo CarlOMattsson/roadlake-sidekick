@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgendaView } from "@/features/work-app/agenda/agenda";
 import { BoardCard } from "@/features/work-app/board/board-card";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkAgendaFrame,
   WorkItemRecord,

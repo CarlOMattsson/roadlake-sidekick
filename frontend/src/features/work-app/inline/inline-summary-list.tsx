@@ -1,8 +1,8 @@
 import { Fragment, useContext, type ReactNode } from "react";
 import type { DueTone } from "../../mcp-apps/ui/due";
-import { CardFoot } from "../../mcp-apps/ui/card";
+import { Card } from "../../mcp-apps/ui/card";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
-import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
 import { EmptyState } from "../../mcp-apps/ui/states";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
@@ -71,38 +71,6 @@ export type CountLine = {
 };
 
 /**
- * The card's one link row (§7: the open label and the more count became one): `openAgenda` with the count of the rest and a ›
- *, a tertiary open button, the rest after the name in the meta type. Without `aside` the name alone.
- */
-export function OpenFoot({
-  aside,
-  label,
-  onOpen,
-}: {
-  aside?: string;
-  label: string;
-  onOpen: () => void;
-}) {
-  return (
-    <CardFoot>
-      <button
-        type="button"
-        className="work-compact-action sk-btn--open"
-        onClick={onOpen}
-      >
-        <span className="work-compact-open-text">
-          {label}
-          {aside ? (
-            <span className="work-compact-more">{` · ${aside}`}</span>
-          ) : null}
-        </span>
-        <ChevronRightIcon />
-      </button>
-    </CardFoot>
-  );
-}
-
-/**
  * What an inline card says when its room holds nothing: the room's sentence, an optional line on what the room is
  * for, and the example to say to Claude (absent when there is nothing to create, e.g. a search without a match).
  */
@@ -114,7 +82,7 @@ export type InlineEmptyText = {
 
 /**
  * The body of an empty inline card, the same in every room: the family's empty state, whose example is sent through
- * the host's message function where there is one (shown as text where not), then the room's open link. No counts.
+ * the host's message function where there is one (shown as text where not), then the room's open link (`OpenLink`). No counts.
  */
 export function InlineEmpty({
   locale,
@@ -144,15 +112,17 @@ export function InlineEmpty({
             : undefined
         }
       />
-      {onOpen ? <OpenFoot label={openLabel} onOpen={onOpen} /> : null}
+      {onOpen ? <OpenLink label={openLabel} onOpen={onOpen} /> : null}
     </>
   );
 }
 
 /**
- * The shell of the list summaries: a title, one line of counts (or `empty` in their place), a few
- * plain-text rows and "Open", which asks the host for fullscreen. No inner scroll and no menus; the
- * full view is only shown in fullscreen. The rows never carry buttons.
+ * The shell of the list summaries, in the family's `Card`: the kicker (the app, the view, and the date where the view
+ * has one), a title that is a statement with a number (the counts, or `empty` in their place), at most three
+ * plain-text rows and the card's one main link (`OpenLink`: "Open <view>", then what the rows leave out in `more`),
+ * which asks the host for fullscreen. No inner scroll and no menus; the full view is only shown in fullscreen. The
+ * rows never carry buttons.
  */
 export function ListSummary({
   labels,
@@ -165,41 +135,59 @@ export function ListSummary({
   kicker,
   className,
   children,
-  aside,
+  more,
   refresh,
 }: {
   labels: InlineSummaryLabels;
+  /** The view's name: the card's accessible name and, after the app name, the kicker. */
   kindLabel: string;
   /** Reads the list again from the card's corner; absent when the host cannot answer the read. */
   refresh?: ListRefresh;
-  /** What the rows leave out (the count of the rest), on the line of "Open" at its end. */
-  aside?: string;
-  /** The kicker in full (the app name, then the overdue, today and upcoming counts); without it the app name alone. */
+  /** What the rows leave out ("7 till", "22+ till"), after the open label in the link; without it the label alone. */
+  more?: string;
+  /** The kicker in full (app, view and date); without it the app and the view. */
   kicker?: string;
   /** An extra class on the card, e.g. the agenda's own layout. */
   className?: string;
   lines: CountLine[];
-  /** Shown instead of the counts when there is nothing to count here but the view holds more. */
+  /** Said as the title in place of the counts when there is nothing to count here but the view holds more. */
   empty?: string;
   /** The room holds nothing at all: the card is the empty state and its open link, with no counts and no rows. */
   blank?: InlineEmptyText;
-  /** Without it there is no Open button, e.g. when the agenda has nothing to open. */
+  /** Without it there is no Open link, e.g. when the agenda has nothing to open. */
   onOpen?: () => void;
-  /** The words of the Open button (`openAgenda`); without it the button says "Open". */
+  /** The words of the Open link (`openAgenda`); without it the link says "Open". */
   openLabel?: string;
-  /** Optional rows between the count line and "Open", e.g. the Projects of a hierarchy. */
+  /** Optional rows between the title and the link, e.g. the Projects of a hierarchy. */
   children?: ReactNode;
 }) {
+  const counts =
+    lines.length === 0
+      ? undefined
+      : lines.map((line, index) => (
+          <Fragment key={line.key}>
+            {index > 0 ? " · " : null}
+            <span>
+              {line.text ??
+                `${line.label}: ${line.count}${line.more ? "+" : ""}`}
+            </span>
+          </Fragment>
+        ));
   return (
-    <section
+    <Card
       className={
-        className
-          ? `work-compact-card sk-card ${className}`
-          : "work-compact-card sk-card"
+        className ? `work-compact-card ${className}` : "work-compact-card"
       }
       aria-label={kindLabel}
+      // In the Contacts room the app is the view's own name: the kicker does not say it twice.
+      eyebrow={
+        kicker ??
+        (kindLabel === labels.appName
+          ? kindLabel
+          : `${labels.appName} · ${kindLabel}`)
+      }
+      title={blank ? undefined : (empty ?? counts)}
     >
-      <p className="work-compact-kind sk-eyebrow">{kicker ?? labels.appName}</p>
       {refresh ? (
         <>
           <InlineRefreshButton
@@ -218,35 +206,17 @@ export function ListSummary({
         />
       ) : (
         <>
-          {empty ? (
-            <>
-              <p className="work-compact-title sk-card__title">{kindLabel}</p>
-              <p className="work-compact-status">{empty}</p>
-            </>
-          ) : lines.length === 0 ? null : (
-            <p className="work-compact-title sk-card__title">
-              {lines.map((line, index) => (
-                <Fragment key={line.key}>
-                  {index > 0 ? " · " : null}
-                  <span>
-                    {line.text ??
-                      `${line.label}: ${line.count}${line.more ? "+" : ""}`}
-                  </span>
-                </Fragment>
-              ))}
-            </p>
-          )}
           {children}
           {onOpen ? (
-            <OpenFoot
-              aside={aside}
+            <OpenLink
               label={openLabel ?? labels.open}
+              {...(more ? { more } : {})}
               onOpen={onOpen}
             />
           ) : null}
         </>
       )}
-    </section>
+    </Card>
   );
 }
 

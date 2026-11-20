@@ -109,10 +109,10 @@ describe("a failed row write shows its notice in that row", () => {
     expect(paragraph).toHaveTextContent(shoppingEn.markFailed("Item 5", true));
     expect(alert).not.toHaveTextContent(shoppingEn.failed);
     expect(shoppingSv.markFailed("Item 5", true)).toBe(
-      "Det gick inte att markera ”Item 5” som köpt.",
+      "Det gick inte att markera ”Item 5” som köpt",
     );
     expect(shoppingSv.markFailed("Item 5", false)).toBe(
-      "Det gick inte att markera ”Item 5” som inte köpt.",
+      "Det gick inte att markera ”Item 5” som inte köpt",
     );
     const retry = within(alert).getByRole("button", { name: shoppingEn.retry });
     expect(paragraph).not.toContainElement(retry);
@@ -134,10 +134,10 @@ describe("a failed row write shows its notice in that row", () => {
 });
 
 describe("a failed read stays at the top of the list", () => {
-  it("a list that cannot be read shows its notice above the rows, with the actions on their own row", async () => {
-    const transport = adapter({
-      lists: vi.fn().mockRejectedValue(new Error("network")),
-    });
+  it("a list that cannot be read shows the view's error box above the rows, and Try again reads it again", async () => {
+    const user = userEvent.setup();
+    const lists = vi.fn().mockRejectedValue(new Error("network"));
+    const transport = adapter({ lists });
     const { container } = render(
       <ShoppingView
         transport={transport}
@@ -147,6 +147,7 @@ describe("a failed read stays at the top of the list", () => {
     );
 
     const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-message--error");
     expect(alert.closest("li")).toBeNull();
     expect(alert.closest("section")).toBe(
       container.querySelector("section.sidekick-shopping"),
@@ -156,16 +157,17 @@ describe("a failed read stays at the top of the list", () => {
         container.querySelector(".shopping-items")!,
       ),
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    await waitFor(() => expect(alert).toHaveFocus());
-    expect(alert.querySelector("p")).toHaveTextContent(shoppingEn.failed);
+    expect(alert).toHaveTextContent(shoppingEn.failedTitle);
+    // One action, "Try again", which reads the list again; the card-level "Refresh" pair belongs to a row only.
+    const retry = within(alert).getByRole("button", { name: shoppingEn.retry });
     expect(
-      within(alert).queryByRole("button", { name: shoppingEn.retry }),
+      within(alert).queryByRole("button", { name: shoppingEn.refresh }),
     ).not.toBeInTheDocument();
-    const refresh = within(alert).getByRole("button", {
-      name: shoppingEn.refresh,
-    });
-    expect(alert.querySelector("p")).not.toContainElement(refresh);
-    expect(refresh.parentElement).toHaveClass("shopping-failure-actions");
+    const readsBefore = lists.mock.calls.length;
+    await user.click(retry);
+    await waitFor(() =>
+      expect(lists.mock.calls.length).toBeGreaterThan(readsBefore),
+    );
     // The rows the list already showed stay in place.
     expect(
       screen.getByRole("button", { name: shoppingEn.markBought("Item 1") }),

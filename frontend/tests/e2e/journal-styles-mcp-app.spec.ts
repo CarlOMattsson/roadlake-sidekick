@@ -76,6 +76,7 @@ async function openDay(
   width: number,
   day: object = journalDay,
   hostCapabilities?: Record<string, unknown>,
+  platform?: "mobile",
 ) {
   // Today is 21 Oct 2026, in the week of the shown day (24 Oct).
   await page.clock.setFixedTime(new Date("2026-10-21T12:00:00Z"));
@@ -83,7 +84,7 @@ async function openDay(
     resource: readBuiltApp("journal", "en"),
     width,
     height: 900,
-    hostContext: fullscreen,
+    hostContext: platform ? { ...fullscreen, platform } : fullscreen,
     hostCapabilities,
     replies: {
       get_journal_day: ok(day),
@@ -454,10 +455,15 @@ test("Journal pending list: Show all reads as a link at body weight, not as a he
 test("Journal day view: the ⋯ menu is a surface card with 44 px rows, after the + on the title row", async ({
   page,
 }) => {
-  const { app, failures } = await openDay(page, 360, journalDay, {
-    serverTools: {},
-    message: {},
-  });
+  // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+  // popover a mouse gets (ui/menu.tsx).
+  const { app, failures } = await openDay(
+    page,
+    360,
+    journalDay,
+    { serverTools: {}, message: {} },
+    "mobile",
+  );
   const more = app.locator(".journal-day-more");
   await expect(more).toBeVisible();
   const [addBox, moreBox] = await Promise.all([

@@ -295,6 +295,10 @@ describe("HierarchyView", () => {
     );
     const meta = container.querySelector(".work-card-meta")!;
     expect(meta).toHaveTextContent("1 av 3 klara");
+    // The count is the shared Progress, short bar after the text, as the inline hierarchy card has it.
+    expect(
+      meta.querySelector(".sk-progress:not(.sk-progress--bar)"),
+    ).not.toBeNull();
     expect(meta.querySelector(".work-tree-overdue")).toHaveTextContent(
       "1 försenad",
     );

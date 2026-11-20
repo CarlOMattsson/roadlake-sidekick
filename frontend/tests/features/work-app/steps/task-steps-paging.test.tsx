@@ -14,7 +14,7 @@ import {
   AUTO_STEP_PAGES,
   readSteps,
 } from "@/features/work-app/steps/step-pages";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkStep,
   WorkTransport,

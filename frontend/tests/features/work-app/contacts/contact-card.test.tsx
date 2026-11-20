@@ -7,7 +7,11 @@ import {
   cardLabelsSv,
 } from "@/features/work-app/shared/card-labels";
 import { initialsOf } from "@/features/mcp-apps/ui/initials";
-import { workEn } from "@/features/work-app/shared/labels";
+import {
+  contactsRoomLabelsEn,
+  contactsRoomLabelsSv,
+} from "@/features/work-app/contacts/contacts-room-labels";
+import { workEn, workSv } from "@/features/work-app/shared/labels";
 import { WorkView } from "@/features/work-app/view/work-view";
 import {
   rootFromToolResult,
@@ -73,7 +77,7 @@ async function chooseEdit() {
 }
 
 describe("compact Contact card", () => {
-  it("shows the name, the note, the number of connections and two actions", async () => {
+  it("shows the name, the note, the number of connections, Edit and the main link last", async () => {
     const work = transport();
     const { container } = render(
       <WorkView
@@ -99,7 +103,13 @@ describe("compact Contact card", () => {
       within(card as HTMLElement)
         .getAllByRole("button")
         .map((b) => b.textContent),
-    ).toEqual([cardLabelsEn.open, cardLabelsEn.edit]);
+    ).toEqual([cardLabelsEn.edit, contactsRoomLabelsEn.openContact]);
+    // The card's one main link is last, inside the card foot, with its arrow.
+    const link = within(card as HTMLElement).getByRole("button", {
+      name: contactsRoomLabelsEn.openContact,
+    });
+    expect(link).toHaveClass("sk-open-link");
+    expect(card.lastElementChild).toContainElement(link);
   });
 
   it("starts with the kind as a plain eyebrow paragraph, not a heading", () => {
@@ -150,7 +160,7 @@ describe("compact Contact card", () => {
     await waitFor(() => expect(work.getContactContext).toHaveBeenCalled());
     expect(screen.getByText(anna.display_name)).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: cardLabelsEn.open }),
+      screen.getByRole("button", { name: contactsRoomLabelsEn.openContact }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/^Connections/)).toBeNull();
   });
@@ -166,7 +176,7 @@ describe("compact Contact card", () => {
     );
 
     await userEvent.click(
-      screen.getByRole("button", { name: cardLabelsEn.open }),
+      screen.getByRole("button", { name: contactsRoomLabelsEn.openContact }),
     );
     // The Contact view shows its ⋯ menu; Edit sits inside it, so no editor is open yet.
     expect(
@@ -201,13 +211,13 @@ describe("compact Contact card", () => {
       <WorkView
         transport={transport()}
         initial={compactRoot()}
-        labels={workEn}
+        labels={workSv}
         cardLabels={cardLabelsSv}
       />,
     );
 
     expect(
-      screen.getByRole("button", { name: cardLabelsSv.open }),
+      screen.getByRole("button", { name: contactsRoomLabelsSv.openContact }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: cardLabelsSv.edit }),

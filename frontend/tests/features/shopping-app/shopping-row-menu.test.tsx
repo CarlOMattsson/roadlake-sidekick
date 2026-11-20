@@ -9,6 +9,7 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import { findReceiptUndo, receiptText } from "@tests/helpers/receipt-bar";
 
 // The row's ⋯ menu: it names its item, closes with its own button (focus back on ⋯), and ends in Delete, which is
 // the whole menu when there is no other list to move to. Simulated events in jsdom, not a real touch device.
@@ -153,15 +154,12 @@ describe.each([
       milk.version,
       expect.stringMatching(/^[0-9a-f-]{36}$/),
     );
-    // The menu is shut at once, and the receipt takes the row's place.
+    // The menu is shut at once, and the receipt bar says it with Ångra.
     expect(
       screen.queryByRole("button", { name: labels.closeMenu }),
     ).not.toBeInTheDocument();
-    expect(
-      await screen.findByRole("button", {
-        name: labels.undoTrashNamed("Milk"),
-      }),
-    ).toBeVisible();
+    expect(await findReceiptUndo(labels.undoTrash)).toBeVisible();
+    expect(receiptText()).toBe(labels.itemTrashed("Milk"));
   });
 });
 

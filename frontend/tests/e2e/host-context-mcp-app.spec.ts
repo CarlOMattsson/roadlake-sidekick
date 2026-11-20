@@ -243,7 +243,7 @@ test("simulated host: displayMode inline to fullscreen turns the agenda summary 
     app.getByRole("button", { name: "Open Agenda", exact: true }),
   ).toBeVisible();
   // No "Start with" line. The title counts the overdue records and the (at most three) rows open them, not the item list.
-  await expect(app.locator(".work-compact-title")).toHaveText("3 overdue");
+  await expect(app.locator(".sk-card__title")).toHaveText("3 overdue");
   await expect(app.locator(".work-compact-row")).toHaveCount(3);
   await expect(app.locator(".work-agenda-row")).toHaveCount(0);
   const tabs = app.getByRole("group", { name: "Views" });

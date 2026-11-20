@@ -9,7 +9,7 @@ import {
   type InlineSummaryLabels,
 } from "@/features/work-app/inline/inline-summary-labels";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkFrame,
   WorkTask,

@@ -21,16 +21,18 @@ export const shoppingEn = {
   emptyHint: "What to buy. Tick items off as you shop.",
   loading: "Loading…",
   failed: "Something went wrong. Refresh the list, or try again.",
+  /** The title of the view's error box: what happened, no full stop; its action is `retry`. */
+  failedTitle: "Something went wrong",
   retry: "Try again",
   /** The one-line failure under a row whose bought mark could not be saved: it names the item and what was tried. */
   markFailed: (name: string, bought: boolean) =>
-    `Couldn’t mark “${name}” as ${bought ? "bought" : "not bought"}.`,
+    `Couldn’t mark “${name}” as ${bought ? "bought" : "not bought"}`,
   batch: "Add items (separated by commas or one per line, up to 50)",
   batchShort: "Items",
   batchPlaceholder: "Add items, e.g. milk, eggs",
   add: "Add items",
   addItem: "Add item",
-  addItemPlaceholder: "New item, e.g. milk, eggs",
+  addItemPlaceholder: "New item, e.g. 2 l milk, eggs",
   addItemButton: "Add",
   close: "Close",
   backToLists: "Lists",
@@ -109,7 +111,7 @@ export const shoppingEn = {
   mergedNow: (name: string, amount: string) => `${name} (now ${amount})`,
   /** The receipt of an add the phone queued without a network: the items are sent when it is back. */
   addQueued: (names: string) =>
-    `Waiting for connection: ${names}. Sent when you’re back online.`,
+    `Waiting for connection: ${names} · sent when you’re back online`,
   /**
    * The value of a receipt line after the item's name and colon: the outcome, "Milk:
    * updated to 2 l". "merged" is said only when the result itself says the input was folded into an existing item.
@@ -122,25 +124,22 @@ export const shoppingEn = {
   moreItems: (count: number) => `+${count} more`,
   /** After "Open list · ": the open items the card leaves out. */
   hiddenItems: (count: number) => `${count} more`,
-  /** The same after the batch card's foot, where the items left out are the ones just added, not the open ones. */
-  hiddenAdded: (count: number) => `${count} more added`,
   showAll: (count: number) => `Show all (${count})`,
   showFewer: "Show fewer",
   boughtCount: (count: number) => `Bought (${count})`,
   conflict: "The list was changed elsewhere and has been refreshed. Try again.",
+  /** The view's box when a change met a newer version: the title, then `conflictText`. */
+  conflictTitle: "The list changed elsewhere",
+  conflictText: "It has been refreshed. Try again.",
   otherStore: "No store",
   storeRemaining: (store: string, open: number) => `${store} · ${open} left`,
   undoPurchase: "Undo",
-  /** The name of a held row's Undo for assistive technology, the visible text staying "Undo". */
-  undoPurchaseNamed: (name: string, bought: boolean) =>
-    `Undo ${bought ? "bought" : "not bought"} ${name}`,
-  /** Deleting an item (move to the trash, with Undo): the change form's button, the receipt row and the failures. */
+  /** Deleting an item (move to the trash, with Undo): the change form's button, the receipt in the bar and the failures. */
   deleteItem: "Delete",
   deleteItemNamed: (name: string) => `Delete ${name}`,
   itemTrashed: (name: string) => `Deleted: ${name}`,
   undoTrash: "Undo",
-  undoTrashNamed: (name: string) => `Undo deleting ${name}`,
-  itemRestoreFailed: (name: string) => `Couldn’t undo deleting “${name}”.`,
+  itemRestoreFailed: (name: string) => `Couldn’t undo deleting “${name}”`,
   /** The quick changes of an open row in the store view: the amount steps and the row menu. */
   increaseQuantity: (name: string) => `Increase quantity of ${name}`,
   decreaseQuantity: (name: string) => `Decrease quantity of ${name}`,
@@ -151,8 +150,9 @@ export const shoppingEn = {
   /** The receipt of a move, with its Undo. */
   itemMoved: (name: string, list: string) => `Moved to ${list}: ${name}`,
   undoMove: "Undo",
-  undoMoveNamed: (name: string) => `Undo moving ${name}`,
-  itemMoveUndoFailed: (name: string) => `Couldn’t undo moving “${name}”.`,
+  /** The Ångra of an add of one new item: it deletes the item again. */
+  undoAdd: "Undo",
+  itemMoveUndoFailed: (name: string) => `Couldn’t undo moving “${name}”`,
   queued: "Waiting…",
   /** A purchase made without a network: it waits on the phone and is sent once there is one. */
   waitingForNetwork: "Waiting for connection",
@@ -218,15 +218,16 @@ export const shoppingSv: ShoppingLabels = {
   emptyHint: "Det du ska handla. Bocka av varorna i butiken.",
   loading: "Laddar…",
   failed: "Något gick fel. Uppdatera listan eller försök igen.",
+  failedTitle: "Något gick fel",
   retry: "Försök igen",
   markFailed: (name: string, bought: boolean) =>
-    `Det gick inte att markera ”${name}” som ${bought ? "köpt" : "inte köpt"}.`,
+    `Det gick inte att markera ”${name}” som ${bought ? "köpt" : "inte köpt"}`,
   batch: "Lägg till varor (komma eller en per rad, högst 50)",
   batchShort: "Varor",
   batchPlaceholder: "Lägg till, t.ex. mjölk, ägg",
   add: "Lägg till varor",
   addItem: "Lägg till vara",
-  addItemPlaceholder: "Ny vara, t.ex. mjölk, ägg",
+  addItemPlaceholder: "Ny vara, t.ex. 2 l mjölk, ägg",
   addItemButton: "Lägg till",
   close: "Stäng",
   backToLists: "Listor",
@@ -294,29 +295,27 @@ export const shoppingSv: ShoppingLabels = {
   newItemPrefix: "Tillagd:",
   mergedNow: (name: string, amount: string) => `${name} (nu ${amount})`,
   addQueued: (names: string) =>
-    `Väntar på anslutning: ${names}. Skickas när du är ansluten igen.`,
+    `Väntar på anslutning: ${names} · skickas när du är ansluten igen`,
   updatedPrefix: "Uppdaterad:",
   existedPrefix: "Fanns redan:",
   nowAmount: (amount: string) => `nu ${amount}`,
   moreItems: (count: number) => `+${count} fler`,
-  hiddenItems: (count: number) => `${count} fler`,
-  hiddenAdded: (count: number) => `${count} fler tillagda`,
+  hiddenItems: (count: number) => `${count} till`,
   showAll: (count: number) => `Visa alla (${count})`,
   showFewer: "Visa färre",
   boughtCount: (count: number) => `Köpta (${count})`,
   conflict: "Listan har ändrats på annat håll och är uppdaterad. Försök igen.",
+  conflictTitle: "Listan har ändrats på annat håll",
+  conflictText: "Den är uppdaterad nu. Försök igen.",
   otherStore: "Utan butik",
   storeRemaining: (store: string, open: number) => `${store} · ${open} kvar`,
   undoPurchase: "Ångra",
-  undoPurchaseNamed: (name: string, bought: boolean) =>
-    `Ångra ${bought ? "köpt" : "inte köpt"} ${name}`,
   deleteItem: "Ta bort",
   deleteItemNamed: (name: string) => `Ta bort ${name}`,
   itemTrashed: (name: string) => `Borttagen: ${name}`,
   undoTrash: "Ångra",
-  undoTrashNamed: (name: string) => `Ångra borttagning av ${name}`,
   itemRestoreFailed: (name: string) =>
-    `Det gick inte att ångra borttagningen av “${name}”.`,
+    `Det gick inte att ångra borttagningen av “${name}”`,
   increaseQuantity: (name: string) => `Öka antal ${name}`,
   decreaseQuantity: (name: string) => `Minska antal ${name}`,
   quantityNow: (name: string, amount: string) => `${name}: ${amount}`,
@@ -324,9 +323,9 @@ export const shoppingSv: ShoppingLabels = {
   moveToList: (list: string) => `Flytta till ${list}`,
   itemMoved: (name: string, list: string) => `Flyttad till ${list}: ${name}`,
   undoMove: "Ångra",
-  undoMoveNamed: (name: string) => `Ångra flytt av ${name}`,
+  undoAdd: "Ångra",
   itemMoveUndoFailed: (name: string) =>
-    `Det gick inte att ångra flytten av “${name}”.`,
+    `Det gick inte att ångra flytten av “${name}”`,
   queued: "Väntar…",
   waitingForNetwork: "Väntar på anslutning",
   offlineCopy: (time: string) => `Ingen anslutning · senast hämtad ${time}`,

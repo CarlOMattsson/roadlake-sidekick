@@ -125,14 +125,18 @@ it("a long batch with Open shows three names and counts the rest in the Open foo
   expect(names?.querySelectorAll("li")).toHaveLength(3);
   expect(names).toHaveTextContent("Item 3");
   expect(names).not.toHaveTextContent("Item 4");
-  // The count of the names left out stands after the button's name, not as a row of its own.
-  expect(
-    screen.getByRole("button", { name: new RegExp(`^${shoppingEn.openList}`) }),
-  ).toHaveTextContent(`${shoppingEn.openList} · 7 more added`);
+  // The names left out are counted after the open link's name, in the shared OpenLink, not as a row of their own.
+  const open = screen.getByRole("button", {
+    name: new RegExp(`^${shoppingEn.openList}`),
+  });
+  expect(open).toHaveClass("sk-open-link");
+  expect(open).toHaveTextContent(
+    `${shoppingEn.openList} · ${shoppingEn.hiddenItems(7)}`,
+  );
   expect(screen.queryByText(shoppingEn.moreItems(7))).not.toBeInTheDocument();
-  // The count is of the items just added, which the list card's "open items" count is not: the words say so.
-  expect(shoppingSv.hiddenAdded(11)).toBe("11 fler tillagda");
-  expect(shoppingEn.hiddenAdded(11)).toBe("11 more added");
+  // The same words as the list card's open link, in both languages (the old "N more added" key is gone).
+  expect(shoppingSv.hiddenItems(11)).toBe("11 till");
+  expect(shoppingEn.hiddenItems(11)).toBe("11 more");
 });
 
 it("Open on an add card opens fullscreen with that list selected and read", async () => {

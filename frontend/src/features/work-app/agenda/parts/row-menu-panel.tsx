@@ -21,7 +21,8 @@ type PanelProps = {
  * The quick choices of an open Task, under its row: Status, the four statuses on one line with the current one chosen,
  * and Datum. Every choice is a compact chip, 40 drawn and 48 to tap, on the row's shared surface. × closes it: the same
  * close as Escape, focus back on the row. It stands on the open row's first title line in the › column at every text
- * size, so the panel has one head.
+ * size, so the panel has one head. With a mouse or in a wide frame the same choices are a popover menu (`RowMenu`):
+ * the two groups as menu rows, the current status and date ticked at the row's end.
  */
 export function RowMenuPanel({
   ctx,
@@ -44,7 +45,10 @@ export function RowMenuPanel({
     <RowMenu
       scrollKey={menu.largeText ? (menu.menuGroup ?? "") : ""}
       large={menu.largeText}
+      at={menu.at}
+      onClose={onClose}
     >
+      {/* The panel's ×; a popover closes on Escape and a press outside, so it draws none (row-menu.css). */}
       <button
         type="button"
         className="work-agenda-menu-close"

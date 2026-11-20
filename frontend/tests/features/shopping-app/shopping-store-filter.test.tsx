@@ -83,7 +83,7 @@ it("with a store the inline view shows large rows, reads with the filter and hid
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   expect(transport.get).toHaveBeenCalledWith(list.id, 0, "ICA");
   expect(
@@ -104,7 +104,7 @@ it("without a store the inline view keeps the list view with its batch field, wi
     <ShoppingView transport={transport} labels={shoppingEn} listId={list.id} />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   expect(transport.get).toHaveBeenCalledWith(list.id, 0, undefined);
   // No standing list forms and no list switcher: only the batch field to add items.
@@ -123,7 +123,7 @@ it("the shop view names its shop and the open count in the heading", async () =>
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   // The spelling the items use wins over the spelling that was asked for.
   expect(
@@ -144,7 +144,7 @@ it("the shop view heading follows the app language", async () => {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   expect(
     screen.getByRole("heading", { level: 2, name: "ICA · 2 kvar" }),
@@ -183,7 +183,7 @@ it("a quantity of 1 without a unit is not shown in the shop view, an amount is",
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   const eggs = screen.getByText("Eggs").closest("button")!;
   const butter = screen.getByText("Butter").closest("button")!;
@@ -204,7 +204,7 @@ it("the quick field adds to the shop that is open", async () => {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   // "+ Add item" opens the create field in the list; the field is the textbox with that name.
   await user.click(screen.getByRole("button", { name: shoppingEn.addItem }));

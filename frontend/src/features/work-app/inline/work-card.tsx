@@ -5,8 +5,8 @@ import { keyFor, type PendingKey } from "../../mcp-apps/idempotency";
 import { createSupersession } from "../../mcp-apps/supersede";
 import { RecordTitle } from "../board/board-card";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
-import { CardFoot } from "../../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { Card } from "../../mcp-apps/ui/card";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import { NoticeRow, type InlineSummaryNotice } from "./inline-summary-list";
 import {
   TASK_STATUSES,
@@ -76,24 +76,24 @@ export function WorkCard(props: WorkCardProps) {
 
   if (props.state === "loading") {
     return (
-      <section className="work-compact-card sk-card" aria-busy="true">
-        <p className="sk-eyebrow">{labels.appName}</p>
-        <p role="status" className="work-compact-status">
-          {labels.loading}
-        </p>
-        <span className="work-compact-skeleton" aria-hidden="true" />
-        <span
-          className="work-compact-skeleton work-compact-skeleton-short"
-          aria-hidden="true"
-        />
-      </section>
+      <Card className="work-compact-card" eyebrow={labels.appName}>
+        <div className="work-compact-loading" aria-busy="true">
+          <p role="status" className="work-compact-status">
+            {labels.loading}
+          </p>
+          <span className="work-compact-skeleton" aria-hidden="true" />
+          <span
+            className="work-compact-skeleton work-compact-skeleton-short"
+            aria-hidden="true"
+          />
+        </div>
+      </Card>
     );
   }
 
   if (props.state === "error") {
     return (
-      <section className="work-compact-card sk-card">
-        <p className="sk-eyebrow">{props.appTitle}</p>
+      <Card className="work-compact-card" eyebrow={props.appTitle}>
         <ErrorNotice
           locale={props.locale}
           // An error result names no record: the heading names what Try again reads.
@@ -102,7 +102,7 @@ export function WorkCard(props: WorkCardProps) {
           onRetry={props.onRetry}
           retrying={props.retrying}
         />
-      </section>
+      </Card>
     );
   }
 
@@ -289,9 +289,18 @@ function ReadyCard({
   );
 
   return (
-    <section className="work-compact-card sk-card" aria-label={title}>
-      <p className="sk-eyebrow">{labels.appName}</p>
-      <p className="work-compact-title sk-card__title">{title}</p>
+    <Card
+      className="work-compact-card"
+      aria-label={title}
+      eyebrow={labels.appName}
+      title={title}
+      // What the list leaves out, only when the card cannot open the list: with the link, the link counts it.
+      meta={
+        hidden > 0 && !onOpen
+          ? fill(labels.more, { count: String(hidden) })
+          : undefined
+      }
+    >
       {statusSentence ? (
         <p className="work-compact-status">{statusSentence}</p>
       ) : null}
@@ -351,29 +360,20 @@ function ReadyCard({
         </ul>
       )}
       {notice ? <NoticeRow notice={notice} locale={labels.dateLocale} /> : null}
-      {/* What the list leaves out, only when the card cannot open the list: `showAll` already says it. */}
-      {hidden > 0 && !onOpen ? (
-        <p className="work-compact-more">
-          {fill(labels.more, { count: String(hidden) })}
-        </p>
+      {/* The card's one main link, last. A replaced card has none (its line says a newer card took over); while the host
+          answers the request it says so and a press does nothing. */}
+      {onOpen && !superseded ? (
+        <OpenLink
+          label={opening && openingLabel ? openingLabel : labels.openChanges}
+          {...(hidden > 0 && !opening
+            ? { more: fill(labels.more, { count: String(hidden) }) }
+            : {})}
+          onOpen={() => {
+            if (!opening) onOpen();
+          }}
+        />
       ) : null}
-      {onOpen ? (
-        <CardFoot>
-          <button
-            type="button"
-            className="work-compact-action sk-btn--open"
-            onClick={onOpen}
-            disabled={superseded || opening}
-            aria-busy={opening || undefined}
-          >
-            {opening && openingLabel
-              ? openingLabel
-              : fill(labels.showAll, { count: String(frame.total) })}
-            <ChevronRightIcon />
-          </button>
-        </CardFoot>
-      ) : null}
-    </section>
+    </Card>
   );
 }
 

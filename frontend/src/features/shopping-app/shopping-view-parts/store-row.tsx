@@ -7,22 +7,14 @@ import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { boughtOnText, buyAgainUsed, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import { hasQuickChanges, hasRowMenu, RowMenu, RowQuick } from "./row-quick";
-import {
-  heldStatus,
-  heldWord,
-  isHolding,
-  queuedMark,
-  rowFailure,
-  undoButton,
-  useRowUndo,
-} from "./row-parts";
+import { heldWord, isHolding, queuedMark, rowFailure } from "./row-parts";
 import type { RowEnv } from "./row-parts";
 
 /**
  * One large row per item of the store view: the ring marks it bought or open again, a tap on the rest of the row
- * opens its change form. While Undo holds, the meta line says `bought` and the amount (the amount moves there) and Undo
- * stands in the trailing slot. A held row stands in its place with Undo; under the `boughtCount` fold (inPlace false) the same
- * item is a plain bought row.
+ * opens its change form. A held row (its receipt, with Ångra, is in the view's bar) stays in its place at its height:
+ * `bought` takes the amount's place on the title line and the row is muted. Under the `boughtCount` fold (inPlace false)
+ * the same item is a plain bought row.
  */
 export function StoreRow({
   item,
@@ -35,23 +27,24 @@ export function StoreRow({
 }) {
   const { labels: t, held, rowQueue } = env;
   const holding = isHolding(item, env, inPlace);
-  const hold = useRowUndo(item, env, holding);
   const amount = isDefaultAmount(item, t.dateLocale)
     ? ""
     : quantityText(item, t.dateLocale);
-  // A bought row is done: it keeps its name, and under the `boughtCount` fold the day it was bought. The folded card
-  // (one phone screen) draws the name and amount only; the row opens the rest, as "Show all" and the full list show it.
+  // Under the `boughtCount` fold a bought row says the day it was bought; in its place (held) it keeps the meta line it
+  // had, so ticking it never changes its height. The folded card (one phone screen) draws the name and amount only;
+  // the row opens the rest, as "Show all" and the full list show it.
   const meta = env.folded
     ? ""
-    : item.purchased
-      ? inPlace
-        ? ""
-        : boughtOnText(item, t)
+    : item.purchased && !inPlace
+      ? boughtOnText(item, t)
       : itemMeta(item, t);
   // A row that cannot be changed (an archived list, or a change still in the phone's outbox) cannot be opened either.
   const locked = env.archived || item.id in env.waiting;
   // An open row can step its amount and move to another list without opening the change form.
   const quick = hasQuickChanges(item, env, Boolean(locked), holding);
+  // A held row that had the quick changes keeps their room, unseen, and says `bought` there: its text keeps the width
+  // it had, so a long name wraps as before and the row keeps its height.
+  const heldSlot = holding && !locked && Boolean(env.onStep && env.onMove);
   const [menuOpen, setMenuOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
   return (
@@ -114,7 +107,7 @@ export function StoreRow({
             {/* The name and the amount share one baseline. */}
             <span className="shopping-store-text">
               <span className="shopping-store-name">{item.name}</span>
-              {holding ? (
+              {holding && !heldSlot ? (
                 <span className="shopping-held" aria-hidden="true">
                   {amount
                     ? `${heldWord(item, env)} · ${amount}`
@@ -145,6 +138,20 @@ export function StoreRow({
             onToggleMenu={() => setMenuOpen((open) => !open)}
           />
         )}
+        {heldSlot && (
+          <span className="shopping-quick-held" aria-hidden="true">
+            <span className="shopping-quick-held__room">
+              <RowQuick
+                item={item}
+                env={env}
+                menuOpen={false}
+                moreButton={moreButton}
+                onToggleMenu={() => undefined}
+              />
+            </span>
+            <span className="shopping-held">{heldWord(item, env)}</span>
+          </span>
+        )}
       </div>
       {quick && menuOpen && hasRowMenu(item, env) && (
         <RowMenu
@@ -157,8 +164,6 @@ export function StoreRow({
           }}
         />
       )}
-      {holding && undoButton(item, env, hold)}
-      {holding && heldStatus(item, env)}
       {(inPlace || !held[item.id]) && rowFailure(item, env)}
       {env.editing?.id === item.id && (
         <ItemEditor

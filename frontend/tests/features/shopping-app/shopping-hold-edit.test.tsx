@@ -79,7 +79,7 @@ async function open(labels = shoppingEn, transport = adapter()) {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   return transport;
 }
@@ -234,7 +234,7 @@ it("an archived list disables both the ring and the row", async () => {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   expect(ring("Milk")).toBeDisabled();
   expect(box("Milk")).toBeDisabled();

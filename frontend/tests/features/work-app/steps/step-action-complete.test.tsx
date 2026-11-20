@@ -9,7 +9,7 @@ import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
-import { StepActions } from "@/features/work-app/steps/step-actions";
+import { StepActions } from "@tests/helpers/steps-with-bar";
 import type {
   WorkAction,
   WorkStep,
@@ -314,7 +314,7 @@ it("words the menu hint and the hidden button in English", async () => {
   ).toBeInTheDocument();
 });
 
-it("keeps a ticked Action in its place with Klar and Ångra, and Ångra writes the other state against the new version", async () => {
+it("keeps a ticked Action in its place with Klar, puts Ångra in the receipt bar, and Ångra writes the other state against the new version", async () => {
   const user = userEvent.setup();
   const transport = setup();
   await show(transport);
@@ -325,8 +325,14 @@ it("keeps a ticked Action in its place with Klar and Ångra, and Ångra writes t
     .closest("li");
   expect(await screen.findByText("Klar")).toBeInTheDocument();
   expect(row).toHaveClass("work-step-undoing");
+  // The row has no button of its own; the bar says what happened and holds Ångra.
+  expect(row?.querySelector(".sk-undo-time")).toBeNull();
+  const undo = screen.getByRole("button", { name: /^Ångra/ });
+  expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+    "Klar: Ring receptionen",
+  );
 
-  await user.click(screen.getByRole("button", { name: /^Ångra/ }));
+  await user.click(undo);
   expect(transport.reopenStepAction).toHaveBeenCalledWith(
     open.id,
     5,
@@ -342,6 +348,12 @@ it("keeps a ticked Action in its place with Klar and Ångra, and Ångra writes t
   expect(
     screen.getByRole("checkbox", { name: "Ring receptionen" }),
   ).not.toBeChecked();
+  // The bar's button left with its receipt: focus is back on the Action's box, never on the page.
+  await waitFor(() =>
+    expect(
+      screen.getByRole("checkbox", { name: "Ring receptionen" }),
+    ).toHaveFocus(),
+  );
 });
 
 it("says Öppen igen after an untick, and another write takes the Ångra away", async () => {
@@ -357,6 +369,9 @@ it("says Öppen igen after an untick, and another write takes the Ångra away", 
 
   await user.click(screen.getByRole("checkbox", { name: "Skicka mejlet" }));
   expect(await screen.findByText("Öppen igen")).toBeInTheDocument();
+  expect(document.querySelector(".sk-receipt-slot")).toHaveTextContent(
+    "Öppen igen: Skicka mejlet",
+  );
 
   fireEvent.contextMenu(
     screen
@@ -369,6 +384,7 @@ it("says Öppen igen after an untick, and another write takes the Ångra away", 
   await waitFor(() =>
     expect(screen.queryByText("Öppen igen")).not.toBeInTheDocument(),
   );
+  expect(document.querySelector(".sk-receipt-slot")).toBeEmptyDOMElement();
 });
 
 it("shows the due day under the title, red when it has passed, and the note on the same line; a done Action names no day", async () => {

@@ -170,12 +170,16 @@ it("the glyph marks a Task done with update_task, its version and a key; the car
   const card = rowOf(a.title);
   const todo = screen.getByRole("region", { name: workEn.taskStatus.todo });
   expect(todo).toContainElement(card);
-  const wrap = undo.closest(".work-agenda-undo");
-  if (!wrap) throw new Error("no Undo line in the card");
-  expect(card).toContainElement(wrap as HTMLElement);
-  expect(within(wrap as HTMLElement).getByRole("status")).toHaveTextContent(
+  // The Ångra and its message are the receipt bar's; the card has a state line and no button of its own.
+  expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+    `${workEn.taskStatus.completed}: ${a.title}`,
+  );
+  const wrap = card.querySelector<HTMLElement>(".work-agenda-undo");
+  if (!wrap) throw new Error("no state line in the card");
+  expect(within(wrap).getByRole("status")).toHaveTextContent(
     workEn.taskStatus.completed,
   );
+  expect(wrap.querySelector("button")).toBeNull();
   // Focus goes to the glyph, which is the card's own control, not to the Undo line.
   const glyph = card.querySelector<HTMLElement>(".work-card-done");
   if (!glyph) throw new Error("no done toggle on the card");

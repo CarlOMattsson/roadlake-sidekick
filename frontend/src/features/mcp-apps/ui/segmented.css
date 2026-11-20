@@ -31,7 +31,7 @@
   background: transparent;
   color: var(--sk-seg-muted);
   font: inherit;
-  font-size: var(--font-text-md-size, 1rem);
+  font-size: var(--sk-type-control-size);
   font-weight: var(--font-weight-medium, 500);
   line-height: 1.2;
   text-align: center;
@@ -81,6 +81,6 @@
    A one-word label ("Blockerad") is never narrower than its word, so it is never cut. */
 @container (max-width: 360px) {
   .sk-segmented .sk-segmented__option {
-    font-size: 0.875rem;
+    font-size: var(--sk-type-label-size);
   }
 }

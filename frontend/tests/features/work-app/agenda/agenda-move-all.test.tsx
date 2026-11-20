@@ -1,11 +1,19 @@
 import { boardLabelsEn } from "@/features/work-app/board/board-labels";
-import { screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
+import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import type { WorkItemRecord } from "@/features/work-app/transport/transport";
 import {
   makeTransport,
+  receiptBar,
   renderAgenda,
   resetAgendaEnvironment,
 } from "@tests/helpers/agenda-view-fixtures";
@@ -71,17 +79,20 @@ it("asks before moving: the question replaces the button, focus is on Move, and 
   expect(reschedule).not.toHaveBeenCalled();
 });
 
-it("writes once on Move, shows the count with Undo, and Undo writes each old due date back against the version the move left", async () => {
+it("writes once on Move, confirms the count with Undo in the receipt bar, and Undo writes each old due date back against the version the move left", async () => {
   const user = userEvent.setup();
   const { mock, reschedule, agenda } = setup();
   await moveAll(user);
   await waitFor(() => expect(reschedule).toHaveBeenCalledTimes(1));
-  const status = await screen.findByText(workEn.moveAllDone(2));
-  expect(status).toHaveAttribute("role", "status");
+  const message = await screen.findByText(workEn.moveAllDone(2));
+  // The count is the bar's message, in a polite status region at the view's foot; no line of its own above the groups.
+  const bar = receiptBar();
+  expect(bar).toHaveAttribute("role", "status");
+  expect(bar).toHaveAttribute("aria-live", "polite");
+  expect(bar).toContainElement(message);
+  expect(document.querySelector(".work-agenda-move-undo")).toBeNull();
   await waitFor(() => expect(agenda).toHaveBeenCalledTimes(1));
-  const undo = within(status.parentElement as HTMLElement).getByRole("button", {
-    name: workEn.agendaUndo,
-  });
+  const undo = within(bar).getByRole("button", { name: workEn.agendaUndo });
   await waitFor(() => expect(undo).toBeEnabled());
   await user.click(undo);
   await waitFor(() => expect(mock.updateTask).toHaveBeenCalledTimes(2));
@@ -96,6 +107,66 @@ it("writes once on Move, shows the count with Undo, and Undo writes each old due
   await waitFor(() => expect(agenda).toHaveBeenCalledTimes(2));
   expect(screen.queryByText(workEn.moveAllDone(2))).toBeNull();
   expect(reschedule).toHaveBeenCalledTimes(1);
+});
+
+it("the move's receipt runs for the family's Undo time and then goes, with its Undo", async () => {
+  vi.useFakeTimers();
+  setup();
+  fireEvent.click(moveAllButton());
+  fireEvent.click(
+    screen.getByRole("button", { name: workEn.moveAllConfirmYes }),
+  );
+  // Lets the writes settle under fake timers; waitFor would hang here because it polls with timers.
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(screen.getByText(workEn.moveAllDone(2))).toBeInTheDocument();
+  act(() => {
+    vi.advanceTimersByTime(UNDO_MS - 1);
+  });
+  expect(screen.getByText(workEn.moveAllDone(2))).toBeInTheDocument();
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(screen.queryByText(workEn.moveAllDone(2))).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: workEn.agendaUndo }),
+  ).not.toBeInTheDocument();
+  expect(receiptBar()).toBeEmptyDOMElement();
+});
+
+it("the pointer over the move's receipt pauses its time, and it runs on with the time left when the pointer leaves", async () => {
+  vi.useFakeTimers();
+  setup();
+  fireEvent.click(moveAllButton());
+  fireEvent.click(
+    screen.getByRole("button", { name: workEn.moveAllConfirmYes }),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  const receipt = screen
+    .getByRole("button", { name: workEn.agendaUndo })
+    .closest(".sk-receipt") as HTMLElement;
+  act(() => {
+    vi.advanceTimersByTime(UNDO_MS - 4000);
+  });
+  fireEvent.pointerEnter(receipt);
+  expect(receipt).toHaveAttribute("data-held");
+  act(() => {
+    vi.advanceTimersByTime(UNDO_MS * 3);
+  });
+  expect(screen.getByText(workEn.moveAllDone(2))).toBeInTheDocument();
+  fireEvent.pointerLeave(receipt);
+  expect(receipt).not.toHaveAttribute("data-held");
+  act(() => {
+    vi.advanceTimersByTime(3999);
+  });
+  expect(screen.getByText(workEn.moveAllDone(2))).toBeInTheDocument();
+  act(() => {
+    vi.advanceTimersByTime(1);
+  });
+  expect(screen.queryByText(workEn.moveAllDone(2))).toBeNull();
 });
 
 it("a failed move says so in its own words and Try again moves again", async () => {

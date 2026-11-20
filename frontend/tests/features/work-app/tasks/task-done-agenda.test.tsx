@@ -63,9 +63,8 @@ const agendaFrame = {
   page: { items: [agendaTask], next_cursor: null },
 };
 
-// The agenda's Ångra names its row ("Undo <title>"); the line beside it says the Task is done.
-const undoOf = (labels: WorkLabels) =>
-  new RegExp(`^${labels.agendaUndo} ${boardTask.title}$`);
+// The agenda's Ångra is in its receipt bar ("Klar: <title>" and the word), the row keeps its state line.
+const undoOf = (labels: WorkLabels) => new RegExp(`^${labels.agendaUndo}$`);
 
 describe.each([
   ["English", workEn],
@@ -90,9 +89,12 @@ describe.each([
     await waitFor(() => expect(host.getWorkAgenda).toHaveBeenCalled());
     const undo = await screen.findByRole("button", { name: undoOf(labels) });
     expect(undo).toBeEnabled();
-    expect(undo.closest(".work-agenda-undo")).toHaveTextContent(
-      agendaLabelsFor(labels.dateLocale).doneInStatus,
+    expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+      `${labels.taskStatus.completed}: ${agendaTask.title}`,
     );
+    expect(
+      screen.getByText(agendaLabelsFor(labels.dateLocale).doneInStatus),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: agendaTask.title }),
     ).toBeInTheDocument();
@@ -174,6 +176,12 @@ describe("Mark as done on a shell layer opened from the agenda", () => {
       await agenda.findByRole("button", { name: undoOf(workEn) }),
     ).toBeEnabled();
     expect(board.queryByRole("button", { name: /^Undo/ })).toBeNull();
+    // Ångra stands in the agenda's own receipt bar, not in the Task layer being left.
+    expect(
+      agenda
+        .getByRole("button", { name: undoOf(workEn) })
+        .closest(".sk-receipt-slot"),
+    ).not.toBeNull();
     expect(
       within(
         board.getByRole("region", { name: workEn.taskStatus.todo }),

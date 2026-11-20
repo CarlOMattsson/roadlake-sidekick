@@ -83,7 +83,7 @@ it("an empty list says what to ask for, with the list's name", async () => {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   expect(screen.getByText(shoppingEn.empty)).toBeInTheDocument();
   await user.click(

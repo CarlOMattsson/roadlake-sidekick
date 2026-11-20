@@ -1,5 +1,8 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReceiptInput, ReceiptState } from "../../mcp-apps/ui/receipt";
 import { useSingleFlight } from "../shared/use-single-flight";
+import type { WorkLabels } from "../shared/labels";
+import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import { useLinkUndo } from "../tasks/task-contacts";
 import {
   journalEntriesOf,
@@ -18,19 +21,25 @@ import { useFrameRead, type DetailFrame } from "../view/parts/use-detail-frame";
 /**
  * What the Contact frame holds besides the shared detail-frame state: the Contact with its Projects, Tasks
  * and linked Journal entries, the `more` page of Tasks, and every Contact write (edit, tags, nickname,
- * archive, unlinking a Project). The frame draws it; this hook reads and writes.
+ * archive, unlinking a Project). The frame draws it; this hook reads and writes. A stored write is confirmed in the
+ * frame's receipt bar (`receipt`), never by a line in the page; Archive carries Undo, which restores the Contact.
  */
 export function useContactRecord({
   id,
   transport,
   frame,
   refreshKey,
+  receipt,
+  labels,
 }: {
   id: string;
   transport: WorkTransport;
   frame: DetailFrame;
   refreshKey: number;
+  receipt: ReceiptState;
+  labels: Pick<WorkLabels, "dateLocale" | "undo">;
 }) {
+  const words = contactsRoomLabelsFor(labels.dateLocale);
   const [contact, setContact] = useState<WorkContactRecord>();
   // The Projects come with the context and are shown as read: only the first page is requested.
   const [projects, setProjects] = useState<WorkProjectSummary[]>([]);
@@ -39,8 +48,6 @@ export function useContactRecord({
   const [journal, setJournal] = useState<WorkJournalEntries>();
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [more, setMore] = useState<MorePhase>("idle");
-  // Set once Archive in this view has written: the page then shows its receipt with Undo until the Contact is restored.
-  const [archivedHere, setArchivedHere] = useState(false);
   // Runs the last failed write again; the same action keeps its key, so the server replays it.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
   // `removeReferenceFor` in the ⋯: the Project row stays with its `undo` until the view is read again.
@@ -89,18 +96,19 @@ export function useContactRecord({
   }
   /**
    * One Contact write. The signature names the action and the version it was based on, so a retry
-   * of the same action reuses its key and any other action gets a fresh one. `receipt`: the page draws its own receipt
-   * for this write, so no plain `saved` line stands beside it.
+   * of the same action reuses its key and any other action gets a fresh one. `confirmation` says what the receipt bar
+   * shows once the write is stored, so no plain `saved` line stands beside it.
    */
   function runWrite(
     signature: string,
     action: "save" | "write",
     send: (key: string) => Promise<{ contact: WorkContactRecord }>,
+    confirmation: () => ReceiptInput,
     done?: () => void,
-    receipt = false,
   ) {
     if (!contact || frame.flight.isRunning()) return;
-    retryWrite.current = () => runWrite(signature, action, send, done, receipt);
+    retryWrite.current = () =>
+      runWrite(signature, action, send, confirmation, done);
     frame.sendWrite(
       signature,
       action,
@@ -111,10 +119,12 @@ export function useContactRecord({
         setMore("idle");
         setContact(result.contact);
         done?.();
+        receipt.show(confirmation());
       },
-      receipt,
+      true,
     );
   }
+  const saved = (): ReceiptInput => ({ message: words.receiptSaved });
   function leaveEditor() {
     frame.setEditing(false);
     frame.heading.current?.focus();
@@ -131,6 +141,7 @@ export function useContactRecord({
       "save",
       (key) =>
         transport.updateContact(contact.id, contact.version, changes, key),
+      saved,
       leaveEditor,
     );
   }
@@ -142,6 +153,7 @@ export function useContactRecord({
       "write",
       (key) =>
         transport.updateContact(contact.id, contact.version, { tags }, key),
+      saved,
       done,
     );
   }
@@ -152,6 +164,7 @@ export function useContactRecord({
       "write",
       (key) =>
         transport.addContactAlias(contact.id, contact.version, value, key),
+      saved,
       done,
     );
   }
@@ -167,9 +180,10 @@ export function useContactRecord({
           contact.version,
           key,
         ),
+      saved,
     );
   }
-  /** Archive and Restore write at once (no question first): Restore undoes Archive, so the receipt carries Undo. */
+  /** Archive and Restore write at once (no question first): Restore undoes Archive, so Archive's receipt carries Undo. */
   function setArchived(archive: boolean) {
     if (!contact) return;
     runWrite(
@@ -183,14 +197,25 @@ export function useContactRecord({
         archive
           ? transport.archiveContact(contact.id, contact.version, key)
           : transport.restoreContact(contact.id, contact.version, key),
-      () => {
-        setArchivedHere(archive);
-        leaveEditor();
-      },
-      // Archive is answered by its receipt (`contactArchived` with `undo`); Restore has none.
-      archive,
+      () =>
+        archive
+          ? {
+              message: words.receiptArchived,
+              undo: {
+                label: labels.undo,
+                onUndo: () => restoreLatest.current(),
+              },
+            }
+          : { message: words.receiptRestored },
+      leaveEditor,
     );
   }
+  // Undo on the receipt outlives the render that showed it: it restores through the newest `setArchived`, which holds
+  // the version the archive left.
+  const restoreLatest = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    restoreLatest.current = () => setArchived(false);
+  });
   /** Fetches the latest Contact and its first page of Tasks; the open editor keeps the typed values. */
   function reloadContact() {
     frame.reload(
@@ -211,7 +236,6 @@ export function useContactRecord({
     journal,
     nextCursor,
     more,
-    archivedHere,
     unlinks,
     loadMore,
     retry,

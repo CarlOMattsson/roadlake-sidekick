@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { KeyScope, onEscapeKey } from "../../mcp-apps/ui/key-scope";
 import type { WorkLabels } from "../shared/labels";
 import { titleProblem, type TitleProblem } from "../shared/fields";
 import type { WorkContactAlias } from "../transport/transport";
@@ -97,11 +98,19 @@ function AliasRow({
       removeButton.current?.focus();
     }
   }, [confirming]);
+  function closeConfirm() {
+    restoreFocus.current = true;
+    setConfirming(false);
+  }
   return (
     <li>
       <span>{alias.value}</span>
       {editable && (
-        <div className="work-row-actions">
+        // Escape on the remove question closes the question only, not the editor around it.
+        <KeyScope
+          className="work-row-actions"
+          onEscape={confirming ? closeConfirm : undefined}
+        >
           {confirming ? (
             <>
               <button
@@ -117,10 +126,7 @@ function AliasRow({
                 type="button"
                 className="sk-btn--quiet"
                 disabled={busy}
-                onClick={() => {
-                  restoreFocus.current = true;
-                  setConfirming(false);
-                }}
+                onClick={closeConfirm}
               >
                 {t.cancel}
               </button>
@@ -137,7 +143,7 @@ function AliasRow({
               {t.removeAlias}
             </button>
           )}
-        </div>
+        </KeyScope>
       )}
     </li>
   );
@@ -186,6 +192,11 @@ function AliasAdd({
           setValue(event.target.value);
         }}
         onKeyDown={(event) => {
+          // Escape empties this field only; it does not reach the editor's own Escape (Cancel).
+          onEscapeKey(event, () => {
+            setProblem(undefined);
+            setValue("");
+          });
           // Inside the Contact editor's form, Enter would press Save; here it adds the nickname.
           if (event.key !== "Enter") return;
           event.preventDefault();

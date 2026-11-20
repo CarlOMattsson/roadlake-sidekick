@@ -2,9 +2,7 @@
    falls back to a fixed value. Fallback colours use light-dark(), which follows the host's colour-scheme,
    so there is no prefers-color-scheme block. Hex values appear only inside var() or light-dark(). */
 :root {
-  /* Typography: three sizes, two weights. Host sizes first, fallback in rem. */
-  --sk-text-sm: var(--font-text-sm-size, 0.875rem);
-  --sk-text-md: var(--font-text-md-size, 1rem);
+  /* Weights come from the host; sizes are the type scale below. */
   --sk-line-height: 1.4;
   --sk-weight-normal: var(--font-weight-normal, 400);
   --sk-weight-semibold: var(--font-weight-semibold, 600);
@@ -28,12 +26,20 @@
      has a size, a line height and a weight, and a font shorthand built from them: `font: var(--sk-type-row)`.
      Sizes are fixed rem (so they follow the user's text size), not the host's sizes: the scale is measured
      against a 412 px phone and must hold in every host. The typeface and the weights come from the host.
-     The older --sk-text-* tokens above stay until every room has moved over (--sk-heading-* are gone). */
+     Six sizes: 12 caption, 14 meta/label/button, 16 row/body, 18 section/card, 22 title, 28 display (a detail's title in
+     a wide frame). A view names a role, never a size: a rem or px literal in font or font-size, and any read of the
+     host's --font-text-* or of the retired --sk-text-*, stays in this file (css-policy.test.ts). */
   --sk-type-title-size: 1.375rem; /* 22 / 28 */
   --sk-type-title-line: 1.75rem;
   --sk-type-title-weight: var(--sk-weight-semibold);
   --sk-type-title: var(--sk-type-title-weight) var(--sk-type-title-size) /
     var(--sk-type-title-line) var(--sk-font);
+  /* Display: a record's title in the detail pane of a wide frame, 28/34 600 there (the split layout sets it); the
+     title everywhere else, so a narrow frame draws what it draws today. */
+  --sk-type-display-size: var(--sk-type-title-size);
+  --sk-type-display-line: var(--sk-type-title-line);
+  --sk-type-display: var(--sk-type-title-weight) var(--sk-type-display-size) /
+    var(--sk-type-display-line) var(--sk-font);
   --sk-type-card-size: 1.125rem; /* 18 / 24 */
   --sk-type-card-line: 1.5rem;
   --sk-type-card-weight: var(--sk-weight-semibold);
@@ -47,6 +53,13 @@
   --sk-type-body-weight: var(--sk-weight-normal);
   --sk-type-body: var(--sk-type-body-weight) var(--sk-type-body-size) /
     var(--sk-type-body-line) var(--sk-font);
+  /* Reading and writing: a journal entry's text, read and written in one size so its lines break in the same place.
+     The body here; 18/30 in a wide frame (the split layout sets it), at most --sk-read-measure wide. */
+  --sk-type-read-size: var(--sk-type-body-size);
+  --sk-type-read-line: var(--sk-type-body-line);
+  --sk-type-read: var(--sk-type-body-weight) var(--sk-type-read-size) /
+    var(--sk-type-read-line) var(--sk-font);
+  --sk-read-measure: 66ch;
   /* Labels: the room strip, a tab and a chip at 14/18 (15.4/19.8 at 110 %), 500 unchosen and 600
      chosen. A compact button (40 drawn, 48 to tap) is the same size at 600 (--sk-type-button). A full 48 button and the
      back link keep 16/20 at 600 (--sk-type-label-strong). A menu row keeps 16/20 at 500 (--sk-type-menu). */
@@ -95,6 +108,34 @@
      and Control all stand in a centred column of at most this width (layout.css); only Status's columns take the
      whole row. */
   --sk-room-max: 48rem;
+  /* The desktop layer (a frame of 64rem and more): the shell's body at most --sk-shell-max, a list pane of --sk-list-w
+     beside a detail whose content is at most --sk-detail-max, a drawer of --sk-drawer-w over a wide view, and a popover
+     menu of --sk-menu-w. The split layout widens the list pane to 26.25rem from 90rem. */
+  --sk-shell-max: 80rem;
+  --sk-list-w: 22.5rem;
+  --sk-detail-max: 45rem;
+  --sk-drawer-w: 27.5rem;
+  --sk-menu-w: 15rem;
+
+  /* Pointer feedback (designsystem §2 Hovring): a hovered row, tab, chip, room or icon button takes --sk-hover, held it
+     takes --sk-press, and the row open in the detail pane takes --sk-row-selected. All three are the text colour over
+     whatever lies under them, so they follow the host's page in both modes. Hover is drawn only under
+     @media (hover: hover) and never when the host reports a coarse pointer. A choice is a fill, never a frame, so it
+     cannot be read as the focus ring. */
+  --sk-hover: color-mix(in srgb, var(--sk-fg) 5%, transparent);
+  --sk-press: color-mix(in srgb, var(--sk-fg) 9%, transparent);
+  --sk-row-selected: color-mix(in srgb, var(--sk-fg) 8%, transparent);
+  /* A layer over the page (a popover menu, the board's drawer): a soft drop and a hairline in the divider colour. */
+  --sk-shadow-2:
+    0 8px 24px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.5)),
+    0 0 0 1px var(--sk-line);
+
+  /* Motion: fast for hover and menus, base for a pane or the drawer, slow for a receipt sliding up. All are 0 ms under
+     prefers-reduced-motion (below), so a rule that uses them needs no reduced-motion block of its own for its timing. */
+  --sk-dur-fast: 100ms;
+  --sk-dur-base: 160ms;
+  --sk-dur-slow: 240ms;
+  --sk-ease-out: cubic-bezier(0.2, 0, 0, 1);
 
   /* Rows, glyphs and touch targets. A full button, the create row's field and its + are 48 (--sk-tap-lg). A control
      drawn lower than 48 extends its target with a clear ::after. */
@@ -188,6 +229,12 @@
     light-dark(var(--sk-fg), #ededed)
   );
   --sk-inverse-fg: var(--color-text-inverse, light-dark(var(--sk-bg), #1c1c1e));
+  /* A hovered primary: the ink lightened toward its own text, so it answers the mouse in both modes. */
+  --sk-inverse-hover: color-mix(
+    in srgb,
+    var(--sk-inverse-bg) 85%,
+    var(--sk-inverse-fg)
+  );
   /* Chosen: one form for every chosen thing, a 2 px outline in the text colour and 600, in both
      modes. A chosen chip or segment also has the toned fill and a 16 px tick (--sk-check) before its text; a chip in ink
      would compete with the screen's one primary. No host variable names this role, so it is a fixed pair. */
@@ -247,4 +294,13 @@
   --sk-accent-orange-line: light-dark(#c2410c, #fb923c);
   --sk-accent-rose-line: light-dark(#be123c, #fb7185);
   --sk-accent-violet-line: light-dark(#6d28d9, #a78bfa);
+}
+
+/* Reduced motion: every duration token is 0 ms, so hover, menus, panes and receipts change at once. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sk-dur-fast: 0ms;
+    --sk-dur-base: 0ms;
+    --sk-dur-slow: 0ms;
+  }
 }

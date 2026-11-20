@@ -11,6 +11,9 @@
   margin: 0;
   padding: 0;
 }
+.sk-tabs.sk-tabs--nowrap {
+  flex-wrap: nowrap;
+}
 .sk-tabs.sk-tabs--rule {
   border-bottom: var(--sk-hairline) solid var(--sk-line);
 }
@@ -72,6 +75,30 @@
 }
 .sk-tabs .sk-tabs__tab:focus-visible {
   outline-offset: -2px;
+}
+/* Pointer feedback (designsystem §2 Hovring): the tab takes --sk-hover in its own form, rounded at the top only so
+   the line under it keeps its square ends, and the label the text colour. Held: --sk-press. */
+.sk-tabs .sk-tabs__tab {
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sk-tabs
+    .sk-tabs__tab:not(:disabled):hover {
+    border-radius: var(--sk-radius) var(--sk-radius) 0 0;
+    background-color: var(--sk-hover);
+    color: var(--sk-fg);
+  }
+  :root:not([data-host-pointer="coarse"])
+    .sk-tabs
+    .sk-tabs__tab:not(:disabled):active {
+    background-color: var(--sk-press);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-tabs .sk-tabs__tab {
+    transition: none;
+  }
 }
 .sk-tabs .sk-tabs__tab:disabled {
   cursor: default;

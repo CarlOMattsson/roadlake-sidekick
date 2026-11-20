@@ -19,6 +19,7 @@ import {
   makeTransport,
   renderAgenda,
   glyphOf,
+  rowOf,
   undoButton,
   openRow,
   resetAgendaEnvironment,
@@ -249,7 +250,7 @@ it("Undo closes the quick choices of its row when they are opened after the chan
   );
 });
 
-it("a click on the Undo line's background opens no record and does not undo the change", async () => {
+it("a click on the state line's or the receipt's background opens no record and does not undo the change", async () => {
   const user = userEvent.setup();
   const { transport, mock } = makeTransport();
   const onOpen = vi.fn();
@@ -271,22 +272,27 @@ it("a click on the Undo line's background opens no record and does not undo the 
   );
   await user.click(glyphOf(task.title));
   const undo = await undoButton();
-  const line = undo.closest(".work-agenda-undo");
-  if (!line) throw new Error("no Undo line");
-  // The line's own background, not the button: the click lands on the line.
+  const line = rowOf(task.title).querySelector(".work-agenda-undo");
+  if (!line) throw new Error("no state line");
+  // The state line's own background, then the receipt's: neither opens the record nor undoes the change.
   await user.click(line);
+  await user.click(undo.closest(".sk-receipt") as HTMLElement);
   expect(onOpen).not.toHaveBeenCalled();
   expect(mock.updateTask).toHaveBeenCalledTimes(1);
   expect(undo).toBeInTheDocument();
 });
 
-it("the Undo button of a row is a compact secondary button (sk-btn--secondary sk-btn--compact) in the row's Undo wrapper", async () => {
+it("the Undo button of a change is a compact quiet button in the receipt bar, and the row has no button of its own", async () => {
   const user = userEvent.setup();
   const { transport } = makeTransport();
   renderAgenda([task], transport);
   await user.click(glyphOf(task.title));
   const undo = await undoButton();
-  expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");
+  expect(undo).toHaveClass("sk-btn--quiet", "sk-btn--compact");
   expect(undo).not.toHaveClass("sk-btn--tonal");
-  expect(undo.parentElement).toHaveClass("work-agenda-undo");
+  expect(undo.closest(".sk-receipt-slot")).not.toBeNull();
+  expect(rowOf(task.title)).not.toContainElement(undo);
+  expect(
+    within(rowOf(task.title)).queryByRole("button", { name: /^Undo/ }),
+  ).toBeNull();
 });

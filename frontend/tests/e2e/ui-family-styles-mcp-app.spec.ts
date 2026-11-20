@@ -10,9 +10,14 @@ import { resolved, style } from "./computed-style";
 // "the colour of token X", the expected value is X resolved in the page, so a retuned token does not break the test
 // but a rule that stops using it does.
 
-async function openJournal(page: Page, width = 500) {
+async function openJournal(
+  page: Page,
+  width = 500,
+  platform?: "mobile" | "desktop",
+) {
   const opened = await openSidekick(page, {
     width,
+    platform,
     theme: "light",
     tool: "get_journal_day",
     result: journalDay,
@@ -58,9 +63,17 @@ test("Design tokens: the 4 px spacing scale, the 48 px row, the 2 px contour and
   expect((await typed("--sk-type-label-strong"))[1]).toBe("20px");
   expect((await typed("--sk-type-label-strong"))[2]).toBe("600");
   expect((await typed("--sk-type-menu"))[2]).toBe("500");
-  // Without host variables the text steps fall back to 14 / 16 px and 400 / 600.
-  expect(await resolved(app, "width", "var(--sk-text-sm)")).toBe("14px");
-  expect(await resolved(app, "width", "var(--sk-text-md)")).toBe("16px");
+  // The six sizes of the scale (the retired --sk-text-* are gone: css-policy) and, without host variables, 400 / 600.
+  for (const [token, size] of [
+    ["--sk-type-caption-size", "12px"],
+    ["--sk-type-meta-size", "14px"],
+    ["--sk-type-body-size", "16px"],
+    ["--sk-type-section-size", "18px"],
+    ["--sk-type-title-size", "22px"],
+    ["--sk-type-display-size", "22px"],
+  ] as const)
+    expect(await resolved(app, "width", `var(${token})`), token).toBe(size);
+  expect(await resolved(app, "width", "var(--sk-text-sm)")).toBe("auto");
   expect(await resolved(app, "font-weight", "var(--sk-weight-normal)")).toBe(
     "400",
   );
@@ -211,7 +224,9 @@ test("Room strip: the chosen room is a raised pill with no contour, the round + 
 test("Menu and buttons: the ⋯ menu's ring lies inside its entry, an open icon button has no fill, the four button levels are drawn as designed", async ({
   page,
 }) => {
-  const { app, failures } = await openJournal(page);
+  // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+  // popover a mouse gets (ui/menu.tsx).
+  const { app, failures } = await openJournal(page, 500, "mobile");
   const more = app.locator(".journal-day-more");
   await more.focus();
   await page.keyboard.press("Enter");
@@ -338,7 +353,7 @@ test("Inline Work card: the family's card frame and eyebrow, with the app name o
     borderTopLeftRadius: await resolved(app, "width", "var(--sk-radius-card)"),
   });
   // The card type is the family's eyebrow: small, normal case.
-  const eyebrow = app.locator(".work-compact-kind");
+  const eyebrow = app.locator(".work-compact-card > .sk-eyebrow");
   expect(await style(eyebrow, "fontSize", "textTransform")).toEqual({
     fontSize: await resolved(app, "width", "var(--sk-type-meta-size)"),
     textTransform: "none",

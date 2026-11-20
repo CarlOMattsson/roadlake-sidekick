@@ -8,7 +8,7 @@ import {
 } from "../mcp-apps/ui/back-header";
 import { MoreIcon } from "../mcp-apps/ui/icons";
 import { controlEntry } from "../mcp-apps/ui/control-entry";
-import { KeyScope } from "../mcp-apps/ui/key-scope";
+import { Menu, menuButtonKeys } from "../mcp-apps/ui/menu";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import type { JournalLabels } from "./labels";
 import {
@@ -98,7 +98,8 @@ export function useEntryTrash(
 /**
  * The entry's ⋯ with its items: "Keep out of memory" (or "Bring back into memory") where the transport can, then
  * "Delete entry". In the shell's Back row the ⋯ sits at the end of the row (pen, then ⋯); with no shell Back it sits
- * on its own row above the date. The menu opens under the heading. Escape closes it and gives the focus back to ⋯.
+ * on its own row above the date. The menu is a popover under ⋯ with a mouse or in a wide frame, else (a phone) the panel
+ * under the heading. Escape closes it and gives the focus back to ⋯.
  */
 export function EntryMenu({
   labels: t,
@@ -129,6 +130,7 @@ export function EntryMenu({
       aria-controls={open ? panelId : undefined}
       disabled={disabled}
       onClick={() => setOpen(!open)}
+      onKeyDown={menuButtonKeys(open, setOpen)}
     >
       <MoreIcon />
     </button>
@@ -141,14 +143,7 @@ export function EntryMenu({
         <div className="journal-entry-bar">{more}</div>
       )}
       {open && (
-        <KeyScope
-          id={panelId}
-          className="sk-menu-panel"
-          onEscape={() => {
-            setOpen(false);
-            button.current?.focus();
-          }}
-        >
+        <Menu id={panelId} anchor={button} onClose={() => setOpen(false)}>
           {onToggleMemory && (
             <button
               type="button"
@@ -173,7 +168,7 @@ export function EntryMenu({
           >
             {t.deleteEntry}
           </button>
-        </KeyScope>
+        </Menu>
       )}
     </>
   );

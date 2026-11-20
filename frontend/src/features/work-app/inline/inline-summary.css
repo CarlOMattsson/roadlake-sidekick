@@ -80,7 +80,7 @@
 .sidekick-work .work-compact-row-meta > .sk-ai-mark {
   min-height: 0;
   padding-inline: calc(1.5 * var(--sk-s1));
-  font-size: 0.75rem;
+  font-size: var(--sk-type-caption-size);
   line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
 }
 .sidekick-work .work-compact-row-meta > .sk-ai-mark::before {
@@ -91,13 +91,6 @@
    it, never beside a short name. They are text, so they have no › and no button. */
 .sidekick-work .work-compact-hierarchy .work-compact-row {
   display: block;
-}
-
-/* The empty sentence: --sk-type-body, muted. */
-.sidekick-work .work-compact-agenda > .work-compact-status {
-  font-size: var(--sk-type-body-size);
-  line-height: var(--sk-type-body-line);
-  color: var(--sk-muted);
 }
 
 /* The inline card frame (confirmation, and every inline summary: task, project, contact, agenda, board,
@@ -111,6 +104,15 @@
 .sidekick-work .work-compact-card > p,
 .sidekick-work > section[aria-label]:not(.hierarchy-detail) > p {
   margin: 0;
+}
+/* The card's title is a heading (Card), and the room's own h2 rule (page titles, 20/600 with margins) is more specific
+   than the family's .sk-card__title: the card keeps the family's card title type and no margin of its own (the
+   kicker-to-title 4 is the family's, and wins on top). */
+.sidekick-work .work-compact-card > h2.sk-card__title {
+  margin: 0;
+  font-size: var(--sk-type-card-size);
+  font-weight: var(--sk-type-card-weight);
+  line-height: var(--sk-type-card-line);
 }
 
 /* Inline Contact card (ContactSummary): the text, then "Open" in the card's foot as in the other cards.
@@ -126,7 +128,7 @@
 }
 /* A Contact note takes at most two lines; the card does not grow or scroll for a long note. */
 .sidekick-work .work-compact-note {
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -147,7 +149,7 @@
   align-items: flex-start;
   gap: 0.2rem 0.5rem;
   padding: 0.2rem 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
 }
 /* The card type line is the family's sk-eyebrow in the markup (see family.css). */
 /* A title takes at most two lines; the card does not grow or scroll for long titles. Weight 400 as every row. */
@@ -177,17 +179,10 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.sidekick-work .work-compact-row > button:hover:not(:disabled) {
-  text-decoration: underline;
-}
-/* What the card leaves out, after the link's name in the same row: " · 3 fler försenade" in the meta type and colour. */
-.sidekick-work .work-compact-more {
-  font: var(--sk-type-meta);
-  color: var(--sk-muted);
-}
-.sidekick-work .work-compact-open-text {
-  min-width: 0;
-  text-align: start;
+@media (hover: hover) {
+  .sidekick-work .work-compact-row > button:hover:not(:disabled) {
+    text-decoration: underline;
+  }
 }
 /* "Äldst försenade" over the Status card's rows: a meta label, 4 over the first row. */
 .sidekick-work .work-compact-board > .work-compact-group.work-compact-group {
@@ -207,12 +202,15 @@
 /* An action in a card keeps its own width (not stretched by the grid); the button look is the family's: "Öppna … ›" is
    the open text button, Done the primary. The 24 between them leaves 12 once Open pulls its padding back, so the
    hit areas do not overlap; wrapped under Done, Open's text lines up with the card's. */
-.sidekick-work .work-compact-action {
+.sidekick-work .work-compact-action,
+.sidekick-work .work-compact-card > .sk-open-link,
+.sidekick-work .work-compact-card > .sk-card__foot > .sk-open-link {
   justify-self: start;
   min-height: var(--sk-tap);
 }
-/* After the 44 rows Open stands in their rhythm, the card's 8 taken back: 44 from the last row's centre, so the
-   way on is not set apart by more air than the rows themselves. */
+/* After the 44 rows the card's link (OpenLink) stands in their rhythm, the card's 8 taken back: 44 from the last row's
+   centre, so the way on is not set apart by more air than the rows themselves. */
+.sidekick-work .work-compact-rows + .sk-open-link,
 .sidekick-work .work-compact-rows + .work-compact-action,
 .sidekick-work .work-compact-rows + .sk-card__foot {
   margin-top: calc(-1 * var(--sk-s2));
@@ -222,15 +220,19 @@
   flex-wrap: wrap;
   gap: var(--sk-s2) var(--sk-s5);
 }
-/* "Klar · Ångra" where Done stood: the word and its button on one line, the button as tall as Done. */
-.sidekick-work .work-compact-undo {
-  display: inline-flex;
-  align-items: center;
+/* The skeleton of a loading card: its status line and bars, 8 apart as the card's own parts. */
+.sidekick-work .work-compact-loading {
+  display: grid;
   gap: var(--sk-s2);
 }
-/* The time line under Ångra (undo.css) is drawn inside the button, so the button is its box. */
-.sidekick-work .work-compact-undo .sk-undo-time {
-  position: relative;
+/* The receipt slot (ReceiptBar) is the last thing in a card; empty it must take no row, or the card's gap would add 8
+   under the link. A card that ends on its link keeps the link's 8 below it while the slot is empty. */
+.sidekick-work .work-compact-card > .sk-receipt-slot:empty {
+  display: none;
+}
+.sidekick-work
+  .work-compact-card:has(> .sk-open-link + .sk-receipt-slot:empty) {
+  padding-bottom: var(--sk-s2);
 }
 
 .sidekick-work .work-compact-segments {
@@ -241,24 +243,28 @@
 
 .sidekick-work .work-compact-segments [aria-pressed="true"] {
   font-weight: 600;
-  outline: 2px solid currentColor;
-  outline-offset: -2px;
+  /* The chosen form (tokens.css --sk-selected-*): a 2 px contour inside the edge, never an outline, which is focus's. */
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-selected-line);
 }
 
 /* The card's link row: 44 drawn (--sk-tap), as every other control a finger meets in the card, with a 48 target. */
-.sidekick-work .work-compact-card > .work-compact-action.sk-btn--open,
+.sidekick-work
+  .work-compact-card
+  > :is(.sk-open-link, .work-compact-action.sk-btn--open),
 .sidekick-work
   .work-compact-card
   > .sk-card__foot
-  > .work-compact-action.sk-btn--open {
+  > :is(.sk-open-link, .work-compact-action.sk-btn--open) {
   position: relative;
   min-height: var(--sk-tap);
 }
-.sidekick-work .work-compact-card > .work-compact-action.sk-btn--open::after,
+.sidekick-work
+  .work-compact-card
+  > :is(.sk-open-link, .work-compact-action.sk-btn--open)::after,
 .sidekick-work
   .work-compact-card
   > .sk-card__foot
-  > .work-compact-action.sk-btn--open::after {
+  > :is(.sk-open-link, .work-compact-action.sk-btn--open)::after {
   content: "";
   position: absolute;
   inset: calc((var(--sk-tap) - 48px) / 2) 0;
@@ -331,7 +337,7 @@
 .sidekick-work .work-compact-card {
   position: relative;
 }
-.sidekick-work .work-compact-card .sk-eyebrow:has(+ .work-inline-refresh) {
+.sidekick-work .work-compact-card .sk-eyebrow:has(~ .work-inline-refresh) {
   padding-inline-end: var(--sk-tap);
 }
 .sidekick-work button.sk-iconbtn.work-inline-refresh {

@@ -14,6 +14,11 @@ import "./family.css";
  * onCreate may answer synchronously or with a promise. The text is emptied only when the answer
  * is not false and the promise does not reject. A failed write keeps the text, so it can be sent again. When
  * `errorLabel` is given, a failed write shows that line under the field (§3 *Fel vid skrivning*).
+ *
+ * `optimistic` is for fields typed into in a quick row (the shopping list): Enter takes exactly the sent text out of
+ * the field at once, so what is typed next is the next item. The writes go one at a time in the order they were sent
+ * (no answer is waited for before typing on), and a write that fails puts its text back in front of what has been
+ * typed since, with the error line, so nothing is dropped silently.
  */
 export type CreateResult = boolean | void;
 
@@ -42,6 +47,8 @@ export type CreateFieldProps = {
   note?: string;
   /** The text the field opens with (a name taken from a search, say). Read once, when the field mounts. */
   initialText?: string;
+  /** Empty the field when the text is sent, send in order, and put a failed text back (see above). */
+  optimistic?: boolean;
 };
 
 export function CreateField({
@@ -54,11 +61,18 @@ export function CreateField({
   errorLabel,
   note,
   initialText = "",
+  optimistic = false,
 }: CreateFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingRef = useRef(false);
+  // The latest handler and the chain of sent texts (optimistic): each waits for the one before it.
+  const onCreateRef = useRef(onCreate);
+  const chainRef = useRef<Promise<void>>(Promise.resolve());
+  useEffect(() => {
+    onCreateRef.current = onCreate;
+  });
   const [text, setText] = useState(initialText);
   const [failed, setFailed] = useState(false);
   const trimmed = text.trim();
@@ -81,7 +95,38 @@ export function CreateField({
     inputRef.current?.focus();
   }
 
+  /** Optimistic: the failed text comes back in front of what was typed since. */
+  function restore(submitted: string) {
+    setFailed(true);
+    setText((current) =>
+      current.trim() === ""
+        ? submitted
+        : `${submitted}, ${current.trimStart()}`,
+    );
+  }
+
+  function createOptimistic() {
+    if (trimmed === "") return;
+    const submitted = trimmed;
+    setFailed(false);
+    setText("");
+    // A press on + takes the focus with it when the button turns into ×; the next item is typed in the field.
+    inputRef.current?.focus();
+    chainRef.current = chainRef.current.then(async () => {
+      try {
+        const result = await onCreateRef.current(submitted);
+        if (result === false) restore(submitted);
+      } catch {
+        restore(submitted);
+      }
+    });
+  }
+
   function create() {
+    if (optimistic) {
+      createOptimistic();
+      return;
+    }
     if (trimmed === "" || pendingRef.current) return;
     const submitted = trimmed;
     setFailed(false);

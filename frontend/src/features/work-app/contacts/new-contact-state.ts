@@ -1,7 +1,11 @@
 import type { WorkContactSummary, WriteFailure } from "../transport/transport";
 
-/** A request to open the create field with a name in it; `n` makes a repeated request with the same name new. */
-export type CreateRequest = { name: string; n: number };
+/**
+ * A request to open the create field with a name in it; `n` makes a repeated request with the same name new.
+ * `immediate`: the name is final, so the Contact is created at once and the field opens only if something needs
+ * the user (a name another Contact has, a refusal or a failure).
+ */
+export type CreateRequest = { name: string; n: number; immediate?: boolean };
 
 export type NewContactState = {
   open: boolean;
@@ -62,7 +66,7 @@ export function newContactReducer(
             seenRequest: action.request,
             prefill: action.request.name,
             fieldKey: state.fieldKey + 1,
-            open: true,
+            open: !action.request.immediate,
           }
         : { ...state, seenRequest: action.request };
     case "opened":
@@ -83,11 +87,13 @@ export function newContactReducer(
         fieldKey: state.fieldKey + 1,
         sameName: [],
       };
+    // What needs the user opens the field, which is where it is shown (an immediate create starts with it closed).
     case "problem":
-      return { ...state, problem: action.text };
+      return { ...state, open: true, problem: action.text };
     case "sameNameFound":
       return {
         ...state,
+        open: true,
         sameName: action.contacts,
         takenName: action.name,
       };
@@ -100,7 +106,7 @@ export function newContactReducer(
         sameName: [],
       };
     case "submitFailed":
-      return { ...state, failure: action.failure };
+      return { ...state, open: true, failure: action.failure };
     case "submitSettled":
       return { ...state, busy: false };
   }

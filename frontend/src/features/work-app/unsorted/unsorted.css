@@ -23,7 +23,7 @@
 }
 .sidekick-work .work-unsorted-refresh {
   flex: none;
-  font-size: 1.25rem;
+  font-size: var(--sk-icon);
 }
 
 .sidekick-work .work-unsorted-row {

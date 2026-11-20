@@ -121,7 +121,7 @@ describe("empty Status card", () => {
 });
 
 describe("empty Projects card", () => {
-  it("shows the sentence, the example and Open Projects, with no zero counts and no Show all", async () => {
+  it("shows the sentence, the example and Open Projects, with no zero counts and no more-count", async () => {
     const user = userEvent.setup();
     const send = vi.fn(() => Promise.resolve(true));
     const onOpen = vi.fn();
@@ -136,9 +136,7 @@ describe("empty Projects card", () => {
     );
     expect(screen.getByText(workEn.hierarchyEmpty)).toBeVisible();
     expect(container.textContent).not.toMatch(noCount);
-    expect(
-      screen.queryByRole("button", { name: inlineSummaryLabelsEn.showAll }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: /Show all|·/ })).toBeNull();
     await user.click(
       screen.getByRole("button", {
         name: new RegExp(inlineSummaryLabelsEn.blank.hierarchy.example),
@@ -243,7 +241,7 @@ describe("cards that have more to open", () => {
     );
     expect(
       screen.getByRole("button", {
-        name: /^Öppna Projekt\W+1 fler$/,
+        name: /^Öppna Projekt\W+1 till$/,
       }),
     ).toBeVisible();
   });

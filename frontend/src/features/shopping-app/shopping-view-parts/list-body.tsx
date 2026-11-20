@@ -36,11 +36,13 @@ export function ListSummary({
     <>
       {/* The list name (or the shop's "ICA · 8 left") is the title of the header row above, not repeated here. */}
       {storeMode || folded ? (
-        // Fullscreen and the folded card alike (one progress, design rule 8): a full-width stripe under the list name (shopping.css, .shopping-progress). An empty list has
-        // nothing to count (`boughtOf` with 0 of 0): its empty state says so instead.
+        // Fullscreen and the folded card alike (one progress, design rule 8): the shared bar layout, text then the bar to
+        // the content edge, under the list name. An empty list has nothing to count (`boughtOf` with 0 of 0): its empty
+        // state says so instead.
         detail.items.length > 0 && (
           <div className="shopping-progress">
             <Progress
+              layout="bar"
               done={purchasedCount}
               total={detail.items.length}
               label={
@@ -81,8 +83,6 @@ export function AddItemField({
   labels: t,
   fullscreen,
   open,
-  hasError,
-  note,
   addButton,
   onCreate,
   onOpen,
@@ -91,8 +91,6 @@ export function AddItemField({
   labels: ShoppingLabels;
   fullscreen: boolean;
   open: boolean;
-  hasError: boolean;
-  note: string;
   addButton: RefObject<HTMLButtonElement | null>;
   onCreate: (name: string) => Promise<boolean>;
   onOpen: () => void;
@@ -119,7 +117,7 @@ export function AddItemField({
           closeLabel={t.close}
           addLabel={t.addItemButton}
           errorLabel={t.saveFailed}
-          note={hasError ? "" : note}
+          optimistic
           onCreate={onCreate}
           onClose={onClose}
         />
@@ -183,7 +181,6 @@ export function BatchForm({
   names,
   invalid,
   busy,
-  note,
   onNames,
   onKeyDown,
   onAdd,
@@ -193,8 +190,6 @@ export function BatchForm({
   names: string;
   invalid: boolean;
   busy: boolean;
-  /** The receipt of the last add (what was added, what joined an item already there); empty when there is none. */
-  note: string;
   onNames: (value: string) => void;
   onKeyDown: (event: KeyboardEvent<HTMLElement>) => void;
   onAdd: () => void;
@@ -226,12 +221,18 @@ export function BatchForm({
         </label>
       )}
       {invalid && <p role="alert">{t.invalidBatch}</p>}
-      {note && !invalid && <p role="status">{note}</p>}
+      {/* Never greyed out for an empty field (it read as broken): pressed empty, it puts the caret in the field. */}
       <button
         type="button"
         className="sk-btn--primary"
-        disabled={busy || !names.trim()}
-        onClick={onAdd}
+        disabled={busy}
+        onClick={(event) => {
+          if (names.trim()) onAdd();
+          else
+            event.currentTarget.form
+              ?.querySelector<HTMLElement>("input, textarea")
+              ?.focus();
+        }}
       >
         {folded ? t.addItemButton : t.add}
       </button>

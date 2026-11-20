@@ -104,5 +104,7 @@ it("says there is no hit only once every page is read", async () => {
   );
   expect(screen.queryByText(/xyzqq/)).toBeNull();
   land({ items: [second], next_cursor: null });
-  expect(await screen.findByText(/xyzqq/)).toBeInTheDocument();
+  expect(
+    await screen.findByText(agendaLabelsEn.noMatch.replace("{q}", "xyzqq")),
+  ).toBeInTheDocument();
 });

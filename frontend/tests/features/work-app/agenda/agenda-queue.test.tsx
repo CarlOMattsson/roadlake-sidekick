@@ -171,7 +171,12 @@ it("a read asked for while a row write runs waits for it instead of being droppe
 it("(10) the waiting mark is announced from a status region that is mounted before it and is not inside the busy row", async () => {
   const { transport } = makeTransport();
   renderAgenda([first], transport);
-  const region = screen.getByRole("status");
+  // The agenda's own announcer; the receipt bar is a second status region, mounted empty beside it.
+  const announcer = () =>
+    screen
+      .getAllByRole("status")
+      .filter((node) => node.classList.contains("work-visually-hidden"))[0]!;
+  const region = announcer();
   expect(region.textContent).toBe("");
 
   fireEvent.click(glyph(first.title));
@@ -179,7 +184,7 @@ it("(10) the waiting mark is announced from a status region that is mounted befo
   fireEvent.click(glyph(first.title));
   expect(screen.getByRole("listitem")).toHaveAttribute("aria-busy", "true");
   // The same region, not a new one inside the busy row, now carries the news.
-  expect(screen.getByRole("status")).toBe(region);
+  expect(announcer()).toBe(region);
   expect(region).toHaveTextContent(`${first.title}: ${workEn.queued}`);
   expect(region.closest("[aria-busy]")).toBeNull();
 });

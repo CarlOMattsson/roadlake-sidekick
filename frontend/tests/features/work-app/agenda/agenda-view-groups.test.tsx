@@ -27,6 +27,7 @@ import {
   renderAgenda,
   glyphOf,
   rowOf,
+  receiptBar,
   undoButton,
   openRow,
   resetAgendaEnvironment,
@@ -260,12 +261,15 @@ it("a glyph tap that marks an overdue Task done drops it from the Försenade cou
   const line = within(rowOf(task.title)).getByRole("status");
   expect(line.parentElement).toHaveClass("work-agenda-undo");
   expect(line).toHaveTextContent("Done · in Status");
+  // The Undo is the receipt bar's, which names the Task; the row's line has no button.
+  expect(receiptBar()).toHaveTextContent(`Done: ${task.title}`);
   expect(
-    within(line.parentElement as HTMLElement).getByRole("button", {
-      name: /^Undo/,
-    }),
+    within(receiptBar()).getByRole("button", { name: /^Undo/ }),
   ).toBeInTheDocument();
-  // The other overdue row is still open and has no Undo of its own.
+  expect(
+    within(line.parentElement as HTMLElement).queryByRole("button"),
+  ).not.toBeInTheDocument();
+  // The other overdue row is still open and has no state line.
   expect(
     within(rowOf(second.title)).queryByRole("status"),
   ).not.toBeInTheDocument();

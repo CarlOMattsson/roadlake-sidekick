@@ -10,7 +10,6 @@
   border-radius: var(--sk-radius-pill);
   color: var(--sk-muted);
   font: var(--sk-type-caption);
-  font-size: 0.8125rem;
   line-height: 1.25rem;
   white-space: nowrap;
 }

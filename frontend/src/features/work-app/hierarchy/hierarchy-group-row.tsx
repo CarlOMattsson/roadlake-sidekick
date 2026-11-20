@@ -1,4 +1,5 @@
 import { CycleIcon, FolderIcon } from "../../mcp-apps/ui/icons";
+import { Progress } from "../../mcp-apps/ui/progress";
 import { type HierarchyDetailLabels } from "./hierarchy-detail-labels";
 import type { GroupCounts } from "./hierarchy-tree";
 import {
@@ -44,11 +45,15 @@ function GroupMeta({
       {counts &&
       !process &&
       !(node.status === "completed" && counts.total === 0) ? (
-        <span>
-          {counts.total > 0
-            ? t.progressOf(counts.done, counts.total)
-            : dl.noTasks}
-        </span>
+        counts.total > 0 ? (
+          <Progress
+            done={counts.done}
+            total={counts.total}
+            label={t.progressOf(counts.done, counts.total)}
+          />
+        ) : (
+          <span>{dl.noTasks}</span>
+        )
       ) : null}
       {counts && process ? (
         <span>{dl.openTasks(counts.total - counts.done)}</span>
@@ -79,7 +84,11 @@ export function GroupRow({
   const process = node.kind === "process";
   const kind = workKindLabel(t, node.kind);
   return (
-    <li className="work-tree-row" data-kind={node.kind}>
+    <li
+      className="work-tree-row"
+      data-kind={node.kind}
+      data-sk-row={onOpen ? "" : undefined}
+    >
       <div className="work-agenda-line">
         <span className="work-agenda-glyph" aria-hidden="true">
           {process ? <CycleIcon /> : <FolderIcon />}

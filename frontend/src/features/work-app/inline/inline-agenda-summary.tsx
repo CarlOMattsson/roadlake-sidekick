@@ -134,7 +134,7 @@ function WaitingSummary({
       kicker={
         refresh?.at === undefined
           ? undefined
-          : `${labels.appName} · ${refreshedOr(refresh, labels.dateLocale, "")}`
+          : `${labels.appName} · ${words.kind} · ${refreshedOr(refresh, labels.dateLocale, "")}`
       }
       refresh={refresh}
       lines={[
@@ -148,7 +148,8 @@ function WaitingSummary({
       ]}
       empty={rows.length === 0 && !more ? words.empty : undefined}
       onOpen={onOpen}
-      openLabel={labels.showAll}
+      openLabel={labels.openView(words.kind)}
+      more={labels.moreRows(rows.length - shown.length, more)}
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">
@@ -196,9 +197,6 @@ function WaitingSummary({
             );
           })}
         </ul>
-      ) : null}
-      {rows.length > shown.length ? (
-        <p className="work-compact-more">{`+${rows.length - shown.length}`}</p>
       ) : null}
     </ListSummary>
   );
@@ -293,7 +291,7 @@ function DatedAgendaSummary({
     <ListSummary
       labels={labels}
       kindLabel={labels.kind.agenda}
-      kicker={`${labels.appName} · ${refreshedOr(refresh, labels.dateLocale, workDate(now.toISOString(), now, locale, { inline: true, relative: false }))}`}
+      kicker={`${labels.appName} · ${labels.kind.agenda} · ${refreshedOr(refresh, labels.dateLocale, workDate(now.toISOString(), now, locale, { inline: true, relative: false }))}`}
       refresh={refresh}
       className="work-compact-agenda"
       lines={
@@ -315,7 +313,7 @@ function DatedAgendaSummary({
       blank={blank ? labels.blank.agenda : undefined}
       onOpen={blank || listed + hidden > 0 || more ? onOpen : undefined}
       openLabel={labels.openAgenda}
-      aside={rows.length > 0 ? hiddenText : undefined}
+      more={rows.length > 0 ? hiddenText : undefined}
     >
       {rows.length > 0 ? (
         // `today` over today's rows, then `group.overdue` over the overdue: with both groups each is named, so a card

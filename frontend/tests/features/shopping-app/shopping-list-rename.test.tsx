@@ -63,7 +63,7 @@ describe("fullscreen Edit list renames the open list", () => {
       />,
     );
     await waitFor(() =>
-      expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      expect(document.querySelector(".shopping-loading")).toBeNull(),
     );
     await user.click(
       screen.getByRole("button", { name: shoppingEn.moreActions }),
@@ -88,7 +88,7 @@ describe("fullscreen Edit list renames the open list", () => {
       />,
     );
     await waitFor(() =>
-      expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+      expect(document.querySelector(".shopping-loading")).toBeNull(),
     );
     await user.click(
       screen.getByRole("button", { name: shoppingEn.moreActions }),

@@ -14,8 +14,8 @@ export const cardLabelsEn = {
   empty: "Nothing to show.",
   retry: "Try again",
   open: "Open",
-  /** The Open button of the changes list: "Show all (30)". */
-  showAll: "Show all ({count})",
+  /** The card's main link to the changes list; the rows it does not show follow it as "· 25 more" (`more`). */
+  openChanges: "Open changes",
   edit: "Edit",
   connections: "Links",
   statusGroup: "Change status",
@@ -31,7 +31,7 @@ export const cardLabelsEn = {
   superseded: "Replaced by a newer card",
   summaryMovedOne: "{count} task, now {status}",
   summaryMovedOther: "{count} tasks, now {status}",
-  more: "+{count} more",
+  more: "{count} more",
   kind: {
     task: "Task",
     project: "Project",
@@ -61,7 +61,7 @@ export const cardLabelsSv: CardLabels = {
   empty: "Inget att visa.",
   retry: "Försök igen",
   open: "Öppna",
-  showAll: "Visa alla ({count})",
+  openChanges: "Öppna ändringar",
   edit: "Redigera",
   connections: "Kopplingar",
   statusGroup: "Ändra status",
@@ -77,7 +77,7 @@ export const cardLabelsSv: CardLabels = {
   superseded: "Ersatt av ett nyare kort",
   summaryMovedOne: "{count} uppgift, nu {status}",
   summaryMovedOther: "{count} uppgifter, nu {status}",
-  more: "+{count} fler",
+  more: "{count} till",
   kind: {
     task: "Uppgift",
     project: "Projekt",

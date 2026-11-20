@@ -33,6 +33,8 @@ export type Options = {
   replies?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
   safeAreaInsets?: { top: number; right: number; bottom: number; left: number };
+  /** The host's platform; "mobile" reports a coarse pointer, so the rooms' menus are the phone's panels (ui/menu.tsx). */
+  platform?: "mobile" | "desktop";
 };
 
 export async function openSidekick(page: Page, options: Options) {
@@ -53,6 +55,7 @@ export async function openSidekick(page: Page, options: Options) {
       ...(options.safeAreaInsets
         ? { safeAreaInsets: options.safeAreaInsets }
         : {}),
+      ...(options.platform ? { platform: options.platform } : {}),
     },
     hostCapabilities: options.capabilities ?? { serverTools: {}, message: {} },
     replies: { ...domainReplies(), ...options.replies },

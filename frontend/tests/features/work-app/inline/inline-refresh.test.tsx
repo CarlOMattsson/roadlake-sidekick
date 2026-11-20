@@ -113,9 +113,9 @@ describe.each(locales)(
         "get_work_board",
         expect.objectContaining({ status: "todo" }),
       );
-      expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent(
-        `${work.title} · ${work.status} · ${stamp}`,
-      );
+      expect(
+        screen.getByText(`${work.title} · ${work.status} · ${stamp}`),
+      ).toBeInTheDocument();
       // The card was not drawn again: the same button, still focused.
       expect(screen.getByRole("button", { name: words.refresh })).toBe(button);
       expect(button).toHaveFocus();
@@ -221,7 +221,10 @@ describe.each(locales)(
         "get_work_agenda",
         expect.objectContaining({ status: "todo" }),
       );
-      expect(screen.getByText(`${work.title} · ${stamp}`)).toBeInTheDocument();
+      // The kicker is the app, the view and the time of the last read.
+      expect(
+        screen.getByText(`${work.title} · Agenda · ${stamp}`),
+      ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: words.refresh })).toHaveFocus();
     });
 
@@ -254,7 +257,11 @@ describe.each(locales)(
       );
       await waitFor(() =>
         expect(
-          screen.getByText(`${work.title} · ${stamp}`),
+          screen.getByText(
+            (text) =>
+              text.startsWith(`${work.title} · `) &&
+              text.endsWith(` · ${stamp}`),
+          ),
         ).toBeInTheDocument(),
       );
       expect(call).toHaveBeenCalledWith(

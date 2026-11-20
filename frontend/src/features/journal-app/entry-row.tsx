@@ -119,6 +119,7 @@ export function EntryRow({
     <li
       className="journal-entry-row"
       data-navigates={onOpen ? "true" : undefined}
+      data-sk-row={onOpen ? "" : undefined}
     >
       {onOpen ? (
         <button type="button" className="journal-entry-card" onClick={onOpen}>

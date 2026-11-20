@@ -1,13 +1,13 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { Tabs } from "../../mcp-apps/ui/tabs";
 import { useViewPicker } from "../../mcp-apps/ui/view-picker";
 import "./view-tabs.css";
 
 /**
- * The view switcher of the Work shell (Agenda, Status, Projekt), designsystem §3 "Flikar" and "Rumshuvud": a row of
- * text tabs, 44 px high, with no background. The pressed tab has --sk-fg and a 2 px underline. It is a group of buttons
- * with `aria-pressed`; arrow keys, Home and End move focus only, Enter or Space (or a click) selects.
+ * The view switcher of the Work shell (Agenda, Status, Projekt), designsystem §3 "Flikar" and "Rumshuvud": the shared
+ * `Tabs` (mcp-apps/ui/tabs.tsx), in equal cells on one line, with no rule of their own because the shell's row draws
+ * the hairline across its full width, tools included.
  *
  * When the tabs do not fit beside the tools (measured, never by breakpoint: 320 px, text at 200 %), the row gives way
  * to the view picker (ui/view-picker.tsx): "Status ⌄", a menu with the views and ✓ on the chosen one. No label is
@@ -31,8 +31,6 @@ export function ViewTabs<T extends string>({
   onChange: (value: T) => void;
 }) {
   const groupRef = useRef<HTMLDivElement>(null);
-  const pressedIndex = options.findIndex((option) => option.value === value);
-  const tabStopIndex = pressedIndex === -1 ? 0 : pressedIndex;
   const [narrow, setNarrow] = useState(false);
   const picker = useViewPicker({
     label,
@@ -60,29 +58,19 @@ export function ViewTabs<T extends string>({
   return (
     <>
       <div className="work-view-tabs-wrap">
-        <KeyScope
-          roving
+        <Tabs
           ref={groupRef}
-          role="group"
-          aria-label={label}
-          className="work-view-tabs"
-          data-narrow={narrow || undefined}
-        >
-          {options.map((option, index) => (
-            <button
-              key={option.value}
-              type="button"
-              className="work-view-tabs__tab"
-              aria-pressed={index === pressedIndex}
-              tabIndex={index === tabStopIndex ? 0 : -1}
-              onClick={() => {
-                if (index !== pressedIndex) onChange(option.value);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </KeyScope>
+          label={label}
+          options={options}
+          value={value}
+          onChange={onChange}
+          fit="equal"
+          rule={false}
+          wrap={false}
+          className={
+            narrow ? "work-view-tabs work-view-tabs--narrow" : "work-view-tabs"
+          }
+        />
         {picker.button}
       </div>
       {picker.menu}

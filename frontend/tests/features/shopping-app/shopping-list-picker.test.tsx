@@ -357,7 +357,7 @@ describe("no list chosen: the lists are rows to tap", () => {
     ).toBeNull();
   });
 
-  it("with no lists, a short note and a tip show, and the + opens the create field; Enter creates", async () => {
+  it("with no lists, a short note, a tip and a create row show, and the row opens the create field; Enter creates", async () => {
     const user = userEvent.setup();
     const create = vi
       .fn()
@@ -367,15 +367,38 @@ describe("no list chosen: the lists are rows to tap", () => {
     );
     expect(await screen.findByText(shoppingEn.noLists)).toBeInTheDocument();
     expect(screen.getByText(shoppingEn.pickerHint)).toBeInTheDocument();
-    // The field is not drawn until the + is pressed.
+    // The field is not drawn until the create row (or the + in the head) is pressed.
     expect(screen.queryByRole("textbox")).toBeNull();
-    await user.click(screen.getByRole("button", { name: shoppingEn.newList }));
+    const rows = screen
+      .getAllByRole("button", { name: shoppingEn.newList })
+      .filter((button) => button.classList.contains("sk-action-row"));
+    expect(rows).toHaveLength(1);
+    await user.click(rows[0]!);
+    // The row gives way to the field it opened.
+    expect(
+      screen
+        .queryAllByRole("button", { name: shoppingEn.newList })
+        .filter((button) => button.classList.contains("sk-action-row")),
+    ).toHaveLength(0);
     await user.type(
       screen.getByRole("textbox", { name: shoppingEn.newList }),
       "Garden{Enter}",
     );
     await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
     expect(create.mock.calls[0]![0]).toBe("Garden");
+  });
+
+  it("with no lists, the + in the head opens the same create field", async () => {
+    const user = userEvent.setup();
+    render(<ShoppingView transport={adapter([])} labels={shoppingEn} />);
+    await screen.findByText(shoppingEn.noLists);
+    const plus = screen
+      .getAllByRole("button", { name: shoppingEn.newList })
+      .find((button) => !button.classList.contains("sk-action-row"))!;
+    await user.click(plus);
+    expect(
+      screen.getByRole("textbox", { name: shoppingEn.newList }),
+    ).toBeInTheDocument();
   });
 
   it("archived lists wait last behind a folded 'Archived (N)'", async () => {

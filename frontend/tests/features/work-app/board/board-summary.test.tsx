@@ -364,7 +364,8 @@ it("counts the open Tasks in the legend, without Projects or Done, and says more
   // The inline summary counts the open records the list does not show in one line: the three To do and In progress
   // Tasks (none has a due date, so none is listed). The Done Task is not open. The text to the model still says that
   // more records exist.
-  expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
+  // The page has a next cursor, so the count is a floor: "3+ more", in the card's one main link.
+  expect(screen.getByText("· 3+ more")).toHaveClass("sk-open-link__more");
   expect(screen.queryByText(boardLabelsEn.more)).toBeNull();
   const [summary] = onModelContext.mock.calls[0] as [string];
   expect(summary).toBe(
@@ -383,12 +384,12 @@ it("says in one line how many Tasks the nearest-due list does not show", () => {
   );
   // Five open Tasks: the three nearest with a due date are listed (dueSoon, dueMid, dueLater). Two are not: noDue
   // (To do, no due date) and dueFourth (Blocked). The Done Task is not open, so it is not counted. The summary has
-  // one "2 more" aside on the open button instead of one line per status.
-  expect(screen.getByText("· 2 more")).toHaveClass("work-compact-more");
+  // one "2 more" in the open link instead of one line per status.
+  expect(screen.getByText("· 2 more")).toHaveClass("sk-open-link__more");
   expect(
     screen.queryByText(/^\+\d+ (To do|Blocked|Done|In progress)$/),
   ).toBeNull();
-  expect(container.querySelectorAll(".work-compact-more")).toHaveLength(1);
+  expect(container.querySelectorAll(".sk-open-link__more")).toHaveLength(1);
 });
 
 it("opens the board in fullscreen from its one action, which is no primary button", () => {
@@ -418,7 +419,7 @@ it("says more records exist when every loaded Task is listed but the page has a 
       next_cursor: "019f0000-0000-7000-8000-0000000000e2",
     },
   };
-  render(
+  const { container } = render(
     <WorkView
       transport={workWithBoard()}
       initial={listedAll}
@@ -426,10 +427,13 @@ it("says more records exist when every loaded Task is listed but the page has a 
       fullscreen={vi.fn()}
     />,
   );
-  expect(screen.getByText(`· ${boardLabelsEn.more}`)).toHaveClass(
-    "work-compact-more",
+  // Nothing is hidden, so the link counts nothing; the title's "+" says the counts are a floor, and no line says
+  // "more exist" twice.
+  expect(container.querySelectorAll(".sk-open-link__more")).toHaveLength(0);
+  expect(screen.queryByText(boardLabelsEn.more)).toBeNull();
+  expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
+    "2+ open",
   );
-  expect(screen.queryByText(/^\+\d+ more$/)).toBeNull();
 });
 
 it("shows no +N when the list shows every record of each column", () => {
@@ -449,7 +453,7 @@ it("shows no +N when the list shows every record of each column", () => {
       fullscreen={vi.fn()}
     />,
   );
-  expect(container.querySelectorAll(".work-compact-more")).toHaveLength(0);
+  expect(container.querySelectorAll(".sk-open-link__more")).toHaveLength(0);
 });
 
 /*
@@ -542,7 +546,7 @@ describe("the inline board card's kicker, title and row meta", () => {
     expect(container.querySelector(".work-compact-rows-label")).toBeNull();
   });
 
-  it("makes the foot one open button: the label, then what the card leaves out after ' · ', then a chevron", () => {
+  it("ends in one OpenLink: the label, then what the card leaves out after ' · ', then a chevron", () => {
     const hidden: WorkBoardPage = {
       columns: {
         todo: [
@@ -554,51 +558,51 @@ describe("the inline board card's kicker, title and row meta", () => {
       next_cursor: null,
     };
     const { container } = renderCard(hidden, workEn);
-    const open = container.querySelector("button.work-compact-action");
+    const open = container.querySelector("button.sk-open-link");
     expect(open).toHaveClass("sk-btn--open");
-    expect(open?.querySelector(".work-compact-open-text")).toHaveTextContent(
+    expect(open?.querySelector(".sk-open-link__text")).toHaveTextContent(
       "Open Status · 2 more",
     );
-    expect(open?.querySelector(".work-compact-more")).toHaveTextContent(
+    expect(open?.querySelector(".sk-open-link__more")).toHaveTextContent(
       "· 2 more",
     );
     expect(open?.querySelector("svg")).not.toBeNull();
-    expect(container.querySelector(".work-compact-foot")).toBeNull();
+    // Last in the card.
+    expect(container.querySelector(".sk-card")?.lastElementChild).toBe(open);
   });
 
   it("heads the card with the kicker Work · Status · the day, and titles it with the overdue count (en)", () => {
     const { container } = renderCard(withOverdue, workEn);
-    const kicker = container.querySelector(".work-compact-kind");
+    const kicker = container.querySelector(".sk-eyebrow");
     expect(kicker).toHaveTextContent("Work · Status · Wed 4 Nov");
-    expect(kicker?.tagName).toBe("H2");
-    expect(container.querySelector("h2.work-compact-kind")).toHaveClass(
-      "sk-eyebrow",
-    );
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+    // The kicker is the card's eyebrow (a paragraph); the title is the card's heading.
+    expect(kicker?.tagName).toBe("P");
+    expect(kicker).toHaveClass("sk-eyebrow");
+    expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
       "2 overdue of 4 open",
     );
   });
 
   it("titles the card with the open count alone when nothing is overdue (en)", () => {
     const { container } = renderCard(noOverdue, workEn);
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+    expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
       /^3 open$/,
     );
   });
 
   it("heads the card in Swedish, with the day and the overdue count (sv)", () => {
     const { container } = renderCard(withOverdue, workSv);
-    expect(container.querySelector(".work-compact-kind")).toHaveTextContent(
+    expect(container.querySelector(".sk-eyebrow")).toHaveTextContent(
       "Arbete · Status · ons 4 nov",
     );
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+    expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
       "2 försenade av 4 öppna",
     );
   });
 
   it("titles the card with the open count alone in Swedish when nothing is overdue (sv)", () => {
     const { container } = renderCard(noOverdue, workSv);
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+    expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
       /^3 öppna$/,
     );
   });
@@ -608,7 +612,7 @@ describe("the inline board card's kicker, title and row meta", () => {
       { ...withOverdue, next_cursor: "019f0000-0000-7000-8000-0000000001e3" },
       workEn,
     );
-    expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+    expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
       "2+ overdue of 4+ open",
     );
   });
@@ -645,7 +649,7 @@ describe("the inline board card's kicker, title and row meta", () => {
 
     it("titles the card and fills the bar from the totals, with no + (en)", () => {
       const { container } = renderWithContext(workEn);
-      expect(container.querySelector("p.work-compact-title")).toHaveTextContent(
+      expect(container.querySelector("h2.sk-card__title")).toHaveTextContent(
         /^7 overdue of 38 open$/,
       );
       const legend = within(
@@ -657,7 +661,7 @@ describe("the inline board card's kicker, title and row meta", () => {
           .map((item) => item.textContent),
       ).toEqual(["To do35", "In progress2", "Blocked1"]);
       // 38 open, the three listed rows leave 35 for the foot; nothing says "more not shown".
-      expect(screen.getByText("· 35 more")).toHaveClass("work-compact-more");
+      expect(screen.getByText("· 35 more")).toHaveClass("sk-open-link__more");
       expect(screen.queryByText(boardLabelsEn.more)).toBeNull();
     });
 
@@ -666,9 +670,9 @@ describe("the inline board card's kicker, title and row meta", () => {
       expect(sv.onModelContext).toHaveBeenCalledWith(
         "Status: 35 att göra, 2 pågår, 1 blockerad, 9 klar; 7 försenade",
       );
-      expect(
-        sv.container.querySelector("p.work-compact-title"),
-      ).toHaveTextContent("7 försenade av 38 öppna");
+      expect(sv.container.querySelector("h2.sk-card__title")).toHaveTextContent(
+        "7 försenade av 38 öppna",
+      );
       sv.unmount();
       const en = renderWithContext(workEn);
       expect(en.onModelContext).toHaveBeenCalledWith(
@@ -691,14 +695,14 @@ describe("the inline board card's kicker, title and row meta", () => {
       next_cursor: null,
     };
     const en = renderCard(oneOverdue, workEn);
-    expect(
-      en.container.querySelector("p.work-compact-title"),
-    ).toHaveTextContent(/^1 overdue of 3 open$/);
+    expect(en.container.querySelector("h2.sk-card__title")).toHaveTextContent(
+      /^1 overdue of 3 open$/,
+    );
     en.unmount();
     const sv = renderCard(oneOverdue, workSv);
-    expect(
-      sv.container.querySelector("p.work-compact-title"),
-    ).toHaveTextContent(/^1 försenad av 3 öppna$/);
+    expect(sv.container.querySelector("h2.sk-card__title")).toHaveTextContent(
+      /^1 försenad av 3 öppna$/,
+    );
   });
 
   it("gives a Task the time and the status in that order on the board card (19), and the agenda card (01) drops the day its Idag group names", () => {

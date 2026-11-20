@@ -1,6 +1,6 @@
 import { useId, useState, type RefObject } from "react";
 import type { JournalLabels } from "./labels";
-import { KeyScope } from "../mcp-apps/ui/key-scope";
+import { Menu, menuButtonKeys } from "../mcp-apps/ui/menu";
 import { MenuUpdateReminder, useMoreMark } from "../mcp-apps/update-reminder";
 import {
   MenuLicenseRow,
@@ -49,6 +49,7 @@ export function DayMoreButton({
       aria-expanded={more.open}
       aria-controls={more.panelId}
       onClick={() => more.setOpen(!more.open)}
+      onKeyDown={menuButtonKeys(more.open, more.setOpen)}
     >
       <MoreIcon />
       {more.mark.dot}
@@ -56,7 +57,7 @@ export function DayMoreButton({
   );
 }
 
-/** The room's ⋯ menu as Work's (a card under the head, 44 rows). */
+/** The room's ⋯ menu as Work's: a popover under ⋯ with a mouse or in a wide frame, the card under the head on a phone. */
 export function DayMorePanel({
   more,
   buttonRef,
@@ -66,14 +67,11 @@ export function DayMorePanel({
 }) {
   const { control } = more;
   return (
-    <KeyScope
+    <Menu
       id={more.panelId}
-      className="sk-menu-panel"
-      hidden={!more.open}
-      onEscape={() => {
-        more.setOpen(false);
-        buttonRef.current?.focus();
-      }}
+      open={more.open}
+      anchor={buttonRef}
+      onClose={() => more.setOpen(false)}
     >
       {control && (
         <button
@@ -89,6 +87,6 @@ export function DayMorePanel({
       )}
       <MenuUpdateReminder />
       <MenuLicenseRow />
-    </KeyScope>
+    </Menu>
   );
 }

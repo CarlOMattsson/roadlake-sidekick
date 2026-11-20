@@ -14,7 +14,7 @@ import type {
 } from "@/features/work-app/transport/transport";
 
 describe("work card counts", () => {
-  it("states the same count in its title and on Show all, and no +N line beside Show all", () => {
+  it("states the count in its title and counts the rest in its one link, with no second more-line", () => {
     render(
       <WorkCard
         state="ready"
@@ -25,18 +25,19 @@ describe("work card counts", () => {
     );
 
     expect(screen.getByRole("region")).toHaveAccessibleName("Ändringar (11)");
+    // Five of eleven rows show: the link opens the changes and counts the six it leaves out.
     expect(
-      screen.getByRole("button", { name: "Visa alla (11)" }),
+      screen.getByRole("button", { name: "Öppna ändringar · 6 till" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("+6 fler")).toBeNull();
+    expect(document.querySelectorAll(".sk-card__meta")).toHaveLength(0);
   });
 
-  it("keeps the +N line when the card cannot open the list", () => {
+  it("keeps the count of the rest as a meta line when the card cannot open the list", () => {
     render(
       <WorkCard state="ready" labels={cardLabelsSv} frame={frame(5, 11)} />,
     );
 
-    expect(screen.getByText("+6 fler")).toBeInTheDocument();
+    expect(screen.getByText("6 till")).toHaveClass("sk-card__meta");
   });
 });
 
@@ -146,14 +147,14 @@ describe("WorkCard", () => {
     expect(screen.queryByRole("list")).toBeNull();
   });
 
-  it("shows at most five rows and counts the rest as +N", () => {
+  it("shows at most five rows and counts the rest", () => {
     render(<WorkCard state="ready" labels={cardLabelsEn} frame={frame(7)} />);
 
     const rows = screen.getAllByRole("listitem");
     expect(rows).toHaveLength(5);
     expect(screen.getByText("Uppgift 5")).toBeInTheDocument();
     expect(screen.queryByText("Uppgift 6")).toBeNull();
-    expect(screen.getByText("+2 more")).toBeInTheDocument();
+    expect(screen.getByText("2 more")).toBeInTheDocument();
   });
 
   it("counts the server total, not only the rows it sent", () => {
@@ -162,19 +163,19 @@ describe("WorkCard", () => {
     );
 
     expect(screen.getAllByRole("listitem")).toHaveLength(3);
-    expect(screen.getByText("+37 more")).toBeInTheDocument();
+    expect(screen.getByText("37 more")).toBeInTheDocument();
   });
 
   it("shows no +N when every record fits", () => {
     render(<WorkCard state="ready" labels={cardLabelsEn} frame={frame(5)} />);
 
-    expect(screen.queryByText(/^\+\d+ /)).toBeNull();
+    expect(screen.queryByText(/^\d+ (more|till)$/)).toBeNull();
   });
 
-  it("says +N fler in Swedish with the Swedish label set («fler», not «till»)", () => {
+  it("says the rest in Swedish with the Swedish label set («till», as every card's link)", () => {
     render(<WorkCard state="ready" labels={cardLabelsSv} frame={frame(7)} />);
 
-    expect(screen.getByText("+2 fler")).toBeInTheDocument();
+    expect(screen.getByText("2 till")).toBeInTheDocument();
   });
 
   it("uses the project status set for project records", () => {
@@ -283,7 +284,7 @@ describe("WorkCard", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Show all (2)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open changes" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
@@ -331,7 +332,7 @@ describe("WorkCard", () => {
 
     expect(screen.getByText("1 uppgift, nu att göra")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Visa alla (1)" }),
+      screen.getByRole("button", { name: "Öppna ändringar" }),
     ).toBeInTheDocument();
     // Task rows do not repeat the kind word.
     expect(screen.queryByText(cardLabelsSv.kind.task)).toBeNull();

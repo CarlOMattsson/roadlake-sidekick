@@ -210,7 +210,7 @@ for (const width of widths) {
       for (const link of [
         "anna@example.com",
         "+46 70 123 45 67",
-        "acme.slack.com",
+        "Öppna i Slack",
       ])
         await app.getByRole("link", { name: link }).click();
       await expect

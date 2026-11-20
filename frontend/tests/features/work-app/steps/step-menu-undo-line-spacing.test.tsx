@@ -1,11 +1,10 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { applyHostStyle } from "@/features/mcp-apps/host-style";
-import { UndoMeta } from "@/features/work-app/agenda/agenda-undo";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkStep,
   WorkTransport,
@@ -238,66 +237,6 @@ describe("the Step menu tip under the list", () => {
     await screen.findByRole("checkbox", { name: stepA.title });
     expect(screen.getByText(TIP_EN)).toBeInTheDocument();
     expect(screen.queryByText(TIP_SV)).not.toBeInTheDocument();
-  });
-});
-
-describe("Ångra's time line stands still while the pointer or focus is in it", () => {
-  function undoRow() {
-    return (
-      <div>
-        <span>Skicka offert</span>
-        <UndoMeta
-          title="Skicka offert"
-          text="Klar"
-          labels={workSv}
-          disabled={false}
-          onUndo={vi.fn()}
-          onExpire={vi.fn()}
-        />
-      </div>
-    );
-  }
-
-  it("sets data-held while the pointer is over the line, and removes it when the pointer leaves", () => {
-    render(undoRow());
-    const wrapper = screen.getByRole("button", {
-      name: `${workSv.agendaUndo} Skicka offert`,
-    }).parentElement as HTMLElement;
-    expect(wrapper).toHaveClass("work-agenda-undo");
-    expect(wrapper).not.toHaveAttribute("data-held");
-
-    fireEvent.pointerEnter(wrapper);
-    expect(wrapper).toHaveAttribute("data-held");
-
-    fireEvent.pointerLeave(wrapper);
-    expect(wrapper).not.toHaveAttribute("data-held");
-  });
-
-  it("sets data-held while focus is in the line, and removes it on blur", () => {
-    render(undoRow());
-    const button = screen.getByRole("button", {
-      name: `${workSv.agendaUndo} Skicka offert`,
-    });
-    const wrapper = button.parentElement as HTMLElement;
-
-    act(() => button.focus());
-    expect(wrapper).toHaveAttribute("data-held");
-
-    act(() => button.blur());
-    expect(wrapper).not.toHaveAttribute("data-held");
-  });
-
-  it("stays held while focus is in the line after the pointer has left", () => {
-    render(undoRow());
-    const button = screen.getByRole("button", {
-      name: `${workSv.agendaUndo} Skicka offert`,
-    });
-    const wrapper = button.parentElement as HTMLElement;
-
-    fireEvent.pointerEnter(wrapper);
-    act(() => button.focus());
-    fireEvent.pointerLeave(wrapper);
-    expect(wrapper).toHaveAttribute("data-held");
   });
 });
 describe("locale parity of the Step menu tip", () => {

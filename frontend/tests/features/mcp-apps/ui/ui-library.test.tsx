@@ -56,6 +56,40 @@ describe("Tabs", () => {
     expect(week).toHaveAttribute("aria-pressed", "true");
     expect(day).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("wraps by default; wrap={false} keeps one line and ref hands out the group element", () => {
+    const seen: (HTMLDivElement | null)[] = [];
+    const options = [
+      { value: "a", label: "A" },
+      { value: "b", label: "B" },
+    ];
+    const { rerender } = render(
+      <Tabs
+        label="Rad"
+        options={options}
+        value="a"
+        onChange={() => {}}
+        ref={(element) => {
+          seen.push(element);
+        }}
+      />,
+    );
+    const group = screen.getByRole("group", { name: "Rad" });
+    expect(group).not.toHaveClass("sk-tabs--nowrap");
+    expect(seen).toContain(group);
+    rerender(
+      <Tabs
+        label="Rad"
+        options={options}
+        value="a"
+        onChange={() => {}}
+        wrap={false}
+      />,
+    );
+    expect(screen.getByRole("group", { name: "Rad" })).toHaveClass(
+      "sk-tabs--nowrap",
+    );
+  });
 });
 
 describe("Switch", () => {
@@ -135,19 +169,38 @@ describe("Progress", () => {
 });
 
 describe("Receipt", () => {
-  let show: (input: ReceiptInput) => void = () => undefined;
+  let show: (input: ReceiptInput) => number = () => 0;
+  let dismiss: (id: number) => void = () => undefined;
   function Harness({ resetKey }: { resetKey: string }) {
     const receipt = useReceipt(resetKey);
     show = receipt.show;
+    dismiss = receipt.dismiss;
     return <ReceiptBar receipt={receipt} />;
   }
+
+  it("answers the id of each receipt, so a failed write dismisses its own receipt and not a newer one", () => {
+    render(<Harness resetKey="a" />);
+    let first = 0;
+    act(() => {
+      first = show({ message: "Köpt: Mjölk" });
+    });
+    let second = 0;
+    act(() => {
+      second = show({ message: "Köpt: Bröd" });
+    });
+    expect(second).toBeGreaterThan(first);
+    act(() => dismiss(first));
+    expect(screen.getByRole("status")).toHaveTextContent("Köpt: Bröd");
+    act(() => dismiss(second));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
 
   it("announces a receipt in a status slot and lets it go by itself", () => {
     vi.useFakeTimers();
     render(<Harness resetKey="a" />);
     const slot = screen.getByRole("status");
     expect(slot).toBeEmptyDOMElement();
-    act(() => show({ message: "Anteckningen sparades" }));
+    act(() => void show({ message: "Anteckningen sparades" }));
     expect(slot).toHaveTextContent("Anteckningen sparades");
     act(() => {
       vi.advanceTimersByTime(RECEIPT_MS + 10);
@@ -157,7 +210,7 @@ describe("Receipt", () => {
 
   it("is cleared when the view moves on, so an old receipt never comes back (dagbok-ui fynd 1)", () => {
     const { rerender } = render(<Harness resetKey="a" />);
-    act(() => show({ message: "Anteckningen sparades" }));
+    act(() => void show({ message: "Anteckningen sparades" }));
     rerender(<Harness resetKey="b" />);
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
@@ -166,19 +219,19 @@ describe("Receipt", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const onUndo = vi.fn();
     render(<Harness resetKey="a" />);
-    act(() =>
-      show({ message: "Återställd: Mjölk", undo: { label: "Ångra", onUndo } }),
-    );
+    act(() => {
+      show({ message: "Återställd: Mjölk", undo: { label: "Ångra", onUndo } });
+    });
     act(() => {
       vi.advanceTimersByTime(RECEIPT_MS + 10);
     });
     expect(screen.getByRole("button", { name: "Ångra" })).toBeInTheDocument();
-    act(() => show({ message: "Återställd: Bröd" }));
+    act(() => void show({ message: "Återställd: Bröd" }));
     expect(screen.getByRole("status")).toHaveTextContent("Återställd: Bröd");
     expect(screen.queryByRole("button", { name: "Ångra" })).toBeNull();
-    act(() =>
-      show({ message: "Klar: Ring Karin", undo: { label: "Ångra", onUndo } }),
-    );
+    act(() => {
+      show({ message: "Klar: Ring Karin", undo: { label: "Ångra", onUndo } });
+    });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     await user.click(screen.getByRole("button", { name: "Ångra" }));
     expect(onUndo).toHaveBeenCalledTimes(1);
@@ -187,5 +240,42 @@ describe("Receipt", () => {
     });
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
     expect(UNDO_MS).toBeGreaterThan(RECEIPT_MS);
+  });
+
+  it("calls onEnd once when a receipt leaves without its Ångra, never after Ångra", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const ends: string[] = [];
+    const { rerender } = render(<Harness resetKey="a" />);
+    const undo = { label: "Ångra", onUndo: vi.fn() };
+    // Replaced by a newer receipt.
+    act(() => {
+      show({ message: "Klar: A", undo, onEnd: () => ends.push("A") });
+    });
+    act(() => {
+      show({ message: "Klar: B", undo, onEnd: () => ends.push("B") });
+    });
+    expect(ends).toEqual(["A"]);
+    // Its time ran out.
+    act(() => {
+      vi.advanceTimersByTime(UNDO_MS + 10);
+    });
+    expect(ends).toEqual(["A", "B"]);
+    // Ångra used: no onEnd.
+    act(() => {
+      show({ message: "Klar: C", undo, onEnd: () => ends.push("C") });
+    });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    await user.click(screen.getByRole("button", { name: "Ångra" }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+    expect(ends).toEqual(["A", "B"]);
+    // The view moved on.
+    act(() => {
+      show({ message: "Klar: D", onEnd: () => ends.push("D") });
+    });
+    rerender(<Harness resetKey="b" />);
+    expect(ends).toEqual(["A", "B", "D"]);
   });
 });

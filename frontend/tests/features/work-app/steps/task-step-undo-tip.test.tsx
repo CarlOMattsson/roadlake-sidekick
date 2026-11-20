@@ -1,10 +1,12 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RowMenuTip } from "@/features/work-app/shared/row-menu";
 import { UNDO_MS } from "@/features/mcp-apps/ui/undo-hold";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { rowReceipt } from "@/features/work-app/shared/use-undo-receipts";
+import { receiptRunning } from "@tests/helpers/receipt-bar";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkStep,
   WorkTransport,
@@ -47,7 +49,7 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("a Step's Ångra", () => {
-  it("stands in the checked Step's row with Klar as its meta line, and no notice box follows the list", async () => {
+  it("keeps Klar as the checked Step's meta line, with Ångra only in the receipt bar", async () => {
     const user = userEvent.setup();
     render(
       <TaskSteps
@@ -60,15 +62,17 @@ describe("a Step's Ångra", () => {
 
     const undo = await screen.findByRole("button", { name: /^Ångra/ });
     const row = screen.getByRole("checkbox").closest("li");
-    expect(undo.closest("li")).toBe(row);
-    expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");
+    // The row says its new state and has no button of its own; the bar confirms it and holds Ångra.
+    expect(undo.closest("li")).toBeNull();
+    expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+      rowReceipt("Klar", open.title),
+    );
     expect(row).toHaveTextContent(/Klar/);
-    // The title is not repeated in a notice under the list.
-    expect(screen.queryByText(/Klar: /)).not.toBeInTheDocument();
+    expect(row?.querySelector(".sk-undo-time")).toBeNull();
     expect(document.querySelector(".work-manage-undo")).toBeNull();
   });
 
-  it("says Reopened in English after an uncheck, and runs out after the Undo time", async () => {
+  it("says Reopened in English after an uncheck, and the receipt runs out after the Undo time", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(
@@ -80,12 +84,20 @@ describe("a Step's Ångra", () => {
     );
     await user.click(await screen.findByRole("checkbox", { name: open.title }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Reopened");
+    const slot = document.querySelector(".sk-receipt-slot") as HTMLElement;
+    await waitFor(() =>
+      expect(slot).toHaveTextContent(rowReceipt("Reopened", open.title)),
+    );
+    const row = screen.getByRole("checkbox").closest("li");
+    expect(row).toHaveTextContent("Reopened");
     expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
+    await receiptRunning();
     act(() => {
       vi.advanceTimersByTime(UNDO_MS + 100);
     });
     expect(screen.queryByRole("button", { name: /^Undo/ })).toBeNull();
+    // The row's line ends with the bar's time.
+    expect(row).not.toHaveTextContent("Reopened");
   });
 });
 

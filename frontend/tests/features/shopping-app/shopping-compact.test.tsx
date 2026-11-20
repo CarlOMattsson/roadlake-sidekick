@@ -13,6 +13,11 @@ import type {
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
 import { elementWithText } from "@tests/helpers/exact-text";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptText,
+} from "@tests/helpers/receipt-bar";
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -300,7 +305,7 @@ describe("compact inline view (a host without fullscreen)", () => {
     ).toBeInTheDocument();
   });
 
-  it("ticking an open row inline holds it as 'Bought · Undo'; Undo buys it back", async () => {
+  it("ticking an open row inline holds it as 'Bought' and the bar's Undo buys it back", async () => {
     const user = userEvent.setup();
     const transport = adapter(detailOf(twelve));
     transport.purchase = vi.fn((current: ShoppingItem) =>
@@ -325,26 +330,19 @@ describe("compact inline view (a host without fullscreen)", () => {
         await screen.findAllByRole("button", { name: /^Mark .+ as bought$/ })
       )[0]!,
     );
-    const undo = await screen.findByRole("button", {
-      name: shoppingEn.undoPurchaseNamed("Vara 1", true),
-    });
-    // The row holds in its place, as the store view's row does: Undo is a tonal button in the row, the held word
-    // ("Bought") stands in the name line and the row's polite status says it too.
-    const row = undo.closest("li")!;
+    const undo = await findReceiptUndo("Undo");
+    // The row holds in its place, as the store view's row does: the held word ("Bought") stands in the name line and
+    // the row has no Ångra of its own; the receipt bar under the card says what happened and carries it.
+    const row = document.querySelector<HTMLElement>(".shopping-held-item")!;
     expect(row).toHaveClass("shopping-held-item", "shopping-store-item");
-    expect(undo).toHaveClass("sk-btn--secondary", "sk-btn--compact");
+    expect(row).toHaveTextContent("Vara 1");
     expect(row.querySelector(".shopping-held")).toHaveTextContent(
       shoppingEn.bought,
     );
-    expect(within(row).getByRole("status")).toHaveTextContent(/Vara 1/);
+    expect(within(row).queryByRole("button", { name: /Undo/ })).toBeNull();
+    expect(receiptText()).toBe(`${shoppingEn.bought}: Vara 1`);
     await user.click(undo);
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("button", {
-          name: shoppingEn.undoPurchaseNamed("Vara 1", true),
-        }),
-      ).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(receiptNow()).toBeNull());
     expect(transport.purchase).toHaveBeenLastCalledWith(
       // Undo writes against the version that buying returned (version 2), not the re-read list.
       expect.objectContaining({ purchased: true, version: 2 }),
@@ -481,7 +479,7 @@ describe("compact inline view with fullscreen on offer", () => {
     const hidden = 12 - (COMPACT_ROWS - 1);
     expect(
       await screen.findByRole("button", {
-        name: new RegExp(`^Öppna listan\\s*· ${hidden} fler$`),
+        name: new RegExp(`^Öppna listan\\s*· ${hidden} till$`),
       }),
     ).toBeInTheDocument();
     expect(

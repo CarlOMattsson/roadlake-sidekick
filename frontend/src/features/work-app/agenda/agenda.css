@@ -20,10 +20,17 @@
 }
 /* Keyboard focus on a row's title rings the whole text block, title and meta line together: the title's own ring ran
    through the meta line under it. The ring is the family's (2 px --sk-ring), on the block's edge. */
-.sidekick-work .work-agenda-body > button:focus-visible {
+.sidekick-work .work-agenda-body > button:focus-visible,
+.sidekick-work li.work-agenda-row:focus-visible {
   outline: none;
 }
-.sidekick-work .work-agenda-body:has(> button:focus-visible) {
+/* j and k move real focus to the row (use-agenda-selection): it draws the same ring on the same block as Tab on its
+   title, so a row looks one way however it was reached. */
+.sidekick-work .work-agenda-body:has(> button:focus-visible),
+.sidekick-work
+  li.work-agenda-row:focus-visible
+  > .work-agenda-line
+  > .work-agenda-body {
   outline: 2px solid var(--sk-ring);
   outline-offset: 0;
   border-radius: var(--sk-radius);
@@ -287,7 +294,7 @@
 :is(.sidekick-work .work-card-meta) > .sk-ai-mark {
   min-height: 0;
   padding-inline: calc(1.5 * var(--sk-s1));
-  font-size: 0.75rem;
+  font-size: var(--sk-type-caption-size);
   line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
 }
 :is(.sidekick-work .work-card-meta) > .sk-tags > .sk-tag {
@@ -300,7 +307,7 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.75rem;
+  font-size: var(--sk-type-caption-size);
   line-height: calc(var(--sk-type-meta-line) - 2 * var(--sk-hairline));
 }
 /* When the pills do not all fit, only the last named one gives way (its ellipsis); the shorter ones stay whole. */
@@ -335,6 +342,12 @@
   background: var(--sk-surface);
   /* The panel's edge: the secondary button's --sk-border (3,4:1 light, 3,7:1 dark), drawn inside. */
   box-shadow: inset 0 0 0 var(--sk-hairline) var(--sk-border);
+}
+/* The open row is a panel of its own: no hover or selected tone over it (row.css [data-sk-row]). */
+.sidekick-work
+  .work-list
+  > li.work-agenda-row:has(> .work-agenda-menu)::before {
+  content: none;
 }
 .sidekick-work .work-agenda-menu {
   display: grid;
@@ -438,14 +451,14 @@
 .sidekick-work .work-agenda-date-chip[data-disabled] {
   opacity: 0.5;
 }
-/* Focus draws the app's ring on the chip, in the text colour: never the platform's blue, and the input
+/* Focus draws the one ring (2 px --sk-ring) on the chip, and the input
    under it draws none of its own. */
 .sidekick-work .work-agenda-date-input:focus-visible {
   outline: none;
 }
 .sidekick-work
   .work-agenda-date-chip:has(> .work-agenda-date-input:focus-visible) {
-  outline: 2px solid var(--sk-fg);
+  outline: 2px solid var(--sk-ring);
   outline-offset: 2px;
 }
 
@@ -594,7 +607,7 @@
   border: var(--work-border-width) solid var(--work-line);
   border-radius: var(--work-radius);
   font: inherit;
-  font-size: 0.875rem;
+  font-size: var(--sk-type-meta-size);
   line-height: 1;
 }
 
@@ -671,20 +684,6 @@
 .sidekick-work [data-low] > button {
   grid-row: 2;
   margin: 0 0 var(--sk-row-pad);
-}
-
-/* A search with no hit: the sentence, then "Rensa sökningen" as a text button (designsystem §3 "Tomt"). */
-.sidekick-work .work-agenda-nomatch > p {
-  margin: var(--sk-s4) 0 0;
-  font: var(--sk-type-body);
-  color: var(--sk-muted);
-}
-.sidekick-work .work-agenda-clear {
-  margin: var(--sk-s1) 0 0 calc(-1 * var(--sk-s3));
-  padding: 0 var(--sk-s3);
-  border: 0;
-  background: none;
-  font: var(--sk-type-button);
 }
 
 /* The loading indicator is placed over the top right of the agenda, so a status change does not move
@@ -861,7 +860,7 @@
 }
 .sidekick-work .work-waiting-reminded {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 

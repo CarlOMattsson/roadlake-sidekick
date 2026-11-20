@@ -4,14 +4,11 @@ import {
   type CountsSegment,
   type CountsTone,
 } from "../../mcp-apps/ui/counts-bar";
+import { Card } from "../../mcp-apps/ui/card";
 import { workDate } from "../../mcp-apps/ui/due";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
 import { rowDue } from "../shared/record-meta";
-import {
-  InlineEmpty,
-  InlineRow,
-  OpenFoot,
-  inlineMeta,
-} from "../inline/inline-summary";
+import { InlineEmpty, InlineRow, inlineMeta } from "../inline/inline-summary";
 import {
   InlineRefreshButton,
   RefreshFailure,
@@ -177,16 +174,14 @@ export function BoardSummary({
   const blank =
     !more && Object.values(page.columns).every((list) => list.length === 0);
   return (
-    // The card is named as the view it opens (`status`).
-    <section
+    // The card is named as the view it opens (`status`). The kicker says the room, the view and the date, and the title
+    // is the statement with the overdue and open counts (`headline`).
+    <Card
       aria-label={t.status}
-      className="sk-card work-compact-card work-compact-board"
+      className="work-compact-card work-compact-board"
+      eyebrow={`${t.title} · ${t.status} · ${refreshedOr(refresh, t.dateLocale, workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false }))}`}
+      title={blank ? undefined : b.headline(overdue, openCount, more && !exact)}
     >
-      {/* The head of the agenda card (01), so the card says what its rows are: the room, the view and the date,
-          and the overdue and open counts. */}
-      <h2 tabIndex={-1} className="work-compact-kind sk-eyebrow">
-        {`${t.title} · ${t.status} · ${refreshedOr(refresh, t.dateLocale, workDate(now.toISOString(), now, t.dateLocale, { inline: true, relative: false }))}`}
-      </h2>
       {refresh ? (
         <>
           <InlineRefreshButton refresh={refresh} dateLocale={t.dateLocale} />
@@ -206,9 +201,6 @@ export function BoardSummary({
         />
       ) : (
         <>
-          <p className="work-compact-title sk-card__title">
-            {b.headline(overdue, openCount, more && !exact)}
-          </p>
           <CountsBar label={t.status} segments={segments} />
           {projectRow ? (
             <p className="work-compact-status">{`${projectRow.label}: ${projectRow.count}`}</p>
@@ -239,21 +231,22 @@ export function BoardSummary({
               ))}
             </ul>
           ) : null}
-          {/* The open-the-view link, as on the agenda card: an inline card has no ink button. What
-          the list leaves out stands at the end of its line; with nothing hidden but more pages, `more`. */}
-          <OpenFoot
-            aside={
-              hiddenCount > 0
-                ? b.hiddenCount.replace("{count}", String(hiddenCount))
-                : more && !exact
-                  ? b.more
-                  : undefined
-            }
+          {/* The card's one main link, as on the agenda card. What the list leaves out is counted in it ("22+ more"
+          while pages remain), not said by the title. */}
+          <OpenLink
             label={b.openBoard}
+            {...(hiddenCount > 0
+              ? {
+                  more: b.hiddenCount.replace(
+                    "{count}",
+                    `${hiddenCount}${more && !exact ? "+" : ""}`,
+                  ),
+                }
+              : {})}
             onOpen={onOpen}
           />
         </>
       )}
-    </section>
+    </Card>
   );
 }

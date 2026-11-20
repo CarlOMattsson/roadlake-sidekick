@@ -26,8 +26,8 @@ export const boardLabelsSv = {
   nearest: "Närmast i tid",
   /** Under the inline board summary, and last in the text to the model, when the page has more records. */
   more: "Fler finns",
-  /** The inline board summary's one line for records the nearest-due list does not show; {count} is the number. */
-  hiddenCount: "{count} fler",
+  /** The inline board summary's link, after "Öppna Status ·", for records the nearest-due list does not show; {count} is the number. */
+  hiddenCount: "{count} till",
   headline: (overdue: number, open: number, more: boolean) => {
     const plus = more ? "+" : "";
     return overdue

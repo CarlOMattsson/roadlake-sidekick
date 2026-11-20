@@ -2,11 +2,13 @@ import type { CSSProperties } from "react";
 import { workStatusLabel } from "../../shared/labels";
 import { StatusGlyph } from "../../../mcp-apps/ui/status-glyph";
 import { agendaLabelsFor } from "../agenda-labels";
-import { UndoMeta, fillLabel } from "../agenda-undo";
+import { UndoMeta, fillLabel, type AgendaUndo } from "../agenda-undo";
+import { rowReceipt } from "../../shared/use-undo-receipts";
 import {
   RowMenuButton,
   rowMenuHandlers,
   rowMenuHint,
+  type MenuPoint,
 } from "../../shared/row-menu";
 import { cardKey, type AgendaBucket } from "../../shared/work-items";
 import { domainAccentOf, type WorkItemRecord } from "../../transport/transport";
@@ -16,7 +18,7 @@ import { isStandIn } from "../../shared/use-queued-records";
 import { WaitingLine } from "../../shared/waiting-line";
 import { WaitingMeta } from "../../shared/waiting-meta";
 import { OpenChevron } from "../../tasks/task-detail-controls";
-import { recurringDoneText, selectedRow, triagedNote } from "./agenda-helpers";
+import { recurringDoneText, triagedNote } from "./agenda-helpers";
 import { AgendaNotice, rowSpot } from "./agenda-notice";
 import { RowMenuPanel } from "./row-menu-panel";
 import type { AgendaRowContext } from "./row-context";
@@ -84,17 +86,54 @@ function RowGlyph({
   );
 }
 
-/** The inline style of a row: the height its fold starts from while it leaves, and the outline of a selected row. */
-function rowStyle(
-  leaveHeight: number | undefined,
-  isSelected: boolean,
-): CSSProperties | undefined {
-  if (leaveHeight !== undefined)
-    return {
-      "--leave-h": `${leaveHeight}px`,
-      ...(isSelected ? selectedRow : {}),
-    } as CSSProperties;
-  return isSelected ? selectedRow : undefined;
+/** The inline style of a row: the height its fold starts from while it leaves. A selected row is drawn by the stylesheet
+ * (aria-current: the selected tone; focus: the one ring), never by an inline outline. */
+function rowStyle(leaveHeight: number | undefined): CSSProperties | undefined {
+  return leaveHeight !== undefined
+    ? ({ "--leave-h": `${leaveHeight}px` } as CSSProperties)
+    : undefined;
+}
+
+/**
+ * What a row's last change did and how it is taken back: `text` for the row's own state line ("Klar · finns i Status",
+ * "Flyttad till imorgon", a recurring Task's "Klar · nästa: …"), `receipt` for the receipt bar ("Klar: {title}"), and
+ * `action`, the Ångra, where the host can write the change back. A cycle's Ångra puts the due date it had back.
+ */
+export function rowUndo(
+  ctx: AgendaRowContext,
+  item: WorkItemRecord,
+  entry: AgendaUndo,
+): { text: string; receipt: string; action?: () => void } {
+  const { labels: t, now, rows, offers, writes } = ctx;
+  const a = agendaLabelsFor(t.dateLocale);
+  const key = cardKey(item);
+  const cycle = rows.cycleOf(key);
+  const what = entry.due
+    ? fillLabel(t.movedTo, { status: entry.due.label })
+    : workStatusLabel(t, cycle ? "completed" : entry.to);
+  const text = cycle
+    ? recurringDoneText(t, item.due_at, now)
+    : entry.due
+      ? what
+      : entry.to === "completed" && ctx.boardAvailable
+        ? a.doneInStatus
+        : what;
+  let action: (() => void) | undefined;
+  if (cycle) {
+    if (offers.offers("update_task", { changes: { due_at: null } }))
+      action = () =>
+        writes.undoWrite(
+          { ...entry, due: { from: cycle.from, label: "" } },
+          item.title,
+        );
+  } else if (
+    offers.offers("update_task", {
+      changes: entry.due ? { due_at: null } : { status: entry.from },
+      ...(entry.due ? {} : { from_status: entry.to }),
+    })
+  )
+    action = () => writes.undoWrite(entry, item.title);
+  return { text, receipt: rowReceipt(what, item.title), action };
 }
 
 /**
@@ -110,16 +149,7 @@ export function AgendaRow({
   record: WorkItemRecord;
   group: AgendaBucket;
 }) {
-  const {
-    labels: t,
-    now,
-    disabled,
-    rows,
-    rowQueue,
-    menu,
-    offers,
-    writes,
-  } = ctx;
+  const { labels: t, now, disabled, rows, rowQueue, menu, offers } = ctx;
   const a = agendaLabelsFor(t.dateLocale);
   const drawn = rows.current(record);
   // A tick that waits in the phone's outbox (the widget's too) is drawn done, with `sending` for its meta line.
@@ -144,38 +174,13 @@ export function AgendaRow({
   const cycleText = cycle ? recurringDoneText(t, item.due_at, now) : undefined;
   const note = moved ? (cycleText ?? triagedNote(t, item, now)) : undefined;
   const entry = rows.undos[key];
-  /** What the row's last change did, in its Undo line. */
-  function undoText(): string {
-    if (cycleText && entry) return cycleText;
-    if (entry?.due) return fillLabel(t.movedTo, { status: entry.due.label });
-    if (entry?.to === "completed")
-      return ctx.boardAvailable
-        ? a.doneInStatus
-        : workStatusLabel(t, "completed");
-    return workStatusLabel(t, entry?.to ?? "");
-  }
-  /** The row's Ångra, where the host can write the change back. A cycle's Ångra puts the due date it had back. */
-  function undoAction(): (() => void) | undefined {
-    if (!entry) return undefined;
-    if (cycle)
-      return offers.offers("update_task", { changes: { due_at: null } })
-        ? () =>
-            writes.undoWrite(
-              { ...entry, due: { from: cycle.from, label: "" } },
-              item.title,
-            )
-        : undefined;
-    const offered = offers.offers("update_task", {
-      changes: entry.due ? { due_at: null } : { status: entry.from },
-      ...(entry.due ? {} : { from_status: entry.to }),
-    });
-    return offered ? () => writes.undoWrite(entry, item.title) : undefined;
-  }
+  const undo = entry ? rowUndo(ctx, item, entry) : undefined;
   const writing = rowQueue.pending(key) > 0;
   const queued = rowQueue.queued(key);
   const choices = offers.rowHasChoices(item);
   const open = choices && menu.menu === key;
-  const setOpen = (next: boolean) => menu.setOpen(key, next);
+  const setOpen = (next: boolean, at?: MenuPoint) =>
+    menu.setOpen(key, next, at);
   const rowClass = [
     "work-agenda-row",
     accent ? "work-accent" : "",
@@ -186,6 +191,7 @@ export function AgendaRow({
   return (
     <li
       className={rowClass}
+      data-sk-row=""
       data-agenda-key={key}
       data-accent={accent ?? undefined}
       tabIndex={-1}
@@ -195,7 +201,7 @@ export function AgendaRow({
       // While Ångra shows (not while a tap waits): the ring is filled, the title in text-2 and › hidden by CSS.
       data-undo={entry && !queued ? "on" : undefined}
       data-muted={parentDone || undefined}
-      style={rowStyle(rows.leaving[key], isSelected)}
+      style={rowStyle(rows.leaving[key])}
       {...(choices ? rowMenuHandlers(open, setOpen) : {})}
     >
       <div className="work-agenda-line">
@@ -227,15 +233,8 @@ export function AgendaRow({
               <span className="sk-queued">{t.queued}</span>
             </p>
           ) : entry || writing ? (
-            <UndoMeta
-              text={undoText()}
-              title={item.title}
-              moving={!entry}
-              labels={t}
-              disabled={disabled}
-              onUndo={undoAction()}
-              onExpire={() => rows.expire(key)}
-            />
+            // The row's new state while its change can be undone; the Ångra and its time are the receipt bar's.
+            <UndoMeta text={undo?.text ?? ""} moving={!entry} labels={t} />
           ) : (
             <>
               {parentDone ? (
@@ -258,7 +257,7 @@ export function AgendaRow({
             </>
           )}
         </div>
-        {/* Every row that opens a view ends in › (§3, Chevronregeln); Ångra takes its place. */}
+        {/* Every row that opens a view ends in › (§3, Chevronregeln); while its change can be undone it has none. */}
         {!(entry || writing) && <OpenChevron />}
       </div>
       {/* A failed write of this row says so here, with its Try again, and not at the top of the list. */}
@@ -277,7 +276,7 @@ export function AgendaRow({
         <RowMenuButton
           label={t.rowMenuButton(item.title)}
           open={() => setOpen(true)}
-          firstChoice=".work-agenda-menu .sk-chip"
+          firstChoice=":is(.work-agenda-menu, .work-agenda-popmenu) .sk-chip"
         />
       )}
     </li>

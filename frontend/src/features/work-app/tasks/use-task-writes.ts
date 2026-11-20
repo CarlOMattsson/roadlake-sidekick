@@ -1,5 +1,7 @@
 import { useCallback, useRef, useState } from "react";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import { isRecurringCycle } from "../agenda/parts/agenda-helpers";
+import type { WorkLabels } from "../shared/labels";
 import {
   isTaskStatus,
   type TaskStatusValue,
@@ -7,6 +9,7 @@ import {
   type WorkTaskChanges,
   type WorkTransport,
 } from "../transport/transport";
+import { detailDate } from "../view/parts/detail-date";
 import type { DetailFrame } from "../view/parts/use-detail-frame";
 import type { DoneReceipt } from "./task-cycle";
 
@@ -26,6 +29,20 @@ function withCarried(held: WorkTask | undefined, next: WorkTask): WorkTask {
   return { ...next, project_title: next.project_title ?? held.project_title };
 }
 
+/**
+ * What the receipt bar says after a stored change: "Sparat", and for a change of the due date or clock time which date
+ * the chip now shows ("Sparat: fre 20 nov kl 14:30"). The record the answer left decides, not what was asked for.
+ */
+function savedMessage(
+  t: WorkLabels,
+  changes: WorkTaskChanges,
+  next: WorkTask,
+): string {
+  return "due_at" in changes && next.due_at
+    ? `${t.saved}: ${detailDate(next.due_at, t)}`
+    : t.saved;
+}
+
 /** Which write a failure line names. */
 export type TaskWriteKind = "trash" | "save" | "done";
 
@@ -38,6 +55,8 @@ export type TaskWriteKind = "trash" | "save" | "done";
 export function useTaskWrites({
   frame,
   transport,
+  labels: t,
+  bar,
   id,
   task,
   setTask,
@@ -46,9 +65,13 @@ export function useTaskWrites({
   onSaved,
   onTrashStart,
   onDone,
+  onDoneWritten,
 }: {
   frame: DetailFrame;
   transport: WorkTransport;
+  labels: WorkLabels;
+  /** The view's receipt bar: every stored change is confirmed there ("Sparat"), never as a line in the content. */
+  bar: ReceiptState;
   id: string;
   task: WorkTask | undefined;
   setTask: (task: WorkTask | undefined) => void;
@@ -63,6 +86,11 @@ export function useTaskWrites({
    * had and the receipt, and no receipt is shown here (the view is left).
    */
   onDone?: (done: TaskDone) => void;
+  /**
+   * Runs after a `markDone` or its Ångra is stored, in place of the focus going to the title: the frame puts focus back
+   * on the done control once it is drawn with its new state.
+   */
+  onDoneWritten: () => void;
 }) {
   // What the last `markDone` left to undo: the line under the button and the earlier value its Ångra puts back.
   const [receipt, setReceipt] = useState<DoneReceipt>();
@@ -89,9 +117,8 @@ export function useTaskWrites({
   }
   /**
    * Writes only the changed fields against the version the view holds; the key follows the action. Every write ends
-   * the receipt of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply is shown by the
-   * controls themselves (a `completed` receipt with Ångra, or the controls put back by Ångra), so no plain `saved` stands
-   * beside it.
+   * the receipt of an earlier one; `then` sees the reply once it is shown. `receipt`: the reply is confirmed by the
+   * done control and its own receipt ("Klar", with Ångra), so no plain "Sparat" is shown for it.
    */
   function saveTask(
     changes: WorkTaskChanges,
@@ -118,7 +145,11 @@ export function useTaskWrites({
         then?.(result.task);
         frame.setEditing(false);
         onSaved();
-        heading.current?.focus();
+        if (receipt) onDoneWritten();
+        else {
+          bar.show({ message: savedMessage(t, changes, result.task) });
+          heading.current?.focus();
+        }
       },
       receipt,
     );
@@ -141,6 +172,7 @@ export function useTaskWrites({
         setTask(withCarried(task, result.task));
         onSaved();
         refreshTags();
+        bar.show({ message: t.saved });
         done();
       },
     );
@@ -180,11 +212,12 @@ export function useTaskWrites({
         setTask(result.task);
         setTrashed(undefined);
         onSaved();
+        bar.show({ message: t.saved });
         heading.current?.focus();
       },
     );
   }
-  /** The Ångra of a `markDone`: the status and the button go back in place, with no `saved` beside them. */
+  /** The Ångra of a `markDone`: the status and the button go back in place, with no "Sparat" beside them. */
   function undoDone(changes: WorkTaskChanges) {
     saveTask(changes, undefined, true);
   }

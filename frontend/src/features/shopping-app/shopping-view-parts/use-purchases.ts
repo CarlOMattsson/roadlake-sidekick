@@ -30,9 +30,9 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
   const rowQueue = useRowQueue();
   const [wanted, setWanted] = useState<Record<string, boolean>>({});
   // Items ticked off or back in this view, as each purchase write returned them (with the new version; `purchased` is
-  // what the row's line says: "Bought" or "Not bought"). While Undo holds, the row stays in its place with that line
-  // and its Ångra (designsystem §3 Ångra): each change has its own Undo, which runs out after UNDO_MS (`release`).
-  // They hold until then or a change of list or page; a reload and other writes keep them.
+  // what the row's line says: "Bought" or "Not bought"). While the view's receipt bar shows, the row stays in its place
+  // with that line (designsystem §3 Ångra); the bar carries its Ångra. They hold until the bar is empty (`releaseAll`)
+  // or the list or page changes; a reload and other writes keep them.
   const [held, setHeld] = useState<Record<string, ShoppingItem>>({});
   const purchaseKeys = useRef(new Map<string, string>());
   const [waiting, setWaiting] = useState<Record<string, boolean>>({});
@@ -92,10 +92,11 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
   // of the row. The row shows the asked state at once. A tap while the row's write runs waits behind it (`queued`);
   // other rows and the rest of the list stay free. The reply replaces the row, with no read of the list. A reply that
   // does not show the asked state is a failure ("Try again"), and a refusal puts the row back as it was.
-  function togglePurchase(row: ShoppingItem) {
+  // The answer settles once the row's write has run (or was given up), for a caller that waits on it (the bar's Ångra).
+  function togglePurchase(row: ShoppingItem): Promise<void> {
     const id = row.id;
     // A row waiting in the outbox is sent as it is; a new tap would race it with a version it does not know yet.
-    if (id in waitingNow.current) return;
+    if (id in waitingNow.current) return Promise.resolve();
     const buying = !row.purchased;
     // A tap on a row that holds its Undo (Undo itself, or the ring of the row) takes the change back; any other tap
     // holds the row in its place with the line of what happened and its Undo.
@@ -169,7 +170,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
         return next;
       });
     };
-    void rowQueue.enqueue(id, async () => {
+    return rowQueue.enqueue(id, async () => {
       try {
         const replay = unsure.current.get(id);
         if (replay)
@@ -236,14 +237,13 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
       }
     });
   }
-  /** The time to undo of a row is up: the row goes where it belongs (the open rows, or the `boughtCount` fold). */
-  const release = useCallback((id: string) => {
-    setHeld((before) => {
-      if (!(id in before)) return before;
-      const rest = { ...before };
-      delete rest[id];
-      return rest;
-    });
+  /**
+   * The receipt bar is empty again (its time ran out, or the list moved on): every held row goes where it belongs (the
+   * open rows, or the `boughtCount` fold) in one step. While a run of ticks goes on, each tick's receipt replaces the
+   * last and the bar stays, so no row moves under the thumb until the run is over.
+   */
+  const releaseAll = useCallback(() => {
+    setHeld((before) => (Object.keys(before).length ? {} : before));
   }, []);
   return {
     rowQueue,
@@ -251,7 +251,7 @@ export function usePurchases({ transport, read, writes, onWritten }: Params) {
     waiting,
     held,
     setHeld,
-    release,
+    releaseAll,
     resetPurchases,
     togglePurchase,
   };

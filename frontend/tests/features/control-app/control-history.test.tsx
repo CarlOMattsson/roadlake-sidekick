@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, type Mock } from "vitest";
+import { receiptRunning } from "@tests/helpers/receipt-bar";
 
 import { controlEn, controlSv } from "@/features/control-app/labels";
 import { HistoryView } from "@/features/control-app/history-view";
@@ -337,6 +338,7 @@ describe("HistoryView undo", () => {
       await user.click(screen.getByRole("button", { name: "Ångra Mjölk" }));
       await screen.findByText("Ring Anna");
       expect(screen.getByText("Inte längre köpt: Mjölk")).toBeInTheDocument();
+      await receiptRunning();
 
       act(() => {
         vi.advanceTimersByTime(RECEIPT_MS + 100);

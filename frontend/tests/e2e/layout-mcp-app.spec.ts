@@ -53,7 +53,9 @@ async function openAgenda(page: Page) {
     resource: readBuiltApp("work"),
     width: 360,
     height: 800,
-    hostContext: fullscreen,
+    // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+    // popover a mouse gets (ui/menu.tsx).
+    hostContext: { ...fullscreen, platform: "mobile" },
     replies: { get_work_agenda: { structuredContent: agenda } },
   });
   await waitForAppInitialized(page);
@@ -72,7 +74,7 @@ test("Agenda: the view tabs and the row line hold 48 px, the row menu's x is a 4
   page,
 }) => {
   const { app, failures } = await openAgenda(page);
-  const viewTabs = app.locator(".work-view-tabs__tab");
+  const viewTabs = app.locator(".sk-tabs__tab");
   expect(await viewTabs.count()).toBeGreaterThan(1);
   for (const tab of await viewTabs.all())
     expect((await effectiveTargetSize(tab))?.height).toBeGreaterThanOrEqual(
@@ -170,7 +172,8 @@ test("inline card: the link row is 44 px drawn with a 48 px target", async ({
     },
     items: tasks,
   });
-  const link = app.getByRole("button", { name: "Show all (3)", exact: true });
+  // The card shows all three changes, so its one main link counts nothing more: "Open changes".
+  const link = app.getByRole("button", { name: "Open changes", exact: true });
   await expect(link).toBeVisible();
   expect((await boxOf(link)).height).toBe(44);
   expect((await effectiveTargetSize(link))?.height).toBe(TARGET_PX);

@@ -68,6 +68,7 @@ export function LinkedRow({
     <li
       ref={row}
       className="work-agenda-row work-open-row"
+      data-sk-row=""
       data-gone={gone ? "gone" : undefined}
       {...(hasMenu ? rowMenuHandlers(open, setOpen) : {})}
     >

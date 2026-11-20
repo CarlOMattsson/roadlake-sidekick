@@ -86,7 +86,7 @@ it("fullscreen shows the store view: one tap on a row marks the item bought", as
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   // The forms are not shown directly: the list is the view, and "Edit list" opens the forms.
   expect(screen.queryByLabelText(shoppingEn.listName)).not.toBeInTheDocument();
@@ -112,7 +112,7 @@ it("Edit list reveals the list and item forms", async () => {
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(
     screen.getByRole("button", { name: shoppingEn.moreActions }),
@@ -138,7 +138,7 @@ it("the ⋯ menu ends with Control, which asks the host for the Control room's m
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   const more = screen.getByRole("button", { name: shoppingEn.moreActions });
   // The ⋯ is an icon, not a character.
@@ -167,7 +167,7 @@ it("the ⋯ menu has no Control entry when the view cannot navigate", async () =
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.click(
     screen.getByRole("button", { name: shoppingEn.moreActions }),
@@ -186,7 +186,7 @@ it("inline without fullscreen keeps the list view with its batch field, without 
     <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   // No standing list forms and no list switcher: only the batch field to add items.
   expect(screen.getByLabelText(shoppingEn.batch)).toBeInTheDocument();

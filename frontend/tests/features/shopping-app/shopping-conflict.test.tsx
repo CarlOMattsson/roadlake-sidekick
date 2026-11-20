@@ -71,7 +71,7 @@ function adapter(over: Partial<ShoppingTransport> = {}): ShoppingTransport {
 
 async function waitLoaded() {
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 }
 

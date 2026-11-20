@@ -109,22 +109,25 @@ test("the placeholder's rows have the row template's 48 floor and 6 of padding, 
     box(row.locator(".sidekick-wait-row-title").first()),
   ]);
   expect(titleBox.x - rowBox.x).toBeCloseTo(40, 0);
-  // The glyph is the ring's box, and a contour, not a filled disc.
+  // The glyph is the ring's box, and a contour, not a filled disc: a 2 px inset shadow inside a clear 2 px border (an
+  // outline is the focus ring's alone).
   const glyph = row.locator(".sidekick-wait-glyph");
-  expect(
-    await style(
-      glyph,
-      "width",
-      "backgroundColor",
-      "outlineWidth",
-      "outlineStyle",
-    ),
-  ).toEqual({
+  const drawn = await style(
+    glyph,
+    "width",
+    "backgroundColor",
+    "outlineStyle",
+    "borderTopWidth",
+    "boxShadow",
+  );
+  expect({ ...drawn, boxShadow: undefined }).toEqual({
     width: await resolved(app, "width", "var(--sk-ring-glyph, 1.5rem)"),
     backgroundColor: "rgba(0, 0, 0, 0)",
-    outlineWidth: "2px",
-    outlineStyle: "solid",
+    outlineStyle: "none",
+    borderTopWidth: "2px",
+    boxShadow: undefined,
   });
+  expect(drawn.boxShadow).toMatch(/0px 0px 0px 2px inset$/);
   // A row with a second title line draws a shorter second bar: 40 % of its column.
   const twoLines = app
     .locator(".sidekick-wait-row")

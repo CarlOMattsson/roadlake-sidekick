@@ -1,10 +1,12 @@
 import { useCallback, useId, useRef, useState } from "react";
 import { workDate } from "../../mcp-apps/ui/due";
 import { Progress } from "../../mcp-apps/ui/progress";
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { projectStatusLabel } from "../shared/labels";
 import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
+import { menuButtonKeys } from "../../mcp-apps/ui/menu";
 import { MoreIcon } from "../tasks/task-detail-controls";
 import { ProjectEditor } from "./project-edit";
 import { CreateParentTask } from "./parent-task-create";
@@ -42,6 +44,8 @@ export function ProjectFrame({
   const frame = useDetailFrame({ moves });
   const { phase, write, editing, heading, banner } = frame;
   const [project, setProject] = useState<WorkProject>();
+  // A stored change is confirmed in the bar at the view's foot ("Sparat"), never as a line in the content.
+  const bar = useReceipt(id);
   // What the host cannot write is not offered: the phone reads a Project and its Tasks, it does not edit the Project
   // or create a Task here yet.
   const offers = useToolSupport(transport);
@@ -100,6 +104,7 @@ export function ProjectFrame({
       (result) => {
         setProject(result.project);
         frame.setEditing(false);
+        bar.show({ message: t.saved });
         heading.current?.focus();
       },
     );
@@ -122,6 +127,7 @@ export function ProjectFrame({
         retryTags.current = undefined;
         setProject(result.project);
         tags.refresh();
+        bar.show({ message: t.saved });
         done();
       },
     );
@@ -149,6 +155,7 @@ export function ProjectFrame({
               aria-controls={menuOpen ? menuId : undefined}
               disabled={write.kind === "busy" || editing}
               onClick={() => setMenuOpen(!menuOpen)}
+              onKeyDown={menuButtonKeys(menuOpen, setMenuOpen)}
             >
               <MoreIcon />
             </button>
@@ -176,6 +183,7 @@ export function ProjectFrame({
       {phase === "ready" && project && editOffered && menuOpen && (
         <DetailMenu
           id={menuId}
+          anchor={moreButton}
           busy={write.kind === "busy" || editing}
           edit={{ label: t.edit, onChoose: startEdit }}
           onClose={() => {
@@ -204,6 +212,7 @@ export function ProjectFrame({
                 detail={
                   project.tasks_total ? (
                     <Progress
+                      layout="bar"
                       done={project.tasks_done ?? 0}
                       total={project.tasks_total}
                       label={t.progressOf(
@@ -281,6 +290,7 @@ export function ProjectFrame({
             onReload={reloadProject}
             banner={banner}
             labels={t}
+            savedLine={false}
           />
           {editing ? (
             <ProjectEditor
@@ -337,6 +347,7 @@ export function ProjectFrame({
           )}
         </>
       )}
+      <ReceiptBar receipt={bar} />
     </article>
   );
 }

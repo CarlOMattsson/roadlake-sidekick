@@ -298,15 +298,7 @@ function undoRow(moving: boolean) {
   return (
     <div>
       <span>{task.title}</span>
-      <UndoMeta
-        title={task.title}
-        text="Klar"
-        labels={workEn}
-        disabled={false}
-        onUndo={vi.fn()}
-        onExpire={vi.fn()}
-        moving={moving}
-      />
+      <UndoMeta text="Klar" labels={workEn} moving={moving} />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import {
   stepActionsLabelsSv,
 } from "@/features/work-app/steps/step-actions-labels";
 import { workSv } from "@/features/work-app/shared/labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkAction,
   WorkStep,

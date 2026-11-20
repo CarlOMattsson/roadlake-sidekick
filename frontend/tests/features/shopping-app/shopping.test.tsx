@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ShoppingView } from "@/features/shopping-app/shopping-view";
@@ -55,16 +61,45 @@ it("keeps an uncertain batch retry on the same write identity", async () => {
     <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.type(screen.getByLabelText(shoppingEn.batch), "Shelf\nLamp");
   await user.click(screen.getByRole("button", { name: shoppingEn.add }));
-  expect(await screen.findByRole("alert")).toHaveTextContent(shoppingEn.failed);
+  // A failed batch add has no row: the view's error box says so at the top, with Try again.
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveClass("sk-message--error");
+  expect(alert).toHaveTextContent(shoppingEn.failedTitle);
   expect(screen.queryByText("PRIVATE_BACKEND_MESSAGE")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: shoppingEn.add }));
+  // The typed names stay in the field, and Try again repeats the add with the same write identity.
+  expect(screen.getByLabelText(shoppingEn.batch)).toHaveValue("Shelf\nLamp");
+  await user.click(
+    within(alert).getByRole("button", { name: shoppingEn.retry }),
+  );
   await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
   expect(add.mock.calls[0]).toEqual(add.mock.calls[1]);
   expect(add.mock.calls[0]![1]).toEqual([{ name: "Shelf" }, { name: "Lamp" }]);
+  await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+});
+
+it("a second press of Add after an uncertain batch also keeps the same write identity", async () => {
+  const transport = adapter();
+  const add = vi
+    .mocked(transport.add)
+    .mockRejectedValueOnce(new Error("network"))
+    .mockResolvedValueOnce({});
+  const user = userEvent.setup();
+  render(
+    <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
+  );
+  await waitFor(() =>
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
+  );
+  await user.type(screen.getByLabelText(shoppingEn.batch), "Shelf\nLamp");
+  await user.click(screen.getByRole("button", { name: shoppingEn.add }));
+  await screen.findByRole("alert");
+  await user.click(screen.getByRole("button", { name: shoppingEn.add }));
+  await waitFor(() => expect(add).toHaveBeenCalledTimes(2));
+  expect(add.mock.calls[0]).toEqual(add.mock.calls[1]);
 });
 
 it("does not turn failed reads into an empty shopping list", async () => {
@@ -76,9 +111,10 @@ it("does not turn failed reads into an empty shopping list", async () => {
   render(
     <ShoppingView transport={transport} labels={shoppingEn} listId={list.id} />,
   );
-  expect(await screen.findByRole("alert")).toHaveTextContent(shoppingEn.failed);
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent(shoppingEn.failedTitle);
   await user.click(
-    screen.getAllByRole("button", { name: shoppingEn.refresh })[0]!,
+    within(alert).getByRole("button", { name: shoppingEn.retry }),
   );
   await waitFor(() =>
     expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
@@ -218,7 +254,7 @@ it("adds a comma separated batch as separate names", async () => {
     <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   await user.type(screen.getByLabelText(shoppingEn.batch), "Mjölk, bröd,\nägg");
   await user.click(screen.getByRole("button", { name: shoppingEn.add }));
@@ -239,7 +275,7 @@ it("adds the batch when Enter is pressed in the field, and Shift+Enter keeps a l
     <ShoppingView transport={transport} labels={shoppingEn} initial={detail} />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
   const batch = screen.getByLabelText(shoppingEn.batch);
   await user.type(batch, "Shelf{Shift>}{Enter}{/Shift}Lamp");

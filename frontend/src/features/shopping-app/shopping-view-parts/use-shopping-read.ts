@@ -37,7 +37,14 @@ export function useShoppingRead({
   const [id, setId] = useState(listId ?? initial?.shopping_list.id ?? "");
   const [offset, setOffset] = useState(0);
   const [detail, setDetail] = useState<ShoppingDetail | undefined>(initial);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusyState] = useState(false);
+  // The same flag for code that runs between renders (a queued write that starts right after the one before it):
+  // state is only the value of the last render, the ref is the value now.
+  const busyNow = useRef(false);
+  const setBusy = useCallback((value: boolean) => {
+    busyNow.current = value;
+    setBusyState(value);
+  }, []);
   // The failure notice ("Try again", "Refresh"). A row's own failed write is shown in that row; null is
   // the list-level notice at the top (a failed read, a create, an add or an Undo).
   const [error, setError] = useState<{
@@ -49,6 +56,10 @@ export function useShoppingRead({
   // millis). Null for a read the server answered. Only the mobile app has a copy (`transport.offline`).
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
   const generation = useRef(0);
+  // The newest read of the lists page. The page does not depend on the chosen list, so a list read that was given up
+  // (the list changed while it ran, as when a new list is created and opened) still delivers its page, unless a newer
+  // read of the lists has started since.
+  const listsGeneration = useRef(0);
   // The items as each purchase write returned them. A read that started before the write and answers after it
   // never takes a row back to an older version.
   const [ownWritten] = useState(() => new Map<string, ShoppingItem>());
@@ -89,6 +100,19 @@ export function useShoppingRead({
         : before;
     });
   }, [writtenTick, fresher]);
+  /** Reads only the lists page again (the counts and names of the overview, the lists a row can be moved to). */
+  const refreshLists = useCallback(async () => {
+    const listsTicket = ++listsGeneration.current;
+    try {
+      const page = await transport.lists(listOffset);
+      if (listsTicket !== listsGeneration.current) return;
+      listsRead.current = { transport, offset: listOffset };
+      setLists(page.lists);
+      setNextLists(page.next_offset);
+    } catch {
+      // The overview keeps what it shows; the next read corrects it.
+    }
+  }, [transport, listOffset]);
   const reload = useCallback(
     async (force = true) => {
       const ticket = ++generation.current;
@@ -106,6 +130,7 @@ export function useShoppingRead({
         known === null ||
         known.transport !== transport ||
         known.offset !== listOffset;
+      const listsTicket = readLists ? ++listsGeneration.current : 0;
       setBusy(true);
       setError(null);
       try {
@@ -115,12 +140,12 @@ export function useShoppingRead({
             ? transport.get(id, offset, store)
             : Promise.resolve(undefined),
         ]);
-        if (ticket !== generation.current) return;
-        if (page) {
+        if (page && listsTicket === listsGeneration.current) {
           listsRead.current = { transport, offset: listOffset };
           setLists(page.lists);
           setNextLists(page.next_offset);
         }
+        if (ticket !== generation.current) return;
         if (page || data) {
           const at = [data, page]
             .map((answer) => answer && transport.offline?.readAt(answer))
@@ -148,7 +173,7 @@ export function useShoppingRead({
         if (ticket === generation.current) setBusy(false);
       }
     },
-    [transport, id, offset, listOffset, store, fresher],
+    [transport, id, offset, listOffset, store, fresher, setBusy],
   );
   useEffect(() => {
     const marker = generation;
@@ -177,6 +202,7 @@ export function useShoppingRead({
     detail,
     setDetail,
     busy,
+    busyNow,
     setBusy,
     error,
     setError,
@@ -184,6 +210,7 @@ export function useShoppingRead({
     written,
     detailNow,
     reload,
+    refreshLists,
   };
 }
 

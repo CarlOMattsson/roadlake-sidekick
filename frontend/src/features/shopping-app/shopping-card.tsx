@@ -1,5 +1,3 @@
-import { ChevronRightIcon } from "../mcp-apps/ui/icons";
-import type { ShoppingLabels } from "./labels";
 import type { ShoppingItem } from "./transport";
 import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
@@ -47,40 +45,4 @@ export function isDefaultAmount(item: ShoppingItem, locale: string): boolean {
 export function cardItemText(item: ShoppingItem, locale: string): string {
   if (isDefaultAmount(item, locale)) return item.name;
   return `${item.name} · ${quantityText(item, locale)}`;
-}
-
-/**
- * The card foot's "Open list · 2 more": a text button that opens the list, with the count of the items the
- * card leaves out after its name.
- */
-export function OpenListButton({
-  labels: t,
-  hidden,
-  hiddenText,
-  text,
-  onOpen,
-}: {
-  labels: ShoppingLabels;
-  /** The link's name; `openList` when left out. */
-  text?: string;
-  hidden: number;
-  /** Says what the count after the name stands for: open items (the list card) or added ones (the batch card). */
-  hiddenText: (count: number) => string;
-  onOpen: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="shopping-card-open sk-btn--open"
-      onClick={onOpen}
-    >
-      <span className="shopping-card-open-text">
-        {text ?? t.openList}
-        {hidden > 0 ? (
-          <span className="shopping-card-more">{` · ${hiddenText(hidden)}`}</span>
-        ) : null}
-      </span>
-      <ChevronRightIcon />
-    </button>
-  );
 }

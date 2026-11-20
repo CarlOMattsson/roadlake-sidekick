@@ -7,9 +7,9 @@ import { contactMeta } from "./contacts-sections";
 
 /**
  * One Contact in the list. A round grey avatar with the initials leads the row, hidden from assistive
- * tech because the name is read out. The name opens it; an archived Contact shows its label as a chip
- * in the same row, so the chip is part of the row's accessible name. Its tags follow the meta text, at most
- * two and "+N", so a row keeps its height.
+ * tech because the name is read out. The name opens it; an archived Contact leads its muted meta line with its label
+ * ("Arkiverad · Kund · Ek & Söner"), so no chip takes width from the organisation. Its tags follow the meta text, at
+ * most two and "+N", so a row keeps its height.
  */
 export function ContactRow({
   contact,
@@ -25,7 +25,9 @@ export function ContactRow({
   locale: string;
   onOpen: () => void;
 }) {
-  const meta = contactMeta(contact);
+  const meta = [contact.archived ? archivedLabel : "", contactMeta(contact)]
+    .filter(Boolean)
+    .join(" · ");
   const tags = contact.tags ?? [];
   return (
     <Row
@@ -41,11 +43,6 @@ export function ContactRow({
             {meta && <span className="sk-row-meta">{meta}</span>}
             <TagChips tags={tags} known={knownTags} max={2} locale={locale} />
           </>
-        ) : undefined
-      }
-      trailing={
-        contact.archived ? (
-          <span className="work-chip">{archivedLabel}</span>
         ) : undefined
       }
       navigates

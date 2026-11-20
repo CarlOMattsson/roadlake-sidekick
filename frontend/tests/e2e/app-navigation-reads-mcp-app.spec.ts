@@ -72,9 +72,10 @@ for (const width of widths) {
               .length,
         )
         .toBeGreaterThan(readsBefore);
-      const undo = app.getByRole("button", {
-        name: "Ångra Ring Anna om offerten",
-      });
+      // Ångra is in the agenda's receipt bar; the row keeps its state line.
+      const undo = app
+        .locator(".sk-receipt-slot")
+        .getByRole("button", { name: "Ångra", exact: true });
       await expect(undo).toBeVisible();
       await expect(app.getByText("Klar · finns i Status")).toBeVisible();
       // Ångra writes the earlier status back.

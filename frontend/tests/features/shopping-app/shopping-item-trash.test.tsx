@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   afterAll,
@@ -17,9 +17,14 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptText,
+} from "@tests/helpers/receipt-bar";
 
 // Delete with Undo for one item: the change form's Delete moves the item to the trash (move_to_trash, kind
-// "shopping_item"), a receipt row offers Undo (restore_from_trash at the trash version), and a failure keeps the row.
+// "shopping_item"), the receipt bar offers Undo (restore_from_trash at the trash version), and a failure keeps the row.
 
 const list = {
   id: "019f0000-0000-7000-8000-000000000001",
@@ -96,7 +101,7 @@ async function open(
     />,
   );
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 }
 
@@ -113,7 +118,7 @@ beforeEach(() => {
 });
 
 describe("deleting an item", () => {
-  it("moves it to the trash at its version, takes the row away and shows a receipt with Undo", async () => {
+  it("moves it to the trash at its version, takes the row away and shows a receipt in the bar with Undo", async () => {
     const user = userEvent.setup();
     const transport = adapter({
       get: vi.fn().mockResolvedValueOnce(without),
@@ -127,15 +132,14 @@ describe("deleting an item", () => {
       milk.version,
       expect.stringMatching(/^[0-9a-f-]{36}$/),
     );
-    // The row is gone, the receipt stands in the list.
-    expect(await screen.findByText("Deleted: Milk")).toBeInTheDocument();
+    // The row is gone; the receipt is the bar's, not a row of the list.
+    await waitFor(() => expect(receiptText()).toBe("Deleted: Milk"));
+    expect(document.querySelector(".shopping-receipt")).toBeNull();
     expect(
       screen.queryByRole("button", { name: /^Mark Milk as/ }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Mark Eggs as/ })).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "Undo deleting Milk" }),
-    ).toHaveTextContent("Undo");
+    expect(await findReceiptUndo("Undo")).toHaveTextContent("Undo");
   });
 
   it("Undo restores the item with the trash version from the answer and shows the row again", async () => {
@@ -145,9 +149,7 @@ describe("deleting an item", () => {
     await open(transport);
     await openForm(user, "Milk");
     await user.click(screen.getByRole("button", { name: "Delete Milk" }));
-    await user.click(
-      await screen.findByRole("button", { name: "Undo deleting Milk" }),
-    );
+    await user.click(await findReceiptUndo("Undo"));
     await waitFor(() => expect(transport.restoreItem).toHaveBeenCalledTimes(1));
     expect(transport.restoreItem).toHaveBeenCalledWith(
       milk.id,
@@ -157,7 +159,7 @@ describe("deleting an item", () => {
     expect(
       await screen.findByRole("button", { name: /^Mark Milk as/ }),
     ).toBeVisible();
-    expect(screen.queryByText("Deleted: Milk")).not.toBeInTheDocument();
+    await waitFor(() => expect(receiptNow()).toBeNull());
   });
 
   it("works in the inline card too, and is reached with the keyboard", async () => {
@@ -175,7 +177,7 @@ describe("deleting an item", () => {
     expect(button).toHaveFocus();
     await user.keyboard("{Enter}");
     await waitFor(() => expect(transport.trashItem).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("Deleted: Milk")).toBeInTheDocument();
+    await waitFor(() => expect(receiptText()).toBe("Deleted: Milk"));
   });
 
   it("says it in Swedish", async () => {
@@ -188,10 +190,8 @@ describe("deleting an item", () => {
     const button = screen.getByRole("button", { name: "Ta bort Milk" });
     expect(button).toHaveTextContent("Ta bort");
     await user.click(button);
-    expect(await screen.findByText("Borttagen: Milk")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Ångra borttagning av Milk" }),
-    ).toHaveTextContent("Ångra");
+    await waitFor(() => expect(receiptText()).toBe("Borttagen: Milk"));
+    expect(await findReceiptUndo("Ångra")).toHaveTextContent("Ångra");
   });
 
   it("keeps the row when the delete fails, and the retry reuses the idempotency key", async () => {
@@ -209,13 +209,13 @@ describe("deleting an item", () => {
     await user.click(screen.getByRole("button", { name: "Delete Milk" }));
     await waitFor(() => expect(trashItem).toHaveBeenCalledTimes(1));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(screen.queryByText("Deleted: Milk")).not.toBeInTheDocument();
+    expect(receiptNow()).toBeNull();
     // The change form is still open, so the item is still there to be deleted again.
     expect(screen.getByRole("button", { name: "Delete Milk" })).toBeVisible();
     await user.click(screen.getByRole("button", { name: shoppingEn.retry }));
     await waitFor(() => expect(trashItem).toHaveBeenCalledTimes(2));
     expect(trashItem.mock.calls[1]![2]).toBe(trashItem.mock.calls[0]![2]);
-    expect(await screen.findByText("Deleted: Milk")).toBeInTheDocument();
+    await waitFor(() => expect(receiptText()).toBe("Deleted: Milk"));
   });
 
   it("says so, and reads the list again, when the item was changed elsewhere", async () => {
@@ -226,15 +226,16 @@ describe("deleting an item", () => {
     await open(transport);
     await openForm(user, "Milk");
     await user.click(screen.getByRole("button", { name: "Delete Milk" }));
+    // The item is still in the list, so the conflict is the row's own notice, not the view's box.
     expect(await screen.findByRole("alert")).toHaveTextContent(
       shoppingEn.conflict,
     );
     // The opening result was the first read, so this call is the re-read the conflict asks for.
     expect(transport.get).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText("Deleted: Milk")).not.toBeInTheDocument();
+    expect(receiptNow()).toBeNull();
   });
 
-  it("names a failed Undo in its receipt row and offers Try again", async () => {
+  it("names a failed Undo in the view's error box and offers Try again with the same key", async () => {
     const user = userEvent.setup();
     const restoreItem = vi
       .fn()
@@ -247,16 +248,19 @@ describe("deleting an item", () => {
     await open(transport);
     await openForm(user, "Milk");
     await user.click(screen.getByRole("button", { name: "Delete Milk" }));
+    await user.click(await findReceiptUndo("Undo"));
+    // The row is gone from the list, so the box at the top of the view names the item that could not come back.
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-message--error");
+    expect(alert).toHaveTextContent(shoppingEn.itemRestoreFailed("Milk"));
+    await waitFor(() => expect(receiptNow()).toBeNull());
     await user.click(
-      await screen.findByRole("button", { name: "Undo deleting Milk" }),
+      within(alert).getByRole("button", { name: shoppingEn.retry }),
     );
-    expect(
-      await screen.findByText(shoppingEn.itemRestoreFailed("Milk")),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Deleted: Milk")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: shoppingEn.retry }));
     await waitFor(() => expect(restoreItem).toHaveBeenCalledTimes(2));
     expect(restoreItem.mock.calls[1]![2]).toBe(restoreItem.mock.calls[0]![2]);
+    expect(restoreItem.mock.calls[1]![1]).toBe(8);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   });
 
   it("offers no delete when the transport has no trash tools", async () => {

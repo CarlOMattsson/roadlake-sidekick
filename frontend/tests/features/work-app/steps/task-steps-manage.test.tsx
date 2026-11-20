@@ -9,7 +9,7 @@ import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { manageLabelsSv } from "@/features/work-app/shared/manage-labels";
 import { workSv } from "@/features/work-app/shared/labels";
-import { TaskSteps } from "@/features/work-app/tasks/task-steps";
+import { TaskSteps } from "@tests/helpers/steps-with-bar";
 import type {
   WorkStep,
   WorkTransport,
@@ -646,7 +646,7 @@ describe("step progress, undo of a check and the quiet forms", () => {
     ).not.toHaveClass("work-step-done");
   });
 
-  it("shows Klar with Ångra after a check, and Ångra writes the other state against the version the check left", async () => {
+  it("shows Klar in the row and Ångra in the receipt bar after a check, and Ångra writes the other state against the version the check left", async () => {
     const user = userEvent.setup();
     const { work, transport } = mockTransport({
       completeTaskStep: vi.fn().mockResolvedValue({
@@ -666,12 +666,15 @@ describe("step progress, undo of a check and the quiet forms", () => {
       1,
       expect.stringMatching(KEY),
     );
-    // Ångra stands in the Step's own row, and the row's meta line says "Klar".
-    const undo = await screen.findByRole("button", {
-      name: `${sv.undo} ${stepA.title}`,
-    });
-    expect(undo.closest("li")).toBe(await stepRow(stepA.title));
-    expect(screen.getByRole("status")).toHaveTextContent("Klar");
+    // The row's meta line says "Klar" and has no button; Ångra is in the receipt bar, "Klar: <title>".
+    const undo = await screen.findByRole("button", { name: sv.undo });
+    const row = await stepRow(stepA.title);
+    expect(undo.closest("li")).toBeNull();
+    expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+      `Klar: ${stepA.title}`,
+    );
+    expect(row.querySelector(".work-agenda-undo")).toHaveTextContent("Klar");
+    expect(row.querySelector(".sk-undo-time")).toBeNull();
     await user.click(undo);
 
     await waitFor(() =>
@@ -686,6 +689,10 @@ describe("step progress, undo of a check and the quiet forms", () => {
       expect(
         screen.queryByRole("button", { name: sv.undo }),
       ).not.toBeInTheDocument(),
+    );
+    // The bar's button left with its receipt: focus is back on the Step's box, never on the page.
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: stepA.title })).toHaveFocus(),
     );
   });
 

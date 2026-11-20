@@ -1,0 +1,104 @@
+/* ---- The menu as a popover (menu.tsx, designsystem §3 "Meny"): with a mouse, or in a frame at least 40 rem wide.
+   240 wide (13.75–20 rem), radius 12, 4 of air inside, 44 rows with the menu's 16/20 at 500 and 12 at each side
+   of the text. The page under it: --sk-bg in light, lifted 6 % toward the text in dark, with the second shadow.
+   It lies in the top layer (popover="manual"), placed by menu.tsx in fixed px, so it covers the sticky bands and
+   moves nothing on the page. On a phone the menu is the family's panel in the flow (.sk-menu-panel, family.css).
+   --sk-menu-w, --sk-shadow-2, --sk-hover and --sk-dur-fast are the desktop tokens (tokens.css); the values after
+   the comma are the same values until those land there. ---- */
+.sk-menu-popover {
+  position: fixed;
+  inset: auto;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: var(--sk-menu-w, 15rem);
+  min-width: 13.75rem;
+  max-width: min(20rem, calc(100vw - 16px));
+  max-height: calc(100dvh - 16px);
+  margin: 0;
+  padding: var(--sk-s1);
+  overflow-y: auto;
+  border: 0;
+  border-radius: var(--sk-radius-card);
+  background: light-dark(
+    var(--sk-bg),
+    color-mix(in srgb, var(--sk-fg) 6%, var(--sk-bg))
+  );
+  color: var(--sk-fg);
+  box-shadow: var(
+    --sk-shadow-2,
+    0 8px 24px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.5)),
+    0 0 0 1px var(--sk-line)
+  );
+  transform-origin: top right;
+  animation: sk-menu-in var(--sk-dur-fast, 100ms)
+    var(--sk-ease-out, cubic-bezier(0.2, 0, 0, 1));
+}
+.sk-menu-popover[hidden] {
+  display: none;
+}
+/* It grows from the corner it is anchored at: the button's right edge, a title's start or the pointer. */
+.sk-menu-popover:is([data-align="start"], [data-align="point"]) {
+  transform-origin: top left;
+}
+@keyframes sk-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-menu-popover {
+    animation: none;
+  }
+}
+
+/* An entry is a 44 row with rounded ends inside the 4 of air: no hairline between entries (the panel's rule), the
+   ring inside its box. Above the family's entry rule (family.css) in specificity. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-menu-popover
+  button.sk-menu-item,
+.sk-menu-popover .sk-menu-item {
+  width: 100%;
+  margin: 0;
+  padding: 0 var(--sk-s3);
+  border: 0;
+  border-image: none;
+  border-radius: var(--sk-radius);
+}
+.sk-menu-popover .sk-menu-item:focus-visible {
+  outline-offset: -2px;
+}
+/* A deletion stands last, after a divider across the menu. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-menu-popover
+  button.sk-menu-item--danger:not(:first-child),
+.sk-menu-popover .sk-menu-item--danger:not(:first-child) {
+  position: relative;
+  margin-block-start: calc(2 * var(--sk-s1) + var(--sk-hairline));
+}
+.sk-menu-popover .sk-menu-item--danger:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  inset-inline: calc(-1 * var(--sk-s1));
+  inset-block-start: calc(-1 * var(--sk-s1) - var(--sk-hairline));
+  height: var(--sk-hairline);
+  background: var(--sk-line);
+}
+/* The mouse: the entry under it takes the hover tone (not on a touch host). */
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sk-menu-popover
+    .sk-menu-item:not(:disabled):hover {
+    background: var(
+      --sk-hover,
+      color-mix(in srgb, var(--sk-fg) 5%, transparent)
+    );
+  }
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-menu-popover
+  button.sk-menu-item:not(:disabled):focus-visible {
+  background: var(--sk-hover, color-mix(in srgb, var(--sk-fg) 5%, transparent));
+}

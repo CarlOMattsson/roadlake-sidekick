@@ -10,9 +10,9 @@ import {
 } from "./mcp-host-fixture";
 
 // "Flytta N försenade till imorgon" in a real Chromium on the simulated host (mcp-host-fixture.ts), not a real Claude or
-// Android host: every tool answer is a fixture and the network is closed. The line after the move ("5 flyttade till
-// imorgon · Ångra") scrolls into view and takes focus; at a phone's width it must stand below the stuck tab row, not
-// under it.
+// Android host: every tool answer is a fixture and the network is closed. The receipt after the move ("5 flyttade till
+// imorgon" with Ångra) is the shared receipt bar at the agenda's foot; at a phone's width it must stand below the
+// stuck tab row, not under it.
 
 const isOverdue = (item: object) =>
   (item as { agenda_group?: string }).agenda_group === "overdue";
@@ -67,11 +67,14 @@ for (const theme of ["light", "dark"] as const)
     await move.click();
     await app.getByRole("button", { name: "Flytta", exact: true }).click();
 
-    const undo = app.getByRole("button", { name: "Ångra" });
+    // The receipt and its Ångra are the shared receipt bar's, at the agenda's foot.
+    const bar = app.locator(".sk-receipt-slot");
+    const undo = bar.getByRole("button", { name: "Ångra" });
     await expect(undo).toBeVisible();
     await expect(
-      app.getByText(`${overdue.length} flyttade till imorgon`),
+      bar.getByText(`${overdue.length} flyttade till imorgon`),
     ).toBeVisible();
+    await expect(app.locator(".work-agenda-move-undo")).toHaveCount(0);
     await settled(app);
 
     const tabs = await app.locator(".sk-shell-tabs").boundingBox();

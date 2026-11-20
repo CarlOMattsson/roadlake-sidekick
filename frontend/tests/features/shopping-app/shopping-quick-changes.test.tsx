@@ -9,9 +9,15 @@ import type {
   ShoppingItem,
   ShoppingTransport,
 } from "@/features/shopping-app/transport";
+import { deferred } from "@tests/helpers/deferred";
+import {
+  findReceiptUndo,
+  receiptNow,
+  receiptText,
+} from "@tests/helpers/receipt-bar";
 
 // Quick changes of an open row in the store view: the amount up or down by one (one write for taps that follow each
-// other) and a move to another list from the row's menu, with a receipt and Undo. The compact card has neither.
+// other) and a move to another list from the row's menu, with a receipt in the bar and Undo. The compact card has neither.
 // Simulated events in jsdom, not a real touch device.
 
 const list = {
@@ -378,20 +384,19 @@ describe("move to another list", () => {
     expect(
       screen.queryByText("Milk", { selector: ".shopping-store-name" }),
     ).toBeNull();
-    expect(
-      await screen.findByText("Moved to Weekend: Milk"),
-    ).toBeInTheDocument();
+    // The bar says where it went, with Ångra; no receipt row stands in the list.
+    expect(receiptText()).toBe("Moved to Weekend: Milk");
+    expect(await findReceiptUndo("Undo")).toBeInTheDocument();
+    expect(document.querySelector(".shopping-receipt")).toBeNull();
     // A move is not a read: the list is not read again.
     expect(transport.get).not.toHaveBeenCalled();
   });
 
-  it("Undo moves the item back with the version of the move and the row returns", async () => {
+  it("Undo in the bar moves the item back with the version of the move and the row returns", async () => {
     const user = userEvent.setup();
     const transport = await open();
     await chooseMove(user);
-    const undo = await screen.findByRole("button", {
-      name: shoppingEn.undoMoveNamed("Milk"),
-    });
+    const undo = await findReceiptUndo("Undo");
     await waitFor(() => expect(undo).toBeEnabled());
     await user.click(undo);
     await waitFor(() => expect(transport.update).toHaveBeenCalledTimes(2));
@@ -408,7 +413,67 @@ describe("move to another list", () => {
         screen.getByText("Milk", { selector: ".shopping-store-name" }),
       ).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Moved to Weekend: Milk")).toBeNull();
+    await waitFor(() => expect(receiptNow()).toBeNull());
+  });
+
+  it("Undo pressed before the move is confirmed waits behind it, then moves back from the version the move answered with", async () => {
+    const user = userEvent.setup();
+    const gate = deferred<void>();
+    let sent = 0;
+    const transport = await open(
+      adapter({
+        update: vi.fn<ShoppingTransport["update"]>(async (row, input, key) => {
+          if (++sent === 1) await gate.promise;
+          return stored(row, input, key);
+        }),
+      }),
+    );
+    await chooseMove(user);
+    await waitFor(() => expect(transport.update).toHaveBeenCalledTimes(1));
+    // The bar already says it moved, though the server has not answered.
+    expect(receiptText()).toBe("Moved to Weekend: Milk");
+    await user.click(await findReceiptUndo("Undo"));
+    // The Ångra is queued after the move in the row's queue: it sends nothing while the move is out.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(transport.update).toHaveBeenCalledTimes(1);
+    gate.resolve();
+    await waitFor(() => expect(transport.update).toHaveBeenCalledTimes(2));
+    const [moved, move] = vi.mocked(transport.update).mock.calls[0]!;
+    const [back, undo] = vi.mocked(transport.update).mock.calls[1]!;
+    expect(moved).toMatchObject({ version: 3 });
+    expect(back).toMatchObject({ id: milk.id, version: 4 });
+    expect(undo).toEqual({ name: "Milk", quantity: "2", list_id: list.id });
+    expect(move).toMatchObject({ list_id: weekend.id });
+    await waitFor(() =>
+      expect(
+        screen.getByText("Milk", { selector: ".shopping-store-name" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("a refused Undo of a move names the item in the view's error box, and Try again repeats it with the same key", async () => {
+    const user = userEvent.setup();
+    const update = vi
+      .fn(stored)
+      .mockImplementationOnce(stored)
+      .mockRejectedValueOnce(new Error("offline"));
+    const transport = await open(adapter({ update }));
+    await chooseMove(user);
+    await user.click(await findReceiptUndo("Undo"));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveClass("sk-message--error");
+    expect(alert).toHaveTextContent(shoppingEn.itemMoveUndoFailed("Milk"));
+    await waitFor(() => expect(receiptNow()).toBeNull());
+    await user.click(
+      within(alert).getByRole("button", { name: shoppingEn.retry }),
+    );
+    await waitFor(() => expect(transport.update).toHaveBeenCalledTimes(3));
+    const [, , failedKey] = vi.mocked(transport.update).mock.calls[1]!;
+    const [again, input, retryKey] = vi.mocked(transport.update).mock.calls[2]!;
+    expect(retryKey).toBe(failedKey);
+    expect(again).toMatchObject({ id: milk.id, version: 4 });
+    expect(input).toMatchObject({ list_id: list.id });
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   });
 
   it("an amount that was still settling goes with the move in one write", async () => {
@@ -436,7 +501,8 @@ describe("move to another list", () => {
       .getAllByText(/^(Milk|Eggs)$/, { selector: ".shopping-store-name" })
       .map((node) => node.textContent);
     expect(names).toEqual(["Milk", "Eggs"]);
-    expect(screen.queryByText("Moved to Weekend: Milk")).toBeNull();
+    // The bar no longer says it moved.
+    expect(receiptNow()).toBeNull();
   });
 
   it("offers no menu when there is no other list", async () => {

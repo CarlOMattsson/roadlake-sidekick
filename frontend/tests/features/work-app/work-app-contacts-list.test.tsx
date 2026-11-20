@@ -11,6 +11,7 @@ import { expect, it, vi } from "vitest";
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { WorkView } from "@/features/work-app/view/work-view";
 import { hierarchyDetailLabelsFor } from "@/features/work-app/hierarchy/hierarchy-detail-labels";
+import { contactsRoomLabelsEn } from "@/features/work-app/contacts/contacts-room-labels";
 import { workEn, workSv } from "@/features/work-app/shared/labels";
 import {
   rootFromToolResult,
@@ -49,7 +50,7 @@ const listCecilia: WorkContactSummary = {
 
 const noFilters = { q: "", includeArchived: false };
 
-/** An archived Contact's row also holds its "Archived" chip, so its name is matched by its start. */
+/** An archived Contact's row leads its meta line with "Archived", so its name is matched by its start. */
 const archivedRowName = new RegExp(
   `^${listCecilia.display_name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
 );
@@ -143,7 +144,7 @@ it("shows the search and archive switch a list_contacts result answered, and Sho
   expect(screen.getByLabelText(workEn.searchContacts)).toHaveValue("anna");
   await user.click(screen.getByRole("button", { name: workEn.moreActions }));
   expect(
-    screen.getByRole("checkbox", { name: workEn.showArchived }),
+    screen.getByRole("switch", { name: workEn.showArchived }),
   ).toBeChecked();
   expect(work.listContacts).not.toHaveBeenCalled();
   await user.click(screen.getByRole("button", { name: workEn.more }));
@@ -250,16 +251,20 @@ it("reads again with archived Contacts included and marks them", async () => {
   render(contactsRoot(work));
   expect(screen.queryByText(workEn.archivedLabel)).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.moreActions }));
-  await user.click(screen.getByRole("checkbox", { name: workEn.showArchived }));
+  await user.click(screen.getByRole("switch", { name: workEn.showArchived }));
   await waitFor(() =>
     expect(list).toHaveBeenCalledWith({ q: "", includeArchived: true }),
   );
   const row = (
     await screen.findByRole("button", { name: archivedRowName })
   ).closest("li")!;
-  expect(within(row).getByText(workEn.archivedLabel)).toBeInTheDocument();
+  // No chip: "Archived" leads the muted meta line, so it takes no width from the name or the organisation.
+  expect(within(row).getByText(workEn.archivedLabel)).toHaveClass(
+    "sk-row-meta",
+  );
+  expect(row.querySelector(".work-chip")).toBeNull();
   // Switching back reads the list of active Contacts again.
-  await user.click(screen.getByRole("checkbox", { name: workEn.showArchived }));
+  await user.click(screen.getByRole("switch", { name: workEn.showArchived }));
   await waitFor(() => expect(list).toHaveBeenCalledWith(noFilters));
   await waitFor(() =>
     expect(screen.queryByRole("button", { name: archivedRowName })).toBeNull(),
@@ -304,14 +309,19 @@ it("keeps the shown Contacts and lets Show more be tried again when the next pag
     }),
   );
   await user.click(screen.getByRole("button", { name: workEn.more }));
-  expect(await screen.findByRole("alert")).toHaveTextContent(workEn.failed);
+  const failed = await screen.findByRole("alert");
+  expect(failed).toHaveTextContent(contactsRoomLabelsEn.moreFailed);
+  expect(
+    within(failed).getByRole("button", { name: workEn.retry }),
+  ).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: listAnna.display_name }),
   ).toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: workEn.more }));
+  await user.click(within(failed).getByRole("button", { name: workEn.retry }));
   expect(
     await screen.findByRole("button", { name: archivedRowName }),
   ).toBeInTheDocument();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("shows empty, failed and forbidden lists calmly and retries a failed read", async () => {
@@ -333,7 +343,7 @@ it("shows empty, failed and forbidden lists calmly and retries a failed read", a
   ).toBeInTheDocument();
   list.mockRejectedValueOnce(new HostToolError("forbidden"));
   await user.click(screen.getByRole("button", { name: workEn.moreActions }));
-  await user.click(screen.getByRole("checkbox", { name: workEn.showArchived }));
+  await user.click(screen.getByRole("switch", { name: workEn.showArchived }));
   expect(await screen.findByText(workEn.contactsForbidden)).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: workEn.retry })).toBeNull();
 });
@@ -485,12 +495,38 @@ it("shows a refused new Contact calmly without retry and closes the field with C
   expect(screen.getByRole("button", { name: workEn.newContact })).toHaveFocus();
 });
 
+it("switches Show archived with one switch, a row of its own whose words are not a second control", async () => {
+  const user = userEvent.setup();
+  const list = vi
+    .fn()
+    .mockResolvedValue({ items: [listAnna], next_cursor: null });
+  render(contactsRoot(transport({ listContacts: list })));
+  await user.click(screen.getByRole("button", { name: workEn.moreActions }));
+  const toggle = screen.getByRole("switch", { name: workEn.showArchived });
+  expect(toggle).toHaveAttribute("aria-checked", "false");
+  // The words are not a control of their own: the switch is the row's only one.
+  const row = toggle.parentElement!;
+  expect(within(row).getAllByRole("switch")).toHaveLength(1);
+  expect(within(row).queryByRole("checkbox")).toBeNull();
+  expect(within(row).getByText(workEn.showArchived)).toBeVisible();
+  expect(within(row).queryAllByRole("button")).toHaveLength(0);
+  await user.click(toggle);
+  await waitFor(() =>
+    expect(list).toHaveBeenLastCalledWith({ q: "", includeArchived: true }),
+  );
+  expect(toggle).toHaveAttribute("aria-checked", "true");
+  await user.click(toggle);
+  await waitFor(() => expect(list).toHaveBeenLastCalledWith(noFilters));
+  expect(toggle).toHaveAttribute("aria-checked", "false");
+  expect(list).toHaveBeenCalledTimes(2);
+});
+
 it("shows the Contact list in Swedish", () => {
   render(contactsRoot(transport(), undefined, workSv));
   expect(screen.getByLabelText(workSv.searchContacts)).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: workSv.moreActions }));
   expect(
-    screen.getByRole("checkbox", { name: workSv.showArchived }),
+    screen.getByRole("switch", { name: workSv.showArchived }),
   ).toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: workSv.newContact }),

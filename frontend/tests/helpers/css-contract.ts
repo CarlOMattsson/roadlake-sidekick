@@ -77,6 +77,53 @@ export function cssRules(css: string): CssRule[] {
     .filter((rule) => !rule.selector.startsWith("@"));
 }
 
+export type NestedCssRule = CssRule & {
+  /** The preludes of the at-rules the rule stands in, outermost first (`@media (hover: hover)`), whitespace collapsed. */
+  within: string[];
+};
+
+/**
+ * Rules with the at-rules they stand in, for a policy that depends on the block a rule is written in (a :hover only
+ * inside `@media (hover: hover)`). Reads `css` as written, so pass comment-blanked text.
+ */
+export function nestedCssRules(css: string): NestedCssRule[] {
+  const rules: NestedCssRule[] = [];
+  const open: { prelude: string; atRule: boolean }[] = [];
+  let start = 0;
+  for (let i = 0; i < css.length; i++) {
+    const char = css[i];
+    if (char === "{") {
+      const prelude = css.slice(start, i).replace(/\s+/g, " ").trim();
+      const close = css.indexOf("}", i);
+      const nextOpen = css.indexOf("{", i + 1);
+      if (!prelude.startsWith("@") && (nextOpen === -1 || close < nextOpen)) {
+        const body = css.slice(i + 1, close);
+        const lead = Math.max(css.slice(start, i).search(/\S/), 0);
+        rules.push({
+          selector: prelude,
+          body,
+          declarations: body.replace(/\s+/g, " ").trim(),
+          line: lineOf(css, start + lead),
+          within: open
+            .filter((block) => block.atRule)
+            .map((block) => block.prelude),
+        });
+        i = close;
+        start = close + 1;
+        continue;
+      }
+      open.push({ prelude, atRule: prelude.startsWith("@") });
+      start = i + 1;
+    } else if (char === "}") {
+      open.pop();
+      start = i + 1;
+    } else if (char === ";" && open.length === 0) {
+      start = i + 1;
+    }
+  }
+  return rules;
+}
+
 /** The declarations of a rule body, properties lower-cased. */
 export function declarationsOf(body: string): CssDeclaration[] {
   return body

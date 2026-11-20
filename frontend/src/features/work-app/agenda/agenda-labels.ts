@@ -22,6 +22,8 @@ export const agendaLabelsSv = {
   filter: "Filtrera uppgifter",
   /** An agenda search with no match; the search text stands in quotation marks. */
   noMatch: "Inga uppgifter matchar ”{q}”.",
+  /** The sentence to say to Claude under a search with no match: creates a Task from the search text. */
+  noMatchAsk: "Skapa uppgiften {q}",
   /** Text button under a search with no match: empties the search field. */
   clearSearch: "Rensa sökningen",
   /** Triage: moves an overdue Task to 23:59 tomorrow. */
@@ -61,6 +63,7 @@ export const agendaLabelsEn: AgendaLabels = {
   filter: "Filter tasks",
   /** An agenda search with no hit, naming the search text. */
   noMatch: "No tasks match “{q}”.",
+  noMatchAsk: "Create the task {q}",
   clearSearch: "Clear search",
   triageTomorrow: "Tomorrow",
   triageNextWeek: "Next week",

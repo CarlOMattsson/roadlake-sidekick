@@ -41,7 +41,7 @@
 }
 .sidekick-work .work-saved-views-save label,
 .sidekick-work .work-saved-views-archived-toggle {
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   font-weight: var(--sk-weight-medium);
 }
 .sidekick-work .work-saved-views-save input[type="text"],
@@ -67,7 +67,7 @@
 }
 .sidekick-work .work-saved-views-save > p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   overflow-wrap: anywhere;
 }
 .sidekick-work .work-saved-views-list {
@@ -117,7 +117,7 @@
 .sidekick-work .work-saved-view-meta,
 .sidekick-work .work-saved-views-save > .work-saved-views-meta {
   max-width: 100%;
-  font-size: 0.85rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 .sidekick-work .work-saved-view-meta {
@@ -129,7 +129,7 @@
   flex: none;
   min-width: 2.75rem;
   padding-inline: 0.5rem;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
   background: transparent;
   border: 0;
@@ -142,7 +142,7 @@
 /* The receipt under the tab row: which saved view the tab shows. Empty, it takes no room. */
 .sidekick-work .work-saved-view-receipt {
   margin: 0.25rem 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
   overflow-wrap: anywhere;
 }
@@ -169,7 +169,7 @@
 }
 .sidekick-work .work-saved-view-rename > p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   overflow-wrap: anywhere;
 }
 .sidekick-work .work-saved-views-archived-toggle {
@@ -188,7 +188,7 @@
 }
 .sidekick-work .work-saved-views-notice {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
 }
 .sidekick-work .work-saved-views-body > p {
   margin: 0;

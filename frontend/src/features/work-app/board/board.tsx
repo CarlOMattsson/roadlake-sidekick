@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { WorkEmpty } from "../shared/work-empty";
 import { workStatusLabel, type WorkLabels } from "../shared/labels";
 import { cardKey, type BoardSegment } from "../shared/work-items";
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
+import { rowReceipt, useUndoReceipts } from "../shared/use-undo-receipts";
 import { RowMenuTip } from "../shared/row-menu";
 import { UndoMeta } from "../agenda/agenda-undo";
 import { SearchNoMatch } from "../agenda/agenda";
@@ -189,18 +191,34 @@ export function BoardView({
     undos,
   });
 
-  /** The Undo of one card in place of its meta line, while it lasts. */
+  // A card's change is confirmed in the receipt bar at the board's foot, with Ångra; the card keeps its new state in
+  // its place until the bar's time is up (designsystem §0.6).
+  const receipt = useReceipt();
+  useUndoReceipts({
+    undos,
+    receipt,
+    describe: (_key, entry) => {
+      const card = writes.taskCard(entry.taskId, core.latest.current.page);
+      if (!card) return undefined;
+      // A recurring Task marked done reopens for its next date; the bar still says "Klar", the card says the date.
+      return {
+        message: rowReceipt(
+          workStatusLabel(t, entry.lastCompleted ? "completed" : entry.to),
+          card.title,
+        ),
+        undo: { label: t.agendaUndo, onUndo: () => writes.undoMove(entry) },
+      };
+    },
+    onEnd: writes.forget,
+  });
+  /** The state line of one card in place of its meta line, while its change can be undone. */
   function undoOf(item: WorkItemRecord) {
     const entry = undos[cardKey(item)];
     return (
       entry && (
         <UndoMeta
           text={entry.due ? entry.due.label : workStatusLabel(t, entry.to)}
-          title={item.title}
           labels={t}
-          disabled={disabled}
-          onUndo={() => writes.undoMove(entry)}
-          onExpire={() => writes.forget(entry.key)}
         />
       )
     );
@@ -331,6 +349,7 @@ export function BoardView({
           <div className="work-board-foot">{refresh}</div>
         ) : null}
         {single && anyShown && <RowMenuTip labels={t} />}
+        <ReceiptBar receipt={receipt} />
       </article>
     </KnownTags.Provider>
   );

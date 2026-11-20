@@ -6,7 +6,7 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
-## [0.2.1] - 2026-11-19
+## [0.2.1] - 2026-11-20
 
 ### Added
 
@@ -21,6 +21,12 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 - Journal: an entry written by hand keeps your own words and says whose summary it is; an entry can be kept out of
   memory.
 - `update_shopping_item` can move an item to another list.
+- One shared look across the apps: every change is confirmed in a small bar at the foot of the view, with undo where
+  it can be undone, and rows keep their place and height while it shows. Inline cards end in one "Open …" link.
+- On a computer: rows, tabs, chips and buttons answer the mouse, keyboard focus has one clear ring, and the ⋯ menus open
+  as small menus by their button that close with Esc or a click outside.
+- The phone board shows one column at a time with tabs; a task's details read as a list of properties.
+- Contacts show who you are waiting on and when they were last in the journal, and offer a new task for that person.
 
 ### Changed
 
@@ -30,6 +36,9 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 - History rows name the right actor (you, not Claude, for changes made in the app), one row per action, with the
   record's name.
 - After a conflicting change, the app reloads the fresh state quietly instead of showing an error.
+- The agenda groups a task by the earlier of its due date and follow-up, and moving overdue tasks also moves
+  follow-ups.
+- A repeating task shows when it comes next.
 
 ### Fixed
 
@@ -38,6 +47,10 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 - Contact search matches what a row shows, archived contacts can be opened, and creating a contact with an existing
   name warns you.
 - The compact shopping card and add flow work one-handed on a phone.
+- Typing the next shopping item while the last one is still saving no longer merges or cuts the two.
+- The shopping lists overview shows the right counts, and new lists at once.
+- Editing a contact: Save and Cancel no longer cover a field, the name is not hidden after saving, and Esc never drops
+  unsaved changes.
 
 ## [0.2.0] - 2026-11-17
 

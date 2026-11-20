@@ -81,6 +81,10 @@ it("the filter narrows the list by title and says when nothing matches", async (
   expect(
     screen.getByText(fillLabel(agendaLabelsEn.noMatch, { q: "zzz" })),
   ).toBeInTheDocument();
+  // The family's empty state: what to say to Claude to create the Task from the search text (text only, no host here).
+  expect(
+    screen.getByText(`“${fillLabel(agendaLabelsEn.noMatchAsk, { q: "zzz" })}”`),
+  ).toBeInTheDocument();
   // The text button under the sentence empties the search and brings the rows back.
   await user.click(
     screen.getByRole("button", { name: agendaLabelsEn.clearSearch }),
@@ -216,22 +220,24 @@ it("a done Task keeps its check glyph, which the stylesheet keys its dimming on"
   expect(rowOf(task.title).querySelector('[data-glyph$="-check"]')).toBeNull();
 });
 
-it("the Undo line is the changed row's own meta line, as a polite status line, and no list item or notice is added", async () => {
+it("the state line is the changed row's own meta line, as a polite status line, with no button, list item or notice added", async () => {
   const user = userEvent.setup();
   const { transport } = makeTransport();
   renderAgenda([task, other], transport);
   await user.click(glyphOf(task.title));
-  const undo = await undoButton();
+  await undoButton();
   // The wrapper sits inside its row, so it covers no other row and adds no list item of its own.
-  const wrap = undo.closest(".work-agenda-undo");
-  if (!wrap) throw new Error("no Undo line");
-  expect(rowOf(task.title)).toContainElement(wrap as HTMLElement);
+  const wrap = rowOf(task.title).querySelector(".work-agenda-undo");
+  if (!wrap) throw new Error("no state line");
   expect(document.querySelector("li.work-agenda-undo")).toBeNull();
   expect(wrap.tagName).toBe("DIV");
   const line = within(wrap as HTMLElement).getByRole("status");
   expect(line.tagName).toBe("P");
   expect(line).toHaveTextContent("Done");
   expect(line).not.toHaveClass("sk-notice");
+  // The Undo belongs to the receipt bar: the row's line has no button, and the other row has no line.
+  expect(wrap.querySelector("button")).toBeNull();
+  expect(rowOf(other.title).querySelector(".work-agenda-undo")).toBeNull();
 });
 
 it("opening a row's quick choices scrolls them into view, so they are not hidden under the host's reply field", () => {
@@ -266,7 +272,7 @@ it("opening a row's quick choices scrolls them into view, so they are not hidden
   }
 });
 
-it("the Undo line scrolls itself into view with nearest when it shows, so its Ångra is not hidden under the reply field", async () => {
+it("the state line scrolls itself into view with nearest when it shows, so the changed row is not hidden under the reply field", async () => {
   const user = userEvent.setup();
   const { transport } = makeTransport();
   // jsdom has no scrollIntoView: the test supplies one and records the element it was called on.
@@ -282,10 +288,10 @@ it("the Undo line scrolls itself into view with nearest when it shows, so its Å
   try {
     renderAgenda([task, other], transport);
     await user.click(glyphOf(task.title));
-    const undo = await undoButton();
-    const line = undo
-      .closest(".work-agenda-undo")
-      ?.querySelector('p[role="status"]');
+    await undoButton();
+    const line = rowOf(task.title).querySelector(
+      '.work-agenda-undo > p[role="status"]',
+    );
     expect(line).not.toBeNull();
     expect(scrollIntoView).toHaveBeenCalledWith({
       block: "nearest",

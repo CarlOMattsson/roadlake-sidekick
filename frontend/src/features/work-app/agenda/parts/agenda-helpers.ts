@@ -174,12 +174,6 @@ export const stickyHeading: CSSProperties = {
   background: "var(--color-background-primary, Canvas)",
 };
 
-/** The outline of the row the keys have selected. */
-export const selectedRow: CSSProperties = {
-  outline: "2px solid currentColor",
-  outlineOffset: 2,
-};
-
 /** How long a done row takes to fold away once its Undo has run out. */
 export const LEAVE_MS = 200;
 

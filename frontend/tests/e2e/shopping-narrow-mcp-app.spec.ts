@@ -54,7 +54,7 @@ for (const locale of ["sv", "en"] as const) {
       await deliverToolResult(page, batchOf(14));
       await settled(opened.app);
       const open = opened.app.getByRole("button", {
-        name: /^(Öppna|Open) .*(11 fler tillagda|11 more added)/,
+        name: /^(Öppna listan · 11 till|Open list · 11 more)$/,
       });
       await expect(open).toBeVisible();
       const measure = await opened.app.locator("html").evaluate((root) => {
@@ -130,8 +130,8 @@ for (const locale of ["sv", "en"] as const) {
     await expect(alert).toBeVisible();
     await expect(alert).toContainText(
       locale === "sv"
-        ? "Det gick inte att markera ”Mjölk” som köpt."
-        : "Couldn’t mark “Mjölk” as bought.",
+        ? "Det gick inte att markera ”Mjölk” som köpt"
+        : "Couldn’t mark “Mjölk” as bought",
     );
     await settled(opened.app);
     const place = await opened.app.locator("html").evaluate(() => {

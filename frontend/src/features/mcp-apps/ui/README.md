@@ -27,11 +27,39 @@ Do not copy these into a room. A room that needs a variant asks for a prop here.
   disabled?: boolean
   fit?: "equal" | "content"           // equal cells (default) | packed from the start, beside tools
   rule?: boolean                      // hairline under the tabs (default true); off when the row draws it
-  className?: string />
+  wrap?: boolean                      // wrap onto more lines when they do not fit (default true); false = one line, for a caller that measures
+  className?: string
+  ref?: Ref<HTMLDivElement> />        // the group element, for that measuring
 ```
 
 Underlined text tabs: chosen = 600 `--sk-fg` with a 3 px line, others 500 muted. Arrow keys, Home, End move focus.
 `aria-pressed` buttons in a labelled group. The bold width is reserved, so choosing moves nothing.
+
+## `Menu` (`menu.tsx`)
+
+```ts
+<Menu
+  anchor: RefObject<HTMLElement | null> | ((menu: HTMLElement) => HTMLElement | null)  // the ⋯ button, or a row's title
+  onClose: (reason: "escape" | "tab" | "outside") => void
+  open?: boolean                      // false keeps it mounted and hidden (default true: mount it while open)
+  align?: "end" | "start"             // right edge on the button's (default) | start edge on the anchor's
+  point?: { x; y }                    // a context menu opened by the pointer stands there
+  id?, label?, className?, panelClassName?, popoverClassName?, inFlow? />
+<MenuItem label onChoose disabled? danger? pressed? />
+menuButtonKeys(open, setOpen)         // the button's onKeyDown: ↓ opens on the first entry, ↑ on the last, Esc closes
+```
+
+What a ⋯ button or a row's context menu (right click, Shift+F10) opens. With a fine pointer, or in a frame of at
+least 40 rem, it is a **popover**: 240 wide (13.75–20 rem), in the top layer, under its button with the right edges
+aligned and 4 between, turned upward without room below, 8 from the frame's edges, placed in JS and following scroll
+and resize. It moves nothing on the page. The first entry takes the focus; ↑ ↓ Home End move; one Escape closes it
+with the focus back on the button; Tab closes and moves on from the button; a press outside closes it without a
+choice. On a phone (coarse pointer, narrow frame) it is the family's panel in the flow (`.sk-menu-panel`), unchanged.
+`DetailMenu` (`detail-menu.tsx`) is the Task's and Project's ⋯ built on it.
+
+The button keeps `aria-expanded` and `aria-controls` and the entries are buttons (a disclosure, not `role="menu"`),
+because some menus hold more than menu items (saved views, the update reminder, the license row). Without the Popover
+API the menu is a fixed box (no `popover` attribute).
 
 ## `Switch` (`switch.tsx`)
 
@@ -73,7 +101,9 @@ placement="row"` under that control.
 const receipt = useReceipt(resetKey?: unknown)   // e.g. the day, the entry id, the tab
 receipt.show({ message: string,
                undo?: { label: string; onUndo: () => unknown },
-               action?: { label: string; onClick: () => void } })
+               action?: { label: string; onClick: () => void },
+               onEnd?: () => void })        // returns the receipt's id
+receipt.dismiss(id: number, undone?: boolean)    // only if it is still shown
 receipt.clear()
 <ReceiptBar receipt={receipt} />                 // last in the view
 ```
@@ -86,8 +116,10 @@ time holds while pointer or focus is on it. A new receipt replaces the old one; 
 unmounting clears it, so an old receipt never comes back. Messages have no closing full stop ("Återställd: Mjölk").
 
 A row's own new state (a done task's filled ring and "Klar", a bought item greyed) is the row's state, not the receipt:
-the row keeps its height. Its Ångra belongs in the bar (Work and Shopping move there next; until then their row Ångra
-stays as it is).
+the row keeps its height. Its Ångra belongs in the bar. A row that holds its state while Ångra is offered settles in the
+receipt's `onEnd` (called when the receipt leaves without its Ångra: time up, replaced, cleared, `resetKey`); Work's rows
+do this through `useUndoReceipts` (work-app/shared/use-undo-receipts.ts); Shopping holds a bought row in its place
+until the bar is empty.
 
 Why the bar and not "on the row": three of the five user tests (Dagbok, Inköp, Arbete) found receipts that move the
 content or come back later, and many changes have no row to confirm on (save, edit, move to another list, delete the
@@ -115,4 +147,4 @@ phrase where the host can, and a create row in `children`. A search without a hi
 ```
 
 The inline card's one main link, always last, always with ›, inside `CardFoot`. Replaces "Visa alla (N)" and
-"Öppna ›" without a name. Work's `OpenFoot` (work-app/inline) should move to this next.
+"Öppna ›" without a name. Every room's inline cards use it, Work's included.

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { EmptyState } from "../../mcp-apps/ui/states";
 import { copyTime } from "../../mcp-apps/app-timezone";
 import { useDoneHandoff } from "../shared/done-handoff";
 import { WorkEmpty } from "../shared/work-empty";
@@ -29,7 +30,6 @@ import {
   DoneTodaySection,
   WaitingSection,
 } from "./parts/agenda-sections";
-import { MoveAllUndo } from "./parts/move-all-overdue";
 import type { AgendaRowContext } from "./parts/row-context";
 import { SearchNoMatch } from "./parts/search-no-match";
 import { useAgendaBulk } from "./parts/use-agenda-bulk";
@@ -47,6 +47,9 @@ import { useQueuedRecords } from "../shared/use-queued-records";
 import { useRowMenu } from "./parts/use-row-menu";
 import { useRowOffers } from "./parts/use-row-offers";
 import { useRowState } from "./parts/use-row-state";
+import { rowUndo } from "./parts/agenda-row";
+import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
+import { useUndoReceipts } from "../shared/use-undo-receipts";
 import { useRowWrites } from "./parts/use-row-writes";
 import "./agenda.css";
 
@@ -230,6 +233,39 @@ export function AgendaView({
     waiting,
     doneTasks,
   };
+  // Every change of a row is confirmed in the receipt bar at the agenda's foot, with Ångra; the row keeps its new state
+  // and its height until the bar's time is up (designsystem §0.6).
+  const receipt = useReceipt();
+  useUndoReceipts({
+    undos: rows.undos,
+    receipt,
+    describe: (key, entry) => {
+      const record = page.items.find((item) => cardKey(item) === key);
+      if (!record) return undefined;
+      const undo = rowUndo(ctx, rows.current(record), entry);
+      return {
+        message: undo.receipt,
+        undo: undo.action && { label: t.agendaUndo, onUndo: undo.action },
+      };
+    },
+    onEnd: rows.expire,
+  });
+  // The move of every overdue Task has no row of its own: its receipt is the same bar's.
+  const { moveUndo } = bulk;
+  const moveUndos = useMemo(
+    (): Record<string, { count: number }> =>
+      moveUndo ? { moveAll: moveUndo } : {},
+    [moveUndo],
+  );
+  useUndoReceipts({
+    undos: moveUndos,
+    receipt,
+    describe: (_key, moved) => ({
+      message: t.moveAllDone(moved.count),
+      undo: { label: t.agendaUndo, onUndo: bulk.undoMoveAll },
+    }),
+    onEnd: bulk.dismissMoveUndo,
+  });
 
   return (
     <KnownTags.Provider value={tagVocabulary.suggestions}>
@@ -316,10 +352,10 @@ export function AgendaView({
         </p>
         {!page.items.length &&
           (waitingView ? (
-            <p>{wt.empty}</p>
+            <EmptyState title={wt.empty} />
           ) : chosenTags.length > 0 ? (
             // Nothing carries every chosen tag: the filter row above has Rensa.
-            <p>{t.agendaNoMatches}</p>
+            <EmptyState title={t.agendaNoMatches} />
           ) : (
             <WorkEmpty
               title={t.agendaEmpty}
@@ -339,18 +375,9 @@ export function AgendaView({
             onRemind={bulk.remind}
           />
         )}
-        {/* The `undo` of `moveAllDone`: the moved Tasks have left the group, so it stands above the groups. */}
+        {/* A failed `moveAllOverdue` whose group has gone (its Ångra failed) stands above the groups. */}
         {!overdueShown && (
           <AgendaNotice spot="moveAll" source={notice} labels={t} />
-        )}
-        {!waitingView && bulk.moveUndo && (
-          <MoveAllUndo
-            labels={t}
-            count={bulk.moveUndo.count}
-            disabled={disabled}
-            onUndo={bulk.undoMoveAll}
-            onExpire={bulk.dismissMoveUndo}
-          />
         )}
         {/* The Undo (or "Moving…", or "Waiting…") takes the meta line of the row it belongs to, so it covers no row and moves none.
           A write with no row of its own (`moveAllOverdue`) shows none; the loading status speaks for it, and the
@@ -383,6 +410,7 @@ export function AgendaView({
         {!waitingView && visible.some(offers.rowHasChoices) && (
           <RowMenuTip labels={t} />
         )}
+        <ReceiptBar receipt={receipt} />
       </article>
     </KnownTags.Provider>
   );

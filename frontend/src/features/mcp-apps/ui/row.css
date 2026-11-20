@@ -125,6 +125,51 @@ button.sk-row-open {
   outline-offset: -2px;
 }
 
+/* Pointer feedback on every row that opens (designsystem §2 Hovring): one rule for the kit's rows and the rooms' own,
+   which carry data-sk-row (row.tsx). The tone is a layer 8 past the row on each side with the button radius, so the text
+   stands still; it lies under the row's own positioned parts and lets every tap through. Hovered: --sk-hover; held:
+   --sk-press; open in the detail (aria-current): --sk-row-selected, a fill and never a frame, so a chosen row and the
+   focus ring can never read as two focus marks. Hover and held only with a hovering pointer and never when the host
+   reports a coarse one, so a phone draws what it drew before. */
+[data-sk-row] {
+  position: relative;
+}
+[data-sk-row]::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(-1 * var(--sk-s2));
+  border-radius: var(--sk-radius);
+  background: transparent;
+  pointer-events: none;
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+[data-sk-row][aria-current="true"]::before {
+  background: var(--sk-row-selected);
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"]) [data-sk-row]:hover::before {
+    background: var(--sk-hover);
+  }
+  :root:not([data-host-pointer="coarse"])
+    [data-sk-row]:is(:hover, :active)[aria-current="true"]::before {
+    background: var(--sk-row-selected);
+  }
+  :root:not([data-host-pointer="coarse"]) [data-sk-row]:active::before {
+    background: var(--sk-press);
+  }
+  /* The row's › goes from muted to the text colour: the row says where the click goes. */
+  :root:not([data-host-pointer="coarse"])
+    [data-sk-row]:hover
+    :is(.sk-row-chevron, .work-open-chevron, .journal-entry-chevron) {
+    color: var(--sk-fg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-sk-row]::before {
+    transition: none;
+  }
+}
+
 /* The fold row: one form for "Klar (n)", "Köpta (n)", "Klara här (n)", "Kontaktvägar" and the row
    menu's groups at large text. "Text (n)" in the section type and ink (the count muted, .sk-count), an optional meta
    line under it in 15,4 text-2, ⌄ (--sk-chevron, muted, as a row's ›) on the content edge, the row's 6 over and under

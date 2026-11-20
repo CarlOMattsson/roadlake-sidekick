@@ -92,6 +92,6 @@ it("reads the list again in place with the same search and archive switch, and k
     screen.getByRole("button", { name: workEn.moreActions }),
   );
   expect(
-    screen.getByRole("checkbox", { name: workEn.showArchived }),
+    screen.getByRole("switch", { name: workEn.showArchived }),
   ).toBeChecked();
 });

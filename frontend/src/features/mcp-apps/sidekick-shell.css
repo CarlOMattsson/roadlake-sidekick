@@ -135,6 +135,30 @@
 .sk-rooms :is(.sk-rooms__tab, .sk-pick):focus-visible {
   outline-offset: -2px;
 }
+/* Pointer feedback (designsystem §2 Hovring): a room that is not the active one takes --sk-hover in its cell and the
+   text colour, held --sk-press. The active room keeps its raised pill. Only with a hovering pointer and never when the
+   host reports a coarse one, so the phone's strip is unchanged. */
+.sk-rooms .sk-rooms__tab {
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sk-rooms
+    .sk-rooms__tab:not([aria-current="page"]):hover {
+    background-color: var(--sk-hover);
+    color: var(--sk-fg);
+  }
+  :root:not([data-host-pointer="coarse"])
+    .sk-rooms
+    .sk-rooms__tab:not([aria-current="page"]):active {
+    background-color: var(--sk-press);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-rooms .sk-rooms__tab {
+    transition: none;
+  }
+}
 
 /* The active room (also the parent of a detail view) is drawn as chosen, never framed and never inked: a raised pill
    (--sk-nav-active-bg and its shadow) on the strip's surface and the label at 600. A frame read as the focus ring

@@ -140,7 +140,7 @@ for (const width of [320, 190]) {
     });
     await waitForAppInitialized(page);
     await deliverToolResult(page, narrowAgenda);
-    const tabs = app.locator(".work-view-tabs__tab");
+    const tabs = app.locator(".sk-tabs__tab");
     await expect(tabs.first()).toBeHidden();
     const pick = app.locator(".work-view-pick");
     await expect(pick).toBeVisible();
@@ -206,8 +206,10 @@ test("sandboxed Work agenda without fullscreen: the inline card is a summary, Sh
   await deliverToolResult(page, agenda);
   // Inline: the kicker names the day, the title carries the counts, the first row and at most two more
   // overdue rows, not the 25 records.
-  await expect(app.locator(".work-compact-kind")).toHaveText(/^Arbete · /);
-  await expect(app.locator(".work-compact-title")).toHaveText("25 försenade");
+  await expect(app.locator(".work-compact-card > .sk-eyebrow")).toHaveText(
+    /^Arbete · Agenda · /,
+  );
+  await expect(app.locator(".sk-card__title")).toHaveText("25 försenade");
   await expect(app.locator(".work-compact-row")).toHaveCount(3);
   await expect(app.locator(".work-agenda-row")).toHaveCount(0);
   await app.getByRole("button", { name: /^Öppna Agenda/ }).click();
@@ -350,8 +352,8 @@ test("sandboxed Work agenda at 360 px and 200 % text: the date input takes focus
   expect(networkRequests()).toBe(0);
 });
 
-// While a row's menu is open at large text, only the ordinary meta line is hidden. Ångra and the
-// receipt stay in sight and can be pressed.
+// While a row's menu is open at large text, only the ordinary meta line is hidden. The row's state line stays, and
+// the Ångra of the receipt bar at the view's foot stays in sight and can be pressed.
 test("sandboxed Work agenda at 360 px and 200 % text: Ångra stays visible and pressable while the row menu is open", async ({
   page,
 }) => {
@@ -359,7 +361,9 @@ test("sandboxed Work agenda at 360 px and 200 % text: Ångra stays visible and p
     resource: readBuiltApp("work"),
     width: 360,
     height: 800,
-    hostContext: fullscreenHost,
+    // A phone (the host reports a mobile platform, so a coarse pointer): the menu is the panel in the flow, not the
+    // popover a mouse gets (ui/menu.tsx).
+    hostContext: { ...fullscreenHost, platform: "mobile" },
     replies: {
       get_work_agenda: { structuredContent: narrowAgenda },
       update_task: {
@@ -378,15 +382,18 @@ test("sandboxed Work agenda at 360 px and 200 % text: Ångra stays visible and p
   const title = row.locator(".work-agenda-body > button");
   await title.dispatchEvent("contextmenu", undefined, { timeout: 8000 });
   await row.getByRole("button", { name: "Pågår", exact: true }).click();
-  const undo = row.getByRole("button", { name: "Ångra" });
+  const undo = app
+    .locator(".sk-receipt-slot")
+    .getByRole("button", { name: "Ångra" });
   await expect(undo).toBeVisible();
-  // The menu is closed by the write; open it again on the row that carries the Ångra.
+  await expect(row.getByRole("button", { name: "Ångra" })).toHaveCount(0);
+  // The menu is closed by the write; open it again on the row whose change can be undone.
   await row
     .locator(".work-agenda-body > button")
     .dispatchEvent("contextmenu", undefined, { timeout: 8000 });
   await expect(row.locator(".work-agenda-menu")).toBeVisible();
   await expect(row.getByRole("status")).toBeVisible();
-  await expect(undo).toBeVisible();
+  await expect(undo).toBeInViewport();
   const box = await undo.boundingBox();
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(40);
   await undo.click();

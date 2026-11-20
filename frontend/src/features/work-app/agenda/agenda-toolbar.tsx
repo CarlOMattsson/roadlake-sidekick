@@ -8,7 +8,7 @@ import {
 } from "react";
 import { CloseIcon, MoreIcon, SearchIcon } from "./agenda-icons";
 import { PlusIcon } from "../../mcp-apps/ui/icons";
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { Menu, menuButtonKeys } from "../../mcp-apps/ui/menu";
 import {
   MenuUpdateReminder,
   useMoreMark,
@@ -165,9 +165,10 @@ export function AgendaSearch({
 }
 
 /**
- * The "⋯" button of a Work tab, at the end of the tab row (the shell's tabsEnd). It unfolds a menu with the view's
- * rarer actions (saved views, `refresh`, and `control` last, designsystem §3 "Rumshuvud") under the tab row, at full width, in the page flow; the button
- * stays where it is. The caller owns the state (open or closed), because the view under it is remounted when a saved
+ * The "⋯" button of a Work tab, at the end of the tab row (the shell's tabsEnd). It opens a `Menu` with the view's
+ * rarer actions (saved views, `refresh`, and `control` last, designsystem §3 "Rumshuvud"): a popover under the button
+ * with a mouse or in a wide frame, else (a phone) the panel under the tab row, at full width, in the page flow; the
+ * button stays where it is. The caller owns the state (open or closed), because the view under it is remounted when a saved
  * view opens and this button is not. The panel stays mounted while closed (hidden), so what it holds keeps its status
  * and focus.
  */
@@ -229,15 +230,16 @@ export function AgendaMore({
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => onOpenChange(!open)}
+        onKeyDown={menuButtonKeys(open, onOpenChange)}
       >
         <MoreIcon />
         {mark.dot}
       </button>
-      <KeyScope
+      <Menu
         id={panelId}
-        className="sk-menu-panel"
-        hidden={!open}
-        onEscape={close}
+        open={open}
+        anchor={more}
+        onClose={() => onOpenChange(false)}
       >
         {children}
         <button
@@ -264,7 +266,7 @@ export function AgendaMore({
         ) : null}
         <MenuUpdateReminder />
         <MenuLicenseRow />
-      </KeyScope>
+      </Menu>
     </div>
   );
 }

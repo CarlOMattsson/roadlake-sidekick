@@ -24,6 +24,8 @@ import {
   type WorkTransport,
 } from "../transport/transport";
 import { useSingleFlight } from "../shared/use-single-flight";
+import { rowReceipt } from "../shared/use-undo-receipts";
+import { useReceipt } from "../../mcp-apps/ui/receipt";
 import { readFailurePhase, type Phase } from "../view/parts/frame-types";
 import {
   contactLinkCounts,
@@ -74,10 +76,11 @@ export function InlineRootSummary({
   // One key per attempt: a retry of the same write against the same version reuses it.
   const pendingDone = useRef<PendingKey | undefined>(undefined);
   const pendingUndo = useRef<PendingKey | undefined>(undefined);
-  // Set by Done for `UNDO_MS`: "Done · Undo" stands in the card where Done stood.
-  const [undo, setUndo] = useState<DoneUndo>();
-  // Undo has run: focus goes to Done, which comes back in place of the Undo that had it.
-  const [focusDone, setFocusDone] = useState(false);
+  // Done's receipt with Ångra is the bar at the card's foot; the card itself shows the Task's new state.
+  const receipt = useReceipt(id);
+  // Where focus goes when the control that had it is replaced: Done after Ångra (it comes back), the open link after
+  // Done (it takes Done's button away). Never the page.
+  const [focusAfter, setFocusAfter] = useState<"complete" | "open">();
   const alive = useMounted();
   // The carried record is the first view; only a refresh reads it again.
   const readSummary = useCallback(
@@ -109,7 +112,8 @@ export function InlineRootSummary({
   function reload() {
     pendingDone.current = undefined;
     pendingUndo.current = undefined;
-    setUndo(undefined);
+    receipt.clear();
+    setFocusAfter(undefined);
     setNotice(undefined);
     retryRead();
   }
@@ -147,15 +151,15 @@ export function InlineRootSummary({
   }
   /**
    * Marks the Task done with update_task against the version the summary shows, so no get_task
-   * comes first. The host model hears about a saved change through `announce`, and the card offers
-   * Undo for `UNDO_MS` (see `undoDone`).
+   * comes first. The host model hears about a saved change through `announce`, and the receipt bar offers
+   * Ångra for `UNDO_MS` (see `undoDone`); the card shows the Task's new state and no Undo of its own.
    */
   async function complete() {
     if (summary?.version === undefined || !flight.enter()) return;
     const { version } = summary;
     setBusy(true);
     setNotice(undefined);
-    setFocusDone(false);
+    setFocusAfter(undefined);
     try {
       const signature = JSON.stringify([id, version, "completed"]);
       const pendingKey = keyFor(pendingDone.current, signature);
@@ -169,8 +173,15 @@ export function InlineRootSummary({
       pendingDone.current = undefined;
       if (!alive.current) return;
       setSummary(taskInlineSummary(task));
-      setUndo(doneUndo(summary, task));
+      const entry = doneUndo(summary, task);
       pendingUndo.current = undefined;
+      receipt.show({
+        message: rowReceipt(labels.taskStatus.completed, summary.title),
+        ...(entry
+          ? { undo: { label: labels.undo, onUndo: () => undoDone(entry) } }
+          : {}),
+      });
+      setFocusAfter("open");
       announce?.(labels.completedNote);
     } catch (error) {
       if (alive.current)
@@ -212,8 +223,7 @@ export function InlineRootSummary({
       if (!restored) throw new Error("undo not applied");
       if (!alive.current) return;
       setSummary(taskInlineSummary(task));
-      setUndo(undefined);
-      setFocusDone(true);
+      setFocusAfter("complete");
       announce?.(labels.undoneNote);
     } catch (error) {
       if (alive.current)
@@ -228,7 +238,6 @@ export function InlineRootSummary({
       if (alive.current) setBusy(false);
     }
   }
-  const expireUndo = useCallback(() => setUndo(undefined), []);
   if (phase === "gone") {
     return (
       <InlineSummary
@@ -265,16 +274,9 @@ export function InlineRootSummary({
         onOpen={onOpen}
         onComplete={canComplete ? () => void complete() : undefined}
         busy={busy}
-        undo={
-          undo
-            ? {
-                onUndo: () => void undoDone(undo),
-                onExpire: expireUndo,
-                busy,
-              }
-            : undefined
-        }
-        focusComplete={focusDone}
+        receipt={receipt}
+        focusComplete={focusAfter === "complete"}
+        focusOpen={focusAfter === "open"}
         notice={notice}
         plan={
           waitingPlan

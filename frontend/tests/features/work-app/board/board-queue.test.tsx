@@ -185,7 +185,9 @@ describe("board card write queue", () => {
     // The board read is still open: the card did not wait for it.
     await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
     expect(updateTask).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("button", { name: /^Undo/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: /^Undo/ }),
+    ).toBeInTheDocument();
     expect(handle(taskA).closest("li")).not.toHaveAttribute("aria-busy");
 
     await act(async () => {
@@ -338,14 +340,19 @@ describe("board card write queue", () => {
       updateTask: vi.fn(() => first.promise),
       getWorkBoard: vi.fn(() => new Promise<WorkBoardPage>(() => undefined)),
     });
-    const region = screen.getByRole("status");
+    // The board's hidden announcer, not the receipt bar's slot (also a status region).
+    const announcer = () =>
+      document.querySelector<HTMLElement>(
+        ".work-visually-hidden[role=status]",
+      )!;
+    const region = announcer();
     expect(region.textContent).toBe("");
 
     stepRight(taskA);
     stepRight(taskA);
     await screen.findByText(workEn.queued);
     // The same region, mounted before the news, now says it; no busy element holds it.
-    expect(screen.getByRole("status")).toBe(region);
+    expect(announcer()).toBe(region);
     expect(region).toHaveTextContent(`${taskA.title}: ${workEn.queued}`);
     expect(region.closest("[aria-busy]")).toBeNull();
     expect(handle(taskA).closest("li")).toHaveAttribute("aria-busy", "true");

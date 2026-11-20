@@ -115,7 +115,7 @@ it("reads again in place when refreshKey changes: every column tab stays, old ca
   expect(screen.getByText(todoCard.title)).toBeInTheDocument();
 });
 
-it("a read again that fails is the family's refresh row (ErrorNotice), over the list that stays", async () => {
+it("a read again that fails is an error MessageBox over the list that stays", async () => {
   const getWorkBoard = vi
     .fn()
     .mockRejectedValueOnce(new TypeError("Failed to fetch"))
@@ -128,7 +128,7 @@ it("a read again that fails is the family's refresh row (ErrorNotice), over the 
   rerender(<Harness transport={transport} refreshKey={1} />);
 
   const alert = await screen.findByRole("alert");
-  expect(alert).toHaveClass("sk-error", "sk-error--refresh");
+  expect(alert).toHaveClass("sk-message", "sk-message--error");
   expect(alert).toHaveTextContent("Couldn’t refresh");
   // The list stays under the row, and the board's own notice (a bare paragraph with a button) is gone.
   expect(screen.getByText(doingCard.title)).toBeInTheDocument();

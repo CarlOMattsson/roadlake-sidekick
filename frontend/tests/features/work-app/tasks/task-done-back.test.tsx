@@ -79,7 +79,7 @@ function renderBoard(host: WorkTransport, labels: WorkLabels) {
 
 const region = (name: string) => screen.getByRole("region", { name });
 
-// The board's Ångra names its card ("Undo <title>"); the Task view's own Undo is just the word.
+// The board's Ångra, like the Task view's, is just the word, in the receipt bar at the view's foot.
 const undoOf = (labels: WorkLabels) => new RegExp(`^${labels.agendaUndo}`);
 
 describe.each([
@@ -111,7 +111,7 @@ describe.each([
       expect.stringMatching(KEY),
     );
     expect(screen.queryByRole("button", { name: labels.markDone })).toBeNull();
-    // The card stands in Klar, not in To do, with the Ångra beside it.
+    // The card stands in Klar, not in To do; its Ångra is in the board's receipt bar.
     const done = region(labels.taskStatus.completed);
     expect(
       within(done).getByRole("button", { name: boardTask.title }),
@@ -121,9 +121,9 @@ describe.each([
         name: boardTask.title,
       }),
     ).toBeNull();
-    expect(
-      within(done).getByRole("button", { name: undoOf(labels) }),
-    ).toBeEnabled();
+    const undo = await screen.findByRole("button", { name: undoOf(labels) });
+    expect(undo).toBeEnabled();
+    expect(undo.closest(".sk-receipt-slot")).not.toBeNull();
   });
 
   it("writes the earlier status back from the board's Ångra and returns the card to its column", async () => {
@@ -162,7 +162,7 @@ describe.each([
 });
 
 describe("Mark as done on a Task with nothing to go back to", () => {
-  it("stays in the Task view with its Undo in place when it is the root and there is no shell Back", async () => {
+  it("stays in the Task view with Reopen in place and its Undo in the receipt bar when it is the root and there is no shell Back", async () => {
     const host = work();
     render(
       <WorkView
@@ -176,7 +176,10 @@ describe("Mark as done on a Task with nothing to go back to", () => {
       await screen.findByRole("button", { name: workEn.markDone }),
     );
     const undo = await screen.findByRole("button", { name: workEn.agendaUndo });
-    expect(undo).toHaveFocus();
+    expect(undo.closest(".sk-receipt-slot")).not.toBeNull();
+    expect(
+      await screen.findByRole("button", { name: workEn.reopenTask }),
+    ).toHaveFocus();
     expect(
       screen.getByRole("heading", { level: 2, name: taskA.title }),
     ).toBeInTheDocument();
@@ -210,7 +213,7 @@ describe("Mark as done on a Task with nothing to go back to", () => {
     expect(screen.getByRole("button", { name: workEn.markDone })).toBeEnabled();
   });
 
-  it("stays with its Undo on a shell layer that was not opened from a list (the card's own Task, a record page)", async () => {
+  it("stays with Reopen and its Undo in the bar on a shell layer that was not opened from a list (the card's own Task, a record page)", async () => {
     const host = work();
     const onLeave = vi.fn();
     render(
@@ -227,6 +230,9 @@ describe("Mark as done on a Task with nothing to go back to", () => {
     );
     expect(
       await screen.findByRole("button", { name: workEn.agendaUndo }),
+    ).toBeVisible();
+    expect(
+      await screen.findByRole("button", { name: workEn.reopenTask }),
     ).toHaveFocus();
     expect(onLeave).not.toHaveBeenCalled();
   });
@@ -304,9 +310,7 @@ describe("Mark as done on a layer of the shell's stack", () => {
     expect(
       within(done).getByRole("button", { name: boardTask.title }),
     ).toBeInTheDocument();
-    expect(
-      within(done).getByRole("button", { name: undoOf(workEn) }),
-    ).toBeEnabled();
+    expect(board.getByRole("button", { name: undoOf(workEn) })).toBeEnabled();
     expect(
       within(
         board.getByRole("region", { name: workEn.taskStatus.todo }),
@@ -316,9 +320,7 @@ describe("Mark as done on a layer of the shell's stack", () => {
     expect(layer.queryByRole("button", { name: undoOf(workEn) })).toBeNull();
     expect(host.getWorkBoard).not.toHaveBeenCalled();
 
-    await user.click(
-      within(done).getByRole("button", { name: undoOf(workEn) }),
-    );
+    await user.click(board.getByRole("button", { name: undoOf(workEn) }));
     await waitFor(() => expect(host.updateTask).toHaveBeenCalledTimes(2));
     expect(host.updateTask).toHaveBeenNthCalledWith(
       2,

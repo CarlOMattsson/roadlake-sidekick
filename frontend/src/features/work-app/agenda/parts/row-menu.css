@@ -1,0 +1,78 @@
+/* The row menu as a popover (row-menu.tsx; the phone's panel is agenda.css's .work-agenda-menu). The same groups as
+   the panel, Status and Datum, each under its label, with a divider between them; every choice is a 44 menu row (the
+   chips of the panel, drawn as the menu's entries, menu.css), and the current status and date are ticked at the
+   row's end. The panel's × is not drawn: Escape and a press outside close the popover. */
+.sidekick-work .work-agenda-popmenu {
+  gap: 0;
+}
+.sidekick-work .work-agenda-popmenu button.work-agenda-menu-close {
+  display: none;
+}
+.sidekick-work .work-agenda-popmenu .work-agenda-menu-row {
+  gap: 0;
+}
+.sidekick-work
+  .work-agenda-popmenu
+  .work-agenda-menu-row
+  + .work-agenda-menu-row {
+  margin-block-start: var(--sk-s1);
+  padding-block-start: var(--sk-s1);
+  border-block-start: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-work .work-agenda-popmenu .work-agenda-menu-label {
+  padding: var(--sk-s2) var(--sk-s3) var(--sk-s1);
+}
+.sidekick-work .work-agenda-popmenu .work-agenda-choices {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+.sidekick-work .work-agenda-popmenu .work-agenda-choices > .sk-chip {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: var(--sk-tap);
+  padding: 0 var(--sk-s3);
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: transparent;
+  box-shadow: none;
+  font: var(--sk-type-menu);
+  text-align: start;
+}
+/* The tick of the current choice follows its label, at the row's end. */
+.sidekick-work .work-agenda-popmenu .work-agenda-choices > .sk-chip::before {
+  order: 1;
+  margin-inline-start: auto;
+}
+/* Rows meet without a gap: the target is the row itself, not 4 past it. */
+.sidekick-work .work-agenda-popmenu .work-agenda-choices > .sk-chip::after,
+.sidekick-work .work-agenda-popmenu .work-agenda-date-input {
+  inset: 0;
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-work
+    .work-agenda-popmenu
+    .work-agenda-choices
+    > .sk-chip:not(:disabled, [data-disabled]):hover {
+    background: var(
+      --sk-hover,
+      color-mix(in srgb, var(--sk-fg) 5%, transparent)
+    );
+  }
+}
+/* The ring inside the row, as the menu's entries; the date row is the input under its label, so the row draws it. */
+.sidekick-work
+  .work-agenda-popmenu
+  .work-agenda-choices
+  > .sk-chip:focus-visible {
+  outline-offset: -2px;
+  background: var(--sk-hover, color-mix(in srgb, var(--sk-fg) 5%, transparent));
+}
+.sidekick-work
+  .work-agenda-popmenu
+  .work-agenda-date-chip:has(> .work-agenda-date-input:focus-visible) {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: -2px;
+  background: var(--sk-hover, color-mix(in srgb, var(--sk-fg) 5%, transparent));
+}

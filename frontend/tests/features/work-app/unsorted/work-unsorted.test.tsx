@@ -124,11 +124,15 @@ function updateCall(
   ];
 }
 
-/** The Undo button of the sorted row, once its write has settled (the row is disabled while it runs). */
+/** The Ångra of the sort: it lives in the receipt bar at the view's foot, never in the row (designsystem §0.6). */
 async function undoButton() {
-  const button = await screen.findByRole("button", { name: /^Ångra/ });
-  await waitFor(() => expect(button).toBeEnabled());
-  return button;
+  // A newer sort replaces the receipt, so the button is taken again until the one in the bar is found.
+  return waitFor(() => {
+    const button = screen.getByRole("button", { name: /^Ångra/ });
+    expect(button.closest(".sk-receipt-slot")).not.toBeNull();
+    expect(button).toBeEnabled();
+    return button;
+  });
 }
 
 /** The Domain buttons of the row with this title. */
@@ -180,7 +184,7 @@ describe("UnsortedView (Att sortera)", () => {
     expect(changes).toEqual(placeChanges({ kind: "domain", id: WORK }));
     expect(typeof key).toBe("string");
     await undoButton();
-    // The sorted row keeps its title and its place; its Domain buttons are replaced by its own Undo line.
+    // The sorted row keeps its title and its place; its Domain buttons are replaced by its own state line.
     expect(screen.getByText("Köp ny dammsugare")).toBeInTheDocument();
     expect(
       screen.queryByRole("group", {
@@ -188,10 +192,15 @@ describe("UnsortedView (Att sortera)", () => {
       }),
     ).not.toBeInTheDocument();
     expect(screen.getByText("Ring försäkringsbolaget")).toBeInTheDocument();
-    // The Undo line of the row names the Domain the Task went into, as its status line.
-    const line = screen.getByRole("status");
+    // The state line of the row names the Domain the Task went into and has no button of its own; the receipt bar
+    // names the Task and holds the Ångra.
+    const line = screen.getByText("Flyttad till Jobb");
     expect(line.parentElement).toHaveClass("work-agenda-undo");
-    expect(line).toHaveTextContent("Flyttad till Jobb");
+    expect(within(line.closest("li")!).queryByRole("button")).toBeNull();
+    const slot = document.querySelector<HTMLElement>(".sk-receipt-slot")!;
+    expect(
+      within(slot).getByText("Flyttad till Jobb: Köp ny dammsugare"),
+    ).toBeInTheDocument();
   });
 
   it("Ångra clears the Domain again against the version the sort left, and puts the row back in its place", async () => {
@@ -285,16 +294,19 @@ describe("UnsortedView (Att sortera)", () => {
     expect(screen.getByText(agendaLabelsSv.moving).closest("li")).toHaveClass(
       "work-unsorted-row",
     );
+    // The row has no button of its own while it is written.
     expect(
-      screen.queryByRole("button", { name: /^Ångra/ }),
-    ).not.toBeInTheDocument();
+      within(
+        screen.getByText(agendaLabelsSv.moving).closest("li")!,
+      ).queryByRole("button"),
+    ).toBeNull();
 
     replies[1]!();
-    // The Undo line shows the last sort that landed, for its own row; Undo works once nothing else is written.
+    // The state line shows the last sort that landed, for its own row; the bar holds its Ångra.
     await undoButton();
     expect(screen.getByText("Ring försäkringsbolaget")).toBeInTheDocument();
     expect(screen.queryByText("Köp ny dammsugare")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Flyttad till Jobb");
+    expect(screen.getByText("Flyttad till Jobb")).toBeInTheDocument();
   });
 
   it("a second tap on the row being written is dropped, and a failed row can be tried again beside a busy one", async () => {
@@ -347,8 +359,9 @@ describe("UnsortedView (Att sortera)", () => {
 
     await user.click(domainButtons("Köp ny dammsugare")[0]!);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      boardLabelsSv.conflict,
+    const conflict = await screen.findByText(boardLabelsSv.conflict);
+    expect(conflict.closest('[role="status"]')).toHaveClass(
+      "sk-message--warning",
     );
     expect(screen.getByText("Köp ny dammsugare")).toBeInTheDocument();
     expect(mock.listUnsortedTasks).toHaveBeenCalledTimes(1);
@@ -471,9 +484,7 @@ describe("UnsortedOpenRow (the quiet row after the agenda)", () => {
         placeChanges({ kind: "project", id: RENOVATION }),
       );
       await undoButton();
-      expect(screen.getByRole("status")).toHaveTextContent(
-        "Flyttad till Renovering",
-      );
+      expect(screen.getByText("Flyttad till Renovering")).toBeInTheDocument();
       // The row left the list but keeps its Undo line; the other row is still sortable.
       expect(
         screen.queryByRole("combobox", { name: /Plats för/ }),

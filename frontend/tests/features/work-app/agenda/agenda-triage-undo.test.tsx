@@ -28,6 +28,8 @@ import {
   rowOf,
   openMenu,
   openRow,
+  receiptBar,
+  undoButton,
   undoLineOf,
 } from "@tests/helpers/agenda-triage-fixtures";
 
@@ -86,9 +88,7 @@ it("a row done from Försenade stands on its place for its Undo: the count waits
     }),
   );
   // Undo gives the empty ring and the meta line back, and the row counts again.
-  await user.click(
-    within(rowOf(older.title)).getByRole("button", { name: /^Undo/ }),
-  );
+  await user.click(await undoButton());
   await waitFor(() =>
     expect(rowOf(older.title)).not.toHaveAttribute("data-undo"),
   );
@@ -241,6 +241,51 @@ it("a done row of Försenade folds away 200 ms after its Undo has run out, the c
         name: fillLabel(workEn.agendaComplete, { title: newer.title }),
       }),
     );
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  }
+});
+
+it("a newer change replaces the receipt in the bar, and the row of the replaced receipt settles at once while the newer row keeps its state", async () => {
+  vi.useFakeTimers();
+  setReducedMotion(true);
+  try {
+    const { transport } = makeTransport();
+    const older: WorkItemRecord = { ...overdue, title: "Ring Anna" };
+    const newer: WorkItemRecord = {
+      ...overdue,
+      id: OTHER_ID,
+      title: "Skicka offerten",
+      due_at: "2026-10-28T09:00:00.000Z",
+    };
+    renderAgenda([newer, older], transport);
+    await doneFromRing(older.title);
+    expect(receiptBar()).toHaveTextContent("Done: Ring Anna");
+    expect(rowOf(older.title)).toHaveAttribute("data-undo", "on");
+
+    await doneFromRing(newer.title);
+    // One receipt at a time: the bar names the newer change and has one Undo.
+    expect(receiptBar()).toHaveTextContent("Done: Skicka offerten");
+    expect(receiptBar()).not.toHaveTextContent("Ring Anna");
+    expect(within(receiptBar()).getAllByRole("button")).toHaveLength(1);
+    // The replaced receipt's row has settled (a done row leaves its group, no wait for fifteen seconds)...
+    expect(
+      screen.queryByRole("button", { name: older.title }),
+    ).not.toBeInTheDocument();
+    // ... and the newer row stands with its state until its own receipt goes.
+    expect(rowOf(newer.title)).toHaveAttribute("data-undo", "on");
+    act(() => {
+      vi.advanceTimersByTime(UNDO_MS - 1);
+    });
+    expect(rowOf(newer.title)).toHaveAttribute("data-undo", "on");
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(
+      screen.queryByRole("button", { name: newer.title }),
+    ).not.toBeInTheDocument();
+    expect(receiptBar()).toBeEmptyDOMElement();
   } finally {
     vi.useRealTimers();
     vi.unstubAllGlobals();
@@ -469,10 +514,9 @@ it("the Undo of a due move on a Task already done does not fold its row away whe
     });
     expect(updateTask).toHaveBeenCalledTimes(1);
     expect(
-      within(rowOf(done.title)).getByRole("button", {
-        name: /^Undo/,
-      }),
+      within(receiptBar()).getByRole("button", { name: /^Undo/ }),
     ).toBeInTheDocument();
+    expect(rowOf(done.title)).toHaveAttribute("data-undo", "on");
     act(() => {
       vi.advanceTimersByTime(UNDO_MS);
     });

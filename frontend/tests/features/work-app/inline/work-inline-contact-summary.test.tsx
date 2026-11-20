@@ -161,12 +161,12 @@ describe("inline Contact card", () => {
     expect(work.getContactContext).toHaveBeenCalledWith(anna.id);
   });
 
-  it("labels the card Contact in English, without the app name above it", () => {
+  it("labels the card Contact in English, under the kicker of the app and the kind", () => {
     const { container } = renderInline(transport());
 
     const card = screen.getByRole("region", { name: workEn.contact });
     expect(workEn.contact).toBe("Contact");
-    expect(within(card).getByText("Contact")).toHaveClass("work-compact-kind");
+    expect(within(card).getByText("Work · Contact")).toHaveClass("sk-eyebrow");
     expect(container.querySelector("header")).toBeNull();
   });
 
@@ -183,7 +183,9 @@ describe("inline Contact card", () => {
 
     const card = screen.getByRole("region", { name: workSv.contact });
     expect(workSv.contact).toBe("Kontakt");
-    expect(within(card).getByText("Kontakt")).toHaveClass("work-compact-kind");
+    expect(within(card).getByText("Arbete · Kontakt")).toHaveClass(
+      "sk-eyebrow",
+    );
     // The visually hidden heading names the Contact card, not the app.
     expect(
       screen.getByRole("heading", { level: 1, name: workSv.contact }),

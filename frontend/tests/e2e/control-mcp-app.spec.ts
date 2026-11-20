@@ -558,7 +558,7 @@ test("Control app buttons have a touch target of at least 44 px on a phone", asy
   const targets = [
     ...(await app.getByRole("button", { name: /Dölj|Glöm/ }).all()),
     ...(await app.getByRole("switch").all()),
-    ...(await app.locator(".sk-tabs__tab").all()),
+    ...(await app.locator(".sk-tabs__tab:visible").all()),
   ];
   expect(targets.length).toBeGreaterThanOrEqual(5);
   for (const target of targets) {

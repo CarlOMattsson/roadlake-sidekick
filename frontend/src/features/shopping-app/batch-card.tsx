@@ -1,9 +1,9 @@
 import { ownerDateFormat } from "../mcp-apps/app-timezone";
 import { workDate } from "../mcp-apps/ui/due";
 import { AppFrame } from "../mcp-apps/ui/layout";
-import { CardFoot } from "../mcp-apps/ui/card";
 import type { ShoppingLabels } from "./labels";
-import { OpenListButton, quantityText } from "./shopping-card";
+import { quantityText } from "./shopping-card";
+import { OpenLink } from "../mcp-apps/ui/open-link";
 import type { ShoppingItem } from "./transport";
 
 /**
@@ -211,14 +211,11 @@ export function BatchCard({
             {more > 0 && !onOpen ? <li>{t.moreItems(more)}</li> : null}
           </ul>
           {onOpen ? (
-            <CardFoot>
-              <OpenListButton
-                labels={t}
-                hidden={more}
-                hiddenText={t.hiddenAdded}
-                onOpen={onOpen}
-              />
-            </CardFoot>
+            <OpenLink
+              label={t.openList}
+              more={more > 0 ? t.hiddenItems(more) : undefined}
+              onOpen={onOpen}
+            />
           ) : null}
         </div>
       </AppFrame>

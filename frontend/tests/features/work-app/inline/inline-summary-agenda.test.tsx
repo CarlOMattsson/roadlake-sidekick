@@ -24,9 +24,12 @@ describe("inline agenda summary", () => {
       />,
     );
     expect(screen.getByRole("region", { name: "Agenda" })).toBeInTheDocument();
-    // The kicker is the app name and today's date (the fixed clock is Sun 25 Oct); the counts are the title.
-    expect(screen.getByText("Work · Sun 25 Oct")).toBeInTheDocument();
-    expect(screen.getByText("1 today, 2 overdue")).toBeInTheDocument();
+    // The kicker is the app, the view and today's date (the fixed clock is Sun 25 Oct); the counts are the title,
+    // a statement with numbers in the card's heading.
+    expect(screen.getByText("Work · Agenda · Sun 25 Oct")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "1 today, 2 overdue" }),
+    ).toBeInTheDocument();
   });
 
   it("uses the Swedish kicker, title and Open label for a Swedish host", () => {
@@ -38,16 +41,18 @@ describe("inline agenda summary", () => {
       />,
     );
     expect(screen.getByRole("region", { name: "Agenda" })).toBeInTheDocument();
-    expect(screen.getByText("Arbete · sön 25 okt")).toBeInTheDocument();
+    expect(
+      screen.getByText("Arbete · Agenda · sön 25 okt"),
+    ).toBeInTheDocument();
     expect(screen.getByText("1 idag, 2 försenade")).toBeInTheDocument();
-    // The Open button is "Öppna Agenda"; its foot counts the one page row the card leaves out.
+    // The card's one main link is "Öppna Agenda"; it counts the one page row the card leaves out.
     expect(
       screen.getAllByRole("button", { name: /^Öppna Agenda/ }),
     ).toHaveLength(1);
-    expect(screen.getByText("· 1 fler")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 1 till")).toHaveClass("sk-open-link__more");
   });
 
-  it("titles one overdue record in the singular form of its words, and says more exist when another page exists", () => {
+  it("titles one overdue record in the singular form of its words, and marks the count a floor when another page exists", () => {
     const { unmount } = render(
       <AgendaSummary
         page={{ items: agendaItems.slice(0, 1), next_cursor: "next" }}
@@ -55,7 +60,8 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("1 overdue, more not shown")).toBeInTheDocument();
+    // A floor ("1+"), never "more not shown": the link counts what the card leaves out.
+    expect(screen.getByText("1+ overdue")).toBeInTheDocument();
     unmount();
     render(
       <AgendaSummary
@@ -64,10 +70,10 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("1 försenad, fler finns")).toBeInTheDocument();
+    expect(screen.getByText("1+ försenade")).toBeInTheDocument();
   });
 
-  it("says more exist in the title when another page exists, without a + sign", () => {
+  it("marks the title's counts with + while another page exists, and says no more-exist words there", () => {
     const { container } = render(
       <AgendaSummary
         page={{ items: agendaItems, next_cursor: "next" }}
@@ -75,10 +81,8 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(
-      screen.getByText("1 today, 2 overdue, more not shown"),
-    ).toBeInTheDocument();
-    expect(container.textContent).not.toContain("3+");
+    expect(screen.getByText("1+ today, 2+ overdue")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/more not shown|fler finns/);
   });
 
   it("labels the overdue rows after today's row with Overdue / Försenade, in two lists, and leaves the label out when only one group is shown", () => {
@@ -183,9 +187,10 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("Agenda")).toBeInTheDocument();
+    // The kicker names the view; the empty sentence is the title.
+    expect(screen.getByText(/^Work · Agenda · /)).toBeInTheDocument();
     expect(
-      screen.getByText("Nothing overdue or due today."),
+      screen.getByRole("heading", { name: "Nothing overdue or due today." }),
     ).toBeInTheDocument();
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(0);
     expect(container.querySelector(".sk-card__meta")).toBeNull();
@@ -205,7 +210,7 @@ describe("inline agenda summary", () => {
         onOpen={onOpen}
       />,
     );
-    expect(screen.getByText("Agenda")).toBeInTheDocument();
+    expect(screen.getByText(/^Work · Agenda · /)).toBeInTheDocument();
     expect(
       screen.getByText("Nothing overdue or due today."),
     ).toBeInTheDocument();
@@ -266,7 +271,7 @@ describe("inline agenda summary", () => {
     expect(
       screen.getByText("Nothing overdue or due today."),
     ).toBeInTheDocument();
-    expect(screen.getByText("more on the agenda")).toHaveClass("sk-card__meta");
+    expect(screen.getByText("More on the agenda")).toHaveClass("sk-card__meta");
     expect(
       screen.getByRole("button", { name: "Open Agenda" }),
     ).toBeInTheDocument();
@@ -278,10 +283,10 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("fler på agendan")).toHaveClass("sk-card__meta");
+    expect(screen.getByText("Fler på agendan")).toHaveClass("sk-card__meta");
   });
 
-  it("keeps the upcoming count and says more on the agenda while another page may hold more", () => {
+  it("counts the upcoming records as a floor while another page may hold more", () => {
     const upcoming = agendaItems.filter(
       (item) => item.agenda_group === "upcoming",
     );
@@ -292,9 +297,7 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("1 upcoming, more on the agenda")).toHaveClass(
-      "sk-card__meta",
-    );
+    expect(screen.getByText("1+ upcoming")).toHaveClass("sk-card__meta");
     expect(
       screen.getByText("Nothing overdue or due today."),
     ).toBeInTheDocument();
@@ -464,15 +467,17 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    // Three rows shown of six overdue: the foot names the three that are not shown, after "Open Agenda" and a
-    // " · " (no "+", one link row: «N more», the board card's form).
+    // Three rows shown of six overdue: the link names the three that are not shown, after "Open Agenda" and a
+    // " · " (no "+", one link: «N more», the board card's form).
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(3);
-    expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 3 more")).toHaveClass("sk-open-link__more");
     expect(screen.queryByText(/\+3/)).toBeNull();
-    const open = container.querySelector("button.work-compact-action");
+    // The link is the card's last child: no second "more exists" line stands under it.
+    const open = container.querySelector("button.sk-open-link");
     expect(open).toHaveClass("sk-btn--open");
+    expect(container.querySelector(".sk-card")?.lastElementChild).toBe(open);
     expect(
-      open?.querySelector(".work-compact-open-text .work-compact-more"),
+      open?.querySelector(".sk-open-link__text .sk-open-link__more"),
     ).not.toBeNull();
   });
 
@@ -504,8 +509,8 @@ describe("inline agenda summary", () => {
     );
     // The three rows are the first today record and the two overdue ones; the second today record is left out.
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(3);
-    expect(screen.getByText("· 1 fler")).toHaveClass("work-compact-more");
-    expect(screen.queryByText(/fler försenade|fler idag/)).toBeNull();
+    expect(screen.getByText("· 1 till")).toHaveClass("sk-open-link__more");
+    expect(screen.queryByText(/till försenade|till idag/)).toBeNull();
   });
 
   it("adds the left-out rows of both groups into one count, and the labels give no text for zero", () => {
@@ -536,9 +541,9 @@ describe("inline agenda summary", () => {
     );
     // Three rows shown: one today record and the two overdue ones are left out, 3 in all.
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(3);
-    expect(screen.getByText("· 3 more")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 3 more")).toHaveClass("sk-open-link__more");
     expect(inlineSummaryLabelsEn.moreRows(3)).toBe("3 more");
-    expect(inlineSummaryLabelsSv.moreRows(3)).toBe("3 fler");
+    expect(inlineSummaryLabelsSv.moreRows(3)).toBe("3 till");
     expect(inlineSummaryLabelsEn.moreRows(0)).toBe("");
     expect(inlineSummaryLabelsSv.moreRows(0)).toBe("");
     expect(inlineSummaryLabelsEn.openAgenda).toBe("Open Agenda");
@@ -562,7 +567,7 @@ describe("inline agenda summary", () => {
     ).toBeInTheDocument();
   });
 
-  it("counts the foot against every row of the page the Agenda lists: 10 rows, 3 shown, '7 more' / '7 fler'", () => {
+  it("counts the link against every row of the page the Agenda lists: 10 rows, 3 shown, '7 more' / '7 till'", () => {
     const rows: WorkItemRecord[] = Array.from({ length: 10 }, (_, index) => ({
       kind: "task" as const,
       id: `019f0000-0000-7000-8000-0000000000${index}3`,
@@ -584,7 +589,7 @@ describe("inline agenda summary", () => {
       />,
     );
     expect(container.querySelectorAll(".work-compact-row")).toHaveLength(3);
-    expect(screen.getByText("· 7 more")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 7 more")).toHaveClass("sk-open-link__more");
     unmount();
     render(
       <AgendaSummary
@@ -593,10 +598,10 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("· 7 fler")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 7 till")).toHaveClass("sk-open-link__more");
   });
 
-  it("does not claim an exact count in the foot while another page exists: '7+ more' / '7+ fler'", () => {
+  it("does not claim an exact count in the link while another page exists: '7+ more' / '7+ till'", () => {
     const rows: WorkItemRecord[] = Array.from({ length: 10 }, (_, index) => ({
       kind: "task" as const,
       id: `019f0000-0000-7000-8000-0000000000${index}4`,
@@ -617,7 +622,7 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("· 7+ more")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 7+ more")).toHaveClass("sk-open-link__more");
     unmount();
     render(
       <AgendaSummary
@@ -626,9 +631,9 @@ describe("inline agenda summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("· 7+ fler")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 7+ till")).toHaveClass("sk-open-link__more");
     expect(inlineSummaryLabelsEn.moreRows(7, true)).toBe("7+ more");
-    expect(inlineSummaryLabelsSv.moreRows(7, true)).toBe("7+ fler");
+    expect(inlineSummaryLabelsSv.moreRows(7, true)).toBe("7+ till");
     expect(inlineSummaryLabelsSv.moreRows(0, true)).toBe("");
   });
 });

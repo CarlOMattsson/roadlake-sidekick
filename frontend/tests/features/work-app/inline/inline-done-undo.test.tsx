@@ -15,9 +15,9 @@ import type {
 import { WorkView } from "@/features/work-app/view/work-view";
 
 /*
- * The Task card's Done is undoable for UNDO_MS, as the Agenda's is: "Done" and Undo stand where Done stood, and Undo
- * writes the earlier status back against the version Done left. Simulated host: this proves the card's wiring, not
- * a real Claude or Android host.
+ * The Task card's Done is undoable for UNDO_MS, as the Agenda's is: the card shows the Task's new state ("Done" in its
+ * status line, no Undo of its own) and the receipt bar at its foot offers Ångra, which writes the earlier status back
+ * against the version Done left. Simulated host: this proves the card's wiring, not a real Claude or Android host.
  */
 
 const task: WorkTask = {
@@ -75,22 +75,30 @@ const done = (version: number): { task: WorkTask } => ({
   task: { ...task, status: "completed", version },
 });
 
-it("shows Done and Undo in place of Done, with focus on Undo", async () => {
+it("shows the new state on the card and Ångra in the receipt bar, with focus on the card's open link", async () => {
   renderCard(vi.fn().mockResolvedValue(done(2)));
   await click(en.complete);
 
-  expect(screen.getByRole("status")).toHaveTextContent(en.taskStatus.completed);
+  // The card says the new state in its status line; the bar says what happened.
+  expect(screen.getByText(en.taskStatus.completed)).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent(
+    `${en.taskStatus.completed}: Ring Anna om offerten`,
+  );
+  // Ångra is in the bar and nowhere on the card itself.
   const undo = screen.getByRole("button", { name: en.undo });
-  expect(undo).toHaveFocus();
+  expect(undo.closest(".sk-receipt")).not.toBeNull();
+  expect(document.querySelectorAll(".work-compact-undo")).toHaveLength(0);
   expect(screen.queryByRole("button", { name: en.complete })).toBeNull();
-  // Its 44 px target is measured in the browser (tests/e2e/work-lists-styles-mcp-app.spec.ts).
-  expect(undo).toHaveClass("work-compact-action");
+  // Done's button went: focus did not fall to the page, it is on the link that stays.
+  expect(screen.getByRole("button", { name: en.showTask })).toHaveFocus();
 });
 
 it("says it in Swedish: Klar and Ångra", async () => {
   renderCard(vi.fn().mockResolvedValue(done(2)), inlineSummaryLabelsSv);
   await click(inlineSummaryLabelsSv.complete);
-  expect(screen.getByRole("status")).toHaveTextContent(/^Klar$/);
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Klar: Ring Anna om offerten",
+  );
   expect(screen.getByRole("button", { name: "Ångra" })).toBeInTheDocument();
 });
 
@@ -111,14 +119,14 @@ it("writes the earlier status back against the version Done left, with a new key
   );
   expect(updateTask.mock.calls[1]?.[3]).not.toBe(updateTask.mock.calls[0]?.[3]);
   expect(announce).toHaveBeenLastCalledWith(en.undoneNote);
-  // The card is as it was: Done is back, holds focus, and the Undo line is gone.
+  // The card is as it was: Done is back, holds focus, and the receipt bar is gone.
   const again = screen.getByRole("button", { name: en.complete });
   expect(again).toHaveFocus();
   expect(screen.queryByRole("button", { name: en.undo })).toBeNull();
   expect(screen.getByText(en.taskStatus.in_progress)).toBeInTheDocument();
 });
 
-it("takes the Undo away when its time is up, and keeps the card done", async () => {
+it("takes the receipt away when its time is up, and keeps the card done", async () => {
   renderCard(vi.fn().mockResolvedValue(done(2)));
   await click(en.complete);
 
@@ -130,26 +138,28 @@ it("takes the Undo away when its time is up, and keeps the card done", async () 
     await vi.advanceTimersByTimeAsync(1);
   });
   expect(screen.queryByRole("button", { name: en.undo })).toBeNull();
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("status")).toBeEmptyDOMElement();
   expect(screen.getByText(en.taskStatus.completed)).toBeInTheDocument();
-  // Focus was on Undo: it moves to Open, which stays, so it never falls to the page.
+  // Focus stayed on Open, which is still there, so it never fell to the page.
   expect(screen.getByRole("button", { name: en.showTask })).toHaveFocus();
 });
 
-it("holds the Undo time while the pointer is over the line, and runs on with the time left", async () => {
+it("holds the receipt time while the pointer is over the bar, and runs on with the time left", async () => {
   renderCard(vi.fn().mockResolvedValue(done(2)));
   await click(en.complete);
-  const line = screen.getByRole("button", { name: en.undo }).parentElement!;
+  const bar = screen
+    .getByRole("button", { name: en.undo })
+    .closest(".sk-receipt") as HTMLElement;
 
   await act(async () => {
     await vi.advanceTimersByTimeAsync(UNDO_MS - 4000);
   });
-  fireEvent.pointerEnter(line);
+  fireEvent.pointerEnter(bar);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(UNDO_MS * 3);
   });
   expect(screen.getByRole("button", { name: en.undo })).toBeInTheDocument();
-  fireEvent.pointerLeave(line);
+  fireEvent.pointerLeave(bar);
   await act(async () => {
     await vi.advanceTimersByTimeAsync(3999);
   });
@@ -171,8 +181,8 @@ it("shows a failed Undo with Try again, which repeats it with the same key", asy
   await click(en.undo);
 
   expect(screen.getByRole("alert")).toHaveTextContent(en.undoFailed);
-  // The Undo line stays while there is time, so it can be pressed again too.
-  expect(screen.getByRole("button", { name: en.undo })).toBeInTheDocument();
+  // The bar's Ångra was used; the error row's Try again repeats it.
+  expect(screen.queryByRole("button", { name: en.undo })).toBeNull();
   await click(en.retry);
 
   expect(updateTask).toHaveBeenCalledTimes(3);
@@ -201,6 +211,8 @@ it.each([
     expect(
       screen.getByRole("button", { name: labels.retry }),
     ).toBeInTheDocument();
+    // A failure is a row under the control, never a receipt in the bar.
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
   },
 );
 

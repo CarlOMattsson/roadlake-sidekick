@@ -102,7 +102,11 @@ export function TaskSummaryList({
             <StatusGlyph kind="task" status={status} label={statusText} />
           );
           return (
-            <li key={task.id} className="work-agenda-row work-open-row">
+            <li
+              key={task.id}
+              className="work-agenda-row work-open-row"
+              data-sk-row=""
+            >
               <div className="work-agenda-line">
                 {transport ? (
                   <button

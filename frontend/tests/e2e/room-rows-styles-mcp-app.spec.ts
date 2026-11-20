@@ -92,7 +92,7 @@ test("Kontroll: the title is a visible h2 in the title type under the Back row, 
   expect(failures).toEqual([]);
 });
 
-test("Shopping store view: a held row's Undo takes its tap target inside its own row", async ({
+test("Shopping store view: a held row keeps its place and height, and the bar's Undo is a 44 px target inside the view", async ({
   page,
 }) => {
   const milk = sItem(1, "Mjölk", { quantity: "2", unit: "l", store: "ICA" });
@@ -128,23 +128,36 @@ test("Shopping store view: a held row's Undo takes its tap target inside its own
   await waitForAppInitialized(page);
   await deliverToolResult(page, detail);
   await settled(opened.app);
+  const rowOf = (name: string) =>
+    opened.app
+      .getByRole("listitem")
+      .filter({ has: opened.app.getByText(name, { exact: true }) })
+      .first();
+  const before = await box(rowOf("Mjölk"));
   await opened.app
     .getByRole("button", { name: "Mark Mjölk as bought" })
     .click();
-  const undo = opened.app.getByRole("button", { name: /^Undo bought / });
+  const undo = opened.app
+    .locator(".sk-receipt-slot")
+    .getByRole("button", { name: "Undo" });
   await expect(undo).toBeVisible();
-  const row = opened.app.locator(".shopping-held-item").first();
-  const [rowBox, undoBox, target] = await Promise.all([
-    box(row),
+  // The row stays where it was with the height it had; the Undo is not in it.
+  const held = opened.app.locator(".shopping-held-item").first();
+  await expect(held).toBeVisible();
+  const after = await box(held);
+  expect(after.y).toBeCloseTo(before.y, 0);
+  expect(after.height).toBeCloseTo(before.height, 0);
+  await expect(held.getByRole("button", { name: /^Undo/ })).toHaveCount(0);
+  // The bar's Undo is a 44 px target at least, and the bar rests inside the window.
+  const [undoBox, target, barBox] = await Promise.all([
     box(undo),
     effectiveTargetSize(undo),
+    box(opened.app.locator(".sk-receipt")),
   ]);
-  const reach = ((target?.height ?? undoBox.height) - undoBox.height) / 2;
-  expect(reach).toBeGreaterThan(0);
-  // The target (the drawn button and what its ::after adds above and below) starts on the row's top and ends inside it.
-  expect(undoBox.y - reach).toBeGreaterThanOrEqual(rowBox.y - 0.5);
-  expect(undoBox.y + undoBox.height + reach).toBeLessThanOrEqual(
-    rowBox.y + rowBox.height + 0.5,
-  );
+  expect(target?.height ?? undoBox.height).toBeGreaterThanOrEqual(44);
+  expect(barBox.y).toBeGreaterThanOrEqual(0);
+  expect(barBox.y + barBox.height).toBeLessThanOrEqual(800 + 0.5);
+  expect(barBox.x).toBeGreaterThanOrEqual(0);
+  expect(barBox.x + barBox.width).toBeLessThanOrEqual(375 + 0.5);
   expect(opened.failures).toEqual([]);
 });

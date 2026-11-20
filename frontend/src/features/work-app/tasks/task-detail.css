@@ -200,6 +200,9 @@
 /* A tap on the title edits (§3, Tillbakarad); the ⋯ entry "Redigera" is the keyboard way. */
 .sidekick-work .work-detail-title[tabindex] {
   cursor: text;
+  /* Where the title lands when the view is scrolled to it (after Save): under the strip and Back row that stay on
+     top (--sk-sticky-top is the strip's own measure), not behind them. */
+  scroll-margin-block-start: calc(var(--sk-sticky-top, 0px) + var(--sk-s2));
 }
 .sidekick-work .work-edit {
   display: grid;
@@ -210,7 +213,7 @@
 .sidekick-work .work-edit label {
   display: grid;
   gap: 0.3rem;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   font-weight: 550;
 }
 .sidekick-work .work-edit input,
@@ -374,26 +377,9 @@
   margin-inline-end: calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px - 24px);
 }
 
-/* "Klar · nästa: fre 27 nov · Ångra" right under "Markera klar" on a recurring Task: the line in the meta's
-   type, Ångra beside it on the same 44 px row. */
-.sidekick-work .work-task-cycle {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 0.75rem;
-  min-height: var(--sk-tap, 44px);
-  margin: 0.25rem 0 0;
-}
-.sidekick-work .work-task-cycle > p {
-  margin: 0;
-  font: var(--sk-type-meta);
-  font-weight: var(--sk-weight-semibold, 600);
-  color: var(--sk-fg);
-}
-
 /* A Step just checked or unchecked keeps its place and says so in the agenda's way (agenda.css, "The Undo of a row"):
-   its meta line ("Klar", "Öppen igen") stands under the title, on the title's x, and "Ångra" is a compact button in the
-   trailing slot. The row becomes the grid those rules place their line and button in. An Action under a Step is a row of
+   its meta line ("Klar", "Öppen igen") stands under the title, on the title's x; "Ångra" is not in the row but in the
+   view's receipt bar. The row becomes the grid those rules place their line in. An Action under a Step is a row of
    the same kind, so it follows the same rules. */
 .sidekick-work .work-steps li.work-step-undoing {
   display: grid;

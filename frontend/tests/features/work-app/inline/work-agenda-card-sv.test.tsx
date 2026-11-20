@@ -111,18 +111,18 @@ describe("inline agenda card in Swedish", () => {
     deliver(agenda);
 
     expect(screen.getByRole("region", { name: "Agenda" })).toBeInTheDocument();
-    // The kicker is the app name and today's date; the title counts the overdue and today records.
-    expect(screen.getByText(/^Arbete · /)).toBeInTheDocument();
+    // The kicker is the app, the view and today's date; the title counts the overdue and today records.
+    expect(screen.getByText(/^Arbete · Agenda · /)).toBeInTheDocument();
     expect(screen.getByText("1 försenad")).toBeInTheDocument();
     expect(screen.getByText("Betala faktura")).toBeInTheDocument();
     expect(screen.queryByText("Börja med")).toBeNull();
-    // The Open button is "Öppna Agenda" and its foot counts the page's rows the card leaves out: 3 rows, 1 shown.
+    // The card's one main link is "Öppna Agenda" and it counts the page's rows the card leaves out: 3 rows, 1 shown.
     expect(
       screen.getAllByRole("button", {
         name: /^Öppna Agenda/,
       }),
     ).toHaveLength(1);
-    expect(screen.getByText("· 2 fler")).toHaveClass("work-compact-more");
+    expect(screen.getByText("· 2 till")).toHaveClass("sk-open-link__more");
 
     await user.click(
       screen.getByRole("button", {

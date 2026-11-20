@@ -122,22 +122,37 @@ export function openRow(title: string) {
   fireEvent.contextMenu(rowOf(title));
 }
 
-/** The Undo button once the write behind it has settled (the row is disabled while it runs). */
+/**
+ * The receipt bar at the agenda's foot (`.sk-receipt-slot`, a polite status region): it holds the Undo and its time for
+ * every change of a row, and for moving every overdue Task.
+ */
+export function receiptBar(): HTMLElement {
+  const bar = document.querySelector<HTMLElement>(".sk-receipt-slot");
+  if (!bar) throw new Error("no receipt bar");
+  return bar;
+}
+
+/** The bar's Undo button once the write behind it has settled (the row is disabled while it runs). */
 export async function undoButton() {
-  const button = await screen.findByRole("button", { name: /^Undo/ });
+  const button = await within(receiptBar()).findByRole("button", {
+    name: /^Undo/,
+  });
   await waitFor(() => expect(button).toBeEnabled());
   return button;
 }
 
 /**
- * The Undo line of a row once the write behind it has settled. The line is a `role="status"` paragraph with the
- * text only; the Undo button is its sibling in the row's `.work-agenda-undo` wrapper, not inside the line.
+ * The state line of a row whose change can be undone ("Done" in its status line) once the write behind it has
+ * settled. The line is text only and the row has no button of its own: the Undo is in the receipt bar.
  */
 export async function undoLineOf(title: string) {
   const button = await undoButton();
-  const line = within(rowOf(title)).getByRole("status");
+  const row = rowOf(title);
+  const line = within(row).getByRole("status");
   expect(line.parentElement).toHaveClass("work-agenda-undo");
-  expect(line.parentElement).toContainElement(button);
-  expect(line).not.toContainElement(button);
+  expect(row).not.toContainElement(button);
+  expect(
+    within(row).queryByRole("button", { name: /^Undo/ }),
+  ).not.toBeInTheDocument();
   return line;
 }

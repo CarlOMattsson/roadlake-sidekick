@@ -85,6 +85,6 @@ it("tapping a list in an inline card shows the folded list, not the edit view", 
     screen.queryByRole("button", { name: shoppingEn.editList }),
   ).not.toBeInTheDocument();
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(document.querySelector(".shopping-loading")).toBeNull(),
   );
 });

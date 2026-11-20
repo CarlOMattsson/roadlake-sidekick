@@ -194,7 +194,7 @@ const surfaces: Surface[] = [
     structuredContent: workChanges,
     ready: (app) => app.locator(".work-compact-card"),
     target: (app) =>
-      app.getByRole("button", { name: "Show all (3)", exact: true }),
+      app.getByRole("button", { name: "Open changes", exact: true }),
     effect: { kind: "fullscreen" },
   },
   {

@@ -9,14 +9,14 @@
 .sidekick-work .work-manage-controls > button {
   min-width: 2.75rem;
   padding-inline: 0.7rem;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
 }
 .sidekick-work .work-manage-archived {
   margin-top: 0.75rem;
 }
 .sidekick-work .work-manage-archived-heading {
   margin: 0 0 0.25rem;
-  font-size: 0.9rem;
+  font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
 .sidekick-work .work-manage-archived ul {

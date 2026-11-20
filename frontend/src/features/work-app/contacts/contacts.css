@@ -75,7 +75,7 @@
 /* Focus: a 2 px ring inside the visible 40 surface (the inset shadow follows it; an outline would follow the 44 box
    with its clear top). Forced colours drop the shadow, so there the ring is a system-colour outline. */
 .sidekick-work .work-contacts-head > .work-contacts-search:focus-visible {
-  outline: 2px solid transparent;
+  outline: none;
   box-shadow: inset 0 0 0 2px var(--sk-ring);
 }
 @media (forced-colors: active) {
@@ -131,6 +131,27 @@
 }
 .sidekick-work .work-contact-menu > .work-contact-menu-item:last-child {
   border-bottom: 0;
+}
+/* "Visa arkiverade": the words on the left, the switch on the right, the whole row 48 high. The switch's own target
+   (its ::after) is stretched over the row, so the words toggle it too and a thumb never has to find the 44 px track;
+   the words stay plain text, not a second control. */
+.sidekick-work
+  .work-contact-menu
+  > .work-contact-menu-item.work-contact-menu-switch {
+  position: relative;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  min-height: var(--sk-tap-lg);
+}
+.sidekick-work .work-contact-menu-switch .sk-switch.sk-switch {
+  position: static;
+}
+.sidekick-work .work-contact-menu-switch .sk-switch.sk-switch::after {
+  inset: 0;
+}
+.sidekick-work .work-contact-menu-switch-text {
+  min-width: 0;
+  cursor: pointer;
 }
 
 /* Detail views (Task, Contact, Project; design system §3, Tillbakarad). The Back row holds "‹ Parent" and the view's
@@ -531,19 +552,6 @@
   font: var(--sk-type-body);
 }
 
-/* The Contact editor's sticky Save row (work.css, .work-actions-sticky) rests --sk-foot-reserve above the bottom edge and is
-   about 4rem tall. A focused field keeps that much room under it (scroll-margin-bottom, also used by scrollIntoView), and
-   the form ends with the same room so the last field can scroll up above the row. */
-.sidekick-work .work-contact-edit {
-  --work-contact-actions-h: 4rem;
-  --work-contact-actions-clear: calc(
-    var(--sk-foot-reserve, 6rem) + var(--work-contact-actions-h) + 0.75rem
-  );
-  padding-bottom: var(--work-contact-actions-h);
-}
-.sidekick-work .work-contact-edit :is(input, select, textarea) {
-  scroll-margin-bottom: var(--work-contact-actions-clear);
-}
 /* "Inga andra namn." in an empty alias list: a muted meta line, not a body paragraph, so the nicknames take little room. */
 .sidekick-work .work-contact-edit .work-alias-empty {
   margin: 0;

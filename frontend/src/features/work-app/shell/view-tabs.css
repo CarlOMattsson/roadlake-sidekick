@@ -1,9 +1,9 @@
-/* The view switcher of the Work shell as a row of text tabs (view-tabs.tsx), designsystem §3 "Flikar": 44 px high,
-   no background, the label type (14/18). The pressed tab is 600 in the text colour with a 3 px line in the text colour
-   under the whole tab; the others are 500 in --sk-muted. The tabs share the row equally, so the
-   weight change moves nothing, and are never narrower than their label with 4 px on each side. A hairline runs under the
-   whole row, tools included (work-shell.css). The wrap takes the rest of the row beside the tools; its width never
-   depends on what it shows, so the row measures the same whether it is shown or hidden. */
+/* The view switcher of the Work shell (view-tabs.tsx) is the shared Tabs (ui/tabs.css), designsystem §3 "Flikar": 44 px
+   high, no background, a 3 px line under the pressed tab. This file only places it in the room header: the tabs
+   share the row in equal cells, tighter than the shared 12 (4 on each side) so three labels keep their reserve
+   beside the tools on a 360 px phone, and a hairline runs under the whole row, tools included (work-shell.css). The
+   wrap takes the rest of the row beside the tools; its width never depends on what it shows, so the row measures the
+   same whether it is shown or hidden. */
 .work-view-tabs-wrap {
   position: relative;
   display: flex;
@@ -11,57 +11,23 @@
   min-width: 0;
 }
 /* The 2 of padding above and below (taken back by the margins) keep the tabs' 48 targets inside the clip. */
-.sidekick-work .work-view-tabs {
-  display: flex;
+.sidekick-work .sk-tabs.work-view-tabs {
   flex: 1 1 0;
-  min-width: 0;
   margin-block: -2px;
   padding-block: 2px;
   overflow: hidden;
 }
 /* The tabs do not fit (view-tabs.tsx): hidden, at the same width, and the picker stands in their place. */
-.sidekick-work .work-view-tabs[data-narrow] {
+.sidekick-work .sk-tabs.work-view-tabs.work-view-tabs--narrow {
   position: absolute;
   inset: 0 0 auto;
   visibility: hidden;
 }
-.sidekick-work .work-view-tabs .work-view-tabs__tab {
-  flex: 1 0 0;
-  min-width: max-content;
-  box-sizing: border-box;
-  height: var(--sk-tabs-h);
-  min-height: var(--sk-tabs-h);
-  margin: 0;
-  padding: 0 var(--sk-s1);
-  border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--sk-muted);
-  font: var(--sk-type-label);
-  white-space: nowrap;
-  text-align: center;
-  cursor: pointer;
-}
-/* The target is 48 (44 before): 2 up into the gap under the room strip, whose target
-   takes the other 2, and 2 down over the hairline into the air before the first heading. The inset is measured from
-   the padding box, so the bottom also takes the 3 px line: −5. */
-.sidekick-work .work-view-tabs .work-view-tabs__tab {
-  position: relative;
-}
-.sidekick-work .work-view-tabs .work-view-tabs__tab::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  inset: -2px 0 -5px;
-}
-.sidekick-work .work-view-tabs .work-view-tabs__tab[aria-pressed="true"] {
-  border-bottom-color: var(--sk-fg);
-  color: var(--sk-fg);
-  font-weight: var(--sk-weight-semibold);
-}
-.sidekick-work .work-view-tabs__tab:focus-visible {
-  outline-offset: -2px;
+/* The line lies on the shell's hairline (work-shell.css) as it always did, so the tab does not reach the extra pixel
+   over it that the shared tab takes over its own rule: that would clip the 48 target by one. */
+.sidekick-work .sk-tabs.work-view-tabs .sk-tabs__tab {
+  margin-bottom: 0;
+  padding-inline: var(--sk-s1);
 }
 
 /* The view picker (ui/view-picker.tsx) is never squeezed: at 190 px the tools wrap onto the next line instead. */

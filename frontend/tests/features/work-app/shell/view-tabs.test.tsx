@@ -41,9 +41,17 @@ describe("ViewTabs", () => {
       "true",
     );
     expect(document.querySelector(".work-view-pick")).toBeNull();
-    expect(document.querySelector(".work-view-tabs")).not.toHaveAttribute(
-      "data-narrow",
+    const group = screen.getByRole("group", { name: "Views" });
+    expect(group).not.toHaveClass("work-view-tabs--narrow");
+    // The shared Tabs, in equal cells on one line, with no hairline of its own (the shell's row draws it).
+    expect(group).toHaveClass(
+      "sk-tabs",
+      "sk-tabs--equal",
+      "sk-tabs--nowrap",
+      "work-view-tabs",
     );
+    expect(group).not.toHaveClass("sk-tabs--rule");
+    expect(group.querySelectorAll(".sk-tabs__tab")).toHaveLength(3);
   });
 
   it("gives way to the view picker when the tabs do not fit, with one menuitemradio per view and ✓ on the chosen", async () => {
@@ -62,8 +70,8 @@ describe("ViewTabs", () => {
     expect(pick).toHaveTextContent("Status");
     expect(pick).toHaveAttribute("aria-haspopup", "menu");
     expect(pick).toHaveAttribute("aria-expanded", "false");
-    expect(document.querySelector(".work-view-tabs")).toHaveAttribute(
-      "data-narrow",
+    expect(document.querySelector(".work-view-tabs")).toHaveClass(
+      "work-view-tabs--narrow",
     );
 
     await user.click(pick);

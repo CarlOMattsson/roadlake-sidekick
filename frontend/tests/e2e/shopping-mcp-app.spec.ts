@@ -140,20 +140,23 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
     "16px",
   );
   await app.getByRole("button", { name: /^Mark .* as bought$/ }).click();
-  // A purchased item stays in its place while its Undo holds: the row's meta line says "Bought" and "Undo" is a
-  // compact secondary button in the row (`li .shopping-undo`). "Bought (n)" does not count it until the time is up.
-  const heldRow = app
-    .getByRole("listitem")
-    .filter({ has: app.getByRole("button", { name: /^Undo bought / }) });
+  // A purchased item stays in its place and keeps its height: its ring marks it open again and "Bought" stands on its
+  // title line. The receipt bar under the card's content says what happened and holds the one Undo; "Bought (n)" does
+  // not count the row until the bar is gone.
+  const heldRow = app.getByRole("listitem").filter({
+    has: app.getByRole("button", { name: /^Mark .* as not bought$/ }),
+  });
   await expect(heldRow).toHaveCount(1);
   await expect(app.getByText("Bought (1)", { exact: true })).toHaveCount(0);
-  // The folded inline row shows the name, the Undo, and its ring now marks it open again.
-  await expect(
-    heldRow.getByRole("button", { name: /^Undo bought / }),
-  ).toBeVisible();
-  await expect(
-    heldRow.getByRole("button", { name: /^Mark .* as not bought$/ }),
-  ).toBeVisible();
+  await expect(heldRow.locator(".shopping-held")).toBeVisible();
+  const bar = app.locator(".sk-receipt-slot .sk-receipt");
+  await expect(bar).toBeVisible();
+  await expect(bar.locator(".sk-receipt__message")).toContainText("Bought:");
+  await expect(bar.getByRole("button", { name: "Undo" })).toBeVisible();
+  // The row has no Undo of its own any more.
+  await expect(app.getByRole("button", { name: /^Undo bought / })).toHaveCount(
+    0,
+  );
   // Enter in the add field (one line in the inline view) adds the items. The App iframe has no allow-forms, so a form submit would be blocked.
   const addField = app.getByRole("textbox", { name: "Items", exact: true });
   await addField.fill("Bread");
@@ -193,9 +196,10 @@ test("sandboxed MCP App initializes, reads and writes through the host on a mobi
   expect(networkRequests).toBe(0);
 });
 
-// A simulated host, not a real Claude or Android run. The drawn Undo is 40 high; its tap target is the 48 the ::after
-// gives it, so a tap a few pixels above, below or beside the drawn button still lands on it and on no other control.
-test("the store view's Undo takes a tap 3 px outside its drawn box, so its target is at least 44 high", async ({
+// A simulated host, not a real Claude or Android run. The receipt bar's Undo is drawn smaller than its tap target (the
+// ::after gives it the rest), so a tap a few pixels above, below or beside the drawn button still lands on it and on
+// no other control.
+test("the receipt bar's Undo takes a tap 3 px outside its drawn box, so its target is at least 44 high", async ({
   page,
 }) => {
   const milk = sItem(1, "Mjölk", { quantity: "2", unit: "l", store: "ICA" });
@@ -234,7 +238,9 @@ test("the store view's Undo takes a tap 3 px outside its drawn box, so its targe
   await opened.app
     .getByRole("button", { name: "Mark Mjölk as bought" })
     .click();
-  const undo = opened.app.getByRole("button", { name: /^Undo bought / });
+  const undo = opened.app
+    .locator(".sk-receipt-slot")
+    .getByRole("button", { name: "Undo" });
   await expect(undo).toBeVisible();
   const reach = await undo.evaluate((button) => {
     const box = button.getBoundingClientRect();

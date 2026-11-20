@@ -52,8 +52,8 @@ host. That is not a test in a real Claude or Android host, and nothing here clai
 There are no standing create fields: creating sits behind +, so between the room strip and the content there is
 at most one row of controls.
 
-1.3 **Ink means do, outline means here.** *Chosen* (active room, chosen segment, chosen chip, chosen day) has
-one form in both themes: surface fill, 2 px outline in `--sk-fg`, weight 600. *Inverse fill* (ink) means only
+1.3 **Ink means do, outline means here.** _Chosen_ (active room, chosen segment, chosen chip, chosen day) has
+one form in both themes: surface fill, 2 px outline in `--sk-fg`, weight 600. _Inverse fill_ (ink) means only
 the primary action, and a view has at most one. Inline cards have none. In dark mode the ink is dimmed
 (`#c8c8cc`) so no surface is brighter than that. One mark per level: the outlined box says which room, an
 underline says which view inside the room.
@@ -76,33 +76,37 @@ ellipsis, and no part is left out. Excerpts have at most 2 lines and inline titl
 
 ## 2. Tokens (`mcp-apps/ui/tokens.css`)
 
-**Type scale.** No other sizes or weights are allowed.
+**Type scale.** Six sizes (12, 14, 16, 18, 22, 28); no other sizes or weights are allowed. A view names a role, never a
+size: `css-policy.test.ts` rejects a rem or px literal in `font`/`font-size` and any read of the host's `--font-text-*`
+or the retired `--sk-text-*` outside `tokens.css`.
 
-| Token | px / line | Weight | Used for |
-|---|---|---|---|
-| `--sk-type-title` | 22 / 28 | 600 | view title: task, contact, list, the journal's date, "Kontroll" |
-| `--sk-type-card` | 18 / 24 | 600 | inline card title |
-| `--sk-type-row` | 16 / 20.8 | 400 | row title in every list, and "add" rows |
-| `--sk-type-body` | 16 / 24 | 400 | running text: description, journal text, summary, empty text |
-| `--sk-type-label` | 14 / 18 | unchosen 500 `--sk-muted`, chosen 600 `--sk-fg` | room strip, tabs, chips |
-| `--sk-type-button` | 14 / 18 | 600 | compact button |
-| `--sk-type-label-strong` | 16 / 20 | 600 | full button, back link, "Öppna …" |
-| `--sk-type-menu` | 16 / 20 | 500 | menu rows |
-| `--sk-type-section` | 18 / 24 (19.8 / 26.4 at 110 %) | 600 | section heading in `--sk-fg`, never red; the counter "(n)" is `--sk-muted` 400 (`.sk-count`) |
-| `--sk-type-meta` | 14 / 17.5 | 400 | meta line, card kicker, status chips, help text |
-| `--sk-type-caption` | 12 / 16 | 500 | day strip weekday and "Idag" |
+| Token                    | px / line                                      | Weight                                          | Used for                                                                                     |
+| ------------------------ | ---------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `--sk-type-title`        | 22 / 28                                        | 600                                             | view title: task, contact, list, the journal's date, "Kontroll"                              |
+| `--sk-type-display`      | = title; 28 / 34 in a wide frame's detail pane | 600                                             | a record's title in the detail pane (set by the split layout)                                |
+| `--sk-type-read`         | = body; 18 / 30 in a wide frame                | 400                                             | journal text read and written in one size, at most `--sk-read-measure` (66ch)                |
+| `--sk-type-card`         | 18 / 24                                        | 600                                             | inline card title                                                                            |
+| `--sk-type-row`          | 16 / 20.8                                      | 400                                             | row title in every list, and "add" rows                                                      |
+| `--sk-type-body`         | 16 / 24                                        | 400                                             | running text: description, journal text, summary, empty text                                 |
+| `--sk-type-label`        | 14 / 18                                        | unchosen 500 `--sk-muted`, chosen 600 `--sk-fg` | room strip, tabs, chips                                                                      |
+| `--sk-type-button`       | 14 / 18                                        | 600                                             | compact button                                                                               |
+| `--sk-type-label-strong` | 16 / 20                                        | 600                                             | full button, back link, "Öppna …"                                                            |
+| `--sk-type-menu`         | 16 / 20                                        | 500                                             | menu rows                                                                                    |
+| `--sk-type-section`      | 18 / 24 (19.8 / 26.4 at 110 %)                 | 600                                             | section heading in `--sk-fg`, never red; the counter "(n)" is `--sk-muted` 400 (`.sk-count`) |
+| `--sk-type-meta`         | 14 / 17.5                                      | 400                                             | meta line, card kicker, status chips, help text                                              |
+| `--sk-type-caption`      | 12 / 16                                        | 500                                             | day strip weekday and "Idag"                                                                 |
 
 **Spacing** follows 4, 8, 12, 16, 24, 32 (`--sk-s1`–`--sk-s6`). The side margin is 16 (12 below 400 px or from 150 % text).
 
-| Place | Spacing |
-|---|---|
-| frame top → room strip (full screen) | 8, on top of the host inset |
-| room strip → first row | 4 |
-| row template | `--sk-row-pad` 6 over the title and under the last text line, `--sk-row-min` 48 |
-| section heading | 24 from the last row's box (`--sk-section-above`), 4 to the first row's box (`--sk-section-below`); beside lists of one-line 48 rows the row's extra air (`--sk-row-air-extra`) is taken off so the glyph distances are the same |
-| between blocks in one view | 16 |
-| between buttons | 8 |
-| create field → receipt line | 4 |
+| Place                                | Spacing                                                                                                                                                                                                                          |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| frame top → room strip (full screen) | 8, on top of the host inset                                                                                                                                                                                                      |
+| room strip → first row               | 4                                                                                                                                                                                                                                |
+| row template                         | `--sk-row-pad` 6 over the title and under the last text line, `--sk-row-min` 48                                                                                                                                                  |
+| section heading                      | 24 from the last row's box (`--sk-section-above`), 4 to the first row's box (`--sk-section-below`); beside lists of one-line 48 rows the row's extra air (`--sk-row-air-extra`) is taken off so the glyph distances are the same |
+| between blocks in one view           | 16                                                                                                                                                                                                                               |
+| between buttons                      | 8                                                                                                                                                                                                                                |
+| create field → receipt line          | 4                                                                                                                                                                                                                                |
 
 **Touch targets.** One rule: the base is 44 (`--sk-tap`) and the minimum is 48 (`--sk-tap-lg`) for primary buttons,
 fields, + and icon buttons. The exceptions are the inline cards and the leading column of a list row, which stay at 44.
@@ -112,24 +116,41 @@ tests ask the browser which control a tap at each pixel reaches and require zero
 **Colour roles.** The host variable is read first; the fallback is `light-dark(light, dark)`.
 Red is only for overdue, errors and deletion; "Idag" is `--sk-muted`, never amber.
 
-| Role | Token | Light / dark fallback | Rule |
-|---|---|---|---|
-| background | `--sk-bg` | #ffffff / #1c1c1e | |
-| surface (card, strip) | `--sk-surface` | #f4f4f5 / #2a2a2d | |
-| text | `--sk-fg` | #1f1f1f / #ededed | |
-| written text under a title | `--sk-fg-2` | `color-mix` of `--sk-fg` 55 % and `--sk-muted` | an excerpt, between the title and the meta line |
-| muted text | `--sk-muted` | #5f6368 / #a1a1aa | metadata, placeholders (at least 4.5:1) |
-| divider | `--sk-line` | #e4e4e7 / #3a3a40 | only under the room head and the tab row, never between rows |
-| outline | `--sk-border` | #8a8a90 / #75757d | secondary buttons, fields, chips, panels (at least 3:1 against both page and surface) |
-| chosen | `--sk-selected-bg`, `--sk-selected-line`, `--sk-selected-width` | #e8e8e8 / #3a3a3a, `--sk-fg`, 2 px | chosen chip and segment: fill, 2 px outline (the edge plus 1 px inset, so nothing moves), 16 px tick (`--sk-check`), 600 |
-| active navigation | `--sk-nav-active-bg/-fg/-line` | = `--sk-bg` / `--sk-fg` / `--sk-fg` | active room and chosen day: page colour on the strip's surface, 2 px outline, 600 |
-| inverse (ink) | `--sk-inverse-bg/-fg` | #1f1f1f / #c8c8cc, text #fff / #1c1c1e | only the primary action; the host's `--color-background-inverse` wins |
-| overdue | `--sk-overdue-fg` | #b42318 / #ff8a80 | text only |
-| error | `--sk-danger-*` | tokens.css | error icon, destructive menu text |
-| skeleton | `--sk-skeleton` | 11 % `--sk-fg` in `--sk-bg` | the page's own grey |
-| focus ring | `--sk-ring` | #2563eb / #7aa7ff | one ring everywhere: 2 px, 2 outside; inside the box where the box meets an edge (room tabs, icon buttons, ⋯ menu entries) |
+| Role                       | Token                                                           | Light / dark fallback                          | Rule                                                                                                                       |
+| -------------------------- | --------------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| background                 | `--sk-bg`                                                       | #ffffff / #1c1c1e                              |                                                                                                                            |
+| surface (card, strip)      | `--sk-surface`                                                  | #f4f4f5 / #2a2a2d                              |                                                                                                                            |
+| text                       | `--sk-fg`                                                       | #1f1f1f / #ededed                              |                                                                                                                            |
+| written text under a title | `--sk-fg-2`                                                     | `color-mix` of `--sk-fg` 55 % and `--sk-muted` | an excerpt, between the title and the meta line                                                                            |
+| muted text                 | `--sk-muted`                                                    | #5f6368 / #a1a1aa                              | metadata, placeholders (at least 4.5:1)                                                                                    |
+| divider                    | `--sk-line`                                                     | #e4e4e7 / #3a3a40                              | only under the room head and the tab row, never between rows                                                               |
+| outline                    | `--sk-border`                                                   | #8a8a90 / #75757d                              | secondary buttons, fields, chips, panels (at least 3:1 against both page and surface)                                      |
+| chosen                     | `--sk-selected-bg`, `--sk-selected-line`, `--sk-selected-width` | #e8e8e8 / #3a3a3a, `--sk-fg`, 2 px             | chosen chip and segment: fill, 2 px outline (the edge plus 1 px inset, so nothing moves), 16 px tick (`--sk-check`), 600   |
+| active navigation          | `--sk-nav-active-bg/-fg/-line`                                  | = `--sk-bg` / `--sk-fg` / `--sk-fg`            | active room and chosen day: page colour on the strip's surface, 2 px outline, 600                                          |
+| inverse (ink)              | `--sk-inverse-bg/-fg`                                           | #1f1f1f / #c8c8cc, text #fff / #1c1c1e         | only the primary action; the host's `--color-background-inverse` wins                                                      |
+| overdue                    | `--sk-overdue-fg`                                               | #b42318 / #ff8a80                              | text only                                                                                                                  |
+| error                      | `--sk-danger-*`                                                 | tokens.css                                     | error icon, destructive menu text                                                                                          |
+| skeleton                   | `--sk-skeleton`                                                 | 11 % `--sk-fg` in `--sk-bg`                    | the page's own grey                                                                                                        |
+| hover, held                | `--sk-hover`, `--sk-press`                                      | 5 % / 9 % `--sk-fg` over what lies under       | rows, tabs, chips, rooms, icon buttons; only in `@media (hover: hover)` and never with `data-host-pointer="coarse"`        |
+| row open in the detail     | `--sk-row-selected`                                             | 8 % `--sk-fg`                                  | `aria-current="true"` on a `[data-sk-row]`: a fill, never a frame                                                          |
+| hovered primary            | `--sk-inverse-hover`                                            | ink 85 % toward its text                       | the ink button and the round + under the pointer                                                                           |
+| layer                      | `--sk-shadow-2`                                                 | soft drop + 1 px `--sk-line`                   | popover menu, the board's drawer                                                                                           |
+| focus ring                 | `--sk-ring`                                                     | #2563eb / #7aa7ff                              | one ring everywhere: 2 px, 2 outside; inside the box where the box meets an edge (room tabs, icon buttons, ⋯ menu entries) |
 
 An accent palette (`--sk-accent-<name>-line`, eight names) exists for domain colours; only the line is defined.
+
+**One focus mark, pointer feedback.** Focus is the ring alone: `outline` is `none`, `var(--sk-ring)` or, under forced
+colours, `Highlight` (`css-policy.test.ts`); a chosen or selected state is a fill or the 2 px contour shadow, never an
+outline. j/k move real focus, so a row reached by keys and by Tab draws the same ring. Every row that opens carries
+`data-sk-row` (the row kit sets it with `onOpen`); one rule in `row.css` draws its hover, held and selected tones as a
+layer 8 past the row on each side with radius 8, so the text stands still, and turns its › from `--sk-muted` to
+`--sk-fg`. A `:hover` rule stands only inside `@media (hover: hover)` (policy), so the phone draws what it drew.
+
+**Motion.** `--sk-dur-fast` 100 ms (hover, menus), `--sk-dur-base` 160 ms (a pane, the drawer), `--sk-dur-slow` 240 ms
+(a receipt) with `--sk-ease-out`; all three are 0 ms under `prefers-reduced-motion` in `tokens.css`.
+
+**Desktop sizes** (used from a 64rem frame): `--sk-shell-max` 80rem, `--sk-list-w` 22.5rem, `--sk-detail-max` 45rem,
+`--sk-drawer-w` 27.5rem, `--sk-menu-w` 15rem.
 
 **Radii.** 8 for buttons, fields and tab markers; 12 for cards and panels; 999 only for chips and avatars.
 
@@ -170,21 +191,22 @@ panel or field it opened shows the state. In the ⋯ panel each entry reaches 12
 ring lies inside the entry, 8 clear of the text and under the hairline above.
 
 **Buttons (Knappar).** All radius 8.
-- *Primary* `.sk-btn--primary`: the inverse pair, 600. At most one per screen, none inline. Full: 48 high,
+
+- _Primary_ `.sk-btn--primary`: the inverse pair, 600. At most one per screen, none inline. Full: 48 high,
   16/20. Compact `.sk-btn--compact`: 40 drawn, 48 tap, 14/18. Round `.sk-iconbtn--primary`: the + of list heads, an
   ink circle; while disabled it is a plain tertiary glyph and while its create field is open it is drawn held.
-- *Secondary* `.sk-btn--secondary`: no fill, 1 px `--sk-border`, `--sk-fg` 600. At most two per screen.
-- *Tertiary* `.sk-btn--quiet`, `.sk-btn--open`: no surface, `--sk-fg` 600, `--sk-surface` while held. Any number,
+- _Secondary_ `.sk-btn--secondary`: no fill, 1 px `--sk-border`, `--sk-fg` 600. At most two per screen.
+- _Tertiary_ `.sk-btn--quiet`, `.sk-btn--open`: no surface, `--sk-fg` 600, `--sk-surface` while held. Any number,
   at most one per row.
-- *Destructive* `.sk-btn--danger`: `--sk-overdue-fg` 600, no fill, no edge. Only in ⋯ and the row menu, followed by Undo.
+- _Destructive_ `.sk-btn--danger`: `--sk-overdue-fg` 600, no fill, no edge. Only in ⋯ and the row menu, followed by Undo.
 - Disabled is opacity 0.5. A "+" prefix is used only when the button creates something directly in the app; what goes through Claude
   gets none ("Berätta mer om dagen").
 
-**Tabs versus chips (Flikar).** *Tabs* switch between views of the same content (Agenda/Status/Projects;
+**Tabs versus chips (Flikar).** _Tabs_ switch between views of the same content (Agenda/Status/Projects;
 Control's Deleted/History/Sidekick's memory). They are left-packed with width by content, `--sk-tabs-h` high
 (min(48 at 110 %, 56)), no fill; chosen is 600 `--sk-fg` with a 3 px line, unchosen 500 `--sk-muted`; a
 hairline runs the full width under the row. If they do not fit they become the view picker (Control's, which has no icons,
-may wrap at 200 %). *Chips* never filter. The only chip is the *property chip* in detail views ("fre 30 okt ⌄", "Att göra ⌄"):
+may wrap at 200 %). _Chips_ never filter. The only chip is the _property chip_ in detail views ("fre 30 okt ⌄", "Att göra ⌄"):
 40 high, 48 target, 1 px `--sk-border`, radius 8, 14/18 500, a ⌄ at the end; it shows a value, so it has no chosen state; a tap opens
 the date picker or a menu with a tick on the current value. In menus, chips do have the chosen state. The
 segmented control (Control, draft review) has a 1 px outline, radius 8 and equal segments; its chosen segment uses the
@@ -196,17 +218,18 @@ chips and segments. Rooms and days use the active-navigation pair. Tabs use the 
 **Row (Listrad).** Every room draws the same row (see §0.3 and §1.7). Order of the meta line: time/overdue ·
 status · project/link, one line, the last part may end in an ellipsis; each part is unbreakable and " · " hangs in the column gap. Overdue is
 red text on the time only ("5 dagar försenad"). A meta line never repeats its group.
-- *Leading column:* a ring (task, item; 22 drawn, 24 glyph, 32 from 133 % text; `--sk-ring-glyph`), a 32 avatar
+
+- _Leading column:_ a ring (task, item; 22 drawn, 24 glyph, 32 from 133 % text; `--sk-ring-glyph`), a 32 avatar
   (contact), or none (notes start at 16). The ring's button is `--sk-lead-w` wide and hangs into the margin so the ring starts
   on the content edge and the title follows 12 later; the ring's column costs 0 px. Its target is the whole column in
   the row's height; a held ring shows a 40 disc in `--sk-surface` behind it. "Mark done" is the same circle in Work and
   Shopping. A done row at rest is an outlined tick in `--sk-muted`; steps are not struck through.
-- *Trailing slot:* every row that opens a view ends with › (24 wide box, glyph 24, 16 below 400 px or from
+- _Trailing slot:_ every row that opens a view ends with › (24 wide box, glyph 24, 16 below 400 px or from
   150 %; hidden in full-screen at 150 % text or more, where the whole row still opens). The whole row opens
   (`::after` of the title button covers it); the ring, Undo and quick actions sit above that cover. A row that opens
   nothing has neither › nor ⋯. Quantities are right-aligned with `tabular-nums` at the content edge.
   There is no ⋯ in list rows.
-- *Quick actions (Snabbval):* a long press (`contextmenu`), Shift+F10 or the menu key opens the row menu
+- _Quick actions (Snabbval):_ a long press (`contextmenu`), Shift+F10 or the menu key opens the row menu
   (`aria-keyshortcuts`); the same choices exist in the detail view. A visually hidden button "Fler val för {title}" opens
   it for screen readers. The menu has two labelled groups, Status (To do · In progress · Blocked · Done) and Date (Today ·
   Tomorrow · Next week · Pick a date …), as chips in the chosen state; the open row is the panel's first row with × (48 × 48, "Stäng")
@@ -214,11 +237,11 @@ red text on the time only ("5 dagar försenad"). A meta line never repeats its g
   "Pick a date …" is itself the date control: a transparent native date input fills the chip's target. At 150 % text or more
   Status and Date become fold rows. After opening, the menu scrolls into view above the host's reply field
   (`scroll-margin-block-end`).
-- *Tips:* the long-press tip ("Håll inne en uppgift för fler val.") sits last in the list in muted meta type until the first
+- _Tips:_ the long-press tip ("Håll inne en uppgift för fler val.") sits last in the list in muted meta type until the first
   use; with a fine pointer it reads "Högerklicka … eller tryck Shift+F10 …" and is the row's `aria-description`. It takes no frame and pushes nothing down.
-- *Right-aligned actions* (Undo, Restore) are compact tertiary buttons in the trailing slot, centred on the title line; a long
+- _Right-aligned actions_ (Undo, Restore) are compact tertiary buttons in the trailing slot, centred on the title line; a long
   title keeps its width and the button moves to the meta line's middle, and the row grows to fit it.
-- *Add rows:* "+ Lägg till steg", "+ Koppla kontakt", "+ Lägg till vara" are action rows (48, the + in the ring's column).
+- _Add rows:_ "+ Lägg till steg", "+ Koppla kontakt", "+ Lägg till vara" are action rows (48, the + in the ring's column).
 - Titles and meta lines use `overflow-wrap: break-word` and `hyphens: manual`, never `anywhere`.
 
 **Note row (Anteckningsrad).** One row for Journal and Contact: the title, the meta line ("12:30 · Anna Andersson · 1 uppgift"),
@@ -229,7 +252,7 @@ never used to unfold. ⋯ lives only in heads (room head and back row), never in
 
 **Section heading.** 18/24 600 in `--sk-fg`, see §0.4. A section without content shows no heading. Counters read "Name (n)" and appear
 only where the number carries a decision: "Försenade (2)", the status groups in Status, "Köpta (1)". Time groups and stores have none. In running
-text counts are words: "1 av 7 köpta". *Which number:* a heading counter counts open rows, the same list as the section's action ("Flytta 4 …");
+text counts are words: "1 av 7 köpta". _Which number:_ a heading counter counts open rows, the same list as the section's action ("Flytta 4 …");
 a row that still shows Undo is a receipt and counts in the group it now belongs to. Headings inside inline cards have no counter.
 
 **Create (Skapa).** Two levels, one rule. + in a room head creates an object at the room's top level (task, contact); a "+ Lägg till …" row creates a
@@ -239,10 +262,10 @@ when it has text. Return creates and keeps the field open; Esc and × close it a
 receipt "Tillagd: {name} · {group}" (`aria-live="polite"`), 4 under the field. In a grouped list the add row stands before the groups (Shopping);
 in an ungrouped sublist it stands last. A standing text field exists only in Contacts, and always means search.
 
-**Inline card.** A card is `--sk-surface`, radius 12, padding 16, no scrolling, no ink. Parts in fixed order: the *kicker*
-(`--sk-type-meta`, muted: "Arbete · ons 4 nov"), the *title* (`--sk-type-card`), the *body* of at most 3 rows with no
+**Inline card.** A card is `--sk-surface`, radius 12, padding 16, no scrolling, no ink. Parts in fixed order: the _kicker_
+(`--sk-type-meta`, muted: "Arbete · ons 4 nov"), the _title_ (`--sk-type-card`), the _body_ of at most 3 rows with no
 sub-headings and no status glyphs (a row is title + metadata), at most one muted meta line, and a single link row. The
-link ("Öppna Status · 10 fler ›", `OpenFoot`) is tertiary, 40/48, and the card has 8 under it. The count is the same
+link ("Öppna Status · 10 till ›", `OpenLink`) is tertiary, 40/48, and the card has 8 under it. The count is the same
 function in every card (`hiddenRows`: the target view's rows minus the card's visible rows). A name that opens something is a link: `--sk-fg`, underlined 1 px.
 Work's inline row (`InlineRow`) is one title line with ellipsis in full width and its meta on its own line; the whole row opens
 and it ends with ›. Heights at 412 (110 % text): agenda card ≤ 340, receipt cards ≤ 250, none above 450 including the host's title row.
@@ -250,21 +273,22 @@ The board card's bar uses mid-grey for To do, ink for In progress, and a diagona
 "Tillagd: …", "Uppdaterad: Mjölk, nu 2 l", "Fanns redan: Mjölk".
 
 **States (Tillstånd).** The frame (strip, head, back row) is always drawn for real; only the content changes.
-- *Loading:* no visible text (a sentence is read by screen readers through `aria-live`). The skeleton is built from
+
+- _Loading:_ no visible text (a sentence is read by screen readers through `aria-live`). The skeleton is built from
   the same components as the loaded view, with the row template: a ring outline in `--sk-skeleton`, one title bar per
   title line, one meta bar. Rows show after 300 ms. It does not guess group structure: one heading placeholder and five rows with
   different widths, and the first row stands on the loaded view's y (±2). The pulse stops under `prefers-reduced-motion`.
-- *Load failure:* no box. In the row system: a 24 icon in `--sk-danger-line` in the ring's column, a heading in row type 600
+- _Load failure:_ no box. In the row system: a 24 icon in `--sk-danger-line` in the ring's column, a heading in row type 600
   without a full stop ("Uppgifterna kunde inte hämtas"), one muted sentence, and "Försök igen" (primary). The sentence is "Sidekick svarade inte." alone; "Kontrollera
   anslutningen." is added only when the cause is a network failure. While retrying the button reads "Försöker igen…" with `aria-busy` and the create + stays disabled.
-- *Refresh failure:* when a list was already shown it stays; one row on top reads "Kunde inte uppdatera" with a tertiary "Försök igen".
-- *Write failure:* a line under the control in `--sk-danger-fg`: "Det gick inte att spara. Försök igen." and a retry text button.
-- *Undo (Ångra):* the row stays in place for 15 s (`UNDO_MS`): filled ink ring with a knocked-out tick, muted title,
+- _Refresh failure:_ when a list was already shown it stays; one row on top reads "Kunde inte uppdatera" with a tertiary "Försök igen".
+- _Write failure:_ a line under the control in `--sk-danger-fg`: "Det gick inte att spara. Försök igen." and a retry text button.
+- _Undo (Ångra):_ the row stays in place for 15 s (`UNDO_MS`): filled ink ring with a knocked-out tick, muted title,
   no ›, the meta line "Klar", and "Ångra" as a compact secondary button with a 2 px timeline along its foot that shrinks to 0 in 15 s; the timer holds
   while the pointer or focus is on the row, and the timeline is not drawn under `prefers-reduced-motion`. The row's height is unchanged.
   Counters already count the open rows. When the time runs out a done row leaves its group (200 ms collapse, none under reduced motion); focus moves to the next row's ring, otherwise the previous, otherwise the
   heading. A moved row stays with "Flyttad till …" until the next read. "Klara här (n) ⌄", last in the agenda, lists rows done since it was opened.
-- *Empty (Tomt):* one full sentence with a full stop in body type, muted, followed by the write action when there is one ("Inga steg än.",
+- _Empty (Tomt):_ one full sentence with a full stop in body type, muted, followed by the write action when there is one ("Inga steg än.",
   "Inget skrivet den här dagen.", "Papperskorgen är tom."). A search without a hit adds "Rensa sökningen". An empty detail section without a write path is not shown.
 
 **Day strip (Dagremsan).** The journal's title row is the date ("Tisdag 3 november") with the add + (`.journal-day-add`, ink, 40/48) and ⋯ on the same row.
@@ -300,26 +324,26 @@ like a long press), and "Köpta (n) ⌄" as a fold row. The tip "Tryck på ringe
 
 ## 4. Decisions
 
-| Question | Decision | Reason |
-|---|---|---|
-| Chip height | 40 drawn, 48 target | It reads as pressable yet lower than buttons, so the hierarchy holds. |
-| Filters in Agenda | Behind the search icon in the tab row | A text field would push the first task about 70 px down. |
-| "Board" or "Status" | **Status**, back row "‹ Status" | The name says how the view groups, as a list (412) and as columns (≥ 768). |
-| Kontrolls navigering | Control is a sub-view of the room the user came from; the back row reads "‹ Arbete" (or that room). Opened directly by Claude, the parent is Work (`CONTROL_PARENT`). The entry is "Kontroll" last in a room's ⋯ menu. The strip marks no room. | Control belongs to no room, and the back row carries the orientation. |
-| Skelettets orientering | A real frame with the active room marked; the skeleton only replaces rows | Nothing jumps when the content arrives. |
-| Restore: framed or text | Tertiary text in muted colour, 48 × 48, centred in the row's end | Three framed buttons are a wall; unframed text read as a heading. |
-| › on rows | The chevron rule in §3 | The row's actions decide, not taste. |
-| Counter under Undo | Counts open rows, the same number as the button | A heading and a button that disagree look wrong. |
-| Create: top or bottom | At the top, but behind + | The host's reply field is at the bottom, and two fields stacked there get confused. |
-| "Move to tomorrow" | A text row last in "Försenade", always with the count ("Flytta 4 försenade till imorgon") | The count is the decision. |
-| "Refresh" | In ⋯ in both Agenda and Status | It exists in one view only and takes room. |
-| Status filter in Work (Statusfilter i Arbete) | Groups instead of chips: Status shows To do/In progress/Blocked sections and a collapsed "Klar (n) ⌄" | A chip row clips, costs 52 px before the list and looks like a status picker. |
-| Status in the task | A property chip with a menu next to the date | Segment + date field + ink button read as three heavy blocks. |
-| ⋯ in list rows | None; quick actions by long press and Shift+F10, the same choices in the detail view | A ⋯ per row takes about 60 of 360 px at 200 %. |
-| Chosen colour in dark mode | The same model as light: `#3a3a3a` fill, outline `#ededed`, 600 | One model in both themes; the ink stays dimmed. |
-| Contact e-mail and phone | In the folded "Kontaktvägar", no labels | Phone and e-mail fields in the main view crowd the contact. |
-| Bottom navigation | No | The host's reply field is at the bottom and two bottom rows stack. |
-| × on an inline contact chip | None; "Kopplad till Bo Berg" is text, unlinking is in full screen | It is easy to hit by accident. |
+| Question                                      | Decision                                                                                                                                                                                                                                        | Reason                                                                              |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Chip height                                   | 40 drawn, 48 target                                                                                                                                                                                                                             | It reads as pressable yet lower than buttons, so the hierarchy holds.               |
+| Filters in Agenda                             | Behind the search icon in the tab row                                                                                                                                                                                                           | A text field would push the first task about 70 px down.                            |
+| "Board" or "Status"                           | **Status**, back row "‹ Status"                                                                                                                                                                                                                 | The name says how the view groups, as a list (412) and as columns (≥ 768).          |
+| Kontrolls navigering                          | Control is a sub-view of the room the user came from; the back row reads "‹ Arbete" (or that room). Opened directly by Claude, the parent is Work (`CONTROL_PARENT`). The entry is "Kontroll" last in a room's ⋯ menu. The strip marks no room. | Control belongs to no room, and the back row carries the orientation.               |
+| Skelettets orientering                        | A real frame with the active room marked; the skeleton only replaces rows                                                                                                                                                                       | Nothing jumps when the content arrives.                                             |
+| Restore: framed or text                       | Tertiary text in muted colour, 48 × 48, centred in the row's end                                                                                                                                                                                | Three framed buttons are a wall; unframed text read as a heading.                   |
+| › on rows                                     | The chevron rule in §3                                                                                                                                                                                                                          | The row's actions decide, not taste.                                                |
+| Counter under Undo                            | Counts open rows, the same number as the button                                                                                                                                                                                                 | A heading and a button that disagree look wrong.                                    |
+| Create: top or bottom                         | At the top, but behind +                                                                                                                                                                                                                        | The host's reply field is at the bottom, and two fields stacked there get confused. |
+| "Move to tomorrow"                            | A text row last in "Försenade", always with the count ("Flytta 4 försenade till imorgon")                                                                                                                                                       | The count is the decision.                                                          |
+| "Refresh"                                     | In ⋯ in both Agenda and Status                                                                                                                                                                                                                  | It exists in one view only and takes room.                                          |
+| Status filter in Work (Statusfilter i Arbete) | Groups instead of chips: Status shows To do/In progress/Blocked sections and a collapsed "Klar (n) ⌄"                                                                                                                                           | A chip row clips, costs 52 px before the list and looks like a status picker.       |
+| Status in the task                            | A property chip with a menu next to the date                                                                                                                                                                                                    | Segment + date field + ink button read as three heavy blocks.                       |
+| ⋯ in list rows                                | None; quick actions by long press and Shift+F10, the same choices in the detail view                                                                                                                                                            | A ⋯ per row takes about 60 of 360 px at 200 %.                                      |
+| Chosen colour in dark mode                    | The same model as light: `#3a3a3a` fill, outline `#ededed`, 600                                                                                                                                                                                 | One model in both themes; the ink stays dimmed.                                     |
+| Contact e-mail and phone                      | In the folded "Kontaktvägar", no labels                                                                                                                                                                                                         | Phone and e-mail fields in the main view crowd the contact.                         |
+| Bottom navigation                             | No                                                                                                                                                                                                                                              | The host's reply field is at the bottom and two bottom rows stack.                  |
+| × on an inline contact chip                   | None; "Kopplad till Bo Berg" is text, unlinking is in full screen                                                                                                                                                                               | It is easy to hit by accident.                                                      |
 
 ## 5. Conventions and verification
 

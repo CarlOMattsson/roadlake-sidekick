@@ -1,10 +1,12 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import type { WorkLabels } from "../shared/labels";
 import "./new-task-input.css";
 import { ArchivedRows, UndoLine, WriteNotice } from "../shared/manage-controls";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { RowMenuTip } from "../shared/row-menu";
+import { rowReceipt, useUndoReceipts } from "../shared/use-undo-receipts";
 import type { WorkStep, WorkTransport } from "../transport/transport";
 import { StepCreate } from "../steps/step-create";
 import { useTaskSteps } from "../steps/use-task-steps";
@@ -16,18 +18,22 @@ import { StepRow } from "./step-row";
  * idempotency key that a retry of the same click reuses. Each Step row has a ⋯ button that opens its
  * Up, Down and Archive buttons; archived Steps can be restored from the Undo line or the list below.
  * A new write clears the status line and any notice; focus goes to the Undo line after an archive and
- * to the restored row after Undo.
+ * to the restored row after Undo. A check keeps its row's new state ("Klar") and is confirmed, with Ångra, in the
+ * view's receipt bar (`receipt`), so the row has no button of its own and the list never moves.
  */
 export function TaskSteps({
   taskId,
   transport,
   labels: t,
+  receipt,
   stepExtra,
   refreshKey = 0,
 }: {
   taskId: string;
   transport: WorkTransport;
   labels: WorkLabels;
+  /** The Task view's one receipt bar, where the Steps' and their Actions' checks are confirmed. */
+  receipt: ReceiptState;
   /** What the Task adds under a Step's title (an AI Step's run to review). */
   stepExtra?: (step: WorkStep) => ReactNode;
   /** A new value reads the Steps again in place (a reviewed AI Step moved on the server). */
@@ -45,6 +51,20 @@ export function TaskSteps({
   const { state, write, manage, listRef, headingRef, undoBox } = steps;
   const { phase, notice, more, undo, archived, status, stepUndo } = state;
   const hasMore = state.nextCursor !== undefined;
+  // The check just made: "Klar: {title}" with Ångra in the bar; the row keeps its state until the bar's time is up.
+  const stepUndos = useMemo(
+    () => (stepUndo ? { [stepUndo.id]: stepUndo } : {}),
+    [stepUndo],
+  );
+  useUndoReceipts({
+    undos: stepUndos,
+    receipt,
+    describe: (_key, undo) => ({
+      message: rowReceipt(undo.done ? t.stepDone : t.stepReopened, undo.title),
+      undo: { label: t.agendaUndo, onUndo: () => steps.undoToggle(undo) },
+    }),
+    onEnd: steps.expireStepUndo,
+  });
   // Only a new key reads again: the first render keeps the list the hook is already reading.
   const reloadSteps = useRef(steps.reloadSteps);
   const seenKey = useRef(refreshKey);
@@ -142,9 +162,8 @@ export function TaskSteps({
               labels={t}
               manage={manage}
               onToggle={canToggle ? steps.toggle : undefined}
+              receipt={receipt}
               undo={stepUndo?.id === step.id ? stepUndo : undefined}
-              onUndo={() => stepUndo && steps.undoToggle(stepUndo)}
-              onExpire={steps.expireStepUndo}
               onMove={
                 canMove && !hasMore
                   ? (delta) => steps.move(step.id, delta)

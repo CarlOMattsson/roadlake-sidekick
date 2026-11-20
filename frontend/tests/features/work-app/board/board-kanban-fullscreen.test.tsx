@@ -77,21 +77,23 @@ describe("fullscreen board: Undo in the card, quick choices and meta line", () =
       name: /^Undo/,
     });
     await waitFor(() => expect(undo).toBeEnabled());
-    const wrap = undo.closest(".work-agenda-undo");
-    const card = undo.closest("li");
-    if (!wrap || !card) throw new Error("no Undo line in a card");
-    const line = within(wrap as HTMLElement).getByRole("status");
-    // The card stays in its new column, and its line says the new status beside the Undo button.
+    // The Ångra is the receipt bar's (designsystem §0.6); the card keeps its new state in its own line, with no button.
+    expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+      `${workEn.taskStatus.in_progress}: ${taskA.title}`,
+    );
+    const card = handleOf(taskA.title).closest("li");
+    const wrap = card?.querySelector<HTMLElement>(".work-agenda-undo");
+    if (!wrap || !card) throw new Error("no state line in a card");
+    const line = within(wrap).getByRole("status");
+    // The card stays in its new column, and its line says the new status.
     expect(card).toHaveAttribute("data-card-id", taskA.id);
-    expect(card).toContainElement(wrap as HTMLElement);
     expect(
       screen.getByRole("region", { name: workEn.taskStatus.in_progress }),
     ).toContainElement(card);
-    expect(wrap).toHaveClass("work-agenda-undo");
     expect(line).toHaveTextContent(workEn.taskStatus.in_progress);
-    expect(line).not.toContainElement(undo);
+    expect(wrap.querySelector("button")).toBeNull();
     expect(document.querySelectorAll(".work-agenda-undo")).toHaveLength(1);
-    // The foot under the columns and the notice are gone: the Undo lives in the card.
+    // The foot under the columns and the notice are gone: the Ångra lives in the receipt bar.
     expect(document.querySelector(".work-board-undo")).toBeNull();
     expect(document.querySelector(".sk-notice")).toBeNull();
   });
@@ -253,7 +255,7 @@ describe("fullscreen board: Undo time", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("the pointer over the Undo line pauses its time, and the line is still there after the pointer leaves until the time left runs out", async () => {
+  it("the pointer over the receipt pauses its time, and the Undo is still there after the pointer leaves until the time left runs out", async () => {
     vi.useFakeTimers();
     render(rootBoard(transport()));
     fireEvent.keyDown(handleOf(taskA.title), { key: "ArrowRight" });
@@ -261,9 +263,9 @@ describe("fullscreen board: Undo time", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     const undo = screen.getByRole("button", { name: /^Undo/ });
-    // The pause sits on the Undo line's wrapper, which holds both the status text and the button.
-    const line = undo.closest(".work-agenda-undo");
-    if (!line) throw new Error("no Undo line");
+    // The pause sits on the receipt, which holds both the message and the button.
+    const line = undo.closest(".sk-receipt");
+    if (!line) throw new Error("no receipt");
     act(() => {
       vi.advanceTimersByTime(10000);
     });
@@ -283,5 +285,7 @@ describe("fullscreen board: Undo time", () => {
     expect(
       screen.queryByRole("button", { name: /^Undo/ }),
     ).not.toBeInTheDocument();
+    // The card settled with the bar: its state line is gone too.
+    expect(document.querySelector(".work-agenda-undo")).toBeNull();
   });
 });

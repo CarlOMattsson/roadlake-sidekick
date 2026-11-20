@@ -12,6 +12,9 @@ import "./row.css";
  * plain content; without `onOpen` the body is plain content. The chevron is shown only when
  * `navigates` is true. `primary` is never clipped, and `secondary` may wrap. Texts come from the caller, so
  * this component has no labels of its own. `trailing` must be plain text or a chip, never a control.
+ *
+ * A row that opens (`onOpen`) carries `data-sk-row`, the one hook of the shared pointer feedback (row.css): hover, held
+ * and `aria-current` tones. A room's own rows that open carry the same attribute; a row that opens nothing has none.
  */
 export type RowProps = {
   leading?: ReactNode;
@@ -46,7 +49,11 @@ export function Row({
   );
 
   return (
-    <li className="sk-row" data-navigates={navigates ? "true" : undefined}>
+    <li
+      className="sk-row"
+      data-navigates={navigates ? "true" : undefined}
+      data-sk-row={onOpen ? "" : undefined}
+    >
       {onLeading ? (
         <button type="button" className="sk-row-lead" onClick={onLeading}>
           {leading}

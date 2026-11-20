@@ -250,8 +250,10 @@ it("shows a conflict banner for a Project, reloads the latest version and keeps 
   await user.clear(title);
   await user.type(title, "Offert idag");
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(workEn.projectConflict);
+  // A warning message box in a wrapper that takes focus; its one action refreshes.
+  const message = await screen.findByText(workEn.projectConflict);
+  expect(message.closest("[role=status]")).toHaveClass("sk-message--warning");
+  const banner = message.closest("[tabindex='-1']") as HTMLElement;
   await waitFor(() => expect(banner).toHaveFocus());
   await user.click(within(banner).getByRole("button", { name: workEn.reload }));
   expect(
@@ -259,9 +261,11 @@ it("shows a conflict banner for a Project, reloads the latest version and keeps 
   ).toBeInTheDocument();
   expect(getProject).toHaveBeenLastCalledWith(projectA.id);
   expect(screen.getByLabelText(workEn.titleLabel)).toHaveValue("Offert idag");
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText(workEn.projectConflict)).toBeNull();
   await user.click(screen.getByRole("button", { name: workEn.save }));
-  expect(await screen.findByText(workEn.saved)).toBeInTheDocument();
+  // "Saved" is confirmed in the receipt bar at the view's foot, not as a line in the content.
+  const saved = await screen.findByText(workEn.saved);
+  expect(saved.closest(".sk-receipt-slot")).not.toBeNull();
   expect(updateProject).toHaveBeenCalledTimes(2);
   expect(updateProject.mock.calls[0]).toEqual([
     projectA.id,
@@ -318,7 +322,10 @@ it("creates a Task in the Project, reuses its key on retry and lists it at the t
   expect(
     await screen.findByRole("button", { name: newTask.title }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("status")).toHaveTextContent(workEn.taskCreated);
+  expect(screen.getByText(workEn.taskCreated)).toHaveAttribute(
+    "role",
+    "status",
+  );
   expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByLabelText(workEn.newTaskTitle)).toHaveValue("");
   expect(screen.getAllByRole("listitem")[0]).toHaveTextContent(newTask.title);
@@ -411,7 +418,7 @@ it("adds a Step at the end of the list with its version and checks it at once", 
   await user.type(screen.getByLabelText(workEn.stepTitle), newStep.title);
   await user.click(screen.getByRole("button", { name: workEn.addStep }));
   const added = await screen.findByRole("checkbox", { name: newStep.title });
-  expect(screen.getByRole("status")).toHaveTextContent(workEn.stepAdded);
+  expect(screen.getByText(workEn.stepAdded)).toHaveAttribute("role", "status");
   expect(screen.getAllByRole("checkbox").at(-1)).toBe(added);
   expect(create).toHaveBeenCalledWith(
     taskA.id,

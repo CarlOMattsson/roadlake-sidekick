@@ -1,12 +1,17 @@
-import { useEffect, useRef } from "react";
-import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
+import { useMemo, type Ref } from "react";
+import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import {
   recurringDoneText,
   type RecurringCycle,
 } from "../agenda/parts/agenda-helpers";
 import { statusUndo } from "../board/board-writes";
 import type { DoneHandoff } from "../shared/done-handoff";
-import type { WorkLabels } from "../shared/labels";
+import { taskStatusLabel, type WorkLabels } from "../shared/labels";
+import {
+  rowReceipt,
+  useUndoReceipts,
+  type UndoReceipt,
+} from "../shared/use-undo-receipts";
 import {
   isTaskStatus,
   type TaskStatusValue,
@@ -15,109 +20,6 @@ import {
 } from "../transport/transport";
 import type { useTaskOffers } from "./use-task-offers";
 import type { TaskDone } from "./use-task-writes";
-
-/**
- * The Ångra of a `markDone` receipt: focus starts on its button (the write had moved it to the title), and the
- * time is held by the pointer only. A hold by focus would never let the time run out, since focus starts there. When
- * the time is up with focus on the button, focus goes to the Task's title.
- */
-function useReceiptUndo(onExpire: () => void) {
-  const button = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    button.current?.focus();
-  }, []);
-  const { held, handlers } = useUndoHold(true, () => {
-    const undo = button.current;
-    if (undo && document.activeElement === undo)
-      undo.closest("article")?.querySelector("h2")?.focus();
-    onExpire();
-  });
-  const pointer = {
-    onPointerEnter: handlers.onPointerEnter,
-    onPointerLeave: handlers.onPointerLeave,
-  };
-  return { button, held, pointer };
-}
-
-/**
- * The Task view's answer to `markDone` on a recurring Task, right under the button, in the family's receipt shape
- * (line plus Ångra): `recurringDone`. The server recorded the cycle and opened the Task again for its next
- * date, so the button still says `markDone` and Ångra writes the earlier due date back. It is a polite live
- * region; its time to undo stops while the pointer is over it (not for focus, which starts on Ångra), and `onExpire` ends it.
- */
-export function TaskCycleLine({
-  text,
-  labels: t,
-  disabled,
-  onUndo,
-  onExpire,
-}: {
-  text: string;
-  labels: WorkLabels;
-  disabled: boolean;
-  /** Absent where the host cannot write the due date back: the line only says what happened. */
-  onUndo?: () => void;
-  onExpire: () => void;
-}) {
-  const { button, held, pointer } = useReceiptUndo(onExpire);
-  return (
-    <div
-      className="work-task-cycle"
-      data-held={held ? "" : undefined}
-      {...pointer}
-    >
-      <p role="status">{text}</p>
-      {onUndo && (
-        <button
-          ref={button}
-          type="button"
-          className="sk-btn--secondary sk-btn--compact sk-undo-time"
-          disabled={disabled}
-          onClick={onUndo}
-        >
-          {t.agendaUndo}
-        </button>
-      )}
-    </div>
-  );
-}
-
-/**
- * Ångra in the place of `reopenTask` while a Task has just been marked done: the status chip already says `completed`, so the
- * one way back is this button (with its time line) and no line of its own is added. Focus starts on it, and the time
- * stands still while the pointer is over it. Screen readers get `completed` from a hidden live region.
- */
-export function TaskDoneUndo({
-  labels: t,
-  disabled,
-  onUndo,
-  onExpire,
-}: {
-  labels: WorkLabels;
-  disabled: boolean;
-  onUndo: () => void;
-  onExpire: () => void;
-}) {
-  const { button, held, pointer } = useReceiptUndo(onExpire);
-  return (
-    <>
-      <button
-        ref={button}
-        type="button"
-        className="sk-btn--secondary sk-btn--compact sk-undo-time work-task-done"
-        data-held={held ? "" : undefined}
-        disabled={disabled}
-        onClick={onUndo}
-        {...pointer}
-      >
-        {t.agendaUndo}
-      </button>
-      <span role="status" className="work-visually-hidden">
-        {t.taskStatus.completed}
-      </span>
-    </>
-  );
-}
 
 /** What the last `markDone` left to undo: a recurring Task's cycle, or the status any other Task had before. */
 export type DoneReceipt =
@@ -168,45 +70,88 @@ export function doneHandoff(
 }
 
 /**
+ * The receipt bar's words for the last `markDone` (designsystem §0.6): "Klar: {title}", or for a recurring Task, which the
+ * server opened again for its next date, `recurringDone` ("Klar · nästa: 22 nov"). Ångra writes the earlier status, or the
+ * earlier due date, through `write`; where the host cannot answer that write the bar only says what happened.
+ */
+export function doneBarReceipt(
+  receipt: DoneReceipt,
+  task: WorkTask,
+  offers: ReturnType<typeof useTaskOffers>["offers"],
+  t: WorkLabels,
+  write: (changes: WorkTaskChanges) => void,
+): UndoReceipt {
+  const message =
+    receipt.kind === "cycle"
+      ? recurringDoneText(t, task.due_at, new Date())
+      : rowReceipt(taskStatusLabel(t, "completed"), task.title);
+  const changes = receiptUndo(receipt, offers);
+  return {
+    message,
+    ...(changes
+      ? { undo: { label: t.agendaUndo, onUndo: () => write(changes) } }
+      : {}),
+  };
+}
+
+/**
+ * Puts the last `markDone` in the view's receipt bar (doneBarReceipt) while it can be undone: the control stays as it is,
+ * showing its new state, and the receipt ends with the bar's time (`onEnd`) or when a new write ends it (`done` goes).
+ */
+export function useDoneReceipt({
+  done,
+  task,
+  offers,
+  labels: t,
+  bar,
+  write,
+  onEnd,
+}: {
+  done: DoneReceipt | undefined;
+  task: WorkTask | undefined;
+  offers: ReturnType<typeof useTaskOffers>["offers"];
+  labels: WorkLabels;
+  bar: ReceiptState;
+  /** Writes what Ångra puts back. */
+  write: (changes: WorkTaskChanges) => void;
+  onEnd: () => void;
+}): void {
+  const undos = useMemo(
+    (): Record<string, DoneReceipt> => (done ? { done } : {}),
+    [done],
+  );
+  useUndoReceipts({
+    undos,
+    receipt: bar,
+    describe: (_key, entry) =>
+      task ? doneBarReceipt(entry, task, offers, t, write) : undefined,
+    onEnd,
+  });
+}
+
+/**
  * The Task's `markDone` slot, last in the control row: the screen's one primary, compact ink; on a done Task
- * `reopenTask` as a secondary, which sets it back to `todo`. Right after `markDone` on any other Task Ångra stands
- * there instead (see TaskDoneUndo) until the time to undo is up. Both choices go through `onChoose`.
+ * `reopenTask` as a secondary, which sets it back to `todo`. It shows its new state at once after `markDone` and moves
+ * nothing; the change is confirmed, with Ångra, in the receipt bar (see doneBarReceipt). `buttonRef` lets the frame keep
+ * focus on it after the write.
  */
 export function TaskDoneControl({
   task,
-  receipt,
-  offers,
   labels: t,
   disabled,
   onChoose,
-  onUndo,
-  onExpire,
+  buttonRef,
 }: {
   task: WorkTask;
-  receipt: DoneReceipt | undefined;
-  offers: ReturnType<typeof useTaskOffers>["offers"];
   labels: WorkLabels;
   disabled: boolean;
   onChoose: (status: TaskStatusValue) => void;
-  onUndo: (changes: WorkTaskChanges) => void;
-  onExpire: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   const finished = task.status === "completed";
-  const undo =
-    receipt?.kind === "finished" && finished
-      ? receiptUndo(receipt, offers)
-      : undefined;
-  if (undo)
-    return (
-      <TaskDoneUndo
-        labels={t}
-        disabled={disabled}
-        onUndo={() => onUndo(undo)}
-        onExpire={onExpire}
-      />
-    );
   return (
     <button
+      ref={buttonRef}
       type="button"
       className={
         finished
@@ -218,38 +163,5 @@ export function TaskDoneControl({
     >
       {finished ? t.reopenTask : t.markDone}
     </button>
-  );
-}
-
-/**
- * The receipt line of a recurring Task's last `markDone` (`recurringDone`) with the Ångra that writes the
- * earlier due date back through `save`. Without a host that answers that write the line only says what happened.
- */
-export function TaskDoneReceipt({
-  receipt,
-  task,
-  labels: t,
-  disabled,
-  offers,
-  save,
-  onExpire,
-}: {
-  receipt: Extract<DoneReceipt, { kind: "cycle" }>;
-  task: WorkTask;
-  labels: WorkLabels;
-  disabled: boolean;
-  offers: ReturnType<typeof useTaskOffers>["offers"];
-  save: (changes: WorkTaskChanges) => void;
-  onExpire: () => void;
-}) {
-  const undo = receiptUndo(receipt, offers);
-  return (
-    <TaskCycleLine
-      text={recurringDoneText(t, task.due_at, new Date())}
-      labels={t}
-      disabled={disabled}
-      onUndo={undo && (() => save(undo))}
-      onExpire={onExpire}
-    />
   );
 }

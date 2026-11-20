@@ -39,7 +39,7 @@ const changes = {
 const noReads = {} as WorkTransport;
 
 describe("work_changes card frame", () => {
-  it("opens as a card with the first five rows and +N for the rest", () => {
+  it("opens as a card with the first five rows and the rest counted in the link", () => {
     const initial = rootFromToolResult(changes);
     render(
       <WorkView
@@ -51,7 +51,7 @@ describe("work_changes card frame", () => {
     );
 
     expect(screen.getAllByRole("listitem")).toHaveLength(5);
-    expect(screen.getByText("+2 more")).toBeInTheDocument();
+    expect(screen.getByText("2 more")).toBeInTheDocument();
   });
 
   it("offers no Open action when the host has no fullscreen", () => {
@@ -64,10 +64,10 @@ describe("work_changes card frame", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Show all (7)" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Open changes/ })).toBeNull();
   });
 
-  it("Show all asks the host for fullscreen", async () => {
+  it("Open changes asks the host for fullscreen", async () => {
     const fullscreen = vi.fn();
     render(
       <WorkView
@@ -79,8 +79,10 @@ describe("work_changes card frame", () => {
       />,
     );
 
-    // The button names the whole list it opens: "Show all (7)".
-    await userEvent.click(screen.getByRole("button", { name: "Show all (7)" }));
+    // The link names the list it opens and counts the two rows the card leaves out.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open changes · 2 more" }),
+    );
     expect(fullscreen).toHaveBeenCalledTimes(1);
   });
 
@@ -98,7 +100,7 @@ describe("work_changes card frame", () => {
     // Seven Task records, all now To do: the headline says where they went.
     expect(screen.getByText("7 uppgifter, nu att göra")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Visa alla (7)" }),
+      screen.getByRole("button", { name: "Öppna ändringar · 2 till" }),
     ).toBeInTheDocument();
   });
 });

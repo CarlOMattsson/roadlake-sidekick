@@ -25,7 +25,6 @@
   background: var(--sk-surface);
   color: var(--sk-fg-2);
   font: var(--sk-type-caption);
-  font-size: 0.8125rem;
   line-height: 1.25rem;
   overflow-wrap: anywhere;
   text-align: start;
@@ -200,8 +199,25 @@
   width: 16px;
   height: 16px;
 }
-.sk-tag-editor__remove:hover:not(:disabled) > .sk-tag--removable {
-  border-color: var(--sk-border);
+/* Pointer feedback (designsystem §2 Hovring): a pill that is a control lays --sk-hover over its own fill (a chosen
+   filter keeps its tone under it), held --sk-press; a removable pill also shows its edge. Only with a hovering pointer
+   and never when the host reports a coarse one. */
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    :is(.sk-tag-editor__remove, .sk-tag-filter__option):not(:disabled):hover
+    > .sk-tag {
+    background-image: linear-gradient(var(--sk-hover), var(--sk-hover));
+  }
+  :root:not([data-host-pointer="coarse"])
+    :is(.sk-tag-editor__remove, .sk-tag-filter__option):not(:disabled):active
+    > .sk-tag {
+    background-image: linear-gradient(var(--sk-press), var(--sk-press));
+  }
+  :root:not([data-host-pointer="coarse"])
+    .sk-tag-editor__remove:hover:not(:disabled)
+    > .sk-tag--removable {
+    border-color: var(--sk-border);
+  }
 }
 
 .sk-tag-editor__add {

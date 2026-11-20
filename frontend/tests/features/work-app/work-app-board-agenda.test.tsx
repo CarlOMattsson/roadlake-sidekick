@@ -177,9 +177,14 @@ it("moves a Task through its status list with update_task, its version and a key
   expect(getWorkBoard).toHaveBeenCalledTimes(1);
   expect(getWorkBoard).toHaveBeenCalledWith({});
   const undo = await screen.findByRole("button", { name: /^Undo/ });
-  expect(
-    within(undo.parentElement as HTMLElement).getByRole("status"),
-  ).toHaveTextContent(workEn.taskStatus.in_progress);
+  // The Ångra and the message are the receipt bar's; the card holds its new state in its own line.
+  expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+    `${workEn.taskStatus.in_progress}: ${boardTask.title}`,
+  );
+  expect(document.querySelector(".work-agenda-undo")).toHaveTextContent(
+    workEn.taskStatus.in_progress,
+  );
+  expect(document.querySelector(".work-agenda-undo button")).toBeNull();
   const doing = screen.getByRole("region", {
     name: workEn.taskStatus.in_progress,
   });
@@ -216,9 +221,14 @@ it("a board move offers Undo, which writes the previous status at the new versio
   );
   const undo = await screen.findByRole("button", { name: /^Undo/ });
   await waitFor(() => expect(undo).toBeEnabled());
-  expect(
-    within(undo.parentElement as HTMLElement).getByRole("status"),
-  ).toHaveTextContent(workEn.taskStatus.in_progress);
+  // The Ångra and the message are the receipt bar's; the card holds its new state in its own line.
+  expect(undo.closest(".sk-receipt-slot")).toHaveTextContent(
+    `${workEn.taskStatus.in_progress}: ${boardTask.title}`,
+  );
+  expect(document.querySelector(".work-agenda-undo")).toHaveTextContent(
+    workEn.taskStatus.in_progress,
+  );
+  expect(document.querySelector(".work-agenda-undo button")).toBeNull();
   await user.click(undo);
   await waitFor(() => expect(updateTask).toHaveBeenCalledTimes(2));
   // The previous status ("todo"), against the version the move returned (2), with a key of its own.
@@ -383,8 +393,10 @@ it("shows a move conflict as a banner, reads the board again and keeps the banne
       }),
     ).getByRole("button", { name: workEn.taskStatus.in_progress }),
   );
-  const banner = await screen.findByRole("alert");
-  expect(banner).toHaveTextContent(boardLabelsEn.conflict);
+  // The conflict is the shared warning box (a status, not an alert), and its wrapper takes focus.
+  const text = await screen.findByText(boardLabelsEn.conflict);
+  expect(text.closest('[role="status"]')).toHaveClass("sk-message--warning");
+  const banner = text.closest('[tabindex="-1"]');
   expect(banner).toHaveFocus();
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(1));
   expect(
@@ -392,12 +404,14 @@ it("shows a move conflict as a banner, reads the board again and keeps the banne
       screen.getByRole("region", { name: workEn.taskStatus.completed }),
     ).getByRole("button", { name: boardTask.title }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("alert")).toHaveTextContent(boardLabelsEn.conflict);
+  expect(screen.getByText(boardLabelsEn.conflict)).toBeInTheDocument();
   await user.click(
-    within(banner).getByRole("button", { name: boardLabelsEn.conflictAction }),
+    within(banner as HTMLElement).getByRole("button", {
+      name: boardLabelsEn.conflictAction,
+    }),
   );
   await waitFor(() => expect(getWorkBoard).toHaveBeenCalledTimes(2));
-  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText(boardLabelsEn.conflict)).toBeNull();
 });
 
 it("shows a refused move as calm text without retry or a read", async () => {

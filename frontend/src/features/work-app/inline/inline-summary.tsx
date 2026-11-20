@@ -1,4 +1,4 @@
-import { Fragment, useContext, useRef } from "react";
+import { Fragment, useContext, useEffect, useId } from "react";
 import {
   type DueLocale,
   type DueTone,
@@ -9,12 +9,12 @@ import {
 import { Progress } from "../../mcp-apps/ui/progress";
 import "./inline-summary.css";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
-import { CardFoot } from "../../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { Card } from "../../mcp-apps/ui/card";
+import { OpenLink } from "../../mcp-apps/ui/open-link";
+import { ReceiptBar, type ReceiptState } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { TagChips } from "../../mcp-apps/ui/tags";
 import { KnownTags } from "../shared/work-tags";
-import { useUndoHold } from "../../mcp-apps/ui/undo-hold";
 import type { InlineSummaryLabels } from "./inline-summary-labels";
 import {
   InlineRow,
@@ -31,7 +31,6 @@ export { HierarchySummary } from "./inline-hierarchy-summary";
 export {
   InlineEmpty,
   InlineRow,
-  OpenFoot,
   inlineMeta,
   type InlineMetaPart,
   type InlineSummaryKind,
@@ -81,21 +80,12 @@ export type InlineSummaryData = {
 };
 
 /**
- * The Undo that follows Done: "Done · Undo" stands where Done stood, for `UNDO_MS`. `onExpire` is called
- * when the time is up; `busy` disables Undo while its write runs.
- */
-export type InlineSummaryUndo = {
-  onUndo: () => void;
-  onExpire: () => void;
-  busy?: boolean;
-};
-
-/**
- * The inline summary. Loading, empty and error come in through `state`; the ready state takes the
- * record and its actions: "Done" (a Task only, given by `onComplete`, the primary action; `busy`
- * disables it while the write runs) and "Open" (asks the host for fullscreen; the secondary action
- * beside Done, or the only one). A `notice` shows a write's conflict or failure. The summary has no
- * inner scroll and no menus.
+ * The inline summary, in the family's `Card`. Loading, empty and error come in through `state`; the ready state takes
+ * the record and its actions: "Done" (a Task only, given by `onComplete`, the primary action; `busy` disables it while
+ * the write runs) and the card's one main link (`OpenLink`, last: it asks the host for fullscreen). The card shows the
+ * Task's new state ("Done" in its status line) with no Undo of its own: Done's receipt, with Ångra, is the bar of
+ * `receipt` at the card's foot. A `notice` shows a write's conflict or failure. The summary has no inner scroll and no
+ * menus.
  */
 export type InlineSummaryProps =
   | { state: "loading"; labels: InlineSummaryLabels }
@@ -127,10 +117,12 @@ export type InlineSummaryProps =
       onOpen?: () => void;
       onComplete?: () => void;
       busy?: boolean;
-      /** After Done: the card says so and offers Undo instead of Done for a short while. */
-      undo?: InlineSummaryUndo;
+      /** The card's receipt bar (Done's receipt with Ångra); the card shows it last. Absent: no bar. */
+      receipt?: ReceiptState;
       /** Moves focus to Done when it appears (after Undo, so focus stays on a control that is still there). */
       focusComplete?: boolean;
+      /** Done took the Done button away: focus, if it fell to the page, goes to the card's open link. */
+      focusOpen?: boolean;
       notice?: InlineSummaryNotice;
       /** A Task whose AI plan waits for the owner: the line that says so and the text of the button that opens the Task. */
       plan?: { line: string; reviewLabel: string };
@@ -141,110 +133,83 @@ function focusOnMount(button: HTMLButtonElement | null) {
   button?.focus();
 }
 
-/**
- * "Undo" in the card's foot, with the time line under it. "Done" is a polite live region (the status row shows it); Undo is a button as tall as the other
- * actions (44 px on a coarse pointer). It takes focus from Done, which it replaces. When the time is up and
- * focus is still in it, focus moves to Open, so it never falls to the page.
- */
-function UndoLine({
-  labels,
-  undo,
-}: {
-  labels: InlineSummaryLabels;
-  undo: InlineSummaryUndo;
-}) {
-  const box = useRef<HTMLSpanElement>(null);
-  // Undo takes focus when it shows, so only the pointer holds the time: a focus hold would never let it run out.
-  const { held, handlers } = useUndoHold(true, () => {
-    const node = box.current;
-    if (node?.contains(document.activeElement))
-      node
-        .closest("section")
-        ?.querySelector<HTMLElement>(".sk-btn--open")
-        ?.focus();
-    undo.onExpire();
-  });
-  return (
-    <span
-      ref={box}
-      className="work-compact-undo"
-      data-held={held ? "" : undefined}
-      onPointerEnter={handlers.onPointerEnter}
-      onPointerLeave={handlers.onPointerLeave}
-    >
-      {/* The status row above already says `completed`; the live region only announces it. */}
-      <span role="status" className="work-visually-hidden">
-        {labels.taskStatus.completed}
-      </span>
-      <button
-        type="button"
-        className="work-compact-action sk-btn--secondary sk-undo-time"
-        onClick={undo.onUndo}
-        disabled={undo.busy}
-        aria-busy={undo.busy || undefined}
-        ref={focusOnMount}
-      >
-        {labels.undo}
-      </button>
-    </span>
-  );
-}
-
 /** One line of a Task's description: whitespace collapsed, cut at `max` characters with an ellipsis. */
 export function oneLine(text: string, max = 80): string {
   const flat = text.replace(/\s+/g, " ").trim();
   return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
 }
 
+/** Puts focus on the card's open link when the control that had it is gone and focus fell to the page. */
+function focusOpenLink(cardId: string) {
+  const active = document.activeElement;
+  if (active && active !== document.body) return;
+  document
+    .getElementById(cardId)
+    ?.querySelector<HTMLElement>(".sk-open-link")
+    ?.focus();
+}
+
 export function InlineSummary(props: InlineSummaryProps) {
   const { labels } = props;
   const known = useContext(KnownTags);
+  const cardId = useId();
+  // Done takes its button away: focus never falls to the page, it goes to the link that stays.
+  const focusOpen = props.state === "ready" && props.focusOpen;
+  useEffect(() => {
+    if (focusOpen) focusOpenLink(cardId);
+  }, [focusOpen, cardId]);
 
   if (props.state === "loading") {
     return (
-      <section className="work-compact-card sk-card" aria-busy="true">
-        <p role="status" className="work-compact-status">
-          {labels.loading}
-        </p>
-        <span className="work-compact-skeleton" aria-hidden="true" />
-        <span
-          className="work-compact-skeleton work-compact-skeleton-short"
-          aria-hidden="true"
-        />
-      </section>
+      <Card className="work-compact-card" eyebrow={labels.appName}>
+        <div className="work-compact-loading" aria-busy="true">
+          <p role="status" className="work-compact-status">
+            {labels.loading}
+          </p>
+          <span className="work-compact-skeleton" aria-hidden="true" />
+          <span
+            className="work-compact-skeleton work-compact-skeleton-short"
+            aria-hidden="true"
+          />
+        </div>
+      </Card>
     );
   }
 
   if (props.state === "empty") {
     return (
-      <section className="work-compact-card sk-card">
+      <Card className="work-compact-card" eyebrow={labels.appName}>
         <p className="work-compact-status">{labels.empty}</p>
-      </section>
+      </Card>
     );
   }
 
   if (props.state === "gone") {
     return (
-      <section className="work-compact-card sk-card">
-        <p className="sk-eyebrow">{props.kindLabel}</p>
+      <Card
+        className="work-compact-card"
+        eyebrow={`${labels.appName} · ${props.kindLabel}`}
+      >
         <p role="status" className="work-compact-status">
           {labels[props.goneKey]}
         </p>
-      </section>
+      </Card>
     );
   }
 
   if (props.state === "error") {
     return (
-      <section className="work-compact-card sk-card">
-        <p className="sk-eyebrow">{props.kindLabel}</p>
+      <Card
+        className="work-compact-card"
+        eyebrow={`${labels.appName} · ${props.kindLabel}`}
+      >
         <ErrorNotice
           locale={labels.dateLocale}
           subject={props.subject}
           cause={props.cause}
           onRetry={props.onRetry}
         />
-      </section>
+      </Card>
     );
   }
 
@@ -253,7 +218,7 @@ export function InlineSummary(props: InlineSummaryProps) {
     onOpen,
     onComplete,
     busy,
-    undo,
+    receipt,
     focusComplete,
     notice,
     plan,
@@ -271,20 +236,19 @@ export function InlineSummary(props: InlineSummaryProps) {
   const description = summary.description?.trim()
     ? oneLine(summary.description)
     : null;
-  // Done is the primary action of a Task that can be marked done. Open is navigation, so it is the
-  // family's open text button with › (designsystem §3), beside Done or alone.
+  // Done is the primary action of a Task that can be marked done. Open is navigation, so it is the card's main
+  // link (`OpenLink`, designsystem §3), last in the card, never beside Done.
   const openText =
     summary.kind === "project" ? labels.showProject : labels.showTask;
 
   return (
-    <section
-      className="work-compact-card sk-card"
+    <Card
+      id={cardId}
+      className="work-compact-card"
       aria-label={kindLabel(labels, summary.kind)}
+      eyebrow={`${labels.appName} · ${kindLabel(labels, summary.kind)}`}
+      title={summary.title}
     >
-      <p className="work-compact-kind sk-eyebrow">
-        {kindLabel(labels, summary.kind)}
-      </p>
-      <p className="work-compact-title sk-card__title">{summary.title}</p>
       <p>
         <span className="work-chip">
           {/* The ring says only done or not done (designsystem §3.3), and an empty ring in front of `in_progress` reads
@@ -334,51 +298,42 @@ export function InlineSummary(props: InlineSummaryProps) {
         </p>
       ) : null}
       {plan ? <p className="work-compact-status">{plan.line}</p> : null}
-      {onComplete || undo || onOpen ? (
-        <CardFoot>
-          <div className="work-compact-actions">
-            {review ? (
-              <button
-                type="button"
-                className="work-compact-action sk-btn--primary"
-                onClick={onOpen}
-              >
-                {review.reviewLabel}
-              </button>
-            ) : null}
-            {undo ? (
-              <UndoLine labels={labels} undo={undo} />
-            ) : onComplete ? (
-              <button
-                type="button"
-                className={
-                  review
-                    ? "work-compact-action sk-btn--secondary"
-                    : "work-compact-action sk-btn--primary"
-                }
-                onClick={onComplete}
-                disabled={busy}
-                aria-busy={busy || undefined}
-                ref={focusComplete ? focusOnMount : undefined}
-              >
-                {busy ? labels.completing : labels.complete}
-              </button>
-            ) : null}
-            {onOpen && !review ? (
-              <button
-                type="button"
-                className="work-compact-action sk-btn--open"
-                onClick={onOpen}
-              >
-                {openText}
-                <ChevronRightIcon />
-              </button>
-            ) : null}
-          </div>
-        </CardFoot>
+      {review || onComplete ? (
+        <div className="work-compact-actions">
+          {review ? (
+            <button
+              type="button"
+              className="work-compact-action sk-btn--primary"
+              onClick={onOpen}
+            >
+              {review.reviewLabel}
+            </button>
+          ) : null}
+          {onComplete ? (
+            <button
+              type="button"
+              className={
+                review
+                  ? "work-compact-action sk-btn--secondary"
+                  : "work-compact-action sk-btn--primary"
+              }
+              onClick={onComplete}
+              disabled={busy}
+              aria-busy={busy || undefined}
+              ref={focusComplete ? focusOnMount : undefined}
+            >
+              {busy ? labels.completing : labels.complete}
+            </button>
+          ) : null}
+        </div>
       ) : null}
+      {/* A failed write stays a row under the control that made it; the receipt of a done one is the bar below. */}
       {notice ? <NoticeRow notice={notice} locale={labels.dateLocale} /> : null}
-    </section>
+      {/* A Task whose plan waits for review opens through "Granska planen", the primary above: its way in is that
+          button, so the card does not carry a second one to the same place. */}
+      {onOpen && !review ? <OpenLink label={openText} onOpen={onOpen} /> : null}
+      {receipt ? <ReceiptBar receipt={receipt} /> : null}
+    </Card>
   );
 }
 
@@ -441,7 +396,7 @@ export function ContactsSummary({
       blank={blank}
       onOpen={onOpen}
       openLabel={labels.openContacts}
-      aside={labels.moreRows(count - shown.length, more)}
+      more={labels.moreRows(count - shown.length, more)}
     >
       {shown.length > 0 ? (
         <ul className="work-compact-rows">
