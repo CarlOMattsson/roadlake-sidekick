@@ -6,29 +6,29 @@ purpose: >-
   Pins the Hindsight image and the settings that Sidekick memory (built from journal, contacts, projects, tasks)
   depends on. Hindsight is the only memory provider the contract covers.
 release:
-  version: v1.2.1
+  version: v1.2.3
   decision: >-
     One Hindsight version everywhere it is delivered. The live probes (OPEN-1) need an LLM key and are not
     run offline; the persisted pg0 schema migration from 0.8.4 and from 1.1.0 was run against the delivered
     digest (see migrationVerification).
   license: MIT
   imageRepository: ghcr.io/vectorize-io/hindsight
-  imageTag: 1.2.1
-  imageVersionLabel: 1.2.1
-  imageRevision: 0eb02d8c418eac6b489bc63883c993b2257dfac4
-  imageCreated: '2026-11-10T14:04:53.668Z'
-  imageDigest: sha256:d2bc230a714e933affd63753e181a0579328fdcbbc021800a76e0bc7b6e76b31
-  imageReference: ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a714e933affd63753e181a0579328fdcbbc021800a76e0bc7b6e76b31
+  imageTag: 1.2.3
+  imageVersionLabel: 1.2.3
+  imageRevision: bd230e8bb40e768bf69f266f1dd3c9ae03e22fe3
+  imageCreated: '2026-11-19T22:24:50.238Z'
+  imageDigest: sha256:601cfdd1bd3f6053864c6458ee15259f065a01a3f83090b56a8ae57db67f8f38
+  imageReference: ghcr.io/vectorize-io/hindsight:1.2.3@sha256:601cfdd1bd3f6053864c6458ee15259f065a01a3f83090b56a8ae57db67f8f38
   digestStatus: VERIFIED_REGISTRY_INDEX_AND_CONFIG_LABELS
   digestRule: Deployment must use imageReference (tag and digest together), never a bare tag.
   platformManifests:
-    linux/amd64: sha256:b14729de653313f9eec4351c7c5c0ba9abcf9e02151215f5d959d64d1dc3f927
-    linux/arm64: sha256:abb45b7ce8c40540d68a83ce0935819631cb5fc76abc5758eef6ce93ad8893ef
+    linux/amd64: sha256:408f70db01b5e9c07a15d8477744910584662590bae5d9fcb176e725266fc372
+    linux/arm64: sha256:4b903ed2cbf029d6d305030b0005002d61d6a3b1d9b85867fb459351dcaa671c
   provenance:
-    - ghcr.io manifest index for tag 1.2.1 resolves to the digest above.
-    - Config label org.opencontainers.image.revision equals the commit of the tag v1.2.1 (0eb02d8c).
+    - ghcr.io manifest index for tag 1.2.3 resolves to the digest above.
+    - Config label org.opencontainers.image.revision equals the commit of the tag v1.2.3 (bd230e8b).
     - Attestation manifests are present in the index but not verified with cosign (OPEN-2).
-    - Release notes v0.8.5 to v1.2.1 and hindsight.vectorize.io/changelog.
+    - Release notes v0.8.5 to v1.2.3 and hindsight.vectorize.io/changelog.
   runtime:
     user: hindsight (uid 1000)
     entrypoint: /app/start-all.sh
@@ -72,6 +72,7 @@ migrationVerification:
     - the embedded Postgres stays 18.1; the embedding model is unchanged; the local reranker default changed
       to hindsight-ai/hs-rerank-1 and is in the image.
   notRun:
+    - the move from 1.2.1 to 1.2.3 (moved 2026-11-22 on the registry labels only; the migration run above covers 1.2.1).
     - extraction quality and Swedish output with a real LLM (OPEN-1).
     - the external-Postgres production profile (compose.prod.yaml) with separate migration and runtime roles.
 settings:
@@ -147,7 +148,7 @@ verification:
   startupNote: The placeholder key reached OpenRouter during the startup connection check and got 401; no content was sent.
 open:
   - id: OPEN-1
-    text: The live probes (live extraction, Swedish, routine tasks give at most 1 fact, delete then recall gives 0 hits, recall p95 under 1.5 s) must pass on 1.2.1 on a test instance.
+    text: The live probes (live extraction, Swedish, routine tasks give at most 1 fact, delete then recall gives 0 hits, recall p95 under 1.5 s) must pass on 1.2.3 on a test instance.
   - id: OPEN-2
     text: Attestation manifests (provenance/SBOM) exist in the index but were not verified with cosign or gh attestation.
   - id: OPEN-4

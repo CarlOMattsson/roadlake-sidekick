@@ -27,7 +27,7 @@ språkmodellsleverantör du väljer.
    Hindsight vägrar starta om `HINDSIGHT_API_RETAIN_CHUNK_SIZE` inte är lägre än
    `HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS`.
 
-**Hindsight-version.** Profilen `memory` pinnar Hindsight 1.2.1 med digest (`ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a...`).
+**Hindsight-version.** Profilen `memory` pinnar Hindsight 1.2.3 med digest (`ghcr.io/vectorize-io/hindsight:1.2.3@sha256:601cfdd1...`).
 Utgåvan beskrivs i `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml`. Ändra inte digesten för hand.
 
 **Flytta en befintlig minnesvolym till en ny Hindsight-version.** Hindsight migrerar databasen i sin volym när den startar

@@ -25,7 +25,7 @@ is derived or sent until you turn it on, and the material goes to the language m
 3. `docker compose --env-file selfhost.env --profile memory up -d` (add `--profile vps` on a VPS). Hindsight refuses to
    start if `HINDSIGHT_API_RETAIN_CHUNK_SIZE` is not below `HINDSIGHT_API_RETAIN_MAX_COMPLETION_TOKENS`.
 
-**Hindsight version.** The `memory` profile pins Hindsight 1.2.1 by digest (`ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a...`).
+**Hindsight version.** The `memory` profile pins Hindsight 1.2.3 by digest (`ghcr.io/vectorize-io/hindsight:1.2.3@sha256:601cfdd1...`).
 The release is described in `contracts/reviewed/hindsight-memory/hindsight-memory-sources.yaml`. Do not change the digest by hand.
 
 **Moving an existing memory volume to a new Hindsight version.** Hindsight migrates the database in its volume when it

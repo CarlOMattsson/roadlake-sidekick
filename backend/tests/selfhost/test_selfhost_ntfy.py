@@ -46,11 +46,11 @@ def _ntfy_path_regex(caddy: str) -> re.Pattern[str]:
     return re.compile(patterns[0])
 
 
-def test_the_image_is_pinned_to_v2_38_0_by_digest(ntfy: dict) -> None:
-    assert re.fullmatch(r"binwiederhier/ntfy:v2\.38\.0@sha256:[0-9a-f]{64}", ntfy["image"])
-    # Docker Hub manifest list for v2.38.0, checked 2026-11-22.
+def test_the_image_is_pinned_to_v2_38_1_by_digest(ntfy: dict) -> None:
+    assert re.fullmatch(r"binwiederhier/ntfy:v2\.38\.1@sha256:[0-9a-f]{64}", ntfy["image"])
+    # Docker Hub manifest list for v2.38.1, checked 2026-11-22.
     assert ntfy["image"].endswith(
-        "sha256:771309aecfce18d8fe2bfb8069994ddd6be6ca6ccdd7badace3d791a0045ff0d"
+        "sha256:038da2be5e668fee6d36a62884eea48975e1b71c29a56964e5298c1b9165a573"
     )
 
 
