@@ -542,7 +542,7 @@ services:
     # (Caddyfile.example). Configuration is ntfy/server.yml; users and the publish token come from ntfy.env,
     # written by ntfy-init.sh. Nothing is stored on disk (tmpfs) and the container has no route to the internet.
     profiles: [push]
-    image: binwiederhier/ntfy:v2.38.0@sha256:771309aecfce18d8fe2bfb8069994ddd6be6ca6ccdd7badace3d791a0045ff0d
+    image: binwiederhier/ntfy:v2.38.1@sha256:038da2be5e668fee6d36a62884eea48975e1b71c29a56964e5298c1b9165a573
     command: [serve]
     user: "10001:10001"
     env_file:
@@ -672,7 +672,7 @@ services:
     # embedded pg0, kept in the named volume hindsight_pg0, so this service has no Postgres access and no role.
     # Settings and secrets: hindsight.env (copy of hindsight.env.example), never selfhost.env.
     profiles: [memory]
-    image: ghcr.io/vectorize-io/hindsight:1.2.1@sha256:d2bc230a714e933affd63753e181a0579328fdcbbc021800a76e0bc7b6e76b31
+    image: ghcr.io/vectorize-io/hindsight:1.2.3@sha256:601cfdd1bd3f6053864c6458ee15259f065a01a3f83090b56a8ae57db67f8f38
     env_file:
       - path: ./hindsight.env
         required: false
