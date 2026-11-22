@@ -127,3 +127,65 @@
   > p.work-unsorted-title {
   padding-block: 11px;
 }
+
+/* Triage, the To sort tab of a wide frame (desktop spec 3.1): one line of 52 per Task, the title (a button that opens the
+   Task) taking the rest of the line, then its Domain buttons and "Välj plats…" at their own width. The picker a row
+   unfolds takes a line of its own under it. The 44 boxes and 4 above and below make the 52. */
+.sidekick-work .work-unsorted-list[data-triage] > li.work-unsorted-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: var(--sk-s3);
+  row-gap: var(--sk-s2);
+  box-sizing: border-box;
+  min-height: calc(var(--sk-tap) + 2 * var(--sk-s1));
+  padding-block: var(--sk-s1);
+}
+.sidekick-work
+  .work-unsorted-list[data-triage]
+  > li.work-unsorted-row
+  > p.work-unsorted-title {
+  min-width: 0;
+  padding: 0;
+}
+.sidekick-work .work-unsorted-open-task {
+  display: block;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: var(--sk-type-row);
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sidekick-work .work-unsorted-list[data-triage] .work-unsorted-domains {
+  flex-wrap: nowrap;
+  padding: 0;
+}
+.sidekick-work .work-unsorted-list[data-triage] .work-unsorted-domain,
+.sidekick-work .work-unsorted-list[data-triage] .work-unsorted-pick-button {
+  min-height: var(--sk-tap);
+  white-space: nowrap;
+}
+/* The pick button stays in the line; the picker it unfolds spans the row's full width below it. */
+.sidekick-work .work-unsorted-list[data-triage] .work-unsorted-pick {
+  display: contents;
+}
+.sidekick-work
+  .work-unsorted-list[data-triage]
+  .work-unsorted-pick
+  > :not(.work-unsorted-pick-button) {
+  grid-column: 1 / -1;
+}
+/* A sorted row's Undo line keeps its stacked form: the title, then "Flyttad till …" with Ångra. */
+.sidekick-work
+  .work-unsorted-list[data-triage]
+  > li.work-unsorted-row[data-undo] {
+  display: block;
+}

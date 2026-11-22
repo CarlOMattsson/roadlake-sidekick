@@ -23,8 +23,9 @@ export interface RelativeDue {
 /** How a date label is written: in a sentence, or on its own. */
 export interface WorkDateOptions {
   /**
-   * Inline: the label is a sentence part after a colon or "till", so it starts in lower case (the `tomorrow` word,
-   * a short date). Without it the first letter is a capital.
+   * Inline: the label is a sentence part after a colon or "till", so the `today`, `tomorrow` and `yesterday` words start
+   * in lower case. Without it they start with a capital. A weekday and date is always in lower case ("tors 26 nov"),
+   * wherever it stands, so a meta line reads one form in every room (desktop spec 3.1, H13).
    */
   inline?: boolean;
   /** `false`: no `today`, `yesterday` or `tomorrow`, only the weekday and the date. */
@@ -286,7 +287,7 @@ function capitalize(text: string): string {
  * The one date label of the Work app, for a `YYYY-MM-DD` date or an ISO datetime (`Z` or offset),
  * relative to `now` in the owner zone:
  * - the days next to today read `today`, `tomorrow` and `yesterday` (not with `relative: false`);
- * - a day within a week reads with its weekday: "tors 5 nov" (not with `weekday: false`);
+ * - a day within a week reads with its weekday: "tors 5 nov" (not with `weekday: false`), always in lower case;
  * - any other day reads as "5 nov", with the year only when it is not the current year.
  * `locale` is a work label locale ("sv-SE", "en-GB"); Swedish reads in Swedish, anything else in English.
  * Missing or invalid input gives an empty label.
@@ -327,7 +328,9 @@ export function workDate(
     date.getUTCFullYear() === ownerYear(now)
       ? named
       : `${named} ${date.getUTCFullYear()}`;
-  return options.inline ? text : capitalize(text);
+  // The date form is lower case on its own too: only a heading ("Fredag 20 november") starts with a capital, and it
+  // has its own long form.
+  return text;
 }
 
 /** How late it is in days; one day is singular. */

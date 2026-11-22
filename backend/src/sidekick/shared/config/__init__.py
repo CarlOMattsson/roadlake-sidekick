@@ -68,15 +68,23 @@ def get_admin_settings() -> Settings:
 
 
 def refuse_ai_key_outside_ai_worker(settings: Settings) -> None:
-    """Stop a process other than the AI worker from starting with the Anthropic key in its settings.
+    """Stop a process other than the AI worker from starting with a model key in its settings.
 
-    The key belongs to `sidekick-ai-worker` alone. The API reads the whole `selfhost.env`, so a key
-    left there would reach a process that has no use for it and a bigger surface; production
-    refuses it, and the operator moves it to the file only the AI worker gets.
+    The Anthropic key and the key of the check model belong to `sidekick-ai-worker` alone. The API
+    reads the whole `selfhost.env`, so a key left there would reach a process that has no use for
+    it and a bigger surface; production refuses it, and the operator moves it to the file only the
+    AI worker gets.
     """
 
-    if settings.ai_anthropic_api_key is not None and settings.environment == "production":
+    if settings.environment != "production":
+        return
+    if settings.ai_anthropic_api_key is not None:
         raise RefusedError(
             "SIDEKICK_AI_ANTHROPIC_API_KEY is set where only the AI worker may hold it; "
+            "give it as a file to the ai-worker service alone"
+        )
+    if settings.ai_check_api_key is not None:
+        raise RefusedError(
+            "SIDEKICK_AI_CHECK_API_KEY is set where only the AI worker may hold it; "
             "give it as a file to the ai-worker service alone"
         )

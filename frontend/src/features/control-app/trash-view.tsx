@@ -19,7 +19,9 @@ import {
   rowLimit,
   type Notice,
 } from "./control-parts";
+import { ControlTable } from "./control-table";
 import { focusRowNear } from "./focus-row";
+import { roomOfKind } from "./kind-room";
 import { openTargetOf } from "./open-target";
 import {
   writeFailure,
@@ -27,6 +29,7 @@ import {
   type TrashList,
   type TrashTransport,
 } from "./transport";
+import { useFrameAtLeast } from "./use-wide-frame";
 import { useReportedData } from "./use-reported-data";
 import { whenText } from "./when";
 
@@ -93,6 +96,8 @@ export function TrashView({
   const emptyButton = useRef<HTMLButtonElement>(null);
   /** The row a write was on. Focus moves there once the write is over, since its button may be gone. */
   const focusIndex = useRef<number | null>(null);
+  // The full view is a table from 48rem; narrower it is rows.
+  const table = useFrameAtLeast(rootRef) && full;
 
   useEffect(() => {
     const index = focusIndex.current;
@@ -293,6 +298,58 @@ export function TrashView({
   // The foot of the list (the next page, the note on what cannot be deleted) belongs to the full view; the inline card
   // leaves what it does not list behind its open link.
   const showFoot = full || !onOpenFull || hidden === 0;
+  /** A row's title, its buttons and what stands under it (a question or a failure), for the row list and the table. */
+  function rowOf(item: TrashItem) {
+    const title = item.label ?? labels.hiddenTitle;
+    const erasable = canErase && item.kind === "task";
+    return {
+      title,
+      erasable,
+      action: (
+        <>
+          <button
+            type="button"
+            className="sk-btn--secondary sk-btn--compact control-row-btn"
+            aria-label={labels.restoreLabel(title)}
+            disabled={busy !== null || confirming !== null}
+            onClick={() => void restore(item)}
+          >
+            {busy === item.id && confirming === null
+              ? labels.restoring
+              : labels.restore}
+          </button>
+          {erasable ? (
+            <button
+              type="button"
+              className="sk-btn--secondary sk-btn--compact control-row-btn control-erase-btn"
+              aria-label={labels.eraseLabel(title)}
+              disabled={busy !== null || confirming !== null}
+              ref={(node) => {
+                if (node) eraseButtons.current.set(item.id, node);
+                else eraseButtons.current.delete(item.id);
+              }}
+              onClick={() => setConfirming({ what: "task", id: item.id })}
+            >
+              {labels.erase}
+            </button>
+          ) : null}
+        </>
+      ),
+      below:
+        confirming?.what === "task" && confirming.id === item.id ? (
+          <ConfirmErase
+            question={labels.eraseQuestion(item.label)}
+            yes={busy === item.id ? labels.erasing : labels.eraseYes}
+            no={labels.eraseNo}
+            busy={busy !== null}
+            onYes={() => void erase(item)}
+            onNo={cancelConfirm}
+          />
+        ) : failureInRow && failedRow === item.id ? (
+          <NoticeLine notice={notice} locale={labels.locale} />
+        ) : undefined,
+    };
+  }
   return (
     <>
       <div className="control-view" ref={rootRef}>
@@ -337,6 +394,39 @@ export function TrashView({
         ) : null}
         {items.length === 0 ? (
           <EmptyState title={labels.trashEmpty} hint={labels.trashEmptyHint} />
+        ) : table ? (
+          <ControlTable
+            label={labels.trashTitle}
+            heads={[
+              labels.columns.what,
+              labels.columns.room,
+              labels.columns.deleted,
+            ]}
+            actionHead={labels.columns.action}
+            wideAction={canErase && items.some((row) => row.kind === "task")}
+            groups={[
+              {
+                key: "all",
+                heading: "",
+                rows: items.map((item) => {
+                  const { title, action, below } = rowOf(item);
+                  const room = roomOfKind(item.kind);
+                  return {
+                    key: item.id,
+                    kind: item.kind,
+                    kindName: kindName(labels, item.kind),
+                    title,
+                    cells: [
+                      room ? labels.rooms[room] : "",
+                      whenText(item.trashed_at, now(), labels.locale),
+                    ],
+                    action,
+                    below,
+                  };
+                }),
+              },
+            ]}
+          />
         ) : (
           <RowList
             items={items}
@@ -344,62 +434,15 @@ export function TrashView({
             label={labels.trashTitle}
             limit={rowLimit(full, onOpenFull)}
             renderRow={(item) => {
-              const title = item.label ?? labels.hiddenTitle;
+              const { title, erasable, action, below } = rowOf(item);
               const when = whenText(item.trashed_at, now(), labels.locale);
-              const erasable = canErase && item.kind === "task";
               return (
                 <ControlRow
                   primary={title}
                   secondary={`${kindName(labels, item.kind)} · ${trashedWhen(labels, when, item.kind)}`}
                   stackedAction={erasable}
-                  action={
-                    <>
-                      <button
-                        type="button"
-                        className="sk-btn--secondary sk-btn--compact control-row-btn"
-                        aria-label={labels.restoreLabel(title)}
-                        disabled={busy !== null || confirming !== null}
-                        onClick={() => void restore(item)}
-                      >
-                        {busy === item.id && confirming === null
-                          ? labels.restoring
-                          : labels.restore}
-                      </button>
-                      {erasable ? (
-                        <button
-                          type="button"
-                          className="sk-btn--secondary sk-btn--compact control-row-btn control-erase-btn"
-                          aria-label={labels.eraseLabel(title)}
-                          disabled={busy !== null || confirming !== null}
-                          ref={(node) => {
-                            if (node) eraseButtons.current.set(item.id, node);
-                            else eraseButtons.current.delete(item.id);
-                          }}
-                          onClick={() =>
-                            setConfirming({ what: "task", id: item.id })
-                          }
-                        >
-                          {labels.erase}
-                        </button>
-                      ) : null}
-                    </>
-                  }
-                  below={
-                    confirming?.what === "task" && confirming.id === item.id ? (
-                      <ConfirmErase
-                        question={labels.eraseQuestion(item.label)}
-                        yes={
-                          busy === item.id ? labels.erasing : labels.eraseYes
-                        }
-                        no={labels.eraseNo}
-                        busy={busy !== null}
-                        onYes={() => void erase(item)}
-                        onNo={cancelConfirm}
-                      />
-                    ) : failureInRow && failedRow === item.id ? (
-                      <NoticeLine notice={notice} locale={labels.locale} />
-                    ) : undefined
-                  }
+                  action={action}
+                  below={below}
                 />
               );
             }}

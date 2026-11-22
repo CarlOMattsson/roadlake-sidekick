@@ -16,7 +16,7 @@ export type ContactProjectsProps = {
   onUndo?: (projectId: string) => void;
   onExpire?: (projectId: string) => void;
   /** Opens a Project in the app. */
-  onOpen: (projectId: string) => void;
+  onOpen: (projectId: string, title: string) => void;
   labels: WorkLabels;
 };
 
@@ -83,7 +83,7 @@ export function ContactProjects({
                   aria-description={
                     onRemove && !gone[project.id] ? linkedRowHint(t) : undefined
                   }
-                  onClick={() => onOpen(project.id)}
+                  onClick={() => onOpen(project.id, project.title)}
                 >
                   {project.title}
                 </button>

@@ -1,6 +1,6 @@
 # ADR-011: AI-delegated steps: the owner approves a plan, Claude Code runs the steps, the owner accepts the result
 
-- Status: Accepted (D-096, 2026-11-16); amends ADR-009 (the rejection of a model-driven agent inside Sidekick). Amended by ADR-012 (D-097, 2026-11-16): the server runner (stage 2) and attempts counted per cycle.
+- Status: Accepted (D-096, 2026-11-16); amends ADR-009 (the rejection of a model-driven agent inside Sidekick). Amended by ADR-012 (D-097, 2026-11-16): the server runner (stage 2) and attempts counted per cycle. The scope names `automation:*` are given their meaning by ADR-013 (D-098, 2026-11-22); the AI-step scope stays `ai:run`.
 - Date: 2026-11-16
 - Owners: Sidekick application maintainers
 

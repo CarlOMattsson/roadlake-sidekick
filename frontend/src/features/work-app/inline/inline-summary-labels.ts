@@ -8,6 +8,9 @@ import {
 } from "../hierarchy/hierarchy-detail-labels";
 import { workEn, workSv } from "../shared/labels";
 
+/** Which of the agenda card's counts are only a floor: the read ends before that group does. */
+export type AgendaFloor = { overdue: boolean; today: boolean };
+
 /**
  * Labels for the inline Work summaries (one Task or Project, and the agenda, hierarchy and Contact list
  * counts). Kept in this file, not in @/i18n, so the MCP App bundle does not pull in the Sidekick app
@@ -38,8 +41,6 @@ export const inlineSummaryLabelsEn = {
     completed: "Completed",
   },
   due: "Due",
-  /** A Task past its due date, as the detail line: "Overdue since fri 30 Oct". */
-  overdueSince: "Overdue since",
   /** A Project's target date: `target` and the date, the room's own word. */
   target: "Target date",
   /** A Task's steps: "2 of 4 steps". */
@@ -47,18 +48,20 @@ export const inlineSummaryLabelsEn = {
   /** A Project's Tasks done: "3 of 12 tasks done". */
   tasksDoneOf: (done: number, total: number) =>
     `${done} of ${total} tasks done`,
+  /** A Project's overdue Tasks: "2 overdue". */
   overdueTasks: (count: number) => `${count} overdue`,
   /** Priority words shown on a Task summary; normal and low are not shown. */
   priority: { high: "High", urgent: "Urgent" },
   /** The word before a priority level: "Priority: High". */
   priorityLabel: workEn.priority,
   contacts: "Contacts",
-  /** The agenda card's title, its groups in the list's order: "1 today, 2 overdue", "1 today". With another page to
-   * read (`more`) the counts are a floor, "1+ today, 2+ overdue"; the title never says "more exist", the link counts them. */
-  agendaTitle: (overdue: number, today: number, more: boolean) =>
+  /** The agenda card's title, its groups in the list's order: "1 today, 2 overdue", "1 today". A group still open to
+   * another page (`floor`) is a floor, "1+ today"; one the page has read to its end is exact. The title never says
+   * "more exist", the link counts them. */
+  agendaTitle: (overdue: number, today: number, floor: AgendaFloor) =>
     [
-      ...(today ? [`${today}${more ? "+" : ""} today`] : []),
-      ...(overdue ? [`${overdue}${more ? "+" : ""} overdue`] : []),
+      ...(today ? [`${today}${floor.today ? "+" : ""} today`] : []),
+      ...(overdue ? [`${overdue}${floor.overdue ? "+" : ""} overdue`] : []),
     ].join(", "),
   /** Under the empty sentence, when other groups have records: "3 upcoming", "3+ upcoming" with another page to read. */
   agendaRest: (upcoming: number, more: boolean) =>
@@ -174,24 +177,24 @@ export const inlineSummaryLabelsSv: InlineSummaryLabels = {
     completed: "Avslutat",
   },
   due: "Klart senast",
-  /** A Task past its due date, as the detail line: overdue and the due date. */
-  overdueSince: "Försenad sedan",
   target: "Måldatum",
   stepsOf: (done: number, total: number) => `${done} av ${total} steg`,
   tasksDoneOf: (done: number, total: number) =>
     `${done} av ${total} uppgifter klara`,
-  overdueTasks: (count: number) => `${count} försenade`,
+  /** One is singular: "1 försenad", then "2 försenade". */
+  overdueTasks: (count: number) =>
+    `${count} ${count === 1 ? "försenad" : "försenade"}`,
   priority: { high: "Hög", urgent: "Brådskande" },
   priorityLabel: workSv.priority,
   contacts: "Kontakter",
-  /** The agenda card's title, the groups in the list's order: the today and overdue counts;
-   * a `more` suffix when the read is partial. */
-  agendaTitle: (overdue: number, today: number, more: boolean) =>
+  /** The agenda card's title, the groups in the list's order: the today and overdue counts; a "+" only on a group
+   * the read has not reached the end of (`floor`). */
+  agendaTitle: (overdue: number, today: number, floor: AgendaFloor) =>
     [
-      ...(today ? [`${today}${more ? "+" : ""} idag`] : []),
+      ...(today ? [`${today}${floor.today ? "+" : ""} idag`] : []),
       ...(overdue
         ? [
-            `${overdue}${more ? "+" : ""} ${overdue === 1 && !more ? "försenad" : "försenade"}`,
+            `${overdue}${floor.overdue ? "+" : ""} ${overdue === 1 && !floor.overdue ? "försenad" : "försenade"}`,
           ]
         : []),
     ].join(", "),

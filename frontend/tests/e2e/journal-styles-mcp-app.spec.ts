@@ -169,17 +169,21 @@ test("Journal day view: the tabs row holds Dag | Vecka with the + at its end, th
   const { app, failures } = await openDay(page, 360);
   const head = app.locator(".sk-day-strip-head");
   await expect(head).toHaveAttribute("data-tabs", "true");
-  const tabs = await box(app.locator(".sk-day-strip-tabs"));
-  const add = app.locator(".journal-day-add");
+  const tabs = await box(app.locator(".sk-room-head__tabs > *").first());
+  const add = app.locator(".sk-room-head__add");
   const weekrow = await box(app.locator(".sk-day-strip-weekrow"));
   expect(await style(head, "display")).toEqual({ display: "grid" });
   const gapUnder = await resolved(app, "margin-top", "var(--sk-s1)");
-  expect((await style(head, "marginTop")).marginTop).toBe(gapUnder);
+  // The room head above stands directly over the strip's head; the gap to the week row is the week row's own margin.
+  expect((await style(head, "marginTop")).marginTop).toBe("0px");
+  expect(
+    (await style(app.locator(".sk-day-strip-weekrow"), "marginTop")).marginTop,
+  ).toBe(gapUnder);
   // Row 1 is the tabs "Dag | Vecka" (two pressed-state buttons, one of them pressed) with the + at the end; the week row
   // is under both and starts at the head's edge.
-  await expect(app.locator(".sk-day-strip-tabs button")).toHaveCount(2);
+  await expect(app.locator(".sk-room-head__tabs button")).toHaveCount(2);
   await expect(
-    app.locator('.sk-day-strip-tabs button[aria-pressed="true"]'),
+    app.locator('.sk-room-head__tabs button[aria-pressed="true"]'),
   ).toHaveCount(1);
   const addBox = await box(add);
   expect(
@@ -187,13 +191,15 @@ test("Journal day view: the tabs row holds Dag | Vecka with the + at its end, th
   ).toBeLessThan(addBox.height);
   expect(addBox.x).toBeGreaterThan(tabs.x + tabs.width - 1);
   expect(weekrow.y).toBeGreaterThanOrEqual(tabs.y + tabs.height - 1);
-  // The + and the week arrows are 48 x 48 boxes with a 24 px glyph at every text size.
-  for (const button of [
-    add,
-    ...(await app.locator(".sk-day-strip-arrow").all()),
-  ]) {
+  // The + is the room head's 44 x 44 box and the week arrows are 48 x 48 boxes, all with a 24 px glyph at every text size.
+  for (const [button, side] of [
+    [add, 44],
+    ...(await app.locator(".sk-day-strip-arrow").all()).map(
+      (arrow) => [arrow, 48] as const,
+    ),
+  ] as const) {
     const size = await box(button);
-    expect([size.width, size.height]).toEqual([48, 48]);
+    expect([size.width, size.height]).toEqual([side, side]);
     const glyph = await box(button.locator("svg"));
     expect([glyph.width, glyph.height]).toEqual([24, 24]);
   }
@@ -467,7 +473,7 @@ test("Journal day view: the ⋯ menu is a surface card with 44 px rows, after th
   const more = app.locator(".journal-day-more");
   await expect(more).toBeVisible();
   const [addBox, moreBox] = await Promise.all([
-    box(app.locator(".journal-day-add")),
+    box(app.locator(".sk-room-head__add")),
     box(more),
   ]);
   expect(moreBox.x).toBeGreaterThan(addBox.x + addBox.width - 1);

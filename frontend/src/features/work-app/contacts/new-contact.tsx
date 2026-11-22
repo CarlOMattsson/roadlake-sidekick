@@ -19,10 +19,12 @@ import {
   newContactReducer,
   withSameName,
   type CreateRequest,
+  type HeadPlus,
 } from "./new-contact-state";
 
 /**
- * `newContact` behind + in the room head (design system §3, Create): + opens the shared create field under the head,
+ * `newContact` behind + in the room head (design system §3, Create): + (its own, or the room head's in a wide frame:
+ * `head`) opens the shared create field under the head,
  * and a new Contact needs only its name. The same name sends one key, so a retry after a lost answer replays the result
  * instead of creating a second Contact. The created Contact is handed to the parent, which opens it. Esc and × close
  * the field and return the focus to +. A name another Contact already has is not created at once: the field says so and offers
@@ -33,6 +35,7 @@ export function NewContact({
   transport,
   labels: t,
   request,
+  head,
   onCreated,
   onOpenExisting,
 }: {
@@ -40,9 +43,11 @@ export function NewContact({
   labels: WorkLabels;
   /** Opens the field with this name in it (a search with no match); a new request opens it again. */
   request?: CreateRequest;
+  /** The room head's + in a wide frame: no button of its own is drawn. */
+  head?: HeadPlus;
   onCreated: (contact: WorkContactRecord) => void;
   /** Opens a Contact that already has the typed name. */
-  onOpenExisting: (id: string) => void;
+  onOpenExisting: (id: string, name: string) => void;
 }) {
   const [state, dispatch] = useReducer(
     newContactReducer,
@@ -59,7 +64,9 @@ export function NewContact({
     sameName,
     takenName,
   } = state;
-  const openButton = useRef<HTMLButtonElement>(null);
+  const ownButton = useRef<HTMLButtonElement>(null);
+  const openButton = head?.button ?? ownButton;
+  const box = useRef<HTMLDivElement>(null);
   const lastName = useRef("");
   // Synchronous guard against a second create before React re-renders.
   const flight = useSingleFlight();
@@ -92,6 +99,22 @@ export function NewContact({
     startedRequest.current = request;
     createNow(request.name);
   }, [request]);
+
+  // The head's + toggles the field; its key opens it, and an open field takes the focus.
+  const seenPress = useRef(head?.press);
+  const pressed = useEffectEvent((press: NonNullable<HeadPlus["press"]>) => {
+    if (!open) dispatch({ type: "opened" });
+    else if (press.key) box.current?.querySelector("input")?.focus();
+    else close();
+  });
+  useEffect(() => {
+    const press = head?.press;
+    if (!press || press === seenPress.current) return;
+    seenPress.current = press;
+    pressed(press);
+  }, [head?.press]);
+  const tellOpen = useEffectEvent((now: boolean) => head?.onOpenChange(now));
+  useEffect(() => tellOpen(open), [open]);
 
   function retry() {
     const name = lastName.current;
@@ -168,22 +191,25 @@ export function NewContact({
 
   return (
     <>
-      <button
-        ref={openButton}
-        type="button"
-        className="sk-iconbtn sk-iconbtn--primary work-contacts-add"
-        aria-label={t.newContact}
-        title={t.newContact}
-        aria-expanded={open}
-        onClick={() => {
-          if (open) close();
-          else dispatch({ type: "opened" });
-        }}
-      >
-        <PlusIcon />
-      </button>
+      {!head && (
+        <button
+          ref={ownButton}
+          type="button"
+          className="sk-iconbtn sk-iconbtn--primary work-contacts-add"
+          aria-label={t.newContact}
+          title={t.newContact}
+          aria-expanded={open}
+          onClick={() => {
+            if (open) close();
+            else dispatch({ type: "opened" });
+          }}
+        >
+          <PlusIcon />
+        </button>
+      )}
       {open && (
         <div
+          ref={box}
           className="work-contacts-create"
           aria-busy={busy}
           onInput={(event) => {
@@ -222,7 +248,9 @@ export function NewContact({
                   key={contact.id}
                   type="button"
                   className="sk-btn--secondary sk-btn--compact"
-                  onClick={() => onOpenExisting(contact.id)}
+                  onClick={() =>
+                    onOpenExisting(contact.id, contact.display_name)
+                  }
                 >
                   {words.openExisting(
                     [contact.display_name, contact.role, contact.organization]

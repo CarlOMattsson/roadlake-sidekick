@@ -58,7 +58,7 @@ def server_instructions(enabled: Collection[str]) -> str:
             "Dates: due_at is an ISO datetime with offset; a bare date means 23:59 that day, "
             "owner's zone.",
             "Resolve a person or project with one search call; ask if several match.",
-            "Undo: opposite change at the current version; archived items are restored in the app.",
+            "Undo: opposite change at current version; restore_task if archived.",
             "Voice replies, purchases and status changes: one or two sentences, no card."
             f"{_always_card(enabled)}",
             "Facts the user states go into Sidekick, not memory: "
@@ -95,6 +95,7 @@ def server_instructions(enabled: Collection[str]) -> str:
             "include_undated=true, actionable=now, tags ('telefon' for calls). With a time, "
             "unestimated tasks are left out.",
             "'Visa det jag inte sorterat': list_tasks, unsorted=true.",
+            "'Gå igenom/städa uppgifter': get_review_queue, follow its guide.",
             "Several tasks (whiteboard, list): one create_tasks call, max 20; over 10, "
             "preview, then ask.",
             "Destructive actions need explicit user confirmation.",

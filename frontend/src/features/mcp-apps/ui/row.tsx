@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { useRecordRow, type RecordRef } from "./split-layout";
 import "./row.css";
 
 /**
@@ -24,6 +25,8 @@ export type RowProps = {
   navigates?: boolean;
   onLeading?: () => void;
   onOpen?: () => void;
+  /** The record `onOpen` opens: beside a split list the row is drawn chosen while it is open (useRecordRow). */
+  record?: RecordRef;
 };
 
 export function Row({
@@ -34,7 +37,9 @@ export function Row({
   navigates = false,
   onLeading,
   onOpen,
+  record,
 }: RowProps) {
+  const recordRow = useRecordRow(onOpen ? record : undefined);
   const body = (
     <>
       <span className="sk-row-text">
@@ -53,6 +58,7 @@ export function Row({
       className="sk-row"
       data-navigates={navigates ? "true" : undefined}
       data-sk-row={onOpen ? "" : undefined}
+      {...recordRow}
     >
       {onLeading ? (
         <button type="button" className="sk-row-lead" onClick={onLeading}>
@@ -62,7 +68,12 @@ export function Row({
         <span className="sk-row-lead">{leading}</span>
       ) : null}
       {onOpen ? (
-        <button type="button" className="sk-row-open" onClick={onOpen}>
+        <button
+          type="button"
+          className="sk-row-open"
+          data-sk-open=""
+          onClick={onOpen}
+        >
           {body}
         </button>
       ) : (

@@ -4,6 +4,7 @@ from typing import Self
 
 from pydantic import Field, SecretStr, model_validator
 
+from sidekick.shared.config.ai_prices import require_prices_together
 from sidekick.shared.config.base import SettingsGroup
 
 
@@ -67,12 +68,13 @@ class AiRunnerSettings(SettingsGroup):
 
     @model_validator(mode="after")
     def _prices_are_given_together(self) -> Self:
-        prices = (
-            self.ai_price_input_usd_per_mtok,
-            self.ai_price_output_usd_per_mtok,
-            self.ai_price_cache_write_usd_per_mtok,
-            self.ai_price_cache_read_usd_per_mtok,
+        require_prices_together(
+            "SIDEKICK_AI_PRICE_",
+            (
+                self.ai_price_input_usd_per_mtok,
+                self.ai_price_output_usd_per_mtok,
+                self.ai_price_cache_write_usd_per_mtok,
+                self.ai_price_cache_read_usd_per_mtok,
+            ),
         )
-        if any(price is not None for price in prices) and any(price is None for price in prices):
-            raise ValueError("SIDEKICK_AI_PRICE_* must be set all four together or not at all")
         return self

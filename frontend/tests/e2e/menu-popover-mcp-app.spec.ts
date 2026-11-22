@@ -25,7 +25,7 @@ async function openAgenda(
 }
 
 const more = (app: FrameLocator) =>
-  app.locator(".work-agenda-more button.work-tab-tool").first();
+  app.locator(".work-agenda-more button.sk-room-head__tool").first();
 const openMenu = (app: FrameLocator) =>
   app.locator("[data-menu]:not([hidden])");
 const rowTitle = (app: FrameLocator) =>

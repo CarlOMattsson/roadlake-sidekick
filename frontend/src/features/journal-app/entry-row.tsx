@@ -8,6 +8,7 @@ import { MemoryChip } from "./entry-memory";
 import type { JournalLabels } from "./labels";
 import type { JournalEntry } from "./transport";
 import { useWideFrame } from "./use-wide-frame";
+import { useRecordRow } from "../mcp-apps/ui/split-layout";
 import "./journal.css";
 import "./entry.css";
 
@@ -63,6 +64,10 @@ export function EntryRow({
   queued = false,
 }: EntryRowProps) {
   const wide = useWideFrame();
+  // Beside a split list the row of the entry open in the detail is drawn chosen.
+  const recordRow = useRecordRow(
+    onOpen ? { room: "journal", view: "entry", id: entry.id } : undefined,
+  );
   const time =
     dated && entry.journal_date ? (
       <time dateTime={entry.journal_date}>
@@ -120,6 +125,7 @@ export function EntryRow({
       className="journal-entry-row"
       data-navigates={onOpen ? "true" : undefined}
       data-sk-row={onOpen ? "" : undefined}
+      {...recordRow}
     >
       {onOpen ? (
         <button type="button" className="journal-entry-card" onClick={onOpen}>

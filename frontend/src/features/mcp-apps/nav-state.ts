@@ -169,3 +169,102 @@ export function goBack(state: NavState): NavState {
     },
   };
 }
+
+/**
+ * The list views a record opens beside in a wide frame (desktop spec 2.1): Work's Agenda, Status and Projekt, the
+ * Contact list and the Journal's day. Control, Shopping (which splits inside its own view) and the other overviews keep
+ * one column.
+ */
+const SPLIT_LISTS: Readonly<Record<string, readonly string[]>> = {
+  work: [ROOT_VIEW, "agenda", "board", "hierarchy"],
+  contacts: [ROOT_VIEW, "list"],
+  journal: [ROOT_VIEW, "day"],
+};
+
+/** How a list lays out: a column beside the detail, or a wide view (Status's columns) the detail lies over. */
+export type ListLayout = "list" | "wide";
+
+/**
+ * How a room's pane is drawn, by layer index (0 is the root, n the stack's n-th entry, as layersOf counts them).
+ *
+ * - `single`: the top layer alone, as below 64rem (the phone, a narrow frame, Control, a wide view with nothing open).
+ * - `aside`: a list on top in a wide frame with no record open: the list and, beside it, the room's aside or the hints.
+ * - `split`: the nearest list under the top record on the left and the record on the right; the records between them
+ *   stay mounted and hidden, and the detail's own head leads back to them.
+ * - `drawer`: the record over a wide view (the Status board), as a drawer from the right; the view does not move.
+ */
+export type Split =
+  | { kind: "single" }
+  | { kind: "aside"; list: number }
+  | { kind: "split" | "drawer"; list: number; detail: number };
+
+/**
+ * The shell's rule for when a pane is split (desktop spec 2.1), pure. `wide` is a frame of 64rem or more where the
+ * shell drives the rooms. `layouts` is what a list layer said of itself, by layer index (Work's tabs: the Status tab is
+ * a wide view whatever view opened the room); a list that said nothing is a wide view when it is the board and a
+ * column otherwise.
+ */
+export function splitOf(
+  state: NavState,
+  room: RoomId,
+  frame: {
+    wide: boolean;
+    layouts?: Readonly<Partial<Record<number, ListLayout>>>;
+  },
+): Split {
+  if (!frame.wide) return { kind: "single" };
+  const entries = [state.roots[room], ...state.stacks[room]];
+  const detail = entries.length - 1;
+  const layoutAt = (index: number): ListLayout | undefined => {
+    const entry = entries[index];
+    if (!entry || SPLIT_LISTS[entry.room]?.includes(entry.view) !== true)
+      return undefined;
+    return frame.layouts?.[index] ?? (entry.view === "board" ? "wide" : "list");
+  };
+  const top = entries[detail];
+  if (!top) return { kind: "single" };
+  if (!isRecordEntry(top))
+    return layoutAt(detail) === "list"
+      ? { kind: "aside", list: detail }
+      : { kind: "single" };
+  let list = detail - 1;
+  while (list >= 0 && isRecordEntry(entries[list] ?? top)) list -= 1;
+  const layout = list >= 0 ? layoutAt(list) : undefined;
+  if (layout === undefined) return { kind: "single" };
+  return { kind: layout === "wide" ? "drawer" : "split", list, detail };
+}
+
+/**
+ * Opens `entry` beside the list at layer `list` of the active room: the stack is cut back to that list and `entry` put
+ * on it, so stepping through a list (j/k, a click on the next row) swaps the detail and never builds a stack, and the
+ * records the detail had opened above itself (a Contact from its Task) go with it. Opening the record already shown
+ * there changes nothing.
+ */
+export function openBeside(
+  state: NavState,
+  list: number,
+  entry: NavEntry,
+): NavState {
+  const current = state.stacks[state.active];
+  const kept = current.slice(0, Math.max(0, list));
+  const shown = current[kept.length];
+  if (current.length === kept.length + 1 && shown && sameEntry(shown, entry))
+    return state;
+  return {
+    ...state,
+    stacks: { ...state.stacks, [state.active]: [...kept, entry] },
+  };
+}
+
+/** Closes what is open beside the list at layer `list` of the active room: the stack is cut back to that list. */
+export function closeBeside(state: NavState, list: number): NavState {
+  const current = state.stacks[state.active];
+  if (current.length <= list) return state;
+  return {
+    ...state,
+    stacks: {
+      ...state.stacks,
+      [state.active]: current.slice(0, Math.max(0, list)),
+    },
+  };
+}

@@ -1,0 +1,73 @@
+---
+title: AI-kostnader
+description: Sidekick är gratis, men AI som din server själv kör kostar per anrop. Det som ingår i Claude-abonnemanget, det som kräver API-nyckel, och gränserna.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import StatusList from '../../../components/StatusList.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="AI-kostnader"
+  lead="Sidekick är gratis, men AI:n runt det är inte alltid det. Läs det här innan du slår på något, så att du vet vad du ger dig in på."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <section class="buyhow" aria-labelledby="h-rec">
+    <h2 id="h-rec">Vi rekommenderar ett Claude-abonnemang</h2>
+    <p>Använd Sidekick i Claude med ett Claude-abonnemang. När du arbetar via connectorn gör Claude AI-arbetet och det ingår i abonnemanget. Sidekick lägger ingen AI-kostnad ovanpå.</p>
+    <p>Du kan också använda Sidekick utan någon AI-kostnad alls: uppgifter, dagbok, kontakter och inköpslistor anropar ingen modell.</p>
+  </section>
+  <div class="does">
+    <StatusList
+      level="h2"
+      title="Ingår i abonnemanget"
+      items={[
+        { state: 'yes', text: 'Sidekick i Claude via connectorn.' },
+        { state: 'yes', text: 'AI-steg som din egen Claude Code kör, med din Claude-plan.' },
+      ]}
+    />
+    <StatusList
+      level="h2"
+      title="Kräver en API-nyckel och kostar per anrop"
+      items={[
+        { state: 'no', text: 'AI-steg som din server kör (Kör).' },
+        { state: 'no', text: 'Minnet (Hindsight), när det använder en modell via nyckel.' },
+      ]}
+    />
+  </div>
+  <section class="buyhow" aria-labelledby="h-keys">
+    <h2 id="h-keys">Ett abonnemang täcker inte allt</h2>
+    <p>Det som din egen server kör själv kräver en API-nyckel från Anthropic eller OpenRouter, och leverantören debiterar dig per anrop. Inget av det är på som förval. Du slår på varje del själv och anger nyckeln själv.</p>
+    <ul class="list">
+      <li><b>Anthropic API:</b> debiteras av Anthropic per token. Sätt en utgiftsgräns i Anthropic Console.</li>
+      <li><b>OpenRouter:</b> en nyckel till många modeller hos många leverantörer. Priset beror på modellen och leverantören du väljer.</li>
+      <li><b>Lokal modell</b> på ditt eget nätverk, till exempel Ollama eller LM Studio: inget per anrop.</li>
+    </ul>
+  </section>
+  <section class="buyhow" aria-labelledby="h-limits">
+    <h2 id="h-limits">Gränser som Sidekick sätter</h2>
+    <p>De här förvalen gäller AI-steg som körs på din server. Du kan ändra dem i serverns inställningar.</p>
+    <ul class="list">
+      <li>Högst 50 USD per kalendermånad för AI-steg som debiteras per anrop.</li>
+      <li>Högst 2 USD per uppgift.</li>
+      <li>Högst 3 försök på ett steg.</li>
+      <li>Högst 50 AI-steg per dag.</li>
+      <li>Körningar på en lokal modell kostar inget och kan hållas utanför pengagränserna.</li>
+    </ul>
+    <p>Servern räknar ut det mesta ett anrop kan kosta innan anropet görs, och vägrar det om det skulle passera en gräns. Sidekicks siffra är en uppskattning. Leverantörens faktura är det som gäller, så sätt också en gräns hos leverantören. Minnet har dessutom egna dagsgränser för hur mycket text som skickas.</p>
+    <p><b>Kommande, inte byggt än:</b> automationer och en kontrollmodell som granskar vad de föreslår. Automationer blir avstängda som förval och körs med en API-nyckel. Planerade gränser är ett eget tak på 15 USD per månad som förval (inom taket på 50 USD, justerbart), högst 1 USD per körning och högst 20 körningar per dag. Kontrollmodellens anrop räknas mot samma tak. Med en Anthropic-nyckel är Sonnet planerad förvald modell. Med OpenRouter rekommenderar vi en billig modell hos en betrodd värd.</p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-or">
+    <h2 id="h-or">Välj klokt med OpenRouter</h2>
+    <p>Med OpenRouter väljer du själv leverantör och modell, så kostnaden och integriteten är dina att välja klokt.</p>
+    <ul class="list">
+      <li><b>Välj leverantörer du litar på.</b> Föredra en som kör modellen utanför Kina och som uppger att den inte sparar dina prompter och inte tränar på dem.</li>
+      <li><b>Var modellen körs spelar större roll än var den är gjord.</b> Öppna modeller som utvecklats i Kina, till exempel DeepSeek, är i sin ordning när en betrodd värd utanför Kina kör dem, till exempel Google, Azure eller AWS. Det som räknas är var modellen körs och om leverantören sparar eller tränar på dina data.</li>
+      <li><b>Använd billiga modeller till enkla uppgifter.</b> En kort sammanfattning behöver inte den största modellen.</li>
+    </ul>
+    <p>Priserna ändras, så vi anger inga här. Se <a href="https://www.anthropic.com/pricing" rel="noopener">Anthropics priser</a> och <a href="https://openrouter.ai/models" rel="noopener">OpenRouters modeller och priser</a>.</p>
+    <p><PageLink page="docs/explanation/ai-costs">Läs hela genomgången i dokumentationen</PageLink>. Licensen och dess priser är skilda från de här kostnaderna: <PageLink page="pricing">se priset</PageLink>.</p>
+  </section>
+</div>

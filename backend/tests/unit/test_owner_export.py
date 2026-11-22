@@ -476,14 +476,20 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
     assert verification.collection_counts == {source.name: 0 for source in EXPORT_SOURCES}
 
 
-def test_the_head_is_the_contact_slack_migration_and_each_format_keeps_its_heads() -> None:
+def test_the_head_is_the_photo_metadata_migration_and_each_format_keeps_its_heads() -> None:
     """Migrations 112 and 115 add exported columns before format 8 is first released, so format 8
-    is written at 115 or later. Format 7 was written at 110 (no release stopped at 109) or at 111,
-    which adds a credential table that is never exported; migration 108 left the export alone, so
-    format 6 was written at 107 or 108."""
+    is written at 115 or later; migrations 116 and 117 add tables that are not exported yet (the
+    automations and the photo metadata), so a format 8 export written at 115, 116 or 117 is read.
+    Format 7 was written at 110 (no release stopped at 109) or at 111, which adds a credential
+    table that is never exported; migration 108 left the export alone, so format 6 was written at
+    107 or 108."""
 
-    assert SCHEMA_HEAD == "115_contact_slack_profile"
-    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {SCHEMA_HEAD}
+    assert SCHEMA_HEAD == "117_journal_attachments"
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
+        "115_contact_slack_profile",
+        "116_automations",
+        SCHEMA_HEAD,
+    }
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_AI_STEPS] == {HEAD_110, HEAD_111}
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_TASK_REVIEW] == {
         TAG_LINKS_HEAD,

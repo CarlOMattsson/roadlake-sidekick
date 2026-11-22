@@ -30,17 +30,29 @@
 .sidekick-control .sk-tabs .sk-tabs__tab::after {
   inset: 0;
 }
-/* Only the full view scrolls under the tabs, so only there do they need the page colour to cover the rows. */
+/* Only the full view scrolls under the tabs, so only there do they need the page colour to cover the rows: the page's
+   own (layout.css), as the strip's bar, not a grey of the fallback set that read as a band of its own in dark mode. */
 .sk-rooms__pane .sidekick-control .sk-tabs {
-  background: var(--sk-bg);
+  background: var(--color-background-primary, Canvas);
 }
 
-/* The inline card keeps a readable measure on a wide host: a row and its switch stay within reach of each other. */
-.sidekick-control .control-card {
-  max-width: 40rem;
-}
-.sk-rooms__pane .sidekick-control .control-card {
-  max-width: none;
+/* The inline card fills the card width as the other rooms' cards do (740 beside Arbete's and Dagbok's), so the room
+   does not change width between cards. The full view has the column of the next rule. */
+
+/* A wide frame (64rem, desktop spec 3.5): the room is one column of at most 60rem under the shell's row ("‹ Arbete" and
+   the title stay above it), wider than the 48rem reading width (--sk-room-max) the other rooms keep, for the tables.
+   The room's own root takes the variable: the layer rule that centres a room (layout.css) and the room's own tabs read
+   it from there. */
+@container sk-frame (min-width: 64rem) {
+  .sk-frame[data-mode="full"] .sidekick-control {
+    --sk-room-max: 60rem;
+  }
+  /* The shell's Back row ("‹ Arbete") is drawn outside the room, centred on --sk-room-max: while Control is the layer
+     shown, the frame's body takes the same 60rem, so the Back row starts at the title's edge and not 96 px inside it. */
+  .sk-frame[data-mode="full"]
+    > .sk-frame__body:has(.sidekick-control:not([hidden] .sidekick-control)) {
+    --sk-room-max: 60rem;
+  }
 }
 
 .sidekick-control .control-view {
@@ -436,5 +448,158 @@
    rest of the row (today's starts, Claude Code's own estimate) stays muted. */
 .sidekick-control .control-ai-usage__spent strong {
   font-weight: 600;
+  color: var(--sk-fg);
+}
+
+/* The history and the trash as a table, from 48rem of frame (control-table.tsx; the rows below that are the row
+   template above). ARIA table roles on grid rows: every row is one grid of the same columns, so the cells line up and
+   the row's own hover tone (row.css [data-sk-row]) and its stretched open button work as on any other row. The columns
+   are What (glyph and title, the widest), the middle ones, and the action at 96 (Undo, Restore), then a › where a row
+   opens. Rows are told apart by air, never by a hairline, as everywhere in the room. */
+.sidekick-control .control-table {
+  --control-action-w: 96px;
+  --control-mid: minmax(0, 1.2fr) minmax(0, 1.4fr) minmax(0, 1fr)
+    minmax(0, 1.4fr);
+  --control-cols: minmax(0, 3fr) var(--control-mid) var(--control-action-w);
+  display: block;
+}
+.sidekick-control .control-table[data-cols="2"] {
+  --control-mid: minmax(0, 1.2fr) minmax(0, 2fr);
+}
+.sidekick-control .control-table[data-chevron] {
+  --control-cols: minmax(0, 3fr) var(--control-mid) var(--control-action-w) 1rem;
+}
+/* Delete permanently stands beside Restore (the phone only): the action column is as wide as the two buttons. */
+.sidekick-control .control-table[data-action="wide"] {
+  --control-action-w: 14rem;
+}
+.sidekick-control :is(.control-thead-row, .control-trow) {
+  display: grid;
+  grid-template-columns: var(--control-cols);
+  align-items: center;
+  column-gap: var(--sk-s3);
+}
+/* The heads are the meta's small sibling: caption type in the muted colour, the first one on the title's x. */
+.sidekick-control .control-thead-row {
+  padding-block: var(--sk-s1);
+  font: var(--sk-type-caption);
+  color: var(--sk-muted);
+}
+.sidekick-control .control-trow {
+  position: relative;
+  min-height: var(--sk-row-min);
+  box-sizing: border-box;
+  padding-block: var(--sk-row-pad);
+}
+.sidekick-control .control-tcell {
+  min-width: 0;
+  overflow-wrap: break-word;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-control .control-tcell--what {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  color: var(--sk-fg);
+}
+.sidekick-control .control-ttitle {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--sk-row-title-lines, none);
+  overflow: hidden;
+  min-width: 0;
+  font: var(--sk-type-row);
+}
+/* The kind's glyph, small and quiet, before the title. */
+.sidekick-control .control-kind {
+  flex: none;
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  color: var(--sk-muted);
+}
+.sidekick-control .control-kind svg {
+  width: 100%;
+  height: 100%;
+}
+/* A row that opens: its title is a button 44 high, its target stretched over the whole row by ::after (the row is
+   positioned), with the ring inside the row. Undo and Restore stand above that target. */
+.sidekick-control .control-topen {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sidekick-control .control-topen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--sk-radius);
+}
+.sidekick-control .control-topen:focus-visible {
+  outline: none;
+}
+.sidekick-control .control-topen:focus-visible::after {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: -2px;
+}
+/* Undo and Restore: at the column's end, above the open target; a longer word ("Återställer…") grows to the left. */
+.sidekick-control .control-tcell--action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sk-s2);
+}
+.sidekick-control .control-tcell--action > .control-row-btn {
+  flex: none;
+  white-space: nowrap;
+}
+.sidekick-control .control-tcell--action > .control-erase-btn {
+  color: var(--sk-overdue-fg);
+}
+/* The row's ›: muted, and in the text colour while the row is held (as row.css does for the other rows). */
+.sidekick-control .control-tchev {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  color: var(--sk-muted);
+}
+.sidekick-control .control-tchev svg {
+  width: 100%;
+  height: 100%;
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-control
+    .control-trow:hover
+    .control-tchev {
+    color: var(--sk-fg);
+  }
+}
+/* A question or a failure under a row takes the row's whole width. */
+.sidekick-control .control-tbelow {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+/* A day's heading is the section type, as the memory's "Källor": 24 over and 4 under its box in the room's rhythm. */
+.sidekick-control .control-tday-row {
+  margin: calc(var(--sk-section-above) - var(--sk-s2)) 0
+    calc(var(--sk-section-below) - var(--sk-s2));
+}
+.sidekick-control .control-tday {
+  font: var(--sk-type-section);
   color: var(--sk-fg);
 }

@@ -1,6 +1,6 @@
 # ADR-012: The server runs approved AI steps with the owner's own API key
 
-- Status: Accepted (D-097, 2026-11-16); amends ADR-011 (stage 2) and ADR-009
+- Status: Accepted (D-097, 2026-11-16); amends ADR-011 (stage 2) and ADR-009. Amended by ADR-013 (D-098, 2026-11-22): the same worker may also run the extract, propose and check calls of automations, under the same reservation and caps.
 - Date: 2026-11-16
 - Owners: Sidekick application maintainers
 

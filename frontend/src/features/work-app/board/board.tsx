@@ -13,7 +13,7 @@ import {
   type BoardAction,
   type BoardNotice,
 } from "./board-notice";
-import { columnMore, type BoardUndo } from "./board-columns";
+import { columnMore, unshownIn, type BoardUndo } from "./board-columns";
 import { useDoneHandoff } from "../shared/done-handoff";
 import { boardLabelsFor } from "./board-labels";
 import {
@@ -22,6 +22,7 @@ import {
   type BoardLayout,
 } from "./board-layout";
 import { RefreshButton } from "./board-sections";
+import "./board.css";
 import { ColumnsLayout, SingleLayout } from "./parts/board-layouts";
 import { ColumnTabs, useChosenColumn } from "./parts/board-column-tabs";
 import { useBoardCore } from "./parts/use-board-core";
@@ -103,6 +104,8 @@ export function BoardView({
   const [undos, setUndos] = useState<Record<string, BoardUndo>>({});
   const [preview, setPreview] = useState<Preview>();
   const [doneOpen, setDoneOpen] = useState(false);
+  // The columns that draw every card they hold, after the owner pressed their "Visa N till".
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const heading = useRef<HTMLHeadingElement>(null);
   const boardRoot = useRef<HTMLElement>(null);
   // The columns row, and whether columns lie beyond its right edge (the edge then fades, see work.css).
@@ -130,6 +133,7 @@ export function BoardView({
       undos,
       preview,
       rowQueue: core.rowQueue,
+      expanded,
     });
   // A phone shows one column at a time, chosen with its tabs; a search shows its hits in every section at once.
   const tabs = useChosenColumn(sections);
@@ -189,6 +193,7 @@ export function BoardView({
     preview,
     busy,
     undos,
+    expanded,
   });
 
   // A card's change is confirmed in the receipt bar at the board's foot, with Ångra; the card keeps its new state in
@@ -245,24 +250,50 @@ export function BoardView({
   );
   const words = boardLabelsFor(t.dateLocale);
   /**
-   * The "Visa fler" last in one column (or section): a Task status column reads its own next records, the Projects
-   * column the board's next page (see columnMore). Null when the column is whole on the board.
+   * The "Visa N till" last in one column (or section): the cards held back behind it come first, then the next records
+   * of a Task status column (its own pages) or of the Projects column (the board's next page, see columnMore). Null when
+   * nothing is held back and the column is whole on the board. N is every card still to show when it is known (the server's
+   * totals); an older server, or a search, leaves it out ("Visa fler").
    */
-  function moreFor(segment: BoardSegment) {
+  function moreFor(segment: BoardSegment, hidden: WorkItemRecord[]) {
     const how = columnMore(frame, segment.key);
-    if (!how) return null;
+    if (!how && hidden.length === 0) return null;
     const status = isTaskStatus(segment.key) ? segment.key : undefined;
+    const known = !how || (!needle && page.column_totals !== undefined);
+    const count = known
+      ? hidden.length + (how ? unshownIn(page, segment.key) : 0)
+      : undefined;
+    const first = hidden.find((item) => item.kind === "task");
+    function show() {
+      setExpanded((all) => new Set(all).add(segment.key));
+      // Nothing is read while cards wait here: they are drawn, and the first of them takes focus (the button is gone
+      // once nothing is left to show).
+      if (hidden.length > 0) {
+        if (first) core.focusWanted.current = { kind: "card", id: first.id };
+        return;
+      }
+      if (how === "status" && status) loadColumn(status);
+      else loadMore();
+    }
     return (
       <button
         type="button"
         className="sk-more work-column-more"
         disabled={disabled}
-        aria-label={status ? words.showMoreIn(segment.label) : undefined}
-        onClick={
-          how === "status" && status ? () => loadColumn(status) : loadMore
+        aria-label={
+          !status
+            ? undefined
+            : count === undefined
+              ? words.showMoreIn(segment.label)
+              : words.showMoreCountIn(count, segment.label)
         }
+        onClick={show}
       >
-        {status ? words.showMore : words.showMoreAll}
+        {count !== undefined
+          ? words.showMoreCount(count)
+          : status
+            ? words.showMore
+            : words.showMoreAll}
       </button>
     );
   }

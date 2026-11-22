@@ -33,6 +33,7 @@ export function TaskSummaryList({
   onOpen,
   transport,
   onReload,
+  hideTags,
 }: {
   tasks: WorkTaskSummary[];
   labels: WorkLabels;
@@ -40,6 +41,8 @@ export function TaskSummaryList({
   onOpen: (frame: WorkFrame, label?: string) => void;
   transport?: WorkTransport;
   onReload?: () => void;
+  /** Tags the page around the list says once (a Project's shared tag): left off every row. Without it every tag shows. */
+  hideTags?: readonly string[];
 }) {
   const write = useWorkWrite();
   const known = useContext(KnownTags);
@@ -96,7 +99,9 @@ export function TaskSummaryList({
           const statusText = taskStatusLabel(t, status);
           const showStatus = status !== "todo" && !done;
           const showDue = Boolean(task.due_at) && !done;
-          const tags = task.tags ?? [];
+          const tags = hideTags
+            ? (task.tags ?? []).filter((tag) => !hideTags.includes(tag))
+            : (task.tags ?? []);
           const ai = aiMarkOf({ ...task, status });
           const glyph = (
             <StatusGlyph kind="task" status={status} label={statusText} />

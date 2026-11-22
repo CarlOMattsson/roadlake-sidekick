@@ -42,7 +42,8 @@ const entry: JournalEntry = {
 
 const source: JournalSource = {
   id: sourceId,
-  source_type: "manual_text",
+  // A transcript: the text under the title is the transcription, so the entry offers the original.
+  source_type: "transcript_text",
   journal_date: "2026-10-24",
   occurred_at: "2026-10-24T09:30:00Z",
   source_recorded_at: "2026-10-24T09:31:00Z",

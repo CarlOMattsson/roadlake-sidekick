@@ -200,6 +200,8 @@ describe("Journal with the Contact and Control rooms off", () => {
     declareRooms();
     renderEntry();
 
+    // The links stand in sight under the text, not in the fold.
+    await screen.findByRole("heading", { level: 3, name: "Linked" });
     expect(
       await screen.findByRole("button", { name: "Anna" }),
     ).toBeInTheDocument();
@@ -220,14 +222,18 @@ describe("Journal with the Contact and Control rooms off", () => {
     const call = renderEntry();
 
     expect(await screen.findByText("Måndag")).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 3, name: "Linked" });
     expect(screen.getByText("Anna")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Anna" })).toBeNull();
     expect(
       screen.queryByRole("button", { name: journalEn.linkRemove("Anna") }),
     ).toBeNull();
-    // The entry and the tag vocabulary for its tag field; nothing about the Contact room.
+    // The entry, its original and its day (the neighbouring entries) and the tag vocabulary for its tag field;
+    // nothing about the Contact room.
     expect([...called(call)].sort()).toEqual([
+      "get_journal_day",
       "get_journal_entry",
+      "get_journal_source",
       "list_tags",
     ]);
   });

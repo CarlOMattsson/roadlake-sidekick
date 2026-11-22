@@ -26,6 +26,23 @@ export function applyHostStyle(ctx: HostStyleContext, root: HTMLElement): void {
   applyTheme(ctx.theme, root);
   applySafeArea(ctx.safeAreaInsets, root);
   applyPointer(ctx, root);
+  applyHeight(ctx.containerDimensions, root);
+}
+
+/**
+ * `data-host-height="fixed"` on the root when the host fixes the container's height (`containerDimensions.height`,
+ * MCP Apps 2026-01-26): the app then fills that height, and a pane may scroll by itself (ui/split-layout.css). Any other
+ * answer is a height the app's own size decides (`maxHeight`, or nothing), where a bound taken from the viewport would
+ * shrink the frame in a loop with size-changed, so the attribute goes.
+ */
+function applyHeight(dimensions: unknown, root: HTMLElement): void {
+  const height =
+    typeof dimensions === "object" && dimensions !== null
+      ? (dimensions as { height?: unknown }).height
+      : undefined;
+  if (typeof height === "number" && Number.isFinite(height) && height > 0)
+    root.dataset.hostHeight = "fixed";
+  else delete root.dataset.hostHeight;
 }
 
 /**

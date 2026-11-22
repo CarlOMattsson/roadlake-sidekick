@@ -13,7 +13,12 @@ import { TaskWaiting } from "./task-waiting";
 import { TaskReferences } from "./task-references";
 import { TaskSteps } from "./task-steps";
 import { TaskTrashed } from "./task-trashed";
-import { doneHandoff, TaskDoneControl, useDoneReceipt } from "./task-cycle";
+import {
+  doneHandoff,
+  TaskDoneControl,
+  useDoneForm,
+  useDoneReceipt,
+} from "./task-cycle";
 import type { DoneHandoff } from "../shared/done-handoff";
 import type { WorkContact, WorkTask } from "../transport/transport";
 import { DetailBar } from "../view/parts/detail-bar";
@@ -78,6 +83,7 @@ export function TaskFrame({
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const { ref: descriptionRef, cut: descriptionCut } =
     useCutText<HTMLParagraphElement>(task?.description);
+  const doneForm = useDoneForm();
   const contactsHeading = useRef<HTMLHeadingElement>(null);
   // Set when a contact link changed: the list is read again and focus returns to its heading.
   const contactsRefocus = useRef(false);
@@ -226,6 +232,17 @@ export function TaskFrame({
         />
       </article>
     );
+  // "Markera klar", or beside its list the ring before the title (useDoneForm).
+  const doneControl = phase === "ready" && task && doneShown && (
+    <TaskDoneControl
+      task={task}
+      labels={t}
+      disabled={write.kind === "busy" || editing}
+      onChoose={chooseStatus}
+      buttonRef={doneButton}
+      form={doneForm}
+    />
+  );
   return (
     <article className="work-task">
       {/* The Back row carries only ⋯, whose first entries are `edit` and `deleteTask`; a tap on the title edits too (§3). */}
@@ -252,6 +269,7 @@ export function TaskFrame({
       />
       <DetailTitle
         heading={heading}
+        leading={doneForm === "ring" ? doneControl : undefined}
         onEdit={
           phase === "ready" &&
           task &&
@@ -321,17 +339,7 @@ export function TaskFrame({
             }
             onStatus={statusOffered ? chooseStatus : undefined}
             sentence={task.due_at ? detailDate(task.due_at, t) : undefined}
-            done={
-              doneShown && (
-                <TaskDoneControl
-                  task={task}
-                  labels={t}
-                  disabled={write.kind === "busy" || editing}
-                  onChoose={chooseStatus}
-                  buttonRef={doneButton}
-                />
-              )
-            }
+            done={doneForm === "button" && doneControl}
           >
             {/* The chip carries only the value (the date); how late it is stands on the line above. */}
             {task.due_at ? (

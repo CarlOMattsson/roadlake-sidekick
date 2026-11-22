@@ -776,8 +776,12 @@ test("sandboxed Work App opens the Contact list from list_contacts, searches, op
   await expect(archiveSwitch).toHaveAttribute("aria-checked", "false");
   await expect(app.getByRole("checkbox")).toHaveCount(0);
   const archiveRow = app.locator(".work-contact-menu-switch");
-  // The whole row is one 48 px target (contacts.css).
-  expect((await archiveRow.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  // The whole row is one target (contacts.css): 48 in the phone's panel, a menu row of 44 in the popover a mouse or a
+  // frame of 40rem opens (desktop spec 2.3).
+  const popover = await app.locator("[data-menu='popover']").count();
+  expect((await archiveRow.boundingBox())!.height).toBeGreaterThanOrEqual(
+    popover > 0 ? 44 : 48,
+  );
   const dimensions = await app.locator("body").evaluate((body) => ({
     width: body.scrollWidth,
     viewport: window.innerWidth,

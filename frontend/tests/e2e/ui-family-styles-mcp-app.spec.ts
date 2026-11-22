@@ -252,7 +252,7 @@ test("Menu and buttons: the ⋯ menu's ring lies inside its entry, an open icon 
   expect((await style(focused, "outlineOffset")).outlineOffset).toBe("-4px");
   await page.keyboard.press("Escape");
   // An icon button's focus ring lies on its own box.
-  const add = app.locator(".journal-day-add");
+  const add = app.locator(".sk-room-head__add");
   await add.focus();
   await page.keyboard.press("Shift");
   await page.keyboard.press("Tab");

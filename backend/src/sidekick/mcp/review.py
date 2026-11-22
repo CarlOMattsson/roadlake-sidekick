@@ -8,6 +8,9 @@ answers with what each Task was before, so an undo is the opposite ordinary writ
 Line 1 of each text is what voice mode says; it has no ids, ISO times or card note, because the
 reply opens no card and must be read out. The rows after it carry the id and version for the next
 call.
+
+`REVIEW_GUIDE` is how Claude runs the walk-through. It is written once and used twice: as part of
+the `get_review_queue` description and in the `review_tasks_walkthrough` prompt.
 """
 
 from __future__ import annotations
@@ -42,6 +45,35 @@ from sidekick.tasks.application.review import (
     ReviewQueuePage,
 )
 from sidekick.tasks.domain.review import ReviewBucket, ReviewDecision
+
+REVIEW_GUIDE = (
+    "Guide: open with the count and the plan in one sentence; offer klar, behåll, flytta, "
+    "väntar, flagga, arkivera, hoppa. Start with likely_done and long_overdue. Say title and "
+    "reason in at most 12 words, no ids or ISO dates. Say each decision back first; behåll is "
+    "keep, never kvar. Done or archive only on the user's word; say probably done only for "
+    "likely_done. Three or more alike: confirm at most three tasks at a time, with count and "
+    "target. Save with review_tasks after 5 decisions, at a group's end and before any pause. "
+    "After about 30 tasks suggest a break. Stop: save, say how many remain. Undo: reverse the "
+    "last save with previous."
+)
+QUEUE_DESCRIPTION = (
+    "Use this when the user wants to go through or clean up many tasks at once. Returns open "
+    "tasks not reviewed in 7 days, quickest decisions first: likely_done, long_overdue, "
+    "follow_up_due, overdue; scope=all adds the rest, last. Rows carry id, version and a "
+    "spoken reason; line 1 is what to say. Skipping writes nothing: page on with next_cursor. "
+    f"{REVIEW_GUIDE}"
+)
+WALKTHROUGH_PROMPT = """\
+Go through my open tasks with me{time}.
+
+1. Call get_review_queue with scope "{scope}" and follow its guide.
+2. Show up to 10 rows, numbered, with the reason. I answer in one line, for example \
+"1, 3, 5 done, 2 next week"; save that in one review_tasks call.
+3. Never mark done or archive a task I have not said so about. Keep going until the queue is \
+empty or I say stop.
+
+{guide}
+"""
 
 ReviewBucketName = Literal["likely_done", "long_overdue", "follow_up_due", "overdue", "other"]
 
@@ -261,17 +293,22 @@ def _reviewed_record(entry: ReviewedTask) -> ReviewedTaskRecord:
 
 
 def register_review_tools(mcp: FastMCP, ctx: ToolContext) -> None:
-    """Register `get_review_queue` and `review_tasks`; neither opens an app card."""
+    """Register `get_review_queue`, `review_tasks` and the walk-through prompt; no app card."""
+
+    @mcp.prompt(
+        name="review_tasks_walkthrough",
+        description="Go through the owner's open tasks together, by text, a few at a time.",
+    )
+    def review_tasks_walkthrough(
+        minutes: Annotated[int | None, Field(ge=1, le=240)] = None,
+        scope: Literal["suggested", "all"] = "suggested",
+    ) -> str:
+        time = "" if minutes is None else f"; I have about {minutes} minutes, so stop then"
+        return WALKTHROUGH_PROMPT.format(time=time, scope=scope, guide=REVIEW_GUIDE)
 
     @mcp.tool(
         name="get_review_queue",
-        description=(
-            "Use this when the user wants to go through or clean up many tasks at once. Returns "
-            "open tasks not reviewed in 7 days, quickest decisions first: likely_done, "
-            "long_overdue, follow_up_due, overdue; scope=all adds the rest, last. Rows carry id, "
-            "version and a spoken reason; line 1 is what to say. Skipping writes nothing: page "
-            "on with next_cursor."
-        ),
+        description=QUEUE_DESCRIPTION,
         output_schema=output_schema(ReviewQueueOutput),
         annotations=READ,
     )

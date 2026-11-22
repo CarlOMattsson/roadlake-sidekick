@@ -8,9 +8,9 @@ files; the same list for every part of Sidekick is THIRD_PARTY_NOTICES.md in the
 
 Web part (React, Capacitor)
 ==============================================================================
-@capacitor/android 8.6.0 (MIT): Copyright (c) 2017-present Drifty Co.
+@capacitor/android 8.6.2 (MIT): Copyright (c) 2017-present Drifty Co.
 @capacitor/app 8.1.2 (MIT): Copyright 2020-present Ionic (https://ionic.io)
-@capacitor/core 8.6.0 (MIT): Copyright (c) 2017-present Drifty Co.
+@capacitor/core 8.6.2 (MIT): Copyright (c) 2017-present Drifty Co.
 react 19.3.1 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
 react-dom 19.3.1 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.
 scheduler 0.28.0 (MIT): Copyright (c) Meta Platforms, Inc. and affiliates.

@@ -167,8 +167,8 @@ describe("journal week view", () => {
         name: "Vecka 46 · 9–15 nov",
       }),
     ).toBeInTheDocument();
-    // A whole past week: Monday to Sunday.
-    await screen.findByRole("region", { name: "Söndag 15 november" });
+    // A whole past week: Monday to Sunday, here with nothing written, so one quiet line (journal-week-gaps.test.tsx).
+    await screen.findByText("Inget skrivet vecka 46");
     expect(transport.getDay).toHaveBeenCalledWith("2026-11-09");
     expect(
       screen.getByRole("button", { name: "Nästa vecka" }),

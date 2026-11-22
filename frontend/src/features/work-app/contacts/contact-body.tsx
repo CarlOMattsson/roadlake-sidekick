@@ -189,43 +189,51 @@ export function ContactBody({
           labels={t}
         />
       )}
-      {/* An empty Tasks section is left out (design system §3, Tomt); a new Task for her is offered where it would stand. */}
-      <ContactTasks
-        contactId={contact.id}
-        firstName={first}
-        tasks={tasks}
-        labels={t}
-        transport={transport}
-        onOpen={onOpen}
-        onReload={record.reloadContact}
-        canCreate={!contact.archived && !editing && offers("create_task")}
-        reloading={write.kind === "busy"}
-      />
-      {more === "busy" && <p role="status">{t.loading}</p>}
-      {more === "failed" && (
-        <MessageBox
-          severity="error"
-          title={words.moreFailed}
-          action={{ label: t.retry, onClick: record.loadMore }}
-        />
-      )}
-      {nextCursor && (
-        <button
-          type="button"
-          className="sk-more"
-          disabled={more === "busy"}
-          onClick={record.loadMore}
-        >
-          {t.more}
-        </button>
-      )}
-      {onOpenJournalEntry && journal && (
-        <ContactJournalEntries
-          journal={journal}
-          labels={t}
-          onOpen={onOpenJournalEntry}
-        />
-      )}
+      {/* Tasks and notes: in two columns where the detail beside a list is wide (contacts.css), else one after the other
+          as always (the wrappers draw no box). */}
+      <div className="work-contact-cols">
+        <div className="work-contact-col">
+          {/* An empty Tasks section is left out (design system §3, Tomt); a new Task for her is offered where it would stand. */}
+          <ContactTasks
+            contactId={contact.id}
+            firstName={first}
+            tasks={tasks}
+            labels={t}
+            transport={transport}
+            onOpen={onOpen}
+            onReload={record.reloadContact}
+            canCreate={!contact.archived && !editing && offers("create_task")}
+            reloading={write.kind === "busy"}
+          />
+          {more === "busy" && <p role="status">{t.loading}</p>}
+          {more === "failed" && (
+            <MessageBox
+              severity="error"
+              title={words.moreFailed}
+              action={{ label: t.retry, onClick: record.loadMore }}
+            />
+          )}
+          {nextCursor && (
+            <button
+              type="button"
+              className="sk-more"
+              disabled={more === "busy"}
+              onClick={record.loadMore}
+            >
+              {t.more}
+            </button>
+          )}
+        </div>
+        {onOpenJournalEntry && journal && (
+          <div className="work-contact-col">
+            <ContactJournalEntries
+              journal={journal}
+              labels={t}
+              onOpen={onOpenJournalEntry}
+            />
+          </div>
+        )}
+      </div>
       <ContactProjects
         projects={record.projects.filter(
           (project) => unlinks.state[project.id] !== "hidden",
@@ -235,7 +243,9 @@ export function ContactBody({
         onRemove={(projectId) => unlinks.set(projectId, false)}
         onUndo={(projectId) => unlinks.set(projectId, true)}
         onExpire={unlinks.expire}
-        onOpen={(projectId) => onOpen({ kind: "project", id: projectId })}
+        onOpen={(projectId, title) =>
+          onOpen({ kind: "project", id: projectId }, title)
+        }
         labels={t}
       />
       <WriteNotice

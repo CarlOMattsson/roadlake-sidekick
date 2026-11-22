@@ -1,16 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { OpenLink } from "../../mcp-apps/ui/open-link";
 import type { HostSettingsEntry } from "../../mcp-apps/room-types";
 import type { ShoppingList } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { COMPACT_ROWS, emptyAsk, isEnter } from "./helpers";
-import { ChevronRightIcon, MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
+import { ChevronRightIcon, PlusIcon } from "../../mcp-apps/ui/icons";
 import { CreateField } from "../../mcp-apps/ui/create-field";
-import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
 import { EmptyState } from "../../mcp-apps/ui/states";
 import { workDate } from "../../mcp-apps/ui/due";
 import { Fold } from "../../mcp-apps/ui/fold";
-import { MoreMenu } from "./more-menu";
+import { MoreButton, MoreMenu } from "./more-menu";
 
 /**
  * A one-field form that names a list (new list, or Edit list). Enter and the button submit through the
@@ -143,7 +142,14 @@ export function ListPicker({
   sendMessage,
   control,
   onOpenFull,
+  rail,
 }: ListsView & {
+  /**
+   * Fullscreen in a wide frame: the picker is the list pane beside the chosen list (desktop spec 3.4). The heading has no
+   * tools (the room head holds + and ⋯), the chosen list's row is drawn chosen (`aria-current`), "New list" is the last
+   * row, and `openCount` gives the chosen list's count from its own read (the overview's may be older).
+   */
+  rail?: { chosen: string; openCount?: number };
   /** Inline on a host with fullscreen: the card ends on "Open Shopping ›" (design rule 2). */
   onOpenFull?: () => void;
   /**
@@ -166,39 +172,73 @@ export function ListPicker({
 }) {
   const addButton = useRef<HTMLButtonElement>(null);
   const moreButton = useRef<HTMLButtonElement>(null);
+  const newRow = useRef<HTMLButtonElement>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const menuId = useId();
   const refocusAdd = useRef(false);
   useEffect(() => {
     if (newOpen || !refocusAdd.current) return;
     refocusAdd.current = false;
-    addButton.current?.focus();
-  }, [newOpen]);
+    (rail ? newRow : addButton).current?.focus();
+  }, [newOpen, rail]);
   const now = new Date();
   // The lists in use come first; the archived ones of the page wait last, behind a fold.
   const active = lists.filter((entry) => !entry.archived);
   const archived = lists.filter((entry) => entry.archived);
   const shown =
     fullscreen || listsExpanded ? active : active.slice(0, COMPACT_ROWS);
-  const listRow = (entry: ShoppingList) => (
-    <li key={entry.id}>
-      <button
-        type="button"
-        className="shopping-list-row"
-        disabled={busy}
-        onClick={() => onChoose(entry.id)}
+  const listRow = (entry: ShoppingList) => {
+    const chosen = rail?.chosen === entry.id;
+    const shownEntry =
+      chosen && rail?.openCount !== undefined
+        ? { ...entry, open_count: rail.openCount }
+        : entry;
+    return (
+      <li
+        key={entry.id}
+        data-sk-row={rail ? "" : undefined}
+        aria-current={chosen ? "true" : undefined}
       >
-        <span className="shopping-list-text">
-          <span className="shopping-list-name">{entry.name}</span>
-          <span className="shopping-list-meta">{listMeta(t, entry, now)}</span>
-        </span>
-        <span className="shopping-chevron" aria-hidden="true">
-          <ChevronRightIcon />
-        </span>
-      </button>
-    </li>
+        <button
+          type="button"
+          className="shopping-list-row"
+          disabled={busy && !rail}
+          aria-current={chosen ? "true" : undefined}
+          onClick={() => {
+            if (!chosen) onChoose(entry.id);
+          }}
+        >
+          <span className="shopping-list-text">
+            <span className="shopping-list-name">{entry.name}</span>
+            <span className="shopping-list-meta">
+              {listMeta(t, shownEntry, now)}
+            </span>
+          </span>
+          <span className="shopping-chevron" aria-hidden="true">
+            <ChevronRightIcon />
+          </span>
+        </button>
+      </li>
+    );
+  };
+  const createField = newOpen && (
+    <div className="shopping-create">
+      <CreateField
+        label={t.newList}
+        placeholder={t.newListPlaceholder}
+        closeLabel={t.close}
+        addLabel={t.create}
+        errorLabel={t.saveFailed}
+        onCreate={onCreateNamed}
+        onClose={() => {
+          refocusAdd.current = true;
+          onNewOpen(false);
+        }}
+      />
+    </div>
   );
   return (
-    <div className="shopping-picker">
+    <div className="shopping-picker" data-rail={rail ? "" : undefined}>
       <div className="shopping-picker-head">
         {/* Inline the heading is a count (design rule 1), fullscreen the room's own word. */}
         <h2 className="shopping-picker-title">
@@ -206,65 +246,59 @@ export function ListPicker({
             ? t.lists
             : t.listsCount(active.length)}
         </h2>
-        <button
-          ref={addButton}
-          type="button"
-          className="sk-iconbtn sk-iconbtn--primary shopping-picker-add"
-          aria-label={t.newList}
-          title={t.newList}
-          aria-expanded={newOpen}
-          disabled={busy && !newOpen}
-          onClick={() => onNewOpen(!newOpen)}
-        >
-          <PlusIcon />
-        </button>
-        {control && fullscreen && (
+        {/* The rail's + and ⋯ are the room head's; "New list" is its last row. */}
+        {!rail && (
           <button
-            ref={moreButton}
+            ref={addButton}
             type="button"
-            className="shopping-more-trigger sk-iconbtn"
-            aria-label={t.moreActions}
-            aria-expanded={moreOpen}
-            onClick={() => setMoreOpen(!moreOpen)}
-            onKeyDown={(event) => {
-              if (moreOpen) onEscapeKey(event, () => setMoreOpen(false));
-            }}
+            className="sk-iconbtn sk-iconbtn--primary shopping-picker-add"
+            aria-label={t.newList}
+            title={t.newList}
+            aria-expanded={newOpen}
+            disabled={busy && !newOpen}
+            onClick={() => onNewOpen(!newOpen)}
           >
-            <MoreIcon />
+            <PlusIcon />
           </button>
         )}
+        {!rail && control && fullscreen && (
+          <MoreButton
+            label={t.moreActions}
+            open={moreOpen}
+            menuId={menuId}
+            buttonRef={moreButton}
+            onOpenChange={setMoreOpen}
+          />
+        )}
       </div>
-      {control && fullscreen && moreOpen && (
+      {!rail && control && fullscreen && moreOpen && (
         <MoreMenu
+          id={menuId}
+          anchor={moreButton}
           control={control}
           onClose={() => setMoreOpen(false)}
-          onEscape={() => {
-            setMoreOpen(false);
-            moreButton.current?.focus();
-          }}
         />
       )}
-      {newOpen && (
-        <div className="shopping-create">
-          <CreateField
-            label={t.newList}
-            placeholder={t.newListPlaceholder}
-            closeLabel={t.close}
-            addLabel={t.create}
-            errorLabel={t.saveFailed}
-            onCreate={onCreateNamed}
-            onClose={() => {
-              refocusAdd.current = true;
-              onNewOpen(false);
-            }}
-          />
-        </div>
-      )}
+      {(!rail || lists.length === 0) && createField}
       {shown.length > 0 && (
         <ul className="shopping-lists" aria-label={t.lists}>
           {shown.map(listRow)}
         </ul>
       )}
+      {/* The rail's last row: "New list", which the create field takes the place of while it is open. */}
+      {rail &&
+        lists.length > 0 &&
+        (createField || (
+          <button
+            ref={newRow}
+            type="button"
+            className="sk-action-row shopping-rail-new"
+            onClick={() => onNewOpen(true)}
+          >
+            <PlusIcon />
+            {t.newList}
+          </button>
+        ))}
       {/* Inline, a card shows COMPACT_ROWS lists; the rest is one "Show all" row. Fullscreen lists them all. */}
       {!fullscreen && active.length > COMPACT_ROWS && (
         <div className="shopping-more">

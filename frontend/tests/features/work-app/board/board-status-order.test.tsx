@@ -251,8 +251,10 @@ describe("the phone's Status list in due-date order", () => {
   it("keeps the shown cards on top, in order, when Show more adds a column's later records at the bottom", async () => {
     const user = userEvent.setup();
     const rapport = task(7, "todo", "Skicka rapport", "2099-02-01");
+    // The column's own first read at mount brings nothing new and goes on; Show more then brings the third record.
     const getWorkBoard = vi
       .fn()
+      .mockResolvedValueOnce({ columns: {}, next_cursor: "todo-2" })
       .mockResolvedValue({ columns: { todo: [rapport] }, next_cursor: null });
     render(
       <Harness
@@ -271,7 +273,7 @@ describe("the phone's Status list in due-date order", () => {
     );
     await user.click(
       screen.getByRole("button", {
-        name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+        name: boardLabelsEn.showMoreCountIn(1, workEn.taskStatus.todo),
       }),
     );
     await screen.findByText(rapport.title);

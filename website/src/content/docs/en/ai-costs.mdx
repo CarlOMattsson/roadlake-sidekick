@@ -1,0 +1,73 @@
+---
+title: AI costs
+description: Sidekick is free, but AI that your own server runs costs per call. What your Claude subscription covers, what needs an API key, and the limits.
+template: splash
+---
+
+import PageHead from '../../../components/PageHead.astro';
+import StatusList from '../../../components/StatusList.astro';
+import PageLink from '../../../components/PageLink.astro';
+
+<PageHead
+  title="AI costs"
+  lead="Sidekick is free, but the AI around it is not always. Read this before you turn anything on, so you know what you are signing up for."
+/>
+
+<div class="wrap not-content" data-marketing>
+  <section class="buyhow" aria-labelledby="h-rec">
+    <h2 id="h-rec">We recommend a Claude subscription</h2>
+    <p>Use Sidekick in Claude with a Claude subscription. When you work through the connector, Claude does the AI work and it is covered by the subscription. Sidekick adds no AI cost on top.</p>
+    <p>You can also use Sidekick with no AI cost at all: tasks, journal, contacts and shopping lists do not call a model.</p>
+  </section>
+  <div class="does">
+    <StatusList
+      level="h2"
+      title="Covered by the subscription"
+      items={[
+        { state: 'yes', text: 'Sidekick in Claude through the connector.' },
+        { state: 'yes', text: 'AI steps that your own Claude Code runs, on your Claude plan.' },
+      ]}
+    />
+    <StatusList
+      level="h2"
+      title="Needs an API key and costs per call"
+      items={[
+        { state: 'no', text: 'AI steps that your server runs (Run).' },
+        { state: 'no', text: 'Memory (Hindsight), when it uses a model through a key.' },
+      ]}
+    />
+  </div>
+  <section class="buyhow" aria-labelledby="h-keys">
+    <h2 id="h-keys">A subscription does not cover everything</h2>
+    <p>Anything your own server runs by itself needs an API key from Anthropic or OpenRouter, and the provider bills you per call. None of it is on by default. You turn each part on and supply the key yourself.</p>
+    <ul class="list">
+      <li><b>Anthropic API:</b> billed by Anthropic per token. Set a spending limit in the Anthropic Console.</li>
+      <li><b>OpenRouter:</b> one key for many models from many providers. The price depends on the model and the provider you pick.</li>
+      <li><b>A local model</b> on your own network, for example Ollama or LM Studio: nothing per call.</li>
+    </ul>
+  </section>
+  <section class="buyhow" aria-labelledby="h-limits">
+    <h2 id="h-limits">Limits that Sidekick sets</h2>
+    <p>These defaults apply to AI steps that run on your server. You can change them in your server settings.</p>
+    <ul class="list">
+      <li>At most 50 USD per calendar month for AI steps that bill per call.</li>
+      <li>At most 2 USD per task.</li>
+      <li>At most 3 attempts at one step.</li>
+      <li>At most 50 AI steps per day.</li>
+      <li>Runs on a local model cost nothing and can be kept out of the money limits.</li>
+    </ul>
+    <p>The server works out the most a call can cost before it makes the call, and refuses it if it would pass a limit. Sidekick's figure is an estimate. The provider's invoice is the record, so also set a limit with the provider. Memory also has its own daily limits on how much text is sent.</p>
+    <p><b>Coming, not built yet:</b> automations and a check model that reviews what they propose. Automations will be off by default and run with an API key. The planned limits are a separate cap of 15 USD per month by default (inside the 50 USD cap, adjustable), at most 1 USD per run and at most 20 runs per day. The check model's calls count against the same cap. With an Anthropic key, Sonnet is the planned default model. With OpenRouter we recommend a cheap model from a trusted host.</p>
+  </section>
+  <section class="buyhow" aria-labelledby="h-or">
+    <h2 id="h-or">Choose with care on OpenRouter</h2>
+    <p>With OpenRouter you pick the provider and the model, so the cost and the privacy are yours to choose well.</p>
+    <ul class="list">
+      <li><b>Choose providers you trust.</b> Prefer one that runs the model outside China and says it does not store your prompts and does not train on them.</li>
+      <li><b>Where a model runs matters more than where it was made.</b> Open models developed in China, such as DeepSeek, are fine when a trusted host outside China runs them, for example Google, Azure or AWS. What counts is where the model runs and whether that provider stores or trains on your data.</li>
+      <li><b>Use cheap models for simple jobs.</b> A short summary does not need the largest model.</li>
+    </ul>
+    <p>Prices change, so we list none here. See <a href="https://www.anthropic.com/pricing" rel="noopener">Anthropic's pricing</a> and <a href="https://openrouter.ai/models" rel="noopener">OpenRouter's models and prices</a>.</p>
+    <p><PageLink page="docs/explanation/ai-costs">Read the full guide in the documentation</PageLink>. The license and its prices are separate from these costs: <PageLink page="pricing">see the price</PageLink>.</p>
+  </section>
+</div>

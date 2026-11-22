@@ -198,7 +198,7 @@ def hindsight_http_stub() -> Any:
 # The slow suites run only before a push or in CI. A plain `pytest`
 # runs the fast tier; `pytest --full` (or SIDEKICK_FULL_TESTS=1) runs everything. An explicit path
 # argument always runs what it names.
-_FULL_ONLY_DIRS = ("api", "integration", "bdd", "contract", "mcp", "ops", "selfhost")
+_FULL_ONLY_DIRS = ("api", "integration", "bdd", "contract", "mcp", "ops", "selfhost", "eval")
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -206,7 +206,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "--full",
         action="store_true",
         default=False,
-        help="Run the slow suites too (api, integration, bdd, contract, mcp, ops, selfhost).",
+        help="Run the slow suites too (api, integration, bdd, contract, mcp, ops, selfhost, eval).",
     )
 
 

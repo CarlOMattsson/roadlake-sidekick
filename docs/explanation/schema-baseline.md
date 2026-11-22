@@ -124,6 +124,31 @@ before it is stored. Existing Contacts read as having none. The owner export car
 which had not been released yet); a format 7 export has no such column and its Contacts restore with no Slack profile.
 Rolling it back drops the column, which loses only the links entered since.
 
+## Migration 116: automations
+
+`116_automations.py` is an additive (expand) migration. It adds six tables for automations: `automations` (the owner's
+registry: instruction, allowed effects, cadence, approval, a spending limit of one US dollar per run by default and the
+`model_tier`, `standard` or `strong`), `automation_runs` (one row per attempt at one occurrence, also the queue of the
+server runner; one attempt per occurrence is active at a time), `automation_datapoints` (facts a run read, never
+actions), `automation_suggestions` (decision cards), `automation_checks` (one row per independent check, codes from a
+closed set and no free text) and `automation_report_cursors`. The definition digest (`spec_digest`, which includes
+`model_tier`) is computed by the application. The application role may read, insert and update the tables but delete
+nothing, and `automation_checks` is append-only; a row leaves only with its owner's account, through the foreign keys.
+No data moves. Rolling it back drops the six tables, which loses only the automation data. The owner export does not
+carry the tables yet.
+
+## Migration 117: photo metadata
+
+`117_journal_attachments.py` is an additive (expand) migration. It adds `journal_attachments`, one row per photo of a
+Journal entry or a Journal day: the type (JPEG or WebP), the byte size (at most 4 MiB), the dimensions (at most 4096 px),
+the SHA-256 digests of the stored file and its thumbnail, optional alt text with who wrote it (`you` or `claude`), the
+time the photo was taken when the client sent it, and the position. A photo belongs to exactly one of an entry
+(`entry_id`) or a day (`journal_date`); CHECK constraints hold every bound, so the database refuses a row the application
+should never write. The bytes are not in PostgreSQL. Unlike `journal_entries`, the application role holds `DELETE` on
+this table, because a photo can be erased from the trash; it holds no DDL and no `TRUNCATE`. A row leaves with its
+owner or entry through the foreign keys. The photo's trash kind is `journal_attachment`; photos never go to memory. The
+owner export does not carry the table yet. Rolling it back drops the table, which loses only the photo metadata.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

@@ -1,0 +1,15 @@
+/* The row's menu as a popover (row-quick.tsx RowMenu; the phone's panel is `.shopping-row-menu` in shopping.css). The
+   head keeps the item's name as a quiet label over the entries; the panel's × is not drawn in a popover, since Escape
+   and a press outside close it. */
+.sidekick-shopping .shopping-row-popover .shopping-row-menu-head {
+  margin: 0;
+  border-bottom: 0;
+}
+.sidekick-shopping .shopping-row-popover .shopping-row-menu-name {
+  padding: var(--sk-s2) var(--sk-s3) var(--sk-s1);
+  overflow: hidden;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

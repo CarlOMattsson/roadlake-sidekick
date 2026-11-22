@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { JournalView } from "@/features/journal-app/journal-view";
@@ -68,11 +68,30 @@ const entry: JournalEntry = {
 };
 const entryRoot: JournalFrame = { kind: "entry", id: entryId };
 
-function transport(found: JournalEntry): JournalTransport {
+/** The original as saved: `rawText` is what the owner typed, which a hand-written entry's summary still equals. */
+function sourceOf(rawText: string) {
+  return {
+    source: {
+      id: entry.source_id,
+      source_type: "manual_text" as const,
+      journal_date: "2026-10-24",
+      occurred_at: null,
+      source_recorded_at: null,
+      language: null,
+      created_at: "2026-10-24T09:31:00Z",
+      raw_text: rawText,
+    },
+  };
+}
+
+function transport(
+  found: JournalEntry,
+  getSource: JournalTransport["getSource"] = vi.fn(),
+): JournalTransport {
   return {
     getDay: vi.fn(),
     getEntry: vi.fn().mockResolvedValue({ entry: found }),
-    getSource: vi.fn(),
+    getSource,
     getDraft: vi.fn(),
     updateDraft: vi.fn(),
     rejectDraft: vi.fn(),
@@ -92,13 +111,20 @@ describe("an entry whose summary holds the owner's own words", () => {
       const user = userEvent.setup();
       render(
         <JournalView
-          transport={transport(entry)}
+          transport={transport(
+            entry,
+            vi.fn().mockResolvedValue(sourceOf(entry.summary ?? "")),
+          )}
           initial={entryRoot}
           labels={labels}
         />,
       );
       await screen.findByRole("heading", { name: entry.title });
-      expect(screen.getByText(labels.originalSavedNote)).toBeVisible();
+      // The owner's words are the text; the original is the same words, so nothing says it is saved or offers it.
+      expect(await screen.findByText(entry.summary ?? "")).toBeVisible();
+      await act(() => Promise.resolve());
+      expect(screen.queryByText(labels.originalSavedNote)).toBeNull();
+      expect(screen.queryByText(labels.showOriginal)).toBeNull();
       expect(screen.queryByText(labels.summarizedNote)).toBeNull();
 
       await user.click(screen.getByRole("button", { name: labels.editEntry }));
@@ -119,7 +145,8 @@ describe("an entry whose summary holds the owner's own words", () => {
       />,
     );
     await screen.findByRole("heading", { name: entry.title });
-    expect(screen.getByText(journalSv.summarizedNote)).toBeVisible();
+    // The original could not be read here, so the line about it (and its link) is offered as it was.
+    expect(await screen.findByText(journalSv.summarizedNote)).toBeVisible();
     await user.click(screen.getByRole("button", { name: journalSv.editEntry }));
     expect(screen.getByLabelText(journalSv.summaryLabel)).toBeVisible();
   });

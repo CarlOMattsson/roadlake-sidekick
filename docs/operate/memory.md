@@ -4,6 +4,8 @@
 
 <!-- description: Turn on Sidekick's memory with the `memory` profile. Nothing is derived or sent until you do, and the text goes to the model provider you choose. -->
 
+> **Cost.** Memory calls a language model through the key you give Hindsight, and the provider bills you per call. Nothing is billed until you turn it on. Read [AI costs](../explanation/ai-costs.md) first.
+
 Turn on Sidekick's memory with the `memory` profile. Nothing is derived or sent until you do, and the text goes to the model provider you choose.
 
 The `memory` profile adds Hindsight and a worker that feeds it from your journal, contacts, projects and tasks. Nothing

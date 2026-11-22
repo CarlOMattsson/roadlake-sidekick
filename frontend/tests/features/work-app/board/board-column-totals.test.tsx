@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { boardLabelsEn } from "@/features/work-app/board/board-labels";
@@ -70,9 +70,13 @@ describe.each(["columns", "single"] as const)(
   (layout) => {
     it("counts the server's total in each heading and offers more only where the total is larger", async () => {
       const user = userEvent.setup();
+      // A column that shows fewer than it holds reads its own first page at mount; here it brings nothing and goes on.
+      const getWorkBoard = vi
+        .fn()
+        .mockResolvedValue({ columns: {}, next_cursor: "more" });
       render(
         <Harness
-          work={transport()}
+          work={transport({ getWorkBoard })}
           layout={layout}
           initial={frameOf(totalsPage)}
         />,
@@ -89,9 +93,9 @@ describe.each(["columns", "single"] as const)(
       expect(heading(workEn.taskStatus.todo)).toContain("(7)");
       expect(
         within(region(workEn.taskStatus.todo)).getByRole("button", {
-          name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
+          name: boardLabelsEn.showMoreCountIn(5, workEn.taskStatus.todo),
         }),
-      ).toBeInTheDocument();
+      ).toHaveTextContent(boardLabelsEn.showMoreCount(5));
       // In progress shows all of its one record; Projects all of its one.
       await show(user, layout, workEn.taskStatus.in_progress);
       expect(heading(workEn.taskStatus.in_progress)).toContain("(1)");
@@ -139,8 +143,7 @@ describe.each(["columns", "single"] as const)(
   },
 );
 
-it("drops the button once the column's read brings every record, and the heading keeps the total", async () => {
-  const user = userEvent.setup();
+it("reads a column that holds more than it shows at mount, and drops the button once every record is there", async () => {
   const rest = [3, 4, 5, 6, 7].map((n) => task(n + 10, "todo", `Uppgift ${n}`));
   const getWorkBoard = vi.fn().mockResolvedValue({
     columns: { todo: [a, b, ...rest] },
@@ -153,23 +156,16 @@ it("drops the button once the column's read brings every record, and the heading
       initial={frameOf(totalsPage)}
     />,
   );
-  await user.click(
-    screen.getByRole("button", {
-      name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
-    }),
-  );
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("button", {
-        name: boardLabelsEn.showMoreIn(workEn.taskStatus.todo),
-      }),
-    ).toBeNull(),
-  );
   expect(
-    within(region(workEn.taskStatus.todo)).getByRole("button", {
+    await within(region(workEn.taskStatus.todo)).findByRole("button", {
       name: "Uppgift 7",
     }),
   ).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", {
+      name: boardLabelsEn.showMoreCountIn(5, workEn.taskStatus.todo),
+    }),
+  ).toBeNull();
   expect(heading(workEn.taskStatus.todo)).toContain("(7)");
 });
 

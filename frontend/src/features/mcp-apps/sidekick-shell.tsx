@@ -24,7 +24,7 @@ import {
   topOf,
   type NavEntry,
 } from "@/features/mcp-apps/nav-state";
-import { STRIP_ROOM_IDS, type RoomId } from "@/features/mcp-apps/router";
+import type { RoomId } from "@/features/mcp-apps/router";
 import {
   answerProps,
   createShellNavState,
@@ -35,11 +35,18 @@ import { AppFrame } from "@/features/mcp-apps/ui/layout";
 import { RenderErrorBoundary } from "@/features/mcp-apps/ui/error-boundary";
 import { controlEntry } from "@/features/mcp-apps/ui/control-entry";
 import { RoomSurfaceContext } from "@/features/mcp-apps/ui/room-context";
+import {
+  ShortcutHelpOpenerContext,
+  ShortcutRegistryContext,
+} from "@/features/mcp-apps/ui/shortcut-registry";
+import { ShortcutHelp } from "@/features/mcp-apps/ui/shortcut-help";
+import { useShortcuts } from "@/features/mcp-apps/ui/shortcuts";
 import { useViewPicker } from "@/features/mcp-apps/ui/view-picker";
 import { ShellBar } from "./shell-parts/shell-bar";
 import {
   backName,
   layerKey,
+  paneBackName,
   layersOf,
   modelContextLine,
   scrollTop,
@@ -52,6 +59,9 @@ import type {
 } from "./shell-parts/shell-types";
 import { useLayerFreshness } from "./shell-parts/use-layer-freshness";
 import { useShellMeasures } from "./shell-parts/use-shell-measures";
+import { useShellKeys } from "./shell-parts/use-shell-keys";
+import { useRoomStrip } from "./shell-parts/room-strip";
+import { useSplitPane, type SplitAsk } from "./shell-parts/use-split-pane";
 import "./sidekick-shell.css";
 
 // The shell's public types and helpers live in shell-parts; rooms and tests import them from here.
@@ -73,14 +83,12 @@ export function SidekickShell({
   onModelContext,
   onSendMessage,
   strip: stripAllowed = true,
-  stripRooms: stripRoomsGiven = STRIP_ROOM_IDS,
+  primaryRooms,
+  moreRooms,
   registerBack,
   staleTick = 0,
 }: SidekickShellProps) {
   const labels = sidekickShellLabelsFor(locale);
-  // A room this instance leaves out (SIDEKICK_ENABLED_ROOMS) is not in the strip; a strip of one room names nothing.
-  const stripRooms = stripRoomsGiven.filter((room) => roomEnabled(room));
-  const strip = stripAllowed && stripRooms.length > 1;
   const [shellNav, dispatch] = useReducer(shellNavReducer, undefined, () =>
     createShellNavState(start, full),
   );
@@ -106,9 +114,13 @@ export function SidekickShell({
     dispatch({ type: "props", ...props });
   const { nav, inlineKey } = shellNav;
   const [asked, setAsked] = useState<string | undefined>();
-  // A Back or a press on the active room tab that would drop unsaved edits asks first; `ask` is that question,
-  // tied to the layer it was asked on.
-  const [ask, setAsk] = useState<{ kind: "back" | "root"; layer: string }>();
+  // A Back, a press on the active room tab, a record opened beside a list over another one, or the × of the detail,
+  // that would drop unsaved edits asks first; `ask` is that question, tied to the layer it was asked on.
+  const [ask, setAsk] = useState<{
+    kind: "back" | "root" | SplitAsk["kind"];
+    layer: string;
+    split?: SplitAsk;
+  }>();
   const askFrom = useRef<HTMLElement | null>(null);
 
   // How navigation works on this host: local needs tools/call; reserve asks Claude with ui/message.
@@ -123,13 +135,49 @@ export function SidekickShell({
   // and Back under it names the room Control was opened from (designsystem §3 "Rumsremsan": a missing strip read as a jump of the head). Its room in the strip
   // goes back to that room's layer, as Back does.
   const inControl = nav.stacks[nav.active].at(-1)?.room === "control";
+  const roomStrip = useRoomStrip({
+    primary: primaryRooms,
+    more: moreRooms,
+    allowed: stripAllowed,
+    active: nav.active,
+    inControl,
+    labels,
+    onChoose: choose,
+  });
+  const { strip, rooms: stripRooms } = roomStrip;
   const stripVisible = strip && (mode === "local" || mode === "reserve");
-  const { narrow, tabsEl, shellEl, barEl } = useShellMeasures(
+  const { narrow, wide, tabsEl, shellEl, barEl } = useShellMeasures(
     full,
     stripVisible,
   );
   // The end of the Back row, where the view on top puts its own pen and ⋯ (BackHeaderActions).
   const [backSlot, setBackSlot] = useState<HTMLSpanElement | null>(null);
+  // A wide frame (≥ 64rem) where the shell drives the rooms: the head is one row, the strip and then the room's own head
+  // (RoomHead portals there). Elsewhere each room draws its head in its own row under the strip.
+  const headOn = wide && mode === "local" && stripVisible;
+  const [headSlot, setHeadSlot] = useState<HTMLDivElement | null>(null);
+
+  // The keys of every room and the keyboard help (`?`).
+  const keysOn = full && mode === "local";
+  const {
+    registry: shortcutRegistry,
+    helpOpen,
+    setHelpOpen,
+    charKeys,
+    groups,
+  } = useShellKeys({
+    on: keysOn,
+    labels,
+    stripRooms,
+    // Mer opens from its key only while its cell is drawn (not behind the narrow room picker).
+    openMore: stripVisible && !narrow ? roomStrip.openMore : undefined,
+    choose,
+  });
+  // The compiler keeps this stable between renders (React Compiler), so the menus' row does not render again for it.
+  const helpOpener = {
+    open: () => setHelpOpen(true),
+    label: labels.shortcuts.title,
+  };
 
   // The page scroll of each layer that was left, by room and depth: Back returns to where the user was.
   const scrolls = useRef(new Map<string, number>());
@@ -138,7 +186,7 @@ export function SidekickShell({
   const firstRender = useRef(true);
   const picker = useViewPicker({
     label: labels.stripLabel,
-    options: stripRooms.map((value) => ({
+    options: roomStrip.pickRooms.map((value) => ({
       value,
       label: labels.rooms[value],
     })),
@@ -157,10 +205,34 @@ export function SidekickShell({
   });
   const activeLayers = layersOf(nav, nav.active);
   const shownId = activeLayers[activeLayers.length - 1]?.id;
+  // The same wide frame splits a list and the record opened from it (desktop spec 2.1, nav-state splitOf).
+  const splitPane = useSplitPane({
+    nav,
+    wide: headOn,
+    labels,
+    keys: keysOn && charKeys,
+    bound: new Set(
+      groups.flatMap((group) => group.entries.flatMap((entry) => entry.keys)),
+    ),
+    dispatch,
+    isDirty: (ids) => unsaved.isDirty(ids),
+    askFirst: (question) => askFirst(question.kind, question),
+    clearAsk: () => setAsk(undefined),
+    focusAfter: (move) => {
+      focusAfterSwitch.current = move;
+    },
+    push: navigate,
+  });
+  const { split, besideOpen, shownIds, takeRow } = splitPane;
+  const holdsEdits = useCallback(
+    (layerId: string) => unsaved.isDirty([layerId]),
+    [unsaved],
+  );
   const { layerKeys, markDirty } = useLayerFreshness({
     nav,
     full,
-    shownId,
+    shownIds,
+    holdsEdits,
     startRoom: start.room,
     onInlineStale: () => dispatch({ type: "inline-stale" }),
     staleTick,
@@ -168,7 +240,7 @@ export function SidekickShell({
 
   /** The user leaves `room`: remember where its page was scrolled. */
   function leave(room: RoomId) {
-    scrolls.current.set(layerKey(nav, room), scrollTop());
+    scrolls.current.set(`${room}:${splitPane.scrollDepth(room)}`, scrollTop());
   }
 
   function send(room: RoomId) {
@@ -207,11 +279,14 @@ export function SidekickShell({
   }
 
   /** Asks `unsavedAsk` on the layer on top, remembering where the focus was to give it back on the keep button. */
-  function askFirst(kind: "back" | "root") {
+  function askFirst(
+    kind: "back" | "root" | SplitAsk["kind"],
+    split?: SplitAsk,
+  ) {
     const layer = layersOf(nav, nav.active).at(-1)?.id;
     if (layer === undefined) return;
     askFrom.current = document.activeElement as HTMLElement | null;
-    setAsk({ kind, layer });
+    setAsk({ kind, layer, split });
   }
 
   /** The Back of the row, the tab and the system: one layer back, after asking when the layer holds unsaved edits. */
@@ -222,9 +297,10 @@ export function SidekickShell({
   }
 
   function discardAsked() {
-    const kind = ask?.kind;
+    const question = ask;
     setAsk(undefined);
-    if (kind === "root") toRoot(nav.active);
+    if (question?.kind === "root") toRoot(nav.active);
+    else if (question?.split) splitPane.answer(question.split);
     else back();
   }
 
@@ -274,6 +350,8 @@ export function SidekickShell({
 
   function back() {
     scrolls.current.delete(layerKey(nav, nav.active));
+    // The first record beside a list closes: the focus goes back to its row, as the × does.
+    splitPane.beforeBack();
     focusAfterSwitch.current = true;
     dispatch({ type: "back" });
   }
@@ -295,6 +373,14 @@ export function SidekickShell({
     return () => registerBack(undefined);
   }, [registerBack]);
 
+  // Esc closes the record beside a list, one step at a time, after a menu, a dialog, a field and the room's own Esc had
+  // their turn (they handle it first or take it: useShortcuts skips them). With nothing open the shell does not take
+  // Esc, so the host may leave fullscreen with it. While the unsaved question is open, Esc keeps editing.
+  useShortcuts(
+    { Escape: () => (ask ? keepEditing() : requestBack()) },
+    { enabled: keysOn && besideOpen && !helpOpen },
+  );
+
   const activeEntry = topOf(nav, nav.active);
   const line = modelContextLine(labels, nav.active, activeEntry);
 
@@ -305,7 +391,7 @@ export function SidekickShell({
 
   // Restore the scroll position of the layer that is shown (a room that was left, or the layer Back
   // returns to), and move focus to the heading of the layer on top after a room change, a step in or Back.
-  const depth = nav.stacks[nav.active].length;
+  const depth = splitPane.scrollDepth(nav.active);
   useLayoutEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -319,6 +405,12 @@ export function SidekickShell({
     const pane = paneEls.current[nav.active];
     const layer =
       pane?.querySelector<HTMLElement>("[data-layer-top='true']") ?? pane;
+    // The detail beside a list closed: its row takes the focus back, where the user left the list.
+    const row = takeRow(layer);
+    if (row) {
+      row.focus({ preventScroll: true });
+      return;
+    }
     const heading = layer?.querySelector<HTMLElement>(
       "h1, h2, [data-room-heading]",
     );
@@ -326,19 +418,20 @@ export function SidekickShell({
       if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
       heading.focus({ preventScroll: true });
     } else pane?.focus({ preventScroll: true });
-  }, [nav.active, shownId]);
+  }, [nav.active, shownId, takeRow]);
 
   function roomProps(
     room: RoomId,
     layer?: NavEntry,
     layerId?: string,
+    shown?: boolean,
   ): ShellRoomProps {
     return {
       entry: layer ?? topOf(nav, room),
       full,
-      visible: room === nav.active,
+      visible: shown ?? room === nav.active,
       refreshKey: layerId === undefined ? 0 : (layerKeys[layerId] ?? 0),
-      navigate: mode === "local" ? navigate : undefined,
+      navigate: mode === "local" ? splitPane.navigateFrom(layerId) : undefined,
       back: mode === "local" && canGoBack(nav) ? requestBack : undefined,
       markDirty: (domains) => markDirty(layerId ?? room, domains),
       locale,
@@ -369,76 +462,110 @@ export function SidekickShell({
     );
   }
 
-  // The active room is a strip room, unless the host's strip leaves it out (Control is a step above one, nav-state).
-  const stripCurrent =
-    !inControl && (stripRooms as readonly RoomId[]).includes(nav.active)
-      ? nav.active
-      : undefined;
-  const showBack = mode === "local" && canGoBack(nav);
+  // In a split pane the detail's own head holds the Back (PaneHead), beside the list it leads to.
+  const showBack = mode === "local" && canGoBack(nav) && !besideOpen;
 
   return (
-    <AppFrame mode="full">
-      <div
-        ref={shellEl}
-        className="sk-rooms-shell"
-        data-strip={stripVisible ? "on" : "off"}
-        data-back={showBack ? "on" : undefined}
+    <ShortcutRegistryContext.Provider value={shortcutRegistry}>
+      <ShortcutHelpOpenerContext.Provider
+        value={keysOn ? helpOpener : undefined}
       >
-        {stripVisible || onCollapse || showBack ? (
-          <ShellBar
-            labels={labels}
-            barRef={barEl}
-            tabsRef={tabsEl}
-            strip={stripVisible}
-            stripRooms={stripRooms}
-            stripCurrent={stripCurrent}
-            tabStop={stripCurrent ?? stripRooms[0]}
-            narrow={narrow}
-            onChoose={choose}
-            picker={picker}
-            back={
-              showBack
-                ? {
-                    label: backName(labels, nav),
-                    onBack: requestBack,
-                    slotRef: setBackSlot,
-                  }
-                : undefined
-            }
-            // Fäll ihop sits in the header row, on the right, when the full view is only our own expansion.
-            collapse={
-              onCollapse ? { label: labels.collapse, onCollapse } : undefined
-            }
-            ask={
-              ask && ask.layer === shownId
-                ? {
-                    onDiscard: discardAsked,
-                    onKeep: keepEditing,
-                    keepRef: focusKeep,
-                  }
-                : undefined
-            }
-          />
-        ) : null}
-        <p className="sk-rooms__note" role="status" aria-live="polite">
-          {asked}
-        </p>
-        <ShellPanes
-          nav={nav}
-          rooms={rooms}
-          labels={labels}
-          locale={locale}
-          paneEls={paneEls}
-          roomProps={roomProps}
-          setUnsaved={unsaved.set}
-          strip={strip}
-          backSlot={showBack ? backSlot : null}
-        />
-        {/* The license coin, last in the room (see docs/decisions/log.md D-083: license terms). Control holds the row itself, so the coin is not drawn there. */}
-        {inControl ? null : (
-          <LicenseFoot key={nav.active} locale={locale} onShow={showLicense} />
-        )}
-      </div>
-    </AppFrame>
+        <AppFrame mode="full">
+          <div
+            ref={shellEl}
+            className="sk-rooms-shell"
+            data-strip={stripVisible ? "on" : "off"}
+            data-back={showBack ? "on" : undefined}
+            data-head={headOn ? "on" : undefined}
+          >
+            {stripVisible || onCollapse || showBack ? (
+              <ShellBar
+                labels={labels}
+                barRef={barEl}
+                tabsRef={tabsEl}
+                strip={stripVisible}
+                stripRooms={stripRooms}
+                stripCurrent={roomStrip.current}
+                tabStop={roomStrip.tabStop}
+                narrow={narrow}
+                onChoose={choose}
+                picker={picker}
+                more={roomStrip.moreParts}
+                back={
+                  showBack
+                    ? {
+                        label: backName(labels, nav),
+                        onBack: requestBack,
+                        slotRef: setBackSlot,
+                      }
+                    : undefined
+                }
+                // Fäll ihop sits in the header row, on the right, when the full view is only our own expansion.
+                collapse={
+                  onCollapse
+                    ? { label: labels.collapse, onCollapse }
+                    : undefined
+                }
+                ask={
+                  ask && ask.layer === shownId
+                    ? {
+                        onDiscard: discardAsked,
+                        onKeep: keepEditing,
+                        keepRef: focusKeep,
+                      }
+                    : undefined
+                }
+                headSlotRef={headOn ? setHeadSlot : undefined}
+              />
+            ) : null}
+            <p className="sk-rooms__note" role="status" aria-live="polite">
+              {asked}
+            </p>
+            <ShellPanes
+              nav={nav}
+              rooms={rooms}
+              labels={labels}
+              locale={locale}
+              paneEls={paneEls}
+              roomProps={roomProps}
+              setUnsaved={unsaved.set}
+              strip={strip}
+              backSlot={showBack ? backSlot : null}
+              headSlot={headOn ? headSlot : null}
+              split={{
+                ...splitPane.panes,
+                of: { [nav.active]: split },
+                swapped: shellNav.swapped,
+                backLabel: paneBackName(labels, nav),
+                onBack: requestBack,
+                onClose: splitPane.requestClose,
+              }}
+            />
+            {/* The license coin, last in the room (see docs/decisions/log.md D-083: license terms). Control holds the row itself, so the coin is not drawn there. */}
+            {inControl ? null : (
+              <LicenseFoot
+                key={nav.active}
+                locale={locale}
+                onShow={showLicense}
+              />
+            )}
+          </div>
+          {keysOn ? (
+            <ShortcutHelp
+              open={helpOpen}
+              onClose={() => setHelpOpen(false)}
+              title={labels.shortcuts.title}
+              closeLabel={labels.shortcuts.close}
+              groups={groups}
+              charKeys={{
+                label: labels.shortcuts.charKeys,
+                on: charKeys,
+                onChange: shortcutRegistry.setCharKeys,
+              }}
+            />
+          ) : null}
+        </AppFrame>
+      </ShortcutHelpOpenerContext.Provider>
+    </ShortcutRegistryContext.Provider>
   );
 }

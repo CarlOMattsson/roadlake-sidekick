@@ -1,0 +1,169 @@
+{
+  "01_override": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "02_fake_roles": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "inert": [
+      "<tool_call"
+    ],
+    "target": "description"
+  },
+  "03_hidden_text": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "inert": [
+      "<!--",
+      "<span"
+    ],
+    "target": "description"
+  },
+  "04a_base64": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "04b_rot13": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "04c_urlencoded": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "05_exfil_markdown": {
+    "flags": [
+      "contains_link"
+    ],
+    "inert": [
+      "![",
+      "<img"
+    ],
+    "target": "description"
+  },
+  "06_scope_creep": {
+    "flags": [],
+    "target": "description"
+  },
+  "07_payment": {
+    "flags": [
+      "payment_related"
+    ],
+    "target": "description"
+  },
+  "08_contact_substitution": {
+    "email": "anna@evil.example",
+    "flags": [
+      "contact_detail_unverified"
+    ],
+    "sender_domain": "a.se",
+    "target": "context_note"
+  },
+  "09_homoglyph_domain": {
+    "email": "anna@ex\u0430mple.se",
+    "flags": [
+      "contact_detail_unverified",
+      "homoglyph_domain"
+    ],
+    "sender_domain": "example.se",
+    "target": "context_note"
+  },
+  "10_checker_manipulation": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "11_quote_breaking": {
+    "flags": [],
+    "target": "description"
+  },
+  "13_report_xss": {
+    "flags": [
+      "contains_link"
+    ],
+    "inert": [
+      "<script",
+      "<svg",
+      "<a "
+    ],
+    "target": "description"
+  },
+  "15_fullwidth_instruction": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "16_math_bold_instruction": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "17_cyrillic_instruction": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "18_greek_instruction": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "19_fullwidth_link": {
+    "flags": [
+      "contains_link"
+    ],
+    "target": "description"
+  },
+  "20_fullwidth_dot_domain": {
+    "flags": [
+      "contains_link"
+    ],
+    "target": "description"
+  },
+  "21_entity_dot_domain": {
+    "flags": [
+      "contains_link"
+    ],
+    "target": "description"
+  },
+  "22_fullwidth_payment": {
+    "flags": [
+      "payment_related"
+    ],
+    "target": "description"
+  },
+  "23_fullwidth_iban": {
+    "flags": [
+      "payment_related"
+    ],
+    "target": "description"
+  },
+  "24_html_entity_instruction": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  },
+  "25_double_urlencoded": {
+    "flags": [
+      "instruction_like_text"
+    ],
+    "target": "description"
+  }
+}

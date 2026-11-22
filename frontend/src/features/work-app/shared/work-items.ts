@@ -360,6 +360,18 @@ export function frameFor(item: WorkItemRecord): WorkFrame | undefined {
 }
 
 /**
+ * The record a Task's or Project's own row opens, as the shell names it beside a split list (ui/split-layout.tsx
+ * useRecordRow). A Step opens its Task but is not that record's row, so it has none.
+ */
+export function recordOfItem(
+  item: WorkItemRecord,
+): { room: "work"; view: "task" | "project"; id: string } | undefined {
+  if (item.kind === "task" || item.kind === "project")
+    return { room: "work", view: item.kind, id: item.id };
+  return undefined;
+}
+
+/**
  * A Status column (or the phone's section) in the order it shows: by due date, so the overdue come
  * first and the oldest first, the undated last in the server's order; a column the user has ordered (`manually_ordered`)
  * keeps the server's order, which is the user's. Infinity − Infinity is NaN, which sort reads as equal.

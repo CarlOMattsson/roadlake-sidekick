@@ -30,14 +30,14 @@ describe.each([
     name: "sv",
     locale: "sv",
     loading: "Laddar…",
-    rooms: ["Arbete", "Dagbok", "Kontakter", "Inköp"],
+    rooms: ["Arbete", "Dagbok", "Inköp", "Mer"],
     text: "Väntar på data från Claude. Be Claude öppna den igen.",
   },
   {
     name: "en",
     locale: "en-US",
     loading: "Loading…",
-    rooms: ["Work", "Journal", "Contacts", "Shopping"],
+    rooms: ["Work", "Journal", "Shopping", "More"],
     text: "Still waiting for data from Claude. Ask Claude to open this again.",
   },
 ])("AwaitingResult ($name)", ({ locale, loading, rooms, text }) => {
@@ -252,10 +252,12 @@ describe("the static placeholder in the built document", () => {
   it.each(["sv", "en"] as const)(
     "carries the %s room names and loading line of the app, hidden for the other language",
     (locale) => {
-      const { rooms } = sidekickShellLabelsFor(locale);
-      const names = [rooms.work, rooms.journal, rooms.contacts, rooms.shopping]
-        .map((name) => `<span class="sidekick-wait-room">${name}</span>`)
-        .join("");
+      const { rooms, more } = sidekickShellLabelsFor(locale);
+      const names =
+        [rooms.work, rooms.journal, rooms.shopping]
+          .map((name) => `<span class="sidekick-wait-room">${name}</span>`)
+          .join("") +
+        `<span class="sidekick-wait-room" data-more="">${more}</span>`;
       expect(built).toContain(
         `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`,
       );

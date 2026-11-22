@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 
-import { AgendaSearchToggle, CreateToggle } from "../../agenda/agenda-toolbar";
+import type { RoomHeadProps } from "../../../mcp-apps/ui/room-head";
 import type { WorkTab } from "../../shell/work-shell";
 import type { TabTools } from "./use-tab-tools";
 
 /**
- * The tools at the end of the tab row (designsystem §3 "Rumshuvud"): search, +, then "⋯" outermost, at the same x in all
- * three tabs. Each tab has its own "⋯" (`menus`), mounted (hidden) on the others so an open menu keeps its state. With a
- * Task open over the list (`shown` false) the row keeps three empty 44 px boxes, so the tabs never move.
+ * The tools of Work's room head (designsystem §3 "Rumshuvud"): search, + and "⋯", at the same places in all three
+ * tabs (ui/room-head.tsx). Each tab has its own "⋯" (`menus`), mounted (hidden) on the others so an open menu keeps its
+ * state. With a Task open over the list (`shown` false) the head keeps three empty boxes, so the tabs never move.
+ * Search unfolds the field under the head and "/" opens it with the focus in the field; + unfolds the new-Task field
+ * ("n").
  */
-export function TabToolsEnd({
+export function tabHeadTools({
   tools,
   activeTab,
   shown,
@@ -31,40 +33,47 @@ export function TabToolsEnd({
   searchLabel: string;
   createLabel: string;
   menus: ReactNode;
-}) {
-  const slot = <span className="work-tab-slot" aria-hidden="true" />;
-  return (
-    <div className="sk-shell-tabs-end">
-      {shown ? (
-        <AgendaSearchToggle
-          label={searchLabel}
-          open={Boolean(tools.state.searchOpen[activeTab])}
-          disabled={createOff}
-          controls={`${searchId}${activeTab}`}
-          buttonRef={tools.searchToggle}
-          onOpenChange={(open) =>
-            open ? tools.openSearch(activeTab) : tools.closeSearch(activeTab)
+}): Pick<RoomHeadProps, "search" | "add" | "more" | "searchRef" | "addRef"> {
+  const searchOpen = Boolean(tools.state.searchOpen[activeTab]);
+  const createOpen = Boolean(tools.state.createOpen[activeTab]);
+  return {
+    searchRef: tools.searchToggle,
+    addRef: tools.createToggle,
+    search: shown
+      ? {
+          label: searchLabel,
+          expanded: searchOpen,
+          controls: `${searchId}${activeTab}`,
+          disabled: createOff,
+          onPress: () =>
+            searchOpen
+              ? tools.closeSearch(activeTab)
+              : tools.openSearch(activeTab),
+          onKey: () => tools.openSearch(activeTab),
+        }
+      : undefined,
+    add:
+      shown && createOffered
+        ? {
+            label: createLabel,
+            expanded: createOpen,
+            controls: `${searchId}${activeTab}-new`,
+            disabled: createOff,
+            onPress: () =>
+              createOpen
+                ? tools.closeCreate(activeTab)
+                : tools.openCreate(activeTab),
+            onKey: () => tools.openCreate(activeTab),
           }
-        />
-      ) : (
-        slot
-      )}
-      {shown && createOffered ? (
-        <CreateToggle
-          label={createLabel}
-          open={Boolean(tools.state.createOpen[activeTab])}
-          disabled={createOff}
-          controls={`${searchId}${activeTab}-new`}
-          buttonRef={tools.createToggle}
-          onOpenChange={(open) =>
-            open ? tools.openCreate(activeTab) : tools.closeCreate(activeTab)
-          }
-        />
-      ) : (
-        slot
-      )}
-      {menus}
-      {shown ? null : slot}
-    </div>
-  );
+        : undefined,
+    // The hidden menus of the other tabs draw nothing; with no menu shown the place keeps an empty box.
+    more: shown ? (
+      menus
+    ) : (
+      <>
+        {menus}
+        <span className="sk-room-head__slot" aria-hidden="true" />
+      </>
+    ),
+  };
 }

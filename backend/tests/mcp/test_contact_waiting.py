@@ -121,6 +121,7 @@ async def test_an_unlinked_task_that_waits_on_the_contact_is_in_its_context() ->
 
         context = await client.call_tool("get_contact_context", {"contact_id": contact_id})
         agenda = await client.call_tool("get_work_agenda", {"waiting": "waiting"})
+        board = await client.call_tool("get_work_board", {})
 
     tasks = context.structured_content["tasks"]["items"]
     assert [t["title"] for t in tasks] == ["Förbered demo"]
@@ -129,6 +130,14 @@ async def test_an_unlinked_task_that_waits_on_the_contact_is_in_its_context() ->
     assert "You are waiting on Anna Berg since today: Förbered demo." in first_line
     assert "No open tasks" not in first_line
     assert agenda.structured_content["items"][0]["waiting_on_contact_name"] == "Anna Berg"
+    # The board's card names her too, as the agenda's row does.
+    (card,) = [
+        item
+        for column in board.structured_content["columns"].values()
+        for item in column
+        if item["title"] == "Förbered demo"
+    ]
+    assert card["waiting_on_contact_name"] == "Anna Berg"
     assert agenda.content[0].text.splitlines()[0] == (
         "You are waiting on Anna Berg since today: Förbered demo."
     )

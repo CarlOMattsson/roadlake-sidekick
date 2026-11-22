@@ -70,10 +70,10 @@ describe("NewContact keeps the name unless the Contact was created (A)", () => {
     // The same name, sent again from the field, creates the Contact and empties the field.
     await user.keyboard("{Enter}");
     await waitFor(() =>
-      expect(onOpen).toHaveBeenCalledWith({
-        kind: "contact",
-        id: "contact-bo",
-      }),
+      expect(onOpen).toHaveBeenCalledWith(
+        { kind: "contact", id: "contact-bo" },
+        "Bo Berg",
+      ),
     );
     expect(name).toHaveValue("");
     expect(createContact).toHaveBeenCalledTimes(2);

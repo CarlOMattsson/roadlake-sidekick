@@ -1,14 +1,17 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import type { ShoppingItem } from "../transport";
 import { isDefaultAmount, quantityText } from "../shopping-card";
 import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
+import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import { boughtOnText, buyAgainUsed, holdUsed, itemMeta } from "./helpers";
 import { ItemEditor } from "./item-editor";
 import { hasQuickChanges, hasRowMenu, RowMenu, RowQuick } from "./row-quick";
 import { heldWord, isHolding, queuedMark, rowFailure } from "./row-parts";
 import type { RowEnv } from "./row-parts";
+import { useRowKeys } from "./use-row-keys";
+import "./store-row-keys.css";
 
 /**
  * One large row per item of the store view: the ring marks it bought or open again, a tap on the rest of the row
@@ -47,6 +50,9 @@ export function StoreRow({
   const heldSlot = holding && !locked && Boolean(env.onStep && env.onMove);
   const [menuOpen, setMenuOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+  // Fullscreen: the rows are one Tab stop, the arrow keys move over them (use-row-keys.ts).
+  const { line, onKeyDown, onFocus } = useRowKeys(item, env, quick);
   return (
     <li
       className={`shopping-store-item${holding ? " shopping-held-item" : ""}${
@@ -56,7 +62,14 @@ export function StoreRow({
     >
       {/* Arbetes grammar: two sibling buttons, never nested. The ring ticks; the rest of the row opens the
             change form, as a long press, a right click and Shift+F10 do. */}
-      <div className="shopping-store-line">
+      <KeyScope
+        ref={line}
+        className="shopping-store-line"
+        // The row's line opens the change form: it takes the shared pointer feedback (row.css), the form under it does not.
+        data-sk-row={locked ? undefined : ""}
+        onKeyDown={onKeyDown}
+        onFocus={onFocus}
+      >
         <button
           type="button"
           className="shopping-ring"
@@ -134,6 +147,7 @@ export function StoreRow({
             item={item}
             env={env}
             menuOpen={menuOpen}
+            menuId={menuId}
             moreButton={moreButton}
             onToggleMenu={() => setMenuOpen((open) => !open)}
           />
@@ -145,6 +159,7 @@ export function StoreRow({
                 item={item}
                 env={env}
                 menuOpen={false}
+                menuId={menuId}
                 moreButton={moreButton}
                 onToggleMenu={() => undefined}
               />
@@ -152,16 +167,14 @@ export function StoreRow({
             <span className="shopping-held">{heldWord(item, env)}</span>
           </span>
         )}
-      </div>
+      </KeyScope>
       {quick && menuOpen && hasRowMenu(item, env) && (
         <RowMenu
           item={item}
           env={env}
+          anchor={moreButton}
+          menuId={menuId}
           onClose={() => setMenuOpen(false)}
-          onEscape={() => {
-            setMenuOpen(false);
-            moreButton.current?.focus();
-          }}
         />
       )}
       {(inPlace || !held[item.id]) && rowFailure(item, env)}

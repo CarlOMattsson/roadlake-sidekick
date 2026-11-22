@@ -105,6 +105,22 @@ export function backName(labels: SidekickShellLabels, nav: NavState): string {
   );
 }
 
+/**
+ * The name the Back of a split pane's detail head leads to: the record under the top one, by its own name, else by
+ * its kind ("‹ Kontakt"), never by the room, which is the list standing beside it.
+ */
+export function paneBackName(
+  labels: SidekickShellLabels,
+  nav: NavState,
+): string {
+  const parent = nav.stacks[nav.active].at(-2);
+  if (parent?.label) return parent.label;
+  return (
+    (parent && labels.split.kinds[`${parent.room}:${parent.view}`]) ??
+    backName(labels, nav)
+  );
+}
+
 export function zeroes(): Record<RoomId, number> {
   return Object.fromEntries(ROOM_IDS.map((room) => [room, 0])) as Record<
     RoomId,

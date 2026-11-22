@@ -1,4 +1,10 @@
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import type { HostFeatures } from "@/features/mcp-apps/bridge";
 import {
@@ -43,6 +49,15 @@ function stripNames(): string[] {
     ? Array.from(nav.querySelectorAll("button")).map((b) => b.textContent ?? "")
     : [];
 }
+/** The rooms of the Mer menu, once it is open. */
+function menuNames(): string[] {
+  const menu = screen.queryByRole("group", { name: "Fler rum" });
+  return menu
+    ? Array.from(menu.querySelectorAll("button")).map(
+        (b) => b.textContent ?? "",
+      )
+    : [];
+}
 function setup() {
   return render(
     <SidekickShell
@@ -78,7 +93,9 @@ it("reads the declared rooms and always keeps work", () => {
 it("shows every strip room when all are on", () => {
   declare("work,journal,shopping,contacts,control");
   setup();
-  expect(stripNames()).toEqual(["Arbete", "Dagbok", "Kontakter", "Inköp"]);
+  expect(stripNames()).toEqual(["Arbete", "Dagbok", "Inköp", "Mer"]);
+  fireEvent.click(screen.getByRole("button", { name: "Mer" }));
+  expect(menuNames()).toEqual(["Kontakter"]);
 });
 
 it("leaves the rooms that are off out of the strip", () => {

@@ -838,6 +838,11 @@
 .sidekick-work .work-agenda-filters:empty {
   display: none;
 }
+/* Beside a record in a wide frame (desktop spec 3.1) the filter row rests on the head row's hairline and the first
+   group follows it without the phone's 8 + 8, so the first task starts within 140 of the frame's top. */
+.sk-split > [data-pane="list"] .sidekick-work .work-agenda-filters {
+  margin-block: 0;
+}
 .sidekick-work .work-agenda-modes {
   display: flex;
   flex: none;

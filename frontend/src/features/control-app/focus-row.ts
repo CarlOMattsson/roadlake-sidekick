@@ -8,12 +8,15 @@ export function focusRowNear(
   fallback: HTMLElement | null,
 ) {
   const rows = Array.from(
-    root.querySelectorAll<HTMLLIElement>("li.control-row"),
+    root.querySelectorAll<HTMLElement>("li.control-row, .control-trow"),
   );
   const start = Math.max(0, index);
   const order = [...rows.slice(start), ...rows.slice(0, start).reverse()];
   for (const row of order) {
-    const button = row.querySelector("button");
+    // A table row's open button is not the button a write left behind: Undo and Restore are.
+    const button = row.querySelector<HTMLButtonElement>(
+      "button:not(.control-topen)",
+    );
     if (button) {
       button.focus();
       return;

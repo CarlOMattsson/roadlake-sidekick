@@ -1,0 +1,226 @@
+/* The review card (flip-card.tsx, designsystem §3 Repetition): the fixed face, a text stack (the front's prompt over the
+   back's answer) and an action stack ("Visa svaret" over the grade buttons). In each stack both sides share one grid
+   cell, so it is as high as its higher side, and the hidden side keeps its place (visibility, not display): the card
+   never changes height when it turns, and the grade buttons stand where the reveal button stood.
+   full: the review layer. One centred column at most 30 rem wide: the 200 face, the text, the buttons.
+   inline: a Claude card. The 120 face at the start with the text beside it, the buttons under both at full width, so
+   the card stays under 340 with the host's 110 % text. When the text column would be narrower than 8.5 rem (large
+   text), the text goes under the face. A question without a photo is drawn on the face instead. */
+.sk-flip {
+  --sk-flip-face: 200px;
+  --sk-flip-face-bg: var(--sk-surface);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sk-s4);
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 30rem;
+  margin-inline: auto;
+  text-align: center;
+  color: var(--sk-fg);
+}
+/* Inline the card stands on the Claude card's surface, so the face takes the page colour to read as a frame. */
+.sk-flip[data-density="inline"] {
+  --sk-flip-face: 120px;
+  --sk-flip-face-bg: var(--sk-bg);
+
+  gap: var(--sk-s3);
+  max-inline-size: none;
+}
+
+/* The face and the text: a centred column, or inline with a photo a row that wraps. */
+.sk-flip__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sk-s4);
+  min-inline-size: 0;
+}
+.sk-flip[data-density="inline"] .sk-flip__head {
+  align-items: stretch;
+  gap: var(--sk-s3);
+}
+.sk-flip[data-density="inline"][data-face="photo"] .sk-flip__head {
+  flex-flow: row wrap;
+  align-items: center;
+  gap: var(--sk-s3) var(--sk-s4);
+  text-align: start;
+}
+.sk-flip[data-density="inline"][data-face="photo"] .sk-flip__text {
+  flex: 1 1 8.5rem;
+  align-self: center;
+}
+.sk-flip:focus-visible {
+  outline-offset: 4px;
+}
+
+/* The face: a square of fixed size for a photo, radius 12. A question without a photo is drawn on a face as wide as
+   the card: in fullscreen at least as high as the square, inline as high as its text (at most four lines). */
+.sk-flip__face {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: var(--sk-flip-face);
+  block-size: var(--sk-flip-face);
+  overflow: hidden;
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-flip-face-bg);
+}
+.sk-flip__face--text {
+  align-self: stretch;
+  inline-size: auto;
+  block-size: auto;
+  min-block-size: var(--sk-flip-face);
+  padding: var(--sk-s4);
+  border: var(--sk-hairline) solid var(--sk-line);
+}
+.sk-flip[data-density="inline"] .sk-flip__face--text {
+  min-block-size: 0;
+  padding: var(--sk-s3) var(--sk-s4);
+}
+
+.sk-flip__photo {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  user-select: none;
+}
+
+.sk-flip__skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.sk-flip__question {
+  margin: 0;
+  font: var(--sk-type-section);
+  overflow-wrap: break-word;
+}
+.sk-flip[data-density="inline"] .sk-flip__question {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-size: var(--sk-type-card-size);
+  font-weight: var(--sk-type-card-weight);
+  line-height: var(--sk-type-card-line);
+}
+
+/* A stack: both sides in one cell. */
+.sk-flip__stack {
+  display: grid;
+  min-inline-size: 0;
+}
+/* The text stack is as wide as the card in a column, and takes the rest of the row beside a photo. */
+.sk-flip__text {
+  align-self: stretch;
+}
+
+.sk-flip__side {
+  grid-area: 1 / 1;
+  min-inline-size: 0;
+}
+/* The prompt and the answer are centred in their stack: under the face in fullscreen, beside it inline. */
+.sk-flip__text > .sk-flip__side {
+  align-self: center;
+}
+.sk-flip__side[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+/* The answer rises in when the card turns; --sk-dur-slow is 0 ms under reduced motion and the block below stops it.
+   The buttons do not move: the grades take the reveal's place at once. */
+.sk-flip[data-revealed] .sk-flip__side--back {
+  animation: sk-flip-rise var(--sk-dur-slow) var(--sk-ease-out) both;
+}
+
+@keyframes sk-flip-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--sk-s1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.sk-flip__prompt {
+  margin: 0;
+  font-size: var(--sk-type-card-size);
+  font-weight: var(--sk-type-card-weight);
+  line-height: var(--sk-type-card-line);
+  overflow-wrap: break-word;
+}
+
+.sk-flip__prompt-skeleton {
+  display: block;
+  inline-size: 50%;
+  block-size: var(--sk-type-card-line);
+  margin-inline: auto;
+}
+.sk-flip[data-density="inline"] .sk-flip__prompt-skeleton {
+  inline-size: 70%;
+  margin-inline: 0;
+}
+
+/* The answer takes the focus after a turn, so it is read; it is not a control and draws no ring (the grade buttons,
+   one Tab away, do). */
+.sk-flip__answer {
+  display: grid;
+  gap: var(--sk-s1);
+  min-inline-size: 0;
+}
+.sk-flip__answer:focus {
+  outline: none;
+}
+
+.sk-flip__title {
+  margin: 0;
+  font: var(--sk-type-title);
+  overflow-wrap: break-word;
+}
+.sk-flip[data-density="inline"] .sk-flip__title {
+  font-size: var(--sk-type-card-size);
+  font-weight: var(--sk-type-card-weight);
+  line-height: var(--sk-type-card-line);
+}
+
+.sk-flip__meta {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow-wrap: break-word;
+}
+
+/* The grades share the row at full thumb width, 8 apart; with more than fit (a later four-grade setting) they wrap. */
+.sk-flip__grades {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+  gap: var(--sk-s2);
+}
+
+/* Every button of the card is 48 high and as wide as its column, so it is reached with one thumb. Two classes and the
+   family's, so an app's button rule does not shrink it to 44. */
+.sk-flip .sk-btn.sk-flip__btn {
+  inline-size: 100%;
+  min-block-size: var(--sk-tap-lg);
+  touch-action: manipulation;
+}
+
+/* No area of its own, so a card without a notice has no empty row and no gap under its buttons. */
+.sk-flip__notice {
+  grid-column: 1 / -1;
+  text-align: start;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-flip[data-revealed] .sk-flip__side--back {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
-import { useShortcuts } from "../../mcp-apps/ui/shortcuts";
+import { useRoomShortcuts } from "../../mcp-apps/ui/shortcut-registry";
+import { shellLabelsForDateLocale } from "../../mcp-apps/sidekick-shell-labels";
 import { hierarchyDetailLabelsFor } from "./hierarchy-detail-labels";
 import { DomainAccent, GroupRow } from "./hierarchy-group-row";
 import {
@@ -137,8 +138,14 @@ export function HierarchyView({
     const next = Math.min(Math.max(index + delta, 0), buttons.length - 1);
     buttons[next]?.focus();
   }
-  useShortcuts(
+  const keys = shellLabelsForDateLocale(t.dateLocale);
+  useRoomShortcuts(
     { j: () => moveFocus(1), k: () => moveFocus(-1) },
+    {
+      id: "hierarchy-rows",
+      title: keys.rooms.work,
+      labels: { j: keys.shortcuts.nextRow, k: keys.shortcuts.previousRow },
+    },
     { enabled: shortcuts },
   );
 

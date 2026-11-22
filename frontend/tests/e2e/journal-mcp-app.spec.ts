@@ -140,20 +140,21 @@ test("sandboxed Journal App moves from day to entry to original and back on a mo
   const entryHeading = app.getByRole("heading", { level: 2 });
   await expect(entryHeading).toBeFocused();
   await expect(app.locator("img")).toHaveCount(0);
+  // The owner's text leads; Claude's summary and the key points wait in one quiet fold under it.
+  await app
+    .getByRole("button", { name: /^(Claude's summary|Key points)/ })
+    .click();
   await expect(
     app.getByText("Commitment: Skicka offerten på torsdag."),
   ).toBeVisible();
-  await app.getByRole("button", { name: "Show original" }).click();
-  await expect(
-    app.getByRole("heading", { level: 2, name: "Your original text" }),
-  ).toBeVisible();
+  // A text the owner wrote by hand (manual_text) is the entry's main text, read from its original: there is no
+  // "Show original" under it, as the original is what is shown (dagbok-desktop fynd 2).
   await expect(
     app.getByText("Råtext: Anna vill ha offerten före fredag."),
   ).toBeVisible();
-  await app.getByRole("button", { name: "Show summary" }).click();
-  await expect(
-    app.getByRole("button", { name: "Show original" }),
-  ).toBeVisible();
+  await expect(app.getByRole("button", { name: "Show original" })).toHaveCount(
+    0,
+  );
   await app.getByRole("button", { name: "Back" }).click();
   await app.getByRole("button", { name: "Previous week" }).click();
   await expect(
@@ -182,18 +183,21 @@ test("sandboxed Journal App moves from day to entry to original and back on a mo
       call.name !== "list_tags",
   );
   const names = calls.map((call) => call.name);
-  // Back remounts the entry frame, which reads its entry again, as Work frames do.
-  expect(names).toEqual([
-    "get_journal_entry",
-    "get_journal_source",
-    "get_journal_entry",
+  // The entry reads its day (its neighbours) and its original (the owner's text), side by side and in either order;
+  // Previous week reads that day.
+  expect(names[0]).toBe("get_journal_entry");
+  expect([...names.slice(1, 3)].sort()).toEqual([
     "get_journal_day",
+    "get_journal_source",
   ]);
+  expect(names.slice(3)).toEqual(["get_journal_day"]);
   expect(calls[0]?.arguments).toMatchObject({
     entry_id: entryId,
     include_content: true,
   });
-  expect(calls[1]?.arguments).toMatchObject({
+  expect(
+    calls.find((call) => call.name === "get_journal_source")?.arguments,
+  ).toMatchObject({
     source_id: sourceId,
     include_content: true,
   });
@@ -501,6 +505,9 @@ test("sandboxed Journal App reviews a draft: pick one link, save as entry throug
     "get_journal_draft",
     "finalize_journal_draft",
     "get_journal_entry",
+    // The saved entry reads its day (its neighbours) and its original (the owner's own text first).
+    "get_journal_day",
+    "get_journal_source",
   ]);
   expect(calls[0]?.arguments).toMatchObject({ include_content: true });
   const [first, second] = [calls[1]!.arguments, calls[3]!.arguments];
@@ -665,29 +672,26 @@ test("sandboxed Journal App head with Today shown fits 360 px at 200 % text with
   await app.locator("html").evaluate((root) => {
     root.style.fontSize = "32px";
   });
-  const head = app.locator(".sk-day-strip-head");
-  const weekrow = head.locator(".sk-day-strip-weekrow");
+  // The room head (ui/room-head.tsx) is the first row, drawn before the strip's head, which holds the week row only.
+  const head = app.locator(".sk-room-head");
+  const weekrow = app.locator(".sk-day-strip-head .sk-day-strip-weekrow");
   await expect(weekrow).toBeVisible();
-  // "Idag" stands on the first row, in the tools before + and ⋯ (it is not on the week row any more).
+  // "Idag" stands on the first row, in the head before search, + and ⋯ (it is not on the week row any more).
   await expect(
-    head
-      .locator(".sk-day-strip-tools")
-      .getByRole("button", { name: "Today", exact: true }),
+    head.getByRole("button", { name: "Today", exact: true }),
   ).toBeVisible();
   await expect(weekrow.getByRole("button", { name: "Today" })).toHaveCount(0);
   const read = () =>
     head.evaluate((element) => {
       const frame = document.documentElement;
-      const rows = [
-        element.querySelector(".sk-day-strip-tabs"),
-        element.querySelector(".sk-day-strip-tools"),
-        element.querySelector(".sk-day-strip-weekrow"),
-      ] as HTMLElement[];
-      const week = rows[2]!;
+      const week = document.querySelector<HTMLElement>(
+        ".sk-day-strip-weekrow",
+      )!;
+      const rows = [element as HTMLElement, week];
       const kids = Array.from(week.children, (child) =>
         child.getBoundingClientRect(),
       );
-      const tools = Array.from(rows[1]!.children, (child) =>
+      const tools = Array.from(element.children, (child) =>
         child.getBoundingClientRect(),
       );
       return {

@@ -1,0 +1,146 @@
+/*
+ * The room header (room-head.tsx, designsystem §3 "Rumshuvud"): the view tabs, then the tools at fixed places, counted
+ * from the right: ⋯ outermost, then +, then search, 44 boxes 4 apart (48 between their middles). The glyph box of ⋯ ends
+ * on the content edge: the boxes are moved 10 outwards, so the middles are 384, 336 and 288 at 412 in every room, and
+ * ⋯'s box reaches 10 into the side margin. Each target is 48 × 48 and reaches 2 into the gap on each side, so neighbours
+ * meet and never overlap. An unused place is an empty 44 box, so the tabs never move between the views.
+ */
+.sk-room-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+}
+
+/* The view switch is an item of the row itself (a picker's menu beside it wraps onto its own line, below). */
+.sk-room-head__tabs {
+  display: contents;
+}
+.sk-room-head__tabs > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* In place (below 64rem, a host with one room): the room's own row under the strip, 44 high. It stays under the strip
+   while the view scrolls, on the page's colour, so the view in use is seen after the app scrolls itself. Its page
+   colour reaches the frame's side edges, as the strip's bar above it (sidekick-shell.css): the two stuck rows are one
+   band of the same width, and the row's content keeps the rooms' reading width (--sk-room-max), centred. The hairline
+   runs under the whole row, tools included, at the foot of its 44 line and within the content edges (content-box): a
+   menu that wraps onto its own line under the row stays below it. */
+.sk-room-head[data-place="room"] {
+  position: sticky;
+  top: var(--sk-sticky-top);
+  z-index: 2;
+  margin-inline: calc(-1 * var(--sk-frame-pad-left, 0px))
+    calc(-1 * var(--sk-frame-pad-right, 0px));
+  --sk-tabs-inset: max(0px, calc((100% - var(--sk-room-max)) / 2));
+  padding-inline: calc(var(--sk-frame-pad-left, 0px) + var(--sk-tabs-inset))
+    calc(var(--sk-frame-pad-right, 0px) + var(--sk-tabs-inset));
+  background:
+    linear-gradient(var(--sk-line), var(--sk-line)) 0
+      calc(var(--sk-tabs-h) - var(--sk-hairline, 1px)) / 100%
+      var(--sk-hairline, 1px) no-repeat content-box,
+    var(--color-background-primary, Canvas);
+}
+
+/* The tools (and the empty places) are the row's height: a 2.75rem box at 150 % made the row 66, and 88 at 200 %. The
+   class is doubled to stand over the family's icon button inside a room root (family.css, 0-2-1). */
+.sk-room-head.sk-room-head :is(.sk-room-head__tool, .sk-room-head__slot) {
+  position: relative;
+  flex: none;
+  width: var(--sk-tap);
+  height: var(--sk-tabs-h);
+  min-height: 0;
+  margin-inline-start: var(--sk-s1);
+  /* (44 − 24) / 2 in px tokens: the boxes stay 44 with 24 px glyphs at 200 % text too. */
+  inset-inline-start: calc((var(--sk-s6) + var(--sk-s3) - var(--sk-s5)) / 2);
+}
+.sk-room-head .sk-room-head__tool::after {
+  inset-inline: -2px;
+}
+/* + and search while the list loads or could not be read: tertiary, and a press does nothing. */
+.sk-room-head .sk-room-head__tool[aria-disabled="true"] {
+  background: none;
+  color: var(--sk-tertiary);
+  cursor: default;
+}
+
+/* A menu in the flow (the phone's ⋯ panel, the view picker's list) takes a full-width line of its own under the row,
+   and the ⋯ that opened it stays in place. While it is open the row scrolls with the page (not stuck). */
+.sk-room-head :is(.sk-menu-panel, .sk-pick-menu) {
+  flex: 0 0 100%;
+  order: 1;
+}
+.sk-room-head[data-place="room"]:has(
+    .sk-menu-panel:not([hidden]),
+    .sk-pick-menu
+  ) {
+  position: static;
+}
+
+/* In the shell's row (a wide frame): the room's root class stays around the head for the room's own rules, but draws
+   no box of its own. The row is the bar's height (sidekick-shell.css); the tabs fill it, so their line lies on the
+   bar's hairline, and the tools stand in its middle. */
+.sk-room-head-scope.sk-room-head-scope {
+  display: contents;
+}
+.sk-room-head[data-place="bar"] {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  align-self: stretch;
+  --sk-tabs-h: var(--sk-head-h);
+}
+.sk-room-head.sk-room-head[data-place="bar"]
+  :is(.sk-room-head__tool, .sk-room-head__slot) {
+  height: var(--sk-tap);
+}
+
+/* In the bar every room's view tabs are packed after the strip at their own width (Control's equal cells too) and
+   fill the row's 56, so the chosen tab's line lies on the bar's hairline. The first starts at its own padding: the
+   12 between the strip and the head part them. */
+.sk-room-head[data-place="bar"] .sk-room-head__tabs > * {
+  align-self: stretch;
+}
+.sk-room-head[data-place="bar"] .sk-tabs .sk-tabs__tab {
+  flex: 0 0 auto;
+  min-height: var(--sk-head-h);
+  padding-inline: var(--sk-s3);
+}
+.sk-room-head[data-place="bar"] .sk-tabs .sk-tabs__tab:first-child {
+  margin-inline-start: 0;
+}
+
+/* Large text on a phone (200 %: the frame is under 16 rem wide). The head stays one row: when the tabs do not fit, the
+   view picker takes their place and the three tools keep their place at the right. Icons are not text, so their boxes
+   keep 44 px wide instead of growing with the text, with 32 px glyphs (24 read as left behind by 32 px text), and they
+   take the row's height, so they share the tabs' top and their glyphs centre on the labels. */
+@container sk-frame (max-width: 16rem) {
+  .sk-room-head.sk-room-head :is(.sk-room-head__tool, .sk-room-head__slot) {
+    align-self: center;
+    width: calc(var(--sk-s6) + var(--sk-s3));
+    height: var(--sk-tabs-h);
+    min-height: 0;
+  }
+  .sk-room-head .sk-room-head__tool svg {
+    width: var(--sk-s6);
+    height: var(--sk-s6);
+  }
+  /* The round + stays a 32 circle with a 24 glyph in its 44 box, centred on the row: an ink disc does not grow with the
+     text, and a stretched box would draw an oval. */
+  .sk-room-head .sk-room-head__tool.sk-iconbtn--primary {
+    align-self: center;
+    height: calc(var(--sk-s6) + var(--sk-s3));
+    min-height: 0;
+    padding: calc(var(--sk-s3) / 2);
+  }
+  .sk-room-head .sk-room-head__tool.sk-iconbtn--primary svg {
+    width: var(--sk-s5);
+    height: var(--sk-s5);
+  }
+  /* The + target is 48 but starts 1 lower than the box's own: the rooms' target reaches down to 48 from the strip's top
+     (sidekick-shell.css), and the + box stands 4 under the row's top at 150 %, so its target would lose a pixel to it. */
+  .sk-room-head .sk-room-head__tool.sk-iconbtn--primary::after {
+    inset-block: -1px -3px;
+  }
+}

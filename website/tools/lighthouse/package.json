@@ -6,7 +6,7 @@
     "lh": "lhci autorun --config=./lighthouserc.json"
   },
   "dependencies": {
-    "@lhci/cli": "0.16.0"
+    "@lhci/cli": "0.16.1"
   },
   "overrides": {
     "basic-ftp": "^6.2.4"

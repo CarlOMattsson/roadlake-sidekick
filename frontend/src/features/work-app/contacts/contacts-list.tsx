@@ -1,7 +1,6 @@
 import {
   useContext,
   useEffect,
-  useId,
   useRef,
   useState,
   type CSSProperties,
@@ -10,26 +9,20 @@ import "./contacts.css";
 import type { WorkLabels } from "../shared/labels";
 import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
 import { MessageBox } from "../../mcp-apps/ui/message-box";
-import { Switch } from "../../mcp-apps/ui/switch";
 import { useToolSupport } from "../../mcp-apps/tool-support";
-import { RoomMessageContext } from "../../mcp-apps/ui/room-context";
+import {
+  RoomMessageContext,
+  RoomSurfaceContext,
+} from "../../mcp-apps/ui/room-context";
+import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { RoomHead } from "../../mcp-apps/ui/room-head";
+import { useSplitList } from "../../mcp-apps/ui/split-layout";
 import { contactsRoomLabelsFor } from "./contacts-room-labels";
 import { useShortcuts } from "../../mcp-apps/ui/shortcuts";
-import {
-  CloseIcon,
-  MoreIcon,
-  PlusIcon,
-  SearchIcon,
-} from "../../mcp-apps/ui/icons";
-import { KeyScope } from "../../mcp-apps/ui/key-scope";
+import { CloseIcon, PlusIcon, SearchIcon } from "../../mcp-apps/ui/icons";
 import { controlEntry } from "../../mcp-apps/ui/control-entry";
 import { appLocale } from "../../mcp-apps/app-locale";
 import { roomEnabled } from "../../mcp-apps/enabled-rooms";
-import {
-  MenuUpdateReminder,
-  useMoreMark,
-} from "../../mcp-apps/update-reminder";
-import { MenuLicenseRow, useLicenseMenu } from "../../mcp-apps/license-mark";
 import type { RoomTarget } from "../../mcp-apps/room-types";
 import type {
   WorkContactRecord,
@@ -45,8 +38,14 @@ import {
   sortedByName,
 } from "./contacts-sections";
 import { pageMatches } from "./contacts-list-state";
+import {
+  ContactsMenu,
+  ContactsMoreButton,
+  useContactsMore,
+} from "./contacts-more";
 import { NewContact } from "./new-contact";
-import type { CreateRequest } from "./new-contact-state";
+import type { CreateRequest, HeadPress } from "./new-contact-state";
+import { useContactListKeys } from "./use-contact-list-keys";
 import { useArchivedMatches } from "./use-archived-matches";
 import { useContactsList } from "./use-contacts-list";
 import { TagFilter } from "../../mcp-apps/ui/tags";
@@ -71,6 +70,11 @@ const stickyLetter: CSSProperties = {
  * The Contact list: a search field (debounced, an answer to an older search is ignored), a switch
  * for archived Contacts, rows that open a Contact, Show more and a form for a new Contact. The
  * search and the page live in the frame, so coming back from a Contact shows the same list.
+ *
+ * In a wide frame (the shell offers a place for the room head, `headSlot`) the room head (ui/room-head.tsx) holds the
+ * tools at their fixed places: search (its key "/" puts the focus in the field), + (key "n") and ⋯; the field then
+ * stands alone at the top of the list. Without that place (a phone, a narrow frame, an inline card) the field
+ * carries its own + and ⋯ as before.
  */
 export function ContactsView({
   frame,
@@ -88,7 +92,8 @@ export function ContactsView({
   transport: WorkTransport;
   labels: WorkLabels;
   moves: number;
-  onOpen: (frame: WorkFrame) => void;
+  /** `label` is the opened record's name, for the shell's Back ("‹ Anna") and the host's model-context line. */
+  onOpen: (frame: WorkFrame, label?: string) => void;
   /** Turns on "/" for the search field; only a fullscreen caller passes true (design language 3.8). */
   shortcuts?: boolean;
   /** Reads the list again in place when it changes; the value at mount is not a request. Search and archive switch stay. */
@@ -106,21 +111,40 @@ export function ContactsView({
   const offers = useToolSupport(transport);
   const heading = useRef<HTMLHeadingElement>(null);
   const searchField = useRef<HTMLInputElement>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  // The "⋯" menu holds the archive switch; it stays mounted (hidden) while closed.
   const moreButton = useRef<HTMLButtonElement>(null);
-  const moreMark = useMoreMark(t.moreActions);
-  // The "⋯" panel holds the archive switch; it stays mounted (hidden) while closed.
-  const [menuOpen, setMenuOpen] = useState(false);
-  useLicenseMenu(moreButton, () => setMenuOpen(true));
-  const panelId = useId();
-  // "/" moves to the search field, as in the fullscreen shortcut map (design language 3.8).
-  useShortcuts(
-    { "/": () => searchField.current?.focus() },
-    { enabled: shortcuts },
-  );
+  const moreMenu = useContactsMore(t.moreActions, moreButton);
+  // In a wide frame the room head holds search, + and ⋯ in the shell's row; otherwise the field carries + and ⋯.
+  const inBar = Boolean(useContext(RoomSurfaceContext).headSlot);
+  const [createPress, setCreatePress] = useState<HeadPress>();
+  const [createOpen, setCreateOpen] = useState(false);
+  const pressAdd = (key: boolean) =>
+    setCreatePress((last) => ({ n: (last?.n ?? 0) + 1, key }));
+  const focusSearch = () => searchField.current?.focus();
+  // "/" moves to the search field, as in the fullscreen shortcut map (design language 3.8); the room head binds it
+  // itself when it is drawn.
+  useShortcuts({ "/": focusSearch }, { enabled: shortcuts && !inBar });
   useEffect(() => {
     if (moves > 0) heading.current?.focus({ preventScroll: true });
   }, [moves]);
   const { page } = frame;
+  // Beside its Contact (a wide frame), stepping through the rows opens each Contact there.
+  const splitList = useSplitList();
+  const onKeyDown = useContactListKeys({
+    root,
+    search: searchField,
+    shortcuts,
+    locale: t.dateLocale,
+    title: t.contacts,
+    follow: splitList
+      ? (id) => {
+          const contact = page?.items.find((item) => item.id === id);
+          if (contact) onOpen({ kind: "contact", id }, contact.display_name);
+        }
+      : undefined,
+  });
   const query = frame.q.trim();
   const chosenTags = frame.tags ?? [];
   const fresh = pageMatches(page, query, frame.includeArchived, chosenTags);
@@ -139,7 +163,7 @@ export function ContactsView({
 
   function created(contact: WorkContactRecord) {
     list.forgetPage();
-    onOpen({ kind: "contact", id: contact.id });
+    onOpen({ kind: "contact", id: contact.id }, contact.display_name);
   }
 
   const loading = !fresh && !error;
@@ -152,219 +176,236 @@ export function ContactsView({
       archivedLabel={t.archivedLabel}
       knownTags={vocabulary.suggestions}
       locale={t.dateLocale}
-      onOpen={() => onOpen({ kind: "contact", id: contact.id })}
+      onOpen={() =>
+        onOpen({ kind: "contact", id: contact.id }, contact.display_name)
+      }
+    />
+  );
+  // The ⋯ menu, drawn under the field (a phone's panel) or inside the room head's ⋯ (a popover in a wide frame).
+  const menu = (
+    <ContactsMenu
+      more={moreMenu}
+      buttonRef={moreButton}
+      labels={t}
+      includeArchived={frame.includeArchived}
+      onArchived={list.changeArchived}
+      control={
+        onRoute && controlOn
+          ? { label: control.label, onOpen: () => onRoute(control.target) }
+          : undefined
+      }
     />
   );
   return (
     <article className="work-contacts">
-      {/* The room's name is in the room strip, so the heading is for assistive technology only (and the focus
+      <KeyScope ref={root} onKeyDown={onKeyDown}>
+        {/* The room's name is in the room strip, so the heading is for assistive technology only (and the focus
           target after a move). The room head is the search field, then + and ⋯ (design system §3, Rumshuvud). */}
-      <h2 ref={heading} tabIndex={-1} className="work-visually-hidden">
-        {t.contacts}
-      </h2>
-      <div className="work-contacts-head">
-        {/* The one standing field of the app means search, with the magnifier at its left edge (§3, Skapa). */}
-        <SearchIcon />
-        <input
-          ref={searchField}
-          type="search"
-          className="work-contacts-search"
-          aria-label={t.searchContacts}
-          placeholder={t.searchContacts}
-          enterKeyHint="search"
-          value={frame.q}
-          maxLength={SEARCH_MAX_LENGTH}
-          onChange={(event) => list.changeQuery(event.target.value)}
-        />
-        <NewContact
-          transport={transport}
-          labels={t}
-          request={createRequest}
-          onCreated={created}
-          onOpenExisting={(id) => onOpen({ kind: "contact", id })}
-        />
-        <button
-          ref={moreButton}
-          type="button"
-          className="sk-iconbtn work-contacts-more"
-          aria-label={moreMark.label}
-          aria-expanded={menuOpen}
-          aria-controls={panelId}
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <MoreIcon />
-          {moreMark.dot}
-        </button>
-      </div>
-      <KeyScope
-        id={panelId}
-        className="work-contacts-panel work-contact-menu"
-        hidden={!menuOpen}
-        onEscape={() => {
-          setMenuOpen(false);
-          moreButton.current?.focus();
-        }}
-      >
-        {/* The switch is the row's one control; its target is stretched over the whole row (contacts.css), so the words
-            beside it toggle it too and the row is a 48 target. */}
-        <div className="work-contact-menu-item work-contact-menu-switch">
-          <span className="work-contact-menu-switch-text">
-            {t.showArchived}
-          </span>
-          <Switch
-            checked={frame.includeArchived}
-            onChange={list.changeArchived}
-            label={t.showArchived}
+        <h2 ref={heading} tabIndex={-1} className="work-visually-hidden">
+          {t.contacts}
+        </h2>
+        {inBar && (
+          // The room head in the shell's row: no tabs (one view), then search, + and ⋯ at their fixed places.
+          <RoomHead
+            scope="sidekick-work"
+            keysTitle={t.contacts}
+            tabs={<span className="sk-shell-tabs-fill" aria-hidden="true" />}
+            search={{ label: t.searchContacts, onPress: focusSearch }}
+            add={{
+              label: t.newContact,
+              expanded: createOpen,
+              onPress: () => pressAdd(false),
+              onKey: () => pressAdd(true),
+            }}
+            addRef={addButton}
+            more={
+              <>
+                <ContactsMoreButton
+                  more={moreMenu}
+                  buttonRef={moreButton}
+                  className="sk-iconbtn sk-room-head__tool"
+                />
+                {menu}
+              </>
+            }
           />
-        </div>
-        {onRoute && controlOn && (
-          <button
-            type="button"
-            className="work-contact-menu-item"
-            onClick={() => onRoute(control.target)}
-          >
-            {control.label}
-          </button>
         )}
-        <MenuUpdateReminder />
-        <MenuLicenseRow />
-      </KeyScope>
-      <TagFilter
-        options={vocabulary.options}
-        selected={chosenTags}
-        onChange={list.changeTags}
-        locale={t.dateLocale}
-      />
-      {fresh && chosenTags.length > 0 && (
-        <p role="status" className="work-visually-hidden">
-          {tagWords.filtered(chosenTags)}
-        </p>
-      )}
-      {loading && <p role="status">{t.loading}</p>}
-      {error === "forbidden" && <p>{t.contactsForbidden}</p>}
-      {error === "error" && (
-        // The family's read error, as in every room: what could not be read, what the failure says, and Retry.
-        <ErrorNotice
+        <div className="work-contacts-head" data-in-bar={inBar || undefined}>
+          {/* The one standing field of the app means search, with the magnifier at its left edge (§3, Skapa). */}
+          <SearchIcon />
+          <input
+            ref={searchField}
+            type="search"
+            className="work-contacts-search"
+            aria-label={t.searchContacts}
+            placeholder={t.searchContacts}
+            enterKeyHint="search"
+            value={frame.q}
+            maxLength={SEARCH_MAX_LENGTH}
+            onChange={(event) => list.changeQuery(event.target.value)}
+          />
+          <NewContact
+            transport={transport}
+            labels={t}
+            request={createRequest}
+            head={
+              inBar
+                ? {
+                    button: addButton,
+                    press: createPress,
+                    onOpenChange: setCreateOpen,
+                  }
+                : undefined
+            }
+            onCreated={created}
+            onOpenExisting={(id, name) => onOpen({ kind: "contact", id }, name)}
+          />
+          {!inBar && (
+            <ContactsMoreButton
+              more={moreMenu}
+              buttonRef={moreButton}
+              className="sk-iconbtn work-contacts-more"
+            />
+          )}
+        </div>
+        {!inBar && menu}
+        <TagFilter
+          options={vocabulary.options}
+          selected={chosenTags}
+          onChange={list.changeTags}
           locale={t.dateLocale}
-          subject="contacts"
-          cause={cause}
-          onRetry={() => list.read()}
         />
-      )}
-      {fresh &&
-        (page.items.length === 0 ? (
-          chosenTags.length > 0 ? (
-            // The list is narrowed by tags: it is not empty, so no introduction and no first steps, only the way out.
-            <EmptyState
-              title={words.noContactsWithTags(
-                chosenTags.map((slug) =>
-                  tagLabelOf(slug, vocabulary.suggestions),
-                ),
-                query,
-              )}
-            >
-              <button
-                type="button"
-                className="work-add-row sk-action-row"
-                onClick={() => list.changeTags([])}
+        {fresh && chosenTags.length > 0 && (
+          <p role="status" className="work-visually-hidden">
+            {tagWords.filtered(chosenTags)}
+          </p>
+        )}
+        {loading && <p role="status">{t.loading}</p>}
+        {error === "forbidden" && <p>{t.contactsForbidden}</p>}
+        {error === "error" && (
+          // The family's read error, as in every room: what could not be read, what the failure says, and Retry.
+          <ErrorNotice
+            locale={t.dateLocale}
+            subject="contacts"
+            cause={cause}
+            onRetry={() => list.read()}
+          />
+        )}
+        {fresh &&
+          (page.items.length === 0 ? (
+            chosenTags.length > 0 ? (
+              // The list is narrowed by tags: it is not empty, so no introduction and no first steps, only the way out.
+              <EmptyState
+                title={words.noContactsWithTags(
+                  chosenTags.map((slug) =>
+                    tagLabelOf(slug, vocabulary.suggestions),
+                  ),
+                  query,
+                )}
               >
-                <CloseIcon />
-                {tagWords.clearLabel}
-              </button>
-            </EmptyState>
-          ) : (
-            <EmptyState
-              title={query ? t.noContactMatches(query) : t.noAnyContacts}
-              hint={query ? undefined : words.emptyHint}
-              ask={{
-                locale: t.dateLocale,
-                example: query ? words.createNamedAsk(query) : words.emptyAsk,
-                onSend: sendMessage
-                  ? () =>
-                      void sendMessage(
-                        query ? words.createNamedAsk(query) : words.emptyAsk,
-                      )
-                  : undefined,
-              }}
-            >
-              {archivedMatches !== undefined && (
                 <button
                   type="button"
                   className="work-add-row sk-action-row"
-                  onClick={() => list.changeArchived(true)}
-                >
-                  {words.showArchivedMatches(archivedMatches)}
-                </button>
-              )}
-              {query && (
-                <button
-                  type="button"
-                  className="work-add-row sk-action-row"
-                  onClick={() => {
-                    list.changeQuery("");
-                    searchField.current?.focus();
-                  }}
+                  onClick={() => list.changeTags([])}
                 >
                   <CloseIcon />
-                  {words.clearSearch}
+                  {tagWords.clearLabel}
                 </button>
-              )}
-              {/* The hand-made way next to the ask-Claude line: with a search text it creates that Contact at once; without one it opens the create field as + does. */}
-              {offers("create_contact") && (
-                <button
-                  type="button"
-                  className="work-add-row sk-action-row"
-                  onClick={() =>
-                    setCreateRequest((last) => ({
-                      name: query,
-                      n: (last?.n ?? 0) + 1,
-                      // A named create is made at once (the name is already typed); without a name the field opens.
-                      immediate: query !== "",
-                    }))
-                  }
-                >
-                  <PlusIcon />
-                  {query ? words.createNamed(query) : words.addContact}
-                </button>
-              )}
-            </EmptyState>
-          )
-        ) : page.items.length > LETTER_HEADINGS_ABOVE ? (
-          <div role="group" aria-label={t.contacts}>
-            {sectionsOf(page.items).map((section) => (
-              // The letter heading and its rows are a plain block with a list of its own; the block is not a
-              // list item, so no list holds a non-listitem child.
-              <div key={section.letter} className="work-contact-letter">
-                <h3 style={stickyLetter}>{section.letter}</h3>
-                <ul className="work-contact-list">
-                  {section.contacts.map(rowOf)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <ul className="work-contact-list" aria-label={t.contacts}>
-            {sortedByName(page.items).map(rowOf)}
-          </ul>
-        ))}
-      {fresh && more === "busy" && <p role="status">{t.loading}</p>}
-      {fresh && more === "failed" && (
-        <MessageBox
-          severity="error"
-          title={words.moreFailed}
-          action={{ label: t.retry, onClick: list.loadMore }}
-        />
-      )}
-      {fresh && page.next_cursor && (
-        <button
-          type="button"
-          className="sk-more"
-          disabled={more === "busy"}
-          onClick={list.loadMore}
-        >
-          {t.more}
-        </button>
-      )}
+              </EmptyState>
+            ) : (
+              <EmptyState
+                title={query ? t.noContactMatches(query) : t.noAnyContacts}
+                hint={query ? undefined : words.emptyHint}
+                ask={{
+                  locale: t.dateLocale,
+                  example: query ? words.createNamedAsk(query) : words.emptyAsk,
+                  onSend: sendMessage
+                    ? () =>
+                        void sendMessage(
+                          query ? words.createNamedAsk(query) : words.emptyAsk,
+                        )
+                    : undefined,
+                }}
+              >
+                {archivedMatches !== undefined && (
+                  <button
+                    type="button"
+                    className="work-add-row sk-action-row"
+                    onClick={() => list.changeArchived(true)}
+                  >
+                    {words.showArchivedMatches(archivedMatches)}
+                  </button>
+                )}
+                {query && (
+                  <button
+                    type="button"
+                    className="work-add-row sk-action-row"
+                    onClick={() => {
+                      list.changeQuery("");
+                      searchField.current?.focus();
+                    }}
+                  >
+                    <CloseIcon />
+                    {words.clearSearch}
+                  </button>
+                )}
+                {/* The hand-made way next to the ask-Claude line: with a search text it creates that Contact at once; without one it opens the create field as + does. */}
+                {offers("create_contact") && (
+                  <button
+                    type="button"
+                    className="work-add-row sk-action-row"
+                    onClick={() =>
+                      setCreateRequest((last) => ({
+                        name: query,
+                        n: (last?.n ?? 0) + 1,
+                        // A named create is made at once (the name is already typed); without a name the field opens.
+                        immediate: query !== "",
+                      }))
+                    }
+                  >
+                    <PlusIcon />
+                    {query ? words.createNamed(query) : words.addContact}
+                  </button>
+                )}
+              </EmptyState>
+            )
+          ) : page.items.length > LETTER_HEADINGS_ABOVE ? (
+            <div role="group" aria-label={t.contacts}>
+              {sectionsOf(page.items).map((section) => (
+                // The letter heading and its rows are a plain block with a list of its own; the block is not a
+                // list item, so no list holds a non-listitem child.
+                <div key={section.letter} className="work-contact-letter">
+                  <h3 style={stickyLetter}>{section.letter}</h3>
+                  <ul className="work-contact-list">
+                    {section.contacts.map(rowOf)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ul className="work-contact-list" aria-label={t.contacts}>
+              {sortedByName(page.items).map(rowOf)}
+            </ul>
+          ))}
+        {fresh && more === "busy" && <p role="status">{t.loading}</p>}
+        {fresh && more === "failed" && (
+          <MessageBox
+            severity="error"
+            title={words.moreFailed}
+            action={{ label: t.retry, onClick: list.loadMore }}
+          />
+        )}
+        {fresh && page.next_cursor && (
+          <button
+            type="button"
+            className="sk-more"
+            disabled={more === "busy"}
+            onClick={list.loadMore}
+          >
+            {t.more}
+          </button>
+        )}
+      </KeyScope>
     </article>
   );
 }

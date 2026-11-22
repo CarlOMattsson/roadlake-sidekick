@@ -1,4 +1,18 @@
+import type { RefObject } from "react";
 import type { WorkContactSummary, WriteFailure } from "../transport/transport";
+
+/** One press of the room head's + (a click, or its key "n" with `key`): the same value is the same press. */
+export type HeadPress = { n: number; key: boolean };
+
+/**
+ * The room head's + in a wide frame stands in place of the field's own: the field draws no button, takes `button` as
+ * the place the focus returns to, opens or closes on each new `press`, and says whenever it opens or closes.
+ */
+export type HeadPlus = {
+  button: RefObject<HTMLButtonElement | null>;
+  press?: HeadPress;
+  onOpenChange: (open: boolean) => void;
+};
 
 /**
  * A request to open the create field with a name in it; `n` makes a repeated request with the same name new.

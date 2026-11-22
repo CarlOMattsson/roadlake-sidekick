@@ -91,6 +91,8 @@ export function JournalView({
   // The Monday of the calendar week the owner switched to; absent: the day view. Kept here, not in a frame, so an
   // entry opened from the week and Back return to the same week.
   const [weekFrom, setWeekFrom] = useState<string>();
+  // The week's + opens today's day with its form for a new entry open; the day takes that once, when it is drawn.
+  const [compose, setCompose] = useState(false);
   // A new initial (a new tool result) replaces the whole navigation stack.
   if (initial !== seen) {
     setSeen(initial);
@@ -99,6 +101,7 @@ export function JournalView({
     setMoves(0);
     setHandled([]);
     setWeekFrom(undefined);
+    setCompose(false);
   }
   const top = stack.at(-1);
   function open(frame: JournalFrame) {
@@ -144,6 +147,45 @@ export function JournalView({
     setWeekFrom(weekStart(date > today ? today : date));
     setMoves((n) => n + 1);
   }
+  /**
+   * Leaves the week view for the day view: on the day it showed, or, with `date`, on that day (read first, and the
+   * week stays where it was if the read fails). `write` opens the day's form for a new entry.
+   */
+  function showDay(date?: string, write = false) {
+    if (!top || top.kind !== "day") return;
+    const before = top;
+    const open = () => {
+      setCompose(write);
+      setWeekFrom(undefined);
+      setMoves((n) => n + 1);
+    };
+    if (!date || date === before.page.journal_date) {
+      open();
+      return;
+    }
+    transport.getDay(date).then(
+      (page) => {
+        replaceFrame(before, { kind: "day", page });
+        open();
+      },
+      () => undefined,
+    );
+  }
+  /** A tag chosen under the week's calendar opens the tagged list, which the day view holds. */
+  function filterTags(tags: string[]) {
+    if (!top || top.kind !== "day") return;
+    replaceFrame(top, { ...top, tags });
+    showDay();
+  }
+  /** Opens the neighbouring entry in the place of the one shown, so stepping builds no stack. */
+  function stepEntry(id: string) {
+    if (onRoute) {
+      onRoute({ room: "journal", view: "entry", id, replace: true });
+      return;
+    }
+    if (top) replaceFrame(top, { kind: "entry", id });
+    setMoves((n) => n + 1);
+  }
   return (
     <section
       className={
@@ -178,10 +220,13 @@ export function JournalView({
           frame={top}
           start={weekFrom}
           onStart={setWeekFrom}
-          onShowDay={() => {
-            setWeekFrom(undefined);
-            setMoves((n) => n + 1);
-          }}
+          onShowDay={showDay}
+          onAdd={
+            transport.writeEntry
+              ? () => showDay(ownerToday(top.page.owner_timezone), true)
+              : undefined
+          }
+          onFilterTags={transport.listTaggedEntries ? filterTags : undefined}
           transport={transport}
           labels={t}
           moves={moves}
@@ -205,6 +250,8 @@ export function JournalView({
           onTellClaude={onTellClaude}
           control={control}
           onShowWeek={fullscreen ? () => showWeek(top) : undefined}
+          startComposing={compose}
+          onComposeStarted={() => setCompose(false)}
         />
       )}
       {top?.kind === "entry" && (
@@ -220,6 +267,8 @@ export function JournalView({
           onOpenProject={onOpenProject}
           onOpenTask={onOpenTask}
           refreshKey={refreshKey}
+          onStep={stepEntry}
+          fullscreen={fullscreen}
         />
       )}
       {top?.kind === "draft" && (

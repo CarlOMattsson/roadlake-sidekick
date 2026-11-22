@@ -169,6 +169,20 @@ describe("Journal: originals, drafts and the contact room", () => {
   function journal(supports?: typeof COMPANION_LIKE) {
     return transportOf((name) => {
       if (name === "get_journal_entry") return { entry: ENTRY };
+      // A transcript: the entry's text is the transcription, so the original is offered.
+      if (name === "get_journal_source")
+        return {
+          source: {
+            id: ENTRY.source_id,
+            source_type: "transcript_text",
+            journal_date: ENTRY.journal_date,
+            occurred_at: null,
+            source_recorded_at: null,
+            language: "sv",
+            created_at: "2026-11-09T12:00:00Z",
+            raw_text: "Måndagens ord, som sagda.",
+          },
+        };
       if (name === "list_tags") return { tags: [] };
       throw new Error(`unexpected ${name}`);
     }, supports);
@@ -188,6 +202,10 @@ describe("Journal: originals, drafts and the contact room", () => {
     expect(
       await screen.findByRole("button", { name: "Show original" }),
     ).toBeInTheDocument();
+    // The links wait in the fold under the text.
+    await userEvent.click(
+      screen.getByRole("button", { name: "Claude's summary" }),
+    );
     expect(screen.getByRole("button", { name: "Anna" })).toBeInTheDocument();
   });
 
@@ -203,15 +221,23 @@ describe("Journal: originals, drafts and the contact room", () => {
     );
 
     expect(await screen.findByText("Måndag")).toBeInTheDocument();
-    // The words of a hand-written entry live in the original, which the app can read.
+    // The words live in the original, which the app can read: they are the entry's text, and the original is offered.
+    expect(
+      await screen.findByText("Måndagens ord, som sagda."),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Show original" }),
     ).toBeInTheDocument();
     // The contact stays as a name (the contact room is not in the app).
+    await userEvent.click(
+      screen.getByRole("button", { name: "Claude's summary" }),
+    );
     expect(screen.queryByRole("button", { name: "Anna" })).toBeNull();
     expect(screen.getByText("Anna")).toBeInTheDocument();
     expect(call.mock.calls.map(([name]) => name)).toEqual([
       "get_journal_entry",
+      "get_journal_day", // the neighbouring entries of the day
+      "get_journal_source",
     ]);
   });
 });

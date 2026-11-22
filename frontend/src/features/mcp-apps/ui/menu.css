@@ -1,8 +1,96 @@
+/* ---- The menu as the phone's panel in the flow (menu.tsx, designsystem §3 "Meny"): a card on the surface under the
+   head, one 44 row per entry, the menu's 16/20 at 500, a hairline between entries. The same panel in every room; only
+   `Menu` draws it (its `panelClassName`), and its entries (`sk-menu-item`) are the popover's too. ---- */
+.sk-menu-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: var(--sk-s2) 0 0;
+  padding: var(--sk-s1) var(--sk-s4);
+  border-radius: var(--sk-radius-card);
+  background: var(--sk-surface);
+}
+.sk-menu-panel[hidden] {
+  display: none;
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-menu-item,
+.sk-menu-item {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  /* The entry reaches 12 into the panel's 16 of side padding and pads itself by as much, so its text stays on the
+     panel's text edge while the focus ring (below) has room inside the box, clear of the text. */
+  width: calc(100% + 2 * var(--sk-s3));
+  max-width: none;
+  min-height: var(--sk-tap);
+  margin: 0 calc(-1 * var(--sk-s3));
+  padding: 0 var(--sk-s3);
+  border: 0;
+  /* The hairline between entries (border-top, below and in a room's own rule) stays on the text edges: the border
+     is painted by this image, clear over the 12 of padding on each side. */
+  border-image: linear-gradient(
+      to right,
+      transparent var(--sk-s3),
+      var(--sk-line) var(--sk-s3) calc(100% - var(--sk-s3)),
+      transparent calc(100% - var(--sk-s3))
+    )
+    1 0 0 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-menu);
+  text-align: start;
+}
+/* The ring lies inside the entry: 8 clear of its text on the left and 1 under the hairline above, so it neither
+   crowds the label nor covers the line. */
+.sk-menu-item:focus-visible {
+  outline-offset: -4px;
+}
+/* An entry with a meta line: the name over a muted line in meta type, 6 of air above and below, so the row is 48 or
+   more. The tick stays at the end, centred on both lines. */
+.sk-menu-item:has(> .sk-menu-item__body) {
+  min-height: 48px;
+  padding-block: 6px;
+}
+.sk-menu-item__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sk-menu-item__meta {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+/* The hairline between entries, as Work's ⋯: above the button rule's border: 0 in specificity. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-menu-item
+  + .sk-menu-item {
+  border-top: var(--sk-hairline) solid var(--sk-line);
+}
+/* A mark the entry sets or clears (aria-pressed), or the place the user is at (aria-current): the chip's tick at the
+   entry's end. */
+.sk-menu-item:is([aria-pressed="true"], [aria-current="page"])::after {
+  content: "";
+  flex: none;
+  width: max(var(--sk-glyph), 0.85em);
+  height: max(var(--sk-glyph), 0.85em);
+  margin-inline-start: auto;
+  background: currentColor;
+  -webkit-mask: var(--sk-check) center / 100% no-repeat;
+  mask: var(--sk-check) center / 100% no-repeat;
+}
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  button.sk-menu-item--danger,
+.sk-menu-item--danger {
+  color: var(--sk-overdue-fg);
+}
 /* ---- The menu as a popover (menu.tsx, designsystem §3 "Meny"): with a mouse, or in a frame at least 40 rem wide.
    240 wide (13.75–20 rem), radius 12, 4 of air inside, 44 rows with the menu's 16/20 at 500 and 12 at each side
    of the text. The page under it: --sk-bg in light, lifted 6 % toward the text in dark, with the second shadow.
    It lies in the top layer (popover="manual"), placed by menu.tsx in fixed px, so it covers the sticky bands and
-   moves nothing on the page. On a phone the menu is the family's panel in the flow (.sk-menu-panel, family.css).
+   moves nothing on the page. On a phone the menu is the panel in the flow (.sk-menu-panel, above).
    --sk-menu-w, --sk-shadow-2, --sk-hover and --sk-dur-fast are the desktop tokens (tokens.css); the values after
    the comma are the same values until those land there. ---- */
 .sk-menu-popover {
@@ -55,7 +143,7 @@
 }
 
 /* An entry is a 44 row with rounded ends inside the 4 of air: no hairline between entries (the panel's rule), the
-   ring inside its box. Above the family's entry rule (family.css) in specificity. */
+   ring inside its box. Above the panel's entry rule (above) in specificity. */
 :is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
   .sk-menu-popover
   button.sk-menu-item,

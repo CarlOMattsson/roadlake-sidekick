@@ -90,14 +90,14 @@ it("groups Contacts under A–Ö letters when the list holds more than 30, with 
   ).toEqual(["A", "B", "C", "D", "Z", "Å", "Ä", "Ö"]);
 });
 
-it("opens a Contact from its row", async () => {
+it("opens a Contact from its row, named so the shell's Back can say where it came from", async () => {
   const user = userEvent.setup();
   const { onOpen } = renderList(frameOf([contact("Anna Andersson")]));
   await user.click(screen.getByRole("button", { name: "Anna Andersson" }));
-  expect(onOpen).toHaveBeenCalledWith({
-    kind: "contact",
-    id: "id-Anna Andersson",
-  });
+  expect(onOpen).toHaveBeenCalledWith(
+    { kind: "contact", id: "id-Anna Andersson" },
+    "Anna Andersson",
+  );
 });
 
 it("moves focus to the search field with /", async () => {

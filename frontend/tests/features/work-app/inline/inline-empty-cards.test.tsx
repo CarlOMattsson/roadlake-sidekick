@@ -283,7 +283,9 @@ describe("empty Journal day glance", () => {
       }),
     );
     expect(onTellClaude).toHaveBeenCalledWith(journalEn.tellClaudeMessage);
-    await user.click(screen.getByRole("button", { name: journalEn.cardOpen }));
+    await user.click(
+      screen.getByRole("button", { name: journalEn.glanceOpen }),
+    );
     expect(onOpen).toHaveBeenCalledTimes(1);
   });
 

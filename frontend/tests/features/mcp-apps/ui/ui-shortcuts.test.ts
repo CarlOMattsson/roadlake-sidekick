@@ -1,6 +1,11 @@
 import { renderHook } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import {
+  ShortcutRegistryContext,
+  createShortcutRegistry,
+} from "@/features/mcp-apps/ui/shortcut-registry";
 import {
   SEQUENCE_TIMEOUT_MS,
   useShortcuts,
@@ -264,5 +269,102 @@ describe("useShortcuts lifecycle", () => {
 
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useShortcuts capture, layers and the single-character switch", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("lets a capture listener's sequence win over a bubble listener's single key", () => {
+    const goOne = vi.fn();
+    const one = vi.fn();
+    renderHook(() => useShortcuts({ "g 1": goOne }, { capture: true }));
+    renderHook(() => useShortcuts({ "1": one }));
+
+    press("g", {}, document.body);
+    press("1", {}, document.body);
+
+    expect(goOne).toHaveBeenCalledTimes(1);
+    expect(one).not.toHaveBeenCalled();
+  });
+
+  it("without capture the bubble listener's single key fires on its own", () => {
+    const one = vi.fn();
+    renderHook(() => useShortcuts({ "1": one }));
+
+    press("1", {}, document.body);
+
+    expect(one).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores keys whose target is inside an open menu or a dialog", () => {
+    const j = vi.fn();
+    mount({ j });
+    const menu = document.createElement("div");
+    menu.setAttribute("data-menu", "popover");
+    const item = document.createElement("button");
+    menu.append(item);
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const inDialog = document.createElement("button");
+    dialog.append(inDialog);
+    document.body.append(menu, dialog);
+
+    press("j", {}, item);
+    press("j", {}, inDialog);
+    expect(j).not.toHaveBeenCalled();
+
+    press("j", {}, document.body);
+    expect(j).toHaveBeenCalledTimes(1);
+  });
+
+  it("switching single-character shortcuts off stops j, ? and g 1 but not named keys or modifier combos", () => {
+    const registry = createShortcutRegistry();
+    const j = vi.fn();
+    const help = vi.fn();
+    const goOne = vi.fn();
+    const down = vi.fn();
+    const save = vi.fn();
+    renderHook(
+      () =>
+        useShortcuts({
+          j,
+          "?": help,
+          "g 1": goOne,
+          ArrowDown: down,
+          "Mod+Enter": save,
+        }),
+      {
+        wrapper: ({ children }: { children: ReactNode }) =>
+          createElement(
+            ShortcutRegistryContext.Provider,
+            { value: registry },
+            children,
+          ),
+      },
+    );
+
+    press("j");
+    expect(j).toHaveBeenCalledTimes(1);
+
+    registry.setCharKeys(false);
+    press("j");
+    press("?");
+    press("g");
+    press("1");
+    press("ArrowDown");
+    press("Enter", { ctrlKey: true });
+
+    expect(j).toHaveBeenCalledTimes(1);
+    expect(help).not.toHaveBeenCalled();
+    expect(goOne).not.toHaveBeenCalled();
+    expect(down).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledTimes(1);
+
+    registry.setCharKeys(true);
+    press("j");
+    expect(j).toHaveBeenCalledTimes(2);
   });
 });

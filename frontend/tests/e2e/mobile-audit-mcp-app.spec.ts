@@ -531,6 +531,15 @@ const journalReplies: Record<string, unknown> = {
   get_journal_source: { structuredContent: jSource },
   get_journal_draft: { structuredContent: jDraft },
 };
+// A spoken entry: the original text is a transcript, so the entry offers "Show original" (a hand-written text does not).
+const journalSpokenReplies: Record<string, unknown> = {
+  ...journalReplies,
+  get_journal_source: {
+    structuredContent: {
+      source: { ...jDraft.source, source_type: "voice_transcript" },
+    },
+  },
+};
 
 // ---------- Shopping fixtures ----------
 
@@ -1001,7 +1010,7 @@ const scenarios: Scenario[] = [
     resource: "journal",
     host: hostInline,
     result: jDay,
-    replies: journalReplies,
+    replies: journalSpokenReplies,
     steps: chain(
       buttonText(/Mötet med Anna/),
       buttonText(/Visa originaltext|Show original/),
@@ -1518,6 +1527,11 @@ test.describe("touch flows", () => {
     await touch(cdp, "touchEnd", x + dx, y + dy);
     await cdp.detach();
   }
+  // The phone shows one status at a time under its column tabs (a tab's name is the status and its count).
+  const columnTab = (app: FrameLocator, status: string) =>
+    app
+      .getByRole("group", { name: "Visa kolumn" })
+      .getByRole("button", { name: new RegExp(`^${status}\\s+\\d+$`) });
   const scrollY = (app: FrameLocator) =>
     app.locator("html").evaluate(() => window.scrollY);
   // The card's quick choices open on a long press (a contextmenu event on the title, which bubbles
@@ -1531,9 +1545,12 @@ test.describe("touch flows", () => {
   test("vertical swipe on the done glyph, the title and the meta line scrolls the page", async ({
     page,
   }) => {
-    // A short viewport, so the seven cards of the first segment overflow and the page can scroll.
+    // A short viewport, so the seven cards of the To do column overflow and the page can scroll (the board opens on
+    // In progress, which has five).
     const app = await openBoard(page, 560);
     expect(await layoutOf(app)).toBe("single");
+    await columnTab(app, "Att göra").click();
+    await expect(app.locator("li.work-card")).toHaveCount(7);
     const scrollable = await app
       .locator("html")
       .evaluate((el) => el.scrollHeight - el.clientHeight);
@@ -1604,25 +1621,37 @@ test.describe("touch flows", () => {
       });
   });
 
-  test("the status tab lists every status as a section, Klar folded until opened", async ({
+  test("the status tabs show one status at a time with its count, Klar open at once under its tab", async ({
     page,
   }) => {
-    // The chip row ("Kolumner") is gone. Each status is a section on the one page (phone), and
-    // Klar is folded ("Klar (6) ⌄") until it is tapped open.
+    // One column at a time on a phone: each status is a tab with its count, the chosen status is the only section
+    // drawn, and Klar lists its cards at once with no fold (the fold stays for a search, which shows every section).
     const app = await openBoard(page);
     expect(await layoutOf(app)).toBe("single");
-    await expect(app.getByRole("group", { name: "Kolumner" })).toHaveCount(0);
-    await expect(app.locator(".work-column")).toHaveCount(4);
+    const counts = { "Att göra": 7, Pågår: 5, Blockerad: 4, Klar: 6 };
+    for (const [status, count] of Object.entries(counts))
+      await expect(columnTab(app, status)).toHaveAccessibleName(
+        new RegExp(`^${status}\\s+${count}$`),
+      );
+    // In progress opens first while something is in progress.
+    await expect(columnTab(app, "Pågår")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(app.locator(".work-column")).toHaveCount(1);
     await expect(
       app.getByRole("heading", { level: 3, name: "Pågår (5)" }),
-    ).toBeVisible();
+    ).toBeAttached();
     await expect(
       app.getByRole("region", { name: /^Pågår/ }).locator("li.work-card"),
     ).toHaveCount(5);
-    const fold = app.getByRole("button", { name: /^Klar \(6\)/ });
-    await expect(fold).toHaveAttribute("aria-expanded", "false");
-    await fold.tap();
-    await expect(fold).toHaveAttribute("aria-expanded", "true");
+    await columnTab(app, "Klar").tap();
+    await expect(columnTab(app, "Klar")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(app.locator(".work-column")).toHaveCount(1);
+    await expect(app.locator("button.sk-fold")).toHaveCount(0);
     await expect(
       app.getByRole("region", { name: /^Klar/ }).locator("li.work-card"),
     ).toHaveCount(6);

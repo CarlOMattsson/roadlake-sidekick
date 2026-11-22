@@ -7,6 +7,7 @@ import {
 } from "react";
 import { ErrorNotice, Skeleton } from "../mcp-apps/ui/states";
 import { Tabs } from "../mcp-apps/ui/tabs";
+import { RoomHead } from "../mcp-apps/ui/room-head";
 import { LicenseRow } from "../mcp-apps/license-mark";
 import { UpdateReminderRow } from "../mcp-apps/update-reminder";
 import type { RoomTarget } from "../mcp-apps/room-types";
@@ -35,6 +36,13 @@ export type ControlData = {
 };
 
 const VIEW_ORDER: readonly ControlViewName[] = ["trash", "history", "memory"];
+
+/** The letter of each view after `g` (desktop spec 2.6): Borttaget, Historik, Minne. */
+const VIEW_KEYS: Record<ControlViewName, string> = {
+  trash: "b",
+  history: "h",
+  memory: "m",
+};
 
 /**
  * The view a room target names: the tab names ("memory", "history", "trash") and the tools' own, where
@@ -246,6 +254,15 @@ export function ControlApp({
     value,
     label: labels.views[value],
   }));
+  const tabs = (
+    <Tabs
+      label={labels.title}
+      options={options}
+      value={view}
+      onChange={choose}
+      fit="equal"
+    />
+  );
   return (
     <section className="sidekick-control" aria-label={labels.title}>
       <div className="control-card sk-card">
@@ -256,13 +273,23 @@ export function ControlApp({
         ) : titled ? (
           <p className="sk-eyebrow">{labels.title}</p>
         ) : null}
-        <Tabs
-          label={labels.title}
-          options={options}
-          value={view}
-          onChange={choose}
-          fit="equal"
-        />
+        {/* Fullscreen: the tabs are the room head (ui/room-head.tsx), in the shell's row in a wide frame; in place they
+            stand as they are, with no tools of their own. */}
+        {heading ? (
+          <RoomHead
+            scope="sidekick-control"
+            tools={false}
+            keysTitle={labels.title}
+            views={VIEW_ORDER.map((value) => ({
+              key: VIEW_KEYS[value],
+              label: labels.views[value],
+              onChoose: () => choose(value),
+            }))}
+            tabs={tabs}
+          />
+        ) : (
+          tabs
+        )}
         <div className="control-body" aria-busy={loading}>
           {failed ? (
             <ErrorNotice
@@ -295,6 +322,7 @@ export function ControlApp({
               onData={onChanges}
               sendMessage={sendMessage}
               onModelContext={onModelContext}
+              onOpen={onOpen}
               onOpenFull={openFull}
               full={heading}
             />

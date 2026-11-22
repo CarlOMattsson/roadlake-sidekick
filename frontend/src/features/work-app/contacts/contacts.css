@@ -188,7 +188,8 @@
   margin: 0;
   padding: 0;
   border: 0;
-  font: var(--sk-type-title);
+  /* The title size outside a split; 28/34 in a wide frame's detail pane (split-layout.css). */
+  font: var(--sk-type-display);
   overflow-wrap: anywhere;
 }
 .sk-rooms__pane .sidekick-work h2.work-detail-title.work-detail-title {
@@ -196,7 +197,7 @@
 }
 
 /* The ⋯ panel under a detail view's title: a surface box with one 44 px text button per entry. In a Contact, Task and
-   Project view the entries are sk-menu-item (family.css); the .work-contact-menu-item rules below serve the Contacts
+   Project view the entries are sk-menu-item (ui/menu.css); the .work-contact-menu-item rules below serve the Contacts
    list's panel, the Task's status menu and a linked row's remove menu. */
 .sidekick-work .work-contact-menu {
   display: flex;
@@ -584,12 +585,19 @@
   width: 100%;
   min-height: var(--sk-tap-lg);
   padding: var(--sk-s2) var(--sk-s3);
-  border: 1px solid var(--sk-warning-line);
+  border: 0;
   border-radius: var(--sk-radius);
-  background: var(--sk-warning-bg);
+  background: var(--sk-surface);
   color: var(--sk-fg);
   font: inherit;
   text-align: start;
+}
+/* A wait is a neutral fact, not a warning (desktop spec H18): a muted clock before the words; only a long wait is red. */
+.sidekick-work article.work-contact .work-contact-waiting-clock {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--sk-muted);
 }
 .sidekick-work article.work-contact .work-contact-waiting-body {
   display: flex;
@@ -622,4 +630,72 @@
 /* The open new-Task field keeps the row air above the Tasks under it. */
 .sidekick-work article.work-contact .work-contact-task-new:has(input) {
   margin-bottom: var(--sk-s3);
+}
+
+/* In a wide frame the room head holds + and ⋯ (ui/room-head.tsx), so the field stands alone: it ends on the list's edge. */
+.sidekick-work .work-contacts-head[data-in-bar] > .work-contacts-search {
+  margin-inline-end: 0;
+}
+
+/* "Visa arkiverade" in the popover (ui/menu.tsx): the panel's switch row rules above need the panel's own class, so the
+   popover's row is a menu entry with the same words-left, switch-right layout and the stretched target. */
+.sidekick-work .sk-menu-popover > .work-contact-menu-switch {
+  position: relative;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+}
+
+/* A Contact beside its list: the avatar of the list row at 56 stands before the name (initials in the section size),
+   and the name, profile and nicknames in a column next to it. Elsewhere there is no avatar and no wrapper. */
+.sidekick-work .work-contact-ident {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s4);
+}
+.sidekick-work .work-contact-ident-text {
+  flex: 1;
+  min-width: 0;
+}
+.sidekick-work .work-contact-avatar.work-contact-avatar--large {
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  font: var(--sk-type-section);
+}
+
+/* Tasks and notes side by side in a wide detail (the detail pane is 45 rem at most: from a 70 rem frame it holds two
+   columns of at least 19 rem), Projects under both. The wrappers draw no box otherwise, so the phone and a narrow
+   frame lay out as before. A column with nothing in it is not drawn, and one column left takes the whole row. */
+.sidekick-work .work-contact-cols,
+.sidekick-work .work-contact-col {
+  display: contents;
+}
+@container sk-frame (min-width: 70rem) {
+  .sk-split > [data-pane="detail"] .work-contact-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--sk-s6);
+  }
+  .sk-split > [data-pane="detail"] .work-contact-col {
+    display: block;
+    min-width: 0;
+  }
+  .sk-split > [data-pane="detail"] .work-contact-col:empty {
+    display: none;
+  }
+  /* A column that starts on a bare heading gets the 44 row of the Tasks head (heading and +), so both headings and
+     the first rows under them stand on one line. */
+  .sk-split > [data-pane="detail"] .work-contact-col > h3:first-child {
+    display: flex;
+    align-items: center;
+    min-height: var(--sk-tap);
+  }
+  .sk-split
+    > [data-pane="detail"]
+    .work-contact-cols:not(
+      :has(> .work-contact-col:not(:empty) ~ .work-contact-col:not(:empty))
+    ) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

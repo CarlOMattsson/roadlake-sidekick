@@ -31,6 +31,14 @@ class RecordKind(StrEnum):
     JOURNAL_SOURCE = "journal_source"
     JOURNAL_ENTRY = "journal_entry"
     SHOPPING_ITEM = "shopping_item"
+    JOURNAL_ATTACHMENT = "journal_attachment"
+
+
+#: Kinds the change feed never names: a Journal source is immutable and cannot be trashed, and a
+#: photo's change would show its alt text and has no feed entry of its own.
+UNFEEDED_KINDS: frozenset[RecordKind] = frozenset(
+    {RecordKind.JOURNAL_SOURCE, RecordKind.JOURNAL_ATTACHMENT}
+)
 
 
 @dataclass(frozen=True, slots=True)

@@ -40,7 +40,7 @@ Every `docker compose` command needs `--env-file selfhost.env`: `up`, `restart`,
 
 - `api` reads the whole of `selfhost.env`. It is the one process that needs the GitHub sign-in settings, the rooms and the request limits. It never receives `db.env`.
 - `automation-worker`, `backup`, `push`, `memory-worker` and `ai-worker` receive a named list of settings, resolved from the `--env-file selfhost.env` of the command. They have no `env_file`. Every worker gets the database URL, the two signing secrets, the time budgets and the time zone, because production refuses to start without them.
-- Only `backup` receives `SIDEKICK_BACKUP_ENCRYPTION_KEY` and the retention settings. Only `push` receives `SIDEKICK_PUSH_AUTH_TOKEN`. Only `ai-worker` receives `SIDEKICK_AI_ANTHROPIC_API_KEY`; as the key is secret, `api` refuses to start in production when it finds the key in `selfhost.env`. The memory token and the key that derives memory ids go to `memory-worker` and to `automation-worker`, because the latter builds the same container as the API.
+- Only `backup` receives `SIDEKICK_BACKUP_ENCRYPTION_KEY` and the retention settings. Only `push` receives `SIDEKICK_PUSH_AUTH_TOKEN`. Only `ai-worker` receives `SIDEKICK_AI_ANTHROPIC_API_KEY` and `SIDEKICK_AI_CHECK_API_KEY`; as the keys are secret, `api` refuses to start in production when it finds either in `selfhost.env`. The memory token and the key that derives memory ids go to `memory-worker` and to `automation-worker`, because the latter builds the same container as the API.
 - No worker receives the GitHub client secret, the OAuth signing key, the allowed identities or the scopes.
 - `postgres` and `migrate` read `db.env`. `hindsight` reads `hindsight.env`. `ntfy` reads `ntfy.env`. No other service reads those files. `migrate` still receives the whole of `db.env`, including the PostgreSQL superuser password, although it only needs the migrator URL. It is a one-shot container with no route to the internet.
 
@@ -55,7 +55,7 @@ Practical consequences:
 
 A secret in `selfhost.env` is an environment variable of the container: every process in it can read it, and `docker inspect` prints it. As a file it is mounted read-only at `/run/secrets/<name>`, only in the services that read it (the same lists as above), and `docker inspect` shows the path but not the value. The ten secret settings can be moved this way:
 
-`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN` and `SIDEKICK_AI_ANTHROPIC_API_KEY` (file name `ai_anthropic_api_key`, see [Run AI steps](ai-steps.md)).
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN`, `SIDEKICK_AI_ANTHROPIC_API_KEY` (file name `ai_anthropic_api_key`, see [Run AI steps](ai-steps.md)) and `SIDEKICK_AI_CHECK_API_KEY` (file name `ai_check_api_key`).
 
 Existing installations keep working unchanged: a plain variable is still read. Move the values when you like:
 

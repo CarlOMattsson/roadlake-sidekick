@@ -16,6 +16,16 @@ import { createContext } from "react";
  * - `backActions` is the end of the shell's Back row ("‹ Tavla … ✎ ⋯") while this layer is on top and
  *   the shell draws a Back; null otherwise. A view puts its pen and ⋯ there with `BackHeaderActions`
  *   (back-header.tsx) instead of on its title row.
+ * - `headSlot` is the shell's one-row head in a wide frame (≥ 64rem) while this layer is on top; null otherwise. The
+ *   room's `RoomHead` (room-head.tsx) draws its tabs and tools there, after the room strip, instead of in its own row.
+ *   In a split pane the list holds it, not the record beside it.
+ * - `pane` is the layer's place in a wide frame's split (ui/split-layout.tsx, desktop spec 2.1): `list` with a record
+ *   or the hints beside it, `detail` beside the list, `drawer` over a wide view, `single` alone (absent: alone too).
+ *   In a split pane `backActions` is the detail's own head, not the shell's Back row.
+ * - `beside` is, on a list, the record open beside it (recordKey); its row is drawn chosen (useRecordRow).
+ * - `asideSlot` is, on a list with no record open, the place beside it that SplitAside fills; null otherwise.
+ * - `setLayout` lets a list say what it is now (useListLayout): a column, or a wide view (Status's columns) that a
+ *   record lies over as a drawer.
  */
 export type RoomSurface = {
   active: boolean;
@@ -24,6 +34,11 @@ export type RoomSurface = {
   view?: string;
   heading?: string;
   backActions?: HTMLElement | null;
+  headSlot?: HTMLElement | null;
+  pane?: "single" | "list" | "detail" | "drawer";
+  beside?: string;
+  asideSlot?: HTMLElement | null;
+  setLayout?: (layout: "list" | "wide") => void;
 };
 
 export const RoomSurfaceContext = createContext<RoomSurface>({

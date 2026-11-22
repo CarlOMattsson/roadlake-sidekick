@@ -4,6 +4,8 @@
 
 <!-- description: Låt din egen Claude Code, eller din server med din egen Anthropic-nyckel, köra AI-stegen i en godkänd uppgift och granska det den skriver. -->
 
+> **Kostnad.** Steg som din egen Claude Code kör ingår i din Claude-plan. Steg som din server kör använder din Anthropic API-nyckel och debiteras per anrop, med ett förvalt tak på 50 USD per månad. Läs [AI-kostnader](../explanation/ai-costs.sv.md) innan du slår på körningen.
+
 Vissa steg i en uppgift kan göras av AI: ett första utkast, research, en sammanfattning, en checklista. Du godkänner planen, din egen Claude Code eller din egen server kör AI-stegen, och varje resultat väntar på att du granskar det. Ett AI-steg gör bara text inne i Sidekick. Att skicka, köpa, radera eller publicera är alltid ett steg som du gör själv.
 
 ## Flödet

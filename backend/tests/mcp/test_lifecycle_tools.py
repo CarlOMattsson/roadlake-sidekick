@@ -165,8 +165,10 @@ async def test_discovery_exposes_exactly_the_three_reversible_tools() -> None:
         properties = tools[name].parameters["properties"]
         assert set(properties) == {"kind", "record_id", "version", "idempotency_key"}
         assert properties["idempotency_key"]["minLength"] == 8
+        # A Journal source cannot be trashed, and a photo is trashed through the photo tools.
         assert set(properties["kind"]["enum"]) == {kind.value for kind in RecordKind} - {
-            "journal_source"
+            "journal_source",
+            "journal_attachment",
         }
 
 

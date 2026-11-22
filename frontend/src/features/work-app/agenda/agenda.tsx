@@ -39,6 +39,8 @@ import {
   type AgendaControls,
 } from "./parts/use-agenda-layout";
 import { useAgendaSelection } from "./parts/use-agenda-selection";
+import { useBesideRecord, useSplitList } from "../../mcp-apps/ui/split-layout";
+import { frameFor } from "../shared/work-items";
 import { useMounted } from "../../mcp-apps/ui/use-mounted";
 import { useAgendaSession } from "./parts/use-agenda-session";
 import { useKeepFocus } from "./parts/use-keep-focus";
@@ -187,7 +189,20 @@ export function AgendaView({
     rowQueue: session.rowQueue,
   });
   const { visible } = layout;
+  // Beside its detail in a wide frame (desktop spec 2.1): the record open there is the selected row, and j/k open the
+  // record they step to there.
+  const beside = useBesideRecord();
+  const splitList = useSplitList();
   const { selected } = useAgendaSelection({
+    opened: beside?.startsWith("work:")
+      ? beside.slice("work:".length)
+      : undefined,
+    follow: splitList
+      ? (item) => {
+          const target = frameFor(item);
+          if (target) onOpen(target);
+        }
+      : undefined,
     stepping: layout.stepping,
     root,
     enabled: shortcuts && !waitingView,
@@ -195,6 +210,13 @@ export function AgendaView({
     statusOffered: offers.statusOffered,
     write: writes.write,
     toggleDone: writes.toggleDone,
+    dateLocale: t.dateLocale,
+    statusNames: [
+      t.taskStatus.todo,
+      t.taskStatus.in_progress,
+      t.taskStatus.blocked,
+      t.taskStatus.completed,
+    ].join(", "),
   });
 
   // The phone's offline copy and outbox (the mobile app only): when this page was read, and the ticks still to send.

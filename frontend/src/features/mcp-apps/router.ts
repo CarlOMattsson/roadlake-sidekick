@@ -20,13 +20,15 @@ export const ROOM_IDS = [
 ] as const;
 export type RoomId = (typeof ROOM_IDS)[number];
 
-/** Rooms that stand in the strip, in order. Control stays outside it. */
-export const STRIP_ROOM_IDS = [
-  "work",
-  "journal",
-  "contacts",
-  "shopping",
-] as const;
+/**
+ * Rooms that stand in the strip's own cells, in order: the ones used several times a week. The order is a design
+ * decision and never follows use, so the strip does not move under the thumb. Control stays outside the strip.
+ */
+export const PRIMARY_ROOM_IDS = ["work", "journal", "shopping"] as const;
+/** Rooms used about once a week or less: rows of the strip's last cell, "Mer ⌄", in order. */
+export const MORE_ROOM_IDS = ["contacts"] as const;
+/** Every room the strip leads to: its cells, then the rows of Mer (the narrow room picker lists them in this order). */
+export const STRIP_ROOM_IDS = [...PRIMARY_ROOM_IDS, ...MORE_ROOM_IDS] as const;
 export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
 
 /**

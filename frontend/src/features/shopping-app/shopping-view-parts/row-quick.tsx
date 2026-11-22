@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
 import type { ShoppingItem } from "../transport";
 import { quantityText } from "../shopping-card";
-import { KeyScope, onEscapeKey } from "../../mcp-apps/ui/key-scope";
+import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
+import { Menu, MenuItem, useMenuPopover } from "../../mcp-apps/ui/menu";
 import {
   CloseIcon,
   MinusIcon,
@@ -45,12 +46,15 @@ export function RowQuick({
   item,
   env,
   menuOpen,
+  menuId,
   moreButton,
   onToggleMenu,
 }: {
   item: ShoppingItem;
   env: RowEnv;
   menuOpen: boolean;
+  /** The id of the row's menu, which ⋯ controls. */
+  menuId: string;
   moreButton: RefObject<HTMLButtonElement | null>;
   onToggleMenu: () => void;
 }) {
@@ -89,6 +93,7 @@ export function RowQuick({
           className="sk-iconbtn sk-iconbtn--row shopping-row-more"
           aria-label={t.rowMenu(item.name)}
           aria-expanded={menuOpen}
+          aria-controls={menuOpen ? menuId : undefined}
           onClick={onToggleMenu}
           onKeyDown={(event) => {
             if (menuOpen) onEscapeKey(event, onToggleMenu);
@@ -105,61 +110,74 @@ export function RowQuick({
 }
 
 /**
- * The row's menu, under the row: the item's name as its head with a close button (so it is plain which row it belongs
- * to, and there is a way out other than ⋯ again), one entry per list the item can move to, then Delete in the danger
- * colour last. Delete needs no question first: the trash and Undo undo it. Escape closes it.
+ * The row's menu: the item's name as its head (so it is plain which row it belongs to), one entry per list the item
+ * can move to, then Delete in the danger colour last. Delete needs no question first: the trash and Undo undo it.
+ * It is the family's `Menu`: a popover at the row's ⋯ with a mouse or in a wide frame (Escape, Tab or a press outside
+ * closes it, the focus on ⋯), and on a phone the panel under the row, as before, with its × (the popover has none). A chosen entry gives the row's place in the list to its neighbour (`onCloseEditor`).
  */
 export function RowMenu({
   item,
   env,
+  anchor,
+  menuId,
   onClose,
-  onEscape,
 }: {
   item: ShoppingItem;
   env: RowEnv;
+  /** The row's ⋯: the menu stands at it and gives the focus back to it. */
+  anchor: RefObject<HTMLButtonElement | null>;
+  menuId: string;
   onClose: () => void;
-  onEscape: () => void;
 }) {
   const { labels: t } = env;
+  const popover = useMenuPopover();
   return (
-    <KeyScope className="sk-menu-panel shopping-row-menu" onEscape={onEscape}>
+    <Menu
+      id={menuId}
+      anchor={anchor}
+      label={t.rowMenu(item.name)}
+      panelClassName="sk-menu-panel shopping-row-menu"
+      popoverClassName="sk-menu-popover shopping-row-popover"
+      onClose={onClose}
+    >
       <div className="shopping-row-menu-head">
         <p className="shopping-row-menu-name">{item.name}</p>
-        <button
-          type="button"
-          className="sk-iconbtn shopping-row-menu-close"
-          aria-label={t.closeMenu}
-          onClick={onEscape}
-        >
-          <CloseIcon />
-        </button>
+        {!popover && (
+          <button
+            type="button"
+            className="sk-iconbtn shopping-row-menu-close"
+            aria-label={t.closeMenu}
+            onClick={() => {
+              anchor.current?.focus();
+              onClose();
+            }}
+          >
+            <CloseIcon />
+          </button>
+        )}
       </div>
       {moveTargets(item, env).map((list) => (
-        <button
+        <MenuItem
           key={list.id}
-          type="button"
-          className="sk-menu-item"
-          onClick={() => {
+          label={t.moveToList(list.name)}
+          onChoose={() => {
             onClose();
+            env.onCloseEditor(item.id);
             env.onMove?.(item, list);
           }}
-        >
-          {t.moveToList(list.name)}
-        </button>
+        />
       ))}
       {env.onTrash && (
-        <button
-          type="button"
-          className="sk-menu-item sk-menu-item--danger"
+        <MenuItem
+          danger
+          label={t.deleteItem}
           disabled={env.busy}
-          onClick={() => {
+          onChoose={() => {
             onClose();
-            env.onTrash?.(item, () => undefined);
+            env.onTrash?.(item, () => env.onCloseEditor(item.id));
           }}
-        >
-          {t.deleteItem}
-        </button>
+        />
       )}
-    </KeyScope>
+    </Menu>
   );
 }

@@ -6,6 +6,7 @@ import type { JournalSource } from "./transport";
 import { ownerToday } from "../mcp-apps/app-timezone";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import type { FrameProps, LoadPhase } from "./frame-props";
+import "./entry-read.css";
 
 /** A language code as its name in the owner's language: "sv" reads "svenska" in Swedish, "Swedish" in English. */
 function languageName(code: string, locale: string): string {
@@ -54,8 +55,8 @@ export function SourceFrame({
   }, [transport, id, attempt]);
 
   return (
-    <article>
-      <h2 ref={heading} tabIndex={-1}>
+    <article className="journal-source">
+      <h2 ref={heading} tabIndex={-1} className="journal-entry-title">
         {t.originalHeading}
       </h2>
       {phase === "loading" && <p role="status">{t.loading}</p>}

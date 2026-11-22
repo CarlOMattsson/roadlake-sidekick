@@ -15,6 +15,11 @@ export const weekEn = {
   weekThis: "This week",
   /** A day of the week with no entry and no summary. */
   weekDayEmpty: "Nothing written",
+  /** A run of days with nothing, one quiet line ("Nothing written Mon–Wed"), and a whole week of them. */
+  weekGapNothing: (range: string): string => `Nothing written ${range}`,
+  weekGapWeek: (number: number): string => `Nothing written week ${number}`,
+  /** The link of that line: opens the day view on the first empty day, where the owner writes. */
+  weekGapWrite: "Write for a day",
   weekLoading: "Loading the week…",
 };
 
@@ -28,5 +33,8 @@ export const weekSv: typeof weekEn = {
   weekNext: "Nästa vecka",
   weekThis: "Denna vecka",
   weekDayEmpty: "Inget skrivet",
+  weekGapNothing: (range: string): string => `Inget skrivet ${range}`,
+  weekGapWeek: (number: number): string => `Inget skrivet vecka ${number}`,
+  weekGapWrite: "Skriv för en dag",
   weekLoading: "Läser in veckan…",
 };

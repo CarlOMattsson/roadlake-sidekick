@@ -52,6 +52,16 @@ export type HostContext = {
   platform?: "web" | "desktop" | "mobile";
   /** Input capabilities of the device; a missing flag means the host did not report it. */
   deviceCapabilities?: { touch?: boolean; hover?: boolean };
+  /**
+   * The size of the host's container (MCP Apps 2026-01-26): `height` (and `width`) when the host fixes it, `maxHeight`
+   * (`maxWidth`) when the app's own size decides up to that bound, nothing when it is unbounded.
+   */
+  containerDimensions?: {
+    height?: number;
+    maxHeight?: number;
+    width?: number;
+    maxWidth?: number;
+  };
   /** The tool call that opened the app. `id` is absent on some hosts (iOS rehydration). */
   toolInfo?: { id?: string | number; tool?: { name?: string } };
 };

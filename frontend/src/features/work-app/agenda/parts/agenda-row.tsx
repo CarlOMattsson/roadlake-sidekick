@@ -10,7 +10,12 @@ import {
   rowMenuHint,
   type MenuPoint,
 } from "../../shared/row-menu";
-import { cardKey, type AgendaBucket } from "../../shared/work-items";
+import {
+  cardKey,
+  recordOfItem,
+  type AgendaBucket,
+} from "../../shared/work-items";
+import { useRecordRow } from "../../../mcp-apps/ui/split-layout";
 import { domainAccentOf, type WorkItemRecord } from "../../transport/transport";
 import { RecordTitle } from "../../board/board-card";
 import { RecordMeta } from "../../shared/record-meta";
@@ -167,6 +172,8 @@ export function AgendaRow({
     ctx.doneTasks.has(item.task_id.toLowerCase());
   const key = cardKey(item);
   const isSelected = ctx.selected === key;
+  // Its record's key, so the focus comes back to this row when the detail beside the list closes.
+  const { "data-sk-record": recordAttr } = useRecordRow(recordOfItem(item));
   const accent = domainAccentOf(item.domain_accent);
   const moved = rows.triaged[key] === true;
   // A recurring Task marked done here: the server reopened it for its next date (see isRecurringCycle).
@@ -193,6 +200,7 @@ export function AgendaRow({
       className={rowClass}
       data-sk-row=""
       data-agenda-key={key}
+      data-sk-record={recordAttr}
       data-accent={accent ?? undefined}
       tabIndex={-1}
       aria-current={isSelected || undefined}

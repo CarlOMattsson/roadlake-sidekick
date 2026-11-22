@@ -32,6 +32,14 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .audit import ActivityEntryRow, AuditEventRow, DomainEventRow, IdempotencyRow
+from .automations import (
+    AutomationCheckRow,
+    AutomationDatapointRow,
+    AutomationReportCursorRow,
+    AutomationRow,
+    AutomationRunRow,
+    AutomationSuggestionRow,
+)
 from .base import RETAINED_UNMAPPED_TABLES, SCHEMA, Base
 from .companion import CompanionPairingRow, PushOutboxRow, PushReminderRow, PushSubscriptionRow
 from .contacts import (
@@ -45,6 +53,7 @@ from .identity import PersonalAccessTokenRow, UserRow, WebhookTokenRow
 from .journal import (
     DailyJournalSummaryEntryRow,
     DailyJournalSummaryRow,
+    JournalAttachmentRow,
     JournalDraftRow,
     JournalEntryContactRow,
     JournalEntryProjectRow,
@@ -100,6 +109,12 @@ __all__ = [
     "AiStepRunRow",
     "Any",
     "AuditEventRow",
+    "AutomationCheckRow",
+    "AutomationDatapointRow",
+    "AutomationReportCursorRow",
+    "AutomationRow",
+    "AutomationRunRow",
+    "AutomationSuggestionRow",
     "Base",
     "BigInteger",
     "Boolean",
@@ -124,6 +139,7 @@ __all__ = [
     "Index",
     "InstanceLicenseRow",
     "Integer",
+    "JournalAttachmentRow",
     "JournalDraftRow",
     "JournalEntryContactRow",
     "JournalEntryProjectRow",

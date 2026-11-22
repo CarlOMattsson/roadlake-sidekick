@@ -91,6 +91,18 @@ export function menuButtonKeys(
   };
 }
 
+/**
+ * Opens a menu from a key that is not on its button (a shortcut such as `g 5`): the focus starts on its first entry,
+ * as ↓ on the button does, also in the phone's panel.
+ */
+export function openMenuByKey(
+  button: HTMLElement | null,
+  setOpen: (open: boolean) => void,
+) {
+  if (button) button.dataset[START] = "first";
+  setOpen(true);
+}
+
 /** Where a menu stands and gives the focus back: a ref to its button, or a function that finds it from the menu. */
 export type MenuAnchor =
   RefObject<HTMLElement | null> | ((menu: HTMLElement) => HTMLElement | null);
@@ -150,7 +162,8 @@ function isShown(element: HTMLElement): boolean {
  * entry takes the focus when it opens (its last when ↑ opened it, `menuButtonKeys`).
  *
  * On a phone (a coarse pointer in a narrow frame) it is today's panel in the flow under its head (`panelClassName`,
- * the family's `.sk-menu-panel`), with Escape as before, so the phone does not change.
+ * the family's `.sk-menu-panel`), with Escape as before, so the phone does not change. A panel its caller lays over
+ * the page (`overlay`, the room strip's Mer) also closes on a press outside it, as the popover does.
  *
  * The entries are the caller's controls (`sk-menu-item` buttons, and the rows a room adds: the saved views, the
  * update reminder, the license): ↑ ↓ Home End move over them. The button keeps `aria-expanded` and `aria-controls`
@@ -167,7 +180,7 @@ export function Menu({
   className,
   panelClassName = "sk-menu-panel",
   popoverClassName = "sk-menu-popover",
-  inFlow = false,
+  overlay = false,
   children,
 }: {
   id?: string;
@@ -189,11 +202,11 @@ export function Menu({
   panelClassName?: string;
   /** The class of the popover. */
   popoverClassName?: string;
-  /** Always the panel in the flow: a room's menu that has not moved to the popover yet (the Contact's). */
-  inFlow?: boolean;
+  /** The phone's panel lies over the page instead of in the flow: a press outside it closes it. */
+  overlay?: boolean;
   children: ReactNode;
 }) {
-  const popover = useMenuPopover() && !inFlow;
+  const popover = useMenuPopover();
   const menu = useRef<HTMLDivElement>(null);
   const anchorOf = (): HTMLElement | null =>
     typeof anchor === "function"
@@ -255,14 +268,7 @@ export function Menu({
     };
     place();
     focusStart(element);
-    if (!popover) return;
-    window.addEventListener("scroll", place, true);
-    window.addEventListener("resize", place);
-    const sizes =
-      typeof ResizeObserver === "undefined"
-        ? undefined
-        : new ResizeObserver(place);
-    sizes?.observe(element);
+    if (!popover && !overlay) return;
     // A press outside the menu and its button closes it without a choice.
     const outside = (event: PointerEvent) => {
       const target = event.target as Node | null;
@@ -271,6 +277,15 @@ export function Menu({
       closeRef.current("outside");
     };
     document.addEventListener("pointerdown", outside, true);
+    if (!popover)
+      return () => document.removeEventListener("pointerdown", outside, true);
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    const sizes =
+      typeof ResizeObserver === "undefined"
+        ? undefined
+        : new ResizeObserver(place);
+    sizes?.observe(element);
     return () => {
       window.removeEventListener("scroll", place, true);
       window.removeEventListener("resize", place);
@@ -282,7 +297,7 @@ export function Menu({
     };
     // `focusStart` reads the anchor at open; a new point (another right click) places it again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, popover, align, pointX, pointY, anchor]);
+  }, [open, popover, overlay, align, pointX, pointY, anchor]);
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === "Escape") {
@@ -343,6 +358,8 @@ export function Menu({
 /**
  * One entry of a menu: a 44 row with the menu's 16/20 at 500. `danger` draws a deletion in the danger colour (last,
  * after a divider in the popover); `pressed` is a mark the record carries or not, ticked at the entry's end.
+ * `meta` is a second, muted line under the name (one number that asks for a decision, "4 att läsa"); `current`
+ * marks the place the user is at (a room of the strip's Mer), ticked at the end and `aria-current`.
  */
 export function MenuItem({
   label,
@@ -350,12 +367,16 @@ export function MenuItem({
   disabled,
   danger = false,
   pressed,
+  meta,
+  current = false,
 }: {
   label: string;
   onChoose: () => void;
   disabled?: boolean;
   danger?: boolean;
   pressed?: boolean;
+  meta?: string;
+  current?: boolean;
 }) {
   return (
     <button
@@ -363,9 +384,18 @@ export function MenuItem({
       className={danger ? "sk-menu-item sk-menu-item--danger" : "sk-menu-item"}
       disabled={disabled}
       aria-pressed={pressed}
+      aria-current={current ? "page" : undefined}
       onClick={onChoose}
     >
-      {label}
+      {meta ? (
+        <span className="sk-menu-item__body">
+          <span>{label}</span>
+          {/* A space for the accessible name ("Bibliotek 4 att läsa"); the column's layout drops it. */}{" "}
+          <span className="sk-menu-item__meta">{meta}</span>
+        </span>
+      ) : (
+        label
+      )}
     </button>
   );
 }

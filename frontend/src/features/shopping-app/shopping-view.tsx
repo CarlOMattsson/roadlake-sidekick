@@ -16,12 +16,13 @@ import { PlusIcon } from "../mcp-apps/ui/icons";
 import { MessageBox } from "../mcp-apps/ui/message-box";
 import { OpenLink } from "../mcp-apps/ui/open-link";
 import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
+import { ShoppingPanes } from "./shopping-view-parts/shopping-panes";
 import type { HostSettingsEntry, RoomTarget } from "../mcp-apps/room-types";
 import "../mcp-apps/ui/tokens.css";
 import "../mcp-apps/ui/family.css";
 import "./shopping.css";
 import { deriveView } from "./shopping-view-parts/derive-view";
-import { emptyAsk, intoView, wasHoldUsed } from "./shopping-view-parts/helpers";
+import { emptyAsk, wasHoldUsed } from "./shopping-view-parts/helpers";
 import { ItemGroups, PurchasedFold } from "./shopping-view-parts/item-groups";
 import {
   AddItemField,
@@ -41,6 +42,11 @@ import { useWriteForms } from "./shopping-view-parts/use-write-forms";
 import { useItemTrash } from "./shopping-view-parts/use-item-trash";
 import { useQuickChanges } from "./shopping-view-parts/use-quick-changes";
 import { useTickReceipt } from "./shopping-view-parts/use-tick-receipt";
+import { ViewNotices } from "./shopping-view-parts/view-notices";
+import {
+  useWideFrame,
+  useWideLists,
+} from "./shopping-view-parts/use-wide-lists";
 
 // The compact-view budget and its grouping are part of this module's surface (the room and the tests use them).
 export { COMPACT_ROWS, compactGroups } from "./shopping-view-parts/helpers";
@@ -110,6 +116,7 @@ export function ShoppingView({
 }) {
   // The row's hint: the long press on touch, the right click and Shift+F10 with a fine pointer.
   const holdTip = finePointer() ? t.holdKeys : t.holdTip;
+  const wide = useWideFrame(fullscreen);
   const read = useShoppingRead({
     transport,
     initial,
@@ -220,7 +227,7 @@ export function ShoppingView({
     return { label: entry.label, onOpen: () => onNavigate(entry.target) };
   }, [hostSettings, onNavigate, t.dateLocale]);
   /** Chooses the list to read, or "" for the picker of all lists. The last list and its open panels are forgotten. */
-  function chooseList(next: string) {
+  function chooseList(next: string, refresh = true) {
     setId(next);
     setOffset(0);
     setEditing(null);
@@ -229,34 +236,20 @@ export function ShoppingView({
     setDetail(undefined);
     closeAll();
     // Back to the overview: ticks and moves made in the list are not reads of the lists, so its counts are read now.
-    if (next === "") void refreshLists();
+    // Beside the lists (wide) every change of list is such a return; the first list a wide frame opens by itself was
+    // chosen from a fresh read.
+    if (next === "" || (wide && refresh)) void refreshLists();
   }
   function goToPage(next: number) {
     setOffset(next);
     setEditing(null);
     setHeld({});
   }
-  // A failure the list cannot show on a row (a read, a batch add, an Ångra whose row is gone) is the view's error box
-  // at its top, with "Try again"; one of a row stays under that row. The create field shows its own.
-  // A row's failure shows under the row only when the row is drawn: a row gone from the list, or folded away under
-  // "Köpta" or past the card's budget, has its failure here instead.
+  // The rows drawn now: a failure of one of them shows under it, any other in the view's notices (ViewNotices).
   const drawnRows = new Set([
     ...view.shownGroups.flatMap((group) => group.shown.map((row) => row.id)),
     ...(panels.boughtOpen ? settled.map((row) => row.id) : []),
   ]);
-  const viewError =
-    error !== null &&
-    error.rowId !== "add" &&
-    (error.rowId === null || !drawnRows.has(error.rowId));
-  const failedItem = error?.rowId
-    ? items.find((item) => item.id === error.rowId)
-    : undefined;
-  const viewErrorTitle =
-    error?.rowId && undoFailure?.id === error.rowId
-      ? undoFailure.message
-      : failedItem && !error?.change
-        ? t.markFailed(failedItem.name, !failedItem.purchased)
-        : t.failedTitle;
   const rowEnv: RowEnv = {
     labels: t,
     holdTip,
@@ -293,86 +286,53 @@ export function ShoppingView({
     onStep: quick.stepQuantity,
     onMove: quick.moveItem,
   };
-  return (
-    <section
-      className={
-        fullscreen
-          ? "sidekick-shopping shopping-fullscreen"
-          : `sidekick-shopping sk-card sk-card--root${folded ? " shopping-folded" : ""}`
-      }
-      aria-label={t.title}
-    >
-      <ShoppingHeader
-        labels={t}
-        id={id}
-        list={list}
-        headerTitle={view.headerTitle}
-        busy={busy}
-        menu={fullscreen || folded}
-        canAdd={canAdd}
-        addOpen={panels.addOpen}
-        addButton={forms.addButton}
-        moreOpen={panels.moreOpen}
-        moreButton={moreButton}
-        moreMark={moreMark}
-        editOpen={panels.editOpen}
-        control={control}
-        showHint={Boolean(id) && !storeMode && !folded && !view.reading}
-        onBack={() => chooseList("")}
-        onToggleAdd={forms.toggleAddField}
-        onToggleMore={() => setPanel("moreOpen", !panels.moreOpen)}
-        onCloseMore={() => setPanel("moreOpen", false)}
-        onToggleEdit={() => {
-          if (!panels.editOpen && list) forms.setRenameName(list.name);
-          setPanel("editOpen", !panels.editOpen);
-          setPanel("moreOpen", false);
-        }}
-      />
-      {viewError && (
-        <div ref={intoView}>
-          <MessageBox
-            severity="error"
-            title={viewErrorTitle}
-            action={{
-              label: t.retry,
-              busy,
-              onClick: () => (failedWrite ? failedWrite() : void reload()),
-            }}
-          />
-        </div>
-      )}
-      {conflict &&
-        !detail?.items.some((item) => item.id === conflict.rowId) && (
-          <div ref={intoView}>
-            <MessageBox severity="warning" title={t.conflictTitle}>
-              {t.conflictText}
-            </MessageBox>
-          </div>
-        )}
-      {/* No list chosen: the lists are rows to tap, and "New list" sits last behind a button. */}
-      {!id && (
-        <ListPicker
-          labels={t}
-          busy={busy}
-          lists={lists}
-          listOffset={listOffset}
-          nextLists={nextLists}
-          onOffset={setListOffset}
-          fullscreen={fullscreen}
-          hasError={Boolean(error)}
-          listsExpanded={panels.listsExpanded}
-          archivedOpen={panels.archivedOpen}
-          newOpen={panels.newOpen}
-          onCreateNamed={forms.createNamed}
-          onChoose={chooseList}
-          onListsExpanded={(value) => setPanel("listsExpanded", value)}
-          onArchivedOpen={(value) => setPanel("archivedOpen", value)}
-          onNewOpen={(value) => setPanel("newOpen", value)}
-          sendMessage={sendMessage}
-          control={control}
-          onOpenFull={onOpenFull}
-        />
-      )}
+  const { split, rail } = useWideLists({
+    wide,
+    id,
+    busy,
+    lists,
+    detail,
+    onChoose: (next) => chooseList(next, false),
+  });
+  const notices = (
+    <ViewNotices
+      labels={t}
+      error={error}
+      conflict={conflict}
+      undoFailure={undoFailure}
+      items={items}
+      drawnRows={drawnRows}
+      detail={detail}
+      busy={busy}
+      onRetry={() => (failedWrite ? failedWrite() : void reload())}
+    />
+  );
+  const picker = (
+    <ListPicker
+      labels={t}
+      busy={busy}
+      lists={lists}
+      listOffset={listOffset}
+      nextLists={nextLists}
+      onOffset={setListOffset}
+      fullscreen={fullscreen}
+      hasError={Boolean(error)}
+      listsExpanded={panels.listsExpanded}
+      archivedOpen={panels.archivedOpen}
+      newOpen={panels.newOpen}
+      onCreateNamed={forms.createNamed}
+      onChoose={chooseList}
+      onListsExpanded={(value) => setPanel("listsExpanded", value)}
+      onArchivedOpen={(value) => setPanel("archivedOpen", value)}
+      onNewOpen={(value) => setPanel("newOpen", value)}
+      sendMessage={sendMessage}
+      control={control}
+      onOpenFull={onOpenFull}
+      rail={rail}
+    />
+  );
+  const body = (
+    <>
       {/* Edit list (fullscreen): the field renames the open list with update_shopping_list. No create form, no picker. */}
       {list && panels.editOpen && (
         <NameForm
@@ -528,6 +488,55 @@ export function ShoppingView({
           )}
         </>
       )}
+    </>
+  );
+  return (
+    <section
+      className={
+        fullscreen
+          ? "sidekick-shopping shopping-fullscreen"
+          : `sidekick-shopping sk-card sk-card--root${folded ? " shopping-folded" : ""}`
+      }
+      data-split={split ? "" : undefined}
+      aria-label={t.title}
+    >
+      <ShoppingHeader
+        labels={t}
+        id={id}
+        list={list}
+        headerTitle={view.headerTitle}
+        busy={busy}
+        menu={fullscreen || folded}
+        canAdd={canAdd}
+        addOpen={panels.addOpen}
+        addButton={forms.addButton}
+        moreOpen={panels.moreOpen}
+        moreButton={moreButton}
+        moreMark={moreMark}
+        editOpen={panels.editOpen}
+        control={control}
+        showHint={Boolean(id) && !storeMode && !folded && !view.reading}
+        onBack={() => chooseList("")}
+        onToggleAdd={forms.toggleAddField}
+        onToggleMore={() => setPanel("moreOpen", !panels.moreOpen)}
+        onCloseMore={() => setPanel("moreOpen", false)}
+        onToggleEdit={() => {
+          if (!panels.editOpen && list) forms.setRenameName(list.name);
+          setPanel("editOpen", !panels.editOpen);
+          setPanel("moreOpen", false);
+        }}
+        wide={wide}
+        newOpen={panels.newOpen}
+        onNewList={() => setPanel("newOpen", !panels.newOpen)}
+      />
+      <ShoppingPanes
+        split={split}
+        id={id}
+        title={list ? view.headerTitle : undefined}
+        notices={notices}
+        picker={picker}
+        body={body}
+      />
       {/* Last in the view: inline under the card's content, in fullscreen floating over the foot of the list. */}
       <ReceiptBar receipt={receipt} />
     </section>

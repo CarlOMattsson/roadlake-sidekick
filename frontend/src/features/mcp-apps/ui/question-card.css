@@ -1,0 +1,158 @@
+/* The question card (question-card.tsx, designsystem §3 Repetition): the prompt in the section type, the options as
+   48 high rows 8 apart, then the result line and the one action. At most 30 rem wide and centred, like the review card.
+   The parts are spaced by margins and not a gap, so the result line (a status region that is always there, empty
+   until the check comes) takes no room while it is empty. */
+.sk-question {
+  /* The cross of a wrong answer, drawn as a mask in the text colour like the family's tick (--sk-check). */
+  --sk-question-cross: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 4.5l7 7M11.5 4.5l-7 7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+
+  display: grid;
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: 30rem;
+  margin-inline: auto;
+  color: var(--sk-fg);
+}
+
+.sk-question > * {
+  margin: 0;
+}
+.sk-question > * + * {
+  margin-block-start: var(--sk-s4);
+}
+.sk-question > .sk-question__result:empty {
+  margin-block-start: 0;
+}
+.sk-question > .sk-question__unavailable {
+  margin-block-start: var(--sk-s2);
+}
+
+.sk-question__prompt {
+  font: var(--sk-type-section);
+  overflow-wrap: anywhere;
+}
+
+.sk-question__list {
+  display: grid;
+  gap: var(--sk-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* An option: a full-width row with the secondary button's 1 px edge, the label at the start in the row type at 500,
+   48 high (it grows with a second line). Two classes, so an app's button rule cannot restyle it. */
+.sk-question .sk-question__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sk-s3);
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-block-size: var(--sk-tap-lg);
+  margin: 0;
+  padding: var(--sk-s2) var(--sk-s4);
+  border: var(--sk-hairline) solid var(--sk-border);
+  border-radius: var(--sk-radius);
+  background: transparent;
+  color: var(--sk-fg);
+  font-family: inherit;
+  font-size: var(--sk-type-row-size);
+  font-weight: var(--sk-weight-medium);
+  line-height: var(--sk-type-row-line);
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.sk-question__label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+  .sk-question .sk-question__option[data-state="idle"]:hover {
+    background: var(--sk-hover);
+  }
+}
+.sk-question .sk-question__option[data-state="idle"]:active {
+  background: var(--sk-press);
+}
+
+/* Held: the rows that were not chosen, and every row without a network. */
+.sk-question .sk-question__option[data-state="held"] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The sent row while the server checks it: the family's chosen form (toned fill, 2 px contour, 600). */
+.sk-question .sk-question__option[data-state="checking"] {
+  background: var(--sk-selected-bg);
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-selected-line);
+  font-weight: var(--sk-weight-semibold);
+  cursor: default;
+}
+.sk-question__checking {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  white-space: nowrap;
+}
+
+/* Right: the success tone and a tick. Not quite: the warning tone and a cross, never red (no score, no penalty). The
+   shape of the mark and the result line's word carry the meaning without colour. */
+.sk-question
+  .sk-question__option:is([data-state="correct"], [data-state="wrong"]) {
+  font-weight: var(--sk-weight-semibold);
+  cursor: default;
+}
+.sk-question .sk-question__option[data-state="correct"] {
+  background: var(--sk-success-bg);
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-success-line);
+}
+.sk-question .sk-question__option[data-state="wrong"] {
+  background: var(--sk-warning-bg);
+  box-shadow: inset 0 0 0 var(--sk-selected-width) var(--sk-warning-line);
+}
+
+.sk-question__mark {
+  inline-size: var(--sk-glyph);
+  block-size: var(--sk-glyph);
+  background: currentColor;
+  -webkit-mask: var(--sk-check) center / 100% no-repeat;
+  mask: var(--sk-check) center / 100% no-repeat;
+}
+[data-state="wrong"] > .sk-question__mark {
+  -webkit-mask-image: var(--sk-question-cross);
+  mask-image: var(--sk-question-cross);
+}
+
+.sk-question__unavailable {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+.sk-question__result {
+  font: var(--sk-type-body);
+  overflow-wrap: anywhere;
+}
+.sk-question__verdict {
+  font-weight: var(--sk-weight-semibold);
+}
+
+.sk-question .sk-btn.sk-question__action {
+  inline-size: 100%;
+  min-block-size: var(--sk-tap-lg);
+  touch-action: manipulation;
+}
+
+@media (forced-colors: active) {
+  .sk-question
+    .sk-question__option:is(
+      [data-state="checking"],
+      [data-state="correct"],
+      [data-state="wrong"]
+    ) {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}

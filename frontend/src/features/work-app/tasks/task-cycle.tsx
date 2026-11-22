@@ -1,4 +1,6 @@
-import { useMemo, type Ref } from "react";
+import { useContext, useMemo, type Ref } from "react";
+import { RoomSurfaceContext } from "../../mcp-apps/ui/room-context";
+import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import type { ReceiptState } from "../../mcp-apps/ui/receipt";
 import {
   recurringDoneText,
@@ -130,6 +132,15 @@ export function useDoneReceipt({
 }
 
 /**
+ * How the Task's done control is drawn: beside its list in a wide frame (a detail or drawer pane) the list's ring before
+ * the title, else "Markera klar" (desktop spec 3.1).
+ */
+export function useDoneForm(): "button" | "ring" {
+  const { pane } = useContext(RoomSurfaceContext);
+  return pane === "detail" || pane === "drawer" ? "ring" : "button";
+}
+
+/**
  * The Task's `markDone` slot, last in the control row: the screen's one primary, compact ink; on a done Task
  * `reopenTask` as a secondary, which sets it back to `todo`. It shows its new state at once after `markDone` and moves
  * nothing; the change is confirmed, with Ångra, in the receipt bar (see doneBarReceipt). `buttonRef` lets the frame keep
@@ -141,14 +152,33 @@ export function TaskDoneControl({
   disabled,
   onChoose,
   buttonRef,
+  form = "button",
 }: {
   task: WorkTask;
   labels: WorkLabels;
   disabled: boolean;
   onChoose: (status: TaskStatusValue) => void;
   buttonRef?: Ref<HTMLButtonElement>;
+  /**
+   * `ring`: the list's ring before the title (a detail beside its list in a wide frame, desktop spec 3.1), the same
+   * press as the button, named by its action. `button` (default): "Markera klar" as the screen's one primary.
+   */
+  form?: "button" | "ring";
 }) {
   const finished = task.status === "completed";
+  if (form === "ring")
+    return (
+      <button
+        ref={buttonRef}
+        type="button"
+        className="work-agenda-glyph work-task-ring"
+        aria-label={finished ? t.reopenTask : t.markDone}
+        disabled={disabled}
+        onClick={() => onChoose(finished ? "todo" : "completed")}
+      >
+        <StatusGlyph kind="task" status={task.status} />
+      </button>
+    );
   return (
     <button
       ref={buttonRef}

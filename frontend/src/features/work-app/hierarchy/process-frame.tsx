@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import { useToolSupport } from "../../mcp-apps/tool-support";
 import { hierarchyStatusLabel, knownLabel } from "../shared/labels";
@@ -12,7 +12,8 @@ import { DetailTitle } from "../view/parts/detail-title";
 import { FrameMeta } from "../view/parts/frame-meta";
 import type { FrameProps } from "../view/parts/frame-types";
 import { processFrameLabelsFor } from "./process-frame-labels";
-import { TaskSummaryList } from "../tasks/task-summary-list";
+import { GroupSharedTags, GroupTaskList } from "./group-task-list";
+import { sharedTaskTags } from "./group-task-order";
 import {
   useDetailFrame,
   useFrameRead,
@@ -57,6 +58,14 @@ export function ProcessFrame({
     enabled: tasksOffered,
     refreshKey,
   });
+  // A tag every Task has is said once under the Process's meta, not on each row (only when all the Tasks are loaded).
+  const sharedTags = useMemo(
+    () =>
+      tasks.phase === "ready" && !tasks.nextCursor && !tasks.truncated
+        ? sharedTaskTags(tasks.items)
+        : [],
+    [tasks.phase, tasks.nextCursor, tasks.truncated, tasks.items],
+  );
   /** A created Task goes to the top of the list; the list itself is not read again. */
   function taskCreated(task: WorkTaskSummary) {
     // A read that started before the Task was made would answer without it: it is dropped.
@@ -100,6 +109,7 @@ export function ProcessFrame({
               {t.status}: {hierarchyStatusLabel(t, "process", process.status)}
             </p>
           )}
+          <GroupSharedTags tags={sharedTags} labels={t} />
           {process.description && (
             <p className="work-description">{process.description}</p>
           )}
@@ -128,12 +138,13 @@ export function ProcessFrame({
                   onCreated={taskCreated}
                 />
               ) : null}
-              <TaskSummaryList
+              <GroupTaskList
                 tasks={tasks.items}
                 labels={t}
                 empty={pl.noTasks}
                 onOpen={onOpen}
                 transport={transport}
+                hideTags={sharedTags}
               />
               {tasks.more === "busy" && <p role="status">{t.loading}</p>}
               {tasks.more === "failed" && <p role="alert">{t.failed}</p>}

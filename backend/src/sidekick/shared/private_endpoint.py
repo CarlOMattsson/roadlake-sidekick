@@ -67,3 +67,26 @@ def validate_private_base_url(
     if not private_host(host, allow_loopback=allow_loopback):
         raise ValueError(f"{label} base URL must target an approved private host")
     return value.rstrip("/")
+
+
+#: The one public origin a model adapter may reach. Any other model endpoint must be private.
+HOSTED_MODEL_ORIGIN = "https://openrouter.ai"
+
+
+def validate_model_base_url(
+    value: str, *, label: str = "AI model", allow_loopback: bool = False
+) -> str:
+    """Validate the base URL of an OpenAI-compatible model server and return it without a
+    trailing slash: the hosted origin above, or a private service by the rule of
+    `validate_private_base_url`. A model server is never an arbitrary public host, so a key
+    cannot be sent to one by a typo or a hostile setting."""
+
+    if value.strip().rstrip("/") == HOSTED_MODEL_ORIGIN:
+        return HOSTED_MODEL_ORIGIN
+    return validate_private_base_url(value.strip(), label=label, allow_loopback=allow_loopback)
+
+
+def is_hosted_model_url(value: str) -> bool:
+    """Whether a validated model base URL is the hosted origin, not a private server."""
+
+    return value.rstrip("/") == HOSTED_MODEL_ORIGIN

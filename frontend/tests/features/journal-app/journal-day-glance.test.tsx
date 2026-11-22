@@ -158,7 +158,7 @@ describe("DayGlance", () => {
     const review = screen.getByRole("button", { name: "Review 2 drafts" });
     expect(review).toHaveClass("sk-btn--secondary");
     expect(review.style.minHeight).toBe("44px");
-    const open = screen.getByRole("button", { name: "Open" });
+    const open = screen.getByRole("button", { name: "Open Journal" });
     // The open text button (44 high in family.css), no ink.
     expect(open).toHaveClass("sk-btn--open");
     // The one action, the review button and the entry row.
@@ -189,7 +189,9 @@ describe("DayGlance", () => {
     expect(
       screen.getByRole("button", { name: "Granska 1 utkast" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Öppna" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Öppna Dagbok" }),
+    ).toBeInTheDocument();
   });
 
   it("leaves the draft count out when it is not known", () => {
@@ -435,7 +437,7 @@ describe("DayGlance", () => {
     // Each shown entry has its time; the clock text depends on the test zone, so only the count is asserted.
     expect(document.querySelectorAll("time")).toHaveLength(3);
     expect(
-      screen.getByRole("button", { name: journalEn.showAllEntries(5) }),
+      screen.getByRole("button", { name: "Open Journal · 2 more" }),
     ).toBeInTheDocument();
     // The three entry rows are buttons too, and so is the one action.
     expect(screen.getAllByRole("button")).toHaveLength(4);
@@ -458,7 +460,7 @@ describe("DayGlance", () => {
         onOpen={onOpen}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
     expect(onOpen).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -472,9 +474,121 @@ describe("DayGlance", () => {
         opening
       />,
     );
+    // The link says it is opening and a second press does nothing.
     const busy = screen.getByRole("button", { name: journalEn.cardOpening });
-    expect(busy).toBeDisabled();
-    expect(busy).toHaveAttribute("aria-busy", "true");
+    await userEvent.click(busy);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("names the one link after the room, in both languages, with what the rows leave out", () => {
+    const { rerender } = render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={manyEntries}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    const link = screen.getByRole("button", { name: "Open Journal · 2 more" });
+    expect(link).toHaveClass("sk-open-link");
+    rerender(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{ ...manyEntries, next_cursor: "next" }}
+        labels={journalSv}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Öppna Dagbok · 2+ till" }),
+    ).toBeInTheDocument();
+    rerender(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={day}
+        labels={journalSv}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Öppna Dagbok" }),
+    ).toBeInTheDocument();
+  });
+
+  it("says how many entries there are before the entry rows, and keeps the open link last", () => {
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={day}
+        draftCount={1}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    const count = screen.getByText("1 entry");
+    const rows = document.querySelector(".journal-glance-entries") as Element;
+    expect(
+      count.compareDocumentPosition(rows) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    const open = screen.getByRole("button", { name: "Open Journal" });
+    const review = screen.getByRole("button", { name: "Review 1 draft" });
+    expect(
+      review.compareDocumentPosition(open) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The rows take the design system's hover tone (row.css).
+    expect(
+      document.querySelector(".journal-glance-entries > li"),
+    ).toHaveAttribute("data-sk-row");
+  });
+
+  it("carries the text of the latest entry as an excerpt (shown from 37.5rem by day-glance.css), under its title", () => {
+    const earlier: JournalEntry = {
+      ...entry,
+      id: "019f0000-0000-7000-8000-0000000000e0",
+      title: "Early call",
+      summary: "Early call notes.",
+      occurred_at: "2026-10-24T07:00:00Z",
+    };
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{ ...day, entries: [entry, earlier] }}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    const excerpts = document.querySelectorAll(".journal-glance-excerpt");
+    expect(excerpts).toHaveLength(1);
+    expect(excerpts[0]).toHaveTextContent("Notes from the meeting.");
+    const text = excerpts[0]?.parentElement;
+    expect(text).toHaveClass("journal-glance-text");
+    expect(text?.firstElementChild).toHaveTextContent(
+      "Meeting about the quote",
+    );
+  });
+
+  it("leaves the excerpt out when the entry has no text beyond its title", () => {
+    render(
+      <DayGlance
+        today={TODAY}
+        onOpenEntry={vi.fn()}
+        onReviewDrafts={vi.fn()}
+        day={{ ...day, entries: [{ ...entry, summary: null }] }}
+        labels={journalEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(document.querySelector(".journal-glance-excerpt")).toBeNull();
   });
 });
 
@@ -543,14 +657,14 @@ describe("journal day glance in the app", () => {
     host.requestDisplayMode.mockResolvedValue("fullscreen");
     deliver(day);
 
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
 
     expect(host.requestDisplayMode).toHaveBeenCalledWith("fullscreen");
     expect(
       await screen.findByRole("heading", { level: 3, name: journalEn.entries }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open" }),
+      screen.queryByRole("button", { name: "Open Journal" }),
     ).not.toBeInTheDocument();
   });
 
@@ -563,10 +677,12 @@ describe("journal day glance in the app", () => {
     );
     deliver(day);
 
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
-    expect(
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
+    // The link says it is opening, and a second press does not ask the host again.
+    await userEvent.click(
       screen.getByRole("button", { name: journalEn.cardOpening }),
-    ).toBeDisabled();
+    );
+    expect(host.requestDisplayMode).toHaveBeenCalledTimes(1);
 
     act(() => {
       answer("fullscreen");
@@ -580,13 +696,13 @@ describe("journal day glance in the app", () => {
     host.requestDisplayMode.mockResolvedValue("inline");
     deliver(day);
 
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
 
     expect(
       await screen.findByRole("heading", { level: 3, name: journalEn.entries }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open" }),
+      screen.queryByRole("button", { name: "Open Journal" }),
     ).not.toBeInTheDocument();
   });
 
@@ -594,7 +710,7 @@ describe("journal day glance in the app", () => {
     host.requestDisplayMode.mockRejectedValue(new Error("host failure"));
     deliver(day);
 
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
 
     expect(
       await screen.findByRole("heading", { level: 3, name: journalEn.entries }),
@@ -611,12 +727,12 @@ describe("journal day glance in the app", () => {
     expect(
       screen.queryByRole("heading", { level: 3, name: journalEn.entries }),
     ).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
     expect(
       await screen.findByRole("heading", { level: 3, name: journalEn.entries }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open" }),
+      screen.queryByRole("button", { name: "Open Journal" }),
     ).not.toBeInTheDocument();
     // Without fullscreen on offer, Open never asks the host for it.
     expect(host.requestDisplayMode).not.toHaveBeenCalled();
@@ -630,11 +746,11 @@ describe("journal day glance in the app", () => {
     expect(screen.queryByText(/Entry 4/)).not.toBeInTheDocument();
     expect(screen.getByText(overview)).toHaveClass("journal-card-summary");
     await userEvent.click(
-      screen.getByRole("button", { name: journalEn.showAllEntries(5) }),
+      screen.getByRole("button", { name: /^Open Journal/ }),
     );
     expect(await screen.findByText(/Entry 5/)).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: journalEn.showAllEntries(5) }),
+      screen.queryByRole("button", { name: /^Open Journal/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -644,7 +760,7 @@ describe("journal day glance in the app", () => {
 
     await userEvent.click(
       await screen.findByRole("button", {
-        name: journalEn.showAllEntries(5),
+        name: /^Open Journal/,
       }),
     );
 

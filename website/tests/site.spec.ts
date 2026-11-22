@@ -23,6 +23,7 @@ const pages = [
   { name: 'home en', path: 'en/' },
   { name: 'pricing', path: 'sv/pricing/' },
   { name: 'buy', path: 'sv/buy/' },
+  { name: 'ai costs', path: 'sv/ai-costs/' },
   { name: '404', path: 'sv/does-not-exist/' },
   { name: 'guide', path: `en/${guide}` },
   { name: 'english fallback under /sv/', path: 'sv/docs/explanation/architecture/backend/' },

@@ -3,6 +3,7 @@ import type { JournalLabels } from "./labels";
 import type { JournalFrame, JournalTransport } from "./transport";
 import { KeyScope } from "../mcp-apps/ui/key-scope";
 import { PlusIcon } from "../mcp-apps/ui/icons";
+import type { RoomHeadButton } from "../mcp-apps/ui/room-head";
 import { ownerNoon } from "../mcp-apps/app-timezone";
 
 /** A new entry on another day than today sits on that day (noon, owner zone); on today the server decides. */
@@ -31,6 +32,8 @@ type DayWriteInput = {
   /** Asks Claude for more on a day that has notes; absent otherwise. */
   tellMore?: () => void;
   dayMessage: string;
+  /** The view opens with the form for a new entry already open (the week view's +). */
+  startComposing?: boolean;
 };
 
 /**
@@ -50,14 +53,15 @@ export function useDayWrite({
   onTellClaude,
   tellMore,
   dayMessage,
+  startComposing: composeFirst = false,
 }: DayWriteInput) {
+  const canWrite = transport.writeEntry !== undefined && !failedDate;
   const [addOpen, setAddOpen] = useState(false);
-  const [composing, setComposing] = useState(false);
+  const [composing, setComposing] = useState(composeFirst && canWrite);
   const [created, setCreated] = useState(false);
   const panelId = useId();
   const { page } = frame;
 
-  const canWrite = transport.writeEntry !== undefined && !failedDate;
   const tellClaudeAction = onTellClaude
     ? () => (tellMore ? tellMore() : onTellClaude(dayMessage))
     : undefined;
@@ -65,16 +69,21 @@ export function useDayWrite({
     setCreated(false);
     setComposing(true);
   }
-  // With a tag chosen the view is a list over many days and no day is shown, so + has no day to write on: it is gone
-  // until the filter is cleared or a day is tapped in the strip (either shows that day, + included).
-  const addAction = filtered
-    ? undefined
-    : canWrite
+  const openAdd = canWrite
+    ? () => {
+        if (tellClaudeAction) setAddOpen((open) => !open);
+        else startComposing();
+      }
+    : tellMore;
+  // With a tag chosen the view is a list over many days and no day is shown, so + has no day to write on: pressing it
+  // clears the filter, which brings the day back, and then opens what + opens on a day. The + itself never goes.
+  const addAction =
+    filtered && openAdd
       ? () => {
-          if (tellClaudeAction) setAddOpen((open) => !open);
-          else startComposing();
+          onChange({ ...frame, tags: [] });
+          openAdd();
         }
-      : tellMore;
+      : openAdd;
 
   function writeEntry(
     values: { title: string; text: string },
@@ -130,7 +139,28 @@ export function useDayWrite({
 
 export type DayWrite = ReturnType<typeof useDayWrite>;
 
-/** The day's one primary: the round ink + of the list views, 4 before ⋯. */
+/**
+ * The day's + in the room head (ui/room-head.tsx, fullscreen): the same press as `DayAddButton`, at the head's fixed
+ * place. Absent when the day offers neither writing nor telling Claude.
+ */
+export function dayAddTool(
+  write: DayWrite,
+  t: JournalLabels,
+  loading: boolean,
+): RoomHeadButton | undefined {
+  const { canWrite, tellClaudeAction, addOpen, addAction } = write;
+  if (!addAction) return undefined;
+  return {
+    label: canWrite ? t.addEntry : t.tellClaude,
+    expanded: canWrite && tellClaudeAction ? addOpen : undefined,
+    controls:
+      canWrite && tellClaudeAction && addOpen ? write.panelId : undefined,
+    disabled: loading,
+    onPress: addAction,
+  };
+}
+
+/** The day's one primary on an inline card: the round ink + of the list views, 4 before ⋯. */
 export function DayAddButton({
   write,
   buttonRef,

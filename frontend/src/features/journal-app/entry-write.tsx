@@ -6,9 +6,20 @@ import {
   type FocusEvent,
   type RefObject,
 } from "react";
+import { ownerToday } from "../mcp-apps/app-timezone";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import { useUnsavedGuard } from "../mcp-apps/unsaved-guard";
+import { calendarDate, formatDayHeading } from "./dates";
+import {
+  countWords,
+  FocusBar,
+  FocusForm,
+  FocusMeta,
+  FocusText,
+  FocusTitle,
+  saveKeyName,
+} from "./entry-focus";
 import { entryFitsBody, TEXT_MAX, TITLE_MAX } from "./entry-limits";
 import type { JournalLabels } from "./labels";
 import { writeFailure, type WriteFailure } from "./transport";
@@ -29,7 +40,9 @@ export function keepVisible(event: FocusEvent<HTMLElement>) {
  * the keyboard height; hosts with `interactive-widget=resizes-content` shrink the visual viewport). Each resize while a
  * field of `form` has focus brings that field back into view, so the keyboard never covers what is being typed.
  */
-function useKeepFocusedFieldVisible(form: RefObject<HTMLElement | null>) {
+export function useKeepFocusedFieldVisible(
+  form: RefObject<HTMLElement | null>,
+) {
   useEffect(() => {
     const viewport = window.visualViewport;
     function onResize() {
@@ -75,15 +88,17 @@ type Problem = "title" | "text" | "tooLong";
 type Failure = WriteFailure;
 
 /**
- * The owner's own words in a small form: a new entry (title and text) or text added to an entry (text only). It
- * keeps what was typed through every failure and says so calmly. `submit` writes with the idempotency key of this
- * attempt; the key is the same on a retry of the same values and a new one as soon as the values or
+ * The owner's own words as a focus view (entry-focus.tsx): a new entry (title and text) or text added to an entry
+ * (text only). It keeps what was typed through every failure and says so calmly. `submit` writes with the idempotency
+ * key of this attempt; the key is the same on a retry of the same values and a new one as soon as the values or
  * `signatureBase` (the target and version) differ. The form is closed by the parent after a successful write.
+ * Ctrl or Cmd with Enter saves; Escape cancels, and asks first only when something is written.
  */
 export function EntryTextForm({
   labels: t,
   kind,
   note,
+  date,
   signatureBase,
   submit,
   onCancel,
@@ -91,8 +106,10 @@ export function EntryTextForm({
 }: {
   labels: JournalLabels;
   kind: "new" | "append";
-  /** A muted line under the heading, such as the day a new entry is saved on. */
+  /** What the quiet line names when the entry's day is not known: the line the form used to show under its heading. */
   note?: string;
+  /** The day (YYYY-MM-DD) the text belongs to; a new entry's `signatureBase` is it too, so it is read from there. */
+  date?: string;
   /** Names what the write targets (day, or entry and version), so a changed target gets a new key. */
   signatureBase: string;
   submit: (
@@ -122,7 +139,7 @@ export function EntryTextForm({
   useKeepFocusedFieldVisible(formRef);
 
   // Focus moves into the form the user just opened, without the browser's own scroll: a new entry opens with the day
-  // heading and the form heading in view (scrolled to the top, no jump to a half-open keyboard); an appended text is
+  // heading and the form in view (scrolled to the top, no jump to a half-open keyboard); an appended text is
   // brought into view where it is.
   useEffect(() => {
     (isNew ? titleInput : textInput).current?.focus({ preventScroll: true });
@@ -132,7 +149,8 @@ export function EntryTextForm({
     } else formRef.current?.scrollIntoView?.({ block: "nearest" });
   }, [isNew]);
 
-  // Runs from the button's click: the App iframe is sandboxed without allow-forms, so no submit event is dispatched.
+  // Runs from the button's click or the key: the App iframe is sandboxed without allow-forms, so no submit event is
+  // dispatched.
   function save() {
     if (busy) return;
     if (isNew && title.trim() === "") {
@@ -170,8 +188,10 @@ export function EntryTextForm({
       .finally(() => setBusy(false));
   }
 
+  /** Escape asks only when something is written; a second Escape while it asks keeps writing. */
   function cancel() {
-    if (title.trim() !== "" || text.trim() !== "") setAsking(true);
+    if (asking) setAsking(false);
+    else if (title.trim() !== "" || text.trim() !== "") setAsking(true);
     else onCancel();
   }
 
@@ -188,32 +208,38 @@ export function EntryTextForm({
               : t.appendTextFailed
             : undefined;
 
+  const day = date ?? (calendarDate.test(signatureBase) ? signatureBase : "");
+  const dayText = day
+    ? formatDayHeading(day, t.dateLocale, ownerToday())
+    : note;
+  const saveName = isNew ? t.save : t.appendTextSave;
+
   return (
-    <div
-      ref={formRef}
-      className="journal-edit journal-write"
-      role="group"
-      aria-label={heading}
+    <FocusForm
+      formRef={formRef}
+      label={heading}
+      onSave={save}
+      onCancel={cancel}
       onFocus={keepVisible}
     >
-      <h3>{heading}</h3>
-      {note && <p className="journal-muted">{note}</p>}
+      <h3 className="journal-visually-hidden">{heading}</h3>
       {isNew && (
         <>
-          <label htmlFor={titleId}>{t.titleLabel}</label>
-          <input
+          <FocusTitle
             id={titleId}
-            ref={titleInput}
-            type="text"
-            maxLength={TITLE_MAX}
+            label={t.titleLabel}
+            placeholder={t.titlePlaceholder}
             value={title}
+            maxLength={TITLE_MAX}
             disabled={busy}
-            aria-invalid={problem === "title" ? true : undefined}
-            aria-describedby={problem === "title" ? errorId : undefined}
-            onChange={(event) => {
+            invalid={problem === "title"}
+            describedBy={problem === "title" ? errorId : undefined}
+            inputRef={titleInput}
+            onChange={(value) => {
               setProblem(undefined);
-              setTitle(event.target.value);
+              setTitle(value);
             }}
+            onEnter={() => textInput.current?.focus()}
           />
           {problem === "title" && (
             <p id={errorId} role="alert">
@@ -222,24 +248,21 @@ export function EntryTextForm({
           )}
         </>
       )}
-      <label htmlFor={textId}>
-        {isNew ? t.entryTextLabel : t.appendTextLabel}
-      </label>
-      <textarea
+      <FocusText
         id={textId}
-        ref={textInput}
-        maxLength={TEXT_MAX}
+        label={isNew ? t.entryTextLabel : t.appendTextLabel}
+        placeholder={isNew ? t.textPlaceholder : t.appendPlaceholder}
         value={text}
+        maxLength={TEXT_MAX}
         disabled={busy}
-        aria-invalid={
-          problem === "text" || problem === "tooLong" ? true : undefined
-        }
-        aria-describedby={
+        invalid={problem === "text" || problem === "tooLong"}
+        describedBy={
           problem === "text" || problem === "tooLong" ? errorId : undefined
         }
-        onChange={(event) => {
+        inputRef={textInput}
+        onChange={(value) => {
           setProblem(undefined);
-          setText(event.target.value);
+          setText(value);
         }}
       />
       {problem === "text" && (
@@ -252,6 +275,7 @@ export function EntryTextForm({
           {t.entryTooLong}
         </p>
       )}
+      <FocusMeta>{t.writeMeta(dayText, countWords(text))}</FocusMeta>
       {!isNew && <p className="journal-muted">{t.appendTextNote}</p>}
       {failureText && (
         <ErrorNotice
@@ -260,34 +284,39 @@ export function EntryTextForm({
           message={failureText}
         />
       )}
-      {asking ? (
-        <DiscardAsk
-          labels={t}
-          onDiscard={onCancel}
-          onKeep={() => setAsking(false)}
-        />
-      ) : (
-        <div className="journal-actions sk-form-actions">
-          <button
-            type="button"
-            className="sk-btn--primary"
-            disabled={busy}
-            aria-busy={busy || undefined}
-            onClick={save}
-          >
-            {isNew ? t.save : t.appendTextSave}
-          </button>
-          {/* Avbryt is the quiet text button beside Save, as in every form of the family. */}
-          <button
-            type="button"
-            className="sk-btn--quiet"
-            disabled={busy}
-            onClick={cancel}
-          >
-            {t.cancel}
-          </button>
-        </div>
-      )}
-    </div>
+      <FocusBar>
+        {asking ? (
+          <DiscardAsk
+            labels={t}
+            onDiscard={onCancel}
+            onKeep={() => setAsking(false)}
+          />
+        ) : (
+          <div className="journal-actions sk-form-actions">
+            <button
+              type="button"
+              className="sk-btn--primary"
+              disabled={busy}
+              aria-busy={busy || undefined}
+              aria-keyshortcuts="Control+Enter Meta+Enter"
+              title={`${saveName} (${saveKeyName()})`}
+              onClick={save}
+            >
+              {saveName}
+            </button>
+            {/* Avbryt is the quiet text button beside Save, as in every form of the family. */}
+            <button
+              type="button"
+              className="sk-btn--quiet"
+              disabled={busy}
+              aria-keyshortcuts="Escape"
+              onClick={cancel}
+            >
+              {t.cancel}
+            </button>
+          </div>
+        )}
+      </FocusBar>
+    </FocusForm>
   );
 }

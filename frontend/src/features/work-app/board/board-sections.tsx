@@ -53,6 +53,7 @@ export function SingleSection({
   segment,
   items,
   shown,
+  drawn = shown,
   needle,
   undos,
   doneOpen,
@@ -67,6 +68,8 @@ export function SingleSection({
   segment: BoardSegment;
   items: WorkItemRecord[];
   shown: WorkItemRecord[];
+  /** The cards of `shown` the section draws; the rest wait behind its "Visa N till". All of them when absent. */
+  drawn?: WorkItemRecord[];
   needle: string;
   undos: Record<string, BoardUndo>;
   doneOpen: boolean;
@@ -120,9 +123,9 @@ export function SingleSection({
       </h3>
       {folds && !doneOpen ? null : (
         <>
-          {shown.length ? (
+          {drawn.length ? (
             <ul className="work-list">
-              {shown.map((item, at) => renderCard(item, at, shown, orderable))}
+              {drawn.map((item, at) => renderCard(item, at, shown, orderable))}
             </ul>
           ) : tabbed && !more && count <= 0 ? (
             <p className="work-column-empty">{emptyText}</p>
@@ -138,6 +141,7 @@ export function SingleSection({
 export function ColumnSection({
   segment,
   items,
+  drawn,
   target,
   emptyText,
   renderCard,
@@ -146,6 +150,8 @@ export function ColumnSection({
 }: {
   segment: BoardSegment;
   items: { item: WorkItemRecord }[];
+  /** The cards of `items` the column draws; the rest wait behind its "Visa N till". */
+  drawn: WorkItemRecord[];
   /** The drag is over this column. */
   target: boolean;
   emptyText: string;
@@ -166,9 +172,7 @@ export function ColumnSection({
         {segment.label} ({items.length + unshown})
       </h3>
       {items.length ? (
-        <ul className="work-list">
-          {items.map(({ item }) => renderCard(item))}
-        </ul>
+        <ul className="work-list">{drawn.map((item) => renderCard(item))}</ul>
       ) : more ? null : (
         <p>{emptyText}</p>
       )}

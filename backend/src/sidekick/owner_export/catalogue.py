@@ -118,6 +118,11 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("114_ai_erased_run_costs", True),
     # A Contact's Slack profile link: an exported column (format 8).
     ("115_contact_slack_profile", False),
+    # Automation tables; none is exported yet, so the export is unchanged until they are.
+    ("116_automations", True),
+    # Photo metadata. Photos are not exported until the export format that carries them, so no
+    # exported table or column changes yet.
+    ("117_journal_attachments", True),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
 
@@ -149,7 +154,8 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
 # at migration 107 or 108, a format 7 export at migration 110 or 111 and a format 8 export at
-# migration 115 (112 and 115 added exported columns before format 8 was first released).
+# migration 115, 116 or 117 (112 and 115 added exported columns before format 8 was first
+# released; 116 and 117 added tables that no export carries yet).
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
     FORMAT_WITHOUT_AI_STEPS: frozenset({"110_task_ambition", "111_webhook_tokens"}),

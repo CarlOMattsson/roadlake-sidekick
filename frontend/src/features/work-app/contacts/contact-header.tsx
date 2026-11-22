@@ -1,6 +1,9 @@
-import { useId, useRef, useState } from "react";
+import { useContext, useId, useRef, useState } from "react";
+import { RoomSurfaceContext } from "../../mcp-apps/ui/room-context";
+import { initialsOf } from "../../mcp-apps/ui/initials";
 import { ContactAliasSummary } from "./contact-aliases";
 import { DetailMenu } from "../../mcp-apps/ui/detail-menu";
+import { menuButtonKeys } from "../../mcp-apps/ui/menu";
 import type { WorkLabels } from "../shared/labels";
 import { MoreIcon } from "../tasks/task-detail-controls";
 import { ContactProfileLine } from "./contact-journal-entries";
@@ -51,6 +54,25 @@ export function ContactHeader({
     setMenuOpen(false);
     moreButton.current?.focus();
   }
+  const beside = useContext(RoomSurfaceContext).pane === "detail";
+  const identity = (
+    <>
+      <DetailTitle
+        heading={heading}
+        onEdit={
+          ready && !ready.archived && !editing && !busy ? edit : undefined
+        }
+      >
+        {ready ? ready.display_name : t.contact}
+      </DetailTitle>
+      {/* The profile line of the list row, 4 under the name as the Task's meta line; the nicknames under it.
+          While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
+      {ready && !editing && <ContactProfileLine contact={ready} />}
+      {ready && !editing && (
+        <ContactAliasSummary aliases={ready.aliases} labels={t} />
+      )}
+    </>
+  );
   return (
     <>
       {/* The Back row carries only ⋯ (Redigera, Archive); a tap on the name edits too (§3). */}
@@ -68,29 +90,33 @@ export function ContactHeader({
               aria-controls={menuOpen ? menuId : undefined}
               disabled={busy || editing}
               onClick={() => setMenuOpen(!menuOpen)}
+              onKeyDown={menuButtonKeys(menuOpen, setMenuOpen)}
             >
               <MoreIcon />
             </button>
           ) : undefined
         }
       />
-      <DetailTitle
-        heading={heading}
-        onEdit={
-          ready && !ready.archived && !editing && !busy ? edit : undefined
-        }
-      >
-        {ready ? ready.display_name : t.contact}
-      </DetailTitle>
-      {/* The profile line of the list row, 4 under the name as the Task's meta line; the nicknames under it.
-          While the editor is open it is the page's content: the values it edits are not drawn twice above it. */}
-      {ready && !editing && <ContactProfileLine contact={ready} />}
-      {ready && !editing && (
-        <ContactAliasSummary aliases={ready.aliases} labels={t} />
+      {beside ? (
+        // Beside its list (a wide frame) the name has the avatar of the list row before it, at 56.
+        <div className="work-contact-ident">
+          {ready && (
+            <span
+              aria-hidden="true"
+              className="work-contact-avatar work-contact-avatar--large"
+            >
+              {initialsOf(ready.display_name)}
+            </span>
+          )}
+          <div className="work-contact-ident-text">{identity}</div>
+        </div>
+      ) : (
+        identity
       )}
       {ready && menuOpen && (
         <DetailMenu
           id={menuId}
+          anchor={moreButton}
           busy={busy || editing || unlinks.busy}
           edit={ready.archived ? undefined : { label: t.edit, onChoose: edit }}
           archive={{

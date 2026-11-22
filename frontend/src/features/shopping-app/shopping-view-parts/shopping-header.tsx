@@ -1,18 +1,23 @@
-import { useContext } from "react";
+import { useContext, useId } from "react";
 import type { RefObject } from "react";
 import type { ShoppingList } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { BackHeader } from "../../mcp-apps/ui/back-header";
-import { MoreIcon, PlusIcon } from "../../mcp-apps/ui/icons";
-import { onEscapeKey } from "../../mcp-apps/ui/key-scope";
+import { PlusIcon } from "../../mcp-apps/ui/icons";
+import { RoomHead } from "../../mcp-apps/ui/room-head";
 import type { useMoreMark } from "../../mcp-apps/update-reminder";
 import type { HostSettingsEntry } from "../../mcp-apps/room-types";
 import { RoomSurfaceContext } from "../../mcp-apps/ui/room-context";
-import { MoreMenu } from "./more-menu";
+import { MoreButton, MoreMenu } from "./more-menu";
 
 /**
  * The head of the view: the title, the way back to the picker with the + and ⋯ of the fullscreen view, the ⋯ menu
  * and the hint.
+ *
+ * `wide` (fullscreen in a frame of at least 64rem, where the shell offers its one-row head): the lists stand beside the
+ * chosen list, so there is no way back. The head is the shared room head in the shell's row (ui/room-head.tsx), with
+ * + and ⋯ on the same places as in every room: + adds an item to the open list ("n"), or makes the first list while
+ * there is none, and ⋯ is the room's menu. The list's name is the detail's own heading (shopping-view.tsx).
  */
 export function ShoppingHeader({
   labels: t,
@@ -35,6 +40,9 @@ export function ShoppingHeader({
   onToggleMore,
   onCloseMore,
   onToggleEdit,
+  wide = false,
+  onNewList,
+  newOpen = false,
 }: {
   labels: ShoppingLabels;
   id: string;
@@ -58,8 +66,79 @@ export function ShoppingHeader({
   onToggleMore: () => void;
   onCloseMore: () => void;
   onToggleEdit: () => void;
+  /** The wide frame's head (see above). */
+  wide?: boolean;
+  /** Wide, with no list to add to: + opens the "New list" field instead. */
+  onNewList?: () => void;
+  newOpen?: boolean;
 }) {
   const { framed } = useContext(RoomSurfaceContext);
+  const menuId = useId();
+  const moreMenu = moreOpen && (wide || (menu && list)) && (
+    <MoreMenu
+      id={menuId}
+      anchor={moreButton}
+      control={control}
+      onClose={onCloseMore}
+    >
+      {list && (
+        <button
+          type="button"
+          className="sk-menu-item"
+          aria-expanded={editOpen}
+          onClick={onToggleEdit}
+        >
+          {t.editList}
+        </button>
+      )}
+    </MoreMenu>
+  );
+  const moreTrigger = (
+    <MoreButton
+      label={moreMark.label}
+      dot={moreMark.dot}
+      open={moreOpen}
+      menuId={menuId}
+      buttonRef={moreButton}
+      onOpenChange={(open) => {
+        if (open !== moreOpen) onToggleMore();
+      }}
+    />
+  );
+  if (wide)
+    return (
+      <header className="shopping-head">
+        <h1 className="shopping-visually-hidden">{t.title}</h1>
+        <RoomHead
+          scope="sidekick-shopping"
+          keysTitle={t.title}
+          // No view tabs: an empty cell takes their place, so the tools stand at the row's end as in every room.
+          tabs={<span aria-hidden="true" />}
+          add={
+            list
+              ? canAdd
+                ? {
+                    label: t.addItem,
+                    expanded: addOpen,
+                    disabled: busy,
+                    onPress: onToggleAdd,
+                    onKey: () => {
+                      if (!addOpen) onToggleAdd();
+                    },
+                  }
+                : undefined
+              : onNewList && {
+                  label: t.newList,
+                  expanded: newOpen,
+                  onPress: onNewList,
+                }
+          }
+          addRef={list ? addButton : undefined}
+          more={moreTrigger}
+        />
+        {moreMenu}
+      </header>
+    );
   return (
     <header className="shopping-head">
       {/* The strip above already says Shopping: framed, the heading stays for assistive technology only. */}
@@ -95,44 +174,13 @@ export function ShoppingHeader({
                     <PlusIcon />
                   </button>
                 )}
-                <button
-                  ref={moreButton}
-                  type="button"
-                  className="shopping-more-trigger sk-iconbtn"
-                  aria-label={moreMark.label}
-                  aria-expanded={moreOpen}
-                  onClick={onToggleMore}
-                  onKeyDown={(event) => {
-                    if (moreOpen) onEscapeKey(event, onCloseMore);
-                  }}
-                >
-                  <MoreIcon />
-                  {moreMark.dot}
-                </button>
+                {moreTrigger}
               </>
             )
           }
         />
       )}
-      {moreOpen && menu && list && (
-        <MoreMenu
-          control={control}
-          onClose={onCloseMore}
-          onEscape={() => {
-            onCloseMore();
-            moreButton.current?.focus();
-          }}
-        >
-          <button
-            type="button"
-            className="sk-menu-item"
-            aria-expanded={editOpen}
-            onClick={onToggleEdit}
-          >
-            {t.editList}
-          </button>
-        </MoreMenu>
-      )}
+      {moreMenu}
       {showHint && <p>{t.hint}</p>}
     </header>
   );

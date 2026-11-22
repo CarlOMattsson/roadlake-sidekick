@@ -1,0 +1,23 @@
+/* Quote block (quote-block.tsx): the label in the muted meta type, then the quoted text in the body type behind a 3 px
+   bar in the edge colour, 12 from the bar. No surface of its own, so it never reads as a button or a card, and the
+   quote's own line breaks stand. */
+.sk-quote {
+  display: grid;
+  gap: var(--sk-s1);
+  min-width: 0;
+  margin: 0;
+}
+.sk-quote .sk-quote__label {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sk-quote .sk-quote__text {
+  margin: 0;
+  padding-inline-start: var(--sk-s3);
+  border-inline-start: 3px solid var(--sk-border);
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

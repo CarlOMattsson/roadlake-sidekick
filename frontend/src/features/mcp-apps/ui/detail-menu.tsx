@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import type { RefObject } from "react";
 import { Menu, MenuItem } from "./menu";
 
 type MenuChoice = { label: string; onChoose: () => void };
@@ -22,11 +22,8 @@ export function DetailMenu({
   onClose,
 }: {
   id: string;
-  /**
-   * The ⋯ button: the popover stands under it and the focus returns to it. Absent: the panel under the title at every
-   * width (the Contact's, until its head moves to the shared room head).
-   */
-  anchor?: RefObject<HTMLElement | null>;
+  /** The ⋯ button: the popover stands under it and the focus returns to it. */
+  anchor: RefObject<HTMLElement | null>;
   busy: boolean;
   /** The `edit` entry, first in the menu; left out for an archived (read-only) record. */
   edit?: MenuChoice;
@@ -38,12 +35,10 @@ export function DetailMenu({
   remove?: MenuChoice;
   onClose: () => void;
 }) {
-  const none = useRef<HTMLElement>(null);
   return (
     <Menu
       id={id}
-      anchor={anchor ?? none}
-      inFlow={!anchor}
+      anchor={anchor}
       panelClassName="work-contact-menu"
       onClose={onClose}
     >

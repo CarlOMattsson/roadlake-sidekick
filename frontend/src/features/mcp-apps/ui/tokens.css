@@ -40,6 +40,11 @@
   --sk-type-display-line: var(--sk-type-title-line);
   --sk-type-display: var(--sk-type-title-weight) var(--sk-type-display-size) /
     var(--sk-type-display-line) var(--sk-font);
+  /* What the split layout sets display and read to in a wide frame's detail pane (split-layout.css). */
+  --sk-type-display-wide-size: 1.75rem; /* 28 / 34 */
+  --sk-type-display-wide-line: 2.125rem;
+  --sk-type-read-wide-size: 1.125rem; /* 18 / 30 */
+  --sk-type-read-wide-line: 1.875rem;
   --sk-type-card-size: 1.125rem; /* 18 / 24 */
   --sk-type-card-line: 1.5rem;
   --sk-type-card-weight: var(--sk-weight-semibold);
@@ -59,7 +64,9 @@
   --sk-type-read-line: var(--sk-type-body-line);
   --sk-type-read: var(--sk-type-body-weight) var(--sk-type-read-size) /
     var(--sk-type-read-line) var(--sk-font);
-  --sk-read-measure: 66ch;
+  /* 56ch, not 66: `ch` is the width of a "0", far wider than the average letter, so 66ch measured 84 characters a line
+     of Swedish prose at 18 px and 60ch 76. 56ch holds about 70, so lines break at 60–68, inside the spec's 60–72. */
+  --sk-read-measure: 56ch;
   /* Labels: the room strip, a tab and a chip at 14/18 (15.4/19.8 at 110 %), 500 unchosen and 600
      chosen. A compact button (40 drawn, 48 to tap) is the same size at 600 (--sk-type-button). A full 48 button and the
      back link keep 16/20 at 600 (--sk-type-label-strong). A menu row keeps 16/20 at 500 (--sk-type-menu). */
@@ -116,6 +123,8 @@
   --sk-detail-max: 45rem;
   --sk-drawer-w: 27.5rem;
   --sk-menu-w: 15rem;
+  /* The shell's head in a wide frame is one row of this height: the room strip, the room's view tabs and its tools. */
+  --sk-head-h: 56px;
 
   /* Pointer feedback (designsystem §2 Hovring): a hovered row, tab, chip, room or icon button takes --sk-hover, held it
      takes --sk-press, and the row open in the detail pane takes --sk-row-selected. All three are the text colour over

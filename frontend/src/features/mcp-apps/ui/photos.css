@@ -1,0 +1,260 @@
+/*
+ * Photos (photos.tsx, photo-viewer.tsx; designsystem §3 Foton). Tiles are square, radius 8 (--sk-radius), 8 apart:
+ * 64 on a card's strip, 40 on a week day, 72 in the day's grid, three or four columns in an entry. The doubled classes
+ * lift the tile and step buttons above the rooms' generic button rule (family.css, one class and one element), which
+ * would otherwise give them a frame, padding and a 44 minimum height.
+ */
+.sk-photos {
+  --sk-photo-size: 64px;
+  display: flex;
+  gap: var(--sk-s2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sk-photos--40 {
+  --sk-photo-size: 40px;
+}
+
+/* A strip never wraps: in a card narrower than four tiles the tiles shrink together (56 in a 248 card), still square. */
+.sk-photos__item {
+  flex: 0 1 var(--sk-photo-size);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* The day's grid: as many 72 tiles as the row holds (photos.tsx counts them the same way for the "+n" tile). */
+.sk-photos--fill {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 72px);
+}
+
+/* The entry's grid: every photo, three to the row, four from 36 rem (the detail view on a desktop). */
+.sk-photos-frame {
+  container-type: inline-size;
+  min-width: 0;
+}
+.sk-photos--columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@container (min-width: 36rem) {
+  .sk-photos--columns {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sk-photo.sk-photo {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 0;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: var(--sk-skeleton);
+  color: var(--sk-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+/* 40 is drawn 40 and taps 44: 2 into the 8 between tiles on each side, so two targets never meet. */
+.sk-photos--40 .sk-photo::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+
+.sk-photo__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+/* A hairline inside the edge, over the photo, so a pale photo keeps its square on the page in both themes. */
+.sk-photo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 var(--sk-hairline)
+    color-mix(in srgb, var(--sk-fg) 10%, transparent);
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .sk-photo:hover .sk-photo__img {
+    filter: brightness(0.92);
+  }
+}
+.sk-photo:active .sk-photo__img {
+  filter: brightness(0.86);
+}
+
+/* A thumbnail that is missing, not a data: image, or could not be decoded: the photo glyph on the surface. */
+.sk-photo__missing {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sk-surface);
+}
+.sk-photo__missing svg {
+  width: min(var(--sk-icon), 50%);
+  height: auto;
+}
+
+/* "+n": the photo it stands for under a dark veil, the count in white. The veil is the same in both themes, so white
+   on it is ≥ 4.5:1 over any photo (white under the veil is #707070). */
+.sk-photo--more::before {
+  background: rgb(0 0 0 / 0.56);
+}
+.sk-photo__count {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  color: white;
+  font: var(--sk-type-section);
+  font-variant-numeric: tabular-nums;
+}
+.sk-photos--40 .sk-photo__count {
+  font: var(--sk-type-label-strong);
+}
+
+/* ---- The viewer ---- */
+.sk-photo-viewer {
+  /* Width over height of the stage; photo-viewer.tsx sets the photo's own on the stage. */
+  --sk-photo-ratio: 4 / 3;
+  display: grid;
+  min-width: 0;
+}
+
+/* A container, so the steps can stand at a height measured in its width (cqw). */
+.sk-photo-viewer__figure {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--sk-s3);
+  min-width: 0;
+  margin: var(--sk-s2) 0 0;
+}
+/* Focused when the viewer opens, so the keys reach it and a screen reader starts on the photo; not a tab stop. */
+.sk-photo-viewer__figure:focus {
+  outline: none;
+}
+
+/* The photo's own shape (--sk-photo-ratio, width over height, from the photo's known size), so the caption does not
+   move when the photo arrives; never taller than 70 % of the frame. */
+.sk-photo-viewer__stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: var(--sk-photo-ratio);
+  max-height: min(70vh, 40rem);
+  overflow: hidden;
+  border-radius: var(--sk-radius);
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+}
+.sk-photo-viewer__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+/* The thumbnail in the large photo's place until it comes: blurred, so its few pixels read as "on the way". */
+.sk-photo-viewer__img--preview {
+  filter: blur(12px);
+  transform: scale(1.1);
+}
+.sk-photo-viewer__blank {
+  width: 100%;
+  height: 100%;
+  background: var(--sk-skeleton);
+}
+
+/* ‹ and › on the photo's sides: a 40 round button in the page colour over the photo, 8 in from the edge, 48 to
+   tap. They stand where a 4:3 landscape photo has its middle (37.5 % of the width), or in the middle of a lower
+   photo, so stepping from a landscape to a portrait photo leaves them under the finger. At either end the step is
+   held off in --sk-border (as the day strip's arrow), never hidden. */
+.sk-photo-viewer__step.sk-photo-viewer__step {
+  position: absolute;
+  top: min(50%, 37.5cqw);
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--sk-compact);
+  height: var(--sk-compact);
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--sk-bg) 90%, transparent);
+  box-shadow: var(--sk-shadow-2);
+  color: var(--sk-fg);
+  translate: 0 -50%;
+  cursor: pointer;
+}
+.sk-photo-viewer__step--prev {
+  inset-inline-start: var(--sk-s2);
+}
+.sk-photo-viewer__step--next {
+  inset-inline-end: var(--sk-s2);
+}
+.sk-photo-viewer__step::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+}
+.sk-photo-viewer__step svg {
+  width: var(--sk-icon);
+  height: var(--sk-icon);
+}
+.sk-photo-viewer__step.sk-photo-viewer__step[aria-disabled="true"] {
+  color: var(--sk-border);
+  opacity: 1;
+  cursor: default;
+}
+
+.sk-photo-viewer__caption {
+  max-width: var(--sk-read-measure);
+  margin: 0;
+  color: var(--sk-fg);
+  font: var(--sk-type-read);
+  overflow-wrap: anywhere;
+}
+
+.sk-photo-viewer__meta {
+  margin: var(--sk-s3) 0 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+  font-variant-numeric: tabular-nums;
+}
+.sk-photo-viewer__figure:has(.sk-photo-viewer__caption)
+  + .sk-photo-viewer__meta {
+  margin-top: var(--sk-s1);
+}
+
+.sk-photo-viewer .sk-error {
+  margin-top: var(--sk-s2);
+}
+
+.sk-photo-viewer__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

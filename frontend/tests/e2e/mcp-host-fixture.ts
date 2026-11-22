@@ -19,6 +19,8 @@ export type SimulatedHostState = {
   displayModeRequests: string[];
   /** The urls of ui/open-link requests: the links the app asked the host to open. */
   openLinks: string[];
+  /** The texts of ui/update-model-context requests: what the app told the host's model, in order. */
+  modelContexts: string[];
 };
 export type SimulatedHostConfig = {
   /** Host context returned by ui/initialize. Partial updates come later via setHostContext. */
@@ -100,6 +102,7 @@ function installSimulatedHost({
     calls: [],
     displayModeRequests: [],
     openLinks: [],
+    modelContexts: [],
   };
   const sequenceCounts = new Map<string, number>();
   const send = (body: object) =>
@@ -120,6 +123,7 @@ function installSimulatedHost({
         arguments?: Record<string, unknown>;
         mode?: string;
         url?: string;
+        content?: { text?: string }[];
       };
     };
     if (message.method === "ui/initialize")
@@ -137,6 +141,11 @@ function installSimulatedHost({
     else if (message.method === "ui/request-display-mode") {
       state.displayModeRequests.push(String(message.params.mode));
       send({ id: message.id, result: { mode: message.params.mode } });
+    } else if (message.method === "ui/update-model-context") {
+      state.modelContexts.push(
+        (message.params.content ?? []).map((part) => part.text ?? "").join(""),
+      );
+      send({ id: message.id, result: {} });
     } else if (message.method === "ui/open-link") {
       state.openLinks.push(String(message.params.url));
       send({ id: message.id, result: {} });

@@ -43,7 +43,10 @@ for (const width of widths) {
         result: opening.journalEntry,
         replies: { get_task: getTaskFromEntry },
       });
-      await expectRoomNames(app, ["Arbete", "Dagbok", "Kontakter", "Inköp"]);
+      await expectRoomNames(app, {
+        cells: ["Arbete", "Dagbok", "Inköp", "Mer"],
+        picker: ["Arbete", "Dagbok", "Inköp", "Kontakter"],
+      });
       // The entry is a first step above the journal's day: Back is there from the start.
       await expect(h2(app, "Lunch med Anna")).toBeVisible();
       await expect(back(app)).toHaveCount(1);

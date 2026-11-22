@@ -33,6 +33,16 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@eslint/js"
         update-types: ["version-update:semver-major"]
+      # @types/node follows the Node major we run on (.node-version, CI and the engines range: Node 22). Minor and
+      # patch updates still come through; move the major together with the runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript stays on 5.x. typescript-eslint (the lint gate) refuses to load on TypeScript 7 ("does not
+      # support TS 7.0"; its peer range is <6.1) and the native compiler has no JavaScript compiler API, which the
+      # comment policy test uses. TypeScript 7 also removed baseUrl and no longer picks up @types packages or CSS
+      # side-effect imports by default. Lift this when typescript-eslint supports 7 and the config is migrated.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: gradle
     directory: /frontend/android

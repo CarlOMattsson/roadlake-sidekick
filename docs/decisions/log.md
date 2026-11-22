@@ -57,6 +57,7 @@ Replaced decisions (D-036, D-051, D-056, D-085, D-086) are in the [archive](arch
 | D-095 | [The Android app can create and edit](#d-095---the-android-app-can-create-and-edit) |
 | D-096 | [AI-delegated steps](#d-096---ai-delegated-steps) |
 | D-097 | [The server runs approved AI steps](#d-097---the-server-runs-approved-ai-steps) |
+| D-098 | [Automations, suggestions and journal photos](#d-098---automations-suggestions-and-journal-photos) |
 
 ### D-004 - One set of use cases for HTTP and MCP
 
@@ -192,7 +193,7 @@ Why: "today" must match the user's day, not UTC.
 
 ### D-064 - Proposal and revert tools removed from MCP
 
-Status: Accepted; changes [D-056](archive.md#d-056---owner-review-of-proposals-over-mcp-historical) for the MCP surface.
+Status: Accepted; partly amended by [D-098](#d-098---automations-suggestions-and-journal-photos) (suggestions only); changes [D-056](archive.md#d-056---owner-review-of-proposals-over-mcp-historical) for the MCP surface.
 `list_pending_proposals`, `get_proposal`, `list_revertible_actions`, `confirm_proposal`, `reject_proposal` and
 `revert_assistant_action` are not part of the MCP surface.
 
@@ -411,3 +412,20 @@ cannot be passed. Attempts and the task cap count per cycle of a recurring task,
 Web tools are not built, nothing goes to memory, and nothing is sent, bought, deleted or published. Default model
 `claude-opus-5-5`. D-084's removal of the chat engine and the provider adapters is not reversed. Local models, web
 tools and automatic continuation are deferred; a step with privacy `local_only` is refused until a local adapter exists.
+
+### D-098 - Automations, suggestions and journal photos
+
+Status: Accepted (2026-11-22); recorded as [ADR-013](adr/ADR-013-automations-and-suggestions.md) (automations and
+suggestions) and [ADR-014](adr/ADR-014-journal-photo-storage.md) (media storage); partly amends
+[D-064](#d-064---proposal-and-revert-tools-removed-from-mcp) for suggestions only, and amends
+[ADR-009](adr/ADR-009-one-curated-public-mcp-surface.md), [ADR-011](adr/ADR-011-ai-delegated-steps.md) and
+[ADR-012](adr/ADR-012-server-runs-approved-ai-steps.md).
+Automations propose and the owner decides. An automation is its own owner-scoped record, never a task. It produces
+suggestions from a closed, versioned effect catalogue, and the owner approves every automation in the app, bound to a
+digest of its spec. Suggestions are decided by the owner. The model may decide at most three suggestions per call and
+never a flagged card, and it is refused for the session that ran the automation. Group approval exists only in the app.
+An independent checker without tools gates only convenience (group approval and the opt-in auto-apply) and never
+authorises anything. Automations are off by default and are enabled per installation; cost limits are settings. Journal
+photos are stored as files with their metadata in PostgreSQL, can be erased through the trash, never go to memory, and
+are downscaled and re-encoded by the client before upload. This partly amends D-064: the narrow deciding tool and the
+app-only group approval apply to suggestions and to nothing else. No chat engine, provider registry or agent returns.

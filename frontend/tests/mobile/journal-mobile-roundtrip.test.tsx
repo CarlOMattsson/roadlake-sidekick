@@ -1,4 +1,10 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -83,18 +89,16 @@ describe("a hand-written journal entry on the phone", () => {
     expect(server.entries()[0]?.text).toBe(TEXT);
 
     // Read back at once ...
+    // The owner's own words are the text of the entry: no click on "Visa originaltext" is needed to read them.
     await user.click(row);
-    await user.click(
-      await screen.findByRole("button", { name: journalSv.showOriginal }),
-    );
     const original = await screen.findByRole("article");
-    expect(
-      within(original).getByRole("heading", {
-        name: journalSv.originalHeading,
-      }),
-    ).toBeInTheDocument();
-    expect(original.textContent).toContain("Gick längs vattnet");
+    await waitFor(() => {
+      expect(original.textContent).toContain("Gick längs vattnet");
+    });
     expect(original.textContent).toContain("Å, vilken kväll!");
+    expect(
+      within(original).queryByRole("button", { name: journalSv.showOriginal }),
+    ).toBeNull();
 
     // ... and after a restart: a new app, a new transport, the same server.
     cleanup();
@@ -103,12 +107,11 @@ describe("a hand-written journal entry on the phone", () => {
     await user.click(
       await screen.findByRole("button", { name: new RegExp(TITLE) }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: journalSv.showOriginal }),
-    );
-    expect((await screen.findByRole("article")).textContent).toContain(
-      "Gick längs vattnet och funderade på nästa vecka.",
-    );
+    await waitFor(async () => {
+      expect((await screen.findByRole("article")).textContent).toContain(
+        "Gick längs vattnet och funderade på nästa vecka.",
+      );
+    });
     // Only the journal's own routes were asked; the text came from the source route, with a UUID in its path.
     const paths = server.served.map((r) => r.path);
     expect(paths.filter((p) => p.includes("/journal/sources/"))).toHaveLength(

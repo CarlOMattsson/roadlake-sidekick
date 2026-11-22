@@ -79,14 +79,36 @@ export function unshownIn(page: BoardPage, segment: string): number {
   );
 }
 
+/** How many cards a column draws before its "Visa N till" (the cards beyond them are read, just not drawn yet). */
+export const COLUMN_VISIBLE = 10;
+
+/**
+ * A column's cards split into those drawn and those held back behind "Visa N till": the first `COLUMN_VISIBLE`, plus
+ * any card `pinned` (one that stands there for its Ångra or is still on its way to the column), so a change the owner
+ * just made never disappears. An `expanded` column draws every card.
+ */
+export function windowCards<T>(
+  cards: T[],
+  expanded: boolean,
+  pinned: (card: T) => boolean,
+): { drawn: T[]; hidden: T[] } {
+  if (expanded) return { drawn: cards, hidden: [] };
+  const drawn: T[] = [];
+  const hidden: T[] = [];
+  for (const card of cards)
+    (drawn.length < COLUMN_VISIBLE || pinned(card) ? drawn : hidden).push(card);
+  return { drawn, hidden };
+}
+
 /** One Task status column's first page, read on its own (see `columnsToFill`). */
 export type ColumnRead = { status: TaskStatusValue; page: BoardPage };
 
 /**
- * The Task status columns the server counts records in (`column_totals`) while the page shows none: the board's pages
- * run across every column in board order, so a long column can fill the first page and leave the others empty with only
- * a "Show more". Those columns read their own first page. A column whose own read already ended (cursor null) is not
- * asked again, and on a board filtered to one status only that column is looked at.
+ * The Task status columns the server counts more records in (`column_totals`) than the page shows, up to what a column
+ * draws (`COLUMN_VISIBLE`): the board's pages run across every column in board order, so a long column can fill the
+ * first page and leave the others empty, or with the one card that was moved there, and a column of two cards would
+ * stand with one and a "Show more". Those columns read their own first page. A column whose own read already ended
+ * (cursor null) is not asked again, and on a board filtered to one status only that column is looked at.
  */
 export function columnsToFill(source: WorkBoardFrame): TaskStatusValue[] {
   const { page, filters, columnCursors } = source;
@@ -96,8 +118,8 @@ export function columnsToFill(source: WorkBoardFrame): TaskStatusValue[] {
   return TASK_STATUSES.filter(
     (status) =>
       (only === "" || only === status) &&
-      (totals[status] ?? 0) > 0 &&
-      (page.columns[status]?.length ?? 0) === 0 &&
+      (page.columns[status]?.length ?? 0) <
+        Math.min(totals[status] ?? 0, COLUMN_VISIBLE) &&
       columnCursors?.[status] !== null,
   );
 }

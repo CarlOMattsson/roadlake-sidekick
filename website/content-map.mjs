@@ -66,7 +66,7 @@ export const order = {
   ],
   'docs/operate/work-laptop': ['index', 'network', 'start-at-login', 'backup-and-update', 'macos', 'model-server', 'uninstall'],
   'docs/reference': ['configuration', 'scopes', 'cli', 'selfhost-profiles', 'languages', 'design-system'],
-  'docs/explanation': ['overview', 'security-and-privacy', 'threat-model', 'licensing', 'schema-baseline'],
+  'docs/explanation': ['overview', 'security-and-privacy', 'threat-model', 'licensing', 'ai-costs', 'schema-baseline'],
   'docs/explanation/architecture': ['backend', 'mcp-apps'],
   'docs/decisions': ['index', 'log', 'archive'],
   'docs/contribute': ['index', 'development', 'code-of-conduct', 'cla'],

@@ -105,7 +105,10 @@ for (const width of widths) {
         app.getByRole("button", { name: "Försök igen" }),
       ).toHaveCount(0);
       // The strip still shows every room.
-      await expectRoomNames(app, ["Arbete", "Dagbok", "Kontakter", "Inköp"]);
+      await expectRoomNames(app, {
+        cells: ["Arbete", "Dagbok", "Inköp", "Mer"],
+        picker: ["Arbete", "Dagbok", "Inköp", "Kontakter"],
+      });
       expect(failures).toEqual([]);
     });
 

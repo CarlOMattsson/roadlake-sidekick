@@ -156,10 +156,16 @@ layer 8 past the row on each side with radius 8, so the text stands still, and t
 
 ## 3. Components
 
-**Room strip (Rumsremsan).** Four equal tabs (`flex: 1 1 0`) in `--sk-type-label`, 40 high: cells 32 drawn in a
-4 px frame; each room button's own box is 44 high (the drawn cell is its `::before`) with a 48 target. The active room
-is a raised pill without a frame; the others are `--sk-muted` 500, so only
-the current place is bold and the weight change moves nothing sideways. When the four labels do not fit on one
+**Room strip (Rumsremsan).** The rooms used several times a week as equal tabs (`flex: 1 1 0`, never narrower than
+their name): Arbete · Dagbok · Inköp, then the last cell **Mer ⌄** with the rooms used about once a week or less
+(Kontakter). The order is fixed at design time and never follows use. Mer opens the one `Menu`: a popover under the
+cell with the start edges aligned (with a mouse, or in a frame of at least 40 rem), on a phone a panel over the room
+under the strip, which a press outside closes. Its rows are rooms only, with at most one meta line that asks for a
+decision, and the room you are in is ticked. While a room of Mer is open the Mer cell shows its name and the raised
+pill ("Kontakter ⌄"). Mer is not drawn when none of its rooms is on. `g 1`–`g 4` go to the tabs in order; `g 5` opens
+Mer. Cells are `--sk-type-label`, 40 high: 32 drawn in a 4 px frame; each room button's own box is 44 high (the drawn
+cell is its `::before`) with a 48 target. The active room is a raised pill without a frame; the others are
+`--sk-muted` 500, so only the current place is bold and the weight change moves nothing sideways. When the labels do not fit on one
 line (measured, no breakpoint) the strip becomes a room picker: the active room's name and ⌄ ("Arbete ⌄"),
 opening the same menu with a tick on the chosen room. There is no 2 × 2 grid. The strip shows in every
 full-screen room; detail views mark the parent room. In Control the strip has no chosen room (no

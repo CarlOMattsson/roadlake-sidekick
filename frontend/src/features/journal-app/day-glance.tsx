@@ -2,24 +2,42 @@ import { formatDayHeading, formatLongDate, formatTime } from "./dates";
 import { doneCountLine } from "./done-section";
 import type { JournalLabels } from "./labels";
 import type { JournalDay } from "./transport";
-import { CardFoot } from "../mcp-apps/ui/card";
-import { ChevronRightIcon } from "../mcp-apps/ui/icons";
+import { summaryRest } from "./entry-card";
+import { OpenLink } from "../mcp-apps/ui/open-link";
 import { EmptyState } from "../mcp-apps/ui/states";
 import "./journal.css";
+import "./day-glance.css";
 
 /** Touch target for the one action (44 px, HIG and WCAG 2.5.5). */
 const touchStyle = { minHeight: "44px" };
 /** The glance lists at most this many entries; the action opens the rest. */
 const glanceEntryLimit = 3;
+/** While the host answers the fullscreen request a second press does nothing. */
+const ignore = () => undefined;
+
+/** The entry whose text the wide card shows: the latest by time among those shown (the later one when times tie). */
+function latestEntry(entries: JournalDay["entries"]) {
+  let latest: JournalDay["entries"][number] | undefined;
+  for (const entry of entries) {
+    if (
+      latest === undefined ||
+      (entry.occurred_at ?? "") >= (latest.occurred_at ?? "")
+    ) {
+      latest = entry;
+    }
+  }
+  return latest;
+}
 
 /**
- * Inline day glance, shown inline: the weekday and date, the day's overview (at most three lines), the
- * first entries (each a button that opens that entry, at most three), the number of entries, a "Review N
- * drafts" button when drafts wait, what was done on the day as one muted count line («Gjort · 1 uppgift · 1 steg»,
- * read-only; the fold with its rows is in the day view), and one action. A day with nothing written and no summary
- * is the family's empty state (one sentence and what to say to Claude) instead of a count of zero. The action asks the host for fullscreen when it is offered,
- * otherwise it expands the day inline; with more than three entries it reads "Show all". Zero drafts are not
- * mentioned. The glance reads nothing and writes nothing.
+ * Inline day glance, shown inline: the weekday and date, the day's overview (at most three lines), the number of
+ * entries as one muted line, the first entries (each a button that opens that entry, at most three; in a card 37.5rem
+ * wide or more the latest also shows the first two lines of its text), a "Review N drafts" button when drafts wait,
+ * what was done on the day as one muted count line («Gjort · 1 uppgift · 1 steg», read-only; the fold with its rows is
+ * in the day view), and the card's one link (`OpenLink`, "Öppna Dagbok ›", with "· N till" for the entries the rows
+ * leave out). A day with nothing written and no summary is the family's empty state (one sentence and what to say to
+ * Claude) instead of a count of zero. The link asks the host for fullscreen when it is offered, otherwise it expands
+ * the day inline. Zero drafts are not mentioned. The glance reads nothing and writes nothing.
  */
 export function DayGlance({
   day,
@@ -53,7 +71,8 @@ export function DayGlance({
 }) {
   const overview = day.summary.content?.overview?.trim() || undefined;
   const shown = day.entries.slice(0, glanceEntryLimit);
-  const more = day.entries.length > glanceEntryLimit;
+  const hidden = day.entries.length - shown.length;
+  const excerptEntry = latestEntry(shown);
   const empty = day.entries.length === 0;
   const doneLine = day.done ? doneCountLine(day.done, t) : "";
   const isToday = day.journal_date === today;
@@ -89,68 +108,76 @@ export function DayGlance({
             />
           )
         )}
-        {shown.length > 0 && (
-          <ul className="journal-glance-entries">
-            {shown.map((entry) => (
-              <li key={entry.id}>
-                <button
-                  type="button"
-                  className="sk-btn--quiet journal-glance-row"
-                  onClick={() => onOpenEntry(entry.id)}
-                  style={touchStyle}
-                >
-                  {entry.occurred_at && (
-                    <time
-                      className="journal-glance-time"
-                      dateTime={entry.occurred_at}
-                    >
-                      {formatTime(entry.occurred_at, t.dateLocale)}
-                    </time>
-                  )}
-                  <span className="journal-glance-title">{entry.title}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
         {!empty && (
           <p className="journal-muted">
             {t.glanceEntries(day.entries.length, day.next_cursor !== null)}
           </p>
+        )}
+        {shown.length > 0 && (
+          <ul className="journal-glance-entries">
+            {shown.map((entry) => {
+              const excerpt =
+                entry === excerptEntry
+                  ? summaryRest(entry.title, entry.summary)
+                  : undefined;
+              return (
+                <li key={entry.id} data-sk-row>
+                  <button
+                    type="button"
+                    className="sk-btn--quiet journal-glance-row"
+                    onClick={() => onOpenEntry(entry.id)}
+                    style={touchStyle}
+                  >
+                    {entry.occurred_at && (
+                      <time
+                        className="journal-glance-time"
+                        dateTime={entry.occurred_at}
+                      >
+                        {formatTime(entry.occurred_at, t.dateLocale)}
+                      </time>
+                    )}
+                    <span className="journal-glance-text">
+                      <span className="journal-glance-title">
+                        {entry.title}
+                      </span>
+                      {excerpt && (
+                        <span className="journal-glance-excerpt">
+                          {excerpt}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
         {doneLine && (
           <p className="journal-muted journal-glance-done">
             {t.done} · {doneLine}
           </p>
         )}
-        <CardFoot>
+        {draftCount !== undefined && draftCount > 0 && (
           <div className="journal-actions sk-card__actions">
             <button
               type="button"
-              className="sk-btn--open"
-              onClick={onOpen}
-              disabled={opening}
-              aria-busy={opening || undefined}
+              className="sk-btn--secondary"
+              onClick={onReviewDrafts}
+              style={touchStyle}
             >
-              {opening
-                ? t.cardOpening
-                : more
-                  ? t.showAllEntries(day.entries.length)
-                  : t.cardOpen}
-              <ChevronRightIcon />
+              {t.reviewDrafts(draftCount)}
             </button>
-            {draftCount !== undefined && draftCount > 0 && (
-              <button
-                type="button"
-                className="sk-btn--secondary"
-                onClick={onReviewDrafts}
-                style={touchStyle}
-              >
-                {t.reviewDrafts(draftCount)}
-              </button>
-            )}
           </div>
-        </CardFoot>
+        )}
+        <OpenLink
+          label={opening ? t.cardOpening : t.glanceOpen}
+          more={
+            hidden > 0 && !opening
+              ? t.glanceMore(hidden, day.next_cursor !== null)
+              : undefined
+          }
+          onOpen={opening ? ignore : onOpen}
+        />
       </article>
     </section>
   );

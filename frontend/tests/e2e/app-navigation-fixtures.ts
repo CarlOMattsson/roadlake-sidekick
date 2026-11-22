@@ -25,6 +25,8 @@ export const themes = ["light", "dark"] as const;
 
 export type Options = {
   width: number;
+  /** The frame height in px; 780 unless a spec needs a taller desktop window. */
+  height?: number;
   theme: "light" | "dark";
   tool: string;
   result: unknown;
@@ -42,7 +44,7 @@ export async function openSidekick(page: Page, options: Options) {
   const opened = await openSimulatedApp(page, {
     resource: readBuiltApp("sidekick", "sv"),
     width: options.width,
-    height: 780,
+    height: options.height ?? 780,
     hostContext: {
       locale: "sv",
       theme: options.theme,
@@ -84,31 +86,59 @@ export async function isNarrow(app: FrameLocator) {
   await expect(strip(app)).toBeVisible();
   return (await narrowTabs(app).count()) > 0;
 }
-/** Goes to a room from the strip, as its tab or, in the picker form, through the menu. */
+// The strip's last cell, "Mer", holds the rooms used about once a week as rows of its menu (shell-parts/room-strip.tsx).
+// Contacts is one of them: it has no cell of its own, so it is reached through Mer.
+const moreRooms: readonly string[] = ["Kontakter"];
+const moreCell = (app: FrameLocator) => strip(app).locator(".sk-rooms__more");
+
+/** Goes to a room from the strip: its cell, a row of Mer's menu, or, in the picker form, the picker's menu. */
 export async function goRoom(app: FrameLocator, name: string) {
   if (await isNarrow(app)) {
     await picker(app).click();
     await app.getByRole("menuitemradio", { name, exact: true }).click();
     return;
   }
+  if (moreRooms.includes(name)) {
+    await moreCell(app).click();
+    await app
+      .getByRole("group", { name: "Fler rum", exact: true })
+      .getByRole("button", { name, exact: true })
+      .click();
+    return;
+  }
   await room(app, name).click();
 }
-/** The room that is active: aria-current on its tab, or the picker's name when the picker stands in. */
+/**
+ * The room that is active: aria-current on its cell, or the Mer cell with the room's name, or the picker's name when
+ * the picker stands in.
+ */
 export async function expectCurrentRoom(app: FrameLocator, name: string) {
   if (await isNarrow(app)) {
     await expect(picker(app)).toHaveText(name);
     return;
   }
+  if (moreRooms.includes(name)) {
+    await expect(moreCell(app)).toHaveAttribute("aria-current", "page");
+    await expect(moreCell(app)).toHaveText(name);
+    return;
+  }
   await expect(room(app, name)).toHaveAttribute("aria-current", "page");
 }
-/** Every room is offered: as the four tabs, or in the picker's menu (the menu is closed again). */
-export async function expectRoomNames(app: FrameLocator, names: string[]) {
+/**
+ * Every room is offered. In the wide strip `cells` are the cells as drawn (Mer last, named Mer while no room of it is
+ * open). In the narrow frame `picker` is the picker's menu, which lists every room with the Mer rooms last; the menu is
+ * closed again.
+ */
+export async function expectRoomNames(
+  app: FrameLocator,
+  names: { cells: string[]; picker: string[] },
+) {
   if (!(await isNarrow(app))) {
-    await expect(strip(app).getByRole("button")).toHaveText(names);
+    await expect(strip(app).getByRole("button")).toHaveText(names.cells);
     return;
   }
   await picker(app).click();
-  await expect(app.getByRole("menuitemradio")).toHaveText(names);
+  await expect(app.getByRole("menuitemradio")).toHaveText(names.picker);
   await app.getByRole("menuitemradio").first().press("Escape");
 }
 

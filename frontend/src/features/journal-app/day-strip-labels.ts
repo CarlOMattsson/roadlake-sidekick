@@ -12,6 +12,9 @@ export const dayStripLabelsEn = {
   todayMarker: "Today",
   selected: "selected",
   withEntries: "has entries",
+  calendar: "Calendar",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
 };
 
 export type DayStripLabels = typeof dayStripLabelsEn;
@@ -25,4 +28,7 @@ export const dayStripLabelsSv: DayStripLabels = {
   todayMarker: "Idag",
   selected: "vald",
   withEntries: "har anteckningar",
+  calendar: "Kalender",
+  previousMonth: "Föregående månad",
+  nextMonth: "Nästa månad",
 };

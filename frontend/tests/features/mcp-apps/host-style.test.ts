@@ -244,3 +244,30 @@ describe("applyHostStyle pointer", () => {
     expect(pointerOf({ theme: "dark" })).toBe("fine");
   });
 });
+
+describe("the host's container height", () => {
+  const heightOf = (ctx: HostStyleContext) => {
+    applyHostStyle(ctx, root);
+    return root.dataset.hostHeight;
+  };
+
+  it("is fixed when the host fixes the height (containerDimensions.height), so a split detail may scroll by itself", () => {
+    expect(
+      heightOf({ containerDimensions: { height: 900, width: 1440 } }),
+    ).toBe("fixed");
+  });
+
+  it("is not fixed for a height the app's size decides, an unbounded one or junk, and a later context clears it", () => {
+    expect(
+      heightOf({ containerDimensions: { maxHeight: 6000 } }),
+    ).toBeUndefined();
+    heightOf({ containerDimensions: { height: 900 } });
+    expect(heightOf({})).toBeUndefined();
+    expect(
+      heightOf({
+        containerDimensions: { height: "900" as unknown as number },
+      }),
+    ).toBeUndefined();
+    expect(heightOf({ containerDimensions: { height: 0 } })).toBeUndefined();
+  });
+});

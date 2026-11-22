@@ -49,6 +49,14 @@
   }
 }
 
+/* A wide frame (64rem, desktop spec §1): the body takes up to --sk-shell-max (80rem), so the one-row head and the
+   board use the width; a list keeps its reading width (--sk-room-max) inside it. */
+@container sk-frame (min-width: 64rem) {
+  .sk-frame[data-mode="full"] > .sk-frame__body {
+    max-width: var(--sk-shell-max);
+  }
+}
+
 /* A narrow frame or large text: the side margin is 12, so the title column gains 8, and a
    long Swedish word keeps its line ("sammanställningen" at 360 and 200 %). 17.25rem is 412 px at 150 % text. */
 @container sk-frame (max-width: 399.98px) or (max-width: 17.25rem) {

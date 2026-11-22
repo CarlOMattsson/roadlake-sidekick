@@ -1,6 +1,7 @@
 import {
   Fragment,
   useEffect,
+  type KeyboardEvent,
   useEffectEvent,
   useMemo,
   useRef,
@@ -13,6 +14,7 @@ import {
   type BoardAction,
   type BoardNotice,
 } from "../board/board";
+import { RefreshIcon } from "../board/board-sections";
 import { GroupSelect } from "../hierarchy/group-select";
 import { groupSelectLabelsFor } from "../hierarchy/group-select-labels";
 import {
@@ -57,14 +59,24 @@ type UnsortedUndo = {
  * A tap or a choice sorts the Task there (update_task with placeChanges) and the row leaves when the reply
  * comes; the Undo line puts it back. The places are read (get_work_hierarchy) when a picker is first opened. Reads go through the bridge
  * (list_tasks with unsorted, list_domains); there is no app resource of its own. The fullscreen Work
- * app opens it from a row above the agenda, not from a tab.
+ * app opens it from a row after the agenda, and in a wide frame from its own tab.
+ *
+ * In the tab (`onOpen` given) a row is a triage line (desktop spec 3.1): the title opens the Task, and with the focus in
+ * the row 1–9 sort it into the Domain of that place and P unfolds the place picker. A wide frame lays the line out on
+ * one row of 52 (unsorted.css); the phone keeps its stacked row.
  */
 export function UnsortedView({
   transport,
   labels: t,
+  onOpen,
+  onSorted,
 }: {
   transport: WorkTransport;
   labels: WorkLabels;
+  /** Opens a Task from its title; absent: the title is text. */
+  onOpen?: (task: WorkTask) => void;
+  /** A sort or its Undo landed, so the count of Tasks to sort has changed. */
+  onSorted?: () => void;
 }) {
   const [items, setItems] = useState<WorkTask[]>();
   const [cursor, setCursor] = useState<string | null>(null);
@@ -95,6 +107,18 @@ export function UnsortedView({
   const pending = useRef(new Map<string, PendingKey>());
   // The write that "Try again" repeats after a failed change.
   const retryWrite = useRef<(() => void) | undefined>(undefined);
+  // Triage: the place in the list whose title takes the focus once a sorted row has left (the next row moves up into it).
+  const focusAt = useRef<number | undefined>(undefined);
+  const listRef = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const at = focusAt.current;
+    if (at === undefined || !listRef.current) return;
+    focusAt.current = undefined;
+    const titles = listRef.current.querySelectorAll<HTMLButtonElement>(
+      "li:not([data-undo]) .work-unsorted-open-task",
+    );
+    (titles[Math.min(at, titles.length - 1)] ?? undefined)?.focus();
+  }, [items]);
 
   // The first read happens once, when the tab is first pressed.
   // eslint-disable-next-line react-hooks/immutability -- the first read runs from an effect after the render, when reload is declared.
@@ -200,9 +224,17 @@ export function UnsortedView({
         const index = (itemsNow.current ?? []).findIndex(
           (item) => item.id === task.id,
         );
+        // The focus was in the row (a key or a button of it): it goes on to the next row's title.
+        if (
+          onOpen &&
+          listRef.current?.contains(document.activeElement) &&
+          index >= 0
+        )
+          focusAt.current = index;
         update((all) => all.filter((item) => item.id !== task.id));
         setPicking(undefined);
         setUndo({ task, index, version: stored.version, label });
+        onSorted?.();
       } catch (error) {
         if (writeFailure(error) !== "failed") pending.current.delete(task.id);
         retryWrite.current = () => sortInto(task, place, label);
@@ -239,6 +271,7 @@ export function UnsortedView({
         if (!mounted.current) return;
         // The row takes back the place of its Undo line.
         setUndo(undefined);
+        onSorted?.();
         update((all) => {
           const list = all.filter((item) => item.id !== entry.task.id);
           list.splice(Math.min(entry.index, list.length), 0, {
@@ -253,6 +286,26 @@ export function UnsortedView({
         if (mounted.current) setNotice(failureNotice(error, "move"));
       }
     });
+  }
+
+  /** The triage keys of a row: 1–9 sort into that Domain, P unfolds the place picker. Never while typing. */
+  function triageKey(event: KeyboardEvent<HTMLElement>, task: WorkTask) {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("input, select, textarea, [contenteditable]")) return;
+    if (reads || writing.has(task.id)) return;
+    if (/^[1-9]$/.test(event.key)) {
+      const domain = domains?.[Number(event.key) - 1];
+      if (!domain) return;
+      event.preventDefault();
+      sortInto(task, { kind: "domain", id: domain.id }, domain.name);
+      return;
+    }
+    if (pickerOffered && event.key.toLowerCase() === "p") {
+      event.preventDefault();
+      setPicking(task.id);
+      setPickerOpened(true);
+    }
   }
 
   const reads = busy !== "idle";
@@ -294,7 +347,11 @@ export function UnsortedView({
   );
 
   return (
-    <div className="work-unsorted">
+    <div
+      className={
+        onOpen ? "work-unsorted work-unsorted--triage" : "work-unsorted"
+      }
+    >
       <div className="work-unsorted-toolbar">
         <p className="work-unsorted-intro">{words.unsortedIntro}</p>
         <button
@@ -304,7 +361,7 @@ export function UnsortedView({
           disabled={disabled}
           onClick={reload}
         >
-          <span aria-hidden="true">↻</span>
+          <RefreshIcon />
         </button>
       </div>
       <NoticeView
@@ -321,30 +378,61 @@ export function UnsortedView({
         <p>{t.unsortedNoDomains}</p>
       )}
       {(list.length > 0 || line) && (
-        <ul className="work-list work-unsorted-list">
+        <ul
+          ref={listRef}
+          className="work-list work-unsorted-list"
+          data-triage={onOpen ? "" : undefined}
+        >
           {list.map((task, i) => (
             <Fragment key={task.id}>
               {i === at && line}
               <li
                 className="work-unsorted-row"
                 aria-busy={writing.has(task.id) || undefined}
+                data-sk-row={onOpen ? "" : undefined}
               >
-                <p className="work-unsorted-title">{task.title}</p>
+                {onOpen ? (
+                  <p className="work-unsorted-title">
+                    <button
+                      type="button"
+                      className="work-unsorted-open-task"
+                      aria-keyshortcuts={keysOf(domains?.length ?? 0)}
+                      onClick={() => onOpen(task)}
+                      onKeyDown={(event) => triageKey(event, task)}
+                    >
+                      {task.title}
+                    </button>
+                  </p>
+                ) : (
+                  <p className="work-unsorted-title">{task.title}</p>
+                )}
                 {domains !== undefined && domains.length > 0 && (
                   <div
                     className="work-unsorted-domains"
                     role="group"
                     aria-label={t.unsortedRowFor(task.title)}
                   >
-                    {domains.map((domain) => {
+                    {domains.map((domain, place) => {
                       const accent = domainAccentOf(domain.accent);
+                      const key = place < 9 ? String(place + 1) : undefined;
                       return (
                         <button
                           key={domain.id}
                           type="button"
                           className="work-unsorted-domain"
                           data-accent={accent ?? undefined}
+                          aria-keyshortcuts={onOpen ? key : undefined}
+                          title={
+                            onOpen && key
+                              ? `${domain.name} (${key})`
+                              : undefined
+                          }
                           disabled={reads || writing.has(task.id)}
+                          onKeyDown={
+                            onOpen
+                              ? (event) => triageKey(event, task)
+                              : undefined
+                          }
                           onClick={() =>
                             sortInto(
                               task,
@@ -365,7 +453,12 @@ export function UnsortedView({
                       type="button"
                       className="work-unsorted-pick-button"
                       aria-expanded={picking === task.id}
+                      aria-keyshortcuts={onOpen ? "P" : undefined}
+                      title={onOpen ? `${words.choosePlace} (P)` : undefined}
                       disabled={reads || writing.has(task.id)}
+                      onKeyDown={
+                        onOpen ? (event) => triageKey(event, task) : undefined
+                      }
                       onClick={() => {
                         setPicking(picking === task.id ? undefined : task.id);
                         setPickerOpened(true);
@@ -405,6 +498,14 @@ export function UnsortedView({
       )}
       <ReceiptBar receipt={receipt} />
     </div>
+  );
+}
+
+/** The keys a row's title announces: 1 up to the number of Domains (at most 9), and P. */
+function keysOf(domains: number): string {
+  const count = Math.min(domains, 9);
+  return [...Array.from({ length: count }, (_, i) => String(i + 1)), "P"].join(
+    " ",
   );
 }
 

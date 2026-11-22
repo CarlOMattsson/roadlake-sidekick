@@ -158,7 +158,7 @@ describe("record meta shows only the parts the record has", () => {
       due_at: "2026-10-30T16:30:00Z",
     };
     expect(metaParts(later, workEn)).toEqual(["Fri 30 Oct 5:30 pm"]);
-    expect(metaParts(later, workSv)).toEqual(["Fre 30 okt kl 17:30"]);
+    expect(metaParts(later, workSv)).toEqual(["fre 30 okt kl 17:30"]);
     const today = { ...later, due_at: "2026-10-25T16:30:00Z" };
     expect(metaParts(today, workSv, { group: "today" })).toEqual(["kl 17:30"]);
     // Without a clock time the group says it all.

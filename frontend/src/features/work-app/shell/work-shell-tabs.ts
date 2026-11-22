@@ -1,17 +1,17 @@
-import type { WorkTab } from "./work-shell";
+import type { WorkShellTab } from "./work-shell";
 
 /**
  * The tab state of WorkShell as a reducer: the tab shown and the tabs pressed at least once. Only the
  * visited tabs are rendered, so an unvisited tab mounts nothing (and reads nothing) until it is pressed.
  */
 export type WorkTabsState = {
-  tab: WorkTab;
-  visited: ReadonlySet<WorkTab>;
+  tab: WorkShellTab;
+  visited: ReadonlySet<WorkShellTab>;
 };
 
-export type WorkTabsAction = { type: "choose"; tab: WorkTab };
+export type WorkTabsAction = { type: "choose"; tab: WorkShellTab };
 
-export function createWorkTabsState(initialTab: WorkTab): WorkTabsState {
+export function createWorkTabsState(initialTab: WorkShellTab): WorkTabsState {
   return { tab: initialTab, visited: new Set([initialTab]) };
 }
 

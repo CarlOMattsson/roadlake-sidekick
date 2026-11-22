@@ -45,6 +45,7 @@ from sidekick.structured.work import (
     WorkAgendaArguments,
     applied_filters,
     task_page_structured,
+    waiting_contact_names,
     work_agenda_structured,
     work_hierarchy_structured,
     work_item_record,
@@ -245,9 +246,13 @@ def _board_reply(
     column_totals = ctx.container.work_lists.work_board_column_totals(actor, board_query)
     overdue_total = ctx.container.work_lists.work_board_overdue_total(actor, board_query)
     filters = applied_filters(values, _BOARD_FILTER_DEFAULTS)
+    # A waiting card names the Contact it waits on, as the agenda's row does.
+    names = waiting_contact_names(
+        ctx.container, actor, [row for rows in columns.values() for row in rows]
+    )
     structured = WorkBoardOutput(
         columns={
-            key: [work_item_record(row, {}) for row in value] for key, value in columns.items()
+            key: [work_item_record(row, names) for row in value] for key, value in columns.items()
         },
         next_cursor=next_cursor,
         filters=filters,

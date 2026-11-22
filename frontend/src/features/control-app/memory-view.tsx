@@ -33,8 +33,10 @@ type PendingOff = {
 };
 
 /**
- * Memory as an inline card. A message box leads the view when the provider is off (warning) or a test one (info);
- * nothing in the card can fix that, so it has no button. Then the first line says on, paused or off. Under it, one row per
+ * Memory as an inline card. A message box leads the view when the provider does not answer (warning, with "Try again",
+ * which reads the status once more) or is a test one (info, no button); nothing in the card can turn the service on. Then
+ * the first line says on, paused or off, and "on, but the service is not answering" while the warning stands, so the two
+ * never disagree. Under it, one row per
  * domain with its stored count and a visible On/Off switch. A saved change says so in the receipt bar. Turning a domain on or pausing is sent at
  * once. Turning a domain off first asks the host (set_memory_settings without confirm), which changes
  * nothing and answers needs_confirmation with what would be deleted. Only the owner's explicit
@@ -69,6 +71,8 @@ export function MemoryView({
 }) {
   const [status, change] = useReportedData(initial, onData);
   const [busy, setBusy] = useState(false);
+  // The status is being read again after "Try again" in the warning about the service.
+  const [checking, setChecking] = useState(false);
   const [confirming, setConfirming] = useState<PendingOff | undefined>();
   const [notice, setNotice] = useState<Notice | undefined>();
   const receipt = useReceipt();
@@ -100,6 +104,14 @@ export function MemoryView({
     } catch {
       if (fallback) change((current) => ({ ...current, settings: fallback }));
     }
+  }
+
+  /** "Try again" in the warning about the service: reads the status once more; the warning stays while it does not answer. */
+  async function recheck() {
+    if (checking) return;
+    setChecking(true);
+    await readAgain();
+    setChecking(false);
   }
 
   /** A fact was forgotten: the receipt says so (the sentence comes from the list) and the counts are read again. */
@@ -171,19 +183,32 @@ export function MemoryView({
     }
   }
 
+  // "On" while the service does not answer would contradict the warning box above it, so the headline says both at once.
   const headline = !anyOn
     ? labels.memoryOff
     : settings.paused
       ? labels.memoryPaused
-      : labels.memoryOn;
+      : status.provider === "off"
+        ? labels.memoryOnDown
+        : labels.memoryOn;
 
   return (
     <>
       <div className="control-view">
-        {/* The view's one message about the service, at its top: off is a warning, a test service is for information. The
-          card has no way to turn the service on, so neither has a button. */}
+        {/* The view's one message about the service, at its top: a service that does not answer is a warning with one
+          action, to read the status again; a test service is for information and has none. The card cannot turn the
+          service on. */}
         {status.provider === "off" ? (
-          <MessageBox severity="warning" title={labels.providerOffTitle}>
+          <MessageBox
+            severity="warning"
+            title={labels.providerOffTitle}
+            action={{
+              label: labels.retry,
+              busyLabel: labels.loading,
+              busy: checking,
+              onClick: () => void recheck(),
+            }}
+          >
             {labels.providerOff}
           </MessageBox>
         ) : status.provider === "fake" ? (

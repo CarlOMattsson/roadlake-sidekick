@@ -40,7 +40,7 @@ Varje `docker compose`-kommando behöver `--env-file selfhost.env`: `up`, `resta
 
 - `api` läser hela `selfhost.env`. Det är den enda processen som behöver GitHub-inloggningens inställningar, rummen och begäransgränserna. Den får aldrig `db.env`.
 - `automation-worker`, `backup`, `push`, `memory-worker` och `ai-worker` får en namngiven lista med inställningar, hämtade ur `--env-file selfhost.env` i kommandot. De har ingen `env_file`. Varje worker får databas-URL:en, de två signeringshemligheterna, tidsbudgetarna och tidszonen, eftersom produktionsläget vägrar starta utan dem.
-- Bara `backup` får `SIDEKICK_BACKUP_ENCRYPTION_KEY` och retentionsinställningarna. Bara `push` får `SIDEKICK_PUSH_AUTH_TOKEN`. Bara `ai-worker` får `SIDEKICK_AI_ANTHROPIC_API_KEY`; eftersom nyckeln är hemlig vägrar `api` starta i produktion om den hittar nyckeln i `selfhost.env`. Minnestoken och nyckeln som härleder minnes-id går till `memory-worker` och till `automation-worker`, eftersom den senare bygger samma container som API:et.
+- Bara `backup` får `SIDEKICK_BACKUP_ENCRYPTION_KEY` och retentionsinställningarna. Bara `push` får `SIDEKICK_PUSH_AUTH_TOKEN`. Bara `ai-worker` får `SIDEKICK_AI_ANTHROPIC_API_KEY` och `SIDEKICK_AI_CHECK_API_KEY`; eftersom nycklarna är hemliga vägrar `api` starta i produktion om den hittar någon av dem i `selfhost.env`. Minnestoken och nyckeln som härleder minnes-id går till `memory-worker` och till `automation-worker`, eftersom den senare bygger samma container som API:et.
 - Ingen worker får GitHub-klienthemligheten, OAuth-signeringsnyckeln, de tillåtna identiteterna eller scopes.
 - `postgres` och `migrate` läser `db.env`. `hindsight` läser `hindsight.env`. `ntfy` läser `ntfy.env`. Ingen annan tjänst läser de filerna. `migrate` får fortfarande hela `db.env`, med PostgreSQL-superanvändarens lösenord, fast den bara behöver migreringsadressen. Det är en engångscontainer utan väg ut på internet.
 
@@ -55,7 +55,7 @@ Praktiska följder:
 
 En hemlighet i `selfhost.env` är en miljövariabel i containern: varje process i den kan läsa den, och `docker inspect` skriver ut den. Som fil monteras den skrivskyddad på `/run/secrets/<namn>`, bara i de tjänster som läser den (samma listor som ovan), och `docker inspect` visar sökvägen men inte värdet. De tio hemliga inställningarna kan flyttas på det sättet:
 
-`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN` och `SIDEKICK_AI_ANTHROPIC_API_KEY` (filnamn `ai_anthropic_api_key`, se [Kör AI-steg](ai-steps.sv.md)).
+`SIDEKICK_DATABASE_URL`, `SIDEKICK_CURSOR_SIGNING_SECRET`, `SIDEKICK_TOKEN_PEPPER`, `SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET`, `SIDEKICK_MCP_OAUTH_SIGNING_KEY`, `SIDEKICK_MEMORY_HINDSIGHT_API_TOKEN`, `SIDEKICK_MEMORY_ID_DERIVATION_KEY`, `SIDEKICK_BACKUP_ENCRYPTION_KEY`, `SIDEKICK_PUSH_AUTH_TOKEN`, `SIDEKICK_AI_ANTHROPIC_API_KEY` (filnamn `ai_anthropic_api_key`, se [Kör AI-steg](ai-steps.sv.md)) och `SIDEKICK_AI_CHECK_API_KEY` (filnamn `ai_check_api_key`).
 
 Befintliga installationer fungerar oförändrat: en vanlig variabel läses fortfarande. Flytta värdena när det passar:
 

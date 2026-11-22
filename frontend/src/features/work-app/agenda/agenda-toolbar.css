@@ -1,5 +1,5 @@
 /* The tools of the Work tab row (agenda-toolbar.tsx): the search icon, the "⋯" menu and the search field.
-   The buttons are the row's icon buttons (.work-tab-tool, view-tabs.css). The shell lays out the row; see
+   The buttons are the row's icon buttons (.sk-room-head__tool, ui/room-head.css). The shell lays out the row; see
    work-shell.css for how the menu wraps onto its own line under it. */
 .sidekick-work .work-agenda-more {
   min-width: 0;

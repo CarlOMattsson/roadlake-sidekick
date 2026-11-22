@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from sidekick.shared.config import Settings, is_secret_field
+from sidekick.shared.config.ai_check import AiCheckSettings
 from sidekick.shared.config.ai_runner import AiRunnerSettings
 from sidekick.shared.config.ai_steps import AiStepSettings
 
@@ -22,9 +23,12 @@ DECLARED = {f"SIDEKICK_{name}".upper() for name in Settings.model_fields}
 SECRET_FIELDS = {name for name, field in Settings.model_fields.items() if is_secret_field(field)}
 # Secrets that no Sidekick setting reads: another product's service holds them (the Tailscale key).
 COMPOSE_ONLY_SECRETS = {"tailscale_authkey": "tailscale"}
-# The owner's Anthropic key is a Sidekick setting that only the AI worker may hold.
+# The owner's Anthropic key and the key of the check model are Sidekick settings that only the AI
+# worker may hold.
 AI_KEY = "ai_anthropic_api_key"
 AI_KEY_VARIABLE = "SIDEKICK_AI_ANTHROPIC_API_KEY"
+CHECK_KEY = "ai_check_api_key"
+CHECK_KEY_VARIABLE = "SIDEKICK_AI_CHECK_API_KEY"
 COMMON_SECRETS = {"database_url", "cursor_signing_secret", "token_pepper"}
 BACKUP_FLOOR_BYTES = 2 * 1024**3  # 512 MiB of plaintext, several copies alive while it is encrypted
 UNITS = {"m": 1024**2, "g": 1024**3}
@@ -191,9 +195,9 @@ def test_a_worker_gets_the_file_of_exactly_the_secrets_it_gets_as_variables(
     assert _mounted(service) == held, worker
 
 
-def test_api_gets_every_secret_as_a_file_except_the_ai_key(services: dict[str, dict]) -> None:
-    assert _file_names(services["api"]) == SECRET_FIELDS - {AI_KEY}
-    assert _mounted(services["api"]) == SECRET_FIELDS - {AI_KEY}
+def test_api_gets_every_secret_as_a_file_except_the_ai_keys(services: dict[str, dict]) -> None:
+    assert _file_names(services["api"]) == SECRET_FIELDS - {AI_KEY, CHECK_KEY}
+    assert _mounted(services["api"]) == SECRET_FIELDS - {AI_KEY, CHECK_KEY}
 
 
 def test_no_other_service_mounts_a_secret(services: dict[str, dict]) -> None:
@@ -232,12 +236,30 @@ def test_the_anthropic_key_is_a_secret_setting_and_reaches_only_the_ai_worker(
     )
 
 
-def test_the_ai_worker_gets_the_common_secrets_and_the_key_and_no_other_secret(
+def test_the_check_key_is_a_secret_setting_and_reaches_only_the_ai_worker(
+    services: dict[str, dict],
+) -> None:
+    assert CHECK_KEY in SECRET_FIELDS
+    holders = {
+        name for name, service in services.items() if CHECK_KEY in service.get("secrets", [])
+    }
+    assert holders == {AI_WORKER}
+    for name, service in services.items():
+        environment = service.get("environment", {})
+        assert (f"{CHECK_KEY_VARIABLE}_FILE" in environment) == (name == AI_WORKER), name
+        # Only as a file: a plain value would also reach api through selfhost.env, which refuses it.
+        assert CHECK_KEY_VARIABLE not in environment, name
+    assert services[AI_WORKER]["environment"][f"{CHECK_KEY_VARIABLE}_FILE"] == (
+        f"${{SELFHOST_{CHECK_KEY.upper()}_FILE:+/run/secrets/{CHECK_KEY}}}"
+    )
+
+
+def test_the_ai_worker_gets_the_common_secrets_and_the_keys_and_no_other_secret(
     services: dict[str, dict],
 ) -> None:
     service = services[AI_WORKER]
-    assert _file_names(service) == COMMON_SECRETS | {AI_KEY}
-    assert _mounted(service) == COMMON_SECRETS | {AI_KEY}
+    assert _file_names(service) == COMMON_SECRETS | {AI_KEY, CHECK_KEY}
+    assert _mounted(service) == COMMON_SECRETS | {AI_KEY, CHECK_KEY}
     secret_variables = {f"SIDEKICK_{field}".upper() for field in SECRET_FIELDS}
     common = {f"SIDEKICK_{field}".upper() for field in COMMON_SECRETS}
     assert _bare_names(service) & secret_variables == common
@@ -294,9 +316,17 @@ def test_the_ai_worker_is_passed_every_non_secret_ai_setting_it_reads(
     services: dict[str, dict],
 ) -> None:
     # The Claude Code start limit is api's alone; every other AI setting is the worker's.
-    fields = (set(AiRunnerSettings.model_fields) | set(AiStepSettings.model_fields)) - {
+    fields = (
+        set(AiRunnerSettings.model_fields)
+        | set(AiStepSettings.model_fields)
+        | set(AiCheckSettings.model_fields)
+    ) - {
         AI_KEY,
+        CHECK_KEY,
+        "environment",
         "ai_claude_code_starts_per_day",
+        # Production refuses a loopback address, and the worker always runs in production.
+        "ai_check_allow_loopback",
     }
     expected = {f"SIDEKICK_{field}".upper() for field in fields}
     assert expected <= _bare_names(services[AI_WORKER])
@@ -312,6 +342,8 @@ def test_the_ai_settings_are_off_in_the_env_example_and_it_never_carries_a_key_v
     assert "#SELFHOST_AI_ANTHROPIC_API_KEY_FILE=./secrets/ai_anthropic_api_key" in lines
     assert not [line for line in lines if re.match(r"#? ?SIDEKICK_AI_ANTHROPIC_API_KEY=", line)]
     assert "sk-ant-" not in text
+    assert "#SELFHOST_AI_CHECK_API_KEY_FILE=./secrets/ai_check_api_key" in lines
+    assert not [line for line in lines if re.match(r"#? ?SIDEKICK_AI_CHECK_API_KEY=", line)]
 
 
 def test_the_env_example_documents_a_file_line_for_every_secret_setting() -> None:

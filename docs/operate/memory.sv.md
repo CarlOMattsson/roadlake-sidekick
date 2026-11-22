@@ -4,6 +4,8 @@
 
 <!-- description: Slå på Sidekicks minne med profilen `memory`. Ingenting härleds eller skickas förrän du har gjort det, och texten går till den modellleverantör du väljer. -->
 
+> **Kostnad.** Minnet anropar en språkmodell med den nyckel du ger Hindsight, och leverantören debiterar dig per anrop. Inget debiteras förrän du slår på det. Läs [AI-kostnader](../explanation/ai-costs.sv.md) först.
+
 Slå på Sidekicks minne med profilen `memory`. Ingenting härleds eller skickas förrän du har gjort det, och texten går till den modellleverantör du väljer.
 
 Profilen `memory` lägger till Hindsight och en worker som matar det från din dagbok, dina kontakter, projekt

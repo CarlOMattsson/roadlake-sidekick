@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -58,7 +58,7 @@ function transportFor(): JournalTransport {
   };
 }
 
-function renderEntry(props: {
+async function renderEntry(props: {
   initial?: JournalFrame;
   onOpenContact?: (link: { id: string; label: string | null }) => void;
   onOpenTask?: (id: string) => void;
@@ -73,7 +73,13 @@ function renderEntry(props: {
       onOpenTask={props.onOpenTask}
     />,
   );
-  return screen.findByRole("heading", { level: 2, name: entry.title });
+  const heading = await screen.findByRole("heading", {
+    level: 2,
+    name: entry.title,
+  });
+  // The links stand in sight under the text, not in the fold.
+  await screen.findByRole("heading", { level: 3, name: "Linked" });
+  return heading;
 }
 
 describe("journal entry view: contact chips", () => {
@@ -156,6 +162,11 @@ describe("journal entry view: tasks created by a saved draft", () => {
 
   it("shows no task buttons when no task handler is passed", async () => {
     await renderEntry({ initial: saved });
+    // The original text is read in the background and says "Loading…" until it answers; the receipt is the only
+    // status left after that.
+    await waitFor(() => {
+      expect(screen.queryByText("Loading…")).not.toBeInTheDocument();
+    });
 
     expect(
       screen.queryByRole("button", { name: "Open task" }),

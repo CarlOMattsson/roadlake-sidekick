@@ -19,6 +19,8 @@ import "./tabs.css";
 export type TabOption<T extends string = string> = {
   value: T;
   label: string;
+  /** A count after the label, in the muted meta type ("Att sortera 3"): how many wait in that view. */
+  count?: number;
 };
 
 export type TabsProps<T extends string = string> = {
@@ -71,12 +73,16 @@ export function Tabs<T extends string>({
     >
       {options.map((option, index) => {
         const chosen = index === chosenIndex;
+        const counted =
+          option.count === undefined
+            ? option.label
+            : `${option.label} ${option.count}`;
         return (
           <button
             key={option.value}
             type="button"
             className="sk-tabs__tab"
-            data-label={option.label}
+            data-label={counted}
             aria-pressed={chosen}
             tabIndex={index === tabStop ? 0 : -1}
             disabled={disabled}
@@ -84,7 +90,15 @@ export function Tabs<T extends string>({
               if (!chosen) onChange(option.value);
             }}
           >
-            {option.label}
+            {option.count === undefined ? (
+              option.label
+            ) : (
+              // One line: the column of the tab holds the label and its count together.
+              <span>
+                {option.label}{" "}
+                <span className="sk-tabs__count">{option.count}</span>
+              </span>
+            )}
           </button>
         );
       })}

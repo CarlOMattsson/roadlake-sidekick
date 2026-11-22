@@ -444,3 +444,49 @@
   color: var(--sk-muted);
   font: var(--sk-type-label);
 }
+
+/* Beside its list in a wide frame (desktop spec 3.1). The title line starts with the list's ring (task-cycle.tsx, the
+   same 24 ring in its 44 target as an agenda row, hung the same way), its middle on the display title's first line;
+   "Markera klar" is not drawn. */
+.sidekick-work .work-detail-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+}
+.sidekick-work .work-detail-title-row > .work-task-ring {
+  min-width: var(--sk-lead-w);
+  margin-inline-start: var(--sk-lead-hang);
+  margin-top: calc((var(--sk-type-display-wide-line) - 2.75rem) / 2);
+}
+.sidekick-work .work-detail-title-row > .work-detail-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* The lines under the title (how late it is, the outbox) start where the title does, as a row's meta line. */
+.sidekick-work .work-detail-title-row ~ .work-task-meta {
+  padding-inline-start: calc(var(--sk-lead-w) + var(--sk-lead-hang) + 2px);
+}
+/* The properties beside the list are a sheet of at most 35rem: the name in a column of 120, the value, and its ⌄ right
+   after the value, so no 600 px of air stand between a value and the control that opens it. The row's target is the
+   sheet's width. */
+.sk-split
+  > :is([data-pane="detail"], [data-pane="drawer"])
+  :is(.work-task-props, .work-task-waiting) {
+  max-width: 35rem;
+}
+.sk-split > :is([data-pane="detail"], [data-pane="drawer"]) .work-prop-label {
+  flex-basis: 7.5rem;
+}
+.sk-split
+  > :is([data-pane="detail"], [data-pane="drawer"])
+  .work-prop-chip
+  > span:not(.work-prop-label) {
+  flex: 0 1 auto;
+}
+.sk-split
+  > :is([data-pane="detail"], [data-pane="drawer"])
+  .sidekick-work
+  .work-prop-chip
+  svg {
+  margin-inline-start: 0;
+}

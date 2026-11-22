@@ -15,9 +15,10 @@ export function useBoardFocus(
     preview: unknown;
     busy: unknown;
     undos: unknown;
+    expanded: unknown;
   },
 ) {
-  const { page, preview, busy, undos } = enabledBy;
+  const { page, preview, busy, undos, expanded } = enabledBy;
   useEffect(() => {
     const want = wantedRef.current;
     if (want === undefined) return;
@@ -32,6 +33,6 @@ export function useBoardFocus(
     if (card && target?.disabled) return;
     wantedRef.current = undefined;
     (target ?? headingRef.current)?.focus();
-    // `page`, `preview`, `busy` and `undos` are not read inside: they are the triggers that run the effect again.
-  }, [wantedRef, rootRef, headingRef, page, preview, busy, undos]);
+    // `page`, `preview`, `busy`, `undos` and `expanded` are not read inside: they are the triggers that run the effect again.
+  }, [wantedRef, rootRef, headingRef, page, preview, busy, undos, expanded]);
 }

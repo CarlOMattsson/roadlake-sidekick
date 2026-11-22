@@ -73,16 +73,52 @@ describe("inline agenda summary", () => {
     expect(screen.getByText("1+ försenade")).toBeInTheDocument();
   });
 
-  it("marks the title's counts with + while another page exists, and says no more-exist words there", () => {
-    const { container } = render(
+  it("keeps the counts exact when the page already holds a later group, though another page follows", () => {
+    // Read oldest first, the page ends in an upcoming record: every overdue and today record is on it.
+    render(
       <AgendaSummary
         page={{ items: agendaItems, next_cursor: "next" }}
         labels={inlineSummaryLabelsEn}
         onOpen={vi.fn()}
       />,
     );
+    expect(
+      screen.getByRole("heading", { name: "1 today, 2 overdue" }),
+    ).toBeInTheDocument();
+  });
+
+  it("marks only the group the page ends in as a floor, and none when the read is not by due time", () => {
+    const [overdue1, overdue2, today] = agendaItems;
+    const items = [overdue1!, overdue2!, today!];
+    // The page ends in today's group: overdue is complete, today may continue on the next page.
+    const { unmount } = render(
+      <AgendaSummary
+        page={{ items, next_cursor: "next" }}
+        labels={inlineSummaryLabelsEn}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("1+ today, 2 overdue")).toBeInTheDocument();
+    unmount();
+    // Sorted by title, the page proves nothing about any group.
+    const sorted = render(
+      <AgendaSummary
+        page={{ items: agendaItems, next_cursor: "next" }}
+        filters={{ sort: "title_asc" }}
+        labels={inlineSummaryLabelsEn}
+        onOpen={vi.fn()}
+      />,
+    );
     expect(screen.getByText("1+ today, 2+ overdue")).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/more not shown|fler finns/);
+    sorted.unmount();
+    render(
+      <AgendaSummary
+        page={{ items: items.slice(0, 2), next_cursor: "next" }}
+        labels={inlineSummaryLabelsSv}
+        onOpen={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("2+ försenade")).toBeInTheDocument();
   });
 
   it("labels the overdue rows after today's row with Overdue / Försenade, in two lists, and leaves the label out when only one group is shown", () => {

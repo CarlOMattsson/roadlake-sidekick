@@ -8,7 +8,13 @@ from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from sidekick.lifecycle.domain import ChangeRecordView, RecordKind, TrashItem, TrashPosition
+from sidekick.lifecycle.domain import (
+    UNFEEDED_KINDS,
+    ChangeRecordView,
+    RecordKind,
+    TrashItem,
+    TrashPosition,
+)
 from sidekick.references.persistence import ExternalReferenceRow
 from sidekick.shared.errors import (
     ConflictError,
@@ -22,6 +28,7 @@ from sidekick.shared.persistence.models import (
     ContactAliasRow,
     ContactRow,
     DomainRow,
+    JournalAttachmentRow,
     JournalEntryContactRow,
     JournalEntryProjectRow,
     JournalEntryRow,
@@ -48,6 +55,7 @@ LIFECYCLE_ROWS: dict[RecordKind, tuple[type[Any], str]] = {
     RecordKind.JOURNAL_SOURCE: (JournalSourceRow, "raw_text"),
     RecordKind.JOURNAL_ENTRY: (JournalEntryRow, "title"),
     RecordKind.SHOPPING_ITEM: (ShoppingItemRow, "name"),
+    RecordKind.JOURNAL_ATTACHMENT: (JournalAttachmentRow, "trash_label"),
 }
 
 
@@ -71,7 +79,7 @@ HISTORY_TITLES: dict[str, LocalizedText] = {
 
 
 CHANGE_ROWS: dict[str, tuple[type[Any], str]] = {
-    kind.value: row for kind, row in LIFECYCLE_ROWS.items() if kind is not RecordKind.JOURNAL_SOURCE
+    kind.value: row for kind, row in LIFECYCLE_ROWS.items() if kind not in UNFEEDED_KINDS
 }
 """Row type and title field for each kind that `list_recent_changes` may name."""
 

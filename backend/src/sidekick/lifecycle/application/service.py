@@ -6,6 +6,7 @@ from typing import Any, Protocol, TypeVar
 from uuid import UUID
 
 from sidekick.lifecycle.domain import (
+    UNFEEDED_KINDS,
     ChangeAction,
     ChangeActor,
     ChangeRecordView,
@@ -74,7 +75,7 @@ CHANGE_EVENTS: dict[str, tuple[str, ChangeAction]] = {
     "shopping.item_reopened": ("shopping_item", "reopened"),
 }
 for _kind in RecordKind:
-    if _kind is not RecordKind.JOURNAL_SOURCE:
+    if _kind not in UNFEEDED_KINDS:
         CHANGE_EVENTS[f"{_kind.value}.trashed"] = (_kind.value, "trashed")
         CHANGE_EVENTS[f"{_kind.value}.restored"] = (_kind.value, "restored")
 
@@ -145,6 +146,7 @@ _READ_SCOPE = {
     RecordKind.JOURNAL_SOURCE: "journal:read",
     RecordKind.JOURNAL_ENTRY: "journal:read",
     RecordKind.SHOPPING_ITEM: "shopping:read",
+    RecordKind.JOURNAL_ATTACHMENT: "journal:read",
 }
 _WRITE_SCOPE = {
     RecordKind.DOMAIN: "projects:write",
@@ -157,6 +159,7 @@ _WRITE_SCOPE = {
     RecordKind.JOURNAL_SOURCE: "journal:write",
     RecordKind.JOURNAL_ENTRY: "journal:write",
     RecordKind.SHOPPING_ITEM: "shopping:write",
+    RecordKind.JOURNAL_ATTACHMENT: "journal:write",
 }
 #: The read and the write scopes of the lifecycle kinds (also read by the MCP tool reference).
 READ_SCOPES = frozenset(_READ_SCOPE.values())
@@ -165,7 +168,11 @@ WRITE_SCOPES = frozenset(_WRITE_SCOPE.values())
 LIFECYCLE_SCOPES = READ_SCOPES | WRITE_SCOPES
 #: Every scope a kind needs to be shown: a link names both of its sides, so it needs both reads.
 _CHANGE_SCOPE: dict[str, tuple[str, ...]] = {
-    **{kind.value: (scope,) for kind, scope in _READ_SCOPE.items()},
+    **{
+        kind.value: (scope,)
+        for kind, scope in _READ_SCOPE.items()
+        if kind is not RecordKind.JOURNAL_ATTACHMENT
+    },
     "shopping_list": ("shopping:read",),
     "contact_alias": ("contacts:read",),
     "contact_alias_removed": ("contacts:read",),

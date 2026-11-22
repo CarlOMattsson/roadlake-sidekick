@@ -1,6 +1,7 @@
 import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 import { RoomSurfaceContext } from "./room-context";
+import { ShortcutRegistryContext } from "./shortcut-registry-context";
 
 /**
  * Keyboard shortcuts for fullscreen MCP App views (design language section 3.8). Inline views
@@ -14,8 +15,11 @@ import { RoomSurfaceContext } from "./room-context";
  * shifted letters as the character itself (`"J"`). A sequence must complete within one second of
  * its previous key. A single-key binding wins over a sequence that starts with the same key.
  *
- * Keys typed into a field (input, textarea, select, contenteditable) and IME composition are
- * ignored. A handled key calls `preventDefault`, so Space does not scroll and Backspace does not
+ * Keys typed into a field (input, textarea, select, contenteditable), keys inside an open menu
+ * (`[data-menu]`) or a dialog, and IME composition are ignored. Single-character bindings (every
+ * step a printable character without Ctrl, Alt or Meta, such as `j`, `?` or `g 1`) can be switched
+ * off through the shortcut registry's `charKeys` (WCAG 2.1.4); `ArrowDown`, `Enter`, `Escape` and
+ * combos with a modifier stay. A handled key calls `preventDefault`, so Space does not scroll and Backspace does not
  * navigate back. Actions are read from the latest map on each key, so callers do not need to
  * memoise the map.
  */
@@ -25,6 +29,11 @@ export type ShortcutMap = Readonly<Record<string, ShortcutAction>>;
 export type ShortcutOptions = {
   /** When false no listener is attached and any partial sequence is dropped. Defaults to true. */
   enabled?: boolean;
+  /**
+   * Listen in the capture phase. The shell's global map (`?`, `g 1`) uses it so `g` then `1` does not first
+   * reach a room's own `1`: two listeners, and the one that calls `preventDefault` first wins. Defaults to false.
+   */
+  capture?: boolean;
 };
 
 export const SEQUENCE_TIMEOUT_MS = 1000;
@@ -41,6 +50,8 @@ type Combo = {
 type Binding = {
   steps: Combo[];
   action: ShortcutAction;
+  /** Every step is a printable character without Ctrl, Alt, Meta or Mod: the kind a user can switch off. */
+  chars: boolean;
 };
 
 type Progress = {
@@ -91,7 +102,15 @@ function parseCombo(text: string): Combo {
 function compileShortcuts(map: ShortcutMap): Binding[] {
   return Object.entries(map).map(([text, action]) => {
     const steps = text.trim().split(/\s+/).map(parseCombo);
-    return { steps, action };
+    const chars = steps.every(
+      (step) =>
+        step.key.length === 1 &&
+        !step.ctrl &&
+        !step.alt &&
+        !step.meta &&
+        !step.mod,
+    );
+    return { steps, action, chars };
   });
 }
 
@@ -115,6 +134,14 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.matches("input, textarea, select");
 }
 
+/** A key inside an open menu or a dialog belongs to that layer, which handles its own keys. */
+function isInsideLayer(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest("[data-menu], dialog, [role='dialog']") !== null
+  );
+}
+
 /**
  * Binds the keyboard shortcuts in `map` to the window while `enabled` is true.
  */
@@ -125,13 +152,17 @@ export function useShortcuts(
   // A room that is mounted but hidden (another room, or a cross-link above it) has no shortcuts.
   const { active } = useContext(RoomSurfaceContext);
   const enabled = (options.enabled ?? true) && active;
+  const capture = options.capture ?? false;
   const mapRef = useRef(map);
+  const registry = useContext(ShortcutRegistryContext);
+  const registryRef = useRef(registry);
 
   // Layout effect, not a passive one: the map must be current as soon as the DOM shows the new
   // render. A passive effect can run a macrotask later, so a key pressed right after the view
   // changed would act on the previous day and its previous loading state.
   useLayoutEffect(() => {
     mapRef.current = map;
+    registryRef.current = registry;
   });
 
   useEffect(() => {
@@ -151,10 +182,12 @@ export function useShortcuts(
         event.key === "Process"
       )
         return;
-      if (isEditableTarget(event.target)) {
+      if (isEditableTarget(event.target) || isInsideLayer(event.target)) {
         pending = null;
         return;
       }
+      // Read at each key: the switch can change while the room stays mounted.
+      const charKeys = registryRef.current?.charKeys() ?? true;
 
       const now = Date.now();
       const carried =
@@ -167,6 +200,7 @@ export function useShortcuts(
       for (const progress of carried) {
         const step = progress.binding.steps[progress.next];
         if (!step || !matchesCombo(step, event)) continue;
+        if (!charKeys && progress.binding.chars) continue;
         if (progress.next + 1 === progress.binding.steps.length) {
           run(progress.binding, event);
           return;
@@ -178,7 +212,9 @@ export function useShortcuts(
         return;
       }
 
-      const bindings = compileShortcuts(mapRef.current);
+      const bindings = compileShortcuts(mapRef.current).filter(
+        (binding) => charKeys || !binding.chars,
+      );
       for (const binding of bindings) {
         const [first] = binding.steps;
         if (binding.steps.length === 1 && first && matchesCombo(first, event)) {
@@ -199,11 +235,11 @@ export function useShortcuts(
       }
     };
 
-    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keydown", onKeyDown, capture);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keydown", onKeyDown, capture);
     };
-  }, [enabled]);
+  }, [enabled, capture]);
 }
 
 /**

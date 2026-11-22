@@ -20,7 +20,7 @@
 .sk-pick[aria-expanded="true"] svg {
   transform: rotate(180deg);
 }
-/* The ⋯ menu's card (.sk-menu-panel, family.css) is the same card. */
+/* The ⋯ menu's card (.sk-menu-panel, menu.css) is the same card. */
 .sk-pick-menu {
   display: flex;
   flex-direction: column;

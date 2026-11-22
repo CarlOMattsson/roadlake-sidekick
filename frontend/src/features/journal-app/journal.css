@@ -314,19 +314,6 @@
 .sidekick-journal .journal-edit textarea {
   scroll-margin-block: 5rem;
 }
-/* The write form's buttons stay at the bottom of the visible window while the form is taller than it: with the keyboard
-   open the window is the part above the keyboard, so Save is never behind it. Opaque, so the field passes under. */
-.sidekick-journal .journal-write > .journal-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
-  margin: 0;
-  padding: 0.5rem 0;
-  background: var(--sk-surface, Canvas);
-}
-.sidekick-journal.journal-fullscreen .journal-write > .journal-actions {
-  bottom: var(--sk-foot-reserve, 0px);
-}
 .sidekick-journal .journal-edit [aria-invalid="true"] {
   border: calc(var(--sk-hairline) * 2) solid var(--sk-danger-line);
 }
@@ -475,7 +462,6 @@
 }
 .sidekick-journal .journal-chip-name {
   min-width: 0;
-  max-width: 9rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1139,52 +1125,18 @@ button.journal-entry-card {
   border-radius: inherit;
   text-align: center;
 }
-/* A linked Task's chip: a title is longer than a name, so it may take the whole line before
-   it is cut. The full title is its tooltip and part of its accessible name. */
-.sidekick-journal .journal-task-chips .journal-chip-name {
-  max-width: 100%;
-}
 
-/* The head with tabs (day and week view in fullscreen), the same two rows in both views and every week:
-   row 1 is Dag | Vecka (ui/tabs, packed from the start) with `today`, + and ⋯ at its end and one hairline under the
-   whole row; row 2 is "‹ Vecka 47 · 16–22 nov ›". Nothing on these rows comes or goes except `today`, which stands
-   before + so its arrival moves nothing else (dagbok-ui fynd 3–5). The day's title follows under the strip. */
+/* The head in fullscreen (day and week view), the same two rows in both views and every week: row 1 is the room head
+   (ui/room-head.tsx: Dag | Vecka packed from the start, `today`, + and ⋯ at the places they have in every room, one
+   hairline under the whole row; in the shell's row when the frame is wide); row 2, here, is "‹ Vecka 47 · 16–22 nov ›".
+   Nothing on these rows comes or goes except `today`, which stands before the tools so its arrival moves nothing else
+   (dagbok-ui fynd 3–5). The day's title follows under the strip. */
 .sidekick-journal .sk-day-strip-head[data-tabs] {
-  grid-template-areas: "tabs tools" "arrows arrows";
-  align-items: stretch;
-  margin-top: var(--sk-s1);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "arrows";
+  margin-top: 0;
 }
-.sidekick-journal .sk-day-strip-tabs {
-  grid-area: tabs;
-  display: flex;
-  align-items: flex-end;
-  min-width: 0;
-}
-.sidekick-journal
-  .sk-day-strip-head[data-tabs]
-  > :is(.sk-day-strip-tabs, .sk-day-strip-tools) {
-  border-bottom: var(--sk-hairline) solid var(--sk-line);
-}
-.sidekick-journal .sk-day-strip-head[data-tabs] > .sk-day-strip-tools {
-  align-items: center;
-  margin-block: 0;
-  /* ⋯'s glyph box ends on the content edge, as on the title row. */
-  margin-inline-end: -12px;
-}
-.sidekick-journal
-  .sk-day-strip-head[data-tabs]
-  > .sk-day-strip-tools
-  > .sk-iconbtn {
-  align-content: center;
-  padding-top: 0;
-}
-.sidekick-journal
-  .sk-day-strip-head[data-tabs]
-  > .sk-day-strip-tools
-  > .journal-day-add {
-  margin-block-start: 0;
-}
-.sidekick-journal .sk-day-strip-tools > .journal-day-today {
+.sk-room-head .journal-day-today {
   margin-inline-end: var(--sk-s1);
 }
 .sidekick-journal .sk-day-strip-head[data-tabs] > .sk-day-strip-weekrow {
@@ -1219,35 +1171,6 @@ button.journal-entry-card {
   font: var(--sk-type-title);
 }
 
-/* The week view: one section per day. The day heading is the section heading in the title type, 32 above it so the days
-   read as a rhythm, and «Gjort» under it (an h4, its fold row in the section type) is a level lower. An empty day is
-   one muted line right under its heading. */
-.sidekick-journal .journal-week-day > h3 {
-  font: var(--sk-type-title);
-  margin: var(--sk-s6) 0 var(--sk-s1);
-}
-/* An entry in the week (dagbok-ui fynd 6): the title in 600, then what was written in --sk-fg-2, then the links and tags
-   last in the muted meta type, and 8 between entries, so title, summary and metadata are three clear levels. */
-.sidekick-journal .journal-week-day .journal-entry-card > .sk-row-primary {
-  font-weight: var(--sk-weight-semibold);
-}
-.sidekick-journal .journal-week-day .journal-entry-excerpt {
-  order: 2;
-  margin-top: 2px;
-  font: var(--sk-type-body);
-  font-size: var(--sk-type-meta-size);
-  line-height: 1.4;
-}
-.sidekick-journal .journal-week-day .journal-entry-meta {
-  order: 3;
-  margin-top: var(--sk-s1);
-}
-.sidekick-journal .journal-week-day .journal-timeline > li + li {
-  margin-top: var(--sk-s2);
-}
-.sidekick-journal .journal-week-day .journal-empty {
-  margin-top: 0;
-}
 .sidekick-journal .journal-done > h4 {
   margin: var(--sk-s3) 0 var(--sk-section-below);
 }

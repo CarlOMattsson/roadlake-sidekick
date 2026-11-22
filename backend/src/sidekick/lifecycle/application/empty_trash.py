@@ -27,6 +27,7 @@ REMOVAL_ORDER: tuple[RecordKind, ...] = (
     RecordKind.DOMAIN,
     RecordKind.JOURNAL_SOURCE,
     RecordKind.CONTACT,
+    RecordKind.JOURNAL_ATTACHMENT,
 )
 #: The application role holds no DELETE on the shopping or Journal entry tables (a Journal entry is
 #: never erased by the runtime), so these are never removed here; the sweep counts them as kept.

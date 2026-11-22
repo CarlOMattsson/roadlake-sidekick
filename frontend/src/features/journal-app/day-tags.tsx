@@ -43,6 +43,7 @@ export function DayTags({
   refreshKey,
   onChange,
   onOpen,
+  wrap = false,
 }: {
   state: ReturnType<typeof useDayTags>;
   frame: Extract<JournalFrame, { kind: "day" }>;
@@ -51,6 +52,8 @@ export function DayTags({
   refreshKey?: number;
   onChange: (next: JournalFrame) => void;
   onOpen: (frame: JournalFrame) => void;
+  /** The rail's tags wrap and keep their order (TagFilter's `wrap`). */
+  wrap?: boolean;
 }) {
   if (!transport.listTaggedEntries) return null;
   return (
@@ -60,6 +63,7 @@ export function DayTags({
         selected={tags}
         onChange={(next) => onChange({ ...frame, tags: next })}
         locale={labels.dateLocale}
+        wrap={wrap}
       />
       {tags.length > 0 && (
         <TaggedEntries

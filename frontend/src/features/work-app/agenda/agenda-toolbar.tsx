@@ -4,101 +4,21 @@ import {
   useLayoutEffect,
   useRef,
   type ReactNode,
-  type Ref,
 } from "react";
-import { CloseIcon, MoreIcon, SearchIcon } from "./agenda-icons";
-import { PlusIcon } from "../../mcp-apps/ui/icons";
+import { CloseIcon, MoreIcon } from "./agenda-icons";
 import { Menu, menuButtonKeys } from "../../mcp-apps/ui/menu";
 import {
   MenuUpdateReminder,
   useMoreMark,
 } from "../../mcp-apps/update-reminder";
 import { MenuLicenseRow, useLicenseMenu } from "../../mcp-apps/license-mark";
+import { MenuShortcutsRow } from "../../mcp-apps/ui/shortcut-help";
 import type { WorkLabels } from "../shared/labels";
 import "./agenda-toolbar.css";
 
 /**
- * The search icon of the agenda, at the end of the tab row (the shell's tabsEnd), left of "⋯" (designsystem §3
- * "Rumshuvud": counted from the right, ⋯ then search). It unfolds the search field under the tab row; the caller owns
- * whether it is open and gives the field's id, so the button names what it controls.
- */
-export function AgendaSearchToggle({
-  label,
-  open,
-  disabled,
-  controls,
-  onOpenChange,
-  buttonRef,
-}: {
-  /** The `search` label of the work shell: the toggle's accessible name. */
-  label: string;
-  open: boolean;
-  /** True while the list loads or could not be read: aria-disabled (tertiary), and a tap does nothing. */
-  disabled?: boolean;
-  /** The id of the search field's row. */
-  controls: string;
-  onOpenChange: (open: boolean) => void;
-  buttonRef?: Ref<HTMLButtonElement>;
-}) {
-  return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="sk-iconbtn work-tab-tool"
-      aria-label={label}
-      aria-expanded={open}
-      aria-controls={controls}
-      aria-disabled={disabled || undefined}
-      onClick={() => {
-        if (!disabled) onOpenChange(!open);
-      }}
-    >
-      <SearchIcon />
-    </button>
-  );
-}
-
-/**
- * + in the tab row, between search and "⋯" (designsystem §3 "Skapa"): it unfolds the new-Task field under the row.
- * While the list loads or could not be read it is aria-disabled (tertiary) and a tap does nothing.
- */
-export function CreateToggle({
-  label,
-  open,
-  disabled,
-  controls,
-  onOpenChange,
-  buttonRef,
-}: {
-  /** The `newTask` label. */
-  label: string;
-  open: boolean;
-  disabled: boolean;
-  controls: string;
-  onOpenChange: (open: boolean) => void;
-  buttonRef?: Ref<HTMLButtonElement>;
-}) {
-  return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="sk-iconbtn sk-iconbtn--primary work-tab-tool work-tab-create"
-      aria-label={label}
-      aria-expanded={open}
-      aria-controls={controls}
-      aria-disabled={disabled || undefined}
-      onClick={() => {
-        if (!disabled) onOpenChange(!open);
-      }}
-    >
-      <PlusIcon />
-    </button>
-  );
-}
-
-/**
- * The search field of the fullscreen agenda, unfolded under the tab row by the search icon (designsystem §3
- * "Skapa": a screen shows at most one text field, so the new-Task field closes while this one is open). It is 48 px
+ * The search field of the fullscreen agenda, unfolded under the room head by its search icon (ui/room-head.tsx;
+ * designsystem §3 "Skapa": a screen shows at most one text field, so the new-Task field closes while this one is open). It is 48 px
  * high with a × that closes it: closing clears the text and puts the focus back on the search icon. Escape closes too.
  * The caller owns the text and whether it is open. The field takes the focus when `focusTick` changes (the user
  * pressed the search icon), not whenever it shows again, so coming Back from a Task does not open the keyboard.
@@ -165,7 +85,7 @@ export function AgendaSearch({
 }
 
 /**
- * The "⋯" button of a Work tab, at the end of the tab row (the shell's tabsEnd). It opens a `Menu` with the view's
+ * The "⋯" button of a Work tab, outermost in the room head (ui/room-head.tsx). It opens a `Menu` with the view's
  * rarer actions (saved views, `refresh`, and `control` last, designsystem §3 "Rumshuvud"): a popover under the button
  * with a mouse or in a wide frame, else (a phone) the panel under the tab row, at full width, in the page flow; the
  * button stays where it is. The caller owns the state (open or closed), because the view under it is remounted when a saved
@@ -225,7 +145,7 @@ export function AgendaMore({
       <button
         ref={more}
         type="button"
-        className="sk-iconbtn work-tab-tool"
+        className="sk-iconbtn sk-room-head__tool"
         aria-label={mark.label}
         aria-expanded={open}
         aria-controls={panelId}
@@ -252,6 +172,7 @@ export function AgendaMore({
         >
           {t.refresh}
         </button>
+        <MenuShortcutsRow onChosen={close} />
         {control ? (
           <button
             type="button"

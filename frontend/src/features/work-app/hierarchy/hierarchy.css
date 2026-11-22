@@ -160,3 +160,20 @@
 .sidekick-work .work-project-dates > * + *::before {
   content: "· ";
 }
+
+/* The tag every Task of a page has, said once under the page's own tags: the words, then the pill. */
+.sidekick-work .work-group-shared-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s2);
+}
+
+/* In a wide frame (64rem, the width the shell splits at) the progress bar of a Project's row is a bar, not a tick:
+   at least 120 px. Narrower the row keeps the Progress default (48 to 80 px), so a phone draws what it drew. */
+@container sk-frame (min-width: 64rem) {
+  .sidekick-hierarchy .work-tree-row .sk-progress__track {
+    flex: 0 1 7.5rem;
+    min-width: 7.5rem;
+  }
+}

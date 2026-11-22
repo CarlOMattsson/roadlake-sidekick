@@ -270,12 +270,11 @@ test("fullscreen 1280x800 shows the three-tab strip with Agenda selected and Boa
   expect(state.initialized).toBe(true);
   // The To sort row above the agenda reads the unsorted count once when the app opens, and the tag
   // filter reads the tag list once; the Board read follows the Board press. Each read is listed, so
-  // no other call goes unnoticed.
-  expect(state.calls.map((call) => call.name)).toEqual([
-    "list_tags",
-    "list_tasks",
-    "get_work_board",
-  ]);
+  // no other call goes unnoticed. The two opening reads start from two independent effects, so their
+  // order is not part of the claim (it differs with the head drawn in the shell's bar in a wide frame).
+  const names = state.calls.map((call) => call.name);
+  expect(names.slice(0, 2).sort()).toEqual(["list_tags", "list_tasks"]);
+  expect(names.slice(2)).toEqual(["get_work_board"]);
   expect(failures).toEqual([]);
   expect(networkRequests()).toBe(0);
 });

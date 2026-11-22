@@ -26,35 +26,46 @@ export function BackHeader({
   title,
   actions,
   slotRef,
+  end,
 }: {
-  /** The parent's name, for example the Status, Contacts or Lists view. It is part of the button's accessible name. */
+  /**
+   * The parent's name, for example the Status, Contacts or Lists view. It is part of the button's accessible name.
+   * Without `onBack` there is no Back: the label is the view's kind, a muted kicker (a split pane's detail head).
+   */
   label: string;
-  onBack: () => void;
+  onBack?: () => void;
   /** Shown under the Back row, as the view's heading. */
   title?: string;
   actions?: ReactNode;
   /** The element the view on top portals its actions into (sidekick-shell). */
   slotRef?: Ref<HTMLSpanElement>;
+  /** After the slot, outermost: a split pane's × (split-layout.tsx PaneHead). */
+  end?: ReactNode;
 }) {
   const name = sidekickShellLabelsFor(appLocale()).backTo(label);
   return (
     <div className="sk-back-header">
       <div className="sk-back-header__bar">
-        <button
-          type="button"
-          className="sk-back-header__back"
-          aria-label={name}
-          onClick={onBack}
-        >
-          <ChevronLeftIcon />
-          <span className="sk-back-header__label">{label}</span>
-        </button>
-        {actions || slotRef ? (
+        {onBack ? (
+          <button
+            type="button"
+            className="sk-back-header__back"
+            aria-label={name}
+            onClick={onBack}
+          >
+            <ChevronLeftIcon />
+            <span className="sk-back-header__label">{label}</span>
+          </button>
+        ) : (
+          <p className="sk-eyebrow sk-back-header__kicker">{label}</p>
+        )}
+        {actions || slotRef || end ? (
           <div className="sk-back-header__actions">
             {actions}
             {slotRef ? (
               <span ref={slotRef} className="sk-back-header__slot" />
             ) : null}
+            {end}
           </div>
         ) : null}
       </div>

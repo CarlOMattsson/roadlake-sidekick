@@ -98,6 +98,15 @@ describe("the wait on a Contact", () => {
     );
   });
 
+  it("leads with a clock that is hidden from assistive technology, since the words say it", () => {
+    standing({ tasks: [waiting("a1", 9, "Offert från Erik")] });
+    const row = screen.getByRole("button", {
+      name: /^You are waiting on Erik/,
+    });
+    const clock = row.querySelector(".work-contact-waiting-clock svg");
+    expect(clock).toHaveAttribute("aria-hidden", "true");
+  });
+
   it("reads the same in Swedish", () => {
     standing(
       { tasks: [waiting("a1", 9, "Offert från Erik"), waiting("a2", 2)] },

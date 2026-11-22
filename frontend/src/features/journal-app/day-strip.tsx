@@ -41,12 +41,15 @@ export type DayStripProps = {
   disabled?: boolean;
   onSelect: (date: string) => void;
   /**
-   * The day's heading. Without `tabs` it stands on the head's first row with the tools; with `tabs` it stands under
+   * The day's heading. Without `head` it stands on the head's first row with the tools; with `head` it stands under
    * the strip, so the first two rows are the same in the day and the week view.
    */
   heading?: ReactNode;
-  /** Level 2 navigation (Dag | Vecka) on the head's first row, before the tools. */
-  tabs?: ReactNode;
+  /**
+   * The room head (ui/room-head.tsx: Dag | Vecka with + and ⋯) in fullscreen, in place of the title row; then `actions`
+   * and `more` are the head's and not drawn here.
+   */
+  head?: ReactNode;
   /** The week row's name between ‹ and › ("Vecka 47 · 16–22 nov"). Absent: the range alone. */
   weekLabel?: ReactNode;
   /** A quiet control before + and ⋯ on the first row: the view's `today` button, shown when the week lacks today. */
@@ -85,7 +88,7 @@ export function stripDays(selected: string): string[] {
 }
 
 /** The short weekday name, "mån" in Swedish and "Mon" in English. */
-function weekdayShort(date: string, locale: string): string {
+export function weekdayShort(date: string, locale: string): string {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
     weekday: "short",
     timeZone: "UTC",
@@ -130,7 +133,7 @@ export function DayStrip({
   disabled = false,
   onSelect,
   heading,
-  tabs,
+  head,
   weekLabel,
   actions,
   more,
@@ -245,18 +248,19 @@ export function DayStrip({
 
   return (
     <>
-      {/* The first row: the tabs (or, without them, the title "Tisdag 3 november"), then `today`, + and ⋯ at its end;
-          under it the week row. */}
-      <div className="sk-day-strip-head" data-tabs={tabs ? "true" : undefined}>
-        {tabs ? (
-          <div className="sk-day-strip-tabs">{tabs}</div>
-        ) : (
-          <div className="sk-day-strip-title">{heading}</div>
+      {/* The first row: the room head (or, without it, the title "Tisdag 3 november" with `today`, + and ⋯ at its
+          end); under it the week row. */}
+      {head}
+      <div className="sk-day-strip-head" data-tabs={head ? "true" : undefined}>
+        {head ? null : (
+          <>
+            <div className="sk-day-strip-title">{heading}</div>
+            <div className="sk-day-strip-tools">
+              {actions}
+              {more}
+            </div>
+          </>
         )}
-        <div className="sk-day-strip-tools">
-          {actions}
-          {more}
-        </div>
         {arrows}
       </div>
       {panel}
@@ -340,7 +344,7 @@ export function DayStrip({
           {unmarked ? "" : formatCalendarDate(selected, t.dateLocale)}
         </span>
       </div>
-      {tabs && heading ? (
+      {head && heading ? (
         <div className="sk-day-strip-title sk-day-strip-title--below">
           {heading}
         </div>

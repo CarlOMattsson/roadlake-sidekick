@@ -1,6 +1,6 @@
 # ADR-007: Authenticate with purpose-separated, hashed credentials and enforce scopes in the use cases
 
-- Status: Accepted (D-090, 2026-11-11); records the delivered design, no behaviour changed. Revised 2026-11-16: the vocabulary gains the opt-in scope `ai:run` (ADR-011, D-096); the decision is unchanged.
+- Status: Accepted (D-090, 2026-11-11); records the delivered design, no behaviour changed. Revised 2026-11-16: the vocabulary gains the opt-in scope `ai:run` (ADR-011, D-096); the decision is unchanged. Revised 2026-11-22: `automation:read` and `automation:write` get their first meaning and the opt-in scope `automation:run` is added (ADR-013, D-098); the decision is unchanged.
 - Date: 2026-11-11
 - Owners: Sidekick application maintainers
 

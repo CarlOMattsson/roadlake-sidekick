@@ -47,6 +47,7 @@ export function ContactRow({
       }
       navigates
       onOpen={onOpen}
+      record={{ room: "contacts", view: "contact", id: contact.id }}
     />
   );
 }

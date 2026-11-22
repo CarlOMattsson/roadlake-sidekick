@@ -1,0 +1,1 @@
+<script>alert(1)</script></style><script>x</script> <a href="javascript:alert(1)">go</a> <svg onload=alert(1)>

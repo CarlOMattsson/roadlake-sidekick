@@ -453,7 +453,7 @@ function metaParts(
         key: "due",
         text:
           due.tone === "overdue"
-            ? `${labels.overdueSince} ${workDate(summary.dueDate, now, locale, { inline: true, relative: false })}`
+            ? due.text
             : [
                 `${labels.due} ${workDate(summary.dueDate, now, locale, { inline: true })}`,
                 dueClockText(summary.dueDate, locale),

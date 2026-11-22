@@ -67,6 +67,7 @@ SIDEKICK_MEMORY_ID_DERIVATION_KEY:memory_id_derivation_key
 SIDEKICK_BACKUP_ENCRYPTION_KEY:backup_encryption_key
 SIDEKICK_PUSH_AUTH_TOKEN:push_auth_token
 SIDEKICK_AI_ANTHROPIC_API_KEY:ai_anthropic_api_key
+SIDEKICK_AI_CHECK_API_KEY:ai_check_api_key
 "
 # Characters whose meaning is the same in Compose's env-file syntax as written: nothing is quoted, expanded or cut off.
 plain_value='^[A-Za-z0-9+/=_.:@%~,-]+$'

@@ -1,4 +1,4 @@
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { workDate } from "../../mcp-apps/ui/due";
 import { Progress } from "../../mcp-apps/ui/progress";
 import { ReceiptBar, useReceipt } from "../../mcp-apps/ui/receipt";
@@ -19,7 +19,8 @@ import { DetailBar } from "../view/parts/detail-bar";
 import { DetailTitle } from "../view/parts/detail-title";
 import { FrameMeta } from "../view/parts/frame-meta";
 import type { FrameProps } from "../view/parts/frame-types";
-import { TaskSummaryList } from "../tasks/task-summary-list";
+import { GroupSharedTags, GroupTaskList } from "./group-task-list";
+import { sharedTaskTags } from "./group-task-order";
 import {
   useDetailFrame,
   useFrameRead,
@@ -74,6 +75,15 @@ export function ProjectFrame({
     ),
     refreshKey,
   });
+  // A tag every Task has is said once under the Project's own tags, not on each row; only when all the Tasks are
+  // loaded, as a page that is still cut cannot say that every Task has it.
+  const sharedTags = useMemo(
+    () =>
+      tasks.phase === "ready" && !tasks.nextCursor
+        ? sharedTaskTags(tasks.items)
+        : [],
+    [tasks.phase, tasks.nextCursor, tasks.items],
+  );
   /** A created Task goes to the top of the list; the list itself is not read again. */
   function taskCreated(task: WorkTaskSummary) {
     // A read of the list that started before the Task was made would answer without it: it is dropped,
@@ -271,6 +281,11 @@ export function ProjectFrame({
                 onChange={setTags}
                 locale={t.dateLocale}
               />
+              <GroupSharedTags
+                tags={sharedTags}
+                known={tags.suggestions}
+                labels={t}
+              />
               {project.description && (
                 <p className="work-description">{project.description}</p>
               )}
@@ -323,13 +338,14 @@ export function ProjectFrame({
                 />
               ) : null}
               <KnownTags.Provider value={tags.suggestions}>
-                <TaskSummaryList
+                <GroupTaskList
                   tasks={tasks.items}
                   labels={t}
                   empty={t.noProjectTasks}
                   onOpen={onOpen}
                   transport={transport}
                   onReload={reloadProject}
+                  hideTags={sharedTags}
                 />
               </KnownTags.Provider>
               {tasks.more === "busy" && <p role="status">{t.loading}</p>}

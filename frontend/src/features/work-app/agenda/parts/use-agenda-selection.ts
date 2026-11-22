@@ -1,5 +1,6 @@
 import { useState, type RefObject } from "react";
-import { useShortcuts } from "../../../mcp-apps/ui/shortcuts";
+import { useRoomShortcuts } from "../../../mcp-apps/ui/shortcut-registry";
+import { shellLabelsForDateLocale } from "../../../mcp-apps/sidekick-shell-labels";
 import {
   TASK_STATUSES,
   type TaskStatusValue,
@@ -20,6 +21,10 @@ export function useAgendaSelection({
   statusOffered,
   write,
   toggleDone,
+  dateLocale,
+  statusNames,
+  opened,
+  follow,
 }: {
   /** The records j and k step through, in the order they are shown. */
   stepping: WorkItemRecord[];
@@ -29,8 +34,23 @@ export function useAgendaSelection({
   statusOffered: (status: TaskStatusValue, from?: string) => boolean;
   write: (record: WorkItemRecord, to: TaskStatusValue) => void;
   toggleDone: (record: WorkItemRecord) => void;
+  /** The labels' date locale and the four status names, for the keys' rows in the keyboard help. */
+  dateLocale: string;
+  statusNames: string;
+  /** The row key (cardKey) of the record open beside this list in a wide frame: the selection follows it. */
+  opened?: string;
+  /** Beside a split list: opens a record there, so j and k bring each record they step to into the detail. */
+  follow?: (item: WorkItemRecord) => void;
 }) {
+  const keys = shellLabelsForDateLocale(dateLocale);
   const [selected, setSelected] = useState<string>();
+  // A record opened beside the list (a click, j/k) is the selected row, and stays so when the detail closes, so the
+  // focus and the keys start again from it.
+  const [seenOpened, setSeenOpened] = useState(opened);
+  if (opened !== seenOpened) {
+    setSeenOpened(opened);
+    if (opened !== undefined) setSelected(opened);
+  }
   const selectedItem = stepping.find((item) => cardKey(item) === selected);
 
   /** Moves the selection to a row and gives that row focus, so keys and focus agree. */
@@ -55,7 +75,9 @@ export function useAgendaSelection({
           : last
         : Math.min(Math.max(index + delta, 0), last);
     const target = stepping[next];
-    if (target) select(cardKey(target));
+    if (!target) return;
+    select(cardKey(target));
+    follow?.(target);
   }
   function setSelectedStatus(to: TaskStatusValue) {
     if (
@@ -67,7 +89,7 @@ export function useAgendaSelection({
     write(selectedItem, to);
   }
 
-  useShortcuts(
+  useRoomShortcuts(
     {
       j: () => step(1),
       k: () => step(-1),
@@ -81,6 +103,19 @@ export function useAgendaSelection({
       "2": () => setSelectedStatus(TASK_STATUSES[1]),
       "3": () => setSelectedStatus(TASK_STATUSES[2]),
       "4": () => setSelectedStatus(TASK_STATUSES[3]),
+    },
+    {
+      id: "agenda-rows",
+      title: keys.rooms.work,
+      labels: {
+        j: keys.shortcuts.nextRow,
+        k: keys.shortcuts.previousRow,
+        x: keys.shortcuts.toggleDone,
+        "1": keys.shortcuts.setStatus(statusNames),
+        "2": keys.shortcuts.setStatus(statusNames),
+        "3": keys.shortcuts.setStatus(statusNames),
+        "4": keys.shortcuts.setStatus(statusNames),
+      },
     },
     { enabled },
   );

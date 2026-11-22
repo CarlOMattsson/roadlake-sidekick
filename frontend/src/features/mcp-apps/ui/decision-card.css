@@ -1,0 +1,158 @@
+/* Decision card (decision-card.tsx). The card shell is the family's (family.css .sk-card: surface, hairline, radius 12,
+   16 inside, 8 between parts, kicker and title 4 apart). The card is a size container, so its answer row follows the
+   card's own width, not the page's. */
+.sk-decision {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+/* The trust note stands first; 4 more under it than between the other parts, so it reads as the card's heading band. */
+.sk-decision > .sk-decision__trust {
+  margin-bottom: var(--sk-s1);
+}
+.sk-decision > .sk-decision__kicker + .sk-decision__title {
+  margin-top: calc(var(--sk-s1) - var(--sk-s2));
+}
+
+/* The changes: "Roll: Projektledare", one per line in the row type, the label muted and the value in the text colour. */
+.sk-decision .sk-decision__changes {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sk-decision .sk-decision__change {
+  min-width: 0;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+/* Inline a change keeps at most two lines: a value is never cut to one (an account number cut short hides the part
+   that matters), and on a wide card it stays on one. */
+.sk-decision--inline .sk-decision__change {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+/* A suspicious note's reason may take a third line inline: it is why the card cannot be approved. */
+.sk-decision--inline .sk-trust--suspicious[data-flow="run"] .sk-trust__text {
+  -webkit-line-clamp: 3;
+}
+.sk-decision .sk-decision__change-label,
+.sk-decision .sk-decision__change-before,
+.sk-decision .sk-decision__change-more {
+  color: var(--sk-muted);
+}
+.sk-decision .sk-decision__change-before {
+  text-decoration: line-through;
+}
+
+/* "Varför" and its sentence: the meta type in the muted colour, the word at 600. Inline at most two lines. */
+.sk-decision .sk-decision__why {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sk-decision .sk-decision__why-label {
+  font-weight: var(--sk-weight-semibold);
+}
+.sk-decision--inline .sk-decision__why {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* The answers: Dismiss on the left, Approve on the right, at the card's end edge, 8 apart, 12 under the content. Each
+   is a compact button (40 drawn, 48 to tap). */
+.sk-decision .sk-decision__answers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--sk-s2);
+  margin-top: var(--sk-s1);
+}
+/* A full card's Edit stands apart at the start edge; the answers keep the end. */
+.sk-decision .sk-decision__answers button.sk-decision__edit {
+  margin-inline-end: auto;
+}
+.sk-decision .sk-decision__confirm {
+  flex: 1 1 100%;
+  margin: 0;
+  font: var(--sk-type-meta);
+  font-weight: var(--sk-weight-semibold);
+  color: var(--sk-fg);
+}
+
+/* A full card in a narrow frame (the phone's list): the answers share the card's width, 48 high, where the thumb is. */
+@container (max-width: 30rem) {
+  .sk-decision--full .sk-decision__answers .sk-decision__answer {
+    flex: 1 1 0;
+    min-height: var(--sk-tap-lg);
+    margin: 0;
+  }
+}
+
+/* Full: every change and the whole title. The detail pane (bare) has no card surface and a view title. */
+.sk-decision--full .sk-decision__title {
+  display: block;
+  -webkit-line-clamp: unset;
+}
+.sk-decision.sk-decision--bare {
+  display: grid;
+  gap: var(--sk-s3);
+  margin: 0;
+}
+.sk-decision--bare > .sk-decision__kicker + .sk-decision__title {
+  margin-top: calc(var(--sk-s1) - var(--sk-s3));
+}
+.sk-decision--bare .sk-decision__title {
+  font: var(--sk-type-title);
+}
+
+/* Decided: the receipt in the card's place ("Tillagd: Lena Holm · Öppna ›"). While it holds the undecided height the
+   line stands in the middle of it, so the space reads as the card, not as a gap. */
+.sk-decision.sk-decision--decided {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  column-gap: var(--sk-s3);
+  row-gap: 0;
+}
+.sk-decision .sk-decision__receipt {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  min-width: 0;
+  margin: 0;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+}
+.sk-decision .sk-decision__receipt-glyph {
+  flex: none;
+  color: var(--sk-success-line);
+}
+.sk-decision .sk-decision__receipt-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sk-decision .sk-decision__receipt-open {
+  margin-inline-start: 0;
+}
+
+/* Read by assistive technology, not drawn: the word between a value before and after a change. */
+.sk-decision .sk-decision__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

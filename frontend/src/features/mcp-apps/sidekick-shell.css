@@ -103,6 +103,32 @@
   text-align: center;
   cursor: pointer;
 }
+/* The last cell, Mer (shell-parts/strip-more.tsx): a cell like the rooms, its name and a 16 ⌄ on one line, the ⌄
+   turned while its menu is open. It is never wider than its words: in a row of equal cells it keeps its share, and a
+   long room name ("Kontakter ⌄" while Contacts is open) takes what it needs from the free space, 8 at its sides so its
+   pill does not end at the letters. */
+.sk-rooms .sk-rooms__more {
+  padding-inline: var(--sk-s2);
+}
+.sk-rooms .sk-rooms__more-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  vertical-align: top;
+}
+.sk-rooms .sk-rooms__more svg {
+  flex: none;
+  transition: transform var(--sk-dur-fast) var(--sk-ease-out);
+}
+.sk-rooms .sk-rooms__more[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-rooms .sk-rooms__more svg {
+    transition: none;
+  }
+}
+
 /* The touch target is the bar's top 48: from the bar's top edge, 8 above the strip, to the strip's foot,
    so it is 48 whether the bar rests or sticks at the window's top, and it ends where the tab row begins when stuck.
    It does not reach sideways. */
@@ -177,6 +203,74 @@
   }
 }
 
+/* A wide frame (≥ 64rem, sidekick-shell.tsx `headOn`; desktop spec 2.2): the head is one row of 56, the room strip packed
+   at the start and the room's own head (ui/room-head.tsx, portalled into .sk-rooms__head) beside it: its view tabs
+   packed after the strip and its tools at the row's end, at the same places in every room. One hairline under the
+   whole row, within the content edges; a Back row and the unsaved question follow under it at the rooms' reading
+   width, centred over the room as before. The bar takes the frame's half top pad back, so the row starts at the
+   frame's top and the first row of content comes 56 lower. */
+.sk-rooms__bar:has(> .sk-rooms__head) {
+  --sk-bar-inset: 0px;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--sk-s3);
+  align-items: center;
+  margin-top: calc(-1 * var(--sk-frame-pad, 0px) / 2);
+  padding-top: 0;
+  background:
+    linear-gradient(var(--sk-line), var(--sk-line)) 0
+      calc(var(--sk-head-h) - var(--sk-hairline, 1px)) / 100%
+      var(--sk-hairline, 1px) no-repeat content-box,
+    var(--color-background-primary, Canvas);
+}
+.sk-rooms__bar:has(> .sk-rooms__head) > .sk-rooms {
+  grid-area: 1 / 1;
+}
+.sk-rooms__bar:has(> .sk-rooms__head) > .sk-rooms__head {
+  grid-area: 1 / 2;
+  display: flex;
+  align-self: stretch;
+  min-width: 0;
+  min-height: var(--sk-head-h);
+}
+.sk-rooms__bar:has(> .sk-rooms__head) > :not(.sk-rooms, .sk-rooms__head) {
+  grid-column: 1 / -1;
+}
+.sk-rooms__bar:has(> .sk-rooms__head) > :is(.sk-back-header, .sk-rooms__row) {
+  box-sizing: border-box;
+  width: min(100%, var(--sk-room-max));
+  justify-self: center;
+}
+/* The rooms keep their cells to their names (12 at each side), the chosen one the raised pill; each target is 48,
+   4 over and under the 40 strip, inside the row. */
+.sk-rooms__bar:has(> .sk-rooms__head) .sk-rooms__tabs {
+  flex: 0 0 auto;
+}
+.sk-rooms__bar:has(> .sk-rooms__head) .sk-rooms .sk-rooms__tab {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--sk-s3);
+}
+/* Each cell holds the width of its bold name (a hidden copy), so the chosen room's 600 moves nothing: the view tabs
+   after the strip stand at the same x in every room. */
+.sk-rooms__bar:has(> .sk-rooms__head) .sk-rooms .sk-rooms__tab::before {
+  content: attr(data-label);
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: var(--sk-weight-semibold);
+}
+.sk-rooms__bar:has(> .sk-rooms__head) .sk-rooms .sk-rooms__tab::after {
+  inset: calc(-2 * var(--sk-s1)) 0;
+}
+/* Work's tab row is in the bar here, so what its list keeps sticky rests under the bar alone. */
+.sk-rooms-shell[data-head="on"] .sk-shell-list {
+  --sk-sticky-top: calc(var(--host-safe-top, 0px) + var(--sk-bar-h, 0px));
+}
+
 /* The Back of the full view is BackHeader (ui/back-header.tsx). Here is only Fäll ihop, for a full view that is
    our own expansion, and the row that holds it alone when there is no Back. */
 .sk-rooms__row {
@@ -237,9 +331,9 @@
   margin: 0;
 }
 
-/* The room picker's menu lies over the room: opening it moves nothing below, so a scrolled room keeps
-   its scroll through a room change. */
-.sk-rooms__bar > .sk-pick-menu {
+/* The room picker's menu, and Mer's panel on a phone, lie over the room: opening them moves nothing below, so a
+   scrolled room keeps its scroll through a room change. */
+.sk-rooms__bar > :is(.sk-pick-menu, .sk-rooms__more-panel) {
   position: absolute;
   /* Within the strip's edges: the bar itself reaches the frame's edges. Here 100 % is the bar's width, the shell's
      and both pads, so the inset is worked out again from it. */
@@ -258,6 +352,11 @@
   top: 100%;
   margin: 0;
   box-shadow: 0 0 0 var(--sk-hairline, 1px) var(--sk-line);
+}
+
+/* Mer's rooms in the phone's panel: a hairline between them, as in every room's ⋯ panel. */
+.sk-rooms__more-panel .sk-menu-item + .sk-menu-item {
+  border-top: var(--sk-hairline) solid var(--sk-line);
 }
 
 /* "Släng ändringarna?" under the Back row (unsaved-guard.tsx): the two answers side by side, wrapping when large text needs it. */

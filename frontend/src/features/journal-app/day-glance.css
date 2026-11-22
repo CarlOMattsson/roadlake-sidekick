@@ -1,0 +1,40 @@
+/* The Journal's inline day card (day-glance.tsx). The rules read the card's width as a container query, never a media
+   query: the frame is the size container (layout.css). */
+
+/* The card's own hairline above its first row goes: no other inline card has one, and the rows part by air and hover. */
+.sidekick-journal .journal-glance-entries > li:first-child {
+  border-top: 0;
+}
+
+/* The title and, in a wide card, the excerpt under it. In a narrow card the wrapper draws nothing of its own, so the
+   row is laid out as a time then a title, as before. */
+.sidekick-journal .journal-glance-text {
+  display: contents;
+}
+.sidekick-journal .journal-glance-excerpt {
+  display: none;
+}
+
+/* The card is its own width container: inline there is no app frame around it (layout.css names that one only in
+   fullscreen), so a query on sk-frame never matched in the chat. */
+.sidekick-journal .journal-card {
+  container: journal-card / inline-size;
+}
+
+/* From 37.5rem: the latest entry's first two lines of text, muted, under its title. */
+@container journal-card (min-width: 37.5rem) {
+  .sidekick-journal .journal-glance-text {
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .sidekick-journal .journal-glance-excerpt {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    color: var(--sk-muted);
+    font: var(--sk-type-meta);
+  }
+}

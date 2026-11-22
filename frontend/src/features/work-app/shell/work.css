@@ -514,13 +514,14 @@
   font-size: var(--sk-type-meta-size);
   color: var(--work-muted);
 }
-/* The high-priority marker: the word carries it; the warning text and weight only make it stand out a little. */
+/* The high-priority marker: the word carries it, in the text ink at 600. It is neutral, never the warning tone: yellow
+   and brown say a warning that asks for action, and red says late (desktop spec 1.8, H18). */
 .sidekick-work .work-card-meta > .work-card-priority,
 .sidekick-work .work-chip > .work-card-priority,
 .sidekick-work .work-prop-chip .work-card-priority[data-priority="high"] {
   white-space: nowrap;
-  color: var(--work-warning-fg);
-  font-weight: 600;
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-semibold);
 }
 /* The head (kind and Project name) is one part on one line. */
 /* Every part after the first carries its "·" (the board's columns: inline, cut with its part; the single layout and the

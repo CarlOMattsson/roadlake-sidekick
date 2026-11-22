@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
@@ -110,7 +111,13 @@ it("keeps the typed shopping text when the shell reads the room again after a lo
   await user.type(quick, "Bröd");
   const before = reads();
 
-  fireEvent.click(screen.getByRole("button", { name: "Contacts" }));
+  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  fireEvent.click(
+    within(screen.getByRole("group", { name: "More rooms" })).getByRole(
+      "button",
+      { name: "Contacts" },
+    ),
+  );
   act(() => {
     vi.setSystemTime(Date.now() + STALE_AFTER_MS + 1000);
   });

@@ -526,7 +526,7 @@ describe("the tagged list in place of the day", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers no + while a tag is chosen, and + is back with the day once the filter is cleared", async () => {
+  it("keeps + while a tag is chosen, and pressing it brings the day back with the new entry's form open", async () => {
     const user = userEvent.setup();
     renderDay(
       transportMock({
@@ -537,19 +537,14 @@ describe("the tagged list in place of the day", () => {
         writeEntry: vi.fn(),
       }),
     );
-    expect(
-      await screen.findByRole("button", { name: journalEn.addEntry }),
-    ).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: "Viktig" }));
     await screen.findByText("Post 1");
+    await user.click(screen.getByRole("button", { name: journalEn.addEntry }));
+    // The filter is cleared, so the tagged list is gone, and the form for the day's new entry is open.
+    expect(screen.queryByText("Post 1")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: journalEn.addEntry }),
+      within(filterGroup()).queryByRole("button", { name: "Clear (1)" }),
     ).toBeNull();
-    await user.click(
-      within(filterGroup()).getByRole("button", { name: "Clear (1)" }),
-    );
-    expect(
-      await screen.findByRole("button", { name: journalEn.addEntry }),
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox").length).toBeGreaterThan(0);
   });
 });

@@ -152,6 +152,8 @@ for (const width of widths) {
         replies: { get_work_board: ok(board) },
       });
       await chooseView(app, "Status", width);
+      // A column draws ten cards before "Visa 15 till": all 25 are drawn, so the board is long enough to scroll.
+      await app.getByRole("button", { name: /Visa 15 till/ }).click();
       const scroll = () =>
         app
           .locator("html")

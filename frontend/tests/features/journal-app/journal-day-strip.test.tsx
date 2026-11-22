@@ -229,26 +229,33 @@ describe("DayStrip rendering", () => {
     ).toEqual(["Previous week", "journal-day-range", "Next week"]);
   });
 
-  it("with tabs: Dag | Vecka and the tools on the first row, the week's name between the arrows, the title under the strip", () => {
+  it("with a head: the room head first, then the week row only, the week's name between the arrows, the title under the strip", () => {
     render(
       <DayStrip
         {...props({
           heading: <h2>Onsdag 21 oktober</h2>,
-          tabs: <div role="group" aria-label="Visning" />,
+          head: (
+            <div className="sk-room-head" data-testid="room-head">
+              <div role="group" aria-label="Visning" />
+              <button type="button">Mer</button>
+            </div>
+          ),
           weekLabel: "Vecka 43 · 19–25 okt",
-          more: <button type="button">Mer</button>,
+          more: <button type="button">Not drawn</button>,
         })}
       />,
     );
     const head = document.querySelector<HTMLElement>(".sk-day-strip-head");
     expect(head).toHaveAttribute("data-tabs", "true");
+    // The head is drawn before the strip's head, as its sibling; the strip's head holds the week row only.
+    const roomHead = screen.getByTestId("room-head");
+    expect(roomHead.nextElementSibling).toBe(head);
     expect(
       Array.from(head?.children ?? [], (child) => child.className),
-    ).toEqual([
-      "sk-day-strip-tabs",
-      "sk-day-strip-tools",
-      "sk-day-strip-weekrow",
-    ]);
+    ).toEqual(["sk-day-strip-weekrow"]);
+    // Neither the title row's tools nor `more` are drawn when a head is given.
+    expect(head?.querySelector(".sk-day-strip-tools")).toBeNull();
+    expect(screen.queryByText("Not drawn")).toBeNull();
     expect(head?.querySelector(".journal-day-range")).toHaveTextContent(
       "Vecka 43 · 19–25 okt",
     );

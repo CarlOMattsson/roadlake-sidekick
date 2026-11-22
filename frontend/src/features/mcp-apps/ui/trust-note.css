@@ -1,0 +1,58 @@
+/* Trust note (trust-note.tsx): an amber band with ⚠ and words, in the meta type. 8 above and under, 12 at the sides,
+   radius 8 (a part of a card, not a card), the glyph at 20 in the warning line beside the first line. Unsure is the tint
+   alone; suspicious adds the warning line as an edge and a 3 px bar at the start, so the two levels differ in form as
+   well as in the heading's words. */
+.sk-trust {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--sk-s2);
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--sk-s2) var(--sk-s3);
+  border: var(--sk-hairline) solid transparent;
+  border-radius: var(--sk-radius);
+  background: var(--sk-warning-bg);
+  color: var(--sk-warning-fg);
+  font: var(--sk-type-meta);
+}
+.sk-trust .sk-trust__glyph {
+  width: 1.25rem;
+  height: 1.25rem;
+  /* The glyph's middle on the first line's middle. */
+  margin-top: calc((var(--sk-type-meta-line) - 1.25rem) / 2);
+  color: var(--sk-warning-line);
+}
+.sk-trust .sk-trust__text {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: break-word;
+}
+.sk-trust .sk-trust__title {
+  font-weight: var(--sk-weight-semibold);
+}
+/* Block: the heading on its line and the reason under it; the colon is not drawn. */
+.sk-trust[data-flow="block"] .sk-trust__sep {
+  display: none;
+}
+/* Run: "Heading: reason" as one paragraph, at most two lines, for an inline card (the detail shows it whole). */
+.sk-trust[data-flow="run"] .sk-trust__text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.sk-trust--suspicious {
+  border-color: var(--sk-warning-line);
+  box-shadow: inset 3px 0 0 var(--sk-warning-line);
+}
+.sk-trust--suspicious:dir(rtl) {
+  box-shadow: inset -3px 0 0 var(--sk-warning-line);
+}
+
+@media (forced-colors: active) {
+  .sk-trust {
+    border-color: CanvasText;
+  }
+}

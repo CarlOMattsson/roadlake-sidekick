@@ -1,0 +1,141 @@
+/* ---- The keyboard help sheet (shortcut-help.tsx): a modal <dialog> in the top layer. 32 rem wide at most, 16 from
+   the frame's edges, radius 12, the popover's page tone and second shadow (menu.css), a light scrim behind. The
+   dialog itself is only the frame; .sk-shortcut-help__body scrolls inside it, so a click on the scrollbar is not a
+   click on the backdrop. ---- */
+.sk-shortcut-help {
+  box-sizing: border-box;
+  width: min(32rem, 100% - 32px);
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--sk-radius-card);
+  background: light-dark(
+    var(--sk-bg),
+    color-mix(in srgb, var(--sk-fg) 6%, var(--sk-bg))
+  );
+  color: var(--sk-fg);
+  font: var(--sk-type-body);
+  box-shadow: var(--sk-shadow-2);
+}
+.sk-shortcut-help:not([open]) {
+  display: none;
+}
+.sk-shortcut-help[open] {
+  animation: sk-shortcut-help-in var(--sk-dur-fast) var(--sk-ease-out);
+}
+.sk-shortcut-help::backdrop {
+  background: color-mix(in srgb, black 24%, transparent);
+}
+@keyframes sk-shortcut-help-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-shortcut-help[open] {
+    animation: none;
+  }
+}
+
+.sk-shortcut-help__body {
+  box-sizing: border-box;
+  max-height: calc(100dvh - 32px);
+  padding: var(--sk-s4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sk-shortcut-help__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  min-height: var(--sk-tap);
+}
+.sk-shortcut-help__title {
+  margin: 0;
+  font: var(--sk-type-section);
+}
+.sk-shortcut-help__group {
+  margin-block-start: var(--sk-s4);
+}
+.sk-shortcut-help__group-title {
+  margin: 0;
+  color: var(--sk-muted);
+  font: var(--sk-type-label);
+}
+/* A reference, not a list of controls: the rows are 36 (no tap target to keep), the keys in one column as wide as
+   the widest keys of the group and the labels lined up after it. */
+.sk-shortcut-help__list {
+  display: grid;
+  grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr);
+  column-gap: var(--sk-s4);
+  margin: var(--sk-s1) 0 0;
+  padding: 0;
+}
+.sk-shortcut-help__list > .sk-shortcut-help__row {
+  display: contents;
+}
+.sk-shortcut-help__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  min-height: var(--sk-tap);
+}
+.sk-shortcut-help__keys,
+.sk-shortcut-help__list .sk-shortcut-help__label {
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--sk-s6) + var(--sk-s1));
+}
+.sk-shortcut-help__keys {
+  flex-wrap: wrap;
+  gap: var(--sk-s1);
+  margin: 0;
+}
+.sk-shortcut-help__combo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+}
+.sk-shortcut-help__or {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sk-shortcut-help__label {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.sk-shortcut-help__switch {
+  justify-content: space-between;
+  margin-block-start: var(--sk-s3);
+  border-block-start: var(--sk-hairline) solid var(--sk-line);
+}
+.sk-shortcut-help kbd,
+.sk-menu-item__key {
+  box-sizing: border-box;
+  min-width: 1.5rem;
+  padding: 0 6px;
+  border: 1px solid var(--sk-line);
+  border-radius: 6px;
+  background: var(--sk-surface);
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+  text-align: center;
+}
+
+/* "Kortkommandon ?" in a room's ⋯ (MenuShortcutsRow): the label, and the key at the row's end in the muted meta type
+   (desktop spec 2.3: a menu's shortcut stands right-aligned). */
+.sk-menu-item.sk-menu-item--keys {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+}
+.sk-menu-item__key {
+  color: var(--sk-muted);
+}

@@ -4,6 +4,8 @@
 
 <!-- description: Let your own Claude Code, or your server with your own Anthropic key, run the AI steps of an approved task, then review what it writes. -->
 
+> **Cost.** Steps that your own Claude Code runs are covered by your Claude plan. Steps that your server runs use your Anthropic API key and are billed per call, with a default ceiling of 50 USD per month. Read [AI costs](../explanation/ai-costs.md) before you turn the runner on.
+
 Some steps of a task can be done by AI: a first draft, research, a summary, a checklist. You approve the plan, your own Claude Code or your own server runs the AI steps, and every result waits for you to review it. An AI step only makes text inside Sidekick. Sending, buying, deleting or publishing is always a step that you do yourself.
 
 ## The flow

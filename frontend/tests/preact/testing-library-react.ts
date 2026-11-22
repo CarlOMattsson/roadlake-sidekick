@@ -11,7 +11,12 @@ import {
   fireEvent as domFireEvent,
   getQueriesForElement,
 } from "@testing-library/dom";
-import { createElement, type ReactElement } from "react";
+import {
+  createElement,
+  type ComponentType,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { act as preactAct } from "preact/test-utils";
 import { render as preactRender } from "preact";
 
@@ -81,7 +86,11 @@ export function render(ui: ReactElement) {
 
 export function renderHook<Result, Props>(
   callback: (props: Props) => Result,
-  options: { initialProps?: Props } = {},
+  options: {
+    initialProps?: Props;
+    /** Wraps the probe, as in the real package (providers, contexts). */
+    wrapper?: ComponentType<{ children?: ReactNode }>;
+  } = {},
 ) {
   const result = { current: undefined as Result };
   function Probe({ hookProps }: { hookProps: Props }) {
@@ -89,11 +98,15 @@ export function renderHook<Result, Props>(
     return null;
   }
   const initial = options.initialProps as Props;
-  const view = render(createElement(Probe, { hookProps: initial }));
+  const Wrapper = options.wrapper;
+  const element = (hookProps: Props) => {
+    const probe = createElement(Probe, { hookProps });
+    return Wrapper ? createElement(Wrapper, null, probe) : probe;
+  };
+  const view = render(element(initial));
   return {
     result,
-    rerender: (props?: Props) =>
-      view.rerender(createElement(Probe, { hookProps: props ?? initial })),
+    rerender: (props?: Props) => view.rerender(element(props ?? initial)),
     unmount: view.unmount,
   };
 }

@@ -72,10 +72,15 @@ export type SidekickShellProps = {
    */
   strip?: boolean;
   /**
-   * The rooms the strip and the narrow room picker offer, in order (a host that serves only some rooms: the phone).
-   * Defaults to every strip room. Other rooms stay reachable by cross-links.
+   * The rooms with a cell of their own in the strip, in order (a host that serves only some rooms: the phone).
+   * Defaults to PRIMARY_ROOM_IDS. Other rooms stay reachable by cross-links.
    */
-  stripRooms?: readonly StripRoomId[];
+  primaryRooms?: readonly StripRoomId[];
+  /**
+   * The rooms of the strip's Mer menu, in order. Defaults to MORE_ROOM_IDS; with none that this instance shows there
+   * is no Mer cell. The narrow room picker lists `primaryRooms` and then these.
+   */
+  moreRooms?: readonly StripRoomId[];
   /**
    * Lets the host own system Back (Android). The shell calls this with a handler that returns true when it went back
    * one layer and false when it is at the root (the host then leaves the app), and with undefined on unmount. The MCP

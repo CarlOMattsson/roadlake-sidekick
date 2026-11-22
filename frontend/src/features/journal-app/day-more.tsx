@@ -9,6 +9,7 @@ import {
 } from "../mcp-apps/license-mark";
 import type { HostSettingsEntry } from "../mcp-apps/room-types";
 import { MoreIcon } from "../mcp-apps/ui/icons";
+import { MenuShortcutsRow } from "../mcp-apps/ui/shortcut-help";
 
 /**
  * The day view's ⋯ menu: `control` (or the host's own settings), and the update reminder and the license row
@@ -44,7 +45,7 @@ export function DayMoreButton({
     <button
       ref={buttonRef}
       type="button"
-      className="sk-iconbtn journal-day-more"
+      className="sk-iconbtn sk-room-head__tool journal-day-more"
       aria-label={more.mark.label}
       aria-expanded={more.open}
       aria-controls={more.panelId}
@@ -73,6 +74,12 @@ export function DayMorePanel({
       anchor={buttonRef}
       onClose={() => more.setOpen(false)}
     >
+      <MenuShortcutsRow
+        onChosen={() => {
+          more.setOpen(false);
+          buttonRef.current?.focus();
+        }}
+      />
       {control && (
         <button
           type="button"

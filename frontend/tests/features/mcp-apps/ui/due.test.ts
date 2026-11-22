@@ -277,15 +277,19 @@ describe("workDate in the Work app", () => {
     ["today", "2026-10-25", "Idag"],
     ["tomorrow", "2026-10-26", "Imorgon"],
     ["yesterday", "2026-10-24", "Igår"],
-    ["two days back shows the weekday", "2026-10-23", "Fre 23 okt"],
-    ["within a week shows the weekday", "2026-10-30", "Fre 30 okt"],
-    ["seven days ahead shows the weekday", "2026-11-01", "Sön 1 nov"],
+    [
+      "two days back shows the weekday, in lower case",
+      "2026-10-23",
+      "fre 23 okt",
+    ],
+    ["within a week shows the weekday", "2026-10-30", "fre 30 okt"],
+    ["seven days ahead shows the weekday", "2026-11-01", "sön 1 nov"],
     ["beyond a week shows the date only", "2026-11-06", "6 nov"],
     ["another year shows the year", "2027-01-05", "5 jan 2027"],
     [
       "a timestamp reads its Stockholm day",
       "2026-10-26T23:30:00Z",
-      "Tis 27 okt",
+      "tis 27 okt",
     ],
     ["microseconds are read as well", "2026-10-26T10:00:00.123456Z", "Imorgon"],
     ["missing value gives an empty label", null, ""],
@@ -305,7 +309,7 @@ describe("workDate in the Work app", () => {
 
   it("relative false names the weekday and date, never idag or imorgon", () => {
     expect(workDate("2026-10-25", now, "sv-SE", { relative: false })).toBe(
-      "Sön 25 okt",
+      "sön 25 okt",
     );
     expect(
       workDate("2026-10-26", now, "sv-SE", { inline: true, relative: false }),

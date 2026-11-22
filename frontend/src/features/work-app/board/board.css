@@ -1,0 +1,55 @@
+/* The Status board's own rules; the columns, the cards and the rest of the board are in shell/work.css. Each selector
+   carries `.work-board` so it outranks the shared rule it adjusts, whichever sheet loads last. */
+
+/* "Visa N till" under a column: a quiet text button (tertiary, 14 regular in the muted ink), not a heading. The family's
+   `.sk-more` is the strong label type; the box keeps its 44 high. */
+.sidekick-work .work-board .work-column > button.work-column-more {
+  display: flex;
+  align-items: center;
+  min-height: var(--sk-tap);
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+
+/* The card's title keeps the room the other cards' titles get at their right edge (the card's 4 and the line's 1 with
+   this 8 are the ≈ 14 a wrapped title ends at), so a word that fills the line does not run to the card's edge. The
+   single layout has its › there. */
+.sidekick-work
+  .work-board[data-layout="columns"]
+  .work-list
+  > li.work-card
+  > .work-card-head
+  > :is(.work-card-title, button[data-sk-open]) {
+  padding-inline-end: 0.5rem;
+}
+
+/* The waiting line breaks between words and is never clipped. Its parts stand one under the other (who and since when,
+   then the follow-up), each starting on the title's x: no hung «·» and no clip at the left, which on a wrapped part cut
+   its second line's first letter ("15 / ov"). Its parts do not cut with an ellipsis either (that rule is for the one-line
+   parts above it); a long word breaks only when it alone is wider than the card. */
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-list
+  > li.work-card
+  > .work-card-meta.work-agenda-waiting {
+  flex-direction: column;
+  align-items: flex-start;
+  padding-left: calc(var(--work-card-lead) + 0.25rem);
+  clip-path: none;
+  overflow-wrap: break-word;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-column
+  .work-card-meta.work-agenda-waiting
+  > * {
+  overflow: visible;
+  text-overflow: clip;
+}
+.sidekick-work
+  .work-board:not([data-layout="single"])
+  .work-column
+  .work-card-meta.work-agenda-waiting
+  > *::before {
+  content: none;
+}

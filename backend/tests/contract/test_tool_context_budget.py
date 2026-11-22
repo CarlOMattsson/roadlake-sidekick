@@ -59,10 +59,17 @@ CHARS_PER_TOKEN = 3.5
 # rounded up.
 # 2026-11-18: raised to 23 400 for `list_id` in the item of `update_shopping_item`
 # (moving an item to another list), about 80 tokens; measured 23 394, rounded up.
-TOKEN_BUDGET = 23_400
+# 2026-11-22: raised to 23 600 for the walk-through guide in the description of `get_review_queue`
+# (638 characters, about 180 tokens, written once and reused by the `review_tasks_walkthrough`
+# prompt); measured 23 574, rounded up.
+TOKEN_BUDGET = 23_600
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
+# The walk-through guide lives in this one description, so it has its own cap (measured 982 on
+# 2026-11-22).
+GUIDE_TOOL = "get_review_queue"
+GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # Measured 2026-11-11: the 70 model-visible tools carry 170 527 characters of outputSchema; the cap
 # is that plus 5 % (rounded up). App-only tools are not counted, as for the token budget.
 # 2026-11-16: raised to 221 100 for the outputs of the AI Step tools (the plan, a step page, a
@@ -106,7 +113,11 @@ def test_model_visible_tool_context_stays_within_budget() -> None:
     total = sum(costs.values())
     largest = sorted(costs.items(), key=lambda item: item[1], reverse=True)[:LARGEST_LISTED]
     largest_text = ", ".join(f"{name} (~{round(cost)})" for name, cost in largest)
-    longest_description = max(_description_chars(tool) for tool in visible)
+    guide_tool = next(tool for tool in visible if tool["name"] == GUIDE_TOOL)
+    assert _description_chars(guide_tool) <= GUIDE_TOOL_DESCRIPTION_CHAR_CAP
+    longest_description = max(
+        _description_chars(tool) for tool in visible if tool["name"] != GUIDE_TOOL
+    )
     output_schema_total = sum(_schema_chars(tool.get("outputSchema")) for tool in visible)
     report = (
         "per-tool characters (all tools):\n"

@@ -119,7 +119,7 @@ describe("ContactProjects", () => {
     );
     await user.click(screen.getByRole("button", { name: sajt.title }));
     expect(onOpen).toHaveBeenCalledTimes(1);
-    expect(onOpen).toHaveBeenCalledWith(sajt.id);
+    expect(onOpen).toHaveBeenCalledWith(sajt.id, sajt.title);
   });
 
   it("renders nothing, not even the heading, when no Project is linked", () => {

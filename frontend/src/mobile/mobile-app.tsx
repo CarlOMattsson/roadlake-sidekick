@@ -66,8 +66,12 @@ const MOBILE_VIEWS: NonNullable<RoomHost["availableViews"]> = {
   work: ["agenda", "hierarchy"],
 };
 
-/** The rooms the strip and the room picker offer. Contacts has no companion route yet, so it stands out of them. */
+/**
+ * The rooms the strip and the room picker offer. Contacts has no companion route yet, so it stands out of them and
+ * the strip has no Mer: the three rooms as before.
+ */
 const MOBILE_STRIP_ROOMS = ["work", "journal", "shopping"] as const;
+const MOBILE_MORE_ROOMS = [] as const;
 
 /** Coming back to the foreground reads again only when the last read is older than this. */
 export const RESUME_REFRESH_AFTER_MS = 30_000;
@@ -304,7 +308,8 @@ export function MobileApp({
             start={start}
             full
             features={MOBILE_FEATURES}
-            stripRooms={MOBILE_STRIP_ROOMS}
+            primaryRooms={MOBILE_STRIP_ROOMS}
+            moreRooms={MOBILE_MORE_ROOMS}
             registerBack={registerBack}
             staleTick={staleTick}
           />

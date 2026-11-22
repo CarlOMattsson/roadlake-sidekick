@@ -1,0 +1,151 @@
+/*
+ * The day read beside the list in a wide frame (day-read.tsx, desktop spec 3.2): the day's heading in the display size,
+ * and every entry of the day in full, the owner's text in the reading type at most 66 characters wide, 48 between the
+ * entries. The aside is drawn in the shell, so its roots carry `sidekick-journal` themselves (day-read.tsx).
+ */
+.sidekick-journal.journal-read {
+  /* The aside is not a detail pane, so it takes the pane's wide display and reading sizes here (split-layout.css). */
+  --sk-type-display: var(--sk-type-title-weight)
+    var(--sk-type-display-wide-size) / var(--sk-type-display-wide-line)
+    var(--sk-font);
+  --sk-type-read: var(--sk-type-body-weight) var(--sk-type-read-wide-size) /
+    var(--sk-type-read-wide-line) var(--sk-font);
+  /* The measure is in `ch` of this font, so the title row and the text under it end at the same place. */
+  font: var(--sk-type-read);
+}
+.sidekick-journal.journal-read h2.journal-read__heading {
+  /* 8 down, so the heading's middle meets the rail's month row beside it (both about 86 from the frame's top). */
+  margin: var(--sk-s2) 0 var(--sk-s4);
+  font: var(--sk-type-display);
+  overflow-wrap: anywhere;
+}
+.sidekick-journal.journal-read .journal-day-summary {
+  max-inline-size: var(--sk-read-measure);
+  margin-block-end: var(--sk-s5);
+}
+
+.journal-read__entry {
+  max-inline-size: var(--sk-read-measure);
+}
+.journal-read__entry + .journal-read__entry {
+  margin-block-start: 3rem;
+}
+/* The title and the time share a baseline; the time is quiet and stands at the right end of the text's measure. */
+.journal-read__entry-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  margin-block-end: var(--sk-s2);
+}
+.sidekick-journal .journal-read__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font: var(--sk-type-title);
+  overflow-wrap: anywhere;
+}
+.journal-read__time {
+  flex: none;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  font-variant-numeric: tabular-nums;
+}
+/* The title is the way into the entry: text in the title's own type, no frame, and the row's hover tone under it. */
+.sidekick-journal .journal-read__title-link {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .journal-read__title-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+}
+.sidekick-journal .journal-read__title-link:focus-visible {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 2px;
+}
+.sidekick-journal.journal-read .journal-entry-text {
+  margin-block-end: 0;
+}
+
+/* The read text has no height of its own: the page scrolls it. The aside is held in view by the split layout for a short
+   record; a day of several long entries is taller than the window, and a held aside would cut its end off, so while
+   the day is read it flows with the page. The doubled class stands over the split layout's own rule. */
+.sk-split.sk-split
+  > .sk-split__aside:has(> .sk-split-aside > .sidekick-journal) {
+  position: static;
+}
+
+/* ---- The list pane's rail (day-frame.tsx): the day's entries as compact rows under the calendar. ---- */
+.sidekick-journal .journal-rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidekick-journal .journal-rail-row {
+  margin: 0;
+}
+.sidekick-journal .journal-rail-card {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sk-s3);
+  width: 100%;
+  min-height: var(--sk-tap);
+  padding: var(--sk-s2) 0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: inherit;
+  font: var(--sk-type-row);
+  text-align: start;
+}
+.sidekick-journal .journal-rail-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidekick-journal .journal-rail-time {
+  flex: none;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sidekick-journal button.journal-rail-card:focus-visible {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 2px;
+}
+
+/* The rail's tags wrap onto as many lines as they need: in a column of 360–420 a sideways scroller hid half of them
+   behind its edge (desktop spec 3.2, "taggar som lista"). */
+.sidekick-journal .journal-rail-tags .sk-tag-filter {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sk-s1);
+  margin-block-start: var(--sk-s3);
+}
+/* Wrapped, the chips part by the gap alone: their own 2 px of side padding (tags.css) would set every line after the
+   first 2 px in from the rail's edge. */
+.sidekick-journal .journal-rail-tags .sk-tag-filter .sk-tag-filter__option {
+  padding-inline: 0;
+}
+.sidekick-journal .journal-rail-tags .sk-tag-filter__scroll {
+  flex-wrap: wrap;
+  gap: var(--sk-s1) var(--sk-s2);
+  overflow: visible;
+  mask-image: none;
+}

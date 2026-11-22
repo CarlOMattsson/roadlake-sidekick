@@ -33,7 +33,10 @@ KindValue = Literal[
 # A Journal source is immutable and the application role holds no UPDATE grant on its table, so
 # it cannot be trashed at all today, and its label is an excerpt of raw journal text. It is
 # therefore not part of this surface; a Journal source needs a trash path first.
-TRASHABLE_KINDS = frozenset(RecordKind) - {RecordKind.JOURNAL_SOURCE}
+#
+# A photo is trashed and restored through the photo tools of the Journal app, not through this
+# surface, so it is not listed here either.
+TRASHABLE_KINDS = frozenset(RecordKind) - {RecordKind.JOURNAL_SOURCE, RecordKind.JOURNAL_ATTACHMENT}
 
 # Same mapping as the use case's read scopes (service.py `_READ_SCOPE`); a test pins them equal.
 # A label names the record, so it is returned only to an actor who can read that kind.
@@ -48,6 +51,7 @@ READ_SCOPE_BY_KIND: dict[RecordKind, str] = {
     RecordKind.JOURNAL_SOURCE: "journal:read",
     RecordKind.JOURNAL_ENTRY: "journal:read",
     RecordKind.SHOPPING_ITEM: "shopping:read",
+    RecordKind.JOURNAL_ATTACHMENT: "journal:read",
 }
 
 

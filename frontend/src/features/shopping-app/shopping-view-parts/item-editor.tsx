@@ -7,6 +7,7 @@ import type {
 } from "../transport";
 import type { ShoppingLabels } from "../labels";
 import { ChevronDownIcon } from "../../mcp-apps/ui/icons";
+import { onEnterKey } from "../../mcp-apps/ui/enter-key";
 import { KeyScope } from "../../mcp-apps/ui/key-scope";
 import { OfferFields } from "./offer-fields";
 import { RecipientField } from "./recipient-field";
@@ -26,6 +27,30 @@ function filledExtras(item: ShoppingItem): number {
     item.note,
     item.offer,
   ].filter(Boolean).length;
+}
+
+/**
+ * Whether Enter in `target` saves the form: a one-line field (not the note, a button, a box or the contact search,
+ * which has its own Enter) that is not choosing from a list. An open combobox or a field with an active option takes
+ * Enter for that option. The shop field's datalist cannot be asked, so Enter leaves it to the browser while the typed
+ * text only matches suggestions that differ from it; once the text is a whole suggestion (or none), Enter saves.
+ */
+function savesOnEnter(target: EventTarget): boolean {
+  if (!(target instanceof HTMLInputElement)) return false;
+  if (["button", "checkbox", "radio", "submit", "file"].includes(target.type))
+    return false;
+  if (target.closest(".shopping-recipient-search")) return false;
+  if (
+    target.getAttribute("aria-expanded") === "true" ||
+    target.getAttribute("aria-activedescendant")
+  )
+    return false;
+  const typed = target.value.trim().toLowerCase();
+  if (!target.list || !typed) return true;
+  return ![...target.list.options].some((option) => {
+    const suggestion = option.value.toLowerCase();
+    return suggestion !== typed && suggestion.includes(typed);
+  });
 }
 
 export function ItemEditor({
@@ -127,6 +152,10 @@ export function ItemEditor({
       ref={form}
       className="shopping-editor"
       onEscape={onCancel}
+      // Enter in a one-line field saves, as Save does; Escape (above) cancels.
+      onKeyDown={(event) => {
+        if (savesOnEnter(event.target)) onEnterKey(event, save);
+      }}
     >
       <fieldset disabled={busy}>
         {/* The row above already names the item: the legend is for screen readers, so the frame stays whole. */}

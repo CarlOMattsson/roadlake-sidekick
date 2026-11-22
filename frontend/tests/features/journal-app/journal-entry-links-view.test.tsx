@@ -102,6 +102,7 @@ async function openEntryView(entry: JournalEntry) {
   });
   deliver({ entry: { ...entry, key_points: [] } });
   deliver({ entry: { id: entry.id } });
+  // The links stand in sight under the text, not in the fold.
   await screen.findByRole("heading", { level: 3, name: "Linked" });
 }
 
@@ -149,10 +150,12 @@ describe("journal entry view links", () => {
       within(group).queryByRole("button", { name: /^Remove link to/ }),
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Edit entry" }));
-    // Each chip has its own remove button, named after its link.
+    // The links leave the fold for the editor, which draws them again; each chip has its own remove button, named
+    // after its link.
+    const editing = screen.getByRole("group", { name: "Linked" });
     for (const name of ["Offert Norr", "Anna Berg", "Contact"]) {
       expect(
-        within(group).getByRole("button", { name: `Remove link to ${name}` }),
+        within(editing).getByRole("button", { name: `Remove link to ${name}` }),
       ).toHaveClass("journal-chip-remove");
     }
     // Tasks are chips by title, in their own list outside the Linked group.

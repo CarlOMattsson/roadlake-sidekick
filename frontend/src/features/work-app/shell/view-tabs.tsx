@@ -16,6 +16,8 @@ import "./view-tabs.css";
 export type ViewTabOption<T extends string = string> = {
   value: T;
   label: string;
+  /** A count after the label (To sort's "3"). */
+  count?: number;
 };
 
 export function ViewTabs<T extends string>({

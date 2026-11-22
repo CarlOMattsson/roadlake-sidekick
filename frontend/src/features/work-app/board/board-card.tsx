@@ -19,7 +19,8 @@ import {
   rowMenuHandlers,
   rowMenuHint,
 } from "../shared/row-menu";
-import { frameFor } from "../shared/work-items";
+import { frameFor, recordOfItem } from "../shared/work-items";
+import { useRecordRow } from "../../mcp-apps/ui/split-layout";
 import { OpenChevron } from "../tasks/task-detail-controls";
 import {
   TASK_STATUSES,
@@ -57,6 +58,7 @@ export function RecordTitle({
       disabled={disabled}
       // The whole title, also where the row clamps it (one line while the row's menu is open at large text).
       aria-label={item.title}
+      data-sk-open=""
       aria-keyshortcuts={hint && "Shift+F10"}
       {...{ "aria-description": hint }}
       onClick={() => onOpen(target)}
@@ -166,6 +168,8 @@ export function BoardCard({
     show(false);
     onMove(item, to);
   }
+  // The card of the Task open in the drawer is the chosen one, and takes the focus back when the drawer closes.
+  const recordRow = useRecordRow(recordOfItem(item));
   const doneLabel = fillLabel(
     item.status === "completed" ? t.agendaReopen : t.agendaComplete,
     { title: item.title },
@@ -177,6 +181,7 @@ export function BoardCard({
       // While Ångra shows: the ring is filled, the title in text-2 and › hidden by CSS.
       data-undo={undo ? "on" : undefined}
       data-card-id={item.id}
+      {...recordRow}
       data-accent={accent ?? undefined}
       aria-busy={busy ? true : undefined}
       style={dragging ? draggingStyle : undefined}

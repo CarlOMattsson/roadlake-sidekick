@@ -1,15 +1,20 @@
-import { useEffect, useRef, useState } from "react";
-import { formatShortDateWithYear, formatTime } from "./dates";
-import { EntryLinks } from "./entry-links";
-import { EntryTasks } from "./entry-tasks";
-import { FieldsEditor, mergeFields } from "./draft-review";
+import { useContext, useEffect, useRef, useState } from "react";
+import {
+  EntryChangeButtons,
+  EntryLinked,
+  EntryWhen,
+  editRefusalText,
+  tagFailureText,
+} from "./entry-parts";
+import { mergeFields } from "./draft-review";
+import { EntryEditForm } from "./entry-edit";
+import { EntryNeighbours, useEntryNeighbours } from "./entry-neighbours";
+import type { Side } from "./entry-neighbours";
+import { EntryReadBody, useEntrySource } from "./entry-read";
 import { EntryTextForm } from "./entry-write";
 import { isNotFound } from "../../lib/mcp/errors";
-import { ownerToday } from "../mcp-apps/app-timezone";
 import { keyFor } from "../mcp-apps/idempotency";
 import type { PendingKey } from "../mcp-apps/idempotency";
-import { originalLine, summaryRest } from "./entry-card";
-import { labelFor } from "./labels";
 import { receiptText } from "./receipt-text";
 import { isForbidden, writeFailure } from "./transport";
 import type {
@@ -17,8 +22,14 @@ import type {
   JournalEntry,
   JournalFrame,
 } from "./transport";
+import {
+  BackHeaderActions,
+  useBackHeaderSlot,
+} from "../mcp-apps/ui/back-header";
 import { ErrorNotice } from "../mcp-apps/ui/states";
 import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
+import { RoomSurfaceContext } from "../mcp-apps/ui/room-context";
+import { useRoomShortcuts } from "../mcp-apps/ui/shortcut-registry";
 import { TagField } from "../mcp-apps/ui/tags";
 import { useTagVocabulary } from "../mcp-apps/ui/tag-vocabulary";
 import {
@@ -31,6 +42,7 @@ import type { FrameProps, LoadPhase } from "./frame-props";
 import { EntryMemoryFailure, MemoryChip, useEntryMemory } from "./entry-memory";
 import { isQueued, useQueuedRecords } from "./use-queued-records";
 import "./entry.css";
+import "./entry-read.css";
 
 /** The saved entry offers at most this many "Open the task" buttons, one per created task. */
 const taskOpenLimit = 3;
@@ -46,6 +58,8 @@ export function EntryFrame({
   onOpenProject,
   onOpenTask,
   refreshKey,
+  onStep,
+  fullscreen = true,
 }: FrameProps & {
   id: string;
   notice?: { created: number; updated: number; createdTaskIds?: string[] };
@@ -54,6 +68,13 @@ export function EntryFrame({
   onOpenProject?: (link: { id: string; label: string | null }) => void;
   onOpenTask?: (id: string) => void;
   refreshKey?: number;
+  /**
+   * Opens the previous or next entry. Absent: `onOpen` does, which adds a layer. A view that shows the entry in a pane
+   * beside its list gives a step that replaces the entry in place, so stepping builds no stack.
+   */
+  onStep?: (id: string) => void;
+  /** The keys (`e`, `j`, `k`) work in fullscreen only; an inline view has none. */
+  fullscreen?: boolean;
 }) {
   const [phase, setPhase] = useState<LoadPhase | "gone">("loading");
   const [cause, setCause] = useState<unknown>();
@@ -89,8 +110,11 @@ export function EntryFrame({
       ),
     });
   });
-  // The title is the heading above. A summary that repeats it shows only the rest, as the card does.
-  const rest = entry ? summaryRest(entry.title, entry.summary) : undefined;
+  const inShell = useBackHeaderSlot();
+  const { pane } = useContext(RoomSurfaceContext);
+  const source = useEntrySource(transport, entry);
+  const { neighbours, resolve } = useEntryNeighbours(transport, entry);
+  const [stepping, setStepping] = useState(false);
   // The Projects and Contacts show by name when the entry carries its links; an older entry shows the
   // counts. Tasks are not links in the record: they show by title when the host can read them (EntryTasks), else as
   // a count. Only what is really linked is listed; with nothing to list, the whole "Linked" block is hidden.
@@ -247,19 +271,93 @@ export function EntryFrame({
   }
   const canEdit =
     phase === "ready" && entry && !entry.archived && mode === "view";
+  const canChange =
+    canEdit &&
+    !trashState.trashed &&
+    (transport.updateEntry !== undefined ||
+      transport.appendEntryText !== undefined);
+  function startEdit() {
+    if (!canChange || !transport.updateEntry) return;
+    receipt.clear();
+    setMode("edit");
+  }
+  function startAppend() {
+    receipt.clear();
+    setMode("append");
+  }
+  /** Opens the entry before or after this one; the day is read first when only the day is known. */
+  function step(side: Side) {
+    if (stepping || mode !== "view") return;
+    setStepping(true);
+    void resolve(side)
+      .then((next) => {
+        if (next) (onStep ?? ((to) => onOpen({ kind: "entry", id: to })))(next);
+      })
+      .finally(() => setStepping(false));
+  }
+  // `e` changes the entry. `j` and `k` step through the day's entries when no list stands beside the entry: in a
+  // split the list owns them and each step there opens the neighbour in this pane.
+  useRoomShortcuts(
+    {
+      ...(canChange && transport.updateEntry ? { e: startEdit } : {}),
+      ...(pane === "detail"
+        ? {}
+        : { j: () => step("next"), k: () => step("previous") }),
+    },
+    {
+      id: "journal-entry",
+      title: t.title,
+      labels: {
+        e: t.editEntry,
+        j: t.nextEntry,
+        k: t.previousEntry,
+      },
+    },
+    { enabled: fullscreen && phase === "ready" && mode === "view" },
+  );
   // A refused edit explains itself; a failed save is the editor's own row with Försök igen.
-  const refusal =
-    editFailure === "conflict"
-      ? t.entryEditConflict
-      : editFailure === "invalid"
-        ? t.entryInvalid
-        : editFailure === "forbidden"
-          ? t.forbiddenWrite
-          : undefined;
+  const refusal = editRefusalText(editFailure, t);
+  // What the entry is linked to: drawn in the reading view's fold, and in the editor, where a link can be removed.
+  const linked =
+    entry && (named.length > 0 || counts.length > 0 || tasks.length > 0) ? (
+      <EntryLinked
+        entry={entry}
+        labels={t}
+        counts={counts}
+        transport={transport}
+        receipt={receipt}
+        onOpenContact={onOpenContact}
+        onOpenProject={onOpenProject}
+        onOpenTask={onOpenTask}
+        onChanged={entryChanged}
+        onEmptied={() => heading.current?.focus()}
+        onConflict={reloadEntry}
+        removable={mode === "edit"}
+      />
+    ) : null;
+  // Pen and plus sit in the detail's head, beside ⋯; where no head offers a place (inline, a test) they are the two
+  // buttons under the date, as before.
+  const changes = canChange ? (
+    <EntryChangeButtons
+      labels={t}
+      canEdit={transport.updateEntry !== undefined}
+      canAppend={transport.appendEntryText !== undefined}
+      onEdit={startEdit}
+      onAppend={startAppend}
+    />
+  ) : null;
 
   return (
     <article className="journal-entry-view">
-      <h2 ref={heading} tabIndex={-1}>
+      <h2
+        ref={heading}
+        tabIndex={-1}
+        className={
+          mode === "edit"
+            ? "journal-entry-title journal-visually-hidden"
+            : "journal-entry-title"
+        }
+      >
         {phase === "ready" && entry ? entry.title : t.entry}
       </h2>
       {notice && onOpenTask && notice.createdTaskIds && (
@@ -287,6 +385,7 @@ export function EntryFrame({
           onRetry={() => setAttempt((n) => n + 1)}
         />
       )}
+      {inShell && changes && <BackHeaderActions>{changes}</BackHeaderActions>}
       {canTrash && (
         <EntryMenu
           labels={t}
@@ -310,68 +409,47 @@ export function EntryFrame({
             />
           )}
           {memory && <EntryMemoryFailure labels={t} state={memory} />}
-          <p>
-            {formatShortDateWithYear(
-              entry.journal_date,
-              t.dateLocale,
-              ownerToday(),
+          {/* The day with its weekday and the time, then the tags on the same line when there is room. While the
+              entry is edited the form carries the day, so this line goes. */}
+          <div className="journal-entry-when">
+            {mode !== "edit" && (
+              <EntryWhen
+                entry={entry}
+                labels={t}
+                queued={isQueued(queuedIds, entry.id)}
+              />
             )}
-            {entry.occurred_at && (
-              <>
-                {" · "}
-                <time dateTime={entry.occurred_at}>
-                  {formatTime(entry.occurred_at, t.dateLocale)}
-                </time>
-              </>
-            )}
-            {isQueued(queuedIds, entry.id) && (
-              <>
-                {" · "}
-                <span className="sk-queued">{t.queued}</span>
-              </>
-            )}
-          </p>
+            {/* Changed in place (no form); an archived entry shows its tags only. */}
+            <TagField
+              tags={entry.tags ?? []}
+              suggestions={vocabulary.suggestions}
+              editable={
+                transport.updateEntryTags !== undefined &&
+                !entry.archived &&
+                mode === "view"
+              }
+              busy={tagBusy}
+              name={entry.title}
+              onChange={saveTags}
+              locale={t.dateLocale}
+            />
+          </div>
           {entry.archived && <p className="journal-muted">{t.archived}</p>}
           {entry.memory_excluded && <MemoryChip labels={t} />}
-          {/* Changed in place (no form); an archived entry shows its tags only. */}
-          <TagField
-            tags={entry.tags ?? []}
-            suggestions={vocabulary.suggestions}
-            editable={
-              transport.updateEntryTags !== undefined &&
-              !entry.archived &&
-              mode === "view"
-            }
-            busy={tagBusy}
-            name={entry.title}
-            onChange={saveTags}
-            locale={t.dateLocale}
-          />
           {tagFailure && (
             <ErrorNotice
               placement="row"
               locale={t.dateLocale}
-              message={
-                tagFailure === "conflict"
-                  ? t.tagsConflict
-                  : tagFailure === "invalid"
-                    ? t.tagsInvalid
-                    : tagFailure === "forbidden"
-                      ? t.forbiddenWrite
-                      : t.tagsFailed
-              }
+              message={tagFailureText(tagFailure, t)}
             />
           )}
-          {canEdit && (transport.updateEntry || transport.appendEntryText) && (
+          {!inShell && changes && (
             <div className="journal-actions">
               {transport.updateEntry && (
                 <button
                   type="button"
                   className="sk-btn--secondary"
-                  onClick={() => {
-                    receipt.clear();
-                    setMode("edit");
-                  }}
+                  onClick={startEdit}
                 >
                   {t.editEntry}
                 </button>
@@ -380,10 +458,7 @@ export function EntryFrame({
                 <button
                   type="button"
                   className="sk-btn--secondary"
-                  onClick={() => {
-                    receipt.clear();
-                    setMode("append");
-                  }}
+                  onClick={startAppend}
                 >
                   {t.appendText}
                 </button>
@@ -399,8 +474,9 @@ export function EntryFrame({
                   message={refusal}
                 />
               )}
-              <FieldsEditor
+              <EntryEditForm
                 draft={entry}
+                date={entry.journal_date}
                 summaryByOwner={entry.summary_by === "you"}
                 busy={editing}
                 saveFailed={
@@ -413,90 +489,42 @@ export function EntryFrame({
                   setMode("view");
                   heading.current?.focus();
                 }}
-                confirmDiscard
                 labels={t}
               />
+              {linked}
             </>
+          )}
+          {mode !== "edit" && (
+            <EntryReadBody
+              entry={entry}
+              state={source}
+              labels={t}
+              onShowOriginal={
+                transport.getSource
+                  ? () => onOpen({ kind: "source", id: entry.source_id })
+                  : undefined
+              }
+              linked={linked}
+            />
           )}
           {mode === "append" && transport.appendEntryText && (
             <EntryTextForm
               labels={t}
               kind="append"
+              date={entry.journal_date}
               signatureBase={`${entry.id}:${entry.version}`}
               submit={(values, key) => appendText(values.text, key)}
               onCancel={() => setMode("view")}
               onConflict={reloadEntry}
             />
           )}
-          {mode !== "edit" && rest && <p className="journal-summary">{rest}</p>}
-          {/* The original is always saved with an entry, so the line and its button show here, except while the text is
-              being edited: then they would blur which text is the one in the field. */}
-          {mode !== "edit" && (
-            <div className="journal-original-row">
-              <p className="journal-muted">
-                {originalLine(entry.summary, t, entry.summary_by)}
-              </p>
-              {transport.getSource && (
-                <button
-                  type="button"
-                  className="sk-btn--quiet journal-toggle"
-                  onClick={() =>
-                    onOpen({ kind: "source", id: entry.source_id })
-                  }
-                >
-                  {t.showOriginal}
-                </button>
-              )}
-            </div>
-          )}
-          {mode !== "edit" && entry.key_points.length > 0 && (
-            <>
-              <h3>{t.keyPoints}</h3>
-              <ul className="journal-list">
-                {entry.key_points.map((point, index) => (
-                  <li key={index}>
-                    <p>
-                      {labelFor(t.keyPointKind, point.kind)}: {point.text}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          {(named.length > 0 || counts.length > 0 || tasks.length > 0) && (
-            <h3>{t.linked}</h3>
-          )}
-          {/* The names, each with its × that asks before it removes the link. The inline card shows the links as
-              text only, so this is where a link is removed. Drawn whenever the entry
-              carries its links, so the Undo line stays after the last link is removed. */}
-          {entry.links !== undefined && (
-            <EntryLinks
-              entry={entry}
+          {mode === "view" && (
+            <EntryNeighbours
               labels={t}
-              transport={transport}
-              receipt={receipt}
-              onOpenContact={onOpenContact}
-              onOpenProject={onOpenProject}
-              onChanged={entryChanged}
-              onEmptied={() => heading.current?.focus()}
-              onConflict={reloadEntry}
-              removable={mode === "edit"}
+              neighbours={neighbours}
+              disabled={stepping}
+              onStep={step}
             />
-          )}
-          <EntryTasks
-            taskIds={tasks}
-            labels={t}
-            getTaskTitle={transport.getTaskTitle}
-            onOpenTask={onOpenTask}
-          />
-          {counts.length > 0 && (
-            <ul className="journal-list">
-              {counts.map((link) => (
-                <li key={link.label}>
-                  {link.label}: {link.count}
-                </li>
-              ))}
-            </ul>
           )}
         </>
       )}

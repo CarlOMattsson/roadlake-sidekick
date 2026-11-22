@@ -32,8 +32,10 @@ async function openEditor(
     replies,
   });
   await settled(opened.app);
+  // The Contact's own ⋯: at 1440 the card opens beside the Contacts list, whose head has a ⋯ too.
   await opened.app
     .getByRole("button", { name: "Fler val", exact: true })
+    .and(opened.app.locator(".work-detail-action"))
     .click();
   await opened.app
     .getByRole("button", { name: "Redigera", exact: true })

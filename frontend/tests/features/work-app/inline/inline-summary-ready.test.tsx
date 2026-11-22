@@ -164,7 +164,7 @@ describe("InlineSummary ready state", () => {
     expect(screen.getByText("Klart senast fre 30 okt")).toBeInTheDocument();
   });
 
-  it("names an overdue date 'Overdue since' and marks its tone for the host", () => {
+  it("says how late an overdue Task is, as the rows do, and marks its tone for the host", () => {
     render(
       <InlineSummary
         state="ready"
@@ -172,10 +172,25 @@ describe("InlineSummary ready state", () => {
         summary={{ ...task, dueDate: "2026-10-23" }}
       />,
     );
-    expect(screen.getByText("Overdue since Fri 23 Oct")).toHaveAttribute(
+    expect(screen.getByText("2 days overdue")).toHaveAttribute(
       "data-tone",
       "overdue",
     );
+  });
+
+  it("reads the overdue Task in Swedish as the rows do, not as a date", () => {
+    render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsSv}
+        summary={{ ...task, dueDate: "2026-10-19" }}
+      />,
+    );
+    expect(screen.getByText("6 dagar försenad")).toHaveAttribute(
+      "data-tone",
+      "overdue",
+    );
+    expect(screen.queryByText(/Försenad sedan/)).toBeNull();
   });
 
   it("omits the due part when there is no due date", () => {
@@ -405,6 +420,37 @@ describe("InlineSummary ready state", () => {
       />,
     );
     expect(screen.getByText("Måldatum: imorgon")).toBeInTheDocument();
+  });
+
+  it("puts one overdue Task of a Project in the singular, in both languages", () => {
+    const project = {
+      kind: "project" as const,
+      title: "Bygga altan",
+      status: "active",
+      dueDate: "2026-12-15",
+      datapoints: { tasks: { done: 1, total: 8 }, overdue: 1 },
+    };
+    const { unmount } = render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsSv}
+        summary={project}
+      />,
+    );
+    expect(screen.getByText("1 försenad")).toHaveAttribute(
+      "data-tone",
+      "overdue",
+    );
+    expect(screen.queryByText(/1 försenade/)).toBeNull();
+    unmount();
+    render(
+      <InlineSummary
+        state="ready"
+        labels={inlineSummaryLabelsEn}
+        summary={project}
+      />,
+    );
+    expect(screen.getByText("1 overdue")).toBeInTheDocument();
   });
 
   it("leaves the overdue part out when no Task is overdue, and keeps the Tasks count", () => {

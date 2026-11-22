@@ -1,0 +1,99 @@
+/*
+ * The Journal's week view (week-frame.tsx, week-day.tsx). The week's own rules; the rows of the days are the day view's
+ * (journal.css: .journal-timeline, .journal-entry-card), with nothing on the week's side to part them.
+ */
+
+/* The week head: ‹ › together first, then the week's name, so › stands at the same place whatever the name says and
+   "Denna vecka" (in the room head above) never moves it. It rests under the shell's rows while the list scrolls, on the
+   page's colour over the list's own width (so it stands as well in the column as in a pane beside a list), with a hairline under it once it is stuck, so a day's heading
+   passing under it is cut by a line, not by the middle of a word. In the shell's bar (a wide frame) the bar already
+   holds the room head; in place the room head is a sticky row of its own, which the week head rests under. */
+.sidekick-journal .sk-week-head__marker {
+  display: block;
+  height: 0;
+}
+.sidekick-journal .sk-week-head {
+  --sk-week-head-top: calc(var(--sk-sticky-top, 0px) + var(--sk-tabs-h, 0px));
+  position: sticky;
+  top: var(--sk-week-head-top);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-block-start: var(--sk-s1);
+  background: var(--color-background-primary, Canvas);
+}
+.sidekick-journal .sk-week-head[data-place="bar"] {
+  --sk-week-head-top: var(--sk-sticky-top, 0px);
+}
+.sidekick-journal .sk-week-head[data-stuck] {
+  box-shadow: 0 var(--sk-hairline, 1px) 0 var(--sk-line);
+}
+/* ‹'s glyph on the content edge (its 48 box reaches 12 out), › right beside it: the pair is 96 wide at every text size. */
+.sidekick-journal .sk-week-head__arrows {
+  flex: none;
+  display: flex;
+  margin-inline-start: -12px;
+}
+.sidekick-journal .sk-week-head .sk-iconbtn {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  min-height: 48px;
+}
+.sidekick-journal .sk-week-head .sk-iconbtn::after {
+  inset: 0;
+}
+.sidekick-journal .sk-week-head .sk-iconbtn svg {
+  width: 24px;
+  height: 24px;
+}
+.sidekick-journal .sk-week-head__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline-start: var(--sk-s2);
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+.sidekick-journal .sk-week-head__title > h2 {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+/* A day of the week: its heading in the section type, as the day view's sections, 32 above so the days read as a
+   rhythm. */
+.sidekick-journal .sk-week-day {
+  margin-block-start: var(--sk-s6);
+}
+.sidekick-journal .sk-week-day > .sk-week-day__title {
+  margin: 0 0 var(--sk-s1);
+  font: var(--sk-type-section);
+}
+.sidekick-journal .sk-week-day__empty {
+  margin: 0;
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+}
+
+/* Days with nothing written: one quiet line, "Inget skrivet mån–ons · Skriv för en dag ›". */
+.sidekick-journal .sk-week-gap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s2);
+  margin: var(--sk-s4) 0 0;
+  font: var(--sk-type-body);
+  color: var(--sk-muted);
+}
+.sidekick-journal .sk-week-gap .sk-btn {
+  /* The link reads as part of the sentence: the row's own type and line, its chevron on the text's middle. */
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s1);
+  padding-inline: var(--sk-s1);
+  margin-inline-start: calc(-1 * var(--sk-s1));
+  font: inherit;
+  font-weight: var(--sk-weight-semibold);
+  color: var(--sk-fg);
+}

@@ -84,7 +84,7 @@ describe("a done Task's due date on the inline summary", () => {
         onOpen={vi.fn()}
       />,
     );
-    expect(screen.getByText("Overdue since Fri 23 Oct")).toHaveAttribute(
+    expect(screen.getByText("2 days overdue")).toHaveAttribute(
       "data-tone",
       "overdue",
     );

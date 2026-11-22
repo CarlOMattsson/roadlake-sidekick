@@ -21,7 +21,9 @@ const apps = {
 // 2026-11-16: 210 KiB to 220 KiB for the AI plan and result review in Work (measured 218 368).
 // 2026-11-18: 220 KiB to 235 KiB for the live-browser user test fixes in all four apps (measured 225 366 after Contacts and Shopping).
 // 2026-11-18: 235 KiB to 245 KiB for the owner-approved Q1–Q4 (repeat rules, week view, quick shopping changes, clickable inline names; measured 235 672).
-const GZIP_BUDGET_BYTES = 245 * 1024;
+// 2026-11-20: 245 KiB to 255 KiB for the desktop layer (popover menus, room head, list beside detail; measured 253 910).
+// 2026-11-20: 255 KiB to 270 KiB for the desktop Journal and Control (month rail, reading pane, Control's table; measured 263 695).
+const GZIP_BUDGET_BYTES = 270 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;
@@ -30,9 +32,10 @@ const LOCALES = ["sv", "en"] as const;
  * (sidekick-shell-labels.ts) and `awaitingSv`/`awaitingEn` in awaiting.tsx; tests/features/mcp-apps/awaiting.test.tsx checks the built document.
  */
 const WAIT_TEXT = {
-  sv: { rooms: ["Arbete", "Dagbok", "Kontakter", "Inköp"], loading: "Laddar…" },
+  sv: { rooms: ["Arbete", "Dagbok", "Inköp"], more: "Mer", loading: "Laddar…" },
   en: {
-    rooms: ["Work", "Journal", "Contacts", "Shopping"],
+    rooms: ["Work", "Journal", "Shopping"],
+    more: "More",
     loading: "Loading…",
   },
 } as const;
@@ -67,9 +70,11 @@ function waitPlaceholder() {
     `<div class="sidekick-wait-row">${block("sidekick-wait-glyph")}<span class="sidekick-wait-text">${block("sidekick-wait-row-title").repeat(lines)}${block("sidekick-wait-meta")}</span></div>`;
   // The room is not known before the host has answered: no room is marked and no room's header is drawn.
   const strip = (locale: (typeof LOCALES)[number]) => {
-    const names = WAIT_TEXT[locale].rooms
-      .map((room) => `<span class="sidekick-wait-room">${room}</span>`)
-      .join("");
+    const names =
+      WAIT_TEXT[locale].rooms
+        .map((room) => `<span class="sidekick-wait-room">${room}</span>`)
+        .join("") +
+      `<span class="sidekick-wait-room" data-more="">${WAIT_TEXT[locale].more}</span>`;
     return `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`;
   };
   const line = (locale: (typeof LOCALES)[number]) =>

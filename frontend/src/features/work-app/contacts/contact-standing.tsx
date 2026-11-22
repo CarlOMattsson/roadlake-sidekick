@@ -1,4 +1,5 @@
 import { workDate } from "../../mcp-apps/ui/due";
+import { ClockIcon } from "../../mcp-apps/ui/icons";
 import { OpenChevron } from "../tasks/task-detail-controls";
 import { LONG_WAIT_DAYS, waitedDays } from "../shared/waiting";
 import type {
@@ -82,6 +83,9 @@ export function ContactStanding({
             onOpen({ kind: "task", id: longest.task.id }, longest.task.title)
           }
         >
+          <span className="work-contact-waiting-clock">
+            <ClockIcon />
+          </span>
           <span className="work-contact-waiting-body">
             <span className="work-contact-waiting-line">
               {words.waitingOn(first, longest.days)}

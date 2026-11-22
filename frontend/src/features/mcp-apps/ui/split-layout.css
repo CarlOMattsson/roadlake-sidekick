@@ -1,0 +1,225 @@
+/*
+ * A list and the record beside it in a wide frame (split-layout.tsx, desktop spec 2.1). Every rule here applies only
+ * while the shell or a view draws a split: below 64rem the box is `single` and has no box of its own, so a narrow
+ * frame and the phone draw what they drew before.
+ *
+ * At 1440 (content 104–1336): the list 104–524 (420 from 90rem, 360 below), the hairline at 548, the detail from 580
+ * and its content at most 45rem (720), left aligned. At 1024: the list 24–384, the detail 440–1000.
+ */
+.sk-split {
+  /* Where a record opens; SplitLayout writes the measured value on the element itself. */
+  --sk-detail-at: 0px;
+  display: contents;
+}
+
+.sk-split:is([data-split="split"], [data-split="aside"]) {
+  display: grid;
+  grid-template-columns: var(--sk-list-w) minmax(0, 1fr);
+  /* 24 to the hairline, the hairline, and 31 more: the detail starts 32 after the hairline's own start. */
+  column-gap: calc(var(--sk-s5) + var(--sk-s6));
+  align-items: start;
+  background: linear-gradient(var(--sk-line), var(--sk-line))
+    calc(var(--sk-list-w) + var(--sk-s5)) 0 / var(--sk-hairline, 1px) 100%
+    no-repeat;
+}
+@container sk-frame (min-width: 90rem) {
+  .sk-split {
+    --sk-list-w: 26.25rem;
+  }
+}
+
+/* The list takes its column: the rooms' reading width is the column's (100 %), so a list that centres itself in
+   --sk-room-max fills it. It keeps the page's scroll. */
+.sk-split:is([data-split="split"], [data-split="aside"]) > [data-pane="list"] {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  --sk-room-max: 100%;
+}
+
+/* The detail (a record, or the aside with nothing open): the second column, its content at most --sk-detail-max and
+   on the column's start; it stays in view under the shell's bar while the list scrolls (sticky), as long as it fits. */
+.sk-split:is([data-split="split"], [data-split="aside"])
+  > :is([data-pane="detail"], .sk-split__aside) {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: var(--sk-sticky-top, 0px);
+  align-self: start;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--sk-detail-max);
+  min-width: 0;
+  --sk-room-max: 100%;
+}
+/* The record's title in the detail pane is the display size (tokens.css), and reading text the read size. */
+.sk-split > :is([data-pane="detail"], [data-pane="drawer"]) {
+  --sk-type-display: var(--sk-type-title-weight)
+    var(--sk-type-display-wide-size) / var(--sk-type-display-wide-line)
+    var(--sk-font);
+  --sk-type-read: var(--sk-type-body-weight) var(--sk-type-read-wide-size) /
+    var(--sk-type-read-wide-line) var(--sk-font);
+}
+/* The rooms centre their content in fullscreen (layout.css); in the detail it stands on the column's start. The
+   doubled class stands over that rule. */
+.sk-frame[data-mode="full"]
+  .sk-split.sk-split
+  > :is([data-pane="detail"], [data-pane="drawer"])
+  > :is(
+    .sidekick-work,
+    .sidekick-journal,
+    .sidekick-shopping,
+    .sidekick-control
+  ) {
+  max-width: none;
+  margin-inline: 0;
+}
+
+/* A detail taller than the window would hide its end under a sticky top: it scrolls with the page instead, from where
+   the list was scrolled to when it opened (SplitLayout's --sk-detail-at). */
+.sk-split[data-fits="no"] > :is([data-pane="detail"], [data-pane="drawer"]) {
+  position: relative;
+  top: auto;
+}
+:root:not([data-host-height="fixed"])
+  .sk-split[data-fits="no"]
+  > :is([data-pane="detail"], [data-pane="drawer"]) {
+  margin-top: var(--sk-detail-at, 0px);
+}
+
+/* The host fixes the frame's height (host-style.ts): the detail is held to the window and scrolls by itself, so the
+   list's scroll stays where it is. Never with a height the app's size decides: a bound from the window would then
+   shrink the frame in a loop with size-changed (the trap work.css describes). The 4 px of inline padding keep a
+   focus ring at the content edge inside the scroll box. */
+:root[data-host-height="fixed"]
+  .sk-split.sk-split
+  > :is([data-pane="detail"], [data-pane="drawer"]) {
+  position: sticky;
+  top: var(--sk-sticky-top, 0px);
+  max-height: calc(
+    100dvh - var(--sk-sticky-top, 0px) - var(--sk-foot-reserve, 6rem)
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-inline: var(--sk-s1);
+  margin-inline: calc(-1 * var(--sk-s1));
+}
+:root[data-host-height="fixed"]
+  .sk-split.sk-split:is([data-split="split"])
+  > [data-pane="detail"] {
+  width: calc(100% + 2 * var(--sk-s1));
+  max-width: calc(var(--sk-detail-max) + 2 * var(--sk-s1));
+}
+
+/* A record over a wide view (the Status board): the view keeps the whole row and does not move; the drawer lies over
+   its right side, 440 wide, with a soft shadow and no scrim, and stays under the bar while the board scrolls. */
+.sk-split[data-split="drawer"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+.sk-split[data-split="drawer"] > [data-pane="list"] {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.sk-split[data-split="drawer"] > [data-pane="drawer"] {
+  grid-area: 1 / 1;
+  justify-self: end;
+  position: sticky;
+  top: var(--sk-sticky-top, 0px);
+  z-index: 2;
+  box-sizing: border-box;
+  width: min(var(--sk-drawer-w), 100%);
+  min-width: 0;
+  padding: 0 var(--sk-s5) var(--sk-s5);
+  border-radius: var(--sk-radius);
+  background: var(--color-background-primary, Canvas);
+  box-shadow: var(--sk-shadow-2);
+  --sk-room-max: 100%;
+}
+:root[data-host-height="fixed"]
+  .sk-split.sk-split[data-split="drawer"]
+  > [data-pane="drawer"] {
+  margin-inline: 0;
+  padding-inline: var(--sk-s5);
+}
+
+/* The first record slides 12 in from the right; the next one a step through the list brings takes its place still. */
+@keyframes sk-pane-in {
+  from {
+    opacity: 0;
+    translate: 12px 0;
+  }
+}
+.sk-split:not([data-swapped])
+  > :is([data-pane="detail"], [data-pane="drawer"]) {
+  animation: sk-pane-in var(--sk-dur-base) var(--sk-ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sk-split:not([data-swapped])
+    > :is([data-pane="detail"], [data-pane="drawer"]) {
+    animation: none;
+  }
+}
+
+/* The detail pane's head (PaneHead): the Back row's form, its kicker on the content edge. */
+.sk-pane-head .sk-back-header__kicker {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The aside with nothing open: what the room puts there (SplitAside), else the hints, in the upper third. */
+.sk-split__aside:has(> .sk-split-aside) > .sk-detail-hints {
+  display: none;
+}
+.sk-detail-hints {
+  display: grid;
+  justify-items: center;
+  gap: var(--sk-s4);
+  padding-block: calc(3 * var(--sk-s6)) var(--sk-s6);
+  color: var(--sk-muted);
+  text-align: center;
+}
+.sk-detail-hints__sentence {
+  margin: 0;
+  font: var(--sk-type-body);
+}
+.sk-detail-hints__keys {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--sk-s2) var(--sk-s3);
+  margin: 0;
+  font: var(--sk-type-meta);
+  text-align: start;
+}
+.sk-detail-hints__key {
+  display: contents;
+}
+.sk-detail-hints__key dt {
+  justify-self: end;
+}
+.sk-detail-hints__key dd {
+  margin: 0;
+}
+.sk-detail-hints kbd {
+  display: inline-block;
+  min-width: var(--sk-s5);
+  box-sizing: border-box;
+  padding: 0 var(--sk-s2);
+  border-radius: calc(var(--sk-radius) / 2);
+  box-shadow: inset 0 0 0 var(--sk-hairline, 1px) var(--sk-line);
+  font: inherit;
+  text-align: center;
+}
+/* The keys are for a keyboard: a finger sees the sentence alone. */
+:root[data-host-pointer="coarse"] .sk-detail-hints__keys {
+  display: none;
+}
+@media (pointer: coarse) {
+  :root:not([data-host-pointer="fine"]) .sk-detail-hints__keys {
+    display: none;
+  }
+}

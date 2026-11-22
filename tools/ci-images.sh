@@ -6,7 +6,7 @@
 # PLAYWRIGHT_IMAGE must carry the version of @playwright/test in frontend/package.json (a policy test checks it):
 # the browsers in the image are the ones that version drives. Upgrade the package and the image together.
 # No other file repeats these values.
-PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v1.65.0-noble@sha256:9beb546099e11f52d62e505537914870e01a67e0e6b00ae41da4775324e73dbe"
+PLAYWRIGHT_IMAGE="mcr.microsoft.com/playwright:v1.65.1-noble@sha256:1507cbfc550a63a6b7396791ca4f00df17beb56342d2447b3f106c306f525579"
 GITLEAKS_IMAGE="ghcr.io/gitleaks/gitleaks:v8.24.3@sha256:e1b35e12a8c6fa8901f060459cfb6b2fc4c484d3afbe3b029733a3bbfab07055"
 SHELLCHECK_IMAGE="koalaman/shellcheck:v0.11.0@sha256:61862eba1fcf09a484ebcc6feea46f1782532571a34ed51fedf90dd25f925a8d"
 # actionlint, which checks the workflow files. Its image carries its own ShellCheck for the run: blocks, and that one must be

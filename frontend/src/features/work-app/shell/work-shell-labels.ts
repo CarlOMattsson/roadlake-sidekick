@@ -8,16 +8,21 @@ import type { WorkTab } from "./work-shell";
 export type WorkShellLabels = {
   /** Accessible name of the tab strip. */
   tabsLabel: string;
+  /** The room's name: the group the head's keys are listed under in the keyboard help. */
+  room: string;
   /** Tab names, shown in the strip in the order Agenda, Status, Projekt. */
   tabs: Record<WorkTab, string>;
   /** The search icon in the tab row, its field's name and placeholder (Projekt: searchProjects), and the field's ×. */
   search: string;
   searchProjects: string;
   closeSearch: string;
+  /** The round + in the tab row: it unfolds the new-Task field. */
+  newTask: string;
 };
 
 export const workShellLabelsEn: WorkShellLabels = {
   tabsLabel: "Views",
+  room: "Work",
   tabs: {
     agenda: "Agenda",
     board: "Status",
@@ -26,10 +31,12 @@ export const workShellLabelsEn: WorkShellLabels = {
   search: "Search tasks",
   searchProjects: "Search projects",
   closeSearch: "Close search",
+  newTask: "New task",
 };
 
 export const workShellLabelsSv: WorkShellLabels = {
   tabsLabel: "Vyer",
+  room: "Arbete",
   tabs: {
     agenda: "Agenda",
     board: "Status",
@@ -38,6 +45,7 @@ export const workShellLabelsSv: WorkShellLabels = {
   search: "Sök uppgifter",
   searchProjects: "Sök projekt",
   closeSearch: "Stäng sökningen",
+  newTask: "Ny uppgift",
 };
 
 /** Shell labels for a host locale; anything that is not Swedish gets English, as in the Work app. */

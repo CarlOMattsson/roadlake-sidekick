@@ -225,7 +225,7 @@ describe("Filling empty columns", () => {
     expect(last.columnCursors?.completed).toBe("completed-2");
     expect(
       within(region(workEn.taskStatus.completed)).getByRole("button", {
-        name: moreIn("completed"),
+        name: boardLabelsEn.showMoreCountIn(2, workEn.taskStatus.completed),
       }),
     ).toBeInTheDocument();
   });

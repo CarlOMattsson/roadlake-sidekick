@@ -6,9 +6,10 @@ import { ViewTabs } from "../work-app/shell/view-tabs";
 import { workShellLabelsFor } from "../work-app/shell/work-shell-labels";
 import { sidekickShellLabelsFor } from "./sidekick-shell-labels";
 import { CONTROL_PARENT } from "./nav-state";
-import { STRIP_ROOM_IDS } from "./router";
+import { MORE_ROOM_IDS, PRIMARY_ROOM_IDS } from "./router";
 import { BackHeader } from "./ui/back-header";
-import { MoreIcon, PlusIcon, SearchIcon } from "./ui/icons";
+import { RoomSurfaceContext } from "./ui/room-context";
+import { RoomHead, RoomHeadMoreGlyph } from "./ui/room-head";
 import { SkeletonRows } from "./ui/states";
 import "./awaiting.css";
 
@@ -113,33 +114,33 @@ export function AwaitingResult({
     const tabs = workShellLabelsFor(sv ? "sv" : "en");
     head = (
       <div className="sidekick-work">
-        <div className="sk-shell-tabs sk-shell-tabs--with-end">
-          <ViewTabs
-            label={tabs.tabsLabel}
-            options={WORK_TABS.map((value) => ({
-              value,
-              label: tabs.tabs[value],
-            }))}
-            value={workTab}
-            onChange={nothing}
+        {/* The loaded head itself (ui/room-head.tsx), its tools off and its keys silent (an inactive surface), so
+            search, + and ⋯ get the same boxes and do not move when the list comes. */}
+        <RoomSurfaceContext.Provider value={{ active: false, framed: true }}>
+          <RoomHead
+            scope="sidekick-work"
+            className="sk-shell-tabs"
+            keysTitle={tabs.room}
+            tabs={
+              <ViewTabs
+                label={tabs.tabsLabel}
+                options={WORK_TABS.map((value) => ({
+                  value,
+                  label: tabs.tabs[value],
+                }))}
+                value={workTab}
+                onChange={nothing}
+              />
+            }
+            search={{ label: tabs.search, onPress: nothing, disabled: true }}
+            add={{
+              label: tabs.newTask,
+              onPress: nothing,
+              disabled: true,
+            }}
+            more={<RoomHeadMoreGlyph />}
           />
-          {/* The loaded row's own markup (work-fullscreen.tsx): the tools in .sk-shell-tabs-end and + as
-              .work-tab-create, so search, + and ⋯ get the same boxes and do not move when the list comes. */}
-          <div className="sk-shell-tabs-end">
-            <span className="sk-iconbtn work-tab-tool" aria-disabled="true">
-              <SearchIcon />
-            </span>
-            <span
-              className="sk-iconbtn sk-iconbtn--primary work-tab-tool work-tab-create"
-              aria-disabled="true"
-            >
-              <PlusIcon />
-            </span>
-            <span className="sk-iconbtn work-tab-tool">
-              <MoreIcon />
-            </span>
-          </div>
-        </div>
+        </RoomSurfaceContext.Provider>
       </div>
     );
   } else if (full && room === "control") {
@@ -164,6 +165,7 @@ export function AwaitingResult({
   }
   // Control keeps the strip with no room marked: the way back looks the same everywhere.
   const strip = full;
+  const moreRoom = MORE_ROOM_IDS.find((id) => id === room);
 
   return (
     <div
@@ -176,7 +178,7 @@ export function AwaitingResult({
     >
       {strip ? (
         <div aria-hidden="true" className="sidekick-wait-strip">
-          {STRIP_ROOM_IDS.map((id) => (
+          {PRIMARY_ROOM_IDS.map((id) => (
             <span
               key={id}
               className="sidekick-wait-room"
@@ -185,6 +187,14 @@ export function AwaitingResult({
               {shell.rooms[id]}
             </span>
           ))}
+          {/* The Mer cell, with the name of its room while one of them is open, as the strip draws it. */}
+          <span
+            className="sidekick-wait-room"
+            data-more=""
+            data-current={moreRoom ? "true" : undefined}
+          >
+            {moreRoom ? shell.rooms[moreRoom] : shell.more}
+          </span>
         </div>
       ) : null}
       {head ? (

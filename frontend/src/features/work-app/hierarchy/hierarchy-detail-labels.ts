@@ -33,6 +33,10 @@ export const hierarchyDetailLabelsSv = {
     "Inga träffar bland de laddade projekten. Visa fler för att söka vidare.",
   /** The closed group of completed Projects, last in the tree. */
   completedGroup: (count: number) => `Avslutade (${count})`,
+  /** The fold of a Project's or Process's completed Tasks, last under its open ones. */
+  doneTasks: (count: number) => `Klara (${count})`,
+  /** Before the tag that every Task of the page has: it is said once there, not on each row. */
+  onAllTasks: "På alla uppgifter",
   dueTomorrow: "Imorgon",
   /** The Task's status chip (design system §3, egenskapschip): its name is `changeStatus` and the status. */
   changeStatus: "Ändra status",
@@ -67,6 +71,8 @@ export const hierarchyDetailLabelsEn: HierarchyDetailLabels = {
   noMatchesLoaded:
     "No matches among the loaded projects. Show more to search further.",
   completedGroup: (count) => `Completed (${count})`,
+  doneTasks: (count) => `Done (${count})`,
+  onAllTasks: "On every task",
   dueTomorrow: "Tomorrow",
   changeStatus: "Change status",
   changePriority: "Change priority",

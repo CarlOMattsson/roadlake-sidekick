@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import "../agenda/agenda.css";
 import { type DueLocale, workDate } from "../../mcp-apps/ui/due";
-import type { InlineSummaryLabels } from "./inline-summary-labels";
+import type { AgendaFloor, InlineSummaryLabels } from "./inline-summary-labels";
 import type { AgendaUndo } from "../agenda/agenda-undo";
 import type { WorkLabels } from "../shared/labels";
 import type {
@@ -94,6 +94,7 @@ export function AgendaSummary({
   return (
     <DatedAgendaSummary
       page={page}
+      filters={filters}
       labels={labels}
       onOpen={onOpen}
       onOpenItem={onOpenItem}
@@ -236,14 +237,36 @@ function compareOverdue(a: WorkItemRecord, b: WorkItemRecord): number {
   return dueTime(a) - dueTime(b);
 }
 
+/**
+ * Which of the title's counts are only a floor. With no other page every count is exact. The server reads the agenda
+ * by due time, oldest first and ungrouped (the card's own read; another sort or grouping proves nothing), so a page
+ * that already holds a record of a later group has read overdue (a today or upcoming record) or today (an upcoming
+ * one) to its end: that count is exact although more pages follow. Only a group the page ends in is a floor.
+ */
+function agendaFloor(page: WorkAgendaPage, filters?: WorkFilters): AgendaFloor {
+  if (page.next_cursor === null) return { overdue: false, today: false };
+  const byDue =
+    (filters?.sort ?? "due_asc") === "due_asc" &&
+    (filters?.group ?? "none") === "none";
+  const reaches = (...groups: string[]) =>
+    byDue &&
+    page.items.some((item) => groups.includes(item.agenda_group ?? ""));
+  return {
+    overdue: !reaches("today", "upcoming"),
+    today: !reaches("upcoming"),
+  };
+}
+
 function DatedAgendaSummary({
   page,
+  filters,
   labels,
   onOpen,
   onOpenItem,
   refresh,
 }: {
   page: WorkAgendaPage;
+  filters?: WorkFilters;
   labels: InlineSummaryLabels;
   onOpen: () => void;
   onOpenItem?: (item: WorkItemRecord) => void;
@@ -302,7 +325,11 @@ function DatedAgendaSummary({
                 label: "",
                 count: listed,
                 more,
-                text: labels.agendaTitle(overdue.length, today.length, more),
+                text: labels.agendaTitle(
+                  overdue.length,
+                  today.length,
+                  agendaFloor(page, filters),
+                ),
               },
             ]
           : []

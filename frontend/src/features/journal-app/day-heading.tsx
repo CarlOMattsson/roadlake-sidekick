@@ -9,10 +9,13 @@ import type { RefObject } from "react";
  */
 export function DayHeading({
   ref,
+  className,
   long,
   short,
 }: {
   ref: RefObject<HTMLHeadingElement | null>;
+  /** The heading's own class, for a place where it is not the view's title (the day read beside the list). */
+  className?: string;
   long: string;
   short: string;
 }) {
@@ -45,7 +48,12 @@ export function DayHeading({
   }, [ref, long, short]);
   const shortened = !fits && long !== short;
   return (
-    <h2 ref={ref} tabIndex={-1} aria-label={shortened ? long : undefined}>
+    <h2
+      ref={ref}
+      className={className}
+      tabIndex={-1}
+      aria-label={shortened ? long : undefined}
+    >
       {shortened ? short : long}
     </h2>
   );

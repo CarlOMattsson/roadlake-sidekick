@@ -126,6 +126,14 @@ x-sidekick-env-ai: &sidekick-env-ai
   SIDEKICK_AI_MONTHLY_CAP_USD:
   SIDEKICK_AI_MAX_ATTEMPTS_PER_STEP:
   SIDEKICK_AI_LOCAL_MODELS_EXEMPT_FROM_CAP:
+  SIDEKICK_AI_CHECK_PROVIDER:
+  SIDEKICK_AI_CHECK_MODEL:
+  SIDEKICK_AI_CHECK_BASE_URL:
+  SIDEKICK_AI_CHECK_MAX_RESPONSE_BYTES:
+  SIDEKICK_AI_CHECK_PRICE_INPUT_USD_PER_MTOK:
+  SIDEKICK_AI_CHECK_PRICE_OUTPUT_USD_PER_MTOK:
+  SIDEKICK_AI_CHECK_PRICE_CACHE_WRITE_USD_PER_MTOK:
+  SIDEKICK_AI_CHECK_PRICE_CACHE_READ_USD_PER_MTOK:
 
 # Secrets as files instead of environment variables. A value in the environment is visible to every process of the
 # container and to `docker inspect`; a file mounted at /run/secrets is neither. Opt in per secret: set
@@ -150,10 +158,11 @@ x-sidekick-secret-files-backup: &sidekick-secret-files-backup
 x-sidekick-secret-files-push: &sidekick-secret-files-push
   SIDEKICK_PUSH_AUTH_TOKEN_FILE: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:+/run/secrets/push_auth_token}
 
-# The Anthropic key reaches the AI worker alone, and only as a file: api and the other workers refuse to start in
-# production when they see it, so it has no plain-variable form here.
+# The Anthropic key and the key of the check model reach the AI worker alone, and only as files: api and the other
+# workers refuse to start in production when they see one, so neither has a plain-variable form here.
 x-sidekick-secret-files-ai: &sidekick-secret-files-ai
   SIDEKICK_AI_ANTHROPIC_API_KEY_FILE: ${SELFHOST_AI_ANTHROPIC_API_KEY_FILE:+/run/secrets/ai_anthropic_api_key}
+  SIDEKICK_AI_CHECK_API_KEY_FILE: ${SELFHOST_AI_CHECK_API_KEY_FILE:+/run/secrets/ai_check_api_key}
 
 x-sidekick-secret-files-oauth: &sidekick-secret-files-oauth
   SIDEKICK_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:+/run/secrets/mcp_oauth_github_client_secret}
@@ -505,6 +514,7 @@ services:
       - cursor_signing_secret
       - token_pepper
       - ai_anthropic_api_key
+      - ai_check_api_key
     command:
       - sidekick-ai-worker
     healthcheck:
@@ -527,12 +537,12 @@ services:
 
   ntfy:
     # Own ntfy server for the push path. Pinned to
-    # v2.37.2 by digest (checked against Docker Hub 2026-11-09); upgrade on purpose after checking the new digest.
+    # v2.38.0 by digest (checked against Docker Hub 2026-11-22); upgrade on purpose after checking the new digest.
     # No published port: only Caddy reaches it, over the internal `push` network, and only the /up... topic path
     # (Caddyfile.example). Configuration is ntfy/server.yml; users and the publish token come from ntfy.env,
     # written by ntfy-init.sh. Nothing is stored on disk (tmpfs) and the container has no route to the internet.
     profiles: [push]
-    image: binwiederhier/ntfy:v2.37.2@sha256:1875ddcf815c8a3c981d6d78c67a93452d0abba79b1ab9520b1f5f5238902bd7
+    image: binwiederhier/ntfy:v2.38.0@sha256:771309aecfce18d8fe2bfb8069994ddd6be6ca6ccdd7badace3d791a0045ff0d
     command: [serve]
     user: "10001:10001"
     env_file:
@@ -563,7 +573,7 @@ services:
   caddy:
     profiles: [vps]
     # Caddy 2.11.9, pinned by exact tag and manifest-list digest (the digest decides what runs). Bump deliberately.
-    image: caddy:2.11.9-alpine@sha256:78bd35025c7ba85961dd149ae670315129954e77abe2383ac47c89106b35ade9
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
     environment:
       SIDEKICK_DOMAIN: ${SELFHOST_DOMAIN:?set SELFHOST_DOMAIN in selfhost.env}
     volumes:
@@ -796,6 +806,8 @@ secrets:
     file: ${SELFHOST_PUSH_AUTH_TOKEN_FILE:-/dev/null}
   ai_anthropic_api_key:
     file: ${SELFHOST_AI_ANTHROPIC_API_KEY_FILE:-/dev/null}
+  ai_check_api_key:
+    file: ${SELFHOST_AI_CHECK_API_KEY_FILE:-/dev/null}
   mcp_oauth_github_client_secret:
     file: ${SELFHOST_MCP_OAUTH_GITHUB_CLIENT_SECRET_FILE:-/dev/null}
   mcp_oauth_signing_key:

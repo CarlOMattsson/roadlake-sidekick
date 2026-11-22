@@ -292,29 +292,62 @@ describe("MemoryView status", () => {
     expect(screen.getByRole("heading", { name: headline })).toBeVisible();
   });
 
-  it("a provider that is off says so in a warning box at the top, without a button", () => {
-    const first = render(
+  it("a service that does not answer says so in one warning box with one action, and the headline agrees with it", async () => {
+    const user = userEvent.setup();
+    const transport = makeTransport(vi.fn());
+    render(
       <MemoryView
         initial={{ ...status, provider: "off" }}
-        transport={makeTransport(vi.fn())}
+        transport={transport}
         labels={controlSv}
       />,
     );
-    // The headline stays the plain state; the service problem is the box above everything else in the view.
-    expect(screen.getByRole("heading", { name: "Minnet är på" })).toBeVisible();
+    // The headline does not say the plain "Minnet är på" beside a box that says the opposite.
+    const headline = screen.getByRole("heading", {
+      name: "Minnet är på, men tjänsten svarar inte",
+    });
+    expect(headline).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Minnet är på" })).toBeNull();
     const box = screen
       .getByText(controlSv.providerOffTitle)
       .closest(".sk-message") as HTMLElement;
     expect(box).toHaveClass("sk-message--warning");
     expect(box).toHaveAttribute("role", "status");
     expect(box).toHaveTextContent(controlSv.providerOff);
-    expect(within(box).queryByRole("button")).toBeNull();
     expect(
-      box.compareDocumentPosition(
-        screen.getByRole("heading", { name: "Minnet är på" }),
-      ),
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    first.unmount();
+      box.compareDocumentPosition(headline) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Its one action reads the status again, and the box goes when the service answers.
+    const retry = within(box).getByRole("button", { name: "Försök igen" });
+    expect(within(box).getAllByRole("button")).toHaveLength(1);
+    await user.click(retry);
+    expect(transport.memoryStatus).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByRole("heading", { name: "Minnet är på" }),
+    ).toBeVisible();
+    expect(screen.queryByText(controlSv.providerOffTitle)).toBeNull();
+  });
+
+  it("says the same in English", () => {
+    render(
+      <MemoryView
+        initial={{ ...status, provider: "off" }}
+        transport={makeTransport(vi.fn())}
+        labels={controlEn}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", {
+        name: "Memory is on, but the service is not answering",
+      }),
+    ).toBeVisible();
+    expect(
+      within(
+        screen
+          .getByText(controlEn.providerOffTitle)
+          .closest(".sk-message") as HTMLElement,
+      ).getByRole("button", { name: "Try again" }),
+    ).toBeVisible();
   });
 
   it("a fake provider says it is a test service in an info box at the top", () => {

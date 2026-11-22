@@ -1,0 +1,111 @@
+/* Approve group (approve-group.tsx): the title, one toggle row per suggestion and the button alone in its row. A row is
+   44 high (a compact list inside a card, like the room menu's entries), the ring at 24 on the content edge and the label
+   12 after it in the row type. The whole row is the target. */
+.sk-approve {
+  display: grid;
+  gap: var(--sk-s2);
+  min-width: 0;
+}
+.sk-approve .sk-approve__title {
+  margin: 0;
+}
+.sk-approve .sk-approve__title--section {
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+/* 4 under the title, not the 8 between the other parts: a row's own air (its 44 around one text line) stands above
+   the first label, so title and list read as one block and the card stays within an inline card's height. */
+.sk-approve .sk-approve__rows {
+  display: grid;
+  margin: calc(var(--sk-s1) - var(--sk-s2)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sk-approve .sk-approve__item {
+  min-width: 0;
+}
+/* Specific enough to win over the rooms' plain button frame (family.css). */
+.sk-approve button.sk-approve__row {
+  display: flex;
+  /* The ring on the first line's middle when a label wraps (large text): the row's air centres one line in 44. */
+  align-items: flex-start;
+  gap: var(--sk-s3);
+  box-sizing: border-box;
+  width: 100%;
+  min-height: var(--sk-tap);
+  margin: 0;
+  padding: max(
+      var(--sk-s1),
+      calc((var(--sk-tap) - var(--sk-type-row-line)) / 2)
+    )
+    0;
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: none;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  text-align: start;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sk-approve button.sk-approve__row[aria-disabled="true"] {
+  cursor: default;
+}
+.sk-approve button.sk-approve__row:active:not([aria-disabled="true"]) {
+  background: var(--sk-press);
+}
+@media (hover: hover) {
+  .sk-approve button.sk-approve__row:hover:not([aria-disabled="true"]) {
+    background: var(--sk-hover);
+  }
+}
+.sk-approve .sk-approve__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* A row taken out of the group: the label in the muted colour, so the ring and the words both say it. */
+.sk-approve button.sk-approve__row[aria-pressed="false"] .sk-approve__label {
+  color: var(--sk-muted);
+}
+
+.sk-approve .sk-approve__ring {
+  flex: none;
+  width: var(--sk-ring-glyph);
+  height: var(--sk-ring-glyph);
+  margin-block: calc((var(--sk-type-row-line) - var(--sk-ring-glyph)) / 2);
+  overflow: visible;
+  color: var(--sk-fg);
+}
+.sk-approve .sk-approve__ring-frame {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+}
+.sk-approve .sk-approve__ring[data-filled] .sk-approve__ring-frame {
+  fill: currentColor;
+}
+.sk-approve .sk-approve__ring-tick {
+  fill: none;
+  stroke: var(--sk-glyph-knockout);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sk-approve button.sk-approve__row[aria-pressed="false"] .sk-approve__ring {
+  color: var(--sk-border);
+}
+
+.sk-approve .sk-approve__beyond {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sk-approve .sk-approve__actions {
+  display: flex;
+}
+
+@media (forced-colors: active) {
+  .sk-approve .sk-approve__ring-tick {
+    stroke: Canvas;
+  }
+}

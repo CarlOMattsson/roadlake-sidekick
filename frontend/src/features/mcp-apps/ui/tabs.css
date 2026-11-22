@@ -42,6 +42,12 @@
   text-align: center;
   cursor: pointer;
 }
+/* A view's count after its label ("Att sortera 3"): the meta type in the muted ink, whether the tab is chosen or not. */
+.sk-tabs .sk-tabs__count {
+  font-weight: var(--sk-weight-normal);
+  color: var(--sk-muted);
+}
+
 /* The bold label's width is held by a hidden copy, so choosing a tab moves nothing sideways (fit="content"). */
 .sk-tabs .sk-tabs__tab::before {
   content: attr(data-label);

@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -90,6 +91,17 @@ it("reads the contact list for itself when the Contacts room opens without a res
   await waitFor(() => expect(calls).toContain("list_contacts"));
 });
 
+/** Opens Contacts from the strip's Mer cell, while Contacts is not the room on screen. */
+function goContacts() {
+  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  fireEvent.click(
+    within(screen.getByRole("group", { name: "More rooms" })).getByRole(
+      "button",
+      { name: "Contacts" },
+    ),
+  );
+}
+
 it("mounts the Work room hidden on first visit, reads its agenda, and reads it again after a long absence", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   setup();
@@ -97,11 +109,11 @@ it("mounts the Work room hidden on first visit, reads its agenda, and reads it a
   await waitFor(() => expect(calls).toContain("get_work_agenda"));
   const reads = () => calls.filter((name) => name === "get_work_agenda").length;
   expect(reads()).toBe(1);
-  fireEvent.click(screen.getByRole("button", { name: "Contacts" }));
+  goContacts();
   // Back within a minute: the room stays as it was.
   fireEvent.click(screen.getByRole("button", { name: "Work" }));
   expect(reads()).toBe(1);
-  fireEvent.click(screen.getByRole("button", { name: "Contacts" }));
+  goContacts();
   act(() => {
     vi.setSystemTime(Date.now() + STALE_AFTER_MS + 1000);
   });

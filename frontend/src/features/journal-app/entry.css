@@ -1,13 +1,13 @@
-/* The entry view and its write forms: the text fields of a diary and the "Utanför minnet" chip.
-   Loaded after journal.css by entry-frame, entry-write, entry-memory and entry-row. Where a rule here replaces an older
-   one in journal.css it is the more specific selector, so the order of the two files does not decide. */
+/* The entry view and its write forms: the reading view, the focus view of writing, the neighbouring entries and the
+   "Utanför minnet" chip. Loaded after journal.css by entry-frame, entry-write, entry-focus, entry-memory and entry-row.
+   Where a rule here replaces an older one in journal.css it is the more specific selector, so the order of the two
+   files does not decide. */
 
-/* A diary field is a page, not a form line (the entry's "Din text", a new entry's text, the text to add): at least eight
-   lines high, growing with what is written up to 60 % of the window and then scrolling, 17 px text on a 1.5 line, and no
-   resize handle. `field-sizing: content` does the growing; where it is missing the field stays at its eight lines and
-   scrolls. `[id]` raises the specificity above journal.css's `.journal-edit textarea` / `.journal-write textarea`. */
-.sidekick-journal .journal-edit textarea[id],
-.sidekick-journal .journal-write textarea[id] {
+/* The draft review's text field is a page, not a form line: at least eight lines high, growing with what is written up
+   to 60 % of the window and then scrolling, 17 px text on a 1.5 line, and no resize handle. `field-sizing: content`
+   does the growing; where it is missing the field stays at its eight lines and scrolls. `[id]` raises the specificity
+   above journal.css's `.journal-edit textarea`. The entry's own fields are the focus view's (`.journal-focus-text`). */
+.sidekick-journal .journal-edit textarea[id] {
   --journal-field-size: 1.0625rem;
   --journal-field-line: 1.5;
   box-sizing: border-box;

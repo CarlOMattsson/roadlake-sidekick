@@ -12,6 +12,7 @@ import {
   findTaskCard,
   shownIn,
   unshownIn,
+  windowCards,
   type BoardUndo,
 } from "../board-columns";
 import type { RowQueue } from "../../../mcp-apps/ui/row-queue";
@@ -32,6 +33,8 @@ type Options = {
   undos: Record<string, BoardUndo>;
   preview: Preview | undefined;
   rowQueue: RowQueue;
+  /** The columns that draw every card they hold: the owner pressed their "Visa N till". */
+  expanded: ReadonlySet<string>;
 };
 
 /** What the board draws: the columns or the sections of the single layout, with the search and the previews applied. */
@@ -43,6 +46,7 @@ export function useBoardSections({
   undos,
   preview,
   rowQueue,
+  expanded,
 }: Options) {
   const columns = boardColumns(page.columns);
   const anyCard = columns.some((status) => page.columns[status]?.length);
@@ -96,7 +100,8 @@ export function useBoardSections({
     return needle ? 0 : unshownIn(page, segment.key);
   }
   // The single layout lists every status as a section of its own, in board order.
-  // `items` are the section's records (its count), `shown` the cards it draws (see shownIn).
+  // `items` are the section's records (its count), `shown` the cards it holds (see shownIn), `drawn` those it draws
+  // (the first ten, see windowCards) and `hidden` those that wait behind "Visa N till".
   const sections = single
     ? boardSegments(page, t).map((segment) => {
         const items = shownOrder(
@@ -104,21 +109,41 @@ export function useBoardSections({
           segment.key,
           segmentItems(page, segment).filter(matchesSearch),
         );
+        const shown = shownIn(segment.key, items, undos, page);
         return {
           segment,
           items,
-          shown: shownIn(segment.key, items, undos, page),
+          shown,
+          ...windowCards(
+            shown,
+            expanded.has(segment.key),
+            (item) => undos[cardKey(item)] !== undefined,
+          ),
           unshown: unshownOf(segment),
         };
       })
     : [];
   const columnSections = single
     ? []
-    : boardSegments(page, t).map((segment) => ({
-        segment,
-        items: shownItems(segment),
-        unshown: unshownOf(segment),
-      }));
+    : boardSegments(page, t).map((segment) => {
+        const items = shownItems(segment);
+        const pending = new Set(
+          items
+            .filter((entry) => entry.pending)
+            .map(({ item }) => cardKey(item)),
+        );
+        return {
+          segment,
+          items,
+          ...windowCards(
+            items.map(({ item }) => item),
+            expanded.has(segment.key),
+            (item) =>
+              undos[cardKey(item)] !== undefined || pending.has(cardKey(item)),
+          ),
+          unshown: unshownOf(segment),
+        };
+      });
   const anyShown = single
     ? sections.some(({ shown }) => shown.length)
     : columnSections.some(({ items }) => items.length);

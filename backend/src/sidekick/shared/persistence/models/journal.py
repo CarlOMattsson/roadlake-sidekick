@@ -15,9 +15,11 @@ from sqlalchemy import (
     Index,
     Integer,
     PrimaryKeyConstraint,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
@@ -465,6 +467,104 @@ class JournalEntryTagRow(Base):
     tag_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     journal_entry_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class JournalAttachmentRow(Base):
+    """The metadata of one photo of a Journal entry or day; the bytes live in the media store.
+
+    The runtime role may delete these rows (a trashed photo can be erased, unlike an entry). Photos
+    and their alt text are never read into memory.
+    """
+
+    __tablename__ = "journal_attachments"
+    __table_args__ = (
+        CheckConstraint(
+            "(entry_id IS NULL) <> (journal_date IS NULL)", name="ck_journal_attachments_target"
+        ),
+        CheckConstraint(
+            "media_type IN ('image/jpeg', 'image/webp')", name="ck_journal_attachments_media_type"
+        ),
+        CheckConstraint("byte_size BETWEEN 1 AND 4194304", name="ck_journal_attachments_byte_size"),
+        CheckConstraint(
+            "width BETWEEN 1 AND 4096 AND height BETWEEN 1 AND 4096",
+            name="ck_journal_attachments_dimensions",
+        ),
+        CheckConstraint(
+            "content_digest ~ '^[0-9a-f]{64}$'", name="ck_journal_attachments_content_digest"
+        ),
+        CheckConstraint(
+            "thumb_digest ~ '^[0-9a-f]{64}$'", name="ck_journal_attachments_thumb_digest"
+        ),
+        CheckConstraint(
+            "thumb_size BETWEEN 1 AND 131072", name="ck_journal_attachments_thumb_size"
+        ),
+        CheckConstraint(
+            "alt_text IS NULL OR length(btrim(alt_text)) > 0",
+            name="ck_journal_attachments_alt_text",
+        ),
+        CheckConstraint(
+            "(alt_text IS NULL AND alt_text_by IS NULL) "
+            "OR (alt_text IS NOT NULL AND alt_text_by IS NOT NULL "
+            "AND alt_text_by IN ('you', 'claude'))",
+            name="ck_journal_attachments_alt_text_by",
+        ),
+        CheckConstraint('"position" >= 0', name="ck_journal_attachments_position"),
+        CheckConstraint("version >= 1", name="ck_journal_attachments_version"),
+        ForeignKeyConstraint(
+            ["entry_id", "owner_id"],
+            [f"{SCHEMA}.journal_entries.id", f"{SCHEMA}.journal_entries.owner_id"],
+            name="fk_journal_attachments_entry_owner",
+            ondelete="CASCADE",
+        ),
+        UniqueConstraint("id", "owner_id", name="uq_journal_attachments_id_owner"),
+        Index(
+            "ix_journal_attachments_entry",
+            "owner_id",
+            "entry_id",
+            "position",
+            postgresql_where=text("entry_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_journal_attachments_day",
+            "owner_id",
+            "journal_date",
+            "position",
+            postgresql_where=text("journal_date IS NOT NULL"),
+        ),
+        Index("ix_journal_attachments_digest", "owner_id", "content_digest"),
+        Index(
+            "ix_journal_attachments_trashed",
+            "owner_id",
+            "trashed_at",
+            postgresql_where=text("trashed_at IS NOT NULL"),
+        ),
+        {"schema": SCHEMA},
+    )
+    id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), primary_key=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey(f"{SCHEMA}.users.id", ondelete="CASCADE"))
+    entry_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True))
+    journal_date: Mapped[date | None] = mapped_column(Date)
+    media_type: Mapped[str] = mapped_column(String(16))
+    byte_size: Mapped[int] = mapped_column(Integer)
+    width: Mapped[int] = mapped_column(SmallInteger)
+    height: Mapped[int] = mapped_column(SmallInteger)
+    content_digest: Mapped[str] = mapped_column(CHAR(64))
+    thumb_digest: Mapped[str] = mapped_column(CHAR(64))
+    thumb_size: Mapped[int] = mapped_column(Integer)
+    alt_text: Mapped[str | None] = mapped_column(String(500))
+    alt_text_by: Mapped[str | None] = mapped_column(String(8))
+    taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    position: Mapped[int] = mapped_column(SmallInteger)
+    version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    trashed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def trash_label(self) -> str:
+        """What the trash shows for the photo: its alt text, or a plain word when it has none."""
+
+        return self.alt_text if self.alt_text else "photo"
 
 
 class DailyJournalSummaryRow(Base):

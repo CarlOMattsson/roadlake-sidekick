@@ -21,7 +21,14 @@ import {
 describe("journal app navigation", () => {
   it("moves from a day to an entry, its original, and back to the day", async () => {
     const user = userEvent.setup();
-    const transport = transportMock();
+    // A transcript: the text under the title is the transcription, so the original is offered.
+    const transport = transportMock({
+      getSource: vi.fn(() =>
+        Promise.resolve({
+          source: { ...source, source_type: "transcript_text" as const },
+        }),
+      ),
+    });
     render(
       <JournalView
         transport={transport}
@@ -55,6 +62,14 @@ describe("journal app navigation", () => {
         name: "Mötet om offerten",
       }),
     ).toHaveFocus();
+    // The owner's text comes first; Claude's summary, the key points and the links wait in one quiet fold.
+    expect(
+      await screen.findByText("Råtext: Anna vill ha offerten före fredag."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Kunden vill ha offerten före fredag."),
+    ).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Claude's summary" }));
     expect(
       screen.getByText("Kunden vill ha offerten före fredag."),
     ).toBeInTheDocument();
@@ -65,7 +80,7 @@ describe("journal app navigation", () => {
     expect(screen.queryByText(/Tasks:/)).toBeNull();
     expect(screen.getByText("Contacts: 1")).toBeInTheDocument();
 
-    // The entry says the original is saved, right under the summary.
+    // The text is a transcription, so the entry says the original is saved and offers it, right under the text.
     expect(screen.getByText(journalEn.summarizedNote)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Show original" }));
     expect(transport.getSource).toHaveBeenCalledWith(sourceId);
@@ -427,8 +442,26 @@ describe("journal app navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("says so when an entry has no original text", async () => {
-    const user = userEvent.setup();
+  it("says so when an original has no text", async () => {
+    const transport = transportMock({
+      getSource: vi.fn(() =>
+        Promise.resolve({ source: { ...source, raw_text: null } }),
+      ),
+    });
+    render(
+      <JournalView
+        transport={transport}
+        initial={{ kind: "source", id: sourceId }}
+        labels={journalEn}
+      />,
+    );
+
+    expect(
+      await screen.findByText(journalEn.originalEmpty),
+    ).toBeInTheDocument();
+  });
+
+  it("offers no original for an entry whose source holds no text, and shows the summary as its text", async () => {
     const transport = transportMock({
       getSource: vi.fn(() =>
         Promise.resolve({ source: { ...source, raw_text: null } }),
@@ -442,16 +475,16 @@ describe("journal app navigation", () => {
       />,
     );
 
-    await user.click(
-      await screen.findByRole("button", { name: "Show original" }),
-    );
     expect(
-      await screen.findByText(journalEn.originalEmpty),
+      await screen.findByText("Kunden vill ha offerten före fredag."),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show original" })).toBeNull();
   });
 
   it("shows the entry title once in the entry view when the summary starts with it", async () => {
+    // No original to read (the phone), so the summary is the text.
     const transport = transportMock({
+      getSource: undefined,
       getEntry: vi.fn(() =>
         Promise.resolve({
           entry: {
@@ -474,7 +507,7 @@ describe("journal app navigation", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText(entry.title, { exact: false })).toHaveLength(1);
     expect(screen.getByText("vi enades om rabatten.")).toHaveClass(
-      "journal-summary",
+      "journal-entry-text",
     );
   });
 
@@ -750,7 +783,11 @@ describe("journal app navigation", () => {
       />,
     );
 
-    // The fixture links one project and one contact and no task.
+    // The fixture links one project and one contact and no task; the links are in the fold under the text.
+    await screen.findByText(/^Råtext/);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Claude's summary" }),
+    );
     expect(await screen.findByText("Projects: 1")).toBeInTheDocument();
     expect(screen.getByText("Contacts: 1")).toBeInTheDocument();
     expect(screen.queryByText(/Tasks:/)).toBeNull();
@@ -780,9 +817,11 @@ describe("journal app navigation", () => {
       />,
     );
 
-    expect(
-      await screen.findByRole("button", { name: "Show original" }),
-    ).toBeInTheDocument();
+    await screen.findByText(/^Råtext/);
+    await userEvent.click(
+      screen.getByRole("button", { name: "Claude's summary" }),
+    );
+    expect(await screen.findByText(entry.summary ?? "")).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Linked" })).toBeNull();
     expect(screen.queryByText(/: 0$/)).toBeNull();
   });

@@ -75,7 +75,7 @@ describe("journal day strip dots and Tell Claude more", () => {
     }
   });
 
-  it("offers Tell Claude about the day as a round ink + in the title row before the ⋯ on a day with entries, naming the day in the message", async () => {
+  it("offers Tell Claude about the day as a round ink + in the room head before the ⋯ on a day with entries, naming the day in the message", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
     try {
@@ -94,14 +94,16 @@ describe("journal day strip dots and Tell Claude more", () => {
       const more = screen.getByRole("button", {
         name: "Tell Claude about the day",
       });
-      // The day's one primary is the + of the other rooms, in the title row's tools, right before ⋯.
+      // The day's one primary is the + of the other rooms, in the room head, right before ⋯.
       expect(more).toHaveClass(
         "sk-iconbtn",
         "sk-iconbtn--primary",
-        "journal-day-add",
+        "sk-room-head__add",
       );
-      expect(more).toHaveAttribute("title", "Tell Claude about the day");
-      expect(more.closest(".sk-day-strip-tools")).not.toBeNull();
+      expect(more).toHaveAttribute("title", "Tell Claude about the day (N)");
+      expect(more).toHaveAttribute("aria-keyshortcuts", "n");
+      expect(more.closest(".sk-room-head")).not.toBeNull();
+      expect(more.closest(".sk-day-strip-tools")).toBeNull();
       expect(more.nextElementSibling).toBe(
         screen.getByRole("button", { name: journalEn.moreActions }),
       );

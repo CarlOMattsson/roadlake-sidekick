@@ -1,0 +1,260 @@
+/* The entry as it is read and written on a desk: the reading view (the owner's text first, one quiet fold), the focus view
+   of writing, and the neighbouring entries. Loaded after journal.css and entry.css by entry-read, entry-focus,
+   entry-neighbours and entry-frame. Where a rule here replaces one in journal.css it is the more specific selector. */
+
+/* ---- Reading ------------------------------------------------------------------------------------------------------
+   The entry's title is the display size in the detail pane of a wide frame (the split layout sets --sk-type-display
+   there) and the title size everywhere else. The day, the time and the tags are one quiet line, so the first word of the
+   text stands right under it. */
+.sidekick-journal
+  :is(.journal-entry-view, .journal-source)
+  .journal-entry-title {
+  margin-block: 0 var(--sk-s1);
+  font: var(--sk-type-display);
+  overflow-wrap: anywhere;
+}
+.sidekick-journal .journal-entry-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--sk-s3);
+  row-gap: 0;
+  margin-block: 0 var(--sk-s4);
+}
+.sidekick-journal .journal-entry-when > p {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-entry-when > .sk-tag-field {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+/* The owner's text and the field it is written in share every measure that decides where a line breaks: the font, the
+   width, no padding and no frame, and the same way to wrap. Reading and writing are one page. */
+.sidekick-journal .journal-entry-text,
+.sidekick-journal .journal-focus-text {
+  box-sizing: border-box;
+  width: 100%;
+  max-inline-size: var(--sk-read-measure);
+  margin: 0;
+  padding: 0;
+  font: var(--sk-type-read);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.sidekick-journal .journal-entry-text {
+  margin-block: 0 var(--sk-s4);
+}
+
+/* The original text, read as the owner's own text is: the reading type and width, lines as they were saved. */
+.sidekick-journal .journal-source .journal-original {
+  max-inline-size: var(--sk-read-measure);
+  font: var(--sk-type-read);
+}
+
+/* Claude's summary, the key points and the links: one quiet fold under the text, in the meta type until opened. */
+/* The fold and the neighbours end where the text ends: the measure is in `ch` of the reading type, so they take that
+   type as their own (their rows set their own smaller type), or a 14 px `ch` would end them 90 px short of the text. */
+.sidekick-journal .journal-entry-more,
+.sidekick-journal .journal-neighbours {
+  max-inline-size: var(--sk-read-measure);
+  font: var(--sk-type-read);
+}
+.sidekick-journal .journal-entry-more {
+  margin-block: var(--sk-s3) 0;
+}
+.sidekick-journal .sk-fold.journal-entry-fold {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-entry-more__body {
+  padding-block-end: var(--sk-s2);
+}
+.sidekick-journal .journal-entry-more__body > h3:first-child {
+  margin-block-start: 0;
+}
+
+/* ---- Previous and next entry -------------------------------------------------------------------------------------- */
+.sidekick-journal .journal-neighbours {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sk-s3);
+  margin-block: var(--sk-s5) 0;
+  padding-block-start: var(--sk-s3);
+  border-block-start: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-journal .journal-neighbour {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: var(--sk-s1) var(--sk-s2);
+  border: 0;
+  border-radius: var(--sk-radius);
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+.sidekick-journal .journal-neighbour--next {
+  grid-column: 2;
+  justify-content: flex-end;
+  text-align: end;
+}
+.sidekick-journal .journal-neighbour > svg {
+  flex: none;
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-neighbour__text {
+  display: grid;
+  min-width: 0;
+}
+.sidekick-journal .journal-neighbour__kind {
+  font: var(--sk-type-caption);
+  color: var(--sk-muted);
+}
+/* The day wraps rather than being cut: in a phone's half column "Torsdag 19 november" did not fit on one line. */
+.sidekick-journal .journal-neighbour__name {
+  overflow-wrap: anywhere;
+}
+
+/* ---- Links: a name is cut only past 280 px (the link chip of the desktop spec), where journal.css cuts it at 144. ---- */
+.sidekick-journal .journal-entry-view .journal-chip-name {
+  max-width: 17.5rem;
+}
+.sidekick-journal .journal-entry-view .journal-task-chips .journal-chip-name {
+  max-width: 100%;
+}
+
+/* ---- Pointer feedback (designsystem §2): a chip that opens and the neighbours take --sk-hover in their own form and
+   --sk-press while held; never on a coarse pointer, so a phone draws what it drew before. ---- */
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .journal-entry-view
+    .journal-chip:has(> button.journal-chip-name):hover,
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .journal-neighbour:not(:disabled):hover {
+    background: var(--sk-hover);
+  }
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .journal-entry-view
+    .journal-chip:has(> button.journal-chip-name):active,
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .journal-neighbour:not(:disabled):active {
+    background: var(--sk-press);
+  }
+}
+
+/* ---- Writing: the focus view ---------------------------------------------------------------------------------------
+   The title and the text are bare fields in the reading type: no frame, no label, no fill. The text takes the reading
+   width and grows with what is written, so the page, not the field, scrolls. */
+.sidekick-journal .journal-focus {
+  display: grid;
+  gap: var(--sk-s2);
+  margin-block: var(--sk-s2) 0;
+}
+.sidekick-journal .journal-focus-title,
+.sidekick-journal .journal-focus-text {
+  appearance: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  resize: none;
+  outline: none;
+}
+.sidekick-journal .journal-focus-title {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  font: var(--sk-type-display);
+}
+.sidekick-journal .journal-focus-text {
+  min-height: 12rem;
+  min-height: 8lh;
+  max-height: 60dvh;
+  overflow-y: auto;
+  field-sizing: content;
+}
+/* Where the field grows with its text the page scrolls, not the field. */
+@supports (field-sizing: content) {
+  .sidekick-journal .journal-focus-text {
+    max-height: none;
+    overflow-y: hidden;
+  }
+}
+.sidekick-journal .journal-focus-title::placeholder,
+.sidekick-journal .journal-focus-text::placeholder {
+  color: var(--sk-muted);
+  opacity: 1;
+}
+/* No frame to mark the focused field: the caret does, and the title keeps a rule in the ring's colour under it. */
+.sidekick-journal .journal-focus-title:focus-visible {
+  box-shadow: 0 2px 0 0 var(--sk-ring);
+}
+.sidekick-journal .journal-focus-title[aria-invalid="true"],
+.sidekick-journal .journal-focus-text[aria-invalid="true"] {
+  box-shadow: 0 2px 0 0 var(--sk-danger-line);
+}
+.sidekick-journal .journal-focus-title:disabled,
+.sidekick-journal .journal-focus-text:disabled {
+  opacity: 0.6;
+}
+/* "Friday 20 November · 214 words": quiet, under the field. */
+.sidekick-journal .journal-focus-meta {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-journal .journal-focus-points {
+  margin-block: var(--sk-s4) 0;
+}
+/* Save and Cancel rest above the foot of the window while the page is taller than it. Text passes under them, so they
+   take the surface, a tone that fades it in from above and a shadow cast upward: the text is not cut off by a bar. */
+/* The bar is the page's own colour, and only while it is held over the text (stuck at the bottom) does it take a fade and
+   a shadow above it, so it never reads as a grey block under a short text (dagbok-desktop fynd 17). The stuck state is a
+   scroll-state query on the bar; a browser without it draws the plain bar, never a wrong shadow. */
+.sidekick-journal .journal-focus-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  container-type: scroll-state;
+}
+.sidekick-journal.journal-fullscreen .journal-focus-bar {
+  bottom: var(--sk-foot-reserve, 0px);
+}
+.sidekick-journal .journal-focus-bar > .journal-actions {
+  position: relative;
+  margin: 0;
+  padding-block: var(--sk-s2);
+  background: var(--sk-bg);
+}
+@container scroll-state(stuck: bottom) {
+  .sidekick-journal .journal-focus-bar > .journal-actions {
+    box-shadow: 0 -8px 16px -8px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.5));
+  }
+  .sidekick-journal .journal-focus-bar > .journal-actions::before {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--sk-s5)) 0 100%;
+    background: linear-gradient(to top, var(--sk-bg), transparent);
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-journal .journal-neighbour {
+    transition: none;
+  }
+}

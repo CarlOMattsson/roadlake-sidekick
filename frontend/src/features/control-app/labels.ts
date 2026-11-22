@@ -1,5 +1,6 @@
 import { activityEn, activitySv } from "./activity-labels";
 import { eraseEn, eraseSv } from "./erase-labels";
+import { tableEn, tableSv } from "./table-labels";
 import type { ChangeRecord, MemoryDomain } from "./transport";
 
 /** How a memory domain reads inside a sentence. Swedish has an indefinite and a definite form. */
@@ -95,6 +96,7 @@ export const controlEn = {
   restoreForbidden: "You don’t have permission to restore this.",
   restoreFailed: "Couldn’t restore.",
   ...eraseEn,
+  ...tableEn,
   // History: changes (with Undo/Restore) and activity (read only) in one list
   historyEmpty: "No history yet.",
   historyEmptyHint: "Changes made by you or Claude show up here.",
@@ -117,7 +119,9 @@ export const controlEn = {
   memoryOn: "Memory is on",
   memoryPaused: "Memory is paused",
   memoryOff: "Memory is off",
-  providerOffTitle: "The memory service is off",
+  /** The headline while memory is on but its service does not answer: one statement, not two that disagree. */
+  memoryOnDown: "Memory is on, but the service is not answering",
+  providerOffTitle: "The memory service is not answering",
   providerOff: "Nothing is being saved right now.",
   providerFakeTitle: "Memory is using a test service",
   providerFake: "No real memory is in use.",
@@ -302,6 +306,7 @@ export const controlSv: ControlLabels = {
   restoreForbidden: "Du saknar behörighet att återställa den.",
   restoreFailed: "Det gick inte att återställa.",
   ...eraseSv,
+  ...tableSv,
   historyEmpty: "Ingen historik ännu.",
   historyEmptyHint: "Det du eller Claude ändrar visas här.",
   historyAskExample: "Lägg till mjölk på inköpslistan",
@@ -319,7 +324,8 @@ export const controlSv: ControlLabels = {
   memoryOn: "Minnet är på",
   memoryPaused: "Minnet är pausat",
   memoryOff: "Minnet är av",
-  providerOffTitle: "Minnestjänsten är avstängd",
+  memoryOnDown: "Minnet är på, men tjänsten svarar inte",
+  providerOffTitle: "Minnestjänsten svarar inte",
   providerOff: "Ingenting sparas just nu.",
   providerFakeTitle: "Minnet använder en testtjänst",
   providerFake: "Inget riktigt minne används.",

@@ -73,6 +73,8 @@ describe("Journal entry: a late read does not undo a link change", () => {
       />
     );
     const { rerender } = render(view(0));
+    // The links stand in sight under the text, not in the fold.
+    await screen.findByRole("heading", { level: 3, name: "Linked" });
     await screen.findByText("Anna Berg");
 
     // Read A: a refresh asks again and hangs.

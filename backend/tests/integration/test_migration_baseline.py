@@ -32,10 +32,12 @@ from tests.support.migration_baseline import (
     AI_ERASED_COSTS,
     AI_SERVER_QUEUE,
     AI_STEPS,
+    AUTOMATIONS,
     BASELINE,
     CONTACT_SLACK,
     DROP_AUTOMATION,
     FORGOTTEN_FACTS,
+    JOURNAL_ATTACHMENTS,
     MIGRATIONS_PATH,
     OLD_NAME,
     TAG_LINKS,
@@ -111,6 +113,12 @@ APP_PRIVILEGES = {
     "ai_step_runs": "SIU",
     "activity_entries": "SI",
     "audit_events": "SI",
+    "automation_checks": "SI",
+    "automation_datapoints": "SIU",
+    "automation_report_cursors": "SIU",
+    "automation_runs": "SIU",
+    "automation_suggestions": "SIU",
+    "automations": "SIU",
     "companion_pairings": "SIU",
     "contact_aliases": "SIUD",
     "contact_tags": "SIUD",
@@ -123,6 +131,7 @@ APP_PRIVILEGES = {
     "external_references": "SIUD",
     "idempotency_operations": "SIUD",
     "instance_license": "SIU",
+    "journal_attachments": "SIUD",
     "journal_drafts": "SIU",
     "journal_entries": "SIU",
     "journal_entry_contacts": "SID",
@@ -193,6 +202,8 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
         CONTACT_SLACK,
+        AUTOMATIONS,
+        JOURNAL_ATTACHMENTS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -405,7 +416,11 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         "ALTER TABLE sidekick.contacts DROP COLUMN slack; "
         "ALTER TABLE sidekick.tasks DROP COLUMN last_reviewed_at; "
         "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since; "
+        "DROP TABLE sidekick.journal_attachments; "
         "DROP TABLE sidekick.webhook_tokens; "
+        "DROP TABLE sidekick.automation_report_cursors, sidekick.automation_checks, "
+        "sidekick.automation_suggestions, sidekick.automation_datapoints, "
+        "sidekick.automation_runs, sidekick.automations; "
         "DROP TABLE sidekick.ai_step_runs; "
         "DROP TABLE sidekick.ai_erased_run_costs; "
         "DROP FUNCTION sidekick.keep_erased_ai_run_cost(); "
@@ -432,6 +447,8 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
         CONTACT_SLACK,
+        AUTOMATIONS,
+        JOURNAL_ATTACHMENTS,
     }
     engine = create_engine(_admin_url())
     try:
@@ -459,6 +476,8 @@ def _stamp(ids: list[str]) -> None:
         AI_SERVER_QUEUE,
         AI_ERASED_COSTS,
         CONTACT_SLACK,
+        AUTOMATIONS,
+        JOURNAL_ATTACHMENTS,
     ):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})
     for migration_id in ids:

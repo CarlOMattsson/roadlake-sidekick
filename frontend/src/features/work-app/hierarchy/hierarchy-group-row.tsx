@@ -1,4 +1,5 @@
 import { CycleIcon, FolderIcon } from "../../mcp-apps/ui/icons";
+import { useRecordRow } from "../../mcp-apps/ui/split-layout";
 import { Progress } from "../../mcp-apps/ui/progress";
 import { type HierarchyDetailLabels } from "./hierarchy-detail-labels";
 import type { GroupCounts } from "./hierarchy-tree";
@@ -83,11 +84,16 @@ export function GroupRow({
 }) {
   const process = node.kind === "process";
   const kind = workKindLabel(t, node.kind);
+  // Beside a split list the row of the Project or Process open in the detail is drawn chosen.
+  const recordRow = useRecordRow(
+    onOpen ? { room: "work", view: node.kind, id: node.id } : undefined,
+  );
   return (
     <li
       className="work-tree-row"
       data-kind={node.kind}
       data-sk-row={onOpen ? "" : undefined}
+      {...recordRow}
     >
       <div className="work-agenda-line">
         <span className="work-agenda-glyph" aria-hidden="true">

@@ -12,6 +12,11 @@ export const boardLabelsSv = {
   showMoreAll: "Visa fler",
   /** The accessible name of a column's `showMore`: every column has one, so it names its column. */
   showMoreIn: (column: string) => `Visa fler uppgifter: ${column}`,
+  /** The button when the number of cards left is known: after a column's first ten, or the rest of what it holds. */
+  showMoreCount: (count: number) => `Visa ${count} till`,
+  /** The accessible name of `showMoreCount` in a status column: it keeps the visible words and names the column. */
+  showMoreCountIn: (count: number, column: string) =>
+    `Visa ${count} till: ${column}`,
   /** A status column with no card. */
   noCards: "Inget här.",
   /** The phone's column tabs: the group's accessible name, and one tab, its status over its count ("Pågår\n1"). */
@@ -57,6 +62,9 @@ export const boardLabelsEn: BoardLabels = {
   showMore: "Show more tasks",
   showMoreAll: "Show more",
   showMoreIn: (column: string) => `Show more tasks: ${column}`,
+  showMoreCount: (count: number) => `Show ${count} more`,
+  showMoreCountIn: (count: number, column: string) =>
+    `Show ${count} more: ${column}`,
   noCards: "Nothing here.",
   columnTabs: "Show column",
   columnTab: (column: string, count: number) => `${column}\n${count}`,

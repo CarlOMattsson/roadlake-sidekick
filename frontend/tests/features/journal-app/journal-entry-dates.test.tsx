@@ -71,15 +71,19 @@ describe("the day on the entry view", () => {
       />,
     );
     await screen.findByRole("heading", { level: 2, name: entry.title });
-    return screen.getByText(/^\d+ \w+( \d{4})?$/).textContent;
+    return screen.getByText(/^[A-Z][a-z]+day \d+ [A-Z][a-z]+( \d{4})?$/)
+      .textContent;
   }
 
+  // The entry view names the day with its weekday ("Friday 2 January"); which weekday it is depends on the year.
   it("leaves the year out for a day in the current year", async () => {
-    expect(await dateLine(thisYearDay)).toBe("2 Jan");
+    expect(await dateLine(thisYearDay)).toMatch(/^[A-Z][a-z]+day 2 January$/);
   });
 
   it("adds the year for an earlier year", async () => {
-    expect(await dateLine(earlierDay)).toBe(`9 May ${thisYear - 1}`);
+    expect(await dateLine(earlierDay)).toMatch(
+      new RegExp(`^[A-Z][a-z]+day 9 May ${thisYear - 1}$`),
+    );
   });
 });
 

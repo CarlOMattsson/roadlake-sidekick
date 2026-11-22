@@ -92,6 +92,19 @@ function setup(
 function tab(name: string) {
   return screen.getByRole("button", { name });
 }
+/**
+ * Opens Contacts from the strip's Mer cell and its menu. The cell is named Mer while another room is on screen;
+ * Contacts is not a cell of its own.
+ */
+function openContacts(labels = sidekickShellLabelsSv) {
+  fireEvent.click(tab(labels.more));
+  fireEvent.click(
+    within(screen.getByRole("group", { name: labels.moreMenu })).getByRole(
+      "button",
+      { name: labels.rooms.contacts },
+    ),
+  );
+}
 /** The pane of the strip room `room`, even when hidden. */
 function pane(room: RoomId) {
   return document.querySelector<HTMLElement>(`[data-room="${room}"]`);
@@ -118,13 +131,13 @@ it("draws only the start room, with no strip, in an inline card", () => {
   expect(onModelContext).not.toHaveBeenCalled();
 });
 
-it("shows the four strip rooms in order, marks the active one, and leaves Control out", () => {
+it("shows the strip's rooms in order, marks the active one, and leaves Control out", () => {
   setup();
   const nav = screen.getByRole("navigation", { name: "Rum" });
   const names = Array.from(nav.querySelectorAll("button")).map(
     (b) => b.textContent,
   );
-  expect(names).toEqual(["Arbete", "Dagbok", "Kontakter", "Inköp"]);
+  expect(names).toEqual(["Arbete", "Dagbok", "Inköp", "Mer"]);
   expect(tab("Dagbok")).toHaveAttribute("aria-current", "page");
   expect(tab("Arbete")).not.toHaveAttribute("aria-current");
   expect(screen.queryByRole("button", { name: "Kontroll" })).toBeNull();
@@ -259,7 +272,7 @@ it("uses no window.history and stores nothing in localStorage", () => {
     { room: "contacts", view: "contact", id: "c1", label: "Anna" },
     "journal",
   );
-  fireEvent.click(tab("Kontakter"));
+  openContacts();
   fireEvent.click(tab("Inköp"));
   expect(push).not.toHaveBeenCalled();
   expect(replace).not.toHaveBeenCalled();
@@ -352,7 +365,7 @@ it("tells the model where the user is on start, on a room change and on a cross-
   expect(onModelContext).toHaveBeenLastCalledWith(
     "Visar Dagbok (id 2026-11-03)",
   );
-  fireEvent.click(tab("Kontakter"));
+  openContacts();
   expect(onModelContext).toHaveBeenLastCalledWith("Visar Kontakter");
   fireEvent.click(tab("Dagbok"));
   navigateTo(
@@ -413,8 +426,9 @@ it("asks Claude to open the room when the host cannot proxy tools but can take m
 
 it("sends the English message for an English app", async () => {
   const { onSendMessage } = setup({ features: RESERVE, locale: "en" });
+  // The clicks run outside the async act: its queued updates would not render before the menu is queried.
+  openContacts(sidekickShellLabelsEn);
   await act(async () => {
-    fireEvent.click(tab("Contacts"));
     await Promise.resolve();
   });
   expect(onSendMessage).toHaveBeenCalledWith("Open Contacts");
@@ -595,8 +609,8 @@ it("offers no 'Tillbaka' in Control when the strip could not work", () => {
   expect(screen.queryByRole("button", { name: /^Tillbaka/ })).toBeNull();
 });
 
-it("draws only the rooms a host names in stripRooms, and the keys move between those", () => {
-  setup({ stripRooms: ["work", "journal", "shopping"] });
+it("draws only the rooms a host names in primaryRooms, and the keys move between those", () => {
+  setup({ primaryRooms: ["work", "journal", "shopping"], moreRooms: [] });
   const nav = screen.getByRole("navigation", { name: "Rum" });
   expect(
     Array.from(nav.querySelectorAll("button")).map((b) => b.textContent),
@@ -607,8 +621,8 @@ it("draws only the rooms a host names in stripRooms, and the keys move between t
   expect(tab("Inköp")).toHaveFocus();
 });
 
-it("keeps one tab stop on the first listed room when the active room is not in stripRooms", () => {
-  setup({ stripRooms: ["work", "shopping"] });
+it("keeps one tab stop on the first listed room when the active room is not in primaryRooms", () => {
+  setup({ primaryRooms: ["work", "shopping"], moreRooms: [] });
   // The journal is shown (the start room) but is not in the strip: no tab is current, the first one is the tab stop.
   const nav = screen.getByRole("navigation", { name: "Rum" });
   const tabs = Array.from(nav.querySelectorAll("button"));
@@ -617,7 +631,7 @@ it("keeps one tab stop on the first listed room when the active room is not in s
   expect(tab("Inköp")).toHaveAttribute("tabindex", "-1");
 });
 
-it("the narrow room picker lists the same rooms as stripRooms", () => {
+it("the narrow room picker lists the same rooms as primaryRooms", () => {
   vi.spyOn(HTMLElement.prototype, "scrollWidth", "get").mockImplementation(
     function (this: HTMLElement) {
       return this.classList.contains("sk-rooms__tabs") ? 400 : 0;
@@ -628,7 +642,7 @@ it("the narrow room picker lists the same rooms as stripRooms", () => {
       return this.classList.contains("sk-rooms__tabs") ? 280 : 0;
     },
   );
-  setup({ stripRooms: ["work", "journal", "shopping"] });
+  setup({ primaryRooms: ["work", "journal", "shopping"], moreRooms: [] });
   fireEvent.click(
     document.querySelector<HTMLButtonElement>(".sk-rooms .sk-pick")!,
   );
@@ -658,11 +672,11 @@ it("gives way to the room picker when the four rooms do not fit, and a choice sw
   expect(items.map((item) => item.textContent)).toEqual([
     "Arbete",
     "Dagbok",
-    "Kontakter",
     "Inköp",
+    "Kontakter",
   ]);
   expect(items[1]).toHaveAttribute("aria-checked", "true");
-  fireEvent.click(items[2]!);
+  fireEvent.click(items[3]!);
   expect(screen.queryByRole("menu")).toBeNull();
   expect(pane("contacts")).not.toHaveAttribute("hidden");
   expect(pick).toHaveTextContent("Kontakter");
@@ -690,8 +704,8 @@ it("in Kontroll the room picker says Rum and marks no room, and its first room t
   expect(items.map((item) => item.textContent)).toEqual([
     "Arbete",
     "Dagbok",
-    "Kontakter",
     "Inköp",
+    "Kontakter",
   ]);
   for (const item of items)
     expect(item).not.toHaveAttribute("aria-checked", "true");
@@ -709,10 +723,10 @@ it("moves between strip buttons with the arrow keys", () => {
   setup();
   tab("Dagbok").focus();
   fireEvent.keyDown(tab("Dagbok"), { key: "ArrowRight" });
-  expect(tab("Kontakter")).toHaveFocus();
-  fireEvent.keyDown(tab("Kontakter"), { key: "End" });
   expect(tab("Inköp")).toHaveFocus();
-  fireEvent.keyDown(tab("Inköp"), { key: "Home" });
+  fireEvent.keyDown(tab("Inköp"), { key: "End" });
+  expect(tab("Mer")).toHaveFocus();
+  fireEvent.keyDown(tab("Mer"), { key: "Home" });
   expect(tab("Arbete")).toHaveFocus();
 });
 

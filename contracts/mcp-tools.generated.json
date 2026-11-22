@@ -14970,7 +14970,7 @@
       "readOnlyHint": true,
       "title": "Visa uppgifter att g\u00e5 igenom"
     },
-    "description": "Use this when the user wants to go through or clean up many tasks at once. Returns open tasks not reviewed in 7 days, quickest decisions first: likely_done, long_overdue, follow_up_due, overdue; scope=all adds the rest, last. Rows carry id, version and a spoken reason; line 1 is what to say. Skipping writes nothing: page on with next_cursor.",
+    "description": "Use this when the user wants to go through or clean up many tasks at once. Returns open tasks not reviewed in 7 days, quickest decisions first: likely_done, long_overdue, follow_up_due, overdue; scope=all adds the rest, last. Rows carry id, version and a spoken reason; line 1 is what to say. Skipping writes nothing: page on with next_cursor. Guide: open with the count and the plan in one sentence; offer klar, beh\u00e5ll, flytta, v\u00e4ntar, flagga, arkivera, hoppa. Start with likely_done and long_overdue. Say title and reason in at most 12 words, no ids or ISO dates. Say each decision back first; beh\u00e5ll is keep, never kvar. Done or archive only on the user's word; say probably done only for likely_done. Three or more alike: confirm at most three tasks at a time, with count and target. Save with review_tasks after 5 decisions, at a group's end and before any pause. After about 30 tasks suggest a break. Stop: save, say how many remain. Undo: reverse the last save with previous.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

@@ -1,0 +1,150 @@
+/*
+ * The month calendar of the Journal's list pane in a wide frame (month-rail.tsx, desktop spec 3.2): ‹ › together on the
+ * left, the month's name, the weekdays and 42 cells of 44 × 40. Seven columns of 44 span the rail's width; the free space
+ * lies between the columns, so the weekday letters stand over their days.
+ */
+.sk-month-rail {
+  margin-block: var(--sk-s1) var(--sk-s3);
+}
+
+/* ‹ and › stand first at a fixed place (their glyphs on the content edge, as the week head's), then the month's name. */
+.sk-month-head {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.sidekick-journal .sk-month-head .sk-month-step {
+  flex: none;
+  width: var(--sk-tap);
+  min-width: var(--sk-tap);
+  height: var(--sk-tap);
+  min-height: var(--sk-tap);
+}
+.sidekick-journal .sk-month-head .sk-month-step:first-child {
+  margin-inline-start: calc((var(--sk-icon) - var(--sk-tap)) / 2);
+}
+.sidekick-journal .sk-month-head .sk-month-step[aria-disabled="true"] {
+  color: var(--sk-tertiary);
+}
+.sidekick-journal .sk-month-head .sk-month-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-inline-start: var(--sk-s2);
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+
+.sk-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 2.75rem);
+  justify-content: space-between;
+  row-gap: 0;
+}
+.sk-month-weekday {
+  display: grid;
+  place-items: center;
+  block-size: 1.75rem;
+  font: var(--sk-type-caption);
+  color: var(--sk-muted);
+}
+
+/* A cell: the number, and under it the 5 px dot of a day with entries. Drawn 40 high, 44 wide (the spec's cell). */
+.sidekick-journal .sk-month-day {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  inline-size: 2.75rem;
+  block-size: 2.5rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  padding-block-start: 3px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--sk-fg);
+  font: var(--sk-type-meta);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--sk-dur-fast) var(--sk-ease-out);
+}
+.sk-month-number {
+  display: grid;
+  place-items: center;
+  inline-size: 1.625rem;
+  block-size: 1.625rem;
+  border-radius: var(--sk-radius-pill);
+}
+.sidekick-journal .sk-month-day[data-outside="true"] {
+  color: var(--sk-muted);
+}
+.sidekick-journal .sk-month-day:disabled {
+  color: var(--sk-tertiary);
+  opacity: 1;
+  cursor: default;
+}
+/* Today is the number on an inked disc, so it reads as a place on the calendar whether or not it is the chosen day. */
+.sidekick-journal .sk-month-day[data-today="true"] .sk-month-number {
+  background: var(--sk-inverse-bg);
+  color: var(--sk-inverse-fg);
+  font-weight: var(--sk-weight-semibold);
+}
+.sk-month-dot {
+  position: absolute;
+  inset-block-end: 3px;
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  inline-size: 5px;
+  block-size: 5px;
+  border-radius: 50%;
+  background: var(--sk-muted);
+}
+
+/* The chosen day: a filled cell in the chosen tone (never a frame, which would read as the focus ring), its number at 600.
+   The week view fills the whole week as one band. */
+.sidekick-journal .sk-month-day[aria-current="date"],
+.sidekick-journal .sk-month-day[data-week] {
+  background: var(--sk-selected-bg);
+}
+.sidekick-journal .sk-month-day[aria-current="date"] {
+  border-radius: var(--sk-radius);
+}
+.sidekick-journal .sk-month-day[aria-current="date"] .sk-month-number {
+  font-weight: var(--sk-weight-semibold);
+}
+.sidekick-journal .sk-month-day[data-week="start"] {
+  border-start-start-radius: var(--sk-radius);
+  border-end-start-radius: var(--sk-radius);
+}
+.sidekick-journal .sk-month-day[data-week="end"] {
+  border-start-end-radius: var(--sk-radius);
+  border-end-end-radius: var(--sk-radius);
+}
+@media (forced-colors: active) {
+  .sidekick-journal .sk-month-day[aria-current="date"] {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+}
+
+@media (hover: hover) {
+  :root:not([data-host-pointer="coarse"])
+    .sidekick-journal
+    .sk-month-day:hover:not(:disabled, [aria-current="date"], [data-week]) {
+    background: var(--sk-hover);
+    border-radius: var(--sk-radius);
+  }
+}
+.sidekick-journal .sk-month-day:focus-visible {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: -2px;
+  border-radius: var(--sk-radius);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidekick-journal .sk-month-day {
+    transition: none;
+  }
+}

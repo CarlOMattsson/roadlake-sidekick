@@ -35,24 +35,18 @@
   min-width: max-content;
 }
 
-/* The tools at the end of the tab row (designsystem §3 "Rumshuvud"): the shared icon buttons (.sk-iconbtn,
-   family.css), 44 px boxes. Counted from the right: ⋯ outermost, then +, then search, 48 apart (was 44):
-   4 between the boxes. The glyph's box ends on the content edge: the boxes are moved 10 outwards, so the centres
-   are 384, 336 and 288 at 412, the same grid as Journal's ‹ › (336, 384) and Contacts' + ⋯, and ⋯'s box reaches 10
-   into the side margin. Each target is 48 × 48 and reaches 2 into the gap on each side, so neighbours meet and never
-   overlap. */
-.sidekick-work :is(.work-tab-tool, .work-tab-slot) {
-  position: relative;
-  margin-inline-start: var(--sk-s1);
-  /* (44 − 24) / 2 in px tokens: the boxes stay 44 with 24 px glyphs at 200 % text too (work-shell.css). */
-  inset-inline-start: calc((var(--sk-s6) + var(--sk-s3) - var(--sk-s5)) / 2);
-}
-.sidekick-work .sk-shell-tabs-end .work-tab-tool::after {
-  inset-inline: -2px;
-}
-/* + and search while the list loads or could not be read: tertiary, and a tap does nothing. */
-.sidekick-work .work-tab-tool[aria-disabled="true"] {
-  background: none;
-  color: var(--sk-tertiary);
-  cursor: default;
+/* From 40rem (desktop spec 2.2) the views are packed from the start at their own width, the first label on the content
+   edge: the group is moved 12 out so its clip still holds the first tab's hover and ring. The phone keeps its equal
+   cells. */
+@container sk-frame (min-width: 40rem) {
+  .sidekick-work .sk-tabs.work-view-tabs {
+    margin-inline-start: calc(-1 * var(--sk-s3));
+  }
+  .sidekick-work .sk-tabs.work-view-tabs .sk-tabs__tab {
+    flex: 0 0 auto;
+    padding-inline: var(--sk-s3);
+  }
+  .sk-room-head[data-place="bar"] .sk-tabs.work-view-tabs {
+    margin-inline-start: 0;
+  }
 }

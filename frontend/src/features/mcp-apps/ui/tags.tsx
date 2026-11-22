@@ -332,17 +332,23 @@ function chosenKey(selected: readonly string[]): string {
  * beginning, so every chosen tag is in sight in a row that scrolls; a chip that was pressed keeps the focus where it
  * moves to. Choosing more tags narrows the list (the read asks for every tag, tag_match "all"). At most five at once, as the
  * server takes. Nothing is drawn while there is no tag to offer.
+ *
+ * `wrap`: the row is laid out on as many lines as it needs (the Journal's rail, desktop spec 3.2), so every tag is in
+ * sight and the chosen ones stay where they are: a chip never moves under the pointer that chose it (dagbok-desktop
+ * fynd 14). The caller's stylesheet does the wrapping.
  */
 export function TagFilter({
   options,
   selected,
   onChange,
   locale,
+  wrap = false,
 }: {
   options: readonly TagOption[];
   selected: readonly string[];
   onChange: (next: string[]) => void;
   locale: string;
+  wrap?: boolean;
 }) {
   const t = tagLabelsFor(locale);
   const scroller = useRef<HTMLDivElement>(null);
@@ -355,10 +361,12 @@ export function TagFilter({
       .filter((slug) => !options.some((tag) => tag.slug === slug))
       .map((slug) => ({ slug, label: slug, count: 0 })),
   ];
-  const shown = [
-    ...known.filter((tag) => selected.includes(tag.slug)),
-    ...known.filter((tag) => !selected.includes(tag.slug)),
-  ];
+  const shown = wrap
+    ? known
+    : [
+        ...known.filter((tag) => selected.includes(tag.slug)),
+        ...known.filter((tag) => !selected.includes(tag.slug)),
+      ];
   const hasChips = shown.length > 0;
   // The row goes back to its start when the chosen tags change, and a pressed chip that moved keeps the focus.
   const chosen = chosenKey(selected);

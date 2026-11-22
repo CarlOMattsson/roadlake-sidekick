@@ -37,15 +37,15 @@ move and this file does not.
 | docstring-parser | 0.18.0 | MIT | Marcin Kurczewski (https://github.com/rr-/docstring_parser) |
 | email-validator | 2.3.0 | Unlicense | Joshua Tauberer (https://github.com/JoshData/python-email-validator) |
 | exceptiongroup | 1.3.1 | MIT License | Alex Grönholm (https://github.com/agronholm/exceptiongroup) |
-| fastapi | 0.162.4 | MIT | Sebastián Ramírez (https://github.com/fastapi/fastapi) |
+| fastapi | 0.163.1 | MIT | Sebastián Ramírez (https://github.com/fastapi/fastapi) |
 | fastmcp | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
 | fastmcp-slim | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
 | griffelib | 2.1.0 | ISC | Timothée Mazzucotelli (https://pypi.org/project/griffelib/) |
 | h11 | 0.16.0 | MIT | Nathaniel J. Smith (https://github.com/python-hyper/h11) |
 | httpcore | 1.0.9 | BSD-3-Clause | Tom Christie (https://www.encode.io/httpcore/) |
-| httpcore2 | 2.16.0 | BSD-3-Clause | Tom Christie (https://github.com/pydantic/httpx2) |
+| httpcore2 | 2.16.2 | BSD-3-Clause | Tom Christie (https://github.com/pydantic/httpx2) |
 | httpx | 0.28.1 | BSD-3-Clause | Tom Christie (https://github.com/encode/httpx) |
-| httpx2 | 2.16.0 | BSD-3-Clause | Tom Christie (https://github.com/pydantic/httpx2) |
+| httpx2 | 2.16.2 | BSD-3-Clause | Tom Christie (https://github.com/pydantic/httpx2) |
 | idna | 3.18 | BSD-3-Clause | Kim Davies (https://github.com/kjd/idna) |
 | importlib-metadata | 8.7.1 | Apache-2.0 | Jason R. Coombs (https://github.com/python/importlib_metadata) |
 | jiter | 0.19.0 | MIT | Samuel Colvin (https://github.com/pydantic/jiter/) |
@@ -65,13 +65,13 @@ move and this file does not.
 | packaging | 26.3 | Apache-2.0 OR BSD-2-Clause | Donald Stufft (https://github.com/pypa/packaging) |
 | pathable | 0.6.0 | Apache-2.0 | Artur Maciag (https://github.com/p1c2u/pathable) |
 | platformdirs | 4.10.1 | MIT | Bernát Gábor (https://github.com/tox-dev/platformdirs) |
-| psycopg | 3.3.8 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
-| psycopg-binary | 3.3.8 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
+| psycopg | 3.3.9 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
+| psycopg-binary | 3.3.9 | LGPL-3.0-only | Daniele Varrazzo (https://psycopg.org/) |
 | py-key-value-aio | 0.4.6 | Apache-2.0 | see project (https://pypi.org/project/py-key-value-aio/) |
 | pycparser | 3.0 | BSD-3-Clause | Eli Bendersky (https://github.com/eliben/pycparser) |
 | pydantic | 2.14.3 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
 | pydantic-core | 2.50.4 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic) |
-| pydantic-settings | 2.16.2 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic-settings) |
+| pydantic-settings | 2.16.3 | MIT | Samuel Colvin (https://github.com/pydantic/pydantic-settings) |
 | pygments | 2.20.0 | BSD-2-Clause | Georg Brandl (https://pygments.org) |
 | pyjwt | 2.15.1 | MIT | Jose Padilla (https://github.com/jpadilla/pyjwt) |
 | pyperclip | 1.11.0 | BSD | Al Sweigart (https://github.com/asweigart/pyperclip) |
@@ -104,9 +104,9 @@ move and this file does not.
 <!-- section:npm -->
 | Package | Version | License | Source |
 | --- | --- | --- | --- |
-| @capacitor/android | 8.6.0 | MIT | https://www.npmjs.com/package/@capacitor/android |
+| @capacitor/android | 8.6.2 | MIT | https://www.npmjs.com/package/@capacitor/android |
 | @capacitor/app | 8.1.2 | MIT | https://www.npmjs.com/package/@capacitor/app |
-| @capacitor/core | 8.6.0 | MIT | https://www.npmjs.com/package/@capacitor/core |
+| @capacitor/core | 8.6.2 | MIT | https://www.npmjs.com/package/@capacitor/core |
 | preact | 11.2.0 | MIT | https://www.npmjs.com/package/preact |
 | react | 19.3.1 | MIT | https://www.npmjs.com/package/react |
 | react-dom | 19.3.1 | MIT | https://www.npmjs.com/package/react-dom |

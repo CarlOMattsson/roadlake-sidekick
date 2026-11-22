@@ -4,8 +4,10 @@
  * it was full), and the inline card's reread bookkeeping. Pure, so every transition is testable without React.
  */
 import {
+  closeBeside,
   createNavState,
   goBack,
+  openBeside,
   pushEntry,
   switchRoom,
   type NavEntry,
@@ -25,6 +27,11 @@ export type ShellNavState = {
   inlineKey: number;
   /** Set by a write in the full view that touched the card's own domain. */
   inlineStale: boolean;
+  /**
+   * True after a step through a list swapped the record open beside it (openBeside over an open detail): the new
+   * detail does not slide in, as the first one did. False after every other step.
+   */
+  swapped: boolean;
 };
 
 export type ShellNavProps = {
@@ -38,6 +45,10 @@ export type ShellNavAction =
   | ({ type: "props" } & ShellNavProps)
   | { type: "switch-room"; room: RoomId }
   | { type: "push"; target: NavEntry; replace?: boolean }
+  /** A record opened from the list at layer `list` of a split pane (nav-state openBeside). */
+  | { type: "beside"; target: NavEntry; list: number }
+  /** Closes what is open beside the list at layer `list` (nav-state closeBeside). */
+  | { type: "close-beside"; list: number }
   | { type: "back" }
   /** A write in the full view that touched the card's own domain. */
   | { type: "inline-stale" };
@@ -53,6 +64,7 @@ export function createShellNavState(
     seenStart: start,
     inlineKey: 0,
     inlineStale: false,
+    swapped: false,
   };
 }
 
@@ -104,17 +116,28 @@ export function shellNavReducer(
       return answerProps(state, action);
     case "switch-room": {
       const nav = switchRoom(state.nav, action.room);
-      return nav === state.nav ? state : { ...state, nav };
+      return nav === state.nav ? state : { ...state, nav, swapped: false };
     }
     case "push": {
       const nav = pushEntry(state.nav, action.target, {
         replace: action.replace,
       });
-      return nav === state.nav ? state : { ...state, nav };
+      return nav === state.nav ? state : { ...state, nav, swapped: false };
+    }
+    case "beside": {
+      const nav = openBeside(state.nav, action.list, action.target);
+      if (nav === state.nav) return state;
+      // A record was open beside the list already: this one takes its place.
+      const swapped = state.nav.stacks[state.nav.active].length > action.list;
+      return { ...state, nav, swapped };
+    }
+    case "close-beside": {
+      const nav = closeBeside(state.nav, action.list);
+      return nav === state.nav ? state : { ...state, nav, swapped: false };
     }
     case "back": {
       const nav = goBack(state.nav);
-      return nav === state.nav ? state : { ...state, nav };
+      return nav === state.nav ? state : { ...state, nav, swapped: false };
     }
     case "inline-stale":
       return state.inlineStale ? state : { ...state, inlineStale: true };

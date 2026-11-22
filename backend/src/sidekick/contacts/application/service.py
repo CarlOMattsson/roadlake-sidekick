@@ -158,20 +158,30 @@ class ContactService:
                 key=idempotency_key,
                 payload=payload,
                 replay=id_replay_record,
-                execute=lambda: self._create(session, actor, command, tags, correlation_id),
+                execute=lambda: contact_to_data(
+                    self.create_in_session(session, actor, command, correlation_id)
+                ),
             )
             return self._replayed(session, actor, result)
 
         return self.store.transaction(operation)
 
-    def _create(
+    def create_in_session(
         self,
         session: TxSession,
         actor: Actor,
         command: CreateContactCommand,
-        tags: tuple[str, ...],
         correlation_id: str | None,
-    ) -> dict[str, Any]:
+    ) -> Contact:
+        """Create a Contact inside the caller's open transaction and return it.
+
+        For callers that must write a Contact together with other rows in one transaction.
+        The caller owns the transaction and the idempotency key; this saves the Contact, its
+        aliases and tags, and the audit row, and rolls back with the session.
+        """
+
+        actor.require("contacts:write")
+        tags = normalize_tag_selection(command.tags)
         now = self.clock.now()
         disp_val, key_val = normalize_name(command.display_name)
         email_val, email_key = normalize_email(command.email)
@@ -243,7 +253,7 @@ class ContactService:
             target_id=contact.id,
             correlation_id=correlation_id,
         )
-        return contact_to_data(contact)
+        return contact
 
     def update(
         self,

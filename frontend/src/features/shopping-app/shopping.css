@@ -878,3 +878,48 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---- A wide frame (desktop spec 3.4, shopping-panes.tsx): the lists beside the chosen list. The view takes the
+   shell's body (80rem) instead of the reading column, the split (ui/split-layout.css) holds the list pane
+   (--sk-list-w) and the chosen list, whose content is at most 40rem so a name and its amount stay close. The lists
+   stand still under the shell's bar while the chosen list scrolls with the page; only a host that fixes the frame's
+   height gives the list its own scroll (split-layout.css). ---- */
+.sidekick-shopping.shopping-fullscreen[data-split] {
+  --sk-room-max: 100%;
+}
+.sidekick-shopping .sk-split > .shopping-rail {
+  position: sticky;
+  top: var(--sk-sticky-top, 0px);
+  align-self: start;
+}
+:root:not([data-host-height="fixed"])
+  .sidekick-shopping
+  .sk-split.sk-split
+  > .shopping-detail.shopping-detail {
+  position: static;
+  margin-top: 0;
+}
+.sidekick-shopping .sk-split.sk-split > .shopping-detail {
+  max-width: 40rem;
+}
+/* With its own scroll the detail carries 4 of air on each side for the focus ring (split-layout.css). */
+:root[data-host-height="fixed"]
+  .sidekick-shopping
+  .sk-split.sk-split
+  > .shopping-detail.shopping-detail {
+  max-width: calc(40rem + 2 * var(--sk-s1));
+}
+/* The chosen list's name in the detail's display size, its bought line under it as under the phone's title. */
+.sidekick-shopping .shopping-detail-title {
+  margin: var(--sk-s2) 0 0;
+  font: var(--sk-type-display);
+}
+/* The rail: the section "Listor" on the head's line, the rows with their hairlines, "New list" last. */
+.sidekick-shopping .shopping-picker[data-rail] > .shopping-picker-head {
+  min-height: var(--sk-tap);
+}
+.sidekick-shopping
+  .shopping-picker[data-rail]
+  > :is(.shopping-rail-new, .shopping-create) {
+  margin-top: var(--sk-s2);
+}

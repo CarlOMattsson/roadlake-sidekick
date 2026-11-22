@@ -201,7 +201,7 @@ describe("journal entry card", () => {
     deliver({ entry: { ...created, summary: 42 } });
 
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Key points" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
     expect(host.call).toHaveBeenCalledWith("get_journal_entry", {
       entry_id: createdId,
@@ -219,7 +219,7 @@ describe("journal entry card", () => {
       await userEvent.click(screen.getByRole("button", { name: "Open entry" }));
 
       expect(
-        await screen.findByRole("heading", { level: 3, name: "Key points" }),
+        await screen.findByRole("button", { name: "Key points" }),
       ).toBeInTheDocument();
       expect(host.call).toHaveBeenCalledWith("get_journal_entry", {
         entry_id: createdId,
@@ -242,7 +242,7 @@ describe("journal entry card", () => {
 
     expect(host.requestDisplayMode).toHaveBeenCalledWith("fullscreen");
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Key points" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
     // Full mode tells the model which room is open, and which record the card is on.
     expect(host.updateModelContext).toHaveBeenCalledWith(
@@ -257,7 +257,7 @@ describe("journal entry card", () => {
 
     expect(host.requestDisplayMode).toHaveBeenCalledWith("fullscreen");
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Key points" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
   });
 
@@ -274,7 +274,7 @@ describe("journal entry card", () => {
       await userEvent.click(screen.getByRole("button", { name: "Open entry" }));
 
       expect(
-        await screen.findByRole("heading", { level: 3, name: "Key points" }),
+        await screen.findByRole("button", { name: "Key points" }),
       ).toBeInTheDocument();
       expect(host.updateModelContext).not.toHaveBeenCalled();
       for (const spy of spies) expect(spy).not.toHaveBeenCalled();
@@ -290,7 +290,7 @@ describe("journal entry card", () => {
 
     expect(host.requestDisplayMode).not.toHaveBeenCalled();
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Key points" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
   });
 
@@ -409,7 +409,7 @@ describe("journal entry card", () => {
     });
 
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Key points" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
     expect(host.requestDisplayMode).toHaveBeenCalledTimes(1);
   });
@@ -456,7 +456,7 @@ describe("journal entry card", () => {
     // A single entry without a title is not a card: it opens the entry view as before.
     deliver({ entry: { id: createdId } });
     expect(
-      await screen.findByRole("heading", { level: 3, name: "Linked" }),
+      await screen.findByRole("button", { name: "Key points" }),
     ).toBeInTheDocument();
     expect(host.call).toHaveBeenCalledWith("get_journal_entry", {
       entry_id: createdId,
@@ -478,7 +478,7 @@ describe("journal entry card", () => {
     // The glance is the only journal-card.
     expect(document.querySelectorAll(".journal-card")).toHaveLength(1);
     // The glance's own action (the day), not the card's "Open entry".
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open Journal" }));
     expect(
       await screen.findByRole("heading", { level: 3, name: journalEn.entries }),
     ).toBeInTheDocument();
@@ -487,7 +487,7 @@ describe("journal entry card", () => {
       screen.getByRole("button", { name: new RegExp(created.title) }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open" }),
+      screen.queryByRole("button", { name: "Open Journal" }),
     ).not.toBeInTheDocument();
   });
 

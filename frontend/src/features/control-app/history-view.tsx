@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { keyFor, type PendingKey } from "../mcp-apps/idempotency";
 import { EmptyState } from "../mcp-apps/ui/states";
 import { ReceiptBar, useReceipt } from "../mcp-apps/ui/receipt";
+import type { RoomTarget } from "../mcp-apps/room-types";
 import {
   actionName,
   actorName,
@@ -21,11 +22,17 @@ import {
   type Notice,
 } from "./control-parts";
 import { activityText, withoutRepeatedActivity } from "./activity-rows";
+import { ControlTable, type TableRow } from "./control-table";
+import { groupByDay } from "./day-groups";
 import { focusRowNear } from "./focus-row";
+import { roomOfKind } from "./kind-room";
+import { openTargetOf } from "./open-target";
+import { useFrameAtLeast } from "./use-wide-frame";
 import {
   canUndo,
   writeFailure,
   type ActivityList,
+  type ActivityRecord,
   type ChangeRecord,
   type ChangesList,
   type ControlTransport,
@@ -41,7 +48,9 @@ import { whenText } from "./when";
  * Either part may be missing (its read failed or has not come yet); the list shows what there is. A saved Undo or Restore
  * says what happened in the receipt bar; a failure stays in its row.
  *
- * The inline card lists three rows; its one main link, "Öppna Historik › · 4 till", opens the full view.
+ * The inline card lists three rows; its one main link, "Öppna Historik › · 4 till", opens the full view. The full view
+ * groups the rows by day, and from 48rem draws them as a table (Vad, Rum, Händelse, Vem, När, Undo); a row whose record
+ * has a page (a task, project, process, contact or journal entry that is not in the trash) opens it through `onOpen`.
  */
 export function HistoryView({
   changes: initial,
@@ -52,6 +61,7 @@ export function HistoryView({
   onData,
   sendMessage,
   onModelContext,
+  onOpen,
   onOpenFull,
   full = false,
 }: {
@@ -66,6 +76,8 @@ export function HistoryView({
   sendMessage?: (text: string) => Promise<boolean>;
   /** Called once an undo is saved, with a generic sentence for the host model. */
   onModelContext?: (summary: string) => void;
+  /** Opens a record in its room (a table row in the full view); absent: no row opens. */
+  onOpen?: (target: RoomTarget) => void;
   /** Opens this view in fullscreen (the inline card's main link); absent: the card has no link and lists every row. */
   onOpenFull?: () => void;
   /** The full view lists every row read; the inline card lists three behind its open link. */
@@ -84,6 +96,8 @@ export function HistoryView({
   const headingRef = useRef<HTMLHeadingElement>(null);
   /** The row a write was on. Focus moves there once the write is over, since its button may be gone. */
   const focusIndex = useRef<number | null>(null);
+  // The full view is a table from 48rem; narrower it is rows, grouped by day.
+  const table = useFrameAtLeast(rootRef) && full;
 
   useEffect(() => {
     const index = focusIndex.current;
@@ -99,7 +113,7 @@ export function HistoryView({
       return;
     // A failure that can be repeated stands in its row: focus goes to its "Try again".
     const retry = root.querySelector<HTMLElement>(
-      "li.control-row [role='alert'] button",
+      ":is(li.control-row, .control-trow) [role='alert'] button",
     );
     if (retry) {
       retry.focus();
@@ -240,6 +254,141 @@ export function HistoryView({
     failedRow !== null &&
     rows.some((row) => row.key === failedRow);
   const hidden = Math.max(0, rows.length - INLINE_ROWS);
+
+  /** The button at the end of a change row: Undo, or Restore for a record in the trash; none for the rest. */
+  function actionOf(change: ChangeRecord, key: string) {
+    const isBusy = busy === key;
+    if (canUndo(change))
+      return (
+        <button
+          type="button"
+          className="sk-btn--secondary sk-btn--compact control-row-btn"
+          aria-label={labels.undoLabel(labels.undo, change.title)}
+          disabled={busy !== null}
+          onClick={() => void undo(change)}
+        >
+          {isBusy ? labels.undoing : labels.undo}
+        </button>
+      );
+    if (change.state === "trashed")
+      return (
+        <button
+          type="button"
+          className="sk-btn--secondary sk-btn--compact control-row-btn"
+          aria-label={labels.restoreLabel(change.title)}
+          disabled={busy !== null}
+          onClick={() => void restore(change)}
+        >
+          {isBusy ? labels.restoring : labels.restore}
+        </button>
+      );
+    return undefined;
+  }
+
+  /** A failed Undo or Restore stands under its own row. */
+  const belowOf = (key: string) =>
+    failureInRow && failedRow === key ? (
+      <NoticeLine notice={notice} locale={labels.locale} />
+    ) : undefined;
+
+  /** One row as words, for the row list (a phone) and the table alike: what it is and what the record can open. */
+  function describe({ key, change, entry, at }: HistoryRow) {
+    const when = whenText(at, now(), labels.locale);
+    const roomOf = (kind: string) => {
+      const room = roomOfKind(kind);
+      return room ? labels.rooms[room] : "";
+    };
+    if (entry) {
+      const state = stateName(labels, entry.state);
+      const title = entry.after_values?.title;
+      return {
+        kind: entry.aggregate_type,
+        primary:
+          activityText(labels, entry) || kindName(labels, entry.aggregate_type),
+        // "applied" is the normal case, so the row list names only the other states.
+        parts: [
+          sourceName(labels, entry.source),
+          entry.state === "applied" ? "" : state,
+          when,
+        ],
+        cells: [
+          roomOf(entry.aggregate_type),
+          state,
+          sourceName(labels, entry.source),
+          when,
+        ],
+        action: undefined,
+        target: entry.aggregate_id
+          ? openTargetOf({
+              kind: entry.aggregate_type,
+              id: entry.aggregate_id,
+              label: typeof title === "string" ? title : undefined,
+            })
+          : undefined,
+      };
+    }
+    const nowTrashed =
+      change.state === "trashed" && change.action !== "trashed"
+        ? labels.nowTrashed
+        : "";
+    const happened = actionName(labels, change.action, change.kind);
+    return {
+      kind: change.kind,
+      primary: change.title,
+      parts: [
+        kindName(labels, change.kind),
+        happened,
+        actorName(labels, change.actor),
+        when,
+        nowTrashed,
+      ],
+      cells: [
+        roomOf(change.kind),
+        nowTrashed ? `${happened} · ${nowTrashed}` : happened,
+        actorName(labels, change.actor),
+        when,
+      ],
+      action: actionOf(change, key),
+      // A record in the trash has no page to go to; Restore is its way back.
+      target:
+        change.state === "trashed"
+          ? undefined
+          : openTargetOf({
+              kind: change.kind,
+              id: change.id,
+              label: change.title,
+            }),
+    };
+  }
+
+  const groups = full
+    ? groupByDay(rows, (row) => row.at, now(), labels.locale)
+    : [];
+  const tableRows = (list: readonly HistoryRow[]): TableRow[] =>
+    list.map((row) => {
+      const { kind, primary, cells, action, target } = describe(row);
+      return {
+        key: row.key,
+        kind,
+        kindName: kindName(labels, kind),
+        title: primary,
+        cells,
+        action,
+        below: belowOf(row.key),
+        ...(target && onOpen ? { open: () => onOpen(target) } : {}),
+      };
+    });
+  const rowItem = (row: HistoryRow) => {
+    const { primary, parts, action } = describe(row);
+    return (
+      <ControlRow
+        primary={primary}
+        secondary={parts.filter(Boolean).join(" · ")}
+        action={action}
+        below={belowOf(row.key)}
+      />
+    );
+  };
   return (
     <>
       <div className="control-view" ref={rootRef}>
@@ -268,6 +417,44 @@ export function HistoryView({
                 : {}),
             }}
           />
+        ) : table ? (
+          <ControlTable
+            label={labels.views.history}
+            heads={[
+              labels.columns.what,
+              labels.columns.room,
+              labels.columns.event,
+              labels.columns.who,
+              labels.columns.when,
+            ]}
+            actionHead={labels.columns.action}
+            chevron
+            groups={groups.map((group) => ({
+              key: group.key,
+              heading: group.heading,
+              rows: tableRows(group.rows),
+            }))}
+          />
+        ) : full ? (
+          // Under 48rem the rows stay as they are, with the day's heading over each day's rows.
+          groups.map((group) => (
+            <Fragment key={group.key}>
+              {group.heading ? (
+                <h3 className="control-section">{group.heading}</h3>
+              ) : null}
+              <RowList
+                items={group.rows}
+                keyOf={(row) => row.key}
+                label={
+                  group.heading
+                    ? `${labels.views.history} · ${group.heading}`
+                    : labels.views.history
+                }
+                wrapMeta
+                renderRow={rowItem}
+              />
+            </Fragment>
+          ))
         ) : (
           <RowList
             items={rows}
@@ -275,71 +462,7 @@ export function HistoryView({
             label={labels.views.history}
             wrapMeta
             limit={rowLimit(full, onOpenFull)}
-            renderRow={({ key, change, entry, at }) => {
-              const when = whenText(at, now(), labels.locale);
-              if (entry) {
-                // "applied" is the normal case, so only the other states are named.
-                const parts = [
-                  sourceName(labels, entry.source),
-                  entry.state === "applied"
-                    ? ""
-                    : stateName(labels, entry.state),
-                  when,
-                ];
-                return (
-                  <ControlRow
-                    primary={
-                      activityText(labels, entry) ||
-                      kindName(labels, entry.aggregate_type)
-                    }
-                    secondary={parts.filter(Boolean).join(" · ")}
-                  />
-                );
-              }
-              const parts = [
-                kindName(labels, change.kind),
-                actionName(labels, change.action, change.kind),
-                actorName(labels, change.actor),
-                when,
-              ];
-              if (change.state === "trashed" && change.action !== "trashed")
-                parts.push(labels.nowTrashed);
-              const isBusy = busy === key;
-              return (
-                <ControlRow
-                  primary={change.title}
-                  secondary={parts.filter(Boolean).join(" · ")}
-                  action={
-                    canUndo(change) ? (
-                      <button
-                        type="button"
-                        className="sk-btn--secondary sk-btn--compact control-row-btn"
-                        aria-label={labels.undoLabel(labels.undo, change.title)}
-                        disabled={busy !== null}
-                        onClick={() => void undo(change)}
-                      >
-                        {isBusy ? labels.undoing : labels.undo}
-                      </button>
-                    ) : change.state === "trashed" ? (
-                      <button
-                        type="button"
-                        className="sk-btn--secondary sk-btn--compact control-row-btn"
-                        aria-label={labels.restoreLabel(change.title)}
-                        disabled={busy !== null}
-                        onClick={() => void restore(change)}
-                      >
-                        {isBusy ? labels.restoring : labels.restore}
-                      </button>
-                    ) : undefined
-                  }
-                  below={
-                    failureInRow && failedRow === key ? (
-                      <NoticeLine notice={notice} locale={labels.locale} />
-                    ) : undefined
-                  }
-                />
-              );
-            }}
+            renderRow={rowItem}
           />
         )}
         {(full || !onOpenFull || hidden === 0) &&
@@ -364,3 +487,12 @@ export function HistoryView({
 function rowKey(change: ChangeRecord): string {
   return `${change.kind}:${change.id}:${change.occurred_at}:${change.action}`;
 }
+
+/** A row of the list: a change or an activity entry, with the time it is sorted by. */
+type HistoryRow = {
+  key: string;
+  at: string;
+} & (
+  | { change: ChangeRecord; entry: undefined }
+  | { change: undefined; entry: ActivityRecord }
+);

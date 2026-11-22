@@ -1,6 +1,13 @@
-import { useCallback, useId, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useContext,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { MessageBox } from "../../mcp-apps/ui/message-box";
+import { RoomSurfaceContext } from "../../mcp-apps/ui/room-context";
 import { AgendaSearch } from "../agenda/agenda-toolbar";
 import type { CardLabels } from "../shared/card-labels";
 import type { InlineSummaryLabels } from "../inline/inline-summary-labels";
@@ -22,14 +29,18 @@ import type {
   WorkTransport,
 } from "../transport/transport";
 import type { WorkShellLabels } from "../shell/work-shell-labels";
-import { WorkShell, type WorkTab } from "../shell/work-shell";
-import { UnsortedOpenRow } from "../unsorted/unsorted-view";
+import {
+  WorkShell,
+  type WorkShellTab,
+  type WorkTab,
+} from "../shell/work-shell";
+import { UnsortedOpenRow, UnsortedView } from "../unsorted/unsorted-view";
 import { WorkView } from "../view/work-view";
 import { isOpenOver } from "./parts/tools-reducer";
 import { SortingPage } from "../unsorted/sorting-page";
 import { TabMore } from "./parts/tab-more";
 import { TabPanel } from "./parts/tab-panel";
-import { TabToolsEnd } from "./parts/tab-tools";
+import { tabHeadTools } from "./parts/tab-tools";
 import {
   filtersOf,
   isTabFrame,
@@ -135,6 +146,10 @@ export function WorkFullscreen({
       : (offered[0] ?? "agenda");
   // The pressed tab, as the shell reports it. Only that tab's panel gets keyboard shortcuts.
   const [activeTab, setActiveTab] = useState<WorkTab>(initialTab);
+  // To sort is pressed (its tab, in a wide frame); `activeTab` keeps the view it was pressed from.
+  const [sortingTab, setSortingTab] = useState(false);
+  // A wide frame (the shell's one-row head is this room's): To sort is a tab there, not a row after the agenda.
+  const wide = useContext(RoomSurfaceContext).headSlot != null;
   // The tab row's tools live here, not in the views: a saved view remounts its view, and the search text, the open
   // "⋯" menu and the saved views bar (status, focus) must survive that.
   const tools = useTabTools();
@@ -178,6 +193,9 @@ export function WorkFullscreen({
     readAtRef: reads.readAtRef,
   });
   const { transports } = fresh;
+  // To sort is the last tab while some Task waits, and stays while it is shown (the last one sorted keeps the view).
+  const unsortedTab =
+    wide && onRoute !== undefined && ((unsorted?.count ?? 0) > 0 || sortingTab);
   const searchId = useId();
   // Deeper than 1, a Task or Project is open over the list: the row, the saved views and the To sort row are hidden,
   // and Back is the first control.
@@ -260,7 +278,7 @@ export function WorkFullscreen({
         key={tab}
         tab={tab}
         entry={entries[tab]}
-        active={activeTab === tab && !sorting}
+        active={activeTab === tab && !sorting && !sortingTab}
         shown={active}
         onLoad={reads.load}
         onRetry={retry}
@@ -273,7 +291,10 @@ export function WorkFullscreen({
 
   // The Agenda tab is the dated agenda (Idag, Försenade): a waiting view that was left open, read for Claude or chosen
   // in the agenda, does not hold the tab, so pressing it reads the agenda again without that view.
-  function chooseTab(tab: WorkTab) {
+  function chooseTab(next: WorkShellTab) {
+    setSortingTab(next === "unsorted");
+    if (next === "unsorted") return;
+    const tab = next;
     setActiveTab(tab);
     if (
       tab === "agenda" &&
@@ -368,6 +389,7 @@ export function WorkFullscreen({
   const sortRow =
     unsorted &&
     unsorted.count > 0 &&
+    !unsortedTab &&
     !agendaOpen &&
     entries.agenda?.status !== "error" ? (
       <UnsortedOpenRow
@@ -382,8 +404,8 @@ export function WorkFullscreen({
   // error box (designsystem §3 "Tillstånd"). `refresh` in ⋯ reads the tab again, as `retry` does. + is off until
   // the tab's list has been read.
   const failed = (tab: WorkTab) => entries[tab]?.status === "error";
-  // While a Task or Project is open over a list, its tab row shows no tools.
-  const toolsShown = !isOpenOver(ui, activeTab);
+  // While a Task or Project is open over a list, its tab row shows no tools; To sort has none of its own.
+  const toolsShown = !isOpenOver(ui, activeTab) && !sortingTab;
   const savedViewsOffered = supportsTool?.("list_saved_work_views") !== false;
   function refresh(tab: WorkTab) {
     if (failed(tab)) retry(tab);
@@ -441,6 +463,24 @@ export function WorkFullscreen({
           initialTab={initialTab}
           tabs={offered}
           onTabChange={chooseTab}
+          unsorted={
+            unsortedTab
+              ? {
+                  label: labels.unsortedHeading,
+                  count: unsorted?.more
+                    ? undefined
+                    : unsorted?.count || undefined,
+                  content: (
+                    <UnsortedView
+                      transport={transports.sorting}
+                      labels={labels}
+                      onOpen={openCreated}
+                      onSorted={readUnsorted}
+                    />
+                  ),
+                }
+              : undefined
+          }
           agenda={
             <>
               {search("agenda", agendaOpen)}
@@ -479,19 +519,17 @@ export function WorkFullscreen({
               {panel("hierarchy")}
             </>
           }
-          tabsEnd={
-            <TabToolsEnd
-              tools={tools}
-              activeTab={activeTab}
-              shown={toolsShown}
-              createOff={entries[activeTab]?.status !== "ready"}
-              createOffered={offers("create_task")}
-              searchId={searchId}
-              searchLabel={searchLabel(activeTab)}
-              createLabel={newTaskLabels.field}
-              menus={TABS.filter((value) => offered.includes(value)).map(more)}
-            />
-          }
+          tools={tabHeadTools({
+            tools,
+            activeTab,
+            shown: toolsShown,
+            createOff: entries[activeTab]?.status !== "ready",
+            createOffered: offers("create_task"),
+            searchId,
+            searchLabel: searchLabel(activeTab),
+            createLabel: newTaskLabels.field,
+            menus: TABS.filter((value) => offered.includes(value)).map(more),
+          })}
         />
       </div>
     </div>

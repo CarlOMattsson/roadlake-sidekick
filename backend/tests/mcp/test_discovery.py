@@ -3,9 +3,11 @@
 from typing import Any
 
 import pytest
-from mcp.types import ToolAnnotations
+from fastmcp import Client
+from mcp.types import GetPromptResult, TextContent, ToolAnnotations
 
 from sidekick.api.app import create_container
+from sidekick.mcp.review import REVIEW_GUIDE
 from sidekick.mcp.server import create_mcp_server
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from tests.contract_counts import app_only_tool_names
@@ -202,7 +204,48 @@ async def test_server_instructions_name_the_work_card_and_stay_short() -> None:
     instructions = server.instructions or ""
     assert "show_work_changes" in instructions
     assert len(instructions.split("\n")) <= 30
-    assert len(instructions) <= 2400
+    # 2026-11-22: 2 400 to 2 450 for the row that sends a walk-through of many tasks to
+    # `get_review_queue` (about 65 characters; an out-of-date undo line was shortened to pay part).
+    assert len(instructions) <= 2450
+
+
+@pytest.mark.asyncio
+async def test_the_walkthrough_guide_is_written_once_and_the_instructions_only_point_to_it() -> (
+    None
+):
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    tools = await server.list_tools()
+    carriers = [tool.name for tool in tools if REVIEW_GUIDE in (tool.description or "")]
+    assert carriers == ["get_review_queue"]
+    assert "get_review_queue" in (server.instructions or "")
+    assert "behåll" not in (server.instructions or "")
+    # The voice rule for mass changes is part of the guide and of the write tool's own description.
+    assert "at most three tasks" in REVIEW_GUIDE
+    review = next(tool for tool in tools if tool.name == "review_tasks")
+    assert "at most three tasks" in (review.description or "")
+
+
+@pytest.mark.asyncio
+async def test_the_walkthrough_prompt_is_discovered_and_reuses_the_guide() -> None:
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    prompts = {prompt.name: prompt for prompt in await server.list_prompts()}
+    prompt = prompts["review_tasks_walkthrough"]
+    assert {argument.name for argument in prompt.arguments or []} == {"minutes", "scope"}
+    async with Client(server) as client:
+        text = _prompt_text(await client.get_prompt("review_tasks_walkthrough"))
+        timed = _prompt_text(
+            await client.get_prompt("review_tasks_walkthrough", {"minutes": "15", "scope": "all"})
+        )
+    assert REVIEW_GUIDE in text
+    assert 'scope "suggested"' in text
+    assert "about 15 minutes" in timed
+    assert 'scope "all"' in timed
+
+
+def _prompt_text(result: GetPromptResult) -> str:
+    content = result.messages[0].content
+    assert isinstance(content, TextContent)
+    return content.text
 
 
 @pytest.mark.asyncio

@@ -124,6 +124,32 @@ kontrollerar innan den lagras. Befintliga kontakter läses som utan Slack-profil
 (format 8, som ännu inte hade getts ut); en export i format 7 saknar kolumnen och dess kontakter återställs utan
 Slack-profil. En återrullning släpper kolumnen, vilket bara förlorar de länkar som lagts in sedan dess.
 
+## Migrering 116: automationer
+
+`116_automations.py` är en additiv (expand) migrering. Den lägger till sex tabeller för automationer: `automations`
+(ägarens register: instruktion, tillåtna effekter, schema, godkännande, en utgiftsgräns på en US-dollar per körning som
+förval och `model_tier`, `standard` eller `strong`), `automation_runs` (en rad per försök vid ett tillfälle, också
+serverkörarens kö; ett försök per tillfälle är aktivt åt gången), `automation_datapoints` (fakta som en körning läste,
+aldrig åtgärder), `automation_suggestions` (beslutskort), `automation_checks` (en rad per oberoende kontroll, koder ur
+en sluten mängd och ingen fri text) och `automation_report_cursors`. Definitionens digest (`spec_digest`, som omfattar
+`model_tier`) räknas av applikationen. Applikationsrollen får läsa, lägga till och ändra raderna men inte radera
+något, och `automation_checks` är bara-tillägg; en rad försvinner först med ägarens konto, genom främmande nycklar. Ingen
+data flyttas. En återställning släpper de sex tabellerna och förlorar bara automationsdata. Ägarexporten bär ännu inte
+tabellerna.
+
+## Migrering 117: fotometadata
+
+`117_journal_attachments.py` är en additiv (expand) migrering. Den lägger till `journal_attachments`, en rad per foto på
+en dagboksanteckning eller en dagboksdag: typen (JPEG eller WebP), storleken i byte (högst 4 MiB), måtten (högst 4096
+px), SHA-256-avtrycken för den lagrade filen och dess miniatyr, valfri alternativtext med vem som skrev den (`you` eller
+`claude`), tidpunkten då fotot togs när klienten skickade den, och positionen. Ett foto hör till exakt en av en
+anteckning (`entry_id`) eller en dag (`journal_date`); CHECK-villkor håller alla gränser, så databasen vägrar en rad som
+programmet aldrig borde skriva. Själva bytena ligger inte i PostgreSQL. Till skillnad från `journal_entries` har
+programrollen `DELETE` på tabellen, eftersom ett foto kan raderas ur papperskorgen; den har inga DDL-rättigheter och
+inget `TRUNCATE`. En rad försvinner med sin ägare eller anteckning via främmande nycklar. Fotots papperskorgsslag är
+`journal_attachment`; foton går aldrig till minnet. Ägarexporten bär ännu inte tabellen. En återrullning släpper
+tabellen, vilket bara förlorar fotometadatan.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de
