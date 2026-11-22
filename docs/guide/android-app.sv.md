@@ -17,7 +17,7 @@ Appen används dagligen på en riktig telefon mot en riktig server. Den byggs oc
 - **Dagbok:** läs dagar och inlägg, och skriv eller ändra inlägg för hand.
 - **Papperskorgen:** du kan flytta en uppgift, ett dagboksinlägg eller en vara till papperskorgen och ångra direkt. Under Inställningar ser du vad som ligger där, och du kan återställa det. Där kan du också radera en uppgift för gott, efter bekräftelse, om telefonen har fått den separata rättigheten för det. En uppgift med steg eller länkar tar du bort i Claude först. Dagboksinlägg och varor kan aldrig raderas för gott, varken i appen eller i Claude. Radering för gott kräver nät.
 - **Idag-widgeten:** dagens uppgifter på hemskärmen. [Läs om widgeten och påminnelserna](today-widget.sv.md).
-- **Inställningar:** status för aviseringar, en testavisering, appens språk, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
+- **Inställningar:** status för aviseringar, en testavisering, appens språk, vad rumsraden visar, telefonens anslutning, valet att koppla från telefonen och licensnyckeln.
 
 ## Det här gör appen inte
 
@@ -63,6 +63,10 @@ När du parar ihop telefonen får den en egen behörighet som bara gäller där.
 ## Språk
 
 Appens språk är en egen inställning och följer inte telefonens språk. Svenska är förval. Du väljer Svenska eller English på kopplingsskärmen eller i Inställningar. [Läs mer om språk](../reference/languages.sv.md).
+
+## Rumsraden
+
+Raden överst visar rummens namn. Under Rumsraden i Inställningar kan du välja Båda, en ikon före namnet på rummet du är i och ikoner för de andra, eller Ikoner, bara ikonerna. Text är förval. Valet sparas på telefonen. I Claude är samma val serverinställningen `SIDEKICK_MCP_APP_NAV_ICONS` (`off`, `label` eller `only`).
 
 ## Licens i appen
 

@@ -54,6 +54,26 @@ def test_the_ai_usage_row_is_declared_only_when_switched_on() -> None:
     assert shown.count('<meta name="sidekick-ai-usage" content="on">') == 1
 
 
+def test_the_room_strip_icons_are_declared_only_when_chosen() -> None:
+    html = "<html><head></head><body></body></html>"
+    assert Settings.model_fields["mcp_app_nav_icons"].default == "off"
+    assert "sidekick-nav-icons" not in with_app_context(html, "sv", [], None)
+    assert "sidekick-nav-icons" not in with_app_context(html, "sv", [], None, nav_icons="off")
+    for choice in ("label", "only"):
+        declared = with_app_context(html, "sv", [], None, nav_icons=choice)
+        assert declared.count(f'<meta name="sidekick-nav-icons" content="{choice}">') == 1
+
+
+def test_the_room_strip_icons_are_read_from_their_environment_variable(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SIDEKICK_MCP_APP_NAV_ICONS", "only")
+    assert Settings().mcp_app_nav_icons == "only"
+    monkeypatch.setenv("SIDEKICK_MCP_APP_NAV_ICONS", "big")
+    with pytest.raises(ValidationError):
+        Settings()
+
+
 def test_the_ai_usage_setting_is_read_from_its_environment_variable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

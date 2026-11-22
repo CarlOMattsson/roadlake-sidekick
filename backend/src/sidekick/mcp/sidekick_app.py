@@ -20,6 +20,7 @@ from sidekick.mcp.app_meta import (
 )
 from sidekick.shared.build_info import UpdateReminder
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE
+from sidekick.shared.config.mcp import NavIcons
 from sidekick.shared.locale import AppLocale
 from sidekick.shared.types import Actor
 
@@ -54,6 +55,7 @@ def register_sidekick_app_resource(
     license_view: Callable[[], LicenseView],
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
     show_ai_usage: bool = False,
+    nav_icons: NavIcons = "off",
 ) -> None:
     @mcp.resource(SIDEKICK_APP_URI, name="Sidekick", app=APP_RESOURCE)
     def sidekick_app() -> str:
@@ -61,5 +63,5 @@ def register_sidekick_app_resource(
         built = app_html_path()
         html = built.read_text(encoding="utf-8") if built.exists() else _NOT_BUILT
         return with_app_context(
-            html, locale, rooms, update, license_view(), owner_timezone, show_ai_usage
+            html, locale, rooms, update, license_view(), owner_timezone, show_ai_usage, nav_icons
         )

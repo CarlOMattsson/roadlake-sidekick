@@ -250,6 +250,45 @@
   margin-top: var(--sk-s2);
 }
 
+/* "Fotodetaljer ⌄" (row.css .sk-fold, the form "Kontaktvägar" has) 8 under the meta line, with what it holds as its
+   own meta line. Open: one row per field, the kind in meta type over the value in row type, a hairline between them,
+   44 at the least though nothing in it is a target. Read only: no map and no link. */
+.sk-photo-details {
+  min-width: 0;
+  margin-top: var(--sk-s2);
+}
+.sk-photo-details__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+}
+.sk-photo-details__row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--sk-tap);
+  padding: var(--sk-s1) 0;
+}
+.sk-photo-details__row + .sk-photo-details__row {
+  border-top: var(--sk-hairline) solid var(--sk-line);
+}
+.sk-photo-details__row dt {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+}
+.sk-photo-details__row dd {
+  display: grid;
+  margin: 0;
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+  overflow-wrap: anywhere;
+}
+.sk-photo-details__more {
+  color: var(--sk-muted);
+  font: var(--sk-type-meta);
+  font-variant-numeric: tabular-nums;
+}
+
 .sk-photo-viewer__status {
   position: absolute;
   width: 1px;

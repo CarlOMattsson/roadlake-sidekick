@@ -15,6 +15,7 @@ from fastmcp.apps import AppConfig, ResourceCSP
 from sidekick.license.key import LicenseView
 from sidekick.shared.build_info import UpdateReminder
 from sidekick.shared.config import DEFAULT_OWNER_TIMEZONE
+from sidekick.shared.config.mcp import NavIcons
 from sidekick.shared.locale import AppLocale
 from sidekick.shared.rooms import ordered
 
@@ -58,6 +59,18 @@ def with_enabled_rooms(html: str, rooms: Collection[str]) -> str:
     """
     content = ",".join(ordered(rooms))
     return html.replace("<head>", f'<head><meta name="sidekick-rooms" content="{content}">', 1)
+
+
+def with_nav_icons(html: str, nav_icons: NavIcons) -> str:
+    """Declares what the room strip draws (SIDEKICK_MCP_APP_NAV_ICONS): an icon before each
+    room's name, or the icons alone.
+
+    Without the meta (the default, `off`) the strip draws the rooms' names alone.
+    """
+    if nav_icons == "off":
+        return html
+    declared = f'<head><meta name="sidekick-nav-icons" content="{nav_icons}">'
+    return html.replace("<head>", declared, 1)
 
 
 def with_ai_usage(html: str, shown: bool) -> str:
@@ -110,14 +123,18 @@ def with_app_context(
     license_view: LicenseView | None = None,
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
     show_ai_usage: bool = False,
+    nav_icons: NavIcons = "off",
 ) -> str:
     """The app document with all the instance declares: language, time zone, rooms, update reminder,
-    license state and whether Control shows the AI cost. `license_view` `None` declares no
-    license."""
+    license state, whether Control shows the AI cost and what the room strip draws. `license_view`
+    `None` declares no license."""
     declared = with_update_reminder(
         with_enabled_rooms(with_app_locale(html, locale), rooms), update
     )
-    return with_ai_usage(
-        with_owner_timezone(with_license(declared, license_view), owner_timezone),
-        show_ai_usage,
+    return with_nav_icons(
+        with_ai_usage(
+            with_owner_timezone(with_license(declared, license_view), owner_timezone),
+            show_ai_usage,
+        ),
+        nav_icons,
     )

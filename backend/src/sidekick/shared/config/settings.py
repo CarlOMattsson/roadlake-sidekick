@@ -7,6 +7,7 @@ from sidekick.shared.config.backup import BackupSettings
 from sidekick.shared.config.database import DatabaseSettings
 from sidekick.shared.config.instance import InstanceSettings
 from sidekick.shared.config.license import LicenseSettings
+from sidekick.shared.config.media import MediaSettings
 from sidekick.shared.config.memory import MemorySettings
 from sidekick.shared.config.oauth import OAuthSettings
 from sidekick.shared.config.push import PushSettings
@@ -25,6 +26,7 @@ class Settings(
     MemorySettings,
     OAuthSettings,
     BackupSettings,
+    MediaSettings,
     SigningSettings,
     DatabaseSettings,
 ):

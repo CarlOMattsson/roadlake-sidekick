@@ -8,19 +8,24 @@ import {
 } from "react";
 
 import { BackHeader } from "./back-header";
+import { Fold } from "./fold";
 import { ChevronLeftIcon, ChevronRightIcon, MoreIcon } from "./icons";
 import { Menu, MenuItem, menuButtonKeys } from "./menu";
-import { photoLabelsFor } from "./photo-labels";
+import { photoLabelsFor, type PhotoLabels } from "./photo-labels";
 import {
   photoAlt,
   photoCaption,
+  photoCoordinates,
   photoDayLabel,
+  photoLocation,
+  photoTakenLabel,
   safePhotoSrc,
   type Photo,
 } from "./photos";
 import { useShortcuts } from "./shortcuts";
 import { ErrorNotice } from "./states";
 
+import "./row.css";
 import "./photos.css";
 
 /** What `load` answers: a `data:image/…` URL, or the photo's bytes as a Blob (turned into one here). */
@@ -72,11 +77,87 @@ function stageRatio(photo: Photo): number {
 type Loaded =
   { id: string; phase: "ready"; src: string } | { id: string; phase: "failed" };
 
+/** The rows of the details fold, in the order they are read: when, where, with what. Only the known ones. */
+function detailRows(
+  photo: Photo,
+  locale: string,
+  labels: PhotoLabels,
+): { kind: string; value: string; more?: string }[] {
+  const taken = photoTakenLabel(photo.taken_at, locale, "long");
+  const where = photoLocation(photo);
+  const camera = photo.camera?.trim();
+  const rows: { kind: string; value: string; more?: string }[] = [];
+  if (taken) rows.push({ kind: labels.taken, value: taken });
+  if (where) {
+    const coordinates = photoCoordinates(where, locale);
+    rows.push(
+      where.name
+        ? { kind: labels.place, value: where.name, more: coordinates }
+        : { kind: labels.place, value: coordinates },
+    );
+  }
+  if (camera) rows.push({ kind: labels.camera, value: camera });
+  return rows;
+}
+
+/**
+ * "Fotodetaljer ⌄" with what it holds as its meta line ("Tagen, plats och kamera"), so a saved location can be seen
+ * without opening it; open, one row per field: its kind over its value, the place name over its coordinates. Read
+ * only, no map and no link. Nothing is drawn when the photo carries none of the fields.
+ */
+function PhotoDetails({
+  photo,
+  locale,
+  open,
+  onToggle,
+}: {
+  photo: Photo;
+  locale: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const labels = photoLabelsFor(locale);
+  const listId = useId();
+  const rows = detailRows(photo, locale, labels);
+  if (!rows.length) return null;
+  const kinds = new Intl.ListFormat(locale).format(
+    rows.map((row) => row.kind.toLocaleLowerCase(locale)),
+  );
+  return (
+    <section className="sk-photo-details">
+      <Fold
+        text={labels.details}
+        meta={kinds.charAt(0).toLocaleUpperCase(locale) + kinds.slice(1)}
+        open={open}
+        onToggle={onToggle}
+        controls={open ? listId : undefined}
+      />
+      {open ? (
+        <dl id={listId} className="sk-photo-details__list">
+          {rows.map((row) => (
+            <div key={row.kind} className="sk-photo-details__row">
+              <dt>{row.kind}</dt>
+              <dd>
+                {row.value}
+                {row.more ? (
+                  <span className="sk-photo-details__more">{row.more}</span>
+                ) : null}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
 /**
  * The large photo, one at a time (designsystem §3 Foton): a layer with the Back row "‹ {backLabel}" and ⋯, the photo
  * fitted to the width (its size known before it loads, so nothing jumps), the caption under it in body text and
- * "2 av 5 · 14 nov" under that. ‹ and › stand on the photo's sides at the height a landscape photo has its middle, so
- * they stay put from a landscape to a portrait photo; ← and → step too, a sideways swipe steps on a touch screen, and
+ * "2 av 5 · 14 nov 09:30 · Visby" under that (when it was taken, or its day, and the place name when there is one),
+ * then "Fotodetaljer ⌄" with the time, the place and its coordinates and the camera. ‹ and › stand on the photo's
+ * sides at the height a landscape photo has its middle, so they stay put from a landscape to a portrait photo; ← and →
+ * step too, a sideways swipe steps on a touch screen, and
  * Esc closes (`onClose`, as the Back does). At either end the step is held off, drawn in --sk-border.
  *
  * The photo is fetched only when it is shown (`load(id)`, through the host bridge: a tool call), with the thumbnail
@@ -165,6 +246,8 @@ export function PhotoViewer({
     if (next) onChange(next.id);
   };
   const [menuOpen, setMenuOpen] = useState(false);
+  // Stays open from photo to photo, so stepping through a trip's places reads them one by one.
+  const [detailsOpen, setDetailsOpen] = useState(false);
   useShortcuts(
     {
       ArrowLeft: () => step(-1),
@@ -207,8 +290,17 @@ export function PhotoViewer({
 
   const name = photoAlt(photo, index, locale);
   const caption = photoCaption(photo);
-  const day = photo.date ? photoDayLabel(photo.date, locale) : null;
-  const position = labels.position(index + 1, photos.length);
+  // When it was taken, else the day it belongs to; then the place name. The coordinates wait in the details.
+  const when =
+    photoTakenLabel(photo.taken_at, locale) ??
+    (photo.date ? photoDayLabel(photo.date, locale) : null);
+  const meta = [
+    labels.position(index + 1, photos.length),
+    when,
+    photoLocation(photo)?.name,
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const preview = safePhotoSrc(photo.thumb);
   const first = index === 0;
   const last = index === photos.length - 1;
@@ -322,7 +414,7 @@ export function PhotoViewer({
         ) : null}
       </figure>
       <p className="sk-photo-viewer__meta" aria-live="polite">
-        {day ? `${position} · ${day}` : position}
+        {meta}
       </p>
       {!src && !failed ? (
         <p className="sk-photo-viewer__status" role="status">
@@ -340,6 +432,12 @@ export function PhotoViewer({
           }}
         />
       ) : null}
+      <PhotoDetails
+        photo={photo}
+        locale={locale}
+        open={detailsOpen}
+        onToggle={() => setDetailsOpen(!detailsOpen)}
+      />
     </section>
   );
 }

@@ -134,8 +134,9 @@ actions), `automation_suggestions` (decision cards), `automation_checks` (one ro
 closed set and no free text) and `automation_report_cursors`. The definition digest (`spec_digest`, which includes
 `model_tier`) is computed by the application. The application role may read, insert and update the tables but delete
 nothing, and `automation_checks` is append-only; a row leaves only with its owner's account, through the foreign keys.
-No data moves. Rolling it back drops the six tables, which loses only the automation data. The owner export does not
-carry the tables yet.
+No data moves. Rolling it back drops the six tables, which loses only the automation data. The owner export carries
+all six as collections (format 9); a format 8 export has none of them and restores no automations. A restore drops the
+approval of each automation and cancels a run that was in progress.
 
 ## Migration 117: photo metadata
 

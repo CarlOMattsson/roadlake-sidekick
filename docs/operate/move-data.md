@@ -10,7 +10,7 @@ Move your records from one 0.1.0 installation to another, for example to a new s
 
 Use this to move to a new server or a fresh database. The source must be a 0.1.0 installation that has an owner backup
 (`sidekick-backup create`, or the backup profile) or can make an owner export. The importer reads only the current
-format (format 8) and the four formats before it (format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
+format (format 9) and the five formats before it (format 8, written before automations existed, format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
 installation before 0.1.0: backups, exports, snapshots and SQL dumps from before 0.1.0 are not read, and
 `sidekick-backup import` cannot import them. Keep them as an archive.
 
@@ -30,6 +30,13 @@ the memory worker from the imported records.
 
 AI steps come with the backup, but an approved AI plan does not: approve it again on the new installation. A run that
 was queued or running is restored as cancelled.
+
+Automations come with the backup (the definitions, their runs, the facts they read, the suggestions and the checks of
+them), but an approval does not: approve each automation again on the new installation, so that two installations never
+run one definition on a single approval. A run that was queued, running or checking is restored as cancelled, with no
+lease and no reserved spending. A suggestion that names a project or a created record follows it to the new ids. A
+suggestion that was still being checked is shown as pending without a check. A suggestion you dismissed can be proposed
+again after the move, because the memory of what was proposed is tied to the installation.
 
 ## Size limit of the encrypted database snapshots
 

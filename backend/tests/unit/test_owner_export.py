@@ -10,6 +10,7 @@ from sidekick.owner_export.catalogue import (
     ACCEPTED_SCHEMA_HEADS_BY_FORMAT,
     COLLECTIONS_ADDED_IN_FORMAT_6,
     COLLECTIONS_ADDED_IN_FORMAT_8,
+    COLLECTIONS_ADDED_IN_FORMAT_9,
     COLUMNS_ADDED_IN_FORMAT_7,
     COLUMNS_ADDED_IN_FORMAT_8,
     EXCLUDED_COLLECTIONS,
@@ -18,6 +19,7 @@ from sidekick.owner_export.catalogue import (
     FOLDED_CHAIN_HEADS,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_AI_STEPS,
+    FORMAT_WITHOUT_AUTOMATIONS,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -416,14 +418,15 @@ def reseal(document: dict[str, Any]) -> dict[str, Any]:
     return document
 
 
-def test_current_export_is_format_eight_at_the_chain_head() -> None:
+def test_current_export_is_format_nine_at_the_chain_head() -> None:
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
     )
-    assert document["format_version"] == EXPORT_FORMAT_VERSION == 8
+    assert document["format_version"] == EXPORT_FORMAT_VERSION == 9
     assert document["schema_head"] == SCHEMA_HEAD
     assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_6
     assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_8
+    assert set(document["collections"]) >= COLLECTIONS_ADDED_IN_FORMAT_9
     assert "external_references" in document["collections"]
     assert "task_external_references" in document["collections"]
     assert "memory_settings" in document["collections"]
@@ -478,14 +481,19 @@ def test_a_format_4_export_from_the_baseline_or_the_folded_chain_is_still_accept
 
 def test_the_head_is_the_photo_metadata_migration_and_each_format_keeps_its_heads() -> None:
     """Migrations 112 and 115 add exported columns before format 8 is first released, so format 8
-    is written at 115 or later; migrations 116 and 117 add tables that are not exported yet (the
-    automations and the photo metadata), so a format 8 export written at 115, 116 or 117 is read.
-    Format 7 was written at 110 (no release stopped at 109) or at 111, which adds a credential
-    table that is never exported; migration 108 left the export alone, so format 6 was written at
-    107 or 108."""
+    was written at 115 or later; migration 116 adds the automation tables, which format 9 exports,
+    and migration 117 (the photo metadata) adds a table that no export carries yet. A format 8
+    export written at 115, 116 or 117 is read, and format 9 is written at 116 or later. Format 7
+    was written at 110 (no release stopped at 109) or at 111, which adds a credential table that
+    is never exported; migration 108 left the export alone, so format 6 was written at 107 or
+    108."""
 
     assert SCHEMA_HEAD == "117_journal_attachments"
     assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[EXPORT_FORMAT_VERSION] == {
+        "116_automations",
+        SCHEMA_HEAD,
+    }
+    assert ACCEPTED_SCHEMA_HEADS_BY_FORMAT[FORMAT_WITHOUT_AUTOMATIONS] == {
         "115_contact_slack_profile",
         "116_automations",
         SCHEMA_HEAD,
@@ -679,7 +687,7 @@ def test_any_other_schema_head_is_refused(head: object) -> None:
 
 
 def test_an_export_written_before_the_baseline_is_refused() -> None:
-    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 8 are."""
+    """Formats 1 to 3 (the retired chain) are no longer readable; only formats 4 to 9 are."""
 
     document = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)
@@ -746,7 +754,7 @@ def test_a_current_export_carries_the_profile_columns() -> None:
     )
 
 
-@pytest.mark.parametrize("version", [0, 1, 3, 9, "8", True, None, [8]])
+@pytest.mark.parametrize("version", [0, 1, 3, 10, "9", True, None, [9]])
 def test_a_format_version_that_the_head_never_wrote_is_refused(version: object) -> None:
     current = build_export_document(
         OWNER_ID, empty_collections(), exported_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC)

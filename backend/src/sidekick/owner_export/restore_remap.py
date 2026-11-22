@@ -15,6 +15,7 @@ from sidekick.owner_export.catalogue import (
     ExportSource,
 )
 from sidekick.owner_export.persistence import coerce_restore_value, is_derived_column
+from sidekick.owner_export.restore_automations import apply_restore_rules as apply_automation_rules
 
 _RESTORE_NAMESPACE = UUID("8db7a0e3-4f84-5c6a-9f7d-3e40ab69d4b8")
 POLYMORPHIC_SOURCE_NAMES = {
@@ -43,12 +44,30 @@ POLYMORPHIC_SOURCE_NAMES = {
 # Real foreign keys stay strict: they are resolved only through the catalogue.
 
 
+def _referenced_tables(column: Any) -> set[str]:
+    """The tables whose rows a reference to `column` points at.
+
+    A composite foreign key (a child that names its parent and, with it, the grandparent) can end
+    in a column that is itself a reference and not a key; the rows it points at are the ones that
+    column points at in turn.
+    """
+
+    if column.primary_key or column.name == "owner_id":
+        return {column.table.name}
+    return {
+        name
+        for foreign_key in column.foreign_keys
+        for name in _referenced_tables(foreign_key.column)
+    }
+
+
 def foreign_key_targets(source: ExportSource) -> dict[str, frozenset[str]]:
     targets: dict[str, set[str]] = {}
     for foreign_key in source.row_type.__table__.foreign_keys:
-        target = TABLE_TO_SOURCE.get(foreign_key.column.table.name)
-        if target is not None:
-            targets.setdefault(foreign_key.parent.name, set()).add(target)
+        for table in _referenced_tables(foreign_key.column):
+            target = TABLE_TO_SOURCE.get(table)
+            if target is not None:
+                targets.setdefault(foreign_key.parent.name, set()).add(target)
     return {field: frozenset(values) for field, values in targets.items()}
 
 
@@ -102,6 +121,8 @@ def _polymorphic_type(row: Mapping[str, Any], field: str) -> str | None:
     type_value = row.get("entity_type") or row.get("target_entity_type")
     if field == "aggregate_id":
         type_value = row.get("aggregate_type")
+    elif field == "applied_id":
+        type_value = row.get("applied_kind")
     return type_value if isinstance(type_value, str) else None
 
 
@@ -224,7 +245,7 @@ ACTIVE_AI_RUN_STATES = frozenset({"queued", "running"})
 AI_PLAN_APPROVAL_FIELDS = ("ai_plan_digest", "ai_plan_approved_at", "ai_task_cap_microusd")
 
 
-def _apply_restore_rules(remapped: dict[str, list[dict[str, Any]]]) -> None:
+def _apply_restore_rules(remapped: dict[str, list[dict[str, Any]]], target_owner_id: UUID) -> None:
     """Drop what a restored record must not carry over from the instance it was exported from.
 
     A Task's approved AI plan is not restored: the owner approves again on the new instance, as the
@@ -239,6 +260,7 @@ def _apply_restore_rules(remapped: dict[str, list[dict[str, Any]]]) -> None:
         if run.get("state") in ACTIVE_AI_RUN_STATES:
             run["state"] = "cancelled"
             run["lease_until"] = None
+    apply_automation_rules(remapped, lambda old_id, name: restore_id(old_id, target_owner_id, name))
 
 
 def remapped_restore_rows(
@@ -269,5 +291,5 @@ def remapped_restore_rows(
             }
             for row in rows
         ]
-    _apply_restore_rules(remapped)
+    _apply_restore_rules(remapped, target_owner_id)
     return remapped

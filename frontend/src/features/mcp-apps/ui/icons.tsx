@@ -204,13 +204,22 @@ export function ChevronDownIcon({ size = 24 }: { size?: 16 | 24 }) {
   );
 }
 
-/** The outline shell of the row glyphs below: 24 px, a 2 px round stroke in currentColor, like the other outline glyphs. */
-function Outline({ children }: { children: ReactNode }) {
+/** The sizes a room glyph is drawn at: 20 in the room strip, 24 everywhere else. */
+export type RoomIconProps = { size?: 20 | 24 };
+
+/**
+ * The outline shell of the glyphs below: a 24 box, a 2 px round stroke in currentColor, like the other outline glyphs.
+ * `size` draws the same box smaller (the room strip's 20).
+ */
+function Outline({
+  children,
+  size = 24,
+}: RoomIconProps & { children: ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      width="24"
-      height="24"
+      width={size}
+      height={size}
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
@@ -304,5 +313,94 @@ export function RepeatIcon() {
       <path d="M7 22l-4-4 4-4" />
       <path d="M21 13v1a4 4 0 0 1-4 4H3" />
     </svg>
+  );
+}
+
+/*
+ * The rooms' glyphs, for the room strip where the instance or the owner chose icons (nav-icons.ts). One family: calm
+ * outline shapes on the 24 box that still read at the strip's 20, each a thing its room is about and none of them a
+ * glyph an action already has (the strip's "more rooms" is four tiles, never the ⋯ of a room's tools).
+ */
+
+/** A house: the Start room. */
+export function HouseIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z" />
+    </Outline>
+  );
+}
+
+/** A ticked ring, the form of a Task that is done: the Work room. */
+export function CheckRingIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 12.5l2.5 2.5 4.5-5.5" />
+    </Outline>
+  );
+}
+
+/** A bound notebook with two written lines: the Journal room. */
+export function NotebookIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <rect x="5" y="3.5" width="14" height="17" rx="2" />
+      <path d="M9 3.5v17M12.5 8.5h3M12.5 12h3" />
+    </Outline>
+  );
+}
+
+/** A basket with its handle: the Shopping room. */
+export function BasketIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <path d="M3 10h18" />
+      <path d="M4.5 10l1.4 8a1.5 1.5 0 0 0 1.5 1.25h9.2a1.5 1.5 0 0 0 1.5-1.25l1.4-8" />
+      <path d="M8 10l3-5.5M16 10l-3-5.5" />
+    </Outline>
+  );
+}
+
+/** Two people: the Contacts room. */
+export function PeopleIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <circle cx="9" cy="8.5" r="3.25" />
+      <path d="M3 19.5a6 6 0 0 1 12 0" />
+      <path d="M15.5 5.4a3.25 3.25 0 0 1 0 6.2" />
+      <path d="M17.5 14a6 6 0 0 1 3.5 5.5" />
+    </Outline>
+  );
+}
+
+/** An open book: the Library room. */
+export function OpenBookIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <path d="M12 7v13" />
+      <path d="M12 7C10.5 5.5 8 5 4 5v13c4 0 6.5.5 8 2 1.5-1.5 4-2 8-2V5c-4 0-6.5.5-8 2z" />
+    </Outline>
+  );
+}
+
+/** A bolt: the Automations room. */
+export function BoltIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <path d="M13 3 5 13.5h6.5L10.5 21 19 10.5h-6.5z" />
+    </Outline>
+  );
+}
+
+/** Four tiles: the strip's last cell, the rooms that have no cell of their own. */
+export function TilesIcon({ size }: RoomIconProps) {
+  return (
+    <Outline size={size}>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </Outline>
   );
 }

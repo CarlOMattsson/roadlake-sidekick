@@ -85,6 +85,7 @@ export function SidekickShell({
   strip: stripAllowed = true,
   primaryRooms,
   moreRooms,
+  navIcons,
   registerBack,
   staleTick = 0,
 }: SidekickShellProps) {
@@ -138,6 +139,7 @@ export function SidekickShell({
   const roomStrip = useRoomStrip({
     primary: primaryRooms,
     more: moreRooms,
+    icons: navIcons,
     allowed: stripAllowed,
     active: nav.active,
     inControl,
@@ -484,13 +486,10 @@ export function SidekickShell({
                 barRef={barEl}
                 tabsRef={tabsEl}
                 strip={stripVisible}
-                stripRooms={stripRooms}
-                stripCurrent={roomStrip.current}
-                tabStop={roomStrip.tabStop}
+                roomStrip={roomStrip}
                 narrow={narrow}
                 onChoose={choose}
                 picker={picker}
-                more={roomStrip.moreParts}
                 back={
                   showBack
                     ? {

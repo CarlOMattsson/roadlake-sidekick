@@ -172,6 +172,17 @@ full-screen room; detail views mark the parent room. In Control the strip has no
 `aria-current`, labels all muted; the picker reads "Rum ⌄" / "Rooms ⌄", no item has `aria-checked`). It is
 `position: sticky` on the page colour and the fixed chrome is bounded: 96.4 at 110 %, 99 at 150 %, 104 at 200 %.
 
+*Glyphs in the strip* are a choice, never the default: names alone everywhere unless the instance
+(`SIDEKICK_MCP_APP_NAV_ICONS`, written into the app document as `sidekick-nav-icons`) or, on the phone, the owner
+(Inställningar → Rumsraden: Text · Båda · Ikoner) says otherwise. `label` puts a 20 glyph 6 before each name; `only`
+draws the glyph alone, and each cell then carries its name in `aria-label` and in `title` (the tooltip). The strip
+stays 40 and every target 48 in both. In a frame of 32 rem or less `label` draws the name in the room that is open and
+the glyph alone in the others, so the row holds on a phone instead of giving way to the picker; every cell is still
+named for assistive technology. In the wide head `only` makes every cell 48 wide. The glyphs are one family in
+`ui/icons.tsx` (2 px outline on the 24 box): house (Start), ticked ring (Arbete), notebook (Dagbok), basket (Inköp),
+two people (Kontakter), open book (Bibliotek), bolt (Automationer) and four tiles for Mer, which never borrows the ⋯
+of a room's tools. Mer's menu rows are names in every mode.
+
 **Room head (Rumshuvud)** is the row under the strip, 44 high. On the left are the room's tools: tabs (Work),
 a search field (Contacts) or the date title (Journal). The room's name is never repeated as a title. On the
 right are icon buttons in a fixed order counted from the right: ⋯ outermost, then +, then search; their centres
@@ -327,6 +338,37 @@ the state is the first part of the row's meta ("På · 214 anteckningar i minnet
 
 **Shopping.** A list with a progress row ("1 av 8 köpta" with a bar), "+ Lägg till vara" before the store groups, one ring per item (a tap on the ring buys, the rest of the row opens the item's edit form
 like a long press), and "Köpta (n) ⌄" as a fold row. The tip "Tryck på ringen när du köpt något." shows until the first use and then never again.
+
+**Decision card (Beslutskort).** One card for everything Sidekick or Claude proposes and the owner answers (a
+suggestion, a ready conversation, a suspicious suggestion), `DecisionCard`. Parts in fixed order: the trust note when
+the check found something, the kicker with the source ("Förslag · från Morgonmejl · 07:02", then "· ändrad av dig"
+when the owner edited it), the title (what changes, written by the server), the changes ("Roll: Projektledare", label
+muted), "Varför" and its sentence (meta, muted), and the answer row. **Avböj is on the left and Godkänn on the right,
+always.** Inline Godkänn is a compact secondary and Avböj a compact tertiary; in the full-screen detail Godkänn is the
+compact primary, Avböj a secondary and Ändra stands apart at the start; below 30 rem the two answers share the width,
+48 high. Inline shows at most two changes ("+n" for the rest) and "Varför" in two lines; under a trust note one change, no
+"Varför", and the note's first reason. The detail shows every change ("före → efter", the old value struck through),
+every reason and the check line ("Kontrollerad · säker 94 %", "Inte kontrollerad"). A failed answer puts its line under
+the buttons and the card stays; a decided card becomes its receipt ("Tillagd: Lena Holm · Öppna ›") and keeps its height
+while Ångra is offered. Inline the four states (ok, unsure, suspicious, a group of three with one taken out) are under
+250 at 320–412 (110 % text), sv and en.
+
+**Trust levels (Varningsläget).** Two levels, both amber (`--sk-warning-*`) and both with ⚠ and words, so colour never
+carries them alone; red is never used, because red means failure, overdue or delete. _Unsure_ ("Kontrollen var
+osäker: …") is the tinted band; the card keeps both answers but is never in a group. _Suspicious_ ("Misstänkt förslag:
+…") adds the warning line as an edge and a 3 px start bar, and the card has **no Godkänn**: inline it offers Avböj
+(framed, the suggested answer) and Granska, and shows no change; the detail has Avböj as the primary and "Godkänn ändå"
+as a tertiary that asks once ("Godkänna ett misstänkt förslag?", focus on Avbryt, Escape takes it back). The reasons are
+the app's own sentences for the server's closed codes (flags from the screen, reason codes from the checker), never
+text from a mail or a model. Suspicious: a suspicious verdict, or a flag for money, an imitated address or text aimed at
+an AI; unsure: an uncertain verdict or any other flag. Untrusted text (a line of the mail) is shown only in the detail,
+as `QuoteBlock` under "Ur mejlet, inte skrivet av Sidekick": plain text, no links, an address reduced to its domain.
+
+**Approve group (Godkänn alla).** The suggestions the server marked safe together (`ApproveGroup`; the app decides
+nothing): a heading ("3 säkra förslag"), one 44-high row per suggestion with a ring that is **filled while the row is
+in the group**, and one secondary button that counts ("Godkänn alla 3", "Godkänn 2"). A tap on a row takes it out or
+back; there is no "select all". Where Claude's voice mode answers, one confirmation covers at most three, and the rest
+are named under the button ("2 till efter de här, högst 3 åt gången"). A suspicious or unsure suggestion is never in it.
 
 ## 4. Decisions
 

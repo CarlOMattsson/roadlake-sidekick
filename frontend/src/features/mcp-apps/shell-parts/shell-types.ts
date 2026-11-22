@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 
 import type { AppLocale } from "@/features/mcp-apps/app-locale";
 import type { HostFeatures } from "@/features/mcp-apps/bridge";
+import type { NavIcons } from "@/features/mcp-apps/nav-icons";
 import type { NavEntry } from "@/features/mcp-apps/nav-state";
 import type { RoomId, StripRoomId } from "@/features/mcp-apps/router";
 
@@ -81,6 +82,11 @@ export type SidekickShellProps = {
    * is no Mer cell. The narrow room picker lists `primaryRooms` and then these.
    */
   moreRooms?: readonly StripRoomId[];
+  /**
+   * What the strip's cells draw: names, glyphs before the names, or glyphs alone (nav-icons.ts). A host where the
+   * owner chooses (the phone) passes the choice; absent, it is what the app document declares.
+   */
+  navIcons?: NavIcons;
   /**
    * Lets the host own system Back (Android). The shell calls this with a handler that returns true when it went back
    * one layer and false when it is at the root (the host then leaves the app), and with undefined on unmount. The MCP

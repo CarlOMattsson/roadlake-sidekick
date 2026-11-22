@@ -37,6 +37,7 @@ import {
 } from "@/features/mcp-apps/license-mark";
 import type { RoomTransport } from "@/features/mcp-apps/room-types";
 import type { SharedText, SidekickNativePlugin } from "./sidekick-native";
+import { useAppNavIcons } from "./app-nav-icons";
 import { useSafeAreaInsets } from "./insets";
 import { parseLaunchHint, startEntryOf } from "./launch-hint";
 import { PairingGateContext } from "./pairing-gate";
@@ -128,6 +129,8 @@ export function MobileApp({
   );
 
   useSafeAreaInsets(platform);
+  // What the room strip draws is the owner's choice here (Inställningar), kept on the phone.
+  const [navIcons, chooseNavIcons] = useAppNavIcons();
 
   // The widget draws its texts in the app's language, also after the language changes. A refusal is not the page's to show.
   useEffect(() => {
@@ -310,6 +313,7 @@ export function MobileApp({
             features={MOBILE_FEATURES}
             primaryRooms={MOBILE_STRIP_ROOMS}
             moreRooms={MOBILE_MORE_ROOMS}
+            navIcons={navIcons}
             registerBack={registerBack}
             staleTick={staleTick}
           />
@@ -341,6 +345,7 @@ export function MobileApp({
               from={settingsFrom}
               refreshKey={pushTick}
               onLocale={onLocale}
+              navIcons={{ value: navIcons, onChange: chooseNavIcons }}
               onOpenTrash={openTrash}
               onBack={closeSettings}
               onUnpaired={(serverRevoked) => gate?.unpaired(serverRevoked)}

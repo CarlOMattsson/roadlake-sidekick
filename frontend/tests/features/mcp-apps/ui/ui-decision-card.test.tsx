@@ -114,6 +114,8 @@ describe("DecisionCard", () => {
       "Misstänkt förslag",
     );
     expect(within(card).queryByRole("button", { name: /Godkänn/ })).toBeNull();
+    // It cannot be approved here, so it shows no changes: the detail behind Granska has them all.
+    expect(within(card).queryByRole("list")).toBeNull();
     const buttons = within(card).getAllByRole("button");
     expect(buttons.map((button) => button.textContent)).toEqual([
       "Avböj",

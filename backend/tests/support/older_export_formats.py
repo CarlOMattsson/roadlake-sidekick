@@ -1,4 +1,4 @@
-"""An owner export as an earlier format (4, 5, 6 or 7) wrote it, built from a current one."""
+"""An owner export as an earlier format (4, 5, 6, 7 or 8) wrote it, built from a current one."""
 
 from __future__ import annotations
 
@@ -8,10 +8,12 @@ from typing import Any
 from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_6,
     COLLECTIONS_ADDED_IN_FORMAT_8,
+    COLLECTIONS_ADDED_IN_FORMAT_9,
     COLUMNS_ADDED_IN_FORMAT_7,
     COLUMNS_ADDED_IN_FORMAT_8,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_AI_STEPS,
+    FORMAT_WITHOUT_AUTOMATIONS,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -43,6 +45,7 @@ def _resealed(
 
 HEAD_110 = "110_task_ambition"
 HEAD_111 = "111_webhook_tokens"
+HEAD_115 = "115_contact_slack_profile"
 
 
 def _without_columns(
@@ -61,13 +64,23 @@ def _without_columns(
     }
 
 
+def _format_8_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The collections without what format 9 added: the automation collections."""
+
+    return {
+        name: rows
+        for name, rows in document["collections"].items()
+        if name not in COLLECTIONS_ADDED_IN_FORMAT_9
+    }
+
+
 def _format_7_collections(document: Mapping[str, Any]) -> dict[str, Any]:
     """The collections without what format 8 added: the AI columns and the run collection."""
 
     return _without_columns(
         {
             name: rows
-            for name, rows in document["collections"].items()
+            for name, rows in _format_8_collections(document).items()
             if name not in COLLECTIONS_ADDED_IN_FORMAT_8
         },
         COLUMNS_ADDED_IN_FORMAT_8,
@@ -86,6 +99,13 @@ def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
         for name, rows in _format_6_collections(document).items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_6
     }
+
+
+def as_format_8(document: Mapping[str, Any], head: str = HEAD_115) -> dict[str, Any]:
+    """The document without the automation collections of format 9, stamped with `head` and
+    sealed again."""
+
+    return _resealed(document, FORMAT_WITHOUT_AUTOMATIONS, head, _format_8_collections(document))
 
 
 def as_format_7(document: Mapping[str, Any], head: str = HEAD_111) -> dict[str, Any]:

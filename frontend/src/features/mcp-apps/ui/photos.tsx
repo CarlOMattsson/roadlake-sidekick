@@ -27,6 +27,29 @@ export type Photo = {
   /** The large photo's size in pixels, so the viewer keeps its place while the photo loads. */
   width?: number;
   height?: number;
+  /**
+   * What the app read from the file before it was shrunk, kept as fields beside the clean image (never inside it).
+   * Only the viewer shows them; the tiles never do. `taken_at` is ISO 8601: with an offset it is shown in the reader's
+   * time, without one as the camera's wall clock.
+   */
+  taken_at?: string;
+  /** Where it was taken: the place name on the viewer's meta line, the coordinates only in its details. */
+  location?: PhotoLocation;
+  /** The camera or phone ("Pixel 8 Pro"). */
+  camera?: string;
+  /**
+   * The file's orientation (EXIF 1–8), kept as data and not drawn: the image was turned upright when it was
+   * re-encoded, so its pixels already stand the right way.
+   */
+  orientation?: number;
+};
+
+export type PhotoLocation = {
+  /** Degrees, WGS 84. */
+  lat: number;
+  lon: number;
+  /** The place name, when one is known ("Visby"). */
+  name?: string;
 };
 
 const RASTER =
@@ -52,6 +75,75 @@ export function photoDayLabel(date: string, locale: string): string | null {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
     .toLocaleDateString(locale, { day: "numeric", month: "short" })
     .replace(/\.$/, "");
+}
+
+const TAKEN =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/i;
+
+/**
+ * When a photo was taken, in words: "14 nov 09:30" on the viewer's meta line (`short`), "14 november 2026 09:30" in
+ * its details (`long`). The time is the camera's wall clock where the photo was taken, as the ISO value writes it: an
+ * offset is not converted, so a photo from a trip keeps its morning. Null for anything that is not a date and time.
+ */
+export function photoTakenLabel(
+  value: string | null | undefined,
+  locale: string,
+  form: "short" | "long" = "short",
+): string | null {
+  const match = typeof value === "string" ? TAKEN.exec(value.trim()) : null;
+  if (!match) return null;
+  const [year, month, day, hour, minute] = match.slice(1, 6).map(Number) as [
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const taken = new Date(year, month - 1, day, hour, minute);
+  // 2026-02-30 or 25:00 rolls over in Date; a camera never writes it, so it is not shown.
+  if (taken.getDate() !== day || hour > 23 || minute > 59) return null;
+  const date = taken
+    .toLocaleDateString(locale, {
+      day: "numeric",
+      month: form === "long" ? "long" : "short",
+      ...(form === "long" ? { year: "numeric" as const } : {}),
+    })
+    .replace(/\.$/, "");
+  const time = taken.toLocaleTimeString(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${date} ${time}`;
+}
+
+/** The location when its coordinates are real degrees, or null, so nothing half-made is shown. */
+export function photoLocation(photo: Photo): PhotoLocation | null {
+  const where = photo.location;
+  if (!where) return null;
+  const { lat, lon } = where;
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lon) ||
+    Math.abs(lat) > 90 ||
+    Math.abs(lon) > 180
+  )
+    return null;
+  const name = where.name?.trim();
+  return name ? { lat, lon, name } : { lat, lon };
+}
+
+/**
+ * The coordinates in words, four decimals (about 10 m): "57,6348° N, 18,2948° Ö" in Swedish, "57.6348° N,
+ * 18.2948° E" in English. Only the viewer's details show them: no tile, row or card does, and nothing links to a map.
+ */
+export function photoCoordinates(where: PhotoLocation, locale: string): string {
+  const [north, south, east, west] = photoLabelsFor(locale).compass;
+  const degrees = (value: number) =>
+    `${Math.abs(value).toLocaleString(locale, {
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    })}°`;
+  return `${degrees(where.lat)} ${where.lat < 0 ? south : north}, ${degrees(where.lon)} ${where.lon < 0 ? west : east}`;
 }
 
 /** The caption to show under a photo, or null when it has none (or only a file name). */

@@ -20,7 +20,10 @@ import {
   PhotoGrid,
   PhotoStrip,
   photoAlt,
+  photoCoordinates,
+  photoLocation,
   photoSlots,
+  photoTakenLabel,
   safePhotoSrc,
   type Photo,
 } from "@/features/mcp-apps/ui/photos";
@@ -234,12 +237,14 @@ function Viewer({
   start = "p1",
   actions,
   onClose = () => undefined,
+  locale = "sv-SE",
 }: {
   set: Photo[];
   load: (id: string) => Promise<PhotoSource>;
   start?: string;
   actions?: PhotoViewerAction[];
   onClose?: () => void;
+  locale?: string;
 }) {
   const [current, setCurrent] = useState(start);
   return (
@@ -250,11 +255,159 @@ function Viewer({
       onClose={onClose}
       load={load}
       backLabel="Helg i stugan"
-      locale="sv-SE"
+      locale={locale}
       actions={actions}
     />
   );
 }
+
+/** What the app read from the file: a morning in Visby, on a phone. */
+const VISBY: Partial<Photo> = {
+  taken_at: "2026-11-14T09:30:00+01:00",
+  location: { lat: 57.634_81, lon: 18.294_83, name: "Visby" },
+  camera: "Pixel 8 Pro",
+  orientation: 6,
+};
+
+describe("photo metadata", () => {
+  it("writes when a photo was taken as the camera's wall clock, and nothing for a value that is no date and time", () => {
+    expect(photoTakenLabel("2026-11-14T09:30:00+01:00", "sv-SE")).toBe(
+      "14 nov 09:30",
+    );
+    // A photo from a trip keeps its morning: the offset is not converted to the reader's zone.
+    expect(photoTakenLabel("2026-11-14T09:30:00-08:00", "sv-SE")).toBe(
+      "14 nov 09:30",
+    );
+    expect(photoTakenLabel("2026-11-14T09:30", "sv-SE", "long")).toBe(
+      "14 november 2026 09:30",
+    );
+    expect(photoTakenLabel("2026-11-14T09:30Z", "en-GB", "long")).toMatch(
+      /^14 November 2026 (?:at )?09:30$/,
+    );
+    for (const bad of [
+      "2026-11-14",
+      "2026-02-30T10:00",
+      "2026-11-14T25:00",
+      "igår",
+      undefined,
+    ])
+      expect(photoTakenLabel(bad, "sv-SE")).toBeNull();
+  });
+
+  it("writes the coordinates with four decimals and the locale's compass, and refuses degrees that are not real", () => {
+    const where = { lat: 57.634_81, lon: 18.294_83 };
+    expect(photoCoordinates(where, "sv-SE")).toBe("57,6348° N, 18,2948° Ö");
+    expect(photoCoordinates(where, "en-GB")).toBe("57.6348° N, 18.2948° E");
+    expect(photoCoordinates({ lat: -33.8568, lon: -70.6483 }, "sv-SE")).toBe(
+      "33,8568° S, 70,6483° V",
+    );
+    expect(
+      photoLocation({ id: "a", location: { lat: 91, lon: 0 } }),
+    ).toBeNull();
+    expect(
+      photoLocation({ id: "a", location: { lat: Number.NaN, lon: 0 } }),
+    ).toBeNull();
+    expect(
+      photoLocation({ id: "a", location: { lat: 1, lon: 2, name: "  " } }),
+    ).toEqual({ lat: 1, lon: 2 });
+  });
+
+  it("keeps time, place, coordinates and camera out of the tiles", () => {
+    render(
+      <>
+        <PhotoStrip
+          photos={photos(5, VISBY)}
+          locale="sv-SE"
+          onOpen={() => undefined}
+        />
+        <PhotoGrid
+          photos={photos(2, { ...VISBY, alt: "" })}
+          layout="fill"
+          locale="sv-SE"
+          onOpen={() => undefined}
+        />
+      </>,
+    );
+    const text = `${document.body.textContent} ${Array.from(
+      document.querySelectorAll("[aria-label], [alt]"),
+      (node) =>
+        `${node.getAttribute("aria-label") ?? ""} ${node.getAttribute("alt") ?? ""}`,
+    ).join(" ")}`;
+    for (const hidden of ["Visby", "57", "18,29", "09:30", "Pixel"])
+      expect(text).not.toContain(hidden);
+    expect(
+      screen.getByRole("img", { name: "Foto 1 från 14 nov" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows the time and the place name on the viewer's meta line, and the coordinates and camera only in its details", () => {
+    render(
+      <Viewer
+        set={photos(3, VISBY)}
+        load={() => new Promise(() => undefined)}
+      />,
+    );
+    expect(
+      screen.getByText("1 av 3 · 14 nov 09:30 · Visby"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/57,6348/)).toBeNull();
+    const fold = screen.getByRole("button", { name: /Fotodetaljer/ });
+    expect(fold).toHaveAttribute("aria-expanded", "false");
+    // The saved place can be seen without opening the fold.
+    expect(fold).toHaveTextContent("Tagen, plats och kamera");
+
+    fireEvent.click(fold);
+    expect(fold).toHaveAttribute("aria-expanded", "true");
+    const terms = Array.from(
+      document.querySelectorAll("dt"),
+      (dt) => dt.textContent,
+    );
+    expect(terms).toEqual(["Tagen", "Plats", "Kamera"]);
+    expect(screen.getByText("14 november 2026 09:30")).toBeInTheDocument();
+    const place = screen.getByText("Plats").nextElementSibling;
+    expect(place).toHaveTextContent("Visby57,6348° N, 18,2948° Ö");
+    expect(screen.getByText("Pixel 8 Pro")).toBeInTheDocument();
+    // Nothing links out: no map.
+    expect(document.querySelector(".sk-photo-details a")).toBeNull();
+
+    // Open from photo to photo.
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(
+      screen.getByText("2 av 3 · 14 nov 09:30 · Visby"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Fotodetaljer/ }),
+    ).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows coordinates alone without a place name, in English too, and no fold for a photo without the fields", () => {
+    const set = [
+      {
+        ...photos(1)[0],
+        id: "a",
+        location: { lat: 57.634_81, lon: 18.294_83 },
+      },
+      { ...photos(1)[0], id: "b" },
+    ] as Photo[];
+    render(
+      <Viewer
+        set={set}
+        start="a"
+        locale="en-GB"
+        load={() => new Promise(() => undefined)}
+      />,
+    );
+    expect(screen.getByText("1 of 2 · 14 Nov")).toBeInTheDocument();
+    const fold = screen.getByRole("button", { name: /Photo details/ });
+    expect(fold).toHaveTextContent("Place");
+    fireEvent.click(fold);
+    expect(screen.getByText("57.6348° N, 18.2948° E")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText("2 of 2 · 14 Nov")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Photo details/ })).toBeNull();
+  });
+});
 
 describe("PhotoViewer", () => {
   it("fetches only the photo on screen, steps with ← and →, and keeps a fetched photo", async () => {

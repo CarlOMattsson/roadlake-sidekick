@@ -5,6 +5,8 @@ import type { SidekickShellLabels } from "@/features/mcp-apps/sidekick-shell-lab
 import { UnsavedAsk } from "@/features/mcp-apps/unsaved-guard";
 import { BackHeader } from "@/features/mcp-apps/ui/back-header";
 import { KeyScope } from "@/features/mcp-apps/ui/key-scope";
+import type { RoomStrip } from "./room-strip";
+import { StripCellFace, stripCellNames } from "./strip-cell";
 
 /** The unsaved-edits question: shown under the bar while it is open for the layer on top. */
 export type ShellAsk = {
@@ -16,19 +18,20 @@ export type ShellAsk = {
 /**
  * The bar above the rooms: the room strip (its rooms and the Mer cell, or the narrow room picker), in a wide frame the room's head beside it on
  * the same row, the Back row with `collapse`, and the question about unsaved edits. Nothing here navigates by itself; every press goes to the shell.
+ *
+ * `roomStrip.icons` is what the cells draw (strip-cell.tsx). With glyphs a cell's face is one row in
+ * `.sk-rooms__cell`, and the strip says so in `data-icons`, which the styles read; with names alone the markup is the
+ * name and nothing more.
  */
 export function ShellBar({
   labels,
   barRef,
   tabsRef,
   strip,
-  stripRooms,
-  stripCurrent,
-  tabStop,
+  roomStrip: { rooms, current, tabStop, icons, moreParts: more },
   narrow,
   onChoose,
   picker,
-  more,
   back,
   collapse,
   ask,
@@ -39,16 +42,17 @@ export function ShellBar({
   tabsRef: Ref<HTMLDivElement>;
   /** False when the strip is not drawn (a host with one room, or one that cannot navigate). */
   strip: boolean;
-  /** The rooms with a cell of their own; the rooms of Mer are in `more`. */
-  stripRooms: readonly RoomId[];
-  stripCurrent: RoomId | undefined;
-  /** The room cell that is the strip's one tab stop; undefined when it is the Mer cell. */
-  tabStop: RoomId | undefined;
+  /**
+   * What the strip holds (room-strip.tsx): the rooms with a cell of their own, the one marked and the one tab stop,
+   * what the cells draw, and the Mer cell, last in the row, with its menu (both null when Mer has no room).
+   */
+  roomStrip: Pick<
+    RoomStrip,
+    "rooms" | "current" | "tabStop" | "icons" | "moreParts"
+  >;
   narrow: boolean;
   onChoose: (room: RoomId) => void;
   picker: { button: ReactNode; menu: ReactNode };
-  /** The Mer cell, last in the row, and its menu (strip-more.tsx); both null when Mer has no room. */
-  more: { cell: ReactNode; menu: ReactNode };
   /** The Back row: where it leads, what it does and where the layer on top puts its own actions. Absent: no Back. */
   back?: {
     label: string;
@@ -74,26 +78,42 @@ export function ShellBar({
   return (
     <div className="sk-rooms__bar" ref={barRef}>
       {strip ? (
-        <nav className="sk-rooms" aria-label={labels.stripLabel}>
+        <nav
+          className="sk-rooms"
+          aria-label={labels.stripLabel}
+          data-icons={icons === "off" ? undefined : icons}
+        >
           <KeyScope
             roving
             ref={tabsRef}
             className="sk-rooms__tabs"
             data-narrow={narrow || undefined}
           >
-            {stripRooms.map((room) => (
-              <button
-                key={room}
-                type="button"
-                className="sk-rooms__tab"
-                data-label={labels.rooms[room]}
-                aria-current={room === stripCurrent ? "page" : undefined}
-                tabIndex={room === tabStop ? 0 : -1}
-                onClick={() => onChoose(room)}
-              >
-                {labels.rooms[room]}
-              </button>
-            ))}
+            {rooms.map((room) => {
+              const name = labels.rooms[room];
+              const names = stripCellNames(icons, name);
+              return (
+                <button
+                  key={room}
+                  type="button"
+                  className="sk-rooms__tab"
+                  data-label={name}
+                  aria-label={names.label}
+                  title={names.tip}
+                  aria-current={room === current ? "page" : undefined}
+                  tabIndex={room === tabStop ? 0 : -1}
+                  onClick={() => onChoose(room)}
+                >
+                  {icons === "off" ? (
+                    name
+                  ) : (
+                    <span className="sk-rooms__cell">
+                      <StripCellFace icons={icons} room={room} name={name} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
             {more.cell}
           </KeyScope>
           {picker.button}

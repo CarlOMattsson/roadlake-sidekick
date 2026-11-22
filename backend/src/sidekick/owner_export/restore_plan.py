@@ -10,6 +10,7 @@ from uuid import UUID
 
 from sidekick.owner_export.catalogue import EXPORT_SOURCES, ExportRefused, ExportSource
 from sidekick.owner_export.document import ExportVerification, canonical_json, verify_export
+from sidekick.owner_export.restore_automations import require_valid_references, restore_warnings
 from sidekick.owner_export.restore_remap import (
     ACTIVE_AI_RUN_STATES,
     AI_PLAN_APPROVAL_FIELDS,
@@ -269,6 +270,7 @@ def build_restore_plan(
     tasks = cast(list[Mapping[str, Any]], collections["tasks"])
     _require_undated_ambitions(tasks)
     _require_consistent_ai_steps(cast(list[Mapping[str, Any]], collections["steps"]))
+    require_valid_references(cast(list[Mapping[str, Any]], collections["automation_suggestions"]))
     identity_map = restore_identity_map(document, target_owner_id)
     unresolved: list[str] = []
     collection_plans = tuple(
@@ -302,6 +304,10 @@ def build_restore_plan(
             "Authentication material, sessions, derived memory metadata, and operational "
             "worker state are not restorable from this export.",
             *_ai_warnings(tasks, cast(list[Mapping[str, Any]], collections["ai_step_runs"])),
+            *restore_warnings(
+                cast(list[Mapping[str, Any]], collections["automations"]),
+                cast(list[Mapping[str, Any]], collections["automation_runs"]),
+            ),
         ),
     )
 

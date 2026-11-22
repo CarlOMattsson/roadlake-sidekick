@@ -17,7 +17,7 @@ The app is in daily use on a real phone against a real server. It is also built 
 - **Journal:** read days and entries, and write or edit entries by hand.
 - **Trash:** you can move a task, a journal entry or a shopping item to the trash and undo it at once. Under Settings you see what is in the trash, and you can restore it. A task can also be deleted for good there, after a confirmation, if the phone has been given the separate permission for it. A task that still has steps or links must have them removed in Claude first. Journal entries and shopping items can never be deleted for good, not from the app and not from Claude. Deleting for good needs a connection.
 - **The Today widget:** today's tasks on your home screen. [Read about the widget and reminders](today-widget.md).
-- **Settings:** notification status, a test notification, the app's language, the phone's connection, the option to disconnect the phone and the license key.
+- **Settings:** notification status, a test notification, the app's language, what the room bar shows, the phone's connection, the option to disconnect the phone and the license key.
 
 ## What the app does not do
 
@@ -63,6 +63,10 @@ When pairing, the phone gets its own credential that is valid for that phone onl
 ## Language
 
 The app's language is its own setting and does not follow the phone's language. Swedish is the default. You choose Svenska or English on the pairing screen or in Settings. [Read more about languages](../reference/languages.md).
+
+## Room bar
+
+The bar at the top shows the rooms' names. Under Room bar in Settings you can choose Both, an icon before the name of the room you are in and icons for the others, or Icons, the icons alone. Text is the default. The choice is kept on the phone. In Claude the same choice is the server setting `SIDEKICK_MCP_APP_NAV_ICONS` (`off`, `label` or `only`).
 
 ## License in the app
 

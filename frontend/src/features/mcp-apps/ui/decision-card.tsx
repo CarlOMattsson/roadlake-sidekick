@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import { buttonClass } from "./button";
+import type { ApplyError } from "./decision-codes";
 import { decisionLabelsFor } from "./decision-labels";
 import { ChevronRightIcon } from "./icons";
 import { KeyScope } from "./key-scope";
@@ -30,23 +31,30 @@ import "./decision-card.css";
  * Review; in `full` Dismiss is the primary and "Godkänn ändå" a tertiary that asks once before it approves.
  *
  * Inline shows at most two changes, the rest counted on the last line, and "Varför" in at most two lines. Under a trust
- * note the note is the reason to read: one change and no "Varför", so an inline card stays within a phone's card
- * height. `full` shows every change ("före → efter" when `before` is given), the whole sentence and the check's line
+ * note the note is the reason to read: its first reason, one change and no "Varför", so an inline card stays within a
+ * phone's card height (`full` shows every reason). A suspicious card shows no change inline: it cannot be approved
+ * there, and a long value (an account number) would take the lines its reason needs; Review leads to all of them.
+ * `full` shows every change ("före → efter" when `before` is given), the whole sentence and the check's line
  * ("Kontrollerad · säker 94 %", "Inte kontrollerad"); `children` follow them in `full` (a QuoteBlock with the
  * untrusted text).
  *
+ * The trust comes from the server's closed codes through `decisionTrust` (decision-codes.ts), never from free text.
+ * `edited` adds "ändrad av dig" to the kicker when the owner changed the suggestion before deciding.
+ *
  * `busy` marks the answer in flight (both answers wait); `failed` puts the failure's line under the buttons and the
- * card stays. `decided` turns the card into its receipt ("Tillagd: Lena Holm · Öppna ›"); with `hold` the card keeps
- * the height it had while undecided, so nothing moves while the view's ReceiptBar offers Ångra, and it shrinks to the
- * receipt once `hold` is dropped. The view formats `source.at` (the owner's clock) and owns the receipt bar, the
- * keyboard shortcuts and the calls.
+ * card stays, with the server's `applyError` in words when it gave one. `decided` turns the card into its receipt
+ * ("Tillagd: Lena Holm · Öppna ›"); with `hold` the card keeps the height it had while undecided, so nothing moves
+ * while the view's ReceiptBar offers Ångra, and it shrinks to the receipt once `hold` is dropped. The view formats
+ * `source.at` (the owner's clock) and owns the receipt bar, the keyboard shortcuts and the calls.
  */
 export type DecisionTrustState = "ok" | "unsure" | "suspicious" | "off";
 
 export type DecisionTrust = {
   state: DecisionTrustState;
-  /** The check's reason, one sentence, for `unsure` and `suspicious`. */
+  /** The check's reason, one sentence, for `unsure` and `suspicious`: the one an inline card shows. */
   reason?: string;
+  /** Every reason, the first one first, when there are more: `full` shows them all. */
+  reasons?: readonly string[];
   /** The checker's confidence in per cent, for the `ok` line in `full`. */
   confidence?: number;
 };
@@ -72,6 +80,8 @@ export type DecisionCardProps = {
   /** Who proposed it; `at` is display text the view formats ("07:02", "i går 18:40"). */
   source?: { name: string; at?: string };
   trust?: DecisionTrust;
+  /** The owner changed the suggestion before deciding (the server's payload differs from the proposal). */
+  edited?: boolean;
   actions: {
     approve: () => void;
     dismiss: () => void;
@@ -87,6 +97,8 @@ export type DecisionCardProps = {
   frame?: boolean;
   busy?: DecisionAnswer;
   failed?: DecisionAnswer;
+  /** Why the server refused an approval; words for it replace the general failure line. */
+  applyError?: ApplyError;
   decided?: {
     message: string;
     open?: { label: string; onOpen: () => void };
@@ -108,12 +120,14 @@ export function DecisionCard({
   why,
   source,
   trust,
+  edited,
   actions,
   answerLabels,
   density = "inline",
   frame = true,
   busy,
   failed,
+  applyError,
   decided,
   headingLevel = 3,
   children,
@@ -173,12 +187,13 @@ export function DecisionCard({
 
   const shownChanges = full
     ? changes
-    : changes.slice(0, noted ? 1 : INLINE_CHANGES);
+    : changes.slice(0, suspicious ? 0 : noted ? 1 : INLINE_CHANGES);
   const hiddenChanges = changes.length - shownChanges.length;
   const kickerText = [
     kicker,
     source ? t.from(source.name) : null,
     source?.at ?? null,
+    edited ? t.edited : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -202,7 +217,11 @@ export function DecisionCard({
       {noted ? (
         <TrustNote
           state={suspicious ? "suspicious" : "unsure"}
-          reason={trust?.reason}
+          reason={
+            full && trust?.reasons?.length
+              ? trust.reasons.join(" ")
+              : trust?.reason
+          }
           locale={locale}
           flow={full ? "block" : "run"}
           className="sk-decision__trust"
@@ -263,7 +282,13 @@ export function DecisionCard({
         <ErrorNotice
           locale={locale}
           placement="row"
-          message={failed === "approve" ? t.failedApprove : t.failedDismiss}
+          message={
+            failed === "dismiss"
+              ? t.failedDismiss
+              : applyError
+                ? t.applyErrors[applyError]
+                : t.failedApprove
+          }
         />
       ) : null}
     </article>

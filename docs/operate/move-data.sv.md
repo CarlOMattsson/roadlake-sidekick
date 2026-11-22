@@ -10,7 +10,7 @@ Flytta dina poster från en installation av 0.1.0 till en annan, till exempel ti
 
 Använd detta för att flytta till en ny server eller en ny databas. Källan måste vara en 0.1.0-installation som har en
 ägarbackup (`sidekick-backup create`, eller backupprofilen) eller kan göra en ägarexport. Importen läser bara det
-nuvarande formatet (format 8) och de fyra formaten före det (format 7, skrivet innan AI-steg fanns, format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
+nuvarande formatet (format 9) och de fem formaten före det (format 8, skrivet innan automationer fanns, format 7, skrivet innan AI-steg fanns, format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
 importera data från en installation före 0.1.0: backuper, exporter, ögonblicksbilder och SQL-dumpar från före 0.1.0
 läses inte, och `sidekick-backup import` kan inte importera dem. Behåll dem som arkiv.
 
@@ -30,6 +30,13 @@ importerade posterna.
 
 AI-steg följer med backupen, men en godkänd AI-plan gör det inte: du godkänner den igen i den nya installationen. En körning
 som var köad eller pågick återställs som avbruten.
+
+Automationer följer med backupen (definitionerna, deras körningar, de fakta de läste, förslagen och kontrollerna av dem),
+men ett godkännande gör det inte: du godkänner varje automation igen i den nya installationen, så att två installationer
+aldrig kör en definition på ett enda godkännande. En körning som var köad, pågick eller kontrollerades återställs som
+avbruten, utan lease och utan reserverade kostnader. Ett förslag som pekar på ett projekt eller en skapad post följer med
+till de nya id:na. Ett förslag som fortfarande kontrollerades visas som väntande utan kontroll. Ett förslag du avfärdade
+kan föreslås igen efter flytten, eftersom minnet av vad som föreslagits är bundet till installationen.
 
 ## Storleksgräns för de krypterade databassnapshotarna
 

@@ -20,6 +20,13 @@ const photoEn = {
   loading: "Loading photo…",
   /** The large photo could not be fetched (the thumbnail stays). */
   loadError: "Couldn’t load the photo",
+  /** The viewer's fold with what was read from the file, and its rows. */
+  details: "Photo details",
+  taken: "Taken",
+  place: "Place",
+  camera: "Camera",
+  /** After a coordinate's degrees: north, south, east, west. */
+  compass: ["N", "S", "E", "W"] as readonly [string, string, string, string],
 };
 
 export type PhotoLabels = typeof photoEn;
@@ -35,6 +42,11 @@ const photoSv: PhotoLabels = {
   moreActions: "Fler val",
   loading: "Hämtar fotot…",
   loadError: "Fotot kunde inte hämtas",
+  details: "Fotodetaljer",
+  taken: "Tagen",
+  place: "Plats",
+  camera: "Kamera",
+  compass: ["N", "S", "Ö", "V"],
 };
 
 /** The texts for a room's locale ("sv-SE" or "en-GB"); Swedish unless the locale is English. */

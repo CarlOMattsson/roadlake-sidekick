@@ -129,6 +129,58 @@
   }
 }
 
+/* Glyphs in the cells (nav-icons.ts; the strip says which in data-icons): a 20 glyph, 6 before the room's name
+   (`label`) or alone (`only`). A cell's face is one centred row; 20 in the 32 cell, so the strip keeps its 40. In the
+   Mer cell the row is the one that holds its ⌄, 2 apart, so the name stands 4 further from the glyph. */
+.sk-rooms .sk-rooms__cell {
+  display: inline-flex;
+  align-items: center;
+}
+/* The cell centres its face itself: a glyph has no text line to stand in, so at large text it would hang from the
+   top of a taller cell. */
+.sk-rooms[data-icons] .sk-rooms__tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sk-rooms[data-icons] .sk-rooms__tab svg {
+  flex: none;
+}
+.sk-rooms .sk-rooms__name {
+  margin-inline-start: 6px;
+}
+.sk-rooms .sk-rooms__more-name > .sk-rooms__name {
+  margin-inline-start: var(--sk-s1);
+}
+/* Glyphs alone: a cell is never narrower than a touch target, and Mer's glyph and ⌄ keep the rooms' 4 at the sides. */
+.sk-rooms[data-icons="only"] .sk-rooms__tab {
+  min-width: 44px;
+}
+.sk-rooms[data-icons="only"] .sk-rooms__more {
+  padding-inline: var(--sk-s1);
+}
+/* Glyph and name in a phone's frame: five such cells do not fit one row, so the name is drawn where it says the most,
+   in the room that is open, and the other cells keep their glyph (each is still named, strip-cell.tsx). The row then
+   holds at every phone width instead of giving way to the room picker. */
+@container sk-frame (max-width: 32rem) {
+  .sk-rooms[data-icons="label"] .sk-rooms__tab:not([aria-current="page"]) {
+    min-width: 44px;
+  }
+  .sk-rooms[data-icons="label"]
+    .sk-rooms__tab:not([aria-current="page"])
+    .sk-rooms__name {
+    display: none;
+  }
+  .sk-rooms[data-icons="label"] .sk-rooms__more:not([aria-current="page"]) {
+    padding-inline: var(--sk-s1);
+  }
+  /* The open room's cell is as wide as its glyph and name where they need more than an equal share: 8 at its sides,
+     as Mer has, so the pill does not end at the glyph. */
+  .sk-rooms[data-icons="label"] .sk-rooms__tab[aria-current="page"] {
+    padding-inline: var(--sk-s2);
+  }
+}
+
 /* The touch target is the bar's top 48: from the bar's top edge, 8 above the strip, to the strip's foot,
    so it is 48 whether the bar rests or sticks at the window's top, and it ends where the tab row begins when stuck.
    It does not reach sideways. */
@@ -265,6 +317,24 @@
 }
 .sk-rooms__bar:has(> .sk-rooms__head) .sk-rooms .sk-rooms__tab::after {
   inset: calc(-2 * var(--sk-s1)) 0;
+}
+/* With a glyph before the name the hidden copy holds the glyph's 20 and its 6 as well; with glyphs alone there is no
+   name to hold a width for, and every cell is 48 wide. */
+.sk-rooms__bar:has(> .sk-rooms__head)
+  .sk-rooms[data-icons="label"]
+  .sk-rooms__tab:not(.sk-rooms__more)::before {
+  padding-inline-start: 26px;
+}
+.sk-rooms__bar:has(> .sk-rooms__head)
+  .sk-rooms[data-icons="only"]
+  .sk-rooms__tab {
+  width: 48px;
+  padding-inline: 0;
+}
+.sk-rooms__bar:has(> .sk-rooms__head)
+  .sk-rooms[data-icons="only"]
+  .sk-rooms__tab::before {
+  content: none;
 }
 /* Work's tab row is in the bar here, so what its list keeps sticky rests under the bar alone. */
 .sk-rooms-shell[data-head="on"] .sk-shell-list {

@@ -59,6 +59,11 @@ GROUPS: tuple[Group, ...] = (
     ),
     Group("Backups", "Scheduled encrypted database backups.", prefixes=("backup_",)),
     Group(
+        "Journal photos",
+        "Where the files of journal photos are kept.",
+        prefixes=("media_",),
+    ),
+    Group(
         "Derived memory",
         "Memory derived from records and sent to Hindsight.",
         prefixes=("memory_",),

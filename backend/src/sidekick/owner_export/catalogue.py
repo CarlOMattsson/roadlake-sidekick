@@ -19,6 +19,12 @@ from sidekick.shared.persistence.models import (
     ActionRow,
     ActivityEntryRow,
     AiStepRunRow,
+    AutomationCheckRow,
+    AutomationDatapointRow,
+    AutomationReportCursorRow,
+    AutomationRow,
+    AutomationRunRow,
+    AutomationSuggestionRow,
     ContactAliasRow,
     ContactRow,
     ContactTagRow,
@@ -55,7 +61,21 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 8
+EXPORT_FORMAT_VERSION = 9
+# Format 8 (written at migrations 115 to 117) has none of the six collections that migration 116
+# added: the automations, their runs, datapoints, suggestions and checks, and the report cursor. A
+# format 8 export is still read: those collections are simply absent and restore as empty.
+FORMAT_WITHOUT_AUTOMATIONS = 8
+COLLECTIONS_ADDED_IN_FORMAT_9: frozenset[str] = frozenset(
+    {
+        "automations",
+        "automation_runs",
+        "automation_datapoints",
+        "automation_suggestions",
+        "automation_checks",
+        "automation_report_cursors",
+    }
+)
 # Format 7 (written at migrations 110 and 111) has none of what migration 112 added: a Task's four
 # `ai_*` columns, a Step's `performer` and `ai_spec`, and the `ai_step_runs` collection. A format 7
 # export is still read: its Steps restore as the owner's own, its Tasks as having no AI mark or
@@ -118,8 +138,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("114_ai_erased_run_costs", True),
     # A Contact's Slack profile link: an exported column (format 8).
     ("115_contact_slack_profile", False),
-    # Automation tables; none is exported yet, so the export is unchanged until they are.
-    ("116_automations", True),
+    # Adds the automation tables, which are exported (format 9).
+    ("116_automations", False),
     # Photo metadata. Photos are not exported until the export format that carries them, so no
     # exported table or column changes yet.
     ("117_journal_attachments", True),
@@ -153,11 +173,15 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 
 # The schema heads an export may carry, by its format version. A format 4 export was written at the
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
-# at migration 107 or 108, a format 7 export at migration 110 or 111 and a format 8 export at
+# at migration 107 or 108, a format 7 export at migration 110 or 111, a format 8 export at
 # migration 115, 116 or 117 (112 and 115 added exported columns before format 8 was first
-# released; 116 and 117 added tables that no export carries yet).
+# released; the build that wrote 116 and 117 before format 9 existed wrote format 8) and a format 9
+# export at migration 116 or later.
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
+    FORMAT_WITHOUT_AUTOMATIONS: frozenset(
+        {"115_contact_slack_profile", "116_automations", "117_journal_attachments"}
+    ),
     FORMAT_WITHOUT_AI_STEPS: frozenset({"110_task_ambition", "111_webhook_tokens"}),
     FORMAT_WITHOUT_TASK_REVIEW: frozenset(
         {"107_contact_and_journal_entry_tags", "108_memory_forgotten_facts"}
@@ -224,6 +248,12 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("journal_entry_contacts", JournalEntryContactRow),
     ExportSource("daily_journal_summaries", DailyJournalSummaryRow),
     ExportSource("daily_journal_summary_entries", DailyJournalSummaryEntryRow),
+    ExportSource("automations", AutomationRow),
+    ExportSource("automation_runs", AutomationRunRow),
+    ExportSource("automation_datapoints", AutomationDatapointRow),
+    ExportSource("automation_suggestions", AutomationSuggestionRow),
+    ExportSource("automation_checks", AutomationCheckRow),
+    ExportSource("automation_report_cursors", AutomationReportCursorRow),
     # The forgotten-statement salt is not exported yet, and neither are the statements it keys
     # (`memory_forgotten_facts`). An export written now therefore restores without them.
     ExportSource("memory_settings", MemorySettingsRow, redacted_fields=frozenset({"forget_salt"})),

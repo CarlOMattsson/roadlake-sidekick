@@ -10,11 +10,11 @@ Do not copy these into a room. A room that needs a variant asks for a prop here.
 
 ## Navigation: one type per level
 
-| Level    | Component                                     | Use for                                                                                                                                                                                                                               |
-| -------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 rooms  | the shell's room strip (`sidekick-shell.css`) | Arbete · Dagbok · Inköp · Mer ⌄ (Kontakter is a row of Mer, `shell-parts/room-strip.tsx`). The active room is a raised pill (`--sk-nav-active-bg`, `--sk-nav-active-shadow`), never a frame. Each room button is 44 high (48 to tap). |
-| 2 views  | `Tabs` (`tabs.tsx`)                           | Views of one room: Agenda/Status/Projekt, Dag/Vecka, Borttaget/Historik/Sidekicks minne.                                                                                                                                              |
-| 3 values | `Segmented` (`segmented.tsx`)                 | A value inside a view (draft review choices). Not for navigation.                                                                                                                                                                     |
+| Level    | Component                                     | Use for                                                                                                                                                                                                                                                                                                                                |
+| -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 rooms  | the shell's room strip (`sidekick-shell.css`) | Arbete · Dagbok · Inköp · Mer ⌄ (Kontakter is a row of Mer, `shell-parts/room-strip.tsx`). The active room is a raised pill (`--sk-nav-active-bg`, `--sk-nav-active-shadow`), never a frame. Each room button is 44 high (48 to tap). Glyphs before the names, or alone, are an opt-in (`nav-icons.ts`, `shell-parts/strip-cell.tsx`). |
+| 2 views  | `Tabs` (`tabs.tsx`)                           | Views of one room: Agenda/Status/Projekt, Dag/Vecka, Borttaget/Historik/Sidekicks minne.                                                                                                                                                                                                                                               |
+| 3 values | `Segmented` (`segmented.tsx`)                 | A value inside a view (draft review choices). Not for navigation.                                                                                                                                                                                                                                                                      |
 
 ### `Tabs`
 
@@ -154,7 +154,8 @@ The inline card's one main link, always last, always with ›, inside `CardFoot`
 ## Photos: `PhotoStrip`, `PhotoGrid` (`photos.tsx`) and `PhotoViewer` (`photo-viewer.tsx`)
 
 ```ts
-type Photo = { id; thumb?: string /* data:image/… */; alt?; date?: "YYYY-MM-DD"; width?; height? }
+type Photo = { id; thumb?: string /* data:image/… */; alt?; date?: "YYYY-MM-DD"; width?; height?
+  taken_at?: string /* ISO 8601 */; location?: { lat; lon; name? }; camera?; orientation? /* EXIF 1–8 */ }
 
 <PhotoStrip photos locale onOpen(id) onMore?() size?: 64 | 40  max?: 4  label? />
 <PhotoGrid  photos locale onOpen(id) onMore?() layout?: "columns" | "fill"  rows?: 2  label? />
@@ -178,6 +179,18 @@ the keys first. `load(id)` runs only for the photo on screen (a tool call throug
 blurred in its place until it comes; the last 12 are kept, so a step back draws at once. A failed fetch keeps the
 thumbnail and shows "Fotot kunde inte hämtas" with "Försök igen".
 
+Metadata: the app reads the capture time, the location, the camera and the orientation from the file before it shrinks
+it, and they travel as fields beside the clean image (the file itself carries none). Only the viewer shows them. Its
+meta line becomes "2 av 5 · 14 nov 09:30 · Visby": when the photo was taken (else its day) and the place name when
+there is one. Under it, "Fotodetaljer ⌄" (the shared `Fold`) names what it holds ("Tagen, plats och kamera"), so a
+saved location can be seen without opening it. Open, it lists Tagen ("14 november 2026 09:30"), Plats (the name over
+"57,6348° N, 18,2948° Ö", or the coordinates alone) and Kamera, and it stays open from photo to photo. It has no map,
+no link, and no coordinates in any tile, row or card. `taken_at` is shown as the camera's wall clock (an offset is
+not converted), a value that is not a date and time is left out, and coordinates outside ±90/±180 are left out.
+`orientation` is kept as data and not drawn, because the re-encoded pixels are already upright. Editing and removing
+the fields belongs to the room. The field names are the client's assumption until the photo tools' schemas exist.
+`tests/e2e/photos-mcp-app.spec.ts` measures the tiles and the viewer on a test surface (no host, no bridge).
+
 Sources: only `data:image/png|jpeg|webp|gif|avif;base64,…` is drawn (`safePhotoSrc`), because the host's CSP allows
 `img-src 'self' data:` and no network. A Blob from `load` is read into a `data:` URL. Any other address (http, blob:,
 SVG) is refused and the tile shows the photo glyph, so it never becomes a request. Nothing logs a source, and a failed
@@ -188,19 +201,23 @@ fetch's cause is dropped. Names: the caption, or "Foto {n} från {dag}" without 
 
 One family for everything Sidekick or Claude proposes and the owner answers: suggestions, ready conversations and
 suspicious suggestions. The same words on the same buttons everywhere come from `decision-labels.ts` (sv and en with
-equal keys, picked by `locale`); what the suggestion says (title, changes, reason) comes from the server in the app's
-language. The view owns the calls, the receipt bar with Ångra, the keyboard shortcuts and the owner's clock.
+equal keys, picked by `locale`); what the suggestion says (title, changes, "why") comes from the server in the app's
+language. What a check found comes as closed codes and is put in words here (`decision-codes.ts`), so no text a mail
+or a model wrote reaches a trust note. The view owns the calls, the receipt bar with Ångra, the keyboard shortcuts and
+the owner's clock.
 
 ```ts
 <DecisionCard locale  kicker  title
   changes?: { label; value; before? }[]
   why?: string
   source?: { name: string; at?: string }          // `at` is display text the view formats ("07:02")
-  trust?: { state: "ok" | "unsure" | "suspicious" | "off"; reason?; confidence? }
+  trust?: { state: "ok" | "unsure" | "suspicious" | "off"; reason?; reasons?; confidence? }   // from decisionTrust
+  edited?: boolean                                // "ändrad av dig" after the source
   actions: { approve; dismiss; review?; edit? }   // review: a suspicious card's way to its detail
   answerLabels?: { approve?; dismiss? }           // "Starta", "Hoppa över idag" on a ready conversation
   density?: "inline" | "full"   frame?: boolean   // frame={false}: the detail pane beside a list
   busy?: "approve" | "dismiss"  failed?: "approve" | "dismiss"
+  applyError?: "project_gone" | "conflict" | "invalid_payload" | "not_permitted"
   decided?: { message; open?: { label; onOpen }; hold? }
   headingLevel?  children? />                     // children: shown in full, e.g. a QuoteBlock
 ```
@@ -210,16 +227,32 @@ language. The view owns the calls, the receipt bar with Ångra, the keyboard sho
   tertiary, at the card's end edge; in `full` Godkänn is the compact primary, Avböj a secondary and Ändra (with `edit`)
   stands apart at the start. A full card under 30 rem wide shares its width between the answers, 48 high.
 - Inline shows at most two changes (the rest as "+n" on the last line, read as "n ändringar till") and "Varför" in two
-  lines. Under a trust note it shows one change and no "Varför", heading and reason run together ("Kontrollen var
-  osäker: …"). `full` shows every change ("före → efter", read as "ändras till"), the whole sentence and the check's line
+  lines. Under a trust note it shows the first reason, one change (none on a suspicious card) and no "Varför", heading
+  and reason run together ("Kontrollen var osäker: …"). `full` shows every change ("före → efter", read as "ändras till"), the whole sentence and the check's line
   ("Kontrollerad · säker 94 %", "Inte kontrollerad").
 - **Suspicious** has no Godkänn on the card. Inline: Avböj (framed, the suggested answer) and Granska (`review`). Full:
   Avböj is the primary and "Godkänn ändå" a tertiary that asks "Godkänna ett misstänkt förslag?" once (focus on Avbryt,
   Escape takes the question back and returns the focus).
 - `busy` holds both answers (the running one reads "Godkänner…"); `failed` adds the failure's line under the buttons
-  ("Det gick inte att godkänna. Försök igen.") and the card stays. `decided` turns the card into its receipt
+  ("Det gick inte att godkänna. Försök igen.", or the `applyError` in words: "Något har ändrats sedan förslaget kom.
+  Uppdatera och försök igen.") and the card stays. `decided` turns the card into its receipt
   ("Tillagd: Lena Holm · Öppna ›"); with `hold` it keeps the undecided height while the view's ReceiptBar offers Ångra,
   then shrinks to the receipt when the view drops `hold` (the receipt's `onEnd`).
+
+```ts
+decisionTrust(check: SuggestionCheck, locale) → DecisionTrust
+// check: { check_state: "off"|"queued"|"checked"|"failed"; verdict?; confidence?; screening_flags?; reason_codes? }
+```
+
+The server's check as it keeps it (snake_case) to the card's trust. **Suspicious** when the verdict is `suspicious` or a
+suspicious flag is set (`payment_related`, `homoglyph_domain`, `instruction_like_text`: money, an imitated address,
+text aimed at an AI); **unsure** when the verdict is `uncertain` or any other flag is set (`contains_link`,
+`contact_detail_unverified`, `duplicate_existing`, `large_batch`, or a flag the app does not know yet); otherwise
+**ok** with the confidence when the check is done, and **off** ("Inte kontrollerad") when it is off, queued or failed.
+A warning verdict warns whatever the check state. The sentences are the flags' (suspicious first), then the checker's
+reason codes, each once: `reason` is the first, `reasons` all of them. An unknown code has no sentence. This is how
+the card _reads_ the codes; which cards may be grouped or decided by a tool is the server's rule (`bulk_eligible`).
+Fixtures in the server's shape: `suggestions` in the frontend UX test fixtures.
 
 ```ts
 <ApproveGroup locale  title  items: { id; label }[]  excluded: ReadonlySet<string>
