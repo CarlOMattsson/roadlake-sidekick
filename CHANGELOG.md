@@ -6,7 +6,7 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 
 ## [Unreleased]
 
-## [0.2.1] - 2026-11-20
+## [0.2.1] - 2026-11-22
 
 ### Added
 
@@ -27,6 +27,14 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
   as small menus by their button that close with Esc or a click outside.
 - The phone board shows one column at a time with tabs; a task's details read as a list of properties.
 - Contacts show who you are waiting on and when they were last in the journal, and offer a new task for that person.
+- On a computer: a list-and-detail layout for tasks, a room header with keyboard shortcuts (`g` then a number
+  switches room), a month rail in the journal, an "Att sortera" (To sort) tab for unsorted items, and Contacts
+  and Shopping laid out for the desktop.
+- A "More" menu in the room strip for the less used rooms (opened with `g 5`).
+- Review cards in Claude: flip cards and question cards for going through tasks one at a time.
+- A guided task review prompt (`review_tasks_walkthrough`) that lets Claude go through many tasks in few calls.
+- A page on the website about AI costs: why a Claude subscription is recommended, what it does not cover, and how
+  to pick providers and models with care when OpenRouter is used.
 
 ### Changed
 
@@ -39,6 +47,9 @@ All notable changes to Roadlake Sidekick are listed here. The format follows
 - The agenda groups a task by the earlier of its due date and follow-up, and moving overdue tasks also moves
   follow-ups.
 - A repeating task shows when it comes next.
+- Dependencies updated (frontend, website, Android and backend).
+- The database gets new tables prepared for coming features (automations and journal photos); nothing uses
+  them yet and existing data is untouched.
 
 ### Fixed
 
