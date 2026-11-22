@@ -10,18 +10,35 @@ call; the audit writer reads it (`sidekick.shared.change_source`). It reads the 
 visibility and the request's origin mark, never its arguments.
 """
 
+import logging
 from collections.abc import Mapping
-from typing import cast
+from typing import Final, cast
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from fastmcp.tools import ToolResult
 from mcp.types import CallToolRequestParams
 
+from sidekick.mcp.correlation import UNKNOWN_CORRELATION
+from sidekick.mcp.results import error_result
 from sidekick.shared.change_source import ChangeSource, change_source
+from sidekick.shared.errors import PermissionDeniedError
+from sidekick.shared.observability import safe_log_fields
+
+LOGGER = logging.getLogger("sidekick.mcp.tool")
 
 APP_ORIGIN_META = "com.roadlake.sidekick/origin"
 """The `_meta` key the Sidekick app puts on its `tools/call`; its value is `"app"`."""
+
+
+REQUIRES_PERSON_META: Final = "anthropic/requiresUserInteraction"
+"""The tool meta that marks a decision only the owner makes, confirmed by a person at every call."""
+
+
+def called_by_app(call_meta: Mapping[str, object] | None) -> bool:
+    """Whether the request carries the app's origin mark, which the model cannot add."""
+
+    return (call_meta or {}).get(APP_ORIGIN_META) == "app"
 
 
 def source_of_tool(meta: Mapping[str, object] | None) -> ChangeSource:
@@ -37,7 +54,7 @@ def source_of_call(
 ) -> ChangeSource:
     """`you` for an app-only tool or a call the app marked as its own, else `claude`."""
 
-    if (call_meta or {}).get(APP_ORIGIN_META) == "app":
+    if called_by_app(call_meta):
         return "you"
     return source_of_tool(tool_meta)
 
@@ -60,3 +77,52 @@ class ToolChangeSource(Middleware):
         )
         with change_source(source):
             return await call_next(context)
+
+
+def is_owner_decision(tool_meta: Mapping[str, object] | None) -> bool:
+    """Whether the tool is hidden from the model and always confirmed by a person (an approval)."""
+
+    return (
+        source_of_tool(tool_meta) == "you" and (tool_meta or {}).get(REQUIRES_PERSON_META) is True
+    )
+
+
+class OwnerDecisionsFromTheApp(Middleware):
+    """Refuse a call by name to an owner's decision unless the request comes from the app.
+
+    An approval or a spending decision is hidden from the model, but hiding is only a listing. The
+    server also refuses the call unless it carries the app's origin mark, which the model cannot
+    set, so a model that names the tool is refused before anything is read or written, and the
+    audit trail never labels such a call as the owner's. The refusal is the ordinary `forbidden`
+    result with the reason `app_only`.
+    """
+
+    def __init__(self, mcp: FastMCP) -> None:
+        self._mcp = mcp
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[CallToolRequestParams],
+        call_next: CallNext[CallToolRequestParams, ToolResult],
+    ) -> ToolResult:
+        tool = await self._mcp.get_tool(context.message.name)
+        if tool is None or not is_owner_decision(tool.meta):
+            return await call_next(context)
+        request = context.fastmcp_context.request_context if context.fastmcp_context else None
+        if called_by_app(request.meta if request else None):
+            return await call_next(context)
+        error = PermissionDeniedError("this decision is made in the app", reason="app_only")
+        refusal = error_result(error)
+        LOGGER.info(
+            "mcp_tool_failed",
+            extra=safe_log_fields(
+                {
+                    "correlation_id": (refusal.structured_content or {}).get(
+                        "correlation_id", UNKNOWN_CORRELATION
+                    ),
+                    "mcp_tool_name": context.message.name,
+                    "mcp_error_class": type(error).__name__,
+                }
+            ),
+        )
+        return refusal

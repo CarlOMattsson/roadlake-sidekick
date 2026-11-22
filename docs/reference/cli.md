@@ -55,7 +55,7 @@ Issue a personal access token for MCP clients and print it once.
 | --- | --- | --- | --- |
 | `--user-id` | `USER_ID` | yes | The user the token belongs to. |
 | `--label` | `LABEL` | yes | A name that tells the token apart in lists. |
-| `--scope` | `SCOPE` | no | A scope the client needs; repeat once per scope. Required: no scope is implied. One of `ai:run`, `automation:read`, `automation:write`, `contacts:read`, `contacts:write`, `journal:read`, `journal:write`, `license:write`, `projects:read`, `projects:write`, `shopping:read`, `shopping:write`, `tasks:read`, `tasks:write`. Repeatable. |
+| `--scope` | `SCOPE` | no | A scope the client needs; repeat once per scope. Required: no scope is implied. One of `ai:run`, `automation:read`, `automation:run`, `automation:write`, `contacts:read`, `contacts:write`, `journal:read`, `journal:write`, `license:write`, `projects:read`, `projects:write`, `shopping:read`, `shopping:write`, `tasks:read`, `tasks:write`. Repeatable. |
 | `--expires-in-days` | `1..365` | no | Token lifetime in days (default 90). Cannot be combined with `--never-expires`. |
 | `--never-expires` | - | no | Issue a token without an end date; revoke it with revoke-token when done. Cannot be combined with `--expires-in-days`. |
 

@@ -88,6 +88,8 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
         ),
         "projects:read",
     ),
+    # Automations: the reply carries the automation with its instruction.
+    **dict.fromkeys(("save_automation", "approve_automation"), "automation:read"),
     **dict.fromkeys(
         (
             "create_contact",

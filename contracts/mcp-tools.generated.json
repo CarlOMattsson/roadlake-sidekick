@@ -32317,5 +32317,1490 @@
       "type": "object"
     },
     "title": "Visa AI-anv\u00e4ndning"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Lista automationer"
+    },
+    "description": "List the owner's automations (drafts, active and paused ones unless state is given): title, state, runner, model tier, whether the approved spec still matches the current one, and how many suggestions wait. Use the id and version with get_automation and save_automation.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "limit": {
+          "default": 25,
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "state": {
+          "anyOf": [
+            {
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "archived"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "type": "object"
+    },
+    "name": "list_automations",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "additionalProperties": false,
+            "description": "One automation in a list: where it stands, without its text.",
+            "properties": {
+              "approval": {
+                "enum": [
+                  "not_approved",
+                  "approved",
+                  "changed_since_approval"
+                ],
+                "title": "ApprovalState",
+                "type": "string"
+              },
+              "changed_since_approval": {
+                "title": "Changed Since Approval",
+                "type": "boolean"
+              },
+              "id": {
+                "format": "uuid",
+                "title": "Id",
+                "type": "string"
+              },
+              "last_run_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Last Run At"
+              },
+              "model_tier": {
+                "description": "Which model a server run uses: a very cheap one, or the configured Anthropic model.",
+                "enum": [
+                  "standard",
+                  "strong"
+                ],
+                "title": "ModelTier",
+                "type": "string"
+              },
+              "pending_suggestions": {
+                "title": "Pending Suggestions",
+                "type": "integer"
+              },
+              "runnable": {
+                "description": "Active and approved at exactly its current spec.",
+                "title": "Runnable",
+                "type": "boolean"
+              },
+              "runner": {
+                "enum": [
+                  "claude",
+                  "claude_code",
+                  "server",
+                  "any"
+                ],
+                "title": "Runner",
+                "type": "string"
+              },
+              "state": {
+                "enum": [
+                  "draft",
+                  "active",
+                  "paused",
+                  "archived"
+                ],
+                "title": "AutomationState",
+                "type": "string"
+              },
+              "title": {
+                "title": "Title",
+                "type": "string"
+              },
+              "version": {
+                "title": "Version",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "state",
+              "runner",
+              "model_tier",
+              "approval",
+              "changed_since_approval",
+              "runnable",
+              "pending_suggestions",
+              "version"
+            ],
+            "title": "AutomationSummary",
+            "type": "object"
+          },
+          "maxItems": 50,
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "AutomationPageOutput",
+      "type": "object"
+    },
+    "title": "Lista automationer"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Visa automation"
+    },
+    "description": "Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves and its approval state. Only an active automation approved at exactly its current spec can run.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "automation_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "automation_id"
+      ],
+      "type": "object"
+    },
+    "name": "get_automation",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "automation": {
+          "additionalProperties": false,
+          "description": "One automation in full: the spec the owner approves and the digest that binds it.",
+          "properties": {
+            "allowed_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Allowed Effects",
+              "type": "array"
+            },
+            "apply_mode": {
+              "enum": [
+                "suggest",
+                "auto_low_risk"
+              ],
+              "title": "ApplyMode",
+              "type": "string"
+            },
+            "approval": {
+              "enum": [
+                "not_approved",
+                "approved",
+                "changed_since_approval"
+              ],
+              "title": "ApprovalState",
+              "type": "string"
+            },
+            "approved_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Approved At"
+            },
+            "auto_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Auto Effects",
+              "type": "array"
+            },
+            "auto_threshold": {
+              "title": "Auto Threshold",
+              "type": "integer"
+            },
+            "bulk_threshold": {
+              "title": "Bulk Threshold",
+              "type": "integer"
+            },
+            "cadence": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "When a scheduled run is due: a recurrence rule plus the local time of day.",
+                  "properties": {
+                    "day_of_month": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Day Of Month"
+                    },
+                    "frequency": {
+                      "title": "Frequency",
+                      "type": "string"
+                    },
+                    "interval": {
+                      "default": 1,
+                      "title": "Interval",
+                      "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
+                    "local_time": {
+                      "title": "Local Time",
+                      "type": "string"
+                    },
+                    "until": {
+                      "anyOf": [
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Until"
+                    },
+                    "weekdays": {
+                      "default": [],
+                      "items": {
+                        "type": "integer"
+                      },
+                      "title": "Weekdays",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "frequency",
+                    "local_time"
+                  ],
+                  "title": "Cadence",
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "changed_since_approval": {
+              "title": "Changed Since Approval",
+              "type": "boolean"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "instruction": {
+              "title": "Instruction",
+              "type": "string"
+            },
+            "last_run_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Run At"
+            },
+            "max_suggestions_per_run": {
+              "title": "Max Suggestions Per Run",
+              "type": "integer"
+            },
+            "model_tier": {
+              "description": "Which model a server run uses: a very cheap one, or the configured Anthropic model.",
+              "enum": [
+                "standard",
+                "strong"
+              ],
+              "title": "ModelTier",
+              "type": "string"
+            },
+            "pending_suggestions": {
+              "title": "Pending Suggestions",
+              "type": "integer"
+            },
+            "purpose": {
+              "title": "Purpose",
+              "type": "string"
+            },
+            "run_budget_usd": {
+              "title": "Run Budget Usd",
+              "type": "number"
+            },
+            "runnable": {
+              "description": "Active and approved at exactly its current spec.",
+              "title": "Runnable",
+              "type": "boolean"
+            },
+            "runner": {
+              "enum": [
+                "claude",
+                "claude_code",
+                "server",
+                "any"
+              ],
+              "title": "Runner",
+              "type": "string"
+            },
+            "sources": {
+              "items": {
+                "enum": [
+                  "mail",
+                  "calendar",
+                  "chat",
+                  "web",
+                  "sidekick",
+                  "manual"
+                ],
+                "title": "Source",
+                "type": "string"
+              },
+              "title": "Sources",
+              "type": "array"
+            },
+            "spec_digest": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Spec Digest",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "archived"
+              ],
+              "title": "AutomationState",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "state",
+            "runner",
+            "model_tier",
+            "approval",
+            "changed_since_approval",
+            "runnable",
+            "pending_suggestions",
+            "version",
+            "purpose",
+            "instruction",
+            "sources",
+            "allowed_effects",
+            "apply_mode",
+            "auto_effects",
+            "bulk_threshold",
+            "auto_threshold",
+            "max_suggestions_per_run",
+            "run_budget_usd",
+            "spec_digest",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "AutomationRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "automation"
+      ],
+      "title": "AutomationOutput",
+      "type": "object"
+    },
+    "title": "Visa automation"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Spara automation"
+    },
+    "description": "Draft a new automation (leave out automation_id; needs title, purpose and instruction) or change one at expected_version. A proposal: any change to the spec withdraws the owner's approval and an active automation returns to draft; only the owner approves it, in the app. An automation only proposes changes the owner decides. Null in changes means not sent; to empty a field, list it in clear.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "automation_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "changes": {
+          "additionalProperties": false,
+          "description": "Fields to change: omitted or null stays; to empty a field, list it in clear.",
+          "properties": {
+            "allowed_effects": {
+              "anyOf": [
+                {
+                  "items": {
+                    "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                    "enum": [
+                      "create_task",
+                      "create_contact"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "What a suggestion may propose."
+            },
+            "apply_mode": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "suggest",
+                    "auto_low_risk"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "archived": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "True archives it, false restores it."
+            },
+            "auto_effects": {
+              "anyOf": [
+                {
+                  "items": {
+                    "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                    "enum": [
+                      "create_task",
+                      "create_contact"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "auto_threshold": {
+              "anyOf": [
+                {
+                  "maximum": 99,
+                  "minimum": 90,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "bulk_threshold": {
+              "anyOf": [
+                {
+                  "maximum": 99,
+                  "minimum": 80,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "cadence": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "When a scheduled run is due: a recurrence rule plus the local time of day.",
+                  "properties": {
+                    "day_of_month": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null
+                    },
+                    "frequency": {
+                      "type": "string"
+                    },
+                    "interval": {
+                      "default": 1,
+                      "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "type": "boolean"
+                    },
+                    "local_time": {
+                      "type": "string"
+                    },
+                    "until": {
+                      "anyOf": [
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null
+                    },
+                    "weekdays": {
+                      "default": [],
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "frequency",
+                    "local_time"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "When it is due. Clear it for owner-started runs only."
+            },
+            "instruction": {
+              "anyOf": [
+                {
+                  "maxLength": 4000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_suggestions_per_run": {
+              "anyOf": [
+                {
+                  "maximum": 25,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model_tier": {
+              "anyOf": [
+                {
+                  "description": "Which model a server run uses: a very cheap one, or the configured Anthropic model.",
+                  "enum": [
+                    "standard",
+                    "strong"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paused": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "purpose": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "run_budget_usd": {
+              "anyOf": [
+                {
+                  "exclusiveMinimum": 0,
+                  "maximum": 1000.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "runner": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "claude",
+                    "claude_code",
+                    "server",
+                    "any"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "sources": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "mail",
+                      "calendar",
+                      "chat",
+                      "web",
+                      "sidekick",
+                      "manual"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        "clear": {
+          "anyOf": [
+            {
+              "description": "Fields to empty, by name; not also in changes.",
+              "items": {
+                "const": "cadence",
+                "type": "string"
+              },
+              "type": "array",
+              "uniqueItems": true
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expected_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "changes"
+      ],
+      "type": "object"
+    },
+    "name": "save_automation",
+    "outputSchema": {
+      "additionalProperties": false,
+      "description": "The reply of `save_automation`: the record, and the nulls that were read as not sent.",
+      "properties": {
+        "automation": {
+          "additionalProperties": false,
+          "description": "One automation in full: the spec the owner approves and the digest that binds it.",
+          "properties": {
+            "allowed_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Allowed Effects",
+              "type": "array"
+            },
+            "apply_mode": {
+              "enum": [
+                "suggest",
+                "auto_low_risk"
+              ],
+              "title": "ApplyMode",
+              "type": "string"
+            },
+            "approval": {
+              "enum": [
+                "not_approved",
+                "approved",
+                "changed_since_approval"
+              ],
+              "title": "ApprovalState",
+              "type": "string"
+            },
+            "approved_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Approved At"
+            },
+            "auto_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Auto Effects",
+              "type": "array"
+            },
+            "auto_threshold": {
+              "title": "Auto Threshold",
+              "type": "integer"
+            },
+            "bulk_threshold": {
+              "title": "Bulk Threshold",
+              "type": "integer"
+            },
+            "cadence": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "When a scheduled run is due: a recurrence rule plus the local time of day.",
+                  "properties": {
+                    "day_of_month": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Day Of Month"
+                    },
+                    "frequency": {
+                      "title": "Frequency",
+                      "type": "string"
+                    },
+                    "interval": {
+                      "default": 1,
+                      "title": "Interval",
+                      "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
+                    "local_time": {
+                      "title": "Local Time",
+                      "type": "string"
+                    },
+                    "until": {
+                      "anyOf": [
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Until"
+                    },
+                    "weekdays": {
+                      "default": [],
+                      "items": {
+                        "type": "integer"
+                      },
+                      "title": "Weekdays",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "frequency",
+                    "local_time"
+                  ],
+                  "title": "Cadence",
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "changed_since_approval": {
+              "title": "Changed Since Approval",
+              "type": "boolean"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "instruction": {
+              "title": "Instruction",
+              "type": "string"
+            },
+            "last_run_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Run At"
+            },
+            "max_suggestions_per_run": {
+              "title": "Max Suggestions Per Run",
+              "type": "integer"
+            },
+            "model_tier": {
+              "description": "Which model a server run uses: a very cheap one, or the configured Anthropic model.",
+              "enum": [
+                "standard",
+                "strong"
+              ],
+              "title": "ModelTier",
+              "type": "string"
+            },
+            "pending_suggestions": {
+              "title": "Pending Suggestions",
+              "type": "integer"
+            },
+            "purpose": {
+              "title": "Purpose",
+              "type": "string"
+            },
+            "run_budget_usd": {
+              "title": "Run Budget Usd",
+              "type": "number"
+            },
+            "runnable": {
+              "description": "Active and approved at exactly its current spec.",
+              "title": "Runnable",
+              "type": "boolean"
+            },
+            "runner": {
+              "enum": [
+                "claude",
+                "claude_code",
+                "server",
+                "any"
+              ],
+              "title": "Runner",
+              "type": "string"
+            },
+            "sources": {
+              "items": {
+                "enum": [
+                  "mail",
+                  "calendar",
+                  "chat",
+                  "web",
+                  "sidekick",
+                  "manual"
+                ],
+                "title": "Source",
+                "type": "string"
+              },
+              "title": "Sources",
+              "type": "array"
+            },
+            "spec_digest": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Spec Digest",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "archived"
+              ],
+              "title": "AutomationState",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "state",
+            "runner",
+            "model_tier",
+            "approval",
+            "changed_since_approval",
+            "runnable",
+            "pending_suggestions",
+            "version",
+            "purpose",
+            "instruction",
+            "sources",
+            "allowed_effects",
+            "apply_mode",
+            "auto_effects",
+            "bulk_threshold",
+            "auto_threshold",
+            "max_suggestions_per_run",
+            "run_budget_usd",
+            "spec_digest",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "AutomationRecord",
+          "type": "object"
+        },
+        "ignored_nulls": {
+          "description": "Fields sent as null and ignored; to empty a field, name it in clear.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Ignored Nulls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "automation"
+      ],
+      "title": "SavedAutomationOutput",
+      "type": "object"
+    },
+    "title": "Spara automation"
+  },
+  {
+    "_meta": {
+      "anthropic/requiresUserInteraction": true,
+      "ui": {
+        "visibility": [
+          "app"
+        ]
+      }
+    },
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": false,
+      "title": "Godk\u00e4nn automation"
+    },
+    "description": "App-only. The owner approves the automation whose spec has this digest. The approval holds only for exactly that spec, model tier included: a spec changed afterwards is not run until approved again. Needs the write scope of every effect the automation may propose.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "automation_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "maxLength": 128,
+          "minLength": 8,
+          "type": "string"
+        },
+        "spec_digest": {
+          "maxLength": 64,
+          "minLength": 64,
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "automation_id",
+        "spec_digest",
+        "idempotency_key"
+      ],
+      "type": "object"
+    },
+    "name": "approve_automation",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "automation": {
+          "additionalProperties": false,
+          "description": "One automation in full: the spec the owner approves and the digest that binds it.",
+          "properties": {
+            "allowed_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Allowed Effects",
+              "type": "array"
+            },
+            "apply_mode": {
+              "enum": [
+                "suggest",
+                "auto_low_risk"
+              ],
+              "title": "ApplyMode",
+              "type": "string"
+            },
+            "approval": {
+              "enum": [
+                "not_approved",
+                "approved",
+                "changed_since_approval"
+              ],
+              "title": "ApprovalState",
+              "type": "string"
+            },
+            "approved_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Approved At"
+            },
+            "auto_effects": {
+              "items": {
+                "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
+                "enum": [
+                  "create_task",
+                  "create_contact"
+                ],
+                "title": "EffectKind",
+                "type": "string"
+              },
+              "title": "Auto Effects",
+              "type": "array"
+            },
+            "auto_threshold": {
+              "title": "Auto Threshold",
+              "type": "integer"
+            },
+            "bulk_threshold": {
+              "title": "Bulk Threshold",
+              "type": "integer"
+            },
+            "cadence": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "description": "When a scheduled run is due: a recurrence rule plus the local time of day.",
+                  "properties": {
+                    "day_of_month": {
+                      "anyOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Day Of Month"
+                    },
+                    "frequency": {
+                      "title": "Frequency",
+                      "type": "string"
+                    },
+                    "interval": {
+                      "default": 1,
+                      "title": "Interval",
+                      "type": "integer"
+                    },
+                    "last_weekday": {
+                      "default": false,
+                      "title": "Last Weekday",
+                      "type": "boolean"
+                    },
+                    "local_time": {
+                      "title": "Local Time",
+                      "type": "string"
+                    },
+                    "until": {
+                      "anyOf": [
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "default": null,
+                      "title": "Until"
+                    },
+                    "weekdays": {
+                      "default": [],
+                      "items": {
+                        "type": "integer"
+                      },
+                      "title": "Weekdays",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "frequency",
+                    "local_time"
+                  ],
+                  "title": "Cadence",
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "changed_since_approval": {
+              "title": "Changed Since Approval",
+              "type": "boolean"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "id": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            },
+            "instruction": {
+              "title": "Instruction",
+              "type": "string"
+            },
+            "last_run_at": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Last Run At"
+            },
+            "max_suggestions_per_run": {
+              "title": "Max Suggestions Per Run",
+              "type": "integer"
+            },
+            "model_tier": {
+              "description": "Which model a server run uses: a very cheap one, or the configured Anthropic model.",
+              "enum": [
+                "standard",
+                "strong"
+              ],
+              "title": "ModelTier",
+              "type": "string"
+            },
+            "pending_suggestions": {
+              "title": "Pending Suggestions",
+              "type": "integer"
+            },
+            "purpose": {
+              "title": "Purpose",
+              "type": "string"
+            },
+            "run_budget_usd": {
+              "title": "Run Budget Usd",
+              "type": "number"
+            },
+            "runnable": {
+              "description": "Active and approved at exactly its current spec.",
+              "title": "Runnable",
+              "type": "boolean"
+            },
+            "runner": {
+              "enum": [
+                "claude",
+                "claude_code",
+                "server",
+                "any"
+              ],
+              "title": "Runner",
+              "type": "string"
+            },
+            "sources": {
+              "items": {
+                "enum": [
+                  "mail",
+                  "calendar",
+                  "chat",
+                  "web",
+                  "sidekick",
+                  "manual"
+                ],
+                "title": "Source",
+                "type": "string"
+              },
+              "title": "Sources",
+              "type": "array"
+            },
+            "spec_digest": {
+              "maxLength": 64,
+              "minLength": 64,
+              "title": "Spec Digest",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "archived"
+              ],
+              "title": "AutomationState",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "title": "Updated At",
+              "type": "string"
+            },
+            "version": {
+              "title": "Version",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "state",
+            "runner",
+            "model_tier",
+            "approval",
+            "changed_since_approval",
+            "runnable",
+            "pending_suggestions",
+            "version",
+            "purpose",
+            "instruction",
+            "sources",
+            "allowed_effects",
+            "apply_mode",
+            "auto_effects",
+            "bulk_threshold",
+            "auto_threshold",
+            "max_suggestions_per_run",
+            "run_budget_usd",
+            "spec_digest",
+            "created_at",
+            "updated_at"
+          ],
+          "title": "AutomationRecord",
+          "type": "object"
+        }
+      },
+      "required": [
+        "automation"
+      ],
+      "title": "AutomationOutput",
+      "type": "object"
+    },
+    "title": "Godk\u00e4nn automation"
   }
 ]

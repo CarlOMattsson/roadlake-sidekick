@@ -107,6 +107,14 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     "list_ai_steps": ToolScopes(any_of=("ai:run", "tasks:read")),
     "start_ai_step": ToolScopes(("ai:run",), optional=("contacts:read", "projects:read")),
     "report_ai_step_result": ToolScopes(("ai:run",)),
+    # Automations (ADR-013). The owner's Claude reads and drafts them; approving needs the write
+    # scope of every effect the automation may propose (`tasks:write` for `create_task`,
+    # `contacts:write` for `create_contact`), checked against the stored spec.
+    **_tools(ToolScopes(("automation:read",)), "list_automations", "get_automation"),
+    "save_automation": ToolScopes(("automation:write",)),
+    "approve_automation": ToolScopes(
+        ("automation:write",), optional=("contacts:write", "tasks:write")
+    ),
     # The instance's license key (D-081: offline signed license keys) is an administrative change
     # with a scope of its own.
     "set_license_key": ToolScopes(("license:write",)),

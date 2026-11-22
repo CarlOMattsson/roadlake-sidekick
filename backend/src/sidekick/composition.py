@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.activity.application.service import ActivityLedger, ActivityService
 from sidekick.activity.persistence import ActivityStore
+from sidekick.automations.application.registry import AutomationRegistryService
+from sidekick.automations.persistence import SqlAutomationStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
 from sidekick.companion.push_outbox_store import install_wake_hook
@@ -118,6 +120,8 @@ class Container:
     ai_plans: AiPlanService
     ai_runs: AiRunService
     ai_server_runs: AiServerRunService
+    # Automations (ADR-013): the registry the owner approves. Nothing in it runs an automation.
+    automation_registry: AutomationRegistryService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -384,6 +388,9 @@ def create_container(
         ai_plans=ai_services.plans,
         ai_runs=ai_services.runs,
         ai_server_runs=ai_services.server_runs,
+        automation_registry=AutomationRegistryService.from_settings(
+            SqlAutomationStore(factory, resolved_telemetry), SystemClock(), cursor_codec, settings
+        ),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

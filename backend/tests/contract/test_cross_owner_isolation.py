@@ -37,6 +37,7 @@ from sidekick.api.companion import create_companion_router
 from sidekick.mcp.server import create_mcp_server
 from tests.db import _cleanup_factory_for, database_factory
 from tests.mcp.harness import ActorSwitch
+from tests.support.app_origin import origin_for
 from tests.support.companion import bearer, companion_app, paired_token
 from tests.support.cross_owner_support import (
     JOURNAL_DATE,
@@ -71,6 +72,7 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "get_review_queue": "pages the caller's own open Tasks (the cursor is owner-bound)",
     "get_work_agenda": "filters are text and enums; reads the caller's own work",
     "list_assistant_activity": "pages the caller's own activity (the cursor is owner-bound)",
+    "list_automations": "pages the caller's own automations (the cursor is owner-bound)",
     "list_contacts": "pages the caller's own Contacts by text search",
     "list_domains": "pages the caller's own Domains",
     "list_journal_entries": "pages the caller's own entries by date range",
@@ -190,7 +192,9 @@ async def test_no_mcp_tool_reads_or_changes_another_owners_data() -> None:
         switch.use(caller.actor)
         before_a = owner_digest(admin, tables, owner_a.user_id)
         before_all = whole_digest(admin) if not read_only else {}
-        result = await client.call_tool(tool, arguments, raise_on_error=False)
+        result = await client.call_tool(
+            tool, arguments, meta=origin_for(tool), raise_on_error=False
+        )
         label = f"{tool}@{foreign.label if foreign else 'own'}"
         if caller is owner_b:
             if owner_digest(admin, tables, owner_a.user_id) != before_a:

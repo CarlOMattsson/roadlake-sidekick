@@ -37,10 +37,13 @@ DIGEST_VERSION = 1
 MAX_TITLE_CHARS = 120
 MAX_PURPOSE_CHARS = 300
 MAX_INSTRUCTION_CHARS = 4_000
-DEFAULT_RUN_BUDGET_MICROUSD = 1_000_000
+MICROUSD_PER_USD = 1_000_000
+DEFAULT_RUN_BUDGET_MICROUSD = MICROUSD_PER_USD
 """One US dollar per run, set by the owner on 2026-11-22."""
-MAX_RUN_BUDGET_MICROUSD = round(MAX_SPEC_BUDGET_USD * 1_000_000)
+MAX_RUN_BUDGET_MICROUSD = round(MAX_SPEC_BUDGET_USD * MICROUSD_PER_USD)
 MAX_SUGGESTIONS_PER_RUN = 25
+BULK_THRESHOLD_RANGE = (80, 99)
+AUTO_THRESHOLD_RANGE = (90, 99)
 
 _LOCAL_TIME = re.compile(r"(?:[01]\d|2[0-3]):[0-5]\d", re.ASCII)
 
@@ -106,8 +109,10 @@ class NotRunnableError(ConflictError):
 class ApprovalDigestMismatchError(ConflictError):
     """The owner approved a digest that is no longer the spec's current digest."""
 
-    code = "automation_digest_mismatch"
     safe_title = "Automation changed before approval"
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, reason="automation_changed")
 
 
 class Cadence(BaseModel):
@@ -179,8 +184,8 @@ class AutomationSpecV1(BaseModel):
     auto_effects: Annotated[list[EffectKind], Field(max_length=len(EffectKind))] = Field(
         default_factory=list[EffectKind]
     )
-    bulk_threshold: int = Field(default=90, ge=80, le=99)
-    auto_threshold: int = Field(default=95, ge=90, le=99)
+    bulk_threshold: int = Field(default=90, ge=BULK_THRESHOLD_RANGE[0], le=BULK_THRESHOLD_RANGE[1])
+    auto_threshold: int = Field(default=95, ge=AUTO_THRESHOLD_RANGE[0], le=AUTO_THRESHOLD_RANGE[1])
     max_suggestions_per_run: int = Field(default=15, ge=1, le=MAX_SUGGESTIONS_PER_RUN)
     run_budget_microusd: int = Field(
         default=DEFAULT_RUN_BUDGET_MICROUSD, gt=0, le=MAX_RUN_BUDGET_MICROUSD
@@ -292,6 +297,17 @@ def approve(spec: AutomationSpecV1, presented_digest: str) -> str:
     if presented_digest != current:
         raise ApprovalDigestMismatchError("the automation changed since it was shown")
     return current
+
+
+def require_budget_within(spec: AutomationSpecV1, cap_microusd: int) -> None:
+    """Refuse a run budget above the automations' monthly cap.
+
+    The cap itself is validated against the monthly cap when the settings are read, so a run
+    budget within it is also within the month.
+    """
+
+    if spec.run_budget_microusd > cap_microusd:
+        raise ValidationError("the run budget is above the monthly cap for automations")
 
 
 def required_write_scopes(spec: AutomationSpecV1) -> frozenset[str]:

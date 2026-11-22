@@ -28,7 +28,7 @@ UserProvisionedHook = Callable[[Session, UUID, datetime], None]
 # A personal token's `last_used_at` is rewritten at most this often.
 LAST_USED_WRITE_INTERVAL = timedelta(minutes=1)
 
-# The fourteen scopes the public MCP surface can ever carry, in their advertised order. This is the
+# The fifteen scopes the public MCP surface can ever carry, in their advertised order. This is the
 # ceiling for every MCP credential: a personal token holds a subset the operator chose, and an
 # OAuth session holds a subset the server policy chose. Neither can hold more than this.
 MCP_SCOPES: tuple[str, ...] = (
@@ -46,13 +46,14 @@ MCP_SCOPES: tuple[str, ...] = (
     "automation:read",
     "automation:write",
     "ai:run",
+    "automation:run",
 )
 
 ALL_SCOPES: frozenset[str] = frozenset(MCP_SCOPES)
 
 # Opt-in scopes are never part of a default personal token. An operator must name each one
 # explicitly (sidekick-admin create-token --scope automation:write).
-OPT_IN_SCOPES = frozenset({"automation:read", "automation:write", "ai:run"})
+OPT_IN_SCOPES = frozenset({"automation:read", "automation:write", "automation:run", "ai:run"})
 TOKEN_SCOPES = ALL_SCOPES - OPT_IN_SCOPES
 
 # Device capabilities of a paired companion app (ADR-005). They are not application scopes: no

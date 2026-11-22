@@ -14,6 +14,7 @@ import pytest
 from fastmcp import Client
 
 from sidekick.api.app import create_container
+from sidekick.mcp.automation_tools import AutomationChanges
 from sidekick.mcp.contact_records import ContactChanges
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
@@ -58,6 +59,8 @@ class Case:
     clear_field: str
     """A clearable field that `clear_value` sets before the test empties it."""
     clear_value: Any
+    derived: tuple[str, ...] = ()
+    """Fields computed from the cleared one, which change with it."""
 
 
 CASES = [
@@ -145,6 +148,19 @@ CASES = [
         "organization",
         "Next door",
     ),
+    Case(
+        "save_automation",
+        "automation_id",
+        "expected_version",
+        "automation",
+        tuple(name for name in AutomationChanges.model_fields if name != "cadence"),
+        {"title": "Renamed"},
+        "title",
+        AutomationChanges,
+        "cadence",
+        {"frequency": "daily", "local_time": "07:30"},
+        ("spec_digest",),
+    ),
 ]
 BY_TOOL = {case.tool: case for case in CASES}
 
@@ -152,9 +168,9 @@ BY_TOOL = {case.tool: case for case in CASES}
 async def _seed(client: Client) -> dict[str, dict[str, Any]]:
     """One record of each kind, as the tool replies describe it."""
 
-    async def call(tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    async def call(tool: str, arguments: dict[str, Any], key: str | None = None) -> dict[str, Any]:
         reply = await client.call_tool(tool, {**arguments, "idempotency_key": f"seed-{tool}-0001"})
-        return next(iter(reply.structured_content.values()))
+        return reply.structured_content[key or next(iter(reply.structured_content))]
 
     domain = await call("create_domain", {"name": "Home"})
     project = await call("create_project", {"title": "House", "domain_id": domain["id"]})
@@ -163,7 +179,19 @@ async def _seed(client: Client) -> dict[str, dict[str, Any]]:
     step = await call("create_task_step", {"task_id": task["id"], "title": "Buy paint"})
     action = await call("create_step_action", {"step_id": step["id"], "title": "Pick a colour"})
     contact = await call("create_contact", {"display_name": "Anna"})
+    automation = await call(
+        "save_automation",
+        {
+            "changes": {
+                "title": "Morning mail",
+                "purpose": "Collect what the morning mail asks of me",
+                "instruction": "Read yesterday's mail and propose tasks for requests.",
+            }
+        },
+        "automation",
+    )
     return {
+        "automation": automation,
         "task": task,
         "step": step,
         "action": action,
@@ -341,7 +369,7 @@ async def test_nulls_change_nothing_and_clear_empties_only_the_named_field(case:
     after = cleared.structured_content[case.record_key]
     assert after[case.clear_field] is None
     for name, value in before.items():
-        if name not in (case.clear_field, "version", "updated_at"):
+        if name not in (case.clear_field, "version", "updated_at", *case.derived):
             assert after[name] == value, name
     assert cleared.structured_content["ignored_nulls"] == [
         name
@@ -412,7 +440,9 @@ async def test_the_clear_parameter_lists_exactly_the_clearable_fields(case: Case
     tool = next(tool for tool in await _server().list_tools() if tool.name == case.tool)
     clear = tool.parameters["properties"]["clear"]
     listed = next(branch for branch in clear["anyOf"] if branch.get("type") == "array")
-    assert set(listed["items"]["enum"]) == set(case.changes_model.clearable_fields())
+    # A list of one possible value is described as a constant, not as an enum of one.
+    names = listed["items"].get("enum") or [listed["items"]["const"]]
+    assert set(names) == set(case.changes_model.clearable_fields())
     assert "clear" not in tool.parameters.get("required", [])
 
 

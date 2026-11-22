@@ -22,6 +22,7 @@ from sidekick.api.app import Container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from tests.support.app_origin import origin_for
 from tests.support.journal_drafts import seed_entry_draft
 
 JOURNAL_DATE = "2026-07-21"
@@ -53,6 +54,7 @@ NAME_KIND: dict[str, str] = {
     "replaces_source_id": "source",
     "draft_id": "draft",
     "run_id": "run",
+    "automation_id": "automation",
     "list_id": "list",
     "item_id": "item",
     "step_id": "step",
@@ -81,6 +83,7 @@ VERSIONED = frozenset(
         "entry",
         "draft",
         "run",
+        "automation",
         "list",
         "item",
         "step",
@@ -141,7 +144,7 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
 
         async def call(tool: str, arguments: dict[str, Any]) -> dict[str, Any]:
             arguments = {**arguments, "idempotency_key": f"{name}-{next(counter)}-{uuid4().hex}"}
-            result = await client.call_tool(tool, arguments)
+            result = await client.call_tool(tool, arguments, meta=origin_for(tool))
             return result.structured_content or {}
 
         def label(kind: str) -> str:
@@ -351,6 +354,20 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
             )
         )["run"]
         seed.records["run"] = Record(reported["id"], reported["version"])
+        # An automation, drafted by the owner's Claude.
+        automation = (
+            await call(
+                "save_automation",
+                {
+                    "changes": {
+                        "title": label("automation"),
+                        "purpose": label("automation purpose"),
+                        "instruction": label("automation instruction"),
+                    }
+                },
+            )
+        )["automation"]
+        seed.records["automation"] = Record(automation["id"], automation["version"])
         # A trashed record of each trashable kind.
         for kind in TRASHABLE:
             record = await make(kind)

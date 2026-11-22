@@ -20,6 +20,8 @@ SidekickErrorReason = Literal[
     "ai_limit_reached",
     "ai_runner_off",
     "ai_budget_reached",
+    "automation_changed",
+    "app_only",
 ]
 
 

@@ -84,6 +84,11 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "report_ai_step_result",
         "review_ai_step_result",
         "get_ai_step_run",
+        # Automations (ADR-013): the owner's registry, drafted by Claude and approved in the app.
+        "list_automations",
+        "get_automation",
+        "save_automation",
+        "approve_automation",
         "list_task_external_references",
         "link_external_reference_to_task",
         "unlink_external_reference_from_task",

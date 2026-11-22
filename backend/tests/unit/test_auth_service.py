@@ -275,11 +275,11 @@ def test_a_token_without_an_end_date_needs_an_explicit_flag_and_warns(
     assert "rsp_test_token" not in err
 
 
-AUTOMATION_SCOPES = frozenset({"automation:read", "automation:write"})
+AUTOMATION_SCOPES = frozenset({"automation:read", "automation:write", "automation:run"})
 
 
 def test_automation_scopes_are_opt_in_for_personal_tokens_only() -> None:
-    assert frozenset({"automation:read", "automation:write", "ai:run"}) == OPT_IN_SCOPES
+    assert frozenset({*AUTOMATION_SCOPES, "ai:run"}) == OPT_IN_SCOPES
     assert AUTOMATION_SCOPES <= ALL_SCOPES
     assert set(MCP_SCOPES) >= AUTOMATION_SCOPES
     assert not AUTOMATION_SCOPES & TOKEN_SCOPES

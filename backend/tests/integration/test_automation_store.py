@@ -148,6 +148,40 @@ def test_an_automation_is_listed_for_its_owner_only_and_by_state(env: Env) -> No
 
 
 @pytest.mark.integration
+def test_a_list_continues_after_the_offset_in_creation_order(env: Env) -> None:
+    items = [_automation(env.owner) for _ in range(3)]
+
+    def write(session: Session) -> None:
+        for number, automation in enumerate(items):
+            AutomationStore.save_automation(
+                session, replace(automation, created_at=NOW + timedelta(minutes=number))
+            )
+
+    env.run(write)
+
+    rest = env.run(
+        lambda session: AutomationStore.list_automations(session, env.owner, limit=2, offset=1)
+    )
+
+    assert [item.id for item in rest] == [items[1].id, items[2].id]
+
+
+@pytest.mark.integration
+def test_pending_suggestions_are_counted_per_automation_for_the_owner_only(env: Env) -> None:
+    automation, _, _ = env.seed_suggestion()
+    quiet = _automation(env.owner)
+    foreign, _, _ = env.seed_suggestion(env.other)
+    env.run(lambda session: AutomationStore.save_automation(session, quiet))
+    ids = [automation.id, quiet.id, foreign.id]
+
+    counts = env.run(
+        lambda session: AutomationStore.pending_suggestion_counts(session, env.owner, ids)
+    )
+
+    assert counts == {automation.id: 1}
+
+
+@pytest.mark.integration
 def test_another_owner_cannot_read_or_overwrite_an_automation(env: Env) -> None:
     automation = _automation(env.owner)
     env.run(lambda session: AutomationStore.save_automation(session, automation))

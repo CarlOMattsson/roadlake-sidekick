@@ -14,10 +14,11 @@ from fastmcp.tools import Tool
 from sidekick import __version__
 from sidekick.mcp.ai_step_tools import register_ai_step_tools
 from sidekick.mcp.auth import PersonalTokenVerifier, current_actor
+from sidekick.mcp.automation_tools import register_automation_tools
 from sidekick.mcp.batch_tasks import register_batch_task_tools
 from sidekick.mcp.board import register_board_tools
 from sidekick.mcp.brief import register_brief_tools
-from sidekick.mcp.change_source import ToolChangeSource
+from sidekick.mcp.change_source import OwnerDecisionsFromTheApp, ToolChangeSource
 from sidekick.mcp.changes import register_change_tools
 from sidekick.mcp.contacts import register_contacts_tools
 from sidekick.mcp.control import register_control_tools
@@ -119,6 +120,7 @@ def _register_tools(
     register_board_tools(mcp, ctx)
     register_work_tools(mcp, ctx)
     register_ai_step_tools(mcp, ctx)
+    register_automation_tools(mcp, ctx)
 
 
 def _register_app_resources(
@@ -198,6 +200,7 @@ def create_mcp_server(
     )
     mcp.add_middleware(McpRequestLogging())
     mcp.add_middleware(ToolChangeSource(mcp))
+    mcp.add_middleware(OwnerDecisionsFromTheApp(mcp))
     install_validation_error_redaction(mcp)
     # After the NUL and schema checks, so malformed input is still answered as such.
     mcp.add_middleware(WriteReplyScopes(mcp, actor_provider))

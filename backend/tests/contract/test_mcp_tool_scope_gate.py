@@ -26,6 +26,7 @@ from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.db import _cleanup_factory_for, database_factory
+from tests.support.app_origin import origin_for
 from tests.support.mcp_scope_gate import (
     ALL_SCOPES,
     EXTRA_ARGUMENTS,
@@ -185,7 +186,9 @@ async def test_a_write_tool_that_lists_tags_refuses_before_it_writes(
         assert {tool.name for tool in await client.list_tools()} >= set(calls)
         for name, arguments in calls.items():
             before = _digests(admin)
-            result = await client.call_tool(name, arguments, raise_on_error=False)
+            result = await client.call_tool(
+                name, arguments, meta=origin_for(name), raise_on_error=False
+            )
             assert _code(result) == "forbidden", name
             assert _digests(admin) == before, f"{name} changed data and then answered forbidden"
 
@@ -228,7 +231,9 @@ async def test_no_tool_commits_a_write_and_then_answers_forbidden_when_one_scope
                 arguments = _sample(tool.inputSchema, tool.inputSchema, top=True)
                 arguments |= EXTRA_ARGUMENTS.get(tool.name, {})
                 before = _digests(admin)
-                result = await client.call_tool(tool.name, arguments, raise_on_error=False)
+                result = await client.call_tool(
+                    tool.name, arguments, meta=origin_for(tool.name), raise_on_error=False
+                )
                 if _code(result) == "forbidden" and _digests(admin) != before:
                     changed.append((missing, tool.name))
     assert changed == []

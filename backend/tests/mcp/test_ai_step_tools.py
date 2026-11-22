@@ -19,6 +19,7 @@ from sidekick.api.app import Container, create_container
 from sidekick.shared.types import Actor
 from tests.db import database_factory
 from tests.mcp.harness import SwitchableServer
+from tests.support.app_origin import origin_for
 from tests.support.mcp_logging import (
     _all_logs,  # noqa: F401  (the `all_logs` fixture)
     _Collector,
@@ -64,7 +65,7 @@ async def _call(world: World, actor: Actor, name: str, **arguments: Any) -> Call
     if "idempotency_key" not in arguments and name not in _READS:
         arguments["idempotency_key"] = f"ai-{uuid4().hex}"
     async with world.server.client(actor) as client:
-        return await client.call_tool(name, arguments, raise_on_error=False)
+        return await client.call_tool(name, arguments, meta=origin_for(name), raise_on_error=False)
 
 
 _READS = {

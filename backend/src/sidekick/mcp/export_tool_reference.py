@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
+from sidekick.mcp.change_source import REQUIRES_PERSON_META
 from sidekick.mcp.tool_scopes import TOOL_SCOPES, describe
 
 # A JSON object read from the contract file: a tool, or a (nested) JSON Schema. The keys and the
@@ -106,6 +107,16 @@ AREAS: tuple[Area, ...] = (
             "review_ai_step_result",
             "get_ai_step_run",
             "get_ai_usage",
+        ),
+    ),
+    Area(
+        "Automations",
+        "automations",
+        (
+            "list_automations",
+            "get_automation",
+            "save_automation",
+            "approve_automation",
         ),
     ),
     Area(
@@ -441,13 +452,27 @@ def _is_app_only(tool: JsonObject) -> bool:
     return _object(_object(tool.get("_meta")).get("ui")).get("visibility") == ["app"]
 
 
+def _is_owner_decision(tool: JsonObject) -> bool:
+    return _object(tool.get("_meta")).get(REQUIRES_PERSON_META) is True
+
+
 def _tool_section(tool: JsonObject, level: str) -> list[str]:
     name = tool["name"]
+    refusal = (
+        [
+            "Owner's decision: the server refuses a call that does not come from the app, with "
+            "the reason `app_only`.",
+            "",
+        ]
+        if _is_owner_decision(tool)
+        else []
+    )
     return [
         f"{level} `{name}`",
         "",
         _summary(tool["description"]),
         "",
+        *refusal,
         f"Access: {_access(tool)}",
         "",
         f"Scopes: {describe(TOOL_SCOPES[name])}.",
@@ -504,13 +529,17 @@ def _app_only_page(groups: list[tuple[Area, list[JsonObject]]]) -> str:
         *_header(
             "MCP tools: app-only",
             "The MCP tools that only the MCP App rooms call to show and edit records. "
-            "Claude cannot see or call them, and they check the same scopes as every other tool.",
+            "Claude cannot see them. The server also refuses a model's call by name to the owner's "
+            "decisions among them, and they check the same scopes as every other tool.",
         ),
         f"[MCP tool reference](index.md) | {total} tools.",
         "",
         'These tools are declared with `visibility: ["app"]`. The MCP App rooms call them to '
-        "show and edit records; the model never sees them, so Claude cannot call them. They check "
-        "the same scopes as every other tool.",
+        "show and edit records; the model never lists them. The owner's decisions among them "
+        "(approving a plan or an automation, running a plan) are also refused by the server when "
+        "the call does not carry the app's origin mark, which the model cannot set; the answer "
+        "is `forbidden` with the reason `app_only`. They check the same scopes as every other "
+        "tool.",
         "",
     ]
     for area, tools in groups:

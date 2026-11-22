@@ -23,6 +23,7 @@ from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.db import _cleanup_factory_for, database_factory
+from tests.support.app_origin import origin_for
 from tests.support.mcp_scope_gate import (
     ALL_SCOPES,
     EXTRA_ARGUMENTS,
@@ -146,7 +147,9 @@ async def test_the_other_task_writes_refuse_a_caller_without_task_read(
     async with Client(_server(container, owner, narrow)) as client:
         for name, arguments in calls.items():
             before = _digests(admin)
-            result = await client.call_tool(name, arguments, raise_on_error=False)
+            result = await client.call_tool(
+                name, arguments, meta=origin_for(name), raise_on_error=False
+            )
             assert _code(result) == "forbidden", name
             assert SECRET not in str(result.structured_content) + str(result.content), name
             assert _digests(admin) == before, name
@@ -172,7 +175,9 @@ async def test_each_classified_tool_is_refused_without_its_read_scope_and_writes
                 arguments = _sample(tool.inputSchema, tool.inputSchema, top=True)
                 arguments |= EXTRA_ARGUMENTS.get(tool.name, {})
                 before = _digests(admin)
-                result = await client.call_tool(tool.name, arguments, raise_on_error=False)
+                result = await client.call_tool(
+                    tool.name, arguments, meta=origin_for(tool.name), raise_on_error=False
+                )
                 refused[tool.name] = _code(result)
                 assert _digests(admin) == before, tool.name
     assert refused.keys() == WRITE_REPLY_READ_SCOPES.keys()

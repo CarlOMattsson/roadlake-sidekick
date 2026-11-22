@@ -17,6 +17,7 @@ export type ToolResults = {
     open_count: number | null;
   };
   approve_ai_plan: AiPlanOutput;
+  approve_automation: AutomationOutput;
   archive_contact: ContactResult;
   archive_saved_work_view: SavedViewOutput;
   archive_step_action: ActionOutput;
@@ -126,6 +127,7 @@ export type ToolResults = {
     spent_usd: number;
     starts_today: number;
   };
+  get_automation: AutomationOutput;
   get_contact_context: {
     contact: ContactRecord;
     journal_entries: {
@@ -533,6 +535,22 @@ export type ToolResults = {
     }>;
     next_cursor: string | null;
   };
+  list_automations: {
+    items: Array<{
+      approval: "not_approved" | "approved" | "changed_since_approval";
+      changed_since_approval: boolean;
+      id: string;
+      last_run_at: string | null;
+      model_tier: "standard" | "strong";
+      pending_suggestions: number;
+      runnable: boolean;
+      runner: "claude" | "claude_code" | "server" | "any";
+      state: "draft" | "active" | "paused" | "archived";
+      title: string;
+      version: number;
+    }>;
+    next_cursor: string | null;
+  };
   list_contacts: {
     contacts: Array<ContactSummaryRecord>;
     include_archived: boolean;
@@ -778,6 +796,10 @@ export type ToolResults = {
     }>;
   };
   run_ai_plan: AiPlanOutput;
+  save_automation: {
+    automation: AutomationRecord;
+    ignored_nulls: Array<string>;
+  };
   search: {
     contacts?: {
       hits: Array<{
@@ -959,6 +981,11 @@ export type ToolInputs = {
     idempotency_key: string;
     task_cap_usd?: number | null;
     task_id: string;
+  };
+  approve_automation: {
+    automation_id: string;
+    idempotency_key: string;
+    spec_digest: string;
   };
   archive_contact: {
     contact_id: string;
@@ -1212,6 +1239,9 @@ export type ToolInputs = {
     run_id: string;
   };
   get_ai_usage: Record<string, unknown>;
+  get_automation: {
+    automation_id: string;
+  };
   get_contact_context: {
     contact_id: string;
     include_completed?: boolean;
@@ -1349,6 +1379,11 @@ export type ToolInputs = {
     include_content?: boolean;
     limit?: number;
     state?: "applied" | "review" | "failed" | "reverted" | null;
+  };
+  list_automations: {
+    cursor?: string | null;
+    limit?: number;
+    state?: "draft" | "active" | "paused" | "archived" | null;
   };
   list_contacts: {
     cursor?: string | null;
@@ -1607,6 +1642,40 @@ export type ToolInputs = {
     digest: string;
     idempotency_key: string;
     task_id: string;
+  };
+  save_automation: {
+    automation_id?: string | null;
+    changes: {
+      allowed_effects?: Array<"create_task" | "create_contact"> | null;
+      apply_mode?: "suggest" | "auto_low_risk" | null;
+      archived?: boolean | null;
+      auto_effects?: Array<"create_task" | "create_contact"> | null;
+      auto_threshold?: number | null;
+      bulk_threshold?: number | null;
+      cadence?: {
+        day_of_month?: number | null;
+        frequency: string;
+        interval?: number;
+        last_weekday?: boolean;
+        local_time: string;
+        until?: string | null;
+        weekdays?: Array<number>;
+      } | null;
+      instruction?: string | null;
+      max_suggestions_per_run?: number | null;
+      model_tier?: "standard" | "strong" | null;
+      paused?: boolean | null;
+      purpose?: string | null;
+      run_budget_usd?: number | null;
+      runner?: "claude" | "claude_code" | "server" | "any" | null;
+      sources?: Array<
+        "mail" | "calendar" | "chat" | "web" | "sidekick" | "manual"
+      > | null;
+      title?: string | null;
+    };
+    clear?: Array<"cadence"> | null;
+    expected_version?: number | null;
+    idempotency_key: string;
   };
   search: {
     cursor?: string | null;
@@ -2179,6 +2248,49 @@ export type AiStepSpecV1 = {
   runner: "any" | "claude_code" | "server";
   spec_version: 1;
   stop_and_ask: Array<string>;
+};
+
+export type AutomationOutput = {
+  automation: AutomationRecord;
+};
+
+export type AutomationRecord = {
+  allowed_effects: Array<"create_task" | "create_contact">;
+  apply_mode: "suggest" | "auto_low_risk";
+  approval: "not_approved" | "approved" | "changed_since_approval";
+  approved_at: string | null;
+  auto_effects: Array<"create_task" | "create_contact">;
+  auto_threshold: number;
+  bulk_threshold: number;
+  cadence: Cadence | null;
+  changed_since_approval: boolean;
+  created_at: string;
+  id: string;
+  instruction: string;
+  last_run_at: string | null;
+  max_suggestions_per_run: number;
+  model_tier: "standard" | "strong";
+  pending_suggestions: number;
+  purpose: string;
+  run_budget_usd: number;
+  runnable: boolean;
+  runner: "claude" | "claude_code" | "server" | "any";
+  sources: Array<"mail" | "calendar" | "chat" | "web" | "sidekick" | "manual">;
+  spec_digest: string;
+  state: "draft" | "active" | "paused" | "archived";
+  title: string;
+  updated_at: string;
+  version: number;
+};
+
+export type Cadence = {
+  day_of_month: number | null;
+  frequency: string;
+  interval: number;
+  last_weekday: boolean;
+  local_time: string;
+  until: string | null;
+  weekdays: Array<number>;
 };
 
 export type ChecklistRecord = {

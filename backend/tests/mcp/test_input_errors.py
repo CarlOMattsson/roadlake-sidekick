@@ -17,6 +17,7 @@ from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.db import database_factory
+from tests.support.app_origin import origin_for
 from tests.support.settings import make_settings
 
 # Not a cursor this server issued: not base64, base64 of non-JSON, base64 of JSON that is not an
@@ -101,7 +102,12 @@ async def test_a_nul_character_in_any_argument_of_any_tool_is_a_validation_error
             # A text field directly, in a list, in a nested object, and as an object key.
             for name in properties:
                 for value in (NUL_TEXT, [NUL_TEXT], {"field": NUL_TEXT}, {NUL_TEXT: 1}):
-                    result = await client.call_tool(tool.name, {name: value}, raise_on_error=False)
+                    result = await client.call_tool(
+                        tool.name,
+                        {name: value},
+                        meta=origin_for(tool.name),
+                        raise_on_error=False,
+                    )
                     where = (tool.name, name, value)
                     assert result.is_error, where
                     assert result.structured_content is not None, where

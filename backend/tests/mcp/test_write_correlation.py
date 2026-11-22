@@ -34,6 +34,7 @@ from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.contract_counts import write_tool_names
 from tests.db import _cleanup_factory_for, database_factory
+from tests.support.app_origin import origin_for
 from tests.support.journal_drafts import seed_entry_draft
 from tests.support.settings import make_settings
 
@@ -137,7 +138,7 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
             calls.setdefault(name, current["id"])
             first_args.setdefault(name, arguments)
             call_counts[name] = call_counts.get(name, 0) + 1
-            result = await client.call_tool(name, arguments)
+            result = await client.call_tool(name, arguments, meta=origin_for(name))
             return result.structured_content or {}
 
         key = "corr-key-"
@@ -818,6 +819,42 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
             },
         )
 
+        # Automations: a draft, the owner's approval of it, and a change that withdraws it.
+        automation = (
+            await call(
+                "save_automation",
+                {
+                    "idempotency_key": key + "autosave",
+                    "changes": {
+                        "title": "Morning mail",
+                        "purpose": "Collect what the morning mail asks of me",
+                        "instruction": "Read yesterday's mail and propose tasks for requests.",
+                        "sources": ["mail"],
+                        "allowed_effects": ["create_task"],
+                    },
+                },
+            )
+        )["automation"]
+        approved = (
+            await call(
+                "approve_automation",
+                {
+                    "automation_id": automation["id"],
+                    "spec_digest": automation["spec_digest"],
+                    "idempotency_key": key + "autoappr",
+                },
+            )
+        )["automation"]
+        await call(
+            "save_automation",
+            {
+                "automation_id": approved["id"],
+                "expected_version": approved["version"],
+                "idempotency_key": key + "autochange",
+                "changes": {"model_tier": "strong"},
+            },
+        )
+
         # Licence and memory settings. The test instance has no licence public key, so the key is
         # refused and the refusal is audited (closed reason, no key text) under the request's id.
         await call("set_license_key", {"key": "not-a-real-licence-key"})
@@ -827,7 +864,7 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
     async with Client(server) as client:
         for name in REPLAYED:
             current["id"] = calls[name]
-            await client.call_tool(name, first_args[name])
+            await client.call_tool(name, first_args[name], meta=origin_for(name))
 
     with admin() as session:
         rows = session.execute(

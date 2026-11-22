@@ -11,6 +11,7 @@ from sidekick.mcp.server import create_mcp_server
 from tests.support.settings import make_settings
 
 TOOL = "list_assistant_activity"
+REGISTRY_TOOLS = {"list_automations", "get_automation", "save_automation", "approve_automation"}
 
 
 @pytest.mark.asyncio
@@ -21,10 +22,11 @@ async def test_it_is_the_only_owner_control_tool_and_it_is_read_only() -> None:
     assert tools[TOOL].annotations is not None
     assert tools[TOOL].annotations.readOnlyHint is True
     assert tools[TOOL].annotations.destructiveHint is False
-    # No automation-settings, policy or pause tool: those need a session-only scope or a write.
+    # No policy or pause tool, and the only automation tools are the registry's four (ADR-013):
+    # none of them runs, pauses or settles anything on its own.
     controls = {
         name
         for name in tools
         if any(word in name for word in ("automation", "policy", "pause", "activity"))
     }
-    assert controls == {TOOL}
+    assert controls == {TOOL, *REGISTRY_TOOLS}

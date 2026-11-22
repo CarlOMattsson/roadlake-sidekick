@@ -29,6 +29,10 @@ EXPECTED_TOOLS = {
     "review_ai_step_result",
     "get_ai_step_run",
     "get_ai_usage",
+    "list_automations",
+    "get_automation",
+    "save_automation",
+    "approve_automation",
     "search",
     "recall_memory",
     "get_memory_status",
@@ -135,6 +139,7 @@ EXPECTED_TOOLS = {
 # below are hidden to keep the model-visible tool budget small.
 APP_ONLY_TOOLS = {
     "approve_ai_plan",
+    "approve_automation",
     "run_ai_plan",
     "get_ai_usage",
     "finalize_journal_draft",
@@ -350,7 +355,7 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    assert len(APP_ONLY_TOOLS) == 28
+    assert len(APP_ONLY_TOOLS) == 29
     assert set(EXPECTED_TOOLS) >= APP_ONLY_TOOLS
     assert app_only_tool_names() == APP_ONLY_TOOLS
     for name in APP_ONLY_TOOLS:
@@ -362,13 +367,14 @@ async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None
 
 
 @pytest.mark.asyncio
-async def test_plan_approval_and_server_run_are_app_only_and_always_ask_a_person() -> None:
+async def test_approvals_and_server_run_are_app_only_and_always_ask_a_person() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    for pinned in ("approve_ai_plan", "run_ai_plan"):
+    pinned_tools = ("approve_ai_plan", "run_ai_plan", "approve_automation")
+    for pinned in pinned_tools:
         meta = tools[pinned].meta or {}
         assert meta["ui"]["visibility"] == ["app"]
         assert meta["anthropic/requiresUserInteraction"] is True
     for name, tool in tools.items():
-        if name not in ("approve_ai_plan", "run_ai_plan"):
+        if name not in pinned_tools:
             assert "anthropic/requiresUserInteraction" not in (tool.meta or {}), name

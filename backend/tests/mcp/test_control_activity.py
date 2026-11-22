@@ -88,8 +88,15 @@ async def test_the_session_only_automation_read_is_not_a_tool() -> None:
     actor = Actor(uuid4(), frozenset({"tasks:read", "tasks:write"}))
     names = {tool.name for tool in await _server_for(container, actor).list_tools()}
     assert "list_assistant_activity" in names
-    assert not {name for name in names if "automation" in name}
-    assert not {name for name in names if name.startswith("get_automation")}
+    # The retired automation engine's settings, policies and runs are no tools. What is left is the
+    # registry of ADR-013: the owner's own list of automations, read, drafted and approved.
+    assert {name for name in names if "automation" in name} == {
+        "list_automations",
+        "get_automation",
+        "save_automation",
+        "approve_automation",
+    }
+    assert not {name for name in names if "policy" in name or "automation_settings" in name}
 
 
 @pytest.mark.asyncio

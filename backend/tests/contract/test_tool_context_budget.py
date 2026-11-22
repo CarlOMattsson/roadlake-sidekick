@@ -8,10 +8,10 @@ not a target: raise it only with a reviewed reason in the same change.
 
 The outputSchema is deliberately NOT part of that token budget. The budget counts what every host
 is certain to put in the model's context (name, description, inputSchema); a host may or may not
-forward an outputSchema, and the model-visible ones are ~170 000 characters (~48 700 tokens by the
+forward an outputSchema, and the model-visible ones are ~228 000 characters (~65 100 tokens by the
 same estimate), several times the whole budget. Mixing them would hide growth in the part we
 control. So the outputSchema of the model-visible tools has its own ceiling (OUTPUT_SCHEMA_CHAR_CAP,
-the measured size plus 5 %), which makes growth of what a host that does load it would pay a
+the measured size, rounded up), which makes growth of what a host that does load it would pay a
 reviewed decision too. Revisit by trimming schemas, not by raising the cap, when a host is known to
 load them.
 
@@ -62,7 +62,12 @@ CHARS_PER_TOKEN = 3.5
 # 2026-11-22: raised to 23 600 for the walk-through guide in the description of `get_review_queue`
 # (638 characters, about 180 tokens, written once and reused by the `review_tasks_walkthrough`
 # prompt); measured 23 574, rounded up.
-TOKEN_BUDGET = 23_600
+# 2026-11-22: raised to 25 000 for the three model-visible automation tools (`list_automations`,
+# `get_automation`, `save_automation`), about 1 400 tokens, of which `save_automation`'s `changes`
+# (the spec, with its cadence) is about 1 000; measured 24 991 for the 84 model-visible tools,
+# rounded up to 25 000, so the next addition asks for its own reviewed raise. `approve_automation`
+# is app-only and costs nothing here.
+TOKEN_BUDGET = 25_000
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
@@ -74,7 +79,11 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # is that plus 5 % (rounded up). App-only tools are not counted, as for the token budget.
 # 2026-11-16: raised to 221 100 for the outputs of the AI Step tools (the plan, a step page, a
 # started step and a run, 30 000 characters together); measured 210 488, plus 5 %.
-OUTPUT_SCHEMA_CHAR_CAP = 221_100
+# 2026-11-22: raised to 228 000 for the outputs of the three model-visible automation tools (a
+# page of summaries and the full record, 6 800 characters together); measured 227 908 for the 84
+# model-visible tools, rounded up to 228 000. That is no longer the measured size plus 5 %: the
+# headroom is under 0.1 %, so the next new output asks for its own reviewed raise.
+OUTPUT_SCHEMA_CHAR_CAP = 228_000
 
 
 def _estimated_tokens(tool: dict[str, object]) -> float:

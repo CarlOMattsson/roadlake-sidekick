@@ -12,6 +12,7 @@ from sidekick.api.app import Container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from tests.support.app_origin import origin_for
 
 # Tools whose input must carry a change before the use case runs; the generic sample is minimal and
 # would be refused as an empty update. These add the one field that makes the call well formed.
@@ -57,7 +58,9 @@ async def _call_every_tool(container: Container, actor: Actor) -> dict[str, Call
         for tool in await client.list_tools():
             arguments = _sample(tool.inputSchema, tool.inputSchema, top=True)
             arguments |= EXTRA_ARGUMENTS.get(tool.name, {})
-            results[tool.name] = await client.call_tool(tool.name, arguments, raise_on_error=False)
+            results[tool.name] = await client.call_tool(
+                tool.name, arguments, meta=origin_for(tool.name), raise_on_error=False
+            )
     return results
 
 

@@ -48,6 +48,13 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
         "Running AI steps on the server is off, or this step needs something the server "
         "cannot give (a local model, web tools). Ask the owner to run it in Claude Code."
     ),
+    "app_only": (
+        "This is the owner's decision. It is made in the Sidekick app, not through a model call."
+    ),
+    "automation_changed": (
+        "The automation changed after the owner was shown it. Read it again with "
+        "get_automation and approve its current digest."
+    ),
     "ai_budget_reached": (
         "The spending cap of the task or of the month is reached, so the step was not run."
     ),

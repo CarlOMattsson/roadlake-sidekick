@@ -23,6 +23,7 @@ from sidekick.mcp.tool_scopes import TOOL_SCOPES
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.db import database_factory
+from tests.support.app_origin import origin_for
 from tests.support.mcp_scope_gate import EXTRA_ARGUMENTS, _code, _sample
 from tests.support.settings import make_settings
 
@@ -45,7 +46,9 @@ async def _codes(
             if tool.name in names:
                 arguments = _sample(tool.inputSchema, tool.inputSchema, top=True)
                 arguments |= EXTRA_ARGUMENTS.get(tool.name, {})
-                result = await client.call_tool(tool.name, arguments, raise_on_error=False)
+                result = await client.call_tool(
+                    tool.name, arguments, meta=origin_for(tool.name), raise_on_error=False
+                )
                 codes[tool.name] = _code(result)
     return codes
 

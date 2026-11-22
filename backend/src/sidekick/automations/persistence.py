@@ -10,9 +10,9 @@ from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.automations.domain.automation import Automation, SuggestionCheck
 from sidekick.automations.domain.effects import EffectKind
@@ -32,12 +32,14 @@ from sidekick.automations.domain.suggestion import (
     Verdict,
 )
 from sidekick.shared.errors import ConflictError, NotFoundError
+from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.persistence.models import (
     AutomationCheckRow,
     AutomationRow,
     AutomationSuggestionRow,
     Base,
 )
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import validate_limit
 
 MAX_LIST_ROWS = 200
@@ -225,16 +227,34 @@ class AutomationStore:
         *,
         states: Collection[AutomationState] | None = None,
         limit: int = MAX_LIST_ROWS,
+        offset: int = 0,
     ) -> list[Automation]:
         statement = select(AutomationRow).where(AutomationRow.owner_id == owner_id)
         if states is not None:
             statement = statement.where(AutomationRow.state.in_([item.value for item in states]))
         rows = session.scalars(
-            statement.order_by(AutomationRow.created_at, AutomationRow.id).limit(
-                validate_limit(limit, maximum=MAX_LIST_ROWS)
-            )
+            statement.order_by(AutomationRow.created_at, AutomationRow.id)
+            .offset(offset)
+            .limit(validate_limit(limit, maximum=MAX_LIST_ROWS))
         )
         return [automation_from_row(row) for row in rows]
+
+    @staticmethod
+    def pending_suggestion_counts(
+        session: Session, owner_id: UUID, automation_ids: Collection[UUID]
+    ) -> dict[UUID, int]:
+        """How many suggestions of each automation wait for a decision; none counts as absent."""
+
+        rows = session.execute(
+            select(AutomationSuggestionRow.automation_id, func.count())
+            .where(
+                AutomationSuggestionRow.owner_id == owner_id,
+                AutomationSuggestionRow.automation_id.in_(automation_ids),
+                AutomationSuggestionRow.state == SuggestionState.PENDING.value,
+            )
+            .group_by(AutomationSuggestionRow.automation_id)
+        )
+        return {automation_id: count for automation_id, count in rows}
 
     @staticmethod
     def save_automation(
@@ -381,3 +401,12 @@ class AutomationStore:
             .order_by(AutomationCheckRow.attempt)
         )
         return [check_from_row(row) for row in rows]
+
+
+class SqlAutomationStore(AutomationStore, StoreBase):
+    """The automation operations with the transaction, idempotency and audit of `StoreBase`."""
+
+    def __init__(
+        self, session_factory: sessionmaker[Session], telemetry: TelemetryPort | None = None
+    ) -> None:
+        super().__init__(session_factory, telemetry)

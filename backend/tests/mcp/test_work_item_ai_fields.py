@@ -10,6 +10,7 @@ from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import Actor
 from sidekick.work.application.work_lists import board_column_totals
 from tests.db import database_factory
+from tests.support.app_origin import APP_ORIGIN
 from tests.support.settings import make_settings
 
 SCOPES = frozenset({"projects:read", "projects:write", "tasks:read", "tasks:write"})
@@ -78,6 +79,7 @@ async def test_agenda_and_board_mark_ai_tasks_and_their_approved_plans() -> None
                 "digest": plan.structured_content["plan"]["digest"],
                 "idempotency_key": "ai-fields-approve",
             },
+            meta=APP_ORIGIN,
         )
         project = await _project(client, "Hus")
         agenda = await client.call_tool("get_work_agenda", {"limit": 100})
