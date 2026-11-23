@@ -150,6 +150,17 @@ this table, because a photo can be erased from the trash; it holds no DDL and no
 owner or entry through the foreign keys. The photo's trash kind is `journal_attachment`; photos never go to memory. The
 owner export does not carry the table yet. Rolling it back drops the table, which loses only the photo metadata.
 
+## Migration 124: photo details
+
+`124_journal_attachment_details.py` is an additive (expand) migration. It adds five nullable columns to
+`journal_attachments`: the place a photo was taken (`location_lat`, `location_lon` and an optional `location_name`), the
+`camera` and the file's `orientation` (1 to 8). The client reads these from the file before it shrinks it and sends them
+as fields, because the stored file carries no metadata; the time it was taken is the existing `taken_at`. CHECK
+constraints bound them: valid degrees, both coordinates or neither, a place name only with coordinates, no blank text and
+a real orientation. The owner can change or remove each field, and none of them goes to memory. A photo stored before
+this migration keeps every value and reads as one with no place, camera or orientation. Rolling it back drops the five
+columns, which loses only the details entered since.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

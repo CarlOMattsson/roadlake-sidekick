@@ -10,7 +10,7 @@ until the owner approves again in the app.
 import hashlib
 import json
 import re
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from datetime import date
 from enum import StrEnum
 from typing import Annotated, Self
@@ -30,6 +30,7 @@ from pydantic import (
 from sidekick.automations.domain.effects import AUTO_APPLY_EFFECTS, CATALOGUE, EffectKind
 from sidekick.automations.domain.text import normalise_block, normalise_line
 from sidekick.shared.errors import ConflictError, ValidationError
+from sidekick.shared.errors.core import SidekickErrorReason
 from sidekick.tasks.domain.recurrence import RecurrenceRule
 from sidekick.work.domain.ai_spec import MAX_SPEC_BUDGET_USD
 
@@ -93,16 +94,25 @@ class NotRunnableCause(StrEnum):
     NOT_ACTIVE = "not_active"
     NOT_APPROVED = "not_approved"
     CHANGED_SINCE_APPROVAL = "changed_since_approval"
+    OTHER_RUNNER = "other_runner"
+
+
+_NOT_RUNNABLE_REASONS: Mapping[NotRunnableCause, SidekickErrorReason] = {
+    NotRunnableCause.NOT_ACTIVE: "automation_not_active",
+    NotRunnableCause.NOT_APPROVED: "automation_not_approved",
+    NotRunnableCause.CHANGED_SINCE_APPROVAL: "automation_changed_since_approval",
+    NotRunnableCause.OTHER_RUNNER: "automation_other_runner",
+}
 
 
 class NotRunnableError(ConflictError):
-    """The automation may not run now. The cause is a fixed code and holds no owner text."""
+    """The automation may not run now. The cause is a fixed code and holds no owner text; the
+    error's closed reason is what an MCP client is told."""
 
-    code = "automation_not_runnable"
     safe_title = "Automation cannot run"
 
     def __init__(self, cause: NotRunnableCause) -> None:
-        super().__init__(cause.value)
+        super().__init__(cause.value, reason=_NOT_RUNNABLE_REASONS[cause])
         self.cause = cause
 
 

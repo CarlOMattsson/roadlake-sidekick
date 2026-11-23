@@ -143,7 +143,8 @@ def test_a_declared_body_is_a_closed_schema_with_a_size_cap() -> None:
     for operation in with_body.values():
         body = operation["requestBody"]
         assert body["x-sidekick-max-bytes"] > 0
-        ref = body["content"]["application/json"]["schema"]["$ref"]
+        (declared,) = body["content"].values()  # one content type per body: JSON or a form
+        ref = declared["schema"]["$ref"]
         assert schemas[ref.rsplit("/", 1)[1]]["additionalProperties"] is False
     # The renewal takes no input: the body may be left out.
     assert with_body["device.renew"]["requestBody"]["required"] is False

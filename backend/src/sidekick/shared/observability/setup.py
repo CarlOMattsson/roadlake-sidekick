@@ -74,6 +74,9 @@ SAFE_LOG_FIELDS = frozenset(
         # prompt, an answer, a key or the provider's error text.
         "ai_run_id",
         "ai_call_outcome",
+        # Automation runs: the run's own id and a closed outcome. Never an instruction, a fact, a
+        # proposal, a rationale or a summary.
+        "automation_run_id",
         "outcome",
         # License key (D-081: offline signed license keys, sidekick.license): a closed state and a
         # closed reject reason. Never

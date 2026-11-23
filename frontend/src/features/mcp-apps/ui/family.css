@@ -764,6 +764,7 @@
 /* Read by assistive technology, not drawn: one rule for every room's hidden text (was seven copies). */
 .sk-createfield__label,
 .sk-flip__sr,
+.sk-insight__whole,
 .sidekick-control .control-sr-only,
 .sidekick-journal .sk-day-strip-live,
 .sidekick-journal:not(.journal-fullscreen) .journal-suggestion-summary,

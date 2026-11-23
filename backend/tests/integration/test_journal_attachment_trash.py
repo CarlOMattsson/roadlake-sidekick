@@ -232,14 +232,15 @@ def test_only_a_trashed_photo_at_its_current_version_can_be_erased(world: World)
 
 
 @pytest.mark.integration
-def test_the_sweep_erases_trashed_photos_and_keeps_the_entry_and_live_photos(
+def test_the_sweep_erases_trashed_photos_and_those_of_a_trashed_entry_and_keeps_the_entry(
     world: World,
 ) -> None:
     lifecycle = world.container.lifecycle
-    live = world.add_photo()
+    on_trashed_entry = world.add_photo()
     trashed = world.add_photo(day=True)
+    live_day = world.add_photo(day=True)
     world.trash(trashed, "photo-sweep-trash")
-    # The runtime holds no DELETE on entries, so a trashed entry is kept, and its live photo too.
+    # The runtime holds no DELETE on entries, so a trashed entry is kept; its photos are not.
     lifecycle.trash(
         world.actor,
         RecordKind.JOURNAL_ENTRY,
@@ -249,14 +250,14 @@ def test_the_sweep_erases_trashed_photos_and_keeps_the_entry_and_live_photos(
     )
 
     dry = empty_trash(lifecycle, remove=False)
-    assert dict(dry.matched) == {RecordKind.JOURNAL_ENTRY: 1, RecordKind.JOURNAL_ATTACHMENT: 1}
-    assert world.photo_ids() == {live, trashed}
+    assert dict(dry.matched) == {RecordKind.JOURNAL_ENTRY: 1, RecordKind.JOURNAL_ATTACHMENT: 2}
+    assert world.photo_ids() == {on_trashed_entry, trashed, live_day}
 
     result = empty_trash(lifecycle, remove=True, correlation_id="photo-sweep")
 
-    assert dict(result.removed) == {RecordKind.JOURNAL_ATTACHMENT: 1}
+    assert dict(result.removed) == {RecordKind.JOURNAL_ATTACHMENT: 2}
     assert dict(result.kept) == {RecordKind.JOURNAL_ENTRY: 1}
-    assert world.photo_ids() == {live}
+    assert world.photo_ids() == {live_day}
     with world.factory() as session:
         assert session.get(JournalEntryRow, world.entry.id) is not None
 

@@ -5,6 +5,7 @@ from mcp.types import ToolAnnotations
 
 from sidekick.api.app import create_container
 from sidekick.mcp.journal import JOURNAL_TOOL_NAMES, JOURNAL_TOOL_SCOPES
+from sidekick.mcp.journal_photo_tools import JOURNAL_PHOTO_TOOL_NAMES
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.types import MAX_CURSOR_LENGTH
 from tests.support.settings import make_settings
@@ -90,10 +91,19 @@ async def test_journal_discovery_exposes_exact_fifteen_closed_tools() -> None:
     }
     assert app_only == JOURNAL_APP_ONLY_TOOLS
     assert "update_journal_entry" in {tool.name for tool in journal_tools} - app_only
+    # The photo tools are their own set and are all app-only: no model sends image data.
+    photo_tools = {tool.name: tool for tool in tools if tool.name in JOURNAL_PHOTO_TOOL_NAMES}
+    assert set(photo_tools) == set(JOURNAL_PHOTO_TOOL_NAMES)
+    assert all(
+        (tool.meta or {}).get("ui", {}).get("visibility") == ["app"]
+        for tool in photo_tools.values()
+    )
     assert not {
         tool.name
         for tool in tools
-        if "journal" in tool.name and tool.name not in JOURNAL_TOOL_NAMES
+        if "journal" in tool.name
+        and tool.name not in JOURNAL_TOOL_NAMES
+        and tool.name not in JOURNAL_PHOTO_TOOL_NAMES
     }
 
     for tool in journal_tools:

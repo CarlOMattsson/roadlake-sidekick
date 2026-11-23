@@ -274,6 +274,38 @@ export const getProjectResultShape: Shape = {
   },
   required: ["project"],
 };
+/** The shape of the structuredContent get_review_queue returns. */
+export const getReviewQueueResultShape: Shape = {
+  type: "object",
+  properties: {
+    bucket_counts: { type: "object", additionalProperties: { type: "number" } },
+    next_cursor: { anyOf: [{ type: "string" }, { type: "null" }] },
+    remaining_total: { type: "number" },
+    scope: { type: "string" },
+    tasks: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          bucket: { type: "string" },
+          domain_id: { anyOf: [{ type: "string" }, { type: "null" }] },
+          domain_name: { anyOf: [{ type: "string" }, { type: "null" }] },
+          due_at: { anyOf: [{ type: "string" }, { type: "null" }] },
+          follow_up_at: { anyOf: [{ type: "string" }, { type: "null" }] },
+          id: { type: "string" },
+          project_id: { anyOf: [{ type: "string" }, { type: "null" }] },
+          project_title: { anyOf: [{ type: "string" }, { type: "null" }] },
+          reason: { type: "string" },
+          status: { type: "string" },
+          title: { type: "string" },
+          version: { type: "number" },
+        },
+        required: ["id", "version", "title", "status", "bucket", "reason"],
+      },
+    },
+  },
+  required: ["tasks", "scope", "remaining_total", "bucket_counts"],
+};
 /** The shape of the structuredContent get_task returns. */
 export const getTaskResultShape: Shape = {
   type: "object",

@@ -1,6 +1,6 @@
 """Owner-scoped archive/trash lifecycle without a generic mutation framework."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Iterable
 from datetime import datetime
 from typing import Any, Protocol, TypeVar
 from uuid import UUID
@@ -82,6 +82,12 @@ for _kind in RecordKind:
 T = TypeVar("T")
 
 
+class PhotoFiles(Protocol):
+    """Where the files of Journal photos live; the lifecycle removes them with the last row."""
+
+    def remove(self, owner_id: UUID, digests: Iterable[str]) -> int: ...
+
+
 class LifecycleStore(TransactionalStore, IdempotentStore, AuditingStore, Protocol):
     def list_trash(
         self,
@@ -117,7 +123,17 @@ class LifecycleStore(TransactionalStore, IdempotentStore, AuditingStore, Protoco
         record_id: UUID,
         *,
         version: int,
-    ) -> None: ...
+    ) -> tuple[str, ...]: ...
+
+    def entry_photo_ids(self, session: TxSession, owner_id: UUID, entry_id: UUID) -> list[UUID]: ...
+
+    def erase_entry_photos(
+        self, session: TxSession, owner_id: UUID, entry_id: UUID
+    ) -> list[tuple[UUID, tuple[str, str]]]: ...
+
+    def digests_in_use(
+        self, session: TxSession, owner_id: UUID, digests: Collection[str]
+    ) -> set[str]: ...
 
     def list_trash_owner_ids(self, session: TxSession) -> list[UUID]: ...
 
@@ -206,6 +222,7 @@ class RecordLifecycleService:
         *,
         contact_removal_guard: Callable[[Any, UUID, UUID], None] | None = None,
         task_removal_hook: Callable[[Any, UUID, UUID], None] | None = None,
+        photo_files: PhotoFiles | None = None,
         locale: AppLocale = DEFAULT_LOCALE,
     ) -> None:
         self.locale: AppLocale = locale
@@ -214,6 +231,7 @@ class RecordLifecycleService:
         self.cursor_codec = cursor_codec
         self.contact_removal_guard = contact_removal_guard
         self.task_removal_hook = task_removal_hook
+        self.photo_files = photo_files
 
     def list_trash(
         self,
@@ -422,6 +440,7 @@ class RecordLifecycleService:
             label = "shopping items" if kind is RecordKind.SHOPPING_ITEM else "journal entries"
             raise ValidationError(f"{label} cannot be removed permanently")
         payload = {"kind": kind.value, "record_id": str(record_id), "version": version}
+        files: list[str] = []
 
         def operation(session: TxSession) -> dict[str, Any]:
             if kind is RecordKind.CONTACT and self.contact_removal_guard is not None:
@@ -429,7 +448,12 @@ class RecordLifecycleService:
             if kind is RecordKind.TASK and self.task_removal_hook is not None:
                 # Releases pointers that only this Task used, in the same transaction.
                 self.task_removal_hook(session, actor.user_id, record_id)
-            self.store.permanently_remove(session, actor.user_id, kind, record_id, version=version)
+            files.extend(
+                self.store.permanently_remove(
+                    session, actor.user_id, kind, record_id, version=version
+                )
+                or ()
+            )
             self.store.append_audit(
                 session,
                 actor_id=actor.user_id,
@@ -451,6 +475,73 @@ class RecordLifecycleService:
                 execute=lambda: operation(session),
             )
         )
+        self._remove_unused_files(actor.user_id, files)
+
+    def entry_photo_ids(self, actor: Actor, entry_id: UUID) -> list[UUID]:
+        """The photos that hang on a trashed entry, trashed or not (none for a live entry)."""
+
+        actor.require(_READ_SCOPE[RecordKind.JOURNAL_ENTRY])
+        return self.store.transaction(
+            lambda session: self.store.entry_photo_ids(session, actor.user_id, entry_id)
+        )
+
+    def erase_entry_photos(
+        self,
+        actor: Actor,
+        entry_id: UUID,
+        *,
+        idempotency_key: str,
+        correlation_id: str | None = None,
+    ) -> int:
+        """Erase the photos of a trashed entry (the entry itself stays); how many were erased.
+
+        A photo leaves with its entry when the owner empties the trash. Each photo is audited by its
+        id and kind only. A file is removed once no row of the owner names it.
+        """
+
+        actor.require(_WRITE_SCOPE[RecordKind.JOURNAL_ENTRY])
+        payload = {"kind": "journal_entry_photos", "entry_id": str(entry_id)}
+        files: list[str] = []
+
+        def operation(session: TxSession) -> dict[str, Any]:
+            erased = self.store.erase_entry_photos(session, actor.user_id, entry_id)
+            for photo_id, digests in erased:
+                files.extend(digests)
+                self.store.append_audit(
+                    session,
+                    actor_id=actor.user_id,
+                    event=f"{RecordKind.JOURNAL_ATTACHMENT.value}.permanently_removed",
+                    outcome="success",
+                    target_type=RecordKind.JOURNAL_ATTACHMENT.value,
+                    target_id=photo_id,
+                    correlation_id=correlation_id,
+                )
+            return {"removed": len(erased)}
+
+        record = self.store.transaction(
+            lambda session: self.store.idempotent(
+                session,
+                actor_id=actor.user_id,
+                operation="erase_entry_photos",
+                key=idempotency_key,
+                payload=payload,
+                execute=lambda: operation(session),
+                replay=lambda result: {"removed": result["removed"]},
+            )
+        )
+        self._remove_unused_files(actor.user_id, files)
+        return int(record["removed"])
+
+    def _remove_unused_files(self, owner_id: UUID, digests: Collection[str]) -> None:
+        """Remove the files no photo row of the owner names any more; none while a row does."""
+
+        if not digests or self.photo_files is None:
+            return
+        files = self.photo_files
+        in_use = self.store.transaction(
+            lambda session: self.store.digests_in_use(session, owner_id, digests)
+        )
+        files.remove(owner_id, set(digests) - in_use)
 
     def _transition(
         self,

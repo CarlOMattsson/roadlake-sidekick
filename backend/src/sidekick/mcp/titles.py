@@ -61,6 +61,11 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "update_journal_draft": {"sv": "Ändra dagboksutkast", "en": "Update journal draft"},
     "reject_journal_draft": {"sv": "Avvisa dagboksutkast", "en": "Reject journal draft"},
     "finalize_journal_draft": {"sv": "Slutför dagboksutkast", "en": "Finalize journal draft"},
+    "add_journal_photo": {"sv": "Lägg till dagboksfoto", "en": "Add journal photo"},
+    "get_journal_photo": {"sv": "Visa dagboksfoto", "en": "View journal photo"},
+    "update_journal_photo": {"sv": "Ändra dagboksfoto", "en": "Update journal photo"},
+    "trash_journal_photo": {"sv": "Släng dagboksfoto", "en": "Trash journal photo"},
+    "restore_journal_photo": {"sv": "Återställ dagboksfoto", "en": "Restore journal photo"},
     "list_assistant_activity": {
         "sv": "Lista assistentens aktivitet",
         "en": "List assistant activity",
@@ -138,6 +143,11 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "get_automation": {"sv": "Visa automation", "en": "View automation"},
     "save_automation": {"sv": "Spara automation", "en": "Save automation"},
     "approve_automation": {"sv": "Godkänn automation", "en": "Approve automation"},
+    "start_automation_run": {"sv": "Starta automationskörning", "en": "Start automation run"},
+    "record_automation_results": {
+        "sv": "Spara automationens resultat",
+        "en": "Record automation results",
+    },
     "archive_task_step": {"sv": "Arkivera steg", "en": "Archive step"},
     "restore_task_step": {"sv": "Återställ steg", "en": "Restore step"},
     "reorder_task_steps": {"sv": "Ordna om steg", "en": "Reorder steps"},

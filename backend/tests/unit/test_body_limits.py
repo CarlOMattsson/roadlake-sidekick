@@ -22,7 +22,9 @@ from sidekick.api.body_limits import (
     MAX_COMPANION_BODY_BYTES,
     MAX_DEFAULT_BODY_BYTES,
     MAX_MCP_BODY_BYTES,
+    MAX_PHOTO_UPLOAD_BODY_BYTES,
     RequestBodyLimitMiddleware,
+    body_limit,
 )
 from sidekick.api.failed_auth import (
     VERIFIED_BEARER_SCOPE_KEY,
@@ -681,3 +683,17 @@ async def test_the_buffering_cap_comes_from_settings_and_has_a_safe_default() ->
     assert Settings(_env_file=None).max_buffered_requests == 32
     with pytest.raises(ValueError, match="max_buffered_requests"):
         Settings(_env_file=None, max_buffered_requests=0)
+
+
+def test_only_the_photo_upload_path_gets_the_larger_companion_ceiling() -> None:
+    upload = "/companion/v1/journal/photos"
+    assert body_limit(upload, companion=True) == MAX_PHOTO_UPLOAD_BODY_BYTES
+    assert MAX_PHOTO_UPLOAD_BODY_BYTES > 4 * 1024 * 1024 + 128 * 1024
+    for other in (
+        "/companion/v1/journal/entries",
+        "/companion/v1/journal/photos/extra",
+        "/companion/v1/journal/photos/",
+    ):
+        assert body_limit(other, companion=True) == MAX_COMPANION_BODY_BYTES
+    # The path alone never widens a ceiling: a route outside the companion keeps its own.
+    assert body_limit(upload, companion=False) == MAX_DEFAULT_BODY_BYTES

@@ -143,8 +143,9 @@ def test_write_tools_name_a_write_scope_and_read_tools_none() -> None:
         if _read_only(tool):
             assert not named_write, tool["name"]
         else:
-            # `ai:run` is the write scope of the tools that run an approved AI step.
-            assert named_write or "ai:run" in named, tool["name"]
+            # `ai:run` and `automation:run` are the write scopes of the tools that run an approved
+            # AI step and of the two a routine runs an approved automation with.
+            assert named_write or {"ai:run", "automation:run"} & set(named), tool["name"]
 
 
 def test_a_tool_in_no_area_is_an_error() -> None:

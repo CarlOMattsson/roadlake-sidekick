@@ -13,6 +13,7 @@ from mcp.types import TextContent
 from pydantic import BaseModel
 from pydantic.json_schema import JsonSchemaMode
 
+from sidekick.journal.domain.photo_format import PhotoRefusedError
 from sidekick.mcp.correlation import request_correlation_id
 from sidekick.mcp.text import flat
 from sidekick.shared.errors.core import (
@@ -48,12 +49,24 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
         "Running AI steps on the server is off, or this step needs something the server "
         "cannot give (a local model, web tools). Ask the owner to run it in Claude Code."
     ),
-    "app_only": (
-        "This is the owner's decision. It is made in the Sidekick app, not through a model call."
-    ),
+    "app_only": ("This is done in the Sidekick app by the owner, not through a model call."),
     "automation_changed": (
         "The automation changed after the owner was shown it. Read it again with "
         "get_automation and approve its current digest."
+    ),
+    "automation_not_active": (
+        "The automation is a draft, paused or archived. Only the owner starts it again, in the app."
+    ),
+    "automation_not_approved": (
+        "The owner has not approved this automation. Ask them to approve it in the app."
+    ),
+    "automation_changed_since_approval": (
+        "The automation changed after the owner approved it, so it does not run. Ask the owner "
+        "to approve it again in the app."
+    ),
+    "automation_other_runner": (
+        "This automation is meant for another runner than the one that asked. Ask the owner "
+        "which runner it should have."
     ),
     "ai_budget_reached": (
         "The spending cap of the task or of the month is reached, so the step was not run."
@@ -71,6 +84,7 @@ _ERROR_MESSAGES = {
     "unauthorized": "Authentication required.",
     "forbidden": "You do not have access to that.",
     "validation_error": "Request validation failed.",
+    "photo_refused": "That photo was refused.",
     "not_found": "I could not find that. Check the name or search again.",
     "conflict": "That changed in the meantime.",
     "idempotency_conflict": "That request key was already used with different data.",
@@ -219,6 +233,9 @@ def error_result(error: Exception) -> ToolResult:
         ):
             name = flat(error.subject, limit=_SUBJECT_CHARS)
             message = _STALE_SUBJECT_TEXT[error.subject_kind].format(name=name)
+    if isinstance(error, PhotoRefusedError):
+        # A closed word that names the rule (for example `carries_metadata`), never a value.
+        message = f"{message} Reason: {error.refusal.value}"
     if isinstance(error, FieldValidationError):
         # The rows hold field names and fixed words, never a value, so the caller can correct them.
         message = f"{message} Fields: {'; '.join(error.rows)}"

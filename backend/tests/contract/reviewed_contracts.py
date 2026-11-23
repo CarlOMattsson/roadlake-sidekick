@@ -94,7 +94,14 @@ SUPERSEDED_TOOL_DESCRIPTIONS: dict[str, str] = {
 # runtime output schema before it is compared with the reviewed one.
 ADDITIVE_OUTPUT_FIELDS: dict[str, tuple[str, ...]] = {
     # The diary day's "Gjort" section.
-    "get_journal_day": ("entry_fingerprint", "done", "owner_timezone", "today"),
+    # `day_attachments`: the photos that hang on the day itself (2026-11-22).
+    "get_journal_day": (
+        "entry_fingerprint",
+        "done",
+        "owner_timezone",
+        "today",
+        "day_attachments",
+    ),
     # The owner's zone and calendar date, so the phone can say "today" the way the server does.
     "list_journal_entries": ("owner_timezone", "today"),
 }
@@ -106,15 +113,21 @@ ADDITIVE_OUTPUT_FIELDS: dict[str, tuple[str, ...]] = {
 # 2026-11-18: `memory_excluded` (the owner keeps the entry out of Claude's memory) and `summary_by`
 # ("you" when the summary holds the owner's own words) are optional fields with defaults, added on
 # purpose after the baselines were accepted.
-ADDITIVE_RECORD_FIELDS: dict[str, tuple[str, ...]] = {
-    "list_journal_entries": ("links", "tags", "memory_excluded", "summary_by"),
-    "get_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
-    "get_journal_day": ("links", "tags", "memory_excluded", "summary_by"),
-    "create_manual_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
-    "write_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
-    "update_journal_entry": ("links", "tags", "memory_excluded", "summary_by"),
-    "finalize_journal_draft": ("links", "tags", "memory_excluded", "summary_by"),
-}
+# 2026-11-22: `attachments` (how many photos the entry carries, and their ids) is an optional field
+# with a default, added for the Journal photos.
+_ENTRY_RECORD_ADDITIONS = ("links", "tags", "memory_excluded", "summary_by", "attachments")
+ADDITIVE_RECORD_FIELDS: dict[str, tuple[str, ...]] = dict.fromkeys(
+    (
+        "list_journal_entries",
+        "get_journal_entry",
+        "get_journal_day",
+        "create_manual_journal_entry",
+        "write_journal_entry",
+        "update_journal_entry",
+        "finalize_journal_draft",
+    ),
+    _ENTRY_RECORD_ADDITIONS,
+)
 ENTRY_RECORD_FIELDS = frozenset({"journal_date", "key_points", "contact_ids"})
 
 

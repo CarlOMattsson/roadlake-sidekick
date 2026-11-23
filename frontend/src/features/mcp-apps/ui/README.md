@@ -63,6 +63,22 @@ The button keeps `aria-expanded` and `aria-controls` and the entries are buttons
 because some menus hold more than menu items (saved views, the update reminder, the license row). Without the Popover
 API the menu is a fixed box (no `popover` attribute).
 
+## `InsightLine` (`insight-line.tsx`)
+
+```ts
+<InsightLine text locale
+  density?: "list" | "inline" | "detail"   // list (default): 2 lines; inline: 2 lines, no button; detail: whole
+  onMore?: () => void                      // list: "Visa mer ›" opens the view that says more
+  className? />
+```
+
+One sentence the server wrote ("Du sov dåligt, så den tunga uppgiften flyttades till imorgon."), body type, no heading,
+the first block of Start and Automationer; an empty `text` draws nothing. In a list it stops after two lines
+(`--sk-insight-lines`) with "…" after a whole word (`useWordClip`, `use-word-clip.ts`, which the journal's draft
+summary uses too); screen readers get the whole sentence. Without `onMore`, a cut sentence offers "Visa mer" in place
+(no ›, `aria-expanded`, then "Visa mindre"). A narrow full-screen frame (large text) does not cut it, as it does not
+cut a row title. The words "Visa mer"/"Visa mindre" come from `insight-labels.ts` (sv and en, by `locale`).
+
 ## `Switch` (`switch.tsx`)
 
 ```ts

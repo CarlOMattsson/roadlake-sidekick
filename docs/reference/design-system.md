@@ -172,7 +172,7 @@ full-screen room; detail views mark the parent room. In Control the strip has no
 `aria-current`, labels all muted; the picker reads "Rum ⌄" / "Rooms ⌄", no item has `aria-checked`). It is
 `position: sticky` on the page colour and the fixed chrome is bounded: 96.4 at 110 %, 99 at 150 %, 104 at 200 %.
 
-*Glyphs in the strip* are a choice, never the default: names alone everywhere unless the instance
+_Glyphs in the strip_ are a choice, never the default: names alone everywhere unless the instance
 (`SIDEKICK_MCP_APP_NAV_ICONS`, written into the app document as `sidekick-nav-icons`) or, on the phone, the owner
 (Inställningar → Rumsraden: Text · Båda · Ikoner) says otherwise. `label` puts a 20 glyph 6 before each name; `only`
 draws the glyph alone, and each cell then carries its name in `aria-label` and in `title` (the tooltip). The strip
@@ -182,6 +182,27 @@ named for assistive technology. In the wide head `only` makes every cell 48 wide
 `ui/icons.tsx` (2 px outline on the 24 box): house (Start), ticked ring (Arbete), notebook (Dagbok), basket (Inköp),
 two people (Kontakter), open book (Bibliotek), bolt (Automationer) and four tiles for Mer, which never borrows the ⋯
 of a room's tools. Mer's menu rows are names in every mode.
+
+**Menu (Meny).** One `Menu` for ⋯, a row's quick actions and Mer: with a fine pointer or in a frame of at least 40 rem
+a popover (240 wide, 13.75–20 rem, radius 12, 4 of air inside, `--sk-shadow-2`, in the top layer so it moves nothing),
+on a phone the panel in the flow (`.sk-menu-panel`, the surface, radius 12, a hairline between entries). An entry is
+a 44 row in `--sk-type-menu` (16/20 500). _Meta line:_ an entry may carry one second line under its name in
+`--sk-type-meta` `--sk-muted` ("4 att läsa", "1 misslyckades idag"); the row is then 6 + name + meta + 6, at least 48.
+It holds one number that asks for a decision and is left out when there is nothing to say ("Kontakter" alone); a
+count of 0 is never shown. _Tick:_ a mark the record carries (`aria-pressed`) or the place you are (`aria-current`, the
+room of Mer you stand in) is the chip's tick at the entry's end, centred on both lines; never a bold or filled entry.
+A deletion is last, in `--sk-overdue-fg`, after a divider in the popover. Mer holds rooms only; tools stay in ⋯. The
+button's ↓ opens on the first entry and ↑ on the last; Escape closes and puts the focus back on the button.
+
+**Insight line (Insiktsrad).** `InsightLine`: one sentence the server wrote about what Sidekick noticed ("Du sov
+dåligt, så den tunga uppgiften flyttades till imorgon."), in `--sk-type-body` `--sk-fg`, without a heading, surface or
+edge, as the first block of a view (Start, Automationer). No sentence, no block. In a full-screen list it stands in at
+most 2 lines (`--sk-insight-lines`), cut after a whole word with "…" (never inside a word; the whole sentence is read
+by screen readers); like a row title it is not cut in a full-screen frame narrower than 19 rem (large text). Under it
+either "Visa mer ›" (a compact tertiary with ›, 12 at its sides, 8 up into the sentence's last line box, its text on the start edge, 48
+target) that opens the view that says more, where the sentence stands whole (`density="detail"`) with its graphs, or,
+where there is no such view, "Visa mer" in place without › (`aria-expanded`, then "Visa mindre"), only when the
+sentence is cut. In an inline card it keeps its 2 lines and has no button: the card's link row leads on.
 
 **Room head (Rumshuvud)** is the row under the strip, 44 high. On the left are the room's tools: tabs (Work),
 a search field (Contacts) or the date title (Journal). The room's name is never repeated as a title. On the

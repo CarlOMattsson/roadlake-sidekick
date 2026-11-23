@@ -635,6 +635,149 @@
         "title": "PairRequest",
         "type": "object"
       },
+      "PhotoUploadForm": {
+        "additionalProperties": false,
+        "description": "The parts of the upload. Every field is one part of the form; a file is a `bytes` part.",
+        "properties": {
+          "alt_text": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Alt Text"
+          },
+          "camera": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Camera"
+          },
+          "entry_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Entry Id"
+          },
+          "journal_date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Journal Date"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "maximum": 90,
+                "minimum": -90,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "maximum": 180,
+                "minimum": -180,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lon"
+          },
+          "orientation": {
+            "anyOf": [
+              {
+                "maximum": 8,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Orientation"
+          },
+          "photo": {
+            "format": "binary",
+            "title": "Photo",
+            "type": "string"
+          },
+          "place": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Place"
+          },
+          "taken_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Taken At"
+          },
+          "thumbnail": {
+            "format": "binary",
+            "title": "Thumbnail",
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo",
+          "thumbnail"
+        ],
+        "title": "PhotoUploadForm",
+        "type": "object"
+      },
       "Priority": {
         "enum": [
           "low",
@@ -1934,6 +2077,63 @@
           }
         ],
         "summary": "journal.entry_update",
+        "x-sidekick-also-capability": "companion:journal:read",
+        "x-sidekick-capability": "companion:journal:write"
+      }
+    },
+    "/companion/v1/journal/photos": {
+      "post": {
+        "operationId": "journal.photo_add",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PhotoUploadForm"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4390912
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "journal.photo_add",
         "x-sidekick-also-capability": "companion:journal:read",
         "x-sidekick-capability": "companion:journal:write"
       }

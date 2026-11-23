@@ -442,7 +442,10 @@ def test_an_automation_row_of_another_owner_is_refused() -> None:
         verify_export(document)
 
 
-@pytest.mark.parametrize("head", [HEAD_115, "116_automations", "117_journal_attachments"])
+@pytest.mark.parametrize(
+    "head",
+    [HEAD_115, "116_automations", "117_journal_attachments", "124_journal_attachment_details"],
+)
 def test_a_format_8_export_is_read_and_restores_without_automations(head: str) -> None:
     older = as_format_8(_document(), head)
 

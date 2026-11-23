@@ -62,7 +62,7 @@ MCP_SCOPE_DESCRIPTIONS: dict[str, str] = {
     ),
     "automation:run": (
         "Claim and report a run of an approved automation, for the owner's own Claude or "
-        "Claude Code. It cannot read, change or approve an automation; no MCP tool uses it yet."
+        "Claude Code. It cannot read, change or approve an automation."
     ),
     "ai:run": (
         "Start an approved AI step and report its result, for the owner's own Claude Code. "

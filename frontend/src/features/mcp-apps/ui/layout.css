@@ -72,13 +72,15 @@
 /* The row template's title: in a full-screen list a row's
    title stops after 3 lines up to about 133 % text and is never cut above that (19rem is 412 px at 135 % text), so a
    long title neither eats the screen nor goes missing at 200 %. The whole title is in the detail view. Each room's title
-   reads --sk-row-title-lines; an inline card keeps its own 2. */
+   reads --sk-row-title-lines; an inline card keeps its own 2. The insight line (insight-line.css) follows the same
+   rule with its 2 lines. */
 .sk-frame[data-mode="full"] > .sk-frame__body {
   --sk-row-title-lines: 3;
 }
 @container sk-frame (max-width: 18.99rem) {
   .sk-frame[data-mode="full"] > .sk-frame__body {
     --sk-row-title-lines: none;
+    --sk-insight-lines: none;
   }
 }
 

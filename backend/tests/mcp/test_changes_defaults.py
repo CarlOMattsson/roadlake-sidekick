@@ -5,6 +5,7 @@ Some clients send every optional field as an explicit null. A null in `changes` 
 tool's `clear` list. A field that is both given a value and named in `clear` is refused.
 """
 
+import base64
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -20,6 +21,7 @@ from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from sidekick.structured.base import PartialChanges
+from sidekick.structured.journal_photos import PhotoChangesInput
 from sidekick.structured.work_records import (
     ActionChanges,
     DomainChanges,
@@ -29,6 +31,8 @@ from sidekick.structured.work_records import (
     TaskChanges,
 )
 from tests.db import database_factory
+from tests.support import photo_files
+from tests.support.app_origin import origin_for
 from tests.support.settings import make_settings
 
 NO_CHANGE_ROW = "changes: at least one change is required"
@@ -149,6 +153,18 @@ CASES = [
         "Next door",
     ),
     Case(
+        "update_journal_photo",
+        "photo_id",
+        "expected_version",
+        "photo",
+        ("position",),
+        {"orientation": 6},
+        "orientation",
+        PhotoChangesInput,
+        "camera",
+        "Pixel 9",
+    ),
+    Case(
         "save_automation",
         "automation_id",
         "expected_version",
@@ -169,7 +185,11 @@ async def _seed(client: Client) -> dict[str, dict[str, Any]]:
     """One record of each kind, as the tool replies describe it."""
 
     async def call(tool: str, arguments: dict[str, Any], key: str | None = None) -> dict[str, Any]:
-        reply = await client.call_tool(tool, {**arguments, "idempotency_key": f"seed-{tool}-0001"})
+        reply = await client.call_tool(
+            tool,
+            {**arguments, "idempotency_key": f"seed-{tool}-0001"},
+            meta=origin_for(tool),
+        )
         return reply.structured_content[key or next(iter(reply.structured_content))]
 
     domain = await call("create_domain", {"name": "Home"})
@@ -179,6 +199,18 @@ async def _seed(client: Client) -> dict[str, dict[str, Any]]:
     step = await call("create_task_step", {"task_id": task["id"], "title": "Buy paint"})
     action = await call("create_step_action", {"step_id": step["id"], "title": "Pick a colour"})
     contact = await call("create_contact", {"display_name": "Anna"})
+    entry = await call(
+        "write_journal_entry",
+        {"journal_date": "2026-11-22", "title": "Walk", "source_text": "A short walk."},
+    )
+    photo = await call(
+        "add_journal_photo",
+        {
+            "entry_id": entry["id"],
+            "photo": base64.b64encode(photo_files.jpeg()).decode(),
+            "thumbnail": base64.b64encode(photo_files.jpeg(320, 240)).decode(),
+        },
+    )
     automation = await call(
         "save_automation",
         {
@@ -191,6 +223,7 @@ async def _seed(client: Client) -> dict[str, dict[str, Any]]:
         "automation",
     )
     return {
+        "photo": photo,
         "automation": automation,
         "task": task,
         "step": step,
@@ -240,6 +273,7 @@ async def test_a_client_that_fills_in_schema_defaults_still_updates(case: Case) 
                 "idempotency_key": "defaults-0001",
                 "changes": {**_filled_in(properties), **case.change},
             },
+            meta=origin_for(case.tool),
         )
 
     stored = updated.structured_content[case.record_key]
@@ -264,6 +298,7 @@ async def test_an_explicit_null_on_a_field_without_an_empty_value_means_not_sent
                 "idempotency_key": "nulls-0001",
                 "changes": {**dict.fromkeys(case.fixed), **case.change},
             },
+            meta=origin_for(case.tool),
         )
 
     stored = updated.structured_content[case.record_key]
@@ -289,6 +324,7 @@ async def test_nulls_on_fields_without_an_empty_value_alone_change_nothing(case:
                 "changes": dict.fromkeys(case.fixed),
             },
             raise_on_error=False,
+            meta=origin_for(case.tool),
         )
         empty = await client.call_tool(
             case.tool,
@@ -299,6 +335,7 @@ async def test_nulls_on_fields_without_an_empty_value_alone_change_nothing(case:
                 "changes": {},
             },
             raise_on_error=False,
+            meta=origin_for(case.tool),
         )
 
     assert refused.is_error
@@ -319,6 +356,7 @@ async def _with_a_value(client: Client, case: Case) -> dict[str, Any]:
             "idempotency_key": "set-0001",
             "changes": {case.clear_field: case.clear_value},
         },
+        meta=origin_for(case.tool),
     )
     stored = reply.structured_content[case.record_key]
     assert stored[case.clear_field] is not None
@@ -335,6 +373,7 @@ async def _call(client: Client, case: Case, stored: dict[str, Any], **arguments:
             **arguments,
         },
         raise_on_error=False,
+        meta=origin_for(case.tool),
     )
 
 

@@ -1,82 +1,40 @@
 """Read-only "Dagens läge": one bounded summary of the owner's day in one call.
 
-`get_today_brief` adds no selection rules of its own. Tasks come from the Work agenda use case
-(`WorkListService.work_agenda_page`, the same rules as `get_work_agenda`), the day's entries and
-summary status from `JournalService.get_day` (as `get_journal_day`), and the open shopping lists
-from `ShoppingService`. Each part needs its own read scope. A part whose scope is missing is left
-out of structuredContent without an error, as the Journal tools leave out content they may not see.
+`get_today_brief` adds no selection rules of its own: `sidekick.start.application.compose` reads
+the parts. Tasks come from the Work agenda use case (the same rules as `get_work_agenda`), the
+day's entries and summary status from the journal day (as `get_journal_day`), and the open
+shopping lists from Shopping. Each part needs its own read scope. A part whose scope is missing
+is left out of structuredContent without an error, as the Journal tools leave out content they may
+not see.
 The day is the owner's calendar day in `Settings.owner_zone`.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Literal, TypedDict
-from uuid import UUID
+from dataclasses import dataclass
+from datetime import date
 
 from fastmcp import FastMCP
 from fastmcp.tools import ToolResult
 
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.results import output_schema, result
-from sidekick.mcp.text import AGENDA_UPCOMING_DAYS
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
-from sidekick.shared.types import Actor
-from sidekick.shopping.application.schemas import ListSummary
+from sidekick.start.application.compose import (
+    UPCOMING_DAYS,
+    BriefDiary,
+    BriefParts,
+    BriefShopping,
+    BriefShoppingList,
+    BriefTasks,
+    compose_brief,
+)
+from sidekick.start.sources import JournalDayFactsSource, ShoppingListsSource, WorkAgendaSource
 from sidekick.structured.base import Output
-from sidekick.work.application.models import WorkQuery, WorkRow
 
-if TYPE_CHECKING:
-    from sidekick.composition import Container
-
-TASK_ROW_LIMIT = 10
-PAGE_SIZE = 100
-# The Work and shopping reads are already capped at 1000 records per call; this bounds the pages.
-MAX_PAGES = 10
-
-
-class BriefTaskRecord(Output):
-    """One overdue or due-today Work record, with the id and version a follow-up call needs."""
-
-    id: UUID
-    kind: str
-    title: str
-    version: int
-    agenda_group: Literal["overdue", "today"]
-    due_at: datetime | None
-    project_title: str | None
-
-
-class BriefTasks(Output):
-    overdue_count: int
-    today_count: int
-    upcoming_7d_count: int
-    items: list[BriefTaskRecord]
-    truncated: bool
-    """True when more overdue or due-today records exist than `items` shows."""
-    capped: bool
-    """True when the window held more records than the bounded reads can count."""
-
-
-class BriefDiary(Output):
-    entry_count: int
-    has_summary: bool
-    truncated: bool
-
-
-class BriefShoppingList(Output):
-    id: UUID
-    name: str
-    version: int
-    open_item_count: int
-
-
-class BriefShopping(Output):
-    open_list_count: int
-    open_item_count: int
-    lists: list[BriefShoppingList]
+# The part records live with the composition; this module still names them for its callers.
+__all__ = ["BriefDiary", "BriefShopping", "BriefShoppingList", "BriefTasks", "register_brief_tools"]
 
 
 class BriefOutput(Output):
@@ -156,15 +114,7 @@ def _phrase(words: _Words, count: int, forms: tuple[str, str]) -> str:
     return f"{count} {plural}"
 
 
-class _BriefParts(TypedDict, total=False):
-    """The parts of the brief the actor's scopes allow; a missing key is a part left out."""
-
-    tasks: BriefTasks
-    diary: BriefDiary
-    shopping: BriefShopping
-
-
-def _summary_text(parts: _BriefParts, locale: AppLocale = DEFAULT_LOCALE) -> str:
+def _summary_text(parts: BriefParts, locale: AppLocale = DEFAULT_LOCALE) -> str:
     """Return at most three sentences in the app language for the model to read aloud, with no
     titles."""
 
@@ -177,7 +127,7 @@ def _summary_text(parts: _BriefParts, locale: AppLocale = DEFAULT_LOCALE) -> str
                 overdue=_phrase(words, tasks.overdue_count, words.overdue_task),
                 today=_phrase(words, tasks.today_count, words.task),
                 upcoming=_phrase(words, tasks.upcoming_7d_count, words.task),
-                days=AGENDA_UPCOMING_DAYS,
+                days=UPCOMING_DAYS,
             )
         )
     diary: BriefDiary | None = parts.get("diary")
@@ -207,97 +157,6 @@ def _summary_text(parts: _BriefParts, locale: AppLocale = DEFAULT_LOCALE) -> str
     return " ".join(sentences)
 
 
-def _tasks_part(container: Container, actor: Actor, now: datetime) -> BriefTasks:
-    window_end = now + timedelta(days=AGENDA_UPCOMING_DAYS)
-    query = WorkQuery(limit=PAGE_SIZE, sort="due_asc", due_to=window_end)
-    items: list[WorkRow] = []
-    cursor: str | None = None
-    capped = True
-    for _ in range(MAX_PAGES):
-        page = container.work_lists.work_agenda_page(actor, replace(query, cursor=cursor))
-        items.extend(page.items)
-        if page.next_cursor is None:
-            capped = False
-            break
-        cursor = page.next_cursor
-    rows: list[BriefTaskRecord] = []
-    listed = 0
-    for item in items:
-        group = item.agenda_group
-        if group not in ("overdue", "today"):
-            continue
-        listed += 1
-        if len(rows) < TASK_ROW_LIMIT:
-            rows.append(
-                BriefTaskRecord(
-                    id=item.id,
-                    kind=item.kind,
-                    title=item.title,
-                    version=item.version,
-                    agenda_group=group,
-                    due_at=item.due_at,
-                    project_title=item.project_title,
-                )
-            )
-    return BriefTasks(
-        overdue_count=sum(1 for item in items if item.agenda_group == "overdue"),
-        today_count=sum(1 for item in items if item.agenda_group == "today"),
-        upcoming_7d_count=sum(1 for item in items if item.agenda_group == "upcoming"),
-        items=rows,
-        truncated=listed > TASK_ROW_LIMIT,
-        capped=capped,
-    )
-
-
-def _diary_part(container: Container, actor: Actor, day: date) -> BriefDiary:
-    journal_day = container.journal_day.get_day(
-        actor, journal_date=day, include_archived=False, limit=PAGE_SIZE, include_done=False
-    )
-    return BriefDiary(
-        entry_count=len(journal_day.entries),
-        has_summary=journal_day.summary is not None,
-        truncated=journal_day.next_cursor is not None,
-    )
-
-
-def _shopping_part(container: Container, actor: Actor) -> BriefShopping:
-    lists: list[ListSummary] = []
-    offset = 0
-    for _ in range(MAX_PAGES):
-        page = container.shopping.list_lists(
-            actor, include_archived=False, limit=PAGE_SIZE, offset=offset
-        )
-        lists.extend(page.lists)
-        if page.next_offset is None:
-            break
-        offset = page.next_offset
-    records: list[BriefShoppingList] = []
-    for shopping_list in lists:
-        open_items = 0
-        item_offset = 0
-        for _ in range(MAX_PAGES):
-            detail = container.shopping.get_list(
-                actor, shopping_list.id, limit=PAGE_SIZE, offset=item_offset
-            )
-            open_items += sum(1 for item in detail.items if not item.purchased)
-            if detail.next_offset is None:
-                break
-            item_offset = detail.next_offset
-        records.append(
-            BriefShoppingList(
-                id=shopping_list.id,
-                name=shopping_list.name,
-                version=shopping_list.version,
-                open_item_count=open_items,
-            )
-        )
-    return BriefShopping(
-        open_list_count=len(records),
-        open_item_count=sum(record.open_item_count for record in records),
-        lists=records,
-    )
-
-
 def register_brief_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     """Register the read-only day brief; it opens no app card."""
 
@@ -319,12 +178,13 @@ def register_brief_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         actor = ctx.actor_provider()
         now = ctx.container.work_lists.clock.now()
         day = now.astimezone(ctx.container.settings.owner_zone).date()
-        parts: _BriefParts = {}
-        if "tasks:read" in actor.scopes:
-            parts["tasks"] = _tasks_part(ctx.container, actor, now)
-        if "journal:read" in actor.scopes:
-            parts["diary"] = _diary_part(ctx.container, actor, day)
-        if "shopping:read" in actor.scopes:
-            parts["shopping"] = _shopping_part(ctx.container, actor)
+        parts = compose_brief(
+            actor,
+            now,
+            day,
+            agenda=WorkAgendaSource(ctx.container.work_lists),
+            journal=JournalDayFactsSource(ctx.container.journal_day),
+            shopping=ShoppingListsSource(ctx.container.shopping),
+        )
         structured = BriefOutput(day=day, **parts).model_dump(mode="json", exclude_unset=True)
         return result(structured, _summary_text(parts, ctx.container.settings.mcp_app_locale))

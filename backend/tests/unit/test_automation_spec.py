@@ -181,6 +181,24 @@ def test_an_automation_that_was_never_approved_does_not_run() -> None:
     assert error.value.cause is NotRunnableCause.NOT_APPROVED
 
 
+@pytest.mark.parametrize(
+    ("cause", "reason"),
+    [
+        (NotRunnableCause.NOT_ACTIVE, "automation_not_active"),
+        (NotRunnableCause.NOT_APPROVED, "automation_not_approved"),
+        (NotRunnableCause.CHANGED_SINCE_APPROVAL, "automation_changed_since_approval"),
+        (NotRunnableCause.OTHER_RUNNER, "automation_other_runner"),
+    ],
+)
+def test_every_cause_of_not_running_has_its_own_closed_reason(
+    cause: NotRunnableCause, reason: str
+) -> None:
+    error = NotRunnableError(cause)
+
+    assert error.reason == reason
+    assert error.code == "conflict"
+
+
 def test_the_approval_state_reads_the_two_digests() -> None:
     digest = spec_digest(spec())
     assert approval_state(digest, None) is ApprovalState.NOT_APPROVED

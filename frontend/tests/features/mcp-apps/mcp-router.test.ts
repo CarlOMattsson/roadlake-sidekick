@@ -64,6 +64,10 @@ it("maps each opener family to its room", () => {
     room: "control",
     view: "trash",
   });
+  expect(routeForTool("get_review_queue")).toEqual({
+    room: "work",
+    view: "review",
+  });
 });
 
 it("returns undefined for an unknown, empty or non-string name", () => {
@@ -99,6 +103,17 @@ const SHAPES: [string, unknown, { room: string; view: string }][] = [
     "work_changes card",
     { card: { kind: "work_changes", items: [], total: 0, truncated: false } },
     { room: "work", view: "changes" },
+  ],
+  [
+    "review queue",
+    {
+      tasks: [],
+      scope: "suggested",
+      remaining_total: 0,
+      bucket_counts: {},
+      next_cursor: null,
+    },
+    { room: "work", view: "review" },
   ],
   ["task", { task: { id: "t1" } }, { room: "work", view: "task" }],
   ["project", { project: { id: "p1" } }, { room: "work", view: "project" }],

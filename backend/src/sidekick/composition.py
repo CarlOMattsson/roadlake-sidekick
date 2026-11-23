@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from sidekick.activity.application.service import ActivityLedger, ActivityService
 from sidekick.activity.persistence import ActivityStore
 from sidekick.automations.application.registry import AutomationRegistryService
+from sidekick.automations.application.runs import AutomationRunService
 from sidekick.automations.persistence import SqlAutomationStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
@@ -29,8 +30,10 @@ from sidekick.journal.application.analysis import JournalAnalysisService
 from sidekick.journal.application.capture import JournalCaptureService
 from sidekick.journal.application.day import JournalDayService
 from sidekick.journal.application.finalize import JournalFinalizeService
+from sidekick.journal.application.photos import JournalPhotoService
 from sidekick.journal.application.relations import JournalRelationService
 from sidekick.journal.application.service import JournalService
+from sidekick.journal.infrastructure.media_files import OwnerPhotoFiles
 from sidekick.journal.persistence.store import SqlJournalStore
 from sidekick.license.persistence import LicenseStore
 from sidekick.license.service import LicenseService
@@ -108,6 +111,7 @@ class Container:
     journal_capture: JournalCaptureService
     journal_day: JournalDayService
     journal_relations: JournalRelationService
+    journal_photos: JournalPhotoService
     shopping: ShoppingService
     references: ExternalReferenceService
     search: SearchService
@@ -122,6 +126,8 @@ class Container:
     ai_server_runs: AiServerRunService
     # Automations (ADR-013): the registry the owner approves. Nothing in it runs an automation.
     automation_registry: AutomationRegistryService
+    # Runs of an approved automation: the brief a runner follows and what it records.
+    automation_runs: AutomationRunService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -170,6 +176,12 @@ def create_auth_service(
     return AuthService(factory, settings.token_pepper, on_user_provisioned=(provision_memory,))
 
 
+def create_photo_files(settings: Settings) -> OwnerPhotoFiles:
+    """The photo files of all owners: `SIDEKICK_MEDIA_DIRECTORY`, one subdirectory per owner key."""
+
+    return OwnerPhotoFiles.at(settings.media_directory, settings.token_pepper)
+
+
 def create_lifecycle_service(
     factory: SessionFactory, telemetry: TelemetryPort, settings: Settings
 ) -> RecordLifecycleService:
@@ -181,6 +193,7 @@ def create_lifecycle_service(
         CursorCodec(settings.cursor_signing_key),
         contact_removal_guard=ShoppingStore.ensure_contact_unlinked,
         task_removal_hook=ExternalReferenceStore.release_task_references,
+        photo_files=create_photo_files(settings),
         locale=settings.mcp_app_locale,
     )
 
@@ -341,6 +354,7 @@ def create_container(
         settings, stores.work, cursor_codec, resolved_telemetry, activity_ledger
     )
     contacts = ContactService(stores.contacts, SystemClock(), cursor_codec)
+    automation_store = SqlAutomationStore(factory, resolved_telemetry)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
     container = Container(
@@ -365,6 +379,9 @@ def create_container(
             stores.journal, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
         ),
         journal_relations=JournalRelationService(stores.journal),
+        journal_photos=JournalPhotoService(
+            stores.journal, create_photo_files(settings), SystemClock()
+        ),
         shopping=ShoppingService(
             ShoppingStore(factory, resolved_telemetry),
             SystemClock(),
@@ -389,7 +406,10 @@ def create_container(
         ai_runs=ai_services.runs,
         ai_server_runs=ai_services.server_runs,
         automation_registry=AutomationRegistryService.from_settings(
-            SqlAutomationStore(factory, resolved_telemetry), SystemClock(), cursor_codec, settings
+            automation_store, SystemClock(), cursor_codec, settings
+        ),
+        automation_runs=AutomationRunService.from_settings(
+            automation_store, SystemClock(), settings, resolved_telemetry
         ),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(

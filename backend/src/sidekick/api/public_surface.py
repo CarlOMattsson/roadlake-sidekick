@@ -88,6 +88,8 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("GET", re.compile(rf"/companion/v1/journal/sources/{_UUID}")),
     ("POST", re.compile(r"/companion/v1/journal/entries")),
     ("POST", re.compile(rf"/companion/v1/journal/entries/{_UUID}/update")),
+    # A photo uploaded from the phone, as multipart (sidekick.api.companion_photos).
+    ("POST", re.compile(r"/companion/v1/journal/photos")),
     # Delete with undo, the trash list and emptying it (sidekick.api.companion_trash).
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/trash")),
     ("POST", re.compile(rf"/companion/v1/tasks/{_UUID}/untrash")),

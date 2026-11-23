@@ -67,7 +67,11 @@ CHARS_PER_TOKEN = 3.5
 # (the spec, with its cadence) is about 1 000; measured 24 991 for the 84 model-visible tools,
 # rounded up to 25 000, so the next addition asks for its own reviewed raise. `approve_automation`
 # is app-only and costs nothing here.
-TOKEN_BUDGET = 25_000
+# 2026-11-22: raised to 26 400 for the two runner tools (`start_automation_run`,
+# `record_automation_results`), about 1 400 tokens, of which the `datapoints` and `suggestions`
+# inputs of `record_automation_results` are about 1 000: closed kinds, sources and fields are what
+# keeps a routine's input narrow; measured 26 382 for the 86 model-visible tools, rounded up.
+TOKEN_BUDGET = 26_400
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
@@ -83,7 +87,19 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # page of summaries and the full record, 6 800 characters together); measured 227 908 for the 84
 # model-visible tools, rounded up to 228 000. That is no longer the measured size plus 5 %: the
 # headroom is under 0.1 %, so the next new output asks for its own reviewed raise.
-OUTPUT_SCHEMA_CHAR_CAP = 228_000
+# 2026-11-22: raised to 233 900 for the outputs of the two runner tools (a started run with its
+# limits, and the answer to each datapoint and suggestion, 6 000 characters together); measured
+# 233 890 for the 86 model-visible tools, rounded up. The headroom is again under 0.1 %.
+# 2026-11-22: raised to 234 000 for the review queue's scope and card fields, 76 characters
+# together; measured 233 976 for the 86 model-visible tools, rounded up. The token budget is
+# unchanged (measured 26 381 of 26 400).
+# 2026-11-22: raised to 230 000 for the photo summary (`attachments`: a count and the ids) that
+# every model-visible Journal entry record and `get_journal_day` now carry, 1 972 characters
+# together (kept to a bare count and id list); measured 229 880 for the 84 model-visible tools.
+# The five photo tools are app-only and cost nothing here.
+# 2026-11-22: raised to 236 000 when the review queue fields and the photo summary met; measured
+# 235 948 for the model-visible tools, rounded up.
+OUTPUT_SCHEMA_CHAR_CAP = 236_000
 
 
 def _estimated_tokens(tool: dict[str, object]) -> float:

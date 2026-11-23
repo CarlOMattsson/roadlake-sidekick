@@ -118,6 +118,9 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
             "update_journal_draft",
             "reject_journal_draft",
             "finalize_journal_draft",
+            # A photo's reply carries its stored caption and place.
+            "add_journal_photo",
+            "update_journal_photo",
         ),
         "journal:read",
     ),
@@ -137,9 +140,17 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # (`sidekick.structured.trash.trash_item_record`): a receipt of id, version and time.
         "move_to_trash",
         "restore_from_trash",
+        # A photo moved in or out of the trash answers with its id and version only.
+        "trash_journal_photo",
+        "restore_journal_photo",
         # Memory settings carry per-domain scope checks of their own
         # (`sidekick.memory.application.settings`).
         "set_memory_settings",
+        # The runner tools answer with ids, counts and closed codes. `start_automation_run` also
+        # carries the brief: the owner's instruction, which a run holding `automation:run` alone
+        # is meant to follow, so asking for `automation:read` too would defeat the narrow token.
+        "start_automation_run",
+        "record_automation_results",
         # A run's state, attempt and cost; its text is only in `get_ai_step_run`.
         "report_ai_step_result",
         "review_ai_step_result",

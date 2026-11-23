@@ -34,12 +34,13 @@ export type JournalEntryLink = Item<
 >;
 /**
  * One Journal entry as get_journal_entry and get_journal_day return it (JournalEntryRecord).
- * `links` (the Projects and Contacts with their names), `tags` (slugs), `summary_by` and `memory_excluded` are absent
- * from an older server: the summary is then taken as Claude's and the entry as part of its memory.
+ * `links` (the Projects and Contacts with their names), `tags` (slugs), `summary_by`, `memory_excluded` and
+ * `attachments` (how many photos it carries, and their ids) are absent from an older server: the summary is then taken
+ * as Claude's, the entry as part of its memory and the entry as having no photos.
  */
 export type JournalEntry = WithOptional<
   ToolResults["get_journal_entry"]["entry"],
-  "links" | "tags" | "summary_by" | "memory_excluded"
+  "links" | "tags" | "summary_by" | "memory_excluded" | "attachments"
 >;
 type JournalDayResult = ToolResults["get_journal_day"];
 /** Only the daily summary fields the day view shows (JournalSummaryRecord). */

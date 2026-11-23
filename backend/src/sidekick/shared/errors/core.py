@@ -21,6 +21,10 @@ SidekickErrorReason = Literal[
     "ai_runner_off",
     "ai_budget_reached",
     "automation_changed",
+    "automation_not_active",
+    "automation_not_approved",
+    "automation_changed_since_approval",
+    "automation_other_runner",
     "app_only",
 ]
 

@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
-import { clipAtWord } from "../../mcp-apps/ui/clip-text";
+import { useWordClip } from "../../mcp-apps/ui/use-word-clip";
 import type { JournalLabels } from "../labels";
 
 /**
@@ -20,33 +20,9 @@ export function DraftSummary({
   after?: ReactNode;
   labels: JournalLabels;
 }) {
-  const ref = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
-  const [clipped, setClipped] = useState<string | null>(null);
+  const { ref, clipped } = useWordClip<HTMLParagraphElement>(text, !expanded);
   const long = clipped !== null;
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || expanded) return;
-    function measure() {
-      if (!el) return;
-      // A hidden copy beside the paragraph, same classes and width, so the real text is untouched while measuring.
-      const probe = el.cloneNode(false) as HTMLParagraphElement;
-      probe.style.visibility = "hidden";
-      probe.style.position = "absolute";
-      probe.style.width = `${el.getBoundingClientRect().width}px`;
-      el.after(probe);
-      const fits = (candidate: string) => {
-        probe.textContent = candidate;
-        return probe.scrollHeight <= probe.clientHeight + 1;
-      };
-      const result = clipAtWord(text, fits);
-      probe.remove();
-      setClipped(result === text ? null : result);
-    }
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [text, expanded]);
   return (
     <>
       <p

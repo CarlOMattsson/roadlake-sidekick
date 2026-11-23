@@ -46,6 +46,8 @@ class Area:
     title: str
     slug: str
     tools: tuple[str, ...]
+    note: str | None = None
+    """A paragraph shown under the page's header, for what holds for the whole area."""
 
     @property
     def page(self) -> str:
@@ -117,7 +119,14 @@ AREAS: tuple[Area, ...] = (
             "get_automation",
             "save_automation",
             "approve_automation",
+            "start_automation_run",
+            "record_automation_results",
         ),
+        "What a run costs: Claude or Claude Code runs a client run on its own side, so the cost it "
+        "reports is its own estimate. Sidekick stores it as an estimate, shows it as one and never "
+        "counts it against a money cap. Only the daily limit of runs binds a client run. The money "
+        "caps (the automation share and the monthly cap) bind only what Sidekick's own server "
+        "spends on model calls.",
     ),
     Area(
         "External references",
@@ -191,6 +200,11 @@ AREAS: tuple[Area, ...] = (
             "update_journal_draft",
             "reject_journal_draft",
             "finalize_journal_draft",
+            "add_journal_photo",
+            "get_journal_photo",
+            "update_journal_photo",
+            "trash_journal_photo",
+            "restore_journal_photo",
         ),
     ),
     Area(
@@ -517,6 +531,7 @@ def _area_page(area: Area, tools: list[JsonObject]) -> str:
         f"{'tool' if len(tools) == 1 else 'tools'}. The tools of this area that only the MCP App "
         "rooms call are on the [app-only page](app-only.md).",
         "",
+        *([area.note, ""] if area.note else []),
     ]
     for tool in tools:
         lines += _tool_section(tool, "##")
@@ -529,8 +544,7 @@ def _app_only_page(groups: list[tuple[Area, list[JsonObject]]]) -> str:
         *_header(
             "MCP tools: app-only",
             "The MCP tools that only the MCP App rooms call to show and edit records. "
-            "Claude cannot see them. The server also refuses a model's call by name to the owner's "
-            "decisions among them, and they check the same scopes as every other tool.",
+            "Claude cannot see them, and they check the same scopes as every other tool.",
         ),
         f"[MCP tool reference](index.md) | {total} tools.",
         "",

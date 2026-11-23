@@ -8,6 +8,7 @@ from uuid import UUID
 
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.observability import TelemetryPort
+from sidekick.shared.owner_day import day_start, month_start
 from sidekick.shared.replay import id_replay_record, id_result, record_id
 from sidekick.shared.types import (
     UNSET,
@@ -37,8 +38,6 @@ from sidekick.work.application.ai_store import (
     AiStepsStore,
     AiUsageSummary,
     StartedAiStep,
-    day_start,
-    month_start,
 )
 from sidekick.work.domain.ai_plan import (
     STARTABLE,

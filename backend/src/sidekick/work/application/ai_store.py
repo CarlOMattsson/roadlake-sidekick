@@ -2,7 +2,7 @@
 
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
-from datetime import datetime, tzinfo
+from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -232,15 +232,3 @@ class AiUsageSummary:
     monthly_cap_microusd: int
     starts_today: int
     starts_per_day_cap: int
-
-
-def day_start(now: datetime, zone: tzinfo) -> datetime:
-    """The start of the day containing `now` in the owner's time zone."""
-
-    return now.astimezone(zone).replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def month_start(now: datetime, zone: tzinfo) -> datetime:
-    """The start of the calendar month containing `now` in the owner's time zone."""
-
-    return day_start(now, zone).replace(day=1)

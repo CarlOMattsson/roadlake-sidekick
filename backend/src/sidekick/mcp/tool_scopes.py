@@ -115,6 +115,9 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     "approve_automation": ToolScopes(
         ("automation:write",), optional=("contacts:write", "tasks:write")
     ),
+    # The runner tools need `automation:run` and nothing else, so a routine's token reaches no
+    # other part of Sidekick.
+    **_tools(ToolScopes(("automation:run",)), "start_automation_run", "record_automation_results"),
     # The instance's license key (D-081: offline signed license keys) is an administrative change
     # with a scope of its own.
     "set_license_key": ToolScopes(("license:write",)),
@@ -187,6 +190,15 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     ),
     **_tools(ToolScopes(("journal:write",)), "create_journal_source", "set_daily_journal_summary"),
     **_tools(ToolScopes(("journal:write",)), "update_journal_draft", "reject_journal_draft"),
+    # Journal photos (app-only): the reply of a write carries the stored record, like the others.
+    "get_journal_photo": ToolScopes(("journal:read",)),
+    **_tools(
+        ToolScopes(("journal:write",)),
+        "add_journal_photo",
+        "update_journal_photo",
+        "trash_journal_photo",
+        "restore_journal_photo",
+    ),
     **_tools(
         ToolScopes(("journal:write",), optional=(*_JOURNAL_RELATED_READS, "tasks:write")),
         "finalize_journal_draft",

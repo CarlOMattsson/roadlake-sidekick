@@ -14,6 +14,7 @@ from fastmcp.tools import Tool
 from sidekick import __version__
 from sidekick.mcp.ai_step_tools import register_ai_step_tools
 from sidekick.mcp.auth import PersonalTokenVerifier, current_actor
+from sidekick.mcp.automation_run_tools import register_automation_run_tools
 from sidekick.mcp.automation_tools import register_automation_tools
 from sidekick.mcp.batch_tasks import register_batch_task_tools
 from sidekick.mcp.board import register_board_tools
@@ -121,6 +122,7 @@ def _register_tools(
     register_work_tools(mcp, ctx)
     register_ai_step_tools(mcp, ctx)
     register_automation_tools(mcp, ctx)
+    register_automation_run_tools(mcp, ctx)
 
 
 def _register_app_resources(

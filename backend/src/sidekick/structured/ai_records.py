@@ -24,7 +24,7 @@ from sidekick.work.application.ai_store import (
     AiUsageSummary,
     StartedAiStep,
 )
-from sidekick.work.domain.ai_runs import AiStepRun
+from sidekick.work.domain.ai_runs import AiStepRun, AiUsage, CostSource
 from sidekick.work.domain.ai_spec import MAX_RESULT_CHARS, AiStepSpecV1, Performer, ResultFormat
 from sidekick.work.domain.planning import MAX_STEP_INSTRUCTION_LENGTH
 
@@ -330,3 +330,20 @@ class ReportedUsage(Output):
     cache_read_tokens: Annotated[int, Field(ge=0, le=10**12)] = 0
     cache_write_tokens: Annotated[int, Field(ge=0, le=10**12)] = 0
     cost_usd_estimate: Annotated[float, Field(ge=0, le=1_000)] = 0.0
+
+
+def usage_from_reported(reported: ReportedUsage | None) -> AiUsage:
+    """What a client reported as the run's usage: its cost is kept as an estimate."""
+
+    if reported is None:
+        return AiUsage()
+    microusd = round(reported.cost_usd_estimate * MICROUSD_PER_USD)
+    return AiUsage(
+        input_tokens=reported.input_tokens,
+        output_tokens=reported.output_tokens,
+        cache_read_tokens=reported.cache_read_tokens,
+        cache_write_tokens=reported.cache_write_tokens,
+        cost_microusd=microusd,
+        cost_source=CostSource.CLIENT_ESTIMATE if microusd else CostSource.NONE,
+        model=reported.model,
+    )

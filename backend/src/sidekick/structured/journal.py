@@ -17,6 +17,7 @@ from sidekick.journal.domain.entry import (
     KeyPoint,
     KeyPointKind,
 )
+from sidekick.journal.domain.photo import PhotoSummary
 from sidekick.journal.domain.records import DaySummaryStatus, EntryRelations, RelationLabels
 from sidekick.journal.domain.source import SourceType
 from sidekick.journal.domain.summary import DailySummary, SummaryContent
@@ -26,6 +27,7 @@ from sidekick.shared.errors import ValidationError
 from sidekick.shared.text_guard import NoImageData
 from sidekick.shared.types import MAX_CURSOR_LENGTH, Actor
 from sidekick.structured.base import Output
+from sidekick.structured.journal_photos import PhotoAttachments, attachments_record
 from sidekick.structured.tags import TagMatch
 from sidekick.work.domain.planning import MAX_TAGS_PER_RECORD, normalize_tag_selection
 
@@ -70,6 +72,8 @@ class JournalEntryRecord(Output):
     links: Annotated[list[JournalEntryLink], Field(max_length=50)]
     # The entry's tags (slugs of the owner's tag vocabulary); they are the owner's own words.
     tags: list[str] = Field(default_factory=list, max_length=MAX_TAGS_PER_RECORD)
+    # The photos the owner added to the entry: how many and which. Read one with get_journal_photo.
+    attachments: PhotoAttachments = Field(default_factory=PhotoAttachments)
     archived: bool
     version: Annotated[int, Field(ge=1)]
 
@@ -173,6 +177,8 @@ class JournalDayResult(Output):
     entry_fingerprint: Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
     summary: JournalSummaryRecord
     done: DayDoneRecord
+    # The photos that hang on the day itself, not on one of its entries.
+    day_attachments: PhotoAttachments = Field(default_factory=PhotoAttachments)
 
 
 class JournalKeyPointInput(Output):
@@ -189,6 +195,7 @@ def entry_record(
     tags: Sequence[str] = (),
     summary_by: str | None = None,
     memory_excluded: bool = False,
+    photos: PhotoSummary | None = None,
 ) -> JournalEntryRecord:
     names = labels or RelationLabels(projects={}, contacts={})
     links = [
@@ -222,6 +229,7 @@ def entry_record(
         contact_ids=list(relations.contact_ids),
         links=links,
         tags=list(tags),
+        attachments=attachments_record(photos),
         archived=entry.archived_at is not None,
         version=entry.version,
         memory_excluded=memory_excluded,
@@ -328,6 +336,7 @@ def entry_records_with_relations(
     ids = [entry.id for entry in entries]
     authors = _summary_authors(container, actor, ids, include_content)
     excluded = _memory_excluded(container, actor, ids)
+    photos = container.journal_photos.summaries(actor, ids)
     return [
         entry_record(
             entry,
@@ -337,6 +346,7 @@ def entry_records_with_relations(
             tags=tags.get(entry.id, ()),
             summary_by=authors.get(entry.id),
             memory_excluded=entry.id in excluded,
+            photos=photos.get(entry.id),
         )
         for entry in entries
     ]
@@ -378,6 +388,7 @@ def labeled_entry_record(
         tags=tags,
         summary_by=authors.get(entry.id),
         memory_excluded=entry.id in _memory_excluded(container, actor, [entry.id]),
+        photos=container.journal_photos.summaries(actor, [entry.id]).get(entry.id),
     )
 
 
@@ -520,6 +531,9 @@ def journal_day_structured(
         entry_fingerprint=day.entry_fingerprint,
         summary=summary_record(day.journal_date, day.summary, day.summary_status),
         done=done_record(day.done),
+        day_attachments=attachments_record(
+            container.journal_photos.day_summary(actor, day.journal_date)
+        ),
     )
 
 

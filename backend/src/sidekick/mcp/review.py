@@ -5,8 +5,8 @@ quickest decisions first, with a server-derived reason per Task. `review_tasks` 
 decisions the owner has confirmed (`TaskBulkService.review`), atomically and retry-safe, and
 answers with what each Task was before, so an undo is the opposite ordinary write.
 
-Line 1 of each text is what voice mode says; it has no ids, ISO times or card note, because the
-reply opens no card and must be read out. The rows after it carry the id and version for the next
+`get_review_queue` opens the Sidekick app's review card. Its text is written to be read out, so
+line 1 has no ids, ISO times or card note; the rows after it carry the id and version for the next
 call.
 
 `REVIEW_GUIDE` is how Claude runs the walk-through. It is written once and used twice: as part of
@@ -20,6 +20,7 @@ from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from fastmcp import FastMCP
+from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
 from pydantic import Field, model_validator
 
@@ -28,6 +29,7 @@ from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.reschedule import RescheduleWhen, day_in_words, target_day
 from sidekick.mcp.results import output_schema, result, spoken_names
+from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.text import card_row, count_phrase, spoken_date
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.types import MAX_CURSOR_LENGTH
@@ -106,6 +108,8 @@ class ReviewQueueRecord(Output):
 
 class ReviewQueueOutput(Output):
     tasks: list[ReviewQueueRecord]
+    scope: Literal["suggested", "all"]
+    """The scope the page was read with; a next page is read with the same scope and next_cursor."""
     remaining_total: int
     """Every Task in the queue now, this page included; skipped Tasks stay in it."""
     bucket_counts: dict[str, int]
@@ -293,7 +297,8 @@ def _reviewed_record(entry: ReviewedTask) -> ReviewedTaskRecord:
 
 
 def register_review_tools(mcp: FastMCP, ctx: ToolContext) -> None:
-    """Register `get_review_queue`, `review_tasks` and the walk-through prompt; no app card."""
+    """Register `get_review_queue` (it opens the app's review card), `review_tasks` (no card) and
+    the walk-through prompt."""
 
     @mcp.prompt(
         name="review_tasks_walkthrough",
@@ -311,6 +316,7 @@ def register_review_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         description=QUEUE_DESCRIPTION,
         output_schema=output_schema(ReviewQueueOutput),
         annotations=READ,
+        app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("get_review_queue")
     def get_review_queue(
@@ -325,6 +331,7 @@ def register_review_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         records = [_record(item, today, zone) for item in page.items]
         structured = ReviewQueueOutput(
             tasks=records,
+            scope=scope,
             remaining_total=page.remaining_total,
             bucket_counts={bucket.value: count for bucket, count in page.bucket_counts.items()},
             next_cursor=page.next_cursor,

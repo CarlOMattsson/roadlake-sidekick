@@ -1,0 +1,50 @@
+/* Insight line (insight-line.tsx, designsystem §3 "Insiktsrad"): one sentence in the body type and the text colour, no
+   heading, no surface and no edge, so it reads as the view's first line of text and never as a card or a button. In a
+   list it stands in at most two lines (--sk-insight-lines), the second ending in an ellipsis after a whole word (the
+   component cuts it; the clamp backs it up). Like a row title it is not cut in a narrow full-screen frame (large
+   text, layout.css); an inline card keeps its 2. */
+.sk-insight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+.sk-insight .sk-insight__text {
+  margin: 0;
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+  overflow-wrap: break-word;
+  hyphens: manual;
+}
+.sk-insight .sk-insight__text[data-clamped] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--sk-insight-lines, 2);
+  line-clamp: var(--sk-insight-lines, 2);
+  overflow: hidden;
+}
+.sk-insight[data-density="inline"] .sk-insight__text[data-clamped] {
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+/* "Visa mer ›" (or "Visa mer" in place): a tertiary compact text button under the sentence, its text on the
+   sentence's start edge (12 of padding that hang into the margin, as the Task's "Visa mer": inside the 12 a narrow
+   frame keeps at its side). It comes 8 up into the sentence's last line box, so its words stand about one line gap
+   under the sentence and read as part of it; the target stays 48. */
+:is(.sidekick-work, .sidekick-journal, .sidekick-shopping, .sidekick-control)
+  .sk-insight
+  button.sk-insight__more,
+.sk-insight .sk-insight__more {
+  display: inline-flex;
+  align-items: center;
+  margin-top: calc(-1 * var(--sk-s2));
+  margin-inline-start: calc(-1 * var(--sk-s3));
+  padding-inline: var(--sk-s3);
+}
+/* The › grows with the text, as the menu's tick does: 16 at 100 %, never smaller than the words beside it. */
+.sk-insight .sk-insight__more > svg {
+  flex: none;
+  width: max(var(--sk-glyph), 0.85em);
+  height: max(var(--sk-glyph), 0.85em);
+  margin-inline-start: var(--sk-s1);
+}

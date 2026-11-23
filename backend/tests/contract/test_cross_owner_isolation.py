@@ -54,6 +54,7 @@ from tests.support.cross_owner_support import (
     seed_owner,
     whole_digest,
 )
+from tests.support.mcp_scope_gate import PHOTO_ARGUMENTS
 from tests.support.settings import make_settings
 
 # Tools whose input names no record at all. Each one reads or writes only the caller's own rows,
@@ -130,6 +131,7 @@ EXTRA_ARGUMENTS: dict[str, dict[str, Any]] = {
     "get_work_hierarchy": {"include_tasks": True},
     "update_saved_work_view": {"name": "Renamed view"},
     "update_shopping_item": {"item": {"name": "Milk"}},
+    "add_journal_photo": PHOTO_ARGUMENTS,
 }
 
 
@@ -296,6 +298,8 @@ COMPANION_NOT_CALLED: dict[str, str] = {
     "POST /reminders/ack": "acknowledges the caller's own reminders; its ids are reminder ids",
     "GET /license": "the instance's licence display state; no owner data",
     "PUT /license": "an instance-wide setting; no owner data",
+    "POST /journal/photos": "takes a multipart form, not JSON; the sweep for it is "
+    "tests/api/test_companion_photos.py",
 }
 
 

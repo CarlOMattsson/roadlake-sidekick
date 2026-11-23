@@ -5,6 +5,9 @@
 /** The structuredContent each tool returns, by tool name. */
 export type ToolResults = {
   add_contact_alias: ContactResult;
+  add_journal_photo: {
+    photo: JournalPhotoRecord;
+  };
   add_shopping_items: {
     evaluated_on: string;
     items: Array<{
@@ -172,6 +175,7 @@ export type ToolResults = {
   get_daily_journal_summary: JournalSummaryResult;
   get_domain: DomainOutput;
   get_journal_day: {
+    day_attachments: PhotoAttachments;
     done: {
       counts: {
         purchases: number;
@@ -294,6 +298,11 @@ export type ToolResults = {
     source: JournalSourceReadRecord;
   };
   get_journal_entry: JournalEntryResult;
+  get_journal_photo: {
+    data: string;
+    photo: JournalPhotoRecord;
+    size: "thumb" | "photo";
+  };
   get_journal_source: {
     source: JournalSourceReadRecord;
   };
@@ -337,6 +346,7 @@ export type ToolResults = {
     };
     next_cursor: string | null;
     remaining_total: number;
+    scope: "suggested" | "all";
     tasks: Array<{
       bucket:
         "likely_done" | "long_overdue" | "follow_up_due" | "overdue" | "other";
@@ -739,6 +749,14 @@ export type ToolResults = {
     status: "ok" | "empty" | "unavailable" | "disabled" | "paused";
     truncated: boolean;
   };
+  record_automation_results: {
+    already_known: number;
+    datapoints: Array<IndexedIdRecord>;
+    rejected: Array<RejectionRecord>;
+    rejected_datapoints: Array<RejectionRecord>;
+    run: RunRecord;
+    suggestions: Array<IndexedIdRecord>;
+  };
   reject_journal_draft: JournalDraftStatusResult;
   remove_contact_alias: ContactResult;
   reorder_step_actions: ActionPageOutput;
@@ -763,6 +781,7 @@ export type ToolResults = {
   };
   restore_contact: ContactResult;
   restore_from_trash: TrashItemRecord;
+  restore_journal_photo: JournalPhotoTrashResult;
   restore_saved_work_view: SavedViewOutput;
   restore_step_action: ActionOutput;
   restore_task: {
@@ -891,6 +910,23 @@ export type ToolResults = {
     run: AiRunRecord;
     step_id: string;
   };
+  start_automation_run: {
+    brief: string | null;
+    effect_schemas: {
+      [key: string]: Record<string, unknown>;
+    } | null;
+    limits: {
+      budget_usd: number;
+      max_datapoints_per_call: number;
+      max_datapoints_per_run: number;
+      max_suggestions_per_call: number;
+      max_suggestions_per_run: number;
+    } | null;
+    reason: "no_cadence" | "not_due" | "already_done" | "checking" | null;
+    run: RunRecord | null;
+    status: "started" | "nothing_due";
+  };
+  trash_journal_photo: JournalPhotoTrashResult;
   unlink_contact_from_project: ProjectContactResult;
   unlink_contact_from_task: TaskContactResult;
   unlink_external_reference_from_task: {
@@ -909,6 +945,10 @@ export type ToolResults = {
   };
   update_journal_draft: JournalDraftStatusResult;
   update_journal_entry: JournalEntryResult;
+  update_journal_photo: {
+    ignored_nulls: Array<string>;
+    photo: JournalPhotoRecord;
+  };
   update_process: {
     ignored_nulls: Array<string>;
     process: ProcessRecord;
@@ -947,6 +987,22 @@ export type ToolInputs = {
     expected_version: number;
     idempotency_key: string;
     value: string;
+  };
+  add_journal_photo: {
+    alt_text?: string | null;
+    camera?: string | null;
+    entry_id?: string | null;
+    idempotency_key: string;
+    journal_date?: string | null;
+    location?: {
+      lat: number;
+      lon: number;
+      name?: string | null;
+    } | null;
+    orientation?: number | null;
+    photo: string;
+    taken_at?: string | null;
+    thumbnail: string;
   };
   add_shopping_items: {
     idempotency_key: string;
@@ -1271,6 +1327,10 @@ export type ToolInputs = {
     entry_id: string;
     include_content?: boolean;
   };
+  get_journal_photo: {
+    photo_id: string;
+    size?: "thumb" | "photo";
+  };
   get_journal_source: {
     include_content?: boolean;
     source_id: string;
@@ -1503,6 +1563,40 @@ export type ToolInputs = {
     limit?: number;
     query: string;
   };
+  record_automation_results: {
+    datapoints?: Array<{
+      fields: {
+        [key: string]: string | boolean;
+      };
+      key?: string | null;
+      kind:
+        "person" | "organisation" | "event" | "commitment" | "request" | "note";
+      source_kind:
+        "mail" | "calendar" | "chat" | "web" | "api" | "share" | "sidekick";
+      source_label?: string | null;
+      source_received_at?: string | null;
+      source_ref: string;
+    }> | null;
+    final?: boolean;
+    idempotency_key: string;
+    outcome?: "ok" | "nothing_found" | "failed" | null;
+    run_id: string;
+    suggestions?: Array<{
+      datapoint_refs?: Array<string>;
+      effect: string;
+      payload: Record<string, unknown>;
+      rationale: string;
+    }> | null;
+    summary?: string | null;
+    usage?: {
+      cache_read_tokens?: number;
+      cache_write_tokens?: number;
+      cost_usd_estimate?: number;
+      input_tokens?: number;
+      model?: string | null;
+      output_tokens?: number;
+    } | null;
+  };
   reject_journal_draft: {
     draft_id: string;
     expected_version: number;
@@ -1599,6 +1693,11 @@ export type ToolInputs = {
       | "shopping_item";
     record_id: string;
     version: number;
+  };
+  restore_journal_photo: {
+    expected_version: number;
+    idempotency_key: string;
+    photo_id: string;
   };
   restore_saved_work_view: {
     idempotency_key: string;
@@ -1761,6 +1860,17 @@ export type ToolInputs = {
     idempotency_key: string;
     step_id: string;
   };
+  start_automation_run: {
+    automation_id: string;
+    idempotency_key: string;
+    occurrence?: "scheduled" | "manual";
+    runner: "claude" | "claude_code";
+  };
+  trash_journal_photo: {
+    expected_version: number;
+    idempotency_key: string;
+    photo_id: string;
+  };
   unlink_contact_from_project: {
     contact_id: string;
     idempotency_key: string;
@@ -1891,6 +2001,26 @@ export type ToolInputs = {
     summary?: string | null;
     tags?: Array<string> | null;
     title?: string | null;
+  };
+  update_journal_photo: {
+    changes: {
+      alt_text?: string | null;
+      camera?: string | null;
+      location?: {
+        lat: number;
+        lon: number;
+        name?: string | null;
+      } | null;
+      orientation?: number | null;
+      position?: number | null;
+      taken_at?: string | null;
+    };
+    clear?: Array<
+      "alt_text" | "taken_at" | "location" | "camera" | "orientation"
+    > | null;
+    expected_version: number;
+    idempotency_key: string;
+    photo_id: string;
   };
   update_process: {
     changes: {
@@ -2376,6 +2506,11 @@ export type EstimateTotalsRecord = {
   unestimated_count: number;
 };
 
+export type IndexedIdRecord = {
+  id: string;
+  index: number;
+};
+
 export type ItemRecord = {
   created_at: string;
   id: string;
@@ -2424,6 +2559,7 @@ export type JournalEntryLink = {
 
 export type JournalEntryRecord = {
   archived: boolean;
+  attachments: PhotoAttachments;
   contact_ids: Array<string>;
   id: string;
   journal_date: string;
@@ -2448,6 +2584,30 @@ export type JournalEntryResult = {
 export type JournalKeyPoint = {
   kind: "fact" | "reflection" | "decision" | "commitment" | "question";
   text: string;
+};
+
+export type JournalPhotoRecord = {
+  alt_text: string | null;
+  alt_text_by: "you" | "claude" | null;
+  byte_size: number;
+  camera: string | null;
+  entry_id: string | null;
+  height: number;
+  id: string;
+  journal_date: string | null;
+  location: PhotoLocationRecord | null;
+  media_type: "image/jpeg" | "image/webp";
+  orientation: number | null;
+  position: number;
+  taken_at: string | null;
+  version: number;
+  width: number;
+};
+
+export type JournalPhotoTrashResult = {
+  id: string;
+  in_trash: boolean;
+  version: number;
 };
 
 export type JournalSourceReadRecord = {
@@ -2510,6 +2670,17 @@ export type OfferInput = {
   source_url: string | null;
   valid_from: string;
   valid_until: string;
+};
+
+export type PhotoAttachments = {
+  count: number;
+  ids: Array<string>;
+};
+
+export type PhotoLocationRecord = {
+  lat: number;
+  lon: number;
+  name: string | null;
 };
 
 export type ProcessOutput = {
@@ -2576,6 +2747,50 @@ export type ReferenceRecord = {
   title: string;
   updated_at: string;
   url: string | null;
+  version: number;
+};
+
+export type RejectionRecord = {
+  code:
+    | "schema_invalid"
+    | "effect_unknown"
+    | "effect_not_allowed"
+    | "too_long"
+    | "reference_unusable"
+    | "run_not_running"
+    | "datapoint_not_in_run"
+    | "over_run_cap";
+  index: number;
+};
+
+export type RunRecord = {
+  attempt: number;
+  automation_id: string;
+  datapoints: number;
+  flagged: number;
+  id: string;
+  lease_until: string | null;
+  occurrence: string;
+  outcome:
+    | "ok"
+    | "nothing_found"
+    | "failed"
+    | "budget"
+    | "invalid_output"
+    | "provider"
+    | "refused"
+    | null;
+  rejected: number;
+  runner: "claude" | "claude_code" | "server";
+  state:
+    | "queued"
+    | "running"
+    | "checking"
+    | "done"
+    | "failed"
+    | "cancelled"
+    | "lapsed";
+  suggestions: number;
   version: number;
 };
 

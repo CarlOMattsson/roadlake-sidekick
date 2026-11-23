@@ -138,8 +138,8 @@ class OpenAiCompatModel:
         try:
             status = response.status_code
             if not 200 <= status < 300:
-                raise _status_failure(status, response.headers)
-            return _response(_read_json(response, deadline, self._max_response_bytes), self._model)
+                raise status_failure(status, response.headers)
+            return _response(read_json(response, deadline, self._max_response_bytes), self._model)
         finally:
             response.close()
 
@@ -163,7 +163,7 @@ class OpenAiCompatModel:
         return body
 
 
-def _read_json(response: httpx.Response, deadline: float, limit: int) -> object:
+def read_json(response: httpx.Response, deadline: float, limit: int) -> object:
     """The body as JSON, read within the size limit and the call's one deadline.
 
     httpx timeouts apply to each socket operation, so a server that drips bytes would never trip
@@ -225,7 +225,7 @@ def _response(payload: object, configured_model: str) -> ModelResponse:
     )
 
 
-def _status_failure(status: int, headers: httpx.Headers) -> ModelError:
+def status_failure(status: int, headers: httpx.Headers) -> ModelError:
     if status in _AUTH_STATUSES:
         return ModelRejected(RejectionKind.AUTH)
     # A redirect is refused unread: the server did no work, and the base URL is wrong.

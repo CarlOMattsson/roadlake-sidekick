@@ -50,6 +50,7 @@ export default defineConfig({
     "review-cards-mcp-app.spec.ts",
     "photos-mcp-app.spec.ts",
     "nav-icons-mcp-app.spec.ts",
+    "review-walk-mcp-app.spec.ts",
   ],
   fullyParallel: true,
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 6,

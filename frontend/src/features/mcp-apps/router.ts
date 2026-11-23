@@ -33,7 +33,7 @@ export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
 
 /**
  * The view a room opens on. The names are the room's own; a room maps an unknown view to its root.
- * work: agenda, board, hierarchy, task, project, process, changes (confirmation card).
+ * work: agenda, board, hierarchy, task, project, process, changes (confirmation card), review (the review queue's card).
  * journal: day, entry, card (one entry as a compact card), draft, pending.
  * contacts: list, contact (with context), compact (one contact record).
  * shopping: list, lists, batch (items just added or updated).
@@ -57,6 +57,7 @@ export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
   get_project: work("project"),
   get_process: work("process"),
   show_work_changes: work("changes"),
+  get_review_queue: work("review"),
   // Contacts
   list_contacts: contacts("list"),
   get_contact_context: contacts("contact"),
@@ -136,6 +137,12 @@ export function routeForShape(structured: unknown): Route | undefined {
   const data = structured;
   if (isObj(data.card) && data.card.kind === "work_changes")
     return work("changes");
+  if (
+    Array.isArray(data.tasks) &&
+    typeof data.remaining_total === "number" &&
+    isObj(data.bucket_counts)
+  )
+    return work("review");
   if (hasString(data.task, "id")) return work("task");
   const contact = data.contact;
   if (hasString(contact, "id")) {

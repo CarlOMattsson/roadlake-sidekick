@@ -154,6 +154,8 @@
   --sk-row-pad: 6px;
   /* A row title's line limit: none here (inline cards keep their own 2); 3 in a full-screen list (layout.css). */
   --sk-row-title-lines: none;
+  /* The insight line's limit in a list or an inline card: 2; none in a narrow full-screen frame (layout.css). */
+  --sk-insight-lines: 2;
   --sk-row-min: 48px;
   --sk-section-above: var(--sk-s5);
   --sk-section-below: var(--sk-s1);

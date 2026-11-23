@@ -87,4 +87,29 @@ device metadata, and they must never leak into logs or memory. This is independe
 
 ## Evidence
 
-Planned. The implementation lands after this record; the section is completed with the paths when they exist.
+Implemented (the photo service, the app-only tools and the companion upload; backup, export and the media sweep are not part of it).
+
+- Rows and files: migration `117_journal_attachments.py`, then `124_journal_attachment_details.py` for the fields below.
+  `journal/domain/photo.py` holds the rules and the owner key (`owner_media_key`, an HMAC of the owner id under a key derived from
+  `token_pepper`, so rotating the pepper orphans the files); `journal/application/photos.py` the use cases;
+  `journal/persistence/photos.py` the owner-scoped rows; `journal/infrastructure/media_files.py` the owner's view of the store.
+- Fields the client sends beside the image: `taken_at`, `location` (`lat`, `lon`, optional `name`),
+  `camera` and `orientation`. The stored file still carries no metadata and the server still refuses one that does; these are
+  fields the owner can change or remove at any time, and none of them goes to memory. A time sent without an offset is read in the
+  owner's zone.
+- Tools (all `visibility=["app"]` and marked `com.roadlake.sidekick/requiresApp`, so a model never lists them and the server
+  refuses its call by name with the reason `app_only`, through `OwnerDecisionsFromTheApp` in `mcp/change_source.py`): `add_journal_photo`, `get_journal_photo`,
+  `update_journal_photo`, `trash_journal_photo`, `restore_journal_photo` in `mcp/journal_photo_tools.py`. A photo has its own trash
+  and restore tools because it is not on the model-facing trash surface. Android adds a photo with
+  `POST /companion/v1/journal/photos` (`api/companion_photos.py`, multipart, capability `companion:journal:write`).
+- Trash: emptying the trash erases trashed photos and the photos of trashed entries, and removes a file once no row of the owner
+  names it (`lifecycle/application/service.py`, `empty_trash.py`).
+- Contract: `ADDITIVE_RECORD_FIELDS` and `ADDITIVE_OUTPUT_FIELDS` in `backend/tests/contract/reviewed_contracts.py` (`attachments`
+  on a journal entry record, `day_attachments` on `get_journal_day`).
+- Tests: `tests/unit/test_journal_photo_domain.py`, `tests/integration/test_journal_photos.py`,
+  `tests/integration/test_journal_attachment_trash.py`, `tests/integration/test_migration_attachment_details.py`,
+  `tests/mcp/test_journal_photo_tools.py`, `tests/api/test_companion_photos.py`; the memory pin is
+  `test_a_photo_and_its_fields_never_reach_the_memory_documents_of_its_entry`.
+
+Still open: the size a host allows in one tool call; Claude's own chat attachments; the media sweep, backup, restore and export
+of the files; reading or trashing a photo from the Android app.

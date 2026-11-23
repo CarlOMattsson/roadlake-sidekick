@@ -1,0 +1,111 @@
+/* The review card (review-walk-card.tsx): one Task of the review queue at a time, in an inline card that must fit a
+   phone without scrolling (under 340 with the receipt bar at 390). In order: the kicker, the head (where the walk
+   stands, a thin bar, Hoppa över at the end), the Task's title (at most two lines), its reason and place on one meta
+   line, and the decisions: four equal buttons on one row (320 px included), two by two only when the card is narrower
+   than 17 rem (large text). A label that does not fit its cell wraps onto a second line inside the 48, never an
+   ellipsis. Flytta turns the same row into Imorgon, Nästa vecka and Avbryt, as high as before, so nothing under it
+   moves. Every target is at least 48. */
+.sidekick-work .review-walk {
+  container-type: inline-size;
+}
+
+.sidekick-work .review-walk__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  min-height: var(--sk-compact);
+}
+/* The progress text is the information ("12 av 120"); the bar takes the rest of the row up to Hoppa över. */
+.sidekick-work .review-walk__head > .sk-progress {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* Hoppa över is a quiet compact: 40 drawn, 48 to tap; it stands at the card's end edge with its text on it. */
+.sidekick-work .review-walk__skip {
+  flex: none;
+  margin-inline-end: calc(-1 * var(--sk-s4) + var(--sk-hairline));
+}
+
+.sidekick-work .work-compact-card > h2.review-walk__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+
+.sidekick-work .review-walk__meta {
+  overflow-wrap: break-word;
+}
+.sidekick-work .review-walk__meta > [data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+
+/* The decisions: equal cells, 48 high, 8 apart. The card's 8 above them grows to 12, so the row reads as the
+   answer to the Task above it. */
+.sidekick-work .review-walk__choices {
+  display: grid;
+  grid-template-columns: repeat(var(--review-walk-columns, 4), minmax(0, 1fr));
+  gap: var(--sk-s2);
+  max-inline-size: 32rem;
+  margin-top: var(--sk-s1);
+}
+.sidekick-work .review-walk__choices[data-count="3"] {
+  --review-walk-columns: 3;
+}
+@container (width < 17rem) {
+  .sidekick-work .review-walk__choices[data-count="4"] {
+    --review-walk-columns: 2;
+  }
+}
+.sidekick-work button.review-walk__choice {
+  min-width: 0;
+  min-height: var(--sk-tap-lg);
+  margin: 0;
+  padding-inline: var(--sk-s1);
+  font: var(--sk-type-button);
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+
+/* The end of the walk and the empty queue: a sentence and the tally, start-aligned like the rows that were here. */
+.sidekick-work .review-walk__end {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.sidekick-work .review-walk__end-title {
+  margin: 0;
+  font-size: var(--sk-type-card-size);
+  font-weight: var(--sk-type-card-weight);
+  line-height: var(--sk-type-card-line);
+}
+
+/* The skeleton holds the head's and the title's places while the queue is read. */
+.sidekick-work .review-walk__skeleton {
+  display: grid;
+  gap: var(--sk-s3);
+}
+.sidekick-work .review-walk__bar {
+  display: block;
+  inline-size: 40%;
+  block-size: var(--sk-type-meta-line);
+}
+.sidekick-work .review-walk__bar--title {
+  inline-size: 75%;
+  block-size: var(--sk-type-card-line);
+}
+
+/* Read out when the next Task comes up; not drawn. */
+.sidekick-work .review-walk__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

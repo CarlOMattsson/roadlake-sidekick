@@ -1,5 +1,6 @@
 """Shared test helpers moved out of `tests/contract/test_mcp_tool_scope_gate.py`."""
 
+import base64
 from typing import Any
 from uuid import uuid4
 
@@ -12,13 +13,21 @@ from sidekick.api.app import Container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from tests.support import photo_files
 from tests.support.app_origin import origin_for
+
+# A photo that passes the format gate, so a refusal comes from the target and not from the bytes.
+PHOTO_ARGUMENTS: dict[str, Any] = {
+    "photo": base64.b64encode(photo_files.jpeg()).decode(),
+    "thumbnail": base64.b64encode(photo_files.jpeg(320, 240)).decode(),
+}
 
 # Tools whose input must carry a change before the use case runs; the generic sample is minimal and
 # would be refused as an empty update. These add the one field that makes the call well formed.
 EXTRA_ARGUMENTS: dict[str, dict[str, Any]] = {
     "update_saved_work_view": {"name": "Renamed view"},
     "update_shopping_item": {"item": {"name": "Milk"}},
+    "add_journal_photo": PHOTO_ARGUMENTS,
 }
 
 

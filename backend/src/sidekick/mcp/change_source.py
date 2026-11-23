@@ -35,6 +35,14 @@ REQUIRES_PERSON_META: Final = "anthropic/requiresUserInteraction"
 """The tool meta that marks a decision only the owner makes, confirmed by a person at every call."""
 
 
+REQUIRES_APP_META: Final = "com.roadlake.sidekick/requiresApp"
+"""The tool meta that marks a tool only the app may call, without a person confirming each call.
+
+A tool that takes or returns the bytes of a photo carries it: it is hidden from the model, and the
+server refuses a call that does not come from the app, so a model that names the tool is refused.
+"""
+
+
 def called_by_app(call_meta: Mapping[str, object] | None) -> bool:
     """Whether the request carries the app's origin mark, which the model cannot add."""
 
@@ -87,14 +95,28 @@ def is_owner_decision(tool_meta: Mapping[str, object] | None) -> bool:
     )
 
 
-class OwnerDecisionsFromTheApp(Middleware):
-    """Refuse a call by name to an owner's decision unless the request comes from the app.
+def requires_app(tool_meta: Mapping[str, object] | None) -> bool:
+    """Whether the server refuses the tool unless the request comes from the app.
 
-    An approval or a spending decision is hidden from the model, but hiding is only a listing. The
-    server also refuses the call unless it carries the app's origin mark, which the model cannot
-    set, so a model that names the tool is refused before anything is read or written, and the
-    audit trail never labels such a call as the owner's. The refusal is the ordinary `forbidden`
-    result with the reason `app_only`.
+    That holds for an owner's decision and for every tool that carries `REQUIRES_APP_META`; each is
+    hidden from the model as well.
+    """
+
+    return source_of_tool(tool_meta) == "you" and (
+        (tool_meta or {}).get(REQUIRES_PERSON_META) is True
+        or (tool_meta or {}).get(REQUIRES_APP_META) is True
+    )
+
+
+class OwnerDecisionsFromTheApp(Middleware):
+    """Refuse a call by name to an app-only tool unless the request comes from the app.
+
+    An approval, a spending decision or a photo is hidden from the model, but hiding is only a
+    listing. The server also refuses the call unless it carries the app's origin mark, which the
+    model cannot set, so a model that names the tool is refused before anything is read or written,
+    and the audit trail never labels such a call as the owner's. The tools are those that
+    `requires_app` names, by their metadata and never by a list of names. The refusal is the
+    ordinary `forbidden` result with the reason `app_only`.
     """
 
     def __init__(self, mcp: FastMCP) -> None:
@@ -106,12 +128,12 @@ class OwnerDecisionsFromTheApp(Middleware):
         call_next: CallNext[CallToolRequestParams, ToolResult],
     ) -> ToolResult:
         tool = await self._mcp.get_tool(context.message.name)
-        if tool is None or not is_owner_decision(tool.meta):
+        if tool is None or not requires_app(tool.meta):
             return await call_next(context)
         request = context.fastmcp_context.request_context if context.fastmcp_context else None
         if called_by_app(request.meta if request else None):
             return await call_next(context)
-        error = PermissionDeniedError("this decision is made in the app", reason="app_only")
+        error = PermissionDeniedError("this is done in the app", reason="app_only")
         refusal = error_result(error)
         LOGGER.info(
             "mcp_tool_failed",

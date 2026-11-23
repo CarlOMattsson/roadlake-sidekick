@@ -150,6 +150,17 @@ inget `TRUNCATE`. En rad försvinner med sin ägare eller anteckning via främma
 `journal_attachment`; foton går aldrig till minnet. Ägarexporten bär ännu inte tabellen. En återrullning släpper
 tabellen, vilket bara förlorar fotometadatan.
 
+## Migrering 124: fotodetaljer
+
+`124_journal_attachment_details.py` är en additiv (expand) migrering. Den lägger till fem nullbara kolumner i
+`journal_attachments`: platsen där fotot togs (`location_lat`, `location_lon` och ett valfritt `location_name`),
+`camera` och filens `orientation` (1 till 8). Klienten läser dem ur filen innan den krymper den och skickar dem som fält,
+eftersom den lagrade filen inte bär någon metadata; tidpunkten är den befintliga `taken_at`. CHECK-villkor håller
+gränserna: giltiga grader, båda koordinaterna eller ingen, ortnamn bara med koordinater, ingen tom text och en riktig
+orientering. Ägaren kan ändra eller ta bort varje fält, och inget av dem går till minnet. Ett foto som lagrades före
+migreringen behåller alla värden och läses som ett foto utan plats, kamera eller orientering. En återrullning släpper de
+fem kolumnerna, vilket bara förlorar de detaljer som angetts sedan dess.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

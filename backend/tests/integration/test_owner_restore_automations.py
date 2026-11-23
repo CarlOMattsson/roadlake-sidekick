@@ -269,7 +269,7 @@ def test_a_format_8_export_restores_without_automations_and_leaves_the_target_em
     env: tuple[sessionmaker[Session], Container, Source, UUID],
 ) -> None:
     factory, _, source, target = env
-    older = as_format_8(_export(factory, source.owner), "117_journal_attachments")
+    older = as_format_8(_export(factory, source.owner), "124_journal_attachment_details")
 
     _restore(factory, older, target)
 

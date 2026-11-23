@@ -25,6 +25,9 @@ import { toolOffered } from "../mcp-apps/tool-support";
 import type { ListRefresh } from "./inline/inline-refresh";
 import { firstReadFor } from "./shared/first-read";
 import type { WorkTab } from "./shell/work-shell";
+import { ReviewWalkCard } from "./review/review-walk-card";
+import { reviewWalkLabelsFor } from "./review/review-walk-labels";
+import { createReviewTransport } from "./review/review-walk-transport";
 
 /**
  * What the room holds. `seen*` say which result this state was derived from: a changed resultId,
@@ -160,6 +163,10 @@ export function WorkRoom(props: RoomProps) {
   const transport = useMemo(
     () => createWorkTransport(call, { supportsTool, supportsCall }, offline),
     [call, supportsTool, supportsCall, offline],
+  );
+  const reviewTransport = useMemo(
+    () => createReviewTransport(transport, call),
+    [transport, call],
   );
   const locale = appLocale();
   const labels = locale.startsWith("sv") ? workSv : workEn;
@@ -307,6 +314,28 @@ export function WorkRoom(props: RoomProps) {
       <section className="sidekick-work work-unsorted-page">
         <h2 className="work-unsorted-heading">{labels.unsortedHeading}</h2>
         <UnsortedView transport={transport} labels={labels} />
+      </section>
+    );
+  }
+
+  // The review queue is one card in every mode: it walks the queue itself, a Task at a time. An error result of the
+  // queue opens the same card on its error, and Försök igen reads the queue.
+  if (
+    frame?.kind === "review" ||
+    (frame?.kind === "error" && props.view === "review")
+  ) {
+    return (
+      <section className="sidekick-work" aria-label={labels.title}>
+        <ReviewWalkCard
+          key={state.resultNumber}
+          initial={frame.kind === "review" ? frame.page : undefined}
+          cause={frame.kind === "error" ? (state.cause ?? true) : undefined}
+          transport={reviewTransport}
+          labels={reviewWalkLabelsFor(locale)}
+          onModelContext={(text) =>
+            void props.transport.updateModelContext(text)
+          }
+        />
       </section>
     );
   }

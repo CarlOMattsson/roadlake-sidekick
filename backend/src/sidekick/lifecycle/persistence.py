@@ -1,5 +1,6 @@
 """Trash, restore, permanent removal and the change feed over the audit log."""
 
+from collections.abc import Collection
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -8,6 +9,7 @@ from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from sidekick.journal.persistence.photos import JournalPhotoStore
 from sidekick.lifecycle.domain import (
     UNFEEDED_KINDS,
     ChangeRecordView,
@@ -443,7 +445,9 @@ class LifecycleStore(StoreBase):
         record_id: UUID,
         *,
         version: int,
-    ) -> None:
+    ) -> tuple[str, ...]:
+        """Delete one trashed record; for a photo, the digests of the files its row named."""
+
         row = LifecycleStore._lifecycle_row(session, owner_id, kind, record_id)
         if row.trashed_at is None:
             raise ValidationError("only a trashed record can be permanently removed")
@@ -452,6 +456,9 @@ class LifecycleStore(StoreBase):
         child_count = LifecycleStore._child_count(session, owner_id, kind, record_id)
         if child_count:
             raise ConflictError("remove descendants before permanently removing this record")
+        files = (
+            (row.content_digest, row.thumb_digest) if isinstance(row, JournalAttachmentRow) else ()
+        )
         try:
             # A savepoint keeps the session usable when a foreign key the count above does not
             # cover (for example a Journal link to a Task, ON DELETE RESTRICT) refuses the delete.
@@ -462,6 +469,65 @@ class LifecycleStore(StoreBase):
             raise ConflictError(
                 "remove linked records before permanently removing this record"
             ) from error
+        return files
+
+    @staticmethod
+    def entry_photo_ids(session: Session, owner_id: UUID, entry_id: UUID) -> list[UUID]:
+        """The photos on a trashed entry (trashed or not); none for an entry not in the trash."""
+
+        entry = session.scalar(
+            select(JournalEntryRow.id).where(
+                JournalEntryRow.id == entry_id,
+                JournalEntryRow.owner_id == owner_id,
+                JournalEntryRow.trashed_at.is_not(None),
+            )
+        )
+        if entry is None:
+            return []
+        return list(
+            session.scalars(
+                select(JournalAttachmentRow.id).where(
+                    JournalAttachmentRow.owner_id == owner_id,
+                    JournalAttachmentRow.entry_id == entry_id,
+                )
+            )
+        )
+
+    @staticmethod
+    def erase_entry_photos(
+        session: Session, owner_id: UUID, entry_id: UUID
+    ) -> list[tuple[UUID, tuple[str, str]]]:
+        """Delete every photo row of a trashed entry; each photo's id and the digests of its files.
+
+        The entry row stays. Only the rows go here: the caller removes the files once no row names
+        them.
+        """
+
+        rows = session.scalars(
+            select(JournalAttachmentRow)
+            .where(
+                JournalAttachmentRow.owner_id == owner_id,
+                JournalAttachmentRow.entry_id.in_(
+                    select(JournalEntryRow.id).where(
+                        JournalEntryRow.id == entry_id,
+                        JournalEntryRow.owner_id == owner_id,
+                        JournalEntryRow.trashed_at.is_not(None),
+                    )
+                ),
+            )
+            .with_for_update()
+        ).all()
+        erased = [(row.id, (row.content_digest, row.thumb_digest)) for row in rows]
+        for row in rows:
+            session.delete(row)
+        session.flush()
+        return erased
+
+    @staticmethod
+    def digests_in_use(session: Session, owner_id: UUID, digests: Collection[str]) -> set[str]:
+        """Which of the digests a photo row of the owner still names."""
+
+        return JournalPhotoStore.digests_in_use(session, owner_id, digests)
 
 
 def _words(key: str, locale: AppLocale, **names: str) -> str:

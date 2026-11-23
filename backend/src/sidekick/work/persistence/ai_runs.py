@@ -5,7 +5,7 @@ from collections.abc import Collection
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, any_, bindparam, func, or_, select, text
+from sqlalchemy import Select, and_, any_, bindparam, func, or_, select, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Session
@@ -15,6 +15,7 @@ from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.persistence.models import (
     AiErasedRunCostRow,
     AiStepRunRow,
+    AutomationRunRow,
     ContactRow,
     StepRow,
     TaskContactRow,
@@ -122,6 +123,24 @@ def _apply(row: AiStepRunRow, run: AiStepRun) -> None:
     row.error_category = run.error_category.value if run.error_category else None
     row.updated_at = run.updated_at
     row.version = run.version
+
+
+def automation_run_cost_query(
+    owner_id: UUID, since: datetime, source_values: Collection[str]
+) -> Select[int]:
+    """Millionths of a dollar the owner's automation runs created from `since` on cost, with what a
+    call in flight has reserved, for these cost sources. The one sum both the automations' own cap
+    and the owner's shared monthly cap read."""
+
+    return select(
+        func.coalesce(
+            func.sum(AutomationRunRow.cost_microusd + AutomationRunRow.reserved_microusd), 0
+        )
+    ).where(
+        AutomationRunRow.owner_id == owner_id,
+        AutomationRunRow.created_at >= since,
+        AutomationRunRow.cost_source.in_(list(source_values)),
+    )
 
 
 class AiRunStore:
@@ -295,7 +314,8 @@ class AiRunStore:
     ) -> int:
         """Millionths of a dollar the runs created from `since` on cost, for these cost sources:
         what they cost and what a model call in flight has reserved. Runs whose Step or Task has
-        been erased since still count. Only one Task's runs when `task_id` is given."""
+        been erased since still count, and so do the runs of automations, which belong to no
+        Task. Only one Task's runs when `task_id` is given."""
 
         source_values = [source.value for source in sources]
         kept = select(
@@ -313,7 +333,9 @@ class AiRunStore:
         if task_id is not None:
             kept = kept.where(AiStepRunRow.task_id == task_id)
             erased = erased.where(AiErasedRunCostRow.task_id == task_id)
-        return int(session.scalar(kept) or 0) + int(session.scalar(erased) or 0)
+            return int(session.scalar(kept) or 0) + int(session.scalar(erased) or 0)
+        automations = automation_run_cost_query(owner_id, since, source_values)
+        return sum(int(session.scalar(query) or 0) for query in (kept, erased, automations))
 
     @staticmethod
     def lock_owner_spend(session: Session, owner_id: UUID) -> None:

@@ -24,6 +24,7 @@ export const SHAPE_TOOLS = [
   "create_contact",
   "get_contact_context",
   "get_project",
+  "get_review_queue",
   "get_task",
   "get_work_agenda",
   "get_work_hierarchy",

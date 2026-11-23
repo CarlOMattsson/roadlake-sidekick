@@ -4,7 +4,7 @@
 // no bridge is mocked.
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HostToolError } from "@/features/mcp-apps/bridge";
 import { shiftDate } from "@/features/journal-app/dates";
@@ -35,6 +35,10 @@ beforeEach(() => {
   document.head.innerHTML = '<meta name="sidekick-app-locale" content="en">';
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe("journal room: a day without entries", () => {
   it("shows the day as empty, with no error notice, when the read says not_found", async () => {
     const { call, transport } = hostWith(() =>
@@ -57,6 +61,9 @@ describe("journal room: a day without entries", () => {
   });
 
   it("shows another empty day with the other text, not the today text", async () => {
+    // A Wednesday, so yesterday is in the strip's week (on a Monday it would be in the week before).
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-18T10:00:00Z"));
     const user = userEvent.setup();
     const { call, transport } = hostWith(() =>
       Promise.reject(new HostToolError("not_found")),
@@ -64,7 +71,7 @@ describe("journal room: a day without entries", () => {
     render(<JournalRoom mode="full" transport={transport} />);
     await screen.findByText(journalEn.noEntriesToday);
 
-    // Yesterday is in the week that ends on today, so its day button is in the strip.
+    // Yesterday is in the same week as today, so its day button is in the strip.
     const yesterday = document.querySelector<HTMLButtonElement>(
       `button[data-date="${shiftDate(ownerToday(), -1)}"]`,
     );

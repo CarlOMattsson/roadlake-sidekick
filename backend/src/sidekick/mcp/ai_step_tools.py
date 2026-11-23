@@ -40,15 +40,14 @@ from sidekick.structured.ai_records import (
     run_output,
     started_output,
     step_page_output,
+    usage_from_reported,
     usage_output,
 )
 from sidekick.work.application.ai_plans import PlanItem
 from sidekick.work.domain.ai_runs import (
     MAX_DIALOG_CHARS,
     AiRunResult,
-    AiUsage,
     ChecklistItem,
-    CostSource,
     FailureCategory,
 )
 from sidekick.work.domain.ai_spec import MAX_PLAN_STEPS
@@ -126,21 +125,6 @@ def _items(steps: list[PlanStepInput]) -> list[PlanItem]:
         )
         for step in steps
     ]
-
-
-def _usage(reported: ReportedUsage | None) -> AiUsage:
-    if reported is None:
-        return AiUsage()
-    microusd = round(reported.cost_usd_estimate * 1_000_000)
-    return AiUsage(
-        input_tokens=reported.input_tokens,
-        output_tokens=reported.output_tokens,
-        cache_read_tokens=reported.cache_read_tokens,
-        cache_write_tokens=reported.cache_write_tokens,
-        cost_microusd=microusd,
-        cost_source=CostSource.CLIENT_ESTIMATE if microusd else CostSource.NONE,
-        model=reported.model,
-    )
 
 
 def _run_result(reported: ReportedResult | None) -> AiRunResult | None:
@@ -359,7 +343,7 @@ def _register_report_ai_step_result(mcp: FastMCP, ctx: ToolContext) -> None:
             result=_run_result(result),
             question=question,
             failure=failure_category,
-            usage=_usage(usage),
+            usage=usage_from_reported(usage),
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )

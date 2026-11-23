@@ -10,6 +10,7 @@ from __future__ import annotations
 from fastmcp import FastMCP
 
 from sidekick.mcp.journal_draft_tools import register_journal_draft_tools
+from sidekick.mcp.journal_photo_tools import register_journal_photo_tools
 from sidekick.mcp.journal_read_tools import register_journal_read_tools
 from sidekick.mcp.journal_text import JournalToolContext
 from sidekick.mcp.journal_write_tools import register_journal_write_tools
@@ -92,3 +93,5 @@ def register_journal_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     register_journal_read_tools(mcp, journal_ctx)
     register_journal_write_tools(mcp, journal_ctx)
     register_journal_draft_tools(mcp, journal_ctx)
+    # The photo tools are app-only and not part of the fifteen: a model never lists them.
+    register_journal_photo_tools(mcp, journal_ctx)

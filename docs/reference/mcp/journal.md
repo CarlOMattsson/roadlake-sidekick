@@ -49,7 +49,7 @@ Access: read
 
 Scopes: requires `journal:read`.
 
-Returns: `JournalDayResult` with `done` (DayDoneRecord), `entries` (array of JournalEntryRecord), `entry_fingerprint` (string), `journal_date` (date), `next_cursor` (string or null), `owner_timezone` (string), `summary` (JournalSummaryRecord), `today` (date).
+Returns: `JournalDayResult` with `done` (DayDoneRecord), `entries` (array of JournalEntryRecord), `entry_fingerprint` (string), `journal_date` (date), `next_cursor` (string or null), `owner_timezone` (string), `summary` (JournalSummaryRecord), `today` (date), `day_attachments` (PhotoAttachments).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |

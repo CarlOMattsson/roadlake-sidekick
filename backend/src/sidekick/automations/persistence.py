@@ -1,4 +1,5 @@
-"""The automation registry, suggestions and checks, read and written owner-filtered.
+"""The automation registry, its runs, datapoints, suggestions and checks, read and written
+owner-filtered.
 
 Every statement names the owner, and a row of another owner answers as not found, so no id
 reveals whether a row exists. A check is appended and never changed: the application role has no
@@ -6,16 +7,25 @@ UPDATE on `automation_checks`, and this store has no operation that would try. T
 the owner's data or text an AI wrote; nothing here logs them.
 """
 
-from collections.abc import Collection
-from datetime import datetime
+from collections.abc import Collection, Sequence
+from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from sidekick.automations.domain.automation import Automation, SuggestionCheck
+from sidekick.automations.domain.automation import Automation, ReportCursor, SuggestionCheck
+from sidekick.automations.domain.datapoints import Datapoint, DatapointKind, SourceKind
 from sidekick.automations.domain.effects import EffectKind
+from sidekick.automations.domain.runs import (
+    AutomationRun,
+    CredentialKind,
+    RunOutcome,
+    RunRunner,
+    RunState,
+    scheduled_day,
+)
 from sidekick.automations.domain.screening import ScreeningFlag
 from sidekick.automations.domain.spec import (
     AutomationSpecV1,
@@ -35,12 +45,21 @@ from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.observability import TelemetryPort
 from sidekick.shared.persistence.models import (
     AutomationCheckRow,
+    AutomationDatapointRow,
+    AutomationReportCursorRow,
     AutomationRow,
+    AutomationRunRow,
     AutomationSuggestionRow,
     Base,
+    ContactRow,
+    ProjectRow,
+    TaskRow,
 )
 from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import validate_limit
+from sidekick.tasks.domain import TaskStatus
+from sidekick.work.domain.ai_runs import AiUsage, CostSource
+from sidekick.work.persistence.ai_runs import AiRunStore, automation_run_cost_query
 
 MAX_LIST_ROWS = 200
 """The most rows one list read returns."""
@@ -183,6 +202,94 @@ def check_from_row(row: AutomationCheckRow) -> SuggestionCheck:
     )
 
 
+def run_from_row(row: AutomationRunRow) -> AutomationRun:
+    return AutomationRun(
+        id=row.id,
+        owner_id=row.owner_id,
+        automation_id=row.automation_id,
+        occurrence_key=row.occurrence_key,
+        attempt=row.attempt,
+        runner=RunRunner(row.runner),
+        state=RunState(row.state),
+        spec_digest=row.spec_digest,
+        credential_kind=CredentialKind(row.credential_kind),
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        stage=row.stage,
+        session_digest=row.session_digest,
+        worker_id=row.worker_id,
+        lease_until=row.lease_until,
+        queued_at=row.queued_at,
+        started_at=row.started_at,
+        finished_at=row.finished_at,
+        datapoint_count=row.datapoint_count,
+        suggestion_count=row.suggestion_count,
+        rejected_count=row.rejected_count,
+        flagged_count=row.flagged_count,
+        auto_applied_count=row.auto_applied_count,
+        summary=row.summary,
+        outcome=RunOutcome(row.outcome) if row.outcome else None,
+        checker_model=row.checker_model,
+        usage=AiUsage(
+            input_tokens=row.input_tokens,
+            output_tokens=row.output_tokens,
+            cache_read_tokens=row.cache_read_tokens,
+            cache_write_tokens=row.cache_write_tokens,
+            reserved_microusd=row.reserved_microusd,
+            cost_microusd=row.cost_microusd,
+            cost_source=CostSource(row.cost_source),
+            model=row.model,
+        ),
+        version=row.version,
+    )
+
+
+def _apply_run(row: AutomationRunRow, run: AutomationRun) -> None:
+    row.state = run.state.value
+    row.stage = run.stage
+    row.worker_id = run.worker_id
+    row.lease_until = run.lease_until
+    row.queued_at = run.queued_at
+    row.started_at = run.started_at
+    row.finished_at = run.finished_at
+    row.datapoint_count = run.datapoint_count
+    row.suggestion_count = run.suggestion_count
+    row.rejected_count = run.rejected_count
+    row.flagged_count = run.flagged_count
+    row.auto_applied_count = run.auto_applied_count
+    row.summary = run.summary
+    row.outcome = run.outcome.value if run.outcome else None
+    row.model = run.usage.model
+    row.checker_model = run.checker_model
+    row.input_tokens = run.usage.input_tokens
+    row.output_tokens = run.usage.output_tokens
+    row.cache_read_tokens = run.usage.cache_read_tokens
+    row.cache_write_tokens = run.usage.cache_write_tokens
+    row.reserved_microusd = run.usage.reserved_microusd
+    row.cost_microusd = run.usage.cost_microusd
+    row.cost_source = run.usage.cost_source.value
+    row.updated_at = run.updated_at
+    row.version = run.version
+
+
+def datapoint_from_row(row: AutomationDatapointRow) -> Datapoint:
+    return Datapoint(
+        id=row.id,
+        owner_id=row.owner_id,
+        run_id=row.run_id,
+        automation_id=row.automation_id,
+        kind=DatapointKind(row.kind),
+        fields=row.fields,
+        source_kind=SourceKind(row.source_kind),
+        source_fingerprint=row.source_fingerprint,
+        source_label=row.source_label,
+        source_received_at=row.source_received_at,
+        created_at=row.created_at,
+        purge_after=row.purge_after,
+        purged_at=row.purged_at,
+    )
+
+
 def _insert(session: Session, row: Base, primary_key: str, not_found: str) -> None:
     """Add the row. An id that another owner already holds answers as not found.
 
@@ -210,12 +317,13 @@ class AutomationStore:
     """
 
     @staticmethod
-    def get_automation(session: Session, owner_id: UUID, automation_id: UUID) -> Automation:
-        row = session.scalar(
-            select(AutomationRow).where(
-                AutomationRow.id == automation_id, AutomationRow.owner_id == owner_id
-            )
+    def get_automation(
+        session: Session, owner_id: UUID, automation_id: UUID, *, lock: bool = False
+    ) -> Automation:
+        statement = select(AutomationRow).where(
+            AutomationRow.id == automation_id, AutomationRow.owner_id == owner_id
         )
+        row = session.scalar(statement.with_for_update() if lock else statement)
         if row is None:
             raise NotFoundError("automation not found")
         return automation_from_row(row)
@@ -300,6 +408,7 @@ class AutomationStore:
         *,
         states: Collection[SuggestionState] | None = None,
         automation_id: UUID | None = None,
+        run_id: UUID | None = None,
         limit: int = MAX_LIST_ROWS,
     ) -> list[Suggestion]:
         statement = select(AutomationSuggestionRow).where(
@@ -311,6 +420,8 @@ class AutomationStore:
             )
         if automation_id is not None:
             statement = statement.where(AutomationSuggestionRow.automation_id == automation_id)
+        if run_id is not None:
+            statement = statement.where(AutomationSuggestionRow.run_id == run_id)
         rows = session.scalars(
             statement.order_by(
                 AutomationSuggestionRow.created_at, AutomationSuggestionRow.id
@@ -401,6 +512,263 @@ class AutomationStore:
             .order_by(AutomationCheckRow.attempt)
         )
         return [check_from_row(row) for row in rows]
+
+    # --- runs ---------------------------------------------------------------------------------
+
+    @staticmethod
+    def get_run(
+        session: Session, owner_id: UUID, run_id: UUID, *, lock: bool = False
+    ) -> AutomationRun:
+        statement = select(AutomationRunRow).where(
+            AutomationRunRow.id == run_id, AutomationRunRow.owner_id == owner_id
+        )
+        row = session.scalar(statement.with_for_update() if lock else statement)
+        if row is None:
+            raise NotFoundError("run not found")
+        return run_from_row(row)
+
+    @staticmethod
+    def list_occurrence_runs(
+        session: Session, owner_id: UUID, automation_id: UUID, occurrence_key: str
+    ) -> list[AutomationRun]:
+        """The attempts at one occurrence, the first one first."""
+
+        rows = session.scalars(
+            select(AutomationRunRow)
+            .where(
+                AutomationRunRow.owner_id == owner_id,
+                AutomationRunRow.automation_id == automation_id,
+                AutomationRunRow.occurrence_key == occurrence_key,
+            )
+            .order_by(AutomationRunRow.attempt)
+        )
+        return [run_from_row(row) for row in rows]
+
+    @staticmethod
+    def latest_scheduled_day(session: Session, owner_id: UUID, automation_id: UUID) -> date | None:
+        """The day of the latest scheduled occurrence the automation has had, in any state."""
+
+        key = session.scalar(
+            select(func.max(AutomationRunRow.occurrence_key)).where(
+                AutomationRunRow.owner_id == owner_id,
+                AutomationRunRow.automation_id == automation_id,
+                AutomationRunRow.occurrence_key.like("d:%"),
+            )
+        )
+        return scheduled_day(key) if key else None
+
+    @staticmethod
+    def count_runs_since(session: Session, owner_id: UUID, since: datetime) -> int:
+        """How many runs of any automation were created from `since` on."""
+
+        return (
+            session.scalar(
+                select(func.count())
+                .select_from(AutomationRunRow)
+                .where(AutomationRunRow.owner_id == owner_id, AutomationRunRow.created_at >= since)
+            )
+            or 0
+        )
+
+    @staticmethod
+    def sum_automation_cost_since(
+        session: Session, owner_id: UUID, since: datetime, sources: Collection[CostSource]
+    ) -> int:
+        """Millionths of a dollar the automation runs created from `since` on cost, with what a
+        call in flight has reserved, for these cost sources."""
+
+        total = session.scalar(
+            automation_run_cost_query(owner_id, since, [source.value for source in sources])
+        )
+        return int(total or 0)
+
+    @staticmethod
+    def save_run(session: Session, run: AutomationRun, expected_version: int | None = None) -> None:
+        """Insert the run, or update it when the stored version is `expected_version`."""
+
+        row = session.scalar(
+            select(AutomationRunRow)
+            .where(AutomationRunRow.id == run.id, AutomationRunRow.owner_id == run.owner_id)
+            .with_for_update()
+        )
+        if row is None:
+            row = AutomationRunRow(
+                id=run.id,
+                owner_id=run.owner_id,
+                automation_id=run.automation_id,
+                occurrence_key=run.occurrence_key,
+                attempt=run.attempt,
+                runner=run.runner.value,
+                spec_digest=run.spec_digest,
+                session_digest=run.session_digest,
+                credential_kind=run.credential_kind.value,
+                created_at=run.created_at,
+            )
+            _apply_run(row, run)
+            _insert(session, row, "automation_runs_pkey", "run not found")
+            return
+        if expected_version is not None and row.version != expected_version:
+            raise ConflictError("stale run version", reason="stale_version")
+        _apply_run(row, run)
+
+    @staticmethod
+    def touch_last_run(session: Session, owner_id: UUID, automation_id: UUID, at: datetime) -> None:
+        """Note that the automation ran. The version is not raised: a run is not an edit, so the
+        owner's next change is not refused as stale."""
+
+        session.execute(
+            update(AutomationRow)
+            .where(AutomationRow.id == automation_id, AutomationRow.owner_id == owner_id)
+            .values(last_run_at=at)
+        )
+
+    # --- datapoints ---------------------------------------------------------------------------
+
+    @staticmethod
+    def list_run_datapoints(session: Session, owner_id: UUID, run_id: UUID) -> list[Datapoint]:
+        rows = session.scalars(
+            select(AutomationDatapointRow)
+            .where(
+                AutomationDatapointRow.owner_id == owner_id,
+                AutomationDatapointRow.run_id == run_id,
+            )
+            .order_by(AutomationDatapointRow.created_at, AutomationDatapointRow.id)
+        )
+        return [datapoint_from_row(row) for row in rows]
+
+    @staticmethod
+    def add_datapoints(session: Session, datapoints: Sequence[Datapoint]) -> None:
+        """Add datapoints. The run and the automation they name must be the owner's: the composite
+        foreign key refuses any other pair."""
+
+        for item in datapoints:
+            _insert(
+                session,
+                AutomationDatapointRow(
+                    id=item.id,
+                    owner_id=item.owner_id,
+                    run_id=item.run_id,
+                    automation_id=item.automation_id,
+                    kind=item.kind.value,
+                    fields=dict(item.fields) if item.fields is not None else None,
+                    source_kind=item.source_kind.value,
+                    source_fingerprint=item.source_fingerprint,
+                    source_label=item.source_label,
+                    source_received_at=item.source_received_at,
+                    created_at=item.created_at,
+                    purge_after=item.purge_after,
+                    purged_at=item.purged_at,
+                ),
+                "automation_datapoints_pkey",
+                "datapoint not found",
+            )
+
+    # --- what a proposal may refer to ---------------------------------------------------------
+
+    @staticmethod
+    def usable_project_ids(
+        session: Session, owner_id: UUID, project_ids: Collection[UUID]
+    ) -> frozenset[UUID]:
+        """Of these, the projects that are the owner's and neither archived nor in the trash."""
+
+        if not project_ids:
+            return frozenset()
+        return frozenset(
+            session.scalars(
+                select(ProjectRow.id).where(
+                    ProjectRow.owner_id == owner_id,
+                    ProjectRow.id.in_(project_ids),
+                    ProjectRow.trashed_at.is_(None),
+                    ProjectRow.archived_at.is_(None),
+                )
+            )
+        )
+
+    @staticmethod
+    def existing_contact_email_keys(
+        session: Session, owner_id: UUID, email_keys: Collection[str]
+    ) -> frozenset[str]:
+        """Of these e-mail keys, the ones a contact of the owner already has."""
+
+        if not email_keys:
+            return frozenset()
+        return frozenset(
+            key
+            for key in session.scalars(
+                select(ContactRow.email_key).where(
+                    ContactRow.owner_id == owner_id,
+                    ContactRow.email_key.in_(email_keys),
+                    ContactRow.trashed_at.is_(None),
+                )
+            )
+            if key is not None
+        )
+
+    @staticmethod
+    def open_task_titles(
+        session: Session, owner_id: UUID, lowered_titles: Collection[str]
+    ) -> list[str]:
+        """The titles of open tasks that equal one of these titles in lower case."""
+
+        if not lowered_titles:
+            return []
+        return list(
+            session.scalars(
+                select(TaskRow.title).where(
+                    TaskRow.owner_id == owner_id,
+                    func.lower(TaskRow.title).in_(lowered_titles),
+                    TaskRow.status != TaskStatus.COMPLETED.value,
+                    TaskRow.trashed_at.is_(None),
+                    TaskRow.archived_at.is_(None),
+                )
+            )
+        )
+
+    # --- the report cursor --------------------------------------------------------------------
+
+    @staticmethod
+    def get_report_cursor(session: Session, owner_id: UUID) -> ReportCursor | None:
+        row = session.scalar(
+            select(AutomationReportCursorRow).where(AutomationReportCursorRow.owner_id == owner_id)
+        )
+        if row is None:
+            return None
+        return ReportCursor(row.owner_id, row.seen_until, row.version, row.updated_at)
+
+    @staticmethod
+    def save_report_cursor(
+        session: Session, cursor: ReportCursor, expected_version: int | None = None
+    ) -> None:
+        """Insert the cursor, or move it when the stored version is `expected_version`."""
+
+        row = session.scalar(
+            select(AutomationReportCursorRow)
+            .where(AutomationReportCursorRow.owner_id == cursor.owner_id)
+            .with_for_update()
+        )
+        if row is None:
+            _insert(
+                session,
+                AutomationReportCursorRow(
+                    owner_id=cursor.owner_id,
+                    seen_until=cursor.seen_until,
+                    version=cursor.version,
+                    updated_at=cursor.updated_at,
+                ),
+                "automation_report_cursors_pkey",
+                "report cursor not found",
+            )
+            return
+        if expected_version is not None and row.version != expected_version:
+            raise ConflictError("stale report cursor version", reason="stale_version")
+        row.seen_until = cursor.seen_until
+        row.version = cursor.version
+        row.updated_at = cursor.updated_at
+
+    # The owner's spend is one lock for every kind of AI run (`ai-spend:{owner}`), so a cap holds
+    # while an AI step and an automation run are decided side by side.
+    lock_owner_spend = staticmethod(AiRunStore.lock_owner_spend)
+    sum_ai_cost_since = staticmethod(AiRunStore.sum_ai_cost_since)
 
 
 class SqlAutomationStore(AutomationStore, StoreBase):

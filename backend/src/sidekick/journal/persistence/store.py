@@ -8,6 +8,7 @@ from sidekick.contacts.domain.contact import Contact
 from sidekick.contacts.domain.ports import ContactReader
 from sidekick.journal.persistence.drafts import JournalDraftStore
 from sidekick.journal.persistence.entries import JournalEntryStore
+from sidekick.journal.persistence.photos import JournalPhotoStore
 from sidekick.journal.persistence.summaries import JournalSummaryStore
 from sidekick.projects.domain import Project
 from sidekick.projects.domain.ports import ProjectReader
@@ -21,7 +22,12 @@ from sidekick.work.persistence.tags import RecordTagRelay
 
 
 class SqlJournalStore(
-    JournalEntryStore, JournalSummaryStore, JournalDraftStore, RecordTagRelay, StoreBase
+    JournalEntryStore,
+    JournalSummaryStore,
+    JournalDraftStore,
+    JournalPhotoStore,
+    RecordTagRelay,
+    StoreBase,
 ):
     """The Journal operations plus what they borrow from other contexts.
 

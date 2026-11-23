@@ -29,6 +29,9 @@ LOGGER = logging.getLogger("sidekick.http")
 BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
 MAX_MCP_BODY_BYTES = 1024 * 1024
 MAX_COMPANION_BODY_BYTES = 256 * 1024
+# A photo upload: the largest photo (4 MiB) and thumbnail (128 KiB) plus the form around them.
+MAX_PHOTO_UPLOAD_BODY_BYTES = 4 * 1024 * 1024 + 128 * 1024 + 64 * 1024
+PHOTO_UPLOAD_PATH = "/companion/v1/journal/photos"
 MAX_WEBHOOK_BODY_BYTES = 8 * 1024
 MAX_DEFAULT_BODY_BYTES = 16 * 1024
 
@@ -64,7 +67,9 @@ def body_limit(path: str, companion: bool, webhook: bool = False) -> int:
     if webhook:
         return MAX_WEBHOOK_BODY_BYTES
     if companion:
-        return MAX_COMPANION_BODY_BYTES
+        return (
+            MAX_PHOTO_UPLOAD_BODY_BYTES if path == PHOTO_UPLOAD_PATH else MAX_COMPANION_BODY_BYTES
+        )
     if _is_mcp_endpoint(path):
         return MAX_MCP_BODY_BYTES
     return MAX_DEFAULT_BODY_BYTES

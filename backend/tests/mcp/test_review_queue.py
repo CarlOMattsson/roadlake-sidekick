@@ -139,6 +139,7 @@ async def test_the_queue_serves_the_buckets_in_order_with_a_spoken_first_line() 
     assert _ids(queue) == [
         str(tasks[name].id) for name in ("likely_done", "long_overdue", "follow_up_due", "overdue")
     ]
+    assert content["scope"] == "suggested"
     assert content["remaining_total"] == 4
     assert content["bucket_counts"] == {
         "likely_done": 1,
@@ -154,7 +155,7 @@ async def test_the_queue_serves_the_buckets_in_order_with_a_spoken_first_line() 
     ]
     lines = _lines(queue)
     assert lines[0] == ("4 to review: 1 likely done, 1 long overdue, 1 follow-up due, 1 overdue.")
-    # Line 1 is read aloud: no id, no ISO time; the reply opens no card, so no card note.
+    # Line 1 is read aloud: no id, no ISO time; the text is read out, so it has no card note.
     assert not re.search(r"[0-9a-f]{8}-|\d{4}-\d{2}-\d{2}", lines[0])
     assert CARD_NOTE not in "\n".join(lines)
     assert lines[1].startswith(f"- {tasks['likely_done'].id} v")

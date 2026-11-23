@@ -396,6 +396,7 @@ WORKER_CODE = {
             "environment",
             "license_public_key",
             "mcp_app_locale",
+            "media_directory",
             "owner_zone",
             "push_enabled",
             "push_wake_min_interval_seconds",

@@ -40,6 +40,7 @@ move and this file does not.
 | fastapi | 0.165.0 | MIT | Sebastián Ramírez (https://github.com/fastapi/fastapi) |
 | fastmcp | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
 | fastmcp-slim | 4.1.6 | Apache-2.0 | Jeremiah Lowin, Nate Nowack (https://gofastmcp.com) |
+| fsrs | 6.3.3 | MIT License | Jarrett Ye (https://github.com/open-spaced-repetition/py-fsrs) |
 | griffelib | 2.1.0 | ISC | Timothée Mazzucotelli (https://pypi.org/project/griffelib/) |
 | h11 | 0.16.0 | MIT | Nathaniel J. Smith (https://github.com/python-hyper/h11) |
 | httpcore | 1.0.9 | BSD-3-Clause | Tom Christie (https://www.encode.io/httpcore/) |

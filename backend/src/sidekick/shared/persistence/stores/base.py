@@ -61,6 +61,8 @@ IDENTITY_REPLAY_OPERATIONS = frozenset(
         "reorder_board_column",
         "finalize_journal_draft",
         "put_manual_daily_summary",
+        "add_journal_photo",
+        "update_journal_photo",
         "external_reference.unlink",
     }
 )

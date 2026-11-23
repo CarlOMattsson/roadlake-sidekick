@@ -447,6 +447,7 @@ describe("the heading of a failed read, for every view a tool can open", () => {
     "work:task": "Uppgiften kunde inte hämtas",
     "work:project": "Projektet kunde inte hämtas",
     "work:process": "Processen kunde inte hämtas",
+    "work:review": "Genomgången kunde inte hämtas",
     "journal:day": "Dagboken kunde inte hämtas",
     "journal:pending": "Dagboken kunde inte hämtas",
     "journal:entry": "Anteckningen kunde inte hämtas",

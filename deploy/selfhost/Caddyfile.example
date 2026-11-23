@@ -119,6 +119,11 @@
 		method POST
 		path_regexp ^/companion/v1/(shopping/lists|journal/entries|shopping/lists/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(update|items)|shopping/items/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(update|purchased)|journal/entries/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/update)$
 	}
+	# A Journal photo from the phone: one multipart form of two files and a few fields.
+	@companion_photo {
+		method POST
+		path /companion/v1/journal/photos
+	}
 	@companion_post {
 		method POST
 		path_regexp ^/companion/v1/(pair|device/renew|push/test|reminders/ack|tasks/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/(complete|reopen))$
@@ -200,6 +205,14 @@
 		# over 256 KiB.
 		request_body {
 			max_size 256KiB
+		}
+		reverse_proxy api:8000
+	}
+	handle @companion_photo {
+		# The photo (at most 4 MiB) and its thumbnail (at most 128 KiB) and the fields; the api caps
+		# this one path at 4 MiB plus 192 KiB.
+		request_body {
+			max_size 5MiB
 		}
 		reverse_proxy api:8000
 	}

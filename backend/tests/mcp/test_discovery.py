@@ -33,6 +33,8 @@ EXPECTED_TOOLS = {
     "get_automation",
     "save_automation",
     "approve_automation",
+    "start_automation_run",
+    "record_automation_results",
     "search",
     "recall_memory",
     "get_memory_status",
@@ -78,6 +80,11 @@ EXPECTED_TOOLS = {
     "update_journal_draft",
     "reject_journal_draft",
     "finalize_journal_draft",
+    "add_journal_photo",
+    "get_journal_photo",
+    "update_journal_photo",
+    "trash_journal_photo",
+    "restore_journal_photo",
     "list_projects",
     "get_project",
     "create_project",
@@ -147,6 +154,13 @@ APP_ONLY_TOOLS = {
     "update_journal_draft",
     "create_journal_source",
     "create_manual_journal_entry",
+    # Photos reach the server only from the app (base64) or from the Android app (multipart); a
+    # model neither lists nor calls these, so it can neither upload nor read a photo.
+    "add_journal_photo",
+    "get_journal_photo",
+    "update_journal_photo",
+    "trash_journal_photo",
+    "restore_journal_photo",
     "get_daily_journal_summary",
     "get_domain",
     "get_process",
@@ -302,6 +316,7 @@ async def test_work_app_tools_open_the_sidekick_app() -> None:
         "get_work_board",
         "get_work_agenda",
         "get_work_hierarchy",
+        "get_review_queue",
     ):
         assert tools[name].meta["ui"]["resourceUri"] == SIDEKICK_APP_URI, name
     # A page of Contacts names no Task or Contact to open, so it is called from inside the
@@ -321,6 +336,14 @@ async def test_work_app_tools_open_the_sidekick_app() -> None:
         "restore_saved_work_view",
     ):
         assert "resourceUri" not in (tools[name].meta or {}).get("ui", {}), name
+
+
+@pytest.mark.asyncio
+async def test_review_tasks_opens_no_card() -> None:
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    # Its reply is read out by voice, so it has no card note and opens no app card.
+    assert "resourceUri" not in (tools["review_tasks"].meta or {}).get("ui", {})
 
 
 @pytest.mark.asyncio
@@ -355,7 +378,7 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    assert len(APP_ONLY_TOOLS) == 29
+    assert len(APP_ONLY_TOOLS) == 34
     assert set(EXPECTED_TOOLS) >= APP_ONLY_TOOLS
     assert app_only_tool_names() == APP_ONLY_TOOLS
     for name in APP_ONLY_TOOLS:

@@ -5,13 +5,18 @@ carries this mark, so a test that makes such a call by name sends it the way the
 """
 
 from sidekick.mcp.change_source import APP_ORIGIN_META
+from sidekick.mcp.journal_photo_tools import JOURNAL_PHOTO_TOOL_NAMES
 
 APP_ORIGIN: dict[str, str] = {APP_ORIGIN_META: "app"}
 
 OWNER_DECISIONS = frozenset({"approve_ai_plan", "run_ai_plan", "approve_automation"})
 
+# Every tool the server refuses unless the request comes from the app: the decisions above and the
+# Journal photo tools, which take or return the bytes of a photo.
+APP_ONLY_CALLS = OWNER_DECISIONS | frozenset(JOURNAL_PHOTO_TOOL_NAMES)
+
 
 def origin_for(tool: str) -> dict[str, str] | None:
-    """The app's mark for an owner's decision, nothing for any other tool."""
+    """The app's mark for a tool only the app may call, nothing for any other tool."""
 
-    return APP_ORIGIN if tool in OWNER_DECISIONS else None
+    return APP_ORIGIN if tool in APP_ONLY_CALLS else None

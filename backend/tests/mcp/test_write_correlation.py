@@ -16,6 +16,7 @@ The HTTP request is stood in for by a fixed scope: `request_correlation_id` read
 """
 
 import asyncio
+import base64
 import os
 from dataclasses import dataclass
 from datetime import date
@@ -34,6 +35,7 @@ from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
 from tests.contract_counts import write_tool_names
 from tests.db import _cleanup_factory_for, database_factory
+from tests.support import photo_files
 from tests.support.app_origin import origin_for
 from tests.support.journal_drafts import seed_entry_draft
 from tests.support.settings import make_settings
@@ -58,6 +60,10 @@ REPLAYED: tuple[str, ...] = (
     "reorder_step_actions",
     "create_saved_work_view",
     "update_saved_work_view",
+    "add_journal_photo",
+    "update_journal_photo",
+    "trash_journal_photo",
+    "restore_journal_photo",
     "archive_saved_work_view",
     "restore_saved_work_view",
     "update_journal_draft",
@@ -647,6 +653,46 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
                 "idempotency_key": key + "ujrnl",
             },
         )
+
+        # A photo on that entry: added, edited, moved to the trash and taken back.
+        photo = (
+            await call(
+                "add_journal_photo",
+                {
+                    "entry_id": manual["id"],
+                    "photo": base64.b64encode(photo_files.jpeg()).decode(),
+                    "thumbnail": base64.b64encode(photo_files.jpeg(320, 240)).decode(),
+                    "idempotency_key": key + "jpho",
+                },
+            )
+        )["photo"]
+        edited_photo = (
+            await call(
+                "update_journal_photo",
+                {
+                    "photo_id": photo["id"],
+                    "expected_version": photo["version"],
+                    "changes": {"camera": "Pixel 9"},
+                    "idempotency_key": key + "ujpho",
+                },
+            )
+        )["photo"]
+        trashed_photo = await call(
+            "trash_journal_photo",
+            {
+                "photo_id": photo["id"],
+                "expected_version": edited_photo["version"],
+                "idempotency_key": key + "tjpho",
+            },
+        )
+        await call(
+            "restore_journal_photo",
+            {
+                "photo_id": photo["id"],
+                "expected_version": trashed_photo["version"],
+                "idempotency_key": key + "rjpho",
+            },
+        )
         fingerprint = (
             await client.call_tool("get_journal_day", {"journal_date": day})
         ).structured_content
@@ -845,6 +891,26 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
                 },
             )
         )["automation"]
+        run = (
+            await call(
+                "start_automation_run",
+                {
+                    "automation_id": approved["id"],
+                    "runner": "claude",
+                    "occurrence": "manual",
+                    "idempotency_key": key + "autorun",
+                },
+            )
+        )["run"]
+        await call(
+            "record_automation_results",
+            {
+                "run_id": run["id"],
+                "final": True,
+                "outcome": "nothing_found",
+                "idempotency_key": key + "autorec",
+            },
+        )
         await call(
             "save_automation",
             {

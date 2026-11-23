@@ -11,6 +11,7 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from uuid import UUID
 
 from sidekick.lifecycle.application.service import LIFECYCLE_SCOPES, RecordLifecycleService
 from sidekick.lifecycle.domain import RecordKind, TrashItem
@@ -31,6 +32,7 @@ REMOVAL_ORDER: tuple[RecordKind, ...] = (
 )
 #: The application role holds no DELETE on the shopping or Journal entry tables (a Journal entry is
 #: never erased by the runtime), so these are never removed here; the sweep counts them as kept.
+#: The photos of a trashed entry are erased, though: see `_sweep_entry_photos`.
 NOT_REMOVABLE: frozenset[RecordKind] = frozenset(
     {RecordKind.SHOPPING_ITEM, RecordKind.JOURNAL_ENTRY}
 )
@@ -115,7 +117,13 @@ def _sweep_owner(
     cutoff: datetime | None,
     correlation_id: str | None,
 ) -> None:
-    for item in _ordered(_trashed_items(lifecycle, actor, kinds, cutoff)):
+    items = _trashed_items(lifecycle, actor, kinds, cutoff)
+    covered = _sweep_entry_photos(
+        lifecycle, actor, items, result, remove=remove, kinds=kinds, correlation_id=correlation_id
+    )
+    for item in _ordered(items):
+        if item.kind is RecordKind.JOURNAL_ATTACHMENT and item.id in covered:
+            continue  # went with its entry, and is counted there
         result.matched[item.kind] += 1
         if not remove:
             continue
@@ -125,6 +133,40 @@ def _sweep_owner(
             result.kept[item.kind] += 1
         else:
             result.removed[item.kind] += 1
+
+
+def _sweep_entry_photos(
+    lifecycle: RecordLifecycleService,
+    actor: Actor,
+    items: Iterable[TrashItem],
+    result: EmptyTrashResult,
+    *,
+    remove: bool,
+    kinds: frozenset[RecordKind] | None,
+    correlation_id: str | None,
+) -> set[UUID]:
+    """Count or erase the photos of the trashed entries; the ids of the photos they cover.
+
+    A Journal entry is never erased by the runtime, but its photos are: they are the one part of an
+    entry that can leave. The entry row stays.
+    """
+
+    if kinds is not None and RecordKind.JOURNAL_ATTACHMENT not in kinds:
+        return set()
+    covered: set[UUID] = set()
+    for entry in (item for item in items if item.kind is RecordKind.JOURNAL_ENTRY):
+        photo_ids = lifecycle.entry_photo_ids(actor, entry.id)
+        covered.update(photo_ids)
+        result.matched[RecordKind.JOURNAL_ATTACHMENT] += len(photo_ids)
+        if remove and photo_ids:
+            erased = lifecycle.erase_entry_photos(
+                actor,
+                entry.id,
+                idempotency_key=f"empty-trash-photos-{entry.id}-{entry.version}",
+                correlation_id=correlation_id,
+            )
+            result.removed[RecordKind.JOURNAL_ATTACHMENT] += erased
+    return covered
 
 
 def _trashed_items(

@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 from datetime import date
 
+from sidekick.start.application.compose import UPCOMING_DAYS
+
 MAX_ROWS = 50
 
 
@@ -30,7 +32,7 @@ RECORD_CARD_NOTE = "The card shows this record; do not repeat it."
 CARD_EXAMPLES = 5
 _CARD_TITLE_LIMIT = 80
 AGENDA_ROW_LIMIT = 30
-AGENDA_UPCOMING_DAYS = 7
+AGENDA_UPCOMING_DAYS = UPCOMING_DAYS
 AGENDA_NOTE = "Use this list to answer questions about overdue, today's or the next 7 days' tasks."
 BOARD_ROW_LIMIT = 8
 BOARD_EMPTY_NOTE = "The board card is empty: no tasks match these filters."

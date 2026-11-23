@@ -10,6 +10,7 @@ from uuid import UUID
 
 from sidekick.shared.errors import ConflictError, ValidationError
 from sidekick.shared.observability import TelemetryPort
+from sidekick.shared.owner_day import day_start
 from sidekick.shared.replay import id_replay_record, id_result
 from sidekick.shared.types import Actor, Clock, TxSession, new_uuid7
 from sidekick.tasks.domain import Task
@@ -30,7 +31,6 @@ from sidekick.work.application.ai_store import (
     AiPlanView,
     AiStepsStore,
     ServerRunnerConfig,
-    day_start,
 )
 from sidekick.work.domain import Step
 from sidekick.work.domain.ai_cost import ModelPrice, call_reserve

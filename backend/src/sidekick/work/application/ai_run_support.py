@@ -9,6 +9,7 @@ from uuid import UUID
 from sidekick.activity.domain import ActivityCategory
 from sidekick.shared.errors import ConflictError, NotFoundError, ValidationError
 from sidekick.shared.errors.core import SidekickError
+from sidekick.shared.owner_day import month_start
 from sidekick.shared.replay import id_replay_record, record_id
 from sidekick.shared.types import Actor, TxSession
 from sidekick.tasks.domain import Task
@@ -20,7 +21,6 @@ from sidekick.work.application.ai_store import (
     AiStepsStore,
     ServerRunInfo,
     ServerRunnerConfig,
-    month_start,
 )
 from sidekick.work.domain import Step
 from sidekick.work.domain.ai_plan import (

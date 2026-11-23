@@ -108,7 +108,9 @@ def _request_body(body: RequestBody[Any], schemas: dict[str, Any]) -> dict[str, 
     schemas[body.model.__name__] = schema
     return {
         "required": body.required,
-        "content": {JSON: {"schema": {"$ref": f"#/components/schemas/{body.model.__name__}"}}},
+        "content": {
+            body.content_type: {"schema": {"$ref": f"#/components/schemas/{body.model.__name__}"}}
+        },
         "x-sidekick-max-bytes": body.max_bytes,
     }
 

@@ -6,6 +6,7 @@ Nothing here asserts. `tests/contract/test_cross_owner_isolation.py` does.
 
 from __future__ import annotations
 
+import base64
 import itertools
 import json
 from collections.abc import Callable, Iterator
@@ -22,6 +23,7 @@ from sidekick.api.app import Container
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
+from tests.support import photo_files
 from tests.support.app_origin import origin_for
 from tests.support.journal_drafts import seed_entry_draft
 
@@ -50,6 +52,7 @@ NAME_KIND: dict[str, str] = {
     "waiting_on_contact_id": "contact",
     "recipient_contact_id": "contact",
     "entry_id": "entry",
+    "photo_id": "photo",
     "source_id": "source",
     "replaces_source_id": "source",
     "draft_id": "draft",
@@ -71,7 +74,7 @@ TOOL_ID_KIND: dict[str, str] = {"reorder_task_steps": "step", "reorder_step_acti
 # Not references: free text or opaque keys that merely end in `_id`.
 NOT_A_REFERENCE = frozenset({"external_id", "idempotency_key", "client_ref", "account_ref"})
 # Tools that act on a record only once it is in the trash.
-TRASHED_TOOLS = frozenset({"restore_from_trash"})
+TRASHED_TOOLS = frozenset({"restore_from_trash", "restore_journal_photo"})
 
 VERSIONED = frozenset(
     {
@@ -81,6 +84,7 @@ VERSIONED = frozenset(
         "task",
         "contact",
         "entry",
+        "photo",
         "draft",
         "run",
         "automation",
@@ -205,6 +209,20 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
                     },
                 )
                 item = created["entry"]
+            elif kind == "photo":
+                parent = await make("entry")
+                created = await call(
+                    "add_journal_photo",
+                    {
+                        "entry_id": parent.id,
+                        "photo": base64.b64encode(photo_files.jpeg()).decode(),
+                        "thumbnail": base64.b64encode(photo_files.jpeg(320, 240)).decode(),
+                        "alt_text": label("photo"),
+                        "camera": label("camera"),
+                        "location": {"lat": 59.33, "lon": 18.07, "name": label("place")},
+                    },
+                )
+                item = created["photo"]
             elif kind == "list":
                 item = (await call("create_shopping_list", {"name": label("list")}))[
                     "shopping_list"
@@ -225,6 +243,7 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
 
         for kind in ("domain", "process", "project", "contact", "entry", "list", "item"):
             seed.records[kind] = await make(kind)
+        seed.records["photo"] = await make("photo")
         # A task inside the project, with a tag, a contact, a step, an action and a reference.
         task = (
             await call(
@@ -376,6 +395,12 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
                 {"kind": enum_for(kind), "record_id": record.id, "version": record.version},
             )
             seed.records[f"trashed_{kind}"] = Record(record.id, trashed["version"])
+        # A photo is trashed through its own tool; the trash tools do not reach the kind.
+        photo = await make("photo")
+        moved = await call(
+            "trash_journal_photo", {"photo_id": photo.id, "expected_version": photo.version}
+        )
+        seed.records["trashed_photo"] = Record(photo.id, moved["version"])
     return seed
 
 

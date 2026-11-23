@@ -82,6 +82,7 @@ PATH_PARAMETERS = {
         ("GET", f"/companion/v1/journal/entries/{TASK}"),
         ("GET", f"/companion/v1/journal/sources/{TASK}"),
         ("POST", "/companion/v1/journal/entries"),
+        ("POST", "/companion/v1/journal/photos"),
         ("POST", f"/companion/v1/journal/entries/{TASK}/update"),
         ("GET", "/companion/v1/license"),
         ("PUT", "/companion/v1/license"),
@@ -206,6 +207,11 @@ def test_the_companion_routes_are_public_by_method_and_path(method: str, path: s
         ("POST", f"/companion/v1/journal/entries/{TASK}"),
         ("GET", f"/companion/v1/journal/entries/{TASK}/update"),
         ("GET", f"/companion/v1/journal/entries/{TASK}/source"),
+        ("GET", "/companion/v1/journal/photos"),
+        ("PUT", "/companion/v1/journal/photos"),
+        ("DELETE", "/companion/v1/journal/photos"),
+        ("POST", f"/companion/v1/journal/photos/{TASK}"),
+        ("GET", f"/companion/v1/journal/photos/{TASK}"),
         ("POST", f"/companion/v1/journal/sources/{TASK}"),
         ("GET", f"/companion/v1/journal/sources/{TASK}/raw"),
         ("GET", "/companion/v1/journal/sources"),
@@ -347,6 +353,32 @@ def test_the_journal_operations_hold_exactly_the_scopes_of_their_mcp_tools() -> 
     }
     for operation, tool in pairs.items():
         assert by_name[operation].application_scopes == frozenset(JOURNAL_TOOL_SCOPES[tool])
+
+
+def test_the_photo_upload_holds_the_scopes_of_its_tool_and_is_the_only_photo_operation() -> None:
+    from sidekick.mcp.journal_photo_tools import JOURNAL_PHOTO_TOOL_SCOPES
+
+    by_name = {item.name: item for item in OPERATIONS}
+    upload = by_name["journal.photo_add"]
+    assert upload.application_scopes == frozenset(JOURNAL_PHOTO_TOOL_SCOPES["add_journal_photo"])
+    assert upload.capability == "companion:journal:write"
+    assert upload.also == "companion:journal:read"
+    # The phone only adds a photo: it neither reads, changes nor trashes one through the companion.
+    assert [name for name in by_name if "photo" in name] == ["journal.photo_add"]
+    spec = next(
+        item for item in create_companion_router().specs if item.operation == "journal.photo_add"
+    )
+    assert (spec.method, spec.path) == ("POST", "/journal/photos")
+    assert spec.body is not None and spec.body.content_type == "multipart/form-data"
+
+
+def test_the_caddy_example_forwards_the_photo_upload_with_its_own_cap() -> None:
+    caddy = (CONTRACTS.parent / "deploy/selfhost/Caddyfile.example").read_text(encoding="utf-8")
+    assert (
+        "@companion_photo {\n\t\tmethod POST\n\t\tpath /companion/v1/journal/photos\n\t}" in caddy
+    )
+    handler = caddy.split("handle @companion_photo {", 1)[1].split("\n\t}", 1)[0]
+    assert "max_size 5MiB" in handler and "reverse_proxy api:8000" in handler
 
 
 def test_the_work_writes_hold_the_write_scope_of_their_mcp_tool_and_need_the_read_capability() -> (

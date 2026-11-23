@@ -32,6 +32,8 @@ no draft or summary flow:
 - `POST /companion/v1/journal/entries`                      = `write_journal_entry`
 - `POST /companion/v1/journal/entries/{entry_id}/update`    = `update_journal_entry`
   (`{"version", ...}`: `version` is the tool's `expected_version`)
+- `POST /companion/v1/journal/photos`                       = `add_journal_photo` (multipart; see
+  `sidekick.api.companion_photos`)
 
 Every write carries `Idempotency-Key`; a stale `version` is 409 `stale_version`, another owner's id
 is 404, and the owner is always the credential's.
@@ -366,8 +368,11 @@ def _add_shopping_item_write_routes(router: CompanionRouter) -> None:
 
 def add_journal_routes(router: CompanionRouter) -> None:
     """Register the Journal routes on the companion router."""
+    from sidekick.api.companion_photos import add_journal_photo_routes
+
     _add_journal_read_routes(router)
     _add_journal_write_routes(router)
+    add_journal_photo_routes(router)
 
 
 def _add_journal_read_routes(router: CompanionRouter) -> None:

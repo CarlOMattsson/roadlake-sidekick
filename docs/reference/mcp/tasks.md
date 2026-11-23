@@ -194,7 +194,7 @@ Access: read
 
 Scopes: requires `tasks:read`; some arguments or parts of the answer also use `projects:read`.
 
-Returns: `ReviewQueueOutput` with `bucket_counts` (object), `remaining_total` (integer), `tasks` (array of ReviewQueueRecord), `next_cursor` (string or null).
+Returns: `ReviewQueueOutput` with `bucket_counts` (object), `remaining_total` (integer), `scope` (string), `tasks` (array of ReviewQueueRecord), `next_cursor` (string or null).
 
 | Parameter | Type | Required | Notes |
 | --- | --- | --- | --- |

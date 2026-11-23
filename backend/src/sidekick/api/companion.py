@@ -109,6 +109,9 @@ from fastapi.routing import APIRoute
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic import ValidationError as PydanticValidationError
 from starlette.concurrency import run_in_threadpool
+from starlette.datastructures import UploadFile
+from starlette.formparsers import MultiPartException
+from starlette.types import Message
 
 from sidekick.api.ingress_problem import problem_response as _problem_response
 from sidekick.api.pairing_budget import (
@@ -325,29 +328,41 @@ def _log(request: Request, operation: str, status: int, code: str | None = None)
     LOGGER.info("companion_request", extra=safe_log_fields(fields))
 
 
+JSON_CONTENT = "application/json"
+MULTIPART_CONTENT = "multipart/form-data"
+# Most parts of a multipart form: the photo upload has two files and eight small fields.
+MAX_FORM_PARTS = 12
+
+
 @dataclass(frozen=True, slots=True)
 class RequestBody[Model: BaseModel]:
-    """A route's JSON body: the model, and the largest body that is read for it.
+    """A route's body: the model, and the largest body that is read for it.
 
     The route declares it once in its `CompanionRouteSpec(..., body=...)` and reads it with
     `read`, so the published contract and the handler cannot name different models or limits.
     `required=False` is for a body that may be left out entirely (an empty object is then the
-    only legal value).
+    only legal value). The body is JSON, except for a route that declares `content_type` as
+    `multipart/form-data` (a photo upload): its parts are the model's fields, a file part being a
+    `bytes` field.
     """
 
     model: type[Model]
     max_bytes: int
     required: bool = True
+    content_type: str = JSON_CONTENT
 
     async def read(self, request: Request) -> Model:
-        """The JSON body, read only after authentication and capped; a refusal never echoes it."""
+        """The body, read only after authentication and capped; a refusal never echoes it."""
 
-        if "application/json" not in request.headers.get("content-type", ""):
+        if self.content_type not in request.headers.get("content-type", ""):
             raise CompanionProblem(415, "unsupported_media_type", "Unsupported media type")
         body = await _bounded_body(request, self.max_bytes)
         try:
-            parsed = self.model.model_validate_json(body)
-        except PydanticValidationError:
+            if self.content_type == MULTIPART_CONTENT:
+                parsed = self.model.model_validate(await _form_fields(request, body))
+            else:
+                parsed = self.model.model_validate_json(body)
+        except (PydanticValidationError, MultiPartException):
             raise CompanionProblem(422, "validation_error", "Request validation failed") from None
         if contains_nul(parsed.model_dump()):
             raise _nul_problem()
@@ -454,6 +469,33 @@ class CompleteTaskRequest(BaseModel):
 
 def iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
+
+
+async def _form_fields(request: Request, body: bytes) -> dict[str, Any]:
+    """The parts of a multipart body already read: text parts as text, file parts as bytes.
+
+    A part that is sent twice, or a body with more than a handful of parts, is refused: the upload
+    form names each field once.
+    """
+
+    sent = False
+
+    async def receive() -> Message:
+        nonlocal sent
+        if sent:
+            return {"type": "http.disconnect"}
+        sent = True
+        return {"type": "http.request", "body": body, "more_body": False}
+
+    form = await Request(request.scope, receive).form(
+        max_files=MAX_FORM_PARTS, max_fields=MAX_FORM_PARTS
+    )
+    fields: dict[str, Any] = {}
+    for name, value in form.multi_items():
+        if name in fields:
+            raise MultiPartException("a field was sent twice")
+        fields[name] = await value.read() if isinstance(value, UploadFile) else value
+    return fields
 
 
 async def _bounded_body(request: Request, limit: int) -> bytes:

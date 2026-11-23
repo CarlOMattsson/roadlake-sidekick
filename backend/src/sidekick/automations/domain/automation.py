@@ -53,3 +53,13 @@ class SuggestionCheck:
     confidence: int | None
     reason_codes: tuple[str, ...]
     checked_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class ReportCursor:
+    """The instant up to which the owner has seen the automation report."""
+
+    owner_id: UUID
+    seen_until: datetime
+    version: int
+    updated_at: datetime

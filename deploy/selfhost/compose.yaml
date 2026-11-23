@@ -125,6 +125,7 @@ x-sidekick-env-ai: &sidekick-env-ai
   SIDEKICK_AI_DEFAULT_TASK_CAP_USD:
   SIDEKICK_AI_MONTHLY_CAP_USD:
   SIDEKICK_AI_AUTOMATION_MONTHLY_CAP_USD:
+  SIDEKICK_AI_AUTOMATION_RUNS_PER_DAY:
   SIDEKICK_AI_MAX_ATTEMPTS_PER_STEP:
   SIDEKICK_AI_LOCAL_MODELS_EXEMPT_FROM_CAP:
   SIDEKICK_AI_CHECK_PROVIDER:
@@ -375,7 +376,8 @@ services:
     # environment as api, but only the settings it reads (see x-sidekick-env-common). It writes to the database (it
     # creates the tasks), so update.sh stops and restarts it with api (WORKERS there) and tools/work.sh pauses it during
     # a backup. Beyond the common set it builds the same container as api: the memory settings (the memory provider), the
-    # push flag (task changes queue a wake push) and the license key.
+    # push flag (task changes queue a wake push), the license key and the media directory (the photo service is
+    # wired in the container; the worker stores and reads no photo).
     image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
     build: *sidekick-build
     environment:
@@ -385,6 +387,7 @@ services:
       SIDEKICK_PUSH_ENABLED:
       SIDEKICK_PUSH_WAKE_MIN_INTERVAL_SECONDS:
       SIDEKICK_LICENSE_PUBLIC_KEY:
+      SIDEKICK_MEDIA_DIRECTORY:
     secrets:
       - database_url
       - cursor_signing_secret

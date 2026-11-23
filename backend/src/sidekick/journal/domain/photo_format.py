@@ -24,11 +24,14 @@ import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Final, Literal
 
 from sidekick.shared.errors import ValidationError
 
-JPEG = "image/jpeg"
-WEBP = "image/webp"
+MediaType = Literal["image/jpeg", "image/webp"]
+
+JPEG: Final[MediaType] = "image/jpeg"
+WEBP: Final[MediaType] = "image/webp"
 
 
 @dataclass(frozen=True, slots=True)
@@ -70,7 +73,7 @@ class PhotoRefusedError(ValidationError):
 
 @dataclass(frozen=True, slots=True)
 class PhotoInfo:
-    media_type: str
+    media_type: MediaType
     width: int
     height: int
     byte_size: int

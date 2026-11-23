@@ -25,6 +25,7 @@ import {
   type WorkFrame,
   type WorkItemRecord,
 } from "./transport-frames";
+import { reviewQueuePage } from "../review/review-walk-data";
 import type {
   WorkContactContext,
   WorkContactRecord,
@@ -96,6 +97,8 @@ export function rootFromToolResult(
       return { kind: "card", items, total, truncated, ...keyed };
     return undefined;
   }
+  const review = reviewQueuePage(structured);
+  if (review) return { kind: "review", page: review };
   const taskId = data?.task?.id;
   if (typeof taskId === "string") {
     const task = data?.task;

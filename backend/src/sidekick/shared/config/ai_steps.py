@@ -30,6 +30,12 @@ class AiStepSettings(SettingsGroup):
         "automation may budget one run above it. When left unset it is 15 or the monthly cap, "
         "whichever is lower. A value above the monthly cap is refused.",
     )
+    ai_automation_runs_per_day: int = Field(
+        default=20,
+        ge=1,
+        le=1_000,
+        description="Most automation runs that may be started per day, all automations together.",
+    )
     ai_max_attempts_per_step: int = Field(
         default=3,
         ge=1,

@@ -10,6 +10,7 @@ from sqlalchemy import (
     Computed,
     Date,
     DateTime,
+    Double,
     ForeignKey,
     ForeignKeyConstraint,
     Index,
@@ -510,6 +511,24 @@ class JournalAttachmentRow(Base):
         ),
         CheckConstraint('"position" >= 0', name="ck_journal_attachments_position"),
         CheckConstraint("version >= 1", name="ck_journal_attachments_version"),
+        CheckConstraint(
+            "(location_lat IS NULL) = (location_lon IS NULL) "
+            "AND (location_lat IS NULL OR location_lat BETWEEN -90 AND 90) "
+            "AND (location_lon IS NULL OR location_lon BETWEEN -180 AND 180)",
+            name="ck_journal_attachments_location",
+        ),
+        CheckConstraint(
+            "location_name IS NULL "
+            "OR (location_lat IS NOT NULL AND length(btrim(location_name)) > 0)",
+            name="ck_journal_attachments_location_name",
+        ),
+        CheckConstraint(
+            "camera IS NULL OR length(btrim(camera)) > 0", name="ck_journal_attachments_camera"
+        ),
+        CheckConstraint(
+            "orientation IS NULL OR orientation BETWEEN 1 AND 8",
+            name="ck_journal_attachments_orientation",
+        ),
         ForeignKeyConstraint(
             ["entry_id", "owner_id"],
             [f"{SCHEMA}.journal_entries.id", f"{SCHEMA}.journal_entries.owner_id"],
@@ -554,6 +573,11 @@ class JournalAttachmentRow(Base):
     alt_text: Mapped[str | None] = mapped_column(String(500))
     alt_text_by: Mapped[str | None] = mapped_column(String(8))
     taken_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    location_lat: Mapped[float | None] = mapped_column(Double)
+    location_lon: Mapped[float | None] = mapped_column(Double)
+    location_name: Mapped[str | None] = mapped_column(String(120))
+    camera: Mapped[str | None] = mapped_column(String(80))
+    orientation: Mapped[int | None] = mapped_column(SmallInteger)
     position: Mapped[int] = mapped_column(SmallInteger)
     version: Mapped[int] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

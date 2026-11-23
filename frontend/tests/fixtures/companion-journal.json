@@ -1,5 +1,9 @@
 {
   "day": {
+    "day_attachments": {
+      "count": 0,
+      "ids": []
+    },
     "done": {
       "counts": {
         "purchases": 0,
@@ -14,15 +18,19 @@
     "entries": [
       {
         "archived": false,
+        "attachments": {
+          "count": 0,
+          "ids": []
+        },
         "contact_ids": [],
-        "id": "01a1ecf4-0699-7e46-8d47-048737509589",
+        "id": "01a20534-44f8-70a9-9a3f-8b134382a526",
         "journal_date": "2026-11-10",
         "key_points": [],
         "links": [],
         "memory_excluded": false,
         "occurred_at": null,
         "project_ids": [],
-        "source_id": "01a1ecf4-068b-7441-b6ac-27c13d7f7c11",
+        "source_id": "01a20534-44ee-7c0d-8988-a2edf8f17c81",
         "summary": "Gick längs vattnet och funderade på nästa vecka.\nÅ, vilken kväll!",
         "summary_by": "you",
         "tags": [],
@@ -31,7 +39,7 @@
         "version": 1
       }
     ],
-    "entry_fingerprint": "706cd3a7aa093b6649a7d28ddf85d1fbbf5daa9a4e0d885c6948baa72e8cb44c",
+    "entry_fingerprint": "81a434d156ba63b4aac14d20004b8eab8e46eed6ef2254e914a7128fbeaad295",
     "journal_date": "2026-11-10",
     "next_cursor": null,
     "owner_timezone": "Europe/Stockholm",
@@ -46,9 +54,13 @@
       "status": null,
       "version": null
     },
-    "today": "2026-11-18"
+    "today": "2026-11-22"
   },
   "emptyDay": {
+    "day_attachments": {
+      "count": 0,
+      "ids": []
+    },
     "done": {
       "counts": {
         "purchases": 0,
@@ -76,20 +88,24 @@
       "status": null,
       "version": null
     },
-    "today": "2026-11-18"
+    "today": "2026-11-22"
   },
   "entry": {
     "entry": {
       "archived": false,
+      "attachments": {
+        "count": 0,
+        "ids": []
+      },
       "contact_ids": [],
-      "id": "01a1ecf4-0699-7e46-8d47-048737509589",
+      "id": "01a20534-44f8-70a9-9a3f-8b134382a526",
       "journal_date": "2026-11-10",
       "key_points": [],
       "links": [],
       "memory_excluded": false,
       "occurred_at": null,
       "project_ids": [],
-      "source_id": "01a1ecf4-068b-7441-b6ac-27c13d7f7c11",
+      "source_id": "01a20534-44ee-7c0d-8988-a2edf8f17c81",
       "summary": "Gick längs vattnet och funderade på nästa vecka.\nÅ, vilken kväll!",
       "summary_by": "you",
       "tags": [],
@@ -101,8 +117,8 @@
   "source": {
     "source": {
       "content_fingerprint": "4ad8c64250122729885ff5d247493f71ac34c095a9d1c89bdfb403ad01a6a529",
-      "created_at": "2026-11-18T04:39:37.867462Z",
-      "id": "01a1ecf4-068b-7441-b6ac-27c13d7f7c11",
+      "created_at": "2026-11-22T21:40:41.326824Z",
+      "id": "01a20534-44ee-7c0d-8988-a2edf8f17c81",
       "journal_date": "2026-11-10",
       "language": null,
       "occurred_at": null,
@@ -115,15 +131,19 @@
   "write": {
     "entry": {
       "archived": false,
+      "attachments": {
+        "count": 0,
+        "ids": []
+      },
       "contact_ids": [],
-      "id": "01a1ecf4-0699-7e46-8d47-048737509589",
+      "id": "01a20534-44f8-70a9-9a3f-8b134382a526",
       "journal_date": "2026-11-10",
       "key_points": [],
       "links": [],
       "memory_excluded": false,
       "occurred_at": null,
       "project_ids": [],
-      "source_id": "01a1ecf4-068b-7441-b6ac-27c13d7f7c11",
+      "source_id": "01a20534-44ee-7c0d-8988-a2edf8f17c81",
       "summary": "Gick längs vattnet och funderade på nästa vecka.\nÅ, vilken kväll!",
       "summary_by": "you",
       "tags": [],

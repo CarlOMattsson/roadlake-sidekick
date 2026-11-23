@@ -4,6 +4,7 @@
  */
 import type { Item, WithOptional } from "../../../lib/mcp/derived";
 import type { ToolResults } from "../../../lib/mcp/tool-results.generated";
+import type { ReviewQueuePage } from "../review/review-walk-data";
 import type {
   WorkContactContext,
   WorkContactRecord,
@@ -189,6 +190,8 @@ export type WorkCompactFrame = {
   entity: "contact";
   contact: WorkContactRecord;
 };
+/** The review queue (get_review_queue), walked through one Task at a time in its card. */
+export type WorkReviewFrame = { kind: "review"; page: ReviewQueuePage };
 /** Shown when the tool result was an error (isError); carries no data. */
 export type WorkErrorFrame = { kind: "error" };
 /**
@@ -203,4 +206,5 @@ export type WorkFrame =
   | WorkContactsFrame
   | WorkCardFrame
   | WorkCompactFrame
+  | WorkReviewFrame
   | WorkErrorFrame;
